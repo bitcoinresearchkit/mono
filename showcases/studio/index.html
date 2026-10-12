@@ -70,6 +70,8 @@
         --panel-width: 300px;
         --tablet-panel: 44dvh;
         --sheet-whole: 0.88;
+        /* (What an installed app's status bar takes at the top, for the script to read.) */
+        --safe-top: env(safe-area-inset-top);
         --sheet-half: 0.56;
         --app: light-dark(#f6f6f7, #08090a);
         --card: light-dark(#ffffff, #0e0f11);
@@ -327,7 +329,7 @@
 
       /* On a row that's lit (selected, current, a menu's pointed at or open), its small grey text a tier up: on the lit ground, the muted grey reads too
          faintly. */
-      :is([aria-selected="true"], [aria-current]:not([aria-current="false"]), .menu > button:is(:hover, :focus-visible, [aria-expanded="true"])) {
+      :is([aria-selected="true"], [aria-current]:not([aria-current="false"]), .menu > button:is(:hover:where(.can-hover *), :focus-visible, [aria-expanded="true"])) {
         --muted: var(--soft);
       }
 
@@ -445,7 +447,7 @@
         initial-value: 120ms;
       }
 
-      :hover,
+      :hover:where(.can-hover *),
       .lit {
         --fade: 0s;
       }
@@ -464,7 +466,7 @@
         white-space: nowrap;
         transition: background var(--fade), border-color var(--fade), color var(--fade), transform var(--dur-micro) var(--ease);
 
-        &:hover:not(:disabled, [aria-disabled="true"]) {
+        &:hover:where(.can-hover *):not(:disabled, [aria-disabled="true"]) {
           background: var(--press);
         }
 
@@ -488,7 +490,7 @@
           color: var(--soft);
           background: none;
 
-          &:hover:not(:disabled, [aria-disabled="true"]) {
+          &:hover:where(.can-hover *):not(:disabled, [aria-disabled="true"]) {
             color: var(--ink);
             background: var(--hover);
           }
@@ -524,7 +526,7 @@
         text-decoration: none;
         transition: background var(--fade), color var(--fade), transform var(--dur-micro) var(--ease);
 
-        &:hover:not(:disabled, [aria-disabled="true"]) {
+        &:hover:where(.can-hover *):not(:disabled, [aria-disabled="true"]) {
           color: var(--ink);
           background: var(--hover);
         }
@@ -571,7 +573,7 @@
           color: var(--ink);
           background: var(--press);
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             background: var(--active);
           }
         }
@@ -600,7 +602,7 @@
           white-space: nowrap;
           transition: color var(--fade), background var(--fade);
 
-          &:hover:not(:disabled, [aria-disabled="true"]) {
+          &:hover:where(.can-hover *):not(:disabled, [aria-disabled="true"]) {
             color: var(--text);
           }
 
@@ -819,7 +821,7 @@
           transition: color var(--fade), background var(--fade);
         }
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           color: var(--soft);
           box-shadow: inset 0 0 0 1px var(--faint);
 
@@ -870,7 +872,7 @@
           transition: opacity var(--dur-micro) var(--ease);
         }
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           color: var(--ink);
           background: var(--hover);
 
@@ -932,6 +934,14 @@
         .name {
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        /* (A chart's mark at its size in a row: its own, unset, took its name's room.) */
+        .chart-mark {
+          flex-shrink: 0;
+          width: 16px;
+          height: 12px;
+          color: var(--muted);
         }
       }
 
@@ -1015,14 +1025,14 @@
         }
 
         /* (Its ⋯ on hover, or reached by a key: a click leaves nothing showing.) */
-        &:hover,
+        &:hover:where(.can-hover *),
         &:has(:focus-visible) {
           .chart-more {
             opacity: 1;
           }
         }
 
-        &:hover .chart-item {
+        &:hover:where(.can-hover *) .chart-item {
           color: var(--ink);
           background: var(--hover);
         }
@@ -1059,7 +1069,7 @@
           text-align: center;
         }
 
-        &:hover,
+        &:hover:where(.can-hover *),
         &:has(:focus-visible) {
           .chart-more {
             opacity: 1;
@@ -1070,7 +1080,7 @@
           }
         }
 
-        &:hover .folder-item {
+        &:hover:where(.can-hover *) .folder-item {
           color: var(--ink);
           background: var(--hover);
         }
@@ -1235,7 +1245,7 @@
         transition: background var(--fade);
 
         /* Lit while the pointer is on its line in the chart. */
-        &:hover,
+        &:hover:where(.can-hover *),
         &.lit {
           background: var(--hover);
         }
@@ -1271,7 +1281,7 @@
           opacity: 0;
         }
 
-        &:hover > .cap,
+        &:hover:where(.can-hover *) > .cap,
         &.hidden > .cap,
         > .cap:focus-visible {
           opacity: 1;
@@ -1746,7 +1756,7 @@
           width: auto;
         }
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           background: var(--hover);
         }
 
@@ -1870,7 +1880,7 @@
         font: 510 12px var(--sans);
         font-variant-numeric: tabular-nums;
 
-        &:hover:not(:disabled) {
+        &:hover:where(.can-hover *):not(:disabled) {
           color: var(--soft);
           background: var(--field);
           box-shadow: inset 0 0 0 1px var(--faint);
@@ -2097,7 +2107,7 @@
           pointer-events: auto;
           transition: background var(--fade), color var(--fade);
 
-          &:hover,
+          &:hover:where(.can-hover *),
           &.lit {
             color: var(--ink);
             background: var(--fill);
@@ -2240,7 +2250,7 @@
         }
       }
 
-      .navigator:hover .brush,
+      .navigator:hover:where(.can-hover *) .brush,
       .brush.dragging {
         box-shadow: inset 0 0 0 1px var(--edge);
 
@@ -2344,7 +2354,7 @@
         cursor: grab;
         touch-action: none;
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           color: var(--soft);
         }
       }
@@ -2444,7 +2454,7 @@
           place-items: center;
           background: none;
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             background: var(--hover);
           }
 
@@ -2751,7 +2761,7 @@
           text-decoration-color: var(--line-strong);
           text-underline-offset: 3px;
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             color: var(--ink);
           }
         }
@@ -2837,7 +2847,7 @@
           white-space: nowrap;
         }
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           background: light-dark(var(--hover), color-mix(in srgb, var(--field), white 4%));
           box-shadow: inset 0 0 0 1px var(--line-strong), var(--sheen);
 
@@ -2861,7 +2871,7 @@
         font-size: 13px;
         transition: box-shadow var(--fade), color var(--fade);
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           box-shadow: inset 0 0 0 1px var(--faint);
         }
       }
@@ -2886,7 +2896,7 @@
           transition: opacity var(--dur-micro) var(--ease);
         }
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           color: var(--soft);
 
           kbd {
@@ -3026,7 +3036,7 @@
             color: var(--muted);
           }
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             color: var(--ink);
 
             svg {
@@ -3034,7 +3044,7 @@
             }
           }
 
-          &.danger:hover {
+          &.danger:hover:where(.can-hover *) {
             &,
             svg {
               color: var(--danger);
@@ -3069,7 +3079,7 @@
           color: var(--muted);
         }
 
-        &:hover,
+        &:hover:where(.can-hover *),
         &[aria-expanded="true"] {
           color: var(--ink);
           background: var(--press);
@@ -3140,7 +3150,7 @@
           color: var(--muted);
         }
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           background: var(--hover);
         }
 
@@ -3195,7 +3205,7 @@
             background: none;
             box-shadow: none;
 
-            &:is(:hover, [aria-expanded="true"]) {
+            &:is(:hover:where(.can-hover *), [aria-expanded="true"]) {
               background: var(--hover);
             }
           }
@@ -3231,7 +3241,7 @@
             height: 12px;
           }
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             color: var(--ink);
             background: var(--hover);
           }
@@ -3293,7 +3303,7 @@
           color: var(--muted);
         }
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           background: var(--hover);
 
           svg {
@@ -3326,7 +3336,7 @@
         font-size: 12px;
         font-weight: 510;
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           color: var(--ink);
         }
       }
@@ -3396,7 +3406,7 @@
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line-strong);
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           box-shadow: inset 0 0 0 1px var(--faint);
         }
 
@@ -3561,7 +3571,7 @@
             overflow-wrap: anywhere;
           }
 
-          &:hover:not([aria-selected="true"]) {
+          &:hover:where(.can-hover *):not([aria-selected="true"]) {
             background: var(--hover);
           }
         }
@@ -3675,7 +3685,7 @@
             transition: transform var(--dur-micro) var(--ease);
           }
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             color: var(--ink);
           }
         }
@@ -3699,7 +3709,7 @@
             background: none;
             text-align: left;
 
-            &:hover {
+            &:hover:where(.can-hover *) {
               background: var(--hover);
             }
 
@@ -3731,7 +3741,7 @@
         box-shadow: inset 0 0 0 1px var(--line-strong);
         font: 13px var(--sans);
 
-        &:is(:hover, [aria-expanded="true"]) {
+        &:is(:hover:where(.can-hover *), [aria-expanded="true"]) {
           box-shadow: inset 0 0 0 1px var(--faint);
         }
 
@@ -3786,7 +3796,7 @@
         touch-action: pan-y;
         user-select: none;
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           box-shadow: inset 0 0 0 1px var(--faint);
         }
 
@@ -3845,7 +3855,7 @@
           left: 10px;
         }
 
-        &:hover .value,
+        &:hover:where(.can-hover *) .value,
         &:focus-visible .value {
           color: var(--ink);
         }
@@ -4133,7 +4143,7 @@
             white-space: nowrap;
           }
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             color: var(--text);
             background: var(--hover);
           }
@@ -4210,7 +4220,7 @@
           box-shadow: inset 0 0 0 1px light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.1));
           cursor: pointer;
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             outline: 1px solid var(--line-strong);
             outline-offset: 2px;
           }
@@ -4594,7 +4604,7 @@
           text-overflow: ellipsis;
           white-space: nowrap;
 
-          &:hover:not(:disabled) {
+          &:hover:where(.can-hover *):not(:disabled) {
             background: var(--active);
           }
 
@@ -4681,7 +4691,7 @@
           font: 510 12px/28px var(--sans);
           text-overflow: ellipsis;
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             color: var(--ink);
             background: var(--hover);
           }
@@ -5061,7 +5071,7 @@
           background: none;
           font: inherit;
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             color: var(--ink);
             background: var(--hover);
           }
@@ -5141,9 +5151,11 @@
         }
       }
 
+      /* (Centered in what the screen leaves: on a phone, clear of its status bar and home indicator, its notch on its side.) */
       .shortcuts {
-        width: min(780px, calc(100vw - 32px));
-        max-height: min(760px, calc(100dvh - 96px));
+        inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        width: min(780px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+        max-height: min(760px, calc(100dvh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
 
         .dialog-head {
           position: sticky;
@@ -5237,6 +5249,11 @@
         box-shadow: var(--pop);
         animation: menu var(--dur-small) var(--ease);
 
+        /* (Focused as a whole, opened by a finger: no ring around it.) */
+        &:focus {
+          outline: none;
+        }
+
         > button {
           display: flex;
           align-items: center;
@@ -5251,7 +5268,7 @@
           text-align: left;
           white-space: nowrap;
 
-          &:hover,
+          &:hover:where(.can-hover *),
           &:focus-visible,
           &[aria-expanded="true"] {
             color: var(--ink);
@@ -5273,7 +5290,7 @@
             cursor: default;
           }
 
-          &.danger:is(:hover, :focus-visible) {
+          &.danger:is(:hover:where(.can-hover *), :focus-visible) {
             color: var(--danger);
 
             svg {
@@ -5363,7 +5380,7 @@
             font: 510 12px var(--sans);
             font-variant-numeric: tabular-nums;
 
-            &:hover:not(:disabled, [aria-disabled="true"]) {
+            &:hover:where(.can-hover *):not(:disabled, [aria-disabled="true"]) {
               color: var(--ink);
               background: var(--press);
             }
@@ -5610,7 +5627,7 @@
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
 
-        &:hover:not(:disabled) {
+        &:hover:where(.can-hover *):not(:disabled) {
           background: var(--field);
           box-shadow: inset 0 0 0 1px var(--faint);
         }
@@ -5673,10 +5690,11 @@
         background: var(--box);
         box-shadow: inset 0 0 0 1px var(--line);
 
-        /* (At the very top of the page as it scrolls: a sticky box keeps clear of its scroller's padding, it's undone.) */
+        /* (At the very top of the page as it scrolls: a sticky box keeps clear of its scroller's padding, it's undone;
+           under an installed app's status bar, below it.) */
         > .grid-folder {
           position: sticky;
-          top: calc(-1 * var(--home-top));
+          top: calc(env(safe-area-inset-top) - var(--home-top));
           z-index: 3;
           height: 44px;
           margin: 0 -10px;
@@ -5698,8 +5716,10 @@
           }
         }
 
-        /* (Where its box starts: see heldHeads.) */
+        /* (Where its box starts, as far above it as its head is held under an installed app's status bar: see heldHeads.) */
         > .held-mark {
+          position: relative;
+          top: calc(-1 * env(safe-area-inset-top));
           display: block;
         }
 
@@ -5743,7 +5763,7 @@
             }
           }
 
-          &:hover {
+          &:hover:where(.can-hover *) {
             color: var(--ink);
             background: var(--hover);
           }
@@ -5765,7 +5785,7 @@
           opacity: 0;
         }
 
-        &:hover .cap,
+        &:hover:where(.can-hover *) .cap,
         .cap:focus-visible {
           opacity: 1;
         }
@@ -5863,7 +5883,7 @@
           transition-delay: 0s, 0s, 60ms;
         }
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           box-shadow: inset 0 0 0 1px var(--line-strong), var(--sheen);
 
           .tile-name {
@@ -6121,7 +6141,7 @@
         cursor: pointer;
         transition: opacity var(--dur-micro) var(--ease), border-color var(--dur-micro) var(--ease), background var(--dur-micro) var(--ease);
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           border-color: var(--soft);
         }
 
@@ -6141,7 +6161,7 @@
         right: 13px;
       }
 
-      .tile:is(:hover, :has(:focus-visible)) .tile-check,
+      .tile:is(:hover:where(.can-hover *), :has(:focus-visible)) .tile-check,
       .home.picking .tile-check {
         opacity: 1;
       }
@@ -6163,7 +6183,7 @@
         translate: 0 -50%;
       }
 
-      .tile:is(:hover, :has(:focus-visible)) {
+      .tile:is(:hover:where(.can-hover *), :has(:focus-visible)) {
         .tile-more {
           opacity: 1;
         }
@@ -6186,7 +6206,7 @@
         box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 55%, transparent);
         translate: 0 -50%;
 
-        &:hover {
+        &:hover:where(.can-hover *) {
           box-shadow: inset 0 0 0 1.5px var(--c);
         }
 
@@ -6196,7 +6216,7 @@
         }
       }
 
-      .layer-row:hover .row-check,
+      .layer-row:hover:where(.can-hover *) .row-check,
       .row-check:focus-visible,
       .layer-list.picking .row-check {
         opacity: 1;
@@ -6234,7 +6254,7 @@
         box-shadow: var(--pop);
         animation: rise var(--dur-small) var(--ease);
 
-        :is([data-batch="delete"], [data-layers-batch="remove"]):hover {
+        :is([data-batch="delete"], [data-layers-batch="remove"]):hover:where(.can-hover *) {
           color: var(--danger);
 
           svg {
@@ -6398,6 +6418,18 @@
 
         .home {
           inset: 0;
+
+          /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists (Safari's own
+             bar is its own; no room there, nothing). */
+          &::after {
+            content: "";
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 5;
+            height: env(safe-area-inset-top);
+            background: var(--app);
+            pointer-events: none;
+          }
         }
 
         .sidebar,
@@ -6437,7 +6469,7 @@
           color: var(--soft);
           background: none;
 
-          &:hover:not(:disabled) {
+          &:hover:where(.can-hover *):not(:disabled) {
             color: var(--ink);
             background: var(--hover);
           }
@@ -6731,7 +6763,20 @@
           max-height: 70dvh;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
           padding: 7px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
-          animation: rise var(--dur-panel) var(--ease);
+          /* (In and out from the foot, as the layers sheet: put away, it slides down before it's gone, out of reach.) */
+          transition: transform var(--dur-panel) var(--ease), display var(--dur-panel) allow-discrete;
+          animation: none;
+
+          &[hidden] {
+            transform: translateY(100%);
+            pointer-events: none;
+          }
+
+          @starting-style {
+            &:not([hidden]) {
+              transform: translateY(100%);
+            }
+          }
 
           /* A drawing's look, as the panel's fields are on a phone: the sheet's width, its controls a finger's. */
           .field.belt-pop {
@@ -7067,19 +7112,22 @@
           }
 
           /* (One row there, as on a wide screen: the ranges their own width (the foot's whole would stretch each across a
-             screen), the navigator in what's left, to none where nothing is (the layers' column beside).) */
+             screen), the navigator in what's left, to none where nothing is; the layers' column beside, the ranges a little
+             narrower, to fit (Max ran under the column).) */
           .stage-foot {
             flex-wrap: nowrap;
             height: 42px;
             padding-block: 0;
 
             #ranges {
-              flex: none;
+              flex: 0 1 auto;
+              min-width: 0;
             }
 
             #ranges button {
-              flex: none;
+              flex: 0 1 auto;
               width: 38px;
+              min-width: min-content;
             }
           }
 
@@ -7234,13 +7282,14 @@
         }
 
         /* A selection's bars as the tab bar they stand in for: its count, then each action its icon over its name, sharing
-           the width (Delete and Remove in red), then the × that ends it. */
+           what its names leave (each as wide as its name, at least: Download whole on the narrowest phone), Delete and
+           Remove in red, then the × that ends it. */
         .pick-bar {
           gap: 0;
 
           :is([data-batch], [data-layers-batch]):not([hidden], [data-batch="clear"], [data-layers-batch="clear"]) {
             display: flex;
-            flex: 1 1 0;
+            flex: 1 1 auto;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -7308,13 +7357,77 @@
           margin: auto 0 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
           padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
+          /* (In from the foot, as the layers sheet; closed, it slides down before it's gone, its backdrop fading, where the
+             browser keeps a closing dialog over the page meanwhile (Safari doesn't: there, gone at once).) */
           transition: transform var(--dur-panel) var(--ease), background var(--dur-small) var(--ease);
-          animation: rise var(--dur-panel) var(--ease);
+
+          /* (Over a dialog's own pop.) */
+          &[open] {
+            animation: none;
+          }
+
+          @supports (overlay: auto) {
+            transition: transform var(--dur-panel) var(--ease), background var(--dur-small) var(--ease), display var(--dur-panel) allow-discrete, overlay var(--dur-panel) allow-discrete;
+          }
+
+          &:not([open]) {
+            transform: translateY(100%);
+          }
+
+          @starting-style {
+            &[open] {
+              transform: translateY(100%);
+            }
+          }
+
+          &::backdrop {
+            transition: background var(--dur-small) var(--ease), opacity var(--dur-panel) var(--ease);
+            animation: none;
+
+            @supports (overlay: auto) {
+              transition: background var(--dur-small) var(--ease), opacity var(--dur-panel) var(--ease), display var(--dur-panel) allow-discrete, overlay var(--dur-panel) allow-discrete;
+            }
+          }
+
+          &:not([open])::backdrop {
+            opacity: 0;
+          }
+
+          @starting-style {
+            &[open]::backdrop {
+              opacity: 0;
+            }
+          }
         }
 
         @media not all and (max-height: 500px) and (min-width: 568px) {
           .palette[data-half] {
             height: calc(var(--sheet-half) * 100dvh);
+          }
+        }
+
+        /* (A call's help, a phone's width: a parameter's or the guide's line on two, not cut short; a line taller for it,
+           one height still, nothing below it moving as it's typed.) */
+        .palette > .call-help {
+          height: 94px;
+
+          /* (Over the one-line rule's weight.) */
+          p:not(.call-sig) {
+            display: -webkit-box;
+            overflow: hidden;
+            white-space: normal;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+          }
+        }
+
+        /* (On its side, the column's place and width, as the layers': the rail and the chart beside it; the screen's left
+           inset (its notch) not its: it's at the right.) */
+        @media (max-height: 500px) and (min-width: 568px) {
+          .palette {
+            width: var(--column);
+            margin: auto 0 0 auto;
+            padding-left: 0;
           }
         }
 
@@ -7973,7 +8086,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <button id="mobile-charts" class="tab" type="button" data-action="home"><span data-icon="grid"></span><span>Charts</span></button>
         <button class="tab" type="button" data-action="palette"><span data-icon="browse"></span><span>Search</span></button>
         <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label">Add</span></button>
-        <button id="mobile-layers" class="tab" type="button" data-sheet="panel"><span data-icon="panel"></span><span>Layers</span></button>
+        <button id="mobile-layers" class="tab" type="button" data-sheet="panel" aria-expanded="false"><span data-icon="panel"></span><span>Layers</span></button>
       </nav>
     </div>
 
@@ -8104,7 +8217,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       </div>
     </dialog>
 
-    <div id="menu" class="menu" role="menu" hidden></div>
+    <div id="menu" class="menu" role="menu" tabindex="-1" hidden></div>
     <div id="submenu" class="menu" role="menu" hidden></div>
     <div id="loupe" class="loupe" aria-hidden="true" hidden><canvas></canvas></div>
     <div id="toast" class="toast"></div>
@@ -8185,6 +8298,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const sheetWhole = () => heldUpright.matches && document.body.dataset.sheetSize === "full";
       /** A device of fingers (no hover): its words "tap", not "click". */
       const TOUCH = matchMedia("(hover: none)").matches, CLICK = TOUCH ? "tap" : "click";
+      // Hover's looks, a pointer's that hovers only (every :hover in the style is so): iOS keeps what a finger tapped
+      // hovered till the next tap, a button lit as if still pressed, a swatch as if picked. As the device is now (a mouse
+      // put to a tablet), as the style's own touch rules are.
+      {
+        const fingers = matchMedia("(hover: none)"), mark = () => document.documentElement.classList.toggle("can-hover", !fingers.matches);
+        mark();
+        fingers.addEventListener("change", mark);
+      }
       const tablet = matchMedia("(max-width: 1100px)");
       /** The build this page is (the build writes it in: its commit and when; "here" for the repo's own page), to tell which one runs. */
       const BUILD = "here, from the repo";
@@ -16408,6 +16529,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!document.body.dataset.sheet) delete document.body.dataset.sheetSize;
           if (panelOpen && document.body.dataset.sheet !== "panel" && selected) deselect();
           panelOpen = document.body.dataset.sheet === "panel";
+          // (The tab bar's Layers says its sheet's open, as it shows: lit.)
+          $("mobile-layers").setAttribute("aria-expanded", String(panelOpen));
           watch("sheet", phone.matches && Boolean(document.body.dataset.sheet), closeSheet);
           watch("menu", phone.matches && !$("menu").hidden && $("menu").classList.contains("as-sheet"), menuGoBack);
         };
@@ -17354,7 +17477,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let press = null;
         /** Held (or carried) by touch, nothing scrolls under the finger. */
         const pin = (/** @type {Event} */ event) => (press?.held || drag) && event.preventDefault();
-        /** @type {{ ids: string[], ghost: HTMLElement, x: number, y: number, at: Landing | null, scroller: HTMLElement, box: DOMRect, frame: number } | null} */
+        /** @type {{ ids: string[], ghost: HTMLElement, x: number, y: number, at: Landing | null, scroller: HTMLElement, box: DOMRect, frame: number, touch: boolean, width: number, height: number, top: number } | null} */
         let drag = null;
         /** The item an id names now (the list may have been drawn anew since the press). */
         const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
@@ -17394,7 +17517,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const follow = () => {
           if (!drag) return;
           const at = landingNow(), marked = drag.ids.every((id) => itemNamed(id)?.classList.contains("dragging"));
-          drag.ghost.style.transform = `translate(${drag.x + 14}px, ${drag.y + 12}px)`;
+          // (A finger's above it, centered, in sight on the screen (below it where there's no room above, under the status
+          // bar): beside it, the thumb was over it.)
+          const above = drag.y - drag.height - 36;
+          drag.ghost.style.transform = drag.touch ? `translate(${clamp(drag.x - drag.width / 2, 8, innerWidth - drag.width - 8)}px, ${above >= drag.top + 8 ? above : drag.y + 36}px)` : `translate(${drag.x + 14}px, ${drag.y + 12}px)`;
           if (!marked) for (const element of all$(how.item, list)) element.classList.toggle("dragging", drag.ids.includes(how.idOf(element)));
           if (marked && sameLanding(at, drag.at) && (!at || ("item" in at ? at.item : at.zone).isConnected)) return;
           unmark();
@@ -17427,7 +17553,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               break;
             }
           }
-          drag = { ids, ghost, x: event.clientX, y: event.clientY, at: null, scroller, box: scroller.getBoundingClientRect(), frame: 0 };
+          drag = { ids, ghost, x: event.clientX, y: event.clientY, at: null, scroller, box: scroller.getBoundingClientRect(), frame: 0, touch: press.touch, width: ghost.offsetWidth, height: ghost.offsetHeight, top: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0 };
           // (Its own first: the list's look as carrying, its new places shown, after.)
           how.lift?.();
           list.classList.add("carrying");
@@ -20759,13 +20885,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       addEventListener("pointerdown", (event) => ((byKeys = false), (byTouch = event.pointerType === "touch")), true);
       /** A pane's number, as the panel counts them (from 1). */
       const paneNumber = (/** @type {string} */ id) => chart.panes.findIndex((pane) => pane.id === id) + 1;
-      /** The chip and the wording for where ⌘K is: everything, adding a series, or replacing one. */
+      /**
+       * The chip and the wording for where ⌘K is: everything, adding a series, or replacing one. The chip says what's
+       * made, in a word (a layer's by its letter, a pane after a dot), the field the rest: a phone's width is the field's.
+       */
       function applyScope() {
         const chip = $("palette-scope"), input = $("palette-input");
         const replacing = palette.replacing && layerById(palette.replacing)?.series;
         chip.hidden = (!palette.adding && !palette.formula && !replacing) || palette.pages.length > 0;
-        const into = palette.into === "new" ? " to a new pane" : palette.into ? ` to pane ${paneNumber(palette.into)}` : "";
-        chip.textContent = replacing ? `Replace ${replacing}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : `Add a formula${into}`) : `Add a layer${into}`;
+        const into = palette.into === "new" ? " · new pane" : palette.into ? ` · pane ${paneNumber(palette.into)}` : "";
+        chip.textContent = replacing ? `Replace ${layerById(palette.replacing)?.letter ?? ""}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : `Formula${into}`) : `Layer${into}`;
         $("palette").dataset.mode = palette.formula ? "formula" : "";
         chip.disabled = Boolean(replacing);
         if (replacing) delete chip.dataset.tip;
@@ -20883,6 +21012,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link copy qr code scan phone", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
           ...(chart === previewing ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${folderById(chart.folder)?.name ?? "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
+          ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", words: "share image picture png screenshot photos save send message", icon: "share", run: () => exportAs("share") }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
           ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows, with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
           ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
@@ -22789,9 +22919,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (cascades(button)) return openCascade(button, event.detail === 0);
           menuPicked(button, onPick);
         };
-        // (The one ticked in sight, a long one's too: a select's choice low in its list. A flyout leaves the focus be.)
+        // (The one ticked in sight, a long one's too: a select's choice low in its list. A flyout leaves the focus be; a
+        // finger's menu takes it itself, no row lit as if a key had reached it: ↓ goes on from there.)
         const first = /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled, [data-menu-back])"));
-        if (!flyout) first?.focus({ preventScroll: true });
+        if (!flyout) (byTouch ? menu : first)?.focus({ preventScroll: true });
         if (first && menu.scrollHeight > menu.clientHeight) first.scrollIntoView({ block: "nearest" });
       }
       /**
@@ -22937,7 +23068,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.preventDefault();
         event.stopPropagation();
         const items = all$("button:not(:disabled)", root), at = items.indexOf(/** @type {HTMLElement} */ (document.activeElement));
-        items[event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (at + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
+        // (From the menu itself, none of its rows yet: ↓ its first, ↑ its last.)
+        const step = event.key === "ArrowDown" ? 1 : -1, next = at < 0 ? (step > 0 ? 0 : items.length - 1) : (at + step + items.length) % items.length;
+        items[event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : next]?.focus();
         return true;
       }
       /** The item a menu acts on alone, beside others picked: outlined while it shows. @type {HTMLElement | null} */
@@ -23348,8 +23481,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }, true);
       $("undo").addEventListener("click", () => ($("undo").getAttribute("aria-disabled") === "true" ? say("Nothing to undo") : undoLast()));
       $("redo").addEventListener("click", () => ($("redo").getAttribute("aria-disabled") === "true" ? say("Nothing to redo") : redoLast()));
-      /** Out of the open chart: its image (copied, opened, downloaded), its data, its file. @returns {Action[]} */
-      const exportRows = () => /** @type {[string, string, string, string, string][]} */ ([["copy", "Copy as image", "", ICONS.copy, "Copy"], ["open", "Open image", "In a tab of its own", ICONS.link, "Open"], ["png", "Download image", "PNG", ICONS.image, "Download"], ["csv", "Download data", "CSV", ICONS.table, "Download"], ["json", "Download chart file", "JSON", ICONS.file, "Download"]]).map(([kind, label, note, icon, verb]) => ({ key: kind, icon, label, aside: note, verb, apart: kind === "csv", run: () => exportAs(kind) }));
+      /**
+       * Out of the open chart: its image (shared, where there's a share sheet for a picture: a phone's, its Photos and
+       * messages; copied, opened, downloaded), its data, its file. @returns {Action[]}
+       */
+      const exportRows = () => /** @type {[string, string, string, string, string][]} */ ([...(SHARES_IMAGES ? [["share", "Share image", "", ICONS.share, "Share"]] : []), ["copy", "Copy as image", "", ICONS.copy, "Copy"], ["open", "Open image", "In a tab of its own", ICONS.link, "Open"], ["png", "Download image", "PNG", ICONS.image, "Download"], ["csv", "Download data", "CSV", ICONS.table, "Download"], ["json", "Download chart file", "JSON", ICONS.file, "Download"]]).map(([kind, label, note, icon, verb]) => ({ key: kind, icon, label, aside: note, verb, apart: kind === "csv", run: () => exportAs(kind) }));
       // The panel's adds, from the header (and the phone's bar): those made from layers too, once there are layers for one.
       // Adding: one page, the series, and the other kinds of layer first (in the grid, a new chart).
       for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", () => (home ? newChart() : openPalette({ add: true })));
@@ -23357,6 +23493,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Where a device has a share sheet (a phone's), the link goes through it (copying, one of its ways); else it's copied. */
       const SHEET_SHARE = TOUCH && typeof navigator.share === "function", SHARE = SHEET_SHARE ? "Share a link" : "Copy a share link";
+      /** Whether its share sheet takes a picture too. */
+      const SHARES_IMAGES = SHEET_SHARE && Boolean(navigator.canShare?.({ files: [new File([""], "chart.png", { type: "image/png" })] }));
       $("share").setAttribute("aria-label", ($("share").dataset.tip = SHARE));
       /** A link copied (asked for in the click itself, its text to come: a browser lets that write). @param {Promise<string>} link */
       async function copyLink(link) {
@@ -23955,6 +24093,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return toast(`Downloaded ${grouped.format(rows.length)} rows`);
         }
         if (kind === "copy") return copyImage();
+        if (kind === "share") return shareImage();
         if (kind === "open") return openImage();
         const name = fileName("png");
         const failed = (/** @type {unknown} */ error = null) => notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image");
@@ -23989,6 +24128,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The images opened in tabs of their own, their addresses let go of as this page goes. @type {string[]} */
       const openedImages = [];
       addEventListener("pagehide", () => openedImages.splice(0).forEach((url) => URL.revokeObjectURL(url)));
+      /** The image through the share sheet, asked for in the tap itself (drawn meanwhile: it still counts); let go of, nothing said. */
+      function shareImage() {
+        if (!canvasReadable()) return void notice(UNREADABLE);
+        const name = fileName("png");
+        chartImage()
+          .then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")))
+          .then((blob) => navigator.share({ files: [new File([/** @type {Blob} */ (blob)], name, { type: "image/png" })], title: titleOf(chart) }))
+          .catch((/** @type {unknown} */ error) => error instanceof Error && error.name !== "AbortError" && notice(error.message === UNREADABLE ? UNREADABLE : "Couldn't share the image"));
+      }
       /** The image on the clipboard, given the picture while it's still being drawn (so the click that asked counts). */
       function copyImage() {
         if (!canvasReadable()) return void notice(UNREADABLE);
