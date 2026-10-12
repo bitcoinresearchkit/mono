@@ -21,7 +21,11 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use inner::Inner;
 use optimize::optimize_runs;
 use rustc_hash::FxHashSet;
-use std::{io::Write, ops::Deref, sync::Arc};
+use std::{
+    io::{Error as IoError, ErrorKind, Write},
+    ops::Deref,
+    sync::Arc,
+};
 
 pub const DEFAULT_LEVEL_COUNT: u8 = 7;
 
@@ -337,12 +341,11 @@ impl Version {
 impl Version {
     pub fn encode_into(&self, writer: &mut impl Write) -> Result<()> {
         for level in self.iter_levels() {
-            // Run count
-            #[expect(
-                clippy::cast_possible_truncation,
-                reason = "there are always less than 256 runs"
-            )]
-            writer.write_u8(level.len() as u8)?;
+            // Run count, a byte: a level with more runs is refused, not truncated.
+            let runs = u8::try_from(level.len()).map_err(|_| {
+                IoError::new(ErrorKind::InvalidData, "a level holds more than 255 runs")
+            })?;
+            writer.write_u8(runs)?;
 
             for run in level.iter() {
                 // Table count
