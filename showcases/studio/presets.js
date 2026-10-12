@@ -39,6 +39,7 @@ const TYPES = { Line: "line", Baseline: "baseline", Histogram: "histogram", Dots
 export async function websitePresets(base) {
   stubPage();
   const { createPartialOptions } = await import(`${base}scripts/options/partial.js`);
+  const [{ colors }, { Unit }] = await Promise.all([import(`${base}scripts/utils/colors.js`), import(`${base}scripts/utils/units.js`)]);
   /** A website color's name in the shared palette ("ink" for the page's own), or none. */
   const colorOf = (/** @type {any} */ color) => {
     const name = typeof color === "function" ? String(color()).replace(/^--/, "") : "";
@@ -67,7 +68,8 @@ export async function websitePresets(base) {
       // (A series without days, by block only, the Studio can't show.)
       const series = seriesOf(blueprint.series), s = series?.name;
       if (!s || (series.by && !("day1" in series.by))) continue;
-      const [c, c2] = Array.isArray(blueprint.colors) ? blueprint.colors.map(colorOf) : Array.isArray(blueprint.color) ? blueprint.color.map(colorOf) : [colorOf(blueprint.color)];
+      // (Uncolored, as the website draws it: its unit's color, dollars green, the rest bitcoin's orange.)
+      const [c, c2] = Array.isArray(blueprint.colors) ? blueprint.colors.map(colorOf) : Array.isArray(blueprint.color) ? blueprint.color.map(colorOf) : [colorOf(blueprint.color ?? (blueprint.unit === Unit.usd ? colors.usd : colors.bitcoin))];
       /** @type {PresetLayer} */
       const layer = { s };
       const k = TYPES[/** @type {keyof typeof TYPES} */ (blueprint.type ?? "Line")];

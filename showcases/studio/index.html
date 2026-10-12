@@ -234,6 +234,47 @@
         display: none;
       }
 
+      /* Before its first render (its client from bitview.space, its charts read), the page is its ground alone, never a
+         page half made; then it settles in at once, whole (body.boot). A first visit's wait, after a moment: that it's
+         connecting. */
+      .booting {
+        display: none;
+      }
+
+      html:not([data-ready]) .app {
+        visibility: hidden;
+      }
+
+      html:not([data-ready]) body:not([data-offline], [data-picture]) .booting {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 14px;
+        color: var(--muted);
+        animation: booting var(--dur-page) var(--ease) 0.8s both;
+
+        p {
+          margin: 0;
+        }
+
+        /* (Still not in after a while, the script itself held back maybe (a browser's add-ons just starting): a reload,
+           which needs none.) */
+        a {
+          text-decoration: none;
+          animation: booting var(--dur-page) var(--ease) 12s both;
+        }
+      }
+
+      @keyframes booting {
+        from {
+          opacity: 0;
+          visibility: hidden;
+        }
+      }
+
       body[data-offline] {
         .app {
           display: none;
@@ -2775,14 +2816,14 @@
           white-space: nowrap;
         }
 
+        /* (Its place one line, as its name is: whole on hover. The cards a row, one card's two lines would make each as tall.) */
         .gist {
-          display: -webkit-box;
           overflow: hidden;
           color: var(--muted);
           font-size: 12px;
           line-height: 16px;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         &:hover {
@@ -4461,6 +4502,11 @@
       }
 
       /* The palette floats like a launcher, keys along the bottom. */
+      /* (Its handle a phone's sheet's alone.) */
+      .palette > .menu-handle {
+        display: none;
+      }
+
       .palette {
         width: min(820px, calc(100vw - 32px));
         height: min(520px, calc(100dvh - 64px));
@@ -5020,6 +5066,7 @@
 
         .palette-list li[aria-selected="true"]:not(:active) {
           background: none;
+          box-shadow: none;
         }
 
         .palette-list li {
@@ -5450,8 +5497,8 @@
         white-space: nowrap;
       }
 
-      /* The interface settles in once. */
-      body.boot :is(.sidebar > *, .card) {
+      /* The interface settles in once, as its first render's done. */
+      html[data-ready] body.boot :is(.sidebar > *, .card) {
         animation: rise var(--dur-page) var(--ease) backwards;
         animation-delay: calc(var(--i, 0) * 40ms);
       }
@@ -6585,23 +6632,6 @@
           padding: 7px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
           animation: rise var(--dur-panel) var(--ease);
 
-          /* Its handle, as the layers sheet's: dragged down, it goes (no scroll takes the drag). */
-          .menu-handle {
-            display: grid;
-            height: 20px;
-            margin: -7px 0 0;
-            place-items: center;
-            touch-action: none;
-
-            &::before {
-              content: "";
-              width: 36px;
-              height: 5px;
-              border-radius: 3px;
-              background: var(--faint);
-            }
-          }
-
           /* A drawing's look, as the panel's fields are on a phone: the sheet's width, its controls a finger's. */
           .field.belt-pop {
             width: auto;
@@ -7138,14 +7168,34 @@
           }
         }
 
+        /* ⌘K a sheet, as every sheet here: from the foot, its top rounded and a gap above it (the page dimmed behind), its
+           handle dragging it away. */
         .palette {
           width: 100vw;
           max-width: none;
-          height: 100dvh;
+          height: 88dvh;
           max-height: none;
-          margin: 0;
-          border-radius: 0;
-          padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+          margin: auto 0 0;
+          border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+          padding: 7px env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+          animation: rise var(--dur-panel) var(--ease);
+        }
+
+        /* A sheet's handle, a menu's and ⌘K's, as the layers sheet's: dragged down, it goes (no scroll takes the drag). */
+        :is(.menu.as-sheet, .palette) > .menu-handle {
+          display: grid;
+          height: 20px;
+          margin: -7px 0 0;
+          place-items: center;
+          touch-action: none;
+
+          &::before {
+            content: "";
+            width: 36px;
+            height: 5px;
+            border-radius: 3px;
+            background: var(--faint);
+          }
         }
 
         .palette-body {
@@ -7364,6 +7414,15 @@
           transition: none !important;
         }
 
+        /* (Connecting's waits kept: a delay isn't motion; it shows after them at once.) */
+        html:not([data-ready]) .booting {
+          animation: booting 1ms 0.8s both !important;
+
+          a {
+            animation: booting 1ms 12s both !important;
+          }
+        }
+
         /* Still, what loads says so: its line drawn whole, the bar across. */
         .loading-state path {
           stroke-dashoffset: 0;
@@ -7473,6 +7532,7 @@
         .app.app {
           display: block;
           height: auto;
+          visibility: visible !important;
         }
 
         .card.card {
@@ -7509,6 +7569,7 @@
     <!-- The first stop by keys: past the guide (for scripts, at the start of the page's main) to the chart, or the grid. -->
     <a class="skip" href="#main" onclick="event.preventDefault(); const keys = document.getElementById('plot-keys'); (document.body.hasAttribute('data-home') ? document.getElementById('home-filter') : keys && !keys.hidden ? keys : document.getElementById('title'))?.focus()">Skip to the chart</a>
     <!-- Bitview's client didn't load (the built page takes it from bitview.space): said, plainly. -->
+    <div class="booting" role="status"><p>Connecting to bitview.space…</p><a class="btn" href="" onclick="location.reload(); return false">Reload</a></div>
     <div id="offline" class="offline" role="alert">
       <h1>Bitview can't be reached</h1>
       <p>Studio draws its charts from bitview.space, and couldn't load from it just now. Your charts are kept in this browser.</p>
@@ -7573,7 +7634,7 @@
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
             <li>"title".</li>
             <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
-            <li>"range": what it shows: 3m, 1y, 4y or max (max if none: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
+            <li>"range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
             <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
             <li>"halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).</li>
             <li>"legend": "off": no legend over the panes.</li>
@@ -7626,7 +7687,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 // Only if long output is cut off and nothing is saved: the same options with part: 0, then part: 1, 2…
 // ({ part, parts, mime, base64 } each; at scale 2, a PNG is six to eight).</pre>
           <h2>Changing a chart</h2>
-          <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link) is written the same way, URL-encoded only where a link needs it (%20 spaces, %22 quotes, %7B %7D braces, %5B %5D brackets, %2B a plus, which a link would read as a space): it's the chart as whoever copied it has it now, their own changes in it. Read it, change it, write it back (only one past what a browser opens, about a megabyte, is compressed instead: it opens, but can't be read; as is a Share QR code's, "#c=", compressed in capitals and digits to make the code as small as it gets). Its "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".</p>
+          <p>A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link, its Share) is compressed, as short as a link gets: it opens, but can't be read (as a Share QR code's, "#c=", compressed in capitals and digits). To change a chart shared that way, open it and read it with studio.chart() (the chart as a link writes it, its JSON), then write it again, changed; a link written out, as here, opens the same. A chart's "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".</p>
           <h2>Series names</h2>
           <p>Only exact names, as Bitview's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://bitview.space/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).</p>
           <p>An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://mcp.bitview.space/, no sign-in), for the search and the data as tools.</p>
@@ -7775,6 +7836,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
     </div>
 
     <dialog id="palette" class="palette" aria-label="Search">
+      <div class="menu-handle" aria-hidden="true"></div>
       <div class="palette-search">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
         <button id="palette-scope" class="scope" type="button" hidden></button>
@@ -7873,7 +7935,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </dl>
           <h3>View</h3>
           <dl>
-            <div><dt>3 months, a year, 4 years, Max</dt><dd><kbd>1</kbd>–<kbd>4</kbd></dd></div>
+            <div><dt>3 months, a year, 4 years, 8 years, Max</dt><dd><kbd>1</kbd>–<kbd>5</kbd></dd></div>
             <div><dt>Go to a date</dt><dd><kbd>G</kbd></dd></div>
             <div><dt>Previous or next interval</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div>
             <div><dt>Zoom out or in</dt><dd><kbd>−</kbd><kbd>+</kbd></dd></div>
@@ -8184,7 +8246,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const KEPT_CHUNKS = 150;
       /** The range presets: three spans back from the latest, and the most the chart shows (all of history, where it fits). @type {[string, string, number][]} */
-      const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["max", "Max", 0]];
+      const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["8y", "8Y", 2922], ["max", "Max", 0]];
+      /** The range a chart starts on, and a link that names none opens on: two cycles, the last 8 years (user, 2026-10-12). */
+      const DEFAULT_RANGE = "8y";
       /**
        * Bitview's palette, as the website defines it: lightness, chroma, hue in OKLCH. A layer's color is one of these
        * names, "ink" (the page's own), an exact "oklch(l c h)", or a hex; the screen shows OKLCH as it is (wide-gamut where
@@ -9152,6 +9216,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return PALETTE.find((color) => !used.includes(color)) ?? PALETTE[doc.layers.length % PALETTE.length];
       }
 
+      /**
+       * A series' first look, as the website draws it: as its charts draw it most (its color, its type: see looksOf); else
+       * by what Bitview says it is (its type, from what's known of it: an added one's, asked for; a link's, if it's been
+       * asked for already): candles where its type is open-high-low-close; the price itself (under its catalog's price,
+       * in any unit) in ink; a value in dollars green, in bitcoin (BTC, sats) orange. A color taken on the chart (`used`)
+       * isn't asked for: the next free one is had instead.
+       * @param {string} name @param {Set<string>} used @returns {Partial<Layer>}
+       */
+      function firstLook(name, used) {
+        indexCatalog();
+        const told = presetLooks.get(name), type = known.get(name)?.type ?? "", unit = type ? unitOf(name, type) : units.get(name);
+        const color = told?.color ?? (catalogIndex?.get(name)?.startsWith("price.") ? "ink" : unit === "usd" || unit === "cents" ? "green" : unit === "btc" || unit === "sats" ? "orange" : "");
+        const look = told?.type ?? (isOhlc(name) ? "candles" : "");
+        return { ...(look && look !== "line" ? { type: look } : {}), ...(color && !used.has(color) ? { color } : {}) };
+      }
+      /** Whether Bitview says a series is open-high-low-close (its type, as known: asked for already). */
+      const isOhlc = (/** @type {string} */ name) => /^OHLC/.test(known.get(name)?.type ?? "");
       /** @param {Partial<Layer>} spec @param {Chart} doc @returns {Layer} */
       function makeLayer(spec, doc) {
         return { id: uid(), letter: nextLetter(doc), color: nextColor(doc), type: "line", width: 1.5, dash: 0, pane: doc.panes[0]?.id ?? "", side: "right", ...spec };
@@ -9224,7 +9305,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** @returns {Chart} */
       function blankChart(title = "") {
-        return { id: uid(), title, index: "day1", range: "max", panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
+        return { id: uid(), title, index: "day1", range: DEFAULT_RANGE, panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
       }
       /** Charts started empty here (New chart, a first visit, the last one deleted): the person's own from their first edit (another's preview, a link's or a website's, is kept only by Keep). */
       const drafts = new WeakSet();
@@ -9802,6 +9883,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function undoLast() {
         if (toastUndo?.mark === revision) return toastUndo.press();
         if (!home) undo();
+      }
+      /** Redo, as ⌘⇧Z does it: a toast's Redo while it's up (a folder deleted again), else the chart's next edit. */
+      function redoLast() {
+        if (toastRedo?.mark === revision) return toastRedo.press();
+        if (!home) redo();
       }
       function travel(/** @type {"past" | "future"} */ back, /** @type {"past" | "future"} */ forth) {
         // A field being typed into is kept first (a step of its own: the steps are read after it); what's being drawn or
@@ -10513,7 +10599,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const spans = new Map();
       /** The chunks a range preset covers, from the latest (Max: the latest two). @returns {Span} */
       function presetSpan(index, range) {
-        const latest = latestChunk(index), days = RANGES.find(([id]) => id === range)?.[2] ?? 0;
+        // (One that doesn't fit at this interval shows as Max: as many chunks as Max takes.)
+        const latest = latestChunk(index), told = RANGES.find(([id]) => id === range)?.[2] ?? 0, days = told / INTERVAL_DAYS[index] > mostBars() ? 0 : told;
         return { from: clamp(days ? chunkAt(index, Date.now() / 1000 - days * 86400) : latest - 1, Math.max(0, latest - FIRST_CHUNKS + 1), Math.max(0, latest - 1)), to: latest, live: true };
       }
       /**
@@ -10996,9 +11083,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A layout's motion (the sidebar's, the panel's, full screen's, a peek's): the chart sized once for it, not at each
        * of its frames (each a new size: its canvases made anew, every series drawn again; Firefox shows a third of them).
-       * It takes the larger of its sizes now and at the motion's end at once, pinned to the edges of its box that move
-       * least (the sidebar's motion moves the left one: pinned right), so it stays where it is as the moving edges cover
-       * or uncover it. At the end, it follows its box again.
+       * It takes its size at the motion's end at once, as the motion starts (the press that made it: it follows at once,
+       * nothing snaps at the end), pinned to the edges of its box that move least (the sidebar's motion moves the left
+       * one: pinned right), the moving edges sliding over it or off it. At the end, it follows its box again.
        */
       let motionsSized = 0, sizeHeld = false;
       function sizeOnce() {
@@ -11010,13 +11097,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const motion of inMotion) motion.currentTime = motion.effect?.getComputedTiming().endTime ?? null;
         const end = box.getBoundingClientRect();
         inMotion.forEach((motion, i) => (motion.currentTime = at[i]));
-        const width = Math.max(own.width, end.width), height = Math.max(own.height, end.height);
+        const width = end.width, height = end.height;
         const side = Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
         view.applyOptions({ autoSize: false });
         sizeHeld = true;
         chartHeight = height;
         Object.assign(view.chartElement().style, { position: "absolute", left: "", right: "", top: "", bottom: "", [side]: "0", [edge]: "0", width: `${width}px`, height: `${height}px` });
-        if (width > own.width || height > own.height) {
+        if (width !== own.width || height !== own.height) {
           // (Drawn at its new size now, the motions held at their start meanwhile: they start on the next frame, from
           // their start, not a long frame in.)
           for (const motion of inMotion) motion.pause();
@@ -12207,7 +12294,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** The range presets, in words: Max, all of history at a day or coarser, the most that fits finer. */
-      const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", max: "whole history" };
+      const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", "8y": "past 8 years", max: "whole history" };
       const periodOf = (/** @type {string} */ id) => (id === "max" && FINE.has(chart.index) ? "most that fits" : PERIODS[id]);
 
       view.subscribeCrosshairMove((param) => {
@@ -15094,7 +15181,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, ...fadingKey(layer)])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, ...fadingKey(layer)])]);
       /** Four-color bars' fading colors as drawn (their default the theme's): what a picture of them depends on. */
       const fadingKey = (/** @type {Layer} */ layer) => (layer.type === "histogram" ? [layer.colors, ...(layer.colors === 4 ? [ink(fadingOf(layer, false)), ink(fadingOf(layer, true))] : [])] : []);
       /**
@@ -15162,16 +15249,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @param {string} [at] its data's interval, if not the usual one @returns {Promise<Thumb | null>} null when a fetch failed */
       async function drawThumb(doc, at = "") {
-        const coarse = INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("month1");
-        const windowed = doc.layers.some((layer) => runsWindow(layer.formula ?? ""));
-        const index = at || (coarse || windowed ? doc.index : "month1");
+        const index = at || sampleIndex(doc, "month1", THUMB_POINTS);
         const data = await resolve({ ...doc, index });
         if (retryFailed(doc, data, index)) return null;
         /** @type {Map<string, ReturnType<typeof shapeOf>>} */
         // (The chart's lines as it draws them, stacked; each layer's own mark, its own values.)
         const shapes = new Map(), own = new Map(), stacked = stackOf(doc, data, false);
+        // (Its range, as the chart opens on it: the last 8 years, or all of them.)
+        const start = rangeStart(doc, data.times);
         for (const layer of doc.layers) {
-          const values = gapped(data.results.get(layer.id)?.shown, data.results.get(layer.id)), high = stacked.get(layer.id)?.values, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
+          const all = gapped(data.results.get(layer.id)?.shown, data.results.get(layer.id)), values = all && start ? Array.prototype.slice.call(all, start) : all, highAll = stacked.get(layer.id)?.values, high = highAll && start ? Array.prototype.slice.call(highAll, start) : highAll, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
           // (A chart's mark is its lines: a cloud, a range, isn't one.)
           if (!values || layer.type === "cloud") continue;
           own.set(layer.id, shapeOf(values, modeOf(doc, layer), bars, layer.base ?? 0));
@@ -15209,8 +15296,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // An area fills down to its band's foot, or up to its top where it's filled above.
               const edge = layer.fill === "above" ? Math.min(1, band.bottom + band.height + gap / 2) : Math.max(0, band.bottom - gap / 2);
               // (Painted date by date: each point's color, its bucket's last date's.)
-              const dateColors = paintOf(doc, layer, data), step = (data.times.length || 1) / THUMB_POINTS;
-              const colors = dateColors && ys.map((value, k) => (value === null ? null : dateColors(Math.min(data.times.length - 1, Math.max(Math.floor(k * step), Math.floor((k + 1) * step) - 1))) ?? layer.color));
+              // (Of the dates it shows: its range's, from `start`.)
+              const dateColors = paintOf(doc, layer, data), step = (data.times.length - start || 1) / THUMB_POINTS;
+              const colors = dateColors && ys.map((value, k) => (value === null ? null : dateColors(start + Math.min(data.times.length - start - 1, Math.max(Math.floor(k * step), Math.floor((k + 1) * step) - 1))) ?? layer.color));
               if (colors) lines.push([layer.color, ys, kind ?? null, kind ? belowOf(layer) : null, kind ? (kind === "area" ? edge : level) : null, colors]);
               else lines.push(kind ? [layer.color, ys, kind, belowOf(layer), kind === "area" ? edge : level] : [layer.color, ys]);
             }
@@ -15313,13 +15401,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What a card depends on: what the chart's mark does, its range, its layers' looks, the view it was left at and how much the chart shows. @param {Chart} doc */
       const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base, layer.colorBelow, layer.colors, layer.dash, layer.fill, layer.opacity, layer.levels, layer.baseLine]), doc.panes.map((pane) => [pane.stack, pane.reverse]), leftView(doc.id), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0]);
       /**
-       * How many bars a chart's preview shows at most (its data at `index`): all of them at a day or coarser (Max there is
-       * the whole history); finer, as many as fit the chart's width at four a pixel.
+       * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
+       * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
        */
       function previewBars(/** @type {Chart} */ doc, index = doc.index) {
-        const width = view.timeScale().width();
-        return FINE.has(doc.index) && width ? ((width / MIN_BAR_SPACING) * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index] : Infinity;
+        const width = view.timeScale().width(), days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
+        // (A short range at a coarse interval, 3M of months: a dozen bars still, not a preview of none.)
+        return Math.min(FINE.has(doc.index) && width ? ((width / MIN_BAR_SPACING) * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index] : Infinity, days ? Math.max(12, days / INTERVAL_DAYS[index]) : Infinity);
       }
+      /** Where a chart's range starts in its data: its first point within the range's days of the last one (Max, the first). */
+      const rangeStart = (/** @type {Chart} */ doc, /** @type {ArrayLike<number>} */ times) => {
+        const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
+        if (!days || !times.length) return 0;
+        const from = times[times.length - 1] - days * 86400;
+        let i = times.length - 1;
+        while (i > 0 && times[i - 1] >= from) i--;
+        return i;
+      };
       const savePreviewsSoon = writeSoon(savePreviews);
       /**
        * The drawings kept: the recommended charts', then those of the charts edited last, within a budget (they're a cache: drawn
@@ -15601,7 +15699,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return /** @type {Promise<(Preview & { key: string }) | null>} */ (plotsDrawing.get(ask));
       }
       /** A website chart's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
-      const previewIndex = (doc) => (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf("week1") || doc.layers.some((layer) => runsWindow(layer.formula ?? "")) ? doc.index : "week1");
+      const previewIndex = (/** @type {Chart} */ doc) => sampleIndex(doc, "week1", 100);
+      /**
+       * The interval a small picture of a chart reads (a mini chart's, from months, for its few points; a preview's, from
+       * weeks): the coarsest its range still gives `points` at (3M, days; 1Y, weeks), its own where that's coarser or a
+       * formula runs a window over it. @param {Chart} doc @param {string} coarsest @param {number} points
+       */
+      function sampleIndex(doc, coarsest, points) {
+        if (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf(coarsest) || doc.layers.some((layer) => runsWindow(layer.formula ?? ""))) return doc.index;
+        const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
+        return [coarsest, "week1", "day1"].find((id) => !days || days / INTERVAL_DAYS[id] >= points) ?? "day1";
+      }
       /** A tile's plot: the chart drawn, a blank box for an empty one, a shimmer until it's drawn. @param {Chart} doc */
       function plotHtml(doc) {
         const drawn = previews.get(doc.id);
@@ -15813,7 +15921,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (wasOpen) openChart(chartById(open.id) ?? open);
             save();
             renderCharts();
+            return () => deleteCharts(places.map(([, doc]) => doc).filter((doc) => library.charts.includes(doc)));
           },
+          undone: `${places.length} charts are back`,
         });
       }
       /** A chart's title, typed in its tile: ↵ or leaving keeps it, esc doesn't. @param {Chart} doc */
@@ -16104,7 +16214,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         element.addEventListener("pointerdown", (event) => {
           if (pull || !grab(event)) return;
           pull = { y: event.clientY, pointer: event.pointerId, trail: [{ y: event.clientY, at: performance.now() }] };
-          element.setPointerCapture(event.pointerId);
+          // (Held by what was pressed, the handle or the head: the click after a drag is its, not the sheet's own, which in
+          // ⌘K is its backdrop's and would close it.)
+          /** @type {Element} */ (event.target).setPointerCapture(event.pointerId);
         });
         element.addEventListener("pointermove", (event) => {
           if (event.pointerId !== pull?.pointer) return;
@@ -16630,7 +16742,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           library.order = order;
           save();
           renderCharts();
-        } });
+          return () => deleteFolder(again.id);
+        }, undone: `“${folder.name}” is back` });
       }
       /** `item` in `list`, just after the last of `before` still in it (none: first). @template T @param {T[]} list @param {T} item @param {(T | undefined)[]} before */
       function placedAfter(list, item, before) {
@@ -16647,23 +16760,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const what = moved.length === 1 ? `“${titleOf(moved[0])}”` : `${moved.length} charts`, to = new Set(moved.map((doc) => doc.folder)), from = new Set(moved.map((doc) => was.folders.get(doc)));
         const named = (/** @type {string | undefined} */ id) => `“${folderById(id)?.name ?? ""}”`, into = [...to][0], left = [...from][0];
         toast(to.size === 1 && into ? `Moved ${what} to ${named(into)}` : to.size === 1 ? `Moved ${what} out of ${from.size === 1 ? named(left) : "their folders"}` : `Moved ${what}`, { label: "Undo", run: () => {
-          // These alone, back where they were (by id: another tab's moves since, and its copies of them, stay as they are):
-          // each in its folder then (still there), after the nearest chart before it then; at the top level, after the
-          // nearest item before it there.
-          for (const doc of moved) {
-            const now = chartById(doc.id), folder = was.folders.get(doc), key = `c:${doc.id}`;
-            if (!now) continue;
-            if (folder && folderById(folder)) now.folder = folder;
-            else delete now.folder;
-            library.charts = placedAfter(library.charts.filter((other) => other !== now), now, was.charts.slice(0, was.charts.indexOf(doc)).map((other) => chartById(other.id)));
-            const keys = sideItems().map(sideKey).filter((other) => other !== key);
-            // (Out of a folder deleted since: where that folder was.)
-            const at = was.order.indexOf(key), before = at >= 0 ? was.order.slice(0, at) : was.order.slice(0, was.order.indexOf(`f:${folder}`) + 1);
-            library.order = now.folder ? keys : placedAfter(keys, key, before);
-          }
-          save();
-          renderCharts();
-        } });
+          const after = arrangement();
+          placeAs(was, moved);
+          // (Again, as they were after it: each where the move put it, however it was moved, a drop's place too.)
+          return () => (placeAs(after, moved), folderToast(was, moved.map((doc) => chartById(doc.id)).filter((doc) => doc !== undefined)));
+        }, undone: "Moved back" });
+      }
+      /**
+       * Charts back where an arrangement had them (by id: another tab's moves since, and its copies of them, stay as they
+       * are): each in its folder then (still there), after the nearest chart before it then; at the top level, after the
+       * nearest item before it there. @param {ReturnType<typeof arrangement>} was @param {Chart[]} docs
+       */
+      function placeAs(was, docs) {
+        for (const doc of docs) {
+          const now = chartById(doc.id), folder = was.folders.get(doc), key = `c:${doc.id}`;
+          if (!now) continue;
+          if (folder && folderById(folder)) now.folder = folder;
+          else delete now.folder;
+          library.charts = placedAfter(library.charts.filter((other) => other !== now), now, was.charts.slice(0, was.charts.indexOf(doc)).map((other) => chartById(other.id)));
+          const keys = sideItems().map(sideKey).filter((other) => other !== key);
+          // (Out of a folder deleted since: where that folder was.)
+          const at = was.order.indexOf(key), before = at >= 0 ? was.order.slice(0, at) : was.order.slice(0, was.order.indexOf(`f:${folder}`) + 1);
+          library.order = now.folder ? keys : placedAfter(keys, key, before);
+        }
+        save();
+        renderCharts();
       }
       /**
        * Charts moved into a folder (after its last), or out of any (`null`: each just under the one it was in); said, with
@@ -16827,12 +16948,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             recover(doc);
             library.charts.splice(Math.min(index, library.charts.length), 0, doc);
             save();
-            if (!wasOpen) return renderCharts();
-            openChart(doc);
-            edits.past = undoable.past;
-            edits.future = undoable.future;
-            refresh("none");
+            if (!wasOpen) renderCharts();
+            else {
+              openChart(doc);
+              edits.past = undoable.past;
+              edits.future = undoable.future;
+              refresh("none");
+            }
+            return () => library.charts.includes(doc) && deleteChart(doc);
           },
+          undone: `“${titleOf(doc)}” is back`,
         });
       }
       /**
@@ -17296,8 +17421,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         // (Not read: no row, nor its head.)
         /** @type {HTMLElement} */ ($("templates").closest(".starts")).hidden = !list && Boolean(presetsFailed);
-        $("templates").innerHTML = list ? recommendedCards.map(({ preset, doc }, i) => `<button type="button" class="template" data-template="${i}"><span class="template-plot ${previews.has(doc.id) ? "" : "pending"}" data-plot="${doc.id}">${previews.has(doc.id) ? previewSvg(/** @type {Preview} */ (previews.get(doc.id)), `template-plot-${doc.id}`) : ""}</span><span class="name">${escape(list[preset].t)}</span><span class="gist">${escape(list[preset].p.slice(0, -1).join(" › "))}</span></button>`).join("")
-          : RECOMMENDED.map(() => '<span class="template waiting" aria-hidden="true"><span class="template-plot pending"></span><span class="name">&nbsp;</span><span class="gist">&nbsp;<br>&nbsp;</span></span>').join("");
+        $("templates").innerHTML = list ? recommendedCards.map(({ preset, doc }, i) => `<button type="button" class="template" data-template="${i}"><span class="template-plot ${previews.has(doc.id) ? "" : "pending"}" data-plot="${doc.id}">${previews.has(doc.id) ? previewSvg(/** @type {Preview} */ (previews.get(doc.id)), `template-plot-${doc.id}`) : ""}</span><span class="name" title="${escape(list[preset].t)}">${escape(list[preset].t)}</span><span class="gist" title="${escape(list[preset].p.slice(0, -1).join(" › "))}">${escape(list[preset].p.slice(0, -1).join(" › "))}</span></button>`).join("")
+          : RECOMMENDED.map(() => '<span class="template waiting" aria-hidden="true"><span class="template-plot pending"></span><span class="name">&nbsp;</span><span class="gist">&nbsp;</span></span>').join("");
         for (const card of all$("[data-template]")) cardsSeen.observe(card);
         fitStrip($("templates"));
       }
@@ -17351,6 +17476,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ];
       /** The website's charts, once read; each one's words (its title and place, lowercased) for the search. */
       // (A page built without them knows at once: no waiting cards.)
+      /**
+       * Each series' look as the website's charts draw it (its color, its type): the one they give it most, for a series
+       * added on its own to start as the website draws it. @param {Preset[]} list @returns {Map<string, Partial<Layer>>}
+       */
+      function looksOf(list) {
+        const counts = new Map();
+        for (const preset of list) for (const layer of [...preset.a, ...preset.b]) {
+          const each = counts.get(layer.s) ?? new Map(), key = `${layer.c ?? ""}|${layer.k ?? "line"}`;
+          counts.set(layer.s, each.set(key, (each.get(key) ?? 0) + 1));
+        }
+        return new Map([...counts].map(([name, each]) => {
+          const [color, type] = [...each].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0].split("|");
+          return [name, { ...(color ? { color } : {}), type }];
+        }));
+      }
+      /** See looksOf: empty till the website's charts are read. */
+      let presetLooks = /** @type {Map<string, Partial<Layer>>} */ (new Map());
       let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = /** @type {boolean | "none"} */ ($("presets")?.hasAttribute("data-none") ? "none" : false);
       /** @type {Promise<Preset[]> | null} */
       let presetsLoad = null;
@@ -17383,6 +17525,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
+          presetLooks = looksOf(list);
           renderRecommended();
           presetsArrived();
           return list;
@@ -19108,8 +19251,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (name === "x" || name === "a" || name === "b") {
           const layers = formulaInputs(self);
           // A series drawn as a layer is its letter; an open-high-low-close one reads as its close (offered as itself).
-          const drawn = new Set(chart.layers.map((layer) => layer.series)), known = recommendedCards.flatMap(({ doc }) => doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])));
-          const names = [...new Set([...seriesIn(chart), ...recent(), ...known])].filter((name) => isSeriesName(name) && !gone.has(name) && !drawn.has(name) && !/_ohlc$/.test(name)).slice(0, 5);
+          const drawn = new Set(chart.layers.map((layer) => layer.series)), recommended = recommendedCards.flatMap(({ doc }) => doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])));
+          const names = [...new Set([...seriesIn(chart), ...recent(), ...recommended])].filter((name) => isSeriesName(name) && !gone.has(name) && !drawn.has(name) && !isOhlc(name)).slice(0, 5);
           return { items: [...layers, ...names.map((name) => ({ insert: name, name, title: name, text: humanize(name), series: true }))], more: seriesCount > names.length ? `${grouped.format(seriesCount - names.length)} more series: type a few letters` : "" };
         }
         if (name === "span" || name === "span?") {
@@ -19706,13 +19849,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         units.set(name, unit);
         let added;
         commit((doc) => {
+          const look = firstLook(name, new Set(doc.layers.map((layer) => layer.color)));
           let pane = into ? doc.panes.find((candidate) => candidate.id === into) : newPane || !doc.layers.length ? undefined : doc.panes.find((candidate) => doc.layers.some((layer) => layer.pane === candidate.id && unitFor(layer, resolved?.results.get(layer.id)) === unit));
           const sibling = pane && doc.layers.find((layer) => layer.pane === pane.id && unitFor(layer, resolved?.results.get(layer.id)) === unit);
           if (!pane) {
             pane = doc.layers.length ? newPaneIn(doc) : doc.panes[0];
             if (!doc.layers.some((layer) => layer.pane === pane.id)) pane.mode = unit === "usd" ? 1 : 0;
           }
-          added = makeLayer({ series: name, pane: pane.id, side: sibling?.side ?? "right" }, doc);
+          added = makeLayer({ series: name, pane: /** @type {Pane} */ (pane).id, side: sibling?.side ?? "right", ...look }, doc);
           doc.layers.push(added);
         });
         remember(name);
@@ -20263,12 +20407,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         Object.assign(palette, spot ?? { adding: add, replacing: replace, formula, editing, into, pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) trailDrawn = "";
-        if (!dialog.open) dialog.showModal();
+        // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped.)
+        if (!dialog.open) (input.inert = TOUCH && !byKeys), dialog.showModal(), (input.inert = false), TOUCH && !byKeys && dialog.focus();
         applyScope();
         input.value = palette.query;
-        input.select();
+        paletteKeys(true);
         showPalette();
       }
+      /**
+       * ⌘K's field given the keys (`select`: what's in it selected): by a pointer, always; by touch, only when it has them
+       * already (the keyboard up stays up), else ⌘K itself: a tap on the field brings the keyboard, not every tap in ⌘K.
+       */
+      function paletteKeys(select = false) {
+        const input = $("palette-input");
+        if (TOUCH && !byKeys && document.activeElement !== input) return void (!$("palette").contains(document.activeElement) && $("palette").focus());
+        input.focus();
+        if (select) input.select();
+      }
+      // (By touch, ⌘K itself can have the focus, not its field: no keyboard till it's tapped.)
+      if (TOUCH) $("palette").tabIndex = -1;
+      /** Whether the last thing done was by keys, not a pointer (a touch device's keyboard: ⌘K by keys, its field takes them). */
+      let byKeys = false;
+      addEventListener("keydown", () => (byKeys = true), true);
+      addEventListener("pointerdown", () => (byKeys = false), true);
       /** A pane's number, as the panel counts them (from 1). */
       const paneNumber = (/** @type {string} */ id) => chart.panes.findIndex((pane) => pane.id === id) + 1;
       /** The chip and the wording for where ⌘K is: everything, adding a series, or replacing one. */
@@ -20306,13 +20467,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         palette.path = [];
         applyScope();
         showPalette();
-        $("palette-input").focus();
+        paletteKeys();
       }
       addEventListener("resize", () => $("palette").open && ((trailDrawn = ""), renderPath()));
       $("palette-scope").addEventListener("click", () => {
         if (palette.path.length) {
           goUp(0);
-          $("palette-input").focus();
+          paletteKeys();
         } else if (palette.adding || palette.formula) leaveScope();
       });
       /** The trail as last drawn (drawn again only when it changes, or the window does). */
@@ -20450,7 +20611,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: `Download ${plural(picked.size, "chart")}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "file", run: () => batch("export"), anywhere: true },
             { title: `Delete ${plural(picked.size, "chart")}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
           ] : []),
-          !home && edits.future.length ? { title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redo } : { title: "Redo", text: "Nothing to redo.", words: "again forward", icon: "redo", anywhere: true },
+          toastRedo?.mark === revision || (!home && edits.future.length) ? { title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redoLast, anywhere: true } : { title: "Redo", text: "Nothing to redo.", words: "again forward", icon: "redo", anywhere: true },
           ...(empty ? [] : [
             { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", words: "magnify enlarge nearer", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
             { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", words: "wider further shrink", icon: "charts", kbd: "−", run: () => zoom(1.6) },
@@ -20719,8 +20880,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (keep && !palette.editing) {
           // Added, and the formula stays, selected, to write the next one.
           addFormulaLayer(text, pane === "new" ? null : pane);
-          $("palette-input").focus();
-          $("palette-input").select();
+          paletteKeys(true);
           return;
         }
         $("palette").close();
@@ -21160,7 +21320,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!$("palette").open || palette.pages !== pages) return;
         palette.landOn = item?.key ?? null;
         showPalette();
-        $("palette-input").focus();
+        paletteKeys();
       }
       // ── ⌘K remembers what you use ────────────────────────────────────────────
 
@@ -21264,11 +21424,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         from.landOn = palette.items[palette.active]?.key ?? null;
         palette.pages = [...palette.pages, page];
         palette.query = page.input?.value ?? "";
-        const input = $("palette-input");
-        input.value = palette.query;
+        $("palette-input").value = palette.query;
         showPalette();
-        input.focus();
-        input.select();
+        paletteKeys(true);
       }
       /** Back up to `depth` pages (0: the search), on the row that led on. */
       function popPage(depth = palette.pages.length - 1) {
@@ -21278,7 +21436,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         palette.landOn = back.landOn ?? null;
         $("palette-input").value = palette.query;
         showPalette();
-        $("palette-input").focus();
+        paletteKeys();
       }
       /** A page: its rows, as filtered by what's typed; a name to type, its one row says what ↵ makes of it. */
       function showPage() {
@@ -21585,7 +21743,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** (A card's acts on it alone, the picks as they are; elsewhere, as its row's.) */
         const act = (/** @type {string} */ kind) => () => (tile ? batch(kind === "download" ? "export" : kind, null, [id]) : chartPick(id, kind));
         return [
-          ...(phoneHead && edits.future.length ? [{ key: "redo", icon: ICONS.redo, label: "Redo", group: "redo", run: redo }] : []),
+          ...(phoneHead && (edits.future.length || toastRedo?.mark === revision) ? [{ key: "redo", icon: ICONS.redo, label: "Redo", group: "redo", run: redoLast }] : []),
           ...(inPalette || tile ? [{ key: "open", icon: ICONS.next, label: "Open", kbd: inPalette ? "↵" : undefined, run: () => go(chartById(id)) }] : []),
           ...(tile && !picked.has(id) ? [{ key: "select", icon: ICONS.checkbox, label: "Select", run: () => pickChart(id) }] : []),
           ...(isPreview && doc.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: inPalette ? undefined : "Into your charts", run: () => keepPreview() }] : []),
@@ -22146,7 +22304,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Added, and ⌘K stays on these results: the next one is a ⌘↵ away.
           addSeries(item.name, { newPane, pane: newPane ? null : palette.into }).then(() => {
             renderPalette();
-            $("palette-input").focus();
+            paletteKeys();
           });
           return;
         }
@@ -22193,7 +22351,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       $("palette-enter").addEventListener("click", () => {
         choose(false);
-        if ($("palette").open) $("palette-input").focus();
+        if ($("palette").open) paletteKeys();
       });
       $("palette-actions").addEventListener("click", () => showActions());
       // By a finger, a row held: its other actions (there's no foot's Actions by touch); moved, it's a scroll.
@@ -22226,7 +22384,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!crumb || crumb.hasAttribute("aria-current")) return;
         if (palette.pages.length) popPage(Number(crumb.dataset.depth));
         else goUp(Number(crumb.dataset.depth));
-        $("palette-input").focus();
+        paletteKeys();
       });
 
       // ── Menus and toolbar ─────────────────────────────────────────────────────
@@ -22410,6 +22568,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The item a menu acts on alone, beside others picked: outlined while it shows. @type {HTMLElement | null} */
       let menuTarget = null;
+      // ⌘K on a phone, a sheet: dragged down by its handle, as a menu's sheet, it goes.
+      {
+        const sheet = $("palette");
+        dragSheet(sheet, {
+          grab: (event) => phone.matches && Boolean(closest(event, ".menu-handle")) && ((sheet.style.transition = "none"), true),
+          move: (by) => (sheet.style.transform = `translateY(${Math.max(0, by)}px)`),
+          back: () => (sheet.style.transition = sheet.style.transform = ""),
+          release: (by, speed) => sheetGoes(Math.max(0, by), speed, sheet.offsetHeight) && dismissPalette(),
+        });
+      }
       // A phone's menu sheet, dragged down by its top (its handle): as the layers' sheet goes, it goes; else it comes back.
       {
         const menu = $("menu");
@@ -22701,7 +22869,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           event.stopPropagation();
           hideMenu();
-          return $("palette-input").focus();
+          return paletteKeys();
         }
         if (event.key === "ArrowRight" && cascades(/** @type {HTMLElement} */ (event.target))) {
           event.preventDefault();
@@ -22803,7 +22971,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (now) letGo(now);
       }, true);
       $("undo").addEventListener("click", () => ($("undo").getAttribute("aria-disabled") === "true" ? say("Nothing to undo") : undoLast()));
-      $("redo").addEventListener("click", () => ($("redo").getAttribute("aria-disabled") === "true" ? say("Nothing to redo") : redo()));
+      $("redo").addEventListener("click", () => ($("redo").getAttribute("aria-disabled") === "true" ? say("Nothing to redo") : redoLast()));
       /** Out of the open chart: its image (copied, opened, downloaded), its data, its file. @returns {Action[]} */
       const exportRows = () => /** @type {[string, string, string, string, string][]} */ ([["copy", "Copy as image", "", ICONS.copy, "Copy"], ["open", "Open image", "In a tab of its own", ICONS.link, "Open"], ["png", "Download image", "PNG", ICONS.image, "Download"], ["csv", "Download data", "CSV", ICONS.table, "Download"], ["json", "Download chart file", "JSON", ICONS.file, "Download"]]).map(([kind, label, note, icon, verb]) => ({ key: kind, icon, label, aside: note, verb, apart: kind === "csv", run: () => exportAs(kind) }));
       // The panel's adds, from the header (and the phone's bar): those made from layers too, once there are layers for one.
@@ -23030,7 +23198,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return {
           ...(doc.title ? { title: doc.title } : {}),
           ...(doc.index !== "day1" ? { index: doc.index } : {}),
-          ...(doc.range !== "max" ? { range: doc.range } : {}),
+          ...(doc.range !== DEFAULT_RANGE ? { range: doc.range } : {}),
           ...(doc.halvings ? { halvings: true } : {}),
           ...(doc.legend ? { legend: doc.legend } : {}),
           ...(plain ? {} : { panes: doc.panes.map(({ id, ...pane }) => pane) }),
@@ -23072,8 +23240,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * browser opens (Firefox, a megabyte: long strokes of the brush, many), compressed: it opens, but can't be read.
        */
       async function shareLink(doc) {
-        const written = `${linkBase()}${linkText(doc)}`;
-        return new URL(written).href.length <= 1_000_000 ? written : packedLink(doc);
+        // (Compressed, always: as short as a link gets. One written out, JSON, is read too: an assistant's, which can't
+        // compress it.)
+        return packedLink(doc).catch(() => `${linkBase()}${linkText(doc)}`);
       }
       /** The page's own address, its query and hash left out (from a file, its origin is "null": the address it is). */
       const linkBase = () => `${location.href.replace(/[?#].*$/, "")}#chart=`;
@@ -23082,7 +23251,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const stream = new Blob([JSON.stringify(toSketch(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
         return new Uint8Array(await new Response(stream).arrayBuffer());
       }
-      /** A chart's link compressed (a long one's; read the same as one written out). @param {Chart} doc */
+      /** A chart's link compressed (every link Studio writes; read the same as one written out). @param {Chart} doc */
       async function packedLink(doc) {
         let binary = "";
         for (const byte of await packedBytes(doc)) binary += String.fromCharCode(byte);
@@ -23120,9 +23289,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * code (compressed, in base32: the fewest modules; compressing failed, the written one). @param {Chart} doc
        */
       function linksOf(doc) {
-        const written = `${linkBase()}${linkText(doc)}`;
-        const copy = new URL(written).href.length <= 1_000_000 ? Promise.resolve(written) : packedLink(doc);
-        const short = qrLink(doc).catch(() => written);
+        const copy = shareLink(doc);
+        const short = qrLink(doc).catch(() => copy);
         return { copy, short };
       }
       /**
@@ -23220,7 +23388,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const colors = layers.map((/** @type {any} */ layer) => {
           if (isColor(layer.color)) return layer.color;
           if (Array.isArray(layer.cloud)) return null;
-          const color = PALETTE.find((name) => !usedColors.has(name)) ?? PALETTE[cycled++ % PALETTE.length];
+          // (A series' first look, its unit as known here: one asked for meanwhile, the price's ink, else the next free.)
+          const color = (typeof layer.series === "string" ? firstLook(seriesName(layer.series), usedColors).color : undefined) ?? PALETTE.find((name) => !usedColors.has(name)) ?? PALETTE[cycled++ % PALETTE.length];
           usedColors.add(color);
           return color;
         });
@@ -23242,7 +23411,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             letter: letters[i],
             color: colors[i] ?? colors[ids.indexOf(members?.find((member) => ids.includes(member)))] ?? PALETTE[0],
             ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
-            ...(typeof layer.series === "string" ? { series: layer.series.trim().toLowerCase().replace(/[\s-]+/g, "_") } : {}),
+            ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(layer.type === undefined ? ((type) => (type ? { type } : {}))(firstLook(seriesName(layer.series), usedColors).type) : {}) } : {}),
             ...(kind ? { [kind]: members } : {}),
             ...(typeof layer.ref === "string" ? { ref: letterId(layer.ref) } : {}),
             ...(typeof layer.colorFrom === "string" ? { colorFrom: letterId(layer.colorFrom) } : {}),
@@ -23250,6 +23419,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           };
         }) };
       }
+      /** A series' name as a sketch may write it ("Realized price", "realized-price"): as the catalog does. */
+      const seriesName = (/** @type {string} */ text) => text.trim().toLowerCase().replace(/[\s-]+/g, "_");
       /**
        * A chart as it comes in, however it was written: a link's sketch, a file, an item of a file of several (a whole
        * chart passes through the sketch's reading as it is), validated, its view kept.
@@ -23276,7 +23447,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!input || !Array.isArray(input.layers) || !Array.isArray(input.panes) || !input.panes.length) throw new Error("Not a studio chart");
         const doc = blankChart(String(input.title ?? "").slice(0, 120));
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
-        doc.range = RANGES.some(([id]) => id === input.range) ? input.range : "max";
+        doc.range = RANGES.some(([id]) => id === input.range) ? input.range : DEFAULT_RANGE;
         if (input.halvings === true) doc.halvings = true;
         if (input.legend === "off") doc.legend = "off";
         const panes = input.panes.slice(0, MAX_PANES);
@@ -23790,20 +23961,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function syncUndo() {
         // (Dimmed, not disabled: a key's focus on one stays there as it runs out.)
         $("undo").setAttribute("aria-disabled", String(!edits.past.length && toastUndo?.mark !== revision));
-        $("redo").setAttribute("aria-disabled", String(!edits.future.length));
+        $("redo").setAttribute("aria-disabled", String(!edits.future.length && toastRedo?.mark !== revision));
         const edited = chart === previewing && touched.has(chart), keep = $("keep");
         keep.classList.toggle("edited", edited);
         keep.dataset.tip = edited ? "Your edits aren't in your charts yet: Keep puts it there, with them" : "Keep puts it in your charts, as it is";
         if (edited) keep.setAttribute("aria-label", "Keep, edited");
         else keep.removeAttribute("aria-label");
       }
-      /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too). */
-      let toastUndo = /** @type {{ press: () => void, mark: number } | null} */ (null);
+      /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too); its Redo, ⌘⇧Z. */
+      let toastUndo = /** @type {{ press: () => void, mark: number } | null} */ (null), toastRedo = /** @type {{ press: () => void, mark: number } | null} */ (null);
       /** Whether the toast up asks for the open preview to be kept (once kept, it's put away). */
       let toastOfPreview = false;
       /** The step the toast up came with: its chart, and how many steps back it is once made (undone, it's put away). */
       let toastStep = /** @type {{ chart: Chart, depth: number } | null} */ (null);
-      /** Something done, with its check; or (`done` false) something to know, without. @param {{ label: string, run: () => void }} [action] */
+      /**
+       * Something done, with its check; or (`done` false) something to know, without. An Undo whose `run` gives back how
+       * to do it again is followed by a Redo (`undone` saying it), which ⌘⇧Z presses as ⌘Z pressed the Undo: a folder or a
+       * chart deleted, moved, copied, back and gone again as a chart's edits are.
+       * @param {{ label: string, run: () => (void | (() => void)), undone?: string }} [action]
+       */
       function toast(text, action, done = true) {
         const element = $("toast");
         const host = document.querySelector("dialog[open]") ?? document.body;
@@ -23812,22 +23988,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const said = /** @type {HTMLElement | null} */ (host.querySelector(":scope > [data-said]"));
         if (said) {
           said.textContent = "";
-          requestAnimationFrame(() => (said.textContent = action ? `${text}. ${action.label}${action.label === "Undo" ? `, ${keyText("⌘Z")}` : ""}` : text));
+          requestAnimationFrame(() => (said.textContent = action ? `${text}. ${action.label}${action.label === "Undo" ? `, ${keyText("⌘Z")}` : action.label === "Redo" ? `, ${keyText("⇧⌘Z")}` : ""}` : text));
         }
         const undoes = action?.label === "Undo";
         toastOfPreview = false;
         // (Said with an edit of the open chart, it's that edit's step; else, a deleted chart's, a copied link's, no step's.)
         toastStep = chartChanged ? { chart, depth: edits.past.length } : null;
         // (No ✓ where there's an Undo: a removal, a move, isn't a success to tick; ✓ elsewhere says what's chosen.)
-        element.innerHTML = `${done && !undoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escape(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : ""}>${escape(action.label)}</button>` : ""}`;
+        const redoes = action?.label === "Redo";
+        element.innerHTML = `${done && !undoes && !redoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escape(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : redoes ? 'data-kbd="⇧ ⌘ Z"' : ""}>${escape(action.label)}</button>` : ""}`;
+        const mark = revision;
         const press = () => {
           element.classList.remove("visible");
-          toastUndo = null;
+          toastUndo = toastRedo = null;
           syncUndo();
-          action.run();
+          // (A Redo after a change since, as an Undo's: not done, said.)
+          if (redoes && revision !== mark) return notice(`Changed since: nothing to redo`);
+          const again = action?.run();
+          // (Undone, and it can be done again: a Redo for it, as a chart's edit has.)
+          if (undoes && typeof again === "function") toast(action?.undone ?? "Undone", { label: "Redo", run: again });
         };
         element.querySelector("button")?.addEventListener("click", press);
         toastUndo = undoes ? { press, mark: revision } : null;
+        toastRedo = redoes ? { press, mark: revision } : null;
         syncUndo();
         // Above the chart's foot; in the grid, above its bar (or its foot), centered on it; the layers' bar showing on a
         // phone's sheet, above it.
@@ -23854,7 +24037,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function hideToast() {
         clearTimeout(toastTimer);
         $("toast").classList.remove("visible");
-        toastUndo = null;
+        toastUndo = toastRedo = null;
         toastOfPreview = false;
         syncUndo();
       }
@@ -23864,7 +24047,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const element = $("toast");
           if (element.matches(":hover, :focus-within")) return hideToastLater();
           element.classList.remove("visible");
-          toastUndo = null;
+          toastUndo = toastRedo = null;
           syncUndo();
         }, toastFor);
       }
@@ -24091,7 +24274,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (mod && key === "k") {
           event.preventDefault();
           if (!$("palette").open) return openPalette({ resume: true });
-          if (!$("menu").hidden && $("menu").closest("#palette")) return void (hideMenu(), $("palette-input").focus());
+          if (!$("menu").hidden && $("menu").closest("#palette")) return void (hideMenu(), paletteKeys());
           return showActions();
         }
         if (document.querySelector("dialog[open]")) return;
@@ -24112,13 +24295,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (mod && key === "z" && !typing(event.target)) {
           event.preventDefault();
           if (!event.shiftKey) return undoLast();
-          if (!home) redo();
-          return;
+          return redoLast();
         }
         if (mod && key === "y" && !typing(event.target)) {
           event.preventDefault();
-          if (!home) redo();
-          return;
+          return redoLast();
         }
         if (mod && key === "a" && home && !typing(event.target)) {
           event.preventDefault();
@@ -24214,7 +24395,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (key === "g" && chart.layers.length) openPage(datePage());
         else if (event.key === "-" || event.key === "_") zoom(1.6);
         else if (event.key === "=" || event.key === "+") zoom(1 / 1.6);
-        else if (["1", "2", "3", "4"].includes(event.key)) {
+        else if (["1", "2", "3", "4", "5"].includes(event.key)) {
           const [id, text] = RANGES[Number(event.key) - 1];
           if (presetFits(id)) setRange(id);
           else notice(`${text} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
@@ -24547,14 +24728,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function linkInUrl() {
         const write = ++urlWrites;
         if (picturing) return;
-        const doc = chart && chart === previewing && !home && chart.layers.length ? chart : null, written = doc ? linkText(doc) : "";
+        const doc = chart && chart === previewing && !home && chart.layers.length ? chart : null;
         // (A link that couldn't be read stays as it was, to be put right, until another chart's opened.)
         if (location.hash && location.hash === brokenLink) return;
         const put = (/** @type {string} */ hash) => location.hash !== hash && history.replaceState(history.state, "", `${location.pathname}${location.search}${hash}`);
-        // (A long one compressed, as Copy link writes it: once it's ready, if it's still the chart shown.)
-        // (Only if no write came since, and it's still shown: not the grid, another chart, a picture.)
-        if (written.length >= 60_000) return void shareLink(doc).then((link) => write === urlWrites && chart === doc && previewing === doc && !home && !picturing && put(link.slice(link.indexOf("#"))));
-        put(written ? `#chart=${written}` : "");
+        if (!doc) return put("");
+        // (Compressed, as Copy link writes it: once it's ready, if no write came since and it's still the chart shown: not
+        // the grid, another chart, a picture.)
+        void shareLink(doc).then((link) => write === urlWrites && chart === doc && previewing === doc && !home && !picturing && put(link.slice(link.indexOf("#"))));
       }
       /** Why the last chart written couldn't be read (for studio.open). */
       let linkError = "";
@@ -24613,6 +24794,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Each link opened, counted: one still being read when another comes is dropped (see fromHash). */
       let linkRun = 0;
       addEventListener("hashchange", () => {
+        // (A link being written to the address bar meanwhile: dropped, this one's the one.)
+        urlWrites++;
         const params = new URLSearchParams(location.hash.slice(1));
         // (Cleared, or another kind: a link still being read is dropped.)
         if (!params.has("chart") && !params.has("image") && !params.has("c")) return void (++linkRun, (picturing = picturing && document.body.hasAttribute("data-picture")), document.body.hasAttribute("data-picture") && leavePicture());
@@ -24674,7 +24857,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           image.src = url;
           image.alt = `${titleOf(chart)}. ${chartFacts()}`;
           $("picture-leave").hidden = true;
-          // (Its link as Copy link writes it, a long one compressed: shown once it's this picture's.)
+          // (Its link as Copy link writes it, compressed: shown once it's this picture's.)
           const link = await shareLink(chart);
           if (run !== pictureRun || !picturing) return;
           /** @type {HTMLAnchorElement} */ ($("picture-open")).href = link.slice(link.indexOf("#"));
@@ -24883,6 +25066,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         normalize(chart);
         save();
         refresh(true, true);
+        // (Rendered: the page shown, settling in whole.)
+        document.documentElement.dataset.ready = "";
         if (picturing && shared) showPicture();
         else if (picturing) pictureFailed(linkError || "That link doesn't contain a chart");
         else if (document.body.hasAttribute("data-picture")) leavePicture();
@@ -24896,7 +25081,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(JSON.stringify(aside).length) : "";
         if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here: kept aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
       }
-      navigate(start());
+      // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight.)
+      navigate(start().finally(() => (document.documentElement.dataset.ready = "")));
     </script>
   </body>
 </html>
