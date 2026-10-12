@@ -1,0 +1,17 @@
+version=0.12.2
+profile=release
+hostname=minis-Mac-Mini-2.local
+cpu=Apple M6
+ram_bytes=17179869184
+storage=external-tb WD_BLACK SN850X 2000GB
+blocks_storage=external-tb WD_BLACK SN850X 2000GB
+target_os=macos
+target_arch=aarch64
+parallelism=12
+started_at_unix=1791810678
+chain_height=971095
+revision=67162c771ebe5157bdd2f526c3935d823eef9182
+dirty=false
+blocks_path=/Volumes/External/bitcoin/blocks
+data_path=/Volumes/External/perf-final/data
+cache_budget=2147483648

@@ -784,6 +784,11 @@ has to be deleted by hand.
   instead of a transaction-ID lookup and three reads of the output vectors. Indexing 970,536 blocks on a 16 GB Mac
   mini takes 4,421 s instead of 7,109 s (850,000 to 900,000 in half the time) and peaks 0.7 GiB higher, with the
   same series
+- The unspent-output store also carries each output's value, so the indexer writes each input's value as it resolves
+  the input and `inputs` no longer reads `outputs.value` at random. Its entries take 18 bytes: the output index in 5,
+  the value in `Sats`' compact form, and a value of 2^31 sats or more in a small overflow store. A full sync of
+  971,095 blocks on a 16 GB Mac mini takes 5,315 s instead of 5,498 s (inputs 78 s instead of 339 s, indexing 4,239 s
+  instead of 4,208 s; 4,506 s with 25-byte entries) and peaks at 11.38 GiB
 - The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, which
   carries the value, the txid check and the address bytes), falling back to the parent transaction: at startup its first two
   resolutions take 0.65-0.74 s and 2.3-2.4 s instead of 1.0-1.1 s and 3.3 s (about 12,000 and 18,500 inputs)
