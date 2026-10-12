@@ -2935,6 +2935,8 @@
         min-height: 0;
         overflow-y: auto;
         scrollbar-width: thin;
+        /* (What's scrolled into view lands under its head.) */
+        scroll-padding-top: 50px;
 
         /* Its head (the list's, a layer's: ‹, its name, ×) stays at its top as it scrolls, on the panel's own ground
            (over what passes under it, the color surface's ring too); a rule under it once something has. */
@@ -5334,6 +5336,16 @@
           font-weight: 510;
         }
 
+        /* A page of a menu, on a phone: its ‹ back to the menu it came from, then its name (as Custom's, a color's). */
+        .menu-title {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 10px 2px 2px;
+          color: var(--ink);
+          font-size: 13px;
+        }
+
         .menu-row {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -5838,7 +5850,18 @@
         border-radius: var(--radius-xl);
         background: var(--card);
         box-shadow: inset 0 0 0 1px var(--line), var(--sheen);
-        transition: background var(--fade), box-shadow var(--fade);
+        transition: background var(--fade), box-shadow var(--fade), transform var(--dur-micro) var(--ease);
+
+        /* Pressed: under a finger resting on it (a moment on: a scroll's touch shows nothing), and as its chart opens (the
+           grid as it's pictured while the chart's made, see leaveHome). */
+        &:has(> .tile-open:active),
+        &.opening {
+          transform: scale(0.98);
+        }
+
+        &:has(> .tile-open:active) {
+          transition-delay: 0s, 0s, 60ms;
+        }
 
         &:hover {
           box-shadow: inset 0 0 0 1px var(--line-strong), var(--sheen);
@@ -6551,8 +6574,9 @@
             height: calc(var(--sheet-whole) * 100dvh);
           }
 
+          /* (Its height moved by its transform as it's sized: see sizeSheet.) */
           body[data-sheet="panel"] .panel {
-            transition: transform var(--dur-panel) var(--ease), height var(--dur-panel) var(--ease);
+            transition: transform var(--dur-panel) var(--ease);
           }
 
           /* (The chart in what the half sheet leaves, every pane in sight: what's changed in it shows as it's changed; the
@@ -6811,7 +6835,7 @@
         }
 
         /* The chart's foot across its width, in line with the page: its interval, then its ranges sharing the rest (the
-           navigator, a sliver at this width, is left out); the tab bar right under it. */
+           navigator a row of its own over them, upright: see .navigator); the tab bar right under it. */
         /* (Its 36px controls, 3px about them, a focus ring's room; the plot's dates 4px above, not 8.) */
         .chart {
           inset: 0 0 4px;
@@ -6894,21 +6918,33 @@
           }
         }
 
-        /* Typing by touch (the keyboard up, the page as short as it leaves): the bars out of the way of the field. */
-        @media (pointer: coarse) {
-          body:has(:is(input:not([type="checkbox"], [type="range"], [type="color"]), textarea, [contenteditable="true"]):focus) {
-            :is(.mobile-bar, .pick-bar) {
-              display: none;
-            }
+        /* The keyboard up (see data-keys): the bars out of the way of the field; a sheet's list on to its top (--keys,
+           how much of the page's foot it covers), its last rows scrolled above it. */
+        body[data-keys] {
+          :is(.mobile-bar, .pick-bar) {
+            display: none;
+          }
 
-            /* (Their room given to the chart, a gap kept over the keys; with the sheet up, its room kept, the foot's given.) */
-            &:not([data-sheet="panel"]) .card {
-              padding-bottom: 8px;
-            }
+          /* (Their room given to the chart, a gap kept over the keys; with the sheet up, its room kept, the foot's given.) */
+          &:not([data-sheet="panel"]) .card {
+            padding-bottom: 8px;
+          }
 
-            &[data-sheet="panel"] .stage-foot {
-              display: none;
-            }
+          &[data-sheet="panel"] .stage-foot {
+            display: none;
+          }
+
+          .palette-list {
+            padding-bottom: calc(6px + var(--keys));
+            scroll-padding-bottom: calc(6px + var(--keys));
+          }
+
+          .panel .layer-list {
+            padding-bottom: var(--keys);
+          }
+
+          #inspector::after {
+            height: var(--keys);
           }
         }
 
@@ -7274,11 +7310,6 @@
           padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
           transition: transform var(--dur-panel) var(--ease), background var(--dur-small) var(--ease);
           animation: rise var(--dur-panel) var(--ease);
-        }
-
-        /* (Its height animated as it's sized, dragged or tapped, not as the screen's own (a keyboard, a turn) changes.) */
-        .palette[data-sizing] {
-          transition: transform var(--dur-panel) var(--ease), height var(--dur-panel) var(--ease), background var(--dur-small) var(--ease);
         }
 
         @media not all and (max-height: 500px) and (min-width: 568px) {
@@ -8146,6 +8177,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
       const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout") };
       const phone = matchMedia("(max-width: 760px), (max-height: 500px)");
+      /** What of the page shows (a keyboard over it, iOS's, shortens it; every browser Studio runs in has one). */
+      const viewport = /** @type {VisualViewport} */ (window.visualViewport);
       /** A phone held upright (its sheet at half height first). */
       const heldUpright = matchMedia("not all and (max-height: 500px) and (min-width: 568px)");
       /** Whether a phone's sheet is whole (the page behind it dimmed, out of reach): upright, dragged up; on its side, a column beside the chart, never. */
@@ -9880,7 +9913,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           saved.classList.toggle("error", !ok);
           if (ok) saved.removeAttribute("role");
           else saved.setAttribute("role", "alert");
-          if (!ok && home) notice("Not saved: storage full or blocked");
+          // (Where the header's word isn't seen (the grid, a phone's header), said in a notice.)
+          if (!ok && !saved.checkVisibility({ visibilityProperty: true })) notice("Not saved: storage full or blocked");
           saved.classList.remove("fade");
           void saved.offsetWidth;
           clearTimeout(savedTimer);
@@ -9944,19 +9978,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       addEventListener("pageshow", (event) => event.persisted && reconcile());
 
       /**
-       * A write put off a moment (`wait`, ms), all asked for meanwhile written once; the page left first, written then.
-       * @param {() => void} write @returns {() => void} asking for it
+       * `run` as the page is left; by touch, as it's hidden too: a phone closes an app put away when it likes, with no word
+       * to the page (a computer's tab put away runs on, a field being typed in still open as it's back).
+       * @param {() => void} run
+       */
+      function onLeave(run) {
+        addEventListener("pagehide", run);
+        if (TOUCH) document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && run());
+      }
+      /**
+       * A write put off a moment (`wait`, ms), all asked for meanwhile written once; the page left (or hidden) first,
+       * written then. @param {() => void} write @returns {() => void} asking for it
        */
       function writeSoon(write, wait = 1000) {
         let timer = 0;
-        addEventListener("pagehide", () => timer && (clearTimeout(timer), (timer = 0), write()));
+        onLeave(() => timer && (clearTimeout(timer), (timer = 0), write()));
         return () => {
           clearTimeout(timer);
           timer = setTimeout(() => ((timer = 0), write()), wait);
         };
       }
-      // Leaving: what's being typed kept, and what's not yet written written now (as a save would, full storage too).
-      addEventListener("pagehide", () => {
+      // Leaving (or hidden): what's being typed kept, and what's not yet written written now (as a save would, full storage
+      // too). (Back, a name being typed is a name kept: its field gone, as a click elsewhere leaves it.)
+      onLeave(() => {
         flushEdits();
         if (!saveTimer) return;
         clearTimeout(saveTimer);
@@ -10178,7 +10222,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const id of Object.keys(all)) if (!chartById(id)) delete all[id];
         storage.set(VIEWS, all);
       }
-      addEventListener("pagehide", saveView);
+      onLeave(saveView);
       /** Charts opened, and the grid (a link, a script, a click): a picture made meanwhile, of the one before, dropped. */
       let navigations = 0;
       /** @param {Chart} doc */
@@ -15193,6 +15237,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const fromName = (layer, doc = ownerOf(/** @type {Layer} */ (layer))) => ((noun, letters, edges) => (!letters.length ? noun : `${letters.length > 3 ? `${noun} of ${letters.length} layers` : `${noun} of ${letters.join(", ")}`}${edges.length ? ` to the ${edges[0]}` : ""}`))(layer.type === "trend" ? "Trend" : "Cloud", fromLetters(layer, doc), edgesOf(layer));
       const layerById = (id) => chart.layers.find((layer) => layer.id === id);
 
+      /**
+       * A view's content written anew, scrolled as it was: Safari on iOS sends some views whose content is replaced back
+       * to their top (a layer's settings, at each edit, on iOS 26.5).
+       * @param {HTMLElement} container @param {string} html
+       */
+      function rewrite(container, html) {
+        const top = container.scrollTop;
+        container.innerHTML = html;
+        container.scrollTop = top;
+      }
       /** Rebuilding a panel's HTML would drop focus: these find the same control again afterwards. */
       function focusKey(container) {
         const active = document.activeElement;
@@ -16281,8 +16335,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Leaves the grid: `show` opens the chart to go to (or leaves the one under the grid), and it grows out of
        * `before`, its card. Back returns to the grid. Out of the grid, `show` simply runs.
        */
-      function leaveHome(show = () => {}, before = null, push = true) {
-        if (!home) return void show();
+      function leaveHome(show = () => {}, /** @type {HTMLElement | null} */ before = null, push = true) {
+        if (!home) return void (before?.classList.remove("opening"), show());
         navigations++;
         home = false;
         prefs.home = false;
@@ -16292,6 +16346,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (push) history.pushState({ chart: chart.id, fromHome: true }, "");
         const focused = $("home").contains(document.activeElement);
         morph(before, async () => {
+          // (Pressed as it was tapped, see go: as it grows, as it is.)
+          before?.classList.remove("opening");
           document.body.removeAttribute("data-home");
           refresh("none");
           const row = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${chart.id}"]`));
@@ -16305,10 +16361,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Opens a chart someone picked; from the grid, its card grows into it (`push`: a new step, for Back).
        * @param {Chart | undefined} doc
        */
+      let goes = 0, goingCard = /** @type {HTMLElement | null} */ (null);
       function go(doc, push = true) {
         if (!doc) return;
-        if (home) leaveHome(() => doc !== chart && openChart(doc), cardOf(doc.id), push);
-        else if (doc !== chart) openChart(doc);
+        if (!home) return void (doc !== chart && openChart(doc));
+        // (Its card pressed first, drawn before the chart's made, a while on a slow phone: the tap answered at once. Two
+        // asked for meanwhile, the last one.)
+        const mine = ++goes;
+        goingCard?.classList.remove("opening");
+        const card = (goingCard = cardOf(doc.id));
+        card?.classList.add("opening");
+        requestAnimationFrame(() => setTimeout(() => mine === goes && ((goingCard = null), leaveHome(() => doc !== chart && openChart(doc), card, push))));
       }
       /** A new chart being cancelled on the way back to the grid (it's taken back once there). */
       let cancelling = "";
@@ -16346,7 +16409,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (panelOpen && document.body.dataset.sheet !== "panel" && selected) deselect();
           panelOpen = document.body.dataset.sheet === "panel";
           watch("sheet", phone.matches && Boolean(document.body.dataset.sheet), closeSheet);
-          watch("menu", phone.matches && !$("menu").hidden && $("menu").classList.contains("as-sheet"), hideMenu);
+          watch("menu", phone.matches && !$("menu").hidden && $("menu").classList.contains("as-sheet"), menuGoBack);
         };
         new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ["data-sheet"] });
         new MutationObserver(sync).observe($("menu"), { attributes: true, attributeFilter: ["hidden", "class"] });
@@ -16389,6 +16452,68 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         for (const type of ["pointercancel", "lostpointercapture"]) element.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), back()));
       }
+      /**
+       * An animation begun once frames come on time again (held at its start till then): begun in a frame the page's work
+       * stalls (a layout under it changed with it), WebKit shows it already well on in the first frame it draws (iOS 26.5:
+       * a sheet's first 80% at once). At 300 ms, it begins anyway.
+       * @param {Animation} animation
+       */
+      function beginOnTime(animation) {
+        animation.pause();
+        let first = -1, last = -1;
+        const wait = (/** @type {number} */ now) => {
+          if (animation.playState !== "paused") return;
+          if (first < 0) first = now;
+          else if (now - last < 40 || now - first > 300) return void animation.play();
+          last = now;
+          requestAnimationFrame(wait);
+        };
+        requestAnimationFrame(wait);
+      }
+      const slides = new WeakMap();
+      /**
+       * A sheet's height changed by `change` (its foot the screen's), moving from where it showed (`from`, its top; where
+       * it is, else) by its transform alone, which the screen moves on its own, the page busy or not (its height, laid out
+       * each frame, stalled with it). Taller, it's so at once, slid up from there; shorter, as tall as it showed, slid down,
+       * then so. Never as the screen's own height changes (a keyboard, a turn). It starts at `speed` (a finger's as it let
+       * go, in px/ms, down above 0; still, none), so a drag goes on as it went: from still, gently, never the start's
+       * frames skipped as a jump (iOS draws a motion's first frame some 40 ms into it: a curve fast at its start loses half
+       * its way there).
+       * @param {HTMLElement} sheet @param {() => void} change @param {number} [from] @param {number} [speed]
+       */
+      function sizeSheet(sheet, change, from = sheet.getBoundingClientRect().top, speed = 0) {
+        slides.get(sheet)?.cancel();
+        sheet.style.height = "";
+        change();
+        // (Where its top comes to rest: its foot the screen's, whatever transform it has meanwhile; its height as laid out,
+        // to the fraction.)
+        const height = sheet.getBoundingClientRect().height, by = document.documentElement.clientHeight - height - from;
+        if (reduced.matches || Math.abs(by) < 1) return;
+        // (Its start's slope, the finger's speed in shares of the way a duration: none still, at most 3.)
+        const timing = { duration: MOTION.layout, easing: `cubic-bezier(0.3, ${clamp((0.3 * speed * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
+        if (by > 0) sheet.style.height = `${height + by}px`;
+        const slide = sheet.animate({ transform: by < 0 ? [`translateY(${-by}px)`, "none"] : ["none", `translateY(${by}px)`] }, timing);
+        slides.set(sheet, slide);
+        beginOnTime(slide);
+        if (by > 0) slide.finished.then(() => (sheet.style.height = ""), () => {});
+      }
+      let keysWaiting = /** @type {(() => void) | null} */ (null), keysTimer = 0;
+      /**
+       * `run` once the keyboard's up (see data-keys), or 400 ms on (none came: a keyboard of keys): a sheet grown as a field
+       * in it is tapped. As the keyboard comes, iOS's screen stalls (150 ms on iOS 26.5), a motion's start lost to it.
+       * @param {() => void} run
+       */
+      function onceKeys(run) {
+        clearTimeout(keysTimer);
+        keysWaiting = run;
+        keysTimer = setTimeout(keysCame, 400);
+      }
+      function keysCame() {
+        const run = keysWaiting;
+        keysWaiting = null;
+        clearTimeout(keysTimer);
+        run?.();
+      }
       /** Whether a sheet dragged down goes: past a third of its height, or flicked (24px down, let go at 0.6px a millisecond). */
       const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => by > height / 3 || (by > 24 && speed > 0.6);
       /**
@@ -16396,17 +16521,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * press takes it, by its handle or by its head (or not at all). Up from half it grows, down it follows the finger.
        * Let go upright, it stops at the nearest of whole, half and gone, a flick one stop on its way; its handle tapped,
        * the other height. On its side (a column), down past a third, or flicked, it goes; less, it comes back. `whole`
-       * and `size` read and set its height, `close` closes it; `scrim`, dimmed behind it whole, lightens as it goes down.
+       * and `size` read and set which height it has (its motion is sizeSheet's, from where it was let go), `close` closes
+       * it; `scrim`, dimmed behind it whole, lightens as it goes down.
        * @param {HTMLElement} sheet
        * @param {{ grab: (event: PointerEvent) => "handle" | "head" | false, whole: () => boolean, size: (whole: boolean) => void, close: () => void, scrim?: HTMLElement }} how
        */
       function heightsSheet(sheet, { grab, whole, size, close, scrim }) {
         const [SHEET_WHOLE, SHEET_HALF] = ["--sheet-whole", "--sheet-half"].map((name) => Number(getComputedStyle(document.documentElement).getPropertyValue(name)));
-        let height = 0, handle = false;
+        // (Its top as it shows: where a release moves it from. `held`: its height as it showed, taken mid-motion.)
+        let height = 0, handle = false, shown = 0, held = "";
         dragSheet(sheet, {
           grab: (event) => {
             const by = grab(event);
             if (!by) return false;
+            shown = sheet.getBoundingClientRect().top;
+            // (Taken as it moves to a height: stopped where it shows, as tall as it shows, the finger's from there.)
+            const slide = slides.get(sheet);
+            held = "";
+            if (slide && slide.playState !== "finished") {
+              slide.cancel();
+              held = sheet.style.height = `${document.documentElement.clientHeight - shown}px`;
+            }
             (height = sheet.offsetHeight), (handle = by === "handle");
             sheet.style.transition = "none";
             if (scrim) scrim.style.transition = "none";
@@ -16415,8 +16550,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           move: (by) => {
             // (A drag that turns back grows it or moves it as it is now, never both.)
             const grows = by < 0 && heldUpright.matches && !whole(), down = Math.max(0, by);
-            sheet.style.height = grows ? `${Math.min(height - by, innerHeight * SHEET_WHOLE)}px` : "";
+            sheet.style.height = grows ? `${Math.min(height - by, innerHeight * SHEET_WHOLE)}px` : held;
             sheet.style.transform = grows ? "" : `translateY(${down}px)`;
+            shown = sheet.getBoundingClientRect().top;
             if (scrim && whole()) scrim.style.opacity = String(1 - down / sheet.offsetHeight);
           },
           back: () => {
@@ -16425,24 +16561,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           },
           release: (by, speed) => {
             if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && close());
-            if (handle && Math.abs(by) < 4) return size(!whole());
+            if (handle && Math.abs(by) < 4) return sizeSheet(sheet, () => size(!whole()), shown);
             // (A slow drag most of the way to half lands there; a flick, let go moving, goes one stop on.)
             const stops = [innerHeight * SHEET_WHOLE, innerHeight * SHEET_HALF, 0], flick = Math.abs(by) > 16 && Math.abs(speed) > 0.6 ? Math.sign(speed) : 0;
             const nearest = stops.reduce((near, each, i) => (Math.abs(each - (height - by)) < Math.abs(stops[near] - (height - by)) ? i : near), 0);
             const stop = flick ? clamp((whole() ? 0 : 1) + flick, 0, 2) : nearest;
             if (stop === 2) return close();
-            // (Let go lower than it was, its height made what shows and the drag's offset gone, at once: then its height
-            // alone moves to the stop's, one motion, never the offset back up while the height comes down.)
-            if (by > 0) {
-              sheet.style.transition = "none";
-              sheet.style.height = `${height - by}px`;
-              void sheet.offsetHeight;
-              sheet.style.transition = sheet.style.height = "";
-            }
-            size(stop === 0);
+            sizeSheet(sheet, () => size(stop === 0), shown, speed);
           },
         });
       }
+      /**
+       * The layers' sheet whole or half (a phone's, upright). Closed meanwhile (mid-drag, by esc or Back), it isn't: it
+       * opens again at half. @param {boolean} whole
+       */
+      const panelSize = (whole) => document.body.dataset.sheet === "panel" && (whole ? (document.body.dataset.sheetSize = "full") : delete document.body.dataset.sheetSize);
       // The layers' sheet, by its handle or its head (a phone's; upright, it opens at half).
       heightsSheet($("panel"), {
         grab: (event) => {
@@ -16450,8 +16583,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return phone.matches && document.body.dataset.sheet === "panel" && from <= 56 && !closest(event, "button, input, textarea, a") && (from <= 22 ? "handle" : "head");
         },
         whole: sheetWhole,
-        // (Closed mid-drag, by esc or Back, it isn't sized as it's let go: it opens again at half.)
-        size: (whole) => document.body.dataset.sheet === "panel" && (whole ? (document.body.dataset.sheetSize = "full") : delete document.body.dataset.sheetSize),
+        size: panelSize,
         close: () => $("scrim").click(),
         scrim: $("scrim"),
       });
@@ -18077,7 +18209,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           tail.forEach(([, html], i) => html !== was.tail[i][1] && (list.children[sections.length + i].outerHTML = html));
           restoreFocus(list, focus);
         } else {
-          list.innerHTML = [...sections.map(({ open, rows }) => `${open}${rows.map(([, html]) => html).join("")}</section>`), ...tail.map(([, html]) => html)].join("");
+          rewrite(list, [...sections.map(({ open, rows }) => `${open}${rows.map(([, html]) => html).join("")}</section>`), ...tail.map(([, html]) => html)].join(""));
           sections.forEach(({ rows }, i) => listWritten.set(/** @type {HTMLElement} */ (list.children[i]), rows));
           restoreFocus(list, focus);
         }
@@ -18473,7 +18605,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // of this layer whose stop changes alone (reading one lays the page's style out first: an edit elsewhere, none read).
         const moves = (/** @type {HTMLElement} */ element) => element.id in SLIDERS && (Number(element.style.getPropertyValue("--at")) !== sliderAt(/** @type {keyof typeof SLIDERS} */ (element.id), layer) || (glidesUntil.get(element.id) ?? 0) > performance.now());
         const was = new Map(another || reduced.matches ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(element, "::after").left, fill: getComputedStyle(element, "::before").width }]));
-        panel.innerHTML = html;
+        rewrite(panel, html);
         drawKeys(panel);
         if (isFormula) updateFormula(layer);
         restoreFocus(panel, focus);
@@ -18903,6 +19035,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Custom: the surface alone, its color picked live (the page stays open), Bitview's colors a step back. */
       function colorPane(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {() => void} */ back, borrowed = false) {
         showMenu(anchor, `<div class="field belt-pop color-pop color-pane"><span><button type="button" class="cap small" data-pane-back="1" aria-label="Bitview's colors" data-tip="Bitview's colors">${ICONS.back}</button>Custom</span><div class="color-box">${planeHtml(color, target)}${hexField(target, borrowed ? "" : color)}</div></div>`, ({ paneBack }) => paneBack && back(), null, anchor.closest("#belt") ? beltSide() : "");
+        menuBack = back;
         drawPlanes();
         planeOf(target)?.focus({ preventScroll: true });
       }
@@ -19303,7 +19436,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const assist = /** @type {HTMLElement | null} */ (document.querySelector(".assist")), editor = $("formula-editor");
         if (!assist || !editor) return;
         const rect = editor.getBoundingClientRect(), view = $("inspector").getBoundingClientRect();
-        const bottom = window.visualViewport ? visualViewport.offsetTop + visualViewport.height : innerHeight;
+        const bottom = viewport.offsetTop + viewport.height;
         const holds = [...assist.children].some((child) => !(/** @type {HTMLElement} */ (child).hidden));
         if (!holds || document.activeElement?.id !== "formula" || rect.bottom < view.top || rect.bottom > Math.min(view.bottom, bottom - 48)) return void (assist.matches(":popover-open") && assist.hidePopover());
         Object.assign(assist.style, { left: `${rect.left}px`, top: `${rect.bottom + 4}px`, width: `${rect.width}px`, maxHeight: `${bottom - rect.bottom - 12}px` });
@@ -19311,8 +19444,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       $("inspector").addEventListener("scroll", placeAssist, true);
       addEventListener("resize", placeAssist);
-      window.visualViewport?.addEventListener("resize", placeAssist);
-      window.visualViewport?.addEventListener("scroll", placeAssist);
+      viewport.addEventListener("resize", placeAssist);
+      viewport.addEventListener("scroll", placeAssist);
       /** The row chosen (-1: none), as the field tells assistive tech. */
       function chooseSuggestion(/** @type {number} */ i) {
         suggest.active = i;
@@ -19892,7 +20025,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         while (taken.has(Number(at.toPrecision(12)))) at += step;
         return Number(at.toPrecision(12));
       }
-      /** A level for the selected layer (see levelValue), its field focused to adjust it. */
+      /** A level for the selected layer (see levelValue), its field focused to adjust it (by a finger, shown: the keyboard on a tap). */
       function addLevel() {
         const layer = layerById(selected);
         if (!layer || (layer.levels?.length ?? 0) >= 12) return;
@@ -19900,6 +20033,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         editLayer((target) => withLevel(target, level));
         requestAnimationFrame(() => {
           const input = $(`level-${(layerById(selected)?.levels?.length ?? 1) - 1}`);
+          if (byTouch) return void input?.scrollIntoView({ block: "nearest", behavior: reduced.matches ? "auto" : "smooth" });
           input?.focus();
           input?.select();
         });
@@ -20617,10 +20751,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       if (TOUCH) $("palette").tabIndex = -1;
       /** Whether the last thing done was by keys, not a pointer (a touch device's keyboard: ⌘K by keys, its field takes them). */
       let byKeys = false;
-      addEventListener("keydown", () => (byKeys = true), true);
+      /** Whether the last thing done was a finger's (a mouse on a touch device isn't). */
+      let byTouch = false;
+      addEventListener("keydown", () => ((byKeys = true), (byTouch = false)), true);
       // (A touch heard at all, as WebKit needs to show a control pressed, :active, under a finger.)
       addEventListener("touchstart", () => {}, { passive: true });
-      addEventListener("pointerdown", () => (byKeys = false), true);
+      addEventListener("pointerdown", (event) => ((byKeys = false), (byTouch = event.pointerType === "touch")), true);
       /** A pane's number, as the panel counts them (from 1). */
       const paneNumber = (/** @type {string} */ id) => chart.panes.findIndex((pane) => pane.id === id) + 1;
       /** The chip and the wording for where ⌘K is: everything, adding a series, or replacing one. */
@@ -22585,6 +22721,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // ── Menus and toolbar ─────────────────────────────────────────────────────
 
       let menuOwner = null;
+      /** The menu a page of a menu came from (a phone's: its ‹, and Back), else null. @type {(() => void) | null} */
+      let menuBack = null;
+      /** What a phone's menu sheet left inert (the page under it, out of reach, a screen reader's too), as it was. */
+      let menuInert = /** @type {Map<Element, boolean> | null} */ (null);
+      /** A phone's menu sheet modal, or not: what's beside it on the page out of reach (in a dialog, it's modal already). */
+      function menuModal(/** @type {boolean} */ on) {
+        const menu = $("menu");
+        if (on && !menuInert && menu.parentElement === document.body) {
+          menuInert = new Map();
+          for (const element of document.body.children) {
+            if ([menu, menuScrim, $("submenu"), $("toast"), $("tip")].includes(/** @type {HTMLElement} */ (element)) || element instanceof HTMLDialogElement || element instanceof HTMLScriptElement || element.matches(".vh")) continue;
+            menuInert.set(element, /** @type {HTMLElement} */ (element).inert);
+            /** @type {HTMLElement} */ (element).inert = true;
+          }
+        } else if (!on && menuInert) {
+          for (const [element, was] of menuInert) /** @type {HTMLElement} */ (element).inert = was;
+          menuInert = null;
+        }
+      }
       /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
       const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
       /**
@@ -22612,6 +22767,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         menu.classList.toggle("as-sheet", phone.matches);
         if (phone.matches) menu.insertAdjacentHTML("afterbegin", '<div class="menu-handle" aria-hidden="true"></div>');
         if (phone.matches) host.insertBefore(menuScrim, menu);
+        menuModal(phone.matches);
         if (!share) nameMenuParts(menu);
         for (const button of all$("button", menu)) {
           // (One leading to another menu: its › at its end, after what it says.)
@@ -22634,7 +22790,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           menuPicked(button, onPick);
         };
         // (The one ticked in sight, a long one's too: a select's choice low in its list. A flyout leaves the focus be.)
-        const first = /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled)"));
+        const first = /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled, [data-menu-back])"));
         if (!flyout) first?.focus({ preventScroll: true });
         if (first && menu.scrollHeight > menu.clientHeight) first.scrollIntoView({ block: "nearest" });
       }
@@ -22642,10 +22798,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Rows as a menu (a ⋯, a right-click, a select's list; on a phone, a sheet): a rule before what's apart (`apart`,
        * a new group, the first that removes), each group's name over it with `heads`; the choice in effect ticked; one
        * that can't act saying why when pressed; one with a page leads to its rows, beside it (on a phone, in its place,
-       * titled). `title`: a heading on top; `hover`: shown by a pointer resting (see flyout).
+       * titled, its ‹ (and Back) the menu it came from). `title`: a heading on top; `hover`: shown by a pointer resting
+       * (see flyout); `back`: the menu it's a page of.
        * @param {HTMLElement} anchor @param {(Action | false | null | undefined)[]} rows
        */
-      function menuOf(anchor, rows, /** @type {{ x: number, y: number } | null} */ point = null, side = "", { heads = false, title = "", hover: asFlyout = false, named = "" } = {}) {
+      function menuOf(anchor, rows, /** @type {{ x: number, y: number } | null} */ point = null, side = "", { heads = false, title = "", hover: asFlyout = false, named = "", back = /** @type {(() => void) | undefined} */ (undefined) } = {}) {
         const list = /** @type {Action[]} */ (rows.filter(Boolean));
         if (!list.length) return;
         const html = list.map((row, i) => {
@@ -22654,14 +22811,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const choice = row.current !== undefined;
           return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escape(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${choice ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}${escape(row.label)}${row.kbd ? `<kbd>${escape(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escape(row.disabled || row.aside || "")}</span>` : ""}</button>`;
         }).join("");
-        showMenu(anchor, `${title ? `<div class="menu-group">${escape(title)}</div>` : ""}${html}`, ({ pick: key }) => {
+        const head = back ? `<div class="menu-group menu-title"><button type="button" class="cap small" data-menu-back="1" aria-label="Back" data-tip="Back">${ICONS.back}</button>${escape(title)}</div>` : title ? `<div class="menu-group">${escape(title)}</div>` : "";
+        showMenu(anchor, `${head}${html}`, ({ pick: key, menuBack: backed }) => {
+          if (backed) return back?.();
           const row = list.find((item, i) => (item.key ?? String(i)) === key);
           if (!row) return;
           if (row.disabled) return notice(row.disabled);
           if (!row.page) return row.run?.();
-          const page = row.page();
-          menuOf(anchor, page.options?.() ?? page.rows(), point, side, { title: phone.matches ? pageTitle(page) : "" });
+          const page = row.page(), here = () => menuOf(anchor, rows, point, side, { heads, title, hover: asFlyout, named, back });
+          menuOf(anchor, page.options?.() ?? page.rows(), point, side, phone.matches ? { title: pageTitle(page), back: here } : {});
         }, point, side, asFlyout, named || title);
+        menuBack = back ?? null;
       }
       /**
        * An item picked, in a menu or its submenu: they go, its pick runs; picked by a key, the focus was in them: back on
@@ -22731,8 +22891,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       menuScrim.className = "menu-scrim";
       menuScrim.addEventListener("click", (event) => {
         event.stopPropagation();
-        hideMenu();
+        dismissMenu();
       });
+      /** The menu put away (its backdrop tapped, Back): the focus, if it was in it, back on what opened it. */
+      function dismissMenu() {
+        const had = $("menu").contains(document.activeElement) || $("submenu").contains(document.activeElement), owner = ownerNow();
+        hideMenu();
+        if (had && owner?.isConnected) owner.focus({ preventScroll: true });
+      }
+      // A menu placed for the screen as it was (a phone's sheet, a popover at its opener) isn't carried to another: the
+      // screen turned, or a window made wider or narrower, it's put away. (Not as a keyboard makes it shorter.)
+      {
+        let wide = innerWidth;
+        addEventListener("resize", () => innerWidth !== wide && ((wide = innerWidth), !$("menu").hidden && dismissMenu()));
+      }
+      /** Back, on a phone's menu sheet: a page of it to the menu it came from, else the menu away. */
+      function menuGoBack() {
+        const back = menuBack;
+        if (!back) return dismissMenu();
+        hideMenu();
+        back();
+      }
       /** What a control's called (a menu named by what opened it): its label, else its words, its keys and asides apart. */
       const calledBy = (/** @type {HTMLElement} */ element) => (element.getAttribute("aria-label") || element.querySelector(".label, .name")?.textContent || [...element.childNodes].filter((node) => !(node instanceof Element && node.matches("kbd, .aside, .sub, svg"))).map((node) => node.textContent).join(" ")).replace(/\s+/g, " ").trim();
       /** A menu's parts named for what they are, a menu's or a submenu's: its rules, its rows (a choice ticked, a radio). */
@@ -22767,18 +22946,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // made half, the keyboard goes (the field and a row or two above it would be all there was).
       {
         const sheet = $("palette");
-        let sizing = 0;
         const size = (/** @type {boolean} */ whole) => {
-          const mine = ++sizing;
-          sheet.dataset.sizing = "";
           sheet.toggleAttribute("data-half", !whole);
           if (!whole && document.activeElement === $("palette-input")) sheet.focus();
-          // (Its height's motion begun now, so it's the one waited for: the last one over, the screen's own changes snap again.)
-          void getComputedStyle(sheet).height;
-          Promise.allSettled(sheet.getAnimations().map((animation) => animation.finished)).then(() => mine === sizing && delete sheet.dataset.sizing);
         };
         heightsSheet(sheet, { grab: (event) => phone.matches && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
-        $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && size(true));
+        $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && onceKeys(() => sheet.open && sheet.hasAttribute("data-half") && document.activeElement === $("palette-input") && sizeSheet(sheet, () => size(true))));
       }
       // A phone's menu sheet, dragged down by its top (its handle): as the layers' sheet goes, it goes; else it comes back.
       {
@@ -23003,10 +23176,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function hideMenu() {
         flyout = false;
         hideSubmenu();
-        menuPick = null;
+        menuPick = menuBack = null;
         menuTarget?.classList.remove("menu-target");
         menuTarget = null;
         menuScrim.remove();
+        menuModal(false);
         $("menu").hidden = true;
         unexpand(ownerNow());
         (closedOwner = ownerNow()), (closedAt = performance.now());
@@ -24220,8 +24394,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * Where the toast shows: above the chart's foot; in the grid, above its bar (or its foot), centered on it; the
-       * layers' bar showing on a phone's sheet, above it. Again as the screen changes while it's up (a turn): measured
-       * once, it stayed where the old layout had it, off the new one.
+       * layers' bar showing on a phone's sheet, above it; above the keyboard. Again as the screen changes while it's up (a
+       * turn, the keyboard): measured once, it stayed where the old layout had it, off the new one.
        */
       function placeToast(/** @type {Element} */ host = /** @type {HTMLElement} */ ($("toast").parentElement)) {
         const element = $("toast");
@@ -24231,15 +24405,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const tabs = /** @type {HTMLElement} */ (document.querySelector(".mobile-bar")).getBoundingClientRect(), tabsTop = tabs.width > tabs.height ? tabs.top : Infinity;
         // (A phone's menu sheet up: above it, not over its rows.)
         const menuSheet = $("menu").classList.contains("as-sheet") && !$("menu").hidden ? $("menu").getBoundingClientRect().top : Infinity;
-        const above = Math.min(menuSheet, sheetBar ? sheetBar.top : Math.min(tabsTop, !home ? Math.min(frame.top, beltTop) : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top));
-        element.style.bottom = host === document.body && frame.height ? `${innerHeight - above + 12}px` : "";
+        // (In the page's own measure: iOS's window is as short as its keyboard leaves, the page isn't. The chart's foot
+        // hidden under the keyboard, above the keyboard.)
+        const page = document.documentElement.clientHeight, shown = viewport.offsetTop + viewport.height, keys = shown < page - 1;
+        const above = Math.min(shown, menuSheet, sheetBar ? sheetBar.top : Math.min(tabsTop, frame.height ? (!home ? Math.min(frame.top, beltTop) : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top) : Infinity));
+        element.style.bottom = host === document.body && (frame.height || keys) ? `${page - above + 12}px` : "";
         const center = host === document.body && frame.width ? frame.left + frame.width / 2 : 0;
         element.style.left = center ? `${center}px` : "";
         // (Centered off the window's middle, as wide as fits on both sides of it.)
         element.style.maxWidth = center ? `${2 * Math.min(center, innerWidth - center) - 24}px` : "";
       }
       let toastFor = 0;
-      addEventListener("resize", () => $("toast").classList.contains("visible") && placeToast());
+      for (const target of [window, viewport]) target.addEventListener("resize", () => $("toast").classList.contains("visible") && placeToast());
       /** The toast up put away at once: what it said no longer true (an undo, a redo, a keep). */
       function hideToast() {
         clearTimeout(toastTimer);
@@ -24453,11 +24630,78 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
       }
 
-      /** Out of the field being typed into: what it holds is kept (or, a text emptied, goes), there and then. */
-      /** What's being typed kept, and a formula left by a press applied now: on the chart it was typed on (another's opening). */
+      /**
+       * Out of the field being typed into: what it holds kept (or, a text emptied, gone), and a formula left by a press
+       * applied, there and then: on the chart it was typed on (another's opening).
+       */
       const leaveField = () => (naming?.finish(), typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur(), applyFormulaLeft());
       /** Typing into a field (a tick isn't one: keys still do what they do). */
       const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
+      // The keyboard, by touch. iOS lays it over the page (its viewport the same: what's under it, hidden) and, a field
+      // under it tapped, moves the whole page up to it (the header, a sheet's top, off the screen); Android makes the page
+      // as short as it leaves (resizes-content). While it's up (typing, and the page's foot under it, or the page a quarter
+      // shorter, not as the focus says: a field can keep it with the keyboard put away), `data-keys`, the bars out of its
+      // way, and `--keys`, how much of the page's foot it covers (iOS's; none where the page is made shorter): a sheet's
+      // list goes on to its top. A field in a phone's sheet tapped (the layers', ⌘K), not focused yet, is focused where it
+      // is, its caret where it was tapped (the page left in place; a half sheet made whole once the keyboard's up, as ⌘K
+      // is: see onceKeys), and scrolled into what shows (seen on iOS 26.5: focused so, the page doesn't move, however low
+      // the field: its list scrolls). A tap in a field focused already is the browser's (its caret, a word selected).
+      // A menu's (a color's hex) is iOS's: no list there to scroll, iOS moves the page up to it, smoothly, on its own.
+      {
+        const root = document.documentElement;
+        /** The page's height with no keyboard, at each width it's had (a screen turned with the keyboard up, the other's). */
+        const tallest = /** @type {Map<number, number>} */ (new Map());
+        let covered = -1;
+        /** The field typed into, scrolled into what shows (in the list that holds it, under its head), its sheet sized first. */
+        const reveal = () => {
+          const field = /** @type {HTMLElement} */ (document.activeElement), sheet = field.closest("#panel, #palette");
+          if (!typing(field) || !sheet) return;
+          Promise.allSettled(sheet.getAnimations().map((animation) => animation.finished)).then(() => {
+            if (document.activeElement !== field || !document.body.hasAttribute("data-keys")) return;
+            let list = field.parentElement;
+            while (list && list !== sheet.parentElement && !(list.scrollHeight > list.clientHeight && /auto|scroll/.test(getComputedStyle(list).overflowY))) list = list.parentElement;
+            if (!list || list === sheet.parentElement) return;
+            const box = field.getBoundingClientRect(), view = list.getBoundingClientRect();
+            const top = view.top + (parseFloat(getComputedStyle(list).scrollPaddingTop) || 0), bottom = Math.min(view.bottom, viewport.offsetTop + viewport.height) - 12;
+            // (Taller than what shows, its top.)
+            const by = box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : Math.min(0, box.top - top);
+            if (Math.abs(by) > 1) list.scrollBy({ top: by, behavior: reduced.matches ? "auto" : "smooth" });
+          });
+        };
+        const read = () => {
+          const layout = root.clientHeight, most = Math.max(tallest.get(innerWidth) ?? 0, layout);
+          tallest.set(innerWidth, most);
+          const under = Math.max(0, Math.round(layout - viewport.height));
+          // (By touch: a window made shorter by a mouse isn't a keyboard.)
+          const up = TOUCH && typing(document.activeElement) && (under > 120 || most - layout > most / 4);
+          document.body.toggleAttribute("data-keys", up);
+          if ((up ? under : 0) !== covered) root.style.setProperty("--keys", `${(covered = up ? under : 0)}px`);
+          if (up) keysCame(), reveal();
+        };
+        viewport.addEventListener("resize", read);
+        addEventListener("resize", read);
+        addEventListener("focusin", read);
+        let press = /** @type {{ x: number, y: number, at: number, target: EventTarget | null } | null} */ (null);
+        addEventListener("touchstart", (event) => (press = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY, at: event.timeStamp, target: event.target } : null), { capture: true, passive: true });
+        addEventListener(
+          "touchend",
+          (event) => {
+            const target = /** @type {HTMLElement} */ (event.target), was = press, touch = event.changedTouches[0];
+            press = null;
+            // (Its own, or its label's: a hex's box around it.)
+            const field = /** @type {HTMLElement | null | undefined} */ (typing(target) ? target : target.closest("label")?.control);
+            // (A tap: not a scroll, nor a press held for the caret's magnifier or a paste.)
+            if (!phone.matches || !field || !was || was.target !== target || document.activeElement === field || !typing(field) || !field.matches(":read-write") || !field.closest("#panel, #palette")) return;
+            if (Math.hypot(touch.clientX - was.x, touch.clientY - was.y) > 10 || event.timeStamp - was.at > 500) return;
+            event.preventDefault();
+            field.focus({ preventScroll: true });
+            const at = document.caretPositionFromPoint?.(touch.clientX, touch.clientY);
+            if (at?.offsetNode === field && (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) field.setSelectionRange(at.offset, at.offset);
+            if (field.closest("#panel") && heldUpright.matches && !sheetWhole()) onceKeys(() => document.activeElement === field && document.body.dataset.sheet === "panel" && !sheetWhole() && sizeSheet($("panel"), () => panelSize(true)));
+          },
+          { capture: true, passive: false },
+        );
+      }
       function selectBy(delta) {
         if (!chart.layers.length) return;
         const from = layerPicks.size ? pickHead : selected, index = chart.layers.findIndex((layer) => layer.id === from);
