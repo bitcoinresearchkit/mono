@@ -27,6 +27,7 @@ pub fn finalize_inputs(
     addr_tx_index_stores: &mut ByAddrType<Store<AddrIndexTxIndex, Unit>>,
     addr_outpoint_stores: &mut ByAddrType<Store<AddrIndexOutPoint, Unit>>,
     utxos: &mut Store<UtxoKey, Utxo>,
+    utxo_values: &mut Store<UtxoKey, Sats>,
     txins: &[InputSource],
     txouts: &[ProcessedOutput],
 ) {
@@ -83,10 +84,11 @@ pub fn finalize_inputs(
             if !matches!(input_source, InputSource::Coinbase) {
                 let previous_output = &txin.previous_output;
                 let txid = <&Txid>::from(&previous_output.txid);
-                utxos.remove(UtxoKey::new(
-                    TxidPrefix::from(txid),
-                    Vout::from(previous_output.vout),
-                ));
+                let key = UtxoKey::new(TxidPrefix::from(txid), Vout::from(previous_output.vout));
+                utxos.remove(key);
+                if Utxo::is_large(value) {
+                    utxo_values.remove(key);
+                }
             }
 
             inputs.tx_index.debug_checked_push(txin_index, tx_index);

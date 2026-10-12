@@ -80,7 +80,7 @@ impl InputResolver {
                             output_type,
                             legacy_sigops,
                             type_index,
-                            value: utxo.value(),
+                            value: processor.stores.utxo_value(&key, &utxo)?,
                         };
                         Ok(())
                     }

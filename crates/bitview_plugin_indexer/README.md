@@ -24,7 +24,8 @@ Lookup stores complement those sequential vectors with:
 - block-hash prefix to height
 - transaction-ID prefix to transaction index
 - the unspent outputs by transaction-ID prefix and output index, which resolve
-  each spent input in one lookup
+  each spent input in one lookup (two for an output of 2^31 sats or more, whose
+  value is kept in a small overflow store)
 - address payload to typed address index
 - address history keyed by address and transaction index
 - the live unspent-outpoint set for each indexed address

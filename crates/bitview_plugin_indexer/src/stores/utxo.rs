@@ -1,6 +1,6 @@
 use bitview_primitives::{TxOutIndex, TypeIndex};
 use brk_types::{OutputType, Sats, StoreValue, TxIndex, TxidPrefix, Vout};
-use vecdb::Bytes;
+use vecdb::{Bytes, OverflowVecValue};
 
 /// Key of an unspent output: the creating transaction's txid prefix, then the output's vout.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
@@ -30,10 +30,14 @@ impl StoreValue for UtxoKey {
     }
 }
 
-/// What resolving an input needs about the output it spends, its value included, packed (25 bytes, no padding:
-/// the pending map holds millions of them between saves).
+/// A large value's marker in the entry: its value is in the overflow store.
+const LARGE: u32 = u32::MAX;
+
+/// What resolving an input needs about the output it spends, packed (18 bytes, no padding: the pending map holds
+/// millions of them between saves). The output index takes 5 bytes (below 2^40, as `Index40`); the value is
+/// `Sats`' compact form, as in `outputs.value`, and a large one (2^31 sats or more) is kept in the overflow store.
 #[derive(Debug, Clone, Copy)]
-pub struct Utxo([u8; 25]);
+pub struct Utxo([u8; 18]);
 
 impl Utxo {
     #[inline]
@@ -44,13 +48,21 @@ impl Utxo {
         type_index: TypeIndex,
         value: Sats,
     ) -> Self {
-        let mut bytes = [0; 25];
+        let txout_index = u64::from(txout_index);
+        debug_assert!(txout_index < 1 << 40, "output index above 2^40");
+        let mut bytes = [0; 18];
         bytes[..4].copy_from_slice(&u32::from(tx_index).to_be_bytes());
-        bytes[4..12].copy_from_slice(&u64::from(txout_index).to_be_bytes());
-        bytes[12] = output_type as u8;
-        bytes[13..17].copy_from_slice(&u32::from(type_index).to_be_bytes());
-        bytes[17..].copy_from_slice(&u64::from(value).to_be_bytes());
+        bytes[4..9].copy_from_slice(&txout_index.to_be_bytes()[3..]);
+        bytes[9] = output_type as u8;
+        bytes[10..14].copy_from_slice(&u32::from(type_index).to_be_bytes());
+        bytes[14..].copy_from_slice(&value.to_compact().unwrap_or(LARGE).to_be_bytes());
         Self(bytes)
+    }
+
+    /// Whether `value` is kept in the overflow store instead of the entry.
+    #[inline]
+    pub(crate) fn is_large(value: Sats) -> bool {
+        value.to_compact().is_none()
     }
 
     #[inline]
@@ -60,27 +72,31 @@ impl Utxo {
 
     #[inline]
     pub fn txout_index(&self) -> TxOutIndex {
-        TxOutIndex::from(u64::from_be_bytes(self.0[4..12].try_into().unwrap()))
+        let mut bytes = [0; 8];
+        bytes[3..].copy_from_slice(&self.0[4..9]);
+        TxOutIndex::from(u64::from_be_bytes(bytes))
     }
 
     #[inline]
     pub fn output_type(&self) -> OutputType {
-        OutputType::from_bytes(&self.0[12..13]).expect("stored output type")
+        OutputType::from_bytes(&self.0[9..10]).expect("stored output type")
     }
 
     #[inline]
     pub fn type_index(&self) -> TypeIndex {
-        TypeIndex::from(u32::from_be_bytes(self.0[13..17].try_into().unwrap()))
+        TypeIndex::from(u32::from_be_bytes(self.0[10..14].try_into().unwrap()))
     }
 
+    /// The output's value, or `None` for a large one, which is in the overflow store.
     #[inline]
-    pub fn value(&self) -> Sats {
-        Sats::from(u64::from_be_bytes(self.0[17..].try_into().unwrap()))
+    pub fn value(&self) -> Option<Sats> {
+        let compact = u32::from_be_bytes(self.0[14..].try_into().unwrap());
+        (compact != LARGE).then(|| Sats::from_compact(compact))
     }
 }
 
 impl StoreValue for Utxo {
-    type Bytes = [u8; 25];
+    type Bytes = [u8; 18];
 
     #[inline]
     fn to_store_bytes(&self) -> Self::Bytes {

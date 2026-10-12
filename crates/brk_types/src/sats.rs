@@ -12,7 +12,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{Bitcoin, Cents, Dollars, Height};
-use crate::CheckedSub;
+use crate::{CheckedSub, StoreValue};
 
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
@@ -60,6 +60,20 @@ impl OverflowVecValue for Sats {
     fn from_overflow_index(index: usize) -> Self::Compact {
         assert!(index < 1 << 31, "overflow sidecar index is too large");
         (1 << 31) | index as u32
+    }
+}
+
+impl StoreValue for Sats {
+    type Bytes = [u8; 8];
+
+    #[inline]
+    fn to_store_bytes(&self) -> Self::Bytes {
+        self.0.to_be_bytes()
+    }
+
+    #[inline]
+    fn from_store_bytes(bytes: Self::Bytes) -> Self {
+        Self(u64::from_be_bytes(bytes))
     }
 }
 

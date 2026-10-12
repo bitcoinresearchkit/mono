@@ -127,6 +127,7 @@ impl<'a> BlockProcessor<'a> {
             addr_unspent_outpoints,
             txid_prefixes,
             utxos,
+            utxo_values,
         } = self.stores.transaction_stores_mut();
         let txs = &txs;
 
@@ -144,6 +145,7 @@ impl<'a> BlockProcessor<'a> {
                     addr_tx_indexes,
                     addr_unspent_outpoints,
                     utxos,
+                    utxo_values,
                     &mut txouts,
                     addresses,
                 );
@@ -156,6 +158,7 @@ impl<'a> BlockProcessor<'a> {
                     addr_tx_indexes,
                     addr_unspent_outpoints,
                     utxos,
+                    utxo_values,
                     txins,
                     &txouts,
                 );

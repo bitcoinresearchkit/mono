@@ -49,6 +49,8 @@ mod rollback_floor;
 mod safe_lengths;
 mod state;
 mod stores;
+#[cfg(test)]
+mod tests;
 mod vecs;
 
 pub use has::HasIndexer;

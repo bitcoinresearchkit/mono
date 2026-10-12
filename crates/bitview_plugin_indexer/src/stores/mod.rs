@@ -6,7 +6,7 @@ use bitview_primitives::{
 };
 use brk_error::{Error, OptionData, Result};
 use brk_store::{AnyStore, Kind, PendingIngest, Store, open_database};
-use brk_types::{Height, OutPoint, OutputType, TxIndex, TxidPrefix, Unit, Version, Vout};
+use brk_types::{Height, OutPoint, OutputType, Sats, TxIndex, TxidPrefix, Unit, Version, Vout};
 use fjall::Database;
 use rayon::{join, prelude::*};
 use rustc_hash::FxHashSet;
@@ -36,8 +36,11 @@ pub struct Stores {
     addr_type_to_addr_index_and_unspent_outpoint: ByAddrType<Store<AddrIndexOutPoint, Unit>>,
     blockhash_prefix_to_height: Store<BlockHashPrefix, Height>,
     txid_prefix_to_tx_index: Store<TxidPrefix, TxIndex>,
-    /// Every output not spent yet but OP_RETURN ones: what resolving an input needs, in one lookup.
+    /// Every output not spent yet but OP_RETURN ones: what resolving an input needs, in one lookup (two for a
+    /// large value).
     utxos: Store<UtxoKey, Utxo>,
+    /// The values of large unspent outputs, which their entry in `utxos` only marks.
+    utxo_values: Store<UtxoKey, Sats>,
 }
 
 impl Stores {
@@ -105,6 +108,18 @@ impl Stores {
     #[inline]
     pub fn utxo(&self, key: &UtxoKey) -> Result<Option<Utxo>> {
         self.utxos.get(key)
+    }
+
+    /// The value of `utxo`, the unspent output under `key`: in the entry, or for a large one in the overflow store.
+    #[inline]
+    pub fn utxo_value(&self, key: &UtxoKey, utxo: &Utxo) -> Result<Sats> {
+        match utxo.value() {
+            Some(value) => Ok(value),
+            None => self
+                .utxo_values
+                .get(key)?
+                .ok_or(Error::Internal("large unspent output without its value")),
+        }
     }
 
     pub fn import(parent: &Path, version: Version) -> Result<Self> {
@@ -176,19 +191,23 @@ impl Stores {
                 || ByAddrType::par_try_from_fn(create_addr_index_to_unspent_outpoint_store),
             )
         };
-        let create_utxo_store =
-            || Store::import(database_ref, path, "utxos", version, Kind::Recent);
+        let create_utxo_stores = || {
+            join(
+                || Store::import(database_ref, path, "utxos", version, Kind::Recent),
+                || Store::import(database_ref, path, "utxo_values", version, Kind::Recent),
+            )
+        };
         let create_prefix_stores = || {
             join(
                 || join(create_blockhash_prefix_store, create_txid_prefix_store),
-                create_utxo_store,
+                create_utxo_stores,
             )
         };
 
-        // Every store owns an independent keyspace, so all 27 can recover in parallel.
+        // Every store owns an independent keyspace, so all 28 can recover in parallel.
         let (
             ((addr_hashes, addr_tx_indexes), addr_unspent_outpoints),
-            ((blockhashes, txids), utxos),
+            ((blockhashes, txids), (utxos, utxo_values)),
         ) = join(create_address_stores, create_prefix_stores);
 
         let stores = Self {
@@ -200,6 +219,7 @@ impl Stores {
             blockhash_prefix_to_height: blockhashes?,
             txid_prefix_to_tx_index: txids?,
             utxos: utxos?,
+            utxo_values: utxo_values?,
         };
 
         if stores.checkpoint.next_height()?.is_none() && stores.is_empty()? {
@@ -218,6 +238,7 @@ impl Stores {
             &mut self.blockhash_prefix_to_height as &mut dyn AnyStore,
             &mut self.txid_prefix_to_tx_index,
             &mut self.utxos,
+            &mut self.utxo_values,
         ]
         .into_par_iter()
         .chain(
@@ -269,6 +290,7 @@ impl Stores {
         take!(self.blockhash_prefix_to_height);
         take!(self.txid_prefix_to_tx_index);
         take!(self.utxos);
+        take!(self.utxo_values);
 
         for store in self.addr_type_to_addr_hash_to_addr_index.values_mut() {
             take!(store);
@@ -320,6 +342,7 @@ impl Stores {
         Ok(self.blockhash_prefix_to_height.is_empty()?
             && self.txid_prefix_to_tx_index.is_empty()?
             && self.utxos.is_empty()?
+            && self.utxo_values.is_empty()?
             && self
                 .addr_type_to_addr_hash_to_addr_index
                 .values()
@@ -386,6 +409,7 @@ impl Stores {
     ) -> Result<()> {
         let txout_index_to_output_type_reader = vecs.outputs.output_type.reader();
         let txout_index_to_type_index_reader = vecs.outputs.type_index.reader();
+        let txout_index_to_value_reader = vecs.outputs.value.reader();
 
         let mut addr_index_tx_index_to_remove: FxHashSet<(OutputType, TypeIndex, TxIndex)> =
             FxHashSet::default();
@@ -427,8 +451,11 @@ impl Stores {
             for (vout, txout_index) in txout_range.enumerate() {
                 let output_type = txout_index_to_output_type_reader.get_at(txout_index);
                 if !output_type.is_unspendable() {
-                    self.utxos
-                        .remove(UtxoKey::new(txid_prefix, Vout::from(vout)));
+                    let key = UtxoKey::new(txid_prefix, Vout::from(vout));
+                    self.utxos.remove(key);
+                    if Utxo::is_large(txout_index_to_value_reader.get_at(txout_index)) {
+                        self.utxo_values.remove(key);
+                    }
                 }
                 if !output_type.is_addr() {
                     continue;
@@ -466,16 +493,21 @@ impl Stores {
             // Outputs created by removed transactions went with them; older ones are unspent again.
             if outpoint.tx_index() < starting_tx_index {
                 let txid = txids.get(outpoint.tx_index());
+                let key = UtxoKey::new(TxidPrefix::from(&txid), outpoint.vout());
+                let value = values.get(index).data()?;
                 self.utxos.insert(
-                    UtxoKey::new(TxidPrefix::from(&txid), outpoint.vout()),
+                    key,
                     Utxo::new(
                         outpoint.tx_index(),
                         txout_indexes.get(index).data()?,
                         output_type,
                         type_index,
-                        values.get(index).data()?,
+                        value,
                     ),
                 );
+                if Utxo::is_large(value) {
+                    self.utxo_values.insert(key, value);
+                }
             }
             if output_type.is_addr() {
                 let addr_type = output_type;
@@ -514,6 +546,7 @@ impl Stores {
             addr_unspent_outpoints: &mut self.addr_type_to_addr_index_and_unspent_outpoint,
             txid_prefixes: &mut self.txid_prefix_to_tx_index,
             utxos: &mut self.utxos,
+            utxo_values: &mut self.utxo_values,
         }
     }
 }

@@ -12,7 +12,7 @@ A workspace-wide refactor: one job per crate, typed series values, a typed error
 composition model, and many correctness fixes.
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
-size), so every stored vector resets; the indexer reindexes (indexer version 41) and every plugin recomputes. Nothing
+size), so every stored vector resets; the indexer reindexes (indexer version 42) and every plugin recomputes. Nothing
 has to be deleted by hand.
 
 ### Breaking Changes
@@ -147,7 +147,7 @@ has to be deleted by hand.
   `value`)
 - `input_value` is the indexer's, at `indexer.inputs.value` (was `inputs.value`): the indexer writes each input's spent
   value as it resolves the input (the unspent-output store carries the value), so `transactions` no longer depends on
-  `inputs`. The indexer reindexes (version 41)
+  `inputs`. The indexer reindexes (version 42)
 - Address balance bands' address count sits at `funded` like the root's and types' (was `address_count`; ids
   unchanged); the per-transaction vsize distributions (`tx_vsize_median`, ...) have every index like their weight and
   fee siblings; prices are `price.{open, high, low, close}` (were under `price.split`)

@@ -87,6 +87,7 @@ pub fn finalize_outputs(
     addr_tx_index_stores: &mut ByAddrType<Store<AddrIndexTxIndex, Unit>>,
     addr_outpoint_stores: &mut ByAddrType<Store<AddrIndexOutPoint, Unit>>,
     utxos: &mut Store<UtxoKey, Utxo>,
+    utxo_values: &mut Store<UtxoKey, Sats>,
     txouts: &mut [ProcessedOutput],
     addresses: &mut BlockAddresses,
 ) {
@@ -197,10 +198,14 @@ pub fn finalize_outputs(
             // OP_RETURN outputs can never be spent. A BIP30 duplicate coinbase (two, in 2010)
             // replaces its original's entry, as in Bitcoin Core.
             if !output_type.is_unspendable() {
+                let key = UtxoKey::new(txid_prefix, vout);
                 utxos.insert(
-                    UtxoKey::new(txid_prefix, vout),
+                    key,
                     Utxo::new(tx_index, txout_index, output_type, type_index, sats),
                 );
+                if Utxo::is_large(sats) {
+                    utxo_values.insert(key, sats);
+                }
             }
 
             if likely(output_type.is_addr()) {
