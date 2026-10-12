@@ -4,9 +4,10 @@
 // was built from changed since) and it has its presets (bitview.space read).
 //
 // Each is a Worker of static files alone, the page (as the dashboard's upload makes one): its manifest sent, the page
-// uploaded if Cloudflare hasn't it, the Worker put, its domain attached (already so, nothing changes). Its keys are in
-// scripts/.tokens, as the purge script's: CF_ACCOUNT_ID, CF_ZONE_ID (bitview.space's), and CF_DEPLOY_API_TOKEN, an API
-// token with Account › Workers Scripts › Edit.
+// uploaded if Cloudflare hasn't it, the Worker put, its domain attached (already so, nothing changes), and its host's
+// cache purged (bitview.space's edge keeps pages: the one before would be served on). Its keys are in scripts/.tokens:
+// CF_ACCOUNT_ID, CF_ZONE_ID (bitview.space's), CF_DEPLOY_API_TOKEN, an API token with Account › Workers Scripts › Edit,
+// and the purge script's CF_PURGE_API_TOKEN (its host alone purged, never the zone's whole).
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
@@ -31,9 +32,10 @@ function keys() {
  * @param {keyof typeof TARGETS} target
  */
 export async function deploy(target, quiet = false) {
-  const { CF_ACCOUNT_ID: account, CF_ZONE_ID: zone, CF_DEPLOY_API_TOKEN: token } = keys();
+  const { CF_ACCOUNT_ID: account, CF_ZONE_ID: zone, CF_DEPLOY_API_TOKEN: token, CF_PURGE_API_TOKEN: purge } = keys();
   // (A token's shape checked first: one that isn't would be said back, whole, by the request it can't be sent in.)
-  const why = !token ? "no CF_DEPLOY_API_TOKEN in scripts/.tokens (see showcases/studio/deploy.mjs)" : !/^[\w-]+$/.test(token) ? "CF_DEPLOY_API_TOKEN isn't one (letters, digits, - and _ only)" : !account || !zone ? "no CF_ACCOUNT_ID or CF_ZONE_ID in scripts/.tokens" : "";
+  const shaped = (/** @type {string | undefined} */ key) => !key || /^[\w-]+$/.test(key);
+  const why = !token ? "no CF_DEPLOY_API_TOKEN in scripts/.tokens (see showcases/studio/deploy.mjs)" : !shaped(token) || !shaped(purge) ? "CF_DEPLOY_API_TOKEN or CF_PURGE_API_TOKEN isn't one (letters, digits, - and _ only)" : !account || !zone ? "no CF_ACCOUNT_ID or CF_ZONE_ID in scripts/.tokens" : "";
   if (why) {
     if (quiet) return void console.log(`Preview not deployed: ${why}`);
     throw new Error(why);
@@ -58,16 +60,17 @@ export async function deploy(target, quiet = false) {
   const [name, hostname] = TARGETS[target];
   /** Cloudflare's API: its result, or what it says went wrong (never what was sent: a failed request says only its kind). */
   const api = async (/** @type {string} */ path, /** @type {RequestInit} */ init = {}, bearer = token) => {
-    const asked = `${init.method ?? "GET"} ${path.replace(account, "…")}`;
+    // (Its account and zone said as "…", in what Cloudflare says too.)
+    const said = (/** @type {string} */ text) => text.replaceAll(account, "…").replaceAll(zone, "…"), asked = `${init.method ?? "GET"} ${path}`;
     let response;
     try {
       response = await fetch(`https://api.cloudflare.com/client/v4${path}`, { signal: AbortSignal.timeout(60_000), ...init, headers: { Authorization: `Bearer ${bearer}`, ...init.headers } });
     } catch (error) {
       const { name, cause } = /** @type {Error & { cause?: { code?: string } }} */ (error);
-      throw new Error(`${asked}: ${name}${cause?.code ? ` (${cause.code})` : ""}`);
+      throw new Error(said(`${asked}: ${name}${cause?.code ? ` (${cause.code})` : ""}`));
     }
     const body = await response.json().catch(() => ({}));
-    if (!response.ok || body.success !== true) throw new Error(`${asked}: ${body.errors?.map((/** @type {any} */ error) => `${error.message} (${error.code})`).join("; ") || response.status}`);
+    if (!response.ok || body.success !== true) throw new Error(said(`${asked}: ${body.errors?.map((/** @type {any} */ error) => `${error.message} (${error.code})`).join("; ") || response.status}`));
     return body.result;
   };
   const json = { "Content-Type": "application/json" };
@@ -88,7 +91,9 @@ export async function deploy(target, quiet = false) {
   worker.append("metadata", new Blob([JSON.stringify({ assets: { jwt: uploaded, config: {} }, compatibility_date: "2026-10-11" })], { type: "application/json" }));
   await api(`/accounts/${account}/workers/scripts/${name}`, { method: "PUT", body: worker });
   await api(`/accounts/${account}/workers/domains`, { method: "PUT", headers: json, body: JSON.stringify({ hostname, service: name, environment: "production", zone_id: zone }) });
-  console.log(`Deployed to https://${hostname}`);
+  // (Deployed whatever the purge does: one that fails says so, the page before served a while.)
+  const purged = purge ? await api(`/zones/${zone}/purge_cache`, { method: "POST", headers: json, body: JSON.stringify({ hosts: [hostname] }) }, purge).then(() => "", (/** @type {Error} */ error) => error.message) : "no CF_PURGE_API_TOKEN";
+  console.log(`Deployed to https://${hostname}${purged ? ` (its cache not purged, the page before served a while: ${purged})` : ""}`);
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {

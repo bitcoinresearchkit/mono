@@ -1648,16 +1648,6 @@
         outline: var(--card-ring);
         isolation: isolate;
         container: card / inline-size;
-
-        &::before {
-          content: "";
-          position: absolute;
-          inset: 0 0 auto;
-          z-index: -1;
-          height: 240px;
-          background: radial-gradient(50% 100% at 30% 0%, light-dark(transparent, rgb(255 255 255 / 0.025)), transparent 70%);
-          pointer-events: none;
-        }
       }
 
       .card-head {
@@ -2671,7 +2661,7 @@
         overflow-y: auto;
         padding: 32px 20px;
         place-items: center;
-        background: radial-gradient(60% 50% at 50% 0%, light-dark(transparent, rgb(255 255 255 / 0.03)), transparent 70%), var(--card);
+        background: var(--card);
       }
 
       :is(.empty-inner, .home-inner) > h1 {
@@ -6312,6 +6302,13 @@
           outline: none;
         }
 
+        /* Behind a chart's card, its own color: where the page isn't (an installed app's status bar), iOS shows the
+           page's, and the ground's would be a darker strip over the header, a shadow (as theme-color reads, which iOS
+           doesn't follow live). */
+        body:not([data-home]) {
+          background: var(--card);
+        }
+
         .home {
           inset: 0;
         }
@@ -7170,8 +7167,9 @@
         }
 
         /* ⌘K a sheet, as every sheet here: from the foot, its top rounded and a gap above it (the page dimmed behind), its
-           handle dragging it away. Its list to the screen's foot, the home indicator's room the end of its scroll: rows go
-           on under it, none cut short above an empty strip. */
+           handle dragging it. Upright, two heights as the layers sheet's, whole as it opens and half (the chart above in
+           sight). Its list to the screen's foot, the home indicator's room the end of its scroll: rows go on under it, none
+           cut short above an empty strip. */
         .palette {
           width: 100vw;
           max-width: none;
@@ -7180,7 +7178,19 @@
           margin: auto 0 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
           padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
+          transition: transform var(--dur-panel) var(--ease), background var(--dur-small) var(--ease);
           animation: rise var(--dur-panel) var(--ease);
+        }
+
+        /* (Its height animated as it's sized, dragged or tapped, not as the screen's own (a keyboard, a turn) changes.) */
+        .palette[data-sizing] {
+          transition: transform var(--dur-panel) var(--ease), height var(--dur-panel) var(--ease), background var(--dur-small) var(--ease);
+        }
+
+        @media not all and (max-height: 500px) and (min-width: 568px) {
+          .palette[data-half] {
+            height: 56dvh;
+          }
         }
 
         .palette-list {
@@ -16256,43 +16266,61 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a sheet dragged down goes: past a third of its height, or flicked (24px down, let go at 0.6px a millisecond). */
       const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => by > height / 3 || (by > 24 && speed > 0.6);
-      // A phone's sheet (the layers), by its top (the handle, the head): upright, it stops whole, at half, or goes: let go,
-      // at the stop nearest, a flick one stop on its way; its handle tapped, half or whole. On its side (a column beside
-      // the chart), dragged down past a third, or flicked, it goes; less, it comes back.
-      {
-        const sheet = $("panel"), scrim = $("scrim");
+      /**
+       * A phone's sheet of two heights, whole (88% of the screen) and half (56%), dragged by its top: `grab` says where a
+       * press takes it, by its handle or by its head (or not at all). Up from half it grows, down it follows the finger.
+       * Let go upright, it stops at the nearest of whole, half and gone, a flick one stop on its way; its handle tapped,
+       * the other height. On its side (a column), down past a third, or flicked, it goes; less, it comes back. `whole`
+       * and `size` read and set its height, `close` closes it; `scrim`, dimmed behind it whole, lightens as it goes down.
+       * @param {HTMLElement} sheet
+       * @param {{ grab: (event: PointerEvent) => "handle" | "head" | false, whole: () => boolean, size: (whole: boolean) => void, close: () => void, scrim?: HTMLElement }} how
+       */
+      function heightsSheet(sheet, { grab, whole, size, close, scrim }) {
         let height = 0, handle = false;
         dragSheet(sheet, {
           grab: (event) => {
-            const from = event.clientY - sheet.getBoundingClientRect().top;
-            if (!phone.matches || document.body.dataset.sheet !== "panel" || from > 56 || closest(event, "button, input, textarea, a")) return false;
-            (height = sheet.offsetHeight), (handle = from <= 22);
-            sheet.style.transition = scrim.style.transition = "none";
+            const by = grab(event);
+            if (!by) return false;
+            (height = sheet.offsetHeight), (handle = by === "handle");
+            sheet.style.transition = "none";
+            if (scrim) scrim.style.transition = "none";
             return true;
           },
           move: (by) => {
-            // (Up, half: it grows, as far as whole; on its side, a column, it doesn't.)
-            if (by < 0 && heldUpright.matches && !sheetWhole()) return void (sheet.style.height = `${Math.min(height - by, innerHeight * 0.88)}px`);
-            const down = Math.max(0, by);
-            sheet.style.transform = `translateY(${down}px)`;
-            if (sheetWhole()) scrim.style.opacity = String(1 - down / sheet.offsetHeight);
+            // (A drag that turns back grows it or moves it as it is now, never both.)
+            const grows = by < 0 && heldUpright.matches && !whole(), down = Math.max(0, by);
+            sheet.style.height = grows ? `${Math.min(height - by, innerHeight * 0.88)}px` : "";
+            sheet.style.transform = grows ? "" : `translateY(${down}px)`;
+            if (scrim && whole()) scrim.style.opacity = String(1 - down / sheet.offsetHeight);
           },
-          back: () => (sheet.style.transition = sheet.style.transform = sheet.style.height = scrim.style.transition = scrim.style.opacity = ""),
+          back: () => {
+            sheet.style.transition = sheet.style.transform = sheet.style.height = "";
+            if (scrim) scrim.style.transition = scrim.style.opacity = "";
+          },
           release: (by, speed) => {
-            // (On its side, a column: down far enough, or flicked, it goes.)
-            if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && scrim.click());
-            // Its handle tapped: half or whole. Flicked (let go moving), one stop on its way, as every sheet goes on a flick;
-            // else the stop nearest where it's let go (a slow drag most of the way to half lands there).
-            if (handle && Math.abs(by) < 4) return void (sheetWhole() ? delete document.body.dataset.sheetSize : (document.body.dataset.sheetSize = "full"));
+            if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && close());
+            if (handle && Math.abs(by) < 4) return size(!whole());
+            // (A slow drag most of the way to half lands there; a flick, let go moving, goes one stop on.)
             const stops = [innerHeight * 0.88, innerHeight * 0.56, 0], flick = Math.abs(by) > 16 && Math.abs(speed) > 0.6 ? Math.sign(speed) : 0;
             const nearest = stops.reduce((near, each, i) => (Math.abs(each - (height - by)) < Math.abs(stops[near] - (height - by)) ? i : near), 0);
-            const stop = flick ? clamp((sheetWhole() ? 0 : 1) + flick, 0, 2) : nearest;
-            if (stop === 0) document.body.dataset.sheetSize = "full";
-            else if (stop === 1) delete document.body.dataset.sheetSize;
-            else scrim.click();
+            const stop = flick ? clamp((whole() ? 0 : 1) + flick, 0, 2) : nearest;
+            if (stop === 2) close();
+            else size(stop === 0);
           },
         });
       }
+      // The layers' sheet, by its handle or its head (a phone's; upright, it opens at half).
+      heightsSheet($("panel"), {
+        grab: (event) => {
+          const from = event.clientY - $("panel").getBoundingClientRect().top;
+          return phone.matches && document.body.dataset.sheet === "panel" && from <= 56 && !closest(event, "button, input, textarea, a") && (from <= 22 ? "handle" : "head");
+        },
+        whole: sheetWhole,
+        // (Closed mid-drag, by esc or Back, it isn't sized as it's let go: it opens again at half.)
+        size: (whole) => document.body.dataset.sheet === "panel" && (whole ? (document.body.dataset.sheetSize = "full") : delete document.body.dataset.sheetSize),
+        close: () => $("scrim").click(),
+        scrim: $("scrim"),
+      });
       // In the grid, the arrows walk the cards as they're laid out.
       $("home-grid").addEventListener("keydown", (event) => {
         const arrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key), focused = /** @type {HTMLElement} */ (document.activeElement);
@@ -20425,7 +20453,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const back = add && !query && addedFrom?.chart === chart.id ? addedFrom : null;
         Object.assign(palette, spot ?? { adding: add, replacing: replace, formula, editing, into, pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
         const dialog = $("palette"), input = $("palette-input");
-        if (!dialog.open) trailDrawn = "";
+        if (!dialog.open) (trailDrawn = ""), dialog.removeAttribute("data-half");
         // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped.)
         if (!dialog.open) (input.inert = TOUCH && !byKeys), dialog.showModal(), (input.inert = false), TOUCH && !byKeys && dialog.focus();
         applyScope();
@@ -22588,15 +22616,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The item a menu acts on alone, beside others picked: outlined while it shows. @type {HTMLElement | null} */
       let menuTarget = null;
-      // ⌘K on a phone, a sheet: dragged down by its handle, as a menu's sheet, it goes.
+      // ⌘K on a phone, a sheet of two heights as the layers', by its handle: whole as it opens, and as its field's tapped;
+      // made half, the keyboard goes (the field and a row or two above it would be all there was).
       {
         const sheet = $("palette");
-        dragSheet(sheet, {
-          grab: (event) => phone.matches && Boolean(closest(event, ".menu-handle")) && ((sheet.style.transition = "none"), true),
-          move: (by) => (sheet.style.transform = `translateY(${Math.max(0, by)}px)`),
-          back: () => (sheet.style.transition = sheet.style.transform = ""),
-          release: (by, speed) => sheetGoes(Math.max(0, by), speed, sheet.offsetHeight) && dismissPalette(),
-        });
+        const size = (/** @type {boolean} */ whole) => {
+          sheet.dataset.sizing = "";
+          sheet.toggleAttribute("data-half", !whole);
+          if (!whole && document.activeElement === $("palette-input")) sheet.focus();
+          requestAnimationFrame(() => Promise.allSettled(sheet.getAnimations().map((animation) => animation.finished)).then(() => delete sheet.dataset.sizing));
+        };
+        heightsSheet(sheet, { grab: (event) => phone.matches && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
+        $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && size(true));
       }
       // A phone's menu sheet, dragged down by its top (its handle): as the layers' sheet goes, it goes; else it comes back.
       {
