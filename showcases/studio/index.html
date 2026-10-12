@@ -95,7 +95,7 @@
         /* A surface's top edge catching the light; a field typed in, its edge lit with a halo around. */
         --sheen-color: light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.04));
         --sheen: inset 0 1px 0 var(--sheen-color);
-        --field-focus: inset 0 0 0 1px var(--edge), 0 0 0 3px var(--line);
+        --field-focus: inset 0 0 0 1px var(--focus), 0 0 0 3px var(--line);
         --up: light-dark(#0c7642, #3ccf7c);
         --live: var(--up);
         --danger: light-dark(#bf2b31, #f2555a);
@@ -576,7 +576,7 @@
         border-radius: var(--radius-xs);
         padding: 0 3px;
         place-items: center;
-        color: var(--c);
+        color: var(--t, var(--c));
         background: color-mix(in srgb, var(--c) 13%, transparent);
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 18%, transparent);
         font: 590 10px/1 var(--mono);
@@ -2239,7 +2239,7 @@
 
           .grip {
             width: 28px;
-            height: 16px;
+            height: 24px;
 
             svg {
               rotate: 90deg;
@@ -2281,7 +2281,7 @@
 
       .belt .grip {
         display: grid;
-        width: 16px;
+        width: 24px;
         height: 28px;
         border: 0;
         border-radius: var(--radius-sm);
@@ -4736,8 +4736,10 @@
           padding: 0 10px;
           cursor: pointer;
 
+          /* (The row ↵ runs: edged too, as a menu's row reached by keys is.) */
           &[aria-selected="true"] {
             background: var(--press);
+            box-shadow: inset 0 0 0 1px var(--edge);
 
             > svg {
               color: var(--ink);
@@ -5183,10 +5185,16 @@
           white-space: nowrap;
 
           &:hover,
-          &:focus-visible {
+          &:focus-visible,
+          &[aria-expanded="true"] {
             color: var(--ink);
             background: var(--press);
             outline: none;
+          }
+
+          /* (Reached by keys: edged too, a tint alone too faint to find.) */
+          &:focus-visible {
+            box-shadow: inset 0 0 0 1px var(--edge);
           }
 
           &:active {
@@ -7637,7 +7645,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <span class="divider"></span>
             <button id="draw-toggle" class="cap" type="button" aria-pressed="false" aria-label="Drawing tools" data-tip="Drawing tools" data-kbd="D" data-action="draw" data-icon="draw"></button>
             <button id="add" class="cap" type="button" aria-haspopup="dialog" aria-label="Add a layer" data-tip="Add a layer" data-kbd="A" data-icon="plus"></button>
-            <button id="share" class="btn small" type="button" aria-haspopup="menu" data-tip="Copy a share link"><span data-icon="share"></span><span class="label">Share</span></button>
+            <button id="share" class="btn small" type="button" aria-haspopup="dialog" data-tip="Copy a share link"><span data-icon="share"></span><span class="label">Share</span></button>
             <button id="chart-more" class="cap" type="button" aria-haspopup="menu" aria-label="More for this chart" data-tip="More" data-icon="more"></button>
             <span class="divider"></span>
             <button id="panel-toggle" class="cap" type="button" aria-pressed="true" aria-label="Layers panel" data-tip="Layers panel" data-kbd="P" data-action="toggle-panel" data-icon="panel"></button>
@@ -7690,7 +7698,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <button id="interval" class="btn ghost interval" type="button" aria-haspopup="menu" data-tip="Interval" data-kbd="[ ]"></button>
               <div id="ranges" class="tabs" role="group" aria-label="Visible range"></div>
               <div id="navigator" class="navigator" role="group" data-tip="Drag to pan, drag an edge to zoom, click to jump">
-                <div class="navigator-clip"><canvas id="overview"></canvas></div>
+                <div class="navigator-clip"><canvas id="overview" aria-hidden="true"></canvas></div>
                 <div id="brush" class="brush"></div>
               </div>
             </footer>
@@ -8117,6 +8125,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             else key.append(glyph);
           }
         }
+        // (A key shown only in a control's tip, its data-kbd, said as its shortcut too: Undo's ⌘Z, Full screen's ⇧F.)
+        for (const control of /** @type {HTMLElement[]} */ ([...root.querySelectorAll("[data-kbd]:not([aria-keyshortcuts])")])) {
+          const name = control.matches('[role="option"]') ? "" : ariaKey(keysOf(control.dataset.kbd ?? ""));
+          if (name) control.setAttribute("aria-keyshortcuts", name);
+        }
       }
       const glyphSvg = (/** @type {string} */ body) => `<svg class="glyph" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
       /** Each chart type, drawn on whole pixels at 16×12: crisp at any pixel density. Candles as on the chart: filled when falling, hollow when rising. */
@@ -8361,7 +8374,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A layer's letter, its badge wherever it shows (the panel, ⌘K's rows, its previews): in its color. @param {Layer} layer */
       function letterChip(layer) {
         const colored = (layer.colorFrom && ownerOf(layer)?.layers.find((other) => other.id === layer.colorFrom)) || layer;
-        return `<span class="letter" style="--c:${escape(ink(colored.color))}">${escape(layer.letter)}</span>`;
+        const color = ink(colored.color);
+        // (Its letter in a tone of it that reads on its own tint, 4.5:1, on each ground it's on: the card, a raised
+        // surface, a lit row on it; the tint and edge its color.)
+        const grounds = [css("--card"), css("--raise"), laidOver(css("--raise"), light ? "#000000" : "#ffffff", 0.07)];
+        const tone = grounds.reduce((each, ground) => wordsOn(each, laidOver(ground, color, 0.13)), color);
+        return `<span class="letter" style="--c:${escape(color)};--t:${escape(tone)}">${escape(layer.letter)}</span>`;
       }
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
       const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
@@ -11238,6 +11256,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         renderLayers();
         renderInspector();
         updateStatus();
+        // (What it shows said once drawn, not only on focus.)
+        describePlot();
         if (reveal) {
           const chartElement = $("chart");
           chartElement.classList.remove("reveal");
@@ -12219,6 +12239,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (With the focus, its name and description follow the chart: another one opened, redrawn.)
         if (document.activeElement === keys) describePlot();
       }
+      // The library's canvases are pictures (the plot's words are the plot's, its legends' their buttons'): out of what's
+      // read, each as the library adds it (a pane's, later).
+      new MutationObserver((records) => {
+        for (const record of records) for (const node of record.addedNodes) for (const canvas of node instanceof HTMLCanvasElement ? [node] : node instanceof Element ? node.querySelectorAll("canvas") : []) canvas.setAttribute("aria-hidden", "true");
+      }).observe($("chart"), { childList: true, subtree: true });
+      for (const canvas of $("chart").querySelectorAll("canvas")) canvas.setAttribute("aria-hidden", "true");
       /** The plot's name and what it shows, as the chart is now. */
       function describePlot() {
         $("plot-keys").setAttribute("aria-label", `Chart: ${titleOf(chart)}`);
@@ -13855,7 +13881,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const byKeys = document.activeElement === $("plot-keys"), other = BOXES.has(tool) ? "other corner" : "other end";
         const how = selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? (byKeys ? `Arrows to its ${other}, ↵ to place it` : `${capitalize(CLICK)} its ${other}`) : `${byKeys ? TOOLS[tool].keys : TOOLS[tool].tip}${toolKept ? ", as many as you like" : ""}`);
         // The tools, then what's in hand; drawings selected, only theirs (esc, or a click on the chart, and the tools are back).
-        const html = `<button type="button" class="grip" id="belt-grip" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
+        const html = `<button type="button" class="grip" id="belt-grip" aria-haspopup="menu" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
           <div class="belt-row">${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
           ${context ? `${drawings.length ? "" : '<i class="belt-rule"></i>'}<div class="belt-context" role="group" aria-label="${escape(tool ? `Next ${TOOLS[tool].noun}` : drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings`)}">${context}</div>` : ""}</div>
           ${how ? '<p class="belt-caption"><span></span><kbd>esc</kbd></p>' : ""}`;
@@ -13874,6 +13900,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           writeHow();
           drawKeys(belt);
           restoreFocus(belt, focus);
+          rovingBelt();
           // The button in focus gone with what it was for (a drawing removed from it): D's keys end with it.
           if (focus && !belt.contains(document.activeElement) && beltKeys) {
             beltKeys = false;
@@ -13887,6 +13914,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         writeHow();
         placeBelt(false, true);
       }
+      /** The belt's one stop for Tab (a toolbar's: the arrows within): the button last in focus, else the tool in hand. */
+      let beltStop = "";
+      function rovingBelt() {
+        const buttons = /** @type {HTMLButtonElement[]} */ (all$("button", $("belt"))).filter((button) => !button.disabled && button.checkVisibility());
+        const stop = buttons.find((button) => button.id && button.id === beltStop) ?? buttons.find((button) => button.dataset.tool && button.getAttribute("aria-pressed") === "true") ?? buttons[0];
+        for (const button of buttons) button.tabIndex = button === stop ? 0 : -1;
+      }
+      $("belt").addEventListener("focusin", (event) => {
+        beltStop = /** @type {HTMLElement} */ (event.target).id;
+        rovingBelt();
+      });
+      phone.addEventListener("change", rovingBelt);
       /** The belt from its last shape to this one (its place, its size), what's in it coming in: no jump. */
       function reshapeBelt(/** @type {DOMRect} */ was) {
         const belt = $("belt"), now = belt.getBoundingClientRect();
@@ -13912,6 +13951,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const top = Math.max(first.getBoundingClientRect().top, chartBox.top), bottom = Math.min(last.getBoundingClientRect().bottom, chartBox.bottom);
         return { left: left - canvas.left, top: top - canvas.top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
       }
+      /** The sides the drawing tools dock on, as choices (⌘K's, the grip's by keys). */
+      const dockChoices = () => /** @type {const} */ (["top", "bottom", "left", "right"]).map((side) => ({ key: side, label: capitalize(side), current: prefs.belt.dock === side, run: () => dockBelt(side) }));
       /** The drawing tools docked on a side (⌘K's way to what dragging them does), in the middle of it. */
       function dockBelt(/** @type {"top" | "bottom" | "left" | "right"} */ side) {
         Object.assign(prefs.belt, { dock: side, at: 0.5 });
@@ -14103,6 +14144,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("belt").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
+        // (The grip by keys, ↵ or space: the sides it docks on, as dragging it does; by a pointer, it's dragged.)
+        if (button.id === "belt-grip") return void (event.detail === 0 && menuOf(button, dockChoices(), null, "", { title: "Dock the drawing tools" }));
         const { tool: each, belt: part = "" } = button.dataset, drawings = [...chosen], drawing = chosen.size === 1 ? drawingById(drawings[0]) : undefined, look = lookFor(part);
         // (Its second click, a double-click: the tool kept in hand, for several; text, one at a time.)
         if (each && event.detail === 2 && Object.hasOwn(TOOLS, each) && each !== "text") return setTool(/** @type {DrawingKind} */ (each), true);
@@ -14474,7 +14517,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawingMenu(hit.drawing, { x: event.clientX, y: event.clientY });
       });
       /** A right-click on a drawing: what the chosen ones do. */
-      const drawingMenu = (/** @type {Drawing} */ drawing, /** @type {{ x: number, y: number }} */ point) => menuOf($("chart"), drawingRows([...chosen].length ? [...chosen] : [drawing.id]), point);
+      const drawingMenu = (/** @type {Drawing} */ drawing, /** @type {{ x: number, y: number }} */ point) => ((ids) => menuOf($("chart"), drawingRows(ids), point, "", { named: ids.length > 1 ? plural(ids.length, "drawing") : drawingNames().get(ids[0]) ?? "Drawing" }))([...chosen].length ? [...chosen] : [drawing.id]);
       /** What drawings do (one: its text, its label too). @param {string[]} ids @returns {Action[]} */
       function drawingRows(ids) {
         const several = ids.length > 1, one = several ? null : drawingById(ids[0]);
@@ -17606,14 +17649,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <span class="letter marker-mark">${ICONS.halvings}</span>
               <span class="row-text"><span class="name">Halvings</span><span class="sub">${years}</span></span>
             </button>
-            <button type="button" class="cap small" data-markers="halvings-eye" aria-label="${on ? "Hide" : "Show"} the halvings" data-tip="${on ? "Hide" : "Show"}">${on ? ICONS.eye : ICONS.eyeOff}</button>
+            <button type="button" class="cap small" data-markers="halvings-eye" tabindex="-1" aria-hidden="true" data-tip="${on ? "Hide" : "Show"}">${on ? ICONS.eye : ICONS.eyeOff}</button>
           </div>${count ? `
           <div class="layer-row marker-row ${drawn ? "" : "hidden"}">
             <button type="button" class="row-main" data-markers="drawings" aria-pressed="${drawn}" data-tip="${drawn ? "Hide" : "Show"} the drawings" data-kbd="⇧ H">
               <span class="letter marker-mark">${ICONS.draw}</span>
               <span class="row-text"><span class="name">Drawings</span><span class="sub">${plural(count, "drawing")}</span></span>
             </button>
-            <button type="button" class="cap small" data-markers="drawings-eye" aria-label="${drawn ? "Hide" : "Show"} the drawings" data-tip="${drawn ? "Hide" : "Show"}">${drawn ? ICONS.eye : ICONS.eyeOff}</button>
+            <button type="button" class="cap small" data-markers="drawings-eye" tabindex="-1" aria-hidden="true" data-tip="${drawn ? "Hide" : "Show"}">${drawn ? ICONS.eye : ICONS.eyeOff}</button>
           </div>` : ""}</section>`;
       }
       function fullOn() {
@@ -20213,6 +20256,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Adding to a chart with no room: said now, not once a series is picked.)
         if (add && !roomFor(chart)) return;
         putAway = null;
+        countSaidFor = "";
         hideMenu();
         // Opened afresh, it starts at the search (or where adding a series last added from, on this chart).
         const back = add && !query && addedFrom?.chart === chart.id ? addedFrom : null;
@@ -20369,7 +20413,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}${kind === "ruler" ? " measure measuring distance difference percent" : ""}`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => setTool(kind) })),
             { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, words: "select drawings box marquee pick several", icon: "select", kbd: "D S", run: () => setSelectingArea(true) },
             { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `The chart under the pointer, twice as large${TOUCH ? " (pressed, above the finger)" : ""}; esc to stop.`, words: "magnifier magnify magnifying glass lens loupe closer enlarge zoom", icon: "magnifier", kbd: "D Z", run: () => setMagnifier(!magnifying) },
-            ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, words: "drawing tools belt toolbar dock move side top bottom left right", icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", () => /** @type {const} */ (["top", "bottom", "left", "right"]).map((side) => ({ key: side, label: capitalize(side), current: prefs.belt.dock === side, run: () => dockBelt(side) })))) }] : []),
+            ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, words: "drawing tools belt toolbar dock move side top bottom left right", icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", dockChoices)) }] : []),
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
             ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
@@ -20829,6 +20873,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("palette").toggleAttribute("data-none", !palette.items.length && !pending);
         if (!palette.items.length) {
           list.innerHTML = tail || `<li class="note no-results">${searching ? "Nothing matches. Try other words, or describe what a series measures." : "Nothing here."}</li>`;
+          $("palette-input").removeAttribute("aria-activedescendant");
           $("palette-preview").innerHTML = "";
           updatePaletteKeys();
           return;
@@ -20852,29 +20897,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         activeOption();
         preview();
       }
+      /** What ⌘K found, about to be said (see updatePaletteKeys), and the search and count last said. */
+      let countSaid = 0, countSaidFor = "";
       /** How many rows ⌘K writes at a time. */
       const PALETTE_PAGE = 24;
       /** ⌘K's rows from `from` to `to`, each under its group's name where a group starts. */
       function optionsHtml(/** @type {number} */ from, /** @type {number} */ to) {
         const searching = Boolean(palette.query.trim());
         let group = palette.items.slice(0, from).findLast((item) => item.group)?.group ?? "";
+        // (Each row described by its group's name, its heading's id: "Move down", in this chart.)
+        let start = from;
+        while (start > 0 && group && palette.items[start - 1].group === group) start--;
+        let groupId = `palette-group-${start}`;
         const shown = new Set(home ? [] : chart.layers.map((layer) => layer.series));
         return palette.items.slice(from, to).map((item, at) => {
           const i = from + at;
-          const header = item.group && item.group !== group ? `<li class="group" role="presentation">${escape((group = item.group))}</li>` : "";
-          if (item.kind === "formula" || item.kind === "insert") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${formulaRow(item)}</li>`;
-          if (item.kind === "row") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="row" data-option="${i}" aria-selected="${i === palette.active}" class="${item.dim || item.disabled ? "dim" : ""}"${item.disabled ? ' aria-disabled="true"' : ""}>${rowHtml(item)}</li>`;
+          const header = item.group && item.group !== group ? `<li class="group" role="presentation" id="${(groupId = `palette-group-${i}`)}">${escape((group = item.group))}</li>` : "";
+          const described = item.group ? ` aria-describedby="${groupId}"` : "";
+          if (item.kind === "formula" || item.kind === "insert") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${formulaRow(item)}</li>`;
+          if (item.kind === "row") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="row" data-option="${i}" aria-selected="${i === palette.active}" class="${item.dim || item.disabled ? "dim" : ""}"${item.disabled ? ' aria-disabled="true"' : ""}>${rowHtml(item)}</li>`;
           const doc = item.kind === "chart" ? chartById(item.key) : null;
           if (item.kind === "series") {
             const blocked = byBlock.has(item.name), human = humanize(item.name);
             const end = blocked ? `<span class="item-meta">By block only</span>` : `<span class="item-meta"><code>${escape(item.name)}</code></span>${shown.has(item.name) ? `<span class="item-mark" role="img" aria-label="In this chart">${ICONS.check}</span>` : ""}`;
-            return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query) : escape(human)}</span>${end}</li>`;
+            return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query) : escape(human)}</span>${end}</li>`;
           }
           const icon = item.kind === "widen" ? ICONS.browse : item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : ICONS.series;
           const name = item.kind === "widen" ? `Search everything for “${escape(palette.query.trim())}”` : item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : "";
           const meta = item.kind === "folder" ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run && answers(item.command.kbd) ? `<kbd>${escape(keyText(item.command.kbd))}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
           const idle = item.kind === "command" && !item.command.run && !item.command.current;
-          return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}" data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
+          return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
         }).join("");
       }
       /** ⌘K's rows written up to `to` (scrolled to, moved to), after those there (and before its closing note). */
@@ -20907,6 +20959,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (palette.query.trim()) {
           const found = palette.items.filter((row) => row.kind !== "widen").length, more = palette.items.filter((row) => row.kind === "series").length >= 80;
           $("palette-count").textContent = found ? `${grouped.format(found)}${more ? "+" : ""} ${found === 1 && !more ? "result" : "results"}` : "No results";
+          // (Said for a screen reader once the typing settles: one count a search, not one a key, nor again as the
+          // highlight moves.)
+          const said = `${palette.query}|${$("palette-count").textContent}`;
+          if (said !== countSaidFor) {
+            clearTimeout(countSaid);
+            countSaid = window.setTimeout(() => $("palette").open && !$("palette-count").hidden && palette.query.trim() && ((countSaidFor = said), say($("palette-count").textContent)), 700);
+          }
         } else $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
       }
 
@@ -22180,7 +22239,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it opens, if it fits there (else across): "above", "below", "left" or "right" of what opened it. `asFlyout`: shown
        * by a pointer resting (see flyout).
        */
-      function showMenu(anchor, html, onPick, point = null, side = "", asFlyout = false) {
+      function showMenu(anchor, html, onPick, /** @type {{ x: number, y: number } | null} */ point = null, side = "", asFlyout = false, named = "") {
         const menu = $("menu");
         if (cascadeRow && !menu.hidden) return showSubmenu(cascadeRow, html, onPick);
         if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
@@ -22192,11 +22251,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (menu.parentElement !== host) host.append(menu);
         menu.innerHTML = html;
         drawKeys(menu);
+        // (Named by what opened it; Share's a dialog of buttons, not a menu of them.)
+        const share = Boolean(menu.querySelector(":scope > .share-pop"));
+        menu.setAttribute("role", share ? "dialog" : "menu");
+        menu.setAttribute("aria-label", named || calledBy(anchor));
         // On a phone, a sheet from the foot (placed by its style), over a backdrop of its own; its handle first.
         menu.classList.toggle("as-sheet", phone.matches);
         if (phone.matches) menu.insertAdjacentHTML("afterbegin", '<div class="menu-handle" aria-hidden="true"></div>');
         if (phone.matches) host.insertBefore(menuScrim, menu);
-        nameMenuParts(menu);
+        if (!share) nameMenuParts(menu);
         for (const button of all$("button", menu)) {
           // (One leading to another menu: its › at its end, after what it says.)
           if (button.getAttribute("aria-haspopup") === "menu" && !button.querySelector(".sub")) button.insertAdjacentHTML("beforeend", `<span class="sub">${ICONS.next}</span>`);
@@ -22229,7 +22292,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * titled). `title`: a heading on top; `hover`: shown by a pointer resting (see flyout).
        * @param {HTMLElement} anchor @param {(Action | false | null | undefined)[]} rows
        */
-      function menuOf(anchor, rows, point = null, side = "", { heads = false, title = "", hover: asFlyout = false } = {}) {
+      function menuOf(anchor, rows, /** @type {{ x: number, y: number } | null} */ point = null, side = "", { heads = false, title = "", hover: asFlyout = false, named = "" } = {}) {
         const list = /** @type {Action[]} */ (rows.filter(Boolean));
         if (!list.length) return;
         const html = list.map((row, i) => {
@@ -22245,7 +22308,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!row.page) return row.run?.();
           const page = row.page();
           menuOf(anchor, page.options?.() ?? page.rows(), point, side, { title: phone.matches ? pageTitle(page) : "" });
-        }, point, side, asFlyout);
+        }, point, side, asFlyout, named || title);
       }
       /**
        * An item picked, in a menu or its submenu: they go, its pick runs; picked by a key, the focus was in them: back on
@@ -22317,6 +22380,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.stopPropagation();
         hideMenu();
       });
+      /** What a control's called (a menu named by what opened it): its label, else its words, its keys and asides apart. */
+      const calledBy = (/** @type {HTMLElement} */ element) => (element.getAttribute("aria-label") || element.querySelector(".label, .name")?.textContent || [...element.childNodes].filter((node) => !(node instanceof Element && node.matches("kbd, .aside, .sub, svg"))).map((node) => node.textContent).join(" ")).replace(/\s+/g, " ").trim();
       /** A menu's parts named for what they are, a menu's or a submenu's: its rules, its rows (a choice ticked, a radio). */
       function nameMenuParts(/** @type {HTMLElement} */ root) {
         for (const rule of all$(".menu-rule", root)) rule.setAttribute("role", "separator");
@@ -22324,6 +22389,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** ↑↓, Home and End in a menu (or a submenu): the row before or after (round from the ends), the first, the last. Whether it was one. */
       function walkMenu(/** @type {KeyboardEvent} */ event, /** @type {HTMLElement} */ root) {
+        // (In a grid of them, the intervals': ← → along its row, ↑ ↓ to the next row's, its place kept.)
+        const cell = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".menu-row > button") ?? null);
+        if (cell && root.contains(cell) && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+          const rows = all$(".menu-row", root).map((row) => all$("button:not(:disabled)", row)).filter((row) => row.length);
+          const r = rows.findIndex((row) => row.includes(cell)), c = rows[r].indexOf(cell);
+          const across = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0, down = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
+          const row = rows[(r + down + rows.length) % rows.length];
+          event.preventDefault();
+          event.stopPropagation();
+          (across ? rows[r][clamp(c + across, 0, rows[r].length - 1)] : row[Math.min(c, row.length - 1)])?.focus();
+          return true;
+        }
         if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return false;
         event.preventDefault();
         event.stopPropagation();
@@ -22364,7 +22441,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             cascadeRow = null;
           }
         }
-        if (focus && !$("submenu").hidden) /** @type {HTMLElement | undefined} */ (all$("button:not(:disabled)", $("submenu"))[0])?.focus();
+        // (Its choice in effect first, as a menu opens on it.)
+        if (focus && !$("submenu").hidden) /** @type {HTMLElement | undefined} */ ($("submenu").querySelector("button[aria-checked='true']:not(:disabled)") ?? all$("button:not(:disabled)", $("submenu"))[0])?.focus();
       }
       function showSubmenu(/** @type {HTMLElement} */ row, /** @type {string} */ html, /** @type {(data: DOMStringMap) => void} */ onPick) {
         const sub = $("submenu"), host = /** @type {HTMLElement} */ ($("menu").parentElement);
@@ -22372,6 +22450,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         sub.innerHTML = html;
         drawKeys(sub);
         nameMenuParts(sub);
+        sub.setAttribute("aria-label", calledBy(row));
         sub.hidden = false;
         subRow?.removeAttribute("aria-expanded");
         (subRow = row).setAttribute("aria-expanded", "true");
@@ -22591,6 +22670,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const target = /** @type {HTMLElement} */ (event.target), stops = all$(".color-pane :is([data-pane-back], .plane, .hex)", $("menu"));
         const next = event.key === "Tab" && stops.includes(target) ? stops[stops.indexOf(target) + (event.shiftKey ? -1 : 1)] : null;
         if (next) return void (event.preventDefault(), next.focus());
+        // (Share's, a dialog of buttons: Tab goes through them, round; esc closes it.)
+        if (event.key === "Tab" && $("menu").getAttribute("role") === "dialog") {
+          const buttons = all$("button:not(:disabled)", $("menu")), at = buttons.indexOf(target);
+          event.preventDefault();
+          return void buttons[(at + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+        }
         const done = target.matches("input") && (event.key === "Enter" || event.key === "Escape");
         if (event.key === "Tab" || done) {
           // (Tab, the browser's: on from the opener.)
@@ -23750,7 +23835,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const frame = sheetBar ?? (home ? $("home") : $("stage-foot")).getBoundingClientRect();
         const belt = $("belt"), beltTop = !home && !belt.hidden && belt.dataset.dock === "bottom" ? belt.getBoundingClientRect().top : Infinity;
         const tabs = /** @type {HTMLElement} */ (document.querySelector(".mobile-bar")).getBoundingClientRect(), tabsTop = tabs.width > tabs.height ? tabs.top : Infinity;
-        const above = sheetBar ? sheetBar.top : Math.min(tabsTop, !home ? Math.min(frame.top, beltTop) : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top);
+        // (A phone's menu sheet up: above it, not over its rows.)
+        const menuSheet = $("menu").classList.contains("as-sheet") && !$("menu").hidden ? $("menu").getBoundingClientRect().top : Infinity;
+        const above = Math.min(menuSheet, sheetBar ? sheetBar.top : Math.min(tabsTop, !home ? Math.min(frame.top, beltTop) : $("home-bar").hidden ? frame.bottom - 8 : $("home-bar").getBoundingClientRect().top));
         element.style.bottom = host === document.body && frame.height ? `${innerHeight - above + 12}px` : "";
         const center = host === document.body && frame.width ? frame.left + frame.width / 2 : 0;
         element.style.left = center ? `${center}px` : "";
@@ -23859,7 +23946,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         document.title = home ? "All charts · Bitview Studio" : `${titleOf(chart)} · Bitview Studio`;
         syncUndo();
         $("interval").innerHTML = `${ICONS.recent}${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
-        $("interval").setAttribute("aria-label", `Interval: ${CADENCE[chart.index] ?? chart.index}`);
+        $("interval").setAttribute("aria-label", `${INTERVAL_LABEL[chart.index] ?? chart.index}, ${(CADENCE[chart.index] ?? chart.index).toLowerCase()} interval`);
         renderRanges();
         $("empty").hidden = chart.layers.length > 0;
         const unseen = chart.layers.length > 0 && chart.layers.every((layer) => layer.hidden);
