@@ -43,7 +43,7 @@ export async function websitePresets(base) {
   /** A website color's name in the shared palette ("ink" for the page's own), or none. */
   const colorOf = (/** @type {any} */ color) => {
     const name = typeof color === "function" ? String(color()).replace(/^--/, "") : "";
-    return name === "color" ? "ink" : /^[a-z]+$/.test(name) && !["transparent", "background-color", "border-color", "off-border-color"].includes(name) ? name : undefined;
+    return name === "color" ? "ink" : /^[a-z]+$/.test(name) && name !== "transparent" ? name : undefined;
   };
   /** A blueprint's series: the usd one of a price pattern (the website's default unit up top). */
   const seriesOf = (/** @type {any} */ series) => (series?.name ? series : series?.usd);

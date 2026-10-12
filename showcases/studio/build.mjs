@@ -38,11 +38,27 @@ function replaceOnce(from, to) {
   html = html.replace(from, () => to);
 }
 const dataUrl = (type, bytes) => `data:${type};base64,${Buffer.from(bytes).toString("base64")}`;
-/** A file of bitview.space's, as text: in a time (a stalled server stalls nothing), and only if it answered with it. */
-async function fetchText(path, ms = 30_000) {
-  const response = await fetch(`${SERVER}${path}`, { signal: AbortSignal.timeout(ms) });
-  if (!response.ok) throw new Error(`${path}: ${response.status}`);
-  return response.text();
+/**
+ * A file of bitview.space's, as text, in a time (a stalled server stalls nothing); one it answers it hasn't, null if
+ * it's `optional` (else an error, as anything else that goes wrong is).
+ */
+async function fetchText(path, optional = false) {
+  const response = await fetch(`${SERVER}${path}`, { signal: AbortSignal.timeout(30_000) });
+  if (response.ok) return response.text();
+  if (optional) return null;
+  throw new Error(`${path}: ${response.status}`);
+}
+/**
+ * `work` in a folder of its own, gone after (by its real path: the sandbox's permissions are checked against it, and the
+ * system's temp folder can be a link).
+ */
+async function inFolder(prefix, work) {
+  const folder = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+  try {
+    return await work(folder);
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
 }
 /**
  * Fetched code, run in a process of its own that can read only what it's given (no network, no other files, no
@@ -146,9 +162,7 @@ const CHECK = `
     else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push(Reflect.get(node, key, {}));
   }
   process.stdout.write(JSON.stringify({ version: String(served.VERSION), names: [...names], self: differ(repo), differs: differ(served) }));`;
-let served;
-const checks = realpathSync(mkdtempSync(join(tmpdir(), "bitview-client-")));
-try {
+const served = await inFolder("bitview-client-", async (checks) => {
   // (Both beside each other there: what the sandbox reads is that folder alone. Unread, the repo's own stands in for
   // the server's, so the date check still checks itself.)
   writeFileSync(join(checks, "repo.mjs"), input(join(SHOWCASES, "modules/bitview-client/index.js")));
@@ -164,10 +178,8 @@ try {
   }
   const checked = sandboxed(CHECK.replace("REPO", JSON.stringify(pathToFileURL(join(checks, "repo.mjs")).href)).replace("SERVED", JSON.stringify(pathToFileURL(join(checks, "served.mjs")).href)), [checks]).value;
   if (checked.self) throw new Error("This repo's client disagrees with itself: the date check is wrong");
-  if (read) served = checked;
-} finally {
-  rmSync(checks, { recursive: true, force: true });
-}
+  return read ? checked : undefined;
+});
 
 // Each of those names, checked against it: one it lacks (this repo ahead of it, mid-release) is said; the page shows it as
 // missing, its closest offered, as any series the server doesn't have.
@@ -193,48 +205,43 @@ if (served?.differs) {
 // entry (one by its root path, written as one within the copy), and run in a process of their own that can only read
 // that copy and presets.js (no network, no files beyond, no processes, no environment): their charts come back as
 // JSON, put in the page compressed (unpacked once, when first wanted). Unreadable, the page has none (and says so).
-// (Its real path: the permissions are checked against it, and the system's temp folder can be a link.)
-const copy = realpathSync(mkdtempSync(join(tmpdir(), "bitview-website-")));
-try {
-  const fetched = new Set(), SPECIFIER = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(["'])([^"']+)\2/g;
-  const take = async (path, entry = false) => {
-    if (fetched.has(path)) return;
-    fetched.add(path);
-    const response = await fetch(`${SERVER}/${path}`, { signal: AbortSignal.timeout(30_000) });
-    // (A path read off a comment or a string may be nothing: what's needed and missing fails as it's run.)
-    if (!response.ok) {
-      if (entry) throw new Error(`${path}: ${response.status}`);
-      return;
-    }
-    let text = await response.text();
-    const next = [];
-    if (path.endsWith(".js")) text = text.replace(SPECIFIER, (match, lead, quote, specifier) => {
-      if (!/^\.{1,2}\//.test(specifier) && !specifier.startsWith("/")) return match;
-      const target = new URL(specifier, `${SERVER}/${path}`).pathname.slice(1);
-      next.push(target);
-      if (!specifier.startsWith("/")) return match;
-      const local = posix.relative(posix.dirname(path), target);
-      return `${lead}${quote}${local.startsWith(".") ? local : `./${local}`}${quote}`;
-    });
-    mkdirSync(dirname(join(copy, path)), { recursive: true });
-    writeFileSync(join(copy, path), text);
-    await Promise.all(next.map((target) => take(target)));
-  };
-  await take("scripts/options/partial.js", true);
-  // (presets.js as it's read for the version: that copy is the one run.)
-  const presetsJs = join(copy, "presets.mjs");
-  writeFileSync(presetsJs, input(join(HERE, "presets.js")));
-  const { json, value: presets } = sandboxed(`const { websitePresets } = await import(${JSON.stringify(pathToFileURL(presetsJs).href)}); process.stdout.write(JSON.stringify(await websitePresets(${JSON.stringify(pathToFileURL(`${copy}/`).href)})));`, [copy, presetsJs]);
-  const packed = gzipSync(json, { level: 9 }).toString("base64");
-  replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
-  console.log(`${SERVER}'s ${presets.length} charts, as presets: ${(packed.length / 1024).toFixed(0)} KB, from ${fetched.size} files`);
-} catch (error) {
-  // (Said in the page: it has no worker to read them with, so it doesn't try.)
-  if (html.includes(`<script id="presets" type="application/gzip"></script>`)) replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip" data-none></script>`);
-  console.warn(`Couldn't make ${SERVER}'s charts into presets (${error.message}): the page has none`);
-} finally {
-  rmSync(copy, { recursive: true, force: true });
-}
+// (A folder it can't make or remove stops the build; the website's charts unreadable, the page has none.)
+await inFolder("bitview-website-", async (copy) => {
+  try {
+    const fetched = new Set(), SPECIFIER = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(["'])([^"']+)\2/g;
+    const take = async (path, entry = false) => {
+      if (fetched.has(path)) return;
+      fetched.add(path);
+      // (A path read off a comment or a string may be nothing: what's needed and missing fails as it's run.)
+      let text = await fetchText(`/${path}`, !entry);
+      if (text === null) return;
+      const next = [];
+      if (path.endsWith(".js")) text = text.replace(SPECIFIER, (match, lead, quote, specifier) => {
+        if (!/^\.{1,2}\//.test(specifier) && !specifier.startsWith("/")) return match;
+        const target = new URL(specifier, `${SERVER}/${path}`).pathname.slice(1);
+        next.push(target);
+        if (!specifier.startsWith("/")) return match;
+        const local = posix.relative(posix.dirname(path), target);
+        return `${lead}${quote}${local.startsWith(".") ? local : `./${local}`}${quote}`;
+      });
+      mkdirSync(dirname(join(copy, path)), { recursive: true });
+      writeFileSync(join(copy, path), text);
+      await Promise.all(next.map((target) => take(target)));
+    };
+    await take("scripts/options/partial.js", true);
+    // (presets.js as it's read for the version: that copy is the one run.)
+    const presetsJs = join(copy, "presets.mjs");
+    writeFileSync(presetsJs, input(join(HERE, "presets.js")));
+    const { json, value: presets } = sandboxed(`const { websitePresets } = await import(${JSON.stringify(pathToFileURL(presetsJs).href)}); process.stdout.write(JSON.stringify(await websitePresets(${JSON.stringify(pathToFileURL(`${copy}/`).href)})));`, [copy, presetsJs]);
+    const packed = gzipSync(json, { level: 9 }).toString("base64");
+    replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
+    console.log(`${SERVER}'s ${presets.length} charts, as presets: ${(packed.length / 1024).toFixed(0)} KB, from ${fetched.size} files`);
+  } catch (error) {
+    // (Said in the page: it has no worker to read them with, so it doesn't try.)
+    if (html.includes(`<script id="presets" type="application/gzip"></script>`)) replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip" data-none></script>`);
+    console.warn(`Couldn't make ${SERVER}'s charts into presets (${error.message}): the page has none`);
+  }
+});
 
 // The build it is, to tell which one runs (⌘K's "Studio's version"): its commit, a "+" when anything it was built from
 // isn't, byte for byte as read, what the commit holds there (changed, or not in it at all); and when, as the page writes
@@ -258,8 +265,7 @@ const left = html.match(/["'(]\.\.\/(?:modules|fonts)\/[^"')]*/g);
 if (left?.length) throw new Error(`Still relative: ${left.join(", ")}`);
 // Each of the page's scripts as it's written now, parsed (what the build put in can't break it: a name declared twice
 // fails here, not in a browser).
-const parsing = realpathSync(mkdtempSync(join(tmpdir(), "bitview-page-")));
-try {
+await inFolder("bitview-page-", (parsing) => {
   for (const [i, [, attributes, body]] of [...html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/g)].entries()) {
     if (/type="(?!module)[^"]*"/.test(attributes ?? "") || !body.trim()) continue;
     const file = join(parsing, `script-${i}.${/type="module"/.test(attributes ?? "") ? "mjs" : "cjs"}`);
@@ -270,9 +276,7 @@ try {
       throw new Error(`The page's script ${i} doesn't parse: ${String(error.stderr ?? "").trim().split("\n").filter(Boolean).slice(-2).join(" | ")}`);
     }
   }
-} finally {
-  rmSync(parsing, { recursive: true, force: true });
-}
+});
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, html);
 console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB`);

@@ -65,6 +65,12 @@
        */
       :root {
         color-scheme: dark;
+        /* Sizes more than one rule (or the script) shares: the panel's width beside the chart, the tablet's floating panel's
+           height, a phone's sheet's two heights (fractions of the screen's: the script reads them too). */
+        --panel-width: 300px;
+        --tablet-panel: 44dvh;
+        --sheet-whole: 0.88;
+        --sheet-half: 0.56;
         --app: light-dark(#f6f6f7, #08090a);
         --card: light-dark(#ffffff, #0e0f11);
         --raise: light-dark(#ffffff, #17181b);
@@ -2882,14 +2888,14 @@
         display: flex;
         flex: none;
         flex-direction: column;
-        width: 300px;
+        width: var(--panel-width);
         min-height: 0;
         overflow: hidden;
         border-left: 1px solid var(--line);
         transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout);
 
         > .panel-view {
-          min-width: 299px;
+          min-width: calc(var(--panel-width) - 1px);
         }
       }
 
@@ -6239,7 +6245,7 @@
 
         @media (min-width: 761px) and (min-height: 501px) {
           body[data-panel="closed"]:not([data-peek]) .panel {
-            width: 300px;
+            width: var(--panel-width);
             opacity: 0;
             transform: translateX(24px);
             transition: transform var(--dur-panel) var(--ease), opacity var(--dur-panel) var(--ease), visibility 0s var(--dur-panel);
@@ -6254,11 +6260,11 @@
             left: 8px;
             bottom: 8px;
             width: auto;
-            height: 44dvh;
+            height: var(--tablet-panel);
           }
 
           body:is([data-panel="open"], [data-peek]) .stage {
-            padding-bottom: calc(44dvh + 8px);
+            padding-bottom: calc(var(--tablet-panel) + 8px);
           }
 
           body[data-panel="closed"]:not([data-peek]) .panel {
@@ -6437,7 +6443,7 @@
           left: 0;
           z-index: 12;
           width: auto;
-          max-height: 88dvh;
+          max-height: calc(var(--sheet-whole) * 100dvh);
           border: 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
           padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
@@ -6469,14 +6475,14 @@
            of reach until it's back down. */
         @media not all and (max-height: 500px) and (min-width: 568px) {
           .panel {
-            height: 56dvh;
+            height: calc(var(--sheet-half) * 100dvh);
             max-height: none;
             /* (Its height back to half once it's out of sight, not as it goes.) */
             transition: transform var(--dur-panel) var(--ease), height 0s var(--dur-panel), visibility 0s var(--dur-panel);
           }
 
           body[data-sheet-size="full"] .panel {
-            height: 88dvh;
+            height: calc(var(--sheet-whole) * 100dvh);
           }
 
           body[data-sheet="panel"] .panel {
@@ -6486,7 +6492,7 @@
           /* (The chart in what the half sheet leaves, every pane in sight: what's changed in it shows as it's changed; the
              sheet whole, as it was behind the dim. Its legends a line each, as on a phone on its side.) */
           body[data-sheet="panel"] .card {
-            padding-bottom: 56dvh;
+            padding-bottom: calc(var(--sheet-half) * 100dvh);
           }
 
           body[data-sheet="panel"] .legend button {
@@ -6885,7 +6891,7 @@
           .card {
             padding-right: env(safe-area-inset-right);
             padding-bottom: env(safe-area-inset-bottom);
-            padding-left: calc(86px + env(safe-area-inset-left));
+            padding-left: calc(var(--rail) + env(safe-area-inset-left));
           }
 
           /* (Panes short: each legend item on one line, its value after its name.) */
@@ -6946,7 +6952,7 @@
 
           .home {
             right: env(safe-area-inset-right);
-            left: calc(86px + env(safe-area-inset-left));
+            left: calc(var(--rail) + env(safe-area-inset-left));
           }
 
           /* (Its ranges their own width there: the foot's whole width would stretch each across a screen.) */
@@ -6981,7 +6987,7 @@
 
           /* (The grid's centered on what the rail leaves; the sheet's, in the sheet, at its foot.) */
           .pick-bar.home-bar {
-            left: calc(50% + 43px);
+            left: calc(50% + var(--rail) / 2);
           }
 
           .layers-bar {
@@ -7001,9 +7007,11 @@
             bottom: calc(12px + env(safe-area-inset-bottom));
           }
 
-          /* (The column as wide as leaves the chart 280px beside it: 300 to 480.) */
+          /* (The rail: the capsule's room at the left. The column as wide as leaves the chart 280px beside it, past the rail:
+             300 to 480.) */
           :root {
-            --column: clamp(300px, 100vw - 366px - env(safe-area-inset-left), 480px);
+            --rail: 86px;
+            --column: clamp(300px, 100vw - var(--rail) - 280px - env(safe-area-inset-left), 480px);
           }
 
           .panel {
@@ -7172,7 +7180,7 @@
         .palette {
           width: 100vw;
           max-width: none;
-          height: 88dvh;
+          height: calc(var(--sheet-whole) * 100dvh);
           max-height: none;
           margin: auto 0 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
@@ -7188,7 +7196,7 @@
 
         @media not all and (max-height: 500px) and (min-width: 568px) {
           .palette[data-half] {
-            height: 56dvh;
+            height: calc(var(--sheet-half) * 100dvh);
           }
         }
 
@@ -8265,6 +8273,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const KEPT_CHUNKS = 150;
       /** The range presets: three spans back from the latest, and the most the chart shows (all of history, where it fits). @type {[string, string, number][]} */
       const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["8y", "8Y", 2922], ["max", "Max", 0]];
+      /** A range's days (Max, or none, 0). */
+      const rangeDays = (/** @type {string} */ id) => RANGES.find(([range]) => range === id)?.[2] ?? 0;
       /** The range a chart starts on, and a link that names none opens on: two cycles, the last 8 years (user, 2026-10-12). */
       const DEFAULT_RANGE = "8y";
       /**
@@ -9340,8 +9350,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
       function normalize(doc) {
-        // (A cloud kept before trend lines: its layers were its `cloud`.)
-        for (const layer of /** @type {any[]} */ (doc.layers)) if (layer.cloud) (layer.from = layer.cloud), delete layer.cloud;
         // (A legend is on or off: "still", once a third way, is on.)
         if (doc.legend !== "off") delete doc.legend;
         // (A pane's order with fewer than two layers is none: nothing then says it, nothing could turn it back.)
@@ -10020,7 +10028,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (over <= 0) return { from, to };
         return keep === "to" ? { from: from + over, to } : keep === "from" ? { from, to: to - over } : { from: from + over / 2, to: to - over / 2 };
       }
-      /** The first of sorted times at or after a time (their count, past the last). @param {number[]} times @param {number} time */
+      /** The first of sorted times at or after a time (their count, past the last). @param {ArrayLike<number>} times @param {number} time */
       function lowerBound(times, time) {
         let lo = 0, hi = times.length;
         while (lo < hi) {
@@ -10623,7 +10631,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The chunks a range preset covers, from the latest (Max: the latest two). @returns {Span} */
       function presetSpan(index, range) {
         // (One that doesn't fit at this interval shows as Max: as many chunks as Max takes.)
-        const latest = latestChunk(index), told = RANGES.find(([id]) => id === range)?.[2] ?? 0, days = told / INTERVAL_DAYS[index] > mostBars() ? 0 : told;
+        const latest = latestChunk(index), told = rangeDays(range), days = told / INTERVAL_DAYS[index] > mostBars() ? 0 : told;
         return { from: clamp(days ? chunkAt(index, Date.now() / 1000 - days * 86400) : latest - 1, Math.max(0, latest - FIRST_CHUNKS + 1), Math.max(0, latest - 1)), to: latest, live: true };
       }
       /**
@@ -11469,10 +11477,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {{ layer: Layer, value: number, color: string, dash: number, mode: number, pane: number, format: any }[]} */
         const across = [];
         /** A layer's lines across, drawn once all are known: its levels, and a baseline's base (not as a band). */
-        const linesAcross = (layer, pane, format, op, base) => {
+        const linesAcross = (layer, pane, format, op) => {
           // (None in a 100% stack: a layer's levels are its own values', not shares.)
           if (shares.has(layer.pane)) return;
-          const values = [...(layer.levels ?? []).map((level, i) => ({ key: String(i), value: level.value })), ...(base && layer.type === "baseline" ? [{ key: "base", value: baseOf(layer) }] : [])];
+          const values = [...(layer.levels ?? []).map((level, i) => ({ key: String(i), value: level.value })), ...(layer.type === "baseline" ? [{ key: "base", value: baseOf(layer) }] : [])];
           for (const { key, value } of values) {
             const { color, dash } = lineLook(layer, key);
             across.push({ layer, mode: modeOf(doc, layer), pane, format, value, color: op < 1 ? alpha(ink(color), op) : ink(color), dash });
@@ -11557,7 +11565,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Faded by a spotlight the build ends: given back.)
             if (carried?.faint) (carried.faint = false), series.setData(carried.points);
             if (carried) paintedPoints.set(layer.id, carried);
-            linesAcross(layer, pane, common.priceFormat, op, true);
+            linesAcross(layer, pane, common.priceFormat, op);
           }
           else if (result?.shown && layer.type === "cloud") {
             // (Its scale's: log, none at or under zero; on one it doesn't fit, none. To an edge, only its other end, the one
@@ -11593,7 +11601,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : points);
             const close = closes.get(layer.id)?.series;
             if (close) setRows(close, points);
-            linesAcross(layer, pane, common.priceFormat, op, true);
+            linesAcross(layer, pane, common.priceFormat, op);
           }
           drawn.set(layer.id, series);
         }
@@ -11795,7 +11803,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetWindow(doc, data, most = mostBars(), room = 30) {
         const n = data.times.length;
         const to = n - 1 + RIGHT_OFFSET;
-        const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
+        const days = rangeDays(doc.range);
         if (!days) {
           const first = firstShown(doc, data);
           return within({ from: first - ((to - first) * room) / Math.max(1, view.timeScale().width() - room), to }, "to", most);
@@ -11859,7 +11867,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Every price scale back on auto, however it was dragged. */
       const autoScale = () => view.panes().forEach((_, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ autoScale: true })));
       /** Whether a preset's span fits on the chart at its interval (Max, the most that fits, always). */
-      const presetFits = (/** @type {string} */ id) => id === "max" || (RANGES.find(([range]) => range === id)?.[2] ?? 0) / INTERVAL_DAYS[chart.index] <= mostBars();
+      const presetFits = (/** @type {string} */ id) => id === "max" || rangeDays(id) / INTERVAL_DAYS[chart.index] <= mostBars();
       /** The preset the chart shows as: its own, or Max for one too long to fit (which shows the same). */
       const shownRange = () => (presetFits(chart.range) ? chart.range : "max");
 
@@ -15272,9 +15280,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return data.failed.length > 0;
       }
-      /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @param {string} [at] its data's interval, if not the usual one @returns {Promise<Thumb | null>} null when a fetch failed */
-      async function drawThumb(doc, at = "") {
-        const index = at || sampleIndex(doc, "month1", THUMB_POINTS);
+      /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @returns {Promise<Thumb | null>} null when a fetch failed */
+      async function drawThumb(doc) {
+        const index = sampleIndex(doc, "month1", THUMB_POINTS);
         const data = await resolve({ ...doc, index });
         if (retryFailed(doc, data, index)) return null;
         /** @type {Map<string, ReturnType<typeof shapeOf>>} */
@@ -15424,25 +15432,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const validPreview = (item) => typeof item?.key === "string" && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
-      /** What a card depends on: what the chart's mark does, its range, its layers' looks, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.range, doc.layers.map((layer) => [layer.type, layer.base, layer.colorBelow, layer.colors, layer.dash, layer.fill, layer.opacity, layer.levels, layer.baseLine]), doc.panes.map((pane) => [pane.stack, pane.reverse]), leftView(doc.id), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0]);
+      /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine]), leftView(doc.id), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
        */
       function previewBars(/** @type {Chart} */ doc, index = doc.index) {
-        const width = view.timeScale().width(), days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
+        const width = view.timeScale().width(), days = rangeDays(doc.range);
         // (A short range at a coarse interval, 3M of months: a dozen bars still, not a preview of none.)
         return Math.min(FINE.has(doc.index) && width ? ((width / MIN_BAR_SPACING) * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index] : Infinity, days ? Math.max(12, days / INTERVAL_DAYS[index]) : Infinity);
       }
       /** Where a chart's range starts in its data: its first point within the range's days of the last one (Max, the first). */
       const rangeStart = (/** @type {Chart} */ doc, /** @type {ArrayLike<number>} */ times) => {
-        const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
-        if (!days || !times.length) return 0;
-        const from = times[times.length - 1] - days * 86400;
-        let i = times.length - 1;
-        while (i > 0 && times[i - 1] >= from) i--;
-        return i;
+        const days = rangeDays(doc.range);
+        return days && times.length ? lowerBound(times, times[times.length - 1] - days * 86400) : 0;
       };
       const savePreviewsSoon = writeSoon(savePreviews);
       /**
@@ -15735,7 +15739,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function sampleIndex(doc, coarsest, points) {
         if (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf(coarsest) || doc.layers.some((layer) => runsWindow(layer.formula ?? ""))) return doc.index;
-        const days = RANGES.find(([id]) => id === doc.range)?.[2] ?? 0;
+        const days = rangeDays(doc.range);
         return [coarsest, "week1", "day1"].find((id) => !days || days / INTERVAL_DAYS[id] >= points) ?? "day1";
       }
       /** A tile's plot: the chart drawn, a blank box for an empty one, a shimmer until it's drawn. @param {Chart} doc */
@@ -16275,6 +16279,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {{ grab: (event: PointerEvent) => "handle" | "head" | false, whole: () => boolean, size: (whole: boolean) => void, close: () => void, scrim?: HTMLElement }} how
        */
       function heightsSheet(sheet, { grab, whole, size, close, scrim }) {
+        const [SHEET_WHOLE, SHEET_HALF] = ["--sheet-whole", "--sheet-half"].map((name) => Number(getComputedStyle(document.documentElement).getPropertyValue(name)));
         let height = 0, handle = false;
         dragSheet(sheet, {
           grab: (event) => {
@@ -16288,7 +16293,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           move: (by) => {
             // (A drag that turns back grows it or moves it as it is now, never both.)
             const grows = by < 0 && heldUpright.matches && !whole(), down = Math.max(0, by);
-            sheet.style.height = grows ? `${Math.min(height - by, innerHeight * 0.88)}px` : "";
+            sheet.style.height = grows ? `${Math.min(height - by, innerHeight * SHEET_WHOLE)}px` : "";
             sheet.style.transform = grows ? "" : `translateY(${down}px)`;
             if (scrim && whole()) scrim.style.opacity = String(1 - down / sheet.offsetHeight);
           },
@@ -16300,11 +16305,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && close());
             if (handle && Math.abs(by) < 4) return size(!whole());
             // (A slow drag most of the way to half lands there; a flick, let go moving, goes one stop on.)
-            const stops = [innerHeight * 0.88, innerHeight * 0.56, 0], flick = Math.abs(by) > 16 && Math.abs(speed) > 0.6 ? Math.sign(speed) : 0;
+            const stops = [innerHeight * SHEET_WHOLE, innerHeight * SHEET_HALF, 0], flick = Math.abs(by) > 16 && Math.abs(speed) > 0.6 ? Math.sign(speed) : 0;
             const nearest = stops.reduce((near, each, i) => (Math.abs(each - (height - by)) < Math.abs(stops[near] - (height - by)) ? i : near), 0);
             const stop = flick ? clamp((whole() ? 0 : 1) + flick, 0, 2) : nearest;
-            if (stop === 2) close();
-            else size(stop === 0);
+            if (stop === 2) return close();
+            // (Let go lower than it was, its height made what shows and the drag's offset gone, at once: then its height
+            // alone moves to the stop's, one motion, never the offset back up while the height comes down.)
+            if (by > 0) {
+              sheet.style.transition = "none";
+              sheet.style.height = `${height - by}px`;
+              void sheet.offsetHeight;
+              sheet.style.transition = sheet.style.height = "";
+            }
+            size(stop === 0);
           },
         });
       }
@@ -22619,11 +22632,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // made half, the keyboard goes (the field and a row or two above it would be all there was).
       {
         const sheet = $("palette");
+        let sizing = 0;
         const size = (/** @type {boolean} */ whole) => {
+          const mine = ++sizing;
           sheet.dataset.sizing = "";
           sheet.toggleAttribute("data-half", !whole);
           if (!whole && document.activeElement === $("palette-input")) sheet.focus();
-          requestAnimationFrame(() => Promise.allSettled(sheet.getAnimations().map((animation) => animation.finished)).then(() => delete sheet.dataset.sizing));
+          // (Its height's motion begun now, so it's the one waited for: the last one over, the screen's own changes snap again.)
+          void getComputedStyle(sheet).height;
+          Promise.allSettled(sheet.getAnimations().map((animation) => animation.finished)).then(() => mine === sizing && delete sheet.dataset.sizing);
         };
         heightsSheet(sheet, { grab: (event) => phone.matches && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
         $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && size(true));
@@ -23286,14 +23303,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (An "&" too: a title's "&chart=" never reads as a field of the link.)
       const linkText = (/** @type {Chart} */ doc) => JSON.stringify(toSketch(doc)).replace(/[\s"<>`%#\\{}[\]+&]/g, (char) => encodeURIComponent(char));
       /**
-       * A chart's link, written as one writes it: for a person or an assistant to read, change and write again. Past what a
-       * browser opens (Firefox, a megabyte: long strokes of the brush, many), compressed: it opens, but can't be read.
+       * A chart's link, compressed (every link Studio writes; one written out, JSON, is read too: an assistant's, which
+       * can't compress it); compressing failed, written out. @param {Chart} doc @param {Promise<Uint8Array>} [bytes] its
+       * compressed bytes, made already
        */
-      async function shareLink(doc) {
-        // (Compressed, always: as short as a link gets. One written out, JSON, is read too: an assistant's, which can't
-        // compress it.)
-        return packedLink(doc).catch(() => `${linkBase()}${linkText(doc)}`);
-      }
+      const shareLink = (doc, bytes = packedBytes(doc)) => bytes.then((packed) => `${linkBase()}${toBase64url(packed)}`, () => `${linkBase()}${linkText(doc)}`);
       /** The page's own address, its query and hash left out (from a file, its origin is "null": the address it is). */
       const linkBase = () => `${location.href.replace(/[?#].*$/, "")}#chart=`;
       /** A chart as a link holds it (its sketch: what a written link writes), compressed. @param {Chart} doc */
@@ -23301,26 +23315,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const stream = new Blob([JSON.stringify(toSketch(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
         return new Uint8Array(await new Response(stream).arrayBuffer());
       }
-      /** A chart's link compressed (every link Studio writes; read the same as one written out). @param {Chart} doc */
-      async function packedLink(doc) {
-        let binary = "";
-        for (const byte of await packedBytes(doc)) binary += String.fromCharCode(byte);
-        return `${linkBase()}${btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
-      }
       const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
       /**
-       * A chart's link for a QR code: compressed, in capitals and digits (base32, "#c="), which a QR code holds in its
-       * denser alphanumeric mode (5.5 bits a character, where base64 takes 8 in its byte mode). @param {Chart} doc
+       * Bytes in capitals and digits (base32), as a QR code's link holds them ("#c="): its denser alphanumeric mode takes
+       * 5.5 bits a character, where base64 takes 8 in its byte mode.
        */
-      async function qrLink(doc) {
+      function toBase32(/** @type {Uint8Array} */ bytes) {
         let text = "", bits = 0, value = 0;
-        for (const byte of await packedBytes(doc)) {
+        for (const byte of bytes) {
           value = (value << 8) | byte;
           bits += 8;
           while (bits >= 5) text += BASE32[(value >>> (bits -= 5)) & 31];
         }
-        if (bits) text += BASE32[(value << (5 - bits)) & 31];
-        return `${location.href.replace(/[?#].*$/, "")}#c=${text}`;
+        return bits ? text + BASE32[(value << (5 - bits)) & 31] : text;
       }
       /** A QR link's bytes back (base32, any case). @param {string} text */
       function fromBase32(text) {
@@ -23335,13 +23342,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return Uint8Array.from(bytes);
       }
       /**
-       * A chart's links, made once: the one to copy (as written; compressed where that's too long), and the one for a QR
-       * code (compressed, in base32: the fewest modules; compressing failed, the written one). @param {Chart} doc
+       * A chart's links, from one compressing of it (the same chart in both): the one to copy, and the one for a QR code
+       * (base32: the fewest modules; compressing failed, the copy's, written out). @param {Chart} doc
        */
       function linksOf(doc) {
-        const copy = shareLink(doc);
-        const short = qrLink(doc).catch(() => copy);
-        return { copy, short };
+        const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
+        return { copy, short: bytes.then((packed) => `${location.href.replace(/[?#].*$/, "")}#c=${toBase32(packed)}`, () => copy) };
       }
       /**
        * Base64 as bytes (`url`: its URL-safe alphabet), by the platform's own decoder where there's one (a byte at a time
@@ -23351,6 +23357,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A link's read in either alphabet, as it always was: one with "+" or "/" opens too.)
         const plain = url ? text.replace(/-/g, "+").replace(/_/g, "/") : text;
         return /** @type {Uint8Array<ArrayBuffer>} */ (/** @type {any} */ (Uint8Array).fromBase64?.(plain) ?? Uint8Array.from(atob(plain), (char) => char.charCodeAt(0)));
+      }
+      /** Bytes as a link writes them: base64's URL-safe alphabet, unpadded (by the platform's own encoder where there's one). */
+      function toBase64url(/** @type {Uint8Array} */ bytes) {
+        const native = /** @type {any} */ (bytes).toBase64?.({ alphabet: "base64url", omitPadding: true });
+        if (native !== undefined) return native;
+        let binary = "";
+        for (const byte of bytes) binary += String.fromCharCode(byte);
+        return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
       }
       /** A compressed link's chart: base64url (`#chart=`), or base32 (`#c=`, a QR code's). @param {string} encoded */
       async function fromLink(encoded, base32 = false) {
