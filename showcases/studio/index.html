@@ -1271,6 +1271,16 @@
         }
       }
 
+      /* Focused by keys, the ring around the row (its corners, its eye), not its main part alone. */
+      .layer-row:has(> .row-main:focus-visible) {
+        outline: 2px solid var(--focus);
+        outline-offset: 1px;
+
+        > .row-main {
+          outline: none;
+        }
+      }
+
       .row-main {
         display: flex;
         flex: 1;
@@ -1619,6 +1629,11 @@
 
         .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .live > :not(i)) {
           transition: opacity var(--dur-small) var(--ease);
+        }
+
+        /* (Sliding open or shut: a name clipped as it comes, its "…" not redrawn each frame.) */
+        body[data-sliding] .sidebar .label {
+          text-overflow: clip;
         }
 
         /* Collapsing and expanding, every part eases with the sidebar's width (the fields and rows to the rail's squares
@@ -3380,7 +3395,6 @@
         textarea,
         pre {
           width: 100%;
-          min-height: 64px;
           margin: 0;
           border: 0;
           padding: 9px 11px;
@@ -5028,8 +5042,16 @@
          from a keyboard, keeps them: they're what it says. (Over every rule that places a key, hence the weight.) */
       @media (hover: none) {
         kbd:not(.shortcuts kbd),
+        .sequence:not(.shortcuts *),
         .empty-inner .keys-sheet {
           display: none !important;
+        }
+      }
+
+      /* ⌘K's ×: only where its foot's Close isn't (by a finger, or a window too small for the foot to have it). */
+      @media (min-width: 761px) and (min-height: 501px) and (hover: hover), (min-width: 761px) and (min-height: 501px) and (pointer: fine) {
+        .palette-search > [data-action="close-palette"] {
+          display: none;
         }
       }
 
@@ -5053,12 +5075,28 @@
       }
 
       /* Single-key shortcuts off: their caps go too (the sheet keeps them, as it says what they'd be). */
-      body[data-single-off] kbd[data-single]:not(.shortcuts kbd) {
+      body[data-single-off] :is(kbd[data-single], .sequence:has(kbd[data-single])):not(.shortcuts *) {
         display: none !important;
       }
 
       /* Grouped by what they act on, each action read first and its keys across from it. */
-      /* How links work: the guide, to read: a column of text, its examples set apart. */
+      /* How links work: the guide, to read: a column of text (a line about 75 characters), its examples set apart. */
+      .shortcuts.guide {
+        width: min(560px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+      }
+
+      /* (Scrolled, the last rows fade under its edge, not cut there.) */
+      .shortcuts::after {
+        content: "";
+        position: sticky;
+        bottom: 0;
+        display: block;
+        height: 28px;
+        margin-top: -28px;
+        background: linear-gradient(transparent, var(--raise));
+        pointer-events: none;
+      }
+
       .guide-body {
         padding: 0 20px 20px;
         color: var(--text);
@@ -5094,6 +5132,15 @@
           box-shadow: inset 0 0 0 1px var(--line);
           font: 12px/18px var(--mono);
           white-space: pre-wrap;
+        }
+
+        /* An example in a line: the code's face, on a faint ground. */
+        code {
+          border-radius: var(--radius-sm);
+          padding: 1px 4px;
+          background: var(--field);
+          font: 12px/18px var(--mono);
+          overflow-wrap: anywhere;
         }
       }
 
@@ -5424,6 +5471,8 @@
         width: max-content;
         max-width: 280px;
         margin: 0;
+        /* (Wrapped, no word left alone on its last line.) */
+        text-wrap: pretty;
         border-radius: var(--radius-sm);
         padding: 5px 6px 5px 9px;
         color: var(--ink);
@@ -5450,6 +5499,23 @@
           &:first-of-type {
             margin-left: 0;
           }
+        }
+      }
+
+      /* A sequence of keys, one then the other (D then L), not a chord: said between its caps, one unit wherever it is. */
+      .sequence {
+        display: inline-flex;
+        flex-shrink: 0;
+        align-items: center;
+        gap: 4px;
+
+        kbd {
+          margin: 0;
+        }
+
+        .then {
+          color: var(--muted);
+          font-size: 11px;
         }
       }
 
@@ -5658,7 +5724,6 @@
          in sight while its charts scroll under it. */
       .grid-section.folder {
         --box: color-mix(in srgb, var(--card) 50%, var(--app));
-        margin-inline: -10px;
         border-radius: var(--radius-xl);
         padding: 0 10px 10px;
         background: var(--box);
@@ -7206,7 +7271,6 @@
         }
 
         .grid-section.folder {
-          margin-inline: 0;
           padding: 0 8px 8px;
 
           > .grid-folder {
@@ -7715,6 +7779,14 @@
         :focus-visible {
           outline: 2px solid Highlight !important;
           outline-offset: 2px;
+        }
+
+        .layer-row:has(> .row-main:focus-visible) {
+          outline: 2px solid Highlight;
+
+          > .row-main {
+            outline: none !important;
+          }
         }
 
         /* (Inside what clips them: a menu's rows, ⌘K's lit one, a field, the color editor's tabs and surface.) */
@@ -8349,7 +8421,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return keyText(keys.slice(0, -1).every((key) => "⌘⇧⌥⌃".includes(key)) ? keys.join("") : keys.join(" "));
       };
       /** The same, as keycaps: one for a modified key, one per alternative. */
-      const keycaps = (kbd) => keysOf(kbd).split(" ").map((key) => `<kbd>${escape(key)}</kbd>`).join("");
+      const keycaps = (kbd) => ((keys) => (keys.length === 2 && keys.every((key) => /^[A-Z]$/.test(key)) ? `<span class="sequence"><kbd>${keys[0]}</kbd><span class="then" aria-hidden="true">then</span><kbd>${keys[1]}</kbd></span>` : keys.map((key) => `<kbd>${escape(key)}</kbd>`).join("")))(keysOf(kbd).split(" "));
 
       const svg = (body, size = 16) => `<svg viewBox="0 0 16 16" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
       const ICONS = {
@@ -8698,6 +8770,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A trend's reference by default: a price in its pane (candles, a series named so), else the first of those there, else the first. @param {Chart} doc @param {Layer} trend */
       const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.pane === trend.pane && (layer.type === "candles" || /^price/.test(layer.series ?? ""))) ?? refs.find((layer) => layer.pane === trend.pane) ?? refs[0])?.id)(refsFor(doc, trend));
       /** A type's name: a series' or a formula's, or one made from layers. */
+      /** An unnamed formula's line (its name is its formula): what it is, in what once known. @param {Layer} layer */
+      const formulaLine = (layer) => ((result) => (result?.shown ? `Formula · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}` : "Formula"))(resolved?.results.get(layer.id));
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES].find(([id]) => id === type)?.[1] ?? type;
       /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
@@ -8869,19 +8943,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const SI = ["", "K", "M", "B", "T", "P", "E", "Z", "Y"];
       /** A number with an SI letter from a thousand up, in at most `room` characters (the sign aside). */
       function compact(value, digits = 3, room = 6) {
-        const abs = Math.abs(value), small = abs < 1000 ? trim(value, digits, room) : "";
+        const sign = value < 0 ? "−" : "", abs = Math.abs(value), small = abs < 1000 ? trim(abs, digits, room) : "";
         // (By the value as written: 999.6 rounds to a thousand, written 1K.)
-        if (small && Math.abs(Number(small)) < 1000) return small;
+        if (small && Number(small) < 1000) return sign + small;
         let tier = Math.min(SI.length - 1, Math.floor(Math.log10(abs) / 3));
-        if (Math.abs(Number(trim(value / 1000 ** tier, digits))) >= 1000 && tier < SI.length - 1) tier++;
-        return `${trim(value / 1000 ** tier, digits, room - 1)}${SI[tier]}`;
+        if (Number(trim(abs / 1000 ** tier, digits)) >= 1000 && tier < SI.length - 1) tier++;
+        return `${sign}${trim(abs / 1000 ** tier, digits, room - 1)}${SI[tier]}`;
       }
       /**
        * Round 100 and up to integers; below, try `digits` significant digits in `room` characters (sign aside; powers
        * of ten if tight).
        */
       function trim(value, digits, room = 6) {
-        const abs = Math.abs(value), sign = value < 0 ? "-" : "";
+        const abs = Math.abs(value), sign = value < 0 ? "−" : "";
         if (abs === 0) return "0";
         if (abs >= 100) return sign + abs.toFixed(0);
         const bare = (text) => (text.includes(".") ? text.replace(/\.?0+$/, "") : text);
@@ -10663,11 +10737,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function toggleSidebar() {
         prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
         savePrefs();
+        // (While it slides, its words clipped by it, not cut short anew each frame: till its width's slide ends.)
+        if (!reduced.matches) document.body.toggleAttribute("data-sliding", true);
         // (Collapsed, the rail keeps only its icons: a focus on what it puts away, a row's ⋯, a folder's, on its toggle.)
         const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
         applySidebar();
         keepFocus(putAway, () => $("sidebar-toggle"));
       }
+      $("sidebar").addEventListener("transitionend", (event) => event.target === $("sidebar") && event.propertyName === "width" && document.body.removeAttribute("data-sliding"));
+      $("sidebar").addEventListener("transitioncancel", (event) => event.target === $("sidebar") && event.propertyName === "width" && document.body.removeAttribute("data-sliding"));
       applySidebar();
 
       // ── Bitview's mark ────────────────────────────────────────────────────────
@@ -18597,7 +18675,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
-              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.from ? `<span class="sub">${escape(fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.shown).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? `<span class="sub code">ƒ ${escape(layer.formula)}</span>` : `<span class="sub code">${escape(layer.series ?? "")}</span>`;
+              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.from ? `<span class="sub">${escape(fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.shown).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? (layer.label ? `<span class="sub code">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(formulaLine(layer))}</span>`) : `<span class="sub code">${escape(layer.series ?? "")}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
@@ -18952,7 +19030,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <h3>${typeName(layer.type)}</h3>
               ${layer.type === "cloud" ? ["Between", "And"].map((name, k) => ((member) => `<div class="field"><span>${name}</span><button type="button" class="preset" data-cloud-of="${k}" aria-haspopup="menu" aria-label="${name}: ${escape(member?.label ?? "none")}">${member ? `${member.icon}<span class="name">${escape(member.label)}</span>` : `<span class="name">Pick one</span>`}${CHEVRON}</button></div>`)(memberShown(layer.from?.[k]))).join("")
                 : `<div class="field"><span>Between<span class="color-now">${plural(fromLetters(layer, chart).length, "layer")}</span></span><div class="trend-of" role="group" aria-label="What it's on">${chart.layers.filter((item) => !item.from && item.id !== layer.ref).map((item) => ((on) => `<button type="button" data-trend-of="${item.id}" aria-pressed="${on}">${letterChip(item)}<span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.from?.includes(item.id)))).join("")}</div></div>
-              <div class="field"><span>Flips when</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer whose touching it flips it (a candle's wick counts)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))} touches it</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
+              <div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer whose touching it flips it (a candle's wick counts)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
               ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalize(fromSays)}.`)}</p>` : ""}
             </section>`
           : isFormula
@@ -18960,7 +19038,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <h3>Formula</h3>
               <div class="formula-editor" id="formula-editor">
                 <pre id="formula-mirror" aria-hidden="true"></pre>
-                <textarea id="formula" aria-controls="suggest" aria-autocomplete="list" maxlength="500" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(layer.formula)}</textarea>
+                <textarea id="formula" rows="1" aria-controls="suggest" aria-autocomplete="list" maxlength="500" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(layer.formula)}</textarea>
                 <div class="assist" popover="manual">
                   <div id="formula-call" class="call-help" aria-live="polite" hidden></div>
                   <ul id="suggest" class="suggest" role="listbox" hidden></ul>
@@ -19285,7 +19363,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * field, a color another's); joined under its surface, the two one control. @param {string} target @param {string} color
        */
       const hexField = (target, color) => `<label class="hex-field"><span class="hex-box"><input class="hex" data-hex="${escape(target)}" value="${color ? escape(ink(color)) : ""}" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color" /><span class="color-now">${color ? escape(colorName(color)) : ""}</span></span></label>`;
-      const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
+      const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
       /** The surface: every hue across, lightness down, the color's place ringed (`target`: what it picks for, see planeTarget). */
       function planeHtml(/** @type {string} */ color, /** @type {string} */ target, name = "Color") {
         const { u, t } = placeOf(color), said = planeSays(color, u);
@@ -19785,9 +19863,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ...refsOf(node, "series"),
       ];
       /** Mirror colors, status line, name placeholder: everything that follows the formula as it's typed. */
+      /** The formula editor as tall as its lines, its width changed (a phone turned, the panel resized). */
+      const formulaFit = new ResizeObserver(([entry]) => {
+        const textarea = /** @type {HTMLTextAreaElement} */ (entry.target);
+        if (Math.round(entry.contentRect.width) === Number(textarea.dataset.fitWidth)) return;
+        textarea.dataset.fitWidth = String(Math.round(entry.contentRect.width));
+        textarea.style.height = "auto";
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      });
       function updateFormula(layer) {
         const textarea = $("formula");
         if (!textarea) return;
+        formulaFit.observe(textarea);
         const colorOf = (letter) => {
           const target = chart.layers.find((item) => item.letter === letter);
           return target && target !== layer ? ink(target.color) : null;
@@ -20623,7 +20710,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Adding a formula is a page of ⌘K, as adding a series is: written there, previewed as it's written, added with ↵,
        * dropped with esc. It starts on a likely one, selected, so ↵ takes it and typing replaces it.
        */
-      function addFormula(into = null) {
+      function addFormula(/** @type {string | null | undefined} */ into = null) {
         if (!roomFor(chart)) return;
         const letters = chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter);
         openPalette({ formula: true, into, query: letters.length >= 2 ? `${letters[0]} / ${letters[1]}` : letters.length ? `sma(${letters[0]}, 200d)` : EXAMPLE });
@@ -20750,7 +20837,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function refChoices(/** @type {string} */ id) {
         const trend = layerById(id);
         if (!trend) return [];
-        return refsFor(chart, trend).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: `${labelOf(layer)} touches it`, current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
+        return refsFor(chart, trend).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
       }
       /**
        * Formulas from a layer: the starters (each its first formula, on its letter), or one's own.
@@ -21255,7 +21342,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (palette.formula) input.maxLength = 500;
         else input.removeAttribute("maxlength");
         input.setAttribute("aria-label", replacing ? "Replace series" : palette.formula ? "Formula" : palette.adding ? "Search series" : "Search series, charts and commands");
-        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (seriesCount ? `Search ${grouped.format(seriesCount)} series` : "Search every series") : phone.matches ? "Search series, charts, commands" : seriesCount ? `Search ${grouped.format(seriesCount)} series, your charts and commands` : "Search series, your charts and commands";
+        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (TOUCH && seriesCount ? `Search ${grouped.format(seriesCount)} series` : "Search every series") : phone.matches ? "Search series, charts, commands" : "Search series, your charts and commands";
         $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
       }
       /**
@@ -21891,7 +21978,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           const icon = item.kind === "widen" ? ICONS.browse : item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : ICONS.series;
           const name = item.kind === "widen" ? `Search everything for “${escape(palette.query.trim())}”` : item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : "";
-          const meta = item.kind === "folder" ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run && answers(item.command.kbd) ? `<kbd>${escape(keyText(item.command.kbd))}</kbd>` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
+          const meta = item.kind === "folder" ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run && answers(item.command.kbd) ? `${keycaps(item.command.kbd)}` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
           const idle = item.kind === "command" && !item.command.run && !item.command.current;
           return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
         }).join("");
@@ -21979,7 +22066,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         if (item.kind === "command") {
-          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}${item.command.current ? " In effect now." : ""}</p>${item.command.kbd && item.command.run && answers(item.command.kbd) ? `<div class="info"><dl><div><dt>Shortcut</dt><dd><kbd>${escape(keyText(item.command.kbd))}</kbd></dd></div></dl></div>` : ""}`;
+          panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}${item.command.current ? " In effect now." : ""}</p>${item.command.kbd && item.command.run && answers(item.command.kbd) ? `<div class="info"><dl><div><dt>Shortcut</dt><dd>${keycaps(item.command.kbd)}</dd></div></dl></div>` : ""}`;
           return;
         }
         if (item.kind === "chart") return previewChart(panel, chartById(item.key));
@@ -22252,6 +22339,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const page = palette.pages.at(-1);
         if (page.input) {
           const text = palette.query.trim(), input = page.input, label = input.read(text);
+          // (Nothing typed, nothing it makes: what to type, plain, no row to press.)
+          if (!text && !label) {
+            palette.items = [];
+            renderPalette(false, typeof input.hint === "function" ? input.hint(text) : input.hint);
+            // (What it'll show, beside: two columns from the start, as once typed.)
+            if (input.preview) $("palette").toggleAttribute("data-none", false), input.preview($("palette-preview"), "");
+            return;
+          }
           palette.items = [{ kind: "row", key: "apply", icon: input.icon ?? ICONS.pencil, label: label ?? (typeof input.hint === "function" ? input.hint(text) : input.hint), verb: input.verb, dim: !label, stay: true, run: label ? () => input.apply(text) : undefined, ...(input.preview ? { preview: (/** @type {HTMLElement} */ panel) => input.preview?.(panel, text) } : {}) }];
           palette.active = 0;
           return renderPalette();
@@ -22289,7 +22384,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
         const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", item.page || item.leads ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
-        return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<kbd>${escape(keyText(item.kbd))}</kbd>` : ""}`;
+        return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? keycaps(item.kbd) : ""}`;
       }
       /** A chart's layers as ⌘K's previews list them: each by its badge and name, what it draws across. @param {Layer[]} layers */
       const layerRows = (layers) => layers.map((layer) => `<div><dt>${letterChip(layer)}${escape(labelOf(layer))}${layer.hidden ? ' <span class="muted">(hidden)</span>' : ""}</dt><dd>${typeName(layer.type)}</dd></div>`).join("");
@@ -22505,7 +22600,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Adding: what a layer can be besides a series, first on the page (and found by its words). */
       function otherLayerRows() {
         return [
-          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", words: "formula expression math ratio divide combine function", group: "Other layers", other: true, verb: "Add", run: () => addFormula(palette.into) },
+          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A layer of its own, written from the others by their letters, with + − × ÷ and functions; or from any series by its name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), words: "formula expression math ratio divide combine function", group: "Other layers", other: true, verb: "Add", run: () => addFormula(palette.into) },
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
             { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", words: "cloud band fill area between range cross edge", group: "Other layers", other: true, verb: "Add", page: () => cloudPage() },
@@ -22623,7 +22718,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const open = () => layerPage(layer.id);
         return {
           kind: "row", key: `layer:${layer.id}`, icon: `${letterChip(layer)}`, label: labelOf(layer),
-          aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.series ?? layer.formula ?? "", mono: !layer.from, dim: Boolean(layer.hidden), words: `${layer.letter} layer ${layer.hidden ? "hidden" : ""}`, verb: "Open", page: open,
+          aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label), dim: Boolean(layer.hidden), words: `${layer.letter} layer ${layer.hidden ? "hidden" : ""}`, verb: "Open", page: open,
           actions: () => [{ label: "Open", icon: ICONS.next, kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
           preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
         };
@@ -22673,7 +22768,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : layer.from ? [{ key: "between", icon: ICONS.riding, label: "Between", aside: fromSpan(layer), group: "Trend", leads: true, page: () => trendPage(id) }]
               : layer.series ? [{ key: "series", icon: ICONS.series, label: "Replace series", aside: layer.series, mono: true, verb: "Replace", group: first, leads: true, stay: true, run: () => changeSeries(id) }]
               : [{ key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: first, leads: true, stay: true, run: () => editFormula(id) }]),
-            ...(layer.type === "trend" ? [{ key: "ref", icon: ICONS.riding, label: "Flips when", aside: ((ref) => (ref ? `${ref.letter} touches it` : "None"))(layerById(layer.ref ?? "")), group: "Trend", page: () => choicePage("Flips when", () => refChoices(id)) }] : []),
+            ...(layer.type === "trend" ? [{ key: "ref", icon: ICONS.riding, label: "Flips when it touches", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: "Trend", page: () => choicePage("Flips when it touches", () => refChoices(id)) }] : []),
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
               { key: "raw", icon: ICONS.link, label: "Open the raw data", aside: "As JSON, in a new tab", verb: "Open", group: first, run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") },
@@ -24827,7 +24922,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       document.addEventListener("focusout", (event) => event.target === tipTarget && hideTip());
       document.addEventListener("pointerover", (event) => {
-        if (event.pointerType === "touch") return;
+        // (None by touch, nor while a press drags: the navigator's, a slider's.)
+        if (event.pointerType === "touch" || event.buttons) return;
         const target = closest(event, "[data-tip]");
         if (target === tipTarget) return;
         hideTip();
@@ -24967,9 +25063,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** The page's links guide: this chart's link, then the reference (the dialog opens on itself). */
+      /**
+       * The guide's examples in its lines, set as code: a script's call, a chart's JSON (a list of it too), a link's start,
+       * a formula's function called (a block's, as it is).
+       */
+      const CODE_IN = new RegExp(String.raw`(?:await )?studio\.\w+\((?:[^()<]|\([^()<]*\))*\)|\[(?:\{(?:[^{}<]|\{[^{}<]*\})*\}(?:, )?)+\]|\{(?:[^{}<]|\{[^{}<]*\})*\}|https:\/\/studio\.bitview\.space\/#[a-z]+=|#(?:chart|image|c)=|\b(?:${Object.keys(FUNCTIONS).join("|")})\([^()<]*\)`, "g");
+      const codeIn = (/** @type {string} */ html) => html.split(/(<pre[\s\S]*?<\/pre>)/).map((part, i) => (i % 2 ? part : part.replace(CODE_IN, (match) => `<code>${match}</code>`))).join("");
       function showGuide() {
         const open = !home && chart.layers.length > 0;
-        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it, for anyone, as it is here: its layers, their look, its view. It holds the chart itself (as JSON), so nothing's stored anywhere.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.link}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section><h2 class="guide-ref">For scripts and assistants</h2>${$("about").innerHTML.replace(/<h1>[\s\S]*?<\/h1>/, "")}`;
+        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it, for anyone, as it is here: its layers, their look, its view. It holds the chart itself (as JSON), so nothing's stored anywhere.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.link}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section><h2 class="guide-ref">For scripts and assistants</h2>${codeIn($("about").innerHTML.replace(/<h1>[\s\S]*?<\/h1>/, ""))}`;
         $("guide").showModal();
         $("guide").focus();
       }
