@@ -30,9 +30,4 @@ impl SafeLengths {
     pub fn tip(&self) -> BlockHash {
         self.0.tip
     }
-
-    /// The tip of the publication this one followed, or [`Self::tip`] after a rollback.
-    pub fn parent_tip(&self) -> BlockHash {
-        self.0.parent
-    }
 }

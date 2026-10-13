@@ -376,7 +376,45 @@ impl Indexer {
         Ok(ImportValidation::Valid(local_lengths))
     }
 
-    fn rollback_to(&mut self, starting_lengths: &Lengths) -> Result<()> {
+    /// Where the node's active chain leaves this index: the lengths to resume at and the hash of
+    /// the block before them.
+    fn resume_point(&self) -> Result<(Lengths, Option<BlockHash>)> {
+        let client = self.reader.client();
+        self.vecs.sync_bg_tasks()?;
+
+        let last_blockhash = self.vecs.blocks.blockhash.collect_last();
+        // Rollback sim: do not remove
+        // let last_blockhash = self
+        //     .vecs
+        //     .blocks
+        //     .blockhash
+        //     .collect_one_at(self.vecs.blocks.blockhash.len() - 2);
+        debug!("Last block hash found.");
+
+        // A node behind our tip (restarting, reindexing) would look like a reorg to its height.
+        client.wait_for_synced_node()?;
+        let Some(hash) = last_blockhash else {
+            return Ok((Lengths::default(), None));
+        };
+        let (height, hash) = client.get_closest_valid_height(hash)?;
+        match Lengths::resume_at(height.incremented(), &self.vecs, &self.stores)? {
+            Some(starting_lengths) => Ok((starting_lengths, Some(hash))),
+            None => Err(Error::Internal(
+                "Indexer became inconsistent after import; drop and re-import it",
+            )),
+        }
+    }
+
+    /// The lengths a reorg rolls back to: some only when the node's active chain orphaned blocks
+    /// this index holds.
+    pub fn reorg(&self) -> Result<Option<Lengths>> {
+        let (starting_lengths, _) = self.resume_point()?;
+        Ok((starting_lengths.height < self.vecs.next_height()).then_some(starting_lengths))
+    }
+
+    /// Rolls back to `starting_lengths`, first publishing the prefix below them once no reader
+    /// holds a later publication. Callers hold the exit lock.
+    pub fn roll_back_to(&mut self, starting_lengths: &Lengths) -> Result<()> {
         let local_height = self.vecs.next_height();
         if local_height == starting_lengths.height {
             return Ok(());
@@ -384,6 +422,9 @@ impl Indexer {
         if local_height < starting_lengths.height {
             return Err(Error::Internal("Cannot roll back beyond local state"));
         }
+        self.floor.lower_to(starting_lengths.height)?;
+        self.state
+            .lower_before(starting_lengths, self.tip_of(starting_lengths));
 
         let completed_height = starting_lengths
             .height
@@ -403,43 +444,14 @@ impl Indexer {
         let reader = self.reader.clone();
         validate_reader_source(&reader)?;
         let client = reader.client();
-        self.vecs.sync_bg_tasks()?;
 
         debug!("Starting indexing...");
 
-        let last_blockhash = self.vecs.blocks.blockhash.collect_last();
-        // Rollback sim: do not remove
-        // let last_blockhash = self
-        //     .vecs
-        //     .blocks
-        //     .blockhash
-        //     .collect_one_at(self.vecs.blocks.blockhash.len() - 2);
-        debug!("Last block hash found.");
-
-        // A node behind our tip (restarting, reindexing) would look like a reorg to its height.
-        client.wait_for_synced_node()?;
-        let (starting_lengths, prev_hash) = if let Some(hash) = last_blockhash {
-            let (height, hash) = client.get_closest_valid_height(hash)?;
-            match Lengths::resume_at(height.incremented(), &self.vecs, &self.stores)? {
-                Some(starting_lengths) => (starting_lengths, Some(hash)),
-                None => {
-                    return Err(Error::Internal(
-                        "Indexer became inconsistent after import; drop and re-import it",
-                    ));
-                }
-            }
-        } else {
-            (Lengths::default(), None)
-        };
+        let (starting_lengths, prev_hash) = self.resume_point()?;
         debug!("Starting lengths set.");
 
         let lock = exit.lock();
-        if starting_lengths.height < self.vecs.next_height() {
-            self.floor.lower_to(starting_lengths.height)?;
-            self.state
-                .lower_before(&starting_lengths, self.tip_of(&starting_lengths));
-        }
-        self.rollback_to(&starting_lengths)?;
+        self.roll_back_to(&starting_lengths)?;
         debug!("Rollback done.");
         drop(lock);
 

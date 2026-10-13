@@ -305,28 +305,29 @@ impl Query {
         self.0.mempool.as_ref().map(ReadOnlyMempool::load)
     }
 
-    /// The mempool, then a pin: the pool never leads the chain, so loaded first it is at the pin's
-    /// tip or, for the moment after a block publishes, the pin's parent.
+    /// The mempool, then a pin: the pool never follows a block before the chain publishes it, so
+    /// loaded first it is at the pin's tip, behind it for the moment after blocks publish, or on
+    /// the branch a reorg is replacing.
     #[cfg(any(feature = "chain", feature = "price"))]
     fn mempool_then_pin(&self) -> Result<(Option<Arc<ReadOnlyState>>, SafeLengths)> {
         let mempool = self.mempool();
         Ok((mempool, self.pin_safe_lengths()?))
     }
 
-    /// `mempool` and the tip a lookup the chain answers first reads it at: the pin's, or the pin's
-    /// parent while the mempool has yet to follow the pin's block. The chain answering first, the
-    /// parent's pool only adds what is still pending; address views need the pin's own tip.
+    /// `mempool` at its own tip, for a lookup the chain answers first: whatever the chain holds
+    /// answers before it, so the pool only adds what is still pending. Views adding the pool to
+    /// the chain's numbers need it at the pin's tip instead ([`anchored`] at `pin.tip()`).
+    ///
+    /// [`anchored`]: crate::r#impl::mempool::anchored
     #[cfg(any(feature = "chain", feature = "price"))]
     fn lookup_mempool(
         mempool: Option<Arc<ReadOnlyState>>,
-        pin: &SafeLengths,
     ) -> Option<(Arc<ReadOnlyState>, BlockHash)> {
-        let mempool = mempool?;
-        let tip = match mempool.tip() {
-            Some(pool) if pool == pin.parent_tip() => pool,
-            _ => pin.tip(),
-        };
-        Some((mempool, tip))
+        mempool.map(|mempool| {
+            // Before its first publication the pool has no tip, and its reads answer that.
+            let tip = mempool.tip().unwrap_or_default();
+            (mempool, tip)
+        })
     }
 
     #[cfg(feature = "series")]

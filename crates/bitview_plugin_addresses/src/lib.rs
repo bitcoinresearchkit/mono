@@ -39,7 +39,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     live: M::WriteOnly<Option<LiveState<AddrStates>>>,
-    /// The stamp and rollback flag of address state the last update staged for its publication.
+    /// The stamp and rollback flag of address state changed in its buffers but not yet written (staged
+    /// for the update's publication, or left by a failed write).
     unpublished_state: M::WriteOnly<Option<(Stamp, bool)>>,
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     #[traversable(flatten)]

@@ -12,7 +12,7 @@ use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use tracing::{debug, info};
-use vecdb::{AnyVec, ReadableVec, VecIndex, unlikely};
+use vecdb::{AnyVec, ReadableVec, Stamp, VecIndex, unlikely};
 
 use super::{AddrReaders, Workspace, readers::tx_indexes};
 use crate::{
@@ -341,6 +341,8 @@ pub fn process_chunk(
     drop(vr);
     let last_height = Height::from(next - 1);
     let _lock = exit.lock();
+    // A failure before the state is written leaves its changed buffers for the next update to discard.
+    vecs.unpublished_state = Some((Stamp::from(last_height), last_chunk));
     cache.flush_into(&mut vecs.state)?;
     let finished = last_chunk && next == end_usize;
     let publish_state = finished && next - start_usize <= PUBLISHED_STATE_BLOCKS;

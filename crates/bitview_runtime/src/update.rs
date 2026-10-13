@@ -36,7 +36,8 @@ where
 {
     // A pending shutdown must not wait behind back-to-back updates.
     context.exit().park_if_shutting_down();
-    // Readers keep the last publication until `commit` swaps in this one; a failed update leaves it.
+    // Readers keep the last publication (lowered to the fork once a reorg rolls back) until `commit`
+    // swaps in this one; a failed update leaves it.
     let start = Instant::now();
     let (output, complete) = compute(plugins, context)?;
     {

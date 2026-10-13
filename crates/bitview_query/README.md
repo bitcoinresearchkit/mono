@@ -73,9 +73,11 @@ swapping the pin's source; only a rollback waits for the pins taken before it.
 Data rewritten in place is read consistently with the pin: the spend index masks
 spends past it, address state is written with the publication under a short
 lock its readers take before pinning, and UTXO set snapshots are replaced by
-rename. The mempool publishes only at the published tip; a chain-first lookup
-also reads a pool still at the pin's parent for the moment after a block
-publishes, while address views use the confirmed state alone then.
+rename. The mempool publishes only at the published tip and is loaded before the
+pin, so it is at the pin's tip, behind it, or (mid-reorg) on the branch being
+replaced: a lookup the chain answers first reads it as is (it only adds what is
+still pending), while address views, which add it to the chain's numbers, use
+the confirmed state alone until it is at the pin's tip.
 
 `read` and `read_with_admission` execute the query closure once on a blocking
 worker. Resolve snapshots inside the closure. `run` remains appropriate for

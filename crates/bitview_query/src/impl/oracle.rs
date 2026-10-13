@@ -83,8 +83,7 @@ impl Query {
     /// mempool output binned by value, with none of the round-dollar payment
     /// filters applied. Zeros when no mempool is configured.
     pub fn live_output_histogram(&self) -> Result<HistogramRaw> {
-        let (mempool, pin) = self.mempool_then_pin()?;
-        Ok(match Self::lookup_mempool(mempool, &pin) {
+        Ok(match Self::lookup_mempool(self.mempool()) {
             Some((mempool, tip)) => mempool.live_raw_histogram(&tip)?,
             None => HistogramRaw::zeros(),
         })

@@ -9,7 +9,7 @@ impl Query {
     fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
-        let mempool = Self::lookup_mempool(mempool, &pin);
+        let mempool = Self::lookup_mempool(mempool);
         let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, safe) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
@@ -30,7 +30,7 @@ impl Query {
         if confirmed.spent {
             return Ok(confirmed);
         }
-        // Confirmed spends answer alone while no pool is at this publication.
+        // Confirmed spends answer first; the pool, at its own tip, adds a pending spend of the rest.
         Ok(mempool
             .map(|(mempool, tip)| anchored(mempool.outspend(txid, vout, &tip).map(Some)))
             .transpose()?
@@ -50,7 +50,7 @@ impl Query {
     fn outspends(&self, txid: &Txid) -> Result<Vec<TxOutspend>> {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
-        let mempool = Self::lookup_mempool(mempool, &pin);
+        let mempool = Self::lookup_mempool(mempool);
         let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, safe) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {

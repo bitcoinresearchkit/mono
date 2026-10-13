@@ -21,8 +21,7 @@ impl Query {
         match read.resolve_confirmed_tx(txid) {
             Ok(transaction) => Ok(CpfpSource::Chain(transaction)),
             Err(Error::UnknownTxid) => {
-                let (mempool, tip) =
-                    Self::lookup_mempool(mempool, read.pin()).ok_or(Error::UnknownTxid)?;
+                let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::UnknownTxid)?;
                 mempool
                     .cpfp_info(txid, &tip)?
                     .map(CpfpSource::Memory)

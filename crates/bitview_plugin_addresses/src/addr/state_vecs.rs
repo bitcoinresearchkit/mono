@@ -171,10 +171,10 @@ impl AddrStateVecs {
             .map(|landing| Height::from(landing).incremented()))
     }
 
+    /// Rolls back below `stamp`. The restored values sit in the write buffers until the next write:
+    /// callers hold the state's lock with its length unset.
     pub fn rollback_before(&mut self, stamp: Stamp) -> Result<Vec<Stamp>> {
-        let stable = Arc::clone(&self.stable);
-        let mut written = stable.write();
-        let stamps = vec![
+        Ok(vec![
             self.p2a.rollback_before(stamp)?,
             self.p2pk33.rollback_before(stamp)?,
             self.p2pk65.rollback_before(stamp)?,
@@ -185,10 +185,7 @@ impl AddrStateVecs {
             self.p2wsh.rollback_before(stamp)?,
             self.funded.rollback_before(stamp)?,
             self.extended_empty.rollback_before(stamp)?,
-        ];
-        // The restored values sit in the write buffers until the next write.
-        *written = None;
-        Ok(stamps)
+        ])
     }
 
     /// Drops staged changes that were never written.

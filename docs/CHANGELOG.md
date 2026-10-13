@@ -753,15 +753,19 @@ has to be deleted by hand.
   transactions and addresses not published yet answer 404 (were 503)
 - The mempool is published only at the tip Bitview has published: the transactions of a block being processed stay
   unconfirmed until it publishes, instead of being found nowhere. Each publication wakes the mempool, which follows
-  at once; lookups the chain answers first also read the previous pool for that moment, and a request reads the
-  mempool before the chain, so it never finds a newer pool. Pending transactions spending a just-mined
+  at once. A request reads the mempool before the chain, so it never finds a newer pool, and lookups the chain
+  answers first (transactions, outspends, CPFP, RBF) read whichever pool is published: a pending transaction is
+  still found while the mempool follows new blocks or a reorg (answered 503). Pending transactions spending a just-mined
   transaction's outputs resolve right away (from the pool's record of it), so a fresh pool no longer waits a cycle
   to answer
 - An address's stats are written with the publication they belong to: a transaction in the block being processed
   counted twice (confirmed and pending), and a failed update left the stats ahead of the published chain
 - During a reorg within the plugins' saved rollback history (10 updates), a plugin about to rewrite published rows in
   place (spends, address state) first lowers what readers see to where its rollback lands: spends published below the fork could read as unspent, and address stats as of an
-  older block, mid-reorg. Address stats answer 503 while a rollback or a failed write leaves them unwritten
+  older block, mid-reorg. A reorg rolls the address state back with the indexer, before indexing, and writes it at
+  once: address stats answer as of the fork (or where the rollback lands below it) during the update (answered
+  503). They answer 503 only after a failed
+  write, during an update of more than 10 blocks, or after a reorg past the saved history
 - The UTXO set and URPD endpoints read a snapshot that is never rewritten under them: during an update they could fail
   or silently reconstruct a state from the next block's snapshot payload
 - `spending_txin_index` reads unspent for a spend in a block not published yet (CPFP clusters left those out too, or
@@ -810,6 +814,11 @@ has to be deleted by hand.
 - A VecDB import-time reset deletes the vector's rollback history, so a later deep reorg cannot walk into change
   files of the vector's previous life; a value whose width changed without a version bump resets instead of being
   misread
+- A VecDB rollback skips the change files an earlier rollback left above its landing (kept until a write at their
+  stamp replaces them): after a reorg whose replacement came in one multi-block update, a later deeper reorg failed
+  every update with a stamp mismatch
+- An address state update that failed after applying its changes (a failed write of the plugin's other vectors) left
+  them in the write buffers for the next update to apply again; the next update now discards them
 - `utxo_set` now compacts its database; the Docker image build copies every build input
 - After a reorg, an address's unspent outputs no longer list outputs that the replacement chain spent again. The
   storage engine's weak deletes assume a key is written once; a rollback writes spent outputs back, and a compaction

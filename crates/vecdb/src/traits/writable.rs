@@ -79,12 +79,16 @@ where
         let files = self.find_rollback_files()?;
 
         // Walk change files newest-first. Each rollback decrements the vec
-        // stamp to the previous file's stamp; if they ever disagree, the
-        // change-file chain is broken (missing or corrupt).
+        // stamp to the previous file's stamp. Files above it are left from an
+        // earlier rollback (kept until a write at their stamp replaces them);
+        // a missing one below it means the chain is broken.
         for (&file_stamp, _) in files.range(..=self.stamp()).rev() {
             let current = self.stamp();
             if current < stamp {
                 break;
+            }
+            if file_stamp > current {
+                continue;
             }
             if file_stamp != current {
                 return Err(Error::StampMismatch {

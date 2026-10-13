@@ -17,8 +17,6 @@ pub(crate) struct Published {
     pub(crate) lengths: Lengths,
     pub(crate) revision: u64,
     pub(crate) tip: BlockHash,
-    /// The tip of the publication this one followed; the tip itself after a rollback.
-    pub(crate) parent: BlockHash,
     /// Shared by every publication since the last rollback: a rollback waits until no reader
     /// holds one of the publications before it.
     era: Arc<()>,
@@ -39,7 +37,6 @@ impl State {
                 lengths: Lengths::default(),
                 revision: 0,
                 tip: BlockHash::default(),
-                parent: BlockHash::default(),
                 era: Arc::default(),
             }),
             lowering: Mutex::default(),
@@ -68,7 +65,6 @@ impl State {
             lengths: next,
             revision: current.revision + 1,
             tip,
-            parent: current.tip,
             era: Arc::clone(&current.era),
         }));
     }
@@ -93,7 +89,6 @@ impl State {
             lengths: lowered,
             revision,
             tip,
-            parent: tip,
             era: Arc::default(),
         }));
         // New readers pin the lowered prefix; the earlier ones finish their reads.

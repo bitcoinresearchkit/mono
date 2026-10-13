@@ -12,8 +12,8 @@ use crate::{Vecs, state::AddrStates};
 /// Flush metrics and address state before the plugin’s scalar checkpoint.
 ///
 /// Set `with_changes=true` near chain tip to enable rollback support. With `publish_state`, the
-/// address state (rewritten in place) stays staged until [`Vecs::publish_state`] writes it with
-/// the update's publication.
+/// address state (rewritten in place, its changes marked by the caller) stays staged until
+/// [`Vecs::publish_state`] writes it with the update's publication.
 pub fn write(
     vecs: &mut Vecs,
     addr_states: &mut AddrStates,
@@ -30,12 +30,10 @@ pub fn write(
     vecs.loop_vecs_mut()
         .into_par_iter()
         .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
-    if publish_state {
-        vecs.unpublished_state = Some((stamp, with_changes));
-    } else {
+    if !publish_state {
         let stable = vecs.state.stable();
         let mut written = stable.write();
-        vecs.write_state(stamp, with_changes, &mut written)?;
+        vecs.publish_state(&mut written)?;
     }
 
     vecs.save_caps(addr_states, stamp, with_changes)?;
@@ -58,7 +56,7 @@ impl Vecs {
     }
 
     /// A write that fails part way leaves `written` unset until a rollback and write restore it.
-    fn write_state(
+    pub(crate) fn write_state(
         &mut self,
         stamp: Stamp,
         with_changes: bool,

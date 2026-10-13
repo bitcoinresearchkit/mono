@@ -42,7 +42,10 @@ pipeline-safe lengths when each update commits. Store and vector commits are
 coordinated so a restart cannot expose half-committed state.
 
 On a chain reorganization, the plugin rolls back its vectors and lookup stores
-to their last valid checkpoint before processing the replacement chain. If the
+to their last valid checkpoint before processing the replacement chain, first
+lowering what readers see to that prefix. A composition can roll back ahead of
+the update (`Indexer::reorg`, `Indexer::roll_back_to`) to rewind its own
+in-place data in the same step. If the
 source or on-disk schema is incompatible, its owned plugin directory is rebuilt.
 A rollback (or a rebuild beside other plugins' data) persists a rollback floor
 that the next import publishes, so dependents recompute from it even after a soft

@@ -54,6 +54,30 @@ impl DefaultPlugins {
         self.compute_dependents(context)
     }
 
+    /// A reorg lowers the publication and rolls the address state (rewritten in place) back in one
+    /// step, under the lock address readers take before they pin, before the indexer rolls back:
+    /// they read the state of every publication, the lowered one the rest of the update computes
+    /// from included, and wait only for that step. A rollback that cannot land (`roll_back_to`
+    /// returns 0) is left to the address plugin's compute, which resets. Bootstrap has no readers;
+    /// its plugins roll back as they compute.
+    fn roll_back_reorg(&mut self, context: UpdateContext<'_>) -> Result<()> {
+        let Some(starting) = self.indexer.reorg()? else {
+            return Ok(());
+        };
+        let _lock = context.exit().lock();
+        {
+            let stable = self.addresses.state.stable();
+            let mut written = stable.write();
+            self.indexer.lower_publication_to(starting.height);
+            self.addresses.roll_back_to(
+                usize::from(starting.height),
+                &self.indexer,
+                &mut written,
+            )?;
+        }
+        self.indexer.roll_back_to(&starting)
+    }
+
     fn compute_indexer(&mut self, context: UpdateContext<'_>) -> Result<()> {
         timed(Phase::Compute, INDEXER_ID, || {
             self.indexer.compute((), context)
@@ -419,6 +443,7 @@ impl ComputePluginSet for DefaultPlugins {
     }
 
     fn compute(&mut self, context: UpdateContext<'_>) -> Result<()> {
+        self.roll_back_reorg(context)?;
         self.compute_inner(context)
     }
 

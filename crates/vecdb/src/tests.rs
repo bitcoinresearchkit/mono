@@ -692,6 +692,37 @@ mod update_many {
     }
 }
 
+mod rollback_chain {
+    use crate::{
+        BytesVec, Database, ImportOptions, ImportableVec, MutableVec, Result, Stamp, Version,
+        WritableVec,
+    };
+    use tempfile::tempdir;
+
+    /// A rollback leaves the files past its landing until a write at their stamp replaces them: a
+    /// later, deeper rollback must skip them.
+    #[test]
+    fn rollback_skips_files_an_earlier_rollback_left() -> Result<()> {
+        let _serial = crate::tests::serial();
+        let directory = tempdir()?;
+        let database = Database::open(directory.path())?;
+        let options =
+            ImportOptions::new(&database, "values", Version::ONE).with_saved_stamped_changes(10);
+        let mut vec = MutableVec::<BytesVec<usize, u32>>::import_with(options)?;
+        for stamp in 1..=3 {
+            vec.push(stamp * 10);
+            vec.stamped_write_with_changes(Stamp::from(u64::from(stamp)))?;
+        }
+        // Stamps 2 and 3 replaced by one write at 4: the file of 3 stays behind.
+        assert_eq!(vec.rollback_before(Stamp::from(3))?, Stamp::from(2));
+        vec.push(40);
+        vec.stamped_write_with_changes(Stamp::from(4))?;
+        assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
+        assert_eq!(vec.collect_holed(), vec![Some(10)]);
+        Ok(())
+    }
+}
+
 mod overflow {
     use std::fs;
 

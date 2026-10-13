@@ -70,7 +70,8 @@ Plugins do not own locks readers wait on. The indexer publishes the lengths ever
 plugin has computed to, with their tip and a revision, when the composition
 commits (`ComputePluginSet::commit`); readers pin that publication (`Indexer::pin`,
 which never waits) and read below it, so a plugin appends past it freely and a
-failed update leaves the last publication published.
+failed update leaves the last publication published (lowered to the fork once a
+reorg rolled back).
 
 Data rewritten in place must stay coherent with the pin on its own: mask values a
 later publication wrote (the outputs spend index), write it with the publication

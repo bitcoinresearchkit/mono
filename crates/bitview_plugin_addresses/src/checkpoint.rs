@@ -1,5 +1,6 @@
 use bitview_cohort::AddressType;
 use bitview_distribution::replay::validate_outputs;
+use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
@@ -45,18 +46,46 @@ impl Vecs {
         Ok(outputs.filter(|_| !caps_changed && !state_changed))
     }
 
-    pub(crate) fn rollback_state(&mut self, start: usize) -> Result<usize> {
+    /// Drops the address state an update that failed before publishing left staged.
+    pub(crate) fn discard_unpublished_state(&mut self) {
+        if self.unpublished_state.take().is_some() {
+            self.state.reset_unsaved();
+        }
+    }
+
+    /// Rolls the address state (rewritten in place) back below `start`, to the newest saved
+    /// change under it, lowering the publication there first, and writes it: readers, who take its
+    /// lock (`written`) before they pin, read it there at once. Returns where it lands: `start`
+    /// when nothing lies past it, 0 when the saved changes do not reach below it or the vectors land
+    /// apart (left unwritten for the caller to reset).
+    pub fn roll_back_to(
+        &mut self,
+        start: usize,
+        indexer: &Indexer,
+        written: &mut Option<Height>,
+    ) -> Result<usize> {
+        self.discard_unpublished_state();
+        let current = usize::from(self.state.max_stamped_len()).max(self.caps.end());
+        if start == 0 || start >= current {
+            return Ok(start);
+        }
         let stamp = Stamp::from(Height::from(start));
+        if let Some(landing) = self.state.rollback_landing(stamp)?
+            && usize::from(landing) < start
+        {
+            indexer.lower_publication_to(landing);
+        }
+        // The restored values sit in the write buffers until written.
+        *written = None;
         let mut stamps = self.state.rollback_before(stamp)?;
         stamps.push(self.caps.rollback_before(stamp)?);
-        let recovered = usize::from(Height::from(stamps[0]).incremented());
-        Ok(
-            if recovered <= start && stamps.iter().all(|s| *s == stamps[0]) {
-                recovered
-            } else {
-                0
-            },
-        )
+        let landing = stamps[0];
+        let recovered = usize::from(Height::from(landing).incremented());
+        if recovered > start || stamps.iter().any(|s| *s != landing) {
+            return Ok(0);
+        }
+        self.write_state(landing, false, written)?;
+        Ok(recovered)
     }
 
     pub(crate) fn restore_caps(&self, addrs: &mut AddrStates) -> Option<()> {
