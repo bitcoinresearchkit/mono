@@ -83,11 +83,15 @@ where
         from: usize,
         to: usize,
     ) -> Self {
+        // Pages before the region: the writer holds the pages while it rewrites the region.
+        let pages = pages.read();
+        let reader = region.create_reader();
+        let stored_len = stored_len.min(pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T));
         let from = from.min(stored_len);
         let to = to.min(stored_len);
         Self {
-            reader: region.create_reader(),
-            pages: pages.read(),
+            reader,
+            pages,
             page_buf: Vec::with_capacity(Self::PER_PAGE),
             decoder: PageDecoder::default(),
             page_buf_idx: Self::NO_PAGE,

@@ -12,6 +12,7 @@ pub mod histogram;
 pub mod rbf;
 pub mod tx;
 
+pub use addr::PendingUtxos;
 pub use block_template::BlockTemplateSource;
 pub use rbf::{RbfForTx, RbfNode};
 

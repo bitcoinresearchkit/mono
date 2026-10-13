@@ -45,7 +45,6 @@
                 "spent_txo_count",
                 "spent_txo_sum",
                 "tx_count",
-                "type_index",
                 "realized_price"
               ],
               "type": "object",
@@ -87,9 +86,12 @@
                   "format": "uint32"
                 },
                 "type_index": {
-                  "allOf": [
+                  "anyOf": [
                     {
                       "$ref": "#/$defs/TypeIndex"
+                    },
+                    {
+                      "type": "null"
                     }
                   ]
                 },
@@ -1868,7 +1870,7 @@
       "tool": {
         "name": "get_address_utxos",
         "title": "Address UTXOs",
-        "description": "Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*\n\nREST operation: `GET /api/address/{address}/utxo`.",
+        "description": "Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*\n\nREST operation: `GET /api/address/{address}/utxo`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -6709,10 +6711,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "type": "string"
             },
@@ -6942,9 +6941,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "NextBlockHash": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint64"
+              "type": "string"
             }
           }
         },
@@ -10757,10 +10754,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
@@ -10860,10 +10854,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "type": "string"
             },
@@ -11034,10 +11025,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
@@ -11141,10 +11129,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "type": "string"
             },
@@ -11397,10 +11382,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "type": "string"
             },
@@ -11519,10 +11501,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
@@ -11622,10 +11601,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
@@ -11728,10 +11704,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index",
-                "funded_address_index",
-                "empty_address_index",
-                "extended_empty_address_index"
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"

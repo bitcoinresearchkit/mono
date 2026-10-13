@@ -6,13 +6,12 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, de::Error as DeError};
 
 use crate::{
-    Date, Day1, Day3, EmptyAddressIndex, EmptyOutputIndex, Epoch, ExtendedEmptyAddressIndex,
-    FundedAddressIndex, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
-    OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex, P2PK65AddressIndex,
-    P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex,
-    TxInIndex, TxOutIndex, UnknownOutputIndex, Week1, Year1, Year10, hour1::HOUR1_INTERVAL,
-    hour4::HOUR4_INTERVAL, hour12::HOUR12_INTERVAL, minute10::MINUTE10_INTERVAL,
-    minute30::MINUTE30_INTERVAL,
+    Date, Day1, Day3, EmptyOutputIndex, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30,
+    Month1, Month3, Month6, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
+    P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
+    P2WSHAddressIndex, TxInIndex, TxOutIndex, UnknownOutputIndex, Week1, Year1, Year10,
+    hour1::HOUR1_INTERVAL, hour4::HOUR4_INTERVAL, hour12::HOUR12_INTERVAL,
+    minute10::MINUTE10_INTERVAL, minute30::MINUTE30_INTERVAL,
 };
 
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
@@ -70,18 +69,11 @@ pub enum Index {
     P2WSHAddressIndex,
     #[serde(rename = "unknown_output_index")]
     UnknownOutputIndex,
-    #[serde(rename = "funded_address_index")]
-    FundedAddressIndex,
-    #[serde(rename = "empty_address_index")]
-    EmptyAddressIndex,
-    #[serde(rename = "extended_empty_address_index")]
-    ExtendedEmptyAddressIndex,
 }
 
 /// How the trailing edge of an [`Index`] mutates over time. Drives the series
 /// cache: bucketed indexes have a small fixed volatile tail, entity indexes
-/// derive their stable count from a height→first-index mapping, and mutable
-/// addr indexes have no immutable region (entries change retroactively).
+/// derive their stable count from a height→first-index mapping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheClass {
     /// Append-only with `margin` trailing entries volatile per ≥6-block reorg.
@@ -90,13 +82,10 @@ pub enum CacheClass {
     /// addr). Stable count must be looked up via the indexer's
     /// `first_X_index[tip - 6]` mapping.
     Entity,
-    /// Retroactively mutable: no immutable region (`FundedAddressIndex`,
-    /// `EmptyAddressIndex`).
-    Mutable,
 }
 
 impl Index {
-    pub const fn all() -> [Self; 34] {
+    pub const fn all() -> [Self; 31] {
         [
             Self::Minute10,
             Self::Minute30,
@@ -129,9 +118,6 @@ impl Index {
             Self::P2WPKHAddressIndex,
             Self::P2WSHAddressIndex,
             Self::UnknownOutputIndex,
-            Self::FundedAddressIndex,
-            Self::EmptyAddressIndex,
-            Self::ExtendedEmptyAddressIndex,
         ]
     }
 
@@ -168,9 +154,6 @@ impl Index {
             Self::P2WPKHAddressIndex => P2WPKHAddressIndex::index_aliases(),
             Self::P2WSHAddressIndex => P2WSHAddressIndex::index_aliases(),
             Self::UnknownOutputIndex => UnknownOutputIndex::index_aliases(),
-            Self::FundedAddressIndex => FundedAddressIndex::index_aliases(),
-            Self::EmptyAddressIndex => EmptyAddressIndex::index_aliases(),
-            Self::ExtendedEmptyAddressIndex => ExtendedEmptyAddressIndex::index_aliases(),
         }
     }
 
@@ -207,9 +190,6 @@ impl Index {
             Self::P2WPKHAddressIndex => P2WPKHAddressIndex::index_name(),
             Self::P2WSHAddressIndex => P2WSHAddressIndex::index_name(),
             Self::UnknownOutputIndex => UnknownOutputIndex::index_name(),
-            Self::FundedAddressIndex => FundedAddressIndex::index_name(),
-            Self::EmptyAddressIndex => EmptyAddressIndex::index_name(),
-            Self::ExtendedEmptyAddressIndex => ExtendedEmptyAddressIndex::index_name(),
         }
     }
 
@@ -241,9 +221,6 @@ impl Index {
             | Self::P2WPKHAddressIndex
             | Self::P2WSHAddressIndex
             | Self::UnknownOutputIndex => CacheClass::Entity,
-            Self::FundedAddressIndex
-            | Self::EmptyAddressIndex
-            | Self::ExtendedEmptyAddressIndex => CacheClass::Mutable,
         }
     }
 

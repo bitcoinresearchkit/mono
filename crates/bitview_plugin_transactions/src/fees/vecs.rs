@@ -25,9 +25,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// rounded upward to the nearest 0.001 sat/vB. Coinbase and zero-fee
     /// transactions are zero.
     pub(crate) fee_rate: M::Stored<EagerVec<PcoVec<TxIndex, FeeRate>>>,
-    /// Effective transaction fee rate in sat/vB after applying Bitcoin Core's
-    /// Single Fee Linearization (SFL) independently to each same-block dependency
-    /// component. Every transaction in an ancestor-closed SFL chunk receives
+    /// Effective transaction fee rate in sat/vB after linearizing each same-block
+    /// dependency component by ancestor set and chunking it so chunk feerates never
+    /// increase. Every transaction in a chunk receives
     /// the chunk's combined fees divided by combined virtual size, rounded
     /// upward to the nearest 0.001 sat/vB. The transaction-index series
     /// includes zero effective rates. Distribution series exclude coinbase and
@@ -35,13 +35,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// size, either in the represented block or the six-block window ending
     /// there; time-period indexes take the value from the period's final block.
     pub effective_fee_rate: PerTxDistribution<FeeRate, M>,
-    /// Child-pays-for-parent (CPFP) parents: transactions whose Single Fee Linearization (SFL)
-    /// effective fee rate is higher than their raw fee rate because same-block descendants raise
-    /// the rate at which their SFL chunk is evaluated.
+    /// Child-pays-for-parent (CPFP) parents: transactions whose effective (chunk) fee rate is
+    /// higher than their raw fee rate because same-block descendants raise the rate at which
+    /// their chunk is evaluated.
     pub(crate) cpfp_parent: Classified<M>,
-    /// Child-pays-for-parent (CPFP) children: transactions whose Single Fee Linearization (SFL)
-    /// effective fee rate is lower than their raw fee rate because their fee raises the rate at
-    /// which a same-block ancestor-closed SFL chunk is evaluated.
+    /// Child-pays-for-parent (CPFP) children: transactions whose effective (chunk) fee rate is
+    /// lower than their raw fee rate because their fee raises the rate at which a same-block
+    /// chunk is evaluated.
     pub(crate) cpfp_child: Classified<M>,
 }
 

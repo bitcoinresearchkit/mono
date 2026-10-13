@@ -32,6 +32,14 @@ has to be deleted by hand.
 
 #### API: series and responses
 
+- The address state series are gone from the API (`address_state`, `funded_address_data`,
+  `extended_empty_address_data` and the `funded_address_index`, `empty_address_index` and
+  `extended_empty_address_index` indexes): internal slots whose numbering depends on save history, and the sidecars'
+  reads answered 500. `/api/address/{address}` serves the same data
+- `/api/address/{address}` answers for an address seen only in the mempool (was 404), with zero chain stats and a
+  null `chain_stats.type_index` (now nullable)
+- Block template hashes are decimal strings (`hash`, `since`): JavaScript numbers lost precision past 2^53, so a
+  fetched hash could fail its own diff lookup
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (none is left):
   `Boolean`, `Score`, `Rank`, `Count`/`CountSigned`, `Bytes`, `VSize`, `Weight`, `SigOps`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
   `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days/blocks/years, `Days`/`Years`,
@@ -708,6 +716,13 @@ has to be deleted by hand.
   and their capital shares to 100% (two sub-cent bands could each show 100%)
 - Fee-rate statistics of a block without transactions are null (were 0); the mempool-compatible block and fee-rate
   endpoints still report 0 for it, like mempool.space
+- Oracle prices store the oracle's exact reference bin, so the node resumes the oracle where it stopped: each update
+  rebuilt it from the price rounded to cents (and a restart in the slow regime from a reset shape profile), so
+  block-by-block updates could drift from a full rebuild. A block window without round-dollar evidence keeps the
+  price (it stepped to the edge of the search range, about 15%). Prices recompute (oracle version 5)
+- CPFP chunks come from an ancestor-set linearization chunked so feerates never increase: a later, richer chunk joins
+  the one before it (two chunks could come out at 0.7 then 0.867 sat/vB). Effective fee rates, their statistics and
+  the CPFP parent and child counts recompute
 
 #### Clients
 
@@ -715,6 +730,9 @@ has to be deleted by hand.
   and `limit`. Pre-2009 dates selected rows from the end (or the first row) instead of failing
 - The Rust client failed to fetch any series containing a `null` (e.g. `…by.minute10()`) and read boolean series as
   integers; the Python pool block count/share types declared `_24h`, which never matched the JSON
+- The JS client rejects when revalidating a cached value fails (it resolved with the cached value, so a failed health
+  check looked fine; `onValue` still delivers the stale value first), never caches a `no-store` response, and keeps
+  JSON, text and bytes of one URL apart in its parsed cache
 - The Python and Rust clients percent-encode query values (a search with a space or `&`, or a `+` in a timestamp's
   offset, changed the request). The Python client keeps the base URL's path (`https://host/bitview` lost `/bitview`)
   and rejects a slice step instead of ignoring it. JS response types declare the keys the JSON has (`USD`, `avgFee_0`,
@@ -722,6 +740,12 @@ has to be deleted by hand.
 
 #### API and node I/O
 
+- An address's unspent outputs include its unconfirmed ones and leave out those a mempool transaction spends, like
+  mempool.space
+- A compressed vector publishes a write's bytes, page layout and length together: a read during a write could decode
+  the new bytes with the old layout (block size and weight are compressed and served while the indexer appends).
+  Region growth happens before the publication, never under it
+- A shutdown signal no longer waits behind back-to-back updates: no new update starts once it is pending
 - An address's unspent outputs no longer list the two coinbase outputs that BIP30 duplicates overwrote (blocks 91812
   and 91722): the indexer drops them from their address when the duplicate lands
 - Pool hashrate histories (`/api/v1/mining/hashrate/pools/{time_period}`, `/api/v1/mining/pool/{slug}/hashrate`):

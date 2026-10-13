@@ -65,6 +65,15 @@ impl Exit {
         self.cleanup_callbacks.lock().push(Box::new(callback));
     }
 
+    /// Blocks the calling thread for good once a shutdown signal arrived, so it starts no new
+    /// critical section: back-to-back work would otherwise keep the shutdown thread waiting.
+    /// The shutdown thread exits the process when the current sections end.
+    pub fn park_if_shutting_down(&self) {
+        while SIGNAL_RECEIVED.load(Ordering::Relaxed) {
+            thread::park();
+        }
+    }
+
     /// Registers signal handlers and spawns a background shutdown thread.
     ///
     /// # Panics

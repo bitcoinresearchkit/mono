@@ -96,6 +96,23 @@ impl Region {
         is_range_resident(&mmap, absolute_start, len)
     }
 
+    /// Grows the reservation, doubling like a growing write, so that a write ending at `end`
+    /// neither relocates the region nor remaps the file. A caller can then write under its own
+    /// lock without waiting for mmap readers there.
+    pub fn reserve_for(&self, end: usize) -> Result<()> {
+        let reserved = self.meta().reserved();
+        if end <= reserved {
+            return Ok(());
+        }
+        if end > MAX_RESERVED_SIZE {
+            return Err(Error::RegionSizeOverflow {
+                current: reserved,
+                requested: end,
+            });
+        }
+        self.reserve_capacity(grown_capacity(reserved, end))
+    }
+
     /// Ensures the region has at least `capacity` bytes of reserved space.
     ///
     /// Reserving capacity does not change the region's logical length or write
@@ -334,10 +351,7 @@ impl Region {
             })?;
         let new_len = if truncate { end } else { end.max(len) };
         let _writes = if new_len > reserved {
-            let mut capacity = reserved;
-            while capacity < new_len {
-                capacity = capacity.saturating_mul(2).min(MAX_RESERVED_SIZE);
-            }
+            let capacity = grown_capacity(reserved, new_len);
             let copy_len = if truncate { offset } else { len };
             let writes = self.reserve_inner(&db, capacity, copy_len)?;
             start = self.meta().start();
@@ -390,4 +404,13 @@ impl Region {
     pub fn db(&self) -> Database {
         self.0.db.upgrade()
     }
+}
+
+/// `reserved` doubled until it holds `needed` (at most [`MAX_RESERVED_SIZE`]).
+fn grown_capacity(reserved: usize, needed: usize) -> usize {
+    let mut capacity = reserved.max(PAGE_SIZE);
+    while capacity < needed {
+        capacity = capacity.saturating_mul(2).min(MAX_RESERVED_SIZE);
+    }
+    capacity
 }

@@ -4,7 +4,7 @@ use bitview_plugin_price::{feed_blocks_for_warmup, feed_blocks_with};
 use bitview_primitives::Lengths;
 use bitview_primitives::{Day1, TxOutIndex};
 use brk_oracle::{
-    Config, HistogramEma, HistogramEmaCompact, HistogramRaw, Oracle, cents_to_bin, sats_to_bin,
+    Config, HistogramEma, HistogramEmaCompact, HistogramRaw, Oracle, START_HEIGHT_SLOW, sats_to_bin,
 };
 use brk_types::Dollars;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
@@ -151,7 +151,10 @@ impl Query {
     /// concurrent indexer writes past the cap stay invisible.
     fn warm_oracle(&self, seed_bin: f64, end: usize, safe: &Lengths) -> Result<Oracle> {
         let config = Config::for_height(end.saturating_sub(1));
-        let start = end.saturating_sub(config.window_size);
+        // Like the price plugin: the oracle's window never reaches below its first block.
+        let start = end
+            .saturating_sub(config.window_size)
+            .max(START_HEIGHT_SLOW.min(end));
         let mut warmed = Ok(());
         let oracle = Oracle::from_checkpoint(seed_bin, config, |o| {
             warmed = feed_blocks_for_warmup(o, self.indexer(), start..end, Some(safe));
@@ -160,23 +163,16 @@ impl Query {
         Ok(oracle)
     }
 
-    /// Seed bin for an oracle warm-up: the stored spot price at `height` mapped
-    /// `cents -> bin`. 404s when the oracle prices aren't computed that far yet,
-    /// which also covers the stamp-before-write race where the vec length leads
-    /// the readable data.
+    /// Seed bin for an oracle warm-up: the oracle's exact reference bin at `height`.
+    /// 404s when the oracle prices aren't computed that far yet, which also covers
+    /// the stamp-before-write race where the vec length leads the readable data.
     fn seed_bin_at(&self, height: usize) -> Result<f64> {
-        let cents = self
-            .plugins()
+        self.plugins()
             .price
-            .spot
-            .cents
-            .height
+            .oracle_bin
             .collect_one_at(height)
-            .ok_or_else(|| Error::NotFound("oracle prices not yet computed".to_string()))?;
-        let cents = cents
-            .finite_inner()
-            .ok_or(Error::Internal("Invalid oracle seed price"))?;
-        Ok(cents_to_bin(cents as f64))
+            .map(f64::from)
+            .ok_or_else(|| Error::NotFound("oracle prices not yet computed".to_string()))
     }
 
     fn histogram_bound(&self, safe: &Lengths) -> usize {

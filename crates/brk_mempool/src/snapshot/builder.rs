@@ -1,5 +1,5 @@
-//! Build per-tx adjacency from the live `TxStore`, then run Single Fee
-//! Linearization over every multi-tx cluster.
+//! Build per-tx adjacency from the live `TxStore`, then linearize every
+//! multi-tx cluster.
 
 use std::mem;
 

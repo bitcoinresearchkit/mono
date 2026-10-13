@@ -27,7 +27,8 @@
  * @property {number} spentTxoCount - Total number of transaction outputs spent from this address
  * @property {Sats} spentTxoSum - Total amount in satoshis spent from this address
  * @property {number} txCount - Total number of confirmed transactions involving this address
- * @property {TypeIndex} typeIndex - Index of this address within its type on the blockchain
+ * @property {(TypeIndex|null)=} typeIndex - Index of this address within its type on the blockchain, null for an address seen only in
+the mempool
  * @property {Dollars} realizedPrice - Realized price (average cost basis) in USD
  */
 /**
@@ -61,15 +62,6 @@ address payload bytes.
  *
  * @typedef {Object} AddressParam
  * @property {Address} address
- */
-/**
- * Four-byte primary state stored for every address.
- *
- * Empty addresses with small lifetime totals are stored inline. The upper two
- * bits select an inline layout or a sidecar, whose index occupies the lower 30
- * bits.
- *
- * @typedef {number} AddressState
  */
 /**
  * Address information compatible with mempool.space API format.
@@ -419,17 +411,17 @@ prior template's transactions or a full transaction body.
  */
 /**
  * CPFP cluster: the connected component the seed belongs to, plus its
- * SFL linearization.
+ * linearization.
  *
  * @typedef {Object} CpfpCluster
  * @property {CpfpClusterTx[]} txs - All txs in the cluster, in topological order (parents before children).
- * @property {CpfpClusterChunk[]} chunks - SFL-emitted chunks ordered by descending feerate.
+ * @property {CpfpClusterChunk[]} chunks - Chunks ordered by descending feerate.
  * @property {number} chunkIndex - Index into `chunks` of the chunk containing the seed tx.
  */
 /**
- * One SFL chunk inside a `CpfpCluster`. `txs` is in topological order
+ * One linearized chunk inside a `CpfpCluster`. `txs` is in topological order
  * (matches `CpfpCluster.txs` ordering); the chunk's `feerate` is the
- * per-chunk SFL feerate and is the same for every tx in this chunk.
+ * per-chunk feerate and is the same for every tx in this chunk.
  *
  * @typedef {Object} CpfpClusterChunk
  * @property {CpfpClusterTxIndex[]} txs
@@ -473,7 +465,7 @@ legacy and P2SH-redeem sigops count as 4).
  * @property {Sats} fee - Transaction fee (sats).
  * @property {VSize} vsize - Virtual size of the seed tx (vbytes).
  * @property {VSize} adjustedVsize - Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
- * @property {(CpfpCluster|null)=} cluster - Cluster the seed belongs to: full tx list, SFL-linearized chunks,
+ * @property {(CpfpCluster|null)=} cluster - Cluster the seed belongs to: full tx list, linearized chunks,
 and the seed's chunk index. Omitted when the seed has no
 ancestors and no descendants (matches mempool.space).
  */
@@ -569,14 +561,6 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {number} Dollars
  */
 /**
- * Data of an empty address
- *
- * @typedef {Object} EmptyAddressData
- * @property {number} txCount - Total transaction count
- * @property {number} fundedTxoCount - Total funded/spent transaction output count (equal since address is empty)
- * @property {Sats} transfered - Total satoshis transferred
- */
-/**
  * Index of an output with an empty script.
  *
  * @typedef {TypeIndex} EmptyOutputIndex
@@ -635,19 +619,6 @@ ancestors and no descendants (matches mempool.space).
  * Output format for API responses
  *
  * @typedef {("json"|"csv")} Format
- */
-/**
- * Data for a funded (non-empty) address with current balance.
- *
- * Kept compact because one value is stored for every funded address.
- *
- * @typedef {Object} FundedAddressData
- * @property {Sats} received - Satoshis received by this address
- * @property {Sats} sent - Satoshis sent by this address
- * @property {number} realizedCapRaw - The realized capitalization: Σ(price × sats)
- * @property {number} txCount - Total transaction count
- * @property {number} fundedTxoCount - Number of transaction outputs funded to this address
- * @property {number} spentTxoCount - Number of transaction outputs spent by this address
  */
 /**
  * Index of a halving epoch (210,000 blocks).
@@ -752,7 +723,7 @@ ancestors and no descendants (matches mempool.space).
  * Aggregation dimension for querying series. Includes time-based (date, week, month, year),
  * block-based (height, tx_index), and address/output type indexes.
  *
- * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving"|"epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_output_index"|"op_return_index"|"p2a_address_index"|"p2ms_output_index"|"p2pk33_address_index"|"p2pk65_address_index"|"p2pkh_address_index"|"p2sh_address_index"|"p2tr_address_index"|"p2wpkh_address_index"|"p2wsh_address_index"|"unknown_output_index"|"funded_address_index"|"empty_address_index"|"extended_empty_address_index")} Index
+ * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving"|"epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_output_index"|"op_return_index"|"p2a_address_index"|"p2ms_output_index"|"p2pk33_address_index"|"p2pk65_address_index"|"p2pkh_address_index"|"p2sh_address_index"|"p2tr_address_index"|"p2wpkh_address_index"|"p2wsh_address_index"|"unknown_output_index")} Index
  */
 /**
  * Information about an available index and its query aliases
@@ -833,8 +804,9 @@ ancestors and no descendants (matches mempool.space).
  * snapshot), including its statistics and complete transaction bodies.
  * Opaque token, distinct from HTTP ETag formatting: pass back
  * to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
+ * A decimal string, since JavaScript numbers can't hold every 64-bit value.
  *
- * @typedef {number} NextBlockHash
+ * @typedef {string} NextBlockHash
  */
 /**
  * Prior-template hash for `GET /api/v1/mempool/block-template/diff/{hash}`.
@@ -2150,21 +2122,25 @@ class BitviewClientBase {
    * Make a GET request with layered caching.
    *
    * Contract:
-   * - The returned Promise resolves with the **freshest** value (post-revalidation).
+   * - The returned Promise resolves with the **freshest** value (post-revalidation) and rejects
+   *   when that fails, even if a stale value was already delivered.
    * - `onValue` fires once with the freshest value, or twice if a stale snapshot
    *   could be shown first (stale-while-revalidate). On a 304 there is no second fire.
+   * - Responses marked `Cache-Control: no-store` are never cached.
    *
    * Layers:
-   * - L1 (memCache): in-memory parsed values keyed by URL+ETag. Lets 304s skip the parse entirely.
+   * - L1 (memCache): in-memory parsed values keyed by body kind + URL, with their ETag. Lets 304s
+   *   skip the parse entirely.
    * - L2 (browserCache): Cache API, survives reload and feeds onValue fast on cold start.
    *
    * @template T
    * @param {string} path
+   * @param {'json' | 'text' | 'bytes'} kind - The body reader, part of the memCache key
    * @param {(res: Response) => Promise<T>} parse - Response body reader
    * @param {ClientFetchOptions<T>} [options]
    * @returns {Promise<T>}
    */
-  async _getCached(path, parse, { onValue, signal, cache = true, memCache = true } = {}) {
+  async _getCached(path, kind, parse, { onValue, signal, cache = true, memCache = true } = {}) {
     if (!cache) {
       const res = await this.get(path, { signal, cache });
       const value = await parse(res);
@@ -2173,73 +2149,71 @@ class BitviewClientBase {
     }
 
     const url = `${this.baseUrl}${path}`;
+    const key = `${kind} ${url}`;
     const useMemCache = memCache !== false;
     /** @type {_MemEntry<T> | undefined} */
-    const memHit = useMemCache ? this._memGet(url) : undefined;
+    const memHit = useMemCache ? this._memGet(key) : undefined;
     const browserCache = this._browserCache;
+    /** @param {Response} res */
+    const storable = (res) => !/no-store/i.test(res.headers.get('Cache-Control') ?? '');
+    /** Parse a fresh response, cache it unless `no-store`, and deliver it. @param {Response} res */
+    const fresh = async (res) => {
+      const keep = storable(res);
+      const cloned = keep && browserCache ? res.clone() : null;
+      const value = await parse(res);
+      if (keep && useMemCache) this._memSet(key, res.headers.get('ETag'), value);
+      if (cloned && browserCache) {
+        const cacheStore = browserCache;
+        _runIdle(() => cacheStore.put(url, cloned));
+      }
+      if (onValue) onValue(value);
+      return value;
+    };
 
     // L1 fast path: deliver from memCache, revalidate via network.
     // ETag match → zero parse, zero clone, zero cache write, no second onValue fire.
     if (memHit) {
       if (onValue) onValue(memHit.value);
-      try {
-        const res = await this.get(path, { signal, etag: memHit.etag });
-        const netEtag = res.headers.get('ETag');
-        if (res.status === 304 || (netEtag && netEtag === memHit.etag)) {
-          await res.body?.cancel();
-          return memHit.value;
-        }
-        const cloned = browserCache ? res.clone() : null;
-        const value = await parse(res);
-        if (useMemCache) this._memSet(url, netEtag, value);
-        if (onValue) onValue(value);
-        if (cloned && browserCache) {
-          const cacheStore = browserCache;
-          _runIdle(() => cacheStore.put(url, cloned));
-        }
-        return value;
-      } catch {
+      const res = await this.get(path, { signal, etag: memHit.etag });
+      const netEtag = res.headers.get('ETag');
+      if (res.status === 304 || (netEtag && netEtag === memHit.etag)) {
+        await res.body?.cancel();
         return memHit.value;
       }
+      return fresh(res);
     }
 
     // L1 miss: race browserCache (stale snapshot) vs network (fresh).
     let networkSettled = false;
-    const stalePromise = onValue && browserCache
+    const stale = onValue && browserCache
       ? browserCache.match(url).then(async (res) => {
-          if (!res || networkSettled) return null;
+          if (!res || networkSettled || signal?.aborted) return;
+          // Older clients stored `no-store` responses: drop them.
+          if (!storable(res)) return void browserCache.delete(url);
           const value = await parse(res);
-          if (networkSettled) return value;
-          if (useMemCache) this._memSet(url, res.headers.get('ETag'), value);
+          if (networkSettled || signal?.aborted) return;
+          if (useMemCache) this._memSet(key, res.headers.get('ETag'), value);
           onValue(value);
-          return value;
-        }).catch(() => null)
+        }).catch(() => {})
       : null;
 
+    let res;
     try {
-      const res = await this.get(path, { signal });
-      networkSettled = true;
-      const netEtag = res.headers.get('ETag');
-      // Stale won and populated memCache with matching ETag → reuse, skip parse + second onValue.
-      const populated = useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(url)) : undefined;
-      if (populated && netEtag && netEtag === populated.etag) {
-        await res.body?.cancel();
-        return populated.value;
-      }
-      const cloned = browserCache ? res.clone() : null;
-      const value = await parse(res);
-      if (useMemCache) this._memSet(url, netEtag, value);
-      if (onValue) onValue(value);
-      if (cloned && browserCache) {
-        const cacheStore = browserCache;
-        _runIdle(() => cacheStore.put(url, cloned));
-      }
-      return value;
+      res = await this.get(path, { signal });
     } catch (e) {
-      const stale = await stalePromise;
-      if (stale != null) return stale;
+      // The stale snapshot, if any, arrives before the rejection, never after.
+      await stale;
       throw e;
     }
+    networkSettled = true;
+    const netEtag = res.headers.get('ETag');
+    // Stale won and populated memCache with matching ETag → reuse, skip parse + second onValue.
+    const populated = useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(key)) : undefined;
+    if (populated && netEtag && netEtag === populated.etag) {
+      await res.body?.cancel();
+      return populated.value;
+    }
+    return fresh(res);
   }
 
   /**
@@ -2250,7 +2224,7 @@ class BitviewClientBase {
    * @returns {Promise<T>}
    */
   getJson(path, options) {
-    return this._getCached(path, async (res) => _addCamelGetters(await res.json()), options);
+    return this._getCached(path, 'json', async (res) => _addCamelGetters(await res.json()), options);
   }
 
   /**
@@ -2261,7 +2235,7 @@ class BitviewClientBase {
    * @returns {Promise<string>}
    */
   getText(path, options) {
-    return this._getCached(path, (res) => res.text(), options);
+    return this._getCached(path, 'text', (res) => res.text(), options);
   }
 
   /**
@@ -2272,7 +2246,7 @@ class BitviewClientBase {
    * @returns {Promise<Uint8Array>}
    */
   getBytes(path, options) {
-    return this._getCached(path, async (res) => new Uint8Array(await res.arrayBuffer()), options);
+    return this._getCached(path, 'bytes', async (res) => new Uint8Array(await res.arrayBuffer()), options);
   }
 
   /**
@@ -2561,8 +2535,6 @@ const _i32 = /** @type {const} */ (["p2tr_address_index"]);
 const _i33 = /** @type {const} */ (["p2wpkh_address_index"]);
 const _i34 = /** @type {const} */ (["p2wsh_address_index"]);
 const _i35 = /** @type {const} */ (["unknown_output_index"]);
-const _i36 = /** @type {const} */ (["funded_address_index"]);
-const _i37 = /** @type {const} */ (["extended_empty_address_index"]);
 
 /**
  * Generic series pattern factory.
@@ -2625,8 +2597,6 @@ function _mp(client, name, indexes) {
 /** @template T @typedef {{ name: string, by: { readonly p2wpkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern33 */
 /** @template T @typedef {{ name: string, by: { readonly p2wsh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
 /** @template T @typedef {{ name: string, by: { readonly unknown_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
-/** @template T @typedef {{ name: string, by: { readonly funded_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern36 */
-/** @template T @typedef {{ name: string, by: { readonly extended_empty_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern37 */
 
 // Series tree
 
@@ -3557,33 +3527,6 @@ const _CapitalInLoss = _s({
 const _Total = _s({
   btc: [_i1, '*'],
   usd: [_i1, 'market_cap'],
-});
-
-/**
- * @typedef {{
- *   p2a: SeriesPattern26<AddressState>,
- *   p2pk33: SeriesPattern28<AddressState>,
- *   p2pk65: SeriesPattern29<AddressState>,
- *   p2pkh: SeriesPattern30<AddressState>,
- *   p2sh: SeriesPattern31<AddressState>,
- *   p2tr: SeriesPattern32<AddressState>,
- *   p2wpkh: SeriesPattern33<AddressState>,
- *   p2wsh: SeriesPattern34<AddressState>,
- *   funded: SeriesPattern36<FundedAddressData>,
- *   extendedEmpty: SeriesPattern37<EmptyAddressData>,
- * }} State
- */
-const _State = _s({
-  p2a: [_i26, '*_state'],
-  p2pk33: [_i28, '*_state'],
-  p2pk65: [_i29, '*_state'],
-  p2pkh: [_i30, '*_state'],
-  p2sh: [_i31, '*_state'],
-  p2tr: [_i32, '*_state'],
-  p2wpkh: [_i33, '*_state'],
-  p2wsh: [_i34, '*_state'],
-  funded: [_i36, 'funded_*_data'],
-  extendedEmpty: [_i37, 'extended_empty_*_data'],
 });
 
 /**
@@ -5924,7 +5867,6 @@ const _Balances = (c, b, f0) => _n(c, b, {
  *   capital: AddressesCapital,
  *   types: AddressesTypes,
  *   balances: Balances<Balances0sats>,
- *   state: State,
  * }} Addresses
  */
 const _Addresses = _s({
@@ -5941,7 +5883,6 @@ const _Addresses = _s({
   capital: [_AddressesCapital, '*'],
   types: [_AddressesTypes, 'p2pk'],
   balances: [(c, b) => _Balances(c, b, _Balances0sats), 'balance'],
-  state: [_State, '*'],
 });
 
 /**
@@ -7441,10 +7382,7 @@ class BitviewClient extends BitviewClientBase {
     "p2tr_address_index",
     "p2wpkh_address_index",
     "p2wsh_address_index",
-    "unknown_output_index",
-    "funded_address_index",
-    "empty_address_index",
-    "extended_empty_address_index"
+    "unknown_output_index"
   ]);
 
   POOL_ID_TO_POOL_NAME = /** @type {const} */ ({
@@ -8759,7 +8697,7 @@ address payload bytes.
   /**
    * Address UTXOs
    *
-   * Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.
+   * Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
    *

@@ -497,21 +497,25 @@ class BitviewClientBase {{
    * Make a GET request with layered caching.
    *
    * Contract:
-   * - The returned Promise resolves with the **freshest** value (post-revalidation).
+   * - The returned Promise resolves with the **freshest** value (post-revalidation) and rejects
+   *   when that fails, even if a stale value was already delivered.
    * - `onValue` fires once with the freshest value, or twice if a stale snapshot
    *   could be shown first (stale-while-revalidate). On a 304 there is no second fire.
+   * - Responses marked `Cache-Control: no-store` are never cached.
    *
    * Layers:
-   * - L1 (memCache): in-memory parsed values keyed by URL+ETag. Lets 304s skip the parse entirely.
+   * - L1 (memCache): in-memory parsed values keyed by body kind + URL, with their ETag. Lets 304s
+   *   skip the parse entirely.
    * - L2 (browserCache): Cache API, survives reload and feeds onValue fast on cold start.
    *
    * @template T
    * @param {{string}} path
+   * @param {{'json' | 'text' | 'bytes'}} kind - The body reader, part of the memCache key
    * @param {{(res: Response) => Promise<T>}} parse - Response body reader
    * @param {{ClientFetchOptions<T>}} [options]
    * @returns {{Promise<T>}}
    */
-  async _getCached(path, parse, {{ onValue, signal, cache = true, memCache = true }} = {{}}) {{
+  async _getCached(path, kind, parse, {{ onValue, signal, cache = true, memCache = true }} = {{}}) {{
     if (!cache) {{
       const res = await this.get(path, {{ signal, cache }});
       const value = await parse(res);
@@ -520,73 +524,71 @@ class BitviewClientBase {{
     }}
 
     const url = `${{this.baseUrl}}${{path}}`;
+    const key = `${{kind}} ${{url}}`;
     const useMemCache = memCache !== false;
     /** @type {{_MemEntry<T> | undefined}} */
-    const memHit = useMemCache ? this._memGet(url) : undefined;
+    const memHit = useMemCache ? this._memGet(key) : undefined;
     const browserCache = this._browserCache;
+    /** @param {{Response}} res */
+    const storable = (res) => !/no-store/i.test(res.headers.get('Cache-Control') ?? '');
+    /** Parse a fresh response, cache it unless `no-store`, and deliver it. @param {{Response}} res */
+    const fresh = async (res) => {{
+      const keep = storable(res);
+      const cloned = keep && browserCache ? res.clone() : null;
+      const value = await parse(res);
+      if (keep && useMemCache) this._memSet(key, res.headers.get('ETag'), value);
+      if (cloned && browserCache) {{
+        const cacheStore = browserCache;
+        _runIdle(() => cacheStore.put(url, cloned));
+      }}
+      if (onValue) onValue(value);
+      return value;
+    }};
 
     // L1 fast path: deliver from memCache, revalidate via network.
     // ETag match → zero parse, zero clone, zero cache write, no second onValue fire.
     if (memHit) {{
       if (onValue) onValue(memHit.value);
-      try {{
-        const res = await this.get(path, {{ signal, etag: memHit.etag }});
-        const netEtag = res.headers.get('ETag');
-        if (res.status === 304 || (netEtag && netEtag === memHit.etag)) {{
-          await res.body?.cancel();
-          return memHit.value;
-        }}
-        const cloned = browserCache ? res.clone() : null;
-        const value = await parse(res);
-        if (useMemCache) this._memSet(url, netEtag, value);
-        if (onValue) onValue(value);
-        if (cloned && browserCache) {{
-          const cacheStore = browserCache;
-          _runIdle(() => cacheStore.put(url, cloned));
-        }}
-        return value;
-      }} catch {{
+      const res = await this.get(path, {{ signal, etag: memHit.etag }});
+      const netEtag = res.headers.get('ETag');
+      if (res.status === 304 || (netEtag && netEtag === memHit.etag)) {{
+        await res.body?.cancel();
         return memHit.value;
       }}
+      return fresh(res);
     }}
 
     // L1 miss: race browserCache (stale snapshot) vs network (fresh).
     let networkSettled = false;
-    const stalePromise = onValue && browserCache
+    const stale = onValue && browserCache
       ? browserCache.match(url).then(async (res) => {{
-          if (!res || networkSettled) return null;
+          if (!res || networkSettled || signal?.aborted) return;
+          // Older clients stored `no-store` responses: drop them.
+          if (!storable(res)) return void browserCache.delete(url);
           const value = await parse(res);
-          if (networkSettled) return value;
-          if (useMemCache) this._memSet(url, res.headers.get('ETag'), value);
+          if (networkSettled || signal?.aborted) return;
+          if (useMemCache) this._memSet(key, res.headers.get('ETag'), value);
           onValue(value);
-          return value;
-        }}).catch(() => null)
+        }}).catch(() => {{}})
       : null;
 
+    let res;
     try {{
-      const res = await this.get(path, {{ signal }});
-      networkSettled = true;
-      const netEtag = res.headers.get('ETag');
-      // Stale won and populated memCache with matching ETag → reuse, skip parse + second onValue.
-      const populated = useMemCache ? /** @type {{_MemEntry<T> | undefined}} */ (this._memGet(url)) : undefined;
-      if (populated && netEtag && netEtag === populated.etag) {{
-        await res.body?.cancel();
-        return populated.value;
-      }}
-      const cloned = browserCache ? res.clone() : null;
-      const value = await parse(res);
-      if (useMemCache) this._memSet(url, netEtag, value);
-      if (onValue) onValue(value);
-      if (cloned && browserCache) {{
-        const cacheStore = browserCache;
-        _runIdle(() => cacheStore.put(url, cloned));
-      }}
-      return value;
+      res = await this.get(path, {{ signal }});
     }} catch (e) {{
-      const stale = await stalePromise;
-      if (stale != null) return stale;
+      // The stale snapshot, if any, arrives before the rejection, never after.
+      await stale;
       throw e;
     }}
+    networkSettled = true;
+    const netEtag = res.headers.get('ETag');
+    // Stale won and populated memCache with matching ETag → reuse, skip parse + second onValue.
+    const populated = useMemCache ? /** @type {{_MemEntry<T> | undefined}} */ (this._memGet(key)) : undefined;
+    if (populated && netEtag && netEtag === populated.etag) {{
+      await res.body?.cancel();
+      return populated.value;
+    }}
+    return fresh(res);
   }}
 
   /**
@@ -597,7 +599,7 @@ class BitviewClientBase {{
    * @returns {{Promise<T>}}
    */
   getJson(path, options) {{
-    return this._getCached(path, async (res) => _addCamelGetters(await res.json()), options);
+    return this._getCached(path, 'json', async (res) => _addCamelGetters(await res.json()), options);
   }}
 
   /**
@@ -608,7 +610,7 @@ class BitviewClientBase {{
    * @returns {{Promise<string>}}
    */
   getText(path, options) {{
-    return this._getCached(path, (res) => res.text(), options);
+    return this._getCached(path, 'text', (res) => res.text(), options);
   }}
 
   /**
@@ -619,7 +621,7 @@ class BitviewClientBase {{
    * @returns {{Promise<Uint8Array>}}
    */
   getBytes(path, options) {{
-    return this._getCached(path, async (res) => new Uint8Array(await res.arrayBuffer()), options);
+    return this._getCached(path, 'bytes', async (res) => new Uint8Array(await res.arrayBuffer()), options);
   }}
 
   /**

@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 use super::TxIndex;
 
 /// Frozen per-tx view used by the snapshot. `chunk_rate` is the
-/// linearized chunk feerate (local Single Fee Linearization, run fresh
+/// linearized chunk feerate ([`brk_cpfp::linearize`], run fresh
 /// every snapshot). Singletons report `fee/vsize`. Parent/child
 /// adjacency in `TxIndex` space, so CPFP queries are a pure walk over
 /// `Snapshot.txs`.

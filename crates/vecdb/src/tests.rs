@@ -1006,3 +1006,56 @@ mod source_ranges {
         check_source::<crate::ZstdVec<usize, u64, Budgeted>>();
     }
 }
+
+#[cfg(feature = "pco")]
+mod publication {
+    //! A reader never pairs one write's bytes with another write's page layout or length.
+
+    use std::{
+        sync::atomic::{AtomicBool, Ordering},
+        thread,
+    };
+
+    use rawdb::Database;
+    use tempfile::TempDir;
+
+    use crate::{
+        AnyStoredVec, AnyVec, ImportableVec, PcoVec, ReadOnlyClone, ReadableVec, Result, Version,
+        WritableVec,
+    };
+
+    #[test]
+    fn readers_see_whole_writes() -> Result<()> {
+        let _serial = crate::tests::serial();
+        let temp = TempDir::new()?;
+        let db = Database::open(temp.path())?;
+        let mut vec = PcoVec::<usize, u64>::import(&db, "values", Version::ONE)?;
+        let reader = vec.read_only_clone();
+        let done = AtomicBool::new(false);
+        thread::scope(|scope| -> Result<()> {
+            scope.spawn(|| {
+                while !done.load(Ordering::Relaxed) {
+                    // The tail is what a write rewrites.
+                    let to = reader.len();
+                    let from = to.saturating_sub(4_096);
+                    let values = reader.collect_range_at(from, to);
+                    assert!(
+                        values.iter().zip(from..).all(|(&v, i)| v == i as u64),
+                        "torn read of {from}..{to}"
+                    );
+                }
+            });
+            // Small writes rewrite the tail page; filled pages recompress their chunk.
+            let written = (0..2_000_000u64).try_for_each(|value| {
+                vec.push(value);
+                if value % 61 == 0 {
+                    vec.write()?;
+                }
+                Ok(())
+            });
+            // Stop the reader even when a write failed, so the scope can end.
+            done.store(true, Ordering::Relaxed);
+            written.and_then(|()| vec.write().map(|_| ()))
+        })
+    }
+}

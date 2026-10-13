@@ -34,12 +34,6 @@ OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p
 # Signed satoshis (i64) - for values that can be negative.
 # Used for changes, deltas, profit/loss calculations, etc.
 SatsSigned = int
-# Four-byte primary state stored for every address.
-#
-# Empty addresses with small lifetime totals are stored inline. The upper two
-# bits select an inline layout or a sidecar, whose index occupies the lower 30
-# bits.
-AddressState = int
 # Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
 Bitcoin = float
 # URL-friendly mining pool identifier
@@ -63,7 +57,8 @@ BlockTxIndex = int
 # snapshot), including its statistics and complete transaction bodies.
 # Opaque token, distinct from HTTP ETag formatting: pass back
 # to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
-NextBlockHash = int
+# A decimal string, since JavaScript numbers can't hold every 64-bit value.
+NextBlockHash = str
 # Output type names used by Esplora and mempool.space.
 OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return", "v0_p2wpkh", "v0_p2wsh", "v1_p2tr", "anchor", "empty", "unknown"]
 # Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
@@ -196,7 +191,7 @@ Hour12 = int
 Hour4 = int
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year),
 # block-based (height, tx_index), and address/output type indexes.
-Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_output_index", "funded_address_index", "empty_address_index", "extended_empty_address_index"]
+Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_output_index"]
 # Index of a 10-minute period.
 Minute10 = int
 # Index of a 30-minute period.
@@ -325,7 +320,16 @@ class AddressAfterTxidParam(TypedDict):
     address: Address
     after_txid: Txid
 
-class AddressChainStats(TypedDict):
+class _AddressChainStatsRequired(TypedDict):
+    balance: Sats
+    funded_txo_count: int
+    funded_txo_sum: Sats
+    spent_txo_count: int
+    spent_txo_sum: Sats
+    tx_count: int
+    realized_price: Dollars
+
+class AddressChainStats(_AddressChainStatsRequired, total=False):
     """
     Address statistics on the blockchain (confirmed transactions only)
     
@@ -338,17 +342,10 @@ class AddressChainStats(TypedDict):
         spent_txo_count: Total number of transaction outputs spent from this address
         spent_txo_sum: Total amount in satoshis spent from this address
         tx_count: Total number of confirmed transactions involving this address
-        type_index: Index of this address within its type on the blockchain
+        type_index: Index of this address within its type on the blockchain, null for an address seen only in the mempool
         realized_price: Realized price (average cost basis) in USD
     """
-    balance: Sats
-    funded_txo_count: int
-    funded_txo_sum: Sats
-    spent_txo_count: int
-    spent_txo_sum: Sats
-    tx_count: int
-    type_index: TypeIndex
-    realized_price: Dollars
+    type_index: Union[TypeIndex, None]
 
 class AddressHashPrefixMatches(TypedDict):
     address_type: OutputType
@@ -907,9 +904,9 @@ class BlockTimestamp(TypedDict):
 
 class CpfpClusterChunk(TypedDict):
     """
-    One SFL chunk inside a `CpfpCluster`. `txs` is in topological order
+    One linearized chunk inside a `CpfpCluster`. `txs` is in topological order
     (matches `CpfpCluster.txs` ordering); the chunk's `feerate` is the
-    per-chunk SFL feerate and is the same for every tx in this chunk.
+    per-chunk feerate and is the same for every tx in this chunk.
     """
     txs: List[CpfpClusterTxIndex]
     feerate: FeeRate
@@ -929,11 +926,11 @@ class CpfpClusterTx(TypedDict):
 class CpfpCluster(TypedDict):
     """
     CPFP cluster: the connected component the seed belongs to, plus its
-    SFL linearization.
+    linearization.
 
     Attributes:
         txs: All txs in the cluster, in topological order (parents before children).
-        chunks: SFL-emitted chunks ordered by descending feerate.
+        chunks: Chunks ordered by descending feerate.
         chunkIndex: Index into `chunks` of the chunk containing the seed tx.
     """
     txs: List[CpfpClusterTx]
@@ -970,7 +967,7 @@ class CpfpInfo(_CpfpInfoRequired, total=False):
         fee: Transaction fee (sats).
         vsize: Virtual size of the seed tx (vbytes).
         adjustedVsize: Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
-        cluster: Cluster the seed belongs to: full tx list, SFL-linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
+        cluster: Cluster the seed belongs to: full tx list, linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
     """
     bestDescendant: Union[CpfpEntry, None]
     cluster: Union[CpfpCluster, None]
@@ -1085,19 +1082,6 @@ class DiskUsage(TypedDict):
     bitcoin_bytes: int
     ratio: float
 
-class EmptyAddressData(TypedDict):
-    """
-    Data of an empty address
-
-    Attributes:
-        tx_count: Total transaction count
-        funded_txo_count: Total funded/spent transaction output count (equal since address is empty)
-        transfered: Total satoshis transferred
-    """
-    tx_count: int
-    funded_txo_count: int
-    transfered: Sats
-
 class ErrorDetail(TypedDict):
     """
     Attributes:
@@ -1116,27 +1100,6 @@ class ErrorBody(TypedDict):
     The JSON body of every API error (`application/problem+json`).
     """
     error: ErrorDetail
-
-class FundedAddressData(TypedDict):
-    """
-    Data for a funded (non-empty) address with current balance.
-    
-    Kept compact because one value is stored for every funded address.
-
-    Attributes:
-        received: Satoshis received by this address
-        sent: Satoshis sent by this address
-        realized_cap_raw: The realized capitalization: Σ(price × sats)
-        tx_count: Total transaction count
-        funded_txo_count: Number of transaction outputs funded to this address
-        spent_txo_count: Number of transaction outputs spent by this address
-    """
-    received: Sats
-    sent: Sats
-    realized_cap_raw: int
-    tx_count: int
-    funded_txo_count: int
-    spent_txo_count: int
 
 class HashrateEntry(TypedDict):
     """
@@ -2643,8 +2606,6 @@ _i32 = ('p2tr_address_index',)
 _i33 = ('p2wpkh_address_index',)
 _i34 = ('p2wsh_address_index',)
 _i35 = ('unknown_output_index',)
-_i36 = ('funded_address_index',)
-_i37 = ('extended_empty_address_index',)
 
 def _ep(c: BitviewClient, n: str, i: Index) -> SeriesEndpoint[Any]:
     return SeriesEndpoint(c, n, i)
@@ -3136,30 +3097,6 @@ class SeriesPattern35(Generic[T]):
     def indexes(self) -> List[str]: return list(_i35)
     def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i35 else None
 
-class _SeriesPattern36By(Generic[T]):
-    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def funded_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'funded_address_index')
-
-class SeriesPattern36(Generic[T]):
-    by: _SeriesPattern36By[T]
-    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern36By(c, n)
-    @property
-    def name(self) -> str: return self._n
-    def indexes(self) -> List[str]: return list(_i36)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i36 else None
-
-class _SeriesPattern37By(Generic[T]):
-    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def extended_empty_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'extended_empty_address_index')
-
-class SeriesPattern37(Generic[T]):
-    by: _SeriesPattern37By[T]
-    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern37By(c, n)
-    @property
-    def name(self) -> str: return self._n
-    def indexes(self) -> List[str]: return list(_i37)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i37 else None
-
 # Series tree
 
 class _Child:
@@ -3631,19 +3568,6 @@ class CapitalInLoss(_Node):
 class Total(_Node):
     btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'market_cap')
-
-
-class State(_Node):
-    p2a: SeriesPattern26[AddressState] = _at(SeriesPattern26, '*_state')
-    p2pk33: SeriesPattern28[AddressState] = _at(SeriesPattern28, '*_state')
-    p2pk65: SeriesPattern29[AddressState] = _at(SeriesPattern29, '*_state')
-    p2pkh: SeriesPattern30[AddressState] = _at(SeriesPattern30, '*_state')
-    p2sh: SeriesPattern31[AddressState] = _at(SeriesPattern31, '*_state')
-    p2tr: SeriesPattern32[AddressState] = _at(SeriesPattern32, '*_state')
-    p2wpkh: SeriesPattern33[AddressState] = _at(SeriesPattern33, '*_state')
-    p2wsh: SeriesPattern34[AddressState] = _at(SeriesPattern34, '*_state')
-    funded: SeriesPattern36[FundedAddressData] = _at(SeriesPattern36, 'funded_*_data')
-    extended_empty: SeriesPattern37[EmptyAddressData] = _at(SeriesPattern37, 'extended_empty_*_data')
 
 
 class ExposedCount(_Node):
@@ -4751,7 +4675,6 @@ class Addresses(_Node):
     capital: AddressesCapital = _at(AddressesCapital, '*')
     types: AddressesTypes = _at(AddressesTypes, 'p2pk')
     balances: Balances[Balances0sats] = _at((Balances, Balances0sats), 'balance')
-    state: State = _at(State, '*')
 
 
 class Utxos(_Node):
@@ -5476,10 +5399,7 @@ class BitviewClient(BitviewClientBase):
       "p2tr_address_index",
       "p2wpkh_address_index",
       "p2wsh_address_index",
-      "unknown_output_index",
-      "funded_address_index",
-      "empty_address_index",
-      "extended_empty_address_index"
+      "unknown_output_index"
     ]
 
     POOL_ID_TO_POOL_NAME = {
@@ -6531,7 +6451,7 @@ class BitviewClient(BitviewClientBase):
     def get_address_utxos(self, address: Address) -> List[Utxo]:
         """Address UTXOs.
 
-        Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.
+        Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
 

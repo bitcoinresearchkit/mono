@@ -1,5 +1,5 @@
 //! Cluster primitives over `SnapTx` adjacency: connected-component
-//! discovery, topo-sort, and the glue to Single Fee Linearization
+//! discovery, topo-sort, and the glue to linearization
 //! ([`brk_cpfp::linearize`], shared with bitview_query's confirmed CPFP and the transactions plugin).
 
 use std::collections::VecDeque;
@@ -45,7 +45,7 @@ pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
 }
 
 /// Linearize the connected component into chunks. Topo-sorts members,
-/// remaps parent edges to cluster-local indices, and runs SFL. Returns
+/// remaps parent edges to cluster-local indices, and linearizes. Returns
 /// `(members, chunks)` where `members` is the topo-ordered `TxIndex`
 /// list and `chunks[*].txs` are local indices into `members`. Callers
 /// must filter singletons before calling - the singleton's `chunk_rate`

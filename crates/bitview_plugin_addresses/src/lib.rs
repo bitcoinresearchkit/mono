@@ -48,6 +48,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     capital: CapitalViews,
     types: Box<AddressType<AddressVecs<M>>>,
     balances: Box<Balances<M>>,
+    /// Persistent per-address state: internal slots, served through `/api/address` instead.
+    #[traversable(hidden)]
     pub state: AddrStateVecs<M>,
 }
 

@@ -207,7 +207,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 .id("get_address_utxos")
                 .addrs_tag()
                 .summary("Address UTXOs")
-                .description("Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*")
+                .description("Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*")
                 .json_response::<Vec<Utxo>>()
                 .not_modified()
                 .bad_request()
@@ -281,13 +281,13 @@ async fn serve_utxos(state: AppState, headers: HeaderMap, addr: Address) -> Resu
         .read_admitted(move |q| {
             let resolved = q.resolve_addr_utxos(&addr, max_utxos)?;
             let params = CacheParams::resolve(
-                &CacheStrategy::Live(format!("addr-utxos-v2-{}", resolved.block_hash()).into()),
+                &CacheStrategy::Live(format!("addr-utxos-v3-{}", resolved.representation()).into()),
                 CdnCacheMode::Live,
             );
             if params.matches_etag(&headers) {
                 return Ok(Response::new_not_modified(&params));
             }
-            let (utxos, _) = q.addr_utxos_resolved(resolved, max_utxos)?;
+            let utxos = q.addr_utxos_resolved(resolved, max_utxos)?;
             let bytes = Bytes::from(to_vec(&utxos)?);
             Ok(AppState::assemble_response(
                 params,

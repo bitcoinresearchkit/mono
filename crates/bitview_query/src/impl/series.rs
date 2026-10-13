@@ -263,9 +263,8 @@ impl Query {
             .and_then(|height| self.indexer().vecs().blocks.blockhash.collect_one(height))
             .unwrap_or_default();
         let hash_prefix = BlockHashPrefix::from(&tip_hash);
-        let stable_count = (!read.is_mutable())
-            .then(|| self.stable_count(params.index, total, tip_height))
-            .flatten();
+        let stable_count =
+            (!read.is_mutable()).then(|| self.stable_count(params.index, total, tip_height));
 
         Ok(ResolvedQuery {
             read,
@@ -286,15 +285,13 @@ impl Query {
     ///   the tip is shallower than 6 blocks. Clamped to `total` so a query
     ///   whose vecs are shorter than the entity-type's own count never marks
     ///   its live tail as stable.
-    /// - Mutable (Funded/Empty addr): `None`. No immutable region exists.
-    fn stable_count(&self, index: Index, total: usize, tip_height: Height) -> Option<usize> {
+    fn stable_count(&self, index: Index, total: usize, tip_height: Height) -> usize {
         match index.cache_class() {
-            CacheClass::Bucket { margin } => Some(total.saturating_sub(margin)),
+            CacheClass::Bucket { margin } => total.saturating_sub(margin),
             CacheClass::Entity => {
                 let h = Height::from((*tip_height).saturating_sub(6));
-                Some(self.entity_index_at(index, h).unwrap_or(0).min(total))
+                self.entity_index_at(index, h).unwrap_or(0).min(total)
             }
-            CacheClass::Mutable => None,
         }
     }
 

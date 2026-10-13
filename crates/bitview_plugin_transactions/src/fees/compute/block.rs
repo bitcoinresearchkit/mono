@@ -97,7 +97,7 @@ struct Cluster {
 }
 
 impl Cluster {
-    /// Computes SFL chunk rates for each same-block dependency component.
+    /// Computes chunk rates for each same-block dependency component.
     #[allow(clippy::too_many_arguments)]
     fn compute(
         &mut self,

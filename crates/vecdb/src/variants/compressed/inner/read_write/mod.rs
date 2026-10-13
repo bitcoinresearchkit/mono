@@ -210,6 +210,11 @@ where
         to: usize,
         buf: &mut Vec<T>,
     ) {
+        // The page table is the published length: a truncation can land after a caller's length.
+        let to = to.min(pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T));
+        if from >= to {
+            return;
+        }
         let start_page = Self::index_to_page_index(from);
         let end_page = Self::index_to_page_index(to - 1);
         let mut decoder = PageDecoder::<T, S>::default();
@@ -290,13 +295,39 @@ where
     pub fn pages(&self) -> &Arc<RwLock<Pages>> {
         &self.pages
     }
+    /// Rewrites the region from `at` and publishes the matching page table (`page_count` pages)
+    /// and length with it. Readers take the pages before the region, so they pair old bytes with
+    /// the old layout or new bytes with the new. Both regions reserve their capacity first, so
+    /// the writes under the pages lock never grow the file (which waits for mmap readers).
+    fn publish(
+        &mut self,
+        at: usize,
+        bytes: &[u8],
+        stored_len: usize,
+        page_count: usize,
+        update_pages: impl FnOnce(&mut Pages) -> CrateResult<()>,
+    ) -> CrateResult<()> {
+        let region = self.base.region();
+        region.reserve_for(at + bytes.len())?;
+        self.pages.read().reserve_for(page_count)?;
+        let mut pages = self.pages.write();
+        region.truncate_write(at, bytes)?;
+        update_pages(&mut pages)?;
+        pages.flush()?;
+        self.base.update_stored_len(stored_len);
+        drop(pages);
+        self.base.write_header_if_needed()?;
+        Ok(())
+    }
+
     fn collect_stored_range(&self, from: usize, to: usize) -> CrateResult<Vec<T>> {
         if from >= to {
             return Ok(vec![]);
         }
 
-        let reader = self.create_reader();
+        // Pages before the region: the writer holds the pages while it rewrites the region.
         let pages = self.pages.read();
+        let reader = self.create_reader();
         let real_len = pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T);
         let to = to.min(real_len);
         if from >= to {

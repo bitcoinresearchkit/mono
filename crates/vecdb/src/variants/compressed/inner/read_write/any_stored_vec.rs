@@ -182,19 +182,21 @@ where
                 let taken = mem::take(this.base.mut_pushed());
                 let raw = S::values_to_bytes(&taken);
                 let append_at = page.end() as usize;
-                this.region().truncate_write(append_at, &raw)?;
-
-                let mut pages = this.pages.write();
-                pages.truncate(starting_page_index);
                 let total_bytes = page
                     .bytes
                     .checked_add(u32::try_from(raw.len()).map_err(|_| Error::Overflow)?)
                     .ok_or(Error::Overflow)?;
-                pages.push_raw(starting_page_index, total_bytes)?;
-                pages.flush()?;
-                drop(pages);
-                this.base.write_header_if_needed()?;
-                this.base.update_stored_len(stored_len + pushed_len);
+                let page_count = starting_page_index + 1;
+                this.publish(
+                    append_at,
+                    &raw,
+                    stored_len + pushed_len,
+                    page_count,
+                    |pages| {
+                        pages.truncate(starting_page_index);
+                        pages.push_raw(starting_page_index, total_bytes)
+                    },
+                )?;
                 if let Some(cache) = C::cache(&this.cache) {
                     cache.extend_tail(stored_len, &taken);
                 }
@@ -220,25 +222,27 @@ where
 
             let (buf, page_layouts) = this.encode_pages(&values, starting_page_index)?;
 
-            // Write the region before re-taking the pages lock to avoid deadlock.
-            this.region().truncate_write(truncate_at as usize, &buf)?;
-
-            let mut pages = this.pages.write();
-            pages.truncate(starting_page_index);
-
-            for (offset, &(header_bytes, body_bytes, is_raw)) in page_layouts.iter().enumerate() {
-                let page_index = starting_page_index + offset;
-                if is_raw {
-                    pages.push_raw(page_index, body_bytes)?;
-                } else {
-                    pages.push_compressed(page_index, header_bytes, body_bytes)?;
-                }
-            }
-
-            pages.flush()?;
-            drop(pages);
-            this.base.write_header_if_needed()?;
-            this.base.update_stored_len(stored_len + pushed_len);
+            let page_count = starting_page_index + page_layouts.len();
+            this.publish(
+                truncate_at as usize,
+                &buf,
+                stored_len + pushed_len,
+                page_count,
+                |pages| {
+                    pages.truncate(starting_page_index);
+                    for (offset, &(header_bytes, body_bytes, is_raw)) in
+                        page_layouts.iter().enumerate()
+                    {
+                        let page_index = starting_page_index + offset;
+                        if is_raw {
+                            pages.push_raw(page_index, body_bytes)?;
+                        } else {
+                            pages.push_compressed(page_index, header_bytes, body_bytes)?;
+                        }
+                    }
+                    Ok(())
+                },
+            )?;
 
             if let Some(cache) = C::cache(&this.cache) {
                 cache.extend_tail(stored_len, &values[stored_len - rewrite_from..]);

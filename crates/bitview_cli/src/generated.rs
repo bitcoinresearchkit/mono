@@ -89,7 +89,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/address/{address}/utxo",
         summary: "Address UTXOs",
-        description: "Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*",
+        description: "Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*",
         path_parameters: &[
             Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],

@@ -11,11 +11,12 @@ pub use has::HasPrice;
 pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::Float64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, OhlcPrice, SplitPrice, SpotPrice};
 use brk_oracle::VERSION as ORACLE_VERSION;
-use brk_types::{Cents, Sats, Version};
-use vecdb::{Database, Rw, StorageMode};
+use brk_types::{Cents, Height, Sats, Version};
+use vecdb::{Database, EagerVec, PcoVec, Rw, StorageMode};
 
 const STORAGE: PluginStorage =
     PluginStorage::new(PluginId::new("price"), Version::new(20 + ORACLE_VERSION));
@@ -46,6 +47,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Whole satoshis one US dollar buys at the spot price: 100,000,000 divided
     /// by the price in USD per BTC.
     sats_per_dollar: LazyPerBlock<Sats, Cents>,
+    /// The oracle's exact reference bin at each height (the spot price before rounding to
+    /// cents), so an update resumes the oracle where the previous one left it.
+    #[traversable(hidden)]
+    pub oracle_bin: M::Stored<EagerVec<PcoVec<Height, Float64>>>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

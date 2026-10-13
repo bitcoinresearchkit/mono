@@ -78,8 +78,8 @@ where
             from,
             to,
         ) {
-            let reader = self.base.region().create_reader();
             let pages = self.pages.read();
+            let reader = self.base.region().create_reader();
             ReadWriteCompressedVec::<I, T, S>::read_stored_pages_into(
                 &reader, &pages, from, to, buf,
             );

@@ -1,5 +1,6 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::Float64;
 use brk_error::{Error, OptionData, Result};
 use brk_exit::Exit;
 use brk_oracle::{
@@ -11,6 +12,14 @@ use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, WritableVec};
 
 use crate::{Dependencies, Vecs, feed_blocks_for_warmup, feed_blocks_with};
+
+/// The oracle bin of a baked pre-oracle price.
+fn seed_bin(cents: Cents) -> Result<f64> {
+    let cents = cents
+        .finite_inner()
+        .ok_or(Error::Internal("Invalid oracle seed price"))?;
+    Ok(cents_to_bin(cents as f64))
+}
 
 impl Vecs {
     fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
@@ -29,22 +38,29 @@ impl Vecs {
         let total_heights = indexer.vecs().blocks.timestamp.len();
         {
             let _lock = exit.lock();
-            self.spot
-                .cents
-                .height
+            let spot = &mut self.spot.cents.height;
+            spot.validate_computed_version_or_reset(source_version)?;
+            self.oracle_bin
                 .validate_computed_version_or_reset(source_version)?;
 
-            // Reorg: truncate to starting_lengths
-            self.spot
-                .cents
-                .height
-                .truncate_if_needed_at(starting_height.to_usize())?;
+            // Reorg: truncate to starting_lengths. The slow regime's shape profile is not
+            // stored, so resuming inside that regime replays it from its start.
+            let mut committed = starting_height
+                .to_usize()
+                .min(spot.len())
+                .min(self.oracle_bin.len());
+            if (START_HEIGHT_SLOW + 1..START_HEIGHT_FAST).contains(&committed) {
+                committed = START_HEIGHT_SLOW;
+            }
+            spot.truncate_if_needed_at(committed)?;
+            self.oracle_bin.truncate_if_needed_at(committed)?;
         }
 
         let seed_len = total_heights.min(START_HEIGHT_SLOW);
         let seed_start = self.spot.cents.height.len();
         for cents in pre_oracle_prices_from(seed_start).take(seed_len.saturating_sub(seed_start)) {
             self.spot.cents.height.push(cents);
+            self.oracle_bin.push(Float64::from(seed_bin(cents)?));
         }
 
         if self.spot.cents.height.len() >= total_heights {
@@ -53,20 +69,10 @@ impl Vecs {
 
         let committed = self.spot.cents.height.len();
         let config = Config::for_height(committed);
-        let prev_cents = self
-            .spot
-            .cents
-            .height
-            .collect_one_at(committed - 1)
-            .data()?;
-        let seed_bin = cents_to_bin(
-            prev_cents
-                .finite_inner()
-                .ok_or(Error::Internal("Invalid oracle seed price"))? as f64,
-        );
+        let ref_bin = f64::from(self.oracle_bin.collect_one_at(committed - 1).data()?);
         let warmup = config.window_size.min(committed - START_HEIGHT_SLOW);
         let mut warmed = Ok(());
-        let mut oracle = Oracle::from_checkpoint(seed_bin, config, |o| {
+        let mut oracle = Oracle::from_checkpoint(ref_bin, config, |o| {
             warmed = feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None);
         });
         warmed?;
@@ -85,6 +91,7 @@ impl Vecs {
                     .cents
                     .height
                     .push(Cents::new(bin_to_cents(ref_bin)));
+                self.oracle_bin.push(Float64::from(ref_bin));
 
                 processed += 1;
                 let progress = (processed * 100 / num_new) as u8;
@@ -145,6 +152,7 @@ impl ComputePlugin for Vecs {
         {
             let _lock = exit.lock();
             self.spot.cents.height.write()?;
+            self.oracle_bin.write()?;
         }
 
         Ok(())

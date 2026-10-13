@@ -34,6 +34,8 @@ fn run<P, T>(
 where
     P: ComputePluginSet,
 {
+    // A pending shutdown must not wait behind back-to-back updates.
+    context.exit().park_if_shutting_down();
     let publication = plugins.publication().clone();
     publication.begin_update();
 

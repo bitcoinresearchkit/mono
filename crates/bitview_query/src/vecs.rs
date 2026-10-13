@@ -6,7 +6,7 @@ use std::{
 
 use bitview_catalog::TreeNode;
 use bitview_plugin::Plugin;
-use bitview_primitives::{CacheClass, Index};
+use bitview_primitives::Index;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use bitview_types::{
@@ -476,7 +476,7 @@ impl<'a> Builder<'a> {
             index,
         } = registration;
         let name = vec.name();
-        let is_mutable = matches!(index.cache_class(), CacheClass::Mutable) || vec.is_mutable();
+        let is_mutable = vec.is_mutable();
         let entry = SeriesEntry::new(index, vec, plugin, is_mutable);
 
         let prev = self.by_series.entry(name).or_default().insert(entry);

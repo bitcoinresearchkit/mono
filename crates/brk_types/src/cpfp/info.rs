@@ -30,7 +30,7 @@ pub struct CpfpInfo {
     pub vsize: VSize,
     /// Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
     pub adjusted_vsize: VSize,
-    /// Cluster the seed belongs to: full tx list, SFL-linearized chunks,
+    /// Cluster the seed belongs to: full tx list, linearized chunks,
     /// and the seed's chunk index. Omitted when the seed has no
     /// ancestors and no descendants (matches mempool.space).
     #[serde(skip_serializing_if = "Option::is_none")]

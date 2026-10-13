@@ -269,9 +269,6 @@ impl Query {
 
         // The published bounds cover these columns; validate returned lengths
         // before indexing so incomplete local data cannot produce partial rows.
-        // Fixed-size hashes can be read directly without materializing history
-        // or allocating a second array for the requested range.
-        let blockhashes = indexer.vecs().blocks.blockhash.reader();
         let difficulties = indexer
             .vecs()
             .blocks
@@ -311,6 +308,10 @@ impl Query {
             return Err(Error::Internal("Incomplete block data"));
         }
 
+        // Fixed-size hashes can be read directly without materializing history
+        // or allocating a second array. Taken last: a held reader must not wait
+        // on another vector's writer.
+        let blockhashes = indexer.vecs().blocks.blockhash.reader();
         let mut blocks = Vec::with_capacity(count);
 
         for i in (0..count).rev() {

@@ -773,8 +773,6 @@ const _I32: &[Index] = &[Index::P2TRAddressIndex];
 const _I33: &[Index] = &[Index::P2WPKHAddressIndex];
 const _I34: &[Index] = &[Index::P2WSHAddressIndex];
 const _I35: &[Index] = &[Index::UnknownOutputIndex];
-const _I36: &[Index] = &[Index::FundedAddressIndex];
-const _I37: &[Index] = &[Index::ExtendedEmptyAddressIndex];
 
 #[inline]
 fn _ep<T: DeserializeOwned>(
@@ -1016,12 +1014,6 @@ accessor! { SeriesPattern34, SeriesPattern34By, _I34, T {
 accessor! { SeriesPattern35, SeriesPattern35By, _I35, T {
     plain unknown_output_index: UnknownOutputIndex -> T,
 } }
-accessor! { SeriesPattern36, SeriesPattern36By, _I36, T {
-    plain funded_address_index: FundedAddressIndex -> T,
-} }
-accessor! { SeriesPattern37, SeriesPattern37By, _I37, T {
-    plain extended_empty_address_index: ExtendedEmptyAddressIndex -> T,
-} }
 
 /// A series value type, as a type parameter of the leaf accessors.
 pub trait SeriesValue {
@@ -1081,9 +1073,6 @@ macro_rules! shape {
 impl SeriesValue for Address {
     type Nullable = Option<Address>;
 }
-impl SeriesValue for AddressState {
-    type Nullable = Option<AddressState>;
-}
 impl SeriesValue for BlockHash {
     type Nullable = Option<BlockHash>;
 }
@@ -1114,17 +1103,11 @@ impl SeriesValue for Day1 {
 impl SeriesValue for Day3 {
     type Nullable = Option<Day3>;
 }
-impl SeriesValue for EmptyAddressData {
-    type Nullable = Option<EmptyAddressData>;
-}
 impl SeriesValue for EmptyOutputIndex {
     type Nullable = Option<EmptyOutputIndex>;
 }
 impl SeriesValue for Epoch {
     type Nullable = Option<Epoch>;
-}
-impl SeriesValue for FundedAddressData {
-    type Nullable = Option<FundedAddressData>;
 }
 impl SeriesValue for Halving {
     type Nullable = Option<Halving>;
@@ -1652,18 +1635,6 @@ pub mod tree {
     shape! { Total at "series().holders.all.supply.total" {
         btc: SeriesPattern1<Option<Bitcoin>> = "*",
         usd: SeriesPattern1<Option<Dollars>> = "market_cap",
-    } }
-    shape! { State at "series().addresses.state" {
-        p2a: SeriesPattern26<AddressState> = "*_state",
-        p2pk33: SeriesPattern28<AddressState> = "*_state",
-        p2pk65: SeriesPattern29<AddressState> = "*_state",
-        p2pkh: SeriesPattern30<AddressState> = "*_state",
-        p2sh: SeriesPattern31<AddressState> = "*_state",
-        p2tr: SeriesPattern32<AddressState> = "*_state",
-        p2wpkh: SeriesPattern33<AddressState> = "*_state",
-        p2wsh: SeriesPattern34<AddressState> = "*_state",
-        funded: SeriesPattern36<FundedAddressData> = "funded_*_data",
-        extended_empty: SeriesPattern37<EmptyAddressData> = "extended_empty_*_data",
     } }
     shape! { ExposedCount at "series().addresses.exposed.count" {
         funded: SeriesPattern1<Count> = "*_exposed_address_count",
@@ -2649,7 +2620,6 @@ pub mod tree {
         capital: AddressesCapital = "*",
         types: AddressesTypes = "p2pk",
         balances: Balances<Balances0sats> = "balance",
-        state: State = "*",
     } }
     shape! { Utxos at "series().utxos" {
         amounts: Balances<Amounts0sats> = "*",
@@ -3826,7 +3796,7 @@ impl BitviewClient {
 
     /// Address UTXOs
     ///
-    /// Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.
+    /// Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
     ///

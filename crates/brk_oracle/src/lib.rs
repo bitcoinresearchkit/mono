@@ -44,7 +44,7 @@ use window::EmaWindow;
 
 /// Oracle algorithm version. Bump on any change that alters computed prices
 /// so downstream consumers can invalidate cached results.
-pub const VERSION: u32 = 4;
+pub const VERSION: u32 = 5;
 
 #[derive(Clone)]
 pub struct Oracle {

@@ -63,8 +63,8 @@ where
         if from < stored_len {
             let stored_to = to.min(stored_len);
             if Self::prefers_mmap(self.region(), &self.pages, from, stored_to) {
-                let reader = self.create_reader();
                 let pages = self.pages.read();
+                let reader = self.create_reader();
                 Self::read_stored_pages_into(&reader, &pages, from, stored_to, buf);
             } else {
                 CompressedIoSource::new(self, from, stored_to).read_into(buf);

@@ -17,10 +17,7 @@ impl Query {
         let bytes = parse_addr(addr)?;
         self.resolve_addr_bytes(&bytes)
     }
-    pub(crate) fn resolve_addr_bytes(
-        &self,
-        bytes: &AddressBytes,
-    ) -> Result<(OutputType, TypeIndex)> {
+    fn resolve_addr_bytes(&self, bytes: &AddressBytes) -> Result<(OutputType, TypeIndex)> {
         self.find_addr_bytes(bytes)?
             .ok_or_else(|| self.missing_addr())
     }

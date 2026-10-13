@@ -21,7 +21,7 @@ mod state;
 mod steps;
 mod stores;
 
-pub use api::{BlockTemplateSource, RbfForTx, RbfNode, ResolvedBlockTemplateDiff};
+pub use api::{BlockTemplateSource, PendingUtxos, RbfForTx, RbfNode, ResolvedBlockTemplateDiff};
 pub use cycle::{Cycle, TxAdded, TxRemoved};
 pub use read_only::ReadOnlyMempool;
 pub use snapshot::Snapshot;

@@ -177,6 +177,11 @@ impl<'a> CandidateScorer<'a> {
         }
     }
 
+    /// Whether any round-USD arm carries mass anywhere in the search window.
+    fn has_evidence(&self) -> bool {
+        self.arm_peaks.iter().any(|&peak| peak > 0.0)
+    }
+
     fn score(&self, bin: usize) -> f64 {
         let mut total = 0.0;
         for (i, &offset) in STENCIL_OFFSETS.iter().enumerate() {
@@ -269,6 +274,10 @@ fn find_best_bin(
     };
 
     let scorer = CandidateScorer::new(ema, shape, range);
+    // Without evidence every candidate ties at zero: keep the reference instead of stepping to the first.
+    if !scorer.has_evidence() {
+        return prev_bin;
+    }
     let (best_bin, best_score) = scorer.best_bin();
     scorer.interpolated_bin(best_bin, best_score)
 }

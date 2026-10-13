@@ -161,10 +161,12 @@ where
         from: usize,
         to: usize,
     ) -> Self {
+        // Pages before the region: the writer holds the pages while it rewrites the region.
+        let pages = pages.read();
         let region_lock = region.read_lock();
         let region_start = region.meta().start() as u64;
         let file = region.open_db_read_only_file().expect("open file");
-        let pages = pages.read();
+        let stored_len = stored_len.min(pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T));
         let from = from.min(stored_len);
         let to = to.min(stored_len);
 
@@ -188,6 +190,9 @@ where
 
     /// Reads remaining pages directly into the destination allocation.
     pub fn read_into(mut self, output: &mut Vec<T>) {
+        if self.index >= self.end_index {
+            return;
+        }
         output.reserve(self.end_index - self.index);
         let start_page = self.index / Self::PER_PAGE;
         let end_page = (self.end_index - 1) / Self::PER_PAGE;

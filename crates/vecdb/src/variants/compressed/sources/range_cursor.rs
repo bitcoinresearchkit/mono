@@ -238,17 +238,24 @@ where
     /// Consume a sorted request directly from decoded pages, without copying
     /// each page through the generic Cursor buffer. Consumes this cursor so no
     /// buffered pointer survives a decoder refill performed by this method.
+    /// Stops at the first index past the published length: a truncation can land after the
+    /// caller chose its indices.
     pub(crate) fn read_sorted_into(mut self, mut indices: &[usize], out: &mut Vec<T>) {
         while let Some(&first) = indices.first() {
             let page_index = first / CursorState::<T>::PER_PAGE;
             let count = indices.partition_point(|&i| i / CursorState::<T>::PER_PAGE == page_index);
-            let page = match &mut self.owner {
+            let Some(page) = (match &mut self.owner {
                 Owner::Mmap(source) => source.decoded_page(page_index),
                 Owner::Io(source) => source.decoded_page(page_index),
-            }
-            .expect("requested compressed page must exist");
+            }) else {
+                return;
+            };
             let base = page_index * CursorState::<T>::PER_PAGE;
-            out.extend(indices[..count].iter().map(|&i| page[i - base].clone()));
+            let available = indices[..count].partition_point(|&i| i - base < page.len());
+            out.extend(indices[..available].iter().map(|&i| page[i - base].clone()));
+            if available < count {
+                return;
+            }
             indices = &indices[count..];
         }
     }

@@ -5,7 +5,7 @@
 - Version: `v0.12.2`
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
-- Metrics: 22771
+- Metrics: 22761
 - Operations: 100
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
@@ -110,7 +110,7 @@ curl -s "https://bitview.space/api/address/<address>/txs/mempool"
 
 Address UTXOs
 
-Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
+Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
 
 Parameters:
 - `address` (path, Address, required)
@@ -1504,7 +1504,7 @@ curl -s "https://bitview.space/version"
 - `spent_txo_count`: `integer` (required) — Total number of transaction outputs spent from this address
 - `spent_txo_sum`: `Sats` (required) — Total amount in satoshis spent from this address
 - `tx_count`: `integer` (required) — Total number of confirmed transactions involving this address
-- `type_index`: `TypeIndex` (required) — Index of this address within its type on the blockchain
+- `type_index`: `TypeIndex | null` — Index of this address within its type on the blockchain, null for an address seen only in the mempool
 - `realized_price`: `Dollars` (required) — Realized price (average cost basis) in USD
 
 ### `AddressHashPrefixMatches`
@@ -1678,7 +1678,7 @@ curl -s "https://bitview.space/version"
 ### `CpfpCluster`
 
 - `txs`: `CpfpClusterTx[]` (required) — All txs in the cluster, in topological order (parents before children).
-- `chunks`: `CpfpClusterChunk[]` (required) — SFL-emitted chunks ordered by descending feerate.
+- `chunks`: `CpfpClusterChunk[]` (required) — Chunks ordered by descending feerate.
 - `chunkIndex`: `integer` (required) — Index into `chunks` of the chunk containing the seed tx.
 
 ### `CpfpClusterChunk`
@@ -1713,7 +1713,7 @@ curl -s "https://bitview.space/version"
 - `fee`: `Sats` (required) — Transaction fee (sats).
 - `vsize`: `VSize` (required) — Virtual size of the seed tx (vbytes).
 - `adjustedVsize`: `VSize` (required) — Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
-- `cluster`: `CpfpCluster | null` — Cluster the seed belongs to: full tx list, SFL-linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
+- `cluster`: `CpfpCluster | null` — Cluster the seed belongs to: full tx list, linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
 
 ### `Date`
 
@@ -1816,7 +1816,7 @@ curl -s "https://bitview.space/version"
 
 ### `Index`
 
-`minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving | epoch | height | tx_index | txin_index | txout_index | empty_output_index | op_return_index | p2a_address_index | p2ms_output_index | p2pk33_address_index | p2pk65_address_index | p2pkh_address_index | p2sh_address_index | p2tr_address_index | p2wpkh_address_index | p2wsh_address_index | unknown_output_index | funded_address_index | empty_address_index | extended_empty_address_index`
+`minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving | epoch | height | tx_index | txin_index | txout_index | empty_output_index | op_return_index | p2a_address_index | p2ms_output_index | p2pk33_address_index | p2pk65_address_index | p2pkh_address_index | p2sh_address_index | p2tr_address_index | p2wpkh_address_index | p2wsh_address_index | unknown_output_index`
 
 ### `MempoolBlock`
 
@@ -1842,7 +1842,7 @@ curl -s "https://bitview.space/version"
 
 ### `NextBlockHash`
 
-`integer`
+`string`
 
 ### `OutputType`
 

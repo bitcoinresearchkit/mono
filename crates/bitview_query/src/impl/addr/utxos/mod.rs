@@ -1,8 +1,9 @@
 use bitview_plugin::PublicationReadGuard;
 use bitview_plugin_indexer::SafeLengths;
-use bitview_primitives::TxOutIndex;
+use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::Utxo;
-use brk_types::{Address, AddressBytes, BlockHash, Height, TxIndex, TxStatus, Vout};
+use brk_mempool::PendingUtxos;
+use brk_types::{Address, AddressBytes, BlockHash, Height, Sats, TxIndex, TxStatus, Txid, Vout};
 
 use crate::{Error, OptionData, Query, Result, r#impl::addr::parse_addr};
 
@@ -10,12 +11,14 @@ use crate::{Error, OptionData, Query, Result, r#impl::addr::parse_addr};
 pub struct ResolvedAddrUtxos {
     pin: SafeLengths,
     outpoints: Vec<(TxIndex, Vout)>,
+    pending: PendingUtxos,
     anchor: BlockHash,
 }
 
 impl ResolvedAddrUtxos {
-    pub fn block_hash(&self) -> BlockHash {
-        self.anchor
+    /// Identifies the selection: the last confirmed activity and the pending transactions.
+    pub fn representation(&self) -> String {
+        format!("{}-{:x}", self.anchor, self.pending.token)
     }
 }
 
@@ -36,27 +39,46 @@ impl Query {
         guard: PublicationReadGuard,
         max_utxos: usize,
     ) -> Result<ResolvedAddrUtxos> {
-        let (output_type, type_index) = self.resolve_addr_bytes(addr)?;
+        let found = self.find_addr_bytes(addr)?;
         let pin = self.pin_safe_lengths()?;
         let lengths = pin.lengths();
-        let height =
-            self.addr_last_activity_height_bounded(output_type, type_index, None, lengths)?;
-        let anchor = self.block_hash_by_height(height, &pin)?;
-        let outpoints: Vec<(TxIndex, Vout)> = self
-            .indexer()
-            .stores()
-            .addr_unspent_outpoints(output_type, type_index)?
-            // Store keys order outpoints by transaction index, then vout.
-            .take_while(|(tx_index, _)| *tx_index < lengths.tx_index)
-            .take(max_utxos.saturating_add(1))
-            .collect();
-        if outpoints.len() > max_utxos {
+        let tip = self.tip_blockhash_at(&pin)?;
+        let pending = self
+            .mempool()
+            .map(|mempool| mempool.addr_pending_utxos(addr, &tip))
+            .transpose()?
+            .unwrap_or_default();
+        let (outpoints, anchor) = match found {
+            Some((output_type, type_index)) => {
+                let height =
+                    self.addr_last_activity_height_bounded(output_type, type_index, None, lengths)?;
+                let outpoints: Vec<(TxIndex, Vout)> = self
+                    .indexer()
+                    .stores()
+                    .addr_unspent_outpoints(output_type, type_index)?
+                    // Store keys order outpoints by transaction index, then vout.
+                    .take_while(|(tx_index, _)| *tx_index < lengths.tx_index)
+                    // Pending spends may remove some: the cap applies after them.
+                    .take(
+                        max_utxos
+                            .saturating_add(pending.spent.len())
+                            .saturating_add(1),
+                    )
+                    .collect();
+                (outpoints, self.block_hash_by_height(height, &pin)?)
+            }
+            // Seen only in the mempool.
+            None if !pending.created.is_empty() || !pending.spent.is_empty() => (Vec::new(), tip),
+            None => return Err(self.missing_addr()),
+        };
+        if outpoints.len() + pending.created.len() > max_utxos + pending.spent.len() {
             return Err(Error::TooManyUtxos { max: max_utxos });
         }
         drop(guard);
         Ok(ResolvedAddrUtxos {
             pin,
             outpoints,
+            pending,
             anchor,
         })
     }
@@ -66,28 +88,66 @@ impl Query {
         &self,
         resolved: ResolvedAddrUtxos,
         max_utxos: usize,
-    ) -> Result<(Vec<Utxo>, BlockHash)> {
+    ) -> Result<Vec<Utxo>> {
         let ResolvedAddrUtxos {
             pin,
             outpoints,
-            anchor: block_hash,
+            pending,
+            ..
         } = resolved;
         let lengths = pin.lengths();
-        let indexer = self.indexer();
-        let vecs = indexer.vecs();
-        if outpoints.len() > max_utxos {
+        let outputs = self.unspent_outputs(&outpoints, &pending, lengths)?;
+
+        // Statuses read other vectors: the raw readers above are released by now.
+        let mut cached_status: Option<(Height, TxStatus)> = None;
+        let mut utxos = Vec::with_capacity(outputs.len() + pending.created.len());
+        for (tx_index, txid, vout, value) in outputs {
+            let height = self.confirmed_status_height_bounded(tx_index, lengths)?;
+            let status = if let Some((h, ref s)) = cached_status
+                && h == height
+            {
+                s.clone()
+            } else {
+                let s = self.confirmed_status_at_bounded(height, lengths)?;
+                cached_status = Some((height, s.clone()));
+                s
+            };
+            utxos.push(Utxo {
+                txid,
+                vout,
+                status,
+                value,
+            });
+        }
+        utxos.extend(pending.created.into_iter().map(|(txid, vout, value)| Utxo {
+            txid,
+            vout,
+            status: TxStatus::UNCONFIRMED,
+            value,
+        }));
+        if utxos.len() > max_utxos {
             return Err(Error::TooManyUtxos { max: max_utxos });
         }
+        Ok(utxos)
+    }
 
+    /// The confirmed outpoints' txids and values, without those pending transactions spend.
+    fn unspent_outputs(
+        &self,
+        outpoints: &[(TxIndex, Vout)],
+        pending: &PendingUtxos,
+        lengths: Lengths,
+    ) -> Result<Vec<(TxIndex, Txid, Vout, Sats)>> {
+        let vecs = self.indexer().vecs();
         let txid_reader = vecs.transactions.txid.reader();
         let first_txout_index_reader = vecs.transactions.first_txout_index.reader();
         let value_reader = vecs.outputs.value.reader();
-
-        let mut cached_status: Option<(Height, TxStatus)> = None;
-        let mut utxos = Vec::with_capacity(outpoints.len());
-
-        for (tx_index, vout) in outpoints {
+        let mut outputs = Vec::with_capacity(outpoints.len());
+        for &(tx_index, vout) in outpoints {
             let txid = txid_reader.try_get(tx_index).data()?;
+            if pending.spent.contains(&(txid, vout)) {
+                continue;
+            }
             let first = first_txout_index_reader.try_get(tx_index).data()?.get();
             let next_tx = tx_index.incremented();
             let next = if next_tx < lengths.tx_index {
@@ -104,26 +164,8 @@ impl Query {
                 ));
             }
             let value = value_reader.try_get(TxOutIndex::from(output)).data()?;
-
-            let height = self.confirmed_status_height_bounded(tx_index, lengths)?;
-            let status = if let Some((h, ref s)) = cached_status
-                && h == height
-            {
-                s.clone()
-            } else {
-                let s = self.confirmed_status_at_bounded(height, lengths)?;
-                cached_status = Some((height, s.clone()));
-                s
-            };
-
-            utxos.push(Utxo {
-                txid,
-                vout,
-                status,
-                value,
-            });
+            outputs.push((tx_index, txid, vout, value));
         }
-
-        Ok((utxos, block_hash))
+        Ok(outputs)
     }
 }

@@ -185,6 +185,13 @@ impl Pages {
         Ok(this)
     }
 
+    /// Grows the page table's region so `page_count` pages flush without growing it.
+    pub fn reserve_for(&self, page_count: usize) -> Result<()> {
+        Ok(self
+            .region
+            .reserve_for(page_count.div_ceil(PAGES_PER_BLOCK) * BLOCK_BYTES)?)
+    }
+
     pub fn flush(&mut self) -> Result<()> {
         let Some(change_at) = self.change_at else {
             return Ok(());
