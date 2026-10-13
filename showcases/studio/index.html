@@ -16943,8 +16943,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         prefs.presetsOpen = opening;
         savePrefs();
         renderSideNav();
-        if (reduced.matches) return void (list.hidden = !opening);
-        if (opening) return void fold(list, false);
+        if (reduced.matches) return void ((list.hidden = !opening), fitSoon(list, true));
+        // (Its edges read again once it's whole: mid-unfold, it's shorter than what it holds.)
+        if (opening) return void fold(list, false).finished.then(() => fitSoon(list, true), () => {});
         fold(list, true).finished.then((motion) => {
           if (prefs.presetsOpen) return;
           list.hidden = true;
