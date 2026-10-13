@@ -26,7 +26,7 @@ use addr::{AddrStateVecs, AddressVecs};
 use balance::Balances;
 use state::AddrStates;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("addresses"), Version::new(48));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("addresses"), Version::new(49));
 pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len();

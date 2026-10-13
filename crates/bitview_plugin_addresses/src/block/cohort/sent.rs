@@ -9,7 +9,7 @@ use crate::{
     state::CohortLog,
 };
 
-/// Apply one shard's spends for a block, in the block's established spend order.
+/// Apply one shard's spends for a block, in input order.
 pub fn process_sent(
     spends: &[(TypeIndex, Sats, Cents)],
     cohorts: &mut CohortLog,

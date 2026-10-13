@@ -38,7 +38,7 @@ struct Lost {
 /// One address type's activity in one block, for one shard of its addresses.
 struct TypeBlock {
     received: FxHashMap<TypeIndex, Received>,
-    /// Spends in the block's established order, with their creation prices.
+    /// Spends in input order, with their creation prices.
     spends: Vec<(TypeIndex, Sats, Cents)>,
     /// Transactions each address spent in.
     sent_txs: FxHashMap<TypeIndex, TxIndexes>,
@@ -259,12 +259,9 @@ pub fn process_chunk(
                     &input_types[input_range.clone()],
                     &input_indexes[input_range.clone()],
                     &input_heights[input_range],
+                    prices,
                 );
-                (
-                    received,
-                    inputs.sent_data.into_typed(prices),
-                    inputs.tx_index_vecs,
-                )
+                (received, inputs.spends, inputs.tx_index_vecs)
             })
             .collect::<Vec<_>>();
         let mut by_shard: [ByAddrType<Vec<TypeBlock>>; SHARDS] = Default::default();

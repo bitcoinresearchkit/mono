@@ -1,30 +1,33 @@
 use std::collections::hash_map::Entry;
 
+use bitview_cohort::ByAddrType;
 use bitview_primitives::TypeIndex;
-use brk_types::{Height, OutputType, Sats, TxIndex};
+use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
 
 use crate::{
     addr::{AddrTypeToTypeIndexMap, SHARDS, shard_of},
-    block::{TxIndexes, address_spends::AddressSpends},
+    block::TxIndexes,
 };
 
 /// Result of processing inputs for a block.
 pub struct InputsResult {
-    /// Address spends in input order within each creation height.
-    pub sent_data: AddressSpends,
+    /// Address spends in input order with their creation prices, by shard and type.
+    pub spends: [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS],
     /// Transaction indexes per address for tx_count tracking, by shard.
     pub tx_index_vecs: [AddrTypeToTypeIndexMap<TxIndexes>; SHARDS],
 }
 
 /// Process inputs (spent UTXOs) for a block.
 ///
-/// Group address spends by creation height and retain unique transaction uses.
+/// Price address spends at their creation heights (`prices` by height) and retain unique
+/// transaction uses.
 pub fn process_inputs(
     txs: impl Iterator<Item = TxIndex>,
     txin_index_to_value: &[Sats],
     txin_index_to_output_type: &[OutputType],
     txin_index_to_type_index: &[TypeIndex],
     txin_index_to_prev_height: &[Height],
+    prices: &[Cents],
 ) -> InputsResult {
     let input_count = txin_index_to_value.len();
     debug_assert_eq!(txin_index_to_output_type.len(), input_count);
@@ -37,7 +40,7 @@ pub fn process_inputs(
 
     // Addresses are spread across eight types.
     let estimated = (input_count / 8 / SHARDS).max(8);
-    let mut sent_data = AddressSpends::new(input_count);
+    let mut spends: [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS] = Default::default();
     let mut tx_index_vecs =
         std::array::from_fn(|_| AddrTypeToTypeIndexMap::<TxIndexes>::with_capacity(estimated));
 
@@ -53,10 +56,14 @@ pub fn process_inputs(
         }
 
         let type_index = txin_index_to_type_index[local_idx];
-        sent_data.push(prev_height, output_type, type_index, value);
-        match tx_index_vecs[shard_of(type_index)]
-            .get_mut(output_type)
-            .unwrap()
+        let shard = shard_of(type_index);
+        spends[shard].get_mut_unwrap(output_type).push((
+            type_index,
+            value,
+            prices[usize::from(prev_height)],
+        ));
+        match tx_index_vecs[shard]
+            .get_mut_unwrap(output_type)
             .entry(type_index)
         {
             Entry::Occupied(mut entry) => {
@@ -73,7 +80,7 @@ pub fn process_inputs(
         "incomplete input transaction ranges"
     );
     InputsResult {
-        sent_data,
+        spends,
         tx_index_vecs,
     }
 }

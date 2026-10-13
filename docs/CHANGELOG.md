@@ -733,6 +733,8 @@ has to be deleted by hand.
   instant coins first enter it) counts its coins as dormant: they were on neither side, left out of the in-loss
   share (which could show 0% in loss) and of the cost basis, and turned every awake cohort's cost-basis percentiles
   null. The wakefulness itself stays null there
+- An address's spends within a block apply in input order (were grouped by their outputs' creation heights in hash
+  order), so the balance band a spend's transfer volume and realized profit/loss count in no longer depends on hashing
 - Profitability bands take their capital from rounded running totals, so an age filter's bands add up to its capital
   and their capital shares to 100% (two sub-cent bands could each show 100%)
 - Fee-rate statistics of a block without transactions are null (were 0); the mempool-compatible block and fee-rate
