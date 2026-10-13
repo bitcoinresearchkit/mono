@@ -16,7 +16,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link: a chart is a link, #chart= and its JSON (this page's text says how, and how to have its picture)." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="data:image/png;base64,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" />
@@ -496,17 +496,11 @@
           }
         }
 
-        /* The compact one, in a line of text: a toast, an error, a heading (a finger's, 32). */
+        /* The compact one, in a line of text: a toast, an error, a heading. */
         &.small {
           height: 26px;
           padding: 0 9px;
           font-size: 12px;
-
-          @media (pointer: coarse) {
-            height: 32px;
-            padding: 0 11px;
-            font-size: 13px;
-          }
         }
       }
 
@@ -555,17 +549,6 @@
             width: 13px;
             height: 13px;
             stroke-width: 1.65;
-          }
-        }
-
-        /* A finger's: no icon button under 36, a small one 32, wherever it is (the glyph as it was). */
-        @media (pointer: coarse) {
-          width: 36px;
-          height: 36px;
-
-          &.small {
-            width: 32px;
-            height: 32px;
           }
         }
 
@@ -2554,7 +2537,6 @@
         position: absolute;
         z-index: 3;
         margin: 0;
-        transform-origin: 0 0;
         border: 0;
         border-radius: var(--radius-xs);
         padding: 0 4px;
@@ -3180,10 +3162,6 @@
             button {
               flex: none;
               height: 24px;
-
-              @media (pointer: coarse) {
-                height: 32px;
-              }
             }
           }
         }
@@ -3244,19 +3222,6 @@
           &:hover:where(.can-hover *) {
             color: var(--ink);
             background: var(--hover);
-          }
-
-          /* (A finger's, 32, its row no taller.) */
-          @media (pointer: coarse) {
-            width: 32px;
-            height: 32px;
-            margin: -6px -10px -6px 0;
-            border-radius: var(--radius-sm);
-
-            svg {
-              width: 14px;
-              height: 14px;
-            }
           }
         }
       }
@@ -4058,18 +4023,6 @@
           }
         }
 
-        /* (A finger's, every hex field's, a popover's too: tall enough, its type 16, so a phone doesn't zoom in to it.) */
-        @media (pointer: coarse) {
-          .hex-box {
-            height: 40px;
-          }
-
-          .hex {
-            font-size: 16px;
-            line-height: 40px;
-          }
-        }
-
         /* (Cut short when long: the hex keeps its room.) */
         .color-now {
           flex: none;
@@ -4230,6 +4183,7 @@
             outline-offset: 2px;
           }
 
+          /* (By touch, as tall as the swatches beside them: a packed row, reached as it is.) */
           @media (pointer: coarse) {
             height: 32px;
           }
@@ -4253,10 +4207,6 @@
         button {
           flex: 1;
           height: 26px;
-
-          @media (pointer: coarse) {
-            height: 34px;
-          }
         }
       }
 
@@ -4315,11 +4265,6 @@
 
           .color-now {
             padding-right: 10px;
-          }
-
-          /* (A finger's, as every hex field: see .hex-field.) */
-          @media (pointer: coarse) {
-            height: 40px;
           }
         }
       }
@@ -5358,6 +5303,8 @@
           display: flex;
           align-items: center;
           gap: 4px;
+          /* (A row's height: its ‹'s reach, 44, all its own.) */
+          min-height: 44px;
           padding: 2px 10px 2px 2px;
           color: var(--ink);
           font-size: 13px;
@@ -6474,11 +6421,6 @@
             background: var(--hover);
           }
 
-          @media (pointer: coarse) {
-            width: 36px;
-            height: 36px;
-          }
-
           svg {
             width: 15px;
             height: 15px;
@@ -6522,11 +6464,11 @@
             align-items: center;
             gap: 2px;
             min-width: 0;
-            /* (Room about its buttons, above and under them and before the first and after the last, for their focus rings
-               and keys: a row that slides cuts what passes it.) */
-            margin: -4px;
-            padding: 4px;
-            scroll-padding-inline: 4px;
+            /* (Room about its buttons, above and under them and before the first and after the last, for their focus rings,
+               keys and a finger's reach: a row that slides cuts what passes it.) */
+            margin: -8px;
+            padding: 8px;
+            scroll-padding-inline: 8px;
             overflow-x: auto;
             overscroll-behavior-x: contain;
             scrollbar-width: none;
@@ -6542,7 +6484,7 @@
           visibility: hidden;
         }
 
-        /* (The header as an iOS bar is tall: its 36px controls and 4px about them.) */
+        /* (The header as an iOS bar: its controls, and 4px about them.) */
         .card-head {
           padding: calc(4px + env(safe-area-inset-top)) 12px 4px;
         }
@@ -6651,15 +6593,15 @@
           padding-bottom: var(--bar-room);
         }
 
-        /* The panel's text grows for a phone (a screen at arm's length reads too small in a hand). */
-        .panel-head {
-          h2 {
-            font-size: 17px;
-          }
+        /* The panel's text grows for a phone (a screen at arm's length reads too small in a hand): its title, a layer's
+           name in its settings as the list's. */
+        .panel-head h2,
+        .inspector-head .label-input {
+          font-size: 17px;
+        }
 
-          .count {
-            font-size: 15px;
-          }
+        .panel-head .count {
+          font-size: 15px;
         }
 
         .layer-row .row-main {
@@ -6775,7 +6717,7 @@
             }
           }
 
-          /* A drawing's look, as the panel's fields are on a phone: the sheet's width, its controls a finger's. */
+          /* A drawing's look, as the panel's fields are on a phone: the sheet's width. */
           .field.belt-pop {
             width: auto;
             padding: 4px 10px 10px;
@@ -6878,7 +6820,7 @@
 
         /* The chart's foot across its width, in line with the page: its interval, then its ranges sharing the rest (the
            navigator a row of its own over them, upright: see .navigator); the tab bar right under it. */
-        /* (Its 36px controls, 3px about them, a focus ring's room; the plot's dates 4px above, not 8.) */
+        /* (Its controls, 3px about them, a focus ring's room; the plot's dates 4px above, not 8.) */
         .chart {
           inset: 0 0 4px;
         }
@@ -7463,15 +7405,78 @@
         }
       }
 
-      /* A finger, not a pointer: targets a thumb can't miss, and fields a phone doesn't zoom into (16px). */
+      /* A finger, not a pointer: targets a thumb can't miss, the look the desktop's (a field's words too: the viewport's
+         most scale, 1, keeps iOS from zooming in on one under 16px). */
       @media (pointer: coarse) {
-        input:not([type="checkbox"], .title),
-        textarea,
-        .formula-editor :is(textarea, pre) {
-          font-size: 16px;
+        /* A finger reaches a control across 44px about its middle, its look the desktop's: not a bigger control, a
+           bigger reach, wherever there's room about it (a row of them spaced so each reaches to the next). Fields are
+           the desktop's size too; rows and a grid of swatches are as tall as a finger needs, reached as they are. */
+        /* (No weight of its own: one placed otherwise, Full screen in the axis's corner, stays so.) */
+        :where(.cap, .btn, .interval.btn, .tabs button, .preset, .pane-scale, .source-pick, button.more, button.reset, .grip, .foot-action, button.search, .path button, .scope) {
+          position: relative;
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc(50% - 22px));
+          }
         }
 
-        /* By touch, controls grow enough to hit without filling the screen. */
+        /* (No reach takes another control's own: icons side by side 44 apart, each reach meeting the next's; beside a
+           field or a row's main part, room for half of it, or none that way.) */
+        .head-actions,
+        .belt-tools,
+        .belt-context {
+          gap: 16px;
+        }
+
+        .belt {
+          gap: 8px;
+        }
+
+        :is(.pane-head, .source-name, .level) .cap + .cap {
+          margin-left: 16px;
+        }
+
+        :is(.source-pick, .level .number-field) + .cap,
+        .level .cap + :is(.number-field, .under-label) {
+          margin-left: 8px;
+        }
+
+        .inspector-head {
+          gap: 10px;
+        }
+
+        /* (A segment's reach up and down only, its neighbors flush (⌘K's crumbs and its scope too); a row's eye's away
+           from the row, over its edge; a level's and a field head's button's, half the gap between them.) */
+        :is(.tabs button, .path button, .scope)::before {
+          inset-inline: 0;
+        }
+
+        .level .cap::before {
+          inset-block: -3px;
+        }
+
+        .field > span > button.reset::before {
+          bottom: -3px;
+        }
+
+        .layer-row > .cap::before {
+          left: 0;
+        }
+
+        /* (Full screen's, not over the price scale above it: a drag from the scale's foot stays the scale's.) */
+        #full::before {
+          top: -2px;
+        }
+
+        /* (A tablet's bar of icons, as the header's.) */
+        @media (min-width: 761px) and (min-height: 501px) {
+          .pick-bar .cap + .cap {
+            margin-left: 14px;
+          }
+        }
+
         .nav-item {
           height: 36px;
         }
@@ -7480,17 +7485,9 @@
           height: 40px;
         }
 
-        .tabs button,
-        .tabs.glyphs button {
-          height: 32px;
-        }
-
-        /* (The segments' row is 36 with its frame: a slider, a menu, a number, a name, the same.) */
-        :is(.stepper, .preset, .number-input) {
-          height: 36px;
-        }
-
-        /* (Five to a row, four rows: each wide enough to aim at; across a phone's sheet, each a square in its fifth.) */
+        /* (Rows, a list's, a menu's, ⌘K's, and a grid of swatches are reached as they are, no room between them: taller,
+           as a finger needs. Five swatches to a row, four rows: each wide enough to aim at; across a phone's sheet, each a
+           square in its fifth.) */
         .swatch-grid,
         .color-drop .swatch-grid {
           grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -7506,12 +7503,6 @@
           justify-self: center;
           width: 44px;
           height: 36px;
-        }
-
-        .pane-scale,
-        .source-pick,
-        .more {
-          min-height: 32px;
         }
 
         /* (A help's summary, a link set in words: tall enough to hit, their words where they were.) */
@@ -7530,22 +7521,8 @@
           height: 36px;
         }
 
-        .search {
-          height: 36px;
-        }
-
-        /* (In the time axis's corner, a finger's height.) */
-        #full {
-          height: 32px;
-        }
-
         #ranges button {
           width: 38px;
-          height: 32px;
-        }
-
-        .interval.btn {
-          height: 36px;
         }
 
         .menu > button {
@@ -7556,25 +7533,11 @@
           min-height: 40px;
         }
 
-        .foot-action {
-          min-height: 36px;
-        }
-
         .pick-check {
           width: 22px;
           height: 22px;
         }
 
-        /* (The drawing tools' handle, wide enough to take hold of; standing, tall enough.) */
-        .belt .grip {
-          width: 24px;
-          height: 36px;
-        }
-
-        .belt.upright .grip {
-          width: 36px;
-          height: 24px;
-        }
       }
 
       @media (hover: none) {
@@ -15186,14 +15149,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The field typed in, dressed as the words will be: their color, size, background. */
       function dressField(/** @type {Drawing} */ drawing) {
         const field = $("draw-text"), size = drawing.size ?? TEXT_SIZE;
-        // (By touch, under 16px a phone zooms in on the field: typed at 16, scaled down to its size, the same to see.)
-        const k = TOUCH && size < 16 ? 16 / size : 1;
-        field.dataset.k = String(k);
-        field.style.scale = k === 1 ? "" : String(1 / k);
         field.style.setProperty("--c", cssColor(drawing.color));
         field.style.setProperty("--on", wordsColor(drawing));
-        field.style.setProperty("--size", `${size * k}px`);
-        field.style.setProperty("--line", `${Math.round(size * 1.33) * k}px`);
+        field.style.setProperty("--size", `${size}px`);
+        field.style.setProperty("--line", `${Math.round(size * 1.33)}px`);
         field.dataset.back = drawing.back ?? "";
         field.hidden = false;
       }
@@ -15244,11 +15203,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // A label: centered where it sits (a trend line's at its angle; its field level).
           const size = sketches.get(series)?.size, place = size && labelPlace(drawing, onScreen(drawing, series, line), size, field.value || " ");
           if (!place) return;
-          return void Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${(Math.ceil(place.width) + 12) * Number(field.dataset.k ?? 1)}px`, height: `${place.height * Number(field.dataset.k ?? 1)}px` });
+          return void Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
         }
         // A text: its tag around its middle, as wide and tall as what's typed.
         const place = textPlace(drawing, onScreen(drawing, series, line)[0], field.value || " ");
-        Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${(Math.ceil(place.width) + 12) * Number(field.dataset.k ?? 1)}px`, height: `${place.height * Number(field.dataset.k ?? 1)}px` });
+        Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
       }
       function endTyping() {
         if (!writing) return;
