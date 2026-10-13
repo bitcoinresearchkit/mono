@@ -101,6 +101,7 @@ where
 
     let resolver = query.sync(|q| q.indexer_prevout_resolver());
     let chain = query.sync(Query::clone);
+    let published = mempool.chain_waker();
     thread::spawn(move || {
         mempool.start_with(resolver, || chain.tip_blockhash());
     });
@@ -122,6 +123,7 @@ where
         info!("Chain tip changed; updating...");
 
         update(&mut plugins, update_context)?;
+        published.published();
 
         if server_handle.is_finished() {
             return server_stopped(&runtime, server_handle);

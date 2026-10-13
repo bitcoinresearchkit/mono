@@ -33,9 +33,13 @@ where
         if index >= len {
             return None;
         }
-        Some(self.base.region().with_read_bytes(|bytes| unsafe {
-            S::read_from_ptr(bytes.as_ptr().add(HEADER_OFFSET), index * size_of::<T>())
-        }))
+        Some(
+            self.base
+                .region()
+                .with_read_bytes(HEADER_OFFSET, |bytes| unsafe {
+                    S::read_from_ptr(bytes.as_ptr(), index * size_of::<T>())
+                }),
+        )
     }
 
     fn read_cached_into_at(&self, from: usize, to: usize, out: &mut Vec<T>) -> bool {

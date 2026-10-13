@@ -7,8 +7,8 @@ use super::{
     regions::Regions,
 };
 
-/// Shared storage state. Writers take region access → mutation barrier →
-/// layout → regions → metadata. Remapping takes the mapping lock, then tries the
+/// Shared storage state. Writers take region access (exclusive, or shared plus the region's
+/// writer lock for appends) → mutation barrier → layout → regions → metadata. Remapping takes the mapping lock, then tries the
 /// exclusive barrier. It releases the mapping before waiting for that barrier,
 /// allowing batch callbacks to read another region while a remap is pending.
 pub(crate) struct DatabaseInner {

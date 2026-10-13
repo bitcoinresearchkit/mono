@@ -16,11 +16,13 @@ enum CpfpSource {
 
 impl Query {
     fn resolve_cpfp_source(&self, txid: &Txid) -> Result<CpfpSource> {
-        let read = self.read_indexer()?;
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let read = self.read_indexer_at(pin);
         match read.resolve_confirmed_tx(txid) {
             Ok(transaction) => Ok(CpfpSource::Chain(transaction)),
             Err(Error::UnknownTxid) => {
-                let (mempool, tip) = self.lookup_mempool(read.pin()).ok_or(Error::UnknownTxid)?;
+                let (mempool, tip) =
+                    Self::lookup_mempool(mempool, read.pin()).ok_or(Error::UnknownTxid)?;
                 mempool
                     .cpfp_info(txid, &tip)?
                     .map(CpfpSource::Memory)

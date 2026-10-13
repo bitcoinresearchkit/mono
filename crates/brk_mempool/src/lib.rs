@@ -11,9 +11,9 @@ use std::sync::Arc;
 
 use arc_swap::ArcSwap;
 use brk_rpc::Client;
-use brk_types::BlockHash;
 
 mod api;
+mod chain_waker;
 mod cycle;
 mod driver;
 mod read_only;
@@ -23,6 +23,7 @@ mod steps;
 mod stores;
 
 pub use api::{BlockTemplateSource, PendingUtxos, RbfForTx, RbfNode, ResolvedBlockTemplateDiff};
+pub use chain_waker::ChainWaker;
 pub use cycle::{Cycle, TxAdded, TxRemoved};
 pub use read_only::ReadOnlyMempool;
 pub use snapshot::Snapshot;
@@ -40,8 +41,7 @@ pub struct Mempool {
     rebuilder: Rebuilder,
     read_only: ReadOnlyMempool,
     needs_recovery: bool,
-    /// The tip of an observation held back until the chain publishes that tip.
-    withheld: Option<BlockHash>,
+    chain: ChainWaker,
 }
 
 impl Mempool {
@@ -54,8 +54,13 @@ impl Mempool {
                 current: Arc::new(ArcSwap::from_pointee(ReadOnlyState::default())),
             },
             needs_recovery: false,
-            withheld: None,
+            chain: ChainWaker::default(),
         }
+    }
+
+    /// The handle the chain calls after each publication, to wake the driver.
+    pub fn chain_waker(&self) -> ChainWaker {
+        self.chain.clone()
     }
 
     pub fn read_only_clone(&self) -> ReadOnlyMempool {

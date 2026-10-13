@@ -752,9 +752,11 @@ has to be deleted by hand.
   and an update never waits for readers; only a rollback waits for the reads started before it. Blocks,
   transactions and addresses not published yet answer 404 (were 503)
 - The mempool is published only at the tip Bitview has published: the transactions of a block being processed stay
-  unconfirmed until it publishes, instead of being found nowhere; lookups the chain answers first also read the
-  previous pool for the moment after a block publishes. Pending transactions spending a just-mined transaction's
-  outputs resolve right away (from the pool's record of it), so a fresh pool no longer waits a cycle to answer
+  unconfirmed until it publishes, instead of being found nowhere. Each publication wakes the mempool, which follows
+  at once; lookups the chain answers first also read the previous pool for that moment, and a request reads the
+  mempool before the chain, so it never finds a newer pool. Pending transactions spending a just-mined
+  transaction's outputs resolve right away (from the pool's record of it), so a fresh pool no longer waits a cycle
+  to answer
 - An address's stats are written with the publication they belong to: a transaction in the block being processed
   counted twice (confirmed and pending), and a failed update left the stats ahead of the published chain
 - During a reorg within the plugins' saved rollback history (10 updates), a plugin about to rewrite published rows in
@@ -929,7 +931,10 @@ has to be deleted by hand.
   (storage layout) regenerate and snapshot the generated outputs; `cargo api` records the snapshot the client test
   reads. The dev profile drops cross-crate LTO and uses limited debuginfo
 - rawdb maps a reserved address range per data file (four times its size at open, at least 1 TiB), so growing a file
-  remaps it only past that range and a writer does not wait for readers to release the mapping. Read guards on data an
+  remaps it only past that range and a writer does not wait for readers to release the mapping. An append within a
+  region's reservation shares the region with its readers instead of waiting for them: it writes past every reader's
+  bounds and the region length is atomic, published after the bytes. Readers borrow only the bytes they read
+  (`with_read_bytes` takes an offset). Read guards on data an
   update changes (compressed page tables, pool heights, overflow and hole sets) are recursive, so a read nested in
   another read of the same vector cannot deadlock behind a waiting writer
 - statedb keeps the latest snapshot in `snapshots/tip` (and the one it replaced in `snapshots/prev`), both replaced

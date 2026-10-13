@@ -34,11 +34,13 @@ enum TransactionSource {
 impl Query {
     /// Resolve one exact live, confirmed, or recently vanished transaction.
     fn resolve_transaction_source(&self, txid: &Txid) -> Result<TransactionSource> {
-        let read = self.read_indexer()?;
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let read = self.read_indexer_at(pin);
         match read.resolve_confirmed_tx(txid) {
             Ok(transaction) => Ok(TransactionSource::Chain(transaction)),
             Err(Error::UnknownTxid) => {
-                let (mempool, tip) = self.lookup_mempool(read.pin()).ok_or(Error::UnknownTxid)?;
+                let (mempool, tip) =
+                    Self::lookup_mempool(mempool, read.pin()).ok_or(Error::UnknownTxid)?;
                 mempool
                     .transaction(txid, &tip)?
                     .map(TransactionSource::Memory)
@@ -87,11 +89,13 @@ impl Query {
     // ── Transaction queries ────────────────────────────────────────
 
     pub fn transaction_status(&self, txid: &Txid) -> Result<TxStatus> {
-        let read = self.read_indexer()?;
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let read = self.read_indexer_at(pin);
         match read.resolve_confirmed_position(txid) {
             Ok((_, height)) => self.confirmed_status_at_bounded(height, read.pin().lengths()),
             Err(Error::UnknownTxid) => {
-                let (mempool, tip) = self.lookup_mempool(read.pin()).ok_or(Error::UnknownTxid)?;
+                let (mempool, tip) =
+                    Self::lookup_mempool(mempool, read.pin()).ok_or(Error::UnknownTxid)?;
                 mempool
                     .contains_txid(txid, &tip)?
                     .then_some(TxStatus::UNCONFIRMED)

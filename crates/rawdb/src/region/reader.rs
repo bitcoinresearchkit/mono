@@ -64,9 +64,10 @@ impl Reader {
         self.read(0, self.len())
     }
 
-    /// Slice from offset to the end of this region.
+    /// Slice from offset to the end of this region, borrowing nothing before `offset`.
     pub fn read_from(&self, offset: usize) -> &[u8] {
-        &self.read_all()[offset..]
+        assert!(offset <= self.len());
+        self.read(offset, self.len() - offset)
     }
 }
 

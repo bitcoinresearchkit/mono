@@ -83,8 +83,8 @@ impl Query {
     /// mempool output binned by value, with none of the round-dollar payment
     /// filters applied. Zeros when no mempool is configured.
     pub fn live_output_histogram(&self) -> Result<HistogramRaw> {
-        let pin = self.pin_safe_lengths()?;
-        Ok(match self.lookup_mempool(&pin) {
+        let (mempool, pin) = self.mempool_then_pin()?;
+        Ok(match Self::lookup_mempool(mempool, &pin) {
             Some((mempool, tip)) => mempool.live_raw_histogram(&tip)?,
             None => HistogramRaw::zeros(),
         })
@@ -111,15 +111,12 @@ impl Query {
     /// The live tip oracle: the committed base, with the published pool's
     /// mempool outputs blended in as a final slot when a mempool is configured.
     fn live_oracle(&self) -> Result<Oracle> {
-        let pin = self.pin_safe_lengths()?;
+        let (mempool, pin) = self.mempool_then_pin()?;
         let tip = pin.tip();
         // Capture the completed mempool publication while the confirmed anchor
         // is held stable, before doing potentially expensive window work. A pool
         // not yet at this tip has nothing to blend.
-        let live = match self
-            .mempool()
-            .map(|mempool| mempool.live_eligible_histogram(&tip))
-        {
+        let live = match mempool.map(|mempool| mempool.live_eligible_histogram(&tip)) {
             Some(Ok(histogram)) => Some(histogram),
             None | Some(Err(brk_error::Error::StateUpdating)) => None,
             Some(Err(error)) => return Err(error.into()),

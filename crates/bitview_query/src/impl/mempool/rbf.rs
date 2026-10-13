@@ -29,10 +29,9 @@ impl ResolvedRbf {
 impl Query {
     /// Resolve the exact owned replacement tree from one mempool publication.
     pub fn resolve_rbf(&self, txid: &Txid) -> Result<ResolvedRbf> {
-        let pin = self.pin_safe_lengths()?;
-        let (mempool, tip) = self
-            .lookup_mempool(&pin)
-            .ok_or(Error::MempoolNotAvailable)?;
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let (mempool, tip) =
+            Self::lookup_mempool(mempool, &pin).ok_or(Error::MempoolNotAvailable)?;
         Ok(ResolvedRbf {
             source: mempool.rbf_for_tx(txid, &tip)?,
             pin,
@@ -68,10 +67,10 @@ impl Query {
     /// Most-recent first, capped at 25. `full_rbf_only` keeps only
     /// trees with at least one non-signaling predecessor.
     fn recent_replacements(&self, full_rbf_only: bool) -> Result<Vec<ReplacementNode>> {
-        let read = self.read_indexer()?;
-        let (mempool, tip) = self
-            .lookup_mempool(read.pin())
-            .ok_or(Error::MempoolNotAvailable)?;
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let read = self.read_indexer_at(pin);
+        let (mempool, tip) =
+            Self::lookup_mempool(mempool, read.pin()).ok_or(Error::MempoolNotAvailable)?;
         let trees = mempool.recent_rbf_trees(full_rbf_only, RECENT_REPLACEMENTS_LIMIT, &tip)?;
         trees
             .into_iter()

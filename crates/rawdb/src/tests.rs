@@ -351,3 +351,25 @@ fn growing_the_file_never_waits_for_a_reader() -> Result<()> {
     assert_eq!(grower.create_reader().read(len - 1, 1), [7]);
     Ok(())
 }
+
+#[test]
+fn appends_never_wait_for_a_reader() -> Result<()> {
+    let (db, _dir) = setup_test_db()?;
+    let region = db.create_region_if_needed("region")?;
+    region.write(b"headvalues")?;
+    let reader = region.create_reader();
+    let (done, finished) = std::sync::mpsc::channel();
+    let appended = thread::scope(|scope| {
+        scope.spawn(|| done.send(region.truncate_write(10, b"more")).unwrap());
+        let appended = finished.recv_timeout(std::time::Duration::from_secs(30));
+        // The reader keeps the bounds it was created with.
+        assert_eq!(reader.read_all(), b"headvalues");
+        // Release a blocked writer so the scope ends and the assertion below can report it.
+        drop(reader);
+        appended
+    });
+    assert!(appended.is_ok(), "the append waited for the reader");
+    appended.unwrap()?;
+    assert_eq!(region.create_reader().read_all(), b"headvaluesmore");
+    Ok(())
+}

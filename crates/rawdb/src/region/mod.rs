@@ -46,20 +46,21 @@ impl Region {
         self.0.access.read_recursive()
     }
 
-    /// Runs `f` with the region's bytes. The callback must not mutate this region
-    /// or grow the database mapping while the borrowed bytes are alive.
+    /// Runs `f` with the region's bytes from `offset` to its end. The callback must not mutate
+    /// this region or grow the database mapping while the borrowed bytes are alive.
     #[inline(always)]
-    pub fn with_read_bytes<R>(&self, f: impl FnOnce(&[u8]) -> R) -> R {
+    pub fn with_read_bytes<R>(&self, offset: usize, f: impl FnOnce(&[u8]) -> R) -> R {
         let db = self.db();
         let data = &db.inner.data;
         let _access = self.read_lock();
-        // SAFETY: access keeps all metadata fields stable.
+        // SAFETY: access keeps start and reservation stable; the length only grows under it.
         let (start, len, _) = unsafe { self.0.bounds() };
+        assert!(offset <= len);
         let mmap = data.read();
         debug_assert!(start <= mmap.len() && len <= mmap.len() - start);
-        // SAFETY: access prevents changes to this region, and mmap prevents
-        // remapping. Only this region's initialized bytes are borrowed.
-        f(unsafe { slice::from_raw_parts(mmap.as_ptr().add(start), len) })
+        // SAFETY: access prevents changes to these bytes (appends go past them), and mmap prevents
+        // remapping.
+        f(unsafe { slice::from_raw_parts(mmap.as_ptr().add(start + offset), len - offset) })
     }
 
     pub fn open_db_read_only_file(&self) -> Result<File> {
@@ -276,7 +277,7 @@ impl Region {
         let _access = self.0.access.write();
         let _writes = db.inner.writes.read();
         let regions = db.regions();
-        let mut meta = self.0.meta.write();
+        let meta = self.0.meta.read();
         if from > meta.byte_len() {
             return Err(Error::TruncateInvalid {
                 from,
@@ -297,6 +298,9 @@ impl Region {
         self.write_with(data, Some(at), true)
     }
 
+    /// An append within the reservation shares region access with readers: it writes past every
+    /// reader's bounds, then publishes the length. Anything else, or growth past the reservation,
+    /// takes access exclusively.
     #[inline]
     fn write_with(&self, data: &[u8], at: Option<usize>, truncate: bool) -> Result<()> {
         if data.is_empty() {
@@ -315,6 +319,24 @@ impl Region {
             }
         }
         let db = self.db();
+        {
+            let _access = self.0.access.read_recursive();
+            let _writer = self.0.writer.lock();
+            // SAFETY: shared access keeps start and reservation stable; the writer lock, the length.
+            let (start, len, reserved) = unsafe { self.0.bounds() };
+            let offset = at.unwrap_or(len);
+            let end = offset.saturating_add(data.len());
+            let new_len = if truncate { end } else { end.max(len) };
+            if offset == len && new_len <= reserved {
+                let _writes = db.inner.writes.read();
+                // SAFETY: past every reader's bounds: no reference covers these bytes.
+                unsafe { db.inner.data.write(start + offset, data) };
+                if new_len != len {
+                    self.publish_len(&db, new_len, len);
+                }
+                return Ok(());
+            }
+        }
         let _access = self.0.access.write();
         // SAFETY: access keeps metadata stable until this operation updates it.
         let (mut start, len, reserved) = unsafe { self.0.bounds() };
@@ -348,15 +370,20 @@ impl Region {
         // SAFETY: access excludes readers and overlapping writes to this region.
         unsafe { db.inner.data.write(start + offset, data) };
         if new_len != len {
-            let regions = db.regions();
-            let mut meta = self.0.meta.write();
-            meta.set_len(new_len);
-            if new_len < len {
-                self.0.tail_needs_punch.store(true, Ordering::Relaxed);
-            }
-            regions.update_bounds(self.index(), &meta);
+            self.publish_len(&db, new_len, len);
         }
         Ok(())
+    }
+
+    /// Records a length the written bytes now cover, after them.
+    fn publish_len(&self, db: &Database, new_len: usize, len: usize) {
+        let regions = db.regions();
+        let meta = self.0.meta.read();
+        meta.set_len(new_len);
+        if new_len < len {
+            self.0.tail_needs_punch.store(true, Ordering::Relaxed);
+        }
+        regions.update_bounds(self.index(), &meta);
     }
 
     /// Space becomes reusable after the next `flush()`. On failure the region

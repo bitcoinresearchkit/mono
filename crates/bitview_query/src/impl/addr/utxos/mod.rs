@@ -31,12 +31,11 @@ impl Query {
         max_utxos: usize,
     ) -> Result<ResolvedAddrUtxos> {
         let addr = &parse_addr(addr)?;
-        let pin = self.pin_safe_lengths()?;
+        let (mempool, pin) = self.mempool_then_pin()?;
         let lengths = pin.lengths();
         let found = self.find_addr_bytes(addr, lengths)?;
         let tip = pin.tip();
-        let pending = self
-            .mempool()
+        let pending = mempool
             .map(|mempool| anchored(mempool.addr_pending_utxos(addr, &tip)))
             .transpose()?
             .unwrap_or_default();

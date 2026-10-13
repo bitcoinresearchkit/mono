@@ -22,7 +22,7 @@ let projected_blocks = mempool.block_stats();
 `start_with` runs one update cycle per second and does not return; `resolver`
 supplies confirmed prevouts (Bitview resolves them from its own indexer), and
 `published_tip` the chain tip readers pair the pool with: a pool is published only
-at that tip, right after the chain publishes it. Only one driver may run for a
+at that tip, as soon as the chain publishes it and calls `chain_waker().published()`. Only one driver may run for a
 `Mempool` instance.
 
 Use `tick` to drive one cycle manually; it resolves confirmed prevouts with

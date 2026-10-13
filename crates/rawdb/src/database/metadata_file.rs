@@ -87,9 +87,9 @@ impl MetadataFile {
 
     fn write_slot(&self, index: usize, bytes: &[u8]) {
         assert!(bytes.len() <= SIZE_OF_REGION_METADATA);
-        // SAFETY: each slot belongs to one region, and its writers hold that region's access
-        // or the registry write lock, so no two write one slot at once; shared access excludes
-        // remapping and decoding. No reference over other slots is formed.
+        // SAFETY: each slot belongs to one region, and its writers hold that region's exclusive
+        // access, its writer lock or the registry write lock, so no two write one slot at once;
+        // shared access excludes remapping and decoding. No reference over other slots is formed.
         unsafe { write_to_mmap(&self.mmap, index * SIZE_OF_REGION_METADATA, bytes) };
     }
 }

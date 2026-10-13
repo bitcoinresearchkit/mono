@@ -4,7 +4,6 @@ use std::{
     any::Any,
     panic::{AssertUnwindSafe, catch_unwind},
     sync::Arc,
-    thread,
     time::{Duration, Instant},
 };
 
@@ -20,16 +19,14 @@ use crate::{
 };
 
 const PERIOD: Duration = Duration::from_millis(1000);
-/// How often a withheld pool checks whether the chain has published its tip.
-const WITHHELD_POLL: Duration = Duration::from_millis(5);
 
 impl Mempool {
     /// Drive one update per second. Overrunning cycles resume immediately.
     /// The exclusive writer borrow prevents concurrent drivers or manual ticks.
     ///
     /// A pool is published only at the tip the chain has published (`published_tip`), so readers
-    /// pair it with their chain view; one withheld for a newer tip goes out right after the chain
-    /// publishes that tip.
+    /// pair it with their chain view; when the chain publishes a tip and wakes the driver
+    /// ([`Self::chain_waker`]), a pool behind it follows at once.
     pub fn start_with<F>(&mut self, resolver: F, published_tip: impl Fn() -> BlockHash)
     where
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> + Send,
@@ -49,10 +46,8 @@ impl Mempool {
                 );
             }
             while let Some(rest) = PERIOD.checked_sub(started.elapsed()) {
-                match self.withheld {
-                    Some(tip) if tip == published_tip() => break,
-                    Some(_) => thread::sleep(rest.min(WITHHELD_POLL)),
-                    None => thread::sleep(rest),
+                if self.chain.wait(rest) && self.read_only.load().tip() != Some(published_tip()) {
+                    break;
                 }
             }
         }
@@ -131,9 +126,6 @@ impl Mempool {
                     rpc.tip_hash,
                     address_view_complete && self.state.contains_all(&rpc.live_txids),
                 );
-                self.withheld = None;
-            } else {
-                self.withheld = Some(rpc.tip_hash);
             }
         }
         let CycleDiff {

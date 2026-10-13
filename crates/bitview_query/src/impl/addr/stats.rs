@@ -10,8 +10,9 @@ use crate::{Error, OptionData, Query, Result};
 impl Query {
     pub fn addr(&self, addr: Address) -> Result<AddressStats> {
         let bytes = parse_addr(&addr)?;
-        // The state is written with the published lengths under this lock: take it before the
-        // pin, so both are of one publication.
+        // The mempool first (it never leads the chain), then the address state, written with the
+        // published lengths under this lock, then the pin: all of one publication.
+        let mempool = self.mempool();
         let stable = self.plugins().addresses.state.read_stable();
         let pin = self.pin_safe_lengths()?;
         // Only a rollback, a failed write or a long catch-up leaves it at another length.
@@ -23,8 +24,7 @@ impl Query {
             .map(|(output_type, type_index)| self.addr_chain_stats(output_type, type_index))
             .transpose()?;
         drop(stable);
-        let mempool_stats = self
-            .mempool()
+        let mempool_stats = mempool
             .map(|m| anchored(m.addr_stats(&bytes, &pin.tip())))
             .transpose()?
             .unwrap_or_default();

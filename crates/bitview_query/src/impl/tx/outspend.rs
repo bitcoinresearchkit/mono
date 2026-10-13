@@ -7,9 +7,9 @@ use crate::{Error, OptionData, Query, RepresentationId, Result, r#impl::mempool:
 
 impl Query {
     fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
-        let pin = self.pin_safe_lengths()?;
+        let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
-        let mempool = self.lookup_mempool(&pin);
+        let mempool = Self::lookup_mempool(mempool, &pin);
         let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, safe) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
@@ -48,9 +48,9 @@ impl Query {
     }
 
     fn outspends(&self, txid: &Txid) -> Result<Vec<TxOutspend>> {
-        let pin = self.pin_safe_lengths()?;
+        let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
-        let mempool = self.lookup_mempool(&pin);
+        let mempool = Self::lookup_mempool(mempool, &pin);
         let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, safe) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {

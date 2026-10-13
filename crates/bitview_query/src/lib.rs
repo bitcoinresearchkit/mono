@@ -305,13 +305,23 @@ impl Query {
         self.0.mempool.as_ref().map(ReadOnlyMempool::load)
     }
 
-    /// The mempool and the tip a lookup the chain answers first reads it at: the pin's, or the
-    /// pin's parent while the mempool has yet to follow the pin's block (it publishes only after
-    /// the chain does). The chain answering first, the parent's pool only adds what is still
-    /// pending; address views need the pin's own tip.
+    /// The mempool, then a pin: the pool never leads the chain, so loaded first it is at the pin's
+    /// tip or, for the moment after a block publishes, the pin's parent.
     #[cfg(any(feature = "chain", feature = "price"))]
-    fn lookup_mempool(&self, pin: &SafeLengths) -> Option<(Arc<ReadOnlyState>, BlockHash)> {
-        let mempool = self.mempool()?;
+    fn mempool_then_pin(&self) -> Result<(Option<Arc<ReadOnlyState>>, SafeLengths)> {
+        let mempool = self.mempool();
+        Ok((mempool, self.pin_safe_lengths()?))
+    }
+
+    /// `mempool` and the tip a lookup the chain answers first reads it at: the pin's, or the pin's
+    /// parent while the mempool has yet to follow the pin's block. The chain answering first, the
+    /// parent's pool only adds what is still pending; address views need the pin's own tip.
+    #[cfg(any(feature = "chain", feature = "price"))]
+    fn lookup_mempool(
+        mempool: Option<Arc<ReadOnlyState>>,
+        pin: &SafeLengths,
+    ) -> Option<(Arc<ReadOnlyState>, BlockHash)> {
+        let mempool = mempool?;
         let tip = match mempool.tip() {
             Some(pool) if pool == pin.parent_tip() => pool,
             _ => pin.tip(),
