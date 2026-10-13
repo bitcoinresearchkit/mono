@@ -42,3 +42,13 @@ pub use series::{ResolvedQuery, SeriesRead};
 pub use tx::{ResolvedConfirmedTx, ResolvedRawTransaction, ResolvedTransaction};
 #[cfg(feature = "chain")]
 pub use utxo_set::UtxoSetPoint;
+
+/// mempool.space reports a block without transactions at 0 sat/vB; the series leave it undefined.
+#[cfg(feature = "chain")]
+fn mempool_fee_rate(rate: brk_types::FeeRate) -> brk_types::FeeRate {
+    if f64::from(rate).is_nan() {
+        brk_types::FeeRate::ZERO
+    } else {
+        rate
+    }
+}

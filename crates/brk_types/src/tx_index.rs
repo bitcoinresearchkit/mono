@@ -41,7 +41,7 @@ pub struct TxIndex(u32);
 
 impl TxIndex {
     pub const ZERO: Self = Self(0);
-    pub fn new(tx_index: u32) -> Self {
+    pub const fn new(tx_index: u32) -> Self {
         Self(tx_index)
     }
 

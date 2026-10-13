@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, overload, Tuple, TYPE_CHECKING
 from http.client import HTTPSConnection, HTTPConnection
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from datetime import date, datetime, timedelta, timezone
 import json
 import re
@@ -1924,6 +1924,7 @@ class BitviewClientBase:
     def __init__(self, base_url: str, timeout: float = 30.0):
         parsed = urlparse(base_url)
         self._host = parsed.netloc
+        self._prefix = parsed.path.rstrip('/')
         self._secure = parsed.scheme == 'https'
         self._timeout = timeout
         self._conn: Optional[Union[HTTPSConnection, HTTPConnection]] = None
@@ -1941,7 +1942,7 @@ class BitviewClientBase:
         """Make a GET request and return raw bytes."""
         try:
             conn = self._connect()
-            conn.request("GET", path)
+            conn.request("GET", self._prefix + path)
             res = conn.getresponse()
             data = res.read()
             if res.status >= 400:
@@ -1963,7 +1964,7 @@ class BitviewClientBase:
         """Make a POST request with a string body and return raw bytes."""
         try:
             conn = self._connect()
-            conn.request("POST", path, body=body)
+            conn.request("POST", self._prefix + path, body=body)
             res = conn.getresponse()
             data = res.read()
             if res.status >= 400:
@@ -2320,6 +2321,13 @@ def _series_data(raw: Dict[str, Any]) -> AnySeriesData:
     return (DateSeriesData if raw['index'] in _DATE_INDEXES else SeriesData)(**raw)
 
 
+def _contiguous(key: slice) -> slice:
+    """Series slices select a contiguous range: a step is rejected, not ignored."""
+    if key.step not in (None, 1):
+        raise ValueError("series slices do not support a step")
+    return key
+
+
 class _EndpointConfig:
     """Shared endpoint configuration."""
     client: BitviewClient
@@ -2343,16 +2351,16 @@ class _EndpointConfig:
         return f"/api/series/{self.name}/{self.index}"
 
     def _build_path(self, format: Optional[str] = None) -> str:
-        params = []
+        params: List[Tuple[str, Any]] = []
         if self.start is not None:
-            params.append(f"start={self.start}")
+            params.append(("start", self.start))
         if self.end is not None:
-            params.append(f"end={self.end}")
+            params.append(("end", self.end))
         if self.limit is not None:
-            params.append(f"limit={self.limit}")
+            params.append(("limit", self.limit))
         if format is not None:
-            params.append(f"format={format}")
-        query = "&".join(params)
+            params.append(("format", format))
+        query = urlencode(params)
         p = self.path()
         return f"{p}?{query}" if query else p
 
@@ -2469,6 +2477,7 @@ class SeriesEndpoint(Generic[T]):
         """Access single item or slice by integer index."""
         if isinstance(key, int):
             return SingleItemBuilder(self._config._new(key, limit=1))
+        key = _contiguous(key)
         return RangeBuilder(self._config._new(key.start, key.stop))
 
     def head(self, n: int = 10) -> RangeBuilder[T]:
@@ -2535,6 +2544,7 @@ class DateSeriesEndpoint(Generic[T]):
             return DateSingleItemBuilder(self._config._new(idx, limit=1))
         if isinstance(key, int):
             return DateSingleItemBuilder(self._config._new(key, limit=1))
+        key = _contiguous(key)
         start, stop = key.start, key.stop
         if isinstance(start, (date, datetime)):
             start = _date_to_index(self._config.index, start)
@@ -4777,6 +4787,7 @@ class Classes(_Node):
     _2024: Classes2009 = _at(Classes2009, '*_2024')
     _2025: Classes2009 = _at(Classes2009, '*_2025')
     _2026: Classes2009 = _at(Classes2009, '*_2026')
+    _2027: Classes2009 = _at(Classes2009, '*_2027')
 
 
 class Epochs(_Node):
@@ -4785,6 +4796,7 @@ class Epochs(_Node):
     _2: Classes2009 = _at(Classes2009, '*_2')
     _3: Classes2009 = _at(Classes2009, '*_3')
     _4: Classes2009 = _at(Classes2009, '*_4')
+    _5: Classes2009 = _at(Classes2009, '*_5')
 
 
 class Ranges10yTo12y(_Node):
@@ -5677,6 +5689,11 @@ class BitviewClient(BitviewClientBase):
         "id": "epoch_4",
         "short": "4",
         "long": "Epoch 4"
+      },
+      "_5": {
+        "id": "epoch_5",
+        "short": "5",
+        "long": "Epoch 5"
       }
     }
 
@@ -5770,6 +5787,11 @@ class BitviewClient(BitviewClientBase):
         "id": "class_2026",
         "short": "2026",
         "long": "Class 2026"
+      },
+      "_2027": {
+        "id": "class_2027",
+        "short": "2027",
+        "long": "Class 2027"
       }
     }
 
@@ -6263,10 +6285,10 @@ class BitviewClient(BitviewClientBase):
         Paginated flat list of all available series names. Use `page` query param for pagination.
 
         Endpoint: `GET /api/series/list`"""
-        params = []
-        if page is not None: params.append(f'page={page}')
-        if per_page is not None: params.append(f'per_page={per_page}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        if page is not None: params.append(('page', page))
+        if per_page is not None: params.append(('per_page', per_page))
+        query = urlencode(params)
         path = f'/api/series/list{"?" + query if query else ""}'
         return self.get_json(path)
 
@@ -6276,10 +6298,10 @@ class BitviewClient(BitviewClientBase):
         Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
 
         Endpoint: `GET /api/series/search`"""
-        params = []
-        params.append(f'q={q}')
-        if limit is not None: params.append(f'limit={limit}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        params.append(('q', q))
+        if limit is not None: params.append(('limit', limit))
+        query = urlencode(params)
         path = f'/api/series/search{"?" + query if query else ""}'
         return self.get_json(path)
 
@@ -6297,12 +6319,12 @@ class BitviewClient(BitviewClientBase):
         Fetch data for a specific series at the given index. Use query parameters to filter by date range and format (json/csv).
 
         Endpoint: `GET /api/series/{series}/{index}`"""
-        params = []
-        if start is not None: params.append(f'start={start}')
-        if end is not None: params.append(f'end={end}')
-        if limit is not None: params.append(f'limit={limit}')
-        if format is not None: params.append(f'format={format}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        if start is not None: params.append(('start', start))
+        if end is not None: params.append(('end', end))
+        if limit is not None: params.append(('limit', limit))
+        if format is not None: params.append(('format', format))
+        query = urlencode(params)
         path = f'/api/series/{series}/{index}{"?" + query if query else ""}'
         if format == 'csv':
             return self.get_text(path)
@@ -6314,12 +6336,12 @@ class BitviewClient(BitviewClientBase):
         Returns just the data array without the SeriesData wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
 
         Endpoint: `GET /api/series/{series}/{index}/data`"""
-        params = []
-        if start is not None: params.append(f'start={start}')
-        if end is not None: params.append(f'end={end}')
-        if limit is not None: params.append(f'limit={limit}')
-        if format is not None: params.append(f'format={format}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        if start is not None: params.append(('start', start))
+        if end is not None: params.append(('end', end))
+        if limit is not None: params.append(('limit', limit))
+        if format is not None: params.append(('format', format))
+        query = urlencode(params)
         path = f'/api/series/{series}/{index}/data{"?" + query if query else ""}'
         if format == 'csv':
             return self.get_text(path)
@@ -6355,14 +6377,14 @@ class BitviewClient(BitviewClientBase):
         Fetch multiple series in a single request. Supports filtering by index and date range. Returns an array of SeriesData objects. For a single series, use `get_series` instead.
 
         Endpoint: `GET /api/series/bulk`"""
-        params = []
-        params.append(f'series={series}')
-        params.append(f'index={index}')
-        if start is not None: params.append(f'start={start}')
-        if end is not None: params.append(f'end={end}')
-        if limit is not None: params.append(f'limit={limit}')
-        if format is not None: params.append(f'format={format}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        params.append(('series', series))
+        params.append(('index', index))
+        if start is not None: params.append(('start', start))
+        if end is not None: params.append(('end', end))
+        if limit is not None: params.append(('limit', limit))
+        if format is not None: params.append(('format', format))
+        query = urlencode(params)
         path = f'/api/series/bulk{"?" + query if query else ""}'
         if format == 'csv':
             return self.get_text(path)
@@ -6382,9 +6404,9 @@ class BitviewClient(BitviewClientBase):
         Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.
 
         Endpoint: `GET /api/urpd/{cohort}/dates`"""
-        params = []
-        if weight is not None: params.append(f'weight={weight}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        if weight is not None: params.append(('weight', weight))
+        query = urlencode(params)
         path = f'/api/urpd/{cohort}/dates{"?" + query if query else ""}'
         return self.get_json(path)
 
@@ -6394,10 +6416,10 @@ class BitviewClient(BitviewClientBase):
         URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.
 
         Endpoint: `GET /api/urpd/{cohort}`"""
-        params = []
-        if agg is not None: params.append(f'agg={agg}')
-        if weight is not None: params.append(f'weight={weight}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        if agg is not None: params.append(('agg', agg))
+        if weight is not None: params.append(('weight', weight))
+        query = urlencode(params)
         path = f'/api/urpd/{cohort}{"?" + query if query else ""}'
         return self.get_json(path)
 
@@ -6407,10 +6429,10 @@ class BitviewClient(BitviewClientBase):
         URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.
 
         Endpoint: `GET /api/urpd/{cohort}/{point}`"""
-        params = []
-        if agg is not None: params.append(f'agg={agg}')
-        if weight is not None: params.append(f'weight={weight}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        if agg is not None: params.append(('agg', agg))
+        if weight is not None: params.append(('weight', weight))
+        query = urlencode(params)
         path = f'/api/urpd/{cohort}/{point}{"?" + query if query else ""}'
         return self.get_json(path)
 
@@ -6442,9 +6464,9 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
 
         Endpoint: `GET /api/v1/historical-price`"""
-        params = []
-        if timestamp is not None: params.append(f'timestamp={timestamp}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        if timestamp is not None: params.append(('timestamp', timestamp))
+        query = urlencode(params)
         path = f'/api/v1/historical-price{"?" + query if query else ""}'
         return self.get_json(path)
 
@@ -7094,9 +7116,9 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
 
         Endpoint: `GET /api/v1/transaction-times`"""
-        params = []
-        for _v in txId: params.append(f'txId[]={_v}')
-        query = '&'.join(params)
+        params: List[Tuple[str, Any]] = []
+        for _v in txId: params.append(('txId[]', _v))
+        query = urlencode(params)
         path = f'/api/v1/transaction-times{"?" + query if query else ""}'
         return self.get_json(path)
 

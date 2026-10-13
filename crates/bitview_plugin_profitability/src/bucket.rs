@@ -10,12 +10,14 @@ pub(crate) struct Bucket {
 
 impl Bucket {
     pub(crate) fn between(before: PriceTotals<4>, after: PriceTotals<4>) -> Self {
+        // Rounding the running totals, not each band, keeps a filter's bands summing to its total.
+        let cents = |cap: i128| CentsSats::new(cap.max(0) as u128).to_cents_rounded();
         let values = AgeAggregate::from_fn(|id| {
             let (before_sats, before_cap) = age_index::selected(id, &before);
             let (after_sats, after_cap) = age_index::selected(id, &after);
             (
                 Sats::new((after_sats - before_sats).max(0) as u64),
-                CentsSats::new((after_cap - before_cap).max(0) as u128).to_cents_rounded(),
+                cents(after_cap).saturating_sub(cents(before_cap)),
             )
         });
         Self {

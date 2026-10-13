@@ -459,24 +459,30 @@ impl Query {
         if let Some(idx) = index.timestamp_to_index(ts) {
             return Ok(idx as i64);
         }
-        let height = || self.height_for_timestamp(ts, read).map(Height::from);
-        match index {
-            Index::Height => Ok(usize::from(height()?) as i64),
-            Index::Epoch => Ok(usize::from(Epoch::from(height()?)) as i64),
-            Index::Halving => Ok(usize::from(Halving::from(height()?)) as i64),
-            _ if index.is_date_based() => Err(Error::InvalidParam(format!(
-                "date/timestamp out of range for index '{index}'"
-            ))),
-            _ => Err(Error::InvalidParam(format!(
-                "date/timestamp ranges not supported for index '{index}'"
-            ))),
-        }
+        let to_index: fn(Height) -> usize = match index {
+            Index::Height => usize::from,
+            Index::Epoch => |height| usize::from(Epoch::from(height)),
+            Index::Halving => |height| usize::from(Halving::from(height)),
+            _ if index.is_date_based() => {
+                return Err(Error::InvalidParam(format!(
+                    "date/timestamp out of range for index '{index}'"
+                )));
+            }
+            _ => {
+                return Err(Error::InvalidParam(format!(
+                    "date/timestamp ranges not supported for index '{index}'"
+                )));
+            }
+        };
+        // Past the last block: the selected series' exclusive end.
+        Ok(self
+            .height_for_timestamp(ts, read)?
+            .map_or(i64::MAX, |height| to_index(Height::from(height)) as i64))
     }
 
-    /// Find the first block height at or after a given timestamp.
+    /// The first block height at or after a given timestamp, `None` past the last block.
     /// Search the guarded published vector; no copied cross-query timestamp map.
-    fn height_for_timestamp(&self, ts: Timestamp, read: &SeriesRead) -> Result<usize> {
-        let current_height: usize = read.safe_lengths().last_height().unwrap_or_default().into();
+    fn height_for_timestamp(&self, ts: Timestamp, read: &SeriesRead) -> Result<Option<usize>> {
         let timestamps = &self.plugins().mappings.timestamp.monotonic;
         let len = read.bind(timestamps)?.visible_len();
         let mut position = 0;
@@ -489,11 +495,7 @@ impl Query {
                 end = middle;
             }
         }
-        Ok(if position == len {
-            current_height
-        } else {
-            position
-        })
+        Ok((position < len).then_some(position))
     }
 }
 

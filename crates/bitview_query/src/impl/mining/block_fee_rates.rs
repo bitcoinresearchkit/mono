@@ -1,7 +1,9 @@
 use bitview_types::{BlockFeeRatesEntry, FeeRatePercentiles, TimePeriod};
 
+use brk_types::FeeRate;
+
 use super::block_window::BlockWindow;
-use crate::{Query, Result};
+use crate::{Query, Result, r#impl::mempool_fee_rate};
 
 impl Query {
     /// Time-bucketed fee-rate percentiles over `time_period`. One entry per
@@ -18,13 +20,16 @@ impl Query {
             .effective_fee_rate
             .distribution;
 
-        let min = bw.read(&frd.min.block.height)?;
-        let pct10 = bw.read(&frd.pct10.block.height)?;
-        let pct25 = bw.read(&frd.pct25.block.height)?;
-        let median = bw.read(&frd.median.block.height)?;
-        let pct75 = bw.read(&frd.pct75.block.height)?;
-        let pct90 = bw.read(&frd.pct90.block.height)?;
-        let max = bw.read(&frd.max.block.height)?;
+        let read = |vec| -> Result<Vec<FeeRate>> {
+            Ok(bw.read(vec)?.into_iter().map(mempool_fee_rate).collect())
+        };
+        let min = read(&frd.min.block.height)?;
+        let pct10 = read(&frd.pct10.block.height)?;
+        let pct25 = read(&frd.pct25.block.height)?;
+        let median = read(&frd.median.block.height)?;
+        let pct75 = read(&frd.pct75.block.height)?;
+        let pct90 = read(&frd.pct90.block.height)?;
+        let max = read(&frd.max.block.height)?;
         drop(_guard);
 
         Ok(bw

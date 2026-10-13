@@ -27,6 +27,7 @@ pub const CLASS_NAMES: Class<CohortName> = Class {
     _2024: CohortName::new("class_2024", "2024", "Class 2024"),
     _2025: CohortName::new("class_2025", "2025", "Class 2025"),
     _2026: CohortName::new("class_2026", "2026", "Class 2026"),
+    _2027: CohortName::new("class_2027", "2027", "Class 2027"),
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
@@ -68,6 +69,8 @@ pub struct Class<T> {
     _2025: T,
     /// Uses UTXOs created in calendar year 2026.
     _2026: T,
+    /// Uses UTXOs created in calendar year 2027.
+    _2027: T,
 }
 
 define_cohort_id!(
@@ -90,6 +93,7 @@ define_cohort_id!(
         _2024 => _2024,
         _2025 => _2025,
         _2026 => _2026,
+        _2027 => _2027,
     }
 );
 
@@ -103,32 +107,13 @@ impl<T> Class<T> {
     }
 
     pub fn mut_vec_from_timestamp(&mut self, timestamp: Timestamp) -> Option<&mut T> {
-        let year = Year::from(timestamp);
-        self.get_mut(year)
-    }
-
-    fn get_mut(&mut self, year: Year) -> Option<&mut T> {
-        match u16::from(year) {
-            2009 => Some(&mut self._2009),
-            2010 => Some(&mut self._2010),
-            2011 => Some(&mut self._2011),
-            2012 => Some(&mut self._2012),
-            2013 => Some(&mut self._2013),
-            2014 => Some(&mut self._2014),
-            2015 => Some(&mut self._2015),
-            2016 => Some(&mut self._2016),
-            2017 => Some(&mut self._2017),
-            2018 => Some(&mut self._2018),
-            2019 => Some(&mut self._2019),
-            2020 => Some(&mut self._2020),
-            2021 => Some(&mut self._2021),
-            2022 => Some(&mut self._2022),
-            2023 => Some(&mut self._2023),
-            2024 => Some(&mut self._2024),
-            2025 => Some(&mut self._2025),
-            2026 => Some(&mut self._2026),
-            _ => None,
-        }
+        let year = u16::from(Year::from(timestamp));
+        let id = year
+            .checked_sub(2009)
+            .and_then(|offset| ClassId::ALL.get(usize::from(offset)))
+            .copied();
+        debug_assert!(id.is_some(), "no class cohort for {year}");
+        id.map(|id| id.select_mut(self))
     }
 }
 

@@ -227,7 +227,7 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
                 .unwrap();
             }
         } else {
-            writeln!(output, "        params = []").unwrap();
+            writeln!(output, "        params: List[Tuple[str, Any]] = []").unwrap();
             for param in &endpoint.query_params {
                 // Use safe name for Python variable, original name for API query parameter
                 let safe_name = escape_python_keyword(&param.name);
@@ -235,27 +235,27 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
                 if is_array {
                     writeln!(
                         output,
-                        "        for _v in {}: params.append(f'{}={{_v}}')",
+                        "        for _v in {}: params.append(('{}', _v))",
                         safe_name, param.name
                     )
                     .unwrap();
                 } else if param.required {
                     writeln!(
                         output,
-                        "        params.append(f'{}={{{}}}')",
+                        "        params.append(('{}', {}))",
                         param.name, safe_name
                     )
                     .unwrap();
                 } else {
                     writeln!(
                         output,
-                        "        if {} is not None: params.append(f'{}={{{}}}')",
+                        "        if {} is not None: params.append(('{}', {}))",
                         safe_name, param.name, safe_name
                     )
                     .unwrap();
                 }
             }
-            writeln!(output, "        query = '&'.join(params)").unwrap();
+            writeln!(output, "        query = urlencode(params)").unwrap();
             writeln!(
                 output,
                 "        path = f'{}{{\"?\" + query if query else \"\"}}'",

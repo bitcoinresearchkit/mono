@@ -75,6 +75,7 @@ class BitviewClientBase:
     def __init__(self, base_url: str, timeout: float = 30.0):
         parsed = urlparse(base_url)
         self._host = parsed.netloc
+        self._prefix = parsed.path.rstrip('/')
         self._secure = parsed.scheme == 'https'
         self._timeout = timeout
         self._conn: Optional[Union[HTTPSConnection, HTTPConnection]] = None
@@ -92,7 +93,7 @@ class BitviewClientBase:
         """Make a GET request and return raw bytes."""
         try:
             conn = self._connect()
-            conn.request("GET", path)
+            conn.request("GET", self._prefix + path)
             res = conn.getresponse()
             data = res.read()
             if res.status >= 400:
@@ -114,7 +115,7 @@ class BitviewClientBase:
         """Make a POST request with a string body and return raw bytes."""
         try:
             conn = self._connect()
-            conn.request("POST", path, body=body)
+            conn.request("POST", self._prefix + path, body=body)
             res = conn.getresponse()
             data = res.read()
             if res.status >= 400:
@@ -480,6 +481,13 @@ def _series_data(raw: Dict[str, Any]) -> AnySeriesData:
     return (DateSeriesData if raw['index'] in _DATE_INDEXES else SeriesData)(**raw)
 
 
+def _contiguous(key: slice) -> slice:
+    """Series slices select a contiguous range: a step is rejected, not ignored."""
+    if key.step not in (None, 1):
+        raise ValueError("series slices do not support a step")
+    return key
+
+
 class _EndpointConfig:
     """Shared endpoint configuration."""
     client: BitviewClient
@@ -503,16 +511,16 @@ class _EndpointConfig:
         return f"/api/series/{{self.name}}/{{self.index}}"
 
     def _build_path(self, format: Optional[str] = None) -> str:
-        params = []
+        params: List[Tuple[str, Any]] = []
         if self.start is not None:
-            params.append(f"start={{self.start}}")
+            params.append(("start", self.start))
         if self.end is not None:
-            params.append(f"end={{self.end}}")
+            params.append(("end", self.end))
         if self.limit is not None:
-            params.append(f"limit={{self.limit}}")
+            params.append(("limit", self.limit))
         if format is not None:
-            params.append(f"format={{format}}")
-        query = "&".join(params)
+            params.append(("format", format))
+        query = urlencode(params)
         p = self.path()
         return f"{{p}}?{{query}}" if query else p
 
@@ -629,6 +637,7 @@ class SeriesEndpoint(Generic[T]):
         """Access single item or slice by integer index."""
         if isinstance(key, int):
             return SingleItemBuilder(self._config._new(key, limit=1))
+        key = _contiguous(key)
         return RangeBuilder(self._config._new(key.start, key.stop))
 
     def head(self, n: int = 10) -> RangeBuilder[T]:
@@ -695,6 +704,7 @@ class DateSeriesEndpoint(Generic[T]):
             return DateSingleItemBuilder(self._config._new(idx, limit=1))
         if isinstance(key, int):
             return DateSingleItemBuilder(self._config._new(key, limit=1))
+        key = _contiguous(key)
         start, stop = key.start, key.stop
         if isinstance(start, (date, datetime)):
             start = _date_to_index(self._config.index, start)

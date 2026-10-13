@@ -20,7 +20,7 @@ use vecdb::{Database, Rw, StorageMode};
 
 use live::LiveState;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("profitability"), Version::new(4));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("profitability"), Version::new(5));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]

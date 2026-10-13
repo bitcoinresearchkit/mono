@@ -16,7 +16,7 @@ use brk_types::{
 };
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, Result, r#impl::mempool_fee_rate};
 
 const HEADER_SIZE: usize = 80;
 
@@ -416,10 +416,10 @@ impl Query {
             .block
             .sats
             .collect_range_at(begin, end);
-        let subsidy_sats = plugins
+        let coinbase_sats = plugins
             .mining
             .rewards
-            .subsidy
+            .coinbase
             .block
             .sats
             .collect_range_at(begin, end);
@@ -476,7 +476,7 @@ impl Query {
             segwit_sizes.len(),
             segwit_weights.len(),
             fee_sats.len(),
-            subsidy_sats.len(),
+            coinbase_sats.len(),
             input_counts.len(),
             output_counts.len(),
             utxo_set_sizes.len(),
@@ -539,7 +539,7 @@ impl Query {
                 let weight = Weight::from(weights[i]);
                 let size = u64::from(*sizes[i]);
                 let total_fees = fee_sats[i];
-                let subsidy = subsidy_sats[i];
+                let reward = coinbase_sats[i];
                 let total_inputs = *input_counts[i];
                 let total_outputs = *output_counts[i];
                 let vsize = weight.to_vbytes_ceil();
@@ -581,7 +581,7 @@ impl Query {
 
                 let extras = BlockExtras {
                     total_fees,
-                    median_fee: fr_median[i],
+                    median_fee: mempool_fee_rate(fr_median[i]),
                     fee_range: [
                         fr_min[i],
                         fr_pct10[i],
@@ -590,8 +590,9 @@ impl Query {
                         fr_pct75[i],
                         fr_pct90[i],
                         fr_max[i],
-                    ],
-                    reward: subsidy + total_fees,
+                    ]
+                    .map(mempool_fee_rate),
+                    reward,
                     pool: BlockPool {
                         id: pool.mempool_unique_id(),
                         name: pool.name.to_string(),

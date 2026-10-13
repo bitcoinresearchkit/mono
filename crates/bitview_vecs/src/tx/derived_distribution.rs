@@ -202,7 +202,7 @@ where
         push: impl Fn(DistributionStats<&mut PerBlock<T>>, &[U]),
     ) -> Result<()> {
         const WINDOW: usize = 6;
-        let version = source_version + first_tx_index.version() + counts.version();
+        let version = source_version + first_tx_index.version() + counts.version() + Version::ONE;
         let end = first_tx_index.len().min(counts.len());
         let mut outputs = self.height_vecs_mut();
         let start = prepare_computed(&mut outputs, version, usize::from(max_from).min(end), exit)?;
@@ -269,7 +269,7 @@ fn push_sorted<T: NumericValue + JsonSchema>(
         stats.pct10.height.push(get_percentile(values, 0.10));
         stats.min.height.push(min);
     } else {
-        push_zeros(stats);
+        push_undefined(stats);
     }
 }
 
@@ -288,11 +288,12 @@ fn push_weighted_sorted<T: NumericValue + JsonSchema>(
         stats.pct10.height.push(pct10);
         stats.min.height.push(min);
     } else {
-        push_zeros(stats);
+        push_undefined(stats);
     }
 }
 
-fn push_zeros<T: NumericValue + JsonSchema>(stats: DistributionStats<&mut PerBlock<T>>) {
+/// No values: NaN where the type has it (fee rates), zero for integer quantities.
+fn push_undefined<T: NumericValue + JsonSchema>(stats: DistributionStats<&mut PerBlock<T>>) {
     for vec in [
         stats.min,
         stats.max,
@@ -302,7 +303,7 @@ fn push_zeros<T: NumericValue + JsonSchema>(stats: DistributionStats<&mut PerBlo
         stats.pct75,
         stats.pct90,
     ] {
-        vec.height.push(T::from(0_usize));
+        vec.height.push(T::from(f64::NAN));
     }
 }
 

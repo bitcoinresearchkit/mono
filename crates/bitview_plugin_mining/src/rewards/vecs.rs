@@ -11,9 +11,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// the miner reward actually assigned to coinbase outputs, not the total
     /// reward available.
     pub coinbase: ValuePerBlockCumulativeRolling<M>,
-    /// Coinbase output value minus the block's total transaction fees. This is
-    /// a derived subsidy component, not the scheduled consensus subsidy, and
-    /// can be lower when the miner leaves some available reward unclaimed.
+    /// Coinbase output value minus the block's total transaction fees, floored
+    /// at zero. This is a derived subsidy component, not the scheduled
+    /// consensus subsidy, and can be lower when the miner leaves some available
+    /// reward unclaimed.
     pub subsidy: ValuePerBlockCumulativeRolling<M>,
     /// Sum of input value minus output value across the block's non-coinbase
     /// transactions.
@@ -21,15 +22,16 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Portion of the available block reward not assigned to coinbase outputs:
     /// scheduled subsidy plus transaction fees minus coinbase output value.
     pub unclaimed: ValuePerBlockCumulativeRolling<M>,
-    /// Transaction fees divided by coinbase output value. Cumulative variants
-    /// use cumulative totals; rolling variants use totals within the trailing
-    /// window. Larger values mean fees supplied more of the miner revenue.
+    /// One minus the subsidy share: the claimed fees divided by coinbase output
+    /// value. Cumulative variants use cumulative totals; rolling variants use
+    /// totals within the trailing window. Larger values mean fees supplied more
+    /// of the miner revenue.
     #[traversable(wrap = "fees", rename = "share")]
     pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
-    /// One minus the fee share, equivalently the derived subsidy component
-    /// divided by coinbase output value. Cumulative variants use cumulative
-    /// totals; rolling variants use totals within the trailing window. Larger
-    /// values mean the derived subsidy supplied more of the miner revenue.
+    /// The derived subsidy component divided by coinbase output value.
+    /// Cumulative variants use cumulative totals; rolling variants use totals
+    /// within the trailing window. Larger values mean the derived subsidy
+    /// supplied more of the miner revenue.
     #[traversable(wrap = "subsidy", rename = "share")]
     pub subsidy_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }

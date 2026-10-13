@@ -38,22 +38,18 @@ pub trait ComputeRollingStats {
         Self::T: From<f64> + Default;
 
     /// Compute rolling standard deviation with variable window starts.
-    /// For each index `i`, computes SD of values from `window_starts[i]` to `i` (inclusive),
-    /// using the provided rolling mean.
-    /// `SD = sqrt(E[X²] - E[X]²)` where `E[X²]` is the rolling mean of squares
-    /// and `E[X]` is the rolling mean from the `mean` parameter.
-    fn compute_rolling_sd<A, B>(
+    /// For each index `i`, computes SD of values from `window_starts[i]` to `i` (inclusive):
+    /// `SD = sqrt(E[X²] - E[X]²)`, both moments kept in f64.
+    fn compute_rolling_sd<A>(
         &mut self,
         max_from: Self::I,
         window_starts: &impl ReadableVec<Self::I, Self::I>,
         values: &impl ReadableVec<Self::I, A>,
-        mean: &impl ReadableVec<Self::I, B>,
         exit: &Exit,
     ) -> Result<()>
     where
         A: VecValue,
-        B: VecValue,
-        f64: From<A> + From<B> + From<Self::T>,
+        f64: From<A>,
         Self::T: From<f64>;
 
     /// Compute rolling EMA with variable window starts.
@@ -248,77 +244,74 @@ where
         )
     }
 
-    fn compute_rolling_sd<A, B>(
+    fn compute_rolling_sd<A>(
         &mut self,
         max_from: V::I,
         window_starts: &impl ReadableVec<V::I, V::I>,
         values: &impl ReadableVec<V::I, A>,
-        mean: &impl ReadableVec<V::I, B>,
         exit: &Exit,
     ) -> Result<()>
     where
         A: VecValue,
-        B: VecValue,
-        f64: From<A> + From<B> + From<V::T>,
+        f64: From<A>,
         V::T: From<f64>,
     {
         let mut leaving = values.cursor();
 
         self.compute_init(
-            window_starts.version() + values.version() + mean.version() + Version::ONE,
+            window_starts.version() + values.version() + Version::TWO,
             max_from,
             exit,
             |this| {
                 let skip = this.len();
-                let source_len = window_starts.len().min(values.len()).min(mean.len());
+                let source_len = window_starts.len().min(values.len());
                 let end = this.batch_end(source_len);
                 if skip >= end {
                     return Ok(());
                 }
 
-                // Rebuilt from the window's values in f64, not from the rounded stored outputs.
-                let (mut running_sum_sq, mut prev_start) = if skip > 0 {
+                // Both moments rebuilt from the window's values in f64, not from rounded outputs.
+                let (mut sum, mut sum_sq, mut prev_start) = if skip > 0 {
                     let prev_start = window_starts.collect_one_at(skip - 1).unwrap();
                     if leaving.position() < prev_start.to_usize() {
                         leaving.advance(prev_start.to_usize() - leaving.position());
                     }
-                    (
-                        values.fold_range_at(prev_start.to_usize(), skip, 0.0, |sum, value| {
+                    let (sum, sum_sq) = values.fold_range_at(
+                        prev_start.to_usize(),
+                        skip,
+                        (0.0, 0.0),
+                        |(sum, sum_sq), value| {
                             let value = defined(f64::from(value));
-                            sum + value * value
-                        }),
-                        prev_start,
-                    )
+                            (sum + value, sum_sq + value * value)
+                        },
+                    );
+                    (sum, sum_sq, prev_start)
                 } else {
-                    (0.0f64, V::I::from(0))
+                    (0.0_f64, 0.0_f64, V::I::from(0))
                 };
 
                 let starts_batch = window_starts.collect_range_at(skip, end);
                 let values_batch = values.collect_range_at(skip, end);
-                let mean_batch = mean.collect_range_at(skip, end);
 
-                for (j, ((start, value), m)) in starts_batch
-                    .into_iter()
-                    .zip(values_batch)
-                    .zip(mean_batch)
-                    .enumerate()
-                {
+                for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
                     let i = skip + j;
                     let val = defined(f64::from(value));
-                    running_sum_sq += val * val;
+                    sum += val;
+                    sum_sq += val * val;
 
                     if prev_start < start {
                         let n = start.to_usize() - prev_start.to_usize();
                         leaving.for_each(n, |v: A| {
                             let old = defined(f64::from(v));
-                            running_sum_sq -= old * old;
+                            sum -= old;
+                            sum_sq -= old * old;
                         });
                         prev_start = start;
                     }
 
                     let count = (i - start.to_usize() + 1) as f64;
-                    let mean_val = f64::from(m);
-                    let variance = (running_sum_sq / count - mean_val * mean_val).max(0.0);
+                    let mean = sum / count;
+                    let variance = (sum_sq / count - mean * mean).max(0.0);
                     this.push(V::T::from(variance.sqrt()));
                 }
 

@@ -8,7 +8,6 @@ use crate::{
     TypeSchemas,
     generators::{MANUAL_GENERIC_TYPES, write_description},
     get_union_variants, is_rust_concrete_generic, ref_to_type_name, rust_array_element_type,
-    to_camel_case,
 };
 
 /// Generate JSDoc type definitions from OpenAPI schemas.
@@ -42,32 +41,59 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
                 writeln!(output, "/** @typedef {{{}}} {} */", js_type, name).unwrap();
             }
         } else if let Some(props) = schema.get("properties").and_then(|p| p.as_object()) {
+            let required = |prop_name: &str| {
+                schema
+                    .get("required")
+                    .and_then(|r| r.as_array())
+                    .is_some_and(|arr| arr.iter().any(|v| v.as_str() == Some(prop_name)))
+            };
             writeln!(output, "/**").unwrap();
             if let Some(desc) = type_desc {
                 write_description(output, desc, " * ", " *");
                 writeln!(output, " *").unwrap();
             }
-            writeln!(output, " * @typedef {{Object}} {}", name).unwrap();
-            for (prop_name, prop_schema) in props {
-                let prop_type = schema_to_js_type(prop_schema, Some(name));
-                let required = schema
-                    .get("required")
-                    .and_then(|r| r.as_array())
-                    .map(|arr| arr.iter().any(|v| v.as_str() == Some(prop_name)))
-                    .unwrap_or(false);
-                let optional = if required { "" } else { "=" };
-                let safe_name = to_camel_case(&prop_name.replace(['[', ']'], ""));
-                let prop_desc = prop_schema
-                    .get("description")
-                    .and_then(|d| d.as_str())
-                    .map(|d| format!(" - {}", d))
-                    .unwrap_or_default();
-                writeln!(
-                    output,
-                    " * @property {{{}{}}} {}{}",
-                    prop_type, optional, safe_name, prop_desc
-                )
-                .unwrap();
+            let names = props
+                .keys()
+                .map(|key| js_property_name(&key.replace(['[', ']'], "")));
+            if names.clone().all(|name| is_js_identifier(&name)) {
+                writeln!(output, " * @typedef {{Object}} {}", name).unwrap();
+                for ((prop_name, prop_schema), safe_name) in props.iter().zip(names) {
+                    let prop_type = schema_to_js_type(prop_schema, Some(name));
+                    let optional = if required(prop_name) { "" } else { "=" };
+                    let prop_desc = prop_schema
+                        .get("description")
+                        .and_then(|d| d.as_str())
+                        .map(|d| format!(" - {}", d))
+                        .unwrap_or_default();
+                    writeln!(
+                        output,
+                        " * @property {{{}{}}} {}{}",
+                        prop_type, optional, safe_name, prop_desc
+                    )
+                    .unwrap();
+                }
+            } else {
+                // JSDoc @property takes identifiers only: quote keys like `24h` in a type literal.
+                for (prop_name, prop_schema) in props {
+                    if let Some(desc) = prop_schema.get("description").and_then(|d| d.as_str()) {
+                        writeln!(output, " * - `{}`: {}", prop_name, desc).unwrap();
+                    }
+                }
+                let fields = props
+                    .iter()
+                    .zip(names)
+                    .map(|((prop_name, prop_schema), safe_name)| {
+                        let optional = if required(prop_name) { "" } else { "?" };
+                        let prop_type = schema_to_js_type(prop_schema, Some(name));
+                        if is_js_identifier(&safe_name) {
+                            format!("{safe_name}{optional}: {prop_type}")
+                        } else {
+                            format!("\"{safe_name}\"{optional}: {prop_type}")
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                writeln!(output, " * @typedef {{{{ {} }}}} {}", fields, name).unwrap();
             }
             writeln!(output, " */").unwrap();
         } else if let Some(desc) = type_desc {
@@ -81,6 +107,31 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
         }
     }
     writeln!(output).unwrap();
+}
+
+/// The name the client exposes for a wire key: the key itself, or for `_x` the camel getter
+/// the runtime adds (`tx_count` → `txCount`; `avgFee_0` and `24h` stay as they are).
+fn js_property_name(key: &str) -> String {
+    let mut name = String::with_capacity(key.len());
+    let mut chars = key.chars().peekable();
+    while let Some(c) = chars.next() {
+        match chars.peek() {
+            Some(next) if c == '_' && next.is_ascii_lowercase() => {
+                name.push(next.to_ascii_uppercase());
+                chars.next();
+            }
+            _ => name.push(c),
+        }
+    }
+    name
+}
+
+fn is_js_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_' || c == '$')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$')
 }
 
 fn is_primitive_alias(schema: &Value) -> bool {

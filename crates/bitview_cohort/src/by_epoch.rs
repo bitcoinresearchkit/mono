@@ -14,6 +14,7 @@ pub const EPOCH_NAMES: ByEpoch<CohortName> = ByEpoch {
     _2: CohortName::new("epoch_2", "2", "Epoch 2"),
     _3: CohortName::new("epoch_3", "3", "Epoch 3"),
     _4: CohortName::new("epoch_4", "4", "Epoch 4"),
+    _5: CohortName::new("epoch_5", "5", "Epoch 5"),
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
@@ -29,6 +30,8 @@ pub struct ByEpoch<T> {
     _3: T,
     /// Uses UTXOs created during subsidy-halving epoch 4.
     _4: T,
+    /// Uses UTXOs created during subsidy-halving epoch 5.
+    _5: T,
 }
 
 define_cohort_id!(
@@ -38,6 +41,7 @@ define_cohort_id!(
         _2 => _2,
         _3 => _3,
         _4 => _4,
+        _5 => _5,
     }
 );
 
@@ -51,20 +55,10 @@ impl<T> ByEpoch<T> {
     }
 
     pub fn mut_vec_from_height(&mut self, height: Height) -> Option<&mut T> {
-        let epoch = Halving::from(height);
-        if epoch == Halving::new(0) {
-            Some(&mut self._0)
-        } else if epoch == Halving::new(1) {
-            Some(&mut self._1)
-        } else if epoch == Halving::new(2) {
-            Some(&mut self._2)
-        } else if epoch == Halving::new(3) {
-            Some(&mut self._3)
-        } else if epoch == Halving::new(4) {
-            Some(&mut self._4)
-        } else {
-            None
-        }
+        let halving = usize::from(Halving::from(height));
+        let id = EpochId::ALL.get(halving).copied();
+        debug_assert!(id.is_some(), "no epoch cohort for halving {halving}");
+        id.map(|id| id.select_mut(self))
     }
 }
 

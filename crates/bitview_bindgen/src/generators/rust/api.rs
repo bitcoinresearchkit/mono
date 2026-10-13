@@ -282,21 +282,21 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, in
         if is_array {
             writeln!(
                 output,
-                "        for v in {} {{ query.push(format!(\"{}={{}}\", v)); }}",
+                "        for v in {} {{ query.push(query_pair(\"{}\", v)); }}",
                 ident, param.name
             )
             .unwrap();
         } else if param.required {
             writeln!(
                 output,
-                "        query.push(format!(\"{}={{}}\", {}));",
+                "        query.push(query_pair(\"{}\", {}));",
                 param.name, ident
             )
             .unwrap();
         } else {
             writeln!(
                 output,
-                "        if let Some(v) = {} {{ query.push(format!(\"{}={{}}\", v)); }}",
+                "        if let Some(v) = {} {{ query.push(query_pair(\"{}\", v)); }}",
                 ident, param.name
             )
             .unwrap();

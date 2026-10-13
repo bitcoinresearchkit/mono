@@ -13658,6 +13658,154 @@
     },
     {
       "tool": {
+        "name": "get_utxo_set_diff",
+        "title": "UTXO set changes of a block or date",
+        "description": "What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.\n\nREST operation: `GET /api/utxo-set/{point}/diff`.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "point": {
+              "type": "string",
+              "description": "Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.",
+              "examples": [
+                "840000"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "point"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/UtxoSetDiff",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "Bitcoin": {
+              "format": "double",
+              "type": "number"
+            },
+            "BlockHash": {
+              "type": "string"
+            },
+            "Date": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string",
+              "format": "date"
+            },
+            "Height": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            },
+            "UtxoChanges": {
+              "required": [
+                "height",
+                "count",
+                "supply"
+              ],
+              "type": "object",
+              "properties": {
+                "height": {
+                  "items": {
+                    "$ref": "#/$defs/Height"
+                  },
+                  "type": "array"
+                },
+                "count": {
+                  "items": {
+                    "type": "integer",
+                    "format": "uint64",
+                    "minimum": 0
+                  },
+                  "type": "array"
+                },
+                "supply": {
+                  "items": {
+                    "$ref": "#/$defs/Bitcoin"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "UtxoSetDiff": {
+              "required": [
+                "first",
+                "last",
+                "hash",
+                "date",
+                "created",
+                "spent"
+              ],
+              "type": "object",
+              "properties": {
+                "first": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
+                },
+                "last": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
+                },
+                "hash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
+                },
+                "date": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Date"
+                    }
+                  ]
+                },
+                "created": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/UtxoChanges"
+                    }
+                  ]
+                },
+                "spent": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/UtxoChanges"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/utxo-set/{point}/diff",
+        "parameters": [
+          {
+            "name": "point",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
         "name": "list_series",
         "title": "Series list",
         "description": "Paginated flat list of all available series names. Use `page` query param for pagination.\n\nREST operation: `GET /api/series/list`.",

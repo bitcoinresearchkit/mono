@@ -65,7 +65,6 @@ impl RollingAvgSd {
                     starting_lengths.height,
                     window_starts,
                     source,
-                    &avg.height,
                     exit,
                 )?;
                 Ok(())

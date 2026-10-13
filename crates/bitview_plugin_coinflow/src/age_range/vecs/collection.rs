@@ -22,8 +22,9 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// faster turnover. Undefined (null) when cumulative coin days created is zero.
     pub spending_rate: PerBlock<PerDay, M>,
     /// Estimated remaining-lifetime spending exposure. It integrates observed
-    /// positive spending hazards from the range midpoint through subsequent
-    /// complete ranges, then integrates an exponential tail fitted by
+    /// spending hazards (zero where nothing moved) from the range midpoint
+    /// through subsequent complete, non-empty ranges, then integrates an
+    /// exponential tail fitted by
     /// duration-weighted regression of log hazard on age. Returns zero when a
     /// decreasing finite tail cannot be fitted. Larger exposure implies a
     /// greater eventual probability of spending.

@@ -34,24 +34,24 @@ impl Vecs {
             window_starts,
         )?;
         let fees = ValuePerBlockFull::import(db, "fees", version, mappings, window_starts)?;
-        let fees_source = fees.cumulative_sats_source();
 
-        let fee_share = LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
+        // From the claimed subsidy, so an underclaimed coinbase stays within 0..=100%.
+        let subsidy_share = LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
             Sats,
             Sats,
             Quotient<PartsPerMillion32>,
         >(
-            "fee_share",
+            "subsidy_share",
             version,
-            fees_source,
+            subsidy.cumulative.sats.resolutions.height_source(),
             coinbase.cumulative.sats.resolutions.height_source(),
             window_starts,
             mappings,
         );
-        let subsidy_share = LazyPercentCumulativeRolling::from_lazy_source::<OneMinusPpm>(
-            "subsidy_share",
+        let fee_share = LazyPercentCumulativeRolling::from_lazy_source::<OneMinusPpm>(
+            "fee_share",
             version,
-            &fee_share,
+            &subsidy_share,
         );
         Ok(Vecs {
             coinbase,

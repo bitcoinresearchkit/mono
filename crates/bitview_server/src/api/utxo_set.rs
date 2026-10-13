@@ -144,7 +144,6 @@ impl UtxoSetRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_utxo_set_diff")
                         .utxo_set_tag()
-                        .mcp_ignore()
                         .summary("UTXO set changes of a block or date")
                         .description(
                             "What a block (`840000`) or a UTC day's published blocks \

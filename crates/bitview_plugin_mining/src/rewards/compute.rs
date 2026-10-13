@@ -10,17 +10,14 @@ use rayon::join;
 
 use super::Vecs;
 
-fn derived_subsidy(height: Height, coinbase: Sats, fees: Sats) -> Sats {
-    coinbase
-        .checked_sub(fees)
-        .unwrap_or_else(|| panic!("coinbase {coinbase:?} < fees {fees:?} at {height:?}"))
+/// Zero when the coinbase claims less than the fees: the unclaimed fees are burned.
+fn claimed_subsidy(_: Height, coinbase: Sats, fees: Sats) -> Sats {
+    coinbase.checked_sub(fees).unwrap_or(Sats::ZERO)
 }
 
-fn unclaimed_rewards(height: Height, subsidy: Sats) -> Sats {
-    Halving::from(height)
-        .subsidy()
-        .checked_sub(subsidy)
-        .unwrap_or_else(|| panic!("derived subsidy {subsidy:?} exceeds schedule at {height:?}"))
+/// Consensus caps the coinbase at the scheduled subsidy plus fees.
+fn unclaimed_rewards(height: Height, coinbase: Sats, fees: Sats) -> Sats {
+    Halving::from(height).subsidy() + fees - coinbase
 }
 
 impl Vecs {
@@ -64,14 +61,15 @@ impl Vecs {
             &prices.spot.cents.height,
             &self.coinbase.block.sats,
             &self.fees.block.sats,
-            derived_subsidy,
+            claimed_subsidy,
             exit,
         )?;
 
-        self.unclaimed.compute_from(
+        self.unclaimed.compute_from_pair(
             starting_height,
             &prices.spot.cents.height,
-            &self.subsidy.block.sats,
+            &self.coinbase.block.sats,
+            &self.fees.block.sats,
             unclaimed_rewards,
             exit,
         )?;

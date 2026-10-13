@@ -148,13 +148,13 @@ Matches mempool.space/bitcoin-cli behavior.
  * @typedef {Object} BlockFeeRatesEntry
  * @property {Height} avgHeight - Average block height in this window
  * @property {Timestamp} timestamp - Unix timestamp at the window midpoint
- * @property {FeeRate} avgFee0 - Minimum fee rate (sat/vB)
- * @property {FeeRate} avgFee10 - 10th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee25 - 25th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee50 - Median fee rate (sat/vB)
- * @property {FeeRate} avgFee75 - 75th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee90 - 90th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee100 - Maximum fee rate (sat/vB)
+ * @property {FeeRate} avgFee_0 - Minimum fee rate (sat/vB)
+ * @property {FeeRate} avgFee_10 - 10th percentile fee rate (sat/vB)
+ * @property {FeeRate} avgFee_25 - 25th percentile fee rate (sat/vB)
+ * @property {FeeRate} avgFee_50 - Median fee rate (sat/vB)
+ * @property {FeeRate} avgFee_75 - 75th percentile fee rate (sat/vB)
+ * @property {FeeRate} avgFee_90 - 90th percentile fee rate (sat/vB)
+ * @property {FeeRate} avgFee_100 - Maximum fee rate (sat/vB)
  */
 /**
  * A single block fees data point.
@@ -163,7 +163,7 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {Height} avgHeight - Average block height in this window
  * @property {Timestamp} timestamp - Unix timestamp at the window midpoint
  * @property {Sats} avgFees - Average fees per block in this window (sats)
- * @property {Dollars} uSD - BTC/USD price at this height
+ * @property {Dollars} USD - BTC/USD price at this height
  */
 /**
  * Double-SHA256 block-header hash, serialized in Bitcoin's conventional
@@ -246,7 +246,7 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {Height} avgHeight - Average block height in this window
  * @property {Timestamp} timestamp - Unix timestamp at the window midpoint
  * @property {Sats} avgRewards - Average coinbase reward per block (subsidy + fees, sats)
- * @property {Dollars} uSD - BTC/USD price at this height
+ * @property {Dollars} USD - BTC/USD price at this height
  */
 /**
  * A single block size data point.
@@ -731,7 +731,7 @@ ancestors and no descendants (matches mempool.space).
  *
  * @typedef {Object} HistoricalPriceEntry
  * @property {Timestamp} time - Unix timestamp
- * @property {Dollars} uSD - BTC/USD price
+ * @property {Dollars} USD - BTC/USD price
  */
 /**
  * Index of an hour.
@@ -1002,18 +1002,18 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Block counts for different time periods
  *
- * @typedef {Object} PoolBlockCounts
- * @property {number} all - Total blocks mined (all time)
- * @property {number} _24h - Blocks mined in last 24 hours
- * @property {number} _1w - Blocks mined in last week
+ * - `all`: Total blocks mined (all time)
+ * - `24h`: Blocks mined in last 24 hours
+ * - `1w`: Blocks mined in last week
+ * @typedef {{ all: number, "24h": number, "1w": number }} PoolBlockCounts
  */
 /**
  * Pool's share of total blocks for different time periods
  *
- * @typedef {Object} PoolBlockShares
- * @property {number} all - Share of all blocks (0.0 - 1.0)
- * @property {number} _24h - Share of blocks in last 24 hours (0.0 - 1.0)
- * @property {number} _1w - Share of blocks in last week (0.0 - 1.0)
+ * - `all`: Share of all blocks (0.0 - 1.0)
+ * - `24h`: Share of blocks in last 24 hours (0.0 - 1.0)
+ * - `1w`: Share of blocks in last week (0.0 - 1.0)
+ * @typedef {{ all: number, "24h": number, "1w": number }} PoolBlockShares
  */
 /**
  * Detailed pool information with statistics across time periods
@@ -1102,7 +1102,7 @@ ancestors and no descendants (matches mempool.space).
  *
  * @typedef {Object} Prices
  * @property {Timestamp} time - Unix timestamp
- * @property {Dollars} uSD - BTC/USD price
+ * @property {Dollars} USD - BTC/USD price
  */
 /**
  * A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
@@ -5994,6 +5994,7 @@ const _Classes2009 = _s({
  *   _2024: Classes2009,
  *   _2025: Classes2009,
  *   _2026: Classes2009,
+ *   _2027: Classes2009,
  * }} Classes
  */
 const _Classes = _s({
@@ -6015,6 +6016,7 @@ const _Classes = _s({
   _2024: [_Classes2009, '*_2024'],
   _2025: [_Classes2009, '*_2025'],
   _2026: [_Classes2009, '*_2026'],
+  _2027: [_Classes2009, '*_2027'],
 });
 
 /**
@@ -6024,6 +6026,7 @@ const _Classes = _s({
  *   _2: Classes2009,
  *   _3: Classes2009,
  *   _4: Classes2009,
+ *   _5: Classes2009,
  * }} Epochs
  */
 const _Epochs = _s({
@@ -6032,6 +6035,7 @@ const _Epochs = _s({
   _2: [_Classes2009, '*_2'],
   _3: [_Classes2009, '*_3'],
   _4: [_Classes2009, '*_4'],
+  _5: [_Classes2009, '*_5'],
 });
 
 /**
@@ -7650,6 +7654,11 @@ class BitviewClient extends BitviewClientBase {
       "id": "epoch_4",
       "short": "4",
       "long": "Epoch 4"
+    },
+    "_5": {
+      "id": "epoch_5",
+      "short": "5",
+      "long": "Epoch 5"
     }
   });
 
@@ -7743,6 +7752,11 @@ class BitviewClient extends BitviewClientBase {
       "id": "class_2026",
       "short": "2026",
       "long": "Class 2026"
+    },
+    "_2027": {
+      "id": "class_2027",
+      "short": "2027",
+      "long": "Class 2027"
     }
   });
 

@@ -88,10 +88,14 @@ impl MetricBuckets {
     }
 
     /// Coin- and capital-weighted percentiles in one sweep: each is the first bucket whose
-    /// running total passes its target.
+    /// running total reaches its nearest rank, ceil(percentile% of the total).
     fn cost_basis(&self, cohort: usize, totals: Totals) -> CostBasisByPercentile {
         let targets = |total: u128| {
-            PERCENTILES.map(|percentile| (total * u128::from(percentile) / 100).saturating_sub(1))
+            PERCENTILES.map(|percentile| {
+                (total * u128::from(percentile))
+                    .div_ceil(100)
+                    .saturating_sub(1)
+            })
         };
         let (coin_targets, dollar_targets) = (targets(totals.sats), targets(totals.value));
         let mut per_coin = [Cents::NAN; PERCENTILES_LEN];

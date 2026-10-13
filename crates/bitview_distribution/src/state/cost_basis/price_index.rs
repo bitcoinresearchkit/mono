@@ -157,18 +157,17 @@ impl<const N: usize> PriceIndex<N> {
         let totals: [(i64, i128); QUERIES] = array::from_fn(|q| fields(q, &self.totals));
         let sat_targets = totals.map(|(sats, _)| {
             (sats > 0).then(|| {
-                // Min, each percentile, then max.
+                // Min, each percentile (nearest rank: the ceil(p% of total)-th unit), then max.
                 let mut targets = [0; PERCENTILES_LEN + 2];
                 for (i, &p) in PERCENTILES.iter().enumerate() {
-                    targets[i + 1] = (sats * i64::from(p) / 100 - 1).max(0);
+                    targets[i + 1] = (sats * i64::from(p) + 99) / 100 - 1;
                 }
                 targets[PERCENTILES_LEN + 1] = sats - 1;
                 targets
             })
         });
         let usd_targets = totals.map(|(sats, cap)| {
-            (sats > 0 && cap > 0)
-                .then(|| PERCENTILES.map(|p| (cap * i128::from(p) / 100 - 1).max(0)))
+            (sats > 0 && cap > 0).then(|| PERCENTILES.map(|p| (cap * i128::from(p) + 99) / 100 - 1))
         });
         // Without supply (or capital) the prices are undefined.
         let sat_defined = sat_targets.map(|targets| targets.is_some());

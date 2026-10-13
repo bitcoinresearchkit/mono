@@ -152,6 +152,20 @@ impl Default for BitviewClientOptions {{
     }}
 }}
 
+/// `name=value`, the value percent-encoded (RFC 3986 unreserved characters pass through).
+fn query_pair(name: &str, value: impl std::fmt::Display) -> String {{
+    let value = value.to_string();
+    let mut pair = format!("{{name}}=");
+    for byte in value.bytes() {{
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {{
+            pair.push(char::from(byte));
+        }} else {{
+            pair.push_str(&format!("%{{byte:02X}}"));
+        }}
+    }}
+    pair
+}}
+
 /// Base HTTP client for making requests. Reuses connections via ureq::Agent.
 #[derive(Debug, Clone)]
 pub struct BitviewClientBase {{

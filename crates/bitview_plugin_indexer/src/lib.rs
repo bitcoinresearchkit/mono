@@ -53,6 +53,7 @@ mod stores;
 mod tests;
 mod vecs;
 
+pub use constants::{DUPLICATE_COINBASES, DuplicateCoinbase};
 pub use has::HasIndexer;
 
 pub use safe_lengths::SafeLengths;

@@ -1,4 +1,4 @@
-use std::{thread, time::Duration};
+use std::thread;
 
 use bitview_plugin::{ComputePlugin, Publication, UpdateContext};
 use bitview_plugin_addresses::{Dependencies as AddressesDependencies, ID as ADDRESSES_ID};
@@ -412,11 +412,7 @@ impl ComputePluginSet for DefaultPlugins {
         };
 
         if blocks_behind > REIMPORT_THRESHOLD {
-            info!(
-                "Indexing {blocks_behind} blocks before initializing metrics; starting in 10 seconds..."
-            );
-            thread::sleep(Duration::from_secs(10));
-
+            info!("Indexing {blocks_behind} blocks before initializing metrics");
             self.compute_indexer(context)?;
             return Ok(BootstrapAction::Reimport);
         }

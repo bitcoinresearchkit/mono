@@ -101,9 +101,7 @@ impl ImportMap {
             return;
         };
 
-        let hash = rapidhash_v3(contents);
-        let hash_hex = format!("{:016x}", hash);
-        let short_hash = &hash_hex[..Self::HASH_LEN];
+        let short_hash = Self::short_hash(contents);
 
         let original_url = format!("{}/{}", base_url, path.display());
         let parent = path.parent().filter(|p| *p != Path::new(""));
@@ -125,22 +123,31 @@ impl ImportMap {
 
     /// Strip hash from filename: `foo.abc12345.js` -> `foo.js`
     pub fn strip_hash(path: &Path) -> Option<PathBuf> {
+        let (name, _, ext) = Self::split_hash(path)?;
+        Some(path.with_file_name(format!("{}.{}", name, ext)))
+    }
+
+    /// Whether the filename carries these contents' hash (`foo.abc12345.js`), so it never changes.
+    pub fn names_hash_of(path: &Path, contents: &[u8]) -> bool {
+        Self::split_hash(path).is_some_and(|(_, hash, _)| hash == Self::short_hash(contents))
+    }
+
+    /// `foo.abc12345.js` -> (`foo`, `abc12345`, `js`) for a hashed extension and a well-formed hash.
+    fn split_hash(path: &Path) -> Option<(&str, &str, &str)> {
         let stem = path.file_stem()?.to_str()?;
         let ext = path.extension()?.to_str()?;
-
         if !Self::EXTENSIONS.contains(&ext) {
             return None;
         }
+        let (name, hash) = stem.rsplit_once('.')?;
+        (hash.len() == Self::HASH_LEN && hash.chars().all(|c| c.is_ascii_hexdigit()))
+            .then_some((name, hash, ext))
+    }
 
-        let dot_pos = stem.rfind('.')?;
-        let hash = &stem[dot_pos + 1..];
-
-        if hash.len() == Self::HASH_LEN && hash.chars().all(|c| c.is_ascii_hexdigit()) {
-            let name = &stem[..dot_pos];
-            Some(path.with_file_name(format!("{}.{}", name, ext)))
-        } else {
-            None
-        }
+    fn short_hash(contents: &[u8]) -> String {
+        let mut hash = format!("{:016x}", rapidhash_v3(contents));
+        hash.truncate(Self::HASH_LEN);
+        hash
     }
 
     /// Update an HTML file in place between `<!-- IMPORTMAP -->` and `<!-- /IMPORTMAP -->` markers.

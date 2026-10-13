@@ -21,7 +21,7 @@ use vecdb::{Database, Rw, StorageMode};
 use age_range::Vecs as AgeRangeVecs;
 use aggregate::Vecs as AggregateVecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("coinflow"), Version::new(16));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("coinflow"), Version::new(17));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]

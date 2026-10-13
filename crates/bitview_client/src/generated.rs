@@ -154,6 +154,20 @@ impl Default for BitviewClientOptions {
     }
 }
 
+/// `name=value`, the value percent-encoded (RFC 3986 unreserved characters pass through).
+fn query_pair(name: &str, value: impl std::fmt::Display) -> String {
+    let value = value.to_string();
+    let mut pair = format!("{name}=");
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            pair.push(char::from(byte));
+        } else {
+            pair.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    pair
+}
+
 /// Base HTTP client for making requests. Reuses connections via ureq::Agent.
 #[derive(Debug, Clone)]
 pub struct BitviewClientBase {
@@ -2668,6 +2682,7 @@ pub mod tree {
         _2024: Classes2009 = "*_2024",
         _2025: Classes2009 = "*_2025",
         _2026: Classes2009 = "*_2026",
+        _2027: Classes2009 = "*_2027",
     } }
     shape! { Epochs at "series().age.epochs" {
         _0: Classes2009 = "*_0",
@@ -2675,6 +2690,7 @@ pub mod tree {
         _2: Classes2009 = "*_2",
         _3: Classes2009 = "*_3",
         _4: Classes2009 = "*_4",
+        _5: Classes2009 = "*_5",
     } }
     shape! { Ranges10yTo12y at "series().age.ranges._10y_to_12y" {
         supply: Ranges10yTo12ySupply = "*",
@@ -3410,10 +3426,10 @@ impl BitviewClient {
     pub fn list_series(&self, page: Option<i64>, per_page: Option<i64>) -> Result<PaginatedSeries> {
         let mut query = Vec::new();
         if let Some(v) = page {
-            query.push(format!("page={}", v));
+            query.push(query_pair("page", v));
         }
         if let Some(v) = per_page {
-            query.push(format!("per_page={}", v));
+            query.push(query_pair("per_page", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -3431,9 +3447,9 @@ impl BitviewClient {
     /// Endpoint: `GET /api/series/search`
     pub fn search_series(&self, q: SeriesName, limit: Option<Limit>) -> Result<Vec<String>> {
         let mut query = Vec::new();
-        query.push(format!("q={}", q));
+        query.push(query_pair("q", q));
         if let Some(v) = limit {
-            query.push(format!("limit={}", v));
+            query.push(query_pair("limit", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -3469,16 +3485,16 @@ impl BitviewClient {
     ) -> Result<FormatResponse<SeriesData>> {
         let mut query = Vec::new();
         if let Some(v) = start {
-            query.push(format!("start={}", v));
+            query.push(query_pair("start", v));
         }
         if let Some(v) = end {
-            query.push(format!("end={}", v));
+            query.push(query_pair("end", v));
         }
         if let Some(v) = limit {
-            query.push(format!("limit={}", v));
+            query.push(query_pair("limit", v));
         }
         if let Some(v) = format {
-            query.push(format!("format={}", v));
+            query.push(query_pair("format", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -3509,16 +3525,16 @@ impl BitviewClient {
     ) -> Result<FormatResponse<Vec<serde_json::Value>>> {
         let mut query = Vec::new();
         if let Some(v) = start {
-            query.push(format!("start={}", v));
+            query.push(query_pair("start", v));
         }
         if let Some(v) = end {
-            query.push(format!("end={}", v));
+            query.push(query_pair("end", v));
         }
         if let Some(v) = limit {
-            query.push(format!("limit={}", v));
+            query.push(query_pair("limit", v));
         }
         if let Some(v) = format {
-            query.push(format!("format={}", v));
+            query.push(query_pair("format", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -3578,19 +3594,19 @@ impl BitviewClient {
         format: Option<Format>,
     ) -> Result<FormatResponse<Vec<SeriesData>>> {
         let mut query = Vec::new();
-        query.push(format!("series={}", series));
-        query.push(format!("index={}", index));
+        query.push(query_pair("series", series));
+        query.push(query_pair("index", index));
         if let Some(v) = start {
-            query.push(format!("start={}", v));
+            query.push(query_pair("start", v));
         }
         if let Some(v) = end {
-            query.push(format!("end={}", v));
+            query.push(query_pair("end", v));
         }
         if let Some(v) = limit {
-            query.push(format!("limit={}", v));
+            query.push(query_pair("limit", v));
         }
         if let Some(v) = format {
-            query.push(format!("format={}", v));
+            query.push(query_pair("format", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -3622,7 +3638,7 @@ impl BitviewClient {
     pub fn list_urpd_dates(&self, cohort: Cohort, weight: Option<UrpdWeight>) -> Result<Vec<Date>> {
         let mut query = Vec::new();
         if let Some(v) = weight {
-            query.push(format!("weight={}", v));
+            query.push(query_pair("weight", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -3646,10 +3662,10 @@ impl BitviewClient {
     ) -> Result<Urpd> {
         let mut query = Vec::new();
         if let Some(v) = agg {
-            query.push(format!("agg={}", v));
+            query.push(query_pair("agg", v));
         }
         if let Some(v) = weight {
-            query.push(format!("weight={}", v));
+            query.push(query_pair("weight", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -3674,10 +3690,10 @@ impl BitviewClient {
     ) -> Result<Urpd> {
         let mut query = Vec::new();
         if let Some(v) = agg {
-            query.push(format!("agg={}", v));
+            query.push(query_pair("agg", v));
         }
         if let Some(v) = weight {
-            query.push(format!("weight={}", v));
+            query.push(query_pair("weight", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -3721,7 +3737,7 @@ impl BitviewClient {
     pub fn get_historical_price(&self, timestamp: Option<Timestamp>) -> Result<HistoricalPrice> {
         let mut query = Vec::new();
         if let Some(v) = timestamp {
-            query.push(format!("timestamp={}", v));
+            query.push(query_pair("timestamp", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -4491,7 +4507,7 @@ impl BitviewClient {
     pub fn get_transaction_times(&self, txId: &[Txid]) -> Result<Vec<i64>> {
         let mut query = Vec::new();
         for v in txId {
-            query.push(format!("txId[]={}", v));
+            query.push(query_pair("txId[]", v));
         }
         let query_str = if query.is_empty() {
             String::new()

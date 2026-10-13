@@ -19,6 +19,7 @@ use vecdb::{BytesVec, WritableVec, likely};
 use super::{BlockProcessor, transaction::ComputedTx};
 use crate::{
     AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs,
+    constants::overwritten_tx_index,
     stores::{Utxo, UtxoKey},
 };
 
@@ -97,6 +98,7 @@ pub fn finalize_outputs(
         let tx = ct.tx;
         let tx_index = ct.tx_index;
         let txid_prefix = ct.txid_prefix();
+        let overwritten = overwritten_tx_index(tx_index);
         let next_output_offset = output_offset + tx.output.len();
 
         for (vout, (txout, processed)) in tx
@@ -216,10 +218,18 @@ pub fn finalize_outputs(
                     .get_mut_unwrap(addr_type)
                     .insert(AddrIndexTxIndex::from((addr_index, tx_index)), Unit);
 
-                addr_outpoint_stores.get_mut_unwrap(addr_type).insert(
+                let outpoints = addr_outpoint_stores.get_mut_unwrap(addr_type);
+                outpoints.insert(
                     AddrIndexOutPoint::from((addr_index, OutPoint::new(tx_index, vout))),
                     Unit,
                 );
+                // The overwritten output left the set unspent: drop it from its address.
+                if let Some(overwritten) = overwritten {
+                    outpoints.remove(AddrIndexOutPoint::from((
+                        addr_index,
+                        OutPoint::new(overwritten, vout),
+                    )));
+                }
             }
         }
 

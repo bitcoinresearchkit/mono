@@ -1,15 +1,14 @@
+use bitview_plugin_indexer::DUPLICATE_COINBASES;
 use bitview_primitives::SupplyState;
 use brk_types::{Height, Sats};
 
 /// Outputs replaced by the two historical duplicate coinbase transactions.
 pub fn overwritten_output(height: Height) -> Option<(Height, SupplyState)> {
-    let origin = match u32::from(height) {
-        91842 => 91812,
-        91880 => 91722,
-        _ => return None,
-    };
+    let dup = DUPLICATE_COINBASES
+        .iter()
+        .find(|dup| dup.height == height)?;
     Some((
-        Height::new(origin),
+        dup.overwritten_height,
         SupplyState {
             value: Sats::FIFTY_BTC,
             utxo_count: 1,

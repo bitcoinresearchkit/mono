@@ -6,6 +6,8 @@ use axum::{
     http::{HeaderMap, Response, StatusCode},
 };
 
+use importmap::ImportMap;
+
 use crate::{Error, HeaderMapExtended, Website, website::content_etag};
 
 pub async fn file_handler(
@@ -42,9 +44,13 @@ fn serve(
     }
 
     let content = website.get_file(&path)?;
+    // Only a URL naming its content's hash is immutable; fixed names (JSON, workers, fonts) and
+    // stale hashes revalidate.
+    let immutable =
+        !cfg!(debug_assertions) && !is_html && ImportMap::names_hash_of(Path::new(&path), &content);
     // Mutable files and standalone HTML must be read before their validator is
     // known. Only the immutable embedded index can use the early path above.
-    let etag = (!cfg!(debug_assertions) && is_html).then(|| {
+    let etag = (!cfg!(debug_assertions) && !immutable).then(|| {
         website
             .index_etag_for(&path)
             .map(str::to_owned)
@@ -60,17 +66,17 @@ fn serve(
 
     if is_html {
         headers.insert_content_type_text_html();
-        if let Some(etag) = etag.as_deref() {
-            headers.insert_etag(etag);
-        }
     } else {
         headers.insert_content_type(Path::new(&path));
     }
+    if let Some(etag) = etag.as_deref() {
+        headers.insert_etag(etag);
+    }
 
-    if cfg!(debug_assertions) || is_html {
-        headers.insert_cache_control_must_revalidate();
-    } else {
+    if immutable {
         headers.insert_cache_control_immutable();
+    } else {
+        headers.insert_cache_control_must_revalidate();
     }
 
     Ok(response)

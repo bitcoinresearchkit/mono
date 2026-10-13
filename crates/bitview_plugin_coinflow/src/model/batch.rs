@@ -74,28 +74,21 @@ impl PrimaryBatch {
         });
 
         PrimaryValues {
-            // The fit reads an empty range's hazard as zero; published, it is undefined.
-            spending_rate: AgeRange::from_fn(|id| {
-                let created = f64::from(id.select(&self.coindays_created)[offset]);
-                PerDay::from(if created > 0.0 {
-                    *id.select(&hazards)
-                } else {
-                    f64::NAN
-                })
-            }),
+            spending_rate: AgeRange::from_fn(|id| PerDay::from(*id.select(&hazards))),
             spending_exposure: AgeRange::from_fn(|id| Float64::from(*id.select(&exposures))),
             mobility: mobilities,
             cohorts,
         }
     }
 
+    /// Undefined (NaN) for an empty range.
     #[inline]
     fn spending_rate(transfer_volume: Sats, coindays_created: CoinDays) -> f64 {
         let exposure = f64::from(coindays_created);
         if exposure > 0.0 {
             (f64::from(Bitcoin::from(transfer_volume)) / exposure).max(0.0)
         } else {
-            0.0
+            f64::NAN
         }
     }
 }

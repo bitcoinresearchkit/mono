@@ -33,7 +33,7 @@ use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 use cost_basis::CostBasisVecs;
 use live::LiveState;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("holders"), Version::TWO);
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("holders"), Version::new(3));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]

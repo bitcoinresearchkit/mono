@@ -688,6 +688,26 @@ has to be deleted by hand.
 - Cointime's consumed coin days resume within their sources' length
 - Every replayed distribution output (age, addresses, UTXOs) carries its dependency versions (price, timestamps,
   history, indexer inputs), so a change upstream recomputes everything downstream of it
+- Year cohorts gain `2027` and halving cohorts `epoch_5`: from January 1, 2027 (and from block 1,050,000) new outputs
+  would have fallen out of both
+- A coinbase that claims less than its block's fees (valid, if wasteful) no longer stops the node: `subsidy` is
+  floored at zero, `unclaimed_rewards` is the scheduled subsidy plus fees minus the coinbase (the unclaimed fees are
+  burned), and the fee share is one minus the subsidy share, so both stay within 0 to 100%. A block's `extras.reward`
+  is its coinbase (it added the subsidy and the fees)
+- Cost-basis percentiles use the nearest rank, the first coin (or dollar) at or past p% of the total: the median of
+  three equal coins is the middle one (was the first). Holders' percentiles and medians and the URPD statistics of
+  Cointime, Coinflow and Bedrock
+- Rolling standard deviations keep both moments in f64 (they subtracted the square of the rounded stored mean, which
+  erased small volatility)
+- Coinflow's expected spending exposure integrates through age ranges where nothing moved (it stopped there and
+  extrapolated the fit) and stops only where a range is empty, and the youngest range's remaining half hour counts as
+  a half hour (was an hour). Mobility and everything weighted by it follow
+- Cointime's and Coinflow's in-loss shares are null when a populated age range's weight is undefined (that range was
+  left out, which could show 0% in loss)
+- Profitability bands take their capital from rounded running totals, so an age filter's bands add up to its capital
+  and their capital shares to 100% (two sub-cent bands could each show 100%)
+- Fee-rate statistics of a block without transactions are null (were 0); the mempool-compatible block and fee-rate
+  endpoints still report 0 for it, like mempool.space
 
 #### Clients
 
@@ -695,9 +715,23 @@ has to be deleted by hand.
   and `limit`. Pre-2009 dates selected rows from the end (or the first row) instead of failing
 - The Rust client failed to fetch any series containing a `null` (e.g. `…by.minute10()`) and read boolean series as
   integers; the Python pool block count/share types declared `_24h`, which never matched the JSON
+- The Python and Rust clients percent-encode query values (a search with a space or `&`, or a `+` in a timestamp's
+  offset, changed the request). The Python client keeps the base URL's path (`https://host/bitview` lost `/bitview`)
+  and rejects a slice step instead of ignoring it. JS response types declare the keys the JSON has (`USD`, `avgFee_0`,
+  `"24h"`; were `uSD`, `avgFee0`, `_24h`)
 
 #### API and node I/O
 
+- An address's unspent outputs no longer list the two coinbase outputs that BIP30 duplicates overwrote (blocks 91812
+  and 91722): the indexer drops them from their address when the duplicate lands
+- Pool hashrate histories (`/api/v1/mining/hashrate/pools/{time_period}`, `/api/v1/mining/pool/{slug}/hashrate`):
+  `24h` and `3d` return the latest day instead of nothing, a share's block counts cover the same seven days (the
+  network count lagged a day), and samples are weekly back from today
+- A date or timestamp past the last block ends the series: as `start` it selects nothing (was the last block), as
+  `end` it keeps the last block (was left out), for the height, epoch and halving indexes
+- The website caches only content-hashed files as immutable; fixed names (the search index, workers, fonts) revalidate
+  with an ETag, so an upgrade no longer leaves a stale search index for a year
+- The MCP server exposes the UTXO set diff (`get_utxo_set_diff`), as decided; the full state stays out
 - `/api/v1/fullrbf/replacements` (and `/api/v1/replacements`) no longer answer 500 when the graveyard is busy: they
   visit only replacements, end with the complete trees found when the work budget runs out, and skip a tree nested
   too deep
@@ -725,6 +759,7 @@ has to be deleted by hand.
 
 #### Compute and indexing
 
+- A first sync no longer waits 10 seconds before indexing
 - Transaction patterns (coinjoin, consolidation, batch payout) classify block ranges in parallel instead of one
   thread walking every transaction. Recomputing them from block 0 to ~970,750 on a 16 GB Mac mini takes 50 s instead
   of 201 s (the whole transactions plugin, with no other plugin computing: 260 s instead of 414 s), with identical
