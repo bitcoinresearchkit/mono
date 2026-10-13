@@ -25,9 +25,11 @@ impl AgeBand {
         })
     }
 
+    /// Exposures are defined: the decay fit gives zeros without a fit and sums finite terms.
     #[inline]
     pub fn mobility(exposure: f64) -> f64 {
-        if exposure.is_nan() || exposure <= 0.0 {
+        debug_assert!(!exposure.is_nan(), "undefined exposure");
+        if exposure <= 0.0 {
             0.0
         } else {
             (-(-exposure).exp_m1()).min(1.0 - 1e-12)

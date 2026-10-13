@@ -720,8 +720,10 @@ has to be deleted by hand.
 - Coinflow's expected spending exposure integrates through age ranges where nothing moved (it stopped there and
   extrapolated the fit) and stops only where a range is empty, and the youngest range's remaining half hour counts as
   a half hour (was an hour). Mobility and everything weighted by it follow
-- Cointime's and Coinflow's in-loss shares are null when a populated age range's weight is undefined (that range was
-  left out, which could show 0% in loss)
+- An age range whose weight its history cannot define yet (no coin-days in the range: Cointime's wakefulness at the
+  instant coins first enter it) counts its coins as dormant: they were on neither side, left out of the in-loss
+  share (which could show 0% in loss) and of the cost basis, and turned every awake cohort's cost-basis percentiles
+  null. The wakefulness itself stays null there
 - Profitability bands take their capital from rounded running totals, so an age filter's bands add up to its capital
   and their capital shares to 100% (two sub-cent bands could each show 100%)
 - Fee-rate statistics of a block without transactions are null (were 0); the mempool-compatible block and fee-rate

@@ -30,8 +30,8 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// greater eventual probability of spending.
     pub spending_exposure: PerBlock<Float64, M>,
     /// Mobility: estimated probability that supply in the range will ever be
-    /// spent, one minus exp of negative spending exposure. Nonpositive or NaN
-    /// exposure returns zero; positive results are capped just below one. A
+    /// spent, one minus exp of negative spending exposure. Nonpositive exposure
+    /// returns zero; positive results are capped just below one. A
     /// value near zero identifies supply unlikely to move, while a value near
     /// one identifies supply likely to move eventually. Precise to about one part
     /// in four billion.

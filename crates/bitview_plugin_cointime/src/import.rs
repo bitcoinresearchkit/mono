@@ -33,7 +33,7 @@ impl Vecs {
             age_range::Vecs::import(&db, version, mappings, window_starts, &spot_price, age)?;
         let supply = supply::Vecs::new(v1, mappings, &spot_price, &activity, all_chain);
         let aggregate =
-            aggregate::Vecs::import(&db, version + Version::new(4), mappings, &spot_price)?;
+            aggregate::Vecs::import(&db, version + Version::new(5), mappings, &spot_price)?;
         let value = value::Vecs::import(&db, v1, mappings, window_starts)?;
         let caps = cap::Vecs::import(
             &db,

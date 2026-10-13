@@ -8,7 +8,6 @@ use brk_types::{Cents, CentsSats};
 pub struct WeightedCapitalizedPrice {
     numerator: WeightedSum,
     denominator: WeightedSum,
-    undefined: bool,
 }
 
 impl WeightedCapitalizedPrice {
@@ -18,11 +17,8 @@ impl WeightedCapitalizedPrice {
         capitalized_cap: CentsSquaredSats,
         weight: BoundedRatio,
     ) {
+        debug_assert!(!weight.is_nan(), "undefined weight");
         if cap == CentsSats::ZERO || weight == BoundedRatio::ZERO {
-            return;
-        }
-        if weight.is_nan() {
-            self.undefined = true;
             return;
         }
         self.numerator.add(capitalized_cap.inner(), weight);
@@ -32,13 +28,9 @@ impl WeightedCapitalizedPrice {
     pub(crate) fn merge(&mut self, other: Self) {
         self.numerator.merge(other.numerator);
         self.denominator.merge(other.denominator);
-        self.undefined |= other.undefined;
     }
 
     pub fn value(&self) -> Cents {
-        if self.undefined {
-            return Cents::NAN;
-        }
         if self.denominator == WeightedSum::default() {
             return Cents::NAN;
         }

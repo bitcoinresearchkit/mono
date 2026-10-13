@@ -2,7 +2,7 @@ use bitview_primitives::{BoundedRatio, Ratio64};
 use brk_types::{Cents, Sats};
 use vecdb::unlikely;
 
-use super::{WeightedCapitalizedPrice, WeightedCohortContribution, WeightedRatio};
+use super::{WeightedCapitalizedPrice, WeightedCohortContribution, WeightedRatio, defined_weight};
 
 #[derive(Clone, Copy, Default)]
 pub struct WeightedCohortState {
@@ -14,8 +14,11 @@ pub struct WeightedCohortState {
 }
 
 impl WeightedCohortState {
+    /// The supply on each side of `weight`; an undefined weight (see [`defined_weight`]) puts it
+    /// all on the unweighted side.
     #[inline]
     pub fn split_supply(total: Sats, weight: BoundedRatio) -> (Sats, Sats) {
+        let weight = defined_weight(weight);
         (
             Ratio64::from(f64::from(weight)) * total,
             Ratio64::from(f64::from(weight.complement())) * total,

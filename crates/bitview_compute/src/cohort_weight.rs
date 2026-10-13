@@ -3,15 +3,17 @@ use bitview_primitives::Ratio64;
 use brk_types::{Height, Sats};
 use vecdb::{Cursor, ReadableVec};
 
-/// Empty cohorts may have no observation; populated cohorts require a finite one.
+/// A populated cohort needs an observation; an empty one may have none. An undefined weight
+/// moves nothing (as in `weighted::defined_weight`): its coins count on the unweighted side.
 fn resolve_cohort_value<T>(value: Option<T>, supply: Sats) -> Option<f64>
 where
     f64: From<T>,
 {
     match value.map(f64::from) {
         Some(value) if value.is_finite() => Some(value),
-        _ if supply == Sats::ZERO => Some(0.0),
-        _ => None,
+        Some(_) => Some(0.0),
+        None if supply == Sats::ZERO => Some(0.0),
+        None => None,
     }
 }
 
