@@ -817,6 +817,12 @@ has to be deleted by hand.
 - A VecDB import-time reset deletes the vector's rollback history, so a later deep reorg cannot walk into change
   files of the vector's previous life; a value whose width changed without a version bump resets instead of being
   misread
+- A transaction with more than 65,536 outputs (consensus-valid but non-standard: only a miner can include one, and
+  none has come close, the most is 13,107) no longer crashes the indexer on every instance: such an output keeps
+  its own UTXO entry (its vout's high bits are mixed into the key's txid prefix; every other key is unchanged) and
+  its confirmed spends resolve normally. Its vout shows wrapped in the API (the transaction's outspends answer an
+  error), its address's UTXO list can miss or misattribute it, and a mempool spend of it resolves the output at
+  the wrapped index; a dev build stops on it
 - A VecDB rollback skips the change files an earlier rollback left above its landing (kept until a write at their
   stamp replaces them): after a reorg whose replacement came in one multi-block update, a later deeper reorg failed
   every update with a stamp mismatch

@@ -451,7 +451,7 @@ impl Stores {
             for (vout, txout_index) in txout_range.enumerate() {
                 let output_type = txout_index_to_output_type_reader.get_at(txout_index);
                 if !output_type.is_unspendable() {
-                    let key = UtxoKey::new(txid_prefix, Vout::from(vout));
+                    let key = UtxoKey::new(txid_prefix, vout as u32);
                     self.utxos.remove(key);
                     if Utxo::is_large(txout_index_to_value_reader.get_at(txout_index)) {
                         self.utxo_values.remove(key);
@@ -493,7 +493,7 @@ impl Stores {
             // Outputs created by removed transactions went with them; older ones are unspent again.
             if outpoint.tx_index() < starting_tx_index {
                 let txid = txids.get(outpoint.tx_index());
-                let key = UtxoKey::new(TxidPrefix::from(&txid), outpoint.vout());
+                let key = UtxoKey::new(TxidPrefix::from(&txid), outpoint.vout_index());
                 let value = values.get(index).data()?;
                 self.utxos.insert(
                     key,

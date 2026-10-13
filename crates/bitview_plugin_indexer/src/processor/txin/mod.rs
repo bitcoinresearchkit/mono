@@ -8,7 +8,7 @@ use bitcoin::Transaction;
 use bitview_cohort::ByAddrType;
 use bitview_primitives::{AddrIndexOutPoint, AddrIndexTxIndex, TxInIndex, TxOutIndex, TypeIndex};
 use brk_store::Store;
-use brk_types::{OutPoint, OutputType, Sats, TxIndex, Txid, TxidPrefix, Unit, Vin, Vout};
+use brk_types::{OutPoint, OutputType, Sats, TxIndex, Txid, TxidPrefix, Unit, Vin};
 use vecdb::{PcoVec, WritableVec, unlikely};
 
 use super::txout::ProcessedOutput;
@@ -84,7 +84,7 @@ pub fn finalize_inputs(
             if !matches!(input_source, InputSource::Coinbase) {
                 let previous_output = &txin.previous_output;
                 let txid = <&Txid>::from(&previous_output.txid);
-                let key = UtxoKey::new(TxidPrefix::from(txid), Vout::from(previous_output.vout));
+                let key = UtxoKey::new(TxidPrefix::from(txid), previous_output.vout);
                 utxos.remove(key);
                 if Utxo::is_large(value) {
                     utxo_values.remove(key);

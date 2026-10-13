@@ -34,7 +34,7 @@ impl Query {
             // A confirmed unspent output with an address or empty script: a UTXO-store lookup (which
             // carries the value, but for a large one), the txid check and its address bytes.
             let unspent = |txid: Txid, vout: Vout| -> Option<TxOut> {
-                let key = UtxoKey::new(TxidPrefix::from(txid), vout);
+                let key = UtxoKey::new(TxidPrefix::from(txid), u32::from(vout));
                 let utxo = indexer.stores().utxo(&key).ok()??;
                 let (tx_index, txout, output_type, type_index) = (
                     utxo.tx_index(),

@@ -1,17 +1,26 @@
 use bitview_primitives::{TxOutIndex, TypeIndex};
-use brk_types::{OutputType, Sats, StoreValue, TxIndex, TxidPrefix, Vout};
+use brk_types::{OutputType, Sats, StoreValue, TxIndex, TxidPrefix};
 use vecdb::{Bytes, OverflowVecValue};
 
-/// Key of an unspent output: the creating transaction's txid prefix, then the output's vout.
+/// Key of an unspent output: the creating transaction's txid prefix, then the output's vout (a vout
+/// past 65,535 mixes into the prefix, see [`UtxoKey::new`]).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub struct UtxoKey([u8; 10]);
 
 impl UtxoKey {
+    /// A vout past 65,535 (only a non-standard transaction a miner builds on purpose) mixes its
+    /// high bits into the prefix, so its key differs from the outputs sharing its low bits; every
+    /// other key is the prefix and the vout.
     #[inline]
-    pub fn new(txid_prefix: TxidPrefix, vout: Vout) -> Self {
+    pub fn new(txid_prefix: TxidPrefix, vout: u32) -> Self {
+        let mut prefix = txid_prefix.to_store_bytes();
+        if vout > u32::from(u16::MAX) {
+            let high = u64::from(vout >> 16).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+            prefix = (u64::from_be_bytes(prefix) ^ high).to_be_bytes();
+        }
         let mut bytes = [0; 10];
-        bytes[..8].copy_from_slice(&txid_prefix.to_store_bytes());
-        bytes[8..].copy_from_slice(&vout.to_be_bytes());
+        bytes[..8].copy_from_slice(&prefix);
+        bytes[8..].copy_from_slice(&(vout as u16).to_be_bytes());
         Self(bytes)
     }
 }

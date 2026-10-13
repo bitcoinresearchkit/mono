@@ -20,9 +20,12 @@ impl OutPoint {
     pub const COINBASE: Self = Self(u64::MAX);
 
     pub fn new(tx_index: TxIndex, vout: Vout) -> Self {
-        let tx_index_bits = u64::from(tx_index) << 32;
-        let vout_bits = u64::from(vout);
-        Self(tx_index_bits | vout_bits)
+        Self::with_vout_index(tx_index, u32::from(vout))
+    }
+
+    /// Keeps a vout past [`Vout`]'s range whole (see [`Vout`]'s `From<u32>`).
+    pub fn with_vout_index(tx_index: TxIndex, vout: u32) -> Self {
+        Self((u64::from(tx_index) << 32) | u64::from(vout))
     }
 
     #[inline(always)]
@@ -36,6 +39,12 @@ impl OutPoint {
             return Vout::MAX;
         }
         Vout::from(self.0 as u32)
+    }
+
+    /// The full output index, past [`Vout`]'s range included.
+    #[inline(always)]
+    pub fn vout_index(self) -> u32 {
+        self.0 as u32
     }
 
     #[inline(always)]

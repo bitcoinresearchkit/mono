@@ -39,13 +39,14 @@ impl From<u16> for Vout {
     }
 }
 
+/// Only a non-standard transaction a miner builds on purpose has more than 65,536 outputs: a dev
+/// build stops on one, a release build wraps its index rather than crash (the indexer keys such
+/// outputs by their full index).
 const U16_MAX_AS_U32: u32 = u16::MAX as u32;
 impl From<u32> for Vout {
     #[inline]
     fn from(value: u32) -> Self {
-        if value > U16_MAX_AS_U32 {
-            panic!()
-        }
+        debug_assert!(value <= U16_MAX_AS_U32, "vout {value} does not fit a u16");
         Self(value as u16)
     }
 }
@@ -54,9 +55,7 @@ const U16_MAX_AS_USIZE: usize = u16::MAX as usize;
 impl From<usize> for Vout {
     #[inline]
     fn from(value: usize) -> Self {
-        if value > U16_MAX_AS_USIZE {
-            panic!()
-        }
+        debug_assert!(value <= U16_MAX_AS_USIZE, "vout {value} does not fit a u16");
         Self(value as u16)
     }
 }

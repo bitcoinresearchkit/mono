@@ -109,13 +109,14 @@ pub fn finalize_outputs(
         {
             let block_txout_index = output_offset + vout;
             let txout_index = base_txout_index + TxOutIndex::from(block_txout_index);
+            let vout_index = vout as u32;
             let vout = Vout::from(vout);
             let output_type = processed.output_type;
             let legacy_sigops = processed.legacy_sigops;
             let data = processed.data;
             let sats = Sats::from(txout.value);
 
-            if vout.is_zero() {
+            if vout_index == 0 {
                 first_txout_index.debug_checked_push(tx_index, Index40::new(txout_index));
             }
 
@@ -200,7 +201,7 @@ pub fn finalize_outputs(
             // OP_RETURN outputs can never be spent. A BIP30 duplicate coinbase (two, in 2010)
             // replaces its original's entry, as in Bitcoin Core.
             if !output_type.is_unspendable() {
-                let key = UtxoKey::new(txid_prefix, vout);
+                let key = UtxoKey::new(txid_prefix, vout_index);
                 utxos.insert(
                     key,
                     Utxo::new(tx_index, txout_index, output_type, type_index, sats),

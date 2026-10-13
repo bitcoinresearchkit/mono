@@ -1,6 +1,6 @@
 use bitview_primitives::TxOutIndex;
 use brk_error::{Error, Result};
-use brk_types::{OutPoint, Sats, SigOps32, TxIndex, Txid, TxidPrefix, Vout};
+use brk_types::{OutPoint, Sats, SigOps32, TxIndex, Txid, TxidPrefix};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use tracing::error;
@@ -75,7 +75,7 @@ impl InputResolver {
                         };
 
                         *resolved = InputSource::PreviousBlock {
-                            outpoint: OutPoint::new(utxo.tx_index(), vout),
+                            outpoint: OutPoint::with_vout_index(utxo.tx_index(), vout),
                             txout_index: utxo.txout_index(),
                             output_type,
                             legacy_sigops,
@@ -117,17 +117,17 @@ impl InputResolver {
 
                 let txid = *<&Txid>::from(&previous_output.txid);
                 let txid_prefix = TxidPrefix::from(&txid);
-                let vout = Vout::from(previous_output.vout);
+                let vout = previous_output.vout;
 
                 if let Some(tx_index) = self.block_parents.get(&txid_prefix).copied() {
                     let block_tx_index = usize::from(tx_index) - usize::from(block_first_tx_index);
                     let tx = &txs[block_tx_index];
                     let txout_offset = tx.txout_offset(vout);
                     self.inputs.push(UnresolvedInput::SameBlock {
-                        outpoint: OutPoint::new(tx_index, vout),
+                        outpoint: OutPoint::with_vout_index(tx_index, vout),
                         txout_offset,
                         txout_index: block_first_txout_index + TxOutIndex::from(txout_offset),
-                        value: Sats::from(tx.tx.output[usize::from(vout)].value),
+                        value: Sats::from(tx.tx.output[vout as usize].value),
                     });
                 } else {
                     self.inputs.push(UnresolvedInput::PreviousBlock {
@@ -145,7 +145,7 @@ enum UnresolvedInput {
     Coinbase,
     PreviousBlock {
         prefix: TxidPrefix,
-        vout: Vout,
+        vout: u32,
     },
     SameBlock {
         outpoint: OutPoint,

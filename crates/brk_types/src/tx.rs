@@ -84,8 +84,9 @@ impl Transaction {
     /// `bitcoin::Transaction`. Lossless for mempool/confirmed txs
     /// (verified bytewise round-trip against Core over a 1000-tx live
     /// sample). Coinbase txs don't round-trip because brk's `Vout` is
-    /// `u16` while the protocol's coinbase vout is `0xFFFFFFFF` -
-    /// callers that may see coinbase shouldn't rely on this.
+    /// `u16` while the protocol's coinbase vout is `0xFFFFFFFF`, nor does
+    /// a spend of an output past 65,535 (its `Vout` wraps) - callers that
+    /// may see either shouldn't rely on this.
     pub fn encode_bytes(&self) -> Vec<u8> {
         let bitcoin_tx: BitcoinTransaction = self.into();
         let mut buf = Vec::with_capacity(self.total_size);
@@ -177,7 +178,8 @@ fn count_sigops_with_witness_program(witness: &Witness, witness_program: &Script
 
 /// Re-encode a brk `Transaction` to a canonical `bitcoin::Transaction`.
 /// Lossless for mempool/confirmed txs (verified bytewise round-trip
-/// against Core's `getrawtransaction` over a 1000-tx live sample).
+/// against Core's `getrawtransaction` over a 1000-tx live sample), but for
+/// a spend of an output past 65,535, whose `Vout` wraps.
 ///
 /// Coinbase round-trip is **not** byte-perfect because brk's `Vout` is
 /// a `u16` and coinbase encodes `vout = 0xFFFFFFFF` in the protocol;

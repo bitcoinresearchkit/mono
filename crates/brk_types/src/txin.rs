@@ -86,8 +86,9 @@ fn txin_wire_schema(schema: &mut Schema) {
 }
 
 /// Reconstruct a canonical `bitcoin::TxIn` from the stored brk shape.
-/// Mempool txs are never coinbase, so `vout` (u16 in brk) always fits
-/// the bitcoin protocol's u32 vout field via widening.
+/// Mempool txs are never coinbase, so `vout` (u16 in brk) widens to the
+/// protocol's u32 field, except a spend of an output past 65,535 (only a
+/// non-standard parent has one), whose vout `Vout` wraps.
 impl From<&TxIn> for BitcoinTxIn {
     #[inline]
     fn from(txin: &TxIn) -> Self {

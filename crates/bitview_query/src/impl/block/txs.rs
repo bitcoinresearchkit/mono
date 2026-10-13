@@ -236,7 +236,7 @@ impl Query {
                     .data()?
                     .1
                     .output
-                    .get(usize::from(op.vout()))
+                    .get(op.vout_index() as usize)
                     .data()?;
                 if output.value.to_sat() != u64::from(value) {
                     return Err(Error::Internal("Indexed prevout value mismatch"));
