@@ -26,7 +26,7 @@ impl OriginSpends {
     ) -> Result<()> {
         let vecs = indexer.vecs();
         let first = &vecs.inputs.first_txin_index;
-        let txout_indexes = &vecs.inputs.txout_index;
+        let txout_indexes = &*vecs.inputs.txout_index;
         let input_values = &vecs.inputs.value;
         if from > end || usize::from(end) > first.len() {
             return Err(Error::NotFound("invalid input computation range".into()));

@@ -62,7 +62,7 @@ impl Vecs {
             min_txout_index
         };
 
-        let txin_index_to_txout_index = &indexer.vecs().inputs.txout_index;
+        let txin_index_to_txout_index = &*indexer.vecs().inputs.txout_index;
         // Find min_height via binary search (first_txout_index is monotonically non-decreasing)
         let first_txout_index_vec = &indexer.vecs().outputs.first_txout_index;
         let min_height = if min_txout_index == 0 {

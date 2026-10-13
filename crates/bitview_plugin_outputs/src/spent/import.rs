@@ -11,18 +11,15 @@ use super::Vecs;
 
 /// Serves a spend only once its input is published: spends are written in place before the
 /// update that indexes their inputs publishes, so a read bounded below them sees the output
-/// unspent.
+/// unspent (null, as is an output no input spends yet).
 struct PublishedSpend;
 
-impl UnaryTransform<Index40<TxInIndex>, TxInIndex> for PublishedSpend {
+impl UnaryTransform<Index40<TxInIndex>, Option<TxInIndex>> for PublishedSpend {
     #[inline]
-    fn apply(value: Index40<TxInIndex>) -> TxInIndex {
+    fn apply(value: Index40<TxInIndex>) -> Option<TxInIndex> {
         let spend: TxInIndex = value.into();
-        if spend.to_usize() < visible_len(<TxInIndex as PrintableIndex>::to_string(), usize::MAX) {
-            spend
-        } else {
-            TxInIndex::UNSPENT
-        }
+        (spend.to_usize() < visible_len(<TxInIndex as PrintableIndex>::to_string(), usize::MAX))
+            .then_some(spend)
     }
 }
 

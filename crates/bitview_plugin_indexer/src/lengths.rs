@@ -161,7 +161,11 @@ fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
             &vecs.transactions.txid,
             height,
         )?,
-        txin_index: next_index(&vecs.inputs.first_txin_index, &vecs.inputs.outpoint, height)?,
+        txin_index: next_index(
+            &vecs.inputs.first_txin_index,
+            &*vecs.inputs.outpoint,
+            height,
+        )?,
         txout_index: next_index(&vecs.outputs.first_txout_index, &vecs.outputs.value, height)?,
         unknown_output_index: next_index(
             &vecs.scripts.unknown.first_index,

@@ -101,7 +101,7 @@ struct PublishedBounds {
 /// to another thread keeps [`ReadPin::into_inner`]'s plain pin.
 pub(crate) struct ReadPin {
     pin: SafeLengths,
-    #[cfg(any(feature = "series", feature = "price"))]
+    #[cfg(feature = "series")]
     bounds: ReadBounds,
     #[cfg(any(feature = "series", feature = "price"))]
     _scope: ReadScope,
@@ -161,7 +161,7 @@ impl Query {
         ReadPin {
             #[cfg(any(feature = "series", feature = "price"))]
             _scope: bounds.enter(),
-            #[cfg(any(feature = "series", feature = "price"))]
+            #[cfg(feature = "series")]
             bounds,
             pin,
         }

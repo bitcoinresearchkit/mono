@@ -12,7 +12,7 @@ use bitcoin::{
 use bitview_primitives::{PoolSlug, pools};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
 use brk_types::{
-    BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, VSize, Weight,
+    BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, Weight,
 };
 use vecdb::{ReadableVec, VecIndex};
 
@@ -38,6 +38,8 @@ struct Coinbase {
     scriptsig_bytes: Vec<u8>,
     /// On-disk total size of the coinbase tx.
     total_size: usize,
+    /// Weight of the coinbase tx.
+    weight: Weight,
 }
 
 impl Query {
@@ -165,6 +167,7 @@ impl Query {
             .map_err(|_| Error::Internal("Failed to decode coinbase transaction"))?;
 
         let total_size = tx.total_size();
+        let weight = Weight::from(tx.weight().to_wu());
 
         let scriptsig_bytes: Vec<u8> = tx
             .input
@@ -206,6 +209,7 @@ impl Query {
             scriptsig_ascii,
             scriptsig_bytes,
             total_size,
+            weight,
         })
     }
 
@@ -516,6 +520,7 @@ impl Query {
                     scriptsig_ascii: coinbase_signature_ascii,
                     scriptsig_bytes,
                     total_size: coinbase_total_size,
+                    weight: coinbase_weight,
                 } = Self::parse_coinbase_from_read(blk)?;
 
                 let weight = Weight::from(weights[i]);
@@ -526,6 +531,11 @@ impl Query {
                 let total_outputs = *output_counts[i];
                 let vsize = weight.to_vbytes_ceil();
                 let total_fees_u64 = u64::from(total_fees);
+                // Bitcoin Core's average fee rate (`getblockstats`): fees over the fee-paying
+                // transactions' weight, without the header, the transaction count and the coinbase.
+                let fee_paying_weight = u64::from(weight)
+                    .saturating_sub(4 * (HEADER_SIZE + varint_len) as u64)
+                    .saturating_sub(u64::from(coinbase_weight));
                 let non_coinbase = tx_count.saturating_sub(1) as u64;
 
                 let pool_slug = pool_slugs[i];
@@ -583,7 +593,9 @@ impl Query {
                         miner_names,
                     },
                     avg_fee: Sats::from(total_fees_u64.checked_div(non_coinbase).unwrap_or(0)),
-                    avg_fee_rate: FeeRate::from((total_fees, VSize::from(vsize))),
+                    avg_fee_rate: mempool_fee_rate(FeeRate::from(
+                        total_fees_u64 as f64 * 4.0 / fee_paying_weight as f64,
+                    )),
                     coinbase_raw,
                     coinbase_address,
                     coinbase_addresses,

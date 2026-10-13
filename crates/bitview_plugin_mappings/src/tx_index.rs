@@ -33,7 +33,7 @@ impl Vecs {
                 "tx_input_count",
                 version,
                 &indexer.vecs().transactions.first_txin_index,
-                &indexer.vecs().inputs.outpoint,
+                &*indexer.vecs().inputs.outpoint,
             ),
             output_count: LazyIndexCountVec::new(
                 "tx_output_count",

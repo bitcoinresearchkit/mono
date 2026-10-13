@@ -42,7 +42,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// BRK's block-level Bitcoin (BTC/USD) spot-price estimate. Heights before
     /// 340,000 use baked historical exchange prices; later heights use an on-chain oracle
     /// that estimates price from round-USD transaction-output patterns. This is
-    /// a model-derived block price, not a contemporaneous exchange ticker.
+    /// a model-derived block price, not a contemporaneous exchange ticker. Zero
+    /// before the first exchange price (block 74,641, July 2010), and so are USD
+    /// values derived from it.
     pub spot: SpotPrice<M>,
     /// Whole satoshis one US dollar buys at the spot price: 100,000,000 divided
     /// by the price in USD per BTC.

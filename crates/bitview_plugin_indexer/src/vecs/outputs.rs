@@ -23,9 +23,9 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     pub output_type: M::Stored<BytesVec<TxOutIndex, OutputType>>,
     /// Zero-based index within the output's BRK type-specific collection. At
     /// `txout_index`, this identifies the indexed output; at `txin_index`, it
-    /// identifies the previous output spent by the input. Address types index
-    /// distinct addresses, while other types index outputs in canonical order.
-    /// Coinbase inputs use `u32::MAX`.
+    /// identifies the previous output spent by the input, null for a coinbase
+    /// input. Address types index distinct addresses, while other types index
+    /// outputs in canonical order.
     pub type_index: M::Stored<BytesVec<TxOutIndex, TypeIndex>>,
 }
 

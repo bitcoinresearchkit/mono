@@ -2593,19 +2593,21 @@ _i19 = ('epoch',)
 _i20 = ('height',)
 _i21 = ('tx_index',)
 _i22 = ('txin_index',)
-_i23 = ('txout_index',)
-_i24 = ('empty_output_index',)
-_i25 = ('op_return_index',)
-_i26 = ('p2a_address_index',)
-_i27 = ('p2ms_output_index',)
-_i28 = ('p2pk33_address_index',)
-_i29 = ('p2pk65_address_index',)
-_i30 = ('p2pkh_address_index',)
-_i31 = ('p2sh_address_index',)
-_i32 = ('p2tr_address_index',)
-_i33 = ('p2wpkh_address_index',)
-_i34 = ('p2wsh_address_index',)
-_i35 = ('unknown_output_index',)
+_i23 = ('txin_index',)
+_i24 = ('txout_index',)
+_i25 = ('txout_index',)
+_i26 = ('empty_output_index',)
+_i27 = ('op_return_index',)
+_i28 = ('p2a_address_index',)
+_i29 = ('p2ms_output_index',)
+_i30 = ('p2pk33_address_index',)
+_i31 = ('p2pk65_address_index',)
+_i32 = ('p2pkh_address_index',)
+_i33 = ('p2sh_address_index',)
+_i34 = ('p2tr_address_index',)
+_i35 = ('p2wpkh_address_index',)
+_i36 = ('p2wsh_address_index',)
+_i37 = ('unknown_output_index',)
 
 def _ep(c: BitviewClient, n: str, i: Index) -> SeriesEndpoint[Any]:
     return SeriesEndpoint(c, n, i)
@@ -2943,7 +2945,7 @@ class SeriesPattern22(Generic[T]):
 
 class _SeriesPattern23By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txout_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'txout_index')
+    def txin_index(self) -> SeriesEndpoint[Optional[T]]: return _ep(self._c, self._n, 'txin_index')
 
 class SeriesPattern23(Generic[T]):
     by: _SeriesPattern23By[T]
@@ -2951,11 +2953,11 @@ class SeriesPattern23(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i23)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i23 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i23 else None
 
 class _SeriesPattern24By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def empty_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'empty_output_index')
+    def txout_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'txout_index')
 
 class SeriesPattern24(Generic[T]):
     by: _SeriesPattern24By[T]
@@ -2967,7 +2969,7 @@ class SeriesPattern24(Generic[T]):
 
 class _SeriesPattern25By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def op_return_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'op_return_index')
+    def txout_index(self) -> SeriesEndpoint[Optional[T]]: return _ep(self._c, self._n, 'txout_index')
 
 class SeriesPattern25(Generic[T]):
     by: _SeriesPattern25By[T]
@@ -2975,11 +2977,11 @@ class SeriesPattern25(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i25)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i25 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i25 else None
 
 class _SeriesPattern26By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2a_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2a_address_index')
+    def empty_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'empty_output_index')
 
 class SeriesPattern26(Generic[T]):
     by: _SeriesPattern26By[T]
@@ -2991,7 +2993,7 @@ class SeriesPattern26(Generic[T]):
 
 class _SeriesPattern27By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2ms_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2ms_output_index')
+    def op_return_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'op_return_index')
 
 class SeriesPattern27(Generic[T]):
     by: _SeriesPattern27By[T]
@@ -3003,7 +3005,7 @@ class SeriesPattern27(Generic[T]):
 
 class _SeriesPattern28By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk33_address_index')
+    def p2a_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2a_address_index')
 
 class SeriesPattern28(Generic[T]):
     by: _SeriesPattern28By[T]
@@ -3015,7 +3017,7 @@ class SeriesPattern28(Generic[T]):
 
 class _SeriesPattern29By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk65_address_index')
+    def p2ms_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2ms_output_index')
 
 class SeriesPattern29(Generic[T]):
     by: _SeriesPattern29By[T]
@@ -3027,7 +3029,7 @@ class SeriesPattern29(Generic[T]):
 
 class _SeriesPattern30By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pkh_address_index')
+    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk33_address_index')
 
 class SeriesPattern30(Generic[T]):
     by: _SeriesPattern30By[T]
@@ -3039,7 +3041,7 @@ class SeriesPattern30(Generic[T]):
 
 class _SeriesPattern31By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2sh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2sh_address_index')
+    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk65_address_index')
 
 class SeriesPattern31(Generic[T]):
     by: _SeriesPattern31By[T]
@@ -3051,7 +3053,7 @@ class SeriesPattern31(Generic[T]):
 
 class _SeriesPattern32By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2tr_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2tr_address_index')
+    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pkh_address_index')
 
 class SeriesPattern32(Generic[T]):
     by: _SeriesPattern32By[T]
@@ -3063,7 +3065,7 @@ class SeriesPattern32(Generic[T]):
 
 class _SeriesPattern33By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wpkh_address_index')
+    def p2sh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2sh_address_index')
 
 class SeriesPattern33(Generic[T]):
     by: _SeriesPattern33By[T]
@@ -3075,7 +3077,7 @@ class SeriesPattern33(Generic[T]):
 
 class _SeriesPattern34By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wsh_address_index')
+    def p2tr_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2tr_address_index')
 
 class SeriesPattern34(Generic[T]):
     by: _SeriesPattern34By[T]
@@ -3087,7 +3089,7 @@ class SeriesPattern34(Generic[T]):
 
 class _SeriesPattern35By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def unknown_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'unknown_output_index')
+    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wpkh_address_index')
 
 class SeriesPattern35(Generic[T]):
     by: _SeriesPattern35By[T]
@@ -3096,6 +3098,30 @@ class SeriesPattern35(Generic[T]):
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i35)
     def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i35 else None
+
+class _SeriesPattern36By(Generic[T]):
+    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
+    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wsh_address_index')
+
+class SeriesPattern36(Generic[T]):
+    by: _SeriesPattern36By[T]
+    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern36By(c, n)
+    @property
+    def name(self) -> str: return self._n
+    def indexes(self) -> List[str]: return list(_i36)
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i36 else None
+
+class _SeriesPattern37By(Generic[T]):
+    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
+    def unknown_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'unknown_output_index')
+
+class SeriesPattern37(Generic[T]):
+    by: _SeriesPattern37By[T]
+    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern37By(c, n)
+    @property
+    def name(self) -> str: return self._n
+    def indexes(self) -> List[str]: return list(_i37)
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i37 else None
 
 # Series tree
 
@@ -3996,7 +4022,7 @@ class TransferVolume(_Node):
 
 
 class Spent(_Node):
-    txin_index: SeriesPattern23[TxInIndex] = _at(SeriesPattern23, '*')
+    txin_index: SeriesPattern25[TxInIndex] = _at(SeriesPattern25, '*')
 
 
 class ChainShare(_Node):
@@ -4916,7 +4942,7 @@ class MappingsTimestamp(_Node):
 
 
 class TxoutIndex(_Node):
-    identity: SeriesPattern23[TxOutIndex] = _at(SeriesPattern23, '*')
+    identity: SeriesPattern24[TxOutIndex] = _at(SeriesPattern24, '*')
 
 
 class TxinIndex(_Node):
@@ -5016,19 +5042,19 @@ class MappingsHeight(_Node):
 
 
 class OutputsOpReturn(_Node):
-    identity: SeriesPattern25[OpReturnIndex] = _at(SeriesPattern25, '*')
+    identity: SeriesPattern27[OpReturnIndex] = _at(SeriesPattern27, '*')
 
 
 class OutputsUnknown(_Node):
-    identity: SeriesPattern35[UnknownOutputIndex] = _at(SeriesPattern35, '*')
+    identity: SeriesPattern37[UnknownOutputIndex] = _at(SeriesPattern37, '*')
 
 
 class OutputsEmpty(_Node):
-    identity: SeriesPattern24[EmptyOutputIndex] = _at(SeriesPattern24, '*')
+    identity: SeriesPattern26[EmptyOutputIndex] = _at(SeriesPattern26, '*')
 
 
 class OutputsP2ms(_Node):
-    identity: SeriesPattern27[P2MSOutputIndex] = _at(SeriesPattern27, '*')
+    identity: SeriesPattern29[P2MSOutputIndex] = _at(SeriesPattern29, '*')
 
 
 class MappingsOutputs(_Node):
@@ -5039,43 +5065,43 @@ class MappingsOutputs(_Node):
 
 
 class MappingsAddressesP2a(_Node):
-    identity: SeriesPattern26[P2AAddressIndex] = _at(SeriesPattern26, '*_index')
-    address: SeriesPattern26[Address] = _at(SeriesPattern26, '*')
+    identity: SeriesPattern28[P2AAddressIndex] = _at(SeriesPattern28, '*_index')
+    address: SeriesPattern28[Address] = _at(SeriesPattern28, '*')
 
 
 class MappingsAddressesP2wsh(_Node):
-    identity: SeriesPattern34[P2WSHAddressIndex] = _at(SeriesPattern34, '*_index')
-    address: SeriesPattern34[Address] = _at(SeriesPattern34, '*')
+    identity: SeriesPattern36[P2WSHAddressIndex] = _at(SeriesPattern36, '*_index')
+    address: SeriesPattern36[Address] = _at(SeriesPattern36, '*')
 
 
 class MappingsAddressesP2wpkh(_Node):
-    identity: SeriesPattern33[P2WPKHAddressIndex] = _at(SeriesPattern33, '*_index')
-    address: SeriesPattern33[Address] = _at(SeriesPattern33, '*')
+    identity: SeriesPattern35[P2WPKHAddressIndex] = _at(SeriesPattern35, '*_index')
+    address: SeriesPattern35[Address] = _at(SeriesPattern35, '*')
 
 
 class MappingsAddressesP2tr(_Node):
-    identity: SeriesPattern32[P2TRAddressIndex] = _at(SeriesPattern32, '*_index')
-    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
+    identity: SeriesPattern34[P2TRAddressIndex] = _at(SeriesPattern34, '*_index')
+    address: SeriesPattern34[Address] = _at(SeriesPattern34, '*')
 
 
 class MappingsAddressesP2sh(_Node):
-    identity: SeriesPattern31[P2SHAddressIndex] = _at(SeriesPattern31, '*_index')
-    address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
+    identity: SeriesPattern33[P2SHAddressIndex] = _at(SeriesPattern33, '*_index')
+    address: SeriesPattern33[Address] = _at(SeriesPattern33, '*')
 
 
 class MappingsAddressesP2pkh(_Node):
-    identity: SeriesPattern30[P2PKHAddressIndex] = _at(SeriesPattern30, '*_index')
-    address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
+    identity: SeriesPattern32[P2PKHAddressIndex] = _at(SeriesPattern32, '*_index')
+    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
 
 
 class MappingsAddressesP2pk65(_Node):
-    identity: SeriesPattern29[P2PK65AddressIndex] = _at(SeriesPattern29, '*_index')
-    address: SeriesPattern29[Address] = _at(SeriesPattern29, '*')
+    identity: SeriesPattern31[P2PK65AddressIndex] = _at(SeriesPattern31, '*_index')
+    address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
 
 
 class MappingsAddressesP2pk33(_Node):
-    identity: SeriesPattern28[P2PK33AddressIndex] = _at(SeriesPattern28, '*_index')
-    address: SeriesPattern28[Address] = _at(SeriesPattern28, '*')
+    identity: SeriesPattern30[P2PK33AddressIndex] = _at(SeriesPattern30, '*_index')
+    address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
 
 
 class MappingsAddresses(_Node):
@@ -5116,26 +5142,26 @@ class Mappings(_Node):
 
 class IndexerOpReturn(_Node):
     first_index: SeriesPattern20[OpReturnIndex] = _at(SeriesPattern20, 'first_*_index')
-    tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_tx_index')
-    protocol: SeriesPattern25[OpReturnKind] = _at(SeriesPattern25, '*_protocol')
-    post_op_return_bytes: SeriesPattern25[Bytes] = _at(SeriesPattern25, '*_post_op_return_bytes')
+    tx_index: SeriesPattern27[TxIndex] = _at(SeriesPattern27, '*_tx_index')
+    protocol: SeriesPattern27[OpReturnKind] = _at(SeriesPattern27, '*_protocol')
+    post_op_return_bytes: SeriesPattern27[Bytes] = _at(SeriesPattern27, '*_post_op_return_bytes')
 
 
 class ScriptsUnknown(_Node):
     first_index: SeriesPattern20[UnknownOutputIndex] = _at(SeriesPattern20, 'first_*_output_index')
-    tx_index: SeriesPattern35[TxIndex] = _at(SeriesPattern35, '*_output_tx_index')
-    legacy_sigops: SeriesPattern35[SigOps] = _at(SeriesPattern35, '*_legacy_sigops')
+    tx_index: SeriesPattern37[TxIndex] = _at(SeriesPattern37, '*_output_tx_index')
+    legacy_sigops: SeriesPattern37[SigOps] = _at(SeriesPattern37, '*_legacy_sigops')
 
 
 class ScriptsP2ms(_Node):
     first_index: SeriesPattern20[P2MSOutputIndex] = _at(SeriesPattern20, 'first_*_output_index')
-    tx_index: SeriesPattern27[TxIndex] = _at(SeriesPattern27, '*_output_tx_index')
-    legacy_sigops: SeriesPattern27[SigOps] = _at(SeriesPattern27, '*_legacy_sigops')
+    tx_index: SeriesPattern29[TxIndex] = _at(SeriesPattern29, '*_output_tx_index')
+    legacy_sigops: SeriesPattern29[SigOps] = _at(SeriesPattern29, '*_legacy_sigops')
 
 
 class ScriptsEmpty(_Node):
     first_index: SeriesPattern20[EmptyOutputIndex] = _at(SeriesPattern20, 'first_*_index')
-    tx_index: SeriesPattern24[TxIndex] = _at(SeriesPattern24, '*_tx_index')
+    tx_index: SeriesPattern26[TxIndex] = _at(SeriesPattern26, '*_tx_index')
 
 
 class Scripts(_Node):
@@ -5146,42 +5172,42 @@ class Scripts(_Node):
 
 class IndexerAddressesP2a(_Node):
     first_index: SeriesPattern20[P2AAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
-    bytes: SeriesPattern26[P2ABytes] = _at(SeriesPattern26, '*_bytes')
+    bytes: SeriesPattern28[P2ABytes] = _at(SeriesPattern28, '*_bytes')
 
 
 class IndexerAddressesP2tr(_Node):
     first_index: SeriesPattern20[P2TRAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
-    bytes: SeriesPattern32[P2TRBytes] = _at(SeriesPattern32, '*_bytes')
+    bytes: SeriesPattern34[P2TRBytes] = _at(SeriesPattern34, '*_bytes')
 
 
 class IndexerAddressesP2wsh(_Node):
     first_index: SeriesPattern20[P2WSHAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
-    bytes: SeriesPattern34[P2WSHBytes] = _at(SeriesPattern34, '*_bytes')
+    bytes: SeriesPattern36[P2WSHBytes] = _at(SeriesPattern36, '*_bytes')
 
 
 class IndexerAddressesP2wpkh(_Node):
     first_index: SeriesPattern20[P2WPKHAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
-    bytes: SeriesPattern33[P2WPKHBytes] = _at(SeriesPattern33, '*_bytes')
+    bytes: SeriesPattern35[P2WPKHBytes] = _at(SeriesPattern35, '*_bytes')
 
 
 class IndexerAddressesP2sh(_Node):
     first_index: SeriesPattern20[P2SHAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
-    bytes: SeriesPattern31[P2SHBytes] = _at(SeriesPattern31, '*_bytes')
+    bytes: SeriesPattern33[P2SHBytes] = _at(SeriesPattern33, '*_bytes')
 
 
 class IndexerAddressesP2pkh(_Node):
     first_index: SeriesPattern20[P2PKHAddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
-    bytes: SeriesPattern30[P2PKHBytes] = _at(SeriesPattern30, '*_bytes')
+    bytes: SeriesPattern32[P2PKHBytes] = _at(SeriesPattern32, '*_bytes')
 
 
 class IndexerAddressesP2pk33(_Node):
     first_index: SeriesPattern20[P2PK33AddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
-    bytes: SeriesPattern28[P2PK33Bytes] = _at(SeriesPattern28, '*_bytes')
+    bytes: SeriesPattern30[P2PK33Bytes] = _at(SeriesPattern30, '*_bytes')
 
 
 class IndexerAddressesP2pk65(_Node):
     first_index: SeriesPattern20[P2PK65AddressIndex] = _at(SeriesPattern20, 'first_*_address_index')
-    bytes: SeriesPattern29[P2PK65Bytes] = _at(SeriesPattern29, '*_bytes')
+    bytes: SeriesPattern31[P2PK65Bytes] = _at(SeriesPattern31, '*_bytes')
 
 
 class IndexerAddresses(_Node):
@@ -5197,18 +5223,18 @@ class IndexerAddresses(_Node):
 
 class IndexerOutputs(_Node):
     first_txout_index: SeriesPattern20[TxOutIndex] = _at(SeriesPattern20, 'first_txout_index')
-    value: SeriesPattern23[Sats] = _at(SeriesPattern23, '*_value')
-    output_type: SeriesPattern23[OutputType] = _at(SeriesPattern23, '*_type')
-    type_index: SeriesPattern23[TypeIndex] = _at(SeriesPattern23, 'type_index')
+    value: SeriesPattern24[Sats] = _at(SeriesPattern24, '*_value')
+    output_type: SeriesPattern24[OutputType] = _at(SeriesPattern24, '*_type')
+    type_index: SeriesPattern24[TypeIndex] = _at(SeriesPattern24, 'type_index')
 
 
 class IndexerInputs(_Node):
     first_txin_index: SeriesPattern20[TxInIndex] = _at(SeriesPattern20, 'first_txin_*')
-    outpoint: SeriesPattern22[OutPoint] = _at(SeriesPattern22, 'outpoint')
-    txout_index: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, 'spent_txout_*')
+    outpoint: SeriesPattern23[OutPoint] = _at(SeriesPattern23, 'outpoint')
+    txout_index: SeriesPattern23[TxOutIndex] = _at(SeriesPattern23, 'spent_txout_*')
     tx_index: SeriesPattern22[TxIndex] = _at(SeriesPattern22, 'input_tx_*')
     output_type: SeriesPattern22[OutputType] = _at(SeriesPattern22, 'output_type')
-    type_index: SeriesPattern22[TypeIndex] = _at(SeriesPattern22, 'type_*')
+    type_index: SeriesPattern23[TypeIndex] = _at(SeriesPattern23, 'type_*')
     value: SeriesPattern22[Sats] = _at(SeriesPattern22, 'input_value')
 
 

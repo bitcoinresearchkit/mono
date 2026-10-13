@@ -25,7 +25,13 @@ where
         let name = stored.name().to_string();
         Self::named_with::<Widen>(stored, &name)
     }
+}
 
+impl<V, T> Compact<V, T>
+where
+    V: StoredVec + ReadableCloneableVec<V::I, V::T> + 'static,
+    T: vecdb::VecValue,
+{
     /// Publishes the series under `name` rather than the storage name, converting each value
     /// with `F`.
     pub fn named_with<F: UnaryTransform<V::T, T>>(stored: V, name: &str) -> Self {

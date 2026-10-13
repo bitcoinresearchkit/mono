@@ -26,7 +26,7 @@ impl ChainCounts {
                 "input_count_cumulative",
                 version,
                 &indexer.vecs().inputs.first_txin_index,
-                &indexer.vecs().inputs.outpoint,
+                &*indexer.vecs().inputs.outpoint,
             ),
             output: LazyCumulativeIndexVec::new(
                 "output_count_cumulative",

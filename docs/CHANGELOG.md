@@ -67,6 +67,8 @@ has to be deleted by hand.
 - Typed values as nullable exactly where the JSON can hold `null`: a period without blocks (date resolutions; height,
   halving and epoch never) or a type's own undefined value (non-finite floats and the `FeeRate` sentinel); CSV
   writes undefined values as empty cells
+- Relations to nothing are null instead of a maximum-value marker: `spending_txin_index` while an output is unspent,
+  and a coinbase input's `outpoint`, `spent_txout_index` and `type_index` (its `output_type` stays `unknown`)
 - One unit per quantity: the `_cents` copies of USD series and the `_sats` copies of BTC amounts are gone from the API
   and the clients (they stay the exact storage; the USD and BTC series print the same values exactly); the true range is
   in USD too (was cents). Unitless numbers have one form, the one they are read in: shares, rates and changes in
@@ -759,6 +761,10 @@ has to be deleted by hand.
 
 #### API and node I/O
 
+- A block's average fee rate (`extras.avgFeeRate`) is its fees over the fee-paying transactions' weight, like
+  Bitcoin Core's `getblockstats` that mempool.space serves (kept to the milli-sat/vB where Core floors to whole
+  sat/vB, 0 below 1): it also counted the header, the transaction count and the coinbase, which lowered it most in
+  small blocks
 - Reads no longer wait for an update or answer 503 while one runs (they timed out after 4 seconds): each request
   reads the last published state (what every plugin has computed to) and an update publishes the next one in one
   swap, so readers never wait for compute (an address's stats wait only while its state is written at publication)
