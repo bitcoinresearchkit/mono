@@ -18995,7 +18995,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A website chart as the Studio starts it, as the website draws it: the price up top (as candles), its top pane's
-       * layers over it; its bottom pane's, under, in their own pane. Its layers' looks as the website gives them, its
+       * layers over it; its bottom pane's, under, in their own pane, as tall. Its layers' looks as the website gives them, its
        * series shown off hidden, its constant lines as levels; at 1D.
        * @param {Preset} preset
        */
@@ -19019,7 +19019,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           title: preset.t,
           text: preset.p.slice(0, -1).join(" › "),
           index: "day1",
-          panes: kept.some((layer) => layer.pane === 1) ? [{ mode: 1 }, { mode: 0 }] : [{ mode: 1 }],
+          // (Two panes, half and half, as the website has them.)
+          panes: kept.some((layer) => layer.pane === 1) ? [{ mode: 1, size: 1 }, { mode: 0, size: 1 }] : [{ mode: 1 }],
           layers: [{ ...price, pane: 0 }, ...kept],
         };
       }
