@@ -1164,88 +1164,10 @@
         }
       }
 
-      /* Presets: a row as All charts is, its sections a click away at its end (where New folder is under it), shown under
-         it as a folder's charts are, each with how many it holds where a folder's count is. */
-      .side-presets {
-        position: relative;
-        display: flex;
-        flex-shrink: 0;
-        align-items: center;
-
-        #presets-nav {
-          padding-right: 34px;
-        }
-
-        #presets-fold {
-          position: absolute;
-          right: 9px;
-
-          svg {
-            transition: rotate var(--dur-small) var(--ease);
-          }
-
-          &[aria-expanded="true"] svg {
-            rotate: 90deg;
-          }
-        }
-      }
-
-      /* (On a short window, no taller than what the rest of the sidebar leaves (its list at its least, two rows at the
-         least), scrolling: the foot stays in sight.) */
-      .sidebar > .side-sections {
-        --row-gap: 4px;
-        display: flex;
-        flex-direction: column;
-        gap: var(--row-gap);
-        max-height: max(68px, 100dvh - 420px);
-        --along: to bottom;
-        margin: var(--row-gap) -8px 0;
-        overflow: hidden auto;
-        padding: 0 8px;
-        scrollbar-width: thin;
-
-        .side-note {
-          margin: 0;
-          padding: 6px 9px 6px 29px;
-          color: var(--muted);
-          font-size: 13px;
-        }
-
-        .count {
-          position: absolute;
-          right: 9px;
-          min-width: 24px;
-          color: var(--muted);
-          font: 510 12px/1 var(--sans);
-          font-variant-numeric: tabular-nums;
-          text-align: center;
-        }
-
-        .chart-item {
-          padding-right: 48px;
-        }
-      }
-
       /* (Where the sidebar shows, it's the switch between your charts and the presets: no switch in the page.) */
       @media (min-width: 761px) and (min-height: 501px) {
         .home-views {
           display: none;
-        }
-
-        /* (On the rail, Presets its icon alone, as All charts.) */
-        body[data-sidebar="collapsed"] {
-          #presets-nav {
-            padding-right: 0;
-          }
-
-          #presets-fold {
-            visibility: hidden;
-            opacity: 0;
-          }
-
-          .side-sections {
-            display: none;
-          }
         }
       }
 
@@ -2235,7 +2157,7 @@
        * Where a scroller hides more, its edge fades (sideways on a strip or a shelf, up and down on the chart list), as deep as
        * there's more beyond it, up to 28px: scrolling, it eases in and out with the content, gone at the very end.
        */
-      :is(.strip, .chart-list, .belt-row, .shelf-row, .side-sections).overflows {
+      :is(.strip, .chart-list, .belt-row, .shelf-row).overflows {
         mask-image: linear-gradient(var(--along, to right), transparent, #000 var(--edge-start, 0px), #000 calc(100% - var(--edge-end, 0px)), transparent);
       }
 
@@ -5808,7 +5730,7 @@
         }
 
         /* (Where you are: your charts, the presets, a section of them.) */
-        :is(#all-charts, #presets-nav, [data-preset-section])[aria-current="page"] {
+        :is(#all-charts, #presets-nav)[aria-current="page"] {
           color: var(--ink);
           background: var(--press);
         }
@@ -8310,11 +8232,7 @@
         </a>
         <button class="search" type="button" data-action="palette" data-tip="Search or run a command" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search or run a command</span><kbd class="mod">⌘K</kbd></button>
         <button id="all-charts" class="nav-item side-action" type="button" data-action="your-charts" data-tip="All charts" style="--i: 1"><span data-icon="grid"></span><span class="label">All charts</span></button>
-        <div class="side-presets" style="--i: 1">
-          <button id="presets-nav" class="nav-item side-action" type="button" data-action="presets-gallery" data-tip="Presets"><span data-icon="presets"></span><span class="label">Presets</span></button>
-          <button id="presets-fold" class="cap small" type="button" aria-expanded="false" aria-controls="side-sections" aria-label="Sections" data-tip="Sections" data-icon="next"></button>
-        </div>
-        <div id="side-sections" class="side-sections" style="--i: 1" hidden></div>
+        <button id="presets-nav" class="nav-item side-action" type="button" data-action="presets-gallery" data-tip="Presets" style="--i: 1"><span data-icon="presets"></span><span class="label">Presets</span></button>
         <div class="new-chart" style="--i: 1">
           <button id="new-chart" class="nav-item side-action" type="button" data-tip="New chart" data-kbd="N"><span data-icon="plus"></span><span class="label">New chart</span><kbd>N</kbd></button>
           <button id="new-folder" class="cap small" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
@@ -10486,8 +10404,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           home: stored.home !== false,
           /** All charts' view: your charts, or the presets' gallery. */
           homeView: /** @type {"charts" | "presets"} */ (stored.homeView === "presets" ? "presets" : "charts"),
-          /** The sidebar's Presets, open on its sections. */
-          presetsOpen: stored.presetsOpen === true,
           /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
           keys: stored.keys !== false,
           theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "dark"),
@@ -11174,9 +11090,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (While it slides, its words clipped by it, not cut short anew each frame: till its width's slide ends.)
         if (!reduced.matches) document.body.toggleAttribute("data-sliding", true);
         // (Collapsed, the rail keeps only its icons: a focus on what it puts away, a row's ⋯, a folder's, on its toggle.)
-        const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item:not([data-preset-section]), .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
+        const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
         applySidebar();
-        renderSideNav();
         keepFocus(putAway, () => $("sidebar-toggle"));
       }
       $("sidebar").addEventListener("transitionend", (event) => event.target === $("sidebar") && event.propertyName === "width" && document.body.removeAttribute("data-sliding"));
@@ -16906,59 +16821,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (home) document.title = `${presetsView ? "Presets" : "All charts"} · Bitview Studio`;
         renderSideNav();
       }
-      /** The sidebar's Presets sections as written, and the presets' top sections they're of (counted once a read). */
-      let sectionsShown = "", topSections = /** @type {{ of: Preset[] | null, list: [string, number][] }} */ ({ of: null, list: [] }), sectionsAsked = false;
-      /**
-       * The sidebar's All charts and Presets as where you are: the one lit (in the presets, the section you're in where
-       * the sections show; else Presets), its sections listed (while the presets are read, said; a failure too).
-       */
+      /** The sidebar's All charts and Presets as where you are: the one lit. */
       function renderSideNav() {
-        const open = prefs.presetsOpen, inPresets = home && prefs.homeView === "presets", at = inPresets ? galleryPath[0] ?? "" : "", list = $("side-sections");
-        $("presets-fold").setAttribute("aria-expanded", String(open));
-        // (Not read yet: read once the page is idle, the chart drawn first.)
-        if (open && !presets && !presetsFailed && !sectionsAsked) (sectionsAsked = true), whenIdle(() => void loadPresets().catch(() => {}), { timeout: 3000 });
-        if (presets && topSections.of !== presets) {
-          const counts = /** @type {Map<string, number>} */ (new Map());
-          for (const preset of presets) if (preset.p.length > 1) counts.set(preset.p[0], (counts.get(preset.p[0]) ?? 0) + 1);
-          topSections = { of: presets, list: [...counts] };
-        }
-        const html = presets
-          ? topSections.list.map(([name, count]) => `<div class="chart-row in-folder"><button type="button" class="nav-item chart-item" data-preset-section="${escape(name)}" data-tip="${escape(name)}"><span class="label">${escape(name)}</span><span class="count">${compact(count)}</span></button></div>`).join("")
-          : `<p class="side-note">${presetsFailed ? "Couldn't read the presets" : "Reading the presets…"}</p>`;
-        if (open && html !== sectionsShown) list.innerHTML = sectionsShown = html;
-        // (Its edges faded where more scrolls, as the list's.)
-        if (open) fitSoon(list, true);
-        // (Shown as it's open; folding away, as it goes.)
-        if (open || !list.getAnimations().length) list.hidden = !open;
-        // (On the rail, the sections aren't there: Presets is lit for them.)
-        const seen = open && !railed() && Boolean(presets);
         const lit = (/** @type {Element} */ element, /** @type {boolean} */ on) => (on ? element.setAttribute("aria-current", "page") : element.removeAttribute("aria-current"));
         lit($("all-charts"), home && prefs.homeView === "charts");
-        lit($("presets-nav"), inPresets && (!at || !seen || !topSections.list.some(([name]) => name === at)));
-        for (const row of all$("[data-preset-section]", list)) lit(row, inPresets && seen && row.dataset.presetSection === at);
+        lit($("presets-nav"), home && prefs.homeView === "presets");
       }
-      // Its sections shown or put away, unfolding and folding as a folder's charts do.
-      $("presets-fold").addEventListener("click", () => {
-        const list = $("side-sections"), opening = !prefs.presetsOpen;
-        prefs.presetsOpen = opening;
-        savePrefs();
-        renderSideNav();
-        if (reduced.matches) return void ((list.hidden = !opening), fitSoon(list, true));
-        // (Its edges read again once it's whole: mid-unfold, it's shorter than what it holds.)
-        if (opening) return void fold(list, false).finished.then(() => fitSoon(list, true), () => {});
-        fold(list, true).finished.then((motion) => {
-          if (prefs.presetsOpen) return;
-          list.hidden = true;
-          motion.cancel();
-          Object.assign(list.style, { overflow: "", overflowClipMargin: "", alignItems: "" });
-        }, () => {});
-      });
-      $("side-sections").addEventListener("scroll", () => fitSoon($("side-sections"), true), { passive: true });
-      addEventListener("resize", () => prefs.presetsOpen && fitSoon($("side-sections"), true));
-      $("side-sections").addEventListener("click", (event) => {
-        const section = closest(event, "[data-preset-section]");
-        if (section) presetsAt([/** @type {string} */ (section.dataset.presetSection)]);
-      });
       /** All charts' view, as it's taken (each its own filter; the picks your charts' alone). @param {"charts" | "presets"} view */
       function takeHomeView(view) {
         if (prefs.homeView === view) return;
@@ -18182,7 +18050,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           applyTheme();
         }
         if (took.includes("sidebar")) applySidebar();
-        if (took.includes("sidebar") || took.includes("presetsOpen")) renderSideNav();
         if (took.includes("panel") && !fullOn()) applyPanel();
         if (took.includes("belt") || took.includes("pen")) renderBelt();
         if (took.includes("keys")) renderSingleKeys();
@@ -19087,7 +18954,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderRecommended();
           presetsArrived();
           renderHome();
-          renderSideNav();
           reopenQuick();
           return list;
         })().catch((error) => {
@@ -19097,7 +18963,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderRecommended();
           presetsArrived();
           renderHome();
-          renderSideNav();
           throw error;
         }));
       }
