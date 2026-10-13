@@ -35,7 +35,7 @@ impl Query {
         Ok(ResolvedHistoricalPrice {
             query: self,
             source_len,
-            pin,
+            pin: pin.into_inner(),
         })
     }
 }

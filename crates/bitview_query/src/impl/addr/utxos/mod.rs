@@ -66,7 +66,7 @@ impl Query {
             return Err(Error::TooManyUtxos { max: max_utxos });
         }
         Ok(ResolvedAddrUtxos {
-            pin,
+            pin: pin.into_inner(),
             outpoints,
             pending,
             anchor,

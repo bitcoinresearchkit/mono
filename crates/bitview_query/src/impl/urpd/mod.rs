@@ -5,7 +5,7 @@ use bitview_urpd::OriginUrpd;
 use brk_types::{Cents, Height, Sats};
 use vecdb::{AnyVec, ReadableVec};
 
-use bitview_plugin_indexer::SafeLengths;
+use crate::ReadPin;
 
 use crate::{Error, OptionData, Query, Result};
 
@@ -158,7 +158,7 @@ impl Query {
         height: Height,
         aggregation: UrpdAggregation,
         weight: UrpdWeight,
-        pin: &SafeLengths,
+        pin: &ReadPin,
     ) -> Result<ResolvedUrpd> {
         let ages = Self::urpd_ages(cohort)?;
         let end = usize::from(height) + 1;

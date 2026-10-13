@@ -1,7 +1,7 @@
 use std::io::Read;
 
+use crate::ReadPin;
 use bitcoin::{Block as BitcoinBlock, Weight, consensus::deserialize, p2p::Magic};
-use bitview_plugin_indexer::SafeLengths;
 use brk_reader::BlkRead;
 use brk_types::{BlkPosition, BlockHash, Height};
 use vecdb::ReadableVec;
@@ -19,7 +19,7 @@ struct RawRecord {
 }
 
 impl Query {
-    fn open_raw_record(&self, height: Height, guard: &SafeLengths) -> Result<RawRecord> {
+    fn open_raw_record(&self, height: Height, guard: &ReadPin) -> Result<RawRecord> {
         let safe = guard.lengths();
         if height >= safe.height {
             return Err(Error::NotFound("Block not found".into()));
@@ -109,7 +109,7 @@ impl Query {
         &self,
         height: Height,
         hash: &BlockHash,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Vec<u8>> {
         let mut record = self.open_raw_record(height, guard)?;
         let bytes = Self::read_raw_record(&mut record.reader, record.size, hash)?;
@@ -122,7 +122,7 @@ impl Query {
         &self,
         height: Height,
         hash: &BlockHash,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<u64> {
         let mut record = self.open_raw_record(height, guard)?;
         Self::read_raw_prefix(&mut record.reader, record.size, hash)?;

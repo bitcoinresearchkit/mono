@@ -637,7 +637,8 @@ has to be deleted by hand.
 #### `vecdb` and `rawdb`
 
 - Added `Header::read_unverified` and `Header::{header_version, format, value_size}`, and `Database::region_ids`
-- Added `ReadBounds::enter` (a scope guard, `ReadScope`) and `visible_len`; `Compact::named_with` publishes a stored
+- Added `ReadBounds::enter` (a scope guard, `ReadScope`; scopes stack per thread, the newest applies, and each may
+  drop in any order) and `visible_len`; `Compact::named_with` publishes a stored
   vector through a custom transform
 
 #### `bitview_website`
@@ -669,9 +670,11 @@ has to be deleted by hand.
 - Exponential averages store their exact state. At the tip every block resumed from the stored output, and the price
   EMAs truncated to whole cents: the 200-day EMA settled about $72 low and the 4-year one about $500, and nodes
   differed by run history. MACD line and histogram are whole cents; RSI averages are f64
-- Rolling averages and standard deviations rebuild their running sums from the window's values on resume instead of
-  from rounded stored outputs (hash-rate SMAs, stochastic RSI and the price-return volatility chain to seller
-  exhaustion)
+- Rolling averages and standard deviations depend on a row's position alone, not on how updates batched the blocks
+  (hash-rate SMAs, stochastic RSI and the price-return volatility chain to seller exhaustion): every 1,024th row
+  rebuilds the window's sums from its values, the rows after continue from it, and a resume replays from the last
+  such row. A resume rebuilt the sums where it started (before that, from rounded stored outputs), so the last digits
+  depended on update history
 - Block weight totals and statistics are exact (they were derived from vbytes × 4, off by up to 3 WU per block);
   block vsize is weight / 4 rounded up, like Bitcoin Core (was rounded down)
 - True range and its two-week sum are exact cents (the sum drifted as an f32 running sum)

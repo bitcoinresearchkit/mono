@@ -5,7 +5,7 @@ use bitview_types::{UtxoChanges, UtxoOrigins, UtxoSet, UtxoSetDiff};
 use brk_types::{Bitcoin, BlockHash, Height, Sats};
 use vecdb::ReadableVec;
 
-use bitview_plugin_indexer::SafeLengths;
+use crate::ReadPin;
 
 use crate::{Error, OptionData, Query, Result};
 
@@ -126,7 +126,7 @@ impl Query {
     }
 
     /// Blocks published both by the chain and by the UTXO set's history.
-    fn utxo_set_end(&self, pin: &SafeLengths) -> Result<usize> {
+    fn utxo_set_end(&self, pin: &ReadPin) -> Result<usize> {
         let view = self.plugins().utxo_set.view()?;
         Ok(view.reader(usize::from(pin.lengths().height))?.len())
     }
@@ -159,7 +159,7 @@ impl Query {
         &self,
         point: &UtxoSetPoint,
         history: usize,
-        pin: &SafeLengths,
+        pin: &ReadPin,
     ) -> Result<usize> {
         let end = usize::from(point.last) + 1;
         if end > history.min(usize::from(pin.lengths().height)) {

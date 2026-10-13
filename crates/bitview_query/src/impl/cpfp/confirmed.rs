@@ -34,8 +34,7 @@ impl Query {
         let read = self.read_indexer()?;
         let (_, seed, height) = read.revalidate_confirmed_tx(transaction)?;
         let safe = read.pin().lengths();
-        // Count views end at their source's visible length: bound them by the pin.
-        let _scope = self.read_scope(read.pin());
+        // Count views end at their source's visible length, bounded by the read's pin.
         let walk = self.walk_same_block_cluster(seed, height, safe)?;
         let members = self.resolve_members(&walk.members)?;
         let ancestors = self.resolve_entries(&walk.ancestors)?;

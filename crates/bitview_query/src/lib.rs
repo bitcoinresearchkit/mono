@@ -5,16 +5,18 @@
 use bitview_plugin_indexer::SafeLengths;
 
 use std::{
+    ops::Deref,
     path::Path,
     sync::Arc,
     time::{Duration, Instant},
 };
 
+#[cfg(any(feature = "series", feature = "price"))]
+use arc_swap::ArcSwapOption;
+
 use bitview_plugin_indexer::Indexer;
-#[cfg(any(feature = "chain", feature = "series"))]
-use bitview_primitives::Lengths;
-#[cfg(any(feature = "chain", feature = "series"))]
-use bitview_primitives::{Epoch, Halving, Index};
+#[cfg(any(feature = "series", feature = "price"))]
+use bitview_primitives::{Epoch, Halving, Index, Lengths};
 use bitview_types::SyncStatus;
 use brk_mempool::ReadOnlyMempool;
 #[cfg(any(feature = "chain", feature = "price"))]
@@ -22,10 +24,8 @@ use brk_mempool::ReadOnlyState;
 use brk_reader::Reader;
 use brk_rpc::Client;
 use brk_types::{BlockHash, Height};
-#[cfg(any(feature = "chain", feature = "series"))]
-use vecdb::ReadBounds;
-#[cfg(feature = "chain")]
-use vecdb::ReadScope;
+#[cfg(any(feature = "series", feature = "price"))]
+use vecdb::{ReadBounds, ReadScope};
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 mod r#async;
@@ -85,6 +85,48 @@ struct QueryInner<'a> {
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "price")]
     live_oracle: live_oracle::LiveOracle,
+    /// The read bounds of the newest publication a pin asked for: one per publication, not per read.
+    #[cfg(any(feature = "series", feature = "price"))]
+    bounds: ArcSwapOption<PublishedBounds>,
+}
+
+#[cfg(any(feature = "series", feature = "price"))]
+struct PublishedBounds {
+    revision: u64,
+    bounds: ReadBounds,
+}
+
+/// A pin that bounds this thread's reads, lazy calendar and count views included, by its
+/// publication until it drops, so no read under it can see past it. Not `Send`: a value carried
+/// to another thread keeps [`ReadPin::into_inner`]'s plain pin.
+pub(crate) struct ReadPin {
+    pin: SafeLengths,
+    #[cfg(any(feature = "series", feature = "price"))]
+    bounds: ReadBounds,
+    #[cfg(any(feature = "series", feature = "price"))]
+    _scope: ReadScope,
+}
+
+impl ReadPin {
+    /// The bounds this pin keeps this thread's reads within.
+    #[cfg(feature = "series")]
+    fn bounds(&self) -> &ReadBounds {
+        &self.bounds
+    }
+
+    /// The pin alone, without bounding this thread's reads.
+    #[cfg(any(feature = "series", feature = "price"))]
+    fn into_inner(self) -> SafeLengths {
+        self.pin
+    }
+}
+
+impl Deref for ReadPin {
+    type Target = SafeLengths;
+
+    fn deref(&self) -> &SafeLengths {
+        &self.pin
+    }
 }
 
 impl Query {
@@ -104,10 +146,48 @@ impl Query {
     }
 
     /// Pins the published state for one read: every plugin's rows below its lengths stay put
-    /// (only a rollback waits for the pin; pinning never waits). Fails only past the deadline.
-    fn pin_safe_lengths(&self) -> Result<SafeLengths> {
+    /// (only a rollback waits for the pin; pinning never waits), and this thread's reads stay
+    /// below them while the pin lives. Fails only past the deadline.
+    fn pin_safe_lengths(&self) -> Result<ReadPin> {
         self.check_deadline()?;
-        Ok(self.indexer().pin())
+        Ok(self.read_pin(self.indexer().pin()))
+    }
+
+    /// Bounds this thread's reads by `pin` while the returned pin lives: how a value carried from
+    /// an earlier read resumes reading under its pin.
+    fn read_pin(&self, pin: SafeLengths) -> ReadPin {
+        #[cfg(any(feature = "series", feature = "price"))]
+        let bounds = self.publication_bounds(&pin);
+        ReadPin {
+            #[cfg(any(feature = "series", feature = "price"))]
+            _scope: bounds.enter(),
+            #[cfg(any(feature = "series", feature = "price"))]
+            bounds,
+            pin,
+        }
+    }
+
+    /// The read bounds of `pin`'s publication, built once per publication.
+    #[cfg(any(feature = "series", feature = "price"))]
+    fn publication_bounds(&self, pin: &SafeLengths) -> ReadBounds {
+        let cached = self.0.bounds.load();
+        if let Some(cached) = cached.as_deref()
+            && cached.revision == pin.revision()
+        {
+            return cached.bounds.clone();
+        }
+        drop(cached);
+        let bounds = self.read_bounds(pin.lengths());
+        let published = Arc::new(PublishedBounds {
+            revision: pin.revision(),
+            bounds: bounds.clone(),
+        });
+        // An older pin never replaces a newer publication's bounds.
+        self.0.bounds.rcu(|cached| match cached {
+            Some(cached) if cached.revision >= published.revision => Some(Arc::clone(cached)),
+            _ => Some(Arc::clone(&published)),
+        });
+        bounds
     }
 
     /// Builds the process-lifetime read-only query view.
@@ -135,6 +215,8 @@ impl Query {
                 mempool: _mempool,
                 #[cfg(feature = "price")]
                 live_oracle: Default::default(),
+                #[cfg(any(feature = "series", feature = "price"))]
+                bounds: ArcSwapOption::empty(),
             }),
             None,
         )
@@ -146,7 +228,7 @@ impl Query {
         pin.lengths().last_height().unwrap_or_default()
     }
 
-    #[cfg(any(feature = "chain", feature = "series"))]
+    #[cfg(any(feature = "series", feature = "price"))]
     fn index_read_bounds(safe: Lengths) -> ReadBounds {
         let mut bounds = ReadBounds::new();
 
@@ -203,7 +285,7 @@ impl Query {
         bounds
     }
 
-    #[cfg(any(feature = "chain", feature = "series"))]
+    #[cfg(any(feature = "series", feature = "price"))]
     fn read_bounds(&self, safe: Lengths) -> ReadBounds {
         let mut bounds = Self::index_read_bounds(safe);
         let timestamp = safe.last_height().and_then(|height| {
@@ -222,13 +304,6 @@ impl Query {
         }
 
         bounds
-    }
-
-    /// Bounds this thread's reads, lazy calendar and count views included, by the pin until the
-    /// guard drops.
-    #[cfg(feature = "chain")]
-    fn read_scope(&self, pin: &SafeLengths) -> ReadScope {
-        self.read_bounds(pin.lengths()).enter()
     }
 
     /// Tip block hash at the pipeline-safe ceiling.
@@ -309,7 +384,7 @@ impl Query {
     /// loaded first it is at the pin's tip, behind it for the moment after blocks publish, or on
     /// the branch a reorg is replacing.
     #[cfg(any(feature = "chain", feature = "price"))]
-    fn mempool_then_pin(&self) -> Result<(Option<Arc<ReadOnlyState>>, SafeLengths)> {
+    fn mempool_then_pin(&self) -> Result<(Option<Arc<ReadOnlyState>>, ReadPin)> {
         let mempool = self.mempool();
         Ok((mempool, self.pin_safe_lengths()?))
     }

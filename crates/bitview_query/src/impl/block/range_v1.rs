@@ -13,7 +13,7 @@ pub struct ResolvedBlocksV1 {
 
 impl ResolvedBlocksV1 {
     fn new(blocks: ResolvedBlocks, prices: Vec<Dollars>) -> Result<Self> {
-        let (begin, end, _) = blocks.range();
+        let (begin, end) = blocks.range();
         if prices.len() != end - begin {
             return Err(Error::Internal("Incomplete block prices"));
         }
@@ -34,8 +34,10 @@ impl ResolvedBlocksV1 {
     }
 
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfoV1>> {
-        let (begin, end, lengths) = self.blocks.range();
-        let build = query.capture_blocks_v1_range(begin, end, lengths, Some(self.prices))?;
+        let (begin, end) = self.blocks.range();
+        let pin = self.blocks.read_pin(query);
+        let build = query.capture_blocks_v1_range(begin, end, &pin, Some(self.prices))?;
+        drop(pin);
         drop(self.blocks);
         build()
     }
@@ -64,7 +66,7 @@ impl Query {
     }
 
     fn try_block_prices(&self, blocks: ResolvedBlocks) -> Result<Option<ResolvedBlocksV1>> {
-        let (begin, end, _) = blocks.range();
+        let (begin, end) = blocks.range();
         let prices =
             if begin == end {
                 Vec::new()
@@ -99,7 +101,7 @@ impl Query {
     }
 
     fn block_prices(&self, blocks: ResolvedBlocks) -> Result<ResolvedBlocksV1> {
-        let (begin, end, _) = blocks.range();
+        let (begin, end) = blocks.range();
         let mut prices = Vec::with_capacity(end - begin);
         self.plugins()
             .price
@@ -120,9 +122,9 @@ impl ResolvedBlocks {
         heights: &[Height],
         prices: &[Dollars],
     ) -> Result<Vec<BlockInfoV1>> {
-        let (_, _, lengths) = self.range();
+        let pin = self.read_pin(query);
         if heights.len() != prices.len()
-            || heights.iter().any(|height| *height >= lengths.height)
+            || heights.iter().any(|height| *height >= pin.lengths().height)
             || heights.windows(2).any(|pair| pair[0] <= pair[1])
         {
             return Err(Error::Internal("Invalid sparse block selection"));
@@ -139,11 +141,12 @@ impl ResolvedBlocks {
             builders.push(query.capture_blocks_v1_range(
                 heights[end - 1].to_usize(),
                 heights[begin].to_usize() + 1,
-                lengths,
+                &pin,
                 Some(ascending_prices),
             )?);
             begin = end;
         }
+        drop(pin);
         drop(self);
         let mut blocks = Vec::with_capacity(heights.len());
         for build in builders {

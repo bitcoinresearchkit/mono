@@ -1,5 +1,6 @@
 use std::io::Read;
 
+use crate::ReadPin;
 use bitcoin::{
     Address as BitcoinAddress, BlockHash as BitcoinBlockHash, Network, Transaction,
     block::Header as BitcoinHeader,
@@ -8,8 +9,7 @@ use bitcoin::{
     hex::DisplayHex,
     io::FromStd,
 };
-use bitview_plugin_indexer::SafeLengths;
-use bitview_primitives::{Lengths, PoolSlug, pools};
+use bitview_primitives::{PoolSlug, pools};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
 use brk_types::{
     BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, VSize, Weight,
@@ -54,7 +54,7 @@ impl Query {
     pub(crate) fn block_hash_by_height(
         &self,
         height: Height,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<BlockHash> {
         if height >= guard.lengths().height {
             return Err(Error::OutOfRange("Block height out of range".into()));
@@ -72,7 +72,7 @@ impl Query {
     pub(crate) fn read_block_header_at(
         &self,
         height: Height,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<BitcoinHeader> {
         if height >= guard.lengths().height {
             return Err(Error::OutOfRange("Block height out of range".into()));
@@ -213,7 +213,7 @@ impl Query {
         &self,
         height: Height,
         hash: &BlockHash,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<String> {
         if height >= guard.lengths().height {
             return Err(Error::NotFound("Block not found".into()));
@@ -234,7 +234,7 @@ impl Query {
         &self,
         begin: usize,
         end: usize,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Vec<BlockInfo>> {
         let safe = guard.lengths();
         let height_len = safe.height.to_usize();
@@ -330,9 +330,10 @@ impl Query {
         &self,
         begin: usize,
         end: usize,
-        safe: Lengths,
+        pin: &ReadPin,
         prices: Option<Vec<Dollars>>,
     ) -> Result<impl FnOnce() -> Result<Vec<BlockInfoV1>> + '_> {
+        let safe = pin.lengths();
         let height_len = safe.height.to_usize();
         let end = end.min(height_len);
         let begin = begin.min(end);

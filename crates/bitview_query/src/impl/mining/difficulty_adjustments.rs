@@ -16,7 +16,6 @@ impl Query {
         time_period: Option<TimePeriod>,
     ) -> Result<Vec<DifficultyAdjustmentEntry>> {
         let pin = self.pin_safe_lengths()?;
-        let _scope = self.read_scope(&pin);
         let tip = Query::tip_height(&pin);
         let end = tip.to_usize();
         let start = match time_period {

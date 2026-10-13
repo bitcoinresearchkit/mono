@@ -22,7 +22,7 @@ impl SeriesRead {
         // append past them, and only a rollback (which waits for the pin) rewrites them.
         let pin = query.pin_safe_lengths()?;
         let safe = pin.lengths();
-        let bounds = query.read_bounds(safe);
+        let bounds = pin.bounds().clone();
         let is_mutable = entries.iter().any(|entry| entry.is_mutable());
         let vecs = entries
             .into_iter()
@@ -38,7 +38,7 @@ impl SeriesRead {
             bounds,
             safe,
             is_mutable,
-            _pin: pin,
+            _pin: pin.into_inner(),
         })
     }
 

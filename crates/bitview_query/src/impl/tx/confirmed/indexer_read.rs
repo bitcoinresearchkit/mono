@@ -1,9 +1,8 @@
-use bitview_plugin_indexer::SafeLengths;
 use brk_types::{BlockHash, Height, TxIndex, Txid};
 use vecdb::ReadableVec;
 
 use super::ResolvedConfirmedTx;
-use crate::{Error, Query, Result};
+use crate::{Error, Query, ReadPin, Result};
 
 /// One logical read of this query's published indexer state.
 ///
@@ -11,7 +10,7 @@ use crate::{Error, Query, Result};
 /// Dependent reads must reuse this pin instead of acquiring another one.
 pub(crate) struct IndexerRead<'a> {
     query: &'a Query,
-    pin: SafeLengths,
+    pin: ReadPin,
 }
 
 impl Query {
@@ -20,13 +19,13 @@ impl Query {
     }
 
     /// Continue a read under a pin an earlier resolution took.
-    pub(crate) fn read_indexer_at(&self, pin: SafeLengths) -> IndexerRead<'_> {
+    pub(crate) fn read_indexer_at(&self, pin: ReadPin) -> IndexerRead<'_> {
         IndexerRead { query: self, pin }
     }
 }
 
 impl IndexerRead<'_> {
-    pub(crate) fn pin(&self) -> &SafeLengths {
+    pub(crate) fn pin(&self) -> &ReadPin {
         &self.pin
     }
 

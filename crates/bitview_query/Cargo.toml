@@ -23,7 +23,7 @@ chain = [
     "dep:bitview_plugin_transactions",
     "dep:bitview_plugin_utxo_set",
 ]
-series = ["dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
+series = ["dep:arc-swap", "dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
 urpd = [
     "price",
     "dep:bitview_cohort",
@@ -34,6 +34,7 @@ urpd = [
     "dep:bitview_plugin_age",
 ]
 price = [
+    "dep:arc-swap",
     "dep:bitview_plugin_mappings",
     "dep:bitview_plugin_price",
     "dep:brk_oracle",
@@ -41,6 +42,7 @@ price = [
 ]
 
 [dependencies]
+arc-swap = { workspace = true, optional = true }
 bitcoin = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"], optional = true }
 bitview_plugin_blocks = { workspace = true, optional = true }

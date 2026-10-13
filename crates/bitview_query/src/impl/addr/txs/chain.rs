@@ -1,4 +1,4 @@
-use bitview_plugin_indexer::SafeLengths;
+use crate::ReadPin;
 use bitview_primitives::TypeIndex;
 use brk_types::{Address, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
@@ -47,7 +47,7 @@ impl Query {
         type_index: TypeIndex,
         after_txid: Option<Txid>,
         limit: usize,
-        pin: &SafeLengths,
+        pin: &ReadPin,
     ) -> Result<Vec<TxIndex>> {
         let stores = self.indexer().stores();
         let safe = pin.lengths();
@@ -75,7 +75,7 @@ impl Query {
         type_index: TypeIndex,
         after_txid: Option<Txid>,
         limit: usize,
-        pin: &SafeLengths,
+        pin: &ReadPin,
     ) -> Result<ResolvedAddrChainTxs> {
         let txindices = self.addr_txindices_for(output_type, type_index, after_txid, limit, pin)?;
         let anchor = txindices
@@ -107,7 +107,7 @@ impl Query {
     pub(crate) fn addr_txs_chain_pinned(
         &self,
         resolved: ResolvedAddrChainTxs,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Vec<Transaction>> {
         if let Some(height) = resolved.anchor_height {
             self.validate_block_at_height(&resolved.activity_anchor, height, guard)?;

@@ -39,7 +39,6 @@ impl Query {
     /// block-count math; `TimePeriod::All` walks from genesis.
     pub fn mining_pools(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
         let pin = self.pin_safe_lengths()?;
-        let _scope = self.read_scope(&pin);
         let tip = Query::tip_height(&pin);
         let plugins = self.plugins();
         let current_height = tip;
@@ -127,7 +126,6 @@ impl Query {
     /// the pool mined.
     pub fn pool_detail(&self, slug: PoolSlug) -> Result<PoolDetail> {
         let pin = self.pin_safe_lengths()?;
-        let _scope = self.read_scope(&pin);
         let tip = Query::tip_height(&pin);
         let plugins = self.plugins();
         let current_height = tip;
@@ -198,7 +196,6 @@ impl Query {
     /// network's last-7-days block count.
     pub fn pool_hashrate(&self, slug: PoolSlug) -> Result<Vec<PoolHashrateEntry>> {
         let pin = self.pin_safe_lengths()?;
-        let _scope = self.read_scope(&pin);
         let tip = Query::tip_height(&pin);
         let pool_name = pools().get(slug).name;
         let shared = self.hashrate_shared_data(0, tip)?;
@@ -218,7 +215,6 @@ impl Query {
         time_period: Option<TimePeriod>,
     ) -> Result<Vec<PoolHashrateEntry>> {
         let pin = self.pin_safe_lengths()?;
-        let _scope = self.read_scope(&pin);
         let tip = Query::tip_height(&pin);
         let start_height = match time_period {
             Some(tp) => start_height(self, tp, tip)?.to_usize(),

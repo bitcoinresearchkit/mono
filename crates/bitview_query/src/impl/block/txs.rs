@@ -1,5 +1,5 @@
+use crate::ReadPin;
 use bitcoin::{ScriptBuf, Transaction as BitcoinTransaction};
-use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
 use brk_types::{
@@ -19,7 +19,7 @@ impl Query {
         height: Height,
         start_index: BlockTxIndex,
         count: u32,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Vec<Transaction>> {
         let (first, tx_count) = self.block_tx_range(height, guard)?;
         let start: usize = start_index.into();
@@ -42,7 +42,7 @@ impl Query {
     pub(crate) fn block_txids_by_height(
         &self,
         height: Height,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Vec<Txid>> {
         let (first, tx_count) = self.block_tx_range(height, guard)?;
         let txids = self
@@ -63,7 +63,7 @@ impl Query {
         &self,
         height: Height,
         index: usize,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Txid> {
         let (first, tx_count) = self.block_tx_range(height, guard)?;
         if index >= tx_count {
@@ -82,7 +82,7 @@ impl Query {
     pub(crate) fn transactions_at_indices(
         &self,
         indices: &[TxIndex],
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Vec<Transaction>> {
         if indices.is_empty() {
             return Ok(Vec::new());
@@ -320,11 +320,7 @@ impl Query {
     /// stamp-before-data race. The tip-of-safe block falls back to
     /// `safe.tx_index` (not live `txid.len()`, which can be ahead of the
     /// writer's stamped boundary mid-block).
-    pub(crate) fn block_tx_range(
-        &self,
-        height: Height,
-        guard: &SafeLengths,
-    ) -> Result<(usize, usize)> {
+    pub(crate) fn block_tx_range(&self, height: Height, guard: &ReadPin) -> Result<(usize, usize)> {
         let safe = guard.lengths();
         if height >= safe.height {
             return Err(Error::OutOfRange("Block height out of range".into()));

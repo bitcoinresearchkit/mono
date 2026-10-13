@@ -1,4 +1,9 @@
-use std::{cell::RefCell, collections::BTreeMap, marker::PhantomData, sync::Arc};
+use std::{
+    cell::{Cell, RefCell},
+    collections::BTreeMap,
+    marker::PhantomData,
+    sync::Arc,
+};
 
 use crate::AnyExportableVec;
 
@@ -8,19 +13,23 @@ mod bounded_writer;
 pub use bounded_vec::BoundedVec;
 pub use bounded_writer::BoundedWriter;
 
+type Bounds = Arc<BTreeMap<&'static str, usize>>;
+
 thread_local! {
-    static CURRENT: RefCell<Option<Arc<BTreeMap<&'static str, usize>>>> = const { RefCell::new(None) };
+    /// This thread's live scopes, newest last: the newest applies.
+    static SCOPES: RefCell<Vec<(u64, Bounds)>> = const { RefCell::new(Vec::new()) };
+    static NEXT_SCOPE: Cell<u64> = const { Cell::new(0) };
 }
 
 /// Per-index limits applied while serving one published read snapshot.
 #[derive(Clone, Default)]
-pub struct ReadBounds(Arc<BTreeMap<&'static str, usize>>);
+pub struct ReadBounds(Bounds);
 
-/// Bounds this thread's reads until dropped, restoring the enclosing bounds. Not `Send`: the
-/// bounds live in a thread-local.
+/// Bounds this thread's reads until dropped; the newest live scope applies, whatever order scopes
+/// drop in. Not `Send`: the bounds live in a thread-local.
 #[must_use = "the bounds apply only while the guard lives"]
 pub struct ReadScope {
-    previous: Option<Arc<BTreeMap<&'static str, usize>>>,
+    id: u64,
     _thread: PhantomData<*const ()>,
 }
 
@@ -48,8 +57,10 @@ impl ReadBounds {
 
     /// Bounds this thread's reads until the returned guard drops.
     pub fn enter(&self) -> ReadScope {
+        let id = NEXT_SCOPE.replace(NEXT_SCOPE.get() + 1);
+        SCOPES.with(|scopes| scopes.borrow_mut().push((id, Arc::clone(&self.0))));
         ReadScope {
-            previous: CURRENT.with(|current| current.replace(Some(Arc::clone(&self.0)))),
+            id,
             _thread: PhantomData,
         }
     }
@@ -57,20 +68,22 @@ impl ReadBounds {
 
 impl Drop for ReadScope {
     fn drop(&mut self) {
-        let previous = self.previous.take();
-        CURRENT.with(|current| {
-            current.replace(previous);
+        SCOPES.with(|scopes| {
+            let mut scopes = scopes.borrow_mut();
+            if let Some(at) = scopes.iter().rposition(|(id, _)| *id == self.id) {
+                scopes.remove(at);
+            }
         });
     }
 }
 
 /// `len` capped by this thread's bound for `index`, if a [`ReadScope`] sets one.
 pub fn visible_len(index: &str, len: usize) -> usize {
-    CURRENT.with(|current| {
-        current
+    SCOPES.with(|scopes| {
+        scopes
             .borrow()
-            .as_ref()
-            .and_then(|bounds| bounds.get(index))
+            .last()
+            .and_then(|(_, bounds)| bounds.get(index))
             .copied()
             .map_or(len, |bound| len.min(bound))
     })

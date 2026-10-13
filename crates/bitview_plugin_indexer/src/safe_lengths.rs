@@ -8,6 +8,7 @@ use crate::state::Published;
 /// Pins the published state: the lengths every plugin has computed to, below which rows only
 /// change in a rollback. Pinning never waits; a rollback lowers the published lengths and waits
 /// for the pins taken before it before changing that prefix.
+#[derive(Clone)]
 pub struct SafeLengths(Arc<Published>);
 
 impl SafeLengths {

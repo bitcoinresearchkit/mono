@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
+use crate::ReadPin;
 use bitcoin::{
     MerkleBlock, Txid as BitcoinTxid,
     consensus::encode::serialize_hex,
     hashes::{Hash, sha256d},
     hex::DisplayHex,
 };
-use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::MerkleProof;
 use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
@@ -137,7 +137,7 @@ impl Query {
 
     // === Helper methods ===
 
-    fn transaction_by_index(&self, tx_index: TxIndex, guard: &SafeLengths) -> Result<Transaction> {
+    fn transaction_by_index(&self, tx_index: TxIndex, guard: &ReadPin) -> Result<Transaction> {
         Ok(self
             .transactions_at_indices(&[tx_index], guard)?
             .into_iter()
@@ -145,7 +145,7 @@ impl Query {
             .expect("transactions_by_indices returns one tx per input index"))
     }
 
-    fn transaction_raw_by_index(&self, tx_index: TxIndex, pin: &SafeLengths) -> Result<Vec<u8>> {
+    fn transaction_raw_by_index(&self, tx_index: TxIndex, pin: &ReadPin) -> Result<Vec<u8>> {
         indexed_transaction::read_at(self, tx_index, pin.lengths()).map(|(bytes, _)| bytes)
     }
 

@@ -1227,6 +1227,7 @@ dependencies = [
 name = "bitview_query"
 version = "0.12.2"
 dependencies = [
+ "arc-swap",
  "bitcoin",
  "bitview_catalog",
  "bitview_cohort",

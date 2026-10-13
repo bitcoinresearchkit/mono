@@ -57,7 +57,7 @@ impl Query {
             })
             .transpose()?;
         Ok(ResolvedAddrTxs {
-            guard,
+            guard: guard.into_inner(),
             mempool,
             chain,
         })
@@ -71,7 +71,7 @@ impl Query {
         } = resolved;
         if let Some(chain) = chain {
             mempool.extend(
-                self.addr_txs_chain_pinned(chain, &guard)?
+                self.addr_txs_chain_pinned(chain, &self.read_pin(guard))?
                     .into_iter()
                     .map(Arc::new),
             );

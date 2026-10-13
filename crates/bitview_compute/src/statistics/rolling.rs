@@ -186,61 +186,16 @@ where
         f64: From<A> + From<V::T>,
         V::T: From<f64> + Default,
     {
-        // Cursor for the leaving-value reads — persists across batches so each
-        // compressed page is decompressed at most once instead of once per element.
-        let mut leaving = values.cursor();
-
-        self.compute_init(
-            window_starts.version() + values.version() + Version::new(3),
+        compute_rolling_window(
+            self,
+            Version::new(4),
             max_from,
+            window_starts,
+            values,
             exit,
-            |this| {
-                let skip = this.len();
-                let source_len = window_starts.len().min(values.len());
-                let end = this.batch_end(source_len);
-                if skip >= end {
-                    return Ok(());
-                }
-
-                // Rebuild the window's sum from its values in f64: recovering it from the stored,
-                // rounded average made restarts drift by output-type precision. (A run that never
-                // restarts accumulates add/subtract rounding instead; the two differ only at f64 level.)
-                let (mut running_sum, mut prev_start) = if skip > 0 {
-                    let prev_start = window_starts.collect_one_at(skip - 1).unwrap();
-                    if leaving.position() < prev_start.to_usize() {
-                        leaving.advance(prev_start.to_usize() - leaving.position());
-                    }
-                    let sum =
-                        values.fold_range_at(prev_start.to_usize(), skip, 0.0, |sum, value| {
-                            sum + defined(f64::from(value))
-                        });
-                    (sum, prev_start)
-                } else {
-                    (0.0_f64, V::I::from(0))
-                };
-
-                let starts_batch = window_starts.collect_range_at(skip, end);
-                let values_batch = values.collect_range_at(skip, end);
-
-                for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
-                    let i = skip + j;
-                    running_sum += defined(f64::from(value));
-
-                    if prev_start < start {
-                        let n = start.to_usize() - prev_start.to_usize();
-                        leaving.for_each(n, |v: A| {
-                            running_sum -= defined(f64::from(v));
-                        });
-                        prev_start = start;
-                    }
-
-                    let count = i - start.to_usize() + 1;
-                    let avg = running_sum / count as f64;
-                    this.push(V::T::from(avg));
-                }
-
-                Ok(())
-            },
+            |sum: &mut f64, value| *sum += value,
+            |sum, value| *sum -= value,
+            |sum, count| V::T::from(sum / count),
         )
     }
 
@@ -256,66 +211,24 @@ where
         f64: From<A>,
         V::T: From<f64>,
     {
-        let mut leaving = values.cursor();
-
-        self.compute_init(
-            window_starts.version() + values.version() + Version::TWO,
+        compute_rolling_window(
+            self,
+            Version::new(3),
             max_from,
+            window_starts,
+            values,
             exit,
-            |this| {
-                let skip = this.len();
-                let source_len = window_starts.len().min(values.len());
-                let end = this.batch_end(source_len);
-                if skip >= end {
-                    return Ok(());
-                }
-
-                // Both moments rebuilt from the window's values in f64, not from rounded outputs.
-                let (mut sum, mut sum_sq, mut prev_start) = if skip > 0 {
-                    let prev_start = window_starts.collect_one_at(skip - 1).unwrap();
-                    if leaving.position() < prev_start.to_usize() {
-                        leaving.advance(prev_start.to_usize() - leaving.position());
-                    }
-                    let (sum, sum_sq) = values.fold_range_at(
-                        prev_start.to_usize(),
-                        skip,
-                        (0.0, 0.0),
-                        |(sum, sum_sq), value| {
-                            let value = defined(f64::from(value));
-                            (sum + value, sum_sq + value * value)
-                        },
-                    );
-                    (sum, sum_sq, prev_start)
-                } else {
-                    (0.0_f64, 0.0_f64, V::I::from(0))
-                };
-
-                let starts_batch = window_starts.collect_range_at(skip, end);
-                let values_batch = values.collect_range_at(skip, end);
-
-                for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
-                    let i = skip + j;
-                    let val = defined(f64::from(value));
-                    sum += val;
-                    sum_sq += val * val;
-
-                    if prev_start < start {
-                        let n = start.to_usize() - prev_start.to_usize();
-                        leaving.for_each(n, |v: A| {
-                            let old = defined(f64::from(v));
-                            sum -= old;
-                            sum_sq -= old * old;
-                        });
-                        prev_start = start;
-                    }
-
-                    let count = (i - start.to_usize() + 1) as f64;
-                    let mean = sum / count;
-                    let variance = (sum_sq / count - mean * mean).max(0.0);
-                    this.push(V::T::from(variance.sqrt()));
-                }
-
-                Ok(())
+            |(sum, sum_sq): &mut (f64, f64), value| {
+                *sum += value;
+                *sum_sq += value * value;
+            },
+            |(sum, sum_sq), value| {
+                *sum -= value;
+                *sum_sq -= value * value;
+            },
+            |(sum, sum_sq), count| {
+                let mean = sum / count;
+                V::T::from((sum_sq / count - mean * mean).max(0.0).sqrt())
             },
         )
     }
@@ -438,6 +351,86 @@ where
                     "exponential average state must be stored exactly"
                 );
                 this.push(out);
+            }
+
+            Ok(())
+        },
+    )
+}
+
+/// Rows at multiples of this rebuild their window's sums from its values.
+const ANCHOR_STRIDE: usize = 1024;
+
+/// Rolling window statistics kept as f64 sums of the window's values (`add`, `remove`), written
+/// by `output` from the sums and the window's count. A row at a multiple of [`ANCHOR_STRIDE`]
+/// rebuilds the sums from its window; the rows after continue from it, adding the entering value
+/// and removing the leaving ones. A row's value thus depends on its position alone: a run
+/// resuming anywhere replays from the anchor at or before it, matching an uninterrupted run bit
+/// for bit, and rounding never builds up past one stride.
+#[allow(clippy::too_many_arguments)]
+fn compute_rolling_window<V: StoredVec, A, S>(
+    vec: &mut EagerVec<V>,
+    version: Version,
+    max_from: V::I,
+    window_starts: &impl ReadableVec<V::I, V::I>,
+    values: &impl ReadableVec<V::I, A>,
+    exit: &Exit,
+    add: impl Fn(&mut S, f64),
+    remove: impl Fn(&mut S, f64),
+    output: impl Fn(S, f64) -> V::T,
+) -> Result<()>
+where
+    A: VecValue,
+    f64: From<A>,
+    S: Copy + Default,
+{
+    // Leaving values are read through one cursor across batches, so each compressed page is
+    // decompressed once; only a replay from an anchor behind it starts a new one.
+    let mut leaving = values.cursor();
+
+    vec.compute_init(
+        version + window_starts.version() + values.version(),
+        max_from,
+        exit,
+        |this| {
+            let skip = this.len();
+            let source_len = window_starts.len().min(values.len());
+            let end = this.batch_end(source_len);
+            if skip >= end {
+                return Ok(());
+            }
+
+            let anchor = skip - skip % ANCHOR_STRIDE;
+            let starts_batch = window_starts.collect_range_at(anchor, end);
+            let values_batch = values.collect_range_at(anchor, end);
+            let mut sums = S::default();
+            let mut prev_start = 0;
+
+            for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
+                let i = anchor + j;
+                let start = start.to_usize();
+                debug_assert!(prev_start <= start, "window starts never move back");
+                if i.is_multiple_of(ANCHOR_STRIDE) {
+                    sums = values.fold_range_at(start, i + 1, S::default(), |mut sums, value| {
+                        add(&mut sums, defined(f64::from(value)));
+                        sums
+                    });
+                    if leaving.position() > start {
+                        leaving = values.cursor();
+                    }
+                    leaving.advance(start - leaving.position());
+                } else {
+                    add(&mut sums, defined(f64::from(value)));
+                    if prev_start < start {
+                        leaving.for_each(start - prev_start, |value: A| {
+                            remove(&mut sums, defined(f64::from(value)));
+                        });
+                    }
+                }
+                prev_start = start;
+                if i >= skip {
+                    this.push(output(sums, (i - start + 1) as f64));
+                }
             }
 
             Ok(())

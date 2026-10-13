@@ -16,7 +16,6 @@ impl Query {
 
         let pin = self.pin_safe_lengths()?;
 
-        let _scope = self.read_scope(&pin);
         let tip = Query::tip_height(&pin);
 
         let plugins = self.plugins();

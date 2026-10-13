@@ -1,4 +1,4 @@
-use bitview_plugin_indexer::SafeLengths;
+use crate::ReadPin;
 use bitview_primitives::BlockHashPrefix;
 use brk_types::{BlockHash, Height};
 use vecdb::ReadableVec;
@@ -18,7 +18,7 @@ pub use range_v1::ResolvedBlocksV1;
 pub use timestamp::ResolvedBlockTimestamp;
 
 impl Query {
-    fn height_by_hash_at(&self, hash: &BlockHash, guard: &SafeLengths) -> Result<Height> {
+    fn height_by_hash_at(&self, hash: &BlockHash, guard: &ReadPin) -> Result<Height> {
         let height = self
             .indexer()
             .stores()
@@ -32,7 +32,7 @@ impl Query {
         &self,
         hash: &BlockHash,
         height: Height,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<()> {
         if height >= guard.lengths().height {
             return Err(Error::NotFound("Block not found".into()));

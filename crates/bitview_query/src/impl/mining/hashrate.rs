@@ -19,7 +19,6 @@ impl Query {
         max_points: usize,
     ) -> Result<HashrateSummary> {
         let pin = self.pin_safe_lengths()?;
-        let _scope = self.read_scope(&pin);
         let tip = Query::tip_height(&pin);
         let indexer = self.indexer();
         let plugins = self.plugins();

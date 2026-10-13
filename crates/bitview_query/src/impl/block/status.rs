@@ -1,4 +1,4 @@
-use bitview_plugin_indexer::SafeLengths;
+use crate::ReadPin;
 use bitview_types::BlockStatus;
 use brk_types::{BlockHash, Height};
 use vecdb::ReadableVec;
@@ -12,7 +12,7 @@ impl Query {
         self.block_status_at_height(height, &guard)
     }
 
-    fn block_status_at_height(&self, height: Height, guard: &SafeLengths) -> Result<BlockStatus> {
+    fn block_status_at_height(&self, height: Height, guard: &ReadPin) -> Result<BlockStatus> {
         let tip = guard.lengths().last_height().data()?;
         let next_best = if height < tip {
             Some(

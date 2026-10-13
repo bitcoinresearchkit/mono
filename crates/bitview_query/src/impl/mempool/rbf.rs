@@ -33,7 +33,7 @@ impl Query {
         let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::MempoolNotAvailable)?;
         Ok(ResolvedRbf {
             source: mempool.rbf_for_tx(txid, &tip)?,
-            pin,
+            pin: pin.into_inner(),
         })
     }
 
@@ -43,7 +43,7 @@ impl Query {
             return Ok(RbfResponse::EMPTY);
         }
         // Enrich at the publication the tree was resolved against.
-        let read = self.read_indexer_at(rbf.pin);
+        let read = self.read_indexer_at(self.read_pin(rbf.pin));
         let RbfForTx { root, replaces } = rbf.source;
         let replacements = root
             .map(|node| read.enrich_rbf_node(node, None))

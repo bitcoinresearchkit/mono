@@ -67,7 +67,8 @@ return `ReadTimeout` before invoking their closure. The server supplies one HTTP
 deadline; standalone async reads have a four-second total budget.
 
 Every read pins the published state once (`SafeLengths`: the lengths every plugin
-has computed to, the tip, a revision) and reads below it. Pinning never waits and
+has computed to, the tip, a revision) and reads below it: the pin bounds its
+thread's reads, lazy calendar and count views included, while it lives. Pinning never waits and
 an update never waits for readers: it appends past the pin and publishes by
 swapping the pin's source; only a rollback waits for the pins taken before it.
 Data rewritten in place is read consistently with the pin: the spend index masks
@@ -101,7 +102,7 @@ operations instead. Resolved tokens do not retain a lock across async handoffs;
 the consuming operation reacquires protection and revalidates the block hash.
 Immutable block snapshots still use their separate safe-length protection.
 
-Raw block payload and size helpers borrow the snapshot's `SafeLengths` guard,
+Raw block payload and size helpers borrow the snapshot's resumed pin (`ReadPin`),
 not a copied `Lengths` value. They are internal to the block-query module; public
 callers use `block_raw` or `ResolvedBlocks::anchor_raw` / `anchor_raw_size`.
 The selected height is checked against the pinned prefix before reading the
