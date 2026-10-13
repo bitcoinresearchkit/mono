@@ -10976,8 +10976,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The preview the toast up says was closed (its Undo brings it back). @type {Chart | null} */
       let closedToast = null;
-      /** The previews kept aside, this tab's and others' (one, as a Studio before kept it). @returns {Chart[]} */
-      const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored : stored ? [stored] : []))(storage.get(PREVIEW_ASIDE, null));
+      /** The previews kept aside, this tab's and others'. @returns {Chart[]} */
+      const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored : []))(storage.get(PREVIEW_ASIDE, null));
       /** A preview let go of (kept, closed): no longer kept aside. */
       const forgetPreview = (/** @type {Chart} */ doc) => {
         asideDirty.delete(doc);
