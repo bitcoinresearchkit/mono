@@ -19710,7 +19710,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * What completes the word before the caret: for a capital, this chart's layers (but `self`); for a lowercase word,
-       * the functions, and series by name after them (`seriesCompleting`). A word already whole needs nothing.
+       * the functions, and series by name after them (`completeSeries`). A word already whole needs nothing.
        * @param {Layer | null | undefined} self
        */
       function completionsAt(text, caret, self) {
@@ -19725,8 +19725,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else if (token) items = Object.entries(FUNCTIONS).filter(([name]) => name.startsWith(token) && name !== token).map(([name, [, signature, what]]) => ({ insert: `${name}(`, title: signature, text: what }));
         return { start, token, items };
       }
-      /** The series the search finds best for a word (a few letters of each of its words find a name too). */
-      const seriesCompleting = (token, signal) => findSeries(token, 8, signal, 140).then((names) => names.filter(isSeriesName).map((name) => ({ insert: name, title: name, text: "", series: true })));
+      /**
+       * The series a word being typed in a formula completes to (two letters on, not a layer's letter), as the search finds
+       * them best (a few letters of each of their words find a name too): `add`ed unless the word's one already. `holder`
+       * keeps the search: one after it lets it go.
+       * @param {{ controller: AbortController | null }} holder @param {string} token @param {(series: { insert: string, title: string, text: string, series: true }[]) => void} add
+       */
+      function completeSeries(holder, token, add) {
+        if (token.length < 2 || /^[A-Z]/.test(token)) return;
+        const controller = (holder.controller = new AbortController());
+        findSeries(token, 8, controller.signal, 140).then((names) => {
+          const series = names.filter(isSeriesName).map((name) => /** @type {const} */ ({ insert: name, title: name, text: "", series: true }));
+          if (!controller.signal.aborted && series.length && !series.some((item) => item.insert === token)) add(series);
+        }, () => {});
+      }
       function updateSuggestions() {
         const textarea = $("formula");
         if (!textarea || !$("suggest")) return;
@@ -19744,12 +19756,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (quiet) return showSuggestions([]);
         showSuggestions(items);
-        if (token.length < 2 || /^[A-Z]/.test(token)) return;
-        const controller = (suggest.controller = new AbortController());
-        seriesCompleting(token, controller.signal).then((series) => {
-          if (controller.signal.aborted || document.activeElement !== textarea) return;
-          showSuggestions(series.some((item) => item.insert === token) ? items : [...items, ...series]);
-        }, () => {});
+        completeSeries(suggest, token, (series) => document.activeElement === textarea && showSuggestions([...items, ...series]));
       }
       /** What each argument of a function takes, by its name in the signatures. */
       const ARGUMENTS = {
@@ -20887,6 +20894,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // ── Palette: search and browse the catalog ────────────────────────────────
 
 
+      /**
+       * What ⌘K's doing: browsing everything; adding a series (`into` a pane chosen beforehand: its id, or "new", each into a
+       * new one); replacing a `layer`'s series; a formula, added (`into` a pane) or a layer's own, `editing`.
+       * @typedef {{ kind: "browse" } | { kind: "add", into: string | null } | { kind: "replace", layer: string } | { kind: "formula", editing: string | null, into: string | null }} PaletteOp
+       */
       const palette = {
         path: /** @type {string[]} */ ([]),
         items: /** @type {any[]} */ ([]),
@@ -20895,18 +20907,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         controller: /** @type {AbortController | null} */ (null),
         timer: 0,
         moved: false,
-        /** @type {string | null} the layer whose series a pick replaces */
-        replacing: null,
         /** @type {string | null} the row to land on when going back up (the folder or page just left) */
         landOn: null,
-        /** Opened to add a series: series and the catalog only. */
-        adding: false,
-        /** Opened to add a formula: the query is the formula, the rows what completes it. */
-        formula: false,
-        /** With `formula`, the layer whose formula is being edited (else one is being added). @type {string | null} */
-        editing: null,
-        /** Adding (a series or a formula) into this pane, chosen beforehand ("new": each into a new one). @type {string | null} */
-        into: null,
+        op: /** @type {PaletteOp} */ ({ kind: "browse" }),
+        /** Adding a series: series and the catalog only. */
+        get adding() {
+          return this.op.kind === "add";
+        },
+        /** The layer whose series a pick replaces. */
+        get replacing() {
+          return this.op.kind === "replace" ? this.op.layer : null;
+        },
+        /** A formula: the query is the formula, the rows what completes it. */
+        get formula() {
+          return this.op.kind === "formula";
+        },
+        /** The formula layer being edited (else one's being added). */
+        get editing() {
+          return this.op.kind === "formula" ? this.op.editing : null;
+        },
+        /** The pane added into, chosen beforehand ("new": each into a new one). */
+        get into() {
+          return this.op.kind === "add" || this.op.kind === "formula" ? this.op.into : null;
+        },
         /** How many of its rows are written (the rest as they're scrolled or moved to). */
         drawn: 0,
         /** The pages opened, deepest last (⌫ goes back up). @type {Page[]} */
@@ -20943,7 +20966,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * action, or come back to later, it starts over at the search.
        */
       let putAway = /** @type {any} */ (null);
-      const putAside = () => (putAway = { at: Date.now(), chart: chart.id, home, state: { adding: palette.adding, replacing: palette.replacing, formula: palette.formula, editing: palette.editing, into: palette.into, path: palette.path.slice(), pages: palette.pages, root: palette.root, query: palette.query, landOn: palette.items[palette.active]?.key ?? null } });
+      const putAside = () => (putAway = { at: Date.now(), chart: chart.id, home, browsing: palette.op.kind === "browse", state: { path: palette.path.slice(), pages: palette.pages, root: palette.root, query: palette.query, landOn: palette.items[palette.active]?.key ?? null } });
       function dismissPalette() {
         putAside();
         $("palette").close();
@@ -20955,10 +20978,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * search, `path` the folder it opens on and `landOn` the row; `resume`: back where it was put away, if it can be.
        */
       function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false } = {}) {
-        // (And while what it was on is still there: the layer being replaced or edited, the pane being added to.)
-        const there = ({ replacing, editing, into }) => (!replacing || layerById(replacing)?.series) && (!editing || layerById(editing)) && (!into || into === "new" || chart.panes.some((pane) => pane.id === into));
-        const scoped = (/** @type {any} */ state) => Boolean(state.adding || state.replacing || state.formula || state.editing);
-        const spot = resume && putAway?.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000 && there(putAway.state) && !scoped(putAway.state) ? putAway.state : null;
+        // (Resumed only where it was browsing: adding, replacing or a formula start again.)
+        const spot = resume && putAway?.browsing && putAway.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000 ? putAway.state : null;
         // (Adding to a chart with no room: said now, not once a series is picked.)
         if (add && !roomFor(chart)) return;
         putAway = null;
@@ -20966,7 +20987,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         hideMenu();
         // Opened afresh, it starts at the search (or where adding a series last added from, on this chart).
         const back = add && !query && addedFrom?.chart === chart.id ? addedFrom : null;
-        Object.assign(palette, spot ?? { adding: add, replacing: replace, formula, editing, into, pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
+        Object.assign(palette, spot ?? { pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
+        palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into } : add ? { kind: "add", into } : { kind: "browse" };
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) (trailDrawn = ""), dialog.removeAttribute("data-half");
         // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped.)
@@ -21031,8 +21053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function leaveScope() {
         palette.landOn = palette.formula ? "Add a formula" : "Add a layer";
         if (palette.formula) palette.query = $("palette-input").value = "";
-        palette.adding = palette.formula = false;
-        palette.into = palette.editing = null;
+        palette.op = { kind: "browse" };
         palette.path = [];
         applyScope();
         showPalette();
@@ -21226,19 +21247,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Searching, said by the glow, as the whole search says it, till every series is in; failing, said too.)
           $("palette-glow").hidden = false;
           renderPalette(true);
-          const controller = (palette.controller = new AbortController());
-          /** @param {string[] | null} seriesFound @param {string} [note] */
-          const landFolder = (seriesFound, note) => {
-            if (controller.signal.aborted) return;
-            const active = palette.items[palette.active];
-            palette.items = [...here, ...(seriesFound ?? []).filter((name) => isSeriesName(name) && !found.has(name)).map((name) => ({ kind: "series", key: name, name, group: "Every series" })), ...widen];
-            // (The first row still leads, unless the person already moved to another.)
-            palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : 0;
-            $("palette-glow").hidden = true;
-            renderPalette(false, note);
-          };
-          findSeries(query, 80, controller.signal, 140).then((seriesFound) => landFolder(seriesFound), () => landFolder(null, "Series search is unavailable right now."));
-          return;
+          return searchSeries(query, (names) => [...here, ...(names ?? []).filter((name) => isSeriesName(name) && !found.has(name)).map((name) => ({ kind: "series", key: name, name, group: "Every series" })), ...widen]);
         }
         if (!query) {
           const node = nodeAt(palette.path);
@@ -21309,7 +21318,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
         const local = [...leading, ...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...website, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
-        const controller = (palette.controller = new AbortController());
         // What matched here, while the series are looked for: at once when bitview.space answers; on this machine they
         // come back within a frame or two and show with the rest, so it shows only if they're slow.
         // Back from a page to this search, on the row that led there.
@@ -21324,24 +21332,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         if (finder.ready) palette.timer = setTimeout(searching, 80);
         else searching();
-        /** @param {string[] | null} names @param {string} [note] */
-        const settle = (names, note) => {
-          if (controller.signal.aborted) return;
-          clearTimeout(palette.timer);
-          const active = palette.items[palette.active];
+        // ("add price" is a search for price: ↵ adds it. The top result leads, or the row come back to.)
+        searchSeries(query.replace(/^add\s+(?=\S)/i, ""), (names) => {
+          if (!names) return [...local, ...more];
           // (Series named as typed, by the starts of their names' words: this chart's own rows, its three best, before them,
           // not a screen of them, a value alone's change after them; unless the person's moved to a row already.)
           const typedParts = words.flatMap((typed) => typed.split("_")).filter(Boolean);
-          const seriesByName = !palette.moved && names?.some((name) => typedParts.every((typed) => name.split("_").some((part) => part.startsWith(typed))));
+          const seriesByName = !palette.moved && names.some((name) => typedParts.every((typed) => name.split("_").some((part) => part.startsWith(typed))));
           const valueAlone = seriesByName ? unnamed.filter((row) => row.alone) : [], directRest = unnamed.filter((row) => !valueAlone.includes(row));
-          palette.items = names ? [...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...valueAlone, ...trailing, ...more] : [...local, ...more];
-          // The top result leads (or the row come back to), unless the person already moved to another row.
-          palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : landing(palette.items);
+          return [...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...valueAlone, ...trailing, ...more];
+        }, landing);
+      }
+      /**
+       * ⌘K's search of every series for `query`, settled into its list as it answers: `compose` makes the rows from the
+       * names found (null: the search failed, said under the list), the row the person moved to kept, else the one `lead`
+       * picks (the first). The glow says it's searching meanwhile; a search after it lets it go.
+       * @param {string} query @param {(names: string[] | null) => any[]} compose @param {(items: any[]) => number} [lead]
+       */
+      function searchSeries(query, compose, lead = () => 0) {
+        const controller = (palette.controller = new AbortController());
+        const settle = (/** @type {string[] | null} */ names, note = "") => {
+          if (controller.signal.aborted) return;
+          clearTimeout(palette.timer);
+          const active = palette.items[palette.active];
+          palette.items = compose(names);
+          palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : lead(palette.items);
           $("palette-glow").hidden = true;
           renderPalette(false, note);
         };
-        // ("add price" is a search for price: ↵ adds it.)
-        findSeries(query.replace(/^add\s+(?=\S)/i, ""), 80, controller.signal, 140).then((names) => settle(names), () => settle(null, "Series search is unavailable right now."));
+        findSeries(query, 80, controller.signal, 140).then((names) => settle(names), () => settle(null, "Series search is unavailable right now."));
       }
 
       /**
@@ -21367,14 +21386,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         palette.active = items.length ? top.length : 0;
         palette.moved = false;
         renderPalette(false, fits?.more ?? "");
-        if (token.length < 2 || /^[A-Z]/.test(token)) return;
-        const controller = (palette.controller = new AbortController());
-        seriesCompleting(token, controller.signal).then((series) => {
-          if (controller.signal.aborted || !series.length || series.some((item) => item.insert === token)) return;
+        completeSeries(palette, token, (series) => {
           palette.items.push(...pieces(series.map((item) => ({ ...item, name: item.insert }))));
           if (!palette.moved) palette.active = top.length;
           renderPalette();
-        }, () => {});
+        });
       }
       /** Where ⌘K's formula list was made (the text, the selection): the caret moving elsewhere makes it again. */
       let formulaAt = "";
@@ -24905,10 +24921,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else /** @type {HTMLDialogElement} */ (dialog).close();
         });
         dialog.addEventListener("close", () => $("toast").parentElement === dialog && document.body.append($("toast")));
-        if (dialog.id === "palette") dialog.addEventListener("close", () => {
-          palette.replacing = null;
-          palette.adding = false;
-        });
+        // (Closed: no series being added or replaced any more.)
+        if (dialog.id === "palette") dialog.addEventListener("close", () => palette.op.kind !== "formula" && (palette.op = { kind: "browse" }));
       }
 
       /**
