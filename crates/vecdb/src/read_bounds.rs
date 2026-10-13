@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
+use std::{cell::RefCell, collections::BTreeMap, marker::PhantomData, sync::Arc};
 
 use crate::AnyExportableVec;
 
@@ -16,7 +16,13 @@ thread_local! {
 #[derive(Clone, Default)]
 pub struct ReadBounds(Arc<BTreeMap<&'static str, usize>>);
 
-struct ScopeGuard(Option<Arc<BTreeMap<&'static str, usize>>>);
+/// Bounds this thread's reads until dropped, restoring the enclosing bounds. Not `Send`: the
+/// bounds live in a thread-local.
+#[must_use = "the bounds apply only while the guard lives"]
+pub struct ReadScope {
+    previous: Option<Arc<BTreeMap<&'static str, usize>>>,
+    _thread: PhantomData<*const ()>,
+}
 
 impl ReadBounds {
     pub fn new() -> Self {
@@ -36,21 +42,29 @@ impl ReadBounds {
     }
 
     pub fn scope<T>(&self, f: impl FnOnce() -> T) -> T {
-        let previous = CURRENT.with(|current| current.replace(Some(Arc::clone(&self.0))));
-        let _guard = ScopeGuard(previous);
+        let _scope = self.enter();
         f()
+    }
+
+    /// Bounds this thread's reads until the returned guard drops.
+    pub fn enter(&self) -> ReadScope {
+        ReadScope {
+            previous: CURRENT.with(|current| current.replace(Some(Arc::clone(&self.0)))),
+            _thread: PhantomData,
+        }
     }
 }
 
-impl Drop for ScopeGuard {
+impl Drop for ReadScope {
     fn drop(&mut self) {
-        let previous = self.0.take();
+        let previous = self.previous.take();
         CURRENT.with(|current| {
             current.replace(previous);
         });
     }
 }
 
+/// `len` capped by this thread's bound for `index`, if a [`ReadScope`] sets one.
 pub fn visible_len(index: &str, len: usize) -> usize {
     CURRENT.with(|current| {
         current

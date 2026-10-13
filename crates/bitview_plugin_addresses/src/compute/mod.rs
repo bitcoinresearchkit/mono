@@ -8,7 +8,7 @@ use bitview_distribution::replay::{LiveState, tip_hash};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use brk_types::Height;
-use vecdb::{AnyVec, Database, ReadableVec};
+use vecdb::{AnyVec, Database, ReadableVec, Stamp};
 
 use crate::{Dependencies, Vecs, state::AddrStates};
 
@@ -20,6 +20,10 @@ impl ComputePlugin for Vecs {
     }
 
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+        // An update that failed before publishing leaves its address state staged: drop it.
+        if self.unpublished_state.take().is_some() {
+            self.state.reset_unsaved();
+        }
         let live = self.live.take();
         let version = deps.version();
         let exit = context.exit();
@@ -58,6 +62,15 @@ impl ComputePlugin for Vecs {
             let current = usize::from(self.state.max_stamped_len()).max(caps_end);
             if start < current {
                 let _lock = exit.lock();
+                // Address state is rewritten in place: readers first fall back to where the
+                // rollback lands.
+                if let Some(landing) = self
+                    .state
+                    .rollback_landing(Stamp::from(Height::from(start)))?
+                    && usize::from(landing) < start
+                {
+                    indexer.lower_publication_to(landing);
+                }
                 start = self.rollback_state(start)?;
             }
             if start > 0

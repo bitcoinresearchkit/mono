@@ -1,29 +1,25 @@
-use bitview_primitives::{AddrHash, TypeIndex};
+use bitview_primitives::{AddrHash, Lengths, TypeIndex};
 use brk_types::{Address, AddressBytes, OutputType};
 
 use super::parse_addr;
 use crate::{Error, Query, Result};
 
 impl Query {
-    pub(crate) fn missing_addr(&self) -> Error {
-        if self.indexer().publication().try_read().is_none() {
-            Error::StateUpdating
-        } else {
-            Error::UnknownAddress
-        }
+    pub(crate) fn resolve_addr(
+        &self,
+        addr: &Address,
+        safe: Lengths,
+    ) -> Result<(OutputType, TypeIndex)> {
+        let bytes = parse_addr(addr)?;
+        self.find_addr_bytes(&bytes, safe)?
+            .ok_or(Error::UnknownAddress)
     }
 
-    pub(crate) fn resolve_addr(&self, addr: &Address) -> Result<(OutputType, TypeIndex)> {
-        let bytes = parse_addr(addr)?;
-        self.resolve_addr_bytes(&bytes)
-    }
-    fn resolve_addr_bytes(&self, bytes: &AddressBytes) -> Result<(OutputType, TypeIndex)> {
-        self.find_addr_bytes(bytes)?
-            .ok_or_else(|| self.missing_addr())
-    }
+    /// The address's type and index, if the published state `safe` has it.
     pub(crate) fn find_addr_bytes(
         &self,
         bytes: &AddressBytes,
+        safe: Lengths,
     ) -> Result<Option<(OutputType, TypeIndex)>> {
         let output_type = OutputType::from(bytes);
         let hash = AddrHash::from(bytes);
@@ -31,7 +27,7 @@ impl Query {
             .indexer()
             .stores()
             .addr_index(output_type, &hash)?
-            .filter(|type_index| *type_index < self.safe_lengths().to_type_index(output_type))
+            .filter(|type_index| *type_index < safe.to_type_index(output_type))
             .map(|type_index| (output_type, type_index)))
     }
 }

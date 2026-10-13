@@ -1,4 +1,3 @@
-use bitview_plugin::{Plugin, PublicationReadGuard};
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::Lengths;
 use vecdb::{AnyExportableVec, BoundedVec, ReadBounds};
@@ -14,39 +13,16 @@ pub struct SeriesRead {
     bounds: ReadBounds,
     safe: Lengths,
     is_mutable: bool,
-    _guard: SeriesGuard,
-}
-
-enum SeriesGuard {
-    Publication { _guard: PublicationReadGuard },
-    Prefix { _guard: SafeLengths },
+    _pin: SafeLengths,
 }
 
 impl SeriesRead {
     pub(super) fn new(query: &Query, entries: Vec<SeriesEntry<'static>>) -> Result<Self> {
-        // The indexer's exported facts only append above the published prefix;
-        // rollback is excluded by SafeLengths. Plugin vectors can recompute
-        // existing rows, independently of their HTTP cache mutability flag.
-        let indexer_only = entries
-            .iter()
-            .all(|entry| entry.plugin().id() == query.indexer().id());
-        let (guard, safe, bounds) = if indexer_only {
-            let pin = query.pin_safe_lengths()?;
-            let safe = pin.lengths();
-            (
-                SeriesGuard::Prefix { _guard: pin },
-                safe,
-                Query::index_read_bounds(safe),
-            )
-        } else {
-            let guard = query.read_publication()?;
-            let safe = query.safe_lengths();
-            (
-                SeriesGuard::Publication { _guard: guard },
-                safe,
-                query.read_bounds(safe),
-            )
-        };
+        // Every plugin's rows below the published lengths stay put while the pin is held: updates
+        // append past them, and only a rollback (which waits for the pin) rewrites them.
+        let pin = query.pin_safe_lengths()?;
+        let safe = pin.lengths();
+        let bounds = query.read_bounds(safe);
         let is_mutable = entries.iter().any(|entry| entry.is_mutable());
         let vecs = entries
             .into_iter()
@@ -62,7 +38,7 @@ impl SeriesRead {
             bounds,
             safe,
             is_mutable,
-            _guard: guard,
+            _pin: pin,
         })
     }
 

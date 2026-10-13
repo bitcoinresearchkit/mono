@@ -62,6 +62,11 @@ impl ReadOnlyState {
         Some(next)
     }
 
+    /// The chain tip the published pool is anchored to, once one is published.
+    pub fn tip(&self) -> Option<BlockHash> {
+        self.pool.as_ref().map(|pool| pool.tip)
+    }
+
     pub(crate) fn pool(&self) -> Result<&Pool> {
         self.pool.as_deref().ok_or(Error::StateUpdating)
     }

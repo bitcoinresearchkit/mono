@@ -232,49 +232,54 @@ impl BitviewClientBase {
 
     /// Make a GET request and deserialize JSON response.
     pub fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        Self::check(self.agent.get(&self.url(path)).call())?
-            .body_mut()
-            .read_json()
-            .map_err(|e| BitviewError::new(e.to_string()))
+        Self::read(self.agent.get(&self.url(path)).call(), |body| {
+            body.read_json()
+        })
     }
 
     /// Make a GET request and return raw text response.
     pub fn get_text(&self, path: &str) -> Result<String> {
-        Self::check(self.agent.get(&self.url(path)).call())?
-            .body_mut()
-            .read_to_string()
-            .map_err(|e| BitviewError::new(e.to_string()))
+        Self::read(self.agent.get(&self.url(path)).call(), |body| {
+            body.read_to_string()
+        })
     }
 
     /// Make a GET request and return raw bytes response.
     pub fn get_bytes(&self, path: &str) -> Result<Vec<u8>> {
-        Self::check(self.agent.get(&self.url(path)).call())?
-            .body_mut()
-            .read_to_vec()
-            .map_err(|e| BitviewError::new(e.to_string()))
+        Self::read(self.agent.get(&self.url(path)).call(), |body| {
+            body.read_to_vec()
+        })
     }
 
     /// Make a POST request and deserialize JSON response.
     pub fn post_json<T: DeserializeOwned>(&self, path: &str, body: &str) -> Result<T> {
-        Self::check(self.agent.post(&self.url(path)).send(body))?
-            .body_mut()
-            .read_json()
-            .map_err(|e| BitviewError::new(e.to_string()))
+        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
+            body.read_json()
+        })
     }
 
     /// Make a POST request and return raw text response.
     pub fn post_text(&self, path: &str, body: &str) -> Result<String> {
-        Self::check(self.agent.post(&self.url(path)).send(body))?
-            .body_mut()
-            .read_to_string()
-            .map_err(|e| BitviewError::new(e.to_string()))
+        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
+            body.read_to_string()
+        })
     }
 
     /// Make a POST request and return raw bytes response.
     pub fn post_bytes(&self, path: &str, body: &str) -> Result<Vec<u8>> {
-        Self::check(self.agent.post(&self.url(path)).send(body))?
-            .body_mut()
-            .read_to_vec()
+        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
+            body.read_to_vec()
+        })
+    }
+
+    /// Reads a successful response's whole body: the server bounds its responses, so the
+    /// client adds no cap (ureq's default stops at 10 MiB, below the full UTXO set).
+    fn read<T>(
+        response: std::result::Result<ureq::http::Response<ureq::Body>, ureq::Error>,
+        read: impl FnOnce(ureq::BodyWithConfig<'_>) -> std::result::Result<T, ureq::Error>,
+    ) -> Result<T> {
+        let mut response = Self::check(response)?;
+        read(response.body_mut().with_config().limit(u64::MAX))
             .map_err(|e| BitviewError::new(e.to_string()))
     }
 }

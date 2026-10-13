@@ -1,25 +1,33 @@
 use crate::{
     State,
     snapshot::{self, MAX_RECORD, Snapshot},
-    util::invalid,
+    util::{atomic_write, invalid},
 };
 use std::{
     fs::{self, File, OpenOptions},
-    io::{Error, Result},
-    os::unix::fs::FileExt,
-    path::Path,
+    io::{Error, ErrorKind, Result},
+    path::{Path, PathBuf},
 };
 const MAGIC: &[u8; 8] = b"STAPAGE4";
 const HEADER: usize = 9;
 const ROW: usize = 12;
-/// Full snapshot pages with one replaceable tip. The caller holds exit and publication guards.
+const TIP: &str = "tip";
+const PREV: &str = "prev";
+const NEXT: &str = "tip.next";
+/// Full snapshots, published so readers never see one change: retained snapshots are appended to
+/// `data` and listed by `pages` (replaced by rename); the newest non-retained snapshot is the `tip`
+/// file and the one it replaced is `prev` (both replaced by rename), so a reader still at the
+/// previous publication restores from a snapshot too. Only a rewind truncates retained snapshots.
 pub(crate) struct Snapshots {
+    path: PathBuf,
     data: File,
-    pages: File,
     writable: bool,
     entries: Vec<(usize, u64, u64)>,
-    retained: usize,
     end: u64,
+    /// `tip` then `prev`, as opened.
+    tips: Vec<File>,
+    pages_changed: bool,
+    tip_pushed: bool,
     writing: bool,
 }
 impl Snapshots {
@@ -39,23 +47,24 @@ impl Snapshots {
         if writable {
             data.try_lock().map_err(Error::other)?;
         }
-        let pages = open("pages")?;
-        let size = pages.metadata()?.len();
-        if size == 0 && writable {
+        let pages_path = path.join("pages");
+        let mut bytes = fs::read(&pages_path).or_else(|error| match error.kind() {
+            ErrorKind::NotFound if writable => Ok(Vec::new()),
+            _ => Err(error),
+        })?;
+        if bytes.is_empty() && writable {
             if data.metadata()?.len() != 0 {
                 return Err(invalid("missing snapshot page index"));
             }
-            pages.write_all_at(&[MAGIC.as_slice(), &[0]].concat(), 0)?;
+            bytes = [MAGIC.as_slice(), &[0]].concat();
+            atomic_write(&pages_path, &bytes)?;
         }
-        let size = pages.metadata()?.len();
-        if size < HEADER as u64
-            || size > MAX_RECORD
-            || !(size as usize - HEADER).is_multiple_of(ROW)
+        if bytes.len() < HEADER
+            || bytes.len() as u64 > MAX_RECORD
+            || !(bytes.len() - HEADER).is_multiple_of(ROW)
         {
             return Err(invalid("invalid snapshot page index length"));
         }
-        let mut bytes = vec![0; size as usize];
-        pages.read_exact_at(&mut bytes, 0)?;
         if &bytes[..8] != MAGIC {
             return Err(invalid("unsupported snapshot page index"));
         }
@@ -78,21 +87,65 @@ impl Snapshots {
             entries.push((h, end, next - end));
             end = next;
         }
-        if end != data.metadata()?.len() {
-            return Err(invalid("snapshot page index does not cover data"));
+        // Older layouts kept the replaceable tip as the last entry of `data`: drop it.
+        if retained_last == 0
+            && let Some((_, at, _)) = entries.pop()
+        {
+            end = at;
         }
-        let retained = entries
-            .len()
-            .saturating_sub(usize::from(retained_last == 0));
-        Ok(Self {
+        // A reader may see snapshots appended after its index, or a rewind's truncation of
+        // entries its index still lists (rewinds shorten the index first); a writer drops both.
+        let len = data.metadata()?.len();
+        if end > len {
+            if writable {
+                return Err(invalid("snapshot page index exceeds data"));
+            }
+            while entries.last().is_some_and(|&(_, at, n)| at + n > len) {
+                entries.pop();
+            }
+            end = entries.last().map_or(0, |&(_, at, n)| at + n);
+        }
+        let mut this = Self {
+            path: path.to_owned(),
             data,
-            pages,
             writable,
             entries,
-            retained,
             end,
+            tips: Vec::new(),
+            pages_changed: false,
+            tip_pushed: false,
             writing: false,
-        })
+        };
+        if writable {
+            if len != end {
+                this.data.set_len(end)?;
+                atomic_write(&pages_path, &this.index())?;
+            }
+            remove_if_exists(&path.join(NEXT))?;
+        }
+        this.tips = this.open_tips()?;
+        Ok(this)
+    }
+    fn open_tips(&self) -> Result<Vec<File>> {
+        let mut tips = Vec::with_capacity(2);
+        for name in [TIP, PREV] {
+            match File::open(self.path.join(name)) {
+                Ok(file) => tips.push(file),
+                Err(error) if error.kind() == ErrorKind::NotFound => {}
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(tips)
+    }
+    fn index(&self) -> Vec<u8> {
+        let mut index = Vec::with_capacity(HEADER + self.entries.len() * ROW);
+        index.extend_from_slice(MAGIC);
+        index.push(u8::from(!self.entries.is_empty()));
+        for &(h, at, n) in &self.entries {
+            index.extend_from_slice(&(h as u32).to_le_bytes());
+            index.extend_from_slice(&(at + n).to_le_bytes());
+        }
+        index
     }
     fn healthy(&self) -> Result<()> {
         if self.writing {
@@ -112,18 +165,37 @@ impl Snapshots {
         }
         Ok(snapshot)
     }
+    /// The newest snapshot: a tip, or the last retained snapshot.
     pub fn latest(&self, versions: (u64, u64)) -> Result<Option<Snapshot>> {
-        self.healthy()?;
-        self.entries
+        let tip = self.tips(versions)?.into_iter().next();
+        let retained = self
+            .entries
             .last()
-            .map_or(Ok(None), |&e| self.read(e, versions))
+            .map_or(Ok(None), |&e| self.read(e, versions))?;
+        Ok(match (tip, retained) {
+            (Some(tip), Some(retained)) if retained.len > tip.len => Some(retained),
+            (tip, retained) => tip.or(retained),
+        })
     }
+    /// The tip snapshots of these versions, newest first.
+    pub fn tips(&self, versions: (u64, u64)) -> Result<Vec<Snapshot>> {
+        self.healthy()?;
+        let mut tips = Vec::with_capacity(self.tips.len());
+        for file in &self.tips {
+            let bytes = usize::try_from(file.metadata()?.len())
+                .map_err(|_| invalid("snapshot length overflow"))?;
+            tips.extend(Snapshot::open(file, 0, bytes, versions)?);
+        }
+        tips.sort_unstable_by_key(|tip| std::cmp::Reverse(tip.len));
+        Ok(tips)
+    }
+    /// The newest retained snapshot no later than `end` first.
     pub fn before(
         &self,
         end: usize,
         versions: (u64, u64),
     ) -> impl Iterator<Item = Result<Option<Snapshot>>> + '_ {
-        let count = self.entries[..self.retained].partition_point(|&(h, _, _)| h <= end);
+        let count = self.entries.partition_point(|&(h, _, _)| h <= end);
         self.entries[..count]
             .iter()
             .rev()
@@ -135,23 +207,32 @@ impl Snapshots {
             return Err(invalid("read-only snapshots"));
         }
         self.writing = true;
-        let count = self.entries[..self.retained]
-            .partition_point(|&(h, _, _)| h < start || include_start && h == start);
-        let end = self
-            .entries
-            .get(count.wrapping_sub(1))
-            .map_or(0, |&(_, at, n)| at + n);
-        self.data.set_len(end)?;
-        self.entries.truncate(count);
-        self.retained = count;
-        self.end = end;
+        let after = |h: usize| h > start || !include_start && h == start;
+        let count = self.entries.partition_point(|&(h, _, _)| !after(h));
+        if count < self.entries.len() {
+            self.entries.truncate(count);
+            self.end = self.entries.last().map_or(0, |&(_, at, n)| at + n);
+            // Readers open the index before the data: shorten it before the data.
+            atomic_write(&self.path.join("pages"), &self.index())?;
+            self.data.set_len(self.end)?;
+        }
+        // A tip past the rewind describes a replaced chain.
+        for name in [TIP, PREV] {
+            let path = self.path.join(name);
+            match File::open(&path) {
+                Ok(file) if after(snapshot::stored_len(&file)?) => fs::remove_file(path)?,
+                Err(error) if error.kind() != ErrorKind::NotFound => return Err(error),
+                _ => {}
+            }
+        }
+        self.tips = self.open_tips()?;
         Ok(())
     }
     pub fn push(&mut self, state: &State, versions: (u64, u64), retained: bool) -> Result<()> {
         if !self.writing || !self.writable {
             return Err(invalid("snapshot write outside update"));
         }
-        if self.retained != self.entries.len()
+        if self.tip_pushed
             || state.len() > 100_000_000
             || self
                 .entries
@@ -160,11 +241,19 @@ impl Snapshots {
         {
             return Err(invalid("invalid snapshot append"));
         }
-        let n = snapshot::write(&self.data, self.end, state, versions, retained)?;
-        self.entries.push((state.len(), self.end, n));
-        self.end += n;
         if retained {
-            self.retained = self.entries.len();
+            let n = snapshot::write(&self.data, self.end, state, versions, true)?;
+            self.entries.push((state.len(), self.end, n));
+            self.end += n;
+            self.pages_changed = true;
+        } else {
+            let file = OpenOptions::new()
+                .create(true)
+                .truncate(true)
+                .write(true)
+                .open(self.path.join(NEXT))?;
+            snapshot::write(&file, 0, state, versions, false)?;
+            self.tip_pushed = true;
         }
         Ok(())
     }
@@ -172,18 +261,27 @@ impl Snapshots {
         if !self.writing || !self.writable {
             return Err(invalid("snapshot commit outside update"));
         }
-        let mut index = Vec::with_capacity(HEADER + self.entries.len() * ROW);
-        index.extend_from_slice(MAGIC);
-        index.push(u8::from(
-            !self.entries.is_empty() && self.retained == self.entries.len(),
-        ));
-        for &(h, at, n) in &self.entries {
-            index.extend_from_slice(&(h as u32).to_le_bytes());
-            index.extend_from_slice(&(at + n).to_le_bytes());
+        if self.pages_changed {
+            atomic_write(&self.path.join("pages"), &self.index())?;
+            self.pages_changed = false;
         }
-        self.pages.write_all_at(&index, 0)?;
-        self.pages.set_len(index.len() as u64)?;
+        if self.tip_pushed {
+            let tip = self.path.join(TIP);
+            match fs::rename(&tip, self.path.join(PREV)) {
+                Err(error) if error.kind() != ErrorKind::NotFound => return Err(error),
+                _ => {}
+            }
+            fs::rename(self.path.join(NEXT), tip)?;
+            self.tip_pushed = false;
+        }
+        self.tips = self.open_tips()?;
         self.writing = false;
         Ok(())
+    }
+}
+fn remove_if_exists(path: &Path) -> Result<()> {
+    match fs::remove_file(path) {
+        Err(error) if error.kind() != ErrorKind::NotFound => Err(error),
+        _ => Ok(()),
     }
 }

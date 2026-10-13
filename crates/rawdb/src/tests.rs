@@ -327,3 +327,27 @@ fn indexed_writes_match_the_mapping_across_pages_neighbors_and_reopen() -> Resul
     );
     Ok(())
 }
+
+#[test]
+fn growing_the_file_never_waits_for_a_reader() -> Result<()> {
+    let (db, _dir) = setup_test_db()?;
+    let held = db.create_region_if_needed("held")?;
+    held.write(b"held")?;
+    let reader = held.create_reader();
+    let grower = db.create_region_if_needed("grower")?;
+    let len = 64 * 1024 * 1024;
+    let (done, finished) = std::sync::mpsc::channel();
+    let grown = thread::scope(|scope| {
+        // Far past the file's end: without the reserved mapping this remaps, waiting for `reader`.
+        scope.spawn(|| done.send(grower.write(&vec![7; len])).unwrap());
+        let grown = finished.recv_timeout(std::time::Duration::from_secs(30));
+        assert_eq!(reader.read(0, 4), b"held");
+        // Release a blocked grower so the scope ends and the assertion below can report it.
+        drop(reader);
+        grown
+    });
+    assert!(grown.is_ok(), "the file grew only after the reader left");
+    grown.unwrap()?;
+    assert_eq!(grower.create_reader().read(len - 1, 1), [7]);
+    Ok(())
+}

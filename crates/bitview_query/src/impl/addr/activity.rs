@@ -1,7 +1,7 @@
 use bitview_primitives::{Lengths, TypeIndex};
 use brk_types::{Height, OutputType, Txid};
 
-use crate::{Query, Result};
+use crate::{Error, Query, Result};
 
 impl Query {
     pub(crate) fn addr_last_activity_height_bounded(
@@ -12,7 +12,7 @@ impl Query {
         safe: Lengths,
     ) -> Result<Height> {
         if type_index >= safe.to_type_index(output_type) {
-            return Err(self.missing_addr());
+            return Err(Error::UnknownAddress);
         }
         let stores = self.indexer().stores();
         let tx_index_len = safe.tx_index;
@@ -24,7 +24,7 @@ impl Query {
         let last_tx_index = stores
             .addr_tx_indexes_before(output_type, type_index, before)?
             .next_back()
-            .ok_or_else(|| self.missing_addr())?;
+            .ok_or(Error::UnknownAddress)?;
         self.confirmed_status_height_bounded(last_tx_index, safe)
     }
 }

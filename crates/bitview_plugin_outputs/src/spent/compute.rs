@@ -36,6 +36,15 @@ impl Vecs {
             let _lock = exit.lock();
             // Zero means uninitialized; every checkpoint counts completed blocks.
             let starting_stamp = Stamp::from(starting_lengths.height.incremented());
+            if self.txin_index.stamp() >= starting_stamp {
+                // Spends are rewritten in place: readers first fall back to where the rollback
+                // lands (a stamp counts completed blocks).
+                if let Some(landing) = self.txin_index.rollback_landing(starting_stamp)?
+                    && landing < Stamp::from(starting_lengths.height)
+                {
+                    indexer.lower_publication_to(Height::from(landing));
+                }
+            }
             if self.txin_index.stamp() >= starting_stamp
                 && self.txin_index.rollback_before(starting_stamp)? >= starting_stamp
             {

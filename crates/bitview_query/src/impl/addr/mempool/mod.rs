@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use brk_types::{Address, Transaction};
 
-use crate::{Error, Query, Result, r#impl::addr::parse_addr};
+use crate::{
+    Error, Query, Result,
+    r#impl::{addr::parse_addr, mempool::anchored},
+};
 
 impl Query {
     /// Capture shared transaction bodies only when mempool and indexed chain
@@ -11,6 +14,6 @@ impl Query {
         let bytes = parse_addr(addr)?;
         let mempool = self.mempool().ok_or(Error::MempoolNotAvailable)?;
         let pin = self.pin_safe_lengths()?;
-        Ok(mempool.addr_txs(&bytes, limit, &self.tip_blockhash_at(&pin)?)?)
+        anchored(mempool.addr_txs(&bytes, limit, &pin.tip()))
     }
 }

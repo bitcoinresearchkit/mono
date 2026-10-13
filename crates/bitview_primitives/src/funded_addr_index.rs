@@ -75,21 +75,13 @@ impl VecdbCheckedSub<FundedAddressIndex> for FundedAddressIndex {
         CheckedSub::checked_sub(self, rhs)
     }
 }
-impl FundedAddressIndex {
-    pub(crate) fn index_name() -> &'static str {
-        "funded_address_index"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["fundedaddr", "funded_address_index"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for FundedAddressIndex {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "funded_address_index"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["fundedaddr", "funded_address_index"]
     }
 }
 

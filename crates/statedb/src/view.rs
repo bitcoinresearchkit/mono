@@ -2,8 +2,8 @@ use std::{io::Result, path::Path};
 
 use crate::{Creations, History, Reader, Spends};
 
-/// Read-only files for an externally pinned publication. The caller must prevent
-/// snapshot writes or producer rewinds until its reader/state capture completes. No writer locks,
+/// Read-only files of the published history. Snapshot writes never change what an open view reads;
+/// the caller keeps producers from rewinding below the ceiling it reads at. No writer locks,
 /// truncation, directory creation, or full journal-index copies occur here.
 pub struct View {
     history: History,
@@ -20,7 +20,10 @@ impl View {
         })
     }
 
-    pub fn reader(&self) -> Result<Reader<'_>> {
-        self.history.reader(&self.spends, &self.creations)
+    /// A reader of at most `ceiling` blocks (the caller's published height) that reads nothing
+    /// past them.
+    pub fn reader(&self, ceiling: usize) -> Result<Reader<'_>> {
+        self.history
+            .reader_within(&self.spends, &self.creations, ceiling)
     }
 }

@@ -20,18 +20,25 @@ use crate::{
 };
 
 const PERIOD: Duration = Duration::from_millis(1000);
+/// How often a withheld pool checks whether the chain has published its tip.
+const WITHHELD_POLL: Duration = Duration::from_millis(5);
 
 impl Mempool {
     /// Drive one update per second. Overrunning cycles resume immediately.
     /// The exclusive writer borrow prevents concurrent drivers or manual ticks.
-    pub fn start_with<F>(&mut self, resolver: F)
+    ///
+    /// A pool is published only at the tip the chain has published (`published_tip`), so readers
+    /// pair it with their chain view; one withheld for a newer tip goes out right after the chain
+    /// publishes that tip.
+    pub fn start_with<F>(&mut self, resolver: F, published_tip: impl Fn() -> BlockHash)
     where
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> + Send,
     {
+        let gate = || Some(published_tip());
         loop {
             let started = Instant::now();
             let outcome = catch_unwind(AssertUnwindSafe(|| {
-                if let Err(e) = self.tick_with(&resolver) {
+                if let Err(e) = self.tick_with(&resolver, gate) {
                     error!("mempool update failed: {e}");
                 }
             }));
@@ -41,27 +48,32 @@ impl Mempool {
                     Self::panic_msg(&payload)
                 );
             }
-            if let Some(rest) = PERIOD.checked_sub(started.elapsed()) {
-                thread::sleep(rest);
+            while let Some(rest) = PERIOD.checked_sub(started.elapsed()) {
+                match self.withheld {
+                    Some(tip) if tip == published_tip() => break,
+                    Some(_) => thread::sleep(rest.min(WITHHELD_POLL)),
+                    None => thread::sleep(rest),
+                }
             }
         }
     }
 
+    /// One update published at the node's tip, for drivers without a chain to follow.
     pub fn tick(&mut self) -> Result<Cycle> {
-        self.tick_with(prevouts::rpc_resolver(self.client.clone()))
+        self.tick_with(prevouts::rpc_resolver(self.client.clone()), || None)
     }
 
     /// Resolve confirmed parents with `resolver`; mempool parents are filled
     /// internally. Failed observations leave the public state intact. Applied
     /// changes still appear in Cycle, even when a final observation fails.
-    fn tick_with<F>(&mut self, resolver: F) -> Result<Cycle>
+    fn tick_with<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<Cycle>
     where
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
     {
         if self.needs_recovery {
             self.restore_published();
         }
-        let cycle = self.tick_once(resolver)?;
+        let cycle = self.tick_once(resolver, gate)?;
         self.needs_recovery = false;
         Ok(cycle)
     }
@@ -81,7 +93,7 @@ impl Mempool {
         self.needs_recovery = false;
     }
 
-    fn tick_once<F>(&mut self, resolver: F) -> Result<Cycle>
+    fn tick_once<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<Cycle>
     where
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
     {
@@ -113,10 +125,16 @@ impl Mempool {
         self.rebuilder
             .tick(&self.state, &block_template_txids, rpc.min_fee);
         if coherent_tip {
-            self.publish_observation(
-                rpc.tip_hash,
-                address_view_complete && self.state.contains_all(&rpc.live_txids),
-            );
+            // Never ahead of the chain readers pair the pool with.
+            if gate().is_none_or(|published| published == rpc.tip_hash) {
+                self.publish_observation(
+                    rpc.tip_hash,
+                    address_view_complete && self.state.contains_all(&rpc.live_txids),
+                );
+                self.withheld = None;
+            } else {
+                self.withheld = Some(rpc.tip_hash);
+            }
         }
         let CycleDiff {
             added,

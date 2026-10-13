@@ -41,7 +41,7 @@ where
     }
 
     pub fn reader(&self) -> OverflowVecReader<I, T> {
-        let _guard = self.gate.read();
+        let _guard = self.gate.read_recursive();
         OverflowVecReader::from_read_only(&self.compact, &self.overflow)
     }
 
@@ -135,7 +135,7 @@ where
 {
     #[inline(always)]
     fn collect_one_at(&self, index: usize) -> Option<T> {
-        let _guard = self.gate.read();
+        let _guard = self.gate.read_recursive();
         if index >= self.visible_len.get() {
             return None;
         }
@@ -145,7 +145,7 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
-        let _guard = self.gate.read();
+        let _guard = self.gate.read_recursive();
         let len = self.visible_len.get();
         let indices = &indices[..indices.partition_point(|&i| i < len)];
         if indices.is_empty() {
@@ -168,7 +168,7 @@ where
 
     #[inline]
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<T>) {
-        let _guard = self.gate.read();
+        let _guard = self.gate.read_recursive();
         let len = self.visible_len.get();
         let from = from.min(len);
         let to = to.min(len);
@@ -204,7 +204,7 @@ where
 
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
-        let _guard = self.gate.read();
+        let _guard = self.gate.read_recursive();
         let to = to.min(self.visible_len.get());
         let overflow = BytesVecReader::new(self.overflow.reader());
         self.compact
@@ -221,7 +221,7 @@ where
         init: B,
         mut f: F,
     ) -> B {
-        let _guard = self.gate.read();
+        let _guard = self.gate.read_recursive();
         let to = to.min(self.visible_len.get());
         let overflow = BytesVecReader::new(self.overflow.reader());
         self.compact.fold_range_at(from, to, init, |acc, compact| {
@@ -237,7 +237,7 @@ where
         init: B,
         mut f: F,
     ) -> Result<B, E> {
-        let _guard = self.gate.read();
+        let _guard = self.gate.read_recursive();
         let to = to.min(self.visible_len.get());
         let overflow = BytesVecReader::new(self.overflow.reader());
         self.compact

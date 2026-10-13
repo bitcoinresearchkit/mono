@@ -1,4 +1,4 @@
-use bitview_plugin::PublicationReadGuard;
+use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{HOUR4_INTERVAL, INDEX_EPOCH, Index};
 use bitview_types::{ExchangeRates, HistoricalPrice, HistoricalPriceEntry};
 use brk_types::{Cents, Dollars, Height, Timestamp};
@@ -13,17 +13,19 @@ const MAX_BUCKETS: usize = ((u32::MAX - INDEX_EPOCH) / HOUR4_INTERVAL) as usize 
 pub struct ResolvedHistoricalPrice<'a> {
     query: &'a Query,
     source_len: usize,
-    _publication: PublicationReadGuard,
+    pin: SafeLengths,
 }
 
 impl Query {
     pub fn resolve_historical_price(&self) -> Result<ResolvedHistoricalPrice<'_>> {
         let plugins = self.plugins();
-        let publication = self.read_publication()?;
-        let source_len = usize::from(self.safe_lengths().height);
+        let pin = self.pin_safe_lengths()?;
+        let source_len = usize::from(pin.lengths().height);
         let prices = &plugins.price.spot.cents.height;
         if prices.len() < source_len || plugins.mappings.timestamp.monotonic.len() < source_len {
-            return Err(Error::StateUpdating);
+            return Err(Error::Internal(
+                "Historical price is behind the published state",
+            ));
         }
         if plugins.mappings.first_height.hour4.len() > MAX_BUCKETS {
             return Err(Error::Internal(
@@ -33,15 +35,15 @@ impl Query {
         Ok(ResolvedHistoricalPrice {
             query: self,
             source_len,
-            _publication: publication,
+            pin,
         })
     }
 }
 
 impl ResolvedHistoricalPrice<'_> {
-    /// Valid only for the publication held by this resolved read.
+    /// The publication this read is pinned to.
     pub fn revision(&self) -> u64 {
-        self.query.indexer().publication().revision()
+        self.pin.revision()
     }
 
     pub fn get(&self, timestamp: Option<Timestamp>) -> Result<HistoricalPrice> {
@@ -52,7 +54,9 @@ impl ResolvedHistoricalPrice<'_> {
         bounds.set(Index::Height.name(), source_len);
         bounds.scope(|| {
             let first_heights = &plugins.mappings.first_height.hour4;
-            let mapping = first_heights.collect_range_dyn(0, first_heights.len());
+            let mut mapping = first_heights.collect_range_dyn(0, first_heights.len());
+            // Only buckets whose first block is published: an update appends past them.
+            mapping.truncate(mapping.partition_point(|height| usize::from(*height) < source_len));
             // Reuse one decompressed page while walking ordered closes.
             let mut cursor = prices.cursor();
             historical_prices(&mapping, source_len, timestamp, |height| {

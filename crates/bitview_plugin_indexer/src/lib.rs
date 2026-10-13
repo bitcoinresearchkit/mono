@@ -12,7 +12,7 @@ use std::{
 
 use bitcoin::{block::Header, consensus};
 use bitview_plugin::{
-    ComputePlugin, ImportContext, Plugin, PluginId, PluginStorage, Publication, UpdateContext,
+    ComputePlugin, ImportContext, Plugin, PluginId, PluginStorage, UpdateContext,
 };
 use bitview_primitives::Lengths;
 use bitview_traversable::{Traversable, TreeNode};
@@ -163,46 +163,29 @@ fn recreate_plugin_dir(path: &Path, source_xor: XORBytes) -> Result<bool> {
 }
 
 impl<M: StorageMode> Indexer<M> {
-    /// Publication barrier shared by the complete pipeline and its readers.
-    pub fn publication(&self) -> &Publication {
-        &self.state.publication
-    }
-    /// Tip block hash at the pipeline-safe ceiling.
-    ///
-    /// Reads the on-disk blockhash vec at `safe_lengths.height - 1` so
-    /// the answer always agrees with `safe_lengths`. The indexer's loop
-    /// pushes new hashes per block before `safe_lengths` advances (that
-    /// only happens after the compute pass); reading from a live cache
-    /// here would mint a tip ahead of every safe-bound endpoint and
-    /// cause cache etags to invalidate before the data they cover is
-    /// actually queryable.
+    /// The published tip's hash, recorded with the published lengths: never ahead of what reads
+    /// can see, though the indexer appends blocks before every plugin computes them.
     pub fn tip_blockhash(&self) -> BlockHash {
-        // Retain protection through the row read. Recursive acquisition also
-        // permits callers already pinning the prefix while a writer queues.
-        let guard = self.state.pin_recursive();
-        match guard.lengths().last_height() {
-            Some(h) => self
-                .vecs
-                .blocks
-                .blockhash
-                .collect_one(h)
-                .unwrap_or_default(),
-            None => BlockHash::default(),
-        }
+        self.state.pin().tip()
+    }
+
+    /// The hash of the last block `lengths` cover (the default hash pre-genesis).
+    fn tip_of(&self, lengths: &Lengths) -> BlockHash {
+        lengths
+            .last_height()
+            .and_then(|height| self.vecs.blocks.blockhash.collect_one(height))
+            .unwrap_or_default()
     }
 
     /// Copy the pipeline-safe bounds. This does not pin the backing data;
-    /// retain [`Self::pin_safe_lengths_for`] protection across dependent reads.
+    /// retain a [`Self::pin`] across dependent reads.
     pub fn safe_lengths(&self) -> Lengths {
         self.state.lengths()
     }
 
-    pub fn try_pin_safe_lengths(&self) -> Option<SafeLengths> {
-        self.state.try_pin()
-    }
-
-    pub fn pin_safe_lengths_for(&self, timeout: Duration) -> Option<SafeLengths> {
-        self.state.pin_for(timeout)
+    /// Pins the published state; never waits.
+    pub fn pin(&self) -> SafeLengths {
+        self.state.pin()
     }
 
     pub fn reader(&self) -> &Reader {
@@ -318,7 +301,9 @@ impl Indexer {
                     }
                     _ => lengths,
                 };
-                indexer.state.finish_update(published);
+                indexer
+                    .state
+                    .finish_update(published, indexer.tip_of(&published));
                 Ok(indexer)
             }
             ImportValidation::Reset(reason) if can_retry => {
@@ -451,8 +436,9 @@ impl Indexer {
         let lock = exit.lock();
         if starting_lengths.height < self.vecs.next_height() {
             self.floor.lower_to(starting_lengths.height)?;
+            self.state
+                .lower_before(&starting_lengths, self.tip_of(&starting_lengths));
         }
-        self.state.lower_before(&starting_lengths);
         self.rollback_to(&starting_lengths)?;
         debug!("Rollback done.");
         drop(lock);
@@ -616,11 +602,17 @@ impl Indexer {
         Ok(())
     }
 
-    /// Commits indexed disk state as the pipeline-wide safe-lengths snapshot. A `complete` update
-    /// (every plugin computed) also clears the rollback floor.
-    pub fn commit(&mut self, complete: bool) -> Result<()> {
+    /// Publishes the prefix below `height` before a plugin rewrites rows past it in place (a
+    /// rollback landing below the indexer's), once no reader holds a later publication.
+    pub fn lower_publication_to(&self, height: Height) {
+        let lengths = Lengths::at(height, &self.vecs).unwrap_or_default();
+        self.state.lower_before(&lengths, self.tip_of(&lengths));
+    }
+
+    /// Finishes the indexer's own writes and returns the lengths a commit publishes.
+    pub fn prepare_commit(&mut self) -> Result<Lengths> {
         self.vecs.sync_bg_tasks()?;
-        let lengths = match Lengths::from_local(&self.vecs, &self.stores)? {
+        Ok(match Lengths::from_local(&self.vecs, &self.stores)? {
             Some(lengths) => lengths,
             None if self.vecs.next_height().is_zero()
                 && self.stores.next_height()? == Some(Height::ZERO) =>
@@ -632,8 +624,13 @@ impl Indexer {
                     "Indexer checkpoints became inconsistent during the update",
                 ));
             }
-        };
-        self.state.finish_update(lengths);
+        })
+    }
+
+    /// Publishes `lengths` from [`Self::prepare_commit`] as the pipeline-wide safe-lengths
+    /// snapshot. A `complete` update (every plugin computed) also clears the rollback floor.
+    pub fn publish(&mut self, lengths: Lengths, complete: bool) -> Result<()> {
+        self.state.finish_update(lengths, self.tip_of(&lengths));
         if complete {
             self.floor.clear()?;
         }

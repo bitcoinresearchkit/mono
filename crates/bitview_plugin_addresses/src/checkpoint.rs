@@ -18,20 +18,6 @@ impl Vecs {
         loop_vecs(&mut self.all, &mut self.types, &mut self.balances)
     }
 
-    /// Every vec the block loop writes and checkpoints.
-    pub(crate) fn stateful_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let Self {
-            all,
-            types,
-            balances,
-            state,
-            ..
-        } = self;
-        let mut vecs = loop_vecs(all, types, balances);
-        vecs.extend(state.par_iter_mut().collect::<Vec<_>>());
-        vecs
-    }
-
     /// Restart the metrics from the first block.
     pub(crate) fn reset_metrics(&mut self) -> Result<()> {
         self.loop_vecs_mut()
@@ -44,11 +30,17 @@ impl Vecs {
     /// output reaches; address state resumes by stamp instead.
     pub(crate) fn validate_state(&mut self, version: Version) -> Result<Option<usize>> {
         let caps_changed = self.caps.validate(version)?;
+        let stable = self.state.stable();
+        let mut written = stable.write();
         let state_changed = self
             .state
             .par_iter_mut()
             .map(|v| v.any_validate_computed_version_or_reset(version))
             .try_reduce(|| false, |a, b| Ok(a || b))?;
+        if state_changed {
+            *written = None;
+        }
+        drop(written);
         let outputs = validate_outputs(self.loop_vecs_mut().into_par_iter(), version)?;
         Ok(outputs.filter(|_| !caps_changed && !state_changed))
     }

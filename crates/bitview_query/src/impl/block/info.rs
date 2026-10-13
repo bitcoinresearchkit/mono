@@ -47,14 +47,6 @@ impl Query {
         self.block_hash_by_height(height, &guard)
     }
 
-    /// Bounded byte-vector read, or `None` when publication requires waiting.
-    pub fn try_resolve_block_hash(&self, height: Height) -> Result<Option<BlockHash>> {
-        let Some(guard) = self.indexer().try_pin_safe_lengths() else {
-            return Ok(None);
-        };
-        self.block_hash_by_height(height, &guard).map(Some)
-    }
-
     /// Block hash by height within the retained published prefix.
     /// Bounded typed-index read with a semantic
     /// bounds gate (`OutOfRange` for past-tip, `Internal` if the data
@@ -65,9 +57,7 @@ impl Query {
         guard: &SafeLengths,
     ) -> Result<BlockHash> {
         if height >= guard.lengths().height {
-            return Err(
-                self.block_unavailable(Error::OutOfRange("Block height out of range".into()))
-            );
+            return Err(Error::OutOfRange("Block height out of range".into()));
         }
         self.indexer()
             .vecs()
@@ -75,14 +65,6 @@ impl Query {
             .blockhash
             .collect_one(height)
             .data()
-    }
-
-    pub(crate) fn tip_blockhash_at(&self, pin: &SafeLengths) -> Result<BlockHash> {
-        pin.lengths()
-            .last_height()
-            .map(|height| self.block_hash_by_height(height, pin))
-            .transpose()
-            .map(Option::unwrap_or_default)
     }
 
     // === Helper methods ===
@@ -93,9 +75,7 @@ impl Query {
         guard: &SafeLengths,
     ) -> Result<BitcoinHeader> {
         if height >= guard.lengths().height {
-            return Err(
-                self.block_unavailable(Error::OutOfRange("Block height out of range".into()))
-            );
+            return Err(Error::OutOfRange("Block height out of range".into()));
         }
         let position = self
             .indexer()
@@ -236,7 +216,7 @@ impl Query {
         guard: &SafeLengths,
     ) -> Result<String> {
         if height >= guard.lengths().height {
-            return Err(self.block_unavailable(Error::NotFound("Block not found".into())));
+            return Err(Error::NotFound("Block not found".into()));
         }
         let position = self
             .indexer()
@@ -344,7 +324,7 @@ impl Query {
 
         Ok(blocks)
     }
-    /// Capture every column under publication exclusion, reusing selected prices.
+    /// Capture every column under one pin, reusing selected prices.
     /// The returned builder uses only owned values and immutable block files.
     pub(super) fn capture_blocks_v1_range(
         &self,

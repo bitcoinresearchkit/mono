@@ -37,28 +37,68 @@ impl History {
         self.interval = interval;
         Ok(())
     }
+    /// A reader of the published history: as far as its newest snapshot the producers carry.
     pub fn reader<'a>(
         &'a self,
         spends: &'a Spends,
         creations: &'a Creations,
     ) -> Result<Reader<'a>> {
-        let latest = self
-            .snapshots
-            .latest((spends.version(), creations.version()))?;
-        let (end, hash) = latest.as_ref().map_or((0, [0; 32]), |s| (s.len, s.hash()));
-        if end > spends.end().min(creations.end()) {
-            return Err(invalid("published history exceeds producer prefix"));
-        }
-        if end > 0 && (spends.hash(end - 1)? != hash || creations.hash(end - 1)? != hash) {
-            return Err(invalid("published history does not match producer chain"));
+        let limit = spends.end().min(creations.end());
+        let tips = self.tips_within(spends, creations, limit)?;
+        let mut end = tips.first().map_or(0, |tip| tip.len);
+        let versions = (spends.version(), creations.version());
+        for snapshot in self.snapshots.before(limit, versions) {
+            if let Some(snapshot) = snapshot?
+                && Self::matches(&snapshot, spends, creations)?
+            {
+                end = end.max(snapshot.len);
+                break;
+            }
         }
         Ok(Reader {
             history: self,
             spends,
             creations,
             end,
-            latest,
+            tips,
         })
+    }
+    /// A reader through `ceiling` blocks (or the producers' end), reading nothing past them: a
+    /// rewind may be rewriting the producers' later rows. Snapshots only speed up its restores.
+    pub(crate) fn reader_within<'a>(
+        &'a self,
+        spends: &'a Spends,
+        creations: &'a Creations,
+        ceiling: usize,
+    ) -> Result<Reader<'a>> {
+        let end = spends.end().min(creations.end()).min(ceiling);
+        let tips = self.tips_within(spends, creations, end)?;
+        Ok(Reader {
+            history: self,
+            spends,
+            creations,
+            end,
+            tips,
+        })
+    }
+    /// The tip snapshots the producers carry within `limit`, newest first: a rewind in progress
+    /// can leave a newer one behind.
+    fn tips_within(
+        &self,
+        spends: &Spends,
+        creations: &Creations,
+        limit: usize,
+    ) -> Result<Vec<Snapshot>> {
+        let mut tips = Vec::new();
+        for tip in self
+            .snapshots
+            .tips((spends.version(), creations.version()))?
+        {
+            if tip.len <= limit && Self::matches(&tip, spends, creations)? {
+                tips.push(tip);
+            }
+        }
+        Ok(tips)
     }
     fn matches(snapshot: &Snapshot, spends: &Spends, created: &Creations) -> Result<bool> {
         if snapshot.len == 0 {
@@ -72,32 +112,40 @@ impl History {
         end: usize,
         spends: &Spends,
         created: &Creations,
-        latest: Option<&Snapshot>,
+        tips: &[Snapshot],
     ) -> Result<State> {
         if end > spends.end().min(created.end()) {
             return Err(invalid("incomplete origin contributions"));
         }
-        let mut state = None;
-        if let Some(snapshot) = latest.filter(|s| s.len <= end)
-            && Self::matches(snapshot, spends, created)?
-        {
-            state = Some(snapshot.state()?);
-        }
-        if state.is_none() {
-            for snapshot in self
-                .snapshots
-                .before(end, (spends.version(), created.version()))
-            {
-                let Some(snapshot) = snapshot? else {
-                    continue;
-                };
-                if Self::matches(&snapshot, spends, created)? {
-                    state = Some(snapshot.state()?);
-                    break;
-                }
+        // The newest matching snapshot, tip or retained, leaves the least to replay.
+        let mut newest = None;
+        for tip in tips.iter().filter(|tip| tip.len <= end) {
+            if Self::matches(tip, spends, created)? {
+                newest = Some(tip);
+                break;
             }
         }
-        let mut state = state.unwrap_or_default();
+        let mut retained = None;
+        for snapshot in self
+            .snapshots
+            .before(end, (spends.version(), created.version()))
+        {
+            let Some(snapshot) = snapshot? else {
+                continue;
+            };
+            if newest.is_some_and(|tip| tip.len >= snapshot.len) {
+                break;
+            }
+            if Self::matches(&snapshot, spends, created)? {
+                retained = Some(snapshot);
+                break;
+            }
+        }
+        let mut state = match (retained, newest) {
+            (Some(snapshot), _) => snapshot.state()?,
+            (None, Some(tip)) => tip.state()?,
+            (None, None) => State::default(),
+        };
         if state.len() < end {
             Self::replay(&mut state, end, spends, created, |_, _| Ok(()))?;
         }
@@ -131,7 +179,7 @@ impl History {
         let mut state = if let Some(state) = cached {
             state
         } else {
-            self.restore(start, spends, created, latest.as_ref())?
+            self.restore(start, spends, created, &self.snapshots.tips(versions)?)?
         };
         if start == end
             && (warm

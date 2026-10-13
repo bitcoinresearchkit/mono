@@ -14,10 +14,13 @@ impl Query {
             return Err(Error::InvalidParam("block_count must be >= 1".into()));
         }
 
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
+
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
 
         let plugins = self.plugins();
-        let current_height = self.height();
+        let current_height = tip;
 
         let end_block = current_height;
         let start_block = Height::from(current_height.to_usize().saturating_sub(block_count - 1));

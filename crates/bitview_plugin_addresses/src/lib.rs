@@ -20,7 +20,7 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::{Database, Rw, StorageMode};
+use vecdb::{Database, Rw, Stamp, StorageMode};
 
 use addr::{AddrStateVecs, AddressVecs};
 use balance::Balances;
@@ -39,6 +39,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     live: M::WriteOnly<Option<LiveState<AddrStates>>>,
+    /// The stamp and rollback flag of address state the last update staged for its publication.
+    unpublished_state: M::WriteOnly<Option<(Stamp, bool)>>,
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     #[traversable(flatten)]
     all: Box<AddressVecs<M>>,

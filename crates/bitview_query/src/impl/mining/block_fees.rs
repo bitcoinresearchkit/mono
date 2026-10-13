@@ -11,11 +11,13 @@ impl Query {
     /// sats, and the bucket-mean USD spot price (the spot price, not
     /// fees-in-USD: clients multiply).
     pub fn block_fees(&self, time_period: TimePeriod) -> Result<Vec<BlockFeesEntry>> {
-        let _guard = self.read_publication()?;
-        let bw = BlockWindow::new(self, time_period)?;
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
+        let bw = BlockWindow::new(self, time_period, tip)?;
         let fees: Vec<Sats> = bw.read(&self.plugins().mining.rewards.fees.block.sats)?;
         let prices: Vec<Cents> = bw.read(&self.plugins().price.spot.cents.height)?;
-        drop(_guard);
+        drop(pin);
 
         Ok(bw
             .buckets

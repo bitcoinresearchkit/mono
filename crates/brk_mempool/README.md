@@ -12,7 +12,7 @@ for readers. Clones share the same state through `Arc`.
 let mempool = Mempool::new(&rpc_client);
 let mut driver = mempool.clone();
 
-std::thread::spawn(move || driver.start_with(resolver));
+std::thread::spawn(move || driver.start_with(resolver, published_tip));
 
 let fees = mempool.fees();
 let info = mempool.info();
@@ -20,8 +20,10 @@ let projected_blocks = mempool.block_stats();
 ```
 
 `start_with` runs one update cycle per second and does not return; `resolver`
-supplies confirmed prevouts (Bitview resolves them from its own indexer). Only
-one driver may run for a `Mempool` instance.
+supplies confirmed prevouts (Bitview resolves them from its own indexer), and
+`published_tip` the chain tip readers pair the pool with: a pool is published only
+at that tip, right after the chain publishes it. Only one driver may run for a
+`Mempool` instance.
 
 Use `tick` to drive one cycle manually; it resolves confirmed prevouts with
 `getrawtransaction`, so Bitcoin Core must have `txindex=1`. It returns a `Cycle`

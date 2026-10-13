@@ -1,6 +1,7 @@
+use bitview_plugin_indexer::SafeLengths;
 use bitview_types::{RbfResponse, RbfTx, ReplacementNode};
 use brk_mempool::{RbfForTx, RbfNode};
-use brk_types::{BlockHash, CheckedSub, FeeRate, Timestamp, Txid};
+use brk_types::{CheckedSub, FeeRate, Timestamp, Txid};
 use vecdb::ReadableVec;
 
 use super::serialize_json;
@@ -13,7 +14,7 @@ const RECENT_REPLACEMENTS_LIMIT: usize = 25;
 /// An exact owned RBF tree resolved before an async response handoff.
 pub struct ResolvedRbf {
     source: RbfForTx,
-    tip: BlockHash,
+    pin: SafeLengths,
 }
 
 impl ResolvedRbf {
@@ -29,10 +30,12 @@ impl Query {
     /// Resolve the exact owned replacement tree from one mempool publication.
     pub fn resolve_rbf(&self, txid: &Txid) -> Result<ResolvedRbf> {
         let pin = self.pin_safe_lengths()?;
-        let tip = self.tip_blockhash_at(&pin)?;
+        let (mempool, tip) = self
+            .lookup_mempool(&pin)
+            .ok_or(Error::MempoolNotAvailable)?;
         Ok(ResolvedRbf {
-            source: self.require_mempool()?.rbf_for_tx(txid, &tip)?,
-            tip,
+            source: mempool.rbf_for_tx(txid, &tip)?,
+            pin,
         })
     }
 
@@ -41,11 +44,8 @@ impl Query {
         if rbf.source.is_empty() {
             return Ok(RbfResponse::EMPTY);
         }
-        let _publication = self.read_publication()?;
-        let read = self.read_indexer()?;
-        if self.tip_blockhash() != rbf.tip {
-            return Err(Error::StateUpdating);
-        }
+        // Enrich at the publication the tree was resolved against.
+        let read = self.read_indexer_at(rbf.pin);
         let RbfForTx { root, replaces } = rbf.source;
         let replacements = root
             .map(|node| read.enrich_rbf_node(node, None))
@@ -68,13 +68,11 @@ impl Query {
     /// Most-recent first, capped at 25. `full_rbf_only` keeps only
     /// trees with at least one non-signaling predecessor.
     fn recent_replacements(&self, full_rbf_only: bool) -> Result<Vec<ReplacementNode>> {
-        let _publication = self.read_publication()?;
         let read = self.read_indexer()?;
-        let trees = self.require_mempool()?.recent_rbf_trees(
-            full_rbf_only,
-            RECENT_REPLACEMENTS_LIMIT,
-            &self.tip_blockhash(),
-        )?;
+        let (mempool, tip) = self
+            .lookup_mempool(read.pin())
+            .ok_or(Error::MempoolNotAvailable)?;
+        let trees = mempool.recent_rbf_trees(full_rbf_only, RECENT_REPLACEMENTS_LIMIT, &tip)?;
         trees
             .into_iter()
             .map(|node| read.enrich_rbf_node(node, None))

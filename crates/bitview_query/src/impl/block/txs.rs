@@ -78,7 +78,7 @@ impl Query {
                 "block_txid_at_index_by_height: txid index past data",
             ))
     }
-    /// Internal batch read; caller holds publication exclusion from selection.
+    /// Internal batch read; caller holds its pin from selection.
     pub(crate) fn transactions_at_indices(
         &self,
         indices: &[TxIndex],

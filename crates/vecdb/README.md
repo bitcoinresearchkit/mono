@@ -120,7 +120,8 @@ Caller-owned results and decoder scratch are outside this
 retention budget. Lazy readers use their stored sources' caches without retaining
 another copy of derived values or requiring separate cache invalidation.
 Cache protection covers an individual source operation, not a transaction across
-multiple vectors: related reads still require the application's publication guard.
+multiple vectors: related reads still require the application's own consistency (Bitview bounds them by one
+published state).
 
 ## Value and index types
 

@@ -162,7 +162,7 @@ where
         to: usize,
     ) -> Self {
         // Pages before the region: the writer holds the pages while it rewrites the region.
-        let pages = pages.read();
+        let pages = pages.read_recursive();
         let region_lock = region.read_lock();
         let region_start = region.meta().start() as u64;
         let file = region.open_db_read_only_file().expect("open file");

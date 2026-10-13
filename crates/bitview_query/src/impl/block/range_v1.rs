@@ -1,4 +1,3 @@
-use bitview_plugin::PublicationReadGuard;
 use bitview_types::BlockInfoV1;
 use brk_types::{BlockHash, Dollars, Height};
 use vecdb::{ReadableVec, VecIndex};
@@ -6,28 +5,19 @@ use vecdb::{ReadableVec, VecIndex};
 use super::ResolvedBlocks;
 use crate::{Error, Query, Result};
 
-/// Blocks and their published prices held in one stable chain view.
+/// Blocks and their published prices, held by the blocks' pin.
 pub struct ResolvedBlocksV1 {
-    _publication: PublicationReadGuard,
     blocks: ResolvedBlocks,
     prices: Vec<Dollars>,
 }
 
 impl ResolvedBlocksV1 {
-    fn new(
-        blocks: ResolvedBlocks,
-        prices: Vec<Dollars>,
-        publication: PublicationReadGuard,
-    ) -> Result<Self> {
+    fn new(blocks: ResolvedBlocks, prices: Vec<Dollars>) -> Result<Self> {
         let (begin, end, _) = blocks.range();
         if prices.len() != end - begin {
             return Err(Error::Internal("Incomplete block prices"));
         }
-        Ok(Self {
-            blocks,
-            prices,
-            _publication: publication,
-        })
+        Ok(Self { blocks, prices })
     }
 
     pub fn anchor(&self) -> Option<BlockHash> {
@@ -46,7 +36,6 @@ impl ResolvedBlocksV1 {
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfoV1>> {
         let (begin, end, lengths) = self.blocks.range();
         let build = query.capture_blocks_v1_range(begin, end, lengths, Some(self.prices))?;
-        drop(self._publication);
         drop(self.blocks);
         build()
     }
@@ -59,13 +48,7 @@ impl Query {
         start_height: Option<Height>,
         count: u32,
     ) -> Result<Option<ResolvedBlocksV1>> {
-        let Some(publication) = self.try_read_publication() else {
-            return Ok(None);
-        };
-        let Some(blocks) = self.try_resolve_blocks(start_height, count)? else {
-            return Ok(None);
-        };
-        self.try_block_prices(blocks, publication)
+        self.try_block_prices(self.resolve_blocks(start_height, count)?)
     }
 
     /// Validate a caller's height hint without performing a hash-store lookup.
@@ -74,20 +57,13 @@ impl Query {
         hash: &BlockHash,
         height_hint: Height,
     ) -> Result<Option<ResolvedBlocksV1>> {
-        let Some(publication) = self.try_read_publication() else {
-            return Ok(None);
-        };
         let Some(blocks) = self.try_resolve_block_snapshot(hash, height_hint)? else {
             return Ok(None);
         };
-        self.try_block_prices(blocks, publication)
+        self.try_block_prices(blocks)
     }
 
-    fn try_block_prices(
-        &self,
-        blocks: ResolvedBlocks,
-        publication: PublicationReadGuard,
-    ) -> Result<Option<ResolvedBlocksV1>> {
+    fn try_block_prices(&self, blocks: ResolvedBlocks) -> Result<Option<ResolvedBlocksV1>> {
         let (begin, end, _) = blocks.range();
         let prices =
             if begin == end {
@@ -103,7 +79,7 @@ impl Query {
                 }
                 prices.into_iter().map(Dollars::from).collect()
             };
-        ResolvedBlocksV1::new(blocks, prices, publication).map(Some)
+        ResolvedBlocksV1::new(blocks, prices).map(Some)
     }
 
     /// Resolve on a worker without materializing or retaining the price history.
@@ -112,23 +88,17 @@ impl Query {
         start_height: Option<Height>,
         count: u32,
     ) -> Result<ResolvedBlocksV1> {
-        let publication = self.read_publication()?;
         let blocks = self.resolve_blocks(start_height, count)?;
-        self.block_prices(blocks, publication)
+        self.block_prices(blocks)
     }
 
-    /// Resolve the exact canonical hash on a worker under one publication guard.
+    /// Resolve the exact canonical hash on a worker.
     pub fn resolve_block_v1(&self, hash: &BlockHash) -> Result<ResolvedBlocksV1> {
-        let publication = self.read_publication()?;
         let blocks = self.resolve_block_snapshot(hash)?;
-        self.block_prices(blocks, publication)
+        self.block_prices(blocks)
     }
 
-    fn block_prices(
-        &self,
-        blocks: ResolvedBlocks,
-        publication: PublicationReadGuard,
-    ) -> Result<ResolvedBlocksV1> {
+    fn block_prices(&self, blocks: ResolvedBlocks) -> Result<ResolvedBlocksV1> {
         let (begin, end, _) = blocks.range();
         let mut prices = Vec::with_capacity(end - begin);
         self.plugins()
@@ -137,7 +107,7 @@ impl Query {
             .cents
             .height
             .for_each_range_dyn_at(begin, end, &mut |cents| prices.push(Dollars::from(cents)));
-        ResolvedBlocksV1::new(blocks, prices, publication)
+        ResolvedBlocksV1::new(blocks, prices)
     }
 }
 
@@ -149,7 +119,6 @@ impl ResolvedBlocks {
         query: &Query,
         heights: &[Height],
         prices: &[Dollars],
-        publication: PublicationReadGuard,
     ) -> Result<Vec<BlockInfoV1>> {
         let (_, _, lengths) = self.range();
         if heights.len() != prices.len()
@@ -175,7 +144,6 @@ impl ResolvedBlocks {
             )?);
             begin = end;
         }
-        drop(publication);
         drop(self);
         let mut blocks = Vec::with_capacity(heights.len());
         for build in builders {

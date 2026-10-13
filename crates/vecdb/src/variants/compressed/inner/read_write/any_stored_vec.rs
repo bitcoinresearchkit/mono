@@ -124,7 +124,7 @@ where
             let pushed_len = this.base.pushed().len();
 
             let (truncate_at, starting_page_index, partial_page) = {
-                let pages = this.pages.read();
+                let pages = this.pages.read_recursive();
 
                 let real_stored_len = pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T);
                 if stored_len > real_stored_len {
@@ -186,17 +186,10 @@ where
                     .bytes
                     .checked_add(u32::try_from(raw.len()).map_err(|_| Error::Overflow)?)
                     .ok_or(Error::Overflow)?;
-                let page_count = starting_page_index + 1;
-                this.publish(
-                    append_at,
-                    &raw,
-                    stored_len + pushed_len,
-                    page_count,
-                    |pages| {
-                        pages.truncate(starting_page_index);
-                        pages.push_raw(starting_page_index, total_bytes)
-                    },
-                )?;
+                this.publish(append_at, &raw, stored_len + pushed_len, |pages| {
+                    pages.truncate(starting_page_index);
+                    pages.push_raw(starting_page_index, total_bytes)
+                })?;
                 if let Some(cache) = C::cache(&this.cache) {
                     cache.extend_tail(stored_len, &taken);
                 }
@@ -222,12 +215,10 @@ where
 
             let (buf, page_layouts) = this.encode_pages(&values, starting_page_index)?;
 
-            let page_count = starting_page_index + page_layouts.len();
             this.publish(
                 truncate_at as usize,
                 &buf,
                 stored_len + pushed_len,
-                page_count,
                 |pages| {
                     pages.truncate(starting_page_index);
                     for (offset, &(header_bytes, body_bytes, is_raw)) in

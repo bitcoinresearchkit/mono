@@ -62,6 +62,12 @@ pub(crate) fn write(
         Ok(bytes)
     }
 }
+/// The height a stored snapshot reaches, whatever its versions.
+pub(crate) fn stored_len(file: &File) -> Result<usize> {
+    let mut len = [0; 8];
+    file.read_exact_at(&mut len, 8)?;
+    usize::try_from(u64::from_le_bytes(len)).map_err(|_| invalid("snapshot length overflow"))
+}
 /// Opening a snapshot reads its identity; reconstruction reads its payload once.
 pub(crate) struct Snapshot {
     file: File,

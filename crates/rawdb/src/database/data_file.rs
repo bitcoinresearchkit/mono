@@ -9,8 +9,8 @@ use std::{
 #[cfg(unix)]
 use std::{io, os::unix::fs::FileExt};
 
-use memmap2::MmapRaw;
-use parking_lot::{RwLock, RwLockReadGuard};
+use memmap2::{MmapOptions, MmapRaw};
+use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 
 use crate::{Error, PAGE_SIZE, Result};
 
@@ -24,8 +24,13 @@ pub(crate) struct DataFile {
     /// cached copy; uncached reads see unflushed writes through the mapping.
     #[cfg(target_os = "macos")]
     uncached: File,
+    /// Maps the file's reserved address space, so growing the file inside it needs no remap.
     mmap: RwLock<MmapRaw>,
+    /// Length of `mmap`, the file's reserved address space.
+    mapped: AtomicUsize,
     len: AtomicUsize,
+    /// Serializes growth.
+    grow: Mutex<()>,
 }
 
 impl DataFile {
@@ -34,7 +39,8 @@ impl DataFile {
         let len = usize::try_from(file.metadata()?.len()).map_err(|_| Error::FileSizeOverflow {
             requested: usize::MAX,
         })?;
-        let mmap = MmapRaw::map_raw(&file)?;
+        let mapped = Self::reservation(len);
+        let mmap = MmapOptions::new().len(mapped).map_raw(&file)?;
         #[cfg(target_os = "macos")]
         let uncached = {
             let uncached = File::options().read(true).write(true).open(path)?;
@@ -47,8 +53,18 @@ impl DataFile {
             #[cfg(target_os = "macos")]
             uncached,
             mmap: RwLock::new(mmap),
+            mapped: AtomicUsize::new(mapped),
             len: AtomicUsize::new(len),
+            grow: Mutex::default(),
         })
+    }
+
+    /// Address space reserved for a file of `len` bytes: four times its length, at least 1 TiB.
+    /// Pages past the file's end are mapped but never touched until the file grows over them.
+    fn reservation(len: usize) -> usize {
+        len.saturating_mul(4)
+            .max(1 << 40)
+            .next_multiple_of(PAGE_SIZE)
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -60,11 +76,31 @@ impl DataFile {
         self.mmap.read_recursive()
     }
 
+    /// Grows the file to at least `len` bytes. Inside the reserved mapping this only extends the
+    /// file, so it never waits for readers: a writer may grow while holding locks readers wait on.
+    /// Only outgrowing the reservation remaps, which waits for every reader.
     pub(crate) fn ensure_len(&self, len: usize, writes: &RwLock<()>) -> Result<()> {
         let len = Self::aligned_len(len)?;
         if self.len() >= len {
             return Ok(());
         }
+        let _grow = self.grow.lock();
+        let current_len = self.len();
+        if current_len >= len {
+            return Ok(());
+        }
+        let target_len =
+            Self::aligned_len(len.max(current_len.saturating_mul(2)).max(1024 * 1024))?;
+        let mapped = self.mapped.load(Ordering::Relaxed);
+        if len <= mapped {
+            let target_len = target_len.min(mapped);
+            self.file.set_len(target_len as u64)?;
+            self.len.store(target_len, Ordering::Relaxed);
+            return Ok(());
+        }
+        // Past the reservation (four times the file at open, at least 1 TiB): the remap waits for
+        // every reader of the mapping, so a writer holding a region or page lock that reader wants
+        // could deadlock. Unreachable while each run's growth stays within the reservation.
         let (mut mmap, _writes) = loop {
             let mmap = self.mmap.write();
             if let Some(writes) = writes.try_write() {
@@ -75,15 +111,11 @@ impl DataFile {
             drop(mmap);
             drop(writes.write());
         };
-        let current_len = self.len();
-        if current_len >= len {
-            return Ok(());
-        }
-        let target_len =
-            Self::aligned_len(len.max(current_len.saturating_mul(2)).max(1024 * 1024))?;
         self.file.set_len(target_len as u64)?;
-        *mmap = MmapRaw::map_raw(&self.file)?;
+        let mapped = Self::reservation(target_len);
+        *mmap = MmapOptions::new().len(mapped).map_raw(&self.file)?;
         // A failed remap leaves the old capacity usable; a later growth retries.
+        self.mapped.store(mapped, Ordering::Relaxed);
         self.len.store(target_len, Ordering::Relaxed);
         Ok(())
     }

@@ -11,8 +11,9 @@ pub struct HistoricalPriceCache {
 }
 
 impl HistoricalPriceCache {
-    /// The caller must validate sources and hold publication exclusion throughout.
-    /// Point responses bypass this cache rather than evicting the full history.
+    /// `build` reads the publication `revision` names (the caller's pin). A request still on an
+    /// older publication never replaces a newer entry. Point responses bypass this cache rather
+    /// than evicting the full history.
     pub fn get_or_try_init(
         &self,
         revision: u64,
@@ -26,7 +27,12 @@ impl HistoricalPriceCache {
         }
         let bytes = Bytes::from(to_vec(&build()?)?);
         let identity = RepresentationId::content(&bytes);
-        *current = Some((revision, bytes.clone(), identity));
+        if current
+            .as_ref()
+            .is_none_or(|(cached_revision, ..)| revision > *cached_revision)
+        {
+            *current = Some((revision, bytes.clone(), identity));
+        }
         Ok((bytes, identity))
     }
 }

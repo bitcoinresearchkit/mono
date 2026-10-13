@@ -6,7 +6,7 @@ use vecdb::ReadableVec;
 
 use crate::{Error, OptionData, Query, Result};
 
-/// Caller retains publication exclusion across metadata selection and reading.
+/// Caller retains its pin across metadata selection and reading.
 pub fn read_at(query: &Query, index: TxIndex, safe: Lengths) -> Result<(Vec<u8>, Transaction)> {
     if index >= safe.tx_index {
         return Err(Error::UnknownTxid);

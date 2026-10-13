@@ -6,7 +6,7 @@ use bitview_types::{
     PoolStats, PoolsSummary, TimePeriod,
 };
 use brk_types::Height;
-use vecdb::{AnyVec, ReadableVec, VecIndex};
+use vecdb::{ReadableVec, VecIndex};
 
 use super::start_height;
 use crate::{Error, OptionData, Query, Result};
@@ -38,11 +38,13 @@ impl Query {
     /// timestamp-based lookback vecs (`_24h`, `_3d`, ...) rather than
     /// block-count math; `TimePeriod::All` walks from genesis.
     pub fn mining_pools(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
         let plugins = self.plugins();
-        let current_height = self.height();
+        let current_height = tip;
 
-        if plugins.pools.pool.len() == 0 {
+        if pin.lengths().height.is_zero() {
             return Ok(PoolsSummary {
                 pools: vec![],
                 block_count: 0,
@@ -52,7 +54,7 @@ impl Query {
             });
         }
 
-        let start = start_height(self, time_period)?.to_usize();
+        let start = start_height(self, time_period, tip)?.to_usize();
         let lookback = &plugins.blocks.lookback;
 
         let pools = pools();
@@ -85,7 +87,7 @@ impl Query {
             self.hashrate_at(lookback._3d.collect_one(current_height).data()?)?;
         let last_estimated_hashrate1w =
             self.hashrate_at(lookback._1w.collect_one(current_height).data()?)?;
-        drop(_guard);
+        drop(pin);
 
         pool_data.sort_by_key(|p| Reverse(p.1));
 
@@ -124,9 +126,11 @@ impl Query {
     /// `estimated_hashrate`. `total_reward` is the coinbase value of every block
     /// the pool mined.
     pub fn pool_detail(&self, slug: PoolSlug) -> Result<PoolDetail> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
         let plugins = self.plugins();
-        let current_height = self.height();
+        let current_height = tip;
         let end = current_height.to_usize();
 
         let pools_list = pools();
@@ -193,11 +197,13 @@ impl Query {
     /// where the share is the pool's last-7-days block count divided by the
     /// network's last-7-days block count.
     pub fn pool_hashrate(&self, slug: PoolSlug) -> Result<Vec<PoolHashrateEntry>> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
         let pool_name = pools().get(slug).name;
-        let shared = self.hashrate_shared_data(0)?;
+        let shared = self.hashrate_shared_data(0, tip)?;
         let pool_cum = self.pool_daily_cumulative(slug, shared.load_day, shared.end_day)?;
-        drop(_guard);
+        drop(pin);
         Ok(Self::hashrate_entries(&shared, &pool_cum, pool_name).collect())
     }
 
@@ -211,13 +217,15 @@ impl Query {
         &self,
         time_period: Option<TimePeriod>,
     ) -> Result<Vec<PoolHashrateEntry>> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
         let start_height = match time_period {
-            Some(tp) => start_height(self, tp)?.to_usize(),
+            Some(tp) => start_height(self, tp, tip)?.to_usize(),
             None => 0,
         };
 
-        let shared = self.hashrate_shared_data(start_height)?;
+        let shared = self.hashrate_shared_data(start_height, tip)?;
         let pools_list = pools();
         let mut entries = Vec::new();
 
@@ -235,9 +243,9 @@ impl Query {
     /// day index of `start_height` minus the share lookback and `end_day` is
     /// the day index of the current tip plus one (exclusive). Reused across
     /// pools so the network series is read only once per request.
-    fn hashrate_shared_data(&self, start_height: usize) -> Result<HashrateSharedData> {
+    fn hashrate_shared_data(&self, start_height: usize, tip: Height) -> Result<HashrateSharedData> {
         let plugins = self.plugins();
-        let current_height = self.height();
+        let current_height = tip;
         let start_day = plugins
             .mappings
             .height

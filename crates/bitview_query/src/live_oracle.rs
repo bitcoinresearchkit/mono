@@ -17,8 +17,9 @@ struct Entry {
 }
 
 impl LiveOracle {
-    /// Call under the pipeline publication guard. Holding the cache lock during
-    /// the rebuild prevents concurrent requests replaying the same window.
+    /// `rebuild` reads the publication `revision` names (the caller's pin); a request still on an
+    /// older publication never replaces a newer entry. Holding the cache lock during the rebuild
+    /// prevents concurrent requests replaying the same window.
     pub fn get_or_try_init(
         &self,
         tip: BlockHash,
@@ -33,11 +34,16 @@ impl LiveOracle {
             return Ok(entry.oracle.clone());
         }
         let oracle = rebuild()?;
-        *current = Some(Entry {
-            tip,
-            revision,
-            oracle: oracle.clone(),
-        });
+        if current
+            .as_ref()
+            .is_none_or(|entry| revision > entry.revision)
+        {
+            *current = Some(Entry {
+                tip,
+                revision,
+                oracle: oracle.clone(),
+            });
+        }
         Ok(oracle)
     }
 }

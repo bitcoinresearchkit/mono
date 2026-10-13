@@ -15,15 +15,17 @@ impl Query {
         &self,
         time_period: Option<TimePeriod>,
     ) -> Result<Vec<DifficultyAdjustmentEntry>> {
-        let _guard = self.read_publication()?;
-        let end = self.height().to_usize();
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
+        let end = tip.to_usize();
         let start = match time_period {
-            Some(tp) => start_height(self, tp)?.to_usize(),
+            Some(tp) => start_height(self, tp, tip)?.to_usize(),
             None => 0,
         };
 
         let mut entries = iter_difficulty_epochs(self.plugins(), start, end)?;
-        drop(_guard);
+        drop(pin);
         entries.reverse();
         Ok(entries)
     }

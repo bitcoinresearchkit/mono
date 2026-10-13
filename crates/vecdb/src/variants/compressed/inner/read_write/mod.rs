@@ -121,7 +121,7 @@ where
                 "compressed values must fit in one page",
             ));
         }
-        if this.pages.read().last().is_some_and(|page| {
+        if this.pages.read_recursive().last().is_some_and(|page| {
             page.is_raw() && !(page.bytes as usize).is_multiple_of(Self::SIZE_OF_T)
         }) {
             return Err(Error::CorruptedRegion {
@@ -279,7 +279,11 @@ where
     }
     #[inline]
     pub fn prefers_mmap(region: &Region, pages: &RwLock<Pages>, from: usize, to: usize) -> bool {
-        let Some((offset, len)) = pages.read().stored_byte_range(from, to, Self::PER_PAGE) else {
+        let Some((offset, len)) =
+            pages
+                .read_recursive()
+                .stored_byte_range(from, to, Self::PER_PAGE)
+        else {
             return true;
         };
         region.prefers_mmap(offset, len)
@@ -295,23 +299,18 @@ where
     pub fn pages(&self) -> &Arc<RwLock<Pages>> {
         &self.pages
     }
-    /// Rewrites the region from `at` and publishes the matching page table (`page_count` pages)
-    /// and length with it. Readers take the pages before the region, so they pair old bytes with
-    /// the old layout or new bytes with the new. Both regions reserve their capacity first, so
-    /// the writes under the pages lock never grow the file (which waits for mmap readers).
+    /// Rewrites the region from `at` and publishes the matching page table and length with it.
+    /// Readers take the pages before the region, so they pair old bytes with the old layout or
+    /// new bytes with the new.
     fn publish(
         &mut self,
         at: usize,
         bytes: &[u8],
         stored_len: usize,
-        page_count: usize,
         update_pages: impl FnOnce(&mut Pages) -> CrateResult<()>,
     ) -> CrateResult<()> {
-        let region = self.base.region();
-        region.reserve_for(at + bytes.len())?;
-        self.pages.read().reserve_for(page_count)?;
         let mut pages = self.pages.write();
-        region.truncate_write(at, bytes)?;
+        self.base.region().truncate_write(at, bytes)?;
         update_pages(&mut pages)?;
         pages.flush()?;
         self.base.update_stored_len(stored_len);
@@ -326,7 +325,7 @@ where
         }
 
         // Pages before the region: the writer holds the pages while it rewrites the region.
-        let pages = self.pages.read();
+        let pages = self.pages.read_recursive();
         let reader = self.create_reader();
         let real_len = pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T);
         let to = to.min(real_len);

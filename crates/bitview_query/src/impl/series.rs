@@ -510,7 +510,7 @@ fn reserialize_json(mut bytes: Vec<u8>) -> Result<Vec<u8>> {
 /// existing entries independently of its append/reorg window.
 ///
 /// Raw vectors are not exposed outside the protected read view, and a bounded
-/// column cannot outlive the query that owns its publication guards.
+/// column cannot outlive the query that owns its pin.
 pub struct ResolvedQuery {
     read: SeriesRead,
     pub format: Format,

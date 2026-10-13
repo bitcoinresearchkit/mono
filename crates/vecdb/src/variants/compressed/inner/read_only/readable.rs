@@ -78,7 +78,7 @@ where
             from,
             to,
         ) {
-            let pages = self.pages.read();
+            let pages = self.pages.read_recursive();
             let reader = self.base.region().create_reader();
             ReadWriteCompressedVec::<I, T, S>::read_stored_pages_into(
                 &reader, &pages, from, to, buf,

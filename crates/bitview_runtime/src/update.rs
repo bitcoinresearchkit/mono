@@ -36,13 +36,13 @@ where
 {
     // A pending shutdown must not wait behind back-to-back updates.
     context.exit().park_if_shutting_down();
-    let publication = plugins.publication().clone();
-    publication.begin_update();
-
+    // Readers keep the last publication until `commit` swaps in this one; a failed update leaves it.
     let start = Instant::now();
     let (output, complete) = compute(plugins, context)?;
-    plugins.commit(complete)?;
-    publication.finish_update();
+    {
+        let _lock = context.exit().lock();
+        plugins.commit(complete)?;
+    }
     info!("Update completed in {:.2?}", start.elapsed());
     Ok(output)
 }

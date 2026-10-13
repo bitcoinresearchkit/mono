@@ -3,8 +3,7 @@
 The small compatibility contract shared by Bitview's built-in and external
 plugins.
 
-It provides stable plugin identity, root storage schema, and the shared pipeline
-publication barrier for query-visible mutable data. A plugin declares one `PluginStorage`, which is
+It provides stable plugin identity and root storage schema. A plugin declares one `PluginStorage`, which is
 the source of truth for its `PluginId`, root schema version, `plugins/<id>`
 directory, database opening, and database finalization. The directory may be
 empty for an in-memory plugin. Component versions remain local and additive
@@ -67,31 +66,24 @@ external plugin.
 
 ## Pipeline publication
 
-Plugins do not own individual locks. `ComputePluginSet::publication` exposes one
-`Publication` shared with query readers. The runtime closes it before computing
-and reopens it only after the complete composition commits. Failures leave it
-closed so partially updated mutable data cannot escape. Each successful update
-advances a process-local revision, even when the chain tip is unchanged.
+Plugins do not own locks readers wait on. The indexer publishes the lengths every
+plugin has computed to, with their tip and a revision, when the composition
+commits (`ComputePluginSet::commit`); readers pin that publication (`Indexer::pin`,
+which never waits) and read below it, so a plugin appends past it freely and a
+failed update leaves the last publication published.
 
-`bitview::run` refuses to serve when a composition's `publication()` is not its
-indexer's gate (`Query::reads_under`), the one queries wait on.
+Data rewritten in place must stay coherent with the pin on its own: mask values a
+later publication wrote (the outputs spend index), write it with the publication
+under a lock its readers take before pinning (address state), or replace it by
+rename (UTXO set snapshots). A plugin about to rewrite rows below the published
+lengths first lowers the publication to where its rollback lands
+(`Indexer::lower_publication_to`), which waits for the pins of later publications.
 
-Lock order: Publication write (the whole update), then `exit.lock()` (held
-around rollback and each save), then the indexer's `reorg` write (only while
-lowering safe bounds before a rollback). The Publication write lock spans
-lower-before, rollback, compute and commit. Bootstrap holds `exit.lock()` around
-every import (`ImportContext::exit`), so imports never wait on the node; no
-readers exist yet. A rollback's height persists as the indexer's rollback floor
-until a complete update commits (`ComputePluginSet::commit(complete)`), so
-dependents recompute from it after a soft quit. Mutable
-reads take the Publication read lock, then pin (`reorg` read); a reader already
-holding a pin may only `try_read` the Publication, never wait on it, because the
-writer may need that pin released.
-
-`PublicationReadGuard` retains one owned read lock without allocating a guard
-vector. Timed acquisition is synchronous and intended for blocking workers. The
-indexer keeps this publication barrier alongside its safe bounds and separate
-rollback pin; proven immutable-prefix reads need only that pin.
+Bootstrap holds `exit.lock()` around every import (`ImportContext::exit`), so
+imports never wait on the node; no readers exist yet. A rollback's height persists
+as the indexer's rollback floor until a complete update commits
+(`ComputePluginSet::commit(complete)`), so dependents recompute from it after a
+soft quit.
 
 ## License
 

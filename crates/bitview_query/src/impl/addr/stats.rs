@@ -4,23 +4,35 @@ use brk_types::{Address, CheckedSub, Dollars, OutputType, Sats};
 use vecdb::ReadableVec;
 
 use super::parse_addr;
+use crate::r#impl::mempool::anchored;
 use crate::{Error, OptionData, Query, Result};
 
 impl Query {
     pub fn addr(&self, addr: Address) -> Result<AddressStats> {
         let bytes = parse_addr(&addr)?;
-        let _guard = self.read_publication()?;
-        let found = self.find_addr_bytes(&bytes)?;
+        // The state is written with the published lengths under this lock: take it before the
+        // pin, so both are of one publication.
+        let stable = self.plugins().addresses.state.read_stable();
+        let pin = self.pin_safe_lengths()?;
+        // Only a rollback, a failed write or a long catch-up leaves it at another length.
+        if *stable != Some(pin.lengths().height) {
+            return Err(Error::StateUpdating);
+        }
+        let chain_stats = self
+            .find_addr_bytes(&bytes, pin.lengths())?
+            .map(|(output_type, type_index)| self.addr_chain_stats(output_type, type_index))
+            .transpose()?;
+        drop(stable);
         let mempool_stats = self
             .mempool()
-            .map(|m| m.addr_stats(&bytes, &self.tip_blockhash()))
+            .map(|m| anchored(m.addr_stats(&bytes, &pin.tip())))
             .transpose()?
             .unwrap_or_default();
-        let chain_stats = match found {
-            Some((output_type, type_index)) => self.addr_chain_stats(output_type, type_index)?,
+        let chain_stats = match chain_stats {
+            Some(stats) => stats,
             // Seen only in the mempool.
             None if mempool_stats.tx_count > 0 => AddressChainStats::default(),
-            None => return Err(self.missing_addr()),
+            None => return Err(Error::UnknownAddress),
         };
         let balance = pending_balance(
             chain_stats.balance,

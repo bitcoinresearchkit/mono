@@ -82,6 +82,8 @@ impl TxRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
                     let rbf = state.read_admitted(move |q| q.resolve_rbf(&param.txid)).await?;
                     let strategy = rbf.identity().map(|identity| AppState::representation_strategy(Version::ONE, identity));
+                    // Release the pin before queueing for the second read.
+                    drop(rbf);
                     if let Some(strategy) = strategy {
                         return Ok(state.respond_json_value(&headers, strategy, RbfResponse::EMPTY));
                     }

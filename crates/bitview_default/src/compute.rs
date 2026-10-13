@@ -1,6 +1,6 @@
 use std::thread;
 
-use bitview_plugin::{ComputePlugin, Publication, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_addresses::{Dependencies as AddressesDependencies, ID as ADDRESSES_ID};
 use bitview_plugin_age::{Dependencies as AgeDependencies, ID as AGE_ID};
 use bitview_plugin_bedrock::{Dependencies as BedrockDependencies, ID as BEDROCK_ID};
@@ -398,10 +398,6 @@ impl DefaultPlugins {
 }
 
 impl ComputePluginSet for DefaultPlugins {
-    fn publication(&self) -> &Publication {
-        self.indexer.publication()
-    }
-
     fn bootstrap_compute(&mut self, context: UpdateContext<'_>) -> Result<BootstrapAction> {
         let blocks_behind = if cfg!(debug_assertions) {
             0
@@ -427,6 +423,12 @@ impl ComputePluginSet for DefaultPlugins {
     }
 
     fn commit(&mut self, complete: bool) -> Result<()> {
-        self.indexer.commit(complete)
+        let lengths = self.indexer.prepare_commit()?;
+        // Address state changes in place: it is written with the lengths, under the lock its
+        // readers take before they pin, so they read the state of the publication they pin.
+        let stable = self.addresses.state.stable();
+        let mut written = stable.write();
+        self.addresses.publish_state(&mut written)?;
+        self.indexer.publish(lengths, complete)
     }
 }

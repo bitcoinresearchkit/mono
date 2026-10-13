@@ -1,11 +1,13 @@
-use bitview_plugin::PublicationReadGuard;
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::Utxo;
 use brk_mempool::PendingUtxos;
-use brk_types::{Address, AddressBytes, BlockHash, Height, Sats, TxIndex, TxStatus, Txid, Vout};
+use brk_types::{Address, BlockHash, Height, Sats, TxIndex, TxStatus, Txid, Vout};
 
-use crate::{Error, OptionData, Query, Result, r#impl::addr::parse_addr};
+use crate::{
+    Error, OptionData, Query, Result,
+    r#impl::{addr::parse_addr, mempool::anchored},
+};
 
 /// An owned UTXO selection retaining only rollback protection until consumed.
 pub struct ResolvedAddrUtxos {
@@ -28,24 +30,14 @@ impl Query {
         addr: &Address,
         max_utxos: usize,
     ) -> Result<ResolvedAddrUtxos> {
-        let addr = parse_addr(addr)?;
-        let guard = self.read_publication()?;
-        self.resolve_addr_utxos_guarded(&addr, guard, max_utxos)
-    }
-
-    fn resolve_addr_utxos_guarded(
-        &self,
-        addr: &AddressBytes,
-        guard: PublicationReadGuard,
-        max_utxos: usize,
-    ) -> Result<ResolvedAddrUtxos> {
-        let found = self.find_addr_bytes(addr)?;
+        let addr = &parse_addr(addr)?;
         let pin = self.pin_safe_lengths()?;
         let lengths = pin.lengths();
-        let tip = self.tip_blockhash_at(&pin)?;
+        let found = self.find_addr_bytes(addr, lengths)?;
+        let tip = pin.tip();
         let pending = self
             .mempool()
-            .map(|mempool| mempool.addr_pending_utxos(addr, &tip))
+            .map(|mempool| anchored(mempool.addr_pending_utxos(addr, &tip)))
             .transpose()?
             .unwrap_or_default();
         let (outpoints, anchor) = match found {
@@ -69,12 +61,11 @@ impl Query {
             }
             // Seen only in the mempool.
             None if !pending.created.is_empty() || !pending.spent.is_empty() => (Vec::new(), tip),
-            None => return Err(self.missing_addr()),
+            None => return Err(Error::UnknownAddress),
         };
         if outpoints.len() + pending.created.len() > max_utxos + pending.spent.len() {
             return Err(Error::TooManyUtxos { max: max_utxos });
         }
-        drop(guard);
         Ok(ResolvedAddrUtxos {
             pin,
             outpoints,

@@ -274,7 +274,7 @@ async fn serve_txs(state: AppState, headers: HeaderMap, addr: Address) -> Result
 }
 
 /// Validate policy and select the representation in one admitted worker. Do not
-/// carry a publication guard across a second admission wait.
+/// carry a pin across a second admission wait.
 async fn serve_utxos(state: AppState, headers: HeaderMap, addr: Address) -> Result<Response> {
     let max_utxos = state.max_utxos;
     Ok(state

@@ -18,10 +18,7 @@ impl ResolvedRawTransaction {
 impl Query {
     /// Resolve raw transaction data once before an async response handoff.
     pub fn resolve_raw_transaction(&self, txid: &Txid) -> Result<ResolvedRawTransaction> {
-        let source = match self
-            .resolve_transaction_source(txid)
-            .map_err(|error| self.transaction_error(error))?
-        {
+        let source = match self.resolve_transaction_source(txid)? {
             TransactionSource::Memory(transaction) => {
                 ResolvedTxBody::memory(transaction.encode_bytes())
             }
@@ -36,9 +33,7 @@ impl Query {
             ResolvedTxBody::Memory { bytes, .. } => Ok(bytes),
             ResolvedTxBody::Chain(transaction) => {
                 let read = self.read_indexer()?;
-                let (_, index, _) = read
-                    .revalidate_confirmed_tx(transaction)
-                    .map_err(|error| self.transaction_error(error))?;
+                let (_, index, _) = read.revalidate_confirmed_tx(transaction)?;
                 self.transaction_raw_by_index(index, read.pin())
             }
         }

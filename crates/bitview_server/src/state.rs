@@ -278,17 +278,7 @@ impl AppState {
     where
         F: FnOnce(&Query) -> Result<(Vec<u8>, RepresentationId)> + Send + 'static,
     {
-        let outcome = self
-            .read_admitted(move |query| {
-                let initial_tip = query.tip_hash_prefix();
-                let (bytes, identity) = f(query)?;
-                let current_tip = query.tip_hash_prefix();
-                if matches!(identity, RepresentationId::Block(_)) && initial_tip != current_tip {
-                    return Err(QueryError::StateUpdating);
-                }
-                Ok((bytes, identity))
-            })
-            .await;
+        let outcome = self.read_admitted(f).await;
 
         match outcome {
             Ok((bytes, identity)) => self.respond_immediate(

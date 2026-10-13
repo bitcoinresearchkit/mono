@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use bitview_query::AsyncQuery;
+use bitview_query::{AsyncQuery, Query};
 use bitview_server::{Server, ServerConfig};
 use brk_exit::Exit;
 use brk_logger::init;
@@ -95,21 +95,14 @@ where
 
     let query = AsyncQuery::build(&plugins, Some(mempool.read_only_clone()));
 
-    // Updates close the plugin set's gate and reads wait on the indexer's: they must be one gate,
-    // or queries would read state while it is being rewritten.
-    if !query.sync(|q| q.reads_under(plugins.publication())) {
-        return Err(Error::Internal(
-            "the plugin set's publication is not its indexer's; queries would read unpublished state",
-        ));
-    }
-
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;
     let server_handle = runtime.spawn(server.serve());
 
     let resolver = query.sync(|q| q.indexer_prevout_resolver());
+    let chain = query.sync(Query::clone);
     thread::spawn(move || {
-        mempool.start_with(resolver);
+        mempool.start_with(resolver, || chain.tip_blockhash());
     });
 
     info!("Waiting for new blocks...");
@@ -124,7 +117,6 @@ where
             sleep(Duration::from_secs(1));
         }
 
-        // Wait with the publication gate open: queries keep reading the last published state.
         client.wait_for_synced_node()?;
 
         info!("Chain tip changed; updating...");

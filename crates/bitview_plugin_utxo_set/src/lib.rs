@@ -52,7 +52,7 @@ impl Vecs {
 }
 
 impl<M: StorageMode> Vecs<M> {
-    /// Open published history while the caller holds the pipeline publication guard.
+    /// Open the published history; snapshot writes never change what the view reads.
     pub fn view(&self) -> Result<View> {
         Ok(View::open(
             self.db.path(),

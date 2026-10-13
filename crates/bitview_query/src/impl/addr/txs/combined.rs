@@ -4,7 +4,10 @@ use bitview_plugin_indexer::SafeLengths;
 use brk_types::{Address, BlockHash, Transaction};
 
 use super::ResolvedAddrChainTxs;
-use crate::{Query, Result, r#impl::addr::parse_addr};
+use crate::{
+    Error, Query, Result,
+    r#impl::{addr::parse_addr, mempool::anchored},
+};
 
 /// One address page with frozen mempool bodies and a guarded confirmed selection.
 pub struct ResolvedAddrTxs {
@@ -38,15 +41,15 @@ impl Query {
     ) -> Result<ResolvedAddrTxs> {
         let addr = parse_addr(addr)?;
         let guard = self.pin_safe_lengths()?;
-        let chain_addr = self.find_addr_bytes(&addr)?;
-        let tip = self.tip_blockhash_at(&guard)?;
+        let chain_addr = self.find_addr_bytes(&addr, guard.lengths())?;
+        let tip = guard.tip();
         let mempool = self
             .mempool()
-            .map(|mempool| mempool.addr_txs(&addr, mempool_limit, &tip))
+            .map(|mempool| anchored(mempool.addr_txs(&addr, mempool_limit, &tip)))
             .transpose()?
             .unwrap_or_default();
         if chain_addr.is_none() && mempool.is_empty() {
-            return Err(self.missing_addr());
+            return Err(Error::UnknownAddress);
         }
         let chain_limit = total_target.saturating_sub(mempool.len()).max(chain_floor);
         let chain = chain_addr

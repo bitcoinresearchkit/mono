@@ -37,8 +37,6 @@ impl Query {
     /// entry point is deliberately unavailable.
     ///
     pub fn resolve_confirmed_tx(&self, txid: &Txid) -> Result<ResolvedConfirmedTx> {
-        self.read_indexer()?
-            .resolve_confirmed_tx(txid)
-            .map_err(|error| self.transaction_error(error))
+        self.read_indexer()?.resolve_confirmed_tx(txid)
     }
 }

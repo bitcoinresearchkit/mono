@@ -62,16 +62,24 @@ let result = async_query.read(move |q| q.resolve_block_hash(height)).await;
 ```
 
 `with_deadline(Instant)` creates a cheap request-local query view sharing the
-same data. Publication and prefix-lock waits use its remaining budget, and
-expired blocking jobs return `ReadTimeout` before invoking their closure. The
-server supplies one HTTP deadline; standalone async reads have a four-second
-total budget. Synchronous reads retain a four-second per-wait limit.
+same data. Admission waits use its remaining budget, and expired blocking jobs
+return `ReadTimeout` before invoking their closure. The server supplies one HTTP
+deadline; standalone async reads have a four-second total budget.
+
+Every read pins the published state once (`SafeLengths`: the lengths every plugin
+has computed to, the tip, a revision) and reads below it. Pinning never waits and
+an update never waits for readers: it appends past the pin and publishes by
+swapping the pin's source; only a rollback waits for the pins taken before it.
+Data rewritten in place is read consistently with the pin: the spend index masks
+spends past it, address state is written with the publication under a short
+lock its readers take before pinning, and UTXO set snapshots are replaced by
+rename. The mempool publishes only at the published tip; a chain-first lookup
+also reads a pool still at the pin's parent for the moment after a block
+publishes, while address views use the confirmed state alone then.
 
 `read` and `read_with_admission` execute the query closure once on a blocking
-worker. Mutable reads wait for the shared pipeline publication guard within the
-remaining deadline; incompatible chain/mempool snapshots return `StateUpdating`
-immediately. Resolve snapshots inside the closure. `run` remains appropriate for
-actions and already-prepared immutable work. Running work keeps its guards and
+worker. Resolve snapshots inside the closure. `run` remains appropriate for
+actions and already-prepared immutable work. Running work keeps its pin and
 admission until it finishes, even after HTTP cancellation. No publication
 notifications or async runtime are required by the synchronous data layer.
 

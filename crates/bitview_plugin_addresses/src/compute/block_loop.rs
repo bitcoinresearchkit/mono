@@ -50,6 +50,11 @@ struct TypeBlock {
 /// 32M takes 552 s and 9.8 GiB, 16M 632 s and 7.2 GiB.
 const MAX_CACHED_ADDRS: usize = 24_000_000;
 
+/// The most blocks whose address state an update keeps staged until its publication: a few
+/// blocks' changes are small, while a catch-up's would sit in memory beside the heaviest plugins
+/// (address stats answer 503 until such an update publishes).
+const PUBLISHED_STATE_BLOCKS: usize = 10;
+
 /// Process `blocks` until the address cache is full, flush, and return the next height.
 #[allow(clippy::too_many_arguments)]
 pub fn process_chunk(
@@ -337,9 +342,11 @@ pub fn process_chunk(
     let last_height = Height::from(next - 1);
     let _lock = exit.lock();
     cache.flush_into(&mut vecs.state)?;
+    let finished = last_chunk && next == end_usize;
+    let publish_state = finished && next - start_usize <= PUBLISHED_STATE_BLOCKS;
     // Every write of the range nearest the tip keeps its changes, so a reorg can roll back across early flushes.
-    write(vecs, addr_states, last_height, last_chunk)?;
-    if !(last_chunk && next == end_usize) {
+    write(vecs, addr_states, last_height, last_chunk, publish_state)?;
+    if !finished {
         vecs.flush()?;
     }
 

@@ -5,7 +5,6 @@ use std::{
 };
 
 use bitview_catalog::TreeNode;
-use bitview_plugin::Plugin;
 use bitview_primitives::Index;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
@@ -83,7 +82,7 @@ impl<'a> Vecs<'a> {
         let mut descriptions = Vec::new();
         plugins.for_each_plugin(&mut |plugin| {
             let db = plugin.id().as_str();
-            plugin.for_each_visible(&mut |vec| builder.push(plugin, vec, db));
+            plugin.for_each_visible(&mut |vec| builder.push(vec, db));
             let mut plugin_descriptions = BTreeMap::new();
             plugin.collect_descriptions(&mut plugin_descriptions);
             descriptions.push((db, plugin_descriptions));
@@ -351,23 +350,17 @@ struct Resolution<'a> {
 }
 
 struct Registration<'a> {
-    plugin: &'a dyn Plugin,
     db: &'a str,
     vec: &'a dyn AnyExportableVec,
     index: Index,
 }
 
 impl<'a> Builder<'a> {
-    fn push(&mut self, plugin: &'a dyn Plugin, vec: &'a dyn AnyExportableVec, db: &'a str) {
+    fn push(&mut self, vec: &'a dyn AnyExportableVec, db: &'a str) {
         let serialized_index = vec.index_type_to_string();
         let index = Index::try_from(serialized_index)
             .unwrap_or_else(|_| panic!("Unknown index type: {serialized_index}"));
-        self.registrations.push(Registration {
-            plugin,
-            db,
-            vec,
-            index,
-        });
+        self.registrations.push(Registration { db, vec, index });
     }
 
     /// One id may span plugins through different indexes (a height series and its date
@@ -469,15 +462,10 @@ impl<'a> Builder<'a> {
     }
 
     fn insert(&mut self, registration: Registration<'a>) {
-        let Registration {
-            plugin,
-            db,
-            vec,
-            index,
-        } = registration;
+        let Registration { db, vec, index } = registration;
         let name = vec.name();
         let is_mutable = vec.is_mutable();
-        let entry = SeriesEntry::new(index, vec, plugin, is_mutable);
+        let entry = SeriesEntry::new(index, vec, is_mutable);
 
         let prev = self.by_series.entry(name).or_default().insert(entry);
         assert!(

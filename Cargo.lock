@@ -613,7 +613,6 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
- "parking_lot",
  "vecdb",
 ]
 
@@ -637,6 +636,7 @@ dependencies = [
  "brk_exit",
  "brk_types",
  "derive_more",
+ "parking_lot",
  "rayon",
  "rustc-hash",
  "smallvec",
@@ -848,7 +848,6 @@ dependencies = [
  "brk_reader",
  "brk_store",
  "brk_types",
- "parking_lot",
  "rayon",
  "rustc-hash",
  "schemars",
@@ -1231,7 +1230,6 @@ dependencies = [
  "bitcoin",
  "bitview_catalog",
  "bitview_cohort",
- "bitview_plugin",
  "bitview_plugin_addresses",
  "bitview_plugin_age",
  "bitview_plugin_blocks",

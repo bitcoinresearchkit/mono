@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use arc_swap::ArcSwap;
 use brk_rpc::Client;
+use brk_types::BlockHash;
 
 mod api;
 mod cycle;
@@ -39,6 +40,8 @@ pub struct Mempool {
     rebuilder: Rebuilder,
     read_only: ReadOnlyMempool,
     needs_recovery: bool,
+    /// The tip of an observation held back until the chain publishes that tip.
+    withheld: Option<BlockHash>,
 }
 
 impl Mempool {
@@ -51,6 +54,7 @@ impl Mempool {
                 current: Arc::new(ArcSwap::from_pointee(ReadOnlyState::default())),
             },
             needs_recovery: false,
+            withheld: None,
         }
     }
 

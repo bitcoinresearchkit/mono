@@ -17,7 +17,11 @@ use brk_types::{TxOut, Txid, TxidPrefix, Vin, Vout};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::warn;
 
-use crate::{cycle::CycleDiff, state::State, stores::TxStore};
+use crate::{
+    cycle::CycleDiff,
+    state::State,
+    stores::{TxGraveyard, TxStore},
+};
 
 /// Fill every unfilled prevout the cycle can resolve. Same-cycle
 /// in-mempool parents are filled directly. The remainder go through
@@ -26,7 +30,7 @@ pub fn fill<F>(state: &mut State, diff: &mut CycleDiff, resolver: F)
 where
     F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
 {
-    let (in_mempool, holes) = gather(&state.txs);
+    let (in_mempool, holes) = gather(&state.txs, &state.graveyard);
     let external = resolve_external(holes, resolver);
 
     if in_mempool.is_empty() && external.is_empty() {
@@ -80,10 +84,13 @@ pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Tx
 }
 
 /// Single pass over `txs.unresolved()`: bucket each hole into a
-/// same-cycle in-mempool fill (parent is live) or an external hole
-/// (parent is confirmed or unknown).
+/// same-cycle fill (parent is live, or just left the pool: a live child's
+/// vanished parent was mined) or an external hole (parent is confirmed or
+/// unknown). Children of a just-mined parent resolve before the chain
+/// publishes its block.
 fn gather(
     txs: &TxStore,
+    graveyard: &TxGraveyard,
 ) -> (
     Vec<(Txid, Vec<(Vin, TxOut)>)>,
     Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
@@ -101,8 +108,11 @@ fn gather(
                 continue;
             }
             let vin = Vin::from(i);
-            if let Some(parent) = txs.get(&txin.txid)
-                && let Some(out) = parent.output.get(usize::from(txin.vout))
+            if let Some(parent) = txs.get(&txin.txid).or_else(|| {
+                graveyard
+                    .get_vanished(&txin.txid)
+                    .map(|tomb| tomb.tx.as_ref())
+            }) && let Some(out) = parent.output.get(usize::from(txin.vout))
             {
                 tx_fills.push((vin, out.clone()));
             } else {

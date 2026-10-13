@@ -65,14 +65,14 @@ impl ResolvedBlocks {
         query.block_txs_at_height(self.anchor_height()?, start, count, &self.guard)
     }
 
-    /// Read the anchor's verified header while retaining publication exclusion.
+    /// Read the anchor's verified header while retaining the pin.
     /// Exact-hash callers resolve a single-row snapshot before using this.
     pub fn anchor_header_hex(self, query: &Query) -> Result<String> {
         let (height, hash) = self.anchor_pair()?;
         query.block_header_hex_at_height(height, &hash, &self.guard)
     }
 
-    /// Read the anchor's raw block while retaining publication exclusion.
+    /// Read the anchor's raw block while retaining the pin.
     pub fn anchor_raw(self, query: &Query) -> Result<Vec<u8>> {
         let (height, hash) = self.anchor_pair()?;
         query.block_raw_at_height(height, &hash, &self.guard)
@@ -98,33 +98,19 @@ impl Query {
         hash: &BlockHash,
         height_hint: Height,
     ) -> Result<Option<ResolvedBlocks>> {
-        let Some(blocks) = self.try_resolve_blocks(Some(height_hint), 1)? else {
-            return Ok(None);
-        };
+        let blocks = self.resolve_blocks(Some(height_hint), 1)?;
         if blocks.last_height() != Some(height_hint) || blocks.anchor() != Some(*hash) {
             return Ok(None);
         }
         Ok(Some(blocks))
     }
 
-    /// Resolve an exact canonical hash and retain publication exclusion until
+    /// Resolve an exact canonical hash and retain the pin until
     /// the selected row is consumed. The prefix-store lookup may perform I/O.
     pub fn resolve_block_snapshot(&self, hash: &BlockHash) -> Result<ResolvedBlocks> {
         let guard = self.pin_safe_lengths()?;
         let height = self.height_by_hash_at(hash, &guard)?;
         self.blocks_snapshot(Some(height), 1, guard)
-    }
-
-    /// Returns `None` during publication; callers may retry on a blocking worker.
-    pub fn try_resolve_blocks(
-        &self,
-        start_height: Option<Height>,
-        count: u32,
-    ) -> Result<Option<ResolvedBlocks>> {
-        self.indexer()
-            .try_pin_safe_lengths()
-            .map(|guard| self.blocks_snapshot(start_height, count, guard))
-            .transpose()
     }
 
     pub fn resolve_blocks(

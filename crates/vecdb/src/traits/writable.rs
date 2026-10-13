@@ -1,8 +1,8 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf};
 
 use log::debug;
 
-use crate::{AnyStoredVec, Error, Result, Stamp, VecIndex, VecValue, Version, unlikely};
+use crate::{AnyStoredVec, Bytes, Error, Result, Stamp, VecIndex, VecValue, Version, unlikely};
 
 /// Maximum in-memory cache size before forcing a flush (1 GiB).
 /// Prevents unbounded memory growth when pushing many values without flushing.
@@ -57,6 +57,23 @@ where
     fn save_rollback_state(&mut self);
 
     /// Rolls back changes to before the given stamp.
+    /// The stamp [`Self::rollback_before`] lands at for `stamp`, without rolling back; `None`
+    /// when the saved changes do not reach below `stamp`.
+    fn rollback_landing(&self, stamp: Stamp) -> Result<Option<Stamp>> {
+        let files = self.find_rollback_files()?;
+        let mut current = self.stamp();
+        while current >= stamp {
+            let Some(path) = files.get(&current) else {
+                return Ok(None);
+            };
+            // A change file opens with the stamp its rollback restores.
+            let mut previous = [0; size_of::<u64>()];
+            File::open(path)?.read_exact(&mut previous)?;
+            current = Stamp::from_bytes(&previous)?;
+        }
+        Ok(Some(current))
+    }
+
     fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp> {
         self.header().check_writable()?;
         let files = self.find_rollback_files()?;

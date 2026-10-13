@@ -18,10 +18,7 @@ impl ResolvedTransaction {
 impl Query {
     /// Resolve transaction JSON once before an async response handoff.
     pub fn resolve_transaction(&self, txid: &Txid) -> Result<ResolvedTransaction> {
-        let source = match self
-            .resolve_transaction_source(txid)
-            .map_err(|error| self.transaction_error(error))?
-        {
+        let source = match self.resolve_transaction_source(txid)? {
             TransactionSource::Memory(transaction) => {
                 ResolvedTxBody::memory(to_vec(transaction.as_ref()).unwrap())
             }
@@ -36,9 +33,7 @@ impl Query {
             ResolvedTxBody::Memory { bytes, .. } => Ok(bytes),
             ResolvedTxBody::Chain(transaction) => {
                 let read = self.read_indexer()?;
-                let (_, index, _) = read
-                    .revalidate_confirmed_tx(transaction)
-                    .map_err(|error| self.transaction_error(error))?;
+                let (_, index, _) = read.revalidate_confirmed_tx(transaction)?;
                 let value = self.transaction_by_index(index, read.pin())?;
                 drop(read);
                 let bytes = to_vec(&value).unwrap();

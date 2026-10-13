@@ -7,7 +7,8 @@ pub struct Reader<'a> {
     pub(crate) spends: &'a Spends,
     pub(crate) creations: &'a Creations,
     pub(crate) end: usize,
-    pub(crate) latest: Option<Snapshot>,
+    /// Tip snapshots the producers carry, newest first.
+    pub(crate) tips: Vec<Snapshot>,
 }
 
 impl Reader<'_> {
@@ -39,7 +40,7 @@ impl Reader<'_> {
             return Err(invalid("height exceeds published origin history"));
         }
         self.history
-            .restore(end, self.spends, self.creations, self.latest.as_ref())
+            .restore(end, self.spends, self.creations, &self.tips)
     }
 
     pub fn cursor<'a>(&'a self, state: &'a mut State) -> Result<Cursor<'a>> {

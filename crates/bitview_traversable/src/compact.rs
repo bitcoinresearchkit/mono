@@ -23,13 +23,13 @@ where
 {
     pub fn new(stored: V) -> Self {
         let name = stored.name().to_string();
-        Self::named(stored, &name)
+        Self::named_with::<Widen>(stored, &name)
     }
 
-    /// Publishes the series under `name` rather than the storage name.
-    pub fn named(stored: V, name: &str) -> Self {
-        let view =
-            LazyVec::transformed::<Widen>(name, Version::ZERO, stored.read_only_boxed_clone());
+    /// Publishes the series under `name` rather than the storage name, converting each value
+    /// with `F`.
+    pub fn named_with<F: UnaryTransform<V::T, T>>(stored: V, name: &str) -> Self {
+        let view = LazyVec::transformed::<F>(name, Version::ZERO, stored.read_only_boxed_clone());
         Self { stored, view }
     }
 }

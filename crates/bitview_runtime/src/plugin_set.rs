@@ -1,4 +1,4 @@
-use bitview_plugin::{Plugin, Publication, UpdateContext};
+use bitview_plugin::{Plugin, UpdateContext};
 use brk_error::Result;
 
 /// Result of the initial full computation before Bitview starts serving reads.
@@ -28,9 +28,6 @@ pub trait PluginSet: Send + Sync {
 
 /// Writable plugin composition that participates in Bitview's update loop.
 pub trait ComputePluginSet: PluginSet {
-    /// Shared barrier for the complete pipeline's query-visible mutable state.
-    fn publication(&self) -> &Publication;
-
     /// Performs the complete initial computation before reads are published.
     fn bootstrap_compute(&mut self, context: UpdateContext<'_>) -> Result<BootstrapAction> {
         self.compute(context)?;

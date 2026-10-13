@@ -63,6 +63,7 @@ impl Vecs {
         let this = Self {
             db,
             live: None,
+            unpublished_state: None,
             caps,
             all,
             supply,

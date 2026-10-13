@@ -239,7 +239,7 @@ impl AppState {
                 },
             ))
         };
-        if let Some(hash) = self.preflight(|q| q.try_resolve_block_hash(height))? {
+        if let Some(hash) = self.preflight(|q| q.resolve_block_hash(height).map(Some))? {
             return Ok(respond(hash)?);
         }
         self.read_block_response(move |q| respond(q.resolve_block_hash(height)?))
@@ -392,7 +392,8 @@ impl AppState {
         start_height: Option<Height>,
     ) -> Result<Response, Error> {
         if headers.contains_key(header::IF_NONE_MATCH)
-            && let Some(snapshot) = self.preflight(|q| q.try_resolve_blocks(start_height, 10))?
+            && let Some(snapshot) =
+                self.preflight(|q| q.resolve_blocks(start_height, 10).map(Some))?
         {
             let params = recent_blocks_params(snapshot.anchor());
             if params.matches_etag(&headers) {
@@ -400,8 +401,8 @@ impl AppState {
             }
         }
 
-        // Do not retain a publication guard while queued for admission. Re-resolve
-        // after admission so a concurrent update cannot attach an old tag to new rows.
+        // Do not retain a pin while queued for admission. Re-resolve after admission
+        // so a concurrent update cannot attach an old tag to new rows.
         self.read_block_response(move |q| {
             let snapshot = q.resolve_blocks(start_height, 10)?;
             let params = recent_blocks_params(snapshot.anchor());

@@ -49,7 +49,7 @@ where
             .map(|range| {
                 let mut values = Vec::with_capacity(range.len());
                 if Self::prefers_mmap(region, pages, range.start, range.end) {
-                    let pages = pages.read();
+                    let pages = pages.read_recursive();
                     let reader = region.create_reader();
                     Self::read_stored_pages_into(
                         &reader,

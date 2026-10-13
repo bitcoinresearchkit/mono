@@ -1,6 +1,6 @@
 use bitview::QueryPluginSet;
 use bitview_default::DefaultPlugins;
-use bitview_plugin::{ComputePlugin, ImportContext, Publication, UpdateContext};
+use bitview_plugin::{ComputePlugin, ImportContext, UpdateContext};
 use bitview_plugin_indexer::HasIndexer;
 use bitview_runtime::{BootstrapAction, ComputePluginSet, PluginSet};
 use bitview_traversable::Traversable;
@@ -50,10 +50,6 @@ impl QueryPluginSet for Plugins<Ro> {
 }
 
 impl ComputePluginSet for Plugins {
-    fn publication(&self) -> &Publication {
-        self.defaults.publication()
-    }
-
     fn bootstrap_compute(&mut self, context: UpdateContext<'_>) -> Result<BootstrapAction> {
         self.defaults
             .bootstrap_compute(context)?

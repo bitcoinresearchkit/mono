@@ -66,7 +66,6 @@ brk_error = { workspace = true, features = ["jiff", "tokio", "vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 brk_mempool = { workspace = true }
 brk_oracle = { workspace = true, optional = true }
-bitview_plugin = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 bitview_traversable = { workspace = true }

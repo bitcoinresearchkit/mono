@@ -12,6 +12,16 @@ pub mod rbf;
 
 pub use rbf::ResolvedRbf;
 
+/// A mempool view added to confirmed data, or none while no pool is at this publication (starting
+/// up, a rollback, or the moment a block publishes before the mempool follows): the confirmed
+/// data answers alone meanwhile.
+pub(crate) fn anchored<T: Default>(view: brk_error::Result<T>) -> Result<T> {
+    match view {
+        Err(brk_error::Error::StateUpdating) => Ok(T::default()),
+        view => Ok(view?),
+    }
+}
+
 fn serialize_json<T: Serialize>(value: &T) -> (Vec<u8>, RepresentationId) {
     let bytes = to_vec(value).unwrap();
     let identity = RepresentationId::Content(RepresentationId::content_hash(&bytes));

@@ -11,11 +11,13 @@ impl Query {
     /// mean of coinbase rewards in sats, and the bucket-mean USD spot price
     /// (the spot price, not rewards-in-USD: clients multiply).
     pub fn block_rewards(&self, time_period: TimePeriod) -> Result<Vec<BlockRewardsEntry>> {
-        let _guard = self.read_publication()?;
-        let bw = BlockWindow::new(self, time_period)?;
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
+        let bw = BlockWindow::new(self, time_period, tip)?;
         let rewards: Vec<Sats> = bw.read(&self.plugins().mining.rewards.coinbase.block.sats)?;
         let prices: Vec<Cents> = bw.read(&self.plugins().price.spot.cents.height)?;
-        drop(_guard);
+        drop(pin);
 
         Ok(bw
             .buckets

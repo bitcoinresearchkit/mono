@@ -11,8 +11,10 @@ impl Query {
     /// average height/timestamp and the seven percentile means
     /// (`min, pct10, pct25, median, pct75, pct90, max`).
     pub fn block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
-        let _guard = self.read_publication()?;
-        let bw = BlockWindow::new(self, time_period)?;
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
+        let bw = BlockWindow::new(self, time_period, tip)?;
         let frd = &self
             .plugins()
             .transactions
@@ -30,7 +32,7 @@ impl Query {
         let pct75 = read(&frd.pct75.block.height)?;
         let pct90 = read(&frd.pct90.block.height)?;
         let max = read(&frd.max.block.height)?;
-        drop(_guard);
+        drop(pin);
 
         Ok(bw
             .buckets

@@ -17,10 +17,9 @@ impl AsyncQuery {
     pub fn read_deadline(&self) -> Instant {
         self.0
             .1
-            .unwrap_or_else(|| Instant::now() + Query::UPDATE_WAIT_TIMEOUT)
+            .unwrap_or_else(|| Instant::now() + Query::READ_TIMEOUT)
     }
-    /// Read on a blocking worker with deadline-bounded publication waits.
-    /// A chain/mempool mismatch returns immediately; actions use `run`.
+    /// Read on a blocking worker within the read deadline. Actions use `run`.
     pub async fn read<F, T>(&self, f: F) -> Result<T>
     where
         F: FnOnce(&Query) -> Result<T> + Send + 'static,

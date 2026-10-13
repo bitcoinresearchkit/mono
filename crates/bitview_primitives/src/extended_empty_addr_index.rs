@@ -85,21 +85,13 @@ impl VecdbCheckedSub for ExtendedEmptyAddressIndex {
     }
 }
 
-impl ExtendedEmptyAddressIndex {
-    pub(crate) fn index_name() -> &'static str {
-        "extended_empty_address_index"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["extendedemptyaddr", "extended_empty_address_index"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for ExtendedEmptyAddressIndex {
     fn to_string() -> &'static str {
-        Self::index_name()
+        "extended_empty_address_index"
     }
     fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
+        &["extendedemptyaddr", "extended_empty_address_index"]
     }
 }
 

@@ -436,9 +436,13 @@ has to be deleted by hand.
   `HasIndicators`, `HasOpReturn`, `HasRarityMeter`, `HasCapitalSentiment`, `HasMarket`, `HasDistributionUtxos` and
   `HasBedrock` (with `bitview_query`'s `SupportsBedrock`);
   `Indexer::indexed_height` is gone; `Lengths` comes only from `bitview_primitives`
-- `bitview::run` refuses to serve when a composition's `publication()` is not its indexer's gate
-  (`Publication::ptr_eq`, `Query::reads_under`); it returns `bitview::Result`, and `bitview` re-exports only what a
-  runner needs (`run`, `Config`, `RunConfig`, `bootstrap`, the contexts, `QueryPluginSet`)
+- The pipeline-wide `Publication` gate is gone (`bitview_plugin::Publication`, `ComputePluginSet::publication`,
+  `Query::reads_under`): readers pin the indexer's published state instead (`Indexer::pin`, which never waits;
+  `Indexer::pin_safe_lengths_for` and `try_pin_safe_lengths` are gone), and `SafeLengths` carries the published tip
+  and revision. `Indexer::commit` splits into `prepare_commit` and `publish` for compositions that publish in-place
+  state with the lengths; `bitview::run` returns `bitview::Result`, and `bitview` re-exports only what a runner needs
+  (`run`, `Config`, `RunConfig`, `bootstrap`, the contexts, `QueryPluginSet`)
+- `Mempool::start_with` takes the published tip (`|| query.tip_blockhash()`): pools are published at that tip only
 - Plugins may publish the same series id: compositions are open, so ids can collide. An id still spans plugins by
   index (a height series and its date resolutions); at the same index the first plugin in the composition's
   declaration order serves it; a later plugin with the same value type at every colliding index keeps its tree path
@@ -633,6 +637,8 @@ has to be deleted by hand.
 #### `vecdb` and `rawdb`
 
 - Added `Header::read_unverified` and `Header::{header_version, format, value_size}`, and `Database::region_ids`
+- Added `ReadBounds::enter` (a scope guard, `ReadScope`) and `visible_len`; `Compact::named_with` publishes a stored
+  vector through a custom transform
 
 #### `bitview_website`
 
@@ -740,11 +746,33 @@ has to be deleted by hand.
 
 #### API and node I/O
 
+- Reads no longer wait for an update or answer 503 while one runs (they timed out after 4 seconds): each request
+  reads the last published state (what every plugin has computed to) and an update publishes the next one in one
+  swap, so readers never wait for compute (an address's stats wait only while its state is written at publication)
+  and an update never waits for readers; only a rollback waits for the reads started before it. Blocks,
+  transactions and addresses not published yet answer 404 (were 503)
+- The mempool is published only at the tip Bitview has published: the transactions of a block being processed stay
+  unconfirmed until it publishes, instead of being found nowhere; lookups the chain answers first also read the
+  previous pool for the moment after a block publishes. Pending transactions spending a just-mined transaction's
+  outputs resolve right away (from the pool's record of it), so a fresh pool no longer waits a cycle to answer
+- An address's stats are written with the publication they belong to: a transaction in the block being processed
+  counted twice (confirmed and pending), and a failed update left the stats ahead of the published chain
+- During a reorg within the plugins' saved rollback history (10 updates), a plugin about to rewrite published rows in
+  place (spends, address state) first lowers what readers see to where its rollback lands: spends published below the fork could read as unspent, and address stats as of an
+  older block, mid-reorg. Address stats answer 503 while a rollback or a failed write leaves them unwritten
+- The UTXO set and URPD endpoints read a snapshot that is never rewritten under them: during an update they could fail
+  or silently reconstruct a state from the next block's snapshot payload
+- `spending_txin_index` reads unspent for a spend in a block not published yet (CPFP clusters left those out too, or
+  failed reading them); hashrate, difficulty, pool and CPFP endpoints no longer read the current day, epoch or tip
+  transaction from a block being processed; the historical price no longer fails (500) or reads an unpublished close
+  when an update has opened a new 4-hour bucket
+- The live price skips the mempool blend while the mempool follows a new block (answered 503). Responses identified by
+  a confirmed block no longer answer 503 when a block publishes mid-request
 - An address's unspent outputs include its unconfirmed ones and leave out those a mempool transaction spends, like
-  mempool.space
+  mempool.space. While the mempool is not anchored to the published chain (starting up, a rollback, or the moment a
+  block publishes), the address endpoints answer from confirmed data alone (stats answered 503)
 - A compressed vector publishes a write's bytes, page layout and length together: a read during a write could decode
-  the new bytes with the old layout (block size and weight are compressed and served while the indexer appends).
-  Region growth happens before the publication, never under it
+  the new bytes with the old layout (block size and weight are compressed and served while the indexer appends)
 - A shutdown signal no longer waits behind back-to-back updates: no new update starts once it is pending
 - Reading the newest blocks finds them by hopping from frame to frame from each blk file's start, and reads a body
   only for a needed canonical header. It scanned 8 MB chunks backward from arbitrary offsets, where magic bytes
@@ -900,6 +928,13 @@ has to be deleted by hand.
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`
   (storage layout) regenerate and snapshot the generated outputs; `cargo api` records the snapshot the client test
   reads. The dev profile drops cross-crate LTO and uses limited debuginfo
+- rawdb maps a reserved address range per data file (four times its size at open, at least 1 TiB), so growing a file
+  remaps it only past that range and a writer does not wait for readers to release the mapping. Read guards on data an
+  update changes (compressed page tables, pool heights, overflow and hole sets) are recursive, so a read nested in
+  another read of the same vector cannot deadlock behind a waiting writer
+- statedb keeps the latest snapshot in `snapshots/tip` (and the one it replaced in `snapshots/prev`), both replaced
+  by rename, and replaces `snapshots/pages` by rename; an older layout's latest page inside `data` is dropped on open
+  and rewritten by the next update
 
 ## [v0.12.2](https://github.com/bitcoinresearchkit/brk/releases/tag/v0.12.2) - 2026-09-01
 

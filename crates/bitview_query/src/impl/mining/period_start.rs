@@ -9,11 +9,7 @@ use crate::{Error as QueryError, OptionData, Query, Result};
 /// lookback vec is stamped short of the tip - separating the
 /// "all-time" case from a transient stamp-lag dropout that would
 /// otherwise silently widen a windowed query to the full chain.
-pub fn start_height(query: &Query, period: TimePeriod) -> Result<Height> {
-    start_height_at(query, period, query.height())
-}
-
-pub fn start_height_at(query: &Query, period: TimePeriod, tip: Height) -> Result<Height> {
+pub fn start_height(query: &Query, period: TimePeriod, tip: Height) -> Result<Height> {
     let lookback = &query.plugins().blocks.lookback;
     let start = match period {
         TimePeriod::Day => lookback._24h.collect_one(tip).data()?,

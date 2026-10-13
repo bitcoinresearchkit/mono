@@ -84,7 +84,7 @@ where
         to: usize,
     ) -> Self {
         // Pages before the region: the writer holds the pages while it rewrites the region.
-        let pages = pages.read();
+        let pages = pages.read_recursive();
         let reader = region.create_reader();
         let stored_len = stored_len.min(pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T));
         let from = from.min(stored_len);

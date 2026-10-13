@@ -84,9 +84,10 @@ impl Journal {
         let index_len = count
             .checked_mul(INDEX_BYTES)
             .ok_or_else(|| invalid("index overflow"))?;
+        // A reader only reads below its ceiling: a rewind may be truncating the rest.
         if count > u32::MAX as usize
-            || index_file.metadata()?.len() < index_len as u64
-            || data.metadata()?.len() < end
+            || writable
+                && (index_file.metadata()?.len() < index_len as u64 || data.metadata()?.len() < end)
         {
             return Err(invalid("incomplete committed journal"));
         }
@@ -111,13 +112,7 @@ impl Journal {
             data.seek(SeekFrom::Start(end))?;
             index_file.set_len(index_len as u64)?;
             index_file.seek(SeekFrom::Start(index_len as u64))?;
-        } else if count > 0 {
-            let mut last = [0; INDEX_BYTES];
-            index_file.read_exact_at(&mut last, ((count - 1) * INDEX_BYTES) as u64)?;
-            if u64::from_le_bytes(last[..8].try_into().unwrap()) != end {
-                return Err(invalid("journal index does not match commit"));
-            }
-        } else if end != 0 {
+        } else if count == 0 && end != 0 {
             return Err(invalid("empty journal has data"));
         }
         let mut this = Self {

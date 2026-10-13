@@ -44,7 +44,7 @@ pub use iterators::ValueWriter;
 
 pub use ops::{BinaryTransform, CheckedSub, ReverseOperands, SaturatingAdd};
 
-pub use read_bounds::{BoundedVec, BoundedWriter, ReadBounds};
+pub use read_bounds::{BoundedVec, BoundedWriter, ReadBounds, ReadScope, visible_len};
 pub use sparse_read::SparseRead;
 
 pub use stamp::Stamp;

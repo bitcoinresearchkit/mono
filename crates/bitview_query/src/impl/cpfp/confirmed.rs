@@ -7,6 +7,8 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use vecdb::{ReadableVec, VecIndex};
 
+use bitview_primitives::Lengths;
+
 use crate::{OptionData, Query, ResolvedConfirmedTx, Result};
 
 struct WalkResult {
@@ -29,10 +31,12 @@ impl Query {
         &self,
         transaction: ResolvedConfirmedTx,
     ) -> Result<CpfpInfo> {
-        let publication = self.read_publication()?;
         let read = self.read_indexer()?;
         let (_, seed, height) = read.revalidate_confirmed_tx(transaction)?;
-        let walk = self.walk_same_block_cluster(seed, height)?;
+        let safe = read.pin().lengths();
+        // Count views end at their source's visible length: bound them by the pin.
+        let _scope = self.read_scope(read.pin());
+        let walk = self.walk_same_block_cluster(seed, height, safe)?;
         let members = self.resolve_members(&walk.members)?;
         let ancestors = self.resolve_entries(&walk.ancestors)?;
         let descendants = self.resolve_entries(&walk.descendants)?;
@@ -45,7 +49,6 @@ impl Query {
             .data()?
             .into();
         drop(read);
-        drop(publication);
 
         Ok(build_cpfp_info(
             &members,
@@ -102,10 +105,14 @@ impl Query {
             .collect()
     }
 
-    fn walk_same_block_cluster(&self, seed: TxIndex, height: Height) -> Result<WalkResult> {
+    fn walk_same_block_cluster(
+        &self,
+        seed: TxIndex,
+        height: Height,
+        safe: Lengths,
+    ) -> Result<WalkResult> {
         let indexer = self.indexer();
         let plugins = self.plugins();
-        let safe = self.safe_lengths();
         let first_tx = &indexer.vecs().transactions.first_tx_index;
         let block_first = first_tx.collect_one(height).data()?;
         let next_height = height.incremented();
@@ -149,7 +156,8 @@ impl Query {
             let mut children = SmallVec::new();
             for output in first..first + count {
                 let input = spent.try_get_at(output).data()?.get();
-                if input.is_unspent() {
+                // The spend index changes in place: unpublished spends read as unspent.
+                if input.is_unspent() || input >= safe.txin_index {
                     continue;
                 }
                 let child = spending_tx.get(usize::from(input)).data()?;

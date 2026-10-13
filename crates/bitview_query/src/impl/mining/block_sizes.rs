@@ -14,9 +14,10 @@ impl Query {
     /// to avoid re-walking buckets.
     pub fn block_sizes_weights(&self, time_period: TimePeriod) -> Result<BlockSizesWeights> {
         let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
         let blocks = &self.indexer().vecs().blocks;
         let tip = pin.lengths().last_height().ok_or(Error::StateUpdating)?;
-        let bw = BlockWindow::new_at(self, time_period, tip)?;
+        let bw = BlockWindow::new(self, time_period, tip)?;
 
         let block_sizes: Vec<Bytes> = bw
             .read(&*blocks.total)?

@@ -1,20 +1,21 @@
-use bitview_primitives::{TxInIndex, TxOutIndex};
+use bitview_primitives::{Lengths, TxInIndex, TxOutIndex};
 use brk_types::{BlockHash, Height, Timestamp, TxIndex, TxOutspend, TxStatus, Txid, Vin, Vout};
 use serde_json::to_vec;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, RepresentationId, Result};
+use crate::{Error, OptionData, Query, RepresentationId, Result, r#impl::mempool::anchored};
 
 impl Query {
     fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
-        let _guard = self.read_publication()?;
-        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid) {
+        let pin = self.pin_safe_lengths()?;
+        let safe = pin.lengths();
+        let mempool = self.lookup_mempool(&pin);
+        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, safe) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
-                return self
-                    .mempool()
-                    .ok_or(Error::UnknownTxid)?
-                    .outspend_if_present(txid, vout, &self.tip_blockhash())?
+                let (mempool, tip) = mempool.ok_or(Error::UnknownTxid)?;
+                return mempool
+                    .outspend_if_present(txid, vout, &tip)?
                     .ok_or(Error::UnknownTxid);
             }
             Err(error) => return Err(error),
@@ -23,13 +24,18 @@ impl Query {
             return Ok(TxOutspend::UNSPENT);
         }
         let confirmed = self
-            .resolve_outspends(first_txout + vout, 1)?
+            .resolve_outspends(first_txout + vout, 1, safe)?
             .pop()
             .data()?;
         if confirmed.spent {
             return Ok(confirmed);
         }
-        self.mempool_outspend(txid, vout)
+        // Confirmed spends answer alone while no pool is at this publication.
+        Ok(mempool
+            .map(|(mempool, tip)| anchored(mempool.outspend(txid, vout, &tip).map(Some)))
+            .transpose()?
+            .flatten()
+            .unwrap_or(TxOutspend::UNSPENT))
     }
 
     /// Resolve and serialize one outspend exactly once, identifying confirmed
@@ -42,21 +48,22 @@ impl Query {
     }
 
     fn outspends(&self, txid: &Txid) -> Result<Vec<TxOutspend>> {
-        let _guard = self.read_publication()?;
-        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid) {
+        let pin = self.pin_safe_lengths()?;
+        let safe = pin.lengths();
+        let mempool = self.lookup_mempool(&pin);
+        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, safe) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
-                return self
-                    .mempool()
-                    .ok_or(Error::UnknownTxid)?
-                    .outspends_if_present(txid, &self.tip_blockhash())?
+                let (mempool, tip) = mempool.ok_or(Error::UnknownTxid)?;
+                return mempool
+                    .outspends_if_present(txid, &tip)?
                     .ok_or(Error::UnknownTxid);
             }
             Err(error) => return Err(error),
         };
-        let mut outspends = self.resolve_outspends(first_txout, output_count)?;
-        if let Some(mempool) = self.mempool() {
-            mempool.merge_outspends(txid, &mut outspends, &self.tip_blockhash())?;
+        let mut outspends = self.resolve_outspends(first_txout, output_count, safe)?;
+        if let Some((mempool, tip)) = mempool {
+            anchored(mempool.merge_outspends(txid, &mut outspends, &tip))?;
         }
         Ok(outspends)
     }
@@ -71,12 +78,14 @@ impl Query {
         Ok((bytes, identity))
     }
 
-    /// Resolve spend status for a contiguous range of outputs.
+    /// Resolve spend status for a contiguous range of outputs, as of the published `bound`: the
+    /// spend index changes in place, so spends from unpublished inputs read as unspent.
     /// Resolve compressed inputs in sorted batches, retaining output order.
     fn resolve_outspends(
         &self,
         first_txout: TxOutIndex,
         output_count: usize,
+        bound: Lengths,
     ) -> Result<Vec<TxOutspend>> {
         let indexer = self.indexer();
         let txin_index_reader = self.plugins().outputs.spent.txin_index.reader();
@@ -84,7 +93,6 @@ impl Query {
 
         let tx_heights = self.plugins().mappings.tx_heights.read();
         let mut tx_heights = tx_heights.cursor();
-        let bound = self.safe_lengths();
         let mut requested = Vec::new();
         let mut ordered = true;
         for index in 0..output_count {
@@ -238,12 +246,4 @@ fn outspends_identity(outspends: &[TxOutspend], bytes: &[u8]) -> RepresentationI
     }
 
     newest.map_or_else(content, |(hash, _)| RepresentationId::Block(hash))
-}
-
-impl Query {
-    fn mempool_outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
-        self.mempool().map_or(Ok(TxOutspend::UNSPENT), |mempool| {
-            Ok(mempool.outspend(txid, vout, &self.tip_blockhash())?)
-        })
-    }
 }

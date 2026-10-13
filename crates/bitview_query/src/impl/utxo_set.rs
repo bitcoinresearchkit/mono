@@ -5,6 +5,8 @@ use bitview_types::{UtxoChanges, UtxoOrigins, UtxoSet, UtxoSetDiff};
 use brk_types::{Bitcoin, BlockHash, Height, Sats};
 use vecdb::ReadableVec;
 
+use bitview_plugin_indexer::SafeLengths;
+
 use crate::{Error, OptionData, Query, Result};
 
 fn btc(sats: u64) -> Bitcoin {
@@ -21,8 +23,8 @@ pub struct UtxoSetPoint {
 
 impl Query {
     pub fn utxo_set_point_latest(&self) -> Result<UtxoSetPoint> {
-        let _guard = self.read_publication()?;
-        let end = self.utxo_set_end()?;
+        let pin = self.pin_safe_lengths()?;
+        let end = self.utxo_set_end(&pin)?;
         if end == 0 {
             return Err(Error::NotFound("No published UTXO set".into()));
         }
@@ -31,16 +33,16 @@ impl Query {
     }
 
     pub fn utxo_set_point_height(&self, height: Height) -> Result<UtxoSetPoint> {
-        let _guard = self.read_publication()?;
-        if usize::from(height) >= self.utxo_set_end()? {
+        let pin = self.pin_safe_lengths()?;
+        if usize::from(height) >= self.utxo_set_end(&pin)? {
             return Err(Error::NotFound(format!("Block {height} is not published")));
         }
         self.utxo_set_point(height, height)
     }
 
     pub fn utxo_set_point_date(&self, date: Date) -> Result<UtxoSetPoint> {
-        let _guard = self.read_publication()?;
-        let end = self.utxo_set_end()?;
+        let pin = self.pin_safe_lengths()?;
+        let end = self.utxo_set_end(&pin)?;
         let day = Day1::try_from(date)?;
         let starts = &self.plugins().mappings.day1.first_height;
         let first = starts.collect_one(day).map_or(end, usize::from).min(end);
@@ -56,10 +58,10 @@ impl Query {
 
     /// The set after block `point.last`.
     pub fn utxo_set(&self, point: &UtxoSetPoint) -> Result<UtxoSet> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
-        let reader = view.reader()?;
-        let end = self.utxo_set_published(point, reader.len())?;
+        let reader = view.reader(usize::from(pin.lengths().height))?;
+        let end = self.utxo_set_published(point, reader.len(), &pin)?;
         let state = reader.state_at(end)?;
         if state.hash() != *point.hash {
             return Err(Error::StateUpdating);
@@ -82,10 +84,10 @@ impl Query {
 
     /// What blocks `point.first` through `point.last` changed.
     pub fn utxo_set_diff(&self, point: &UtxoSetPoint) -> Result<UtxoSetDiff> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
-        let reader = view.reader()?;
-        let end = self.utxo_set_published(point, reader.len())?;
+        let reader = view.reader(usize::from(pin.lengths().height))?;
+        let end = self.utxo_set_published(point, reader.len(), &pin)?;
         let first = usize::from(point.first);
         let mut state = reader.state_at(first)?;
         let mut cursor = reader.cursor(&mut state)?;
@@ -124,10 +126,9 @@ impl Query {
     }
 
     /// Blocks published both by the chain and by the UTXO set's history.
-    fn utxo_set_end(&self) -> Result<usize> {
+    fn utxo_set_end(&self, pin: &SafeLengths) -> Result<usize> {
         let view = self.plugins().utxo_set.view()?;
-        let published = view.reader()?.len();
-        Ok(published.min(usize::from(self.safe_lengths().height)))
+        Ok(view.reader(usize::from(pin.lengths().height))?.len())
     }
 
     fn utxo_set_point(&self, first: Height, last: Height) -> Result<UtxoSetPoint> {
@@ -154,9 +155,14 @@ impl Query {
     }
 
     /// The end of `point` once it is checked against what is published now.
-    fn utxo_set_published(&self, point: &UtxoSetPoint, history: usize) -> Result<usize> {
+    fn utxo_set_published(
+        &self,
+        point: &UtxoSetPoint,
+        history: usize,
+        pin: &SafeLengths,
+    ) -> Result<usize> {
         let end = usize::from(point.last) + 1;
-        if end > history.min(usize::from(self.safe_lengths().height)) {
+        if end > history.min(usize::from(pin.lengths().height)) {
             return Err(Error::StateUpdating);
         }
         Ok(end)

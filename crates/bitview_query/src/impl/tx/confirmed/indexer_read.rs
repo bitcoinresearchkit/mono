@@ -16,10 +16,12 @@ pub(crate) struct IndexerRead<'a> {
 
 impl Query {
     pub(crate) fn read_indexer(&self) -> Result<IndexerRead<'_>> {
-        Ok(IndexerRead {
-            query: self,
-            pin: self.pin_safe_lengths()?,
-        })
+        Ok(self.read_indexer_at(self.pin_safe_lengths()?))
+    }
+
+    /// Continue a read under a pin an earlier resolution took.
+    pub(crate) fn read_indexer_at(&self, pin: SafeLengths) -> IndexerRead<'_> {
+        IndexerRead { query: self, pin }
     }
 }
 

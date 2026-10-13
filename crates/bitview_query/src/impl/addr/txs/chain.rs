@@ -2,7 +2,7 @@ use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::TypeIndex;
 use brk_types::{Address, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
-use crate::{Query, Result};
+use crate::{Error, Query, Result};
 
 /// A confirmed address transaction page resolved against one best-chain view.
 #[derive(Debug)]
@@ -29,7 +29,7 @@ impl Query {
         limit: usize,
     ) -> Result<ResolvedAddrChainTxs> {
         let pin = self.pin_safe_lengths()?;
-        let (output_type, type_index) = self.resolve_addr(addr)?;
+        let (output_type, type_index) = self.resolve_addr(addr, pin.lengths())?;
         self.resolve_addr_chain_txs_for(output_type, type_index, after_txid, limit, &pin)
     }
 
@@ -52,13 +52,13 @@ impl Query {
         let stores = self.indexer().stores();
         let safe = pin.lengths();
         if type_index >= safe.to_type_index(output_type) {
-            return Err(self.missing_addr());
+            return Err(Error::UnknownAddress);
         }
         let tx_index_len = safe.tx_index;
 
         let before = after_txid
             .as_ref()
-            .map(|txid| self.resolve_tx_index_bounded(txid))
+            .map(|txid| self.resolve_tx_index_bounded(txid, safe))
             .transpose()?
             .unwrap_or(tx_index_len)
             .min(tx_index_len);
@@ -88,7 +88,7 @@ impl Query {
             .transpose()?;
         let activity_anchor = match anchor {
             Some((_, hash)) => hash,
-            None => self.tip_blockhash_at(pin)?,
+            None => pin.tip(),
         };
 
         Ok(ResolvedAddrChainTxs {

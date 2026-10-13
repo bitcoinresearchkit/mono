@@ -1,4 +1,4 @@
-use std::{thread, time::Instant};
+use std::{sync::Arc, thread, time::Instant};
 
 use bitview_cohort::ByAddrType;
 use bitview_primitives::{
@@ -9,6 +9,7 @@ use bitview_primitives::{
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_types::{Height, OutputType, Version};
+use parking_lot::{RwLock, RwLockReadGuard};
 use rayon::{join, prelude::*};
 use tracing::info;
 use vecdb::{
@@ -70,6 +71,14 @@ pub struct AddrStateVecs<M: StorageMode = Rw> {
     /// Empty addresses' lifetime totals that do not fit inline in their state, by
     /// the slot their state points to.
     pub extended_empty: M::Stored<OverflowVec<ExtendedEmptyAddressIndex, EmptyAddressData>>,
+    /// The length these vectors are written through on disk (none while a rollback's restored
+    /// values or a failed write are not), locked while they change (publication, rollback, reset)
+    /// so a reader's state and sidecar record come from one save. They change in place, unlike the
+    /// append-only rest; an update's final state is written with its publication, so a reader
+    /// taking this lock before its pin reads that publication's state whenever the length is the
+    /// pin's.
+    #[traversable(skip)]
+    stable: Arc<RwLock<Option<Height>>>,
 }
 
 impl AddrStateVecs {
@@ -82,7 +91,7 @@ impl AddrStateVecs {
             ImportOptions::new(db, name, version).with_saved_stamped_changes(SAVED_CHECKPOINTS)
         };
 
-        Ok(Self {
+        let vecs = Self {
             p2a: MutableVec::import_with(primary())?,
             p2pk33: MutableVec::import_with(primary())?,
             p2pk65: MutableVec::import_with(primary())?,
@@ -99,7 +108,10 @@ impl AddrStateVecs {
                 "extended_empty_address_data",
                 version,
             ))?,
-        })
+            stable: Arc::default(),
+        };
+        *vecs.stable.write() = Some(vecs.min_stamped_len());
+        Ok(vecs)
     }
 
     pub fn min_stamped_len(&self) -> Height {
@@ -140,8 +152,29 @@ impl AddrStateVecs {
         .unwrap_or_default()
     }
 
+    /// The length [`Self::rollback_before`] restores for `stamp`, if every vector lands there.
+    pub fn rollback_landing(&self, stamp: Stamp) -> Result<Option<Height>> {
+        let landings = [
+            self.p2a.rollback_landing(stamp)?,
+            self.p2pk33.rollback_landing(stamp)?,
+            self.p2pk65.rollback_landing(stamp)?,
+            self.p2pkh.rollback_landing(stamp)?,
+            self.p2sh.rollback_landing(stamp)?,
+            self.p2tr.rollback_landing(stamp)?,
+            self.p2wpkh.rollback_landing(stamp)?,
+            self.p2wsh.rollback_landing(stamp)?,
+            self.funded.rollback_landing(stamp)?,
+            self.extended_empty.rollback_landing(stamp)?,
+        ];
+        Ok(landings[0]
+            .filter(|landing| landings.iter().all(|other| *other == Some(*landing)))
+            .map(|landing| Height::from(landing).incremented()))
+    }
+
     pub fn rollback_before(&mut self, stamp: Stamp) -> Result<Vec<Stamp>> {
-        Ok(vec![
+        let stable = Arc::clone(&self.stable);
+        let mut written = stable.write();
+        let stamps = vec![
             self.p2a.rollback_before(stamp)?,
             self.p2pk33.rollback_before(stamp)?,
             self.p2pk65.rollback_before(stamp)?,
@@ -152,10 +185,30 @@ impl AddrStateVecs {
             self.p2wsh.rollback_before(stamp)?,
             self.funded.rollback_before(stamp)?,
             self.extended_empty.rollback_before(stamp)?,
-        ])
+        ];
+        // The restored values sit in the write buffers until the next write.
+        *written = None;
+        Ok(stamps)
+    }
+
+    /// Drops staged changes that were never written.
+    pub fn reset_unsaved(&mut self) {
+        self.p2a.reset_unsaved();
+        self.p2pk33.reset_unsaved();
+        self.p2pk65.reset_unsaved();
+        self.p2pkh.reset_unsaved();
+        self.p2sh.reset_unsaved();
+        self.p2tr.reset_unsaved();
+        self.p2wpkh.reset_unsaved();
+        self.p2wsh.reset_unsaved();
+        self.funded.reset_unsaved();
+        self.extended_empty.reset_unsaved();
     }
 
     pub fn reset(&mut self) -> Result<()> {
+        let stable = Arc::clone(&self.stable);
+        let mut written = stable.write();
+        *written = Some(Height::ZERO);
         self.p2a.reset()?;
         self.p2pk33.reset()?;
         self.p2pk65.reset()?;
@@ -324,6 +377,17 @@ impl AddrStateVecs {
 }
 
 impl<M: StorageMode> AddrStateVecs<M> {
+    /// Keeps the state and its sidecars from changing while a reader pairs them; holds the
+    /// length they are written through.
+    pub fn read_stable(&self) -> RwLockReadGuard<'_, Option<Height>> {
+        self.stable.read()
+    }
+
+    /// The lock a save holds over these vectors, with the length they are written through.
+    pub fn stable(&self) -> Arc<RwLock<Option<Height>>> {
+        Arc::clone(&self.stable)
+    }
+
     pub fn get_once(&self, addr_type: OutputType, type_index: TypeIndex) -> Result<AddressState> {
         match addr_type {
             OutputType::P2A => self.p2a.collect_one(type_index.into()),

@@ -13,8 +13,9 @@ pub trait ComputePlugin: Plugin {
     fn database(&self) -> Option<&Database>;
 
     /// Computes this plugin's complete next state. All internal phases and
-    /// progress belong to this method; callers only order complete computations.
-    /// Returning success must not require an external prepare/push/finish step.
+    /// progress belong to this method; callers only order complete computations,
+    /// then commit them together (where a plugin writes state that changes in
+    /// place, the composition's commit writes it with the publication).
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
@@ -26,8 +27,7 @@ pub trait ComputePlugin: Plugin {
     /// The sync runs before `compute_state`, so state it takes survives a failed sync.
     /// Implement [`Self::compute_state`]; do not override this method.
     ///
-    /// The runner owns the publication-gate lifecycle so several dependent
-    /// plugins can be published together after the complete update succeeds.
+    /// The composition publishes every plugin's rows together when it commits.
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,

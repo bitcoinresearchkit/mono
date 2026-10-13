@@ -32,29 +32,18 @@ enum TransactionSource {
 }
 
 impl Query {
-    /// A missing transaction in a temporarily shortened prefix is not a final 404.
-    /// Apply only after live-source fallback; absence from the confirmed prefix
-    /// alone must not hide an available mempool transaction.
-    pub(crate) fn transaction_error(&self, error: Error) -> Error {
-        if matches!(error, Error::UnknownTxid) && self.indexer().publication().try_read().is_none()
-        {
-            Error::StateUpdating
-        } else {
-            error
-        }
-    }
-
     /// Resolve one exact live, confirmed, or recently vanished transaction.
     fn resolve_transaction_source(&self, txid: &Txid) -> Result<TransactionSource> {
         let read = self.read_indexer()?;
         match read.resolve_confirmed_tx(txid) {
             Ok(transaction) => Ok(TransactionSource::Chain(transaction)),
-            Err(Error::UnknownTxid) => self
-                .mempool()
-                .ok_or(Error::UnknownTxid)?
-                .transaction(txid, &self.tip_blockhash_at(read.pin())?)?
-                .map(TransactionSource::Memory)
-                .ok_or(Error::UnknownTxid),
+            Err(Error::UnknownTxid) => {
+                let (mempool, tip) = self.lookup_mempool(read.pin()).ok_or(Error::UnknownTxid)?;
+                mempool
+                    .transaction(txid, &tip)?
+                    .map(TransactionSource::Memory)
+                    .ok_or(Error::UnknownTxid)
+            }
             Err(error) => Err(error),
         }
     }
@@ -101,27 +90,26 @@ impl Query {
         let read = self.read_indexer()?;
         match read.resolve_confirmed_position(txid) {
             Ok((_, height)) => self.confirmed_status_at_bounded(height, read.pin().lengths()),
-            Err(Error::UnknownTxid) => self
-                .mempool()
-                .ok_or_else(|| self.transaction_error(Error::UnknownTxid))?
-                .contains_txid(txid, &self.tip_blockhash_at(read.pin())?)?
-                .then_some(TxStatus::UNCONFIRMED)
-                .ok_or_else(|| self.transaction_error(Error::UnknownTxid)),
+            Err(Error::UnknownTxid) => {
+                let (mempool, tip) = self.lookup_mempool(read.pin()).ok_or(Error::UnknownTxid)?;
+                mempool
+                    .contains_txid(txid, &tip)?
+                    .then_some(TxStatus::UNCONFIRMED)
+                    .ok_or(Error::UnknownTxid)
+            }
             Err(error) => Err(error),
         }
     }
 
-    /// Resolve txid to (tx_index, first_txout_index, output_count).
-    /// Snapshots `safe_lengths` once and uses `safe.txout_index` as the
-    /// upper bound for the tip-of-safe tx, so the fallback never reads past
-    /// the writer's stamped boundary (`vecs.outputs.value.len()` can be
-    /// ahead of `safe.txout_index` when the writer is mid-block).
-    fn resolve_tx_outputs(&self, txid: &Txid) -> Result<(TxIndex, TxOutIndex, usize)> {
-        let safe = self.safe_lengths();
-        let tx_index = self.resolve_tx_index_bounded(txid)?;
-        if tx_index >= safe.tx_index {
-            return Err(Error::UnknownTxid);
-        }
+    /// Resolve txid to (tx_index, first_txout_index, output_count) within the
+    /// published lengths `safe`: the tip transaction's outputs end at
+    /// `safe.txout_index`, never at the writer's unpublished length.
+    fn resolve_tx_outputs(
+        &self,
+        txid: &Txid,
+        safe: Lengths,
+    ) -> Result<(TxIndex, TxOutIndex, usize)> {
+        let tx_index = self.resolve_tx_index_bounded(txid, safe)?;
         let first_txout_vec = &self.indexer().vecs().transactions.first_txout_index;
         let first_txout_reader = first_txout_vec.reader();
         let first = first_txout_reader
@@ -162,9 +150,7 @@ impl Query {
     /// Build a merkleblock proof from a pre-resolved confirmed transaction.
     pub fn merkleblock_proof_resolved(&self, tx: ResolvedConfirmedTx) -> Result<String> {
         let read = self.read_indexer()?;
-        let (txid, _, height) = read
-            .revalidate_confirmed_tx(tx)
-            .map_err(|error| self.transaction_error(error))?;
+        let (txid, _, height) = read.revalidate_confirmed_tx(tx)?;
         self.merkleblock_proof_at(txid, height, read)
     }
 
@@ -190,9 +176,7 @@ impl Query {
     /// Build a merkle proof from a pre-resolved confirmed transaction.
     pub fn merkle_proof_resolved(&self, tx: ResolvedConfirmedTx) -> Result<MerkleProof> {
         let read = self.read_indexer()?;
-        let (_, tx_index, height) = read
-            .revalidate_confirmed_tx(tx)
-            .map_err(|error| self.transaction_error(error))?;
+        let (_, tx_index, height) = read.revalidate_confirmed_tx(tx)?;
         self.merkle_proof_at(tx_index, height, read)
     }
 
@@ -243,9 +227,9 @@ impl Query {
     /// has not yet covered. Use this from any path that will subsequently
     /// dereference indexer/plugins vecs by `tx_index`.
     #[inline]
-    pub(crate) fn resolve_tx_index_bounded(&self, txid: &Txid) -> Result<TxIndex> {
+    pub(crate) fn resolve_tx_index_bounded(&self, txid: &Txid, bound: Lengths) -> Result<TxIndex> {
         let tx_index = self.resolve_tx_index(txid)?;
-        if tx_index >= self.safe_lengths().tx_index
+        if tx_index >= bound.tx_index
             || self
                 .indexer()
                 .vecs()

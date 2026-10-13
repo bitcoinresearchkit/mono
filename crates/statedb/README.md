@@ -35,9 +35,11 @@ state after block 700,000. Every history starts at genesis.
 
 `History` owns reconstruction and snapshot publication. `Reader` exposes one
 immutable published prefix, `state_at`, `cursor`, `replay`, and identity checks
-for reusable analytical state. `View` opens read-only files for queries. The
-caller holds the pipeline publication guard through state capture, excluding
-snapshot writes and producer rewinds. Each plugin still owns its complete
+for reusable analytical state. `View` opens read-only files for queries: retained
+snapshots are only appended and their index replaced by rename, and the tip
+snapshot (with the one it replaced, for readers of the previous publication) is
+replaced by rename too, so an open view never sees a write. The caller keeps
+producers from rewinding below what it reads. Each plugin still owns its complete
 `ComputePlugin::compute_state()` update with read-only dependencies.
 
 ## Storage
@@ -54,13 +56,15 @@ publishes its version, record count and data end. Unpublished tails are
 excluded from reads and discarded by a writer on reopen. A failed modifying
 write invalidates that writer until reopen.
 
-Full states use `snapshots/data` plus `snapshots/pages`, like a paged vector with
-variable-size pages. The compact page index stores exclusive heights and offsets.
-Periodic snapshots are permanent; one nonperiodic latest page replaces its
-predecessor. Rewinds discard descendants. A periodic snapshot also serves as
-latest when the update ends on that boundary. Ordinary latest pages are raw for
-fast reads and writes; periodic pages compress dense sats and count columns
-separately with PCO. The default interval is 5,000 blocks.
+Periodic full states use `snapshots/data` plus `snapshots/pages`, like a paged
+vector with variable-size pages; the compact page index stores exclusive heights
+and offsets and is replaced by rename. Periodic snapshots are permanent; the
+nonperiodic latest one is the `snapshots/tip` file, replaced by rename, and the
+one it replaced stays as `snapshots/prev`. Rewinds discard descendants. A
+periodic snapshot also serves as latest when the update ends on that boundary.
+Tip snapshots are raw for fast reads and writes; periodic pages compress dense
+sats and count columns separately with PCO. The default interval is 5,000 blocks.
+An older layout's latest page inside `data` is dropped on open.
 
 Periodic pages are published as they finish, followed by the final latest page.
 If a block or callback fails before another write, the last completed checkpoint

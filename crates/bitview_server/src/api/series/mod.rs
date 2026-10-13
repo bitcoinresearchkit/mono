@@ -168,7 +168,7 @@ pub async fn serve_version(
 /// Shared response pipeline for every series endpoint.
 ///
 /// One admitted blocking job keeps resolution and formatting under the same
-/// publication guard. Matching validators skip filename and body preparation.
+/// pin. Matching validators skip filename and body preparation.
 pub async fn serve(
     state: AppState,
     headers: HeaderMap,

@@ -87,7 +87,7 @@ where
 
     fn region_names(&self) -> Vec<String> {
         let mut names = self.vec.region_names();
-        if !self.holes.read().is_empty() {
+        if !self.holes.read_recursive().is_empty() {
             names.push(format!(
                 "{}_holes",
                 vec_region_name_with::<V::I>(self.vec.name())
@@ -123,7 +123,7 @@ where
 
     #[inline(always)]
     fn collect_one_at(&self, index: usize) -> Option<V::T> {
-        if self.holes.read().contains(&index) {
+        if self.holes.read_recursive().contains(&index) {
             None
         } else {
             self.vec.collect_one_at(index)
@@ -136,7 +136,7 @@ where
 
     #[inline]
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<V::T>) {
-        let holes = self.holes.read();
+        let holes = self.holes.read_recursive();
         if holes.is_empty() {
             self.vec.read_sorted_into_at(indices, out);
             return;
@@ -187,7 +187,7 @@ where
             return init;
         }
 
-        let holes = self.holes.read();
+        let holes = self.holes.read_recursive();
         if holes.is_empty() {
             return self.vec.fold_range_at(from, to, init, f);
         }
@@ -215,7 +215,7 @@ where
             return Ok(init);
         }
 
-        let holes = self.holes.read();
+        let holes = self.holes.read_recursive();
         if holes.is_empty() {
             return self.vec.try_fold_range_at(from, to, init, f);
         }

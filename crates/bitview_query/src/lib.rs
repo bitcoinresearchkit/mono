@@ -10,15 +10,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitview_plugin::Publication;
-#[cfg(any(feature = "chain", feature = "series", feature = "price"))]
-use bitview_plugin::PublicationReadGuard;
-
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::BlockHashPrefix;
-#[cfg(any(feature = "chain", feature = "series", feature = "price"))]
+#[cfg(any(feature = "chain", feature = "series"))]
 use bitview_primitives::Lengths;
-#[cfg(feature = "series")]
+#[cfg(any(feature = "chain", feature = "series"))]
 use bitview_primitives::{Epoch, Halving, Index};
 use bitview_types::SyncStatus;
 use brk_mempool::ReadOnlyMempool;
@@ -27,8 +22,10 @@ use brk_mempool::ReadOnlyState;
 use brk_reader::Reader;
 use brk_rpc::Client;
 use brk_types::{BlockHash, Height};
-#[cfg(feature = "series")]
+#[cfg(any(feature = "chain", feature = "series"))]
 use vecdb::ReadBounds;
+#[cfg(feature = "chain")]
+use vecdb::ReadScope;
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 mod r#async;
@@ -91,9 +88,10 @@ struct QueryInner<'a> {
 }
 
 impl Query {
-    const UPDATE_WAIT_TIMEOUT: Duration = Duration::from_secs(4);
+    /// How long a read may wait for admission and run.
+    const READ_TIMEOUT: Duration = Duration::from_secs(4);
 
-    /// A cheap request-local view; shared data and publication guards are unchanged.
+    /// A cheap request-local view; shared data is unchanged.
     fn with_deadline(&self, deadline: Instant) -> Self {
         Self(Arc::clone(&self.0), Some(deadline))
     }
@@ -105,30 +103,11 @@ impl Query {
         Ok(())
     }
 
-    fn read_timeout(&self) -> Result<Duration> {
-        self.check_deadline()?;
-        Ok(self.1.map_or(Self::UPDATE_WAIT_TIMEOUT, |deadline| {
-            deadline.saturating_duration_since(Instant::now())
-        }))
-    }
-
-    #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
-    fn read_publication(&self) -> Result<PublicationReadGuard> {
-        self.indexer()
-            .publication()
-            .read_for(self.read_timeout()?)
-            .ok_or(Error::ReadTimeout)
-    }
-
+    /// Pins the published state for one read: every plugin's rows below its lengths stay put
+    /// (only a rollback waits for the pin; pinning never waits). Fails only past the deadline.
     fn pin_safe_lengths(&self) -> Result<SafeLengths> {
-        self.indexer()
-            .pin_safe_lengths_for(self.read_timeout()?)
-            .ok_or(Error::ReadTimeout)
-    }
-
-    #[cfg(feature = "chain")]
-    fn try_read_publication(&self) -> Option<PublicationReadGuard> {
-        self.indexer().publication().try_read()
+        self.check_deadline()?;
+        Ok(self.indexer().pin())
     }
 
     /// Builds the process-lifetime read-only query view.
@@ -161,29 +140,13 @@ impl Query {
         )
     }
 
-    /// Pipeline-safe ceiling: the highest height for which the complete
-    /// plugin set has committed durable data. Backed by
-    /// `Indexer::safe_lengths()`, advanced after each complete compute
-    /// pass and lowered before any rollback.
-    ///
-    /// Returns a height (the last fully-written block), not a length.
-    /// `safe_lengths().height` is a count: `N` means heights `0..N` are
-    /// committed, so the highest is `N-1`. Pre-genesis (`N == 0`) falls
-    /// back to `Height::default()` and clients treat it as "nothing
-    /// indexed yet".
+    /// The published tip height a pin reads at (genesis while nothing is published).
     #[cfg(feature = "chain")]
-    fn height(&self) -> Height {
-        self.safe_lengths().last_height().unwrap_or_default()
+    fn tip_height(pin: &SafeLengths) -> Height {
+        pin.lengths().last_height().unwrap_or_default()
     }
 
-    /// Snapshot of the pipeline-safe `Lengths`. Hot paths that need
-    /// multiple bound fields should call this once at entry and reuse.
-    #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
-    fn safe_lengths(&self) -> Lengths {
-        self.indexer().safe_lengths()
-    }
-
-    #[cfg(feature = "series")]
+    #[cfg(any(feature = "chain", feature = "series"))]
     fn index_read_bounds(safe: Lengths) -> ReadBounds {
         let mut bounds = ReadBounds::new();
 
@@ -240,7 +203,7 @@ impl Query {
         bounds
     }
 
-    #[cfg(feature = "series")]
+    #[cfg(any(feature = "chain", feature = "series"))]
     fn read_bounds(&self, safe: Lengths) -> ReadBounds {
         let mut bounds = Self::index_read_bounds(safe);
         let timestamp = safe.last_height().and_then(|height| {
@@ -261,16 +224,17 @@ impl Query {
         bounds
     }
 
+    /// Bounds this thread's reads, lazy calendar and count views included, by the pin until the
+    /// guard drops.
+    #[cfg(feature = "chain")]
+    fn read_scope(&self, pin: &SafeLengths) -> ReadScope {
+        self.read_bounds(pin.lengths()).enter()
+    }
+
     /// Tip block hash at the pipeline-safe ceiling.
     #[inline]
     pub fn tip_blockhash(&self) -> BlockHash {
         self.indexer().tip_blockhash()
-    }
-
-    /// Tip block hash prefix for cache etags.
-    #[inline]
-    pub fn tip_hash_prefix(&self) -> BlockHashPrefix {
-        BlockHashPrefix::from(&self.tip_blockhash())
     }
 
     /// Build sync status entirely from one safely published local snapshot.
@@ -328,12 +292,6 @@ impl Query {
         self.0.plugins.indexer
     }
 
-    /// Whether this query's mutable reads wait on `publication` (the indexer's gate).
-    #[inline]
-    pub fn reads_under(&self, publication: &Publication) -> bool {
-        self.indexer().publication().ptr_eq(publication)
-    }
-
     /// The shared read-only plugin composition backing this query view.
     #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
     #[inline]
@@ -345,6 +303,20 @@ impl Query {
     #[inline]
     fn mempool(&self) -> Option<Arc<ReadOnlyState>> {
         self.0.mempool.as_ref().map(ReadOnlyMempool::load)
+    }
+
+    /// The mempool and the tip a lookup the chain answers first reads it at: the pin's, or the
+    /// pin's parent while the mempool has yet to follow the pin's block (it publishes only after
+    /// the chain does). The chain answering first, the parent's pool only adds what is still
+    /// pending; address views need the pin's own tip.
+    #[cfg(any(feature = "chain", feature = "price"))]
+    fn lookup_mempool(&self, pin: &SafeLengths) -> Option<(Arc<ReadOnlyState>, BlockHash)> {
+        let mempool = self.mempool()?;
+        let tip = match mempool.tip() {
+            Some(pool) if pool == pin.parent_tip() => pool,
+            _ => pin.tip(),
+        };
+        Some((mempool, tip))
     }
 
     #[cfg(feature = "series")]

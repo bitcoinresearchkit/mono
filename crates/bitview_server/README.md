@@ -95,11 +95,13 @@ and cannot undo a transaction already received by the node.
 
 ## Read availability
 
-Ordinary GET/HEAD reads share one five-second deadline across admission,
-publication waits, reads, and body preparation. Publication waits run on blocking
-workers and retain their admission until the worker finishes; response-capacity
-waits are asynchronous. Chain/mempool mismatches return a non-cacheable 503
-immediately. The HTTP handler itself is never replayed. Exhaustion returns a non-cacheable
+Ordinary GET/HEAD reads share one five-second deadline across admission, reads,
+and body preparation. Reads run on blocking workers against the last published
+state, without waiting for updates, and retain their admission until the worker
+finishes; response-capacity waits are asynchronous. A lookup the mempool must
+answer while no pool is at that state (starting up, a rollback) returns a
+non-cacheable 503 immediately; mempool data added to confirmed data is left out
+instead. The HTTP handler itself is never replayed. Exhaustion returns a non-cacheable
 504 with code `timeout`. Invalid input, genuine missing resources, disabled
 services, and storage failures retain their own errors. Actions are never replayed.
 
@@ -112,11 +114,11 @@ Response-capacity waits release snapshots first, then resolve and validate again
 before building the body. Matching validators still return 304 before reserving
 body capacity or serializing data, after required validity and consistency checks.
 
-Immutable block reads pin the published prefix, so append-only processing does
-not hide existing blocks. During rollback, the unaffected prefix stays readable;
-reads in the replaced tail wait for publication before deciding whether the
-block exists. This does not retain a second copy of the old chain. Mutable and
-cross-plugin reads retain their publication guards, including before a 304.
+Every read pins the published prefix, so append-only processing does not hide
+existing blocks. During rollback, the unaffected prefix stays readable; a block in
+the replaced tail is not found until the update publishes the new one. This does
+not retain a second copy of the old chain. Every read retains its pin, including
+before a 304.
 
 ## Configuration
 

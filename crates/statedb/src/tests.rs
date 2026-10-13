@@ -60,7 +60,7 @@ fn separate_producers_reconstruct_every_height_zero_value_outputs_and_same_block
         .collect::<Result<Vec<_>>>()
         .unwrap();
     let view = View::open(&snapshots, &inputs, &outputs).unwrap();
-    let reader = view.reader().unwrap();
+    let reader = view.reader(usize::MAX).unwrap();
     for (h, expected) in expected.iter().enumerate() {
         assert_eq!(reader.state_at(h + 1).unwrap().amounts(), *expected);
         assert_eq!(
@@ -210,7 +210,7 @@ fn replaces_tip_without_accumulating_old_snapshots_and_can_rewind_to_periodic_ti
             .len();
         assert!(size < 2000, "obsolete tips accumulated: {size}");
         let view = View::open(root.path(), root.path(), root.path()).unwrap();
-        let state = view.reader().unwrap().state_at(end).unwrap();
+        let state = view.reader(usize::MAX).unwrap().state_at(end).unwrap();
         assert_eq!(state.total(), amount(end as u64 * 10, end as u64));
     }
     spends.truncate(10).unwrap();
@@ -222,7 +222,7 @@ fn replaces_tip_without_accumulating_old_snapshots_and_can_rewind_to_periodic_ti
     assert_eq!(
         View::open(root.path(), root.path(), root.path())
             .unwrap()
-            .reader()
+            .reader(usize::MAX)
             .unwrap()
             .state_at(10)
             .unwrap()
@@ -246,7 +246,7 @@ fn empty_rewind_reopens_and_accepts_a_replacement_chain() -> Result<()> {
     created.truncate(0)?;
     history.advance(0, 0, &spends, &created, |_, _| Ok(()))?;
     let empty = View::open(root.path(), root.path(), root.path())?
-        .reader()?
+        .reader(usize::MAX)?
         .state_at(0)?;
     assert!(empty.is_empty());
     assert_eq!(empty.total(), Amount::default());
@@ -257,7 +257,7 @@ fn empty_rewind_reopens_and_accepts_a_replacement_chain() -> Result<()> {
     history.advance(0, 1, &spends, &created, |_, _| Ok(()))?;
     assert_eq!(
         View::open(root.path(), root.path(), root.path())?
-            .reader()?
+            .reader(usize::MAX)?
             .state_at(1)?
             .total(),
         amount(12, 1)
@@ -290,7 +290,7 @@ fn a_failed_visit_after_a_checkpoint_leaves_a_reopenable_published_prefix() -> R
     assert_eq!(history.reader(&spends, &created)?.len(), 3);
     assert_eq!(
         View::open(root.path(), root.path(), root.path())?
-            .reader()?
+            .reader(usize::MAX)?
             .state_at(3)?
             .total(),
         amount(30, 3)
@@ -298,10 +298,37 @@ fn a_failed_visit_after_a_checkpoint_leaves_a_reopenable_published_prefix() -> R
     history.advance(3, 8, &spends, &created, |_, _| Ok(()))?;
     assert_eq!(
         View::open(root.path(), root.path(), root.path())?
-            .reader()?
+            .reader(usize::MAX)?
             .state_at(8)?
             .total(),
         amount(80, 8)
     );
+    Ok(())
+}
+
+#[test]
+fn an_open_reader_keeps_its_snapshot_while_the_tip_is_replaced() -> Result<()> {
+    let root = tempdir()?;
+    let mut spends = Spends::open(root.path())?;
+    let mut created = Creations::open(root.path())?;
+    let mut history = History::open(root.path())?;
+    // Block 2 spends block 0's output, changing a row the state at 2 holds.
+    for h in 0..3 {
+        let spent = (h == 2).then_some((0, amount(10, 1)));
+        spends.push(block(h), spent)?;
+        created.push(block(h), amount(10, 1), None)?;
+    }
+    spends.commit()?;
+    created.commit()?;
+    history.advance(0, 2, &spends, &created, |_, _| Ok(()))?;
+    let view = View::open(root.path(), root.path(), root.path())?;
+    let reader = view.reader(usize::MAX)?;
+    history.advance(2, 3, &spends, &created, |_, _| Ok(()))?;
+    assert_eq!(reader.state_at(2)?.amounts()[0], amount(10, 1));
+    let view = View::open(root.path(), root.path(), root.path())?;
+    let reader = view.reader(usize::MAX)?;
+    assert_eq!(reader.len(), 3);
+    assert_eq!(reader.state_at(2)?.amounts()[0], amount(10, 1));
+    assert_eq!(reader.state_at(3)?.amounts()[0], Amount::default());
     Ok(())
 }

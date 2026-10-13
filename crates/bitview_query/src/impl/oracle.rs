@@ -25,11 +25,9 @@ impl Query {
     /// reconstructed by replaying the window ending at `height`. EMA values are
     /// seed-independent, so the result is exact.
     pub fn confirmed_payment_histogram(&self, height: usize) -> Result<HistogramEmaCompact> {
-        let _guard = self.read_publication()?;
-        let safe = self.check_histogram_height(height)?;
+        let pin = self.pin_safe_lengths()?;
+        let safe = self.check_histogram_height(height, pin.lengths())?;
         let seed = self.seed_bin_at(height)?;
-        let _pin = self.pin_safe_lengths()?;
-        drop(_guard);
         Ok(self
             .warm_oracle(seed, height + 1, &safe)?
             .ema()
@@ -42,14 +40,12 @@ impl Query {
     /// sequentially. Averaging keeps the result an intensive per-block rate rather
     /// than letting a busy day dominate.
     pub fn confirmed_payment_histogram_day(&self, day: Day1) -> Result<HistogramEmaCompact> {
-        let _guard = self.read_publication()?;
-        let safe = self.safe_lengths();
+        let pin = self.pin_safe_lengths()?;
+        let safe = pin.lengths();
         let range = self.day_block_range(day, &safe)?;
         let segments = Config::segments_for_range(range)
             .map(|segment| self.seed_bin_at(segment.start).map(|seed| (segment, seed)))
             .collect::<Result<Vec<_>>>()?;
-        let _pin = self.pin_safe_lengths()?;
-        drop(_guard);
         Ok(self
             .average_payment_histogram_range(segments, &safe)?
             .to_compact())
@@ -87,9 +83,9 @@ impl Query {
     /// mempool output binned by value, with none of the round-dollar payment
     /// filters applied. Zeros when no mempool is configured.
     pub fn live_output_histogram(&self) -> Result<HistogramRaw> {
-        let _pin = self.pin_safe_lengths()?;
-        Ok(match self.mempool() {
-            Some(mempool) => mempool.live_raw_histogram(&self.tip_blockhash())?,
+        let pin = self.pin_safe_lengths()?;
+        Ok(match self.lookup_mempool(&pin) {
+            Some((mempool, tip)) => mempool.live_raw_histogram(&tip)?,
             None => HistogramRaw::zeros(),
         })
     }
@@ -97,10 +93,8 @@ impl Query {
     /// Unfiltered per-bin output counts for a confirmed `height`: every output
     /// in the block binned by value, with no payment filtering.
     pub fn confirmed_output_histogram(&self, height: usize) -> Result<HistogramRaw> {
-        let _guard = self.read_publication()?;
-        let safe = self.check_histogram_height(height)?;
-        let _pin = self.pin_safe_lengths()?;
-        drop(_guard);
+        let pin = self.pin_safe_lengths()?;
+        let safe = self.check_histogram_height(height, pin.lengths())?;
         self.output_histogram_for_blocks(height..height + 1, &safe)
     }
 
@@ -108,34 +102,35 @@ impl Query {
     /// histogram summed bin-by-bin. Raw counts are additive, so the day total is
     /// just the sum across its confirmed blocks.
     pub fn confirmed_output_histogram_day(&self, day: Day1) -> Result<HistogramRaw> {
-        let _guard = self.read_publication()?;
-        let safe = self.safe_lengths();
+        let pin = self.pin_safe_lengths()?;
+        let safe = pin.lengths();
         let range = self.day_block_range(day, &safe)?;
-        let _pin = self.pin_safe_lengths()?;
-        drop(_guard);
         self.output_histogram_for_blocks(range, &safe)
     }
 
     /// The live tip oracle: the committed base, with the published pool's
     /// mempool outputs blended in as a final slot when a mempool is configured.
     fn live_oracle(&self) -> Result<Oracle> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
+        let tip = pin.tip();
         // Capture the completed mempool publication while the confirmed anchor
-        // is held stable, before doing potentially expensive window work.
-        let live = self
+        // is held stable, before doing potentially expensive window work. A pool
+        // not yet at this tip has nothing to blend.
+        let live = match self
             .mempool()
-            .map(|mempool| mempool.live_eligible_histogram(&self.tip_blockhash()))
-            .transpose()?;
-        let safe = self.safe_lengths();
+            .map(|mempool| mempool.live_eligible_histogram(&tip))
+        {
+            Some(Ok(histogram)) => Some(histogram),
+            None | Some(Err(brk_error::Error::StateUpdating)) => None,
+            Some(Err(error)) => return Err(error.into()),
+        };
+        let safe = pin.lengths();
         let height = safe.height.to_usize();
         let last = height
             .checked_sub(1)
             .ok_or_else(|| Error::NotFound("oracle prices not yet computed".to_owned()))?;
         let seed_bin = self.seed_bin_at(last)?;
-        let tip = self.tip_blockhash();
-        let revision = self.indexer().publication().revision();
-        let _pin = self.pin_safe_lengths()?;
-        drop(_guard);
+        let revision = pin.revision();
         let mut oracle = self
             .0
             .live_oracle
@@ -187,8 +182,7 @@ impl Query {
 
     /// `height < min(spot price len, safe height)` or 404.
     /// Returns the safe lengths so callers cap reads at the same bound.
-    fn check_histogram_height(&self, height: usize) -> Result<Lengths> {
-        let safe = self.safe_lengths();
+    fn check_histogram_height(&self, height: usize, safe: Lengths) -> Result<Lengths> {
         let bound = self.histogram_bound(&safe);
         if height >= bound {
             return Err(Error::NotFound(format!(

@@ -18,10 +18,12 @@ impl Query {
         time_period: Option<TimePeriod>,
         max_points: usize,
     ) -> Result<HashrateSummary> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
+        let _scope = self.read_scope(&pin);
+        let tip = Query::tip_height(&pin);
         let indexer = self.indexer();
         let plugins = self.plugins();
-        let current_height = self.height();
+        let current_height = tip;
 
         let current_difficulty = *indexer
             .vecs()
@@ -40,7 +42,7 @@ impl Query {
 
         let end = current_height.to_usize();
         let start = match time_period {
-            Some(tp) => start_height(self, tp)?.to_usize(),
+            Some(tp) => start_height(self, tp, tip)?.to_usize(),
             None => 0,
         };
 

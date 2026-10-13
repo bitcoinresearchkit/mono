@@ -93,7 +93,7 @@ impl PoolHeights {
 
     /// Height where reward totals must resume; everything from it is (re)filled.
     pub(crate) fn totals_start(&self, version: Version) -> usize {
-        let state = self.0.read();
+        let state = self.0.read_recursive();
         if state.totals_version == version {
             state.totals_len
         } else {
@@ -126,7 +126,7 @@ impl PoolHeights {
     }
 
     pub fn block_numbers(&self, slugs: &[PoolSlug], first_height: Height) -> Vec<u64> {
-        let state = self.0.read();
+        let state = self.0.read_recursive();
         let first_height = first_height.to_usize();
 
         slugs
@@ -146,7 +146,7 @@ impl PoolHeights {
         through_height: Height,
         limit: usize,
     ) -> Vec<Height> {
-        let state = self.0.read();
+        let state = self.0.read_recursive();
         let Some(record) = state.by_pool.get(&slug) else {
             return Vec::new();
         };
@@ -234,7 +234,7 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
         if from >= to {
             return Ok(());
         }
-        let state = self.pool_heights.0.read();
+        let state = self.pool_heights.0.read_recursive();
         let record = state.by_pool.get(&self.slug);
         let heights = record.map_or(&[][..], |record| record.heights.as_slice());
         let mut position = heights.partition_point(|height| height.to_usize() < from);
@@ -253,7 +253,7 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
 
 impl<T: VecValue + From<u64>> AnyVec for PoolCumulativeVec<T> {
     fn version(&self) -> Version {
-        let state = self.pool_heights.0.read();
+        let state = self.pool_heights.0.read_recursive();
         match self.column {
             Column::Blocks => state.version,
             _ => state.version + state.totals_version,
@@ -265,7 +265,7 @@ impl<T: VecValue + From<u64>> AnyVec for PoolCumulativeVec<T> {
     }
 
     fn len(&self) -> usize {
-        let state = self.pool_heights.0.read();
+        let state = self.pool_heights.0.read_recursive();
         match self.column {
             Column::Blocks => state.len,
             _ => state.totals_len.min(state.len),
@@ -337,7 +337,7 @@ impl<T: VecValue + From<u64>> ReadableVec<Height, T> for PoolCumulativeVec<T> {
         if index >= self.len() {
             return None;
         }
-        let state = self.pool_heights.0.read();
+        let state = self.pool_heights.0.read_recursive();
         let record = state.by_pool.get(&self.slug);
         let heights = record.map_or(&[][..], |record| record.heights.as_slice());
         Some(self.total(record, PoolHeights::cumulative_count(heights, index)))
@@ -348,7 +348,7 @@ impl<T: VecValue + From<u64>> ReadableVec<Height, T> for PoolCumulativeVec<T> {
             return;
         };
         let len = self.len();
-        let state = self.pool_heights.0.read();
+        let state = self.pool_heights.0.read_recursive();
         let record = state.by_pool.get(&self.slug);
         let heights = record.map_or(&[][..], |record| record.heights.as_slice());
         let mut position = heights.partition_point(|height| height.to_usize() < first);
