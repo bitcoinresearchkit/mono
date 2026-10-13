@@ -14,8 +14,9 @@ use crate::{AnyStoredVec, HEADER_OFFSET, ReadOnlyRawVec, VecIndex, VecValue, cac
 /// [`MutableVec`](crate::MutableVec) applies its update and hole overlays around
 /// this reader.
 ///
-/// The reader holds the current mmap generation alive. Drop long-lived readers
-/// before writes that may grow the database and remap the file.
+/// The reader keeps its region's bytes in place: drop long-lived readers before
+/// writes that rewrite, truncate or move the region. Appends within its
+/// reserved capacity do not wait for them; ones that must grow it do.
 pub struct VecReader<I, T, S> {
     _reader: Reader,
     data: *const u8,

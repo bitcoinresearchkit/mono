@@ -130,8 +130,7 @@ fn write_chunk<T>(
     _store: &impl Fn(usize, &T),
     write_fn: &impl Fn(&T, &mut [u8]),
 ) -> io::Result<()> {
-    // SAFETY: the caller's barrier keeps the mapping in place for the whole call.
-    let mapping = unsafe { data.mapping() };
+    let mapping = data.mapping();
     let cached = is_fully_resident(mapping, first, len);
     let mut pages = vec![Page([0; IO_PAGE]); len / IO_PAGE];
     // SAFETY: `Page` is a plain byte array, so the vector is `len` contiguous initialized bytes.
@@ -180,8 +179,7 @@ fn write_chunk<T>(
     store: &impl Fn(usize, &T),
     _write_fn: &impl Fn(&T, &mut [u8]),
 ) -> io::Result<()> {
-    // SAFETY: the caller's barrier keeps the mapping in place for the whole call.
-    if !is_fully_resident(unsafe { data.mapping() }, first, len) {
+    if !is_fully_resident(data.mapping(), first, len) {
         data.read_cached(first, &mut vec![0; len])?;
     }
     for (index, value) in values {

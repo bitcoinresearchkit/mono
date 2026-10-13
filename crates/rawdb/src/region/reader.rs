@@ -1,7 +1,6 @@
 use std::{mem, slice};
 
-use memmap2::MmapRaw;
-use parking_lot::{RwLockReadGuard, lock_api::RawRwLock};
+use parking_lot::lock_api::RawRwLock;
 
 use crate::Database;
 
@@ -9,13 +8,11 @@ use super::Region;
 
 /// Zero-copy reader that keeps this region's bytes and bounds stable.
 ///
-/// Drop before modifying this region or growing the database mapping.
+/// Drop before modifying this region.
 #[must_use = "Reader holds locks and should be used for reading"]
 pub struct Reader {
-    // SAFETY: Drop order matters. `mmap` (the lock guard) must drop before `_db`
-    // (the Arc). Rust drops fields in declaration order, so this is correct.
-    mmap: RwLockReadGuard<'static, MmapRaw>,
-    start: usize,
+    /// The region's first byte in the database mapping, which never moves while `_db` lives.
+    base: *const u8,
     len: usize,
     _region: Region,
     _db: Database,
@@ -27,18 +24,16 @@ impl Reader {
         let db = region.db();
         let access = region.read_lock();
 
-        // SAFETY: access keeps metadata stable for the reader's lifetime.
+        // SAFETY: access keeps start stable for the reader's lifetime; the length only grows.
         let (start, len, _) = unsafe { region.0.bounds() };
 
-        // SAFETY: Transmute extends the guard lifetime to 'static. This is safe
-        // because `_db` (the Arc) outlives `mmap` (the guard) — see struct field order.
-        let mmap: RwLockReadGuard<'static, MmapRaw> =
-            unsafe { mem::transmute(db.inner.data.read()) };
-        debug_assert!(start <= mmap.len() && len <= mmap.len() - start);
+        let mapping = db.inner.data.mapping();
+        debug_assert!(start <= mapping.len() && len <= mapping.len() - start);
+        // SAFETY: start lies within the mapping.
+        let base = unsafe { mapping.as_ptr().add(start) };
 
         let reader = Self {
-            mmap,
-            start,
+            base,
             len,
             _region: region.clone(),
             _db: db,
@@ -51,9 +46,9 @@ impl Reader {
 
     pub fn read(&self, offset: usize, len: usize) -> &[u8] {
         assert!(len <= self.len() && offset <= self.len() - len);
-        // SAFETY: allocation/import validate region bounds;
-        // the owned region lock and mmap guard keep bytes and address stable.
-        unsafe { slice::from_raw_parts(self.mmap.as_ptr().add(self.start + offset), len) }
+        // SAFETY: allocation/import validate region bounds; the owned region lock keeps these bytes
+        // in place and unchanged, and the database keeps the mapping alive.
+        unsafe { slice::from_raw_parts(self.base.add(offset), len) }
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -71,10 +66,14 @@ impl Reader {
     }
 }
 
+// SAFETY: the pointed-to bytes stay in place and unchanged while the reader holds its region's
+// shared access, and its database handle keeps the mapping alive; shared reads need nothing else.
+unsafe impl Sync for Reader {}
+
 impl Drop for Reader {
     fn drop(&mut self) {
         // SAFETY: new transfers exactly one shared lock count after construction
-        // succeeds. The region remains owned here, and both locks are released
+        // succeeds. The region remains owned here, and the region lock is released
         // before the database field can join deferred workers.
         unsafe { self._region.0.access.raw().unlock_shared() };
     }

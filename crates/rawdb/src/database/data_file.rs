@@ -10,7 +10,7 @@ use std::{
 use std::{io, os::unix::fs::FileExt};
 
 use memmap2::{MmapOptions, MmapRaw};
-use parking_lot::{Mutex, RwLock, RwLockReadGuard};
+use parking_lot::Mutex;
 
 use crate::{Error, PAGE_SIZE, Result};
 
@@ -24,10 +24,11 @@ pub(crate) struct DataFile {
     /// cached copy; uncached reads see unflushed writes through the mapping.
     #[cfg(target_os = "macos")]
     uncached: File,
-    /// Maps the file's reserved address space, so growing the file inside it needs no remap.
-    mmap: RwLock<MmapRaw>,
+    /// Maps the file's reserved address space once: growing the file inside it needs no remap, so
+    /// the mapping never moves.
+    mmap: MmapRaw,
     /// Length of `mmap`, the file's reserved address space.
-    mapped: AtomicUsize,
+    mapped: usize,
     len: AtomicUsize,
     /// Serializes growth.
     grow: Mutex<()>,
@@ -52,8 +53,8 @@ impl DataFile {
             file,
             #[cfg(target_os = "macos")]
             uncached,
-            mmap: RwLock::new(mmap),
-            mapped: AtomicUsize::new(mapped),
+            mmap,
+            mapped,
             len: AtomicUsize::new(len),
             grow: Mutex::default(),
         })
@@ -71,18 +72,19 @@ impl DataFile {
         self.len.load(Ordering::Relaxed)
     }
 
-    #[inline]
-    pub(crate) fn read(&self) -> RwLockReadGuard<'_, MmapRaw> {
-        self.mmap.read_recursive()
-    }
-
-    /// Grows the file to at least `len` bytes. Inside the reserved mapping this only extends the
-    /// file, so it never waits for readers: a writer may grow while holding locks readers wait on.
-    /// Only outgrowing the reservation remaps, which waits for every reader.
-    pub(crate) fn ensure_len(&self, len: usize, writes: &RwLock<()>) -> Result<()> {
+    /// Grows the file to at least `len` bytes inside its reserved mapping, so it never waits for
+    /// readers: a writer may grow while holding locks readers wait on. Past the reservation (four
+    /// times the file at open, at least 1 TiB) it fails; reopening reserves more.
+    pub(crate) fn ensure_len(&self, len: usize) -> Result<()> {
         let len = Self::aligned_len(len)?;
         if self.len() >= len {
             return Ok(());
+        }
+        if len > self.mapped {
+            return Err(Error::ReservationExhausted {
+                requested: len,
+                reserved: self.mapped,
+            });
         }
         let _grow = self.grow.lock();
         let current_len = self.len();
@@ -90,32 +92,9 @@ impl DataFile {
             return Ok(());
         }
         let target_len =
-            Self::aligned_len(len.max(current_len.saturating_mul(2)).max(1024 * 1024))?;
-        let mapped = self.mapped.load(Ordering::Relaxed);
-        if len <= mapped {
-            let target_len = target_len.min(mapped);
-            self.file.set_len(target_len as u64)?;
-            self.len.store(target_len, Ordering::Relaxed);
-            return Ok(());
-        }
-        // Past the reservation (four times the file at open, at least 1 TiB): the remap waits for
-        // every reader of the mapping, so a writer holding a region or page lock that reader wants
-        // could deadlock. Unreachable while each run's growth stays within the reservation.
-        let (mut mmap, _writes) = loop {
-            let mmap = self.mmap.write();
-            if let Some(writes) = writes.try_write() {
-                break (mmap, writes);
-            }
-            // A batch may hold the barrier while reading another region. Never
-            // hold the mapping lock while waiting for that batch to finish.
-            drop(mmap);
-            drop(writes.write());
-        };
+            Self::aligned_len(len.max(current_len.saturating_mul(2)).max(1024 * 1024))?
+                .min(self.mapped);
         self.file.set_len(target_len as u64)?;
-        let mapped = Self::reservation(target_len);
-        *mmap = MmapOptions::new().len(mapped).map_raw(&self.file)?;
-        // A failed remap leaves the old capacity usable; a later growth retries.
-        self.mapped.store(mapped, Ordering::Relaxed);
         self.len.store(target_len, Ordering::Relaxed);
         Ok(())
     }
@@ -126,23 +105,21 @@ impl DataFile {
             .ok_or(Error::FileSizeOverflow { requested: len })
     }
 
-    /// # Safety
-    /// Hold the database mutation barrier throughout use of this mapping.
-    pub(crate) unsafe fn mapping(&self) -> &MmapRaw {
-        // Remapping takes both the mapping lock and the exclusive mutation barrier.
-        unsafe { &*self.mmap.data_ptr() }
+    /// The file's mapping: it never moves while the file is open.
+    pub(crate) fn mapping(&self) -> &MmapRaw {
+        &self.mmap
     }
 
     /// # Safety
-    /// Hold the mutation barrier and exclusive access to the destination region.
+    /// Hold the mutation barrier and exclusive access to the destination bytes.
     pub(crate) unsafe fn write(&self, start: usize, bytes: &[u8]) {
-        unsafe { write_to_mmap(self.mapping(), start, bytes) };
+        unsafe { write_to_mmap(&self.mmap, start, bytes) };
     }
 
     /// # Safety
     /// Hold the mutation barrier and exclusively own the source and destination.
     pub(crate) unsafe fn copy(&self, src: usize, dst: usize, len: usize) {
-        let mmap = unsafe { self.mapping() };
+        let mmap = &self.mmap;
         assert!(src <= mmap.len() && len <= mmap.len() - src);
         assert!(dst <= mmap.len() && len <= mmap.len() - dst);
         assert!(src + len <= dst || dst + len <= src);
@@ -177,11 +154,11 @@ impl DataFile {
     /// the mutation barrier and exclusive access to the range, and no page in it is dirty.
     #[cfg(target_os = "macos")]
     pub(crate) fn invalidate(&self, start: usize, len: usize) -> io::Result<()> {
-        // SAFETY: the barrier keeps the mapping in place; the caller's range lies within it, and
-        // invalidating clean pages only drops cached copies of what is on disk.
+        // SAFETY: the caller's range lies within the mapping, and invalidating clean pages only
+        // drops cached copies of what is on disk.
         let result = unsafe {
             libc::msync(
-                self.mapping().as_mut_ptr().add(start).cast(),
+                self.mmap.as_mut_ptr().add(start).cast(),
                 len,
                 libc::MS_INVALIDATE,
             )

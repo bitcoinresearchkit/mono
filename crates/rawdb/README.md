@@ -69,18 +69,20 @@ error; valid-looking data corruption cannot be detected by rawdb.
 ## Concurrency and lifetimes
 
 - A `Reader`, `with_read_bytes` callback, or `read_lock` guard keeps its region
-  stable. Writes, truncation, and relocation of that region wait for readers.
-- Readers expose only their region's logical bytes. `read` checks its range;
-  `read_from` returns bytes from an offset to the region's end.
-- Drop readers before mutating the same region. Mmap readers also prevent
-  remapping, so drop them before an operation that grows the database file.
-  `reserve_capacity` can arrange capacity before acquiring readers.
+  stable. Appends within the region's reservation go past every reader's bounds
+  and do not wait; other writes, truncation, and relocation wait for readers.
+- Readers expose only their region's logical bytes, and borrow only the bytes
+  they read. `read` checks its range; `read_from` returns bytes from an offset
+  to the region's end.
+- Drop readers before rewriting the same region. `reserve_capacity` can arrange
+  capacity before acquiring readers.
+- The data file maps a reserved address range once (four times its size at open,
+  at least 1 TiB): growing the file inside it never remaps. Growing past it fails
+  with `ReservationExhausted`; reopening reserves more.
 - Different regions can be written concurrently within the existing mapping.
   Allocation changes are serialized. Flush and compaction exclude mutations,
   while ordinary reads can continue.
-- Batch callbacks must not reenter their region or resize/flush the database.
-  They may read other regions while file growth waits, except indexed batch
-  writes' callbacks, which must not access the database at all. Indexed batch
+- Indexed batch write callbacks must not access the database. Indexed batch
   writes go in no particular order; if a callback panics, the values and chunks
   already written stay written.
 - Keep a `Database` alive while using region handles. A `Reader` owns the

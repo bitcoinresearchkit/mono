@@ -248,8 +248,8 @@ fn indexed_writes_match_the_mapping_across_pages_neighbors_and_reopen() -> Resul
     #[cfg(unix)]
     {
         let _writes = db.inner.writes.write();
-        // SAFETY: the exclusive barrier keeps the mapping in place; msync only flushes and drops pages.
-        let mapping = unsafe { db.inner.data.mapping() };
+        // The exclusive barrier keeps writes out; msync only flushes and drops pages.
+        let mapping = db.inner.data.mapping();
         let evict =
             |flags| unsafe { libc::msync(mapping.as_mut_ptr().cast(), mapping.len(), flags) };
         assert_eq!(evict(libc::MS_SYNC), 0);
@@ -299,8 +299,7 @@ fn indexed_writes_match_the_mapping_across_pages_neighbors_and_reopen() -> Resul
     #[cfg(target_os = "macos")]
     {
         let _writes = db.inner.writes.read();
-        // SAFETY: the barrier keeps the mapping in place for this probe.
-        let mapping = unsafe { db.inner.data.mapping() };
+        let mapping = db.inner.data.mapping();
         let page = (start + AT + 20_000 * LEN) / 16384 * 16384;
         assert!(crate::region::residency::is_fully_resident(
             mapping, page, 16384
@@ -338,7 +337,7 @@ fn growing_the_file_never_waits_for_a_reader() -> Result<()> {
     let len = 64 * 1024 * 1024;
     let (done, finished) = std::sync::mpsc::channel();
     let grown = thread::scope(|scope| {
-        // Far past the file's end: without the reserved mapping this remaps, waiting for `reader`.
+        // Far past the file's end, inside the reserved mapping: growth waits for no reader.
         scope.spawn(|| done.send(grower.write(&vec![7; len])).unwrap());
         let grown = finished.recv_timeout(std::time::Duration::from_secs(30));
         assert_eq!(reader.read(0, 4), b"held");

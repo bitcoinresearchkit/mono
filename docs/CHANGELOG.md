@@ -930,8 +930,9 @@ has to be deleted by hand.
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`
   (storage layout) regenerate and snapshot the generated outputs; `cargo api` records the snapshot the client test
   reads. The dev profile drops cross-crate LTO and uses limited debuginfo
-- rawdb maps a reserved address range per data file (four times its size at open, at least 1 TiB), so growing a file
-  remaps it only past that range and a writer does not wait for readers to release the mapping. An append within a
+- rawdb maps a reserved address range per data file once (four times its size at open, at least 1 TiB): growing a
+  file never remaps it, so a writer never waits for readers to release the mapping, and growing past the range fails
+  with `ReservationExhausted` (reopening reserves more) instead of remapping. An append within a
   region's reservation shares the region with its readers instead of waiting for them: it writes past every reader's
   bounds and the region length is atomic, published after the bytes. Readers borrow only the bytes they read
   (`with_read_bytes` takes an offset). Read guards on data an

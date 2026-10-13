@@ -46,8 +46,8 @@ impl Region {
         self.0.access.read_recursive()
     }
 
-    /// Runs `f` with the region's bytes from `offset` to its end. The callback must not mutate
-    /// this region or grow the database mapping while the borrowed bytes are alive.
+    /// Runs `f` with the region's bytes from `offset` to its end. The callback must not rewrite,
+    /// truncate or move this region (or append past its reservation) while the bytes are alive.
     #[inline(always)]
     pub fn with_read_bytes<R>(&self, offset: usize, f: impl FnOnce(&[u8]) -> R) -> R {
         let db = self.db();
@@ -56,10 +56,10 @@ impl Region {
         // SAFETY: access keeps start and reservation stable; the length only grows under it.
         let (start, len, _) = unsafe { self.0.bounds() };
         assert!(offset <= len);
-        let mmap = data.read();
+        let mmap = data.mapping();
         debug_assert!(start <= mmap.len() && len <= mmap.len() - start);
-        // SAFETY: access prevents changes to these bytes (appends go past them), and mmap prevents
-        // remapping.
+        // SAFETY: access prevents changes to these bytes (appends go past them), and the mapping
+        // never moves.
         f(unsafe { slice::from_raw_parts(mmap.as_ptr().add(start + offset), len - offset) })
     }
 
@@ -93,8 +93,7 @@ impl Region {
         };
         drop(meta);
 
-        let mmap = db.inner.data.read();
-        is_range_resident(&mmap, absolute_start, len)
+        is_range_resident(db.inner.data.mapping(), absolute_start, len)
     }
 
     /// Ensures the region has at least `capacity` bytes of reserved space.
@@ -140,59 +139,51 @@ impl Region {
         let start = meta.start();
         let reserved = meta.reserved();
         drop(meta);
-        loop {
-            let writes = db.inner.writes.read();
-            let mut layout = db.layout_mut();
-            let added = capacity - reserved;
-            let next = start + reserved;
-            let adjacent = layout.get_hole(next).is_some_and(|hole| hole >= added);
-            let layout_end = layout.end();
-            let in_place = next == layout_end || adjacent;
-            let hole = if in_place {
-                None
-            } else {
-                layout.find_smallest_adequate_hole(capacity)
-            };
-            let new_start = if in_place {
-                start
-            } else {
-                hole.unwrap_or(layout_end)
-            };
-            let end = new_start
-                .checked_add(capacity)
-                .ok_or(Error::FileSizeOverflow {
-                    requested: capacity,
-                })?;
-            if end > db.file_len() {
-                // Never wait for mmap readers while holding allocation or
-                // mutation-barrier locks. No tentative allocation needs rollback.
-                drop(layout);
-                drop(writes);
-                db.inner.data.ensure_len(end, &db.inner.writes)?;
-                continue;
+        let writes = db.inner.writes.read();
+        let mut layout = db.layout_mut();
+        let added = capacity - reserved;
+        let next = start + reserved;
+        let adjacent = layout.get_hole(next).is_some_and(|hole| hole >= added);
+        let layout_end = layout.end();
+        let in_place = next == layout_end || adjacent;
+        let hole = if in_place {
+            None
+        } else {
+            layout.find_smallest_adequate_hole(capacity)
+        };
+        let new_start = if in_place {
+            start
+        } else {
+            hole.unwrap_or(layout_end)
+        };
+        let end = new_start
+            .checked_add(capacity)
+            .ok_or(Error::FileSizeOverflow {
+                requested: capacity,
+            })?;
+        // Growth stays inside the mapping: it waits for no one.
+        db.inner.data.ensure_len(end)?;
+        if adjacent {
+            layout.consume_hole(next, added);
+        } else if !in_place {
+            if hole.is_some() {
+                layout.consume_hole(new_start, capacity);
             }
-            if adjacent {
-                layout.consume_hole(next, added);
-            } else if !in_place {
-                if hole.is_some() {
-                    layout.consume_hole(new_start, capacity);
-                }
-                layout.move_region(new_start, self);
-            }
-            let mut meta = self.0.meta.write();
-            meta.set_start(new_start);
-            meta.set_reserved(capacity);
-            self.0.tail_needs_punch.store(true, Ordering::Relaxed);
-            drop(meta);
-            drop(layout);
-            if !in_place {
-                // The layout now reserves the destination. Region access keeps
-                // readers out, and the barrier prevents flushing or remapping
-                // until the copy and the caller's write have both completed.
-                unsafe { db.inner.data.copy(start, new_start, copy_len) };
-            }
-            return Ok(writes);
+            layout.move_region(new_start, self);
         }
+        let mut meta = self.0.meta.write();
+        meta.set_start(new_start);
+        meta.set_reserved(capacity);
+        self.0.tail_needs_punch.store(true, Ordering::Relaxed);
+        drop(meta);
+        drop(layout);
+        if !in_place {
+            // The layout now reserves the destination. Region access keeps
+            // readers out, and the barrier prevents flushing until the copy
+            // and the caller's write have both completed.
+            unsafe { db.inner.data.copy(start, new_start, copy_len) };
+        }
+        Ok(writes)
     }
 
     /// Appends data to the region.
@@ -212,7 +203,7 @@ impl Region {
     /// chunks on a few threads (see `indexed`); elsewhere they are stored through the mapping. If a
     /// callback or value destructor panics, what was already written stays written. Callbacks and
     /// destructors must not access this database: this region's access and the database's mutation
-    /// barrier are held throughout, so reading a region whose growth waits on the barrier would deadlock.
+    /// barrier are held throughout, so waiting on either from a callback would deadlock.
     pub fn write_indexed<T: Sync>(
         &self,
         values: BTreeMap<usize, T>,
@@ -232,12 +223,12 @@ impl Region {
         let storage = &**db.inner;
         let _access = self.0.access.write();
         let _writes = storage.writes.read();
-        // SAFETY: access keeps bounds stable; the barrier prevents remapping.
+        // SAFETY: access keeps bounds stable; the barrier keeps flushing and hole punching out.
         let (region_start, region_len, _reserved) = unsafe { self.0.bounds() };
         assert!(end <= region_len, "batch bounds exceed region");
         let base = region_start + at;
         // SAFETY: at <= end <= region_len, so every value lies within this region; access excludes its
-        // readers and other writers, and the barrier keeps the validated mapping in place.
+        // readers and other writers, and the mapping never moves.
         let store = |index: usize, value: &T| {
             let bytes = unsafe {
                 let ptr = storage

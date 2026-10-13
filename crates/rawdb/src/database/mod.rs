@@ -72,7 +72,7 @@ impl Database {
     }
 
     /// Cached mapped file length (no syscall).
-    pub(crate) fn file_len(&self) -> usize {
+    fn file_len(&self) -> usize {
         self.inner.data.len()
     }
 
@@ -81,7 +81,7 @@ impl Database {
         if len <= self.file_len() {
             return Ok(());
         }
-        self.inner.data.ensure_len(len, &self.inner.writes)
+        self.inner.data.ensure_len(len)
     }
 
     /// Identifiers of every region in the database, sorted.
@@ -104,37 +104,28 @@ impl Database {
             return Ok(region);
         }
         RegionMetadata::validate_id(id)?;
-        loop {
-            let writes = self.inner.writes.read();
-            let mut layout = self.layout_mut();
-            let mut regions = self.regions_mut();
-            if let Some(region) = regions.get(id).cloned() {
-                region.0.mark_accessed();
-                return Ok(region);
-            }
-            let hole = layout.find_smallest_adequate_hole(PAGE_SIZE);
-            let start = hole.unwrap_or_else(|| layout.end());
-            let end = start
-                .checked_add(PAGE_SIZE)
-                .ok_or(Error::FileSizeOverflow { requested: start })?;
-            if end > self.file_len() {
-                // Readers can still inspect the registry or flush while a
-                // remap waits for them. Recheck allocation after growing.
-                drop(regions);
-                drop(layout);
-                drop(writes);
-                self.inner.data.ensure_len(end, &self.inner.writes)?;
-                continue;
-            }
-            let region = regions.create(self, Arc::from(id), start)?;
-            if hole.is_some() {
-                layout.consume_hole(start, PAGE_SIZE);
-                region.0.tail_needs_punch.store(true, Ordering::Relaxed);
-            }
-            layout.insert_region(start, &region);
+        let _writes = self.inner.writes.read();
+        let mut layout = self.layout_mut();
+        let mut regions = self.regions_mut();
+        if let Some(region) = regions.get(id).cloned() {
             region.0.mark_accessed();
             return Ok(region);
         }
+        let hole = layout.find_smallest_adequate_hole(PAGE_SIZE);
+        let start = hole.unwrap_or_else(|| layout.end());
+        let end = start
+            .checked_add(PAGE_SIZE)
+            .ok_or(Error::FileSizeOverflow { requested: start })?;
+        // Growth stays inside the mapping: it waits for no one.
+        self.inner.data.ensure_len(end)?;
+        let region = regions.create(self, Arc::from(id), start)?;
+        if hole.is_some() {
+            layout.consume_hole(start, PAGE_SIZE);
+            region.0.tail_needs_punch.store(true, Ordering::Relaxed);
+        }
+        layout.insert_region(start, &region);
+        region.0.mark_accessed();
+        Ok(region)
     }
 
     pub fn remove_region_if_exists(&self, id: &str) -> Result<()> {

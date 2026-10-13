@@ -10,12 +10,12 @@ use crate::{AnyStoredVec, HEADER_OFFSET, READ_CHUNK_SIZE, VecIndex, VecValue, ca
 /// Only sees **stored** (persisted) values — pushed but unflushed values
 /// are not visible. Created with a range and consumed by fold/try_fold/for_each.
 ///
-/// The data slice is computed once at construction time (matching Reader's
-/// own `transmute` pattern), so fold/for_each are direct slice operations.
+/// The data slice is computed once at construction time, so fold/for_each are
+/// direct slice operations.
 pub struct RawMmapSource<I, T, S> {
-    // SAFETY: Field order matters. `_reader` keeps the mmap guard alive.
-    // `data` is a pointer into that mmap. `_reader` must outlive `data`,
-    // which it does because `data` is a raw pointer with no destructor.
+    // SAFETY: `_reader` holds the region's shared access and its database
+    // handle keeps the fixed mapping alive. `data` points into that mapping
+    // and has no destructor, so `_reader` outlives every use of it.
     _reader: Reader,
     data: *const u8,
     pos: usize,
@@ -23,8 +23,8 @@ pub struct RawMmapSource<I, T, S> {
     _marker: PhantomData<(I, T, S)>,
 }
 
-// SAFETY: RawMmapSource is read-only. The mmap data it points to is shared
-// immutable memory protected by Reader's RwLockReadGuard, which is Sync.
+// SAFETY: RawMmapSource is read-only. The bytes it points to stay in place and
+// unchanged while its `Reader` holds the region's shared access.
 
 impl<I, T, S> RawMmapSource<I, T, S>
 where

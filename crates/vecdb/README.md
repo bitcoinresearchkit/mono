@@ -67,9 +67,10 @@ other corruption is an error.
 - `collect`, `collect_range`, folds, and iterators provide sequential access.
 - `truncate_if_needed` removes a suffix without changing earlier indexes.
 
-Readers and cursors keep their backing regions stable. Drop them before writing
-or truncating those same regions, and before growing the database mapping.
-Writes within another region's existing capacity can proceed while readers
+Readers and cursors keep their backing regions stable. Drop them before
+rewriting, truncating or moving those same regions; an append within a region's
+reserved capacity goes past every reader and does not wait for them, while one
+that must grow the capacity does. Writes to other regions proceed while readers
 are alive. Buffered file readers use the same region lock as mmap readers.
 
 Wrap `BytesVec` or `ZeroCopyVec` in `MutableVec` when existing positions must be

@@ -46,6 +46,11 @@ pub enum Error {
     #[error("Database file size exceeds the addressable range: {requested}")]
     FileSizeOverflow { requested: usize },
 
+    #[error(
+        "Database file outgrew its reserved address space ({reserved} bytes, {requested} needed): restart to reserve more"
+    )]
+    ReservationExhausted { requested: usize, reserved: usize },
+
     #[error("Background task panicked")]
     BackgroundTaskPanicked,
 
