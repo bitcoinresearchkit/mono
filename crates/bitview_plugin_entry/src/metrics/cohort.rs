@@ -45,8 +45,7 @@ impl CohortMetrics {
         let sources = Sources::import(db, id, version)?;
         let realized = RealizedMetrics::import(db, id, version, &sources, mappings, windows)?;
         let cost_basis = CostBasisMetrics::import(db, id, version, &sources, mappings)?;
-        let unrealized =
-            UnrealizedMetrics::new(id, version, &sources, &cost_basis.per_coin.avg, mappings);
+        let unrealized = UnrealizedMetrics::new(id, version, &sources, mappings, prices);
         Ok(Self {
             supply: SupplyMetrics::new(
                 id,

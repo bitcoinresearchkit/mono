@@ -13,7 +13,7 @@ pub use price::price_ratio;
 mod price_times;
 pub use price_times::PriceTimesRatio;
 mod nupl;
-pub use nupl::MvrvToNupl;
+pub use nupl::AvivNupl;
 mod quotient;
 pub use quotient::Quotient;
 mod relative_change;

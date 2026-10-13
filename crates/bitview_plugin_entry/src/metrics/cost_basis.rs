@@ -14,13 +14,13 @@ use super::Sources;
 pub struct CostBasisMetrics<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by satoshis.
-    pub(crate) per_coin: PerCoin<M>,
+    per_coin: PerCoin<M>,
 }
 
 #[derive(Traversable)]
 pub struct PerCoin<M: StorageMode = Rw> {
     /// The weighted mean.
-    pub(crate) avg: PriceWithMvrv<M>,
+    avg: PriceWithMvrv<M>,
     /// Realized price: realized cap divided by supply, the weighted mean.
     realized_price: Price<LazyPerBlock<Cents>>,
 }

@@ -720,6 +720,13 @@ has to be deleted by hand.
 - Coinflow's expected spending exposure integrates through age ranges where nothing moved (it stopped there and
   extrapolated the fit) and stops only where a range is empty, and the youngest range's remaining half hour counts as
   a half hour (was an hour). Mobility and everything weighted by it follow
+- NUPL comes from the quantities that define it rather than a rounded price or MVRV: an entry cohort's from its net
+  unrealized profit/loss over its market cap (its supply at spot, as for holder cohorts), AVIV NUPL from active
+  capitalization above investor capitalization. Both were null when a sub-cent mean price floored to zero (e.g. `veteran_nupl` at block
+  74,641) or True Market Mean was zero
+- Investor capitalization is signed (realized cap minus thermo cap goes negative when coins are re-acquired for less
+  than their issuance value, which would have stopped the computation; it has not happened yet), and so is
+  investorness. True Market Mean is null unless investor capitalization is positive, and AVIV with it
 - An age range whose weight its history cannot define yet (no coin-days in the range: Cointime's wakefulness at the
   instant coins first enter it) counts its coins as dormant: they were on neither side, left out of the in-loss
   share (which could show 0% in loss) and of the cost basis, and turned every awake cohort's cost-basis percentiles

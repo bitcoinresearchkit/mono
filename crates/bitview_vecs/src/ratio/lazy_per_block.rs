@@ -4,9 +4,9 @@ use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{Ident, ReadableCloneableVec, UnaryTransform};
+use vecdb::{BinaryTransform, Ident, ReadableCloneableVec};
 
-use crate::{IndexSources, LazyPerBlock, Resolutions};
+use crate::{IndexSources, LazyIndexedVec, LazyPerBlock};
 
 /// Fully lazy variant of `RatioPerBlock` derived from one per-block source.
 #[derive(Clone, Traversable)]
@@ -23,28 +23,33 @@ where
     ratio: LazyPerBlock<Ratio, R>,
 }
 
-impl<R, S> LazyRatioPerBlock<R, S>
-where
-    R: FixedRatio,
-    S: NumericValue + JsonSchema,
-{
-    /// Transform one stored per-block source.
-    pub fn from_resolutions<F>(name: &str, version: Version, source: &Resolutions<S>) -> Self
-    where
-        F: UnaryTransform<S, R>,
-    {
-        let fixed =
-            LazyPerBlock::from_resolutions::<F>(&format!("{name}_{}", R::SUFFIX), version, source);
-        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, S>(name, version, &fixed);
-
-        Self { fixed, ratio }
-    }
-}
-
 impl<R> LazyRatioPerBlock<R>
 where
     R: FixedRatio,
 {
+    /// `F` of two per-block sources; they own their caches, the views retain no history.
+    pub fn from_ratio<S, D, F>(
+        name: &str,
+        version: Version,
+        numerator: &impl ReadableCloneableVec<Height, S>,
+        denominator: &impl ReadableCloneableVec<Height, D>,
+        indexes: &IndexSources,
+    ) -> Self
+    where
+        S: NumericValue,
+        D: NumericValue,
+        F: BinaryTransform<S, D, R> + Send + Sync + 'static,
+    {
+        let source = LazyIndexedVec::new(
+            &format!("{name}_{}_source", R::SUFFIX),
+            version,
+            numerator,
+            denominator,
+            |_, numerator, denominator| F::apply(numerator, denominator),
+        );
+        Self::from_height_source(name, version, &source, indexes)
+    }
+
     pub fn from_height_source<V>(
         name: &str,
         version: Version,

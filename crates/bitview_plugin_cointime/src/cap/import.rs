@@ -1,9 +1,9 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::PartsPerMillion32;
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned32};
 use bitview_transforms::{Convert, Quotient};
 use bitview_vecs::{FiatPerBlock, LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, PerBlock};
 use brk_error::Result;
-use brk_types::{Cents, Dollars, Height, Version};
+use brk_types::{Cents, CentsSigned, Dollars, Height, Version};
 use vecdb::{Database, Ident, ReadableCloneableVec};
 
 use super::{super::supply, Vecs};
@@ -21,15 +21,19 @@ impl Vecs {
             LazyPerBlock::from_resolutions::<Ident>("thermo_cap_cents", version, subsidy_cents);
         let thermo_usd =
             LazyPerBlock::from_lazy::<Convert, Cents>("thermo_cap", version, &thermo_cents);
-        let investor = FiatPerBlock::import(db, "investor_cap", version, mappings)?;
-        let investorness =
-            LazyPercentPerBlock::from_ratio::<Cents, Cents, Quotient<PartsPerMillion32>>(
-                "investorness",
-                version,
-                investor.cents.resolutions.height_source(),
-                realized_cap,
-                mappings,
-            );
+        // ONE: signed.
+        let investor = FiatPerBlock::import(db, "investor_cap", version + Version::ONE, mappings)?;
+        let investorness = LazyPercentPerBlock::from_ratio::<
+            CentsSigned,
+            Cents,
+            Quotient<PartsPerMillionSigned32>,
+        >(
+            "investorness",
+            version,
+            investor.cents.resolutions.height_source(),
+            realized_cap,
+            mappings,
+        );
         let producerness =
             LazyPercentPerBlock::from_ratio::<Cents, Cents, Quotient<PartsPerMillion32>>(
                 "producerness",

@@ -1,10 +1,11 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{PartsPerMillionSigned32, PriceRatio};
-use bitview_transforms::MvrvToNupl;
+use bitview_primitives::PartsPerMillionSigned32;
+use bitview_transforms::{Quotient, SatsToCents};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFiatPerBlock, LazyRatioPerBlock, PriceWithRatio};
-use brk_types::{Cents, CentsSigned, Version};
+use bitview_vecs::{LazyFiatPerBlock, LazyIndexedVec, LazyRatioPerBlock};
+use brk_types::{Cents, CentsSigned, Height, Version};
+use vecdb::{BinaryTransform, ReadableBoxedVec};
 
 use super::Sources;
 
@@ -16,8 +17,9 @@ pub struct UnrealizedMetrics {
     loss: LazyFiatPerBlock<Cents>,
     /// Unrealized profit minus unrealized loss.
     net_pnl: LazyFiatPerBlock<CentsSigned>,
-    /// Net unrealized profit/loss as a share of this cohort's own market cap.
-    nupl: LazyRatioPerBlock<PartsPerMillionSigned32, PriceRatio>,
+    /// Net unrealized profit/loss as a share of this cohort's own market cap (its supply at spot).
+    /// Undefined (null) while that market cap is zero.
+    nupl: LazyRatioPerBlock<PartsPerMillionSigned32>,
 }
 
 impl UnrealizedMetrics {
@@ -25,8 +27,8 @@ impl UnrealizedMetrics {
         id: CohortId,
         version: Version,
         sources: &Sources,
-        price: &PriceWithRatio,
         mappings: &Mappings,
+        prices: &ReadableBoxedVec<Height, Cents>,
     ) -> Self {
         let name = |metric| CohortContext::Utxo.metric_name(id, metric);
         let loss = LazyFiatPerBlock::from_cents_source(
@@ -49,10 +51,18 @@ impl UnrealizedMetrics {
                 &sources.unrealized_net_pnl,
                 mappings,
             ),
-            nupl: LazyRatioPerBlock::from_resolutions::<MvrvToNupl>(
+            nupl: LazyRatioPerBlock::from_ratio::<CentsSigned, Cents, Quotient<_>>(
                 &name("nupl"),
                 version,
-                &price.relative.fixed,
+                &sources.unrealized_net_pnl,
+                &LazyIndexedVec::new(
+                    &name("market_cap_source"),
+                    version,
+                    &sources.supply,
+                    prices,
+                    |_, supply, spot| SatsToCents::apply(supply, spot),
+                ),
+                mappings,
             ),
         }
     }

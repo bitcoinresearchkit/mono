@@ -2,7 +2,7 @@ use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Dollars;
+use brk_types::{CentsSigned, Dollars};
 
 use super::{
     super::{activity, value},
@@ -22,10 +22,16 @@ impl Vecs {
         let realized_cap_cents = &holders.cohorts.all.capital.total.cents.height;
         let circulating_supply = &holders.cohorts.all.supply.total.btc.height;
 
-        self.investor.cents.height.compute_subtract(
+        self.investor.cents.height.compute_transform2(
             starting_lengths.height,
             realized_cap_cents,
             &self.thermo.cents.height,
+            |(i, realized, thermo, ..)| {
+                (
+                    i,
+                    CentsSigned::new(realized.inner() as i64 - thermo.inner() as i64),
+                )
+            },
             exit,
         )?;
 

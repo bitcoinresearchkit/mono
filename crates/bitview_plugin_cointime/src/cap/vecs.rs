@@ -1,7 +1,7 @@
-use bitview_primitives::PartsPerMillion32;
+use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{FiatPerBlock, LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock};
-use brk_types::{Cents, Dollars};
+use brk_types::{Cents, CentsSigned, Dollars};
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
@@ -14,8 +14,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Investor capitalization: realized capitalization minus thermo
     /// capitalization. It estimates the creation-date capital attributed to
     /// market investors after removing the issuance-date value assigned to
-    /// miners.
-    pub investor: FiatPerBlock<Cents, M>,
+    /// miners, and turns negative when coins were re-acquired for less than
+    /// the value issued.
+    pub investor: FiatPerBlock<CentsSigned, M>,
     /// Active capitalization: market capitalization multiplied by liveliness,
     /// the value of the active supply.
     pub active: LazyPerBlock<Dollars>,
@@ -27,9 +28,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// circulating supply. It values the supply using the average destroyed
     /// value per unit of holding time that remains stored.
     pub cointime: FiatPerBlock<Cents, M>,
-    /// Investor capitalization's share of realized capitalization. Undefined
-    /// (null) while realized capitalization is zero.
-    pub investorness: LazyPercentPerBlock<PartsPerMillion32>,
+    /// Investor capitalization's share of realized capitalization, negative
+    /// with it. Undefined (null) while realized capitalization is zero.
+    pub investorness: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Thermo capitalization's share of realized capitalization. Undefined
     /// (null) while realized capitalization is zero.
     pub producerness: LazyPercentPerBlock<PartsPerMillion32>,

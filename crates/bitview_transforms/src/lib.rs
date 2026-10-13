@@ -15,6 +15,6 @@ pub use currency::{
 };
 pub use ohlc::{OhlcCentsToHighCents, OhlcCentsToLowCents};
 pub use ratio::{
-    BoundedOdds, BoundedToRatio, Cagr, FixedToPercent, FixedToRatio, MvrvToNupl, PriceTimesRatio,
+    AvivNupl, BoundedOdds, BoundedToRatio, Cagr, FixedToPercent, FixedToRatio, PriceTimesRatio,
     Quotient, RelativeChange, price_ratio,
 };

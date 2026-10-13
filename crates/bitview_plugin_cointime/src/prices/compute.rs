@@ -44,7 +44,13 @@ impl Vecs {
             &cap.investor.cents.height,
             &supply.active.btc.height,
             |(i, cap_cents, supply_btc, ..)| {
-                (i, Cents::from(f64::from(cap_cents) / f64::from(supply_btc)))
+                let (cap, supply) = (f64::from(cap_cents), f64::from(supply_btc));
+                let price = if cap > 0.0 && supply > 0.0 {
+                    Cents::from(cap / supply)
+                } else {
+                    Cents::NAN
+                };
+                (i, price)
             },
             exit,
         )?;

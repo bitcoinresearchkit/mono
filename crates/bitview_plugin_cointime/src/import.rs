@@ -49,6 +49,8 @@ impl Vecs {
             mappings,
             all_chain,
             caps.cointime.cents.resolutions.height_source(),
+            &caps.active.height,
+            caps.investor.cents.resolutions.height_source(),
         )?;
         let adjusted = adjusted::Vecs::import(&db, version, mappings)?;
         let reserve_risk =

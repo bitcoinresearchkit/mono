@@ -1,4 +1,4 @@
-use bitview_primitives::{PartsPerMillionSigned32, PriceRatio, Ratio};
+use bitview_primitives::{PartsPerMillionSigned32, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, LazyRatioPerBlock, PriceWithMvrv, PriceWithRatio};
 use brk_types::{Cents, Height};
@@ -19,17 +19,21 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Investor capitalization, equal to realized capitalization minus the
     /// cumulative issuance-date USD value of the derived block-subsidy
     /// component, divided by active supply in BTC. Active supply is circulating
-    /// supply multiplied by liveliness.
+    /// supply multiplied by liveliness. Undefined (null) unless investor
+    /// capitalization is positive.
     pub true_market_mean: PriceWithRatio<M>,
     /// AVIV: active capitalization divided by investor capitalization, which
     /// equals spot price divided by True Market Mean (the same series as
-    /// `true_market_mean.ratio`).
+    /// `true_market_mean.ratio`). Undefined (null) while True Market Mean is
+    /// null or rounds to zero cents.
     #[traversable(wrap = "true_market_mean", rename = "aviv")]
     pub(super) aviv: LazyPerBlock<Ratio, Ratio>,
-    /// AVIV NUPL: one minus one over AVIV, the share of active capitalization
-    /// above investor capitalization.
+    /// AVIV NUPL: the share of active capitalization above investor
+    /// capitalization (one minus one over AVIV), over one while investor
+    /// capitalization is negative. Undefined (null) while active capitalization
+    /// is zero.
     #[traversable(wrap = "true_market_mean", rename = "aviv_nupl")]
-    pub(super) aviv_nupl: LazyRatioPerBlock<PartsPerMillionSigned32, PriceRatio>,
+    pub(super) aviv_nupl: LazyRatioPerBlock<PartsPerMillionSigned32>,
     /// Cumulative cointime value destroyed divided by cumulative coinblocks
     /// stored, expressed as a price per BTC. It represents the average value
     /// destroyed for each unit of holding time that remains stored.
