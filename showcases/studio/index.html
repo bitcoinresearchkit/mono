@@ -8277,6 +8277,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const all$ = (selector, root = /** @type {ParentNode} */ (document)) => [...root.querySelectorAll(selector)];
       const escape = (text) => String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
       const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
+      /** How far an arrow, Home or End moves a place in a row: one on or back, or to an end. */
+      const KEY_STEPS = /** @type {Record<string, number | undefined>} */ ({ ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1, Home: -Infinity, End: Infinity });
+      /**
+       * A place `step` on from `at` in a row of `n` (±Infinity: its ends): from none (-1), as from just before its first
+       * going on, just past its last going back; past an end, round (`wrap`) or held there.
+       */
+      const stepIn = (/** @type {number} */ at, /** @type {number} */ step, /** @type {number} */ n, wrap = false) => {
+        if (!Number.isFinite(step)) return step < 0 ? 0 : n - 1;
+        const to = (at < 0 ? (step > 0 ? -1 : n) : at) + step;
+        return wrap ? ((to % n) + n) % n : clamp(to, 0, n - 1);
+      };
       /** Series names are plain identifiers; anything else never reaches an API path. */
       const isSeriesName = (name) => typeof name === "string" && /^[a-z0-9_]{1,200}$/.test(name);
       /** A series' path in the catalog: its keys, dotted. */
@@ -15425,7 +15436,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       document.addEventListener("keydown", (event) => {
         const button = /** @type {HTMLElement} */ (document.activeElement), group = button?.parentElement?.closest('.tabs[role="group"], .color-slots');
         if (!group || button.parentElement !== group || event.metaKey || event.ctrlKey || event.altKey) return;
-        const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[event.key] ?? (event.key === "Home" ? -Infinity : event.key === "End" ? Infinity : 0);
+        const step = KEY_STEPS[event.key];
         // (Down and up the four: two along.)
         const along = group.matches(".color-slots.four") && (event.key === "ArrowUp" || event.key === "ArrowDown") ? 2 : 1;
         if (!step) return;
@@ -15433,7 +15444,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (at < 0) return;
         event.preventDefault();
         event.stopPropagation();
-        buttons[Number.isFinite(step) ? (at + step * along + buttons.length) % buttons.length : step < 0 ? 0 : buttons.length - 1].focus();
+        buttons[stepIn(at, step * along, buttons.length, true)].focus();
       }, true);
 
       /** Words for a screen reader alone, on the status line where the focus is (the page's, or an open dialog's). */
@@ -17911,8 +17922,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (at < 0) return;
           event.preventDefault();
           event.stopPropagation();
-          const to = event.key === "Home" ? 0 : event.key === "End" ? rows.length - 1 : clamp(at + (event.key === "ArrowDown" ? 1 : -1), 0, rows.length - 1);
-          /** @type {HTMLElement | null} */ (rows[to].querySelector("[data-open-chart], [data-folder-toggle]"))?.focus();
+          /** @type {HTMLElement | null} */ (rows[stepIn(at, Number(KEY_STEPS[event.key]), rows.length)].querySelector("[data-open-chart], [data-folder-toggle]"))?.focus();
           return;
         }
         // (← → close and open a folder, as a tree does.)
@@ -21695,8 +21705,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!palette.items.length) return;
         palette.moved = true;
         const n = palette.items.length;
-        // (From none lit: the row it's moved to, -1 + delta, lit; ↑ the last.)
-        palette.active = palette.active < 0 ? clamp(delta > 0 ? delta - 1 : n + delta, 0, n - 1) : Math.abs(delta) > 1 ? clamp(palette.active + delta, 0, n - 1) : (palette.active + delta + n) % n;
+        // (From none lit: as from before the first, ↑ from past the last.)
+        palette.active = stepIn(palette.active, delta, n, Math.abs(delta) === 1);
         drawOptions(palette.active + PALETTE_PAGE / 2);
         $("palette-list").querySelector('[aria-selected="true"]')?.setAttribute("aria-selected", "false");
         const row = $(`option-${palette.active}`);
@@ -22987,21 +22997,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         hideSubmenu();
         menuPick = onPick;
         flyout = asFlyout;
-        // Inside a modal dialog, the menu must live in the dialog's top layer to be seen.
+        // Inside a modal dialog, the menu must live in the dialog's top layer to be seen. (Named by what opened it.)
         const host = anchor.closest("dialog") ?? document.body;
-        if (menu.parentElement !== host) host.append(menu);
-        menu.innerHTML = html;
-        drawKeys(menu);
-        // (Named by what opened it; Share's a dialog of buttons, not a menu of them.)
-        const share = Boolean(menu.querySelector(":scope > .share-pop"));
-        menu.setAttribute("role", share ? "dialog" : "menu");
-        menu.setAttribute("aria-label", named || calledBy(anchor));
+        fillMenu(menu, host, html, named || calledBy(anchor), onPick);
+        menu.setAttribute("role", menu.querySelector(":scope > .share-pop") ? "dialog" : "menu");
         // On a phone, a sheet from the foot (placed by its style), over a backdrop of its own; its handle first.
         menu.classList.toggle("as-sheet", phone.matches);
         if (phone.matches) menu.insertAdjacentHTML("afterbegin", '<div class="menu-handle" aria-hidden="true"></div>');
-        if (phone.matches) host.insertBefore(menuScrim, menu);
+        if (phone.matches) {
+          // (Its dim kept where it is (a page of the menu, one opened as it fades), from what it shows back to whole: put
+          // in again, it'd show in again from none.)
+          if (scrimFade) {
+            const shows = Number(getComputedStyle(menuScrim).opacity);
+            scrimFade.cancel();
+            if (shows < 1) menuScrim.animate({ opacity: [shows, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout });
+          }
+          if (menuScrim.parentElement !== host || menuScrim.nextElementSibling !== menu) host.insertBefore(menuScrim, menu);
+        }
         menuModal(phone.matches);
-        if (!share) nameMenuParts(menu);
         for (const button of all$("button", menu)) {
           // (One leading to another menu: its › at its end, after what it says.)
           if (button.getAttribute("aria-haspopup") === "menu" && !button.querySelector(".sub")) button.insertAdjacentHTML("beforeend", `<span class="sub">${ICONS.next}</span>`);
@@ -23015,13 +23028,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!point && anchor.hasAttribute("aria-haspopup")) anchor.setAttribute("aria-expanded", "true");
         if (phone.matches) Object.assign(menu.style, { left: "", top: "", maxHeight: "", transformOrigin: "" });
         else placeMenu(menu, host, anchor, point, side);
-        menu.onclick = (event) => {
-          const button = closest(event, "button:not(:disabled)");
-          if (!button) return;
-          // (A row leading to a submenu: it opens beside, this one stays.)
-          if (cascades(button)) return openCascade(button, event.detail === 0);
-          menuPicked(button, onPick);
-        };
         // (The one ticked in sight, a long one's too: a select's choice low in its list. A flyout leaves the focus be; a
         // finger's menu takes it itself, no row lit as if a key had reached it: ↓ goes on from there.)
         const first = /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled, [data-menu-back])"));
@@ -23120,16 +23126,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const { left: x, top: y } = element.getBoundingClientRect();
         return { x, y };
       }
-      /** A phone's menu's backdrop: tapped, it closes the menu, and the tap ends there. */
+      /** A phone's menu's backdrop: tapped, it closes the menu, and the tap ends there. `scrimFade`: its going, as its sheet slides away. */
       const menuScrim = document.createElement("div");
       menuScrim.className = "menu-scrim";
+      let scrimFade = /** @type {Animation | null} */ (null);
       menuScrim.addEventListener("click", (event) => {
         event.stopPropagation();
         dismissMenu();
       });
-      /** The menu put away (its backdrop tapped, Back): the focus, if it was in it, back on what opened it. */
-      function dismissMenu() {
-        const had = $("menu").contains(document.activeElement) || $("submenu").contains(document.activeElement), owner = ownerNow();
+      /**
+       * The menu put away (its backdrop tapped, Back; `back`, a key: Tab, esc): the focus back on what opened it, if it was
+       * in it (always, `back`).
+       */
+      function dismissMenu(back = false) {
+        const had = back || $("menu").contains(document.activeElement) || $("submenu").contains(document.activeElement), owner = ownerNow();
         hideMenu();
         if (had && owner?.isConnected) owner.focus({ preventScroll: true });
       }
@@ -23148,10 +23158,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** What a control's called (a menu named by what opened it): its label, else its words, its keys and asides apart. */
       const calledBy = (/** @type {HTMLElement} */ element) => (element.getAttribute("aria-label") || element.querySelector(".label, .name")?.textContent || [...element.childNodes].filter((node) => !(node instanceof Element && node.matches("kbd, .aside, .sub, svg"))).map((node) => node.textContent).join(" ")).replace(/\s+/g, " ").trim();
-      /** A menu's parts named for what they are, a menu's or a submenu's: its rules, its rows (a choice ticked, a radio). */
-      function nameMenuParts(/** @type {HTMLElement} */ root) {
-        for (const rule of all$(".menu-rule", root)) rule.setAttribute("role", "separator");
-        for (const button of all$("button", root)) if (!button.hasAttribute("role")) button.setAttribute("role", button.hasAttribute("aria-checked") ? "menuitemradio" : "menuitem");
+      /**
+       * A menu's or a submenu's rows written in `host` (a dialog's top layer, opened in one): their keys drawn, its parts
+       * named for what they are (its rules, its rows: a choice ticked, a radio; Share's a dialog of buttons, not a menu of
+       * them), it named `label`. A row pressed picks (`onPick`), or opens its submenu beside it (a menu's: it stays).
+       */
+      function fillMenu(/** @type {HTMLElement} */ element, /** @type {HTMLElement} */ host, /** @type {string} */ html, /** @type {string} */ label, /** @type {(data: DOMStringMap) => void} */ onPick) {
+        if (element.parentElement !== host) host.append(element);
+        element.innerHTML = html;
+        drawKeys(element);
+        if (!element.querySelector(":scope > .share-pop")) {
+          for (const rule of all$(".menu-rule", element)) rule.setAttribute("role", "separator");
+          for (const button of all$("button", element)) if (!button.hasAttribute("role")) button.setAttribute("role", button.hasAttribute("aria-checked") ? "menuitemradio" : "menuitem");
+        }
+        element.setAttribute("aria-label", label);
+        element.onclick = (event) => {
+          const button = closest(event, "button:not(:disabled)");
+          if (!button) return;
+          if (cascades(button)) return openCascade(button, event.detail === 0);
+          menuPicked(button, onPick);
+        };
       }
       /** ↑↓, Home and End in a menu (or a submenu): the row before or after (round from the ends), the first, the last. Whether it was one. */
       function walkMenu(/** @type {KeyboardEvent} */ event, /** @type {HTMLElement} */ root) {
@@ -23161,19 +23187,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const rows = all$(".menu-row", root).map((row) => all$("button:not(:disabled)", row)).filter((row) => row.length);
           const r = rows.findIndex((row) => row.includes(cell)), c = rows[r].indexOf(cell);
           const across = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0, down = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
-          const row = rows[(r + down + rows.length) % rows.length];
+          const row = rows[stepIn(r, down, rows.length, true)];
           event.preventDefault();
           event.stopPropagation();
-          (across ? rows[r][clamp(c + across, 0, rows[r].length - 1)] : row[Math.min(c, row.length - 1)])?.focus();
+          (across ? rows[r][stepIn(c, across, rows[r].length)] : row[Math.min(c, row.length - 1)])?.focus();
           return true;
         }
         if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return false;
         event.preventDefault();
         event.stopPropagation();
-        const items = all$("button:not(:disabled)", root), at = items.indexOf(/** @type {HTMLElement} */ (document.activeElement));
+        const items = all$("button:not(:disabled)", root);
         // (From the menu itself, none of its rows yet: ↓ its first, ↑ its last.)
-        const step = event.key === "ArrowDown" ? 1 : -1, next = at < 0 ? (step > 0 ? 0 : items.length - 1) : (at + step + items.length) % items.length;
-        items[event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : next]?.focus();
+        items[stepIn(items.indexOf(/** @type {HTMLElement} */ (document.activeElement)), Number(KEY_STEPS[event.key]), items.length, true)]?.focus();
         return true;
       }
       /** The item a menu acts on alone, beside others picked: outlined while it shows. @type {HTMLElement | null} */
@@ -23237,11 +23262,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function showSubmenu(/** @type {HTMLElement} */ row, /** @type {string} */ html, /** @type {(data: DOMStringMap) => void} */ onPick) {
         const sub = $("submenu"), host = /** @type {HTMLElement} */ ($("menu").parentElement);
-        if (sub.parentElement !== host) host.append(sub);
-        sub.innerHTML = html;
-        drawKeys(sub);
-        nameMenuParts(sub);
-        sub.setAttribute("aria-label", calledBy(row));
+        fillMenu(sub, host, html, calledBy(row), onPick);
         sub.hidden = false;
         subRow?.removeAttribute("aria-expanded");
         (subRow = row).setAttribute("aria-expanded", "true");
@@ -23258,10 +23279,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         sub.style.transformOrigin = `${side ? "0" : "100%"} ${clamp(own.top + own.height / 2 - top, 0, height)}px`;
         void sub.offsetWidth;
         sub.style.animation = "";
-        sub.onclick = (event) => {
-          const button = closest(event, "button:not(:disabled)");
-          if (button) menuPicked(button, onPick);
-        };
       }
       /** The submenu gone (a wait to open one too); the focus in it, back on its row. */
       function hideSubmenu() {
@@ -23330,11 +23347,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.stopPropagation();
           return hideSubmenu();
         }
-        if (event.key === "Tab") {
-          const owner = ownerNow();
-          hideMenu();
-          return owner?.focus();
-        }
+        if (event.key === "Tab") return dismissMenu(true);
         walkMenu(event, $("submenu"));
       });
       /** Whether the sidebar is a rail of icons. */
@@ -23427,7 +23440,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         menuPick = menuBack = null;
         menuTarget?.classList.remove("menu-target");
         menuTarget = null;
-        menuScrim.remove();
+        // (A sheet's dim fades from what it shows as the sheet slides away, reaching nothing meanwhile; a popover's goes
+        // with it. Put away already, its dim's going.)
+        if (!$("menu").hidden && $("menu").classList.contains("as-sheet") && menuScrim.isConnected && !reduced.matches) {
+          const fade = (scrimFade = menuScrim.animate({ opacity: 0 }, { duration: MOTION.layout, easing: MOTION.easeLayout }));
+          menuScrim.style.pointerEvents = "none";
+          const done = (/** @type {boolean} */ gone) => scrimFade === fade && ((scrimFade = null), (menuScrim.style.pointerEvents = ""), gone && menuScrim.remove());
+          fade.finished.then(() => done(true), () => done(false));
+        } else if (!scrimFade) menuScrim.remove();
         menuModal(false);
         $("menu").hidden = true;
         unexpand(ownerNow());
@@ -23472,9 +23492,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (event.key === "Tab" || done) {
           // (Tab, the browser's: on from the opener.)
           if (done) event.preventDefault(), event.stopPropagation();
-          const owner = ownerNow();
-          hideMenu();
-          return owner?.focus();
+          return dismissMenu(true);
         }
         if (target.matches("input")) return;
         // A key shown beside an item does it, to what the menu is of: a layer's menu acts on that layer, selected or not.
@@ -25080,11 +25098,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (event.key === "Escape") {
           if ($("menu").hidden && clearMeasure()) return;
           if (home && picked.size && $("menu").hidden) clearPicks();
-          else if (!$("menu").hidden) {
-            const owner = ownerNow();
-            hideMenu();
-            owner?.focus();
-          } else if (placing || moving || boxing) stopDrawing();
+          else if (!$("menu").hidden) dismissMenu(true);
+          else if (placing || moving || boxing) stopDrawing();
           else if (tool) setTool("");
           else if (selectingArea) setSelectingArea(false);
           else if (magnifying) setMagnifier(false);
