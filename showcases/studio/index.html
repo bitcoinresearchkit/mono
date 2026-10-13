@@ -1481,7 +1481,7 @@
           width: var(--side-collapsed);
 
           .brand > :not(.logo),
-          .preview-caption,
+          .list-head,
           .search > :not([data-icon]),
           .nav-item > :not([data-icon], .chart-mark),
           .live > :not(i) {
@@ -1778,30 +1778,24 @@
         }
       }
 
-      /* The sidebar's preview: a place of its own over your charts, named (a new chart's, empty, is only that). */
-      .preview-slot {
-        position: relative;
+      /* The sidebar's groups, while there are previews: the previews', then your charts', each named, how many beside. */
+      .list-head {
         display: flex;
-        flex-direction: column;
-        margin-bottom: 8px;
-        padding-bottom: 6px;
-
-        &::after {
-          content: "";
-          position: absolute;
-          right: 8px;
-          bottom: 0;
-          left: 8px;
-          height: 1px;
-          background: var(--line);
-        }
-      }
-
-      .preview-caption {
+        align-items: baseline;
+        gap: 6px;
         padding: 2px 13px 3px;
-        color: var(--muted);
+        color: var(--soft);
         font: 510 12px/16px var(--sans);
         white-space: nowrap;
+
+        .count {
+          color: var(--muted);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .chart-row + & {
+          margin-top: 10px;
+        }
       }
 
       .saved {
@@ -3928,6 +3922,18 @@
 
       /* A preview's Keep, once it's edited, and its row in the sidebar: a dot on its corner (its edits go with it, if
          kept; nothing beside it moves). */
+      /* (A preview's tile, edited: the dot after its name.) */
+      .tile.edited .tile-name::after {
+        content: "";
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-left: 6px;
+        border-radius: 50%;
+        vertical-align: 2px;
+        background: var(--ink);
+      }
+
       :is(#keep, [data-preview-row] .chart-item).edited {
         position: relative;
 
@@ -5620,6 +5626,32 @@
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 12px;
+      }
+
+      /* The grid's groups, while there are previews: the previews', then your charts', each named, how many beside. */
+      .grid-group {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin: 0;
+        padding-inline: 2px;
+        color: var(--soft);
+        font: 590 13px/18px var(--sans);
+
+        .count {
+          color: var(--muted);
+          font-weight: 510;
+          font-variant-numeric: tabular-nums;
+        }
+
+        /* (Close over what it names: the grid's gap between sections, less.) */
+        #home-grid > & {
+          margin-bottom: -10px;
+        }
+
+        .grid-section > & {
+          margin-bottom: 10px;
+        }
       }
 
       /* A folder: a box of its own, quieter than its charts (between the page and them), a card's corners; its head kept
@@ -9527,7 +9559,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Why a letter names no layer, where one was removed: "Realized price (B) was removed". */
       const goneLayer = (/** @type {Chart} */ doc, /** @type {string} */ letter) => ((name) => (name ? `${name} (${letter}) was removed` : null))(removedNames.get(`${doc.id}:${letter}`));
       /** The chart a layer is in: the open one, else the one holding it (a tile's, a preview's; a copy, by its id). @param {Layer} layer */
-      const ownerOf = (layer) => ((docs) => docs.find((doc) => doc?.layers.includes(layer)) ?? docs.find((doc) => doc?.layers.some((item) => item.id === layer.id)))([chart, previewing, ...library.charts]);
+      const ownerOf = (layer) => ((docs) => docs.find((doc) => doc?.layers.includes(layer)) ?? docs.find((doc) => doc?.layers.some((item) => item.id === layer.id)))([chart, ...previewCharts, ...library.charts]);
       /** The layers it's made from, by their letters, in its order. @param {{ from?: string[] }} layer @param {Chart | null} [doc] */
       const fromLetters = (layer, doc = ownerOf(/** @type {Layer} */ (layer))) => (layer.from ?? []).flatMap((id) => ((item) => (item ? [item.letter] : []))(doc?.layers.find((one) => one.id === id)));
       /** A cloud's edges, either of its two or both: its pane's top, its bottom (from the other up to there, or down to it). */
@@ -9591,8 +9623,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A chart started here and kept by an edit: the undo steps it had once kept (that step undone, a draft again). @type {WeakMap<Chart, number>} */
       const keptByEdit = new WeakMap();
       const draftChart = () => ((doc) => (drafts.add(doc), doc))(blankChart());
-      /** Previews changed since they were opened (an edit, a rename): Keep marked, and one replaced by another offered back. */
+      /** Previews changed since they were opened (an edit, a rename): Keep marked, kept aside, offered back once closed. */
       const touched = new WeakSet();
+      /** Previews changed in this tab since it read them (only they're written aside: another tab's, as it left them). */
+      const asideDirty = new WeakSet();
+      /** A preview changed: marked edited, kept aside. @param {Chart} doc */
+      const touchPreview = (doc) => void (touched.add(doc), asideDirty.add(doc));
 
       /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
       function normalize(doc) {
@@ -9680,7 +9716,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const STORE = "bitview-studio:v2";
       const RECENT = "bitview-studio:recent";
       const PREFS = "bitview-studio:prefs";
-      /** The last preview edited and not yet kept or closed: in its place again at the next start (one at a time). */
+      /** The previews edited and not yet kept or closed (every tab's): previews again at the next start. */
       const PREVIEW_ASIDE = "bitview-studio:preview";
       const storage = {
         get(key, fallback) {
@@ -9798,13 +9834,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       library.folders = foldersOf(library.folders, library.charts);
       library.order = orderOf(library.order);
       /**
-       * The preview, if there's one (`previewing`): a chart opened from a preset, from a link, or new, not in the list.
-       * Another's stays one, edited too, until Keep (or ⌘S): edited, it's kept here (PREVIEW_ASIDE) till kept or closed; one
-       * started here is yours from its first edit, first in the list. It waits, in its own place in the sidebar, while
-       * other charts open: another preview takes its place (an edited one offered back), its × closes it (an empty one,
-       * left, simply goes). @type {Chart | null}
+       * The previews, newest first: charts opened from a preset, from a link, or new, not in your charts. Each stays, edited
+       * too, till kept (Keep, ⌘S) or closed (its ×), listed over your charts (in the sidebar, the grid, ⌘K); edited, it's
+       * kept here too (PREVIEW_ASIDE), and back after a reload, the others gone then. One started here is yours from its
+       * first edit, first in the list; an empty one, left, simply goes. The same chart opened again, the one there is.
+       * @type {Chart[]}
        */
-      let previewing = null;
+      let previewCharts = [];
+      const isPreview = (/** @type {Chart | null | undefined} */ doc) => Boolean(doc && previewCharts.includes(doc));
+      /** A preview added, the newest (once). @param {Chart} doc */
+      const addPreview = (doc) => void (isPreview(doc) || previewCharts.unshift(doc));
+      /** A preview let go of (kept, closed, left empty). @param {Chart} doc */
+      const dropPreview = (doc) => void (previewCharts = previewCharts.filter((item) => item !== doc));
+      /** A new chart, empty, as a preview. */
+      const newDraft = () => ((draft) => (addPreview(draft), draft))(draftChart());
+      /** The previews listed as such (a new chart, empty, is yours once something's in it: listed with yours). */
+      const listedPreviews = () => previewCharts.filter((doc) => !drafts.has(doc));
+      /** The preview already there that's the same chart (its range aside: a look, not what it is), if one is. @param {Chart} doc */
+      const previewLike = (doc) => (doc.layers.length ? previewCharts.find((item) => item !== doc && item.layers.length && contentOf({ ...item, range: doc.range }) === contentOf(doc)) : undefined);
+      /** A chart's view (where it's zoomed or panned to) given to another id. @param {string} from @param {string} to */
+      const moveView = (from, to) => {
+        const all = viewsNow();
+        if (!all[from] || from === to) return;
+        all[to] = all[from];
+        delete all[from];
+        storage.set(VIEWS, all);
+      };
+      /** A chart given a new id (its own taken): its view, this tab's place in the history and the chart open follow. @param {Chart} doc @param {string} id */
+      const rekey = (doc, id) => {
+        const old = doc.id;
+        doc.id = id;
+        moveView(old, id);
+        for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
+        if (chart === doc) library.active = id;
+        if (drawnChart === old) drawnChart = id;
+        if (history.state?.chart === old) history.replaceState({ ...history.state, chart: id }, "");
+        // (Edited, kept aside under its new id.)
+        if (touched.has(doc)) asideDirty.add(doc);
+      };
       /** A link that couldn't be read, left in the address bar to be put right (until another chart's opened). */
       let brokenLink = "";
       /** A chart taken out of the list, if it's there (a preview isn't): to put it back elsewhere (see `discard`). */
@@ -9832,7 +9899,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a chart was deleted after its last edit (here or in another tab). @param {{ id: string, updated: number }} doc */
       const isDeleted = (doc) => library.deleted[doc.id] >= doc.updated;
       /** @returns {Chart | undefined} */
-      const chartById = (id) => library.charts.find((doc) => doc.id === id) ?? (previewing?.id === id ? previewing : undefined);
+      const chartById = (id) => library.charts.find((doc) => doc.id === id) ?? previewCharts.find((doc) => doc.id === id);
       /**
        * Work for a moment the page is idle, given how long it has: at the latest after `timeout` ms. Without idle
        * callbacks (Safari), after `settle` ms, with a slice of 8.
@@ -10007,8 +10074,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.deleted = pruned;
         // (The open chart, deleted in another tab, stays here unsaved: edited, it's saved again.)
         const written = JSON.stringify({ ...library, charts: library.charts.filter((doc) => !isDeleted(doc)), schema: SCHEMA });
-        // (An edited preview, with it: never in the list, never lost.)
-        if (previewing && touched.has(previewing) && previewing.layers.length) storage.set(PREVIEW_ASIDE, previewing);
+        // (Edited previews, with it: never in the list, never lost. Only those changed here written, each over its copy
+        // there if that's older: another tab's kept aside as they are.)
+        const mine = previewCharts.filter((doc) => asideDirty.has(doc) && !drafts.has(doc));
+        if (mine.length) {
+          const merged = new Map(previewsAside().map((doc) => [doc.id, doc]));
+          for (const doc of mine) if (!((merged.get(doc.id)?.updated ?? -Infinity) > doc.updated)) merged.set(doc.id, doc);
+          if (storage.set(PREVIEW_ASIDE, [...merged.values()])) for (const doc of mine) asideDirty.delete(doc);
+        }
         const write = () => {
           try {
             localStorage.setItem(STORE, written);
@@ -10072,6 +10145,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function reconcile(stored = storedSince(), saving = false) {
         if (!stored) return;
         const deleted = deletedOf(stored.deleted), incoming = stored.charts.flatMap(restore), folders = foldersOf(stored.folders, []);
+        // (A preview another tab kept: the same, that one it is now (open, that one's open); else one of its own, a new
+        // id, its history and all with it.)
+        for (const doc of [...previewCharts]) {
+          const saved = incoming.find((item) => item.id === doc.id);
+          if (saved && sameChart(saved, doc)) dropPreview(doc);
+          else if (saved) rekey(doc, uid());
+        }
         for (const [id, at] of Object.entries(deleted)) if (!(library.deleted[id] >= at)) library.deleted[id] = at;
         const ours = new Map(library.charts.map((doc) => [doc.id, doc])), theirs = new Map(incoming.map((doc) => [doc.id, doc]));
         /** A chart's later copy, in its folder as the arrangement has it. @param {Chart | undefined} own @param {Chart | undefined} other */
@@ -10095,7 +10175,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!saving && holdings(library.charts, library.folders, library.deleted) !== holdings(incoming, folders, deleted)) save();
         // (Still starting, a link being read: the library's taken, and start shows what's open once it's ready.)
         if (!chart) return;
-        const current = chart === previewing ? chart : library.charts.find((doc) => doc.id === chart.id);
+        const current = isPreview(chart) ? chart : library.charts.find((doc) => doc.id === chart.id);
         drawThumbs();
         if ($("palette").open) showPalette();
         if (current === chart) return renderCharts();
@@ -10169,8 +10249,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         edits.at = now;
         edits.held = holding;
         stampEdit(chart);
-        if (chart === previewing && JSON.stringify({ ...JSON.parse(before), range: 0 }) !== JSON.stringify({ ...chart, range: 0 })) touched.add(chart);
-        if (chart === previewing && drafts.has(chart) && !quiet && !look) (keepPreview(false), keptByEdit.set(chart, edits.past.length));
+        if (isPreview(chart) && JSON.stringify({ ...JSON.parse(before), range: 0 }) !== JSON.stringify({ ...chart, range: 0 })) touchPreview(chart);
+        if (isPreview(chart) && drafts.has(chart) && !quiet && !look) (keepPreview(false), keptByEdit.set(chart, edits.past.length));
         changed(!quiet, redraw, keepMenu);
       }
       /** Undo, as ⌘Z and ⌘K do it: a toast's Undo while it's up (a deleted chart comes back), else the chart's last edit. */
@@ -10209,13 +10289,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (back === "past" && toastStep?.chart === chart && edits.past.length < toastStep.depth) hideToast();
         // The step that kept a chart started here undone: a draft again, not one of your charts (redone, kept again).
         const keptAt = keptByEdit.get(chart);
-        if (keptAt !== undefined && back === "past" && edits.past.length === keptAt - 1 && !previewing && library.charts.includes(chart)) {
+        if (keptAt !== undefined && back === "past" && edits.past.length === keptAt - 1 && library.charts.includes(chart)) {
           discard(chart);
-          previewing = chart;
+          addPreview(chart);
           save(false);
           renderCharts();
           clearLink();
-        } else if (keptAt !== undefined && back === "future" && edits.past.length === keptAt && chart === previewing) keepPreview(false);
+        } else if (keptAt !== undefined && back === "future" && edits.past.length === keptAt && isPreview(chart)) keepPreview(false);
         changed(true);
         // (Said, for a screen reader: nothing else on screen says it.)
         say(back === "past" ? "Undone" : "Redone");
@@ -10223,7 +10303,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The open chart changed (an edit, an undo): its menu closes, a selection gone with it too; saved, shown. */
       function changed(announce, redraw = /** @type {Redraw} */ (true), keepMenu = false) {
         // (A preview's changes aren't saved: no "Saved" for them.)
-        announce &&= chart !== previewing;
+        announce &&= !isPreview(chart);
         revision++;
         if (!chartChanged) (chartChanged = true), queueMicrotask(() => (chartChanged = false));
         if (!keepMenu) hideMenu();
@@ -10247,7 +10327,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const redo = () => travel("future", "past");
 
       /** The chart to go back to from this one: the last one opened before it. */
-      const previousChart = () => viewed().map(chartById).find((doc) => doc && doc !== chart) ?? library.charts.find((doc) => doc !== chart) ?? null;
+      const previousChart = () => viewed().map(chartById).find((doc) => doc && doc !== chart) ?? library.charts.find((doc) => doc !== chart) ?? previewCharts.find((doc) => doc !== chart) ?? null;
       /**
        * Where each chart was left, zoomed or panned off its preset, kept across reloads: each edge of the view as a point's
        * time and how many bars it lies from that point, so it holds as new points come in, and past either end of the data.
@@ -10351,7 +10431,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const all = viewsNow();
         if (presetShown || !range) delete all[chart.id];
         else all[chart.id] = { index: chart.index, from: edgeOf(range.from, times), to: edgeOf(range.to, times) };
-        for (const id of Object.keys(all)) if (!chartById(id) && !passedPreviews.has(id)) delete all[id];
+        for (const id of Object.keys(all)) if (!chartById(id)) delete all[id];
         storage.set(VIEWS, all);
       }
       onLeave(saveView);
@@ -10369,8 +10449,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         saveView();
         // This tab's place, for a reload and for Back: the chart it shows now (a step from the grid stays one).
         if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id }, "");
-        // (An empty preview left has nothing to come back to; a link that couldn't be read, left behind.)
-        if (previewing && doc !== previewing && !previewing.layers.length && !previewing.title) previewing = null;
+        // (An empty preview left has nothing to come back to (nor kept aside); a link that couldn't be read, left behind.)
+        for (const item of previewCharts) if (item !== doc && !item.layers.length) (dropPreview(item), forgetPreview(item));
         brokenLink = "";
         const previous = chart;
         chart = doc;
@@ -10406,7 +10486,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return history.back();
         }
         const back = previousChart();
-        if (chart !== previewing || chart.layers.length || !back) return;
+        if (!isPreview(chart) || chart.layers.length || !back) return;
         // (The focus on the chart gone back to: its row, else its title.)
         keepFocus(null, () => $("chart-list").querySelector(`[data-open-chart="${CSS.escape(back.id)}"]`), () => $("plot-keys"), () => $("new-chart"));
         // (An empty preview left simply goes.)
@@ -10417,63 +10497,85 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.charts.unshift(doc);
         leaveHome(() => openChart(doc));
       }
-      /** A chart opened as a preview: looked at, not in the list yet (see `preview`). @param {Chart} doc */
-      function showPreview(doc, linked = false, push = true) {
+      /**
+       * A chart opened as a preview: looked at, not in your charts yet (see `previewCharts`); the same chart a preview already,
+       * that one (`push`: none pushed, Back or Forward bringing it). @param {Chart} doc
+       */
+      function showPreview(doc, push = true) {
         // (What's being typed in the chart before, kept on it while it's still the preview it is. Back, the toast saying
-        // it was closed goes.)
+        // it was closed goes. The same chart there, it, at the window this one came with.)
         flushEdits();
-        if (closedToast === doc) hideToast();
-        const was = previewing && previewing !== doc && previewing.layers.length && !library.charts.includes(previewing) ? previewing : null;
-        if (was) passPreview(was);
+        const like = previewLike(doc), shown = like ?? doc;
+        if (like) {
+          // (Its own window kept first, then this one's over it, or none: the range this one came with shows.)
+          if (like === chart) saveView();
+          like.range = doc.range;
+          const all = viewsNow();
+          if (all[doc.id]) moveView(doc.id, like.id);
+          else if (all[like.id]) delete all[like.id], storage.set(VIEWS, all);
+        }
+        if (closedToast === shown) hideToast();
         leaveHome(() => {
-          previewing = doc;
-          openChart(doc);
+          addPreview(shown);
+          if (shown === chart) (drawnChart = ""), refresh(true, true);
+          else openChart(shown);
         }, null, push);
-        if (was && (!linked || touched.has(was))) toast(`Closed the preview “${titleOf(was)}”`, { label: "Undo", run: () => showPreview(was) }), (closedToast = was);
+        return shown;
       }
-      /** An open preview closes back to the previous chart (under the grid too; no × when there's nowhere back). */
-      function closePreview() {
-        const was = previewing;
-        if (!was) return;
-        const back = chart === was ? previousChart() : chart;
+      /** A preview closed (the open one, else `doc`): open, the chart before it takes its place (none: no ×). */
+      function closePreview(doc = chart) {
+        if (!isPreview(doc)) return;
+        const back = chart === doc ? previousChart() : chart;
         if (!back) return;
+        // (The focus on a row: the next one's, else the one before's, else the open chart's.)
         const focused = Boolean(document.activeElement?.closest("[data-preview-row]"));
-        previewing = null;
-        forgetPreview(was);
-        passPreview(was);
-        if (chart === was) openChart(back);
+        if (chart === doc) saveView();
+        const at = previewCharts.indexOf(doc), open = chart === doc, view = viewsNow()[doc.id], next = previewCharts[at + 1] ?? previewCharts[at - 1];
+        dropPreview(doc);
+        forgetPreview(doc);
+        previews.delete(doc.id);
+        if (open) openChart(back);
         save();
         renderCharts();
-        if (focused) /** @type {HTMLElement | null} */ ($("chart-list").querySelector("[data-open-chart]"))?.focus();
-        // (Edited: offered back, its edits with it.)
-        if (touched.has(was)) toast(`Closed the preview “${titleOf(was)}”`, { label: "Undo", run: () => showPreview(was) }), (closedToast = was);
+        renderHome();
+        if (focused) /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${CSS.escape(next && next !== back ? next.id : chart.id)}"]`))?.focus();
+        // (Edited: offered back, its edits with it, where it was, at its window; open again only if it was.)
+        if (touched.has(doc)) toast(`Closed the preview “${titleOf(doc)}”`, { label: "Undo", run: () => {
+          if (view) (viewsNow()[doc.id] = view), storage.set(VIEWS, viewsNow());
+          previewCharts.splice(Math.min(at, previewCharts.length), 0, doc);
+          asideDirty.add(doc);
+          if (open) return void showPreview(doc);
+          save();
+          renderCharts();
+          renderHome();
+        } }), (closedToast = doc);
       }
-      /** The preview the toast up says was closed (its Undo, or Back, brings it back). @type {Chart | null} */
+      /** The preview the toast up says was closed (its Undo brings it back). @type {Chart | null} */
       let closedToast = null;
-      /** Previews passed through this visit (replaced by another, closed; not kept), by id: Back or Forward to one, it's back as it was, its window too (a reload, gone). */
-      const passedPreviews = /** @type {Map<string, Chart>} */ (new Map());
-      const passPreview = (/** @type {Chart} */ doc) => {
-        passedPreviews.delete(doc.id);
-        passedPreviews.set(doc.id, doc);
-        if (passedPreviews.size > 20) passedPreviews.delete(/** @type {string} */ (passedPreviews.keys().next().value));
-      };
+      /** The previews kept aside, this tab's and others' (one, as a Studio before kept it). @returns {Chart[]} */
+      const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored : stored ? [stored] : []))(storage.get(PREVIEW_ASIDE, null));
       /** A preview let go of (kept, closed): no longer kept aside. */
-      const forgetPreview = (/** @type {Chart} */ doc) => storage.get(PREVIEW_ASIDE, null)?.id === doc.id && storage.drop(PREVIEW_ASIDE);
-      /** The preview, the user's: first in the list, saved (`announce`: kept by the button, the "Saved" note says so). */
-      function keepPreview(announce = true) {
-        if (!previewing) return;
-        forgetPreview(previewing);
-        // (Kept: one of the charts, not a preview to come back.)
-        passedPreviews.delete(previewing.id);
+      const forgetPreview = (/** @type {Chart} */ doc) => {
+        asideDirty.delete(doc);
+        const left = previewsAside().filter((item) => item.id !== doc.id);
+        if (left.length) storage.set(PREVIEW_ASIDE, left);
+        else storage.drop(PREVIEW_ASIDE);
+      };
+      /**
+       * A preview, the user's (the open one, else `doc`): first in your charts, saved (`announce`: kept by the button, the
+       * "Saved" note says so).
+       */
+      function keepPreview(announce = true, doc = chart) {
+        if (!isPreview(doc)) return;
+        forgetPreview(doc);
         // (Its id another's, listed or deleted: a new one.)
-        if (library.charts.some((doc) => doc.id === previewing?.id) || Object.hasOwn(library.deleted, previewing.id)) previewing.id = uid();
+        if (library.charts.some((other) => other.id === doc.id) || Object.hasOwn(library.deleted, doc.id)) rekey(doc, uid());
         // (Kept by its button, which goes: the focus on the chart's ⋯ beside it, not into a field where the next key would type.)
         if (document.activeElement === $("keep")) keepFocus(null, () => $("chart-more"), () => $("plot-keys"));
-        const kept = previewing;
-        library.charts.unshift(kept);
-        previewing = null;
+        library.charts.unshift(doc);
+        dropPreview(doc);
         // (Its toast asking for it to be kept: done.)
-        if (toastOfPreview) hideToast();
+        if (toastOfPreview === doc) hideToast();
         save(announce);
         renderCharts();
         clearLink();
@@ -15725,7 +15827,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const drawThumbs = serial(async () => {
         for (const id of [...thumbs.keys()]) if (orphan(id)) thumbs.delete(id);
         let drew = false;
-        for (const doc of [...library.charts, ...(previewing ? [previewing] : [])]) drew = (await freshThumb(doc)) || drew;
+        for (const doc of [...library.charts, ...previewCharts]) drew = (await freshThumb(doc)) || drew;
         // Stored a moment after (passes follow each edit: one write for many).
         if (drew) saveThumbsSoon();
       });
@@ -16104,14 +16206,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
       function tileHtml(doc) {
-        const title = escape(titleOf(doc)), on = picked.has(doc.id);
+        const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
-        return `<div class="tile ${on ? "picked" : ""}" data-home-card="${doc.id}">
+        return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button>
-            <input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" ${on ? "checked" : ""} />
+            ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" ${on ? "checked" : ""} />`}
           </div>`;
       }
+      /**
+       * The previews the grid shows, over your charts (a new chart, empty, isn't one), as the filter finds them (as it
+       * finds charts).
+       */
+      function previewsShown() {
+        const query = $("home-filter").value.trim().toLowerCase(), docs = listedPreviews();
+        if (!query || !docs.length) return docs;
+        const found = new QuickMatch(docs.map(wordsOf)).matchesBestWithIdsAndMatchedWords(query, new QuickMatchConfig().withLimit(docs.length).withUnionFallback(false));
+        return found.map(([id]) => docs[id]);
+      }
+      /** A group's head in the grid, while there are previews: what it is, how many. */
+      const groupHead = (/** @type {string} */ name, /** @type {number} */ count) => `<h2 class="grid-group">${name}<span class="count">${count}</span></h2>`;
       /** A chart's words for the grid's filter: its title, its layers' names, series and formulas. @param {Chart} doc */
       const wordsOf = (doc) => [titleOf(doc), folderById(doc.folder)?.name ?? "", ...doc.layers.flatMap((layer) => [labelOf(layer), layer.series ?? "", layer.formula ?? ""])].join(" ").toLowerCase().replace(/_/g, " ");
       /** The charts the grid shows, in its order: its sections' (a closed folder's, none). */
@@ -16157,19 +16271,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderHome() {
         if (!home) return;
         // (No charts left: nothing to filter; the filter, hidden, let go of what it had.)
-        if (!library.charts.length && !library.folders.length) $("home-filter").value = "";
-        const shown = filtered(), query = $("home-filter").value.trim(), sections = sectionsOf(shown, query);
-        // Only what's shown stays picked: the bar acts on what can be seen.
-        const ids = new Set(sections.flatMap((section) => section.docs).map((doc) => doc.id));
+        const total = library.charts.length + listedPreviews().length;
+        if (!total && !library.folders.length) $("home-filter").value = "";
+        // (The previews first, a section of their own, then your charts': both named while there are previews.)
+        const shown = filtered(), query = $("home-filter").value.trim(), previewed = previewsShown();
+        const sections = [...(previewed.length ? [{ folder: undefined, docs: previewed, count: previewed.length, previewGroup: true }] : []), ...sectionsOf(shown, query).map((section) => ({ ...section, previewGroup: false }))];
+        // Only what's shown stays picked: the bar acts on what can be seen (of your charts: no preview's picked).
+        const ids = new Set(sections.filter((section) => !section.previewGroup).flatMap((section) => section.docs).map((doc) => doc.id));
         for (const id of [...picked]) if (!ids.has(id)) picked.delete(id);
         if (!picked.has(pickedLast)) pickedLast = [...picked].at(-1) ?? "";
         const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".tile-open") ?? null)?.dataset.openChart;
-        /** @type {HTMLInputElement} */ ($("home-filter")).placeholder = library.charts.length ? `Filter ${plural(library.charts.length, "chart")}` : "Filter charts";
-        $("home-count").textContent = query ? `${shown.length} of ${library.charts.length}` : "";
+        /** @type {HTMLInputElement} */ ($("home-filter")).placeholder = total ? `Filter ${plural(total, "chart")}` : "Filter charts";
+        $("home-count").textContent = query ? `${shown.length + previewed.length} of ${total}` : "";
         // The same charts in the same order (and folders): only the tiles that changed are drawn again (a click on another
         // one, under way, isn't lost; focus and hover stay). Otherwise, all of them.
         const visible = sections.flatMap((section) => section.docs), html = visible.map(tileHtml), tiles = all$(".tile", $("home-grid"));
-        const layout = JSON.stringify(sections.map(({ folder, docs, count }) => [folder?.id, folder?.name, folder?.closed, count, docs.length]));
+        const layout = JSON.stringify(sections.map(({ folder, docs, count, previewGroup }) => [previewGroup, folder?.id, folder?.name, folder?.closed, count, docs.length]));
         if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.homeCard === visible[i].id)) {
           tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && (tile.outerHTML = html[i]));
         } else {
@@ -16177,7 +16294,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // filter typed, a folder opened, its charts' mini charts aren't made anew.)
           const focus = focusKey($("home-grid")), old = new Map(tiles.map((tile) => [/** @type {string} */ (tile.dataset.homeCard), tile]));
           const htmlOf = new Map(visible.map((doc, i) => [doc.id, old.has(doc.id) && drawnTiles.get(doc.id) === html[i] ? `<i data-slot="${doc.id}"></i>` : html[i]]));
-          $("home-grid").innerHTML = sections.map(({ folder, docs, count }) => (folder
+          const saved = sections.some((section) => !section.previewGroup && (section.docs.length || section.folder));
+          $("home-grid").innerHTML = sections.map(({ folder, docs, count, previewGroup }) => (previewGroup
+            ? `<section class="grid-section previews">${groupHead("Previews", count)}<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div></section>${saved ? groupHead("Saved", shown.length) : ""}`
+            : folder
             ? `<section class="grid-section folder"><i class="held-mark" aria-hidden="true"></i>${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed ? `<p class="grid-empty">${TOUCH ? "No charts yet. Hold one, then tap Move" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
             : `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>`)).join("");
           for (const slot of all$("[data-slot]", $("home-grid"))) slot.replaceWith(/** @type {HTMLElement} */ (old.get(/** @type {string} */ (slot.dataset.slot))));
@@ -16188,11 +16308,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawnLayout = layout;
         drawnTiles.clear();
         visible.forEach((doc, i) => drawnTiles.set(doc.id, html[i]));
-        $("home-none").hidden = shown.length > 0;
+        $("home-none").hidden = shown.length > 0 || (Boolean(query) && previewed.length > 0);
         $("home-foot").hidden = !library.charts.length && !asideCount();
         // (No charts at all: nothing to filter, select, or put in a folder; only how to have one.)
-        $("home-tools").hidden = !library.charts.length && !library.folders.length;
-        $("home-none").innerHTML = query ? `No charts match “${escape(query)}”` : `<p>No charts yet. Start a new chart, or open a preset and keep it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`;
+        $("home-tools").hidden = !total && !library.folders.length;
+        $("home-none").innerHTML = query ? `No charts match “${escape(query)}”` : previewed.length ? `<p>None saved yet: Keep a preview to have it here.</p>` : `<p>No charts yet. Start a new chart, or open a preset and keep it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`;
         if (focused) tileOpen(focused)?.focus({ preventScroll: true });
         renderPicked();
         schedulePreviews();
@@ -16215,7 +16335,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderPicked() {
         const n = picked.size;
         $("home").classList.toggle("picking", n > 0);
-        for (const tile of all$(".tile", $("home-grid"))) {
+        for (const tile of all$(".tile:not(.preview)", $("home-grid"))) {
           const on = picked.has(/** @type {string} */ (tile.dataset.homeCard));
           tile.classList.toggle("picked", on);
           /** @type {HTMLInputElement} */ (tile.querySelector(".tile-check")).checked = on;
@@ -16230,6 +16350,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Picks a chart: added or taken off; with `range`, every chart from the last one picked to it. */
       function pickChart(id, range = false) {
         hideMenu();
+        // (A preview isn't one of the charts the bar acts on.)
+        if (isPreview(chartById(id))) return;
         const ids = shownCharts().map((doc) => doc.id), from = ids.indexOf(pickedLast), to = ids.indexOf(id);
         if (range && picked.size && from >= 0 && to >= 0) for (const other of ids.slice(Math.min(from, to), Math.max(from, to) + 1)) picked.add(other);
         else if (picked.has(id)) {
@@ -16281,7 +16403,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const at = shownCharts().findIndex((doc) => docs.includes(doc));
           if (!ids) clearPicks();
           deleteCharts(docs);
-          /** @type {HTMLElement | undefined} */ (all$(".tile-open", $("home-grid"))[at] ?? all$(".tile-open", $("home-grid")).at(-1) ?? $("toast").querySelector("button") ?? undefined)?.focus();
+          /** @type {HTMLElement | undefined} */ (all$(".tile:not(.preview) .tile-open", $("home-grid"))[at] ?? all$(".tile:not(.preview) .tile-open", $("home-grid")).at(-1) ?? $("toast").querySelector("button") ?? undefined)?.focus();
         }
       }
       /** Deletes charts, with one Undo that brings them all back where they were. @param {Chart[]} docs */
@@ -16289,9 +16411,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (docs.length === 1) return deleteChart(docs[0]);
         const places = docs.map((doc) => /** @type {[number, Chart]} */ ([library.charts.indexOf(doc), doc])).filter(([at]) => at >= 0).sort((a, b) => a[0] - b[0]);
         for (const [, doc] of places) discard(doc);
-        // All of them gone (the open one with them), the preview there is stands in, else a blank one.
-        const open = chart, wasOpen = places.some(([, doc]) => doc === open), standIn = wasOpen && !library.charts.length ? previewing ?? draftChart() : null;
-        if (standIn) previewing = standIn;
+        // All of them gone (the open one with them), a preview there is stands in, else a blank one.
+        const open = chart, wasOpen = places.some(([, doc]) => doc === open), standIn = wasOpen && !library.charts.length ? previewCharts[0] ?? newDraft() : null;
         if (wasOpen) openChart(standIn ?? library.charts[Math.min(places[0][0], library.charts.length - 1)]);
         save();
         renderCharts();
@@ -16320,7 +16441,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A chart's title, typed in its sidebar row: ↵ or leaving keeps it, esc doesn't. @param {Chart} doc @param {HTMLElement} row */
       function renameRow(doc, row) {
-        nameInPlace(row, { className: "row-rename", value: doc.title, placeholder: derivedTitle(doc), max: 120, label: "Chart title", apply: (title) => renameById(doc.id, title), back: () => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${doc.id}"]`))?.focus(), find: () => $("chart-list").querySelector(`[data-chart-row="${doc.id}"]`) });
+        nameInPlace(row, { className: "row-rename", value: doc.title, placeholder: derivedTitle(doc), max: 120, label: "Chart title", apply: (title) => renameById(doc.id, title), back: () => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${doc.id}"]`))?.focus(), find: () => $("chart-list").querySelector(`[data-chart-row="${doc.id}"], [data-preview-row="${doc.id}"]`) });
       }
       /** A name being typed in place, and where it goes again when what it's in is drawn anew. */
       let naming = /** @type {{ input: HTMLInputElement, find: () => Element | null, finish: () => void } | null} */ (null);
@@ -16405,7 +16526,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("home-grid").addEventListener("click", (event) => {
         const more = closest(event, "[data-tile-menu]");
         if (more) return tileMenu(/** @type {string} */ (more.dataset.tileMenu), undefined, more);
-        const tile = closest(event, "[data-home-card]"), check = closest(event, ".tile-check");
+        const tile = closest(event, "[data-home-card]:not(.preview)"), check = closest(event, ".tile-check");
         if (!tile || closest(event, ".tile-rename")) return;
         if (!(check || event.metaKey || event.ctrlKey || event.shiftKey || (picked.size && event.detail > 0))) return;
         event.stopPropagation();
@@ -16429,9 +16550,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else first.focus();
         }
       });
-      /** Draws every card that's out of date, one chart at a time, while the grid shows. */
+      /** Draws every card that's out of date (the previews', then your charts'), one chart at a time, while the grid shows. */
       const schedulePreviews = serial(async () => {
-        for (const doc of [...library.charts]) {
+        for (const doc of [...previewCharts, ...library.charts]) {
           if (!home) break;
           // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor
           // kept): it shows blank, not loading, and the next time the grid shows tries again.
@@ -16484,7 +16605,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           savePreviews();
         }
         // Taken back only when Cancel (or esc) is the way there; another way, it stays (as a chart left for another).
-        const draft = cancelling === chart.id && library.charts.some((doc) => doc !== chart) ? chart : null;
+        const draft = cancelling === chart.id && previousChart() ? chart : null;
         cancelling = "";
         hideMenu();
         putDown();
@@ -16554,7 +16675,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A new chart being cancelled on the way back to the grid (it's taken back once there). */
       let cancelling = "";
       /** A new chart, untouched, opened from the grid: leaving it goes back there. */
-      const backToHome = () => chart === previewing && history.state?.fromHome === true && history.state.chart === chart.id;
+      const backToHome = () => isPreview(chart) && history.state?.fromHome === true && history.state.chart === chart.id;
       // Back and Forward, between the grid and the charts opened from it.
       /** Back, Forward or a link pasted in: whatever dialog is open closes first. */
       const closeDialogs = () => all$("dialog[open]").forEach((dialog) => /** @type {HTMLDialogElement} */ (dialog).close());
@@ -16599,9 +16720,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (location.hash !== brokenLink && /^#(?:.*&)?(?:chart|image|c)=/.test(location.hash)) return;
         closeDialogs();
         if (event.state?.home) return showHome(false);
-        // (A preview passed through, replaced or closed since: back.)
-        const passed = chartById(event.state?.chart) ? null : passedPreviews.get(event.state?.chart);
-        if (passed) return showPreview(passed, true, false);
         go(chartById(event.state?.chart) ?? chart, false);
       });
       /**
@@ -17041,23 +17159,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return !names.length ? "Untitled chart" : names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} & ${names[1]}` : `${names[0]} & ${names.length - 1} more`;
       };
       /**
-       * The sidebar's charts, in the order you give them (new ones on top), ⌘1–⌘9 opening the first nine it shows: written
+       * The sidebar's charts, in the order you give them (new ones on top), ⌘1–⌘9 opening the first nine of yours: written
        * again only where it changed (an edit that changes nothing in it, a formula typed, leaves it as it is).
        */
       function renderCharts() {
         const current = home ? null : chart, keys = numbered();
+        /** A preview's row: a new chart's, empty, only that; another's, its × (but the open one with nothing to go back to). */
+        const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${drafts.has(doc)
+          ? `<button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="A new chart: in your charts once something's in it">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>`
+          : `<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your charts (Keep${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
+        const listed = listedPreviews(), draft = previewCharts.find((doc) => drafts.has(doc));
         const row = (/** @type {Chart} */ doc) => ((i) => `<div class="chart-row ${doc.folder ? "in-folder" : ""}" data-chart-row="${doc.id}">
             <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i >= 0 ? `data-kbd="⌘ ${i + 1}"` : ""}>${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span>${i >= 0 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
           </div>`)(keys.indexOf(doc));
         /** @type {[string, string][]} */
         const parts = [
-          ...(previewing && !previewing.layers.length ? [`<div class="preview-slot" data-preview-row><div class="chart-row preview">
-            <button type="button" class="nav-item chart-item" data-open-chart="${previewing.id}" data-tip="A new chart: in your charts once something's in it">${chartMark(previewing)}<span class="label">${escape(titleOf(previewing))}</span></button>
-          </div></div>`] : previewing ? [`<div class="preview-slot" data-preview-row><span class="preview-caption">Preview</span><div class="chart-row preview">
-            <button type="button" class="nav-item chart-item${touched.has(previewing) ? " edited" : ""}" data-open-chart="${previewing.id}" data-tip="${escape(titleOf(previewing))}: a preview, not in your charts (Keep or ⌘S adds it${touched.has(previewing) ? ", your edits with it" : ""})">${chartMark(previewing)}<span class="label">${escape(titleOf(previewing))}</span></button>
-            ${previewing !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" aria-label="Close the preview" data-tip="Close the preview">${ICONS.close}</button>` : ""}
-          </div></div>`] : []).map((html) => /** @type {[string, string]} */ (["preview", html])),
+          // The previews first, under their head, then your charts under theirs (the two told apart; none, no heads), a new
+          // chart first among yours (where it'll be once something's in it).
+          ...(listed.length ? [/** @type {[string, string]} */ (["head:previews", `<div class="list-head">Previews<span class="count">${listed.length}</span></div>`]), ...listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)]))] : []),
+          ...(listed.length && (draft || sideItems().length) ? [/** @type {[string, string]} */ (["head:saved", `<div class="list-head">Saved<span class="count">${library.charts.length}</span></div>`])] : []),
+          ...(draft ? [/** @type {[string, string]} */ ([`preview:${draft.id}`, previewRow(draft)])] : []),
           ...sideItems().flatMap((item) => {
             if ("layers" in item) return [/** @type {[string, string]} */ ([item.id, row(item)])];
             const folder = item, docs = library.charts.filter((doc) => doc.folder === folder.id), holds = Boolean(current && docs.includes(current));
@@ -17083,8 +17205,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (home) $("all-charts").setAttribute("aria-current", "page");
         else $("all-charts").removeAttribute("aria-current");
         // (A new chart, empty, has nothing to keep, nor anything ⋯ does: it's yours once something's in it; its Cancel takes it back.)
-        $("preview-note").hidden = !previewing || previewing !== chart || !chart.layers.length;
-        $("chart-more").hidden = !home && chart === previewing && !chart.layers.length;
+        $("preview-note").hidden = !isPreview(chart) || !chart.layers.length;
+        $("chart-more").hidden = !home && isPreview(chart) && !chart.layers.length;
         // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
         /** @type {HTMLElement} */ ($("mobile-add").querySelector(".label")).textContent = home ? "New chart" : "Add";
         // (Layers, the open chart's: none in the grid, nor on an empty chart.)
@@ -17459,7 +17581,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ];
       }
       /** A chart's menu, from its sidebar row (its ⋯, a right-click). */
-      const chartMenu = (/** @type {HTMLElement} */ anchor, /** @type {string} */ id, point = null) => menuOf(anchor, chartActions(id, "row"), point);
+      const chartMenu = (/** @type {HTMLElement} */ anchor, /** @type {string} */ id, /** @type {{ x: number, y: number } | null} */ point = null) => menuOf(anchor, chartActions(id, "row"), point);
       // A chart's row double-clicked: renamed where it is, as a file is (a folder's, by its toggle's second click).
       $("chart-list").addEventListener("dblclick", (event) => {
         const row = /** @type {HTMLElement | null} */ (closest(event, "[data-open-chart]")?.closest("[data-chart-row]") ?? null);
@@ -17469,11 +17591,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const doc = chartById(id);
         if (!doc) return renderCharts();
         if (pick === "rename" && home && cardOf(id)) {
-          picked.clear();
-          pickChart(id);
+          if (!isPreview(doc)) (picked.clear(), pickChart(id));
           renameTile(doc);
         } else if (pick === "rename") {
-          const row = !phone.matches && !railed() ? /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-chart-row="${id}"]`)) : null;
+          const row = !phone.matches && !railed() ? /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-chart-row="${id}"], [data-preview-row="${id}"]`)) : null;
           if (row) renameRow(doc, row);
           else openPage(renameChartPage(doc));
         } else if (pick === "duplicate") {
@@ -17494,7 +17615,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const ids = copies.map((copy) => copy.id), open = ids.indexOf(chart.id);
           // (The copies gone first: the one opened in place of an open copy is one still listed, else a new one.)
           for (const doc of library.charts.filter((doc) => ids.includes(doc.id))) discard(doc);
-          if (open >= 0) openChart(chartById(docs[open].id) ?? previousChart() ?? library.charts[0] ?? (previewing = draftChart()));
+          if (open >= 0) openChart(chartById(docs[open].id) ?? previousChart() ?? library.charts[0] ?? newDraft());
           save();
           renderCharts();
         } });
@@ -17535,8 +17656,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         keepFocus(null, () => (neighbor && library.charts.includes(neighbor) ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(neighbor.id)}"]`) : null), () => $("new-chart"));
         discard(doc);
         // The last chart gone (the open one), the preview there is stands in, else a blank one.
-        const standIn = wasOpen && !library.charts.length ? previewing ?? draftChart() : null;
-        if (standIn) previewing = standIn;
+        const standIn = wasOpen && !library.charts.length ? previewCharts[0] ?? newDraft() : null;
         if (wasOpen) openChart(standIn ?? (next && library.charts.includes(next) ? next : library.charts[Math.min(index, library.charts.length - 1)]));
         save();
         renderCharts();
@@ -17567,7 +17687,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         delete document.body.dataset.sheet;
         // (A preview until something's in it: one already open, empty, is the one.)
         // (The empty preview already open taken up again: started here now, as a new one is.)
-        if (!(chart === previewing && !chart.layers.length && !chart.title)) showPreview(draftChart());
+        if (!(isPreview(chart) && !chart.layers.length && !chart.title)) showPreview(draftChart());
         else (drafts.add(chart), leaveHome(() => {}));
         void until(() => !document.body.hasAttribute("data-home"), 1000).then(() => /** @type {HTMLElement | null} */ ($("empty").querySelector(".search-cta"))?.focus());
       }
@@ -17576,7 +17696,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         delete document.body.dataset.sheet;
         const made = fromTemplate(template);
         // (On a preview, or with something here: the template as a preview of its own; else, on the empty chart that's yours.)
-        if (chart.layers.length || home || chart === previewing) return showPreview(made);
+        if (chart.layers.length || home || isPreview(chart)) return showPreview(made);
         commit((doc) => {
           doc.title ||= made.title;
           Object.assign(doc, { index: made.index, range: made.range, panes: made.panes, layers: made.layers });
@@ -17824,7 +17944,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A chart a place up or down: among its folder's, or in the sidebar's order (past a folder too), gliding there. */
       function stepChart(/** @type {string} */ id, /** @type {number} */ by) {
         const doc = chartById(id);
-        if (!doc || doc === previewing) return;
+        if (!doc || isPreview(doc)) return;
         if (!doc.folder) return stepSide(doc, by);
         const peers = library.charts.filter((other) => other.folder === doc.folder), next = peers[peers.indexOf(doc) + by];
         if (!next) return;
@@ -17929,12 +18049,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         pick: (id) => !picked.has(id) && pickChart(id),
         picking: () => picked.size > 0,
         unpick: () => clearPicks(),
-        refuse: (event) => Boolean(closest(event, ".tile-check, .tile-more, .tile-rename")),
+        refuse: (event) => Boolean(closest(event, ".tile-check, .tile-more, .tile-rename, .tile.preview")),
         still: () => Boolean($("home-filter").value.trim()),
         sticky: true,
         landing: (x, y, ids) => {
           const under = document.elementFromPoint(x, y), head = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-grid-folder]"));
           if (head) return { zone: head };
+          // (Not among the previews: they're none of your charts' order.)
+          if (under?.closest(".grid-section.previews")) return undefined;
           const tile = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-home-card]"));
           // Off the tiles: in a folder's box, into it; elsewhere on the grid, out of any.
           if (!tile) {
@@ -20415,10 +20537,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const more = /** @type {HTMLElement} */ (folderRow.querySelector("[data-folder-menu]"));
           return folderActions(more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY });
         }
-        const previewRow = closest(event, "[data-preview-row]");
-        if (previewRow && previewing?.layers.length) {
+        const previewRow = closest(event, "[data-preview-row]:not(:has(.row-rename))");
+        const previewed = previewRow && chartById(/** @type {string} */ (/** @type {HTMLElement} */ (previewRow).dataset.previewRow));
+        if (previewRow && previewed?.layers.length) {
           event.preventDefault();
-          return chartMenu(/** @type {HTMLElement} */ (previewRow.querySelector("[data-open-chart]")), previewing.id, { x: event.clientX, y: event.clientY });
+          return chartMenu(/** @type {HTMLElement} */ (previewRow.querySelector("[data-open-chart]")), previewed.id, { x: event.clientX, y: event.clientY });
         }
         const chartRow = closest(event, "[data-chart-row]:not(:has(.row-rename))");
         const layerRow = closest(event, ".layer-row[data-layer]");
@@ -21224,8 +21347,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return /** @type {Command[]} */ ([
           { title: "Add a layer", text: "Search every series, or browse them by topic; a formula, a cloud, a trend.", words: "add series catalog browse explore folders metric data", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
           { title: "New chart", text: "A blank chart, to start from series, a preset or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
-          ...(previewing && previewing === chart && !home && chart.layers.length ? [{ title: "Keep this chart", text: "A preview: into your charts, with your edits (till then, they're this preview's alone).", words: "keep save preview add charts", icon: "keep", run: () => keepPreview(), suggested: true }] : []),
-          ...(previewing?.layers.length && (previewing !== chart || previousChart()) ? [{ title: "Close the preview", text: `${titleOf(previewing)}: not in your charts, let go of.`, words: "close preview discard dismiss", icon: "close", run: closePreview }] : []),
+          ...(isPreview(chart) && !home && chart.layers.length ? [{ title: "Keep this chart", text: "A preview: into your charts, with your edits (till then, they're this preview's alone).", words: "keep save preview add charts", icon: "keep", run: () => keepPreview(), suggested: true }] : []),
+          ...(isPreview(chart) && !home && chart.layers.length && previousChart() ? [{ title: "Close this preview", text: `${titleOf(chart)}: not in your charts, let go of.`, words: "close preview discard dismiss", icon: "close", run: () => closePreview() }] : []),
           { title: "New folder", text: "For charts that go together, named at once.", words: "create folder group organize", icon: "folderAdd", run: () => newFolder(), anywhere: true },
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
@@ -21242,7 +21365,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link copy qr code scan phone", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
-          ...(chart === previewing ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${folderById(chart.folder)?.name ?? "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
+          ...(isPreview(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${folderById(chart.folder)?.name ?? "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
           ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", words: "share image picture png screenshot photos save send message", icon: "share", run: () => exportAs("share") }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
           ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows, with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
@@ -21308,7 +21431,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
           { title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") },
-          ...(chart === previewing ? [] : [{ title: "Delete this chart", text: "With an Undo.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
+          ...(isPreview(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
           ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", words: "unhide visible all", icon: "eye", run: showEvery }] : []),
           ...(chart.panes.length > 1 ? [
             ...PANE_HEIGHTS.map(({ label, text, words, set }) => ({ title: label, text: `${text}.`, words, icon: "pane", run: () => setPaneHeights(set) })),
@@ -21388,7 +21511,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const titled = (/** @type {Command} */ command) => command.title.toLowerCase().startsWith(words[0]), ahead = found.filter((item) => leads(item.command));
         const strong = [...ahead.filter((item) => titled(item.command)), ...ahead.filter((item) => !titled(item.command) && !item.command.danger), ...ahead.filter((item) => !titled(item.command) && item.command.danger)].slice(0, 6), weak = found.filter((item) => !leads(item.command)).slice(0, 6);
         // Charts that match come before the series: a chart's title is a few words, matched, it's what's looked for.
-        const charts = !everything ? [] : rank(library.charts.filter((doc) => home || doc !== chart).map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words).slice(0, 4);
+        const charts = !everything ? [] : rank([...listedPreviews(), ...library.charts].filter((doc) => home || doc !== chart).map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words).slice(0, 4);
         // The website's charts (once read), after yours: a few that match; all of them on their own page.
         const website = !everything || !presets ? [] : rank(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), rowText, words).slice(0, 4);
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
@@ -22268,8 +22391,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (doc === chart) return commit((draft) => (draft.title = title), { redraw: "none" });
         Object.assign(doc, { title, updated: Date.now() });
         // (A chart started here, named: it's yours; another's preview stays one till kept.)
-        if (doc === previewing && drafts.has(doc)) return keepPreview(false);
-        if (doc === previewing) return void (touched.add(doc), renderCharts());
+        if (isPreview(doc) && drafts.has(doc)) return keepPreview(false, doc);
+        if (isPreview(doc)) return void (touchPreview(doc), save(), renderCharts());
         save();
         renderCharts();
       }
@@ -22405,9 +22528,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "page:presets", icon: ICONS.charts, label: "Presets", aside: presets ? plural(presets.length, "chart") : "Loading…", words: "presets templates examples gallery ready made start browse", page: () => presetsPage([]) },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
-      /** Your charts, as ⌘K's page: those in no folder, then each folder's under its name (the sidebar's order); and making more. */
+      /** The previews and your charts, as ⌘K's page: the previews, yours in no folder, then each folder's under its name (the sidebar's order); and making more. */
       const chartsPage = () => ({ title: "Charts", placeholder: "Search your charts", rows: () => [
-        ...sideItems().filter((item) => "layers" in item).map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })),
+        ...listedPreviews().map((doc) => ({ kind: "chart", key: doc.id, group: "Previews" })),
+        ...sideItems().filter((item) => "layers" in item).map((doc) => ({ kind: "chart", key: doc.id, group: "Saved" })),
         .../** @type {Folder[]} */ (sideItems().filter((item) => !("layers" in item))).flatMap((folder) => library.charts.filter((doc) => doc.folder === folder.id).map((doc) => ({ kind: "chart", key: doc.id, group: folder.name }))),
         { kind: "row", key: "new", icon: ICONS.plus, label: "New chart", kbd: "N", verb: "Create", group: "Add", run: newChart },
         { kind: "row", key: "new-folder", icon: ICONS.folderAdd, label: "New folder", verb: "Create", group: "Add", run: () => (dismissPalette(), newFolder()) },
@@ -22427,24 +22551,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function chartActions(id, where = "palette") {
         const doc = chartById(id);
         if (!doc) return [];
-        const isPreview = doc === previewing, inPalette = where === "palette", tile = where === "tile", head = where === "head", phoneHead = head && phone.matches;
-        const leave = isPreview ? "" : outOf([id]), peers = inPalette && !isPreview ? (doc.folder ? library.charts.filter((other) => other.folder === doc.folder) : sideItems()) : [];
+        const preview = isPreview(doc), inPalette = where === "palette", tile = where === "tile", head = where === "head", phoneHead = head && phone.matches;
+        const leave = preview ? "" : outOf([id]), peers = inPalette && !preview ? (doc.folder ? library.charts.filter((other) => other.folder === doc.folder) : sideItems()) : [];
         /** (A card's acts on it alone, the picks as they are; elsewhere, as its row's.) */
-        const act = (/** @type {string} */ kind) => () => (tile ? batch(kind === "download" ? "export" : kind, null, [id]) : chartPick(id, kind));
+        const act = (/** @type {string} */ kind) => () => (tile && !preview ? batch(kind === "download" ? "export" : kind, null, [id]) : chartPick(id, kind));
         return [
           ...(phoneHead && (edits.future.length || toastRedo?.mark === revision) ? [{ key: "redo", icon: ICONS.redo, label: "Redo", group: "redo", run: redoLast }] : []),
           ...(inPalette || tile ? [{ key: "open", icon: ICONS.next, label: "Open", kbd: inPalette ? "↵" : undefined, run: () => go(chartById(id)) }] : []),
-          ...(tile && !picked.has(id) ? [{ key: "select", icon: ICONS.checkbox, label: "Select", run: () => pickChart(id) }] : []),
-          ...(isPreview && doc.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: inPalette ? undefined : "Into your charts", run: () => keepPreview() }] : []),
+          ...(tile && !preview && !picked.has(id) ? [{ key: "select", icon: ICONS.checkbox, label: "Select", run: () => pickChart(id) }] : []),
+          ...(preview && doc.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: inPalette ? undefined : "Into your charts", run: () => keepPreview(true, doc) }] : []),
           { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { page: () => renameChartPage(doc) } : head ? { run: () => (/** @type {HTMLInputElement} */ ($("title")).focus(), /** @type {HTMLInputElement} */ ($("title")).select()) } : { run: act("rename") }) },
-          ...(isPreview ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", run: act("duplicate") }]),
+          ...(preview ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", run: act("duplicate") }]),
           ...(peers.indexOf(doc) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", stay: true, run: () => stepChart(id, -1) }] : []),
           ...(peers.length && peers.indexOf(doc) < peers.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", stay: true, run: () => stepChart(id, 1) }] : []),
-          ...(isPreview ? [] : [{ key: "folder", icon: ICONS.folder, label: "Move to folder", aside: inPalette ? folderById(doc.folder)?.name ?? "None" : undefined, page: () => choicePage("Move to folder", () => folderChoices([id], inPalette)) }]),
+          ...(preview ? [] : [{ key: "folder", icon: ICONS.folder, label: "Move to folder", aside: inPalette ? folderById(doc.folder)?.name ?? "None" : undefined, page: () => choicePage("Move to folder", () => folderChoices([id], inPalette)) }]),
           ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder([id], null) }] : []),
           ...(head && doc.layers.length ? [{ ...legendAction(), apart: true }, { key: "export", icon: ICONS.download, label: "Export", aside: "Image, data, file", page: () => listPage("Export", exportRows) }] : []),
           ...(head ? [] : [{ key: "download", icon: ICONS.file, label: "Download chart file", aside: "JSON", run: act("download") }]),
-          ...(!isPreview ? [{ key: "delete", icon: ICONS.trash, label: "Delete", danger: true, run: act("delete") }] : doc !== chart || previousChart() ? [{ key: "close", icon: ICONS.close, label: "Close the preview", apart: true, run: closePreview }] : []),
+          ...(!preview ? [{ key: "delete", icon: ICONS.trash, label: "Delete", danger: true, run: act("delete") }] : doc !== chart || previousChart() ? [{ key: "close", icon: ICONS.close, label: "Close the preview", apart: true, run: () => closePreview(doc) }] : []),
         ];
       }
       /** @returns {Page} */
@@ -22479,10 +22603,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => listPage("Export", exportRows) },
             ] : []),
-            ...(chart === previewing ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: folderById(chart.folder)?.name ?? "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
-            ...(chart === previewing && chart.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: "A preview: into your charts as it is", verb: "Keep", group: "Chart file", run: () => keepPreview() }] : []),
-            ...(chart === previewing ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") }]),
-            ...(chart === previewing ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
+            ...(isPreview(chart) ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: folderById(chart.folder)?.name ?? "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
+            ...(isPreview(chart) && chart.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: "A preview: into your charts as it is", verb: "Keep", group: "Chart file", run: () => keepPreview() }] : []),
+            ...(isPreview(chart) ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") }]),
+            ...(isPreview(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewChart(panel, chart), ...row }));
         } };
       }
@@ -23891,8 +24015,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               for (const doc of library.charts) if (doc.folder && gone.has(doc.folder)) delete doc.folder;
               library.order = before;
               if (ids.has(chart.id)) {
-                const standIn = library.charts.length ? null : previewing ?? draftChart();
-                if (standIn) previewing = standIn;
+                const standIn = library.charts.length ? null : previewCharts[0] ?? newDraft();
                 openChart(standIn ?? library.charts[0]);
               }
               save();
@@ -23912,7 +24035,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           toast(`Imported “${titleOf(doc)}”`, { label: "Undo", run: () => {
             const now = chartById(doc.id);
             if (now) discard(now);
-            if (chart.id === doc.id) openChart(chartById(before.id) ?? (before === previewing ? before : null) ?? previousChart() ?? library.charts[0] ?? (previewing = draftChart()));
+            if (chart.id === doc.id) openChart(chartById(before.id) ?? previousChart() ?? library.charts[0] ?? newDraft());
             save();
             renderCharts();
           } });
@@ -24739,7 +24862,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Dimmed, not disabled: a key's focus on one stays there as it runs out.)
         $("undo").setAttribute("aria-disabled", String(!edits.past.length && toastUndo?.mark !== revision));
         $("redo").setAttribute("aria-disabled", String(!edits.future.length && toastRedo?.mark !== revision));
-        const edited = chart === previewing && touched.has(chart), keep = $("keep");
+        const edited = isPreview(chart) && touched.has(chart), keep = $("keep");
         keep.classList.toggle("edited", edited);
         keep.dataset.tip = edited ? "Your edits aren't in your charts yet: Keep puts it there, with them" : "Keep puts it in your charts, as it is";
         if (edited) keep.setAttribute("aria-label", "Keep, edited");
@@ -24747,8 +24870,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too); its Redo, ⌘⇧Z. */
       let toastUndo = /** @type {{ press: () => void, mark: number } | null} */ (null), toastRedo = /** @type {{ press: () => void, mark: number } | null} */ (null);
-      /** Whether the toast up asks for the open preview to be kept (once kept, it's put away). */
-      let toastOfPreview = false;
+      /** The preview the toast up asks to be kept (once kept, it's put away). */
+      let toastOfPreview = /** @type {Chart | null} */ (null);
       /** The step the toast up came with: its chart, and how many steps back it is once made (undone, it's put away). */
       let toastStep = /** @type {{ chart: Chart, depth: number } | null} */ (null);
       /**
@@ -24770,7 +24893,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           requestAnimationFrame(() => (said.textContent = action ? `${text}. ${action.label}${action.label === "Undo" ? `, ${keyText("⌘Z")}` : action.label === "Redo" ? `, ${keyText("⇧⌘Z")}` : ""}` : text));
         }
         const undoes = action?.label === "Undo";
-        toastOfPreview = false;
+        toastOfPreview = null;
         // (Said with an edit of the open chart, it's that edit's step; else, a deleted chart's, a copied link's, no step's.)
         toastStep = chartChanged ? { chart, depth: edits.past.length } : null;
         // (No ✓ where there's an Undo: a removal, a move, isn't a success to tick; ✓ elsewhere says what's chosen.)
@@ -24829,7 +24952,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         clearTimeout(toastTimer);
         $("toast").classList.remove("visible");
         toastUndo = toastRedo = null;
-        toastOfPreview = false;
+        toastOfPreview = null;
         syncUndo();
       }
       function hideToastLater() {
@@ -24928,7 +25051,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("chart").classList.toggle("unseen", unseen);
         // A new chart, empty, can be left with Escape (or Cancel), for the chart before it: taken back.
         const back = chart.layers.length ? null : previousChart();
-        $("leave-empty").hidden = chart !== previewing || (!back && !backToHome());
+        $("leave-empty").hidden = !isPreview(chart) || (!back && !backToHome());
         if (backToHome()) $("leave-empty").dataset.tip = "Back to all charts";
         else if (back) $("leave-empty").dataset.tip = `Back to ${titleOf(back)}`;
         // An empty chart is the empty state's to fill: no panel beside it, nothing to export or share yet.
@@ -24988,7 +25111,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
         else if (action === "palette") openPalette({ resume: true });
         else if (action === "new-chart") newChart();
-        else if (action === "close-preview") closePreview();
+        else if (action === "close-preview") closePreview(chartById(target.dataset.preview ?? "") ?? chart);
         else if (action === "home") showHome();
         else if (action === "add-series") openPalette({ add: true });
         else if (action === "leave-empty") leaveEmpty();
@@ -25147,7 +25270,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (mod && key === "s") {
           event.preventDefault();
           flushEdits();
-          if (chart === previewing && !home) return chart.layers.length ? keepPreview() : toast("Nothing to keep yet: add a layer");
+          if (isPreview(chart) && !home) return chart.layers.length ? keepPreview() : toast("Nothing to keep yet: add a layer");
           return save(true);
         }
         if (mod && key === "z" && !typing(event.target)) {
@@ -25170,7 +25293,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           const item = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-chart-row], [data-home-card]") ?? null);
           const id = item?.dataset.chartRow ?? item?.dataset.homeCard ?? "", doc = chartById(id), inGrid = inList.id === "home-grid";
-          if (!doc || doc === previewing) return;
+          if (!doc || isPreview(doc)) return;
           if (key === "d") return inGrid ? batch("duplicate", null, picked.has(id) ? null : [id]) : void duplicateCharts([doc]);
           // (One of the picks: they all go; one alone, alone. An Undo brings them back.)
           return inGrid ? batch("delete", null, picked.has(id) ? null : [id]) : deleteChart(doc);
@@ -25237,7 +25360,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (document.body.dataset.sheet) delete document.body.dataset.sheet;
           else if (!home && tablet.matches && panelShown()) togglePanel(false);
           // A new chart left empty: Escape takes it back, as its Cancel button does.
-          else if (!home && !chart.layers.length && chart === previewing && (previousChart() || backToHome())) leaveEmpty();
+          else if (!home && !chart.layers.length && isPreview(chart) && (previousChart() || backToHome())) leaveEmpty();
         } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
         else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
         else if ((event.key === "Backspace" || event.key === "Delete") && (chosen.size || layerPicks.size || selected)) chosen.size ? removeDrawings([...chosen]) : layerPicks.size ? layersBatch("remove") : removeLayer(selected);
@@ -25630,7 +25753,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // the chart steps on from it).)
           if (shared !== null && !picturing) history.replaceState(home ? { home: true } : { chart: (twin ?? doc).id }, "", `${location.pathname}${location.search}`);
           if (shared !== null) reading.hash = "";
-          if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: Keep it to have it in your charts${lost}`), (toastOfPreview = !twin);
+          if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: Keep it to have it in your charts${lost}`), (toastOfPreview = twin ? null : doc);
           return twin ?? doc;
         } catch (error) {
           // (Written by hand, why: to tell whoever wrote it; a newer link meanwhile, or a chart opened, nothing.)
@@ -25643,10 +25766,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       /** A chart a link (or a script) brought, shown: the one open drawn anew, at the link's window; one kept, opened; else a preview. */
+      /** @returns {Chart} the chart shown (a preview of it already there, that one) */
       function showLinked(/** @type {Chart} */ doc) {
         if (doc === chart) leaveHome(() => { drawnChart = ""; refresh(true, true); });
         else if (library.charts.includes(doc)) leaveHome(() => openChart(doc));
-        else showPreview(doc, true);
+        else {
+          // (The toast asking for it kept: the one shown's, a preview of it already there maybe.)
+          const shown = showPreview(doc);
+          if (toastOfPreview === doc) toastOfPreview = shown;
+          return shown;
+        }
+        return doc;
       }
       // A link pasted into this tab while it's open.
       /** Each link opened, counted: one still being read when another comes is dropped (see fromHash). */
@@ -25667,10 +25797,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (run !== linkRun) return;
           // (Dropped for a chart opened meanwhile: no picture, and the address that chart's.)
           if (navigations > at) return void ((picturing = false), clearLink());
-          if (doc) showLinked(doc);
+          const shown = doc ? showLinked(doc) : null;
           // (Its picture once it's the chart open: not the one before's; any other link, out of a picture.)
-          if (doc && picturing) await until(() => chart === doc && !home, 5000);
-          if (doc && picturing && run === linkRun) showPicture();
+          if (shown && picturing) await until(() => chart === shown && !home, 5000);
+          if (shown && picturing && run === linkRun) showPicture();
           else if (picturing && run === linkRun) pictureFailed(linkError);
           else if (document.body.hasAttribute("data-picture")) leavePicture();
         })());
@@ -25814,8 +25944,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const doc = await linked(typeof sketch === "string" ? sketch : JSON.stringify(sketch), null, run, at);
             if (!doc) throw new Error(linkError);
             if (run !== linkRun || navigations > at) throw new Error("Another chart was opened meanwhile");
-            showLinked(doc);
-            await until(() => chart === doc && !home, 5000);
+            const shown = showLinked(doc);
+            await until(() => chart === shown && !home, 5000);
           })());
         },
         /** Once the chart open (or opening) is drawn with its data in (see settle), and has some: else why not. */
@@ -25894,23 +26024,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const at = navigations + 1, shared = await fromHash(linkRun, at);
         // (A chart opened while its link was read: the link dropped, no picture, and gone from the address bar.)
         if (navigations > at) (picturing = false), clearLink();
+        // Edited previews kept aside (left, reloaded, a tab closed): previews again; one opened, with nothing else to show.
+        // (One kept since, in another tab, let go of.)
+        const stored = previewsAside(), unsaved = stored.filter((doc) => !library.charts.some((item) => item.id === doc.id));
+        if (unsaved.length < stored.length) unsaved.length ? storage.set(PREVIEW_ASIDE, unsaved) : storage.drop(PREVIEW_ASIDE);
+        const setAside = unsaved.flatMap(restore);
+        for (const doc of setAside) touched.add(doc), previewCharts.push(doc);
         if (shared) {
-          if (!library.charts.includes(shared)) previewing = shared;
-          chart = shared;
+          const like = !library.charts.includes(shared) && previewLike(shared);
+          if (like) (like.range = shared.range), moveView(shared.id, like.id);
+          if (like && toastOfPreview === shared) toastOfPreview = like;
+          chart = like || shared;
+          if (!library.charts.includes(chart)) addPreview(chart);
         }
         // (Charts another tab saved while this one was starting: the first of them, as a library's first is.)
-        chart ??= chartById(library.active) ?? library.charts[0];
-        // An edited preview kept aside (left, reloaded, a tab closed): in its place again; opened, with nothing else to show.
-        const [previewAside] = shared ? [] : ((stored) => (stored && !chartById(stored.id) ? restore(stored) : []))(storage.get(PREVIEW_ASIDE, null));
-        if (previewAside) {
-          touched.add(previewAside);
-          previewing ??= previewAside;
-          chart ??= previewAside;
-        }
+        chart ??= chartById(library.active) ?? library.charts[0] ?? setAside[0];
         // First visit: an empty chart, open as a preview, to start from a search or one of the website's charts.
         const first = !chart;
         if (first) {
-          chart = previewing = draftChart();
+          chart = newDraft();
           prefs.home = false;
           savePrefs();
         }
