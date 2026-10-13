@@ -2,11 +2,12 @@
 
 Applied by hand to `dist/lightweight-charts.standalone.production.mjs`, the only file Studio loads (the dev page imports
 it, the build inlines it). A fresh download loses them: apply each again at its anchor (minified names are 5.2.1's),
-then open `tests.html` (served from the repo) and check it says 0 failing and every step the same.
+then open `tests.html` (served from the repo) in a window wide enough for its two charts side by side and check it says
+0 failing and every step the same.
 
 The plots draw exactly what the library does, but for the log marks (1, 12) and the rounded bars (7, only where a radius
 is set); the axes' tags are rounded (6), the time axis's labels fade before its ends (10), a price axis's tags stay inside
-its pane (11). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9) draw the same, faster. `tests.html` runs the patched file and 5.2.1 as published side by side through every
+its pane (11). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14) draw the same, faster. `tests.html` runs the patched file and 5.2.1 as published side by side through every
 series type, every price scale mode (inverted too), pans, jumps, zooms, the crosshair, restyles, live updates, new data,
 resizes, margins, moves between scales, a held price range and conflation, and compares their plots pixel for pixel, the
 axes left out (713 steps).
@@ -219,3 +220,23 @@ and a fling's frame, applied as the chart paints, shows past it first.)
 view; 3,000 points, 40, 5), views put far past either end, offsets past them and a zoom out at the start keep that share
 on the data (all of it, 5 points), a view on the data stays as put, and one past the end with none set takes the share as
 it's given. Checked in Studio (a phone): flings and drags against either end never paint past it.
+
+## 14. Canvases measured together
+
+A canvas resized (`resizeCanvasElement`: a pane's, an axis's, a corner's; each widget has one or two) wrote its size and
+read its box back at once (`getClientRects`, for its bitmap's device pixels), each read after another canvas's write: a
+chart resized as the page around it changes laid the page out again for every canvas (Studio's two panes: 8 layouts;
+Chromium at 4x CPU, a phone's sheet opened over the chart, a frame of 83 ms). The reads now wait for the writes: all are
+read together once the script that resized them is done (a microtask), or at once as a canvas takes its new bitmap size
+to be drawn (`applySuggestedBitmapSize`: a chart resized and drawn at once, `resize(w, h, true)`, draws at its new
+size). One layout; the same frame, 33 ms.
+
+- Before `var cn=function(){…}` (fancy-canvas's binding): `bvSizing` (the canvases waiting to be read) and `bvMeasure()`
+  (reads them, `_invalidateBitmapSize()` each).
+- `cn.prototype.resizeCanvasElement`: `bvSizing.size||queueMicrotask(bvMeasure),bvSizing.add(this)` for its
+  `this._invalidateBitmapSize()`.
+- `cn.prototype.applySuggestedBitmapSize`: `bvSizing.size&&bvMeasure()` first.
+
+`tests.html`: the pictures (resizes among their steps, drawn on the next frame) are 5.2.1's; a chart of two panes resized
+and drawn at once, then pictured in the same task (down, up, sizes of fractions, back), draws what 5.2.1 does, its
+canvases' bitmaps as true to their boxes.

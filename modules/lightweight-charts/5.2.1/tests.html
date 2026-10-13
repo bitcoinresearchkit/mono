@@ -10,7 +10,7 @@
      window.result once done): the log scale's marks over thousands of ranges, then the patched library drawing exactly
      what the unpatched one does (5.2.1 as published, from unpkg) through series of operations, picture by picture
      (the plot only, its axes left out: log marks and the axes' tags differ, as patched; horizontal grid lines off, price
-     scales one width), rounded corners, and the view kept on its data. -->
+     scales one width), rounded corners, the view kept on its data, and canvases measured together. -->
 <pre id="out">Running…</pre>
 <div id="a" class="c"></div><div id="b" class="c"></div>
 <script type="module">
@@ -349,5 +349,33 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`The view on its data: ${keptChecks} checks, ${kept.length} failing`);
   for (const f of kept.slice(0, 10)) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length };
+
+  // 5. Canvases measured together (patch 14): a chart resized and drawn at once (`resize(w, h, true)`, as a page taking
+  // its picture does) and pictured in the same task, no frame between, by the patched library and the published one, at
+  // sizes down, up, of fractions and back: the same picture, no canvas's bitmap further from its box's device pixels
+  // than the published library's. (Resized and drawn on the next frame: the pictures above.)
+  const sized = [];
+  let sizedChecks = 0;
+  document.getElementById("a").innerHTML = ""; document.getElementById("b").innerHTML = ""; window.__charts = [];
+  for (const [L, id] of [[A, "a"], [B, "b"]]) {
+    seed = 91;
+    const c = base(L, document.getElementById(id));
+    c.addSeries(L.LineSeries, { color: "#fff" }).setData(walk(800, 100, 0.03));
+    c.addSeries(L.HistogramSeries, { color: "#46f" }, 1).setData(walk(800, 0, 1, { negative: true }));
+  }
+  await frames();
+  const unsized = (id) => [...document.getElementById(id).querySelectorAll("canvas")].filter((canvas) => { const r = canvas.getBoundingClientRect(); return r.width > 0 && (Math.abs(canvas.width - r.width * devicePixelRatio) > 1 || Math.abs(canvas.height - r.height * devicePixelRatio) > 1); }).length;
+  for (const [w, h] of [[900, 380], [640, 520], [901.5, 333.3], [300, 200], [900, 520]]) {
+    const [a, b] = window.__charts;
+    a.resize(w, h, true); b.resize(w, h, true);
+    const d = differ(plot(a), plot(b));
+    sizedChecks += 2;
+    if (d !== 0) sized.push(`${w}×${h}: ${d < 0 ? "pictures of other sizes" : `${d} values differing`}`);
+    const off = [unsized("a"), unsized("b")];
+    if (off[1] > off[0]) sized.push(`${w}×${h}: ${off[1]} canvases' bitmaps not their size (published: ${off[0]})`);
+  }
+  window.__charts[0].remove(); window.__charts[1].remove(); window.__charts = [];
+  say(`Canvases measured together: ${sizedChecks} checks, ${sized.length} failing`);
+  for (const f of sized.slice(0, 10)) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length };
 </script>

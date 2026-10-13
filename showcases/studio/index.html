@@ -6386,7 +6386,7 @@
         inset: 0;
         z-index: 19;
         background: var(--scrim);
-        animation: appear var(--dur-panel) var(--ease);
+        animation: appear var(--dur-layout) var(--ease-layout);
       }
 
       /*
@@ -6572,7 +6572,7 @@
           box-shadow: var(--pop);
           visibility: hidden;
           transform: translateY(102%);
-          transition: transform var(--dur-panel) var(--ease), visibility 0s var(--dur-panel);
+          transition: transform var(--dur-layout) var(--ease-layout), visibility 0s var(--dur-layout);
 
           &::before {
             content: "";
@@ -6588,7 +6588,7 @@
         body[data-sheet="panel"] .panel {
           visibility: visible;
           transform: none;
-          transition: transform var(--dur-panel) var(--ease);
+          transition: transform var(--dur-layout) var(--ease-layout);
         }
 
         /* Upright: half the screen, one height whatever it shows (its list, a layer's settings: no jumps), the chart
@@ -6599,16 +6599,11 @@
             height: calc(var(--sheet-half) * 100dvh);
             max-height: none;
             /* (Its height back to half once it's out of sight, not as it goes.) */
-            transition: transform var(--dur-panel) var(--ease), height 0s var(--dur-panel), visibility 0s var(--dur-panel);
+            transition: transform var(--dur-layout) var(--ease-layout), height 0s var(--dur-layout), visibility 0s var(--dur-layout);
           }
 
           body[data-sheet-size="full"] .panel {
             height: calc(var(--sheet-whole) * 100dvh);
-          }
-
-          /* (Its height moved by its transform as it's sized: see sizeSheet.) */
-          body[data-sheet="panel"] .panel {
-            transition: transform var(--dur-panel) var(--ease);
           }
 
           /* (The chart in what the half sheet leaves, every pane in sight: what's changed in it shows as it's changed; the
@@ -6735,7 +6730,7 @@
           background: var(--scrim);
           opacity: 0;
           pointer-events: none;
-          transition: opacity var(--dur-panel) var(--ease);
+          transition: opacity var(--dur-layout) var(--ease-layout);
         }
 
         body[data-sheet] .scrim {
@@ -6764,7 +6759,7 @@
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
           padding: 7px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
           /* (In and out from the foot, as the layers sheet: put away, it slides down before it's gone, out of reach.) */
-          transition: transform var(--dur-panel) var(--ease), display var(--dur-panel) allow-discrete;
+          transition: transform var(--dur-layout) var(--ease-layout), display var(--dur-layout) allow-discrete;
           animation: none;
 
           &[hidden] {
@@ -7359,7 +7354,7 @@
           padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
           /* (In from the foot, as the layers sheet; closed, it slides down before it's gone, its backdrop fading, where the
              browser keeps a closing dialog over the page meanwhile (Safari doesn't: there, gone at once).) */
-          transition: transform var(--dur-panel) var(--ease), background var(--dur-small) var(--ease);
+          transition: transform var(--dur-layout) var(--ease-layout), background var(--dur-small) var(--ease);
 
           /* (Over a dialog's own pop.) */
           &[open] {
@@ -7367,7 +7362,7 @@
           }
 
           @supports (overlay: auto) {
-            transition: transform var(--dur-panel) var(--ease), background var(--dur-small) var(--ease), display var(--dur-panel) allow-discrete, overlay var(--dur-panel) allow-discrete;
+            transition: transform var(--dur-layout) var(--ease-layout), background var(--dur-small) var(--ease), display var(--dur-layout) allow-discrete, overlay var(--dur-layout) allow-discrete;
           }
 
           &:not([open]) {
@@ -7381,11 +7376,11 @@
           }
 
           &::backdrop {
-            transition: background var(--dur-small) var(--ease), opacity var(--dur-panel) var(--ease);
+            transition: background var(--dur-small) var(--ease), opacity var(--dur-layout) var(--ease-layout);
             animation: none;
 
             @supports (overlay: auto) {
-              transition: background var(--dur-small) var(--ease), opacity var(--dur-panel) var(--ease), display var(--dur-panel) allow-discrete, overlay var(--dur-panel) allow-discrete;
+              transition: background var(--dur-small) var(--ease), opacity var(--dur-layout) var(--ease-layout), display var(--dur-layout) allow-discrete, overlay var(--dur-layout) allow-discrete;
             }
           }
 
@@ -8298,6 +8293,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const sheetWhole = () => heldUpright.matches && document.body.dataset.sheetSize === "full";
       /** A device of fingers (no hover): its words "tap", not "click". */
       const TOUCH = matchMedia("(hover: none)").matches, CLICK = TOUCH ? "tap" : "click";
+      /** How far a finger moves and still taps, or holds (iOS's own, some 10pt): past it, a scroll (or a sheet's pull). */
+      const SLOP = 10;
+      /** Whether an element scrolls up and down: its content taller than it, and let scroll. @param {Element} element */
+      const scrollsY = (element) => element.scrollHeight > element.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(element).overflowY);
       // Hover's looks, a pointer's that hovers only (every :hover in the style is so): iOS keeps what a finger tapped
       // hovered till the next tap, a button lit as if still pressed, a swatch as if picked. As the device is now (a mouse
       // put to a tablet), as the style's own touch rules are.
@@ -10509,7 +10508,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let opener = /** @type {Element | null} */ (null), shown = false, wasModal = false;
         const sheetModal = () => {
           const panel = $("panel"), was = shown, modalWas = wasModal;
+          // (Closed, at half again, once out of sight: the height's wait held with its slide's, below.)
+          if (!document.body.dataset.sheet) delete document.body.dataset.sheetSize;
           shown = phone.matches && document.body.dataset.sheet === "panel";
+          // (Its slide in or out, and the dim's, begun once frames come on time: the chart laid out again beside it stalls
+          // the frame they'd begin in, iOS showing the sheet more than half in at once, or gone in one frame.)
+          if (shown !== was) beginOnTime(...[panel, $("scrim")].flatMap((element) => element.getAnimations().filter((animation) => animation instanceof CSSTransition)));
           const modal = (wasModal = shown && sheetWhole());
           for (const element of [$("sidebar"), ...$("main").children, ...(/** @type {HTMLElement} */ (panel.parentElement)).children]) {
             if (!element.contains(panel) && element.id !== "scrim" && !element.classList.contains("mobile-bar")) /** @type {HTMLElement} */ (element).inert = modal;
@@ -11562,9 +11566,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The layer a series on the chart draws, candles or their close line. */
       const layerOfSeries = (series) => [...drawn].find(([, other]) => other === series)?.[0] ?? [...closes].find(([, close]) => close.series === series)?.[0] ?? null;
       document.addEventListener("pointerover", (event) => {
-        // (Not while something's carried: the rows passed over aren't pointed at.)
+        // (Not while something's carried: the rows passed over aren't pointed at. A finger points at nothing: what it
+        // touched, a row it scrolled the list by, would stay lit once it's lifted.)
         if (document.body.classList.contains("carrying")) return;
-        spotlight(closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? null);
+        spotlight(event.pointerType === "touch" ? null : (closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? null));
       });
       /** @type {Resolved | null} */
       let resolved = null;
@@ -16526,7 +16531,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } else delete document.body.dataset.sheet;
         };
         const sync = () => {
-          if (!document.body.dataset.sheet) delete document.body.dataset.sheetSize;
           if (panelOpen && document.body.dataset.sheet !== "panel" && selected) deselect();
           panelOpen = document.body.dataset.sheet === "panel";
           // (The tab bar's Layers says its sheet's open, as it shows: lit.)
@@ -16546,48 +16550,131 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A sheet dragged by its top, one pointer at a time: `grab`, a press there starts it (or not); `move`, how far it's
        * gone down (up, less than 0); `release`, let go there (its speed as it's let go, in px/ms); `back`, its look as it was, first thing
        * on a release and on its own when the system takes the pointer mid-way (a cancel isn't a release where it was).
+       * `pulls`: whether its content pulls it too, as a phone's sheets: a finger on it going down past a tap's move (SLOP),
+       * every list it's on at its top (or on what doesn't scroll), takes the sheet, not the list (`grab` then sees no
+       * PointerEvent; the sheet follows from there); up, or a list scrolled, it scrolls as ever. The tap a pull ends on
+       * isn't one.
        * @param {HTMLElement} element
-       * @param {{ grab: (event: PointerEvent) => boolean, move: (by: number) => void, release: (by: number, speed: number) => void, back: () => void }} how
+       * @param {{ grab: (event: PointerEvent | null) => boolean, move: (by: number) => void, release: (by: number, speed: number) => void, back: () => void, pulls?: () => boolean }} how
        */
-      function dragSheet(element, { grab, move, release, back }) {
+      function dragSheet(element, { grab, move, release, back, pulls }) {
+        // (`pointer` -1: a finger's pull, by touch events.)
         let pull = /** @type {{ y: number, pointer: number, trail: { y: number, at: number }[] } | null} */ (null);
+        const follow = (/** @type {number} */ y) => {
+          if (!pull) return;
+          const now = performance.now();
+          pull.trail = [...pull.trail.filter((point) => now - point.at <= 100), { y, at: now }];
+          move(y - pull.y);
+        };
+        const end = (/** @type {number} */ y) => {
+          if (!pull) return;
+          // (Its speed as it's let go: over its last tenth of a second; held still that long, none.)
+          const now = performance.now(), past = pull.trail.find((point) => now - point.at <= 100) ?? { y, at: now };
+          const by = y - pull.y, speed = (y - past.y) / Math.max(1, now - past.at);
+          pull = null;
+          back();
+          release(by, speed);
+        };
         element.addEventListener("pointerdown", (event) => {
           if (pull || !grab(event)) return;
           pull = { y: event.clientY, pointer: event.pointerId, trail: [{ y: event.clientY, at: performance.now() }] };
+          // (Where it shows from now, still or not: taken as it slides in, there, not at its stop till a move.)
+          move(0);
           // (Held by what was pressed, the handle or the head: the click after a drag is its, not the sheet's own, which in
           // ⌘K is its backdrop's and would close it.)
           /** @type {Element} */ (event.target).setPointerCapture(event.pointerId);
         });
-        element.addEventListener("pointermove", (event) => {
-          if (event.pointerId !== pull?.pointer) return;
-          const now = performance.now();
-          pull.trail = [...pull.trail.filter((point) => now - point.at <= 100), { y: event.clientY, at: now }];
-          move(event.clientY - pull.y);
-        });
-        element.addEventListener("pointerup", (event) => {
-          if (event.pointerId !== pull?.pointer) return;
-          // (Its speed as it's let go: over its last tenth of a second; held still that long, none.)
-          const now = performance.now(), past = pull.trail.find((point) => now - point.at <= 100) ?? { y: event.clientY, at: now };
-          const by = event.clientY - pull.y, speed = (event.clientY - past.y) / Math.max(1, now - past.at);
-          pull = null;
-          back();
-          release(by, speed);
-        });
+        element.addEventListener("pointermove", (event) => event.pointerId === pull?.pointer && follow(event.clientY));
+        element.addEventListener("pointerup", (event) => event.pointerId === pull?.pointer && end(event.clientY));
         for (const type of ["pointercancel", "lostpointercapture"]) element.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), back()));
+        if (!pulls) return;
+        // (A finger's, by touch events: one that turns out a pull stops the list's scroll, as a pointer's can't. Its events
+        // go to what it touched, out of the sheet or not: a list drawn anew under it (a search's answer, a layer's data)
+        // leaves it out, heard there then. A finger more, while one pulls, changes nothing.)
+        let touch = /** @type {{ id: number, x: number, y: number, at: number, target: Element, taken: boolean } | null} */ (null);
+        const own = (/** @type {TouchEvent} */ event) => (touch ? [...event.changedTouches].find((point) => point.identifier === touch?.id) : undefined);
+        const moved = (/** @type {TouchEvent} */ event) => {
+          // (While one pulls, no finger scrolls the sheet's lists.)
+          if (touch?.taken && event.cancelable) event.preventDefault();
+          const point = own(event);
+          if (!touch || !point) return;
+          if (!touch.taken) {
+            const dx = point.clientX - touch.x, dy = point.clientY - touch.y;
+            if (Math.hypot(dx, dy) <= SLOP) return;
+            // (One finger on the page; down, mostly, every list it's on at its top (the sheet itself, a menu's); not a
+            // press held first (a row's, carried or its actions); what it touched still on the sheet, where its lists
+            // are read.)
+            let top = element.contains(touch.target);
+            for (let at = /** @type {Element | null} */ (touch.target); top && at; at = at === element ? null : at.parentElement) top = !scrollsY(at) || at.scrollTop <= 0;
+            if (!(event.touches.length === 1 && dy > Math.abs(dx) && top && event.timeStamp - touch.at < 300 && !document.body.classList.contains("carrying") && event.cancelable && grab(null))) return forget();
+            touch.taken = true;
+            // (The gesture's now: a row's press waiting to be held goes.)
+            stopCarrying();
+            pull = { y: point.clientY, pointer: -1, trail: [{ y: point.clientY, at: performance.now() }] };
+          }
+          event.preventDefault();
+          follow(point.clientY);
+        };
+        const ended = (/** @type {TouchEvent} */ event) => {
+          const point = own(event), taken = touch?.taken;
+          if (!point) return;
+          forget();
+          if (taken && pull?.pointer === -1) (swallowClick(), end(point.clientY));
+        };
+        const cancelled = (/** @type {TouchEvent} */ event) => {
+          const taken = touch?.taken;
+          if (!own(event)) return;
+          forget();
+          if (taken && pull?.pointer === -1) (pull = null), back();
+        };
+        // (Each event once: on the sheet while what it touched is on it, else on what it touched.)
+        const heard = (/** @type {(event: TouchEvent) => void} */ handle, /** @type {boolean} */ on) => (/** @type {Event} */ event) => (event.target instanceof Node && element.contains(event.target)) === on && handle(/** @type {TouchEvent} */ (event));
+        const away = { move: heard(moved, false), end: heard(ended, false), cancel: heard(cancelled, false) };
+        const forget = () => {
+          if (touch && touch.target !== element) {
+            touch.target.removeEventListener("touchmove", away.move);
+            touch.target.removeEventListener("touchend", away.end);
+            touch.target.removeEventListener("touchcancel", away.cancel);
+          }
+          touch = null;
+        };
+        element.addEventListener("touchstart", (event) => {
+          if (touch?.taken) {
+            const id = touch.id;
+            if ([...event.touches].some((point) => point.identifier === id) && ![...event.changedTouches].some((point) => point.identifier === id)) return;
+            // (Its finger's end never heard (none should go unsent): let go where it was.)
+            forget();
+            if (pull?.pointer === -1) (pull = null), back();
+          }
+          forget();
+          const point = event.touches[0], target = event.target, box = element.getBoundingClientRect();
+          // (On the sheet itself, not on what's around it: ⌘K's dim is its dialog's own.)
+          if (pull || event.touches.length !== 1 || !(target instanceof Element) || point.clientY < box.top || point.clientX < box.left || point.clientX > box.right || !pulls()) return;
+          touch = { id: point.identifier, x: point.clientX, y: point.clientY, at: event.timeStamp, target, taken: false };
+          if (target === element) return;
+          target.addEventListener("touchmove", away.move, { passive: false });
+          target.addEventListener("touchend", away.end);
+          target.addEventListener("touchcancel", away.cancel);
+        }, { passive: true });
+        element.addEventListener("touchmove", heard(moved, true), { passive: false });
+        element.addEventListener("touchend", heard(ended, true));
+        element.addEventListener("touchcancel", heard(cancelled, true));
       }
       /**
-       * An animation begun once frames come on time again (held at its start till then): begun in a frame the page's work
-       * stalls (a layout under it changed with it), WebKit shows it already well on in the first frame it draws (iOS 26.5:
-       * a sheet's first 80% at once). At 300 ms, it begins anyway.
-       * @param {Animation} animation
+       * Animations begun together once frames come on time again (held at their start till then): begun in a frame the
+       * page's work stalls (a layout under it changed with it), WebKit shows one already well on in the first frame it
+       * draws (iOS 26.5: a sheet's first 80% at once, or all of it). 300 ms of frames on, they begin anyway (a tab out of
+       * sight draws none: they wait for it). One taken over meanwhile (played, cancelled) is left as it is.
+       * @param {Animation[]} animations
        */
-      function beginOnTime(animation) {
-        animation.pause();
+      function beginOnTime(...animations) {
+        for (const animation of animations) animation.pause();
         let first = -1, last = -1;
         const wait = (/** @type {number} */ now) => {
-          if (animation.playState !== "paused") return;
+          const held = animations.filter((animation) => animation.playState === "paused");
+          if (!held.length) return;
           if (first < 0) first = now;
-          else if (now - last < 40 || now - first > 300) return void animation.play();
+          else if (now - last < 40 || now - first > 300) return void held.forEach((animation) => animation.play());
           last = now;
           requestAnimationFrame(wait);
         };
@@ -16611,9 +16698,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Where its top comes to rest: its foot the screen's, whatever transform it has meanwhile; its height as laid out,
         // to the fraction.)
         const height = sheet.getBoundingClientRect().height, by = document.documentElement.clientHeight - height - from;
+        // (A transition of its own transform, begun as a drag let go gave it back, gives way: run with the slide, iOS
+        // showed neither, the sheet still where it was let go till both were over, then at its stop.)
+        for (const animation of sheet.getAnimations()) if (animation instanceof CSSTransition && animation.transitionProperty === "transform") animation.cancel();
         if (reduced.matches || Math.abs(by) < 1) return;
-        // (Its start's slope, the finger's speed in shares of the way a duration: none still, at most 3.)
-        const timing = { duration: MOTION.layout, easing: `cubic-bezier(0.3, ${clamp((0.3 * speed * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
+        // (The layout's curve, as a sheet opens and closes, its start's slope the finger's speed in shares of the way a
+        // duration: none still, at most 2.5.)
+        const timing = { duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * speed * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
         if (by > 0) sheet.style.height = `${height + by}px`;
         const slide = sheet.animate({ transform: by < 0 ? [`translateY(${-by}px)`, "none"] : ["none", `translateY(${by}px)`] }, timing);
         slides.set(sheet, slide);
@@ -16641,21 +16732,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => by > height / 3 || (by > 24 && speed > 0.6);
       /**
        * A phone's sheet of two heights, whole (88% of the screen) and half (56%), dragged by its top: `grab` says where a
-       * press takes it, by its handle or by its head (or not at all). Up from half it grows, down it follows the finger.
+       * press takes it, by its handle or by its head (or not at all); `pulls`, whether its content pulls it too (see
+       * dragSheet). Up from half it grows, down it follows the finger.
        * Let go upright, it stops at the nearest of whole, half and gone, a flick one stop on its way; its handle tapped,
        * the other height. On its side (a column), down past a third, or flicked, it goes; less, it comes back. `whole`
        * and `size` read and set which height it has (its motion is sizeSheet's, from where it was let go), `close` closes
        * it; `scrim`, dimmed behind it whole, lightens as it goes down.
        * @param {HTMLElement} sheet
-       * @param {{ grab: (event: PointerEvent) => "handle" | "head" | false, whole: () => boolean, size: (whole: boolean) => void, close: () => void, scrim?: HTMLElement }} how
+       * @param {{ grab: (event: PointerEvent) => "handle" | "head" | false, whole: () => boolean, size: (whole: boolean) => void, close: () => void, scrim?: HTMLElement, pulls: () => boolean }} how
        */
-      function heightsSheet(sheet, { grab, whole, size, close, scrim }) {
+      function heightsSheet(sheet, { grab, whole, size, close, scrim, pulls }) {
         const [SHEET_WHOLE, SHEET_HALF] = ["--sheet-whole", "--sheet-half"].map((name) => Number(getComputedStyle(document.documentElement).getPropertyValue(name)));
-        // (Its top as it shows: where a release moves it from. `held`: its height as it showed, taken mid-motion.)
-        let height = 0, handle = false, shown = 0, held = "";
+        // (Its top as it shows: where a release moves it from. `held`: its height as it showed, taken mid-motion; `base`,
+        // how far down it showed, taken as it slid in.)
+        let height = 0, handle = false, shown = 0, held = "", base = 0;
         dragSheet(sheet, {
+          pulls,
           grab: (event) => {
-            const by = grab(event);
+            // (Its content's pull, as its head's.)
+            const by = event ? grab(event) : "head";
             if (!by) return false;
             shown = sheet.getBoundingClientRect().top;
             // (Taken as it moves to a height: stopped where it shows, as tall as it shows, the finger's from there.)
@@ -16665,14 +16760,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               slide.cancel();
               held = sheet.style.height = `${document.documentElement.clientHeight - shown}px`;
             }
+            // (Taken as it slides in: from where it shows, not from its stop.)
+            base = new DOMMatrix(getComputedStyle(sheet).transform).m42;
             (height = sheet.offsetHeight), (handle = by === "handle");
             sheet.style.transition = "none";
             if (scrim) scrim.style.transition = "none";
             return true;
           },
-          move: (by) => {
+          move: (moved) => {
             // (A drag that turns back grows it or moves it as it is now, never both.)
-            const grows = by < 0 && heldUpright.matches && !whole(), down = Math.max(0, by);
+            const by = moved + base, grows = by < 0 && heldUpright.matches && !whole(), down = Math.max(0, by);
             sheet.style.height = grows ? `${Math.min(height - by, innerHeight * SHEET_WHOLE)}px` : held;
             sheet.style.transform = grows ? "" : `translateY(${down}px)`;
             shown = sheet.getBoundingClientRect().top;
@@ -16682,9 +16779,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             sheet.style.transition = sheet.style.transform = sheet.style.height = "";
             if (scrim) scrim.style.transition = scrim.style.opacity = "";
           },
-          release: (by, speed) => {
+          release: (moved, speed) => {
+            // (A press let go where it was taken, by the finger's move, not by where it showed (one as it slides in is
+            // one too): its handle's switches the height; any other, it goes on where it was going: by its own motion as
+            // it slid in, its slide to a height taken up again from where it shows.)
+            const by = moved + base, still = Math.abs(moved) < 4;
+            if (handle && still && heldUpright.matches) return sizeSheet(sheet, () => size(!whole()), shown);
+            if (still) return void (held && sizeSheet(sheet, () => {}, shown));
             if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && close());
-            if (handle && Math.abs(by) < 4) return sizeSheet(sheet, () => size(!whole()), shown);
             // (A slow drag most of the way to half lands there; a flick, let go moving, goes one stop on.)
             const stops = [innerHeight * SHEET_WHOLE, innerHeight * SHEET_HALF, 0], flick = Math.abs(by) > 16 && Math.abs(speed) > 0.6 ? Math.sign(speed) : 0;
             const nearest = stops.reduce((near, each, i) => (Math.abs(each - (height - by)) < Math.abs(stops[near] - (height - by)) ? i : near), 0);
@@ -16699,8 +16801,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * opens again at half. @param {boolean} whole
        */
       const panelSize = (whole) => document.body.dataset.sheet === "panel" && (whole ? (document.body.dataset.sheetSize = "full") : delete document.body.dataset.sheetSize);
-      // The layers' sheet, by its handle or its head (a phone's; upright, it opens at half).
+      // The layers' sheet, by its handle or its head, or its list at its top (a phone's; upright, it opens at half).
       heightsSheet($("panel"), {
+        pulls: () => phone.matches && document.body.dataset.sheet === "panel",
         grab: (event) => {
           const from = event.clientY - $("panel").getBoundingClientRect().top;
           return phone.matches && document.body.dataset.sheet === "panel" && from <= 56 && !closest(event, "button, input, textarea, a") && (from <= 22 ? "handle" : "head");
@@ -17605,8 +17708,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const moved = Math.hypot(event.clientX - press.x, event.clientY - press.y);
           // (By touch, moved before it's held: a scroll.)
           press.at = [event.clientX, event.clientY];
-          if (press.touch && !press.held) return void (moved > 8 && endDrag());
-          if (moved >= (press.touch ? 6 : 4) && !how.still?.() && itemNamed(press.id)) lift(event);
+          if (press.touch && !press.held) return void (moved > SLOP && endDrag());
+          if ((press.touch ? moved > SLOP : moved >= 4) && !how.still?.() && itemNamed(press.id)) lift(event);
         });
         window.addEventListener("pointerup", (event) => {
           if (!press || event.pointerId !== press.pointer) return;
@@ -18846,7 +18949,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         const moved = (/** @type {PointerEvent} */ next) => {
           const dx = next.clientX - event.clientX, dy = next.clientY - event.clientY;
-          if (next.pointerId !== pointer || Math.hypot(dx, dy) < 10) return;
+          if (next.pointerId !== pointer || Math.hypot(dx, dy) <= SLOP) return;
           off();
           // (Clearly across: an arc as a scroll begins, or a slant, is a scroll.)
           if (Math.abs(dx) > 2 * Math.abs(dy)) track(next, element, cursor, move);
@@ -22832,7 +22935,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             showActions(option);
           }, 450);
         });
-        $("palette-list").addEventListener("pointermove", (event) => Math.hypot(event.clientX - at[0], event.clientY - at[1]) > 8 && clearTimeout(rowHold));
+        $("palette-list").addEventListener("pointermove", (event) => Math.hypot(event.clientX - at[0], event.clientY - at[1]) > SLOP && clearTimeout(rowHold));
         for (const type of ["pointerup", "pointercancel"]) $("palette-list").addEventListener(type, () => {
           clearTimeout(rowHold);
           if (rowHeld) swallowClick();
@@ -23075,25 +23178,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The item a menu acts on alone, beside others picked: outlined while it shows. @type {HTMLElement | null} */
       let menuTarget = null;
-      // ⌘K on a phone, a sheet of two heights as the layers', by its handle: whole as it opens, and as its field's tapped;
-      // made half, the keyboard goes (the field and a row or two above it would be all there was).
+      // ⌘K on a phone, a sheet of two heights as the layers', by its handle (and its list at its top, pulled down): whole as
+      // it opens, and as its field's tapped; made half, the keyboard goes (the field and a row or two above it would be all
+      // there was).
       {
         const sheet = $("palette");
         const size = (/** @type {boolean} */ whole) => {
           sheet.toggleAttribute("data-half", !whole);
           if (!whole && document.activeElement === $("palette-input")) sheet.focus();
         };
-        heightsSheet(sheet, { grab: (event) => phone.matches && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
+        // (A menu open in it (a result's actions) is dragged on its own: ⌘K under it stays.)
+        const menuIn = () => !$("menu").hidden && sheet.contains($("menu"));
+        heightsSheet(sheet, { pulls: () => phone.matches && sheet.open && !menuIn(), grab: (event) => phone.matches && sheet.open && !menuIn() && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
         $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && onceKeys(() => sheet.open && sheet.hasAttribute("data-half") && document.activeElement === $("palette-input") && sizeSheet(sheet, () => size(true))));
       }
-      // A phone's menu sheet, dragged down by its top (its handle): as the layers' sheet goes, it goes; else it comes back.
+      // A phone's menu sheet, dragged down by its top (its handle), or its rows at their top: as the layers' sheet goes, it
+      // goes; else it comes back.
       {
         const menu = $("menu");
+        // (How far down it showed as it was taken: sliding in, from there.)
+        let base = 0;
         dragSheet(menu, {
-          grab: (event) => menu.classList.contains("as-sheet") && Boolean(closest(event, ".menu-handle")) && ((menu.style.transition = "none"), true),
-          move: (by) => (menu.style.transform = `translateY(${Math.max(0, by)}px)`),
+          pulls: () => menu.classList.contains("as-sheet") && !menu.hidden,
+          grab: (event) => {
+            if (!menu.classList.contains("as-sheet") || (event && !closest(event, ".menu-handle"))) return false;
+            base = new DOMMatrix(getComputedStyle(menu).transform).m42;
+            menu.style.transition = "none";
+            return true;
+          },
+          move: (by) => (menu.style.transform = `translateY(${Math.max(0, by + base)}px)`),
           back: () => (menu.style.transition = menu.style.transform = ""),
-          release: (by, speed) => sheetGoes(Math.max(0, by), speed, menu.offsetHeight) && hideMenu(),
+          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, menu.offsetHeight) && hideMenu(),
         });
       }
       /**
@@ -24807,7 +24922,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           Promise.allSettled(sheet.getAnimations().map((animation) => animation.finished)).then(() => {
             if (document.activeElement !== field || !document.body.hasAttribute("data-keys")) return;
             let list = field.parentElement;
-            while (list && list !== sheet.parentElement && !(list.scrollHeight > list.clientHeight && /auto|scroll/.test(getComputedStyle(list).overflowY))) list = list.parentElement;
+            while (list && list !== sheet.parentElement && !scrollsY(list)) list = list.parentElement;
             if (!list || list === sheet.parentElement) return;
             const box = field.getBoundingClientRect(), view = list.getBoundingClientRect();
             const top = view.top + (parseFloat(getComputedStyle(list).scrollPaddingTop) || 0), bottom = Math.min(view.bottom, viewport.offsetTop + viewport.height) - 12;
@@ -24831,6 +24946,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         addEventListener("focusin", read);
         let press = /** @type {{ x: number, y: number, at: number, target: EventTarget | null } | null} */ (null);
         addEventListener("touchstart", (event) => (press = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY, at: event.timeStamp, target: event.target } : null), { capture: true, passive: true });
+        // (Moved past a tap's move, it's none, back where it began or not: a sheet's pull, a scroll.)
+        addEventListener("touchmove", (event) => press && Math.hypot(event.touches[0].clientX - press.x, event.touches[0].clientY - press.y) > SLOP && (press = null), { capture: true, passive: true });
         addEventListener(
           "touchend",
           (event) => {
@@ -24840,7 +24957,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const field = /** @type {HTMLElement | null | undefined} */ (typing(target) ? target : target.closest("label")?.control);
             // (A tap: not a scroll, nor a press held for the caret's magnifier or a paste.)
             if (!phone.matches || !field || !was || was.target !== target || document.activeElement === field || !typing(field) || !field.matches(":read-write") || !field.closest("#panel, #palette")) return;
-            if (Math.hypot(touch.clientX - was.x, touch.clientY - was.y) > 10 || event.timeStamp - was.at > 500) return;
+            if (Math.hypot(touch.clientX - was.x, touch.clientY - was.y) > SLOP || event.timeStamp - was.at > 500) return;
             event.preventDefault();
             field.focus({ preventScroll: true });
             const at = document.caretPositionFromPoint?.(touch.clientX, touch.clientY);
