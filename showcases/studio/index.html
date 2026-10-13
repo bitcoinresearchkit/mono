@@ -1164,6 +1164,91 @@
         }
       }
 
+      /* Presets: a row as All charts is, its sections a click away at its end (where New folder is under it), shown under
+         it as a folder's charts are, each with how many it holds where a folder's count is. */
+      .side-presets {
+        position: relative;
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+
+        #presets-nav {
+          padding-right: 34px;
+        }
+
+        #presets-fold {
+          position: absolute;
+          right: 9px;
+
+          svg {
+            transition: rotate var(--dur-small) var(--ease);
+          }
+
+          &[aria-expanded="true"] svg {
+            rotate: 90deg;
+          }
+        }
+      }
+
+      /* (On a short window, no taller than what the rest of the sidebar leaves (its list at its least, two rows at the
+         least), scrolling: the foot stays in sight.) */
+      .sidebar > .side-sections {
+        --row-gap: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: var(--row-gap);
+        max-height: max(68px, 100dvh - 420px);
+        --along: to bottom;
+        margin: var(--row-gap) -8px 0;
+        overflow: hidden auto;
+        padding: 0 8px;
+        scrollbar-width: thin;
+
+        .side-note {
+          margin: 0;
+          padding: 6px 9px 6px 29px;
+          color: var(--muted);
+          font-size: 13px;
+        }
+
+        .count {
+          position: absolute;
+          right: 9px;
+          min-width: 24px;
+          color: var(--muted);
+          font: 510 12px/1 var(--sans);
+          font-variant-numeric: tabular-nums;
+          text-align: center;
+        }
+
+        .chart-item {
+          padding-right: 48px;
+        }
+      }
+
+      /* (Where the sidebar shows, it's the switch between your charts and the presets: no switch in the page.) */
+      @media (min-width: 761px) and (min-height: 501px) {
+        .home-views {
+          display: none;
+        }
+
+        /* (On the rail, Presets its icon alone, as All charts.) */
+        body[data-sidebar="collapsed"] {
+          #presets-nav {
+            padding-right: 0;
+          }
+
+          #presets-fold {
+            visibility: hidden;
+            opacity: 0;
+          }
+
+          .side-sections {
+            display: none;
+          }
+        }
+      }
+
       /* The theme: a row as the others, the one chosen right after its name, quietly; a click, the menu of the three. */
       #theme {
         .label {
@@ -2150,7 +2235,7 @@
        * Where a scroller hides more, its edge fades (sideways on a strip or a shelf, up and down on the chart list), as deep as
        * there's more beyond it, up to 28px: scrolling, it eases in and out with the content, gone at the very end.
        */
-      :is(.strip, .chart-list, .belt-row, .shelf-row).overflows {
+      :is(.strip, .chart-list, .belt-row, .shelf-row, .side-sections).overflows {
         mask-image: linear-gradient(var(--along, to right), transparent, #000 var(--edge-start, 0px), #000 calc(100% - var(--edge-end, 0px)), transparent);
       }
 
@@ -5722,7 +5807,8 @@
           }
         }
 
-        #all-charts {
+        /* (Where you are: your charts, the presets, a section of them.) */
+        :is(#all-charts, #presets-nav, [data-preset-section])[aria-current="page"] {
           color: var(--ink);
           background: var(--press);
         }
@@ -8223,7 +8309,12 @@
           <span class="brand-name"><b>Bitview</b> Studio</span>
         </a>
         <button class="search" type="button" data-action="palette" data-tip="Search or run a command" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search or run a command</span><kbd class="mod">⌘K</kbd></button>
-        <button id="all-charts" class="nav-item side-action" type="button" data-action="home" data-tip="All charts" style="--i: 1"><span data-icon="grid"></span><span class="label">All charts</span></button>
+        <button id="all-charts" class="nav-item side-action" type="button" data-action="your-charts" data-tip="All charts" style="--i: 1"><span data-icon="grid"></span><span class="label">All charts</span></button>
+        <div class="side-presets" style="--i: 1">
+          <button id="presets-nav" class="nav-item side-action" type="button" data-action="presets-gallery" data-tip="Presets"><span data-icon="presets"></span><span class="label">Presets</span></button>
+          <button id="presets-fold" class="cap small" type="button" aria-expanded="false" aria-controls="side-sections" aria-label="Sections" data-tip="Sections" data-icon="next"></button>
+        </div>
+        <div id="side-sections" class="side-sections" style="--i: 1" hidden></div>
         <div class="new-chart" style="--i: 1">
           <button id="new-chart" class="nav-item side-action" type="button" data-tip="New chart" data-kbd="N"><span data-icon="plus"></span><span class="label">New chart</span><kbd>N</kbd></button>
           <button id="new-folder" class="cap small" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
@@ -8416,7 +8507,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <div class="home-scroll">
             <div class="home-inner">
               <div class="home-head">
-                <h1>All charts</h1>
+                <h1 id="home-title">All charts</h1>
                 <div class="tabs home-views" role="group" aria-label="Show"><button type="button" data-home-view="charts" aria-pressed="true">Your charts</button><button type="button" data-home-view="presets" aria-pressed="false">Presets</button></div>
               </div>
               <nav id="gallery-path" class="gallery-path" aria-label="Where in the presets" hidden></nav>
@@ -8763,6 +8854,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         next: svg('<path d="M6 3.5 10.5 8 6 12.5"/>', 12),
         back: svg('<path d="M10 3.5 5.5 8l4.5 4.5"/>', 14),
         left: svg('<path d="M10 3.5 5.5 8l4.5 4.5"/>'),
+        presets: svg('<rect x="2" y="4.5" width="9.5" height="9" rx="1.8"/><path d="M5 2.5h7.2c1 0 1.8.8 1.8 1.8V11"/><path d="m4.3 11.2 1.9-2.2 1.5 1.3 1.6-2"/>'),
         right: svg('<path d="M6 3.5 10.5 8 6 12.5"/>'),
         pencil: svg('<path d="m10.5 2.5 3 3-8 8H2.5v-3z"/><path d="m8.5 4.5 3 3"/>', 14),
         sliders: svg('<path d="M2.5 5h6.5M12.5 5h1M2.5 11h1M7 11h6.5"/><circle cx="10.75" cy="5" r="1.75"/><circle cx="5.25" cy="11" r="1.75"/>', 14),
@@ -10394,6 +10486,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           home: stored.home !== false,
           /** All charts' view: your charts, or the presets' gallery. */
           homeView: /** @type {"charts" | "presets"} */ (stored.homeView === "presets" ? "presets" : "charts"),
+          /** The sidebar's Presets, open on its sections. */
+          presetsOpen: stored.presetsOpen === true,
           /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
           keys: stored.keys !== false,
           theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "dark"),
@@ -11080,8 +11174,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (While it slides, its words clipped by it, not cut short anew each frame: till its width's slide ends.)
         if (!reduced.matches) document.body.toggleAttribute("data-sliding", true);
         // (Collapsed, the rail keeps only its icons: a focus on what it puts away, a row's ⋯, a folder's, on its toggle.)
-        const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
+        const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item:not([data-preset-section]), .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
         applySidebar();
+        renderSideNav();
         keepFocus(putAway, () => $("sidebar-toggle"));
       }
       $("sidebar").addEventListener("transitionend", (event) => event.target === $("sidebar") && event.propertyName === "width" && document.body.removeAttribute("data-sliding"));
@@ -12825,11 +12920,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         edges(element, at, size, full);
       }
       /** A scroller's faded edges, as it's scrolled (`at`) in what shows of it (`size`) of all of it (`full`). @param {HTMLElement} element */
-      function edges(element, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full, most = 28) {
+      function edges(element, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full) {
         const overflows = full > size + 1;
         element.classList.toggle("overflows", overflows);
-        element.style.setProperty("--edge-start", `${overflows ? clamp(at, 0, most) : 0}px`);
-        element.style.setProperty("--edge-end", `${overflows ? clamp(full - size - at, 0, most) : 0}px`);
+        element.style.setProperty("--edge-start", `${overflows ? clamp(at, 0, 28) : 0}px`);
+        element.style.setProperty("--edge-end", `${overflows ? clamp(full - size - at, 0, 28) : 0}px`);
       }
       /** The layer whose line the pointer is on: its legend item and panel row light up, the legend scrolling to it if it must. */
       let litLayer = null;
@@ -16806,7 +16901,63 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("gallery").hidden = !presetsView;
         if (!presetsView) $("gallery-path").hidden = true;
         if (presetsView) $("home-bar").hidden = true;
+        // (Named as the sidebar names it.)
+        $("home-title").textContent = presetsView ? "Presets" : "All charts";
+        if (home) document.title = `${presetsView ? "Presets" : "All charts"} · Bitview Studio`;
+        renderSideNav();
       }
+      /** The sidebar's Presets sections as written, and the presets' top sections they're of (counted once a read). */
+      let sectionsShown = "", topSections = /** @type {{ of: Preset[] | null, list: [string, number][] }} */ ({ of: null, list: [] }), sectionsAsked = false;
+      /**
+       * The sidebar's All charts and Presets as where you are: the one lit (in the presets, the section you're in where
+       * the sections show; else Presets), its sections listed (while the presets are read, said; a failure too).
+       */
+      function renderSideNav() {
+        const open = prefs.presetsOpen, inPresets = home && prefs.homeView === "presets", at = inPresets ? galleryPath[0] ?? "" : "", list = $("side-sections");
+        $("presets-fold").setAttribute("aria-expanded", String(open));
+        // (Not read yet: read once the page is idle, the chart drawn first.)
+        if (open && !presets && !presetsFailed && !sectionsAsked) (sectionsAsked = true), whenIdle(() => void loadPresets().catch(() => {}), { timeout: 3000 });
+        if (presets && topSections.of !== presets) {
+          const counts = /** @type {Map<string, number>} */ (new Map());
+          for (const preset of presets) if (preset.p.length > 1) counts.set(preset.p[0], (counts.get(preset.p[0]) ?? 0) + 1);
+          topSections = { of: presets, list: [...counts] };
+        }
+        const html = presets
+          ? topSections.list.map(([name, count]) => `<div class="chart-row in-folder"><button type="button" class="nav-item chart-item" data-preset-section="${escape(name)}" data-tip="${escape(name)}"><span class="label">${escape(name)}</span><span class="count">${compact(count)}</span></button></div>`).join("")
+          : `<p class="side-note">${presetsFailed ? "Couldn't read the presets" : "Reading the presets…"}</p>`;
+        if (open && html !== sectionsShown) list.innerHTML = sectionsShown = html;
+        // (Its edges faded where more scrolls, as the list's.)
+        if (open) fitSoon(list, true);
+        // (Shown as it's open; folding away, as it goes.)
+        if (open || !list.getAnimations().length) list.hidden = !open;
+        // (On the rail, the sections aren't there: Presets is lit for them.)
+        const seen = open && !railed() && Boolean(presets);
+        const lit = (/** @type {Element} */ element, /** @type {boolean} */ on) => (on ? element.setAttribute("aria-current", "page") : element.removeAttribute("aria-current"));
+        lit($("all-charts"), home && prefs.homeView === "charts");
+        lit($("presets-nav"), inPresets && (!at || !seen || !topSections.list.some(([name]) => name === at)));
+        for (const row of all$("[data-preset-section]", list)) lit(row, inPresets && seen && row.dataset.presetSection === at);
+      }
+      // Its sections shown or put away, unfolding and folding as a folder's charts do.
+      $("presets-fold").addEventListener("click", () => {
+        const list = $("side-sections"), opening = !prefs.presetsOpen;
+        prefs.presetsOpen = opening;
+        savePrefs();
+        renderSideNav();
+        if (reduced.matches) return void (list.hidden = !opening);
+        if (opening) return void fold(list, false);
+        fold(list, true).finished.then((motion) => {
+          if (prefs.presetsOpen) return;
+          list.hidden = true;
+          motion.cancel();
+          Object.assign(list.style, { overflow: "", overflowClipMargin: "", alignItems: "" });
+        }, () => {});
+      });
+      $("side-sections").addEventListener("scroll", () => fitSoon($("side-sections"), true), { passive: true });
+      addEventListener("resize", () => prefs.presetsOpen && fitSoon($("side-sections"), true));
+      $("side-sections").addEventListener("click", (event) => {
+        const section = closest(event, "[data-preset-section]");
+        if (section) presetsAt([/** @type {string} */ (section.dataset.presetSection)]);
+      });
       /** All charts' view, as it's taken (each its own filter; the picks your charts' alone). @param {"charts" | "presets"} view */
       function takeHomeView(view) {
         if (prefs.homeView === view) return;
@@ -16816,26 +16967,43 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {HTMLInputElement} */ ($("home-filter")).value = filters[view];
         if (view === "presets") clearPicks();
       }
-      /** All charts' view set, at its top (the step of the history it's on, that view's). @param {"charts" | "presets"} view */
-      function setHomeView(view) {
+      /**
+       * All charts' view set, at its top: `push`, a step of the history (the sidebar's, ⌘K's: places to go), else this
+       * step's view (the page's own switch). @param {"charts" | "presets"} view
+       */
+      function setHomeView(view, push = false) {
         // (Quick Look over the gallery (⌘K's command over it): closed first, its step the gallery's.)
         if (quick) {
           if (history.state?.quick) history.replaceState({ ...homeState(), place: quick.place }, "");
           finishQuick();
         }
+        const was = JSON.stringify(history.state?.home ? homeState() : null), place = home ? galleryPlace() : null;
         takeHomeView(view);
+        if (!home) return void ((homeScroll().scrollTop = 0), showHome());
+        // (Somewhere else: the place left kept in its step, Back coming back there.)
+        if (push && JSON.stringify(homeState()) !== was) {
+          if (place) history.replaceState({ ...history.state, place }, "");
+          history.pushState(homeState(), "");
+        } else history.replaceState(homeState(), "");
         homeScroll().scrollTop = 0;
-        if (!home) return showHome();
-        history.replaceState(homeState(), "");
         renderHome();
       }
-      /** The presets' gallery at its top, nothing searched (the empty chart's Browse all). */
-      function browsePresets() {
+      /**
+       * The presets' gallery at a place (the sidebar's Presets or a section of it, ⌘K's, the empty chart's Browse all),
+       * nothing searched, at its top; where it is already, back at its top.
+       */
+      function presetsAt(/** @type {string[]} */ path = []) {
+        if (home && prefs.homeView === "presets" && !quick) {
+          if (JSON.stringify(path) !== JSON.stringify(galleryPath)) return galleryTo(path);
+          /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
+          renderHome();
+          return void (homeScroll().scrollTop = 0);
+        }
+        filters.presets = "";
         if (prefs.homeView === "presets") /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
-        else filters.presets = "";
-        galleryPath = [];
+        galleryPath = path;
         galleryShown = GALLERY_PAGE;
-        setHomeView("presets");
+        setHomeView("presets", true);
       }
       /** All charts' step of the history as it is: the presets' place in them, if they're what it shows. */
       const homeState = () => (prefs.homeView === "presets" ? { home: true, gallery: galleryPath } : { home: true });
@@ -16897,23 +17065,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let galleryDrawn = "", gallerySpot = "", galleryCount = "";
       /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
       function shelfSteps(row) {
-        fitShelf(row, row.scrollLeft, row.clientWidth, row.scrollWidth, gutterOf(row));
+        fitShelf(row, row.scrollLeft, row.clientWidth, row.scrollWidth);
       }
-      /** How far a shelf reaches into the page's gutter (its fade no deeper: a tile at rest whole). */
-      const gutterOf = (/** @type {HTMLElement} */ row) => Math.min(28, parseFloat(getComputedStyle(row).paddingRight) || 28);
       /** Every shelf's steps and edges (all read first, then written: one layout, not one a shelf). */
       function allShelfSteps() {
-        const rows = all$(".shelf-row", $("gallery")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth })), most = rows.length ? gutterOf(rows[0]) : 28;
-        rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full, most));
+        const rows = all$(".shelf-row", $("gallery")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth }));
+        rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full));
       }
       /** A shelf as it's scrolled: its steps there while it scrolls, each off at its end; its edges faded where there's more, as a strip's. */
-      function fitShelf(/** @type {HTMLElement} */ row, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full, /** @type {number} */ most) {
+      function fitShelf(/** @type {HTMLElement} */ row, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full) {
         const over = full - size;
         for (const step of all$("[data-shelf-step]", /** @type {HTMLElement} */ (row.closest(".shelf")))) {
           step.hidden = over <= 1;
           step.setAttribute("aria-disabled", String(Number(step.dataset.shelfStep) < 0 ? at <= 1 : at >= over - 1));
         }
-        edges(row, at, size, full, most);
+        edges(row, at, size, full);
       }
       $("gallery").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
       addEventListener("resize", () => home && prefs.homeView === "presets" && allShelfSteps());
@@ -17868,8 +18034,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (on) button.setAttribute("aria-current", "page");
           else button.removeAttribute("aria-current");
         }
-        if (home) $("all-charts").setAttribute("aria-current", "page");
-        else $("all-charts").removeAttribute("aria-current");
+        renderSideNav();
         // (A new chart, empty, has nothing to keep, nor anything ⋯ does: it's yours once something's in it; its Cancel takes it back.)
         $("preview-note").hidden = !isPreview(chart) || !chart.layers.length;
         $("chart-more").hidden = !home && isPreview(chart) && !chart.layers.length;
@@ -18016,6 +18181,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           applyTheme();
         }
         if (took.includes("sidebar")) applySidebar();
+        if (took.includes("sidebar") || took.includes("presetsOpen")) renderSideNav();
         if (took.includes("panel") && !fullOn()) applyPanel();
         if (took.includes("belt") || took.includes("pen")) renderBelt();
         if (took.includes("keys")) renderSingleKeys();
@@ -18920,6 +19086,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderRecommended();
           presetsArrived();
           renderHome();
+          renderSideNav();
           reopenQuick();
           return list;
         })().catch((error) => {
@@ -18929,6 +19096,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderRecommended();
           presetsArrived();
           renderHome();
+          renderSideNav();
           throw error;
         }));
       }
@@ -22046,8 +22214,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
           // (All charts, each of its views: yours, or the presets'; the one shown, not offered.)
-          ...(home && prefs.homeView === "charts" ? [] : [{ title: "Your charts", text: "All your charts, side by side.", words: "all charts grid overview gallery library home browse saved mine", icon: "grid", anywhere: true, run: () => setHomeView("charts") }]),
-          ...(home && prefs.homeView === "presets" ? [] : [{ title: "Presets gallery", text: "Every preset, side by side, to look through one by one.", words: "presets gallery browse quick look templates ready made", icon: "grid", anywhere: true, run: () => setHomeView("presets") }]),
+          ...(home && prefs.homeView === "charts" ? [] : [{ title: "Your charts", text: "All your charts, side by side.", words: "all charts grid overview gallery library home browse saved mine", icon: "grid", anywhere: true, run: () => setHomeView("charts", true) }]),
+          ...(home && prefs.homeView === "presets" ? [] : [{ title: "Presets gallery", text: "Every preset, side by side, to look through one by one.", words: "presets gallery browse quick look templates ready made", icon: "presets", anywhere: true, run: () => presetsAt([]) }]),
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
             { title: "Add a cloud", text: "Filled between two layers, in the color of the one over; or from one to the pane's top or bottom.", words: "cloud band envelope fill between shade percentiles cross crossing edge top bottom from layers", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) },
@@ -25828,7 +25996,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "import") $("import-file").click();
         else if (action === "download-all") downloadAll();
         else if (action === "presets") openPresets();
-        else if (action === "gallery") browsePresets();
+        else if (action === "gallery" || action === "presets-gallery") presetsAt([]);
+        else if (action === "your-charts") setHomeView("charts", true);
         else if (action === "toggle-sidebar") toggleSidebar();
         else if (action === "toggle-panel") togglePanel();
         else if (action === "shortcuts") showShortcuts();
@@ -26735,11 +26904,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** The grid's and the gallery's scroll. */
       const homeScroll = () => /** @type {HTMLElement} */ (document.querySelector(".home-scroll"));
-      /** Where the gallery is: its scroll, and each shelf's. */
+      /** Where All charts is: its scroll, and (the presets') each shelf's. */
       const galleryPlace = () => ({ top: homeScroll().scrollTop, rows: all$(".shelf-row", $("gallery")).map((row) => row.scrollLeft), shown: galleryShown });
       /** The gallery back where it was (drawn with as much of it as it showed, see popstate). @param {{ top: number, rows: number[] }} place */
       function placeGallery(place) {
-        all$(".shelf-row", $("gallery")).forEach((row, k) => (row.scrollLeft = place.rows[k] ?? 0));
+        if (prefs.homeView === "presets") all$(".shelf-row", $("gallery")).forEach((row, k) => (row.scrollLeft = place.rows[k] ?? 0));
         homeScroll().scrollTop = place.top;
       }
       /** The tile of the preset Quick Look shows, on the list it steps through (else anywhere on the gallery), if it's there. @param {{ list: number[], at: number, from: string }} look */
@@ -26833,7 +27002,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           button.setAttribute("aria-disabled", String(kept));
           button.dataset.tip = kept ? "In your charts" : "Keep puts it in your charts";
           /** @type {HTMLElement} */ (button.querySelector(".label")).textContent = kept ? "Kept" : "Keep";
-          /** @type {HTMLElement} */ (button.querySelector("[data-icon]")).innerHTML = kept ? ICONS.check : button.classList.contains("tab") ? ICONS.keep : "";
+          // (The bar's: a check once kept, else none, its word centered; the tab's, its icon always.)
+          const icon = /** @type {HTMLElement} */ (button.querySelector("[data-icon]")), tab = button.classList.contains("tab");
+          icon.innerHTML = kept ? ICONS.check : tab ? ICONS.keep : "";
+          icon.hidden = !kept && !tab;
         }
       }
       /** A chart Quick Look showed, let go of (unless it was kept) as another's opened: none lists it then, nothing of it stays. @param {Chart} doc */
