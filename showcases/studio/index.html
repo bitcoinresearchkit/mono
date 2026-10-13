@@ -6018,11 +6018,11 @@
         grid-auto-columns: calc((100% - 24px) / 3);
         grid-auto-flow: column;
         gap: 12px;
-        /* (Out into the page's gutter at either side, as a phone's: the next tile peeks there, faded as the strip's are,
-           and a tile at rest is never cut; room about its tiles for their focus rings.) */
-        margin: -4px calc(-1 * var(--gutter));
-        padding: 4px var(--gutter);
-        scroll-padding-inline: var(--gutter);
+        /* (Inside the page's column, its edges faded there as the new chart's strip's are: one way for both; room about
+           its tiles for their focus rings.) */
+        margin: -4px;
+        padding: 4px;
+        scroll-padding-inline: 4px;
         overflow-x: auto;
         overscroll-behavior-x: contain;
         scroll-snap-type: x mandatory;
