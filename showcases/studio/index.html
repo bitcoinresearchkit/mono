@@ -82,6 +82,8 @@
         /* (Small text, axis labels among it: 4.5:1 or more on the card, in both.) */
         --muted: light-dark(#6b7079, #7c818a);
         --faint: light-dark(#c4c7cc, #3e4147);
+        /* How many, beside what's counted: a step under muted (the two greys over it read alike). */
+        --count: color-mix(in oklab, var(--muted), var(--faint) 30%);
         /* Black over the light, white over the dark, rest to emphasis; a hover is a step above rest. */
         --field: light-dark(rgb(0 0 0 / 0.03), rgb(255 255 255 / 0.035));
         --hover: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.04));
@@ -331,6 +333,7 @@
          faintly. */
       :is([aria-selected="true"], [aria-current]:not([aria-current="false"]), .menu > button:is(:hover:where(.can-hover *), :focus-visible, [aria-expanded="true"])) {
         --muted: var(--soft);
+        --count: color-mix(in oklab, var(--soft), var(--faint) 30%);
       }
 
       /* A link's picture alone (#image=): the page out of sight while the chart's made (as full screen lays it out), then
@@ -1046,7 +1049,7 @@
           position: absolute;
           right: 9px;
           width: 24px;
-          color: var(--muted);
+          color: var(--count);
           font: 510 12px/1 var(--sans);
           font-variant-numeric: tabular-nums;
           text-align: center;
@@ -1134,13 +1137,18 @@
         margin-top: -2px;
       }
 
+      /* (Your charts, Presets and New chart a step apart, as the charts under them are: one rhythm down the sidebar.) */
+      #presets-nav {
+        margin-top: 4px;
+      }
+
       /* A rule in the gap under them sets the charts apart (on the rail, a short one, at the same height). */
       .new-chart {
         position: relative;
         display: flex;
         flex-shrink: 0;
         align-items: center;
-        margin: 1px 0 6px;
+        margin: 4px 0 6px;
 
         /* New folder: an icon at the end of its row, always there, in the column the rows' ⋯ and counts are in (New chart's
            key hint before it). */
@@ -1736,8 +1744,8 @@
       /*
        * Quick Look: the gallery's presets one at a time, over it as ⌘K is (its pop and its backdrop; on a phone, its
        * sheet): a bar (what it is and where, its steps, Open and Keep), then the chart's own stage, moved in while it's
-       * open (on the chart's ground). Looked at, not worked on: the plot shows its values to the pointer (a finger's,
-       * held), nothing on it takes a click (see Quick Look's guards); its range changes in its foot.
+       * open (on the chart's ground). Looked at as any chart is (moved, zoomed, read), not worked on: nothing on it is
+       * picked by a click, its legends are read, not pressed.
        */
       .quick {
         width: min(1280px, calc(100vw - 64px));
@@ -1767,6 +1775,85 @@
         flex-shrink: 0;
         border-bottom: 1px solid var(--line);
         padding: 10px 14px 10px 10px;
+      }
+
+      .quick-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* The list it goes through, beside the chart where there's room for both (else, on a phone, the chart alone and its
+         steps): its presets under their sections, folded but for the one shown's, rows as the sidebar's; the one shown
+         lit. */
+      .quick-list {
+        display: none;
+      }
+
+      @media (min-width: 961px) and (min-height: 501px) {
+        .quick-list {
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
+          gap: 2px;
+          width: 248px;
+          overflow: hidden auto;
+          border-right: 1px solid var(--line);
+          padding: 8px;
+          scrollbar-width: thin;
+        }
+
+        /* (Its steps the list's, by keys or a click: no arrows of their own.) */
+        .quick-steps > :is([data-quick="-1"], [data-quick="1"], .divider) {
+          display: none;
+        }
+      }
+
+      /* Its rows as the sidebar's: a section a folder (closed or open, how many it holds at the end), what's in it a step
+         in along a line down from its icon (each level its own); a preset, a chart's glyph where a folder's is. */
+      .quick-row {
+        position: relative;
+        flex-shrink: 0;
+        padding-left: calc(13px + var(--depth, 0) * 12px);
+        padding-right: 36px;
+
+        &.head {
+          color: var(--soft);
+        }
+
+        .row-glyph {
+          display: inline-flex;
+          flex-shrink: 0;
+          justify-content: center;
+          width: 16px;
+        }
+
+        .count {
+          position: absolute;
+          right: 9px;
+          width: 24px;
+          color: var(--count);
+          font: 510 12px/1 var(--sans);
+          font-variant-numeric: tabular-nums;
+          text-align: center;
+        }
+
+        /* (The lines down from each open folder's icon it's in: one a level.) */
+        &::before {
+          content: "";
+          position: absolute;
+          top: -2px;
+          bottom: 0;
+          left: 13px;
+          width: calc(var(--depth, 0) * 12px);
+          background: linear-gradient(to right, transparent 7.5px, var(--line-strong) 7.5px 8.5px, transparent 8.5px) 0 0 / 12px 100% repeat-x;
+          pointer-events: none;
+        }
+
+        &[aria-current="true"] {
+          color: var(--ink);
+          background: var(--press);
+        }
       }
 
       .quick-stage {
@@ -1836,17 +1923,12 @@
           display: none;
         }
 
-        /* (Its legends say, they aren't pressed: the plot under them shows its values there too.) */
-        .legend {
-          pointer-events: none;
+        /* (Its legends say, they aren't pressed (nor their buttons): the plot under them shows its values there too.) */
+        .legend,
+        .legend * {
+          pointer-events: none !important;
         }
 
-        /* (A finger's swipes and holds are Quick Look's: no scroll, no zoom, no callout, nothing selected.) */
-        #canvas {
-          touch-action: none;
-          -webkit-touch-callout: none;
-          user-select: none;
-        }
       }
 
       .head-title {
@@ -1927,7 +2009,7 @@
         white-space: nowrap;
 
         .count {
-          color: var(--muted);
+          color: var(--count);
           font-variant-numeric: tabular-nums;
         }
 
@@ -3109,7 +3191,7 @@
         /* Inside the title, so it sits on the title's baseline. */
         .count {
           margin-left: 3px;
-          color: var(--muted);
+          color: var(--count);
           font: 510 12px var(--sans);
           font-variant-numeric: tabular-nums;
         }
@@ -5139,7 +5221,7 @@
         }
 
         .count {
-          color: var(--muted);
+          color: var(--count);
           font-variant-numeric: tabular-nums;
         }
 
@@ -5907,7 +5989,7 @@
         font: 590 15px/20px var(--sans);
 
         .count {
-          color: var(--muted);
+          color: var(--count);
           font-size: 13px;
           font-weight: 510;
           font-variant-numeric: tabular-nums;
@@ -5944,18 +6026,12 @@
            its tiles for their focus rings.) */
         margin: -4px;
         padding: 4px;
-        scroll-padding-inline: 4px;
         overflow-x: auto;
         overscroll-behavior-x: contain;
-        scroll-snap-type: x mandatory;
         scrollbar-width: none;
 
         &::-webkit-scrollbar {
           display: none;
-        }
-
-        > .tile {
-          scroll-snap-align: start;
         }
       }
 
@@ -5976,7 +6052,7 @@
         font: 590 13px/18px var(--sans);
 
         .count {
-          color: var(--muted);
+          color: var(--count);
           font-weight: 510;
           font-variant-numeric: tabular-nums;
         }
@@ -6086,7 +6162,7 @@
         }
 
         .folder-count {
-          color: var(--muted);
+          color: var(--count);
           font: 510 12px/1 var(--sans);
           font-variant-numeric: tabular-nums;
         }
@@ -8215,13 +8291,11 @@
         // (The theme, as chosen: the stylesheet does the rest.)
         if (prefs.theme === "light" || prefs.theme === "system") document.documentElement.dataset.theme = prefs.theme;
         const there = history.state;
-        // (A first visit, nothing kept yet, opens on its empty chart, whatever a preference or the history says.)
         // (A picture's link, #image=: the picture alone, the page out of sight while it's made.)
         if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);
-        // (The grid only where start() opens it: something kept, a chart or a preview aside; else the empty chart.)
+        // (All charts where start() opens it: as the history or the last visit says; nothing kept yet, a first visit, the presets.)
         const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio:v2") ?? "") || localStorage.getItem("bitview-studio:preview") !== null;
-        // (Nothing kept but the presets' gallery this tab was on, reloaded: the gallery.)
-        if (!/[#&](?:chart|image|c)=/.test(location.hash) && (kept || Array.isArray(there?.gallery)) && (there ? there.home : (prefs.home ?? true))) document.body.toggleAttribute("data-home", true);
+        if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : !kept || (prefs.home ?? true))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
     <div class="app">
@@ -8485,7 +8559,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <button class="btn small" type="button" data-quick="keep" data-kbd="⌘ S"><span data-icon="check"></span><span class="label">Keep</span></button>
         </div>
       </header>
-      <div id="quick-stage" class="quick-stage"></div>
+      <div class="quick-body">
+        <!-- Where it's wide enough: the list it goes through, beside the chart, as a mail's list beside a mail. -->
+        <nav id="quick-list" class="quick-list" aria-label="The presets it goes through"></nav>
+        <div id="quick-stage" class="quick-stage"></div>
+      </div>
       <!-- Upright on a phone: its steps and what it does at its foot, as the tab bar is under the page. -->
       <nav class="mobile-bar quick-tabs" aria-label="Quick Look">
         <button class="tab" type="button" data-quick="-1"><span data-icon="left"></span><span>Previous</span></button>
@@ -10256,13 +10334,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Quick Look, while it's on (see quickLook): the gallery's `list` it steps through (a shelf's section, a grid's
        * presets), `at` the one shown, `doc` its chart (a preview no list shows, let go of when another's shown), `from` the
        * list's place on the gallery, `before` the chart under the grid, `place` the gallery's scroll, to come back to.
-       * @type {{ list: number[], at: number, doc: Chart, from: string, before: Chart, place: { top: number, rows: number[], shown: number }, closing?: boolean, after?: () => void } | null}
+       * `flat`: a search's list, as found (else in its tree's order, see quickTree); `open`: its list's sections open (as
+       * the one shown is in one, or by hand; closed by hand only); `drawn`: the list as last written.
+       * @type {{ list: number[], at: number, doc: Chart, from: string, before: Chart, place: { top: number, rows: number[], shown: number }, closing?: boolean, after?: () => void, flat: boolean, tree: QuickTree, position: Map<number, number>, open: Set<string>, drawn: string } | null}
        */
       let quick = null;
       /** Whether a chart is the one Quick Look shows. @param {Chart} doc */
       const isQuick = (doc) => quick?.doc === doc;
-      /** The chart Quick Look slides in by a finger's swipe (its id): the slide its way in, not the wipe a chart opened shows, whenever it's drawn. */
-      let quickSliding = "";
       /** The previews listed as such (a new chart, empty, is yours once something's in it: listed with yours; Quick Look's isn't one). */
       const listedPreviews = () => previewCharts.filter((doc) => !drafts.has(doc) && !isQuick(doc));
       /** The preview already there that's the same chart (its range aside: a look, not what it is), if one is. @param {Chart} doc */
@@ -12196,7 +12274,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("navigator").classList.toggle("waiting", unreached);
         resolved = result;
         drawnData = drawingData;
-        const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome && quickSliding !== doc.id;
+        const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome;
         build(structuredClone(chart), result, refit);
         drawnChart = doc.id;
         drawnVersion = version;
@@ -13191,7 +13269,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         valuesSoon();
       });
       view.subscribeClick((param) => {
-        if (!param.hoveredSeries) return;
+        // (Quick Look's chart is looked at: nothing on it picked.)
+        if (!param.hoveredSeries || quick) return;
         const id = layerOfSeries(param.hoveredSeries);
         if (id) select(id);
       });
@@ -13433,6 +13512,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (chart.panes.some((pane, i) => folded.has(pane.id) && Math.abs(panes[i].getStretchFactor() - meant[i]) > 1e-6)) return sizePanes();
         const sizes = chart.panes.map((_, i) => Math.round(panes[i].getStretchFactor() * 100) / 100);
         if (sizes.every((size, i) => folded.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 100) / 100)) return;
+        // (Quick Look's: looked at, its panes as dragged meanwhile, not an edit.)
+        if (quick) return;
         commit((doc) => doc.panes.forEach((pane, i) => !folded.has(pane.id) && (pane.size = sizes[i])), { redraw: "none", quiet: true });
         fitMargins();
       }, 0));
@@ -16801,6 +16882,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The gallery's lists as drawn, each by its place there (a shelf's whole section, a grid's every preset): what Quick Look steps through from one of their tiles. */
       let galleryLists = /** @type {number[][]} */ ([]);
+      /** The lists a search found (by how well each matches, not by the tree: Quick Look shows them so). */
+      const searchLists = /** @type {WeakSet<number[]>} */ (new WeakSet());
       const listAt = (/** @type {number[]} */ list) => galleryLists.push(list) - 1;
       /** A grid of presets, as many as shown, more a button away. @param {number[]} list */
       const presetGridHtml = (list) => `<div class="grid-tiles" data-list="${listAt(list)}">${list.slice(0, galleryShown).map(presetTileHtml).join("")}</div>${list.length > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, list.length - galleryShown))} more</button>` : ""}`;
@@ -16915,6 +16998,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (words.length) {
           const found = presetsMatching(words, 1000, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null);
           $("home-count").textContent = `${grouped.format(found.length)}${found.length === 1000 ? "+" : ""} found`;
+          searchLists.add(found);
           $("gallery").innerHTML = found.length ? presetGridHtml(found) : `<p class="gallery-note">No presets match “${escape(field.value.trim())}”</p>`;
         } else {
           $("home-count").textContent = "";
@@ -16935,6 +17019,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
       function shelfSteps(row) {
         fitShelf(row, row.scrollLeft, row.clientWidth, row.scrollWidth);
+      }
+      /** A shelf a page on (`dir` 1) or back (-1), by whole tiles: the first one there whole at its start. */
+      function stepShelf(/** @type {HTMLElement} */ row, /** @type {number} */ dir) {
+        const tile = /** @type {HTMLElement | null} */ (row.firstElementChild);
+        if (!tile) return;
+        // (Its tiles' width as laid out, a fraction of a pixel too: whole tiles counted, three where three show.)
+        const gap = parseFloat(getComputedStyle(row).columnGap) || 0, unit = tile.getBoundingClientRect().width + gap, page = Math.max(1, Math.floor((row.clientWidth - 8 + gap) / unit + 0.01));
+        row.scrollTo({ left: (Math.round(row.scrollLeft / unit) + dir * page) * unit, behavior: reduced.matches ? "auto" : "smooth" });
       }
       /** Every shelf's steps and edges (all read first, then written: one layout, not one a shelf). */
       function allShelfSteps() {
@@ -16986,7 +17078,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {HTMLElement | undefined} */ (all$(`[data-list="${grid}"] .tile-open`, $("gallery"))[from])?.focus({ preventScroll: true });
         }
         else if (closest(event, "[data-gallery-retry]")) retryPresets();
-        else if (step && step.getAttribute("aria-disabled") !== "true") /** @type {HTMLElement} */ (step.closest(".shelf")?.querySelector(".shelf-row"))?.scrollBy({ left: Number(step.dataset.shelfStep) * /** @type {HTMLElement} */ (step.closest(".shelf")?.querySelector(".shelf-row")).clientWidth * 0.9, behavior: reduced.matches ? "auto" : "smooth" });
+        else if (step && step.getAttribute("aria-disabled") !== "true") stepShelf(/** @type {HTMLElement} */ (step.closest(".shelf")?.querySelector(".shelf-row")), Number(step.dataset.shelfStep));
         else if (preset) {
           // (Quick Look, through the list it's on: its shelf's section, its grid.)
           const from = /** @type {string} */ (preset.closest("[data-list]")?.getAttribute("data-list")), list = galleryLists[Number(from)];
@@ -17410,9 +17502,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (to && JSON.stringify(to) !== JSON.stringify(galleryPath)) galleryShown = Number.isInteger(place?.shown) ? place.shown : GALLERY_PAGE;
           if (to) galleryPath = to;
           // (Quick Look's step: it, over the gallery; the presets still being read, once they are.)
-          if (look && home && !quick && quickable(look)) return quickLook(look.list, look.at, look.from, false);
-          if (look && !presets) quickReloaded = { look, at: navigations };
-          else if (look) history.replaceState(homeState(), "");
+          if (look && home && !quick && quickable(look)) return quickLook(look.list, look.at, look.from, false, look.flat === true);
+          if (look) history.replaceState(homeState(), "");
           if (!home) return showHome(false, place);
           renderHome();
           // (Quick Look closed (its dialog, above): the gallery under it as it is, not moved.)
@@ -17869,7 +17960,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${drafts.has(doc)
           ? `<button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="A new chart: in your charts once something's in it">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>`
           : `<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your charts (Keep${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
-        const listed = listedPreviews(), draft = previewCharts.find((doc) => drafts.has(doc));
+        // (A new chart, empty, listed only while it's the one open: under All charts' page, not one.)
+        const listed = listedPreviews(), draft = home ? undefined : previewCharts.find((doc) => drafts.has(doc));
         const row = (/** @type {Chart} */ doc) => ((i) => `<div class="chart-row ${doc.folder ? "in-folder" : ""}" data-chart-row="${doc.id}">
             <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i >= 0 ? `data-kbd="⌘ ${i + 1}"` : ""}>${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span>${i >= 0 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
@@ -18954,7 +19046,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderRecommended();
           presetsArrived();
           renderHome();
-          reopenQuick();
           return list;
         })().catch((error) => {
           // Not read: said where they'd be, with a way to try again (never on its own: no loop of attempts; none in a page
@@ -26782,40 +26873,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const quickTile = (look) => /** @type {HTMLElement | null} */ ($("gallery").querySelector(`[data-list="${look.from}"] [data-preset="${look.list[look.at]}"]`) ?? $("gallery").querySelector(`[data-preset="${look.list[look.at]}"]`));
       /** A list Quick Look can step through, at a place on it (the presets read as they were). @param {any} look */
       const quickable = (look) => Array.isArray(look?.list) && look.list.length > 0 && look.list.every((/** @type {any} */ i) => Boolean(presets?.[i])) && Number.isInteger(look.at) && look.at >= 0 && look.at < look.list.length;
-      /**
-       * Quick Look as it was before a reload (or its step come to while the presets are read): back once they are, if the
-       * page is still where it was (the gallery, nothing opened, no dialog over it); else its step is the gallery's.
-       */
-      let quickReloaded = /** @type {{ look: any, at: number } | null} */ (null);
-      function reopenQuick() {
-        const pending = quickReloaded;
-        quickReloaded = null;
-        if (!pending || !history.state?.quick) return;
-        if (home && !quick && prefs.homeView === "presets" && navigations === pending.at && !document.querySelector("dialog[open]") && quickable(pending.look)) quickLook(pending.look.list, pending.look.at, pending.look.from, false);
-        else if (!quick) history.replaceState(homeState(), "");
-      }
       /** A preset's chart as Quick Look shows it: its own, new each time (Keep takes it as it is). */
       const quickDoc = (/** @type {number} */ i) => fromTemplate(presetTemplate(/** @type {Preset[]} */ (presets)[i]));
       /**
        * Quick Look: the presets of a list on the gallery (a shelf's whole section, a grid's every one), from `at`, one at
        * a time, each the chart, in a dialog over the gallery as ⌘K is (its pop and backdrop; a phone's sheet), the
        * gallery as it was under it (still All charts: `home`). Its chart is the chart's own stage, moved in while it's
-       * open. A step of the history: Back, esc, space, its × or a pull down closes it. ← →, its arrows or a swipe step
-       * through them; Open makes the one shown a preview, to work on; Keep, one of your charts (the look goes on).
-       * Looked at, not worked on: nothing on its plot takes a click or a key (see the guards below), a finger held on
-       * it reads its values, its range changes in its foot. Nothing piles up: each one's let go of as the next shows.
+       * open. A step of the history: Back, esc, space, its × or its sheet pulled down closes it. ↑ ↓ (← →), its list
+       * beside it where there's room, else its arrows, step through them; Open makes the one shown a preview, to work on;
+       * Keep, one of your charts (the look goes on). Looked at as any chart is (moved, zoomed, read: a chart's own ways),
+       * not worked on: nothing on it picked by a click. Nothing piles up: each one's let go of as the next shows.
        * `from`: the list's place on the gallery.
        * @param {number[]} list @param {number} at @param {string} from
        */
-      function quickLook(list, at, from, push = true) {
+      function quickLook(list, at, from, push = true, flat = searchLists.has(list)) {
         // (One still on its way out: done at once.)
         if (quick?.closing) finishQuick();
         if (!home || quick || !quickable({ list, at })) return;
-        const doc = quickDoc(list[at]);
-        quick = { list, at, doc, from, before: chart, place: galleryPlace() };
+        // (Gone through as its list shows it: a section's own, then each section under it.)
+        // (Made once a list: opened from it again, at once.)
+        const made = quickTrees.get(list) ?? ((tree) => ({ tree, ordered: flat ? list : treeOrder(tree) }))(quickTree(list, flat));
+        quickTrees.set(list, made);
+        const { tree, ordered } = made, shown = ordered.indexOf(list[at]), doc = quickDoc(ordered[shown]);
+        quick = { list: ordered, at: shown, doc, from, before: chart, place: galleryPlace(), flat, tree, position: new Map(ordered.map((i, k) => [i, k])), open: new Set(), drawn: "" };
         // (The gallery's place kept in its step too: Back from the chart opened from here comes back there.)
         if (push) history.replaceState({ ...homeState(), place: quick.place }, "");
-        if (push) history.pushState({ ...homeState(), quick: { list, at, from } }, "");
+        if (push) history.pushState({ ...homeState(), quick: { list: ordered, at: shown, from, flat } }, "");
+        // (The shown one's sections open; others as they're opened, till closed by hand.)
+        for (const key of sectionKeys(quick, ordered[shown])) quick.open.add(key);
         addPreview(doc);
         openChart(doc);
         showQuick(true);
@@ -26833,16 +26918,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           dialog.focus();
         } else {
           /** @type {HTMLElement} */ (document.querySelector(".card-body")).prepend(stage);
-          // (A slide under way, or where a swipe or a pull left things: in place again, for what's shown next.)
-          slideRun++;
-          for (const animation of $("canvas").getAnimations()) animation.cancel();
-          Object.assign($("canvas").style, { transform: "" });
+          // (Where a pull left the sheet: in place again, for what's shown next; the keys' crosshair let go.)
           Object.assign(dialog.style, { transform: "", transition: "" });
-          quickMoving = false;
-          quickSliding = "";
           keyAway();
-          // (A finger on it, held or swiping: let go of, its hold not to read the chart under the grid.)
-          if (swipe) clearTimeout(swipe.timer), (swipe = null);
           if (dialog.open) dialog.close();
           // (Grown into the page instead: no sheet sliding down meanwhile.)
           if (instant) for (const motion of dialog.getAnimations({ subtree: true })) motion.finish();
@@ -26874,12 +26952,89 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           icon.innerHTML = kept ? ICONS.check : tab ? ICONS.keep : "";
           icon.hidden = !kept && !tab;
         }
+        renderQuickList();
       }
+      /** @typedef {{ key: string, name: string, count: number, leaves: number[], children: QuickNode[] }} QuickNode */
+      /** @typedef {{ root: QuickNode, depth: number }} QuickTree */
+      /**
+       * A list's presets under their sections, below the sections they all share (`depth` of them); a search's, as found,
+       * no sections. Each section, its own presets then the sections under it, as they come.
+       */
+      function quickTree(/** @type {number[]} */ list, /** @type {boolean} */ flat) {
+        const root = /** @type {QuickNode} */ ({ key: "", name: "", count: list.length, leaves: [], children: [] }), all = /** @type {Preset[]} */ (presets);
+        if (flat) return (root.leaves = list.slice()), { root, depth: 0 };
+        const parents = list.map((i) => all[i].p.slice(0, -1));
+        let depth = 0;
+        while (parents.every((path) => path.length > depth && path[depth] === parents[0][depth])) depth++;
+        const nodes = new Map([["", root]]);
+        list.forEach((i, k) => {
+          let node = root;
+          for (let d = depth; d < parents[k].length; d++) {
+            const key = parents[k].slice(0, d + 1).join(" › ");
+            let child = nodes.get(key);
+            if (!child) node.children.push((child = { key, name: parents[k][d], count: 0, leaves: [], children: [] })), nodes.set(key, child);
+            child.count++;
+            node = child;
+          }
+          node.leaves.push(i);
+        });
+        return { root, depth };
+      }
+      /** Each list's tree and its order, as made (see quickLook). @type {WeakMap<number[], { tree: QuickTree, ordered: number[] }>} */
+      const quickTrees = new WeakMap();
+      /** A tree's presets as it shows them, top to bottom. */
+      const treeOrder = (/** @type {QuickTree} */ tree) => ((out) => ((function walk(/** @type {QuickNode} */ node) { out.push(...node.leaves); node.children.forEach(walk); })(tree.root), out))(/** @type {number[]} */ ([]));
+      /** The sections a preset's under in Quick Look's list, as its keys. */
+      const sectionKeys = (/** @type {{ tree: QuickTree, flat: boolean }} */ look, /** @type {number} */ i) => look.flat ? [] : ((path) => path.slice(look.tree.depth).map((_, d) => path.slice(0, look.tree.depth + d + 1).join(" › ")))(/** @type {Preset[]} */ (presets)[i].p.slice(0, -1));
+      /**
+       * Quick Look's list as it is: its sections, folded but for the one shown's (and any opened by hand), the one shown
+       * lit and (`reveal`: a step, an opening) in sight; a folder opened or closed by hand, the list where it's scrolled.
+       */
+      function renderQuickList(reveal = true) {
+        const look = quick, list = $("quick-list");
+        if (!look || !presets) return;
+        const all = presets, rows = /** @type {string[]} */ ([]);
+        const walk = (/** @type {QuickNode} */ node, /** @type {number} */ depth) => {
+          for (const i of node.leaves) rows.push(`<button type="button" class="nav-item quick-row" data-quick-at="${look.position.get(i)}" style="--depth: ${depth}" aria-current="false" tabindex="-1"><span class="row-glyph">${ICONS.charts}</span><span class="label">${escape(all[i].t)}</span></button>`);
+          for (const child of node.children) {
+            const open = look.open.has(child.key);
+            rows.push(`<button type="button" class="nav-item quick-row head" data-quick-node="${escape(child.key)}" aria-expanded="${open}" style="--depth: ${depth}" tabindex="-1"><span class="row-glyph">${open ? ICONS.folderOpen : ICONS.folder}</span><span class="label">${escape(child.name)}</span><span class="count">${compact(child.count)}</span></button>`);
+            if (open) walk(child, depth + 1);
+          }
+        };
+        walk(look.tree.root, 0);
+        // (Written again only when what it shows changed: a step within it moves its light.)
+        const html = rows.join(""), active = list.contains(document.activeElement) ? /** @type {HTMLElement} */ (document.activeElement) : null;
+        if (html !== look.drawn) list.innerHTML = look.drawn = html;
+        for (const row of all$('[aria-current="true"]', list)) row.setAttribute("aria-current", "false");
+        const lit = /** @type {HTMLElement | null} */ (list.querySelector(`[data-quick-at="${look.at}"]`));
+        lit?.setAttribute("aria-current", "true");
+        // (One stop for Tab, the one shown's: the arrows step the rest.)
+        for (const row of all$('[tabindex="0"]', list)) row.tabIndex = -1;
+        if (lit) lit.tabIndex = 0;
+        if (reveal) lit?.scrollIntoView({ block: "nearest" });
+        // (The focus in it stays: on a section's head, that head; on a preset, the one shown.)
+        // (Gone with what it was on: the one shown's, else the dialog's, its keys still heard.)
+        if (active && !active.isConnected) /** @type {HTMLElement} */ ((active.dataset.quickNode ? list.querySelector(`[data-quick-node="${CSS.escape(active.dataset.quickNode)}"]`) : null) ?? lit ?? $("quick")).focus({ preventScroll: true });
+        else if (active?.dataset.quickAt) /** @type {HTMLElement} */ (lit ?? $("quick")).focus({ preventScroll: true });
+      }
+      matchMedia("(min-width: 961px) and (min-height: 501px)").addEventListener("change", (event) => event.matches && quick && renderQuickList());
+      $("quick-list").addEventListener("click", (event) => {
+        const look = quick, row = closest(event, "[data-quick-at]"), head = closest(event, "[data-quick-node]");
+        if (!look) return;
+        if (row) return void quickTo(Number(row.dataset.quickAt));
+        if (!head) return;
+        const key = /** @type {string} */ (head.dataset.quickNode);
+        if (head.getAttribute("aria-expanded") === "true") look.open.delete(key);
+        else look.open.add(key);
+        renderQuickList(false);
+      });
       /** A chart Quick Look showed, let go of (unless it was kept) as another's opened: none lists it then, nothing of it stays. @param {Chart} doc */
       function letQuickGo(doc) {
         if (!isPreview(doc)) return;
         dropPreview(doc);
         asideDirty.delete(doc);
+        if (touched.has(doc)) touched.delete(doc), forgetPreview(doc);
         for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs])) map.delete(doc.id);
       }
       /** Quick Look on another of its list's, `at`: its chart in place of the one shown (let go of). Whether it moved. */
@@ -26893,7 +27048,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         doc.range = old.range;
         const views = viewsNow();
         if (views[old.id]) (views[doc.id] = views[old.id]), storage.set(VIEWS, views);
-        history.replaceState({ ...history.state, quick: { list: look.list, at, from: look.from } }, "");
+        history.replaceState({ ...history.state, quick: { list: look.list, at, from: look.from, flat: look.flat } }, "");
+        // (Its sections opened to show it, folded by hand or not; none other closed.)
+        for (const key of sectionKeys(look, look.list[at])) look.open.add(key);
         keyAway();
         letQuickGo(old);
         addPreview(doc);
@@ -26902,10 +27059,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         warmAround();
         return true;
       }
-      /** While a swipe's slide is under way (the next step waits for it), and the latest slide's run (one ended stops). */
-      let quickMoving = false, slideRun = 0;
       /** Quick Look on the one before (-1) or after (1). */
-      const quickStep = (/** @type {number} */ delta) => void (quick && !quickMoving && quickTo(quick.at + delta));
+      const quickStep = (/** @type {number} */ delta) => void (quick && quickTo(quick.at + delta));
       /** Quick Look closed: back to the gallery (its step gone back over: Forward brings it again). */
       function quickClose() {
         if (!quick || quick.closing) return;
@@ -26941,16 +27096,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         showQuick(false);
         letQuickGo(look.doc);
         if (chart === look.doc) openChart(chartById(look.before.id) ?? previousChart() ?? library.charts[0] ?? newDraft());
-        // (Gone a little past what its grid shows: as much of it as reaches the one shown; further, its Show more.)
-        if (home && $("gallery").querySelector(`.grid-tiles[data-list="${look.from}"]`) && look.at >= galleryShown && look.at < galleryShown + 2 * GALLERY_PAGE) {
-          galleryShown = Math.ceil((look.at + 1) / GALLERY_PAGE) * GALLERY_PAGE;
-          renderHome();
-          placeGallery(look.place);
-        }
-        if (!home) return;
-        const tile = quickTile(look);
-        tile?.scrollIntoView({ block: "nearest", inline: "nearest" });
-        /** @type {HTMLElement | null | undefined} */ (tile?.querySelector(".tile-open") ?? $("gallery").querySelector(`.shelf[data-list="${look.from}"] button.shelf-title, .grid-tiles[data-list="${look.from}"] + [data-gallery-more]`))?.focus({ preventScroll: true });
+        // (The gallery as it was left, nothing moved: the focus on the one shown's tile where it's in sight, else on the
+        // one it was opened from, as the dialog gave it back.)
+        const tile = home ? /** @type {HTMLElement | null | undefined} */ (quickTile(look)?.querySelector(".tile-open")) : null, box = tile?.getBoundingClientRect(), page = homeScroll().getBoundingClientRect();
+        if (tile && box && box.top >= page.top && box.bottom <= page.bottom && box.left >= page.left && box.right <= page.right) tile.focus({ preventScroll: true });
       }
       /** Quick Look ended by another chart opened over it (a link, a script, ⌘K's pick), `doc`: at once, the step the gallery's. */
       function endQuick(/** @type {Chart} */ doc) {
@@ -27034,11 +27183,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("quick").addEventListener("keydown", (event) => {
         if (!quick || event.defaultPrevented || event.isComposing) return;
         const mod = event.metaKey || event.ctrlKey, plain = !mod && !event.altKey && !event.shiftKey, key = event.key;
-        const onButton = event.target instanceof Element && Boolean(event.target.closest("button"));
-        if (plain && (key === "ArrowLeft" || key === "ArrowRight")) event.repeat || quickStep(key === "ArrowLeft" ? -1 : 1);
+        // (The one shown's row in the list is it: ↵ there opens it, as anywhere.)
+        const onButton = event.target instanceof Element && Boolean(event.target.closest("button:not([data-quick-at][aria-current='true'])"));
+        if (plain && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)) event.repeat || quickStep(key === "ArrowLeft" || key === "ArrowUp" ? -1 : 1);
         else if (plain && key === "Enter" && !onButton) quickOpen();
         else if (plain && key === " " && !onButton) quickClose();
         else if (mod && !event.altKey && !event.shiftKey && key.toLowerCase() === "s") quickKeep();
+        else if (plain && prefs.keys && (key === "-" || key === "_" || key === "=" || key === "+")) zoom(key === "-" || key === "_" ? 1.6 : 1 / 1.6);
         else if (plain && prefs.keys && ["1", "2", "3", "4", "5"].includes(key)) {
           const [id, text] = RANGES[Number(key) - 1];
           if (presetFits(id)) setRange(id);
@@ -27046,74 +27197,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else return;
         event.preventDefault();
       });
-      /**
-       * A finger on Quick Look's plot: across, the chart follows it (to the next, let go far or fast enough); down, the
-       * sheet does (closing it, as its handle does); held still (as a long press anywhere here), it reads the values
-       * under it as it moves (as a phone's chart app does), till it's lifted.
-       */
-      let swipe = /** @type {{ id: number, x: number, y: number, dx: number, dy: number, axis: "x" | "y" | "hold" | "", trail: { x: number, y: number, at: number }[], timer: number } | null} */ (null);
-      const onPlot = (/** @type {Event} */ event) => event.target instanceof Element && Boolean(event.target.closest("#canvas")) && !event.target.closest("#unreached");
-      // (These listen last of all, on the window, as it's first told: what tells a pointer from a key, a tap from a swipe,
-      // listens before them.) On its plot a mouse's moves show its values; nothing else gets there (no layer picked, no
-      // pan, no zoom, no menu).
-      for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel", "mousedown", "mouseup", "click", "dblclick", "contextmenu", "touchstart", "touchmove", "touchend"]) {
-        window.addEventListener(type, (event) => {
-          const pointer = event instanceof PointerEvent ? event : null;
-          if (type === "contextmenu" && quick && onPlot(event)) event.preventDefault();
-          if (pointer && swipe?.id === pointer.pointerId) return void (event.stopImmediatePropagation(), type !== "contextmenu" && swiped(pointer));
-          if (!quick || !onPlot(event) || (type === "pointermove" && pointer?.pointerType === "mouse")) return;
-          event.stopImmediatePropagation();
-          if (type === "contextmenu") event.preventDefault();
-          if (type === "pointerdown" && pointer && pointer.pointerType !== "mouse" && pointer.isPrimary && !quickMoving && !quick.closing) {
-            const at = { x: pointer.clientX, y: pointer.clientY, at: pointer.timeStamp }, id = pointer.pointerId;
-            swipe = { id, x: at.x, y: at.y, dx: 0, dy: 0, axis: "", trail: [at], timer: window.setTimeout(() => swipe?.id === id && !swipe.axis && ((swipe.axis = "hold"), navigator.vibrate?.(8), readAt(at.x)), 450) };
-          }
-        }, { capture: true, passive: type.startsWith("touch") });
-      }
-      /** The values at a finger's place across the plot: the crosshair there, its date's values in the legends (as the keys' are). */
-      function readAt(/** @type {number} */ x) {
-        const range = view.timeScale().getVisibleLogicalRange(), times = resolved?.times;
-        if (!range || !times?.length) return;
-        let axis = 0;
-        try {
-          axis = view.priceScale("left", 0).width();
-        } catch {}
-        const logical = view.timeScale().coordinateToLogical(x - view.chartElement().getBoundingClientRect().left - axis);
-        if (logical !== null) keyAt(clamp(Math.round(logical), Math.max(0, Math.ceil(range.from)), Math.min(times.length - 1, Math.floor(range.to))));
-      }
-      /** The finger followed, then lifted: a step, a close, the values let go, or back in place. @param {PointerEvent} event */
-      function swiped(event) {
-        const pull = /** @type {NonNullable<typeof swipe>} */ (swipe), canvas = $("canvas"), sheet = $("quick"), look = quick;
-        const done = event.type === "pointerup" || event.type === "pointercancel";
-        if (done) clearTimeout(pull.timer);
-        if (!look || look.closing || (event.type === "pointercancel" && pull.axis !== "hold")) return void ((swipe = null), placesBack());
-        if (pull.axis === "hold") return void (done ? ((swipe = null), keyAway()) : event.type === "pointermove" && readAt(event.clientX));
-        pull.dx = event.clientX - pull.x;
-        pull.dy = event.clientY - pull.y;
-        pull.trail = [...pull.trail.filter((point) => event.timeStamp - point.at <= 100), { x: event.clientX, y: event.clientY, at: event.timeStamp }];
-        if (!pull.axis && Math.hypot(pull.dx, pull.dy) > SLOP) (pull.axis = Math.abs(pull.dx) >= Math.abs(pull.dy) ? "x" : "y"), clearTimeout(pull.timer);
-        // (Across, held back where there's none beyond; down, the sheet with it, as its handle takes it.)
-        const end = look.list[look.at - Math.sign(pull.dx)] === undefined;
-        if (event.type === "pointermove") {
-          if (pull.axis === "x") canvas.style.transform = `translateX(${end ? pull.dx / 3 : pull.dx}px)`;
-          else if (pull.axis === "y") (sheet.style.transition = "none"), (sheet.style.transform = `translateY(${Math.max(0, pull.dy)}px)`);
-          return;
-        }
-        swipe = null;
-        const past = pull.trail[0], time = Math.max(1, event.timeStamp - past.at), vx = (event.clientX - past.x) / time, vy = (event.clientY - past.y) / time;
-        if (pull.axis === "x" && !end && Math.sign(vx) !== -Math.sign(pull.dx) && (Math.abs(pull.dx) > canvas.clientWidth * 0.2 || Math.abs(vx) > 0.3)) return void slideQuick(-Math.sign(pull.dx), pull.dx, Math.abs(vx));
-        if (pull.axis === "y" && sheetGoes(Math.max(0, pull.dy), vy, sheet.offsetHeight)) return void ((sheet.style.transition = ""), quickClose());
-        placesBack();
-      }
-      /** The plot and the sheet back in place from where a finger left them. */
-      function placesBack() {
-        const canvas = $("canvas"), sheet = $("quick"), from = canvas.style.transform;
-        sheet.style.transition = sheet.style.transform = "";
-        if (!from) return;
-        canvas.style.transform = "";
-        if (!reduced.matches) canvas.animate([{ transform: from }, { transform: "none" }], { duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
-      }
-      // Its sheet's handle and its bar pull it down too, as ⌘K's (a phone's).
+      // Its sheet's handle and its bar pull it down, as ⌘K's (a phone's): its chart moves and zooms as a chart does.
       dragSheet($("quick"), {
         grab: (event) => phone.matches && Boolean(quick) && !quick?.closing && Boolean(event && closest(event, ".menu-handle, .quick-bar")) && !closest(/** @type {PointerEvent} */ (event), "button"),
         move: (by) => Object.assign($("quick").style, { transition: "none", transform: `translateY(${Math.max(0, by)}px)` }),
@@ -27121,36 +27205,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Going: from where it was let go, on down, not back up first.)
         release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by), speed, $("quick").offsetHeight) && (($("quick").style.transform = `translateY(${Math.max(0, by)}px)`), quickClose()),
       });
-      /** A swipe's step: the chart shown on out (as fast as it went), the next in from the other side once it's drawn. */
-      async function slideQuick(/** @type {number} */ dir, /** @type {number} */ from, /** @type {number} */ speed) {
-        const canvas = $("canvas"), width = canvas.clientWidth + 24, run = ++slideRun;
-        quickMoving = true;
-        canvas.style.transform = `translateX(${-dir * width}px)`;
-        if (!reduced.matches) await canvas.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${-dir * width}px)` }], { duration: clamp((width - Math.abs(from)) / Math.max(speed, 1.2), 120, 260), easing: "cubic-bezier(0.25, 0.7, 0.4, 1)" }).finished.catch(() => {});
-        // (Quick Look closed or opened meanwhile: its slide's over, where showQuick left it.)
-        if (run !== slideRun) return;
-        if (!quick || !quickTo(quick.at + dir)) return void ((canvas.style.transform = ""), (quickMoving = false));
-        quickSliding = quick.doc.id;
-        // (In from the other side once it's drawn; still loading after a while, as it is, its loading said.)
-        canvas.style.transform = `translateX(${dir * width}px)`;
-        await until(() => run !== slideRun || settled(), 700);
-        if (run !== slideRun) return;
-        canvas.style.transform = "";
-        if (!reduced.matches) await canvas.animate([{ transform: `translateX(${dir * width}px)` }, { transform: "none" }], { duration: 320, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" }).finished.catch(() => {});
-        if (run === slideRun) quickMoving = false;
-      }
-      // A trackpad's swipe across the plot steps: once a swipe (its glide after it the same one, a new one after a pause).
-      let wheeling = { sum: 0, at: -Infinity, stepped: false };
-      $("canvas").addEventListener("wheel", (event) => {
-        if (!quick || !onPlot(event)) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        if (event.timeStamp - wheeling.at > 250) wheeling = { sum: 0, at: event.timeStamp, stepped: false };
-        wheeling.at = event.timeStamp;
-        if (wheeling.stepped || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
-        wheeling.sum += event.deltaX;
-        if (Math.abs(wheeling.sum) >= 60) (wheeling.stepped = true), quickStep(Math.sign(wheeling.sum));
-      }, { capture: true, passive: false });
 
       async function start() {
         // (The page's first navigation, as navigate counts it: a chart opened while a link's read, the link's dropped.)
@@ -27173,23 +27227,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Charts another tab saved while this one was starting: the first of them, as a library's first is.)
         chart ??= chartById(library.active) ?? library.charts[0] ?? setAside[0];
         // First visit: an empty chart, open as a preview, to start from a search or one of the website's charts.
+        // First visit: an empty chart under the page (New chart's), the presets on it.
         const first = !chart;
-        if (first) {
-          chart = newDraft();
-          prefs.home = false;
-          savePrefs();
-        }
+        if (first) chart = newDraft();
         // Where this tab was, as its history keeps it (a reload), else where the studio was last: the grid, or a chart. A
-        // shared link opens its chart; a first visit, its empty chart.
-        // (A first visit's tab reloaded on the presets' gallery: there.)
-        const there = shared || (first && !Array.isArray(history.state?.gallery)) ? null : history.state;
+        // shared link opens its chart; a first visit, the presets.
+        const there = shared ? null : history.state;
         chart = (there?.chart && chartById(there.chart)) || chart;
-        home = !shared && Boolean(there ? there.home : !first && prefs.home);
+        home = !shared && Boolean(there ? there.home : first || prefs.home);
         document.body.toggleAttribute("data-home", home);
         // (All charts as this tab's step has it, whichever view another tab left; reloaded in Quick Look, back in it once
-        // the presets are read, over its gallery shown first.)
+        // the presets are read, over its gallery shown first. A first visit, the presets.)
         if (home && there) takeHomeView(Array.isArray(there.gallery) ? "presets" : "charts");
-        if (home && there?.quick) quickReloaded = { look: there.quick, at: navigations };
+        else if (home && first) takeHomeView("presets");
+        // (Reloaded in Quick Look: the gallery it was over, its step gone back over (a look isn't a page).)
+        const lookLeft = home && Boolean(there?.quick);
         if (!there) history.replaceState(home ? homeState() : { chart: chart.id }, "");
         library.active = chart.id;
         rememberViewed(chart.id);
@@ -27205,6 +27257,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Once the chart's asked for its data: the search's index builds, off the page, at once (search is this machine's
         // a second or so after a load, not after an idle moment a hidden tab may give late); the color surface when idle.
         startFinder();
+        if (lookLeft) history.back();
         whenIdle(vividSoon, { timeout: 3000, settle: 1500 });
         // Charts this Studio couldn't read: kept aside, said once (again only when they change), to be had as a file
         // (Download all has them too).
