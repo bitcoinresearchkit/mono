@@ -18464,8 +18464,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {Page} */
         const page = {
           title: path.at(-1) ?? "Presets",
-          // (Its rows are its search's, best first.)
+          // (Its rows are its search's, best first. Of no chart: ⌘K comes back to it whichever's open.)
           searches: true,
+          global: true,
           placeholder: path.length ? `Search in ${path.at(-1)}` : "Search the presets",
           rows: () => {
             if (!presets) return [presetsFailed === "none"
@@ -21266,16 +21267,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let addedFrom = /** @type {{ chart: string, path: string[], key: string } | null} */ (null);
       /**
        * Where ⌘K was when it was put away (esc, its close buttons, a click beside it): opened again to resume, within a
-       * minute and a half and on the same chart, it opens right there, on the same page, search and row. Closed by an
-       * action, or come back to later, it starts over at the search.
+       * minute and a half and on the same chart, it opens right there, on the same page, search and row. Closed by a preset
+       * it opened (from the presets' pages or its search), it's put away too, and opened again within ten minutes,
+       * whichever chart's open, it's back there, that preset lit: the next a ↓ away. Closed by another action (a chart
+       * opened, a command run: no ↵ away from running it again), or come back to later, it starts over at the search.
        */
       let putAway = /** @type {any} */ (null);
-      const putAside = () => (putAway = { at: Date.now(), chart: chart.id, home, browsing: palette.op.kind === "browse", state: { path: palette.path.slice(), pages: palette.pages, root: palette.root, query: palette.query, landOn: palette.items[palette.active]?.key ?? null } });
+      /** Whether ⌘K is opening a preset, browsing what's of no chart (the presets' pages, or its search). */
+      const presetPicked = () => palette.op.kind === "browse" && palette.pages.every((page) => page.global) && ((item) => item?.kind === "row" && /^(?:preset|recommended):/.test(item.key ?? ""))(palette.items[palette.active]);
+      const putAside = (anywhere = false) => (putAway = { at: Date.now(), chart: chart.id, home, browsing: palette.op.kind === "browse", anywhere, state: { path: palette.path.slice(), pages: palette.pages, root: palette.root, query: palette.query, landOn: palette.items[palette.active]?.key ?? null } });
+      /** Whether ⌘K is being put away (esc, its close buttons, a click beside it), not closed by what it ran. */
+      let dismissing = false;
       function dismissPalette() {
+        dismissing = true;
         putAside();
         $("palette").close();
       }
-      $("palette").addEventListener("cancel", putAside);
+      $("palette").addEventListener("cancel", () => ((dismissing = true), putAside()));
+      // (Closed by a preset it opened: where it was kept, for anywhere.)
+      $("palette").addEventListener("close", () => {
+        if (!dismissing && !$("palette").open && presetPicked()) putAside(true);
+        dismissing = false;
+      });
       /**
        * `add`: only series (to add to this chart, `into` a pane); `replace`: the id of a layer whose series is being
        * swapped; `formula`: a formula to add (`into` a pane) or, `editing`, a formula layer's own; `query` starts the
@@ -21283,7 +21296,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false } = {}) {
         // (Resumed only where it was browsing: adding, replacing or a formula start again.)
-        const spot = resume && putAway?.browsing && putAway.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000 ? putAway.state : null;
+        const spot = resume && putAway?.browsing && (putAway.anywhere ? Date.now() - putAway.at < 600_000 : putAway.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000) ? putAway.state : null;
         // (Adding to a chart with no room: said now, not once a series is picked.)
         if (add && !roomFor(chart)) return;
         putAway = null;
@@ -22244,7 +22257,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * in effect (ticked); `disabled`: why it can't act (said when pressed); `danger` marks it (red); `apart` sets it off
        * in a menu (a rule before it), as a new `group` does (in ⌘K, its heading).
        * @typedef {{ label: string, aside?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, current?: boolean, disabled?: string, apart?: boolean, verb?: string, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
-       * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], options?: () => Action[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, set: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean }} Page
+       * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], options?: () => Action[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, set: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean, global?: boolean }} Page
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
       /** What else a setting is called, for the search: "rename" finds a name, "sma" a formula from a layer, "resize" a height. */
