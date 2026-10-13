@@ -11149,25 +11149,50 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const visiting = new Set(), LOOP = "Formulas refer to each other in a loop";
         /** The parts of the chart's formulas computed so far, shared between them. */
         const memo = new Map();
-        const compute = (layer) => {
+        /**
+         * A layer's result, made once a resolve by `make` (a formula's, or one made from layers): a loop through it is an
+         * error, as a failure in it is (short, with its detail, where it says one).
+         * @param {Layer} layer @param {() => Result} make
+         */
+        const once = (layer, make) => {
           if (results.has(layer.id)) return results.get(layer.id);
           if (visiting.has(layer.id)) throw new Error(LOOP);
           visiting.add(layer.id);
+          /** @type {Result} */
+          let result;
           try {
-            const node = parse(layer.formula ?? "");
-            // The same formula over the same inputs (by identity: unchanged since the last resolve) is the same result.
-            const inputs = [...refsOf(node)].map((letter) => {
-              const target = byLetter.get(letter);
-              const result = !target || target === layer || target.type === "cloud" ? null : computed(target);
-              return result?.shown ? idOf(result.shown) : result?.error ?? "-";
-            });
-            const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.shown ? idOf(bySeries.get(name)?.shown) : "-"))].join("|");
-            // (Kept with the frame: by chart and interval, and gone with its data.)
-            const cached = frame.computed.get(layer.id);
-            if (cached?.key === key) {
-              results.set(layer.id, cached.result);
-              return cached.result;
-            }
+            result = make();
+          } catch (thrown) {
+            const error = /** @type {Error & { short?: string }} */ (thrown);
+            result = error.short ? { unit: "number", error: error.short, detail: error.message } : { unit: "number", error: error.message };
+          } finally {
+            visiting.delete(layer.id);
+          }
+          results.set(layer.id, result);
+          return result;
+        };
+        /**
+         * A result kept with the frame (by chart and interval, gone with its data) while what it's made of is the same
+         * (`key`, its inputs by identity: unchanged since the last resolve): the same result, the chart keeping its series.
+         * @param {Layer} layer @param {string} key @param {() => Result} make
+         */
+        const kept = (layer, key, make) => {
+          const cached = frame.computed.get(layer.id);
+          if (cached?.key === key) return cached.result;
+          const result = make();
+          frame.computed.set(layer.id, { key, result });
+          return result;
+        };
+        const compute = (/** @type {Layer} */ layer) => once(layer, () => {
+          const node = parse(layer.formula ?? "");
+          // The same formula over the same inputs is the same result.
+          const inputs = [...refsOf(node)].map((letter) => {
+            const target = byLetter.get(letter);
+            const result = !target || target === layer || target.type === "cloud" ? null : computed(target);
+            return result?.shown ? idOf(result.shown) : result?.error ?? "-";
+          });
+          const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.shown ? idOf(bySeries.get(name)?.shown) : "-"))].join("|");
+          return kept(layer, key, () => {
             const value = evaluate(node, length, (name, kind) => {
               if (kind === "series") {
                 const input = bySeries.get(name);
@@ -11189,54 +11214,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const target = byLetter.get(name);
               return !target || target.type === "cloud" ? null : computed(target)?.unit ?? null;
             }) ?? "number";
-            /** @type {Result} */
-            const result = { values, shown: values, unit };
-            results.set(layer.id, result);
-            frame.computed.set(layer.id, { key, result });
-            return result;
-          } catch (error) {
-            /** @type {Result} */
-            const result = error.short ? { unit: "number", error: error.short, detail: error.message } : { unit: "number", error: error.message };
-            results.set(layer.id, result);
-            return result;
-          } finally {
-            visiting.delete(layer.id);
-          }
-        };
+            return { values, shown: values, unit };
+          });
+        });
         /** A layer's result, made now if it's a formula's or made from layers (each once, in the order they need). */
         const computed = (/** @type {Layer} */ layer) => (layer.formula !== undefined ? compute(layer) : layer.from ? made(layer) : results.get(layer.id));
         /**
          * A layer made from layers, from what they show (kept with the frame, as a formula's result is, while their values
          * are the same): a cloud, at each date, the lowest of them and the highest; a trend line, one of those (trendOf).
          */
-        const made = (/** @type {Layer} */ layer) => {
-          if (results.has(layer.id)) return results.get(layer.id);
-          if (visiting.has(layer.id)) throw new Error(LOOP);
-          visiting.add(layer.id);
-          try {
-            const all = (layer.from ?? []).flatMap((id) => ((member) => (member ? [computed(member)] : []))(doc.layers.find((item) => item.id === id)));
-            // (One of them in a loop through it: it's in the loop too, whatever's computed first.)
-            if (all.some((result) => result?.error === LOOP)) throw new Error(LOOP);
-            const inputs = all.filter((result) => result?.shown), edges = edgesOf(layer).length;
-            if (!inputs.length || inputs.length + edges < 2) {
-              /** @type {Result} */
-              const short = { unit: inputs[0]?.unit ?? "number", error: fromShort(layer, doc) || (edges ? "Needs a layer with data" : "Needs two layers with data") };
-              results.set(layer.id, short);
-              return short;
-            }
-            const ref = layer.type === "trend" ? doc.layers.find((item) => item.id === layer.ref) : null, by = ref ? computed(ref) : null;
-            if (by?.error === LOOP) throw new Error(LOOP);
-            if (layer.type === "trend" && !by?.shown) {
-              /** @type {Result} */
-              const short = { unit: inputs[0].unit, error: !ref ? "Pick what flips it" : `${ref.letter} has no data` };
-              results.set(layer.id, short);
-              return short;
-            }
-            const key = [frame.id, layer.type, edgesOf(layer).join(), ...inputs.map((input) => idOf(/** @type {Vector} */ (input.shown))), by?.shown ? idOf(by.shown) : "", by?.ohlc ? idOf(/** @type {any} */ (by.ohlc)) : ""].join("|"), cached = frame.computed.get(layer.id);
-            if (cached?.key === key) {
-              results.set(layer.id, cached.result);
-              return cached.result;
-            }
+        const made = (/** @type {Layer} */ layer) => once(layer, () => {
+          const all = (layer.from ?? []).flatMap((id) => ((member) => (member ? [computed(member)] : []))(doc.layers.find((item) => item.id === id)));
+          // (One of them in a loop through it: it's in the loop too, whatever's computed first.)
+          if (all.some((result) => result?.error === LOOP)) throw new Error(LOOP);
+          const inputs = all.filter((result) => result?.shown), edges = edgesOf(layer).length;
+          if (!inputs.length || inputs.length + edges < 2) return { unit: inputs[0]?.unit ?? "number", error: fromShort(layer, doc) || (edges ? "Needs a layer with data" : "Needs two layers with data") };
+          const ref = layer.type === "trend" ? doc.layers.find((item) => item.id === layer.ref) : null, by = ref ? computed(ref) : null;
+          if (by?.error === LOOP) throw new Error(LOOP);
+          if (layer.type === "trend" && !by?.shown) return { unit: inputs[0].unit, error: !ref ? "Pick what flips it" : `${ref.letter} has no data` };
+          const key = [frame.id, layer.type, edgesOf(layer).join(), ...inputs.map((input) => idOf(/** @type {Vector} */ (input.shown))), by?.shown ? idOf(by.shown) : "", by?.ohlc ? idOf(/** @type {any} */ (by.ohlc)) : ""].join("|");
+          return kept(layer, key, () => {
             const low = new Float64Array(length).fill(NaN), high = new Float64Array(length).fill(NaN), count = new Uint8Array(length);
             for (const { shown } of inputs) {
               for (let i = 0; i < length; i++) {
@@ -11248,25 +11245,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (!(value <= high[i])) high[i] = value;
               }
             }
-            // (Where fewer than two have a value, none: a range of one value isn't one; with an edge, one is enough, its low and
-            // high the same, the edge the other end.)
+            // (Where fewer than two have a value, none: a range of one value isn't one; with an edge, one is enough, its low
+            // and high the same, the edge the other end.)
             for (let i = 0; i < length; i++) if (count[i] + edges < 2) low[i] = high[i] = NaN;
-
             const trend = by?.shown ? trendOf(low, high, by.shown, by.ohlc ?? null) : null;
-            /** @type {Result} */
-            const result = trend ? { values: trend.values, shown: trend.values, breaks: trend.breaks, sides: trend.sides, unit: inputs[0].unit } : { values: high, shown: high, low, unit: inputs[0].unit };
-            results.set(layer.id, result);
-            frame.computed.set(layer.id, { key, result });
-            return result;
-          } catch (error) {
-            /** @type {Result} */
-            const result = { unit: "number", error: /** @type {Error} */ (error).message };
-            results.set(layer.id, result);
-            return result;
-          } finally {
-            visiting.delete(layer.id);
-          }
-        };
+            return trend ? { values: trend.values, shown: trend.values, breaks: trend.breaks, sides: trend.sides, unit: inputs[0].unit } : { values: high, shown: high, low, unit: inputs[0].unit };
+          });
+        });
         doc.layers.filter((layer) => layer.formula !== undefined || layer.from).forEach(computed);
         let first = length;
         for (const { shown } of results.values()) {
@@ -11281,9 +11266,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Trimmed once a result and a start: kept the same, as the chart keeps its series.
         if (frame.trimmed?.first !== first) frame.trimmed = { first, times: times.slice(first) };
         for (const [id, result] of results) {
-          const kept = trims.get(result);
-          if (kept?.first === first) {
-            results.set(id, kept.out);
+          const trimmed = trims.get(result);
+          if (trimmed?.first === first) {
+            results.set(id, trimmed.out);
             continue;
           }
           // (Shown as they are, the values are copied once.)
@@ -16918,6 +16903,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (thumb) marksDrawn.set(thumb, { light, svg });
         return svg;
       };
+      /** The points of a run of a line's area: the run, closed down (or up) to `edge` under its ends. @param {string[]} part @param {number} edge */
+      const areaPoints = (part, edge) => `${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${edge}`;
       /** A mark drawn from a mini chart's lines. @param {any[]} lines */
       const markOf = (lines) => {
         const y = (value) => 36 - value * 32, stroke = 'fill="none" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"';
@@ -16932,14 +16919,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (kind === "dots") return byColor(ys.map((value, i) => (value === null || i % 2 ? null : { i, value })), ({ i }) => tintAt(i), false).map((piece) => `<path d="${piece.points.map(({ i, value }) => `M${x(i).toFixed(1)} ${y(value).toFixed(1)}h0`).join("")}" stroke="${piece.color}" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
           if (dated) return byColor(ys.map((value, i) => (value === null ? null : { i, value })), ({ i }) => tintAt(i)).filter((piece) => piece.points.length > 1).map(({ color: stroke, points }) => {
             const part = points.map(({ i, value }) => `${x(i).toFixed(1)},${y(value).toFixed(1)}`);
-            return (kind === "area" ? `<polygon points="${part[0].split(",")[0]},${base} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${base}" fill="${stroke}" fill-opacity=".2"/>` : "") + polyline(part, stroke);
+            return (kind === "area" ? `<polygon points="${areaPoints(part, base)}" fill="${stroke}" fill-opacity=".2"/>` : "") + polyline(part, stroke);
           }).join("");
           return runs(ys, x, y).map((part) => {
             if (kind === "baseline") {
               const { above, below: under } = sides(part, base);
               return [...above.map((piece) => polyline(piece.part, color)), ...under.map((piece) => polyline(piece.part, below))].join("");
             }
-            const fill = kind === "area" ? `<polygon points="${part[0].split(",")[0]},${base} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${base}" fill="${color}" fill-opacity=".2"/>` : "";
+            const fill = kind === "area" ? `<polygon points="${areaPoints(part, base)}" fill="${color}" fill-opacity=".2"/>` : "";
             return fill + polyline(part, color);
           }).join("");
         }).join("");
@@ -16977,7 +16964,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const { above, below: under } = sides(part, y(level));
               return [...above.map((piece) => line(piece.part, color, piece.from)), ...under.map((piece) => line(piece.part, below, piece.from))].join("");
             }
-            return (layer.type === "area" ? `<polygon points="${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1).split(",")[0]},${edge}" fill="${color}" fill-opacity=".22"/>` : "") + line(part, color);
+            return (layer.type === "area" ? `<polygon points="${areaPoints(part, edge)}" fill="${color}" fill-opacity=".22"/>` : "") + line(part, color);
           }).join("");
         }
         return `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
