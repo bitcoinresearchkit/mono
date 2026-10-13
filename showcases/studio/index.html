@@ -6522,9 +6522,11 @@
             align-items: center;
             gap: 2px;
             min-width: 0;
-            /* (Room above and under its buttons for their focus rings and keys: a row that slides cuts what passes it.) */
-            margin-block: -4px;
-            padding-block: 4px;
+            /* (Room about its buttons, above and under them and before the first and after the last, for their focus rings
+               and keys: a row that slides cuts what passes it.) */
+            margin: -4px;
+            padding: 4px;
+            scroll-padding-inline: 4px;
             overflow-x: auto;
             overscroll-behavior-x: contain;
             scrollbar-width: none;
@@ -7905,7 +7907,7 @@
             <li>"colorFrom": "B" on a line, dots, an area, bars, a cloud or a trend: its colors taken from layer B date by date, as B is drawn (a baseline's above or below its base, bars' too, a trend's on resistance or support, by its levels if it's colored by them, else B's one color).</li>
             <li>"byLevels": true on a line, dots, an area or bars with levels: colored by them, date by date: above each level, that level's color (give each one its "color"); under them all, its own.</li>
             <li>"colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend with a "colorBelow": its one color, that second kept.</li>
-            <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc).</li>
+            <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc); left out, the series' own look.</li>
             <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).</li>
             <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line.</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional).</li>
@@ -11267,7 +11269,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (frame.trimmed?.first !== first) frame.trimmed = { first, times: times.slice(first) };
         for (const [id, result] of results) {
           const trimmed = trims.get(result);
-          if (trimmed?.first === first) {
+          if (trimmed && trimmed.first === first) {
             results.set(id, trimmed.out);
             continue;
           }
@@ -23861,7 +23863,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(colorFrom ? { colorFrom: doc.layers.find((item) => item.id === colorFrom)?.letter ?? colorFrom } : {}),
             ...(ordered ? {} : { letter }),
             ...rest,
-            ...(type !== "line" && !from ? { type } : {}),
+            // (A series' type always: left out, it's read as the series is mostly drawn, which one tab knows and another
+            // doesn't yet: a line opened as a baseline, or candles.)
+            ...((type !== "line" || series !== undefined) && !from ? { type } : {}),
             ...(width !== 1.5 && type !== "cloud" ? { width } : {}),
             ...(dash && type !== "cloud" ? { dash } : {}),
             ...(side !== "right" ? { side } : {}),
