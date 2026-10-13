@@ -135,7 +135,6 @@ fn read_and_dispatch(
         scan_bytes(
             &mut bytes,
             blk_index,
-            0,
             xor_bytes,
             |metadata, block_bytes, xor_state| {
                 if stop.get().is_some() {

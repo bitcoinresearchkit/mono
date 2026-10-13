@@ -35,6 +35,12 @@ pub struct AppState {
     pub historical_price_cache: Arc<HistoricalPriceCache>,
     #[cfg(feature = "chain")]
     pub mempool_txid_bodies: Arc<Semaphore>,
+    /// Block templates, about 10 MB each.
+    #[cfg(feature = "chain")]
+    pub block_template_bodies: Arc<Semaphore>,
+    /// Block template diffs: small, except right after a block.
+    #[cfg(feature = "chain")]
+    pub block_template_diff_bodies: Arc<Semaphore>,
     #[cfg(feature = "chain")]
     pub broadcast_requests: Arc<Semaphore>,
     pub node: AsyncClient,

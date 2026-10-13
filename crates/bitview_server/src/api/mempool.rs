@@ -1,18 +1,17 @@
 use aide::axum::{ApiRouter, routing::get_with};
-use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
+use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_types::ReplacementNode;
 use brk_types::{
     BlockTemplate, BlockTemplateDiff, Dollars, MempoolInfo, MempoolRecentTx, NextBlockHash, Txid,
     Version,
 };
-use serde_json::to_vec;
 
-use super::mempool_txids;
+use super::{block_template, mempool_txids};
 use crate::{
-    AppState, CacheParams, CacheStrategy, CdnCacheMode,
+    AppState, CacheStrategy,
     api::oracle::serve_live_price,
     error::Result,
-    extended::{HeaderMapExtended, TransformResponseExtended},
+    extended::TransformResponseExtended,
     params::{Empty, NextBlockHashParam},
     request_state::RequestState,
 };
@@ -143,16 +142,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             "/api/v1/mempool/block-template",
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    let source = state.read(|q| q.resolve_block_template()).await?;
-                    let params = CacheParams::resolve(&CacheStrategy::Live(
-                        format!("template-v2-{}", source.hash()?).into(),
-                    ), CdnCacheMode::Live);
-                    Ok(AppState::respond_with_future(&headers, params, async {
-                        let bytes = state.run_admitted(move |_| {
-                            Ok(Bytes::from(to_vec(&source.build()?)?))
-                        }).await?;
-                        Ok((bytes, HeaderMap::insert_content_type_application_json))
-                    }).await)
+                    block_template::serve(state, headers).await
                 },
                 |op| {
                     op.id("get_block_template")
@@ -173,16 +163,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
                        Path(path): Path<NextBlockHashParam>,
                        _: Empty,
                        RequestState(state): RequestState| -> Result<Response> {
-                    let resolved = state.read(move |q| q.resolve_block_template_diff(path.hash)).await?;
-                    let params = CacheParams::resolve(&CacheStrategy::Live(
-                        format!("template-diff-v2-{}-{}", resolved.since(), resolved.source().hash()?).into(),
-                    ), CdnCacheMode::Live);
-                    Ok(AppState::respond_with_future(&headers, params, async {
-                        let bytes = state.run_admitted(move |_| {
-                            Ok(Bytes::from(to_vec(&resolved.build()?)?))
-                        }).await?;
-                        Ok((bytes, HeaderMap::insert_content_type_application_json))
-                    }).await)
+                    block_template::serve_diff(state, headers, path.hash).await
                 },
                 |op| {
                     op.id("get_block_template_diff")

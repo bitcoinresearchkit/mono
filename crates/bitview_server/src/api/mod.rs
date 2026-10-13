@@ -21,6 +21,8 @@ use crate::{
 #[cfg(feature = "chain")]
 mod addrs;
 #[cfg(feature = "chain")]
+mod block_template;
+#[cfg(feature = "chain")]
 mod blocks;
 #[cfg(feature = "chain")]
 pub mod broadcast;

@@ -746,6 +746,14 @@ has to be deleted by hand.
   the new bytes with the old layout (block size and weight are compressed and served while the indexer appends).
   Region growth happens before the publication, never under it
 - A shutdown signal no longer waits behind back-to-back updates: no new update starts once it is pending
+- Reading the newest blocks finds them by hopping from frame to frame from each blk file's start, and reads a body
+  only for a needed canonical header. It scanned 8 MB chunks backward from arbitrary offsets, where magic bytes
+  inside a transaction could pass for a frame: with an unobfuscated blk file (a datadir created before Core 28, or run
+  with `-blocksxor=0`), a crafted transaction carrying a recent canonical header could have had its bytes parsed as
+  that block
+- Block templates (about 10 MB) and template diffs keep their response admission until the body is sent, two of each
+  at a time: admission ended once the bytes were built, so slow readers could each hold one while new requests built
+  more. A matching conditional request still answers 304 without waiting for admission
 - An address's unspent outputs no longer list the two coinbase outputs that BIP30 duplicates overwrote (blocks 91812
   and 91722): the indexer drops them from their address when the duplicate lands
 - Pool hashrate histories (`/api/v1/mining/hashrate/pools/{time_period}`, `/api/v1/mining/pool/{slug}/hashrate`):
