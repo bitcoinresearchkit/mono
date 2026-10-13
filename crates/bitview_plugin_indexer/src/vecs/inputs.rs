@@ -1,11 +1,22 @@
 use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
-use bitview_traversable::Traversable;
+use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{Height, OutPoint, OutputType, Sats, TxIndex, Version};
 use rayon::prelude::*;
 use vecdb::{
-    AnyStoredVec, Budgeted, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,
+    AnyStoredVec, Budgeted, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode,
+    UnaryTransform, WritableVec,
 };
+
+/// A coinbase input spends no output: it publishes 0, not the `Sats::MAX` it is stored as.
+struct CoinbaseSpendsNothing;
+
+impl UnaryTransform<Sats, Sats> for CoinbaseSpendsNothing {
+    #[inline]
+    fn apply(value: Sats) -> Sats {
+        if value.is_max() { Sats::ZERO } else { value }
+    }
+}
 
 #[derive(Traversable)]
 pub struct InputsVecs<M: StorageMode = Rw> {
@@ -32,9 +43,10 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     /// distinct addresses, while other types index outputs in canonical order.
     /// Coinbase inputs use `u32::MAX`.
     pub type_index: M::Stored<PcoVec<TxInIndex, TypeIndex>>,
-    /// Value of the output the input spends, in satoshis; `Sats::MAX` for a coinbase
-    /// input, which spends none.
-    pub value: M::Stored<PcoVec<TxInIndex, Sats>>,
+    /// Value of the output the input spends, in satoshis; 0 for a coinbase input, which
+    /// spends none.
+    // Stored as `Sats::MAX` for a coinbase input, which the stored vec's readers rely on.
+    pub value: Compact<PcoVec<TxInIndex, Sats>, Sats, M>,
 }
 
 impl InputsVecs {
@@ -55,7 +67,7 @@ impl InputsVecs {
             tx_index,
             output_type,
             type_index,
-            value,
+            value: Compact::named_with::<CoinbaseSpendsNothing>(value, "input_value"),
         })
     }
 
@@ -85,7 +97,7 @@ impl InputsVecs {
             &mut self.tx_index,
             &mut self.output_type,
             &mut self.type_index,
-            &mut self.value,
+            &mut *self.value,
         ]
         .into_par_iter()
     }
@@ -98,7 +110,7 @@ impl InputsVecs {
             &self.tx_index,
             &self.output_type,
             &self.type_index,
-            &self.value,
+            &*self.value,
         ]
         .into_iter()
     }

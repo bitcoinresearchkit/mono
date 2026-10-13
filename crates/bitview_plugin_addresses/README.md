@@ -11,4 +11,11 @@ input values and prices, no other plugin's metrics.
 Its complete `ComputePlugin::compute_state()` resumes or rolls back its own database and
 state.
 
+Within a block, an address's receipts land before its spends, whatever their transactions'
+order: end-of-block balances, supplies and realized caps do not depend on it, while a spend
+counts in the band of its address's balance just before it (after all the block's receipts and
+its earlier spends), and an address that spends everything and receives again in one block is
+never empty. Strict transaction order would make a transaction that spends all of an address's
+outputs and sends change back to it an emptying and a reactivation.
+
 This plugin stores its records and scalar checkpoints in `addresses`.

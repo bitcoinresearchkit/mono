@@ -32,6 +32,7 @@ has to be deleted by hand.
 
 #### API: series and responses
 
+- `input_value` is 0 for a coinbase input, which spends no output (was 18446744073709551615, its internal marker)
 - The address state series are gone from the API (`address_state`, `funded_address_data`,
   `extended_empty_address_data` and the `funded_address_index`, `empty_address_index` and
   `extended_empty_address_index` indexes): internal slots whose numbering depends on save history, and the sidecars'

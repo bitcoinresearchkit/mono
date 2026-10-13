@@ -356,8 +356,8 @@ pub fn process_chunk(
 }
 
 /// Apply one shard of an address type's blocks in order: per block its transaction counts,
-/// receives, then spends. Returns each block's cohort changes and the metrics after it, of
-/// which only this type's values are meaningful.
+/// receives, then spends (the block-level convention the README states). Returns each block's
+/// cohort changes and the metrics after it, of which only this type's values are meaningful.
 #[allow(clippy::too_many_arguments)]
 fn process_shard(
     output_type: OutputType,
