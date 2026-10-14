@@ -10,7 +10,7 @@ use crate::{
     Format, ImportOptions, ReadWriteBaseVec, Result as CrateResult, VecIndex, VecValue, Version,
     WritableVec,
     cache::{CachePolicy, NoCache},
-    likely, remove_vec_with, unlikely, vec_region_name_with,
+    likely, remove_vec_with, vec_region_name_with,
 };
 
 pub mod any_stored_vec;
@@ -156,43 +156,6 @@ where
 
     pub const PER_PAGE: usize = COMPRESSED_PAGE_SIZE / size_of::<T>();
 
-    #[inline]
-    pub fn decode_page_with(
-        stored_len: usize,
-        page_index: usize,
-        reader: &Reader,
-        pages: &Pages,
-    ) -> CrateResult<Vec<T>> {
-        let index = Self::page_index_to_index(page_index);
-
-        if unlikely(index >= stored_len) {
-            return Err(Error::IndexTooHigh {
-                index,
-                len: stored_len,
-                name: "page".to_string(),
-            });
-        }
-        if unlikely(page_index >= pages.len()) {
-            return Err(Error::ExpectVecToHaveIndex);
-        }
-
-        // SAFETY: We checked page_index < pages.len() above
-        let page = pages
-            .get(page_index)
-            .expect("page should exist after bounds check");
-        let header = reader.read(page.header_start as usize, page.header_len());
-        let body = reader.read(page.start as usize, page.bytes as usize);
-        let expected_len = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
-        let mut values = Vec::with_capacity(expected_len);
-        PageDecoder::<T, S>::default().decode_into(
-            page,
-            header,
-            body,
-            expected_len,
-            &mut values,
-        )?;
-        Ok(values)
-    }
     #[inline(always)]
     pub fn index_to_page_index(index: usize) -> usize {
         index / Self::PER_PAGE
@@ -201,7 +164,8 @@ where
     pub fn page_index_to_index(page_index: usize) -> usize {
         page_index * Self::PER_PAGE
     }
-    /// Reads stored page data into a buffer. Used by both ReadWrite and ReadOnly read_into_at.
+    /// Reads stored page data into a buffer through one decoder. Used by both ReadWrite and
+    /// ReadOnly read_into_at, and by rewrites.
     #[inline(always)]
     pub fn read_stored_pages_into(
         reader: &Reader,
@@ -209,11 +173,11 @@ where
         from: usize,
         to: usize,
         buf: &mut Vec<T>,
-    ) {
+    ) -> CrateResult<()> {
         // The page table is the published length: a truncation can land after a caller's length.
         let to = to.min(pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T));
         if from >= to {
-            return;
+            return Ok(());
         }
         let start_page = Self::index_to_page_index(from);
         let end_page = Self::index_to_page_index(to - 1);
@@ -232,16 +196,36 @@ where
 
             if !page.is_raw() && likely(local_from == 0) {
                 let before = buf.len();
-                decoder
-                    .decode_append(page, header, body, values_count, buf)
-                    .expect("decompression failed in read_into_at");
+                decoder.decode_append(page, header, body, values_count, buf)?;
                 buf.truncate(before + local_to);
             } else {
-                decoder
-                    .decode_into(page, header, body, values_count, &mut page_buf)
-                    .expect("page decode failed in read_into_at");
+                decoder.decode_into(page, header, body, values_count, &mut page_buf)?;
                 buf.extend_from_slice(&page_buf[local_from..local_to]);
             }
+        }
+        Ok(())
+    }
+
+    /// Visits stored values in `[from, to)` one decoded page at a time, through one decoder:
+    /// mapped when resident, else buffered I/O.
+    pub(crate) fn for_each_stored_chunk(
+        region: &Region,
+        pages: &Arc<RwLock<Pages>>,
+        stored_len: usize,
+        from: usize,
+        to: usize,
+        f: &mut dyn FnMut(usize, &[T]),
+    ) {
+        let to = to.min(stored_len);
+        if from >= to {
+            return;
+        }
+        if Self::prefers_mmap(region, pages, from, to) {
+            CompressedMmapSource::<I, T, S>::new_from_parts(region, pages, stored_len, from, to)
+                .for_each_chunk(f);
+        } else {
+            CompressedIoSource::<I, T, S>::new_from_parts(region, pages, stored_len, from, to)
+                .for_each_chunk(f);
         }
     }
 
@@ -320,32 +304,12 @@ where
     }
 
     fn collect_stored_range(&self, from: usize, to: usize) -> CrateResult<Vec<T>> {
-        if from >= to {
-            return Ok(vec![]);
-        }
-
         // Pages before the region: the writer holds the pages while it rewrites the region.
         let pages = self.pages.read_recursive();
         let reader = self.create_reader();
-        let real_len = pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T);
-        let to = to.min(real_len);
-        if from >= to {
-            return Ok(vec![]);
-        }
-
-        let mut result = Vec::with_capacity(to - from);
-        let start_page = Self::index_to_page_index(from);
-        let end_page = Self::index_to_page_index(to - 1);
-
-        for page_idx in start_page..=end_page {
-            let page_start = Self::page_index_to_index(page_idx);
-            let decoded = Self::decode_page_with(real_len, page_idx, &reader, &pages)?;
-            let local_from = from.saturating_sub(page_start);
-            let local_to = (to - page_start).min(decoded.len());
-            result.extend_from_slice(&decoded[local_from..local_to]);
-        }
-
-        Ok(result)
+        let mut values = Vec::with_capacity(to.saturating_sub(from));
+        Self::read_stored_pages_into(&reader, &pages, from, to, &mut values)?;
+        Ok(values)
     }
     #[inline(always)]
     fn fold_source<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B {

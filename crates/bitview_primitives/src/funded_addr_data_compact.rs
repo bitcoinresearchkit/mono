@@ -95,7 +95,9 @@ impl FundedAddressDataCompact {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for FundedAddressDataCompact {
+// SAFETY: `repr(C)` over four `u64`s, no padding: on little-endian targets its little-endian
+// bytes are its in-memory bytes, and every bit pattern is a valid value.
+unsafe impl Bytes for FundedAddressDataCompact {
     type Array = [u8; 32];
 
     const IS_NATIVE_LAYOUT: bool = cfg!(target_endian = "little");

@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicBool;
+
 use flume::Sender;
 use lsm_tree::{Result as TreeResult, Tree};
 
@@ -13,6 +15,8 @@ pub(super) struct Inner {
     pub(super) compaction: fn(&Tree) -> TreeResult<()>,
     /// Background worker sender.
     pub(super) worker: Sender<WorkerMessage>,
+    /// Whether a compaction request is queued and not yet picked up by a worker.
+    pub(super) compaction_queued: AtomicBool,
     /// Keeps the database lock alive while handles exist.
     pub(super) _lock: LockedFileGuard,
 }

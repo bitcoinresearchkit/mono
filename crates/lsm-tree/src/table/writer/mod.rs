@@ -14,7 +14,7 @@ use sfa::Writer as SfaWriter;
 
 use super::{
     Block, DataBlock, KeyedBlockHandle,
-    block::{BlockType, Header as BlockHeader},
+    block::{BlockType, Header as BlockHeader, Lz4Scratch},
     filter::BloomConstructionPolicy,
 };
 use crate::{
@@ -35,6 +35,16 @@ mod index;
 mod meta;
 
 const FILE_BUFFER_CAPACITY: usize = 256 * 1_024;
+
+/// Uncompressed data block size at which a block is cut.
+const DATA_BLOCK_SIZE: usize = 4_096;
+
+/// Target size of index and filter partitions.
+const META_PARTITION_SIZE: u32 = 4_096;
+
+/// Data blocks are LZ4-compressed; index, filter and meta blocks are stored uncompressed.
+const DATA_BLOCK_COMPRESSION: CompressionType = CompressionType::Lz4;
+const INDEX_BLOCK_COMPRESSION: CompressionType = CompressionType::None;
 
 #[derive(Default)]
 struct FixedLen {
@@ -69,18 +79,14 @@ pub struct Writer<K = Slice, V = Slice> {
 
     data_block_restart_interval: u8,
 
-    meta_partition_size: u32,
-
-    data_block_size: u32,
-
-    /// Compression to use for data blocks
-    data_block_compression: CompressionType,
-
-    /// Compression to use for data blocks
-    index_block_compression: CompressionType,
-
     /// Buffer to serialize blocks into
     block_buffer: Vec<u8>,
+
+    /// Restart offsets of the block being serialized
+    restart_buffer: Vec<u32>,
+
+    /// Reused LZ4 compression state
+    lz4_scratch: Lz4Scratch,
 
     /// File writer
     #[expect(clippy::struct_field_names)]
@@ -118,19 +124,14 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
 
             data_block_restart_interval: 16,
 
-            meta_partition_size: 4_096,
-
-            data_block_size: 4_096,
-
-            data_block_compression: CompressionType::None,
-            index_block_compression: CompressionType::None,
-
             path: path::absolute(path)?,
 
             index_writer: Box::new(FullIndexWriter::new()),
             filter_writer: Box::new(FullFilterWriter::new(BloomConstructionPolicy::default())),
 
             block_buffer: Vec::new(),
+            restart_buffer: Vec::new(),
+            lz4_scratch: Lz4Scratch::default(),
             file_writer: writer,
             chunk: Vec::new(),
 
@@ -144,60 +145,19 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
 
     #[must_use]
     pub fn use_partitioned_filter(mut self) -> Self {
-        self.filter_writer = Box::new(filter::PartitionedFilterWriter::new(self.bloom_policy))
-            .use_partition_size(self.meta_partition_size)
-            .use_tli_compression(self.index_block_compression);
+        self.filter_writer = Box::new(filter::PartitionedFilterWriter::new(self.bloom_policy));
         self
     }
 
     #[must_use]
     pub fn use_partitioned_index(mut self) -> Self {
-        self.index_writer = Box::new(index::PartitionedIndexWriter::new())
-            .use_partition_size(self.meta_partition_size)
-            .use_compression(self.index_block_compression);
+        self.index_writer = Box::new(index::PartitionedIndexWriter::new());
         self
     }
 
     #[must_use]
     pub fn use_data_block_restart_interval(mut self, interval: u8) -> Self {
         self.data_block_restart_interval = interval;
-        self
-    }
-
-    #[must_use]
-    pub fn use_data_block_size(mut self, size: u32) -> Self {
-        assert!(
-            size <= 4 * 1_024 * 1_024,
-            "data block size must be <= 4 MiB",
-        );
-        self.data_block_size = size;
-        self
-    }
-
-    #[must_use]
-    #[cfg(test)]
-    pub(crate) fn use_meta_partition_size(mut self, size: u32) -> Self {
-        assert!(
-            size <= 4 * 1_024 * 1_024,
-            "data block size must be <= 4 MiB",
-        );
-        self.meta_partition_size = size;
-        self.index_writer = self.index_writer.use_partition_size(size);
-        self.filter_writer = self.filter_writer.use_partition_size(size);
-        self
-    }
-
-    #[must_use]
-    pub fn use_data_block_compression(mut self, compression: CompressionType) -> Self {
-        self.data_block_compression = compression;
-        self
-    }
-
-    #[must_use]
-    pub fn use_index_block_compression(mut self, compression: CompressionType) -> Self {
-        self.index_block_compression = compression;
-        self.index_writer = self.index_writer.use_compression(compression);
-        self.filter_writer = self.filter_writer.use_tli_compression(compression);
         self
     }
 
@@ -235,7 +195,7 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
             self.chunk_value_len.observe(value_len);
         }
         self.chunk.push(item);
-        if self.chunk_size >= self.data_block_size as usize {
+        if self.chunk_size >= DATA_BLOCK_SIZE {
             self.spill_block()?;
         }
 
@@ -269,24 +229,23 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
         #[expect(clippy::cast_possible_truncation, reason = "keys are u16 length max")]
         let fixed_key_len = K::FIXED_LEN
             .or_else(|| self.chunk_key_len.get())
-            .filter(|_| {
-                self.data_block_compression == CompressionType::None || fixed_value_len != Some(0)
-            })
+            .filter(|_| fixed_value_len != Some(0))
             .map(|len| len as u16);
 
         DataBlock::encode_into_with_fixed_lengths(
             &mut self.block_buffer,
+            &mut self.restart_buffer,
             &self.chunk,
             self.data_block_restart_interval,
             fixed_key_len,
             fixed_value_len,
         )?;
 
-        let header = Block::write_into(
+        let header = Block::write_lz4_into(
             &mut self.file_writer,
             &self.block_buffer,
             BlockType::Data,
-            self.data_block_compression,
+            &mut self.lz4_scratch,
         )?;
 
         #[expect(
@@ -358,11 +317,11 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
                 ),
                 meta(
                     "compression#data",
-                    &self.data_block_compression.encode_into_vec(),
+                    &DATA_BLOCK_COMPRESSION.encode_into_vec(),
                 ),
                 meta(
                     "compression#index",
-                    &self.index_block_compression.encode_into_vec(),
+                    &INDEX_BLOCK_COMPRESSION.encode_into_vec(),
                 ),
                 meta("file_size", &self.meta.file_pos.to_le_bytes()),
                 meta("item_count", &(self.meta.item_count as u64).to_le_bytes()),
@@ -398,7 +357,6 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
                 &mut self.file_writer,
                 &self.block_buffer,
                 BlockBlockType::Meta,
-                CompressionType::None,
             )?;
         };
 
@@ -415,50 +373,5 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
         );
 
         Ok(Some(self.table_id))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use tempfile::tempdir;
-    use test_log::test;
-
-    use super::*;
-
-    #[test]
-    fn table_writer_count() -> Result<()> {
-        let dir = tempdir()?;
-        let path = dir.path().join("1");
-        let mut writer = Writer::new(path, 1)?;
-        assert_eq!(0, writer.chunk_size);
-
-        writer.write(InternalValue::from_components(
-            b"a",
-            b"a",
-            0,
-            ValueType::Value,
-        ))?;
-        assert_eq!(2, writer.chunk_size);
-
-        writer.write(InternalValue::from_components(
-            b"b",
-            b"b",
-            0,
-            ValueType::Value,
-        ))?;
-        assert_eq!(4, writer.chunk_size);
-
-        writer.write(InternalValue::from_components(
-            b"c",
-            b"c",
-            0,
-            ValueType::Value,
-        ))?;
-        assert_eq!(6, writer.chunk_size);
-
-        writer.spill_block()?;
-        assert_eq!(0, writer.chunk_size);
-
-        Ok(())
     }
 }

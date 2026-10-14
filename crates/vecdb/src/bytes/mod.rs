@@ -15,14 +15,22 @@ pub mod numeric;
 /// - You need custom serialization logic
 ///
 /// For maximum performance on a single system, use `ZeroCopyVec` instead.
-pub trait Bytes: Sized {
+///
+/// # Safety
+///
+/// When `IS_NATIVE_LAYOUT` is true, `Self` must have no padding and the size of
+/// `Array`, `to_bytes` must return exactly the value's in-memory bytes, and every
+/// bit pattern of that size must be a valid `Self` (the value `from_bytes` would
+/// return). Vectors then copy values to and from storage without `to_bytes` or
+/// `from_bytes`. Implementations that leave it false have no safety obligation.
+pub unsafe trait Bytes: Sized {
     /// The byte array type returned by `to_bytes`.
     /// For fixed-size types, this is `[u8; N]` where N is the size of the type.
     type Array: AsRef<[u8]>;
 
     /// Whether the byte representation from `to_bytes` is identical to the
     /// in-memory representation of Self. When true, bulk operations can use
-    /// memcpy instead of per-element deserialization.
+    /// memcpy instead of per-element deserialization (see the trait's safety contract).
     ///
     /// For numeric types, this is true on little-endian platforms (since
     /// `to_bytes`/`from_bytes` use little-endian format which matches native).

@@ -11,6 +11,9 @@ use crate::{ReadableVec, VecIndex, VecValue};
 /// Reads are aligned to chunk boundaries so that each underlying page is decompressed
 /// at most once, even when access positions don't start at page-aligned offsets.
 ///
+/// The source must be dense: buffer offsets are positions, so a source with holes
+/// (a `MutableVec` with removed values) reads through its own sorted or point reads.
+///
 /// # Example
 /// ```ignore
 /// let mut c = vec.cursor();
@@ -119,10 +122,8 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
     /// for subsequent `next()` calls.
     #[inline]
     fn fold<B>(&mut self, n: usize, init: B, mut f: impl FnMut(B, T) -> B) -> B {
-        match self.try_fold(n, init, |acc, value| Ok::<_, Infallible>(f(acc, value))) {
-            Ok(value) => value,
-            Err(error) => match error {},
-        }
+        let Ok(value) = self.try_fold(n, init, |acc, value| Ok::<_, Infallible>(f(acc, value)));
+        value
     }
 
     /// Fallibly folds over the next `n` elements with a monomorphized closure.

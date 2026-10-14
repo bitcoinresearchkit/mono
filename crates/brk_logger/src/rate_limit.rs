@@ -2,10 +2,7 @@ use std::{
     fs::{File, OpenOptions, create_dir_all},
     io::{self, Write},
     path::{Path, PathBuf},
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicU64, Ordering},
-    },
+    sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -58,52 +55,28 @@ fn is_date_yyyymmdd(s: &str) -> bool {
         && b[8..10].iter().all(u8::is_ascii_digit)
 }
 
-#[derive(Default)]
-struct RateLimit {
-    count: AtomicU64,
-    last_second: AtomicU64,
-}
-
-impl RateLimit {
-    fn can_write(&self) -> bool {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
-        let last = self.last_second.load(Ordering::Relaxed);
-        if now != last {
-            self.last_second.store(now, Ordering::Relaxed);
-            self.count.store(1, Ordering::Relaxed);
-            true
-        } else {
-            self.count.fetch_add(1, Ordering::Relaxed) < MAX_WRITES_PER_SEC
-        }
-    }
-}
-
 struct Cached {
     date: String,
     file: File,
 }
 
+/// Today's file for one destination, reopened when the date changes.
 #[derive(Default)]
-struct FileSlot(Mutex<Option<Cached>>);
+struct DailyFile(Option<Cached>);
 
 fn open_append(path: &Path) -> io::Result<File> {
     OpenOptions::new().create(true).append(true).open(path)
 }
 
-impl FileSlot {
+impl DailyFile {
     fn write(
-        &self,
+        &mut self,
         dir: &Path,
         date: &str,
         buf: &[u8],
         path: impl FnOnce() -> PathBuf,
     ) -> io::Result<()> {
-        let mut guard = self.0.lock().unwrap();
-        let cached = match guard.as_mut() {
+        let cached = match self.0.as_mut() {
             Some(c) if c.date == date => c,
             _ => {
                 let p = path();
@@ -115,13 +88,37 @@ impl FileSlot {
                     }
                     Err(e) => return Err(e),
                 };
-                guard.insert(Cached {
+                self.0.insert(Cached {
                     date: date.to_string(),
                     file,
                 })
             }
         };
         cached.file.write_all(buf)
+    }
+}
+
+/// One level's file and its rate limit, kept under one mutex so the
+/// per-second rollover and the admission count change together.
+#[derive(Default)]
+struct LevelSlot {
+    file: DailyFile,
+    second: u64,
+    count: u64,
+}
+
+impl LevelSlot {
+    fn admit(&mut self) -> bool {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        if now != self.second {
+            self.second = now;
+            self.count = 0;
+        }
+        self.count += 1;
+        self.count <= MAX_WRITES_PER_SEC
     }
 }
 
@@ -134,9 +131,8 @@ fn today() -> String {
 
 struct Inner {
     dir: PathBuf,
-    level_limits: [RateLimit; LEVELS],
-    combined_slot: FileSlot,
-    level_slots: [FileSlot; LEVELS],
+    combined: Mutex<DailyFile>,
+    levels: [Mutex<LevelSlot>; LEVELS],
 }
 
 /// Rate-limited daily log files: one combined file plus one per tracing level.
@@ -150,9 +146,8 @@ impl RateLimitedFile {
         create_dir_all(dir)?;
         Ok(Self(Arc::new(Inner {
             dir: dir.to_path_buf(),
-            level_limits: Default::default(),
-            combined_slot: FileSlot::default(),
-            level_slots: Default::default(),
+            combined: Mutex::default(),
+            levels: Default::default(),
         })))
     }
 }

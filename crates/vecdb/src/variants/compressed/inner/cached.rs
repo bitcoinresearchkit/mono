@@ -57,7 +57,8 @@ where
                         range.start,
                         range.end,
                         &mut values,
-                    );
+                    )
+                    .expect("compressed page decode failed");
                 } else {
                     CompressedIoSource::<I, T, S>::new_from_parts(
                         region,

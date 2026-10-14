@@ -124,10 +124,6 @@ where
         I::to_string()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
     fn value_type_to_size_of(&self) -> usize {
         size_of::<Count>()
     }

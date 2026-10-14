@@ -28,11 +28,7 @@ impl<'a> BlockDiff<'a> {
         if hash != output_hash {
             return Err(invalid("origin producer chain mismatch"));
         }
-        let removed_total = if let Some((_, amount)) = correction {
-            total.checked_add(amount)?
-        } else {
-            total
-        };
+        let removed_total = correction.map_or(total, |(_, amount)| total + amount);
         Ok(Self {
             hash,
             created,

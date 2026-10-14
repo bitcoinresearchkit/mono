@@ -6,7 +6,7 @@ use std::{backtrace::Backtrace, env, fs, io, panic, path::Path, time::Duration};
 use format::Formatter;
 use hook::HookLayer;
 use rate_limit::{RateLimitedFile, is_log_file};
-use tracing::{Event, Level, error};
+use tracing::{Event, Level, error, field};
 use tracing_log::LogTracer;
 use tracing_subscriber::{
     filter::Targets, fmt, layer::SubscriberExt, registry as TracingSubscriberRegistry,
@@ -41,7 +41,6 @@ pub fn init(dir: Option<&Path>) -> io::Result<()> {
 /// whose normal debug traffic is too verbose for their default execution mode.
 pub fn init_with_default_level(dir: Option<&Path>, default_level: &str) -> io::Result<()> {
     LogTracer::init().ok();
-    install_panic_hook();
 
     let level = env::var("LOG").unwrap_or_else(|_| default_level.to_string());
 
@@ -76,22 +75,19 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: &str) -> io::R
         registry.init();
     }
 
+    install_panic_hook();
+
     Ok(())
 }
 
+/// Chains the previous hook so panics always reach stderr whatever the log
+/// filters say, then records them through tracing (log files included).
 fn install_panic_hook() {
-    panic::set_hook(Box::new(|info| {
-        let location = info
-            .location()
-            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
-            .unwrap_or_else(|| "unknown".to_string());
-        let payload = info.payload();
-        let msg = payload
-            .downcast_ref::<&str>()
-            .copied()
-            .map(str::to_owned)
-            .or_else(|| payload.downcast_ref::<String>().cloned())
-            .unwrap_or_else(|| "Box<dyn Any>".to_owned());
+    let previous = panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
+        previous(info);
+        let location = info.location().map(field::display);
+        let msg = info.payload_as_str().unwrap_or("Box<dyn Any>");
         let backtrace = Backtrace::capture();
         error!(location, backtrace = %backtrace, "panic: {msg}");
     }));

@@ -47,11 +47,11 @@ impl History {
         let tips = self.tips_within(spends, creations, limit)?;
         let mut end = tips.first().map_or(0, |tip| tip.len);
         let versions = (spends.version(), creations.version());
-        for snapshot in self.snapshots.before(limit, versions) {
+        for snapshot in self.snapshots.between(end, limit, versions) {
             if let Some(snapshot) = snapshot?
                 && Self::matches(&snapshot, spends, creations)?
             {
-                end = end.max(snapshot.len);
+                end = snapshot.len;
                 break;
             }
         }
@@ -107,6 +107,7 @@ impl History {
         let h = snapshot.len - 1;
         Ok(spends.hash(h)? == snapshot.hash() && created.hash(h)? == snapshot.hash())
     }
+    /// `tips` are the validated tips of `tips_within`, newest first.
     pub(crate) fn restore(
         &self,
         end: usize,
@@ -118,34 +119,24 @@ impl History {
             return Err(invalid("incomplete origin contributions"));
         }
         // The newest matching snapshot, tip or retained, leaves the least to replay.
-        let mut newest = None;
-        for tip in tips.iter().filter(|tip| tip.len <= end) {
-            if Self::matches(tip, spends, created)? {
-                newest = Some(tip);
-                break;
-            }
-        }
+        let newest = tips.iter().find(|tip| tip.len <= end);
         let mut retained = None;
-        for snapshot in self
-            .snapshots
-            .before(end, (spends.version(), created.version()))
-        {
-            let Some(snapshot) = snapshot? else {
-                continue;
-            };
-            if newest.is_some_and(|tip| tip.len >= snapshot.len) {
-                break;
-            }
-            if Self::matches(&snapshot, spends, created)? {
+        for snapshot in self.snapshots.between(
+            newest.map_or(0, |tip| tip.len),
+            end,
+            (spends.version(), created.version()),
+        ) {
+            if let Some(snapshot) = snapshot?
+                && Self::matches(&snapshot, spends, created)?
+            {
                 retained = Some(snapshot);
                 break;
             }
         }
-        let mut state = match (retained, newest) {
-            (Some(snapshot), _) => snapshot.state()?,
-            (None, Some(tip)) => tip.state()?,
-            (None, None) => State::default(),
-        };
+        let mut state = retained
+            .as_ref()
+            .or(newest)
+            .map_or(Ok(State::default()), Snapshot::state)?;
         if state.len() < end {
             Self::replay(&mut state, end, spends, created, |_, _| Ok(()))?;
         }
@@ -179,7 +170,8 @@ impl History {
         let mut state = if let Some(state) = cached {
             state
         } else {
-            self.restore(start, spends, created, &self.snapshots.tips(versions)?)?
+            let tips = self.tips_within(spends, created, start)?;
+            self.restore(start, spends, created, &tips)?
         };
         if start == end
             && (warm

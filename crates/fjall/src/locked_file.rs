@@ -55,25 +55,3 @@ impl LockedFileGuard {
         Ok(Self(Arc::new(LockedFileGuardInner(file))))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::fs::File;
-
-    use tempfile::tempdir;
-
-    use super::LockedFileGuard;
-    use crate::Result;
-
-    #[test]
-    fn create_new_acquires_lock_when_file_already_exists() -> Result<()> {
-        let dir = tempdir()?;
-        let path = dir.path().join("lock");
-
-        File::create(&path)?;
-
-        let _guard = LockedFileGuard::create_new(&path)?;
-
-        Ok(())
-    }
-}

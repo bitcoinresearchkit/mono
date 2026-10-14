@@ -66,7 +66,6 @@ impl<'a> BoundedVec<'a> {
             .saturating_mul(self.source.value_type_to_size_of())
     }
 
-    #[cfg(feature = "serde")]
     pub fn write_json(
         &self,
         from: Option<usize>,
@@ -78,7 +77,6 @@ impl<'a> BoundedVec<'a> {
             .scope(|| self.source.write_json(Some(from), Some(to), buf))
     }
 
-    #[cfg(feature = "serde")]
     pub fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> Result<()> {
         if index >= self.visible_len() {
             return Ok(());
@@ -91,7 +89,7 @@ impl<'a> BoundedVec<'a> {
         &self,
         from: Option<usize>,
         to: Option<usize>,
-        buf: &mut String,
+        buf: &mut Vec<u8>,
     ) -> Result<()> {
         let (from, to) = self.range(from, to);
         self.bounds

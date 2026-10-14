@@ -63,9 +63,12 @@ impl<K: RecordBytes, V: RecordBytes> StandardCompaction<K, V> {
         let tables_to_delete = mem::take(&mut self.tables_to_rewrite);
         let created_tables = self.consume_writer(worker, dst_lvl)?;
 
-        let table_ids = payload.table_ids.iter().copied().collect::<Vec<_>>();
         worker.versions.publish(&worker.config.path, |current| {
-            Ok(current.with_merge(&table_ids, &created_tables, usize::from(payload.dest_level)))
+            Ok(current.with_merge(
+                &payload.table_ids,
+                &created_tables,
+                usize::from(payload.dest_level),
+            ))
         })?;
 
         for table in tables_to_delete {

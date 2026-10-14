@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign};
 use brk_exit::Exit;
 
 use super::super::EagerVec;
-use crate::{AnyVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, WritableVec};
+use crate::{ReadableVec, Result, StoredVec, VecIndex, VecValue, WritableVec};
 
 impl<V> EagerVec<V>
 where
@@ -64,22 +64,18 @@ where
         S: VecValue,
         usize: From<B>,
     {
-        self.compute_init(
-            first_indexes.version() + indexes_count.version() + source.version(),
+        self.compute_to(
             max_from,
-            exit,
-            |this| {
-                let skip = this.len();
-                let source_end = indexes_count.len().min(first_indexes.len());
-                let end = this.batch_end(source_end);
-                if skip >= end {
-                    return Ok(());
-                }
-
-                let pos = first_indexes.collect_one_at(skip).unwrap().to_usize();
+            indexes_count.len().min(first_indexes.len()),
+            first_indexes.version() + indexes_count.version() + source.version(),
+            |this, range| {
+                let pos = first_indexes
+                    .collect_one_at(range.start)
+                    .unwrap()
+                    .to_usize();
 
                 let counts_batch: Vec<usize> = indexes_count
-                    .collect_range_at(skip, end)
+                    .collect_range_at(range.start, range.end)
                     .into_iter()
                     .map(usize::from)
                     .collect();
@@ -118,6 +114,7 @@ where
 
                 Ok(())
             },
+            exit,
         )
     }
 }

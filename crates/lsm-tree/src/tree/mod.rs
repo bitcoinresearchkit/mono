@@ -10,7 +10,7 @@ use log::{debug, info};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    BoxedIterator, Config, Error, InternalValue, RecordBytes, Result, Slice, Table,
+    Config, Error, InternalValue, RecordBytes, Result, Slice, Table,
     compaction::worker::Worker,
     file::{CURRENT_VERSION_FILE, TABLES_FOLDER},
     merge::Merger,
@@ -213,31 +213,11 @@ impl Tree {
         bounds: (Bound<Slice>, Bound<Slice>),
     ) -> impl DoubleEndedIterator<Item = Result<InternalValue<K, V>>> + Send + 'static + use<K, V>
     {
-        let mut readers: Vec<BoxedIterator<'static, K, V>> = Vec::new();
-        let overlap = (
-            bounds.0.as_ref().map(AsRef::as_ref),
-            bounds.1.as_ref().map(AsRef::as_ref),
-        );
-
-        for run in version.iter_levels().flat_map(Level::iter) {
-            match run.len() {
-                0 => {}
-                1 => {
-                    if let Some(table) = run.first()
-                        && table.check_key_range_overlap(&overlap)
-                    {
-                        readers.push(BoxedIterator::new(
-                            table.range_as::<K, V, _>(bounds.clone()),
-                        ));
-                    }
-                }
-                _ => {
-                    if let Some(reader) = RunReader::<K, V>::new(run.clone(), bounds.clone()) {
-                        readers.push(BoxedIterator::new(reader));
-                    }
-                }
-            }
-        }
+        let readers = version
+            .iter_levels()
+            .flat_map(Level::iter)
+            .filter_map(|run| RunReader::<K, V>::new(run.clone(), bounds.clone()))
+            .collect();
 
         MvccStream::new(Merger::new(readers)).filter(|item| match item {
             Ok(value) => !value.key.is_tombstone(),

@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use brk_exit::Exit;
 use vecdb::{
-    AnyVec, CachePolicy, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, Version,
+    CachePolicy, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, Version,
     WritableVec,
 };
 
@@ -37,16 +37,12 @@ where
         A: VecValue + Copy,
         f64: From<A>,
     {
-        self.compute_init(
-            window_starts.version() + values.version() + Version::ONE,
+        self.compute_to(
             max_from,
-            exit,
-            |this| {
-                let skip = this.len();
-                let end = window_starts.len().min(values.len());
-                if skip >= end {
-                    return Ok(());
-                }
+            window_starts.len().min(values.len()),
+            window_starts.version() + values.version() + Version::ONE,
+            |this, range| {
+                let (skip, end) = (range.start, range.end);
 
                 let range_start = if skip > 0 {
                     window_starts.collect_one_at(skip - 1).unwrap().to_usize()
@@ -82,14 +78,11 @@ where
 
                     let [median] = window.percentiles([0.50]);
                     this.push(T::from(median));
-
-                    if this.batch_limit_reached() {
-                        break;
-                    }
                 }
 
                 Ok(())
             },
+            exit,
         )?;
 
         Ok(())

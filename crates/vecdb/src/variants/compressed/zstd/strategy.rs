@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use zstd::{decode_all, encode_all};
+use zstd::{bulk::Decompressor, encode_all};
 
 use super::{super::inner::CompressionStrategy, value::ZstdVecValue};
 use crate::{EncodedChunk, Result};
@@ -15,11 +15,34 @@ pub struct ZstdStrategy<T>(PhantomData<T>);
 
 impl_bytes_value_strategy!(ZstdStrategy, ZstdVecValue);
 
+impl<T> ZstdStrategy<T>
+where
+    T: ZstdVecValue,
+{
+    /// Decompresses one page into the decoder's byte scratch.
+    fn decompress_bytes<'a>(
+        (context, bytes): &'a mut <Self as CompressionStrategy<T>>::Decoder,
+        body: &[u8],
+        expected_len: usize,
+    ) -> Result<&'a [u8]> {
+        let context = match context {
+            Some(context) => context,
+            None => context.insert(Decompressor::new()?),
+        };
+        bytes.clear();
+        // Room for the page; the caller checks the decoded length.
+        bytes.reserve(expected_len * size_of::<T>());
+        context.decompress_to_buffer(body, bytes)?;
+        Ok(bytes)
+    }
+}
+
 impl<T> CompressionStrategy<T> for ZstdStrategy<T>
 where
     T: ZstdVecValue,
 {
-    type Decoder = ();
+    /// A decompression context and a byte scratch buffer, both created once.
+    type Decoder = (Option<Decompressor<'static>>, Vec<u8>);
 
     const MAX_UNCOMPRESSED_CHUNK_SIZE: usize = 8 * 1024;
 
@@ -28,17 +51,27 @@ where
         EncodedChunk::single_page(encode_all(bytes.as_slice(), ZSTD_COMPRESSION_LEVEL)?)
     }
 
-    fn decoder(_header: &[u8]) -> Result<Self::Decoder> {
+    fn reset_decoder(_decoder: &mut Self::Decoder, _header: &[u8]) -> Result<()> {
         Ok(())
     }
 
     fn decompress_page_into(
-        _decoder: &mut Self::Decoder,
+        decoder: &mut Self::Decoder,
         body: &[u8],
         expected_len: usize,
         dst: &mut Vec<T>,
     ) -> Result<()> {
-        let decompressed = decode_all(body)?;
-        Self::bytes_to_values_into(&decompressed, expected_len, dst)
+        let bytes = Self::decompress_bytes(decoder, body, expected_len)?;
+        Self::bytes_to_values_into(bytes, expected_len, dst)
+    }
+
+    fn decompress_page_append(
+        decoder: &mut Self::Decoder,
+        body: &[u8],
+        expected_len: usize,
+        dst: &mut Vec<T>,
+    ) -> Result<()> {
+        let bytes = Self::decompress_bytes(decoder, body, expected_len)?;
+        Self::bytes_to_values_append(bytes, expected_len, dst)
     }
 }

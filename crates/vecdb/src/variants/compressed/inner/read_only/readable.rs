@@ -8,7 +8,6 @@ use super::{
 use crate::{
     CompressedIoSource, ReadableVec, VecIndex, VecValue,
     cache::{CachePolicy, Request},
-    traits::chunk_folds::for_each_chunk,
 };
 
 impl<I, T, S, C: CachePolicy> ReadableVec<I, T> for ReadOnlyCompressedVec<I, T, S, C>
@@ -82,7 +81,8 @@ where
             let reader = self.base.region().create_reader();
             ReadWriteCompressedVec::<I, T, S>::read_stored_pages_into(
                 &reader, &pages, from, to, buf,
-            );
+            )
+            .expect("compressed page decode failed");
         } else {
             CompressedIoSource::<I, T, S>::new_from_parts(
                 self.base.region(),
@@ -125,7 +125,14 @@ where
 
     fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
         let Some(cache) = C::cache(&self.cache) else {
-            return for_each_chunk(self, from, to, f);
+            return ReadWriteCompressedVec::<I, T, S>::for_each_stored_chunk(
+                self.base.region(),
+                &self.pages,
+                self.base.len(),
+                from,
+                to,
+                f,
+            );
         };
         cache.for_each_source(
             from,
@@ -155,11 +162,10 @@ where
     {
         if C::cache(&self.cache).is_some() {
             let mut f = f;
-            return self
-                .try_fold_range_at(from, to, init, |acc, value| {
-                    Ok::<_, Infallible>(f(acc, value))
-                })
-                .unwrap();
+            let Ok(acc) = self.try_fold_range_at(from, to, init, |acc, value| {
+                Ok::<_, Infallible>(f(acc, value))
+            });
+            return acc;
         }
         let len = self.base.len();
         let from = from.min(len);

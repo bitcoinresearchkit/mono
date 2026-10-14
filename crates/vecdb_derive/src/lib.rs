@@ -18,7 +18,7 @@ use syn::{Data, DataStruct, DeriveInput, Error, Fields, parse_macro_input, parse
 /// The derive generates a `Bytes` implementation that delegates to the inner type:
 ///
 /// ```rust,ignore
-/// impl Bytes for Wrapper<T> where T: Bytes {
+/// unsafe impl Bytes for Wrapper<T> where T: Bytes {
 ///     type Array = <T as Bytes>::Array;
 ///
 ///     fn to_bytes(&self) -> Self::Array {
@@ -64,12 +64,12 @@ pub fn derive_bytes(input: TokenStream) -> TokenStream {
 /// 1. `Bytes` - For serialization (same as `#[derive(Bytes)]`)
 /// 2. `Pco` - Specifies the numeric type for compression
 /// ```rust,ignore
-/// impl Pco for Wrapper<T> where T: Pco + Bytes {
+/// unsafe impl Pco for Wrapper<T> where T: Pco + Bytes {
 ///     type NumberType = <T as Pco>::NumberType;
 ///     // Conversion delegates to the wrapped value.
 /// }
 ///
-/// impl Bytes for Wrapper<T> where T: Pco + Bytes {
+/// unsafe impl Bytes for Wrapper<T> where T: Pco + Bytes {
 ///     // ... same as Bytes derive
 /// }
 /// ```
@@ -151,7 +151,9 @@ fn derive_wrapper(input: TokenStream, pco: bool) -> TokenStream {
     });
 
     quote! {
-        impl #impl_generics ::vecdb::Bytes for #struct_name #ty_generics #where_clause {
+        // SAFETY: native layout only when the inner value has it and this one-field wrapper
+        // matches its size and alignment, so it is the same byte image.
+        unsafe impl #impl_generics ::vecdb::Bytes for #struct_name #ty_generics #where_clause {
             type Array = <#inner_type as ::vecdb::Bytes>::Array;
             const IS_NATIVE_LAYOUT: bool =
                 <#inner_type as ::vecdb::Bytes>::IS_NATIVE_LAYOUT

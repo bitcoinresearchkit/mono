@@ -1,11 +1,5 @@
-#[cfg(feature = "serde")]
-use serde::Serialize;
-
 use super::AnyReadableVec;
-use crate::Result;
-
-#[cfg(feature = "serde")]
-use crate::{Formattable, ReadableVec, TypedVec, nullable};
+use crate::{Formattable, ReadableVec, Result, TypedVec, nullable};
 
 /// Type-erased trait for serializable vectors.
 pub trait AnySerializableVec: AnyReadableVec {
@@ -13,11 +7,9 @@ pub trait AnySerializableVec: AnyReadableVec {
     fn nullable(&self) -> bool;
 
     /// Write JSON array to output buffer
-    #[cfg(feature = "serde")]
     fn write_json(&self, from: Option<usize>, to: Option<usize>, buf: &mut Vec<u8>) -> Result<()>;
 
     /// Write one value as raw JSON, if the index is in bounds.
-    #[cfg(feature = "serde")]
     fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> Result<()>;
 
     /// Write all values as CSV cells (newline-separated) directly without materializing a Vec.
@@ -25,16 +17,15 @@ pub trait AnySerializableVec: AnyReadableVec {
         &self,
         from: Option<usize>,
         to: Option<usize>,
-        buf: &mut String,
+        buf: &mut Vec<u8>,
     ) -> Result<()>;
 }
 
-#[cfg(feature = "serde")]
 impl<V> AnySerializableVec for V
 where
     V: TypedVec,
     V: ReadableVec<V::I, V::T>,
-    V::T: Serialize + Formattable,
+    V::T: Formattable,
 {
     fn nullable(&self) -> bool {
         nullable::<V::T>()
@@ -77,7 +68,7 @@ where
         &self,
         from: Option<usize>,
         to: Option<usize>,
-        buf: &mut String,
+        buf: &mut Vec<u8>,
     ) -> Result<()> {
         let len = self.len();
         let from_idx = from.unwrap_or(0);
@@ -87,10 +78,9 @@ where
         buf.reserve(count * 20);
 
         self.for_each_range_at(from_idx, to_idx, |value: V::T| {
-            value.fmt_csv(buf).expect("csv formatting failed");
-            buf.push('\n');
+            value.fmt_csv(buf);
+            buf.push(b'\n');
         });
-
         Ok(())
     }
 }

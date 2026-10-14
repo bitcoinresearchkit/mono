@@ -8,7 +8,7 @@ use log::trace;
 use sfa::Writer;
 
 use crate::{
-    CompressionType, Result,
+    Result,
     table::{
         Block, IndexBlock,
         block::{BlockType, Header as BlockHeader},
@@ -18,32 +18,18 @@ use crate::{
 };
 
 pub struct FullIndexWriter {
-    compression: CompressionType,
     block_handles: Vec<KeyedBlockHandle>,
 }
 
 impl FullIndexWriter {
     pub fn new() -> Self {
         Self {
-            compression: CompressionType::None,
             block_handles: Vec::new(),
         }
     }
 }
 
 impl BlockIndexWriter for FullIndexWriter {
-    fn use_partition_size(self: Box<Self>, _: u32) -> Box<dyn BlockIndexWriter> {
-        self
-    }
-
-    fn use_compression(
-        mut self: Box<Self>,
-        compression: CompressionType,
-    ) -> Box<dyn BlockIndexWriter> {
-        self.compression = compression;
-        self
-    }
-
     fn register_data_block(&mut self, block_handle: KeyedBlockHandle) -> Result<()> {
         trace!(
             "Registering block at {:?} with size {} [end_key={:?}]",
@@ -62,7 +48,7 @@ impl BlockIndexWriter for FullIndexWriter {
         let mut bytes = vec![];
         IndexBlock::encode_into(&mut bytes, &self.block_handles)?;
 
-        let header = Block::write_into(file_writer, &bytes, BlockType::Index, self.compression)?;
+        let header = Block::write_into(file_writer, &bytes, BlockType::Index)?;
 
         #[expect(
             clippy::cast_possible_truncation,

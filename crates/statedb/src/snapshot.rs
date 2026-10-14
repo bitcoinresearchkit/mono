@@ -24,16 +24,18 @@ pub(crate) fn write(
     header[48..56].copy_from_slice(&versions.0.to_le_bytes());
     header[56..64].copy_from_slice(&versions.1.to_le_bytes());
     if compressed {
-        let sats: Vec<_> = state.amounts().iter().map(|v| v.sats).collect();
-        let counts: Vec<_> = state.amounts().iter().map(|v| v.count).collect();
         let config = ChunkConfig::default()
             .with_compression_level(3)
             .with_mode_spec(ModeSpec::Classic)
             .with_delta_spec(DeltaSpec::NoOp);
+        // One column buffer: sats, then refilled with counts.
+        let mut column: Vec<_> = state.amounts().iter().map(|v| v.sats).collect();
         let sats =
-            simple_compress(&sats, &config).map_err(|_| invalid("sats compression failed"))?;
+            simple_compress(&column, &config).map_err(|_| invalid("sats compression failed"))?;
+        column.clear();
+        column.extend(state.amounts().iter().map(|v| v.count));
         let counts =
-            simple_compress(&counts, &config).map_err(|_| invalid("counts compression failed"))?;
+            simple_compress(&column, &config).map_err(|_| invalid("counts compression failed"))?;
         let bytes = (HEADER + sats.len() + counts.len()) as u64;
         if bytes > MAX_RECORD {
             return Err(invalid("snapshot exceeds page limit"));

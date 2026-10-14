@@ -3,7 +3,7 @@ use std::iter::repeat_n;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
 use brk_error::Result;
-use brk_exit::{Exit, ExitGuard};
+use brk_exit::Exit;
 use brk_types::Height;
 use tracing::{info, warn};
 use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex, WritableVec};
@@ -13,7 +13,7 @@ use super::{Vecs, bootstrap};
 const HEIGHT_BATCH: u32 = 10_000;
 
 impl Vecs {
-    pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<ExitGuard> {
+    pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
 
         let dep_version = indexer.vecs().inputs.txout_index.version()
@@ -28,7 +28,7 @@ impl Vecs {
         }
         let target_height = indexer.vecs().blocks.blockhash.len();
         if target_height == 0 {
-            return Ok(exit.lock());
+            return Ok(());
         }
         let target_height = Height::from(target_height - 1);
 
@@ -199,12 +199,12 @@ impl Vecs {
             batch_start_height = batch_end_height + 1_u32;
         }
 
-        let lock = exit.lock();
+        let _lock = exit.lock();
         if self.spending_txin_index.stamp() < Stamp::from(target_height.incremented()) {
             checkpoint(self, target_height)?;
         }
 
-        Ok(lock)
+        Ok(())
     }
 }
 

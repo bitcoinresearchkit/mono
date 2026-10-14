@@ -3,7 +3,12 @@ use crate::Result;
 /// Value serialization strategy shared by all vec types (raw and compressed).
 ///
 /// Handles reading/writing individual values to/from bytes.
-pub trait ValueStrategy<T>: Send + Sync + Clone {
+///
+/// # Safety
+///
+/// When `IS_NATIVE_LAYOUT` is true, `T` must meet the native-layout contract of
+/// [`Bytes`](crate::Bytes): vectors then copy values to and from storage bytes directly.
+pub unsafe trait ValueStrategy<T>: Send + Sync + Clone {
     /// Whether T has native memory layout (can be memcpy'd to/from bytes).
     const IS_NATIVE_LAYOUT: bool = false;
 
@@ -21,7 +26,8 @@ pub trait ValueStrategy<T>: Send + Sync + Clone {
 /// Used by all Bytes-based strategies (BytesStrategy, LZ4Strategy, ZstdStrategy, PcodecStrategy).
 macro_rules! impl_bytes_value_strategy {
     ($strategy:ident, $value_trait:path) => {
-        impl<T> $crate::ValueStrategy<T> for $strategy<T>
+        // SAFETY: the native-layout flag is `T`'s, under the `Bytes` contract.
+        unsafe impl<T> $crate::ValueStrategy<T> for $strategy<T>
         where
             T: $value_trait,
         {

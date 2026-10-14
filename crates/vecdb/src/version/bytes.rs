@@ -1,7 +1,8 @@
 use super::Version;
 use crate::{Bytes, Result};
 
-impl Bytes for Version {
+// SAFETY: not native layout.
+unsafe impl Bytes for Version {
     type Array = [u8; size_of::<Self>()];
 
     #[inline]

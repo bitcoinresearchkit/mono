@@ -13,24 +13,29 @@ pub struct FileWriter {
 
 impl Write for FileWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let level_idx = self.level.map(level_index);
+        let dir = &self.inner.dir;
 
-        if let Some(i) = level_idx
-            && !self.inner.level_limits[i].can_write()
-        {
+        // Admission is decided once, before either destination is written; the
+        // level slot stays locked so both files see this level's events in order.
+        let mut level = self.level.map(|level| {
+            let i = level_index(level);
+            (i, self.inner.levels[i].lock().unwrap())
+        });
+        if level.as_mut().is_some_and(|(_, slot)| !slot.admit()) {
             return Ok(buf.len());
         }
 
         let date = today();
-        let dir = &self.inner.dir;
 
         self.inner
-            .combined_slot
+            .combined
+            .lock()
+            .unwrap()
             .write(dir, &date, buf, || dir.join(format!("{date}.txt")))?;
 
-        if let Some(i) = level_idx {
-            self.inner.level_slots[i].write(dir, &date, buf, || {
-                dir.join(format!("{date}_{}.txt", LEVEL_SUFFIX[i]))
+        if let Some((i, slot)) = &mut level {
+            slot.file.write(dir, &date, buf, || {
+                dir.join(format!("{date}_{}.txt", LEVEL_SUFFIX[*i]))
             })?;
         }
 

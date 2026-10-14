@@ -139,9 +139,9 @@ impl<T: JsonSchema> JsonSchema for Index40<T> {
 }
 
 #[cfg(feature = "storage")]
-impl<T> Bytes for Index40<T> {
+// SAFETY: `repr(transparent)` over its five stored bytes, valid for every bit pattern.
+unsafe impl<T> Bytes for Index40<T> {
     type Array = [u8; 5];
-    // `repr(transparent)` over the stored bytes.
     const IS_NATIVE_LAYOUT: bool = true;
 
     #[inline(always)]
@@ -170,8 +170,8 @@ where
     }
 
     #[inline(always)]
-    fn fmt_csv(&self, f: &mut String) -> fmt::Result {
-        self.get().fmt_csv(f)
+    fn fmt_csv(&self, buf: &mut Vec<u8>) {
+        self.get().fmt_csv(buf)
     }
 
     #[inline(always)]

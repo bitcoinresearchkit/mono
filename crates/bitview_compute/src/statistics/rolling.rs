@@ -1,9 +1,7 @@
 use std::ops::{AddAssign, SubAssign};
 
 use brk_exit::Exit;
-use vecdb::{
-    AnyVec, EagerVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version, WritableVec,
-};
+use vecdb::{EagerVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version, WritableVec};
 
 /// Rolling, expanding and all-time statistics computed into an [`EagerVec`].
 pub trait ComputeRollingStats {
@@ -105,17 +103,12 @@ where
         // compressed page is decompressed at most once instead of once per element.
         let mut leaving = values.cursor();
 
-        self.compute_init(
-            window_starts.version() + values.version(),
+        self.compute_to(
             max_from,
-            exit,
-            |this| {
-                let skip = this.len();
-                let source_len = window_starts.len().min(values.len());
-                let end = this.batch_end(source_len);
-                if skip >= end {
-                    return Ok(());
-                }
+            window_starts.len().min(values.len()),
+            window_starts.version() + values.version(),
+            |this, range| {
+                let (skip, end) = (range.start, range.end);
 
                 let (mut running_sum, mut prev_start) = if skip > 0 {
                     let prev_idx = skip - 1;
@@ -149,6 +142,7 @@ where
 
                 Ok(())
             },
+            exit,
         )
     }
 
@@ -168,17 +162,12 @@ where
         // decompressed once; only a replay from an anchor behind it starts a new one.
         let mut leaving = values.cursor();
 
-        self.compute_init(
-            Version::new(4) + window_starts.version() + values.version(),
+        self.compute_to(
             max_from,
-            exit,
-            |this| {
-                let skip = this.len();
-                let source_len = window_starts.len().min(values.len());
-                let end = this.batch_end(source_len);
-                if skip >= end {
-                    return Ok(());
-                }
+            window_starts.len().min(values.len()),
+            Version::new(4) + window_starts.version() + values.version(),
+            |this, range| {
+                let (skip, end) = (range.start, range.end);
 
                 let anchor = skip - skip % ANCHOR_STRIDE;
                 let starts_batch = window_starts.collect_range_at(anchor, end);
@@ -214,6 +203,7 @@ where
 
                 Ok(())
             },
+            exit,
         )
     }
 
@@ -231,17 +221,12 @@ where
     {
         // The stored output is the whole state: it must hold `prev` exactly (an f64-backed type), so a
         // resume continues bit for bit where an uninterrupted run would be.
-        self.compute_init(
-            Version::new(3) + window_starts.version() + values.version(),
+        self.compute_to(
             max_from,
-            exit,
-            |this| {
-                let skip = this.len();
-                let source_len = window_starts.len().min(values.len());
-                let end = this.batch_end(source_len);
-                if skip >= end {
-                    return Ok(());
-                }
+            window_starts.len().min(values.len()),
+            Version::new(3) + window_starts.version() + values.version(),
+            |this, range| {
+                let (skip, end) = (range.start, range.end);
 
                 let mut prev = if skip > 0 {
                     f64::from(this.collect_one_at(skip - 1).unwrap())
@@ -268,6 +253,7 @@ where
 
                 Ok(())
             },
+            exit,
         )
     }
 

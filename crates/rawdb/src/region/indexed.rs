@@ -7,6 +7,8 @@
 //! not in memory are read into the cache first, in parallel, then the values are stored through the
 //! mapping.
 
+#[cfg(target_os = "macos")]
+use std::slice;
 use std::{
     io, panic,
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -27,6 +29,17 @@ struct Page([u8; IO_PAGE]);
 const MAX_CHUNK: usize = 1024 * 1024;
 /// Requests in flight: 8 measured best on both the internal and an external NVMe SSD.
 const IO_THREADS: usize = 8;
+
+/// One worker's buffers, reused across its chunks: they grow to the largest chunk and every use
+/// overwrites what it reads.
+#[derive(Default)]
+struct Scratch {
+    #[cfg(target_os = "macos")]
+    pages: Vec<Page>,
+    #[cfg(not(target_os = "macos"))]
+    bytes: Vec<u8>,
+    residency: Vec<u8>,
+}
 
 /// Writes `values` (sorted by index) into the region at `region_start` with `reserved` bytes, values at
 /// `base + index * value_len`. Values on the partial pages the region shares with its neighbors, values that
@@ -74,28 +87,32 @@ pub(super) fn write<T: Sync>(
             _ => chunks.push((first, past, i, i + 1)),
         }
     }
-    let write_chunk = |&(first, past, from, to): &(usize, usize, usize, usize)| {
-        write_chunk(
-            data,
-            first,
-            past - first,
-            &values[from..to],
-            base,
-            value_len,
-            store,
-            write_fn,
-        )
-    };
+    let write_chunk =
+        |scratch: &mut Scratch, &(first, past, from, to): &(usize, usize, usize, usize)| {
+            write_chunk(
+                data,
+                scratch,
+                first,
+                past - first,
+                &values[from..to],
+                base,
+                value_len,
+                store,
+                write_fn,
+            )
+        };
     // Plain scoped threads, not a shared pool: a pool worker waiting here could pick up other work that
     // needs this database's exclusive barrier while this thread holds it shared.
     let next = AtomicUsize::new(0);
     let failed = AtomicBool::new(false);
     let run = || -> io::Result<()> {
+        let mut scratch = Scratch::default();
         while !failed.load(Ordering::Relaxed) {
             let Some(chunk) = chunks.get(next.fetch_add(1, Ordering::Relaxed)) else {
                 break;
             };
-            write_chunk(chunk).inspect_err(|_| failed.store(true, Ordering::Relaxed))?;
+            write_chunk(&mut scratch, chunk)
+                .inspect_err(|_| failed.store(true, Ordering::Relaxed))?;
         }
         Ok(())
     };
@@ -122,6 +139,7 @@ pub(super) fn write<T: Sync>(
 #[allow(clippy::too_many_arguments)]
 fn write_chunk<T>(
     data: &DataFile,
+    scratch: &mut Scratch,
     first: usize,
     len: usize,
     values: &[(usize, T)],
@@ -131,10 +149,14 @@ fn write_chunk<T>(
     write_fn: &impl Fn(&T, &mut [u8]),
 ) -> io::Result<()> {
     let mapping = data.mapping();
-    let cached = is_fully_resident(mapping, first, len);
-    let mut pages = vec![Page([0; IO_PAGE]); len / IO_PAGE];
-    // SAFETY: `Page` is a plain byte array, so the vector is `len` contiguous initialized bytes.
-    let buf = unsafe { std::slice::from_raw_parts_mut(pages.as_mut_ptr().cast::<u8>(), len) };
+    let cached = is_fully_resident(mapping, first, len, &mut scratch.residency);
+    let pages = len / IO_PAGE;
+    if scratch.pages.len() < pages {
+        scratch.pages.resize(pages, Page([0; IO_PAGE]));
+    }
+    // SAFETY: `Page` is a plain byte array, so the vector holds at least `len` contiguous
+    // initialized bytes.
+    let buf = unsafe { slice::from_raw_parts_mut(scratch.pages.as_mut_ptr().cast::<u8>(), len) };
     if cached {
         // SAFETY: the chunk lies within the region's own pages, which no other thread writes; the
         // borrow ends with this copy, before the uncached write below.
@@ -171,6 +193,7 @@ fn write_chunk<T>(
 #[allow(clippy::too_many_arguments)]
 fn write_chunk<T>(
     data: &DataFile,
+    scratch: &mut Scratch,
     first: usize,
     len: usize,
     values: &[(usize, T)],
@@ -179,8 +202,11 @@ fn write_chunk<T>(
     store: &impl Fn(usize, &T),
     _write_fn: &impl Fn(&T, &mut [u8]),
 ) -> io::Result<()> {
-    if !is_fully_resident(data.mapping(), first, len) {
-        data.read_cached(first, &mut vec![0; len])?;
+    if !is_fully_resident(data.mapping(), first, len, &mut scratch.residency) {
+        if scratch.bytes.len() < len {
+            scratch.bytes.resize(len, 0);
+        }
+        data.read_cached(first, &mut scratch.bytes[..len])?;
     }
     for (index, value) in values {
         store(*index, value);

@@ -12,7 +12,7 @@ impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
 
     fn database(&self) -> Option<&Database> {
-        None
+        Some(&self.db)
     }
 
     fn compute_state(
@@ -32,7 +32,6 @@ impl ComputePlugin for Vecs {
             context.exit(),
         )?;
         let Vecs {
-            db,
             value,
             count,
             types,
@@ -54,11 +53,7 @@ impl ComputePlugin for Vecs {
         );
         fiat?;
         counts?;
-        let lock = spent.compute(indexer, exit)?;
-        db.run_bg(move |db| {
-            let _lock = lock;
-            db.compact_deferred_default()
-        });
+        spent.compute(indexer, exit)?;
         Ok(())
     }
 }
@@ -72,7 +67,6 @@ impl Vecs {
         end: usize,
         exit: &Exit,
     ) -> Result<()> {
-        self.db.sync_bg_tasks()?;
         let outputs = &indexer.vecs().outputs;
         value::compute_sats(
             &mut self.value.op_return_value.cumulative.sats.height,

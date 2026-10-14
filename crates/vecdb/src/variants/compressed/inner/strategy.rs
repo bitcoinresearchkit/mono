@@ -5,7 +5,8 @@ use crate::{Error, Result, ValueStrategy, likely};
 
 /// Trait for compression strategies used by ReadWriteCompressedVec.
 pub trait CompressionStrategy<T>: ValueStrategy<T> {
-    type Decoder;
+    /// Decoding state reused across pages, its scratch across chunks too.
+    type Decoder: Default;
 
     /// Maximum amount of uncompressed data that should share one compression context.
     const MAX_UNCOMPRESSED_CHUNK_SIZE: usize;
@@ -13,8 +14,9 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
     /// Compresses full pages into one shared compression context.
     fn compress_chunk(values: &[T], values_per_page: usize) -> Result<EncodedChunk>;
 
-    /// Builds the reusable decoder for one chunk header.
-    fn decoder(header: &[u8]) -> Result<Self::Decoder>;
+    /// Points `decoder` at the chunk with this header, keeping its reusable scratch. Pages are
+    /// decoded only after a successful reset for their chunk.
+    fn reset_decoder(decoder: &mut Self::Decoder, header: &[u8]) -> Result<()>;
 
     /// Decodes one page body, replacing `dst` while reusing its allocation.
     fn decompress_page_into(
@@ -44,6 +46,7 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
         let byte_len = size_of_val(values);
         let mut bytes = Vec::with_capacity(byte_len);
         if Self::IS_NATIVE_LAYOUT {
+            // SAFETY: native-layout values are their own byte image (`ValueStrategy` contract).
             unsafe {
                 ptr::copy_nonoverlapping(
                     values.as_ptr() as *const u8,
@@ -63,23 +66,32 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
     /// Deserializes bytes into an existing buffer, reusing its allocation.
     #[inline]
     fn bytes_to_values_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
-        let expected_bytes = expected_len * size_of::<T>();
         dst.clear();
-        dst.reserve(expected_len);
+        Self::bytes_to_values_append(bytes, expected_len, dst)
+    }
+
+    /// Deserializes bytes onto the end of `dst`.
+    #[inline]
+    fn bytes_to_values_append(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
+        let expected_bytes = expected_len * size_of::<T>();
         if !likely(bytes.len() == expected_bytes) {
             return Err(Error::DecompressionMismatch {
                 expected_len,
                 actual_len: bytes.len() / size_of::<T>(),
             });
         }
+        dst.reserve(expected_len);
         if Self::IS_NATIVE_LAYOUT {
+            let len = dst.len();
+            // SAFETY: native-layout values are their own byte image (`ValueStrategy` contract),
+            // and the reserved spare capacity holds `expected_len` values.
             unsafe {
                 ptr::copy_nonoverlapping(
                     bytes.as_ptr(),
-                    dst.as_mut_ptr() as *mut u8,
+                    dst.as_mut_ptr().add(len).cast::<u8>(),
                     expected_bytes,
                 );
-                dst.set_len(expected_len);
+                dst.set_len(len + expected_len);
             }
         } else {
             let value_size = size_of::<T>();

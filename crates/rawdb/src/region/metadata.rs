@@ -32,7 +32,7 @@ impl RegionMetadata {
     }
 
     pub(crate) fn new(id: Arc<str>, start: usize) -> Self {
-        assert!(start.is_multiple_of(PAGE_SIZE));
+        debug_assert!(start.is_multiple_of(PAGE_SIZE));
 
         Self {
             id,
@@ -48,7 +48,7 @@ impl RegionMetadata {
 
     #[inline]
     pub(crate) fn set_start(&mut self, start: usize) {
-        assert!(start.is_multiple_of(PAGE_SIZE));
+        debug_assert!(start.is_multiple_of(PAGE_SIZE));
         self.start = start;
     }
 
@@ -58,7 +58,7 @@ impl RegionMetadata {
 
     #[inline]
     pub(crate) fn set_len(&self, len: usize) {
-        assert!(len <= self.reserved());
+        debug_assert!(len <= self.reserved());
         self.len.store(len, Ordering::Release);
     }
 
@@ -75,10 +75,10 @@ impl RegionMetadata {
     }
 
     pub(crate) fn set_reserved(&mut self, reserved: usize) {
-        assert!(self.byte_len() <= reserved);
-        assert!(reserved >= PAGE_SIZE);
-        assert!(reserved.is_multiple_of(PAGE_SIZE));
-        assert!(reserved <= MAX_RESERVED_SIZE);
+        debug_assert!(self.byte_len() <= reserved);
+        debug_assert!(reserved >= PAGE_SIZE);
+        debug_assert!(reserved.is_multiple_of(PAGE_SIZE));
+        debug_assert!(reserved <= MAX_RESERVED_SIZE);
 
         self.reserved = reserved;
     }

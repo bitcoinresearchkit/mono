@@ -47,8 +47,8 @@ fn scalar_values() {
         };
         assert_eq!(json(Float32::new(38.2)), "38.2");
         assert_eq!(json(Float32::new(f32::INFINITY)), "null");
-        let mut csv = String::new();
-        Float32::new(f32::NAN).fmt_csv(&mut csv).unwrap();
+        let mut csv = Vec::new();
+        Float32::new(f32::NAN).fmt_csv(&mut csv);
         assert!(csv.is_empty());
     }
 }

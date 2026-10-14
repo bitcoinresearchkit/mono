@@ -367,10 +367,9 @@ impl Formattable for Cents {
 
     /// Undefined: an empty CSV cell (JSON writes `null`).
     #[inline(always)]
-    fn fmt_csv(&self, f: &mut String) -> std::fmt::Result {
+    fn fmt_csv(&self, buf: &mut Vec<u8>) {
         if !unlikely(self.is_nan()) {
-            self.fmt_into(f);
+            self.write_to(buf);
         }
-        Ok(())
     }
 }

@@ -250,8 +250,9 @@ impl Journal {
             if next < previous || next > published_end || next - previous > MAX_RECORD as u64 {
                 return Err(invalid("invalid published journal offset"));
             }
-            // A large single record remains readable; ordinary windows stay bounded.
-            if next - start > 1024 * 1024 && !records.is_empty() {
+            // A window holds a record and its successor, so large records remain readable;
+            // ordinary windows stay bounded.
+            if next - start > 1024 * 1024 && records.len() >= 2 {
                 break;
             }
             records.push((next - start) as usize);
@@ -309,6 +310,10 @@ impl Journal {
         self.healthy()?;
         if height > self.index.len() {
             return Err(invalid("invalid origin truncate"));
+        }
+        // Truncating at the end (the common update) only publishes an uncommitted tail.
+        if height == self.index.len() {
+            return self.commit();
         }
         let n = height;
         if n > self.committed {

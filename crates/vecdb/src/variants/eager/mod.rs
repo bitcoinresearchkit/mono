@@ -1,9 +1,4 @@
-use brk_exit::Exit;
-use log::debug;
-
-use crate::{
-    AnyStoredVec, AnyVec, Result, StoredVec, Version, WritableVec, traits::writable::MAX_CACHE_SIZE,
-};
+use crate::{AnyVec, StoredVec, traits::writable::MAX_CACHE_SIZE};
 
 pub mod any_stored_vec;
 pub mod any_vec;
@@ -30,7 +25,7 @@ pub mod writable;
 /// # Common Operations
 /// - Transformations: `compute_transform()`, `compute_batched_to()`
 /// - Arithmetic: `compute_subtract()`
-/// - Custom computations: `compute_init()` (rolling statistics build on it downstream)
+/// - Custom computations: `compute_to()` (rolling statistics build on it downstream)
 #[derive(Debug)]
 #[must_use = "Vector should be stored to keep data accessible"]
 pub struct EagerVec<V>(V);
@@ -39,28 +34,6 @@ impl<V> EagerVec<V>
 where
     V: StoredVec,
 {
-    /// Validates the dependency `version` (the vector's own version is added; data
-    /// resets on change), truncates to `max_from`, then calls `f` and writes, repeating
-    /// while `f` filled a whole batch. `f` must append up to [`Self::batch_end`] while
-    /// work remains; a shorter batch ends the computation.
-    pub fn compute_init<F>(
-        &mut self,
-        version: Version,
-        max_from: V::I,
-        exit: &Exit,
-        f: F,
-    ) -> Result<()>
-    where
-        F: FnMut(&mut Self) -> Result<()>,
-    {
-        {
-            let _lock = exit.lock();
-            self.validate_computed_version_or_reset(version)?;
-            self.truncate_if_needed(max_from)?;
-        }
-        self.repeat_until_complete(exit, f)
-    }
-
     /// Max end index for one batch, capped at `max_end`.
     /// Ensures `pushed_len * SIZE_OF_T >= MAX_CACHE_SIZE` so `batch_limit_reached()` fires.
     #[inline]
@@ -74,29 +47,5 @@ where
     fn batch_capacity(&self) -> usize {
         let size = size_of::<V::T>().max(1);
         MAX_CACHE_SIZE.div_ceil(size)
-    }
-
-    /// Helper that repeatedly calls a compute function until it completes.
-    /// Persists every successful batch, including a truncation-only final batch.
-    fn repeat_until_complete<F>(&mut self, exit: &Exit, mut f: F) -> Result<()>
-    where
-        F: FnMut(&mut Self) -> Result<()>,
-    {
-        loop {
-            f(self)?;
-            let batch_limit_reached = self.batch_limit_reached();
-            if batch_limit_reached {
-                debug!("Batch limit reached, saving to disk...");
-            }
-            {
-                let _lock = exit.lock();
-                self.write()?;
-            }
-            if !batch_limit_reached {
-                break;
-            }
-        }
-
-        Ok(())
     }
 }

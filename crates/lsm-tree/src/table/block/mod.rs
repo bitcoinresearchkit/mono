@@ -4,7 +4,9 @@ use std::{
 };
 
 use log::trace;
-use lz4_flex::{compress, decompress_into};
+use lz4_flex::block::{
+    CompressTable, compress_into_with_table, decompress_into, get_maximum_output_size,
+};
 
 use crate::{
     CompressionType, Error, Result, Slice,
@@ -67,6 +69,33 @@ fn decompress_lz4(raw_data: &[u8], uncompressed_len: usize) -> Result<Slice> {
     Ok(builder.freeze().into())
 }
 
+/// Output buffer and hash table reused across LZ4 block compressions.
+#[derive(Default)]
+pub struct Lz4Scratch {
+    table: CompressTable,
+    output: Vec<u8>,
+}
+
+impl Lz4Scratch {
+    fn compress(&mut self, data: &[u8]) -> &[u8] {
+        let max_len = get_maximum_output_size(data.len());
+        if self.output.len() < max_len {
+            self.output.resize(max_len, 0);
+        }
+        #[expect(
+            clippy::expect_used,
+            reason = "the output holds the maximum compressed size"
+        )]
+        let len = compress_into_with_table(data, &mut self.output, &mut self.table)
+            .expect("output should hold the compressed block");
+        #[expect(
+            clippy::indexing_slicing,
+            reason = "LZ4 writes at most the output length"
+        )]
+        &self.output[..len]
+    }
+}
+
 /// A block on disk
 ///
 /// Consists of a fixed-size header and some bytes (the data/payload).
@@ -83,31 +112,37 @@ impl Block {
         self.data.len()
     }
 
-    /// Encodes a block into a writer.
+    /// Writes an uncompressed block.
     pub fn write_into<W: Write>(
-        mut writer: &mut W,
+        writer: &mut W,
         data: &[u8],
         block_type: BlockType,
-        compression: CompressionType,
     ) -> Result<Header> {
-        let mut header = Header {
-            block_type,
-            data_length: 0, // <-- NOTE: Is set later on
+        Self::write_raw(writer, data, data.len(), block_type)
+    }
 
-            #[expect(clippy::cast_possible_truncation, reason = "blocks are limited to u32")]
-            uncompressed_length: data.len() as u32,
-        };
+    /// Writes an LZ4-compressed block.
+    pub fn write_lz4_into<W: Write>(
+        writer: &mut W,
+        data: &[u8],
+        block_type: BlockType,
+        scratch: &mut Lz4Scratch,
+    ) -> Result<Header> {
+        Self::write_raw(writer, scratch.compress(data), data.len(), block_type)
+    }
 
-        let data = match compression {
-            CompressionType::None => data,
-
-            CompressionType::Lz4 => &compress(data),
-        };
-
+    fn write_raw<W: Write>(
+        mut writer: &mut W,
+        data: &[u8],
+        uncompressed_length: usize,
+        block_type: BlockType,
+    ) -> Result<Header> {
         #[expect(clippy::cast_possible_truncation, reason = "blocks are limited to u32")]
-        {
-            header.data_length = data.len() as u32;
-        }
+        let header = Header {
+            block_type,
+            data_length: data.len() as u32,
+            uncompressed_length: uncompressed_length as u32,
+        };
 
         header.encode_into(&mut writer)?;
         writer.write_all(data)?;
@@ -185,111 +220,5 @@ impl Block {
         };
 
         Ok(Self { header, data: buf })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use tempfile::tempdir;
-    use test_log::test;
-
-    use super::*;
-    use crate::coding::Encode;
-
-    // TODO: Block::from_file roundtrips
-
-    #[test]
-    fn block_roundtrip_uncompressed() -> Result<()> {
-        let mut writer = vec![];
-
-        Block::write_into(
-            &mut writer,
-            b"abcdefabcdefabcdef",
-            BlockType::Data,
-            CompressionType::None,
-        )?;
-
-        {
-            let mut reader = &writer[..];
-            let block = Block::from_reader(&mut reader, CompressionType::None)?;
-            assert_eq!(b"abcdefabcdefabcdef", &*block.data);
-        }
-
-        Ok(())
-    }
-    #[test]
-    fn block_roundtrip_lz4() -> Result<()> {
-        let mut writer = vec![];
-
-        Block::write_into(
-            &mut writer,
-            b"abcdefabcdefabcdef",
-            BlockType::Data,
-            CompressionType::Lz4,
-        )?;
-
-        {
-            let mut reader = &writer[..];
-            let block = Block::from_reader(&mut reader, CompressionType::Lz4)?;
-            assert_eq!(b"abcdefabcdefabcdef", &*block.data);
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn block_from_file_rejects_handle_size_mismatch() -> Result<()> {
-        let directory = tempdir()?;
-        let path = directory.path().join("block");
-        let mut bytes = Vec::new();
-        Block::write_into(
-            &mut bytes,
-            b"abcdef",
-            BlockType::Data,
-            CompressionType::None,
-        )?;
-        bytes.push(0);
-        fs::write(&path, &bytes)?;
-
-        let handle = BlockHandle::new(BlockOffset(0), bytes.len() as u32);
-        assert!(matches!(
-            Block::from_file(&File::open(path)?, handle, CompressionType::None),
-            Err(Error::InvalidHeader("Block length"))
-        ));
-        Ok(())
-    }
-
-    #[test]
-    fn block_rejects_invalid_uncompressed_length() {
-        let header = Header {
-            block_type: BlockType::Data,
-            data_length: 1,
-            uncompressed_length: 2,
-        };
-        let mut bytes = header.encode_into_vec();
-        bytes.push(0);
-
-        assert!(matches!(
-            Block::from_reader(&mut &bytes[..], CompressionType::None),
-            Err(Error::InvalidHeader("Block length"))
-        ));
-    }
-
-    #[test]
-    fn block_rejects_impossible_lz4_expansion_before_allocating() {
-        let header = Header {
-            block_type: BlockType::Data,
-            data_length: 1,
-            uncompressed_length: 257,
-        };
-        let mut bytes = header.encode_into_vec();
-        bytes.push(0);
-
-        assert!(matches!(
-            Block::from_reader(&mut &bytes[..], CompressionType::Lz4),
-            Err(Error::InvalidHeader("Block length"))
-        ));
     }
 }

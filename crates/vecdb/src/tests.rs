@@ -364,7 +364,9 @@ mod mutable {
 mod truncation {
     //! Truncation rollback across native writes and reopening.
 
-    use crate::{ImportOptions, Result, Stamp, StoredVec, Version};
+    use crate::{
+        AnyStoredVec, ImportOptions, ReadableVec, Result, Stamp, StoredVec, Version, WritableVec,
+    };
     use rawdb::Database;
     use tempfile::TempDir;
 
@@ -421,6 +423,101 @@ mod truncation {
         Ok(())
     }
 
+    /// Undoing several records in one rollback composes them: rows the newest undo restored in
+    /// memory survive the older undo (80 stored, appended to 100, truncated to 20: back to 80).
+    fn run_rollback_across_truncation_and_append<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
+        let (db, _temp) = setup_db()?;
+        let mut vec = import_with_changes::<V>(&db, "values")?;
+        for value in 0..80 {
+            vec.push(value);
+        }
+        vec.stamped_write_with_changes(Stamp::from(1))?;
+        for value in 80..100 {
+            vec.push(value);
+        }
+        vec.stamped_write_with_changes(Stamp::from(2))?;
+        vec.truncate_if_needed_at(20)?;
+        vec.stamped_write_with_changes(Stamp::from(3))?;
+
+        assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
+        assert_eq!(vec.collect(), (0..80).collect::<Vec<_>>());
+
+        vec.stamped_write(Stamp::from(1))?;
+        drop(vec);
+        let mut vec = import_with_changes::<V>(&db, "values")?;
+        assert_eq!(vec.stamp(), Stamp::from(1));
+        assert_eq!(vec.collect(), (0..80).collect::<Vec<_>>());
+
+        // An unflushed truncation is dropped: the rows it cut are still persisted.
+        for value in 80..100 {
+            vec.push(value);
+        }
+        vec.stamped_write_with_changes(Stamp::from(2))?;
+        vec.truncate_if_needed_at(20)?;
+        assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
+        assert_eq!(vec.collect(), (0..80).collect::<Vec<_>>());
+        vec.stamped_write(Stamp::from(1))?;
+        drop(vec);
+        let vec = import_with_changes::<V>(&db, "values")?;
+        assert_eq!(vec.collect(), (0..80).collect::<Vec<_>>());
+        Ok(())
+    }
+
+    /// An update undone onto a row an older undo restores in memory must not survive it, nor
+    /// may an unsaved update.
+    #[test]
+    fn mutable_rollback_drops_updates_of_restored_rows() -> Result<()> {
+        type V = crate::MutableVec<crate::BytesVec<usize, u32>>;
+        let _serial = crate::tests::serial();
+        let (db, _temp) = setup_db()?;
+        let mut vec = import_with_changes::<V>(&db, "values")?;
+        for value in 0..100 {
+            vec.push(value);
+        }
+        vec.stamped_write_with_changes(Stamp::from(1))?;
+        vec.truncate_if_needed_at(20)?;
+        for value in 20..100 {
+            vec.push(1000 + value);
+        }
+        vec.stamped_write_with_changes(Stamp::from(2))?;
+        vec.update_many([(90, 999)])?;
+        vec.stamped_write_with_changes(Stamp::from(3))?;
+        // Unsaved, below the length the rollback restores: dropped, never written.
+        vec.update_many([(10, 555)])?;
+
+        assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
+        assert_eq!(vec.collect(), (0..100).collect::<Vec<_>>());
+        vec.stamped_write(Stamp::from(1))?;
+        drop(vec);
+        let vec = import_with_changes::<V>(&db, "values")?;
+        assert_eq!(vec.collect(), (0..100).collect::<Vec<_>>());
+
+        // An update an undo reverts in restored pushed rows stays reverted by the older undos.
+        let (db, _temp) = setup_db()?;
+        let mut vec = import_with_changes::<V>(&db, "values")?;
+        for value in 0..80 {
+            vec.push(value);
+        }
+        vec.stamped_write_with_changes(Stamp::from(1))?;
+        for value in 80..100 {
+            vec.push(value);
+        }
+        vec.stamped_write_with_changes(Stamp::from(2))?;
+        vec.update_many([(70, 999)])?;
+        vec.stamped_write_with_changes(Stamp::from(3))?;
+        vec.truncate_if_needed_at(20)?;
+        vec.stamped_write_with_changes(Stamp::from(4))?;
+
+        assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
+        assert_eq!(vec.collect(), (0..80).collect::<Vec<_>>());
+        vec.stamped_write(Stamp::from(1))?;
+        drop(vec);
+        let vec = import_with_changes::<V>(&db, "values")?;
+        assert_eq!(vec.collect_one_at(70), Some(70));
+        assert_eq!(vec.collect(), (0..80).collect::<Vec<_>>());
+        Ok(())
+    }
+
     macro_rules! instantiate_for {
         ($mod:ident, $ty:ty) => {
             mod $mod {
@@ -431,6 +528,12 @@ mod truncation {
                 fn truncate_rollback_reflush_and_reopen() -> Result<()> {
                     let _serial = crate::tests::serial();
                     run_truncate_rollback_and_reopen::<V>()
+                }
+
+                #[test]
+                fn rollback_across_truncation_and_append() -> Result<()> {
+                    let _serial = crate::tests::serial();
+                    run_rollback_across_truncation_and_append::<V>()
                 }
             }
         };
@@ -735,7 +838,8 @@ mod overflow {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct TestValue(u64);
 
-    impl Bytes for TestValue {
+    // SAFETY: not native layout.
+    unsafe impl Bytes for TestValue {
         type Array = [u8; 8];
 
         fn to_bytes(&self) -> Self::Array {

@@ -57,19 +57,17 @@ where
     where
         Self: Sized,
     {
-        let to = to.min(self.len());
-        if from >= to {
-            return Ok(init);
-        }
-        // Preserve early-exit semantics: do not evaluate this transform for
-        // values after the first error. Infallible reads use the bulk path.
+        // Preserve early-exit semantics: do not evaluate this transform for values after the
+        // first error, nor read past its chunk. Infallible reads use the bulk path.
         let compute = self.compute;
-        let buf = self.source.collect_range_dyn(from, to);
-        buf.into_iter()
-            .enumerate()
-            .try_fold(init, |acc, (local, v)| {
-                f(acc, compute(I::from(from + local), v))
-            })
+        chunk_folds::try_fold(
+            &*self.source,
+            from,
+            to,
+            (init, from),
+            |(acc, index), value| Ok((f(acc, compute(I::from(index), value))?, index + 1)),
+        )
+        .map(|(acc, _)| acc)
     }
 
     #[inline]

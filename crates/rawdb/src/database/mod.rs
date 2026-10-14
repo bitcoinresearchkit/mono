@@ -189,13 +189,6 @@ impl Database {
         self.inner.tasks.sleep(dur);
     }
 
-    /// Waits five seconds before compacting, off the caller's save path.
-    /// Intended for background tasks; `sync_bg_tasks` cuts the wait short.
-    pub fn compact_deferred_default(&self) -> Result<()> {
-        self.bg_sleep(Duration::from_secs(5));
-        self.compact()
-    }
-
     /// Flushes, then punches holes to reclaim disk space.
     pub fn compact(&self) -> Result<()> {
         let _writes = self.inner.writes.write();
@@ -252,23 +245,12 @@ impl Database {
             region.0.tail_needs_punch.store(false, Ordering::Relaxed);
         }
 
-        if layout.holes_need_punch() {
-            // The layout write lock prevents holes from being allocated while
-            // they are punched. No per-region lock is needed for free space.
-            for (&start, &hole) in layout.start_to_hole() {
-                self.inner.data.punch_hole(start, hole)?;
-            }
-            punched += layout.start_to_hole().len();
-            // Removed trailing regions leave no metadata after reopening. Reclaim
-            // the unused file tail too, including any old allocated pages there.
-            let end = self.file_len() / PAGE_SIZE * PAGE_SIZE;
-            let start = layout.end();
-            if start < end {
-                self.inner.data.punch_hole(start, end - start)?;
-                punched += 1;
-            }
-            layout.mark_holes_punched();
-        }
+        // The layout write lock prevents holes from being allocated while they are punched. No
+        // per-region lock is needed for free space.
+        let file_end = self.file_len() / PAGE_SIZE * PAGE_SIZE;
+        punched += layout.reclaim(file_end, |start, len| {
+            self.inner.data.punch_hole(start, len)
+        })?;
 
         drop(layout);
 

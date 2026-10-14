@@ -13,7 +13,7 @@ use std::mem::size_of;
 use byteorder::LittleEndian;
 
 #[cfg(test)]
-use crate::{Slice, table::block::Trailer};
+use crate::table::block::Trailer;
 
 use super::block::{
     Block, Decodable, Decoder, Encodable, Encoder, ParsedItem, TRAILER_START_MARKER,
@@ -29,9 +29,6 @@ use crate::{
 
 mod iter;
 mod parsed_item;
-
-#[cfg(test)]
-mod iter_test;
 
 pub use iter::Iter;
 pub use parsed_item::DataBlockParsedItem;
@@ -335,13 +332,6 @@ impl DataBlock {
         Self { inner }
     }
 
-    /// Accesses the inner raw bytes
-    #[cfg(test)]
-    #[must_use]
-    fn as_slice(&self) -> &Slice {
-        &self.inner.data
-    }
-
     #[must_use]
     pub fn point_read(&self, needle: &[u8]) -> Option<InternalValue> {
         self.point_read_item(needle)
@@ -385,7 +375,7 @@ impl DataBlock {
     /// The number of pointers is equal to the number of restart intervals.
     #[cfg(test)]
     #[must_use]
-    fn binary_index_len(&self) -> u32 {
+    pub(crate) fn binary_index_len(&self) -> u32 {
         let trailer = Trailer::new(&self.inner);
 
         // NOTE: Skip restart interval (u8) and binary index step size (u8)
@@ -398,17 +388,8 @@ impl DataBlock {
     /// Returns the number of items in the block.
     #[cfg(test)]
     #[must_use]
-    fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         Trailer::new(&self.inner).item_count()
-    }
-
-    #[cfg(test)]
-    fn encode_into_vec(items: &[InternalValue], restart_interval: u8) -> Result<Vec<u8>> {
-        let mut buf = vec![];
-
-        Self::encode_into(&mut buf, items, restart_interval)?;
-
-        Ok(buf)
     }
 
     /// Builds an data block.
@@ -450,6 +431,7 @@ impl DataBlock {
 
         Self::encode_into_with_fixed_lengths(
             writer,
+            &mut Vec::new(),
             items,
             restart_interval,
             fixed_key_len,
@@ -459,516 +441,15 @@ impl DataBlock {
 
     pub fn encode_into_with_fixed_lengths<K: RecordBytes, V: RecordBytes>(
         writer: &mut Vec<u8>,
+        restarts: &mut Vec<u32>,
         items: &[InternalValue<K, V>],
         restart_interval: u8,
         fixed_key_len: Option<u16>,
         fixed_value_len: Option<u32>,
     ) -> Result<()> {
-        Encoder::<'_, (), InternalValue<K, V>>::new(writer, items, restart_interval)
+        Encoder::<'_, (), InternalValue<K, V>>::new(writer, restarts, items, restart_interval)
             .use_fixed_key_len(fixed_key_len)
             .use_fixed_value_len(fixed_value_len)
             .finish()
-    }
-}
-
-#[cfg(test)]
-#[expect(clippy::expect_used)]
-mod tests {
-    use test_log::test;
-
-    use crate::{
-        InternalValue, Result, Slice,
-        ValueType::{self, Tombstone, Value},
-        table::{
-            Block, DataBlock,
-            block::{BlockType, Header, ParsedItem},
-        },
-    };
-
-    #[test]
-    fn restart_groups_preserve_records_at_block_boundaries() -> Result<()> {
-        let parts = |item: InternalValue| {
-            (
-                item.key.user_key,
-                item.key.seqno,
-                item.key.value_type,
-                item.value,
-            )
-        };
-        for interval in [1_u8, 2, 3, 4, 8, 16, 31, 255] {
-            let width = u16::from(interval);
-            for count in [
-                1,
-                width.saturating_sub(1).max(1),
-                width,
-                width + 1,
-                2 * width + 1,
-            ] {
-                let items: Vec<_> = (0..count)
-                    .map(|i| {
-                        let (value, kind) = if i % 3 == 0 {
-                            (Slice::empty(), Tombstone)
-                        } else {
-                            (Slice::from(i.to_be_bytes()), Value)
-                        };
-                        InternalValue::from_components(i.to_be_bytes(), value, u64::from(i), kind)
-                    })
-                    .collect();
-                let bytes = DataBlock::encode_into_vec(&items, interval)?;
-                let block = DataBlock::new(Block {
-                    data: bytes.into(),
-                    header: Header {
-                        block_type: BlockType::Data,
-                        data_length: 0,
-                        uncompressed_length: 0,
-                    },
-                });
-                assert_eq!(block.len(), items.len());
-                assert_eq!(
-                    block.binary_index_len(),
-                    u32::from(count).div_ceil(u32::from(interval))
-                );
-                let expected: Vec<_> = items.iter().cloned().map(parts).collect();
-                let forward: Vec<_> = block
-                    .iter()
-                    .map(|item| parts(item.materialize(block.as_slice())))
-                    .collect();
-                let reverse: Vec<_> = block
-                    .iter()
-                    .rev()
-                    .map(|item| parts(item.materialize(block.as_slice())))
-                    .collect();
-                assert_eq!(forward, expected);
-                assert_eq!(reverse, expected.into_iter().rev().collect::<Vec<_>>());
-                for item in items {
-                    assert_eq!(
-                        block.point_read(&item.key.user_key).map(parts),
-                        Some(parts(item))
-                    );
-                }
-            }
-        }
-        Ok(())
-    }
-
-    #[test]
-    fn fixed_width_block_roundtrip_is_smaller() -> Result<()> {
-        let items: Vec<_> = (0..256u64)
-            .map(|i| {
-                InternalValue::from_components(i.to_be_bytes(), (i as u32).to_be_bytes(), 0, Value)
-            })
-            .collect();
-
-        let fixed = DataBlock::encode_into_vec(&items, 16)?;
-        let mut variable = Vec::new();
-        DataBlock::encode_into_with_fixed_lengths(&mut variable, &items, 16, None, None)?;
-
-        assert!(
-            fixed.len() + items.len() < variable.len(),
-            "fixed-width encoding should omit at least one length per item",
-        );
-
-        for bytes in [fixed, variable] {
-            let block = DataBlock::new(Block {
-                data: bytes.into(),
-                header: Header {
-                    block_type: BlockType::Data,
-                    data_length: 0,
-                    uncompressed_length: 0,
-                },
-            });
-            let decoded: Vec<_> = block
-                .iter()
-                .map(|item| item.materialize(block.as_slice()))
-                .collect();
-            assert_eq!(items, decoded);
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_ping_pong_fuzz_1() -> Result<()> {
-        let items = [
-            InternalValue::from_components(
-                Slice::from([111]),
-                Slice::from([119]),
-                8_602_264_972_526_186_597,
-                Value,
-            ),
-            InternalValue::from_components(
-                Slice::from([121, 120, 99]),
-                Slice::from([101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101]),
-                11_426_548_769_907,
-                Value,
-            ),
-        ];
-
-        let ping_pong_code = [1, 0];
-
-        let bytes: Vec<u8> = DataBlock::encode_into_vec(&items, 1)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        let expected_ping_ponged_items = {
-            let mut iter = items.iter();
-            let mut v = vec![];
-
-            for &x in &ping_pong_code {
-                if x == 0 {
-                    v.push(iter.next().cloned().expect("should have item"));
-                } else {
-                    v.push(iter.next_back().cloned().expect("should have item"));
-                }
-            }
-
-            v
-        };
-
-        let real_ping_ponged_items = {
-            let mut iter = data_block
-                .iter()
-                .map(|x| x.materialize(data_block.as_slice()));
-
-            let mut v = vec![];
-
-            for &x in &ping_pong_code {
-                if x == 0 {
-                    v.push(iter.next().expect("should have item"));
-                } else {
-                    v.push(iter.next_back().expect("should have item"));
-                }
-            }
-
-            v
-        };
-
-        assert_eq!(expected_ping_ponged_items, real_ping_ponged_items);
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_simple() -> Result<()> {
-        let items = [
-            InternalValue::from_components("b", "b", 0, Value),
-            InternalValue::from_components("c", "c", 0, Value),
-            InternalValue::from_components("d", "d", 1, Tombstone),
-            InternalValue::from_components("e", "e", 0, Value),
-            InternalValue::from_components("f", "f", 0, Value),
-        ];
-
-        for restart_interval in 1..=16 {
-            let bytes: Vec<u8> = DataBlock::encode_into_vec(&items, restart_interval)?;
-
-            let data_block = DataBlock::new(Block {
-                data: bytes.into(),
-                header: Header {
-                    block_type: BlockType::Data,
-                    data_length: 0,
-                    uncompressed_length: 0,
-                },
-            });
-
-            assert!(
-                data_block.point_read(b"a").is_none(),
-                "should return None because a does not exist",
-            );
-
-            assert!(
-                data_block.point_read(b"b").is_some(),
-                "should return Some because b exists",
-            );
-
-            assert!(
-                data_block.point_read(b"z").is_none(),
-                "should return Some because z does not exist",
-            );
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_one() -> Result<()> {
-        let items = [InternalValue::from_components(
-            "pla:earth:fact",
-            "eaaaaaaaaarth",
-            0,
-            ValueType::Value,
-        )];
-
-        let bytes = DataBlock::encode_into_vec(&items, 16)?;
-        let serialized_len = bytes.len();
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-        assert_eq!(data_block.inner.size(), serialized_len);
-        assert_eq!(1, data_block.binary_index_len());
-
-        for needle in items {
-            assert_eq!(
-                Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key),
-            );
-        }
-
-        assert_eq!(None, data_block.point_read(b"yyy"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_first() -> Result<()> {
-        let items = [InternalValue::from_components(
-            "hello",
-            "world",
-            0,
-            ValueType::Value,
-        )];
-
-        for restart_interval in 1..=16 {
-            let bytes = DataBlock::encode_into_vec(&items, restart_interval)?;
-            let serialized_len = bytes.len();
-
-            let data_block = DataBlock::new(Block {
-                data: bytes.into(),
-                header: Header {
-                    block_type: BlockType::Data,
-                    data_length: 0,
-                    uncompressed_length: 0,
-                },
-            });
-
-            assert_eq!(data_block.len(), items.len());
-            assert_eq!(data_block.inner.size(), serialized_len);
-
-            assert_eq!(Some(items[0].clone()), data_block.point_read(b"hello"));
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_fuzz_1() -> Result<()> {
-        let items = [
-            InternalValue::from_components([0], b"", 23_523_531_241_241_242, Value),
-            InternalValue::from_components([1], b"", 0, Value),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 16)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-
-        for needle in items {
-            assert_eq!(
-                Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key),
-            );
-        }
-
-        assert_eq!(None, data_block.point_read(b"yyy"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_fuzz_2() -> Result<()> {
-        let items = [
-            InternalValue::from_components([0], [], 5, Value),
-            InternalValue::from_components([1], [], 4, Tombstone),
-            InternalValue::from_components([2], [], 3, Value),
-            InternalValue::from_components([3], [], 0, Value),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 2)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-
-        for needle in items {
-            assert_eq!(
-                Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key),
-            );
-        }
-
-        assert_eq!(None, data_block.point_read(b"yyy"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_dense() -> Result<()> {
-        let items = [
-            InternalValue::from_components(b"a", b"a", 3, Value),
-            InternalValue::from_components(b"b", b"b", 2, Value),
-            InternalValue::from_components(b"c", b"c", 1, Value),
-            InternalValue::from_components(b"d", b"d", 65, Value),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 1)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-        assert_eq!(4, data_block.binary_index_len());
-
-        for needle in items {
-            assert_eq!(
-                Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key),
-            );
-        }
-
-        assert_eq!(None, data_block.point_read(b"yyy"));
-
-        Ok(())
-    }
-
-    #[test]
-    #[expect(clippy::unwrap_used)]
-    fn data_block_point_read_fuzz_3() -> Result<()> {
-        let items = [
-            InternalValue::from_components(Slice::from([0]), Slice::from([]), 0, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 0, Value),
-            InternalValue::from_components(
-                Slice::from([255, 255, 0]),
-                Slice::from([]),
-                127_886_946_205_696,
-                Tombstone,
-            ),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 2)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-
-        assert_eq!(
-            Some(items.get(1).cloned().unwrap()),
-            data_block.point_read(&[233, 233])
-        );
-        assert_eq!(None, data_block.point_read(b"yyy"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_tombstone() -> Result<()> {
-        let items = [
-            InternalValue::from_components("pla:saturn:fact", "Saturn is pretty big", 0, Value),
-            InternalValue::from_components("pla:saturn:name", "Saturn", 0, Value),
-            InternalValue::from_components("pla:venus:fact", "", 1, Tombstone),
-            InternalValue::from_components("pla:venus:name", "Venus", 0, Value),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 16)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-
-        assert!(
-            data_block
-                .point_read(b"pla:venus:fact")
-                .expect("should exist")
-                .is_tombstone()
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_dense_2() -> Result<()> {
-        let items = [
-            InternalValue::from_components("pla:earth:fact", "eaaaaaaaaarth", 0, Value),
-            InternalValue::from_components("pla:jupiter:fact", "Jupiter is big", 0, Value),
-            InternalValue::from_components("pla:jupiter:mass", "Massive", 0, Value),
-            InternalValue::from_components("pla:jupiter:name", "Jupiter", 0, Value),
-            InternalValue::from_components("pla:jupiter:radius", "Big", 0, Value),
-            InternalValue::from_components("pla:saturn:fact", "Saturn is pretty big", 0, Value),
-            InternalValue::from_components("pla:saturn:name", "Saturn", 0, Value),
-            InternalValue::from_components("pla:venus:fact", "", 1, Tombstone),
-            InternalValue::from_components("pla:venus:name", "Venus", 0, Value),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 1)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-
-        for needle in items {
-            assert_eq!(
-                Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key),
-            );
-        }
-
-        assert_eq!(None, data_block.point_read(b"yyy"));
-
-        Ok(())
     }
 }

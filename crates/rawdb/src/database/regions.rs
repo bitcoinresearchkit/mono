@@ -95,7 +95,7 @@ impl Regions {
     }
 
     pub(crate) fn create(&mut self, db: &Database, id: Arc<str>, start: usize) -> Result<Region> {
-        assert!(
+        debug_assert!(
             !self.by_id.contains_key(id.as_ref()),
             "region ID is already registered"
         );

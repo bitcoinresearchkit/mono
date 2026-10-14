@@ -2,7 +2,7 @@
 use lz4_flex::block::DecompressError;
 #[cfg(feature = "pco")]
 use pco::errors::PcoError;
-use std::{fmt, io, result::Result as StdResult};
+use std::{io, result::Result as StdResult};
 
 use rawdb::Error as RawdbError;
 use thiserror::Error;
@@ -22,8 +22,6 @@ pub enum Error {
     WriteFailed,
     #[error(transparent)]
     IO(#[from] io::Error),
-    #[error(transparent)]
-    Format(#[from] fmt::Error),
     #[cfg(feature = "zerocopy")]
     #[error("ZeroCopy error")]
     ZeroCopyError,

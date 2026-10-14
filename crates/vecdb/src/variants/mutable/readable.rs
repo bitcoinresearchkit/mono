@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use crate::{ReadableVec, unlikely};
 
 use super::{MutableRawVec, MutableVec};
@@ -15,39 +17,9 @@ where
     where
         F: FnMut(B, V::T) -> B,
     {
-        let stored_len = self.vec.stored_len();
-        let reader = self.vec.reader();
-        let mut holes = self.current_holes().range(from..to).peekable();
-        let mut updated = self
-            .current_updated()
-            .range(from..to.min(stored_len))
-            .peekable();
-        let mut acc = init;
-
-        for index in from..to.min(stored_len) {
-            if unlikely(holes.peek() == Some(&&index)) {
-                holes.next();
-                continue;
-            }
-            let value = if unlikely(updated.peek().is_some_and(|&(&key, _)| key == index)) {
-                updated.next().unwrap().1.clone()
-            } else {
-                V::read_stored(&reader, index)
-            };
-            acc = f(acc, value);
-        }
-
-        let pushed = self.vec.pushed();
-        for index in from.max(stored_len)..to {
-            if unlikely(holes.peek() == Some(&&index)) {
-                holes.next();
-                continue;
-            }
-            if let Some(value) = pushed.get(index - stored_len) {
-                acc = f(acc, value.clone());
-            }
-        }
-
+        let Ok(acc) = self.try_fold_mutable(from, to, init, |acc, value| {
+            Ok::<_, Infallible>(f(acc, value))
+        });
         acc
     }
 
@@ -56,15 +28,16 @@ where
         F: FnMut(B, V::T) -> Result<B, E>,
     {
         let stored_len = self.vec.stored_len();
+        let stored_to = to.min(stored_len);
         let reader = self.vec.reader();
         let mut holes = self.current_holes().range(from..to).peekable();
         let mut updated = self
             .current_updated()
-            .range(from..to.min(stored_len))
+            .range(from.min(stored_to)..stored_to)
             .peekable();
         let mut acc = init;
 
-        for index in from..to.min(stored_len) {
+        for index in from..stored_to {
             if unlikely(holes.peek() == Some(&&index)) {
                 holes.next();
                 continue;
@@ -118,10 +91,11 @@ where
             self.vec.read_into_at(from, to, buf);
             return;
         }
-        let len = self.vec.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        buf.reserve(to.saturating_sub(from));
+        let to = to.min(self.vec.len());
+        if from >= to {
+            return;
+        }
+        buf.reserve(to - from);
         self.fold_mutable(from, to, (), |(), value| buf.push(value));
     }
 

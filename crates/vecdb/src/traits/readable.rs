@@ -505,3 +505,51 @@ where
         ReadableBoxedVec::new(self.clone())
     }
 }
+
+/// Emits `read_into_at`, `for_each_range_dyn_at`, `fold_range_at` and `try_fold_range_at`
+/// inside an `impl ReadableVec<_, $value>` block, from the type's own value visitors:
+/// `$each(&self, from, to, impl FnMut($value))` and its fallible twin
+/// `$try_each(&self, from, to, impl FnMut($value) -> Result<(), E>) -> Result<(), E>`.
+/// Point and sorted reads stay explicit.
+#[macro_export]
+macro_rules! visitor_read_methods {
+    ($value:ty, $each:ident, $try_each:ident) => {
+        fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<$value>) {
+            buf.reserve(to.min($crate::AnyVec::len(self)).saturating_sub(from));
+            self.$each(from, to, |value| buf.push(value));
+        }
+
+        fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut($value)) {
+            self.$each(from, to, each);
+        }
+
+        fn fold_range_at<B, F: FnMut(B, $value) -> B>(
+            &self,
+            from: usize,
+            to: usize,
+            init: B,
+            mut fold: F,
+        ) -> B {
+            let mut acc = Some(init);
+            self.$each(from, to, |value| {
+                acc = Some(fold(acc.take().unwrap(), value));
+            });
+            acc.unwrap()
+        }
+
+        fn try_fold_range_at<B, E, F: FnMut(B, $value) -> ::std::result::Result<B, E>>(
+            &self,
+            from: usize,
+            to: usize,
+            init: B,
+            mut fold: F,
+        ) -> ::std::result::Result<B, E> {
+            let mut acc = Some(init);
+            self.$try_each(from, to, |value| {
+                acc = Some(fold(acc.take().unwrap(), value)?);
+                Ok(())
+            })?;
+            Ok(acc.unwrap())
+        }
+    };
+}

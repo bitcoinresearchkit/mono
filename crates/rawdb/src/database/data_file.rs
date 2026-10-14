@@ -117,12 +117,13 @@ impl DataFile {
     }
 
     /// # Safety
-    /// Hold the mutation barrier and exclusively own the source and destination.
+    /// Hold the mutation barrier and exclusively own the source and destination, two disjoint
+    /// ranges within the mapping.
     pub(crate) unsafe fn copy(&self, src: usize, dst: usize, len: usize) {
         let mmap = &self.mmap;
-        assert!(src <= mmap.len() && len <= mmap.len() - src);
-        assert!(dst <= mmap.len() && len <= mmap.len() - dst);
-        assert!(src + len <= dst || dst + len <= src);
+        debug_assert!(src <= mmap.len() && len <= mmap.len() - src);
+        debug_assert!(dst <= mmap.len() && len <= mmap.len() - dst);
+        debug_assert!(src + len <= dst || dst + len <= src);
         // No shared reference over the entire mapping is formed.
         unsafe {
             ptr::copy_nonoverlapping(mmap.as_ptr().add(src), mmap.as_mut_ptr().add(dst), len)

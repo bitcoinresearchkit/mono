@@ -57,10 +57,6 @@ impl<I: VecIndex, T: VecValue> AnyVec for RangeMapVec<I, T> {
         I::to_string()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
     fn value_type_to_size_of(&self) -> usize {
         size_of::<T>()
     }

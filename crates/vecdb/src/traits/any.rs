@@ -39,8 +39,12 @@ pub trait AnyVec: Send + Sync {
     fn region_name(&self) -> String {
         vec_region_name(self.name(), self.index_type_to_string())
     }
-    /// Returns the list of region names used by this vector.
-    fn region_names(&self) -> Vec<String>;
+    /// Returns the list of region names used by this vector: none for views, which store
+    /// nothing of their own.
+    #[inline]
+    fn region_names(&self) -> Vec<String> {
+        Vec::new()
+    }
     /// Returns the size in bytes of the value type.
     fn value_type_to_size_of(&self) -> usize;
     /// Returns the short type name of the value type (e.g., "Sats", "Ratio").
@@ -68,4 +72,27 @@ pub trait AnyVec: Send + Sync {
         let len = self.len();
         i64_to_usize(i, len)
     }
+}
+
+/// Emits the [`AnyVec`] methods fixed by a vector's index and value types
+/// (`index_type_to_string`, `value_type_to_size_of`, `value_type_to_string`) inside an
+/// `impl AnyVec` block.
+#[macro_export]
+macro_rules! any_vec_type_methods {
+    ($index:ty, $value:ty) => {
+        #[inline]
+        fn index_type_to_string(&self) -> &'static str {
+            <$index as $crate::PrintableIndex>::to_string()
+        }
+
+        #[inline]
+        fn value_type_to_size_of(&self) -> usize {
+            ::std::mem::size_of::<$value>()
+        }
+
+        #[inline]
+        fn value_type_to_string(&self) -> &'static str {
+            $crate::short_type_name::<$value>()
+        }
+    };
 }

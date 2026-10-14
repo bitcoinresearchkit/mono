@@ -141,10 +141,6 @@ impl AnyVec for LazyWindowStartVec {
         <Height as PrintableIndex>::to_string()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
     fn value_type_to_size_of(&self) -> usize {
         size_of::<Height>()
     }
@@ -160,43 +156,7 @@ impl TypedVec for LazyWindowStartVec {
 }
 
 impl ReadableVec<Height, Height> for LazyWindowStartVec {
-    fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<Height>) {
-        buf.reserve(to.min(self.len()).saturating_sub(from));
-        self.for_each_value(from, to, |value| buf.push(value));
-    }
-
-    fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(Height)) {
-        self.for_each_value(from, to, each);
-    }
-
-    fn fold_range_at<B, F: FnMut(B, Height) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        let mut acc = Some(init);
-        self.for_each_value(from, to, |value| {
-            acc = Some(fold(acc.take().unwrap(), value));
-        });
-        acc.unwrap()
-    }
-
-    fn try_fold_range_at<B, E, F: FnMut(B, Height) -> Result<B, E>>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> Result<B, E> {
-        let mut acc = Some(init);
-        self.try_for_each_value(from, to, |value| {
-            acc = Some(fold(acc.take().unwrap(), value)?);
-            Ok(())
-        })?;
-        Ok(acc.unwrap())
-    }
+    vecdb::visitor_read_methods!(Height, for_each_value, try_for_each_value);
 
     fn collect_one_at(&self, index: usize) -> Option<Height> {
         if index >= self.timestamps.len() {

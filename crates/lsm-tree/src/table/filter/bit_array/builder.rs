@@ -39,29 +39,3 @@ impl Builder {
         *byte = enable_bit(*byte, bit_idx);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use test_log::test;
-
-    #[test]
-    fn bit_set_true() {
-        assert_eq!(0b0000_0010, enable_bit(0, 6));
-        assert_eq!(0b1000_0000, enable_bit(0, 0));
-        assert_eq!(0b0100_0000, enable_bit(0, 1));
-        assert_eq!(0b0100_0110, enable_bit(0b0000_0110, 1));
-    }
-
-    #[test]
-    fn bit_array_builder_basic() {
-        let mut builder = Builder::with_capacity(1);
-        assert_eq!(&[0], builder.bytes());
-
-        builder.enable_bit(0);
-        assert_eq!(&[0b1000_0000], builder.bytes());
-
-        builder.enable_bit(7);
-        assert_eq!(&[0b1000_0001], builder.bytes());
-    }
-}

@@ -407,7 +407,8 @@ impl Formattable for PoolSlug {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for PoolSlug {
+// SAFETY: not native layout.
+unsafe impl Bytes for PoolSlug {
     type Array = [u8; size_of::<Self>()];
 
     #[inline]

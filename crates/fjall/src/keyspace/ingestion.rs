@@ -1,9 +1,9 @@
-use lsm_tree::{Ingestion as TreeIngestion, RecordBytes, Slice};
+use lsm_tree::{Ingestion as TreeIngestion, RecordBytes};
 
 use crate::{Keyspace, Result};
 
 /// A strictly sorted stream written directly into `SSTables`.
-pub struct Ingestion<'a, K = Slice, V = Slice> {
+pub struct Ingestion<'a, K, V> {
     keyspace: &'a Keyspace,
     inner: TreeIngestion<'a, K, V>,
 }

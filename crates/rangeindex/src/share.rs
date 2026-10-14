@@ -24,7 +24,7 @@ impl<I: Ord + Copy, V> SharedRangeMap<I, V> {
     /// publish related mappings together before readers can observe them.
     pub fn update_at(&self, from: usize, first_indexes: impl IntoIterator<Item = I>) {
         let mut map = self.0.write();
-        assert!(
+        debug_assert!(
             from <= map.len(),
             "range map update must preserve a valid prefix"
         );

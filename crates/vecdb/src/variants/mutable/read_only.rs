@@ -130,8 +130,24 @@ where
         }
     }
 
+    /// Bulk reads of the wrapped vec, split around holes.
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<V::T>) {
-        self.fold_range_at(from, to, (), |(), value| buf.push(value));
+        let to = to.min(self.vec.len());
+        if from >= to {
+            return;
+        }
+        let holes = self.holes.read_recursive();
+        let mut start = from;
+        buf.reserve(to - from);
+        for &hole in holes.range(from..to) {
+            if start < hole {
+                self.vec.read_into_at(start, hole, buf);
+            }
+            start = hole + 1;
+        }
+        if start < to {
+            self.vec.read_into_at(start, to, buf);
+        }
     }
 
     #[inline]

@@ -146,19 +146,3 @@ impl<'a> Trailer<'a> {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use strum::IntoEnumIterator;
-    use test_log::test;
-
-    use crate::{ValueType, table::block::TRAILER_START_MARKER};
-
-    #[test]
-    fn value_type_never_block_trailer_start_marker() {
-        for variant in ValueType::iter() {
-            let n: u8 = variant.into();
-            assert_ne!(n, TRAILER_START_MARKER);
-        }
-    }
-}

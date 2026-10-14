@@ -1,5 +1,12 @@
 use crate::{ReadableVec, VecIndex, VecValue};
 
+/// End of the chunk read from `at`: the next multiple of `chunk_size` (so every read after the
+/// first starts on a source page boundary), capped at `to`.
+#[inline]
+pub(crate) fn chunk_end(at: usize, chunk_size: usize, to: usize) -> usize {
+    at.saturating_add(chunk_size - at % chunk_size).min(to)
+}
+
 pub(crate) fn for_each_chunk<I: VecIndex, T: VecValue>(
     source: &(impl ReadableVec<I, T> + ?Sized),
     from: usize,
@@ -12,7 +19,7 @@ pub(crate) fn for_each_chunk<I: VecIndex, T: VecValue>(
     let mut at = from;
     let mut emitted_at = from;
     while at < to {
-        let end = at.saturating_add(chunk_size - at % chunk_size).min(to);
+        let end = chunk_end(at, chunk_size, to);
         values.clear();
         source.read_into_at(at, end, &mut values);
         if !values.is_empty() {
@@ -56,7 +63,7 @@ pub(crate) fn try_fold<I: VecIndex, T: VecValue, B, E>(
 
     let mut start = from;
     while start < to {
-        let end = start.saturating_add(chunk_size).min(to);
+        let end = chunk_end(start, chunk_size, to);
         source.read_into_at(start, end, &mut buf);
         for value in buf.drain(..) {
             acc = f(acc, value)?;

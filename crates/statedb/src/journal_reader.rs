@@ -21,21 +21,25 @@ impl<'a> JournalReader<'a> {
             bytes: Vec::new(),
         }
     }
-    pub fn read(&mut self, height: usize) -> Result<&[u8]> {
-        if height < self.start || height - self.start >= self.records.len() {
+    /// The record at `height` and its parent's (empty at genesis), from one read of the file.
+    pub fn read(&mut self, height: usize) -> Result<(&[u8], &[u8])> {
+        let first = height.saturating_sub(1);
+        if first < self.start || height - self.start >= self.records.len() {
             self.start = usize::MAX;
             self.journal.read_batch(
-                height,
+                first,
                 self.end.min(height.saturating_add(128)),
                 &mut self.index,
                 &mut self.records,
                 &mut self.bytes,
             )?;
-            self.start = height;
+            self.start = first;
         }
+        let record = |i: usize| {
+            let start = if i == 0 { 0 } else { self.records[i - 1] };
+            &self.bytes[start..self.records[i]]
+        };
         let i = height - self.start;
-        let start = if i == 0 { 0 } else { self.records[i - 1] };
-        let end = self.records[i];
-        Ok(&self.bytes[start..end])
+        Ok((if height == 0 { &[] } else { record(i - 1) }, record(i)))
     }
 }

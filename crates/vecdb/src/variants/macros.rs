@@ -414,17 +414,7 @@ macro_rules! impl_mutable_raw_vec {
                 }
 
                 fn write_updates(&mut self, updated: BTreeMap<usize, T>) -> Result<()> {
-                    let guard = self.header().begin_write()?;
-                    let result = self
-                        .region()
-                        .write_indexed(
-                            updated,
-                            size_of::<T>(),
-                            crate::HEADER_OFFSET,
-                            $strategy::<T>::write_to_slice,
-                        )
-                        .map_err(Into::into);
-                    guard.finish(result)
+                    self.0.write_updates(updated)
                 }
 
                 fn append_previous_values(
@@ -433,33 +423,13 @@ macro_rules! impl_mutable_raw_vec {
                     previous: &BTreeMap<usize, T>,
                     bytes: &mut Vec<u8>,
                 ) {
-                    let reader = self.reader();
-                    for index in indices {
-                        let value = previous
-                            .get(index)
-                            .cloned()
-                            .unwrap_or_else(|| reader.get_at(*index));
-                        $strategy::<T>::write_to_vec(&value, bytes);
-                    }
+                    self.0.append_previous_values(indices, previous, bytes)
                 }
 
                 fn parse_mutable_changes(
                     bytes: &[u8],
                 ) -> crate::Result<(Vec<(usize, T)>, BTreeSet<usize>)> {
-                    let mut cursor = ChangeCursor::new(bytes);
-                    let _: ChangeData<T> =
-                        ReadWriteBaseVec::<I, T>::parse_change_data::<$strategy<T>>(&mut cursor)?;
-                    let modified_len = cursor.read_u64()?;
-                    let indices =
-                        cursor.read_values(modified_len, crate::SIZE_OF_U64, usize::from_bytes)?;
-                    let values =
-                        cursor.read_values(modified_len, size_of::<T>(), $strategy::<T>::read)?;
-                    let previous_holes_len = cursor.read_u64()?;
-                    let previous_holes = cursor
-                        .read_values(previous_holes_len, crate::SIZE_OF_U64, usize::from_bytes)?
-                        .into_iter()
-                        .collect();
-                    Ok((indices.into_iter().zip(values).collect(), previous_holes))
+                    ReadWriteRawVec::<I, T, $strategy<T>>::parse_mutable_changes(bytes)
                 }
 
                 fn save_change_file(&self, stamp: Stamp, bytes: &[u8]) -> crate::Result<()> {
@@ -479,5 +449,100 @@ macro_rules! impl_mutable_raw_vec {
                 }
             }
         };
+    };
+}
+
+/// Implements `WritableVec` for the raw and compressed read-write vecs, which share their base
+/// vec, cache updates and change files.
+macro_rules! impl_read_write_writable {
+    ($vec:ident, $strategy:ident) => {
+        impl<I, T, S, C: $crate::cache::CachePolicy> $crate::WritableVec<I, T> for $vec<I, T, S, C>
+        where
+            I: $crate::VecIndex,
+            T: $crate::VecValue,
+            S: $strategy<T>,
+        {
+            #[inline]
+            fn push(&mut self, value: T) {
+                self.base.mut_pushed().push(value);
+            }
+
+            #[inline]
+            fn pushed(&self) -> &[T] {
+                self.base.pushed()
+            }
+
+            fn truncate_if_needed_at(&mut self, index: usize) -> $crate::Result<()> {
+                self.header().check_writable()?;
+                self.with_cache_update(index, |this| {
+                    if this.base.truncate_pushed(index) {
+                        this.base.update_stored_len(index);
+                    }
+                    Ok(())
+                })
+            }
+
+            fn reset(&mut self) -> $crate::Result<()> {
+                let guard = self.header().begin_write()?;
+                let result = self.with_cache_update(0, |this| {
+                    this.base.truncate_pushed(0);
+                    this.base.update_stored_len(0);
+                    this.base.reset_base()
+                });
+                guard.finish(result)
+            }
+
+            fn reset_unsaved(&mut self) {
+                self.with_cache_update(0, |this| {
+                    this.base.reset_unsaved_base();
+                    Ok(())
+                })
+                .expect("resetting unsaved state cannot fail");
+            }
+
+            fn is_dirty(&self) -> bool {
+                !self.base.pushed().is_empty()
+            }
+
+            fn stamped_write_with_changes(&mut self, stamp: $crate::Stamp) -> $crate::Result<()> {
+                self.header().check_writable()?;
+                if self.base.saved_stamped_changes() == 0 {
+                    return self.stamped_write(stamp);
+                }
+
+                let guard = self.header().begin_write()?;
+                let data = self.serialize_changes()?;
+                self.base.save_change_file(stamp, &data)?;
+                self.stamped_write(stamp)?;
+                self.base.save_prev();
+
+                guard.finish(Ok(()))
+            }
+
+            fn rollback(&mut self) -> $crate::Result<()> {
+                self.header().check_writable()?;
+                let bytes = self.base.read_current_change_file()?;
+                let change = $crate::ReadWriteBaseVec::<I, T>::parse_change_data::<S>(
+                    &mut $crate::ChangeCursor::new(&bytes),
+                )?;
+                let from = self.base.rollback_from(&change);
+                self.with_cache_update(from, |this| {
+                    this.base.apply_rollback(change);
+                    Ok(())
+                })
+            }
+
+            fn find_rollback_files(
+                &self,
+            ) -> $crate::Result<::std::collections::BTreeMap<$crate::Stamp, ::std::path::PathBuf>>
+            {
+                self.base.find_rollback_files()
+            }
+
+            fn save_rollback_state(&mut self) {
+                self.header().assert_writable();
+                self.base.save_prev_for_rollback();
+            }
+        }
     };
 }

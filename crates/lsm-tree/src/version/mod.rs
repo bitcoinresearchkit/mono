@@ -4,7 +4,7 @@
 
 mod inner;
 mod level;
-mod optimize;
+pub mod optimize;
 mod persist;
 pub mod recovery;
 pub mod run;
@@ -165,21 +165,12 @@ impl Version {
         self.levels.iter()
     }
 
-    /// Returns the number of tables in all levels.
-    pub fn table_count(&self) -> usize {
-        self.iter_levels().map(Level::table_count).sum()
-    }
-
     /// Returns an iterator over all tables.
     pub fn iter_tables(&self) -> impl Iterator<Item = &Table> {
         self.levels
             .iter()
             .flat_map(Level::iter)
             .flat_map(|x| x.iter())
-    }
-
-    pub fn get_table(&self, id: u32) -> Option<&Table> {
-        self.iter_tables().find(|x| x.metadata.id == id)
     }
 
     /// Gets the n-th level.
@@ -230,36 +221,13 @@ impl Version {
         }
     }
 
-    /// Returns a new version with a list of tables removed.
-    ///
-    /// The table files are not immediately deleted, this is handled by the version system's free list.
-    #[expect(
-        clippy::unnecessary_wraps,
-        reason = "preserves the fallible version-transformation API"
-    )]
-    pub fn with_dropped(&self, ids: &[u32]) -> Result<Self> {
+    pub fn with_merge(
+        &self,
+        old_ids: &FxHashSet<u32>,
+        new_tables: &[Table],
+        dest_level: usize,
+    ) -> Self {
         let id = self.id + 1;
-        let ids = ids.iter().copied().collect::<FxHashSet<_>>();
-        let levels = self
-            .levels
-            .iter()
-            .map(|level| {
-                if level_contains_any(level, &ids) {
-                    rebuild_level(level, &ids, None, false)
-                } else {
-                    level.clone()
-                }
-            })
-            .collect();
-
-        Ok(Self {
-            inner: Arc::new(Inner { id, levels }),
-        })
-    }
-
-    pub fn with_merge(&self, old_ids: &[u32], new_tables: &[Table], dest_level: usize) -> Self {
-        let id = self.id + 1;
-        let old_ids = old_ids.iter().copied().collect::<FxHashSet<_>>();
         let levels = self
             .levels
             .iter()
@@ -267,13 +235,13 @@ impl Version {
             .map(|(level_idx, level)| {
                 let is_destination = level_idx == dest_level && !new_tables.is_empty();
 
-                if !is_destination && !level_contains_any(level, &old_ids) {
+                if !is_destination && !level_contains_any(level, old_ids) {
                     return level.clone();
                 }
 
                 rebuild_level(
                     level,
-                    &old_ids,
+                    old_ids,
                     is_destination.then(|| {
                         #[expect(
                             clippy::expect_used,
@@ -293,10 +261,8 @@ impl Version {
         }
     }
 
-    pub fn with_moved(&self, ids: &[u32], dest_level: usize) -> Self {
+    pub fn with_moved(&self, ids: &FxHashSet<u32>, dest_level: usize) -> Self {
         let id = self.id + 1;
-        let id_count = ids.len();
-        let ids = ids.iter().copied().collect::<FxHashSet<_>>();
 
         let affected_tables = self
             .iter_tables()
@@ -304,7 +270,7 @@ impl Version {
             .cloned()
             .collect::<Vec<_>>();
 
-        assert_eq!(affected_tables.len(), id_count, "invalid table IDs");
+        assert_eq!(affected_tables.len(), ids.len(), "invalid table IDs");
 
         let levels = self
             .levels
@@ -313,13 +279,13 @@ impl Version {
             .map(|(level_idx, level)| {
                 let is_destination = level_idx == dest_level && !affected_tables.is_empty();
 
-                if !is_destination && !level_contains_any(level, &ids) {
+                if !is_destination && !level_contains_any(level, ids) {
                     return level.clone();
                 }
 
                 rebuild_level(
                     level,
-                    &ids,
+                    ids,
                     is_destination.then(|| {
                         #[expect(
                             clippy::expect_used,

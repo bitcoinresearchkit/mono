@@ -270,7 +270,8 @@ impl Formattable for OutputType {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for OutputType {
+// SAFETY: not native layout.
+unsafe impl Bytes for OutputType {
     type Array = [u8; size_of::<Self>()];
 
     #[inline]

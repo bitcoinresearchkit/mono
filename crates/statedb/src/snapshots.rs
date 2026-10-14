@@ -189,14 +189,20 @@ impl Snapshots {
         tips.sort_unstable_by_key(|tip| std::cmp::Reverse(tip.len));
         Ok(tips)
     }
-    /// The newest retained snapshot no later than `end` first.
-    pub fn before(
+    /// The retained snapshots past `after` through `end`, newest first, chosen by indexed height
+    /// before any is opened.
+    pub fn between(
         &self,
+        after: usize,
         end: usize,
         versions: (u64, u64),
     ) -> impl Iterator<Item = Result<Option<Snapshot>>> + '_ {
-        let count = self.entries.partition_point(|&(h, _, _)| h <= end);
-        self.entries[..count]
+        let to = self.entries.partition_point(|&(h, _, _)| h <= end);
+        let from = self
+            .entries
+            .partition_point(|&(h, _, _)| h <= after)
+            .min(to);
+        self.entries[from..to]
             .iter()
             .rev()
             .map(move |&e| self.read(e, versions))

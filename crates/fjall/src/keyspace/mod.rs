@@ -1,4 +1,10 @@
-use std::{ops::RangeBounds, sync::Arc};
+use std::{
+    ops::RangeBounds,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 
 use inner::Inner;
 use lsm_tree::{RecordBytes, Slice};
@@ -15,9 +21,6 @@ use crate::{
 mod ingestion;
 mod inner;
 pub mod options;
-
-#[cfg(test)]
-mod tests;
 
 pub use ingestion::Ingestion;
 
@@ -47,6 +50,7 @@ impl Keyspace {
                 tree,
                 compaction,
                 worker: worker_pool.sender(),
+                compaction_queued: AtomicBool::new(false),
                 _lock: lock,
             }),
         };
@@ -58,19 +62,15 @@ impl Keyspace {
         Ok(keyspace)
     }
 
+    #[cfg(test)]
+    pub(crate) fn tree(&self) -> &lsm_tree::Tree {
+        &self.inner.tree
+    }
+
     /// Returns the keyspace name.
     #[must_use]
     pub(crate) fn name(&self) -> &str {
         &self.inner.name
-    }
-
-    /// Starts a sorted bulk ingestion directly into `SSTables`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if an output table cannot be created.
-    pub fn start_ingestion(&self) -> Result<Ingestion<'_>> {
-        Ingestion::new(self)
     }
 
     /// Starts ingestion with the specified record representation.
@@ -81,15 +81,6 @@ impl Keyspace {
         &self,
     ) -> Result<Ingestion<'_, K, V>> {
         Ingestion::new(self)
-    }
-
-    /// Reads the latest value for `key` from immutable tables.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if a table cannot be read or decoded.
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<Slice>> {
-        self.inner.tree.get(key).map_err(Into::into)
     }
 
     /// Reads a value into the specified owned bytes.
@@ -146,12 +137,18 @@ impl Keyspace {
         Ok(())
     }
 
-    /// Queues this keyspace for background compaction.
-    #[doc(hidden)]
+    /// Runs a queued compaction. Ingestions finishing meanwhile queue a follow-up.
+    pub(crate) fn compact_queued(&self) -> Result<()> {
+        // A swap (not a store) also acquires the version the requester published.
+        self.inner.compaction_queued.swap(false, Ordering::AcqRel);
+        self.compact()
+    }
+
+    /// Queues this keyspace for background compaction unless a request is already pending.
     fn request_compaction(&self) {
-        let _ = self
-            .inner
-            .worker
-            .try_send(WorkerMessage::Compact(self.clone()));
+        if !self.inner.compaction_queued.swap(true, Ordering::AcqRel) {
+            // Fails only once the database dropped its workers.
+            let _ = self.inner.worker.send(WorkerMessage::Compact(self.clone()));
+        }
     }
 }

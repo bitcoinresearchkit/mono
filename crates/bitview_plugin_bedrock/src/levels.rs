@@ -1,5 +1,3 @@
-use std::{fmt, str};
-
 use bitview_traversable::Traversable;
 use schemars::JsonSchema;
 use serde::Serialize;

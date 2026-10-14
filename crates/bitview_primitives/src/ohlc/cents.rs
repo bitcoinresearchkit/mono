@@ -177,19 +177,16 @@ impl Formattable for OHLCCents {
         buf.push(b']');
     }
 
-    fn fmt_csv(&self, f: &mut String) -> FmtResult {
-        let start = f.len();
-        self.fmt_into(f);
-        if f.as_bytes()[start..].contains(&b',') {
-            f.insert(start, '"');
-            f.push('"');
-        }
-        Ok(())
+    fn fmt_csv(&self, buf: &mut Vec<u8>) {
+        let start = buf.len();
+        self.write_to(buf);
+        vecdb::escape_csv_cell(buf, start);
     }
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for OHLCCents {
+// SAFETY: not native layout.
+unsafe impl Bytes for OHLCCents {
     type Array = [u8; size_of::<Self>()];
 
     fn to_bytes(&self) -> Self::Array {

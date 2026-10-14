@@ -99,7 +99,8 @@ impl<T> CompressionStrategy<T> for PcodecStrategy<T>
 where
     T: PcoVecValue,
 {
-    type Decoder = (ChunkDecompressor<T::NumberType>, Vec<T::NumberType>);
+    /// The current chunk's decompressor and a number scratch buffer.
+    type Decoder = (Option<ChunkDecompressor<T::NumberType>>, Vec<T::NumberType>);
 
     const MAX_UNCOMPRESSED_CHUNK_SIZE: usize = 128 * 1024;
 
@@ -139,13 +140,15 @@ where
         EncodedChunk::new(bytes, header_len, page_ends)
     }
 
-    fn decoder(header: &[u8]) -> Result<Self::Decoder> {
+    fn reset_decoder(decoder: &mut Self::Decoder, header: &[u8]) -> Result<()> {
+        decoder.0 = None;
         let (file, rest) = FileDecompressor::new(header)?;
-        let (decoder, rest) = file.chunk_decompressor(rest)?;
+        let (chunk, rest) = file.chunk_decompressor(rest)?;
         if !rest.is_empty() {
             return Err(Error::InvalidArgument("trailing PCO chunk header bytes"));
         }
-        Ok((decoder, Vec::new()))
+        decoder.0 = Some(chunk);
+        Ok(())
     }
 
     #[inline]
@@ -155,7 +158,9 @@ where
         expected_len: usize,
         dst: &mut Vec<T>,
     ) -> Result<()> {
-        let (decompressor, numbers) = decoder;
+        let (Some(decompressor), numbers) = decoder else {
+            unreachable!("pages decode after their chunk's reset");
+        };
         if T::IS_TRANSPARENT {
             dst.clear();
             return Self::decode_transparent_append(decompressor, body, expected_len, dst);
@@ -177,7 +182,9 @@ where
         expected_len: usize,
         dst: &mut Vec<T>,
     ) -> Result<()> {
-        let (decompressor, numbers) = decoder;
+        let (Some(decompressor), numbers) = decoder else {
+            unreachable!("pages decode after their chunk's reset");
+        };
         if T::IS_TRANSPARENT {
             return Self::decode_transparent_append(decompressor, body, expected_len, dst);
         }

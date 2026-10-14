@@ -57,7 +57,6 @@ macro_rules! unwrap {
     ($x:expr) => {{ $x.expect("should read") }};
 }
 
-mod boxed_iterator;
 #[doc(hidden)]
 mod cache;
 
@@ -109,7 +108,6 @@ mod value;
 mod value_type;
 mod version;
 use {
-    boxed_iterator::BoxedIterator,
     key_range::KeyRange,
     table::{GlobalTableId, Table},
     value::InternalValue,

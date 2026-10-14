@@ -5,7 +5,8 @@ use super::Bytes;
 macro_rules! impl_bytes_for_array {
     ($($n:expr),*) => {
         $(
-            impl Bytes for [u8; $n] {
+            // SAFETY: a byte array is its own byte image.
+            unsafe impl Bytes for [u8; $n] {
                 type Array = [u8; $n];
                 const IS_NATIVE_LAYOUT: bool = true;
 

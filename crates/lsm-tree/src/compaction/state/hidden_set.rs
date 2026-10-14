@@ -33,8 +33,4 @@ impl HiddenSet {
     pub fn is_hidden(&self, key: u32) -> bool {
         self.set.contains(&key)
     }
-
-    pub fn should_decline_compaction<T: IntoIterator<Item = u32>>(&self, ids: T) -> bool {
-        self.is_blocked(ids)
-    }
 }

@@ -315,14 +315,10 @@ impl Formattable for FundedAddressData {
         write!(buf, "{self}").unwrap();
     }
 
-    fn fmt_csv(&self, f: &mut String) -> FmtResult {
-        let start = f.len();
-        self.fmt_into(f);
-        if f.as_bytes()[start..].contains(&b',') {
-            f.insert(start, '"');
-            f.push('"');
-        }
-        Ok(())
+    fn fmt_csv(&self, buf: &mut Vec<u8>) {
+        let start = buf.len();
+        self.write_to(buf);
+        vecdb::escape_csv_cell(buf, start);
     }
 
     fn fmt_json(&self, buf: &mut Vec<u8>) {
@@ -333,7 +329,8 @@ impl Formattable for FundedAddressData {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for FundedAddressData {
+// SAFETY: not native layout.
+unsafe impl Bytes for FundedAddressData {
     type Array = [u8; size_of::<Self>()];
 
     fn to_bytes(&self) -> Self::Array {

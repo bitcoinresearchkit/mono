@@ -16,7 +16,6 @@ use std::{
 use block_index::BlockIndexImpl;
 use bound::Bound as IterBound;
 use inner::Inner;
-use iter::Iter;
 use log::{debug, trace};
 use sfa::Reader;
 use util::load_block;
@@ -53,14 +52,12 @@ mod scanner;
 pub mod util;
 pub mod writer;
 
-#[cfg(test)]
-mod tests;
-
 pub use block::{Block, BlockOffset};
 pub use data_block::DataBlock;
 pub use id::GlobalTableId;
 pub use id::next_table_id;
 pub use index_block::{BlockHandle, IndexBlock, KeyedBlockHandle};
+pub use iter::Iter;
 pub use scanner::Scanner;
 
 /// A disk segment (a.k.a. `Table`, `SSTable`, `SST`, `sorted string table`) that is located on disk
@@ -268,35 +265,21 @@ impl Table {
         )
     }
 
-    /// Creates an iterator over the `Table`.
-    ///
-    /// # Errors
-    ///
-    /// Will return `Err` if an IO error occurs.
-    #[must_use]
-    #[doc(hidden)]
-    pub fn iter(&self) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + use<> {
-        self.range(..)
+    #[cfg(test)]
+    pub fn iter(&self) -> Iter {
+        self.range_as(..)
     }
 
-    /// Creates a ranged iterator over the `Table`.
-    ///
-    /// # Errors
-    ///
-    /// Will return `Err` if an IO error occurs.
-    #[must_use]
-    #[doc(hidden)]
-    pub fn range<R: RangeBounds<Slice> + Send>(
-        &self,
-        range: R,
-    ) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + Send + use<R> {
-        self.range_as::<Slice, Slice, R>(range)
+    #[cfg(test)]
+    pub fn range<R: RangeBounds<Slice>>(&self, range: R) -> Iter {
+        self.range_as(range)
     }
 
-    pub fn range_as<K: RecordBytes, V: RecordBytes, R: RangeBounds<Slice> + Send>(
+    /// Iterates over the records in `range`, decoding them as `K` and `V`.
+    pub fn range_as<K: RecordBytes, V: RecordBytes, R: RangeBounds<Slice>>(
         &self,
         range: R,
-    ) -> impl DoubleEndedIterator<Item = Result<InternalValue<K, V>>> + Send + use<K, V, R> {
+    ) -> Iter<K, V> {
         let index_iter = self.block_index.iter();
 
         let mut iter = Iter::<K, V>::new(self.clone(), index_iter);
@@ -469,11 +452,6 @@ impl Table {
 
     pub fn mark_as_deleted(&self) {
         self.0.is_deleted.store(true, Ordering::Release);
-    }
-
-    /// Checks if a key range is (partially or fully) contained in this table.
-    pub fn check_key_range_overlap(&self, bounds: &(Bound<&[u8]>, Bound<&[u8]>)) -> bool {
-        self.metadata.key_range.overlaps_with_bounds(bounds)
     }
 
     /// Returns the highest sequence number in the table.

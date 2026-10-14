@@ -7,21 +7,13 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Cache, CompressionType, DescriptorTable, Result, Tree, path::absolute_path};
+use crate::{Cache, DescriptorTable, Result, Tree, path::absolute_path};
 
-mod block_size;
-mod compression;
 mod filter;
 mod partitioning;
 mod pinning;
 mod restart_interval;
 
-#[cfg(test)]
-#[path = "../../tests/unit/config.rs"]
-mod tests;
-
-pub use block_size::BlockSizePolicy;
-pub use compression::CompressionPolicy;
 pub use filter::{BloomConstructionPolicy, FilterPolicy, FilterPolicyEntry};
 pub use partitioning::PartitioningPolicy;
 pub use pinning::PinningPolicy;
@@ -41,17 +33,8 @@ pub struct Config {
     #[doc(hidden)]
     pub(crate) descriptor_table: Option<Arc<DescriptorTable>>,
 
-    /// What type of compression is used for data blocks
-    pub(crate) data_block_compression_policy: CompressionPolicy,
-
-    /// What type of compression is used for index blocks
-    pub(crate) index_block_compression_policy: CompressionPolicy,
-
     /// Restart interval inside data blocks
     pub(crate) data_block_restart_interval_policy: RestartIntervalPolicy,
-
-    /// Block size of data blocks
-    pub(crate) data_block_size_policy: BlockSizePolicy,
 
     /// Whether to pin index blocks
     pub(crate) index_block_pinning_policy: PinningPolicy,
@@ -81,16 +64,10 @@ impl Config {
             descriptor_table: Some(Arc::new(DescriptorTable::new(256))),
             cache: Arc::new(Cache::with_capacity_bytes(16 * 1_024 * 1_024)),
             data_block_restart_interval_policy: RestartIntervalPolicy::all(16),
-            data_block_size_policy: BlockSizePolicy::all(4_096),
             index_block_pinning_policy: PinningPolicy::new([true, true, false]),
             filter_block_pinning_policy: PinningPolicy::new([true, false]),
             index_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
             filter_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
-            data_block_compression_policy: CompressionPolicy::new([
-                CompressionType::None,
-                CompressionType::Lz4,
-            ]),
-            index_block_compression_policy: CompressionPolicy::all(CompressionType::None),
             filter_policy: FilterPolicy::all(FilterPolicyEntry::Bloom(
                 BloomConstructionPolicy::BitsPerKey(10.0),
             )),
@@ -173,27 +150,6 @@ impl Config {
     #[must_use]
     pub fn filter_policy(mut self, policy: FilterPolicy) -> Self {
         self.filter_policy = policy;
-        self
-    }
-
-    /// Sets the compression method for data blocks.
-    #[must_use]
-    pub fn data_block_compression_policy(mut self, policy: CompressionPolicy) -> Self {
-        self.data_block_compression_policy = policy;
-        self
-    }
-
-    /// Sets the compression method for index blocks.
-    #[must_use]
-    pub fn index_block_compression_policy(mut self, policy: CompressionPolicy) -> Self {
-        self.index_block_compression_policy = policy;
-        self
-    }
-
-    /// Sets the data block size policy.
-    #[must_use]
-    pub fn data_block_size_policy(mut self, policy: BlockSizePolicy) -> Self {
-        self.data_block_size_policy = policy;
         self
     }
 

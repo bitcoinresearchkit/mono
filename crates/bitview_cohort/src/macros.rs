@@ -102,20 +102,10 @@ macro_rules! impl_collection_formattable {
                 output.push(b'}');
             }
 
-            fn fmt_csv(&self, output: &mut String) -> std::fmt::Result {
-                let mut json = Vec::new();
-                vecdb::Formattable::write_to(self, &mut json);
-                let json = std::str::from_utf8(&json).map_err(|_| std::fmt::Error)?;
-
-                output.push('"');
-                for character in json.chars() {
-                    if character == '"' {
-                        output.push('"');
-                    }
-                    output.push(character);
-                }
-                output.push('"');
-                Ok(())
+            fn fmt_csv(&self, output: &mut Vec<u8>) {
+                let start = output.len();
+                vecdb::Formattable::write_to(self, output);
+                vecdb::escape_csv_cell(output, start);
             }
         }
     };

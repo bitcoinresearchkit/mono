@@ -1,7 +1,8 @@
 use super::BytesStrategy;
 use crate::{BytesVecValue, Result, ValueStrategy};
 
-impl<T: BytesVecValue> ValueStrategy<T> for BytesStrategy<T> {
+// SAFETY: the native-layout flag is `T`'s, under the `Bytes` contract.
+unsafe impl<T: BytesVecValue> ValueStrategy<T> for BytesStrategy<T> {
     const IS_NATIVE_LAYOUT: bool = T::IS_NATIVE_LAYOUT;
 
     #[inline(always)]

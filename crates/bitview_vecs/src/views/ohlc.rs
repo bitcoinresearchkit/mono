@@ -122,10 +122,6 @@ impl<I: VecIndex> AnyVec for LazyOhlcVec<I> {
         I::to_string()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
     fn value_type_to_size_of(&self) -> usize {
         size_of::<OHLCCents>()
     }
@@ -141,43 +137,7 @@ impl<I: VecIndex> TypedVec for LazyOhlcVec<I> {
 }
 
 impl<I: VecIndex> ReadableVec<I, OHLCCents> for LazyOhlcVec<I> {
-    fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<OHLCCents>) {
-        buf.reserve(to.min(self.len()).saturating_sub(from));
-        self.for_each_candle(from, to, |candle| buf.push(candle));
-    }
-
-    fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(OHLCCents)) {
-        self.for_each_candle(from, to, each);
-    }
-
-    fn fold_range_at<B, F: FnMut(B, OHLCCents) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        let mut acc = Some(init);
-        self.for_each_candle(from, to, |candle| {
-            acc = Some(fold(acc.take().unwrap(), candle));
-        });
-        acc.unwrap()
-    }
-
-    fn try_fold_range_at<B, E, F: FnMut(B, OHLCCents) -> Result<B, E>>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> Result<B, E> {
-        let mut acc = Some(init);
-        self.try_for_each_candle(from, to, |candle| {
-            acc = Some(fold(acc.take().unwrap(), candle)?);
-            Ok(())
-        })?;
-        Ok(acc.unwrap())
-    }
+    vecdb::visitor_read_methods!(OHLCCents, for_each_candle, try_for_each_candle);
 
     fn collect_one_at(&self, index: usize) -> Option<OHLCCents> {
         let mapping = self.first_heights.read();

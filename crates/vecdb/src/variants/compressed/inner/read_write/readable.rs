@@ -4,7 +4,7 @@ use std::result::Result;
 use super::{super::CompressionStrategy, ReadWriteCompressedVec};
 use crate::{
     AnyStoredVec, CompressedIoSource, ReadableVec, VecIndex, VecValue, cache::CachePolicy,
-    cache::Request, traits::chunk_folds::for_each_chunk,
+    cache::Request,
 };
 
 impl<I, T, S, C: CachePolicy> ReadableVec<I, T> for ReadWriteCompressedVec<I, T, S, C>
@@ -65,7 +65,8 @@ where
             if Self::prefers_mmap(self.region(), &self.pages, from, stored_to) {
                 let pages = self.pages.read_recursive();
                 let reader = self.create_reader();
-                Self::read_stored_pages_into(&reader, &pages, from, stored_to, buf);
+                Self::read_stored_pages_into(&reader, &pages, from, stored_to, buf)
+                    .expect("compressed page decode failed");
             } else {
                 CompressedIoSource::new(self, from, stored_to).read_into(buf);
             }
@@ -115,7 +116,18 @@ where
 
     fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
         let Some(cache) = C::cache(&self.cache) else {
-            return for_each_chunk(self, from, to, f);
+            let stored_len = self.stored_len();
+            Self::for_each_stored_chunk(self.region(), &self.pages, stored_len, from, to, f);
+            let pushed = self.base.pushed();
+            let push_from = from.max(stored_len);
+            let push_to = to.min(stored_len + pushed.len());
+            if push_from < push_to {
+                f(
+                    push_from,
+                    &pushed[push_from - stored_len..push_to - stored_len],
+                );
+            }
+            return;
         };
         cache.for_each_source(
             from,
@@ -139,11 +151,10 @@ where
         Self: Sized,
     {
         if C::cache(&self.cache).is_some() {
-            return self
-                .try_fold_range_at(from, to, init, |acc, value| {
-                    Ok::<_, Infallible>(f(acc, value))
-                })
-                .unwrap();
+            let Ok(acc) = self.try_fold_range_at(from, to, init, |acc, value| {
+                Ok::<_, Infallible>(f(acc, value))
+            });
+            return acc;
         }
         let len = self.base.len();
         let from = from.min(len);

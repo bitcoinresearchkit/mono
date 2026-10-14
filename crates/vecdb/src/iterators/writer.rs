@@ -1,6 +1,6 @@
 use crate::Result;
 
-/// Stateful writer for streaming values one at a time to a string buffer.
+/// Stateful writer for streaming values one at a time to a byte buffer.
 ///
 /// Useful for incremental serialization when memory constraints prevent
 /// materializing entire collections.
@@ -9,5 +9,5 @@ pub trait ValueWriter {
     ///
     /// # Errors
     /// Returns `IteratorEnded` when no more values are available.
-    fn write_next(&mut self, buf: &mut String) -> Result<()>;
+    fn write_next(&mut self, buf: &mut Vec<u8>) -> Result<()>;
 }

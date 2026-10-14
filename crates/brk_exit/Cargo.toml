@@ -10,4 +10,4 @@ repository.workspace = true
 [dependencies]
 libc = { workspace = true }
 log = { workspace = true }
-parking_lot = { workspace = true }
+parking_lot = { workspace = true, features = ["arc_lock", "send_guard"] }

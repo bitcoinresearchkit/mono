@@ -85,10 +85,16 @@ pub(crate) fn is_range_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bo
     true
 }
 
-/// Whether every page of a page-aligned mapped range is in memory (one probe for the whole range).
-/// Unsupported page geometry and probe errors return false.
+/// Whether every page of a page-aligned mapped range is in memory (one probe for the whole range),
+/// using `states` as scratch for the per-page status bytes. Unsupported page geometry and probe
+/// errors return false.
 #[cfg(unix)]
-pub(crate) fn is_fully_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bool {
+pub(crate) fn is_fully_resident(
+    mmap: &MmapRaw,
+    offset: usize,
+    len: usize,
+    states: &mut Vec<u8>,
+) -> bool {
     let Some(page_size) = vm_page_size() else {
         return false;
     };
@@ -97,7 +103,8 @@ pub(crate) fn is_fully_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bo
     {
         return false;
     }
-    let mut states = vec![0u8; len.div_ceil(page_size)];
+    states.clear();
+    states.resize(len.div_ceil(page_size), 0);
     // SAFETY: the checked, page-aligned range lies within the mapping, and mincore writes one status
     // byte per page into a buffer sized for every page of it.
     let result = unsafe {

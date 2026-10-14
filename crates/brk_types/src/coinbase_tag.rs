@@ -27,7 +27,9 @@ use vecdb::{Bytes, Formattable};
 pub struct CoinbaseTag(#[cfg_attr(feature = "schemars", schemars(with = "String"))] [u8; 101]);
 
 #[cfg(feature = "storage")]
-impl Bytes for CoinbaseTag {
+// SAFETY: a single `[u8; 101]` field, so its bytes are its in-memory bytes, valid for every bit
+// pattern.
+unsafe impl Bytes for CoinbaseTag {
     type Array = [u8; 101];
     const IS_NATIVE_LAYOUT: bool = true;
 
@@ -84,6 +86,12 @@ impl<'de> Deserialize<'de> for CoinbaseTag {
 impl Formattable for CoinbaseTag {
     fn write_to(&self, buf: &mut Vec<u8>) {
         buf.extend_from_slice(self.as_str().as_bytes());
+    }
+
+    fn fmt_csv(&self, buf: &mut Vec<u8>) {
+        let start = buf.len();
+        self.write_to(buf);
+        vecdb::escape_csv_cell(buf, start);
     }
 
     fn fmt_json(&self, buf: &mut Vec<u8>) {

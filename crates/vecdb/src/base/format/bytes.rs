@@ -1,7 +1,8 @@
 use super::Format;
 use crate::{Bytes, Error, Result};
 
-impl Bytes for Format {
+// SAFETY: not native layout.
+unsafe impl Bytes for Format {
     type Array = [u8; size_of::<Self>()];
 
     #[inline]

@@ -8,8 +8,9 @@ where
     T: VecValue,
     S: CompressionStrategy<T>,
 {
+    /// Header start of the chunk `decoder` was reset for.
     chunk_start: u64,
-    decoder: Option<S::Decoder>,
+    decoder: S::Decoder,
     marker: PhantomData<T>,
 }
 
@@ -21,7 +22,7 @@ where
     fn default() -> Self {
         Self {
             chunk_start: u64::MAX,
-            decoder: None,
+            decoder: S::Decoder::default(),
             marker: PhantomData,
         }
     }
@@ -34,10 +35,12 @@ where
 {
     fn decoder(&mut self, page: Page, header: &[u8]) -> Result<&mut S::Decoder> {
         if self.chunk_start != page.header_start {
-            self.decoder = Some(S::decoder(header)?);
+            // A failed reset leaves no chunk current.
+            self.chunk_start = u64::MAX;
+            S::reset_decoder(&mut self.decoder, header)?;
             self.chunk_start = page.header_start;
         }
-        Ok(self.decoder.as_mut().expect("compressed page decoder"))
+        Ok(&mut self.decoder)
     }
 
     pub fn decode_into(
@@ -64,10 +67,7 @@ where
         dst: &mut Vec<T>,
     ) -> Result<()> {
         if page.is_raw() {
-            let mut values = Vec::with_capacity(expected_len);
-            S::bytes_to_values_into(body, expected_len, &mut values)?;
-            dst.extend(values);
-            Ok(())
+            S::bytes_to_values_append(body, expected_len, dst)
         } else {
             S::decompress_page_append(self.decoder(page, header)?, body, expected_len, dst)
         }

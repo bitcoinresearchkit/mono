@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use crate::{AnyVec, READ_CHUNK_SIZE, ReadableVec, SparseRead, VecIndex, VecValue};
+use crate::{AnyVec, ReadableVec, SparseRead, VecIndex, VecValue};
 
 use super::{DeltaOp, LazyDeltaVec};
 
@@ -17,71 +17,35 @@ where
 
     #[inline]
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<T>) {
-        let to = to.min(self.len());
-        let starts = self.window_starts.collect_range_dyn(from, to);
-        if from >= to {
-            return;
-        }
-        buf.reserve(to - from);
-        self.with_source_ranges(from, to, &starts, |current, previous_from, previous| {
-            buf.extend(Self::transformed_values(
-                from,
-                current,
-                &starts,
-                previous_from,
-                previous,
-            ));
-        });
-    }
-
-    fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
-        let to = to.min(self.len());
-        let starts = self.window_starts.collect_range_dyn(from, to);
-        if from >= to {
-            return;
-        }
-        let chunk_size = self.cursor_chunk_size().clamp(1, READ_CHUNK_SIZE);
-        let mut output = Vec::new();
-        self.with_source_ranges(from, to, &starts, |current, previous_from, previous| {
-            for (chunk, current) in current.chunks(chunk_size).enumerate() {
-                let at = from + chunk * chunk_size;
-                output.clear();
-                output.extend(Self::transformed_values(
+        buf.reserve(to.min(self.len()).saturating_sub(from));
+        let Ok(()) =
+            self.try_for_each_batch(from, to, |at, current, starts, previous_from, previous| {
+                buf.extend(Self::transformed_values(
                     at,
                     current,
-                    &starts[at - from..at - from + current.len()],
+                    starts,
                     previous_from,
                     previous,
                 ));
-                f(at, &output);
-            }
-        });
+                Ok::<_, Infallible>(())
+            });
+    }
+
+    fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
+        self.for_each_transformed_chunk(from, to, f);
     }
 
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
-        let to = to.min(self.len());
-        let starts = self.window_starts.collect_range_dyn(from, to);
-        if from >= to {
-            return;
-        }
-        self.bulk_for_each(from, to, &starts, f);
+        self.bulk_fold(from, to, (), |(), value| f(value));
     }
 
     #[inline]
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, mut f: F) -> B
+    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B
     where
         Self: Sized,
     {
-        let to = to.min(self.len());
-        let starts = self.window_starts.collect_range_dyn(from, to);
-        if from >= to {
-            return init;
-        }
-        self.bulk_try_fold(from, to, &starts, init, |acc, v| {
-            Ok::<_, Infallible>(f(acc, v))
-        })
-        .unwrap_or_else(|e: Infallible| match e {})
+        self.bulk_fold(from, to, init, f)
     }
 
     #[inline]
@@ -95,12 +59,7 @@ where
     where
         Self: Sized,
     {
-        let to = to.min(self.len());
-        let starts = self.window_starts.collect_range_dyn(from, to);
-        if from >= to {
-            return Ok(init);
-        }
-        self.bulk_try_fold(from, to, &starts, init, f)
+        self.bulk_try_fold(from, to, init, f)
     }
 
     #[inline]

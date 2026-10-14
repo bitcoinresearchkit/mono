@@ -269,7 +269,8 @@ fn indexed_writes_match_the_mapping_across_pages_neighbors_and_reopen() -> Resul
         assert!(!crate::region::residency::is_fully_resident(
             mapping,
             region.meta().start().next_multiple_of(16 * 1024),
-            16 * 1024
+            16 * 1024,
+            &mut Vec::new()
         ));
     }
     // Dirty, unflushed mapped bytes in an otherwise cold chunk must survive its uncached read-modify-write.
@@ -302,7 +303,10 @@ fn indexed_writes_match_the_mapping_across_pages_neighbors_and_reopen() -> Resul
         let mapping = db.inner.data.mapping();
         let page = (start + AT + 20_000 * LEN) / 16384 * 16384;
         assert!(crate::region::residency::is_fully_resident(
-            mapping, page, 16384
+            mapping,
+            page,
+            16384,
+            &mut Vec::new()
         ));
     }
     assert_eq!(before.create_reader().read_all(), &[1; PAGE_SIZE][..]);

@@ -27,6 +27,8 @@ mod error;
 mod file;
 mod keyspace;
 mod locked_file;
+#[cfg(test)]
+mod tests;
 mod worker_pool;
 
 /// LSM storage policies exposed to BRK's store profiles.

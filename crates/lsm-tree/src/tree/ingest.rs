@@ -38,17 +38,6 @@ impl<'a, K: RecordBytes, V: RecordBytes> Ingestion<'a, K, V> {
                 BloomConstructionPolicy::BitsPerKey(0.0)
             },
         )
-        .use_data_block_size(config.data_block_size_policy.at_level(ENCODING_LEVEL))
-        .use_data_block_compression(
-            config
-                .data_block_compression_policy
-                .at_level(ENCODING_LEVEL),
-        )
-        .use_index_block_compression(
-            config
-                .index_block_compression_policy
-                .at_level(ENCODING_LEVEL),
-        )
         .use_data_block_restart_interval(
             config
                 .data_block_restart_interval_policy
@@ -120,11 +109,12 @@ impl<'a, K: RecordBytes, V: RecordBytes> Ingestion<'a, K, V> {
     ///
     /// Returns an error when tables cannot be finalized, recovered, or published.
     pub fn finish(self) -> Result<()> {
-        if self.writer.is_empty() {
+        // Finishing an empty writer removes its file.
+        let (folder, outputs) = self.writer.finish()?;
+        if outputs.is_empty() {
             return Ok(());
         }
 
-        let (folder, outputs) = self.writer.finish()?;
         let global_seqno = self.tree.seqno.next();
         let tables = outputs
             .into_iter()
@@ -159,51 +149,4 @@ impl<'a, K: RecordBytes, V: RecordBytes> Ingestion<'a, K, V> {
     #[cfg(not(debug_assertions))]
     #[allow(clippy::unused_self, clippy::needless_pass_by_ref_mut)]
     fn validate_key(&mut self, _key: &K) {}
-}
-
-#[cfg(test)]
-mod tests {
-    use tempfile::tempdir;
-
-    use crate::{Config, Result, config::PinningPolicy, version::Level};
-
-    #[test]
-    fn ingestion_honors_policies_before_and_after_recovery() -> Result<()> {
-        for expect_point_read_hits in [false, true] {
-            for (pin_filter, pin_index) in
-                [(false, false), (true, false), (false, true), (true, true)]
-            {
-                let directory = tempdir()?;
-                let config = || {
-                    Config::new(directory.path())
-                        .expect_point_read_hits(expect_point_read_hits)
-                        .filter_block_pinning_policy(PinningPolicy::all(pin_filter))
-                        .index_block_pinning_policy(PinningPolicy::all(pin_index))
-                };
-                let mut tree = config().open()?;
-                let mut ingestion = tree.ingestion_as::<[u8; 8], [u8; 4]>()?;
-                ingestion.write([1; 8], [2; 4])?;
-                ingestion.finish()?;
-
-                for recovered in [false, true] {
-                    if recovered {
-                        drop(tree);
-                        tree = config().open()?;
-                    }
-                    let version = tree.versions.guard();
-                    for table in version
-                        .iter_levels()
-                        .flat_map(Level::iter)
-                        .flat_map(|run| run.iter())
-                    {
-                        assert!(table.filter_size() > 0);
-                        assert_eq!(table.pinned_filter_size() > 0, pin_filter);
-                        assert_eq!(table.pinned_block_index_size() > 0, pin_index);
-                    }
-                    assert_eq!(tree.get_as::<[u8; 4]>(&[1; 8])?, Some([2; 4]));
-                }
-            }
-        }
-        Ok(())
-    }
 }

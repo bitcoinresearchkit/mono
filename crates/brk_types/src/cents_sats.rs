@@ -124,7 +124,8 @@ impl Formattable for CentsSats {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for CentsSats {
+// SAFETY: not native layout.
+unsafe impl Bytes for CentsSats {
     type Array = [u8; 16];
 
     fn to_bytes(&self) -> Self::Array {

@@ -7,17 +7,13 @@ use std::{mem, path::PathBuf};
 use log::debug;
 
 use super::{filter::BloomConstructionPolicy, id::next_table_id, writer::Writer};
-use crate::{
-    CompressionType, RecordBytes, Result, SequenceNumberCounter, Slice, value::InternalValue,
-};
+use crate::{RecordBytes, Result, SequenceNumberCounter, Slice, value::InternalValue};
 
 /// Like `Writer` but will rotate to a new table, once a table grows larger than `target_size`
 ///
 /// This results in a sorted "run" of tables
 pub struct MultiWriter<K = Slice, V = Slice> {
     pub base_path: PathBuf,
-
-    data_block_size: u32,
 
     data_block_restart_interval: u8,
 
@@ -35,9 +31,6 @@ pub struct MultiWriter<K = Slice, V = Slice> {
     table_id_generator: SequenceNumberCounter,
 
     pub writer: Writer<K, V>,
-
-    pub data_block_compression: CompressionType,
-    pub index_block_compression: CompressionType,
 
     bloom_policy: BloomConstructionPolicy,
 }
@@ -57,17 +50,12 @@ impl<K: RecordBytes, V: RecordBytes> MultiWriter<K, V> {
         Ok(Self {
             base_path,
 
-            data_block_size: 4_096,
-
             data_block_restart_interval: 16,
 
             target_size,
             results: Vec::new(),
             table_id_generator,
             writer,
-
-            data_block_compression: CompressionType::None,
-            index_block_compression: CompressionType::None,
 
             use_partitioned_index: false,
             use_partitioned_filter: false,
@@ -98,31 +86,6 @@ impl<K: RecordBytes, V: RecordBytes> MultiWriter<K, V> {
     }
 
     #[must_use]
-    pub fn use_data_block_size(mut self, size: u32) -> Self {
-        assert!(
-            size <= 4 * 1_024 * 1_024,
-            "data block size must be <= 4 MiB",
-        );
-        self.data_block_size = size;
-        self.writer = self.writer.use_data_block_size(size);
-        self
-    }
-
-    #[must_use]
-    pub fn use_data_block_compression(mut self, compression: CompressionType) -> Self {
-        self.data_block_compression = compression;
-        self.writer = self.writer.use_data_block_compression(compression);
-        self
-    }
-
-    #[must_use]
-    pub fn use_index_block_compression(mut self, compression: CompressionType) -> Self {
-        self.index_block_compression = compression;
-        self.writer = self.writer.use_index_block_compression(compression);
-        self
-    }
-
-    #[must_use]
     pub fn use_bloom_policy(mut self, bloom_policy: BloomConstructionPolicy) -> Self {
         self.bloom_policy = bloom_policy;
         self.writer = self.writer.use_bloom_policy(bloom_policy);
@@ -139,9 +102,6 @@ impl<K: RecordBytes, V: RecordBytes> MultiWriter<K, V> {
         let path = self.base_path.join(new_table_id.to_string());
 
         let mut new_writer = Writer::new(path, new_table_id)?
-            .use_data_block_compression(self.data_block_compression)
-            .use_index_block_compression(self.index_block_compression)
-            .use_data_block_size(self.data_block_size)
             .use_data_block_restart_interval(self.data_block_restart_interval)
             .use_bloom_policy(self.bloom_policy);
 
@@ -170,10 +130,6 @@ impl<K: RecordBytes, V: RecordBytes> MultiWriter<K, V> {
 
         self.writer.write(item)?;
         Ok(())
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.results.is_empty() && self.writer.meta.first_key.is_none()
     }
 
     /// Finishes the last table, making sure all data is written durably

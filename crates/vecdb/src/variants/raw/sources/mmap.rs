@@ -94,29 +94,29 @@ where
             return false;
         }
         let source = Self::new_from_parts(region, stored_len, from, to);
-        for (index, values) in source
-            .as_slice()
-            .unwrap()
-            .chunks(READ_CHUNK_SIZE)
-            .enumerate()
-        {
+        let Some(values) = source.as_slice() else {
+            return false;
+        };
+        for (index, values) in values.chunks(READ_CHUNK_SIZE).enumerate() {
             each(from + index * READ_CHUNK_SIZE, values);
         }
         true
     }
 
+    /// The stored values in place, for native layouts stored at `T`'s alignment.
     fn as_slice(&self) -> Option<&[T]> {
         if !S::IS_NATIVE_LAYOUT {
             return None;
         }
-        // SAFETY: native-layout values have T's stored representation and alignment.
-        // The bounded range remains valid while this source owns the mmap reader.
-        Some(unsafe {
-            slice::from_raw_parts(
-                self.data.add(self.pos * Self::SIZE_OF_T).cast::<T>(),
-                self.end.saturating_sub(self.pos),
-            )
-        })
+        // SAFETY: within the reader's bounded range (`pos <= end <= stored_len`).
+        let values = unsafe { self.data.add(self.pos * Self::SIZE_OF_T) }.cast::<T>();
+        // Values start `HEADER_OFFSET` bytes into a page-aligned region: only larger alignments miss.
+        if !values.is_aligned() {
+            return None;
+        }
+        // SAFETY: aligned native-layout values have T's stored representation. The bounded
+        // range remains valid while this source owns the mmap reader.
+        Some(unsafe { slice::from_raw_parts(values, self.end.saturating_sub(self.pos)) })
     }
 
     /// Fold all elements in the range — tight pointer loop.

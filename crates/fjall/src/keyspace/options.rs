@@ -1,9 +1,6 @@
 use std::path::Path;
 
-use lsm_tree::{
-    CompressionType, Config, RecordBytes, Result as TreeResult, Tree,
-    config::{BlockSizePolicy, CompressionPolicy},
-};
+use lsm_tree::{Config, RecordBytes, Result as TreeResult, Tree};
 
 use crate::{
     config::{
@@ -108,10 +105,9 @@ impl CreateOptions {
     #[doc(hidden)]
     #[must_use]
     pub(crate) fn tree_config(self, path: &Path, database: &DatabaseConfig) -> Config {
-        let config = Config::new(path)
+        Config::new(path)
             .use_cache(database.cache.clone())
             .use_descriptor_table(Some(database.descriptor_table.clone()))
-            .data_block_size_policy(BlockSizePolicy::all(4 * 1_024))
             .data_block_restart_interval_policy(self.data_block_restart_interval_policy)
             .index_block_pinning_policy(self.index_block_pinning_policy)
             .filter_block_pinning_policy(self.filter_block_pinning_policy)
@@ -119,11 +115,5 @@ impl CreateOptions {
             .filter_block_partitioning_policy(self.filter_block_partitioning_policy)
             .expect_point_read_hits(self.expect_point_read_hits)
             .filter_policy(self.filter_policy)
-            .index_block_compression_policy(CompressionPolicy::all(CompressionType::None));
-
-        config.data_block_compression_policy(CompressionPolicy::new([
-            CompressionType::None,
-            CompressionType::Lz4,
-        ]))
     }
 }

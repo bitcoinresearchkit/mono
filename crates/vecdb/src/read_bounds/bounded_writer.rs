@@ -15,7 +15,7 @@ impl<'a> BoundedWriter<'a> {
 }
 
 impl ValueWriter for BoundedWriter<'_> {
-    fn write_next(&mut self, buf: &mut String) -> Result<()> {
+    fn write_next(&mut self, buf: &mut Vec<u8>) -> Result<()> {
         self.bounds.scope(|| self.writer.write_next(buf))
     }
 }

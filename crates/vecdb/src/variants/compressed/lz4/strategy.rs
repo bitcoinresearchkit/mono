@@ -23,7 +23,7 @@ where
         EncodedChunk::single_page(compress_prepend_size(&Self::values_to_bytes(values)))
     }
 
-    fn decoder(_header: &[u8]) -> Result<Self::Decoder> {
+    fn reset_decoder(_decoder: &mut Self::Decoder, _header: &[u8]) -> Result<()> {
         Ok(())
     }
 
@@ -35,5 +35,15 @@ where
     ) -> Result<()> {
         let decompressed = decompress_size_prepended(body)?;
         Self::bytes_to_values_into(&decompressed, expected_len, dst)
+    }
+
+    fn decompress_page_append(
+        _decoder: &mut Self::Decoder,
+        body: &[u8],
+        expected_len: usize,
+        dst: &mut Vec<T>,
+    ) -> Result<()> {
+        let decompressed = decompress_size_prepended(body)?;
+        Self::bytes_to_values_append(&decompressed, expected_len, dst)
     }
 }

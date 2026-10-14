@@ -35,9 +35,4 @@ where
     fn value_type_to_string(&self) -> &'static str {
         short_type_name::<O>()
     }
-
-    #[inline]
-    fn region_names(&self) -> Vec<String> {
-        vec![]
-    }
 }

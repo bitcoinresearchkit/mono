@@ -16,17 +16,21 @@ state after block 700,000. Every history starts at genesis.
 ## Read and update paths
 
 - `Cursor` borrows the consumer's state and reads sequentially in windows bounded
-  by 128 blocks and 1 MiB per producer. One larger record may exceed the window
-  limit. It reads adjacent index entries and payloads together; readers never copy
+  by 128 blocks and 1 MiB per producer. Each window also holds the previous
+  record, and one larger record may exceed the window limit. It reads adjacent index entries and payloads together; readers never copy
   the full producer index.
 - `BlockDiff` borrows fixed-width spend rows directly from the read window. Its
   cloneable iterators expose actual `spent()` rows or all `removed()` rows,
   including an overwrite correction. No decoded row vector or extra row copy is
   needed. The view remains valid until the cursor advances again.
-- State application validates removals and their recorded total in the same pass.
-  A failed block restores every touched cell, the prefix, hash and total. Same-block
-  spends follow creation, and zero-sat outputs retain their counts.
-- Snapshot opening reads identity only. Latest restoration reads the latest full
+- State application trusts rows the producers validated: removals, their recorded
+  total and overflow are debug assertions. Framing, I/O and producer-identity errors
+  stop a block before it touches the state. Each block must continue the state's
+  chain (its spends parent hash equals the state hash, both read in one window), so
+  a reader racing a rewind errors instead of applying another chain's rows. Same-block spends follow creation, and
+  zero-sat outputs retain their counts.
+- Snapshot opening reads identity only. Restores pick snapshots by indexed height
+  before opening any, and readers validate tip identity once. Latest restoration reads the latest full
   page directly, without diff replay. Ordinary latest pages read straight into the
   `Amount` array using safe zerocopy traits; there is no intermediate byte buffer.
 - Warm writers retain their state. Producer versions, prefix and block hashes

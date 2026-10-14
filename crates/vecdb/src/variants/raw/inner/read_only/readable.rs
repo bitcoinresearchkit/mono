@@ -133,11 +133,10 @@ where
     {
         if C::cache(&self.cache).is_some() {
             let mut f = f;
-            return self
-                .try_fold_range_at(from, to, init, |acc, value| {
-                    Ok::<_, Infallible>(f(acc, value))
-                })
-                .unwrap();
+            let Ok(acc) = self.try_fold_range_at(from, to, init, |acc, value| {
+                Ok::<_, Infallible>(f(acc, value))
+            });
+            return acc;
         }
         let len = self.base.len();
         let from = from.min(len);

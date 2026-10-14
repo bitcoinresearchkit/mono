@@ -16,20 +16,10 @@ macro_rules! impl_named_row_formattable {
                 output.push(b'}');
             }
 
-            fn fmt_csv(&self, output: &mut String) -> fmt::Result {
-                let mut json = Vec::new();
-                self.write_to(&mut json);
-                let json = str::from_utf8(&json).map_err(|_| fmt::Error)?;
-
-                output.push('"');
-                for character in json.chars() {
-                    if character == '"' {
-                        output.push('"');
-                    }
-                    output.push(character);
-                }
-                output.push('"');
-                Ok(())
+            fn fmt_csv(&self, output: &mut Vec<u8>) {
+                let start = output.len();
+                self.write_to(output);
+                vecdb::escape_csv_cell(output, start);
             }
         }
     };

@@ -107,7 +107,8 @@ impl Formattable for OpReturnKind {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for OpReturnKind {
+// SAFETY: not native layout.
+unsafe impl Bytes for OpReturnKind {
     type Array = [u8; size_of::<Self>()];
 
     #[inline]

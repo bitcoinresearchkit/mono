@@ -16,7 +16,13 @@ pub use op::DeltaOp;
 pub use rate::DeltaRate;
 pub use sub::DeltaSub;
 
-use crate::{ReadableBoxedVec, VecIndex, VecValue, Version};
+use crate::{
+    AnyVec, READ_CHUNK_SIZE, ReadableBoxedVec, VecIndex, VecValue, Version,
+    traits::chunk_folds::chunk_end,
+};
+
+/// Values per bulk-read batch.
+const BATCH_SIZE: usize = 16 * READ_CHUNK_SIZE;
 
 /// Lazily computed vector that combines a source value with a lookback value.
 ///
@@ -58,35 +64,58 @@ where
         }
     }
 
-    /// Read overlapping ranges once, but never read the gap between disjoint
-    /// current and historical ranges. Complete reads before invoking callbacks:
-    /// sources may hold non-reentrant publication locks while lending chunks.
-    fn with_source_ranges<R>(
+    /// Visits `[from, to)` in batches of about `BATCH_SIZE` values, each with its current
+    /// values, window starts and the historical values they reach (read from `previous_from`).
+    /// Overlapping current and historical ranges are read once; the gap between disjoint ones
+    /// never is. Each batch's reads complete before `visit` runs: sources may hold
+    /// non-reentrant publication locks while lending chunks. Scratch is bounded by the batch.
+    fn try_for_each_batch<E>(
         &self,
         from: usize,
         to: usize,
-        starts: &[I],
-        visit: impl FnOnce(&[S], usize, &[S]) -> R,
-    ) -> R {
-        let first = starts
-            .iter()
-            .find_map(|start| Op::ago_index(start.to_usize()));
-        let last = starts
-            .iter()
-            .rev()
-            .find_map(|start| Op::ago_index(start.to_usize()));
-        if let Some((first, last)) = first.zip(last) {
-            if last.saturating_add(1) >= from {
-                let read_from = first.min(from);
-                let values = self.source.collect_range_dyn(read_from, to);
-                return visit(&values[from - read_from..], read_from, &values);
+        mut visit: impl FnMut(usize, &[S], &[I], usize, &[S]) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let to = to.min(self.len());
+        // Whole source chunks, enough that historical pages shared by adjacent batches are
+        // rarely read twice.
+        let chunk_size = self.source.cursor_chunk_size().max(1);
+        let batch_size = chunk_size * (BATCH_SIZE / chunk_size).max(1);
+        let (mut starts, mut values, mut previous) = (Vec::new(), Vec::new(), Vec::new());
+        let mut at = from;
+        while at < to {
+            let end = chunk_end(at, batch_size, to);
+            starts.clear();
+            self.window_starts.read_into_at(at, end, &mut starts);
+            // Window starts need not be monotonic: bound every historical index.
+            let bounds = starts
+                .iter()
+                .filter_map(|start| Op::ago_index(start.to_usize()))
+                .fold(None, |bounds: Option<(usize, usize)>, index| {
+                    Some(bounds.map_or((index, index), |(low, high)| {
+                        (low.min(index), high.max(index))
+                    }))
+                });
+            values.clear();
+            match bounds {
+                Some((low, high)) if high.saturating_add(1) >= at => {
+                    let read_from = low.min(at);
+                    self.source.read_into_at(read_from, end, &mut values);
+                    visit(at, &values[at - read_from..], &starts, read_from, &values)?;
+                }
+                Some((low, high)) => {
+                    previous.clear();
+                    self.source.read_into_at(low, high + 1, &mut previous);
+                    self.source.read_into_at(at, end, &mut values);
+                    visit(at, &values, &starts, low, &previous)?;
+                }
+                None => {
+                    self.source.read_into_at(at, end, &mut values);
+                    visit(at, &values, &starts, 0, &[])?;
+                }
             }
-            let previous = self.source.collect_range_dyn(first, last + 1);
-            let current = self.source.collect_range_dyn(from, to);
-            return visit(&current, first, &previous);
+            at = end;
         }
-        let current = self.source.collect_range_dyn(from, to);
-        visit(&current, 0, &[])
+        Ok(())
     }
 
     fn transformed_values<'a>(
@@ -114,26 +143,43 @@ where
         &self,
         from: usize,
         to: usize,
-        starts: &[I],
         init: B,
-        f: impl FnMut(B, T) -> Result<B, E>,
+        mut f: impl FnMut(B, T) -> Result<B, E>,
     ) -> Result<B, E> {
-        if from >= to {
-            return Ok(init);
-        }
-
-        self.with_source_ranges(from, to, starts, |current, previous_from, previous| {
-            Self::transformed_values(from, current, starts, previous_from, previous)
-                .try_fold(init, f)
-        })
+        let mut acc = Some(init);
+        self.try_for_each_batch(from, to, |at, current, starts, previous_from, previous| {
+            acc = Some(
+                Self::transformed_values(at, current, starts, previous_from, previous)
+                    .try_fold(acc.take().unwrap(), &mut f)?,
+            );
+            Ok(())
+        })?;
+        Ok(acc.unwrap())
     }
 
     #[inline]
-    fn bulk_for_each(&self, from: usize, to: usize, starts: &[I], mut each: impl FnMut(T)) {
-        self.bulk_try_fold(from, to, starts, (), |(), v| {
-            each(v);
-            Ok::<_, Infallible>(())
-        })
-        .unwrap_or_else(|e: Infallible| match e {})
+    fn bulk_fold<B>(&self, from: usize, to: usize, init: B, mut f: impl FnMut(B, T) -> B) -> B {
+        let Ok(acc) = self.bulk_try_fold(from, to, init, |acc, value| {
+            Ok::<_, Infallible>(f(acc, value))
+        });
+        acc
+    }
+
+    /// Visits each batch's transformed values through one reused buffer.
+    fn for_each_transformed_chunk(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
+        let mut output = Vec::new();
+        let Ok(()) =
+            self.try_for_each_batch(from, to, |at, current, starts, previous_from, previous| {
+                output.clear();
+                output.extend(Self::transformed_values(
+                    at,
+                    current,
+                    starts,
+                    previous_from,
+                    previous,
+                ));
+                f(at, &output);
+                Ok::<_, Infallible>(())
+            });
     }
 }

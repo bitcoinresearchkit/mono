@@ -171,6 +171,8 @@ where
             }
         }
 
+        // SAFETY: the reads initialized `values` values: every bit pattern is a valid native-layout
+        // value (`ValueStrategy` contract).
         unsafe { output.set_len(old_len + values) };
     }
 

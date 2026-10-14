@@ -2,6 +2,7 @@ use std::{
     collections::BTreeMap,
     fs::{self, File},
     io::Write,
+    mem,
     path::PathBuf,
 };
 
@@ -74,17 +75,41 @@ where
 
         Ok(ChangeData {
             prev_stamp,
-            prev_stored_len,
             truncated_start,
             truncated_values,
             prev_pushed,
         })
     }
 
-    /// Restores the base rollback state from resolved stored and pushed values.
-    pub fn apply_rollback(&mut self, stamp: Stamp, stored_len: usize, pushed: Vec<T>) {
-        self.read_only.header.update_stamp(stamp);
+    /// Persisted length after undoing `change` from the last save point.
+    fn rollback_stored_len(&self, change: &ChangeData<T>) -> usize {
+        change.truncated_start.min(self.previous_stored_len)
+    }
+
+    /// First row a rollback with `change` replaces: the rows below stay as they are.
+    pub fn rollback_from(&self, change: &ChangeData<T>) -> usize {
+        self.rollback_stored_len(change).min(self.stored_len())
+    }
+
+    /// Undoes one change record from the last save point: the state its stamp wrote, or what an
+    /// earlier undo of this rollback restored (partly in memory). Unsaved changes are dropped:
+    /// rows an unflushed truncation cut stay on disk until the save point says otherwise.
+    /// Restored rows are kept and trimmed like persisted ones, so undo records compose until
+    /// the next write persists the result.
+    pub fn apply_rollback(&mut self, change: ChangeData<T>) {
+        let stored_len = self.rollback_stored_len(&change);
+        let mut pushed = mem::take(self.pushed.previous_mut());
+        debug_assert!(
+            self.previous_stored_len + pushed.len() >= change.truncated_start,
+            "the state to undo is shorter than its change record's unchanged prefix"
+        );
+        // Rows in [stored_len, truncated_start) are unchanged but not on disk: they stay pushed.
+        pushed.truncate(change.truncated_start - stored_len);
+        pushed.extend(change.truncated_values);
+        pushed.extend(change.prev_pushed);
+        self.read_only.header.update_stamp(change.prev_stamp);
         self.read_only.stored_len.set(stored_len);
+        self.previous_stored_len = stored_len;
         *self.pushed.current_mut() = pushed;
         self.pushed.save();
     }

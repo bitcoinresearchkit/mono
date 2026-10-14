@@ -161,10 +161,6 @@ where
     fn value_type_to_string(&self) -> &'static str {
         short_type_name::<T>()
     }
-
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
 }
 
 impl<I, S, M, T> TypedVec for LazyIndexedVec<I, S, M, T>

@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use log::debug;
+use rustc_hash::FxHashSet;
 
 use crate::{
     Config, RecordBytes, Result, SequenceNumberCounter, Table, Tree,
@@ -13,10 +14,13 @@ use crate::{
     merge::ForwardMerger,
     run_scanner::RunScanner,
     table::{filter::BloomConstructionPolicy, multi_writer::MultiWriter},
-    version::{Level, Run, Set, Version},
+    version::{Level, Set, Version},
 };
 
 type MergeStream<K, V> = CompactionStream<ForwardMerger<RunScanner<K, V>, K, V>, K, V>;
+
+/// A merged scan over the selected tables, and the tables it reads.
+type MergeInput<K, V> = (MergeStream<K, V>, Vec<Table>);
 
 pub struct Worker {
     pub tree_id: u32,
@@ -59,14 +63,13 @@ impl Worker {
     fn move_tables(&self, state: &CompactionState, input: &Input) -> Result<()> {
         if state
             .hidden_set()
-            .should_decline_compaction(input.table_ids.iter().copied())
+            .is_blocked(input.table_ids.iter().copied())
         {
             return Ok(());
         }
 
-        let table_ids = input.table_ids.iter().copied().collect::<Vec<_>>();
         self.versions.publish(&self.config.path, |current| {
-            Ok(current.with_moved(&table_ids, input.dest_level.into()))
+            Ok(current.with_moved(&input.table_ids, input.dest_level.into()))
         })
     }
 
@@ -78,22 +81,12 @@ impl Worker {
     ) -> Result<()> {
         if state
             .hidden_set()
-            .should_decline_compaction(input.table_ids.iter().copied())
+            .is_blocked(input.table_ids.iter().copied())
         {
             return Ok(());
         }
 
-        let Some(tables) = input
-            .table_ids
-            .iter()
-            .map(|id| version.get_table(*id).cloned())
-            .collect::<Option<Vec<_>>>()
-        else {
-            return Ok(());
-        };
-
-        let table_ids = input.table_ids.iter().copied().collect::<Vec<_>>();
-        let Some(stream) = Self::create_stream::<K, V>(version, &table_ids)? else {
+        let Some((stream, tables)) = Self::create_stream::<K, V>(version, &input.table_ids)? else {
             return Ok(());
         };
         let is_last_level = usize::from(input.dest_level) + 1 == version.level_count();
@@ -101,17 +94,17 @@ impl Worker {
         let writer = self.prepare_writer::<K, V>(version, input)?;
         let mut compactor = StandardCompaction::new(writer, tables);
 
-        state.hidden_set_mut().hide(table_ids.iter().copied());
+        state.hidden_set_mut().hide(input.table_ids.iter().copied());
         drop(state);
 
         if let Err(error) = stream.try_for_each(|item| compactor.write(item?)) {
-            self.show_tables(&table_ids);
+            self.show_tables(&input.table_ids);
             return Err(error);
         }
 
         let mut state = self.state();
         let result = compactor.finish(self, input, input.canonical_level.into());
-        state.hidden_set_mut().show(table_ids);
+        state.hidden_set_mut().show(input.table_ids.iter().copied());
         result
     }
 
@@ -127,13 +120,6 @@ impl Worker {
             input.target_size,
         )?;
 
-        if self.config.index_block_partitioning_policy.get(level) {
-            writer = writer.use_partitioned_index();
-        }
-        if self.config.filter_block_partitioning_policy.get(level) {
-            writer = writer.use_partitioned_filter();
-        }
-
         let is_last_level = usize::from(input.dest_level) + 1 == version.level_count();
         let bloom_policy = if is_last_level && self.config.expect_point_read_hits {
             BloomConstructionPolicy::BitsPerKey(0.0)
@@ -147,54 +133,64 @@ impl Worker {
                 FilterPolicyEntry::None => BloomConstructionPolicy::BitsPerKey(0.0),
             }
         };
+        // The final policy goes first so partitioned filters size themselves once.
+        writer = writer
+            .use_bloom_policy(bloom_policy)
+            .use_data_block_restart_interval(
+                self.config
+                    .data_block_restart_interval_policy
+                    .at_level(level),
+            );
+
+        if self.config.index_block_partitioning_policy.get(level) {
+            writer = writer.use_partitioned_index();
+        }
+        if self.config.filter_block_partitioning_policy.get(level) {
+            writer = writer.use_partitioned_filter();
+        }
 
         debug!(
             "Compacting tables {:?} into L{} (canonical L{}), target_size={}",
             input.table_ids, input.dest_level, input.canonical_level, input.target_size,
         );
 
-        Ok(writer
-            .use_data_block_restart_interval(
-                self.config
-                    .data_block_restart_interval_policy
-                    .at_level(level),
-            )
-            .use_data_block_compression(self.config.data_block_compression_policy.at_level(level))
-            .use_data_block_size(self.config.data_block_size_policy.at_level(level))
-            .use_index_block_compression(self.config.index_block_compression_policy.at_level(level))
-            .use_bloom_policy(bloom_policy))
+        Ok(writer)
     }
 
-    fn show_tables(&self, table_ids: &[u32]) {
+    fn show_tables(&self, table_ids: &FxHashSet<u32>) {
         self.state()
             .hidden_set_mut()
             .show(table_ids.iter().copied());
     }
 
+    /// Collects the selected tables and a merged scan over them in one pass over the version.
+    ///
+    /// Returns `None` if a selected table is no longer part of `version`.
     fn create_stream<K: RecordBytes, V: RecordBytes>(
         version: &Version,
-        table_ids: &[u32],
-    ) -> Result<Option<MergeStream<K, V>>> {
+        table_ids: &FxHashSet<u32>,
+    ) -> Result<Option<MergeInput<K, V>>> {
+        let selected = |table: &Table| table_ids.contains(&table.id());
         let mut readers = Vec::new();
-        let mut found = 0;
+        let mut tables = Vec::with_capacity(table_ids.len());
 
         for run in version.iter_levels().flat_map(Level::iter) {
-            let Some((start, end)) = Self::run_indexes(run, table_ids) else {
+            let (Some(start), Some(end)) = (
+                run.iter().position(selected),
+                run.iter().rposition(selected),
+            ) else {
                 continue;
             };
+            let span = run.get(start..=end).unwrap_or_default();
+            debug_assert!(
+                span.iter().all(selected),
+                "compaction selects contiguous tables of a run"
+            );
+            tables.extend_from_slice(span);
             readers.push(RunScanner::culled(run.clone(), (Some(start), Some(end)))?);
-            found += end - start + 1;
         }
 
-        Ok((found == table_ids.len()).then(|| CompactionStream::new(ForwardMerger::new(readers))))
-    }
-
-    fn run_indexes(run: &Run<Table>, table_ids: &[u32]) -> Option<(usize, usize)> {
-        Some((
-            run.iter()
-                .position(|table| table_ids.contains(&table.id()))?,
-            run.iter()
-                .rposition(|table| table_ids.contains(&table.id()))?,
-        ))
+        Ok((tables.len() == table_ids.len())
+            .then(|| (CompactionStream::new(ForwardMerger::new(readers)), tables)))
     }
 }

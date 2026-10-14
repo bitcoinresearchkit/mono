@@ -102,7 +102,7 @@ where
         Some(())
     }
 
-    fn decode_from_buffer(&mut self, page_index: usize, page: Page) -> Option<()> {
+    fn decode_from_buffer(&mut self, page_index: usize, page: Page) {
         let header_start = (page.header_start - self.buffer_start_offset) as usize;
         let header_end = (page.header_end - self.buffer_start_offset) as usize;
         let body_start = (page.start - self.buffer_start_offset) as usize;
@@ -110,12 +110,11 @@ where
         let header = &self.buffer[header_start..header_end];
         let body = &self.buffer[body_start..body_end];
         let expected_len = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
+        // Our own data: a decode failure is corruption, never the end of the range.
         self.decoder
             .decode_into(page, header, body, expected_len, &mut self.decoded_values)
-            .ok()?;
+            .expect("compressed page decode failed");
         self.decoded_page_index = page_index;
-
-        Some(())
     }
 
     fn ensure_page_buffered(&mut self, page_index: usize) -> Option<Page> {
@@ -137,7 +136,8 @@ where
 
     fn decode_page(&mut self, page_index: usize) -> Option<()> {
         let page = self.ensure_page_buffered(page_index)?;
-        self.decode_from_buffer(page_index, page)
+        self.decode_from_buffer(page_index, page);
+        Some(())
     }
 
     #[inline(always)]
@@ -228,31 +228,38 @@ where
         }
     }
 
-    /// Fold all remaining elements — tight pointer loop per page so LLVM can vectorize.
+    /// Lends the rest of the next page within the range with its first index, advancing past it.
+    #[inline(always)]
+    fn next_chunk(&mut self) -> Option<(usize, &[T])> {
+        if self.index >= self.end_index {
+            return None;
+        }
+        let page_index = self.index / Self::PER_PAGE;
+        let page_start = page_index * Self::PER_PAGE;
+        self.ensure_page_decoded(page_index)?;
+        let from = self.index - page_start;
+        let to = (self.end_index - page_start).min(self.decoded_values.len());
+        if from >= to {
+            return None;
+        }
+        let at = self.index;
+        self.index = page_start + to;
+        Some((at, &self.decoded_values[from..to]))
+    }
+
+    /// Visits the range one decoded page at a time.
+    pub fn for_each_chunk(mut self, f: &mut dyn FnMut(usize, &[T])) {
+        while let Some((at, values)) = self.next_chunk() {
+            f(at, values);
+        }
+    }
+
+    /// Fold all remaining elements, one decoded page slice at a time so LLVM can vectorize.
     #[inline(always)]
     pub fn fold<B, F: FnMut(B, T) -> B>(mut self, init: B, mut f: F) -> B {
-        let per_page = Self::PER_PAGE;
-        let end_index = self.end_index;
-        let mut page_index = self.index / per_page;
-        let mut page_start = page_index * per_page;
-        let mut in_page_offset = self.index - page_start;
         let mut accum = init;
-        while self.index < end_index {
-            if self.ensure_page_decoded(page_index).is_none() {
-                break;
-            }
-            let page_end = (end_index - page_start).min(self.decoded_values.len());
-            let ptr = self.decoded_values.as_ptr();
-            let mut index = in_page_offset;
-            while index < page_end {
-                // Clone rather than move: decoded_values still owns and drops every value.
-                accum = f(accum, unsafe { (&*ptr.add(index)).clone() });
-                index += 1;
-            }
-            self.index = page_start + page_end;
-            page_index += 1;
-            page_start += per_page;
-            in_page_offset = 0;
+        while let Some((_, values)) = self.next_chunk() {
+            accum = values.iter().cloned().fold(accum, &mut f);
         }
         accum
     }
@@ -264,24 +271,9 @@ where
         init: B,
         mut f: F,
     ) -> Result<B, E> {
-        let per_page = Self::PER_PAGE;
-        let end_index = self.end_index;
-        let mut page_index = self.index / per_page;
-        let mut page_start = page_index * per_page;
-        let mut in_page_offset = self.index - page_start;
         let mut accum = init;
-        while self.index < end_index {
-            if self.ensure_page_decoded(page_index).is_none() {
-                break;
-            }
-            let page_end = (end_index - page_start).min(self.decoded_values.len());
-            for value in &self.decoded_values[in_page_offset..page_end] {
-                accum = f(accum, value.clone())?;
-            }
-            self.index = page_start + page_end;
-            page_index += 1;
-            page_start += per_page;
-            in_page_offset = 0;
+        while let Some((_, values)) = self.next_chunk() {
+            accum = values.iter().cloned().try_fold(accum, &mut f)?;
         }
         Ok(accum)
     }

@@ -84,20 +84,20 @@ impl Query {
         ))
     }
 
-    fn columns_to_csv(columns: &[BoundedVec<'_>], start: usize, end: usize) -> Result<String> {
+    fn columns_to_csv(columns: &[BoundedVec<'_>], start: usize, end: usize) -> Result<Vec<u8>> {
         if columns.is_empty() {
-            return Ok(String::new());
+            return Ok(Vec::new());
         }
 
         let num_cols = columns.len();
-        let mut csv = String::with_capacity(num_cols * CSV_HEADER_BYTES_PER_COL);
+        let mut csv = Vec::with_capacity(num_cols * CSV_HEADER_BYTES_PER_COL);
         for (i, col) in columns.iter().enumerate() {
             if i > 0 {
-                csv.push(',');
+                csv.push(b',');
             }
-            csv.push_str(col.name());
+            csv.extend_from_slice(col.name().as_bytes());
         }
-        csv.push('\n');
+        csv.push(b'\n');
 
         if start == end {
             return Ok(csv);
@@ -122,11 +122,11 @@ impl Query {
         for _ in 0..num_rows {
             for (i, writer) in writers.iter_mut().enumerate() {
                 if i > 0 {
-                    csv.push(',');
+                    csv.push(b',');
                 }
                 writer.write_next(&mut csv)?;
             }
-            csv.push('\n');
+            csv.push(b'\n');
         }
 
         Ok(csv)

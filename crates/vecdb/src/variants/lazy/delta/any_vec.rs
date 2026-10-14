@@ -1,4 +1,4 @@
-use crate::{AnyVec, VecIndex, VecValue, Version, short_type_name};
+use crate::{AnyVec, VecIndex, VecValue, Version};
 
 use super::{DeltaOp, LazyDeltaVec};
 
@@ -17,10 +17,6 @@ where
         &self.name
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
     fn len(&self) -> usize {
         self.source.len().min(self.window_starts.len())
     }
@@ -31,18 +27,5 @@ where
         self.source.is_mutable() || self.window_starts.is_mutable()
     }
 
-    #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
-
-    #[inline]
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
+    crate::any_vec_type_methods!(I, T);
 }

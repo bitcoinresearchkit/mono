@@ -5,7 +5,9 @@ use super::Bytes;
 macro_rules! impl_bytes_for_numeric {
     ($($t:ty),*) => {
         $(
-            impl Bytes for $t {
+            // SAFETY: on little-endian targets, the little-endian bytes are the in-memory bytes
+            // of a padding-free primitive valid for every bit pattern.
+            unsafe impl Bytes for $t {
                 type Array = [u8; std::mem::size_of::<$t>()];
                 const IS_NATIVE_LAYOUT: bool = cfg!(target_endian = "little");
 

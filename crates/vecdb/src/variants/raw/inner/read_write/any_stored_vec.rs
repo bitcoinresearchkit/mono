@@ -76,6 +76,8 @@ where
                 if S::IS_NATIVE_LAYOUT {
                     // Bulk write: memory layout matches serialized format, skip per-value
                     // serialization entirely. Single memcpy from pushed buffer to mmap.
+                    // SAFETY: native-layout values are padding-free byte images
+                    // (`ValueStrategy` contract).
                     let bytes = unsafe {
                         slice::from_raw_parts(
                             taken.as_ptr() as *const u8,

@@ -13,8 +13,9 @@ where
     V: StoredVec,
 {
     /// Computes a fixed output range from source data prepared in bounded batches.
-    /// Clamps the retained prefix to `to` and persists it even without new rows.
-    /// The callback must append exactly one value for every index in its range.
+    /// Clamps the retained prefix to `to`, then writes after every batch, or once when there is
+    /// nothing to compute (truncation only). The callback must append exactly one value for
+    /// every index in its range.
     pub fn compute_batched_to<F>(
         &mut self,
         max_from: V::I,
@@ -37,24 +38,42 @@ where
             let _lock = exit.lock();
             self.validate_computed_version_or_reset(version)?;
             self.truncate_if_needed_at(max_from.to_usize().min(to))?;
-            self.write()?;
         }
 
-        while self.len() < to {
+        loop {
             let from = self.len();
             let end = from.saturating_add(batch_size).min(to);
-            compute(self, from..end)?;
-            if self.len() != end {
-                return Err(Error::InvalidArgument(
-                    "EagerVec batch callback must append one value per index",
-                ));
+            if from < end {
+                compute(self, from..end)?;
+                if self.len() != end {
+                    return Err(Error::InvalidArgument(
+                        "EagerVec batch callback must append one value per index",
+                    ));
+                }
             }
 
             let _lock = exit.lock();
             self.write()?;
+            if end >= to {
+                return Ok(());
+            }
         }
+    }
 
-        Ok(())
+    /// [`Self::compute_batched_to`] in batches as large as the write cache allows.
+    pub fn compute_to<F>(
+        &mut self,
+        max_from: V::I,
+        to: usize,
+        version: Version,
+        compute: F,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        F: FnMut(&mut Self, Range<usize>) -> Result<()>,
+    {
+        let batch_size = self.batch_capacity();
+        self.compute_batched_to(max_from, to, version, batch_size, compute, exit)
     }
 
     pub fn compute_transform<A, F>(
@@ -68,22 +87,21 @@ where
         A: VecValue,
         F: FnMut((V::I, A, &Self)) -> (V::I, V::T),
     {
-        let max_from = V::I::from(max_from.to_usize().min(source.len()));
-        self.compute_init(source.version(), max_from, exit, |this| {
-            let skip = this.len();
-            let end = this.batch_end(source.len());
-            if skip >= end {
-                return Ok(());
-            }
-
-            let mut i = skip;
-            source.fold_range_at(skip, end, (), |(), b: A| {
-                let (idx, v) = t((V::I::from(i), b, &*this));
-                i += 1;
-                this.debug_checked_push(idx, v);
-            });
-            Ok(())
-        })
+        self.compute_to(
+            max_from,
+            source.len(),
+            source.version(),
+            |this, range| {
+                let mut i = range.start;
+                source.fold_range_at(range.start, range.end, (), |(), b: A| {
+                    let (idx, v) = t((V::I::from(i), b, &*this));
+                    i += 1;
+                    this.debug_checked_push(idx, v);
+                });
+                Ok(())
+            },
+            exit,
+        )
     }
 
     pub fn compute_transform2<A, B, F>(
@@ -99,13 +117,10 @@ where
         B: VecValue,
         F: FnMut((V::I, A, B, &Self)) -> (V::I, V::T),
     {
-        let source_end = other1.len().min(other2.len());
-        let batch_size = self.batch_capacity();
-        self.compute_batched_to(
+        self.compute_to(
             max_from,
-            source_end,
+            other1.len().min(other2.len()),
             other1.version() + other2.version(),
-            batch_size,
             |this, range| {
                 let batch2 = other2.collect_range_at(range.start, range.end);
                 let mut iter2 = batch2.into_iter();
@@ -158,25 +173,18 @@ where
         C: VecValue,
         F: FnMut((V::I, A, B, C, &Self)) -> (V::I, V::T),
     {
-        self.compute_init(
-            other1.version() + other2.version() + other3.version(),
+        self.compute_to(
             max_from,
-            exit,
-            |this| {
-                let skip = this.len();
-                let source_end = other1.len().min(other2.len()).min(other3.len());
-                let end = this.batch_end(source_end);
-                if skip >= end {
-                    return Ok(());
-                }
-
-                let batch2 = other2.collect_range_at(skip, end);
-                let batch3 = other3.collect_range_at(skip, end);
+            other1.len().min(other2.len()).min(other3.len()),
+            other1.version() + other2.version() + other3.version(),
+            |this, range| {
+                let batch2 = other2.collect_range_at(range.start, range.end);
+                let batch3 = other3.collect_range_at(range.start, range.end);
                 let mut iter2 = batch2.into_iter();
                 let mut iter3 = batch3.into_iter();
-                let mut i = skip;
+                let mut i = range.start;
 
-                other1.fold_range_at(skip, end, (), |(), b: A| {
+                other1.fold_range_at(range.start, range.end, (), |(), b: A| {
                     let (idx, v) = t((
                         V::I::from(i),
                         b,
@@ -189,6 +197,7 @@ where
                 });
                 Ok(())
             },
+            exit,
         )
     }
 }

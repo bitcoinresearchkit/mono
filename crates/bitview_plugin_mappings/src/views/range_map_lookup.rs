@@ -78,10 +78,6 @@ impl<I: VecIndex, T: VecIndex + VecValue> AnyVec for RangeMapLookupVec<I, T> {
     fn value_type_to_string(&self) -> &'static str {
         self.source.value_type_to_string()
     }
-
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
 }
 
 impl<I: VecIndex, T: VecIndex + VecValue> TypedVec for RangeMapLookupVec<I, T> {
