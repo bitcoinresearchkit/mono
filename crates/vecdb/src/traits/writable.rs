@@ -82,6 +82,7 @@ where
         // stamp to the previous file's stamp. Files above it are left from an
         // earlier rollback (kept until a write at their stamp replaces them);
         // a missing one below it means the chain is broken.
+        let mut undone = false;
         for (&file_stamp, _) in files.range(..=self.stamp()).rev() {
             let current = self.stamp();
             if current < stamp {
@@ -97,9 +98,13 @@ where
                 });
             }
             self.rollback()?;
+            undone = true;
         }
 
-        self.save_rollback_state();
+        // A no-op rollback keeps the existing baseline: saving here would snapshot unsaved mutations.
+        if undone {
+            self.save_rollback_state();
+        }
         Ok(self.stamp())
     }
 

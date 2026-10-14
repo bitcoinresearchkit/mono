@@ -515,6 +515,21 @@ mod truncation {
         let vec = import_with_changes::<V>(&db, "values")?;
         assert_eq!(vec.collect_one_at(70), Some(70));
         assert_eq!(vec.collect(), (0..80).collect::<Vec<_>>());
+
+        // A no-op rollback keeps the baseline: the unsaved update is still dropped by the real one.
+        let (db, _temp) = setup_db()?;
+        let mut vec = import_with_changes::<V>(&db, "values")?;
+        vec.push(10);
+        vec.stamped_write_with_changes(Stamp::from(1))?;
+        vec.push(20);
+        vec.stamped_write_with_changes(Stamp::from(2))?;
+        vec.update_many([(0, 99)])?;
+        assert_eq!(vec.rollback_before(Stamp::from(3))?, Stamp::from(2));
+        assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
+        vec.stamped_write(Stamp::from(1))?;
+        drop(vec);
+        let vec = import_with_changes::<V>(&db, "values")?;
+        assert_eq!(vec.collect(), vec![10]);
         Ok(())
     }
 
