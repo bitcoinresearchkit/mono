@@ -24,6 +24,7 @@ pub struct Supply<M: StorageMode = Rw> {
     pub in_profit: Part<LazySpotValuePerBlock, M>,
     /// Supply in loss: creation price above the spot price.
     pub in_loss: Part<LazySpotValuePerBlock, M>,
+    /// Change in the cohort's supply over a trailing window.
     pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
 }
 impl Supply {

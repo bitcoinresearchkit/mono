@@ -19,8 +19,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Investor capitalization, equal to realized capitalization minus the
     /// cumulative issuance-date USD value of the derived block-subsidy
     /// component, divided by active supply in BTC. Active supply is circulating
-    /// supply multiplied by liveliness. Undefined (null) unless investor
-    /// capitalization is positive.
+    /// supply multiplied by liveliness. Undefined (null) unless both investor
+    /// capitalization and active supply are positive.
     pub true_market_mean: PriceWithRatio<M>,
     /// AVIV: active capitalization divided by investor capitalization, which
     /// equals spot price divided by True Market Mean (the same series as
@@ -28,10 +28,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// null or rounds to zero cents.
     #[traversable(wrap = "true_market_mean", rename = "aviv")]
     pub(super) aviv: LazyPerBlock<Ratio, Ratio>,
-    /// AVIV NUPL: the share of active capitalization above investor
-    /// capitalization (one minus one over AVIV), over one while investor
-    /// capitalization is negative. Undefined (null) while active capitalization
-    /// is zero.
+    /// AVIV NUPL: active capitalization minus investor capitalization, divided by
+    /// active capitalization (one minus one over AVIV where AVIV is defined). It
+    /// exceeds one while investor capitalization is negative, including periods
+    /// when AVIV is null. Undefined (null) while active capitalization is zero.
     #[traversable(wrap = "true_market_mean", rename = "aviv_nupl")]
     pub(super) aviv_nupl: LazyRatioPerBlock<PartsPerMillionSigned32>,
     /// Cumulative cointime value destroyed divided by cumulative coinblocks

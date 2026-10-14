@@ -25,7 +25,7 @@ pub struct Total<M: StorageMode = Rw> {
     /// Transactions that create at least one output whose locking script begins with `OP_RETURN`.
     pub tx_count: PerBlockCumulativeRolling<Count, M>,
     /// Sum of the full virtual sizes of transactions containing at least one
-    /// `OP_RETURN` output; each transaction is included once.
+    /// `OP_RETURN` output, in vbytes; each transaction is included once.
     pub tx_vsize: PerBlockCumulativeRolling<VSize, M>,
     /// Sum of the full fees of transactions containing at least one `OP_RETURN`
     /// output; each transaction is included once.

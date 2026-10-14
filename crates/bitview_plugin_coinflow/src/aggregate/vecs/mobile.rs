@@ -22,7 +22,8 @@ pub struct MobileVecs<M: StorageMode = Rw> {
     /// multiplied by Bitcoin's spot price when it was created.
     #[traversable(wrap = "capital", rename = "total")]
     pub capital: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the mobile capital, under its jargon name.
+    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// created, weighted by its age range's mobility.
     #[traversable(wrap = "capital", rename = "realized_cap")]
     pub realized_cap: LazyFiatPerBlock<Cents>,
     /// Creation-price statistics of the mobile supply: each unspent output weighted by its

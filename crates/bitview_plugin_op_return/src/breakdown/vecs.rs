@@ -21,7 +21,7 @@ pub struct BucketVecs<M: StorageMode = Rw> {
     pub data_bytes: DataBytesSeries<M>,
     /// Number of matching transactions; each transaction counts once.
     pub tx_count: PerBlockCumulativeRolling<Count, M>,
-    /// Full virtual sizes of matching transactions.
+    /// Full virtual sizes of matching transactions, in vbytes.
     pub tx_vsize: PerBlockCumulativeRolling<VSize, M>,
     /// Full fees of matching transactions.
     pub fees: FeesSeries<M>,

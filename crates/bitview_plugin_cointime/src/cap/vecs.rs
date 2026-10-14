@@ -18,10 +18,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// the value issued.
     pub investor: FiatPerBlock<CentsSigned, M>,
     /// Active capitalization: market capitalization multiplied by liveliness,
-    /// the value of the active supply.
+    /// the value of the active supply. Reported in US dollars.
     pub active: LazyPerBlock<Dollars>,
     /// Vaulted capitalization: market capitalization multiplied by vaultedness,
-    /// the value of the vaulted supply.
+    /// the value of the vaulted supply. Reported in US dollars.
     pub vaulted: LazyPerBlock<Dollars>,
     /// Cointime capitalization: cumulative sum of spot price times coinblocks
     /// destroyed, divided by cumulative coinblocks stored, then multiplied by

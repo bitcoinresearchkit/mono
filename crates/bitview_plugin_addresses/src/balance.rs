@@ -41,19 +41,22 @@ pub struct BalanceOutputs<M: StorageMode = Rw> {
 
 #[derive(Traversable)]
 pub struct BalanceActivity<M: StorageMode = Rw> {
-    /// Value the band's addresses spent in each block. BTC representations use
-    /// the spent output value; USD representations value it at the spending
-    /// block's spot price.
+    /// Value the band's addresses spent in each block, each spend attributed by its address's
+    /// balance immediately before that input is applied, so one address can contribute to
+    /// several bands within a block. BTC representations use the spent output value; USD
+    /// representations value it at the spending block's spot price.
     pub transfer_volume: CumulativeValue<M>,
 }
 
 #[derive(Traversable)]
 pub struct BalanceRealized<M: StorageMode = Rw> {
-    /// Profit realized by the band's spends: spending value minus creation-date
-    /// value, counted only for profitable spends.
+    /// Profit realized by the band's spends, each attributed by its address's balance
+    /// immediately before that input is applied: spending value minus creation-date value,
+    /// counted only for profitable spends.
     pub profit: CumulativeFiat<Cents, M>,
-    /// Loss realized by the band's spends: creation-date value minus spending
-    /// value, counted only for losing spends.
+    /// Loss realized by the band's spends, each attributed by its address's balance immediately
+    /// before that input is applied: creation-date value minus spending value, counted only for
+    /// losing spends.
     pub loss: CumulativeFiat<Cents, M>,
 }
 
@@ -174,6 +177,7 @@ impl BalanceVecs {
 /// capital share denominator.
 #[derive(Traversable)]
 pub struct Balances<M: StorageMode = Rw> {
+    /// Address balance bands classify addresses by their aggregate balance.
     #[traversable(flatten)]
     pub bands: AmountRange<BalanceVecs<M>>,
     #[traversable(hidden)]

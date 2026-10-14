@@ -16,7 +16,7 @@ pub struct SupplyChange {
     /// Change in the cohort's supply over a trailing window.
     delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
     /// The cohort's share of the supply it is part of: all unspent outputs', or for address
-    /// balance bands, all addresses'.
+    /// balance bands, all addresses'. Across UTXO age ranges, these shares are the HODL waves.
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 

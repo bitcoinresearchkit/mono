@@ -59,7 +59,8 @@ struct BandSupply {
 struct BandCapital {
     /// Capital: the band's unspent outputs valued at Bitcoin's spot price when each was created.
     total: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the capital, under its jargon name.
+    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// created.
     realized_cap: LazyFiatPerBlock<Cents>,
     /// The band's share of its age filter's capital; a filter's bands add up to 100%.
     share: LazyPercentPerBlock<PartsPerMillion32>,

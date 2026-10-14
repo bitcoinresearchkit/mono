@@ -23,11 +23,13 @@ pub struct CostBasis<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by each output's USD value at creation.
     pub per_dollar: PerDollar<M>,
-    /// Lowest creation price (spot when the output was created) among the cohort's unspent
-    /// outputs.
+    /// Lowest occupied bucket of the price grid among the cohort's unspent outputs: creation
+    /// prices rounded to four significant digits of the price in cents (exact cents under $100,
+    /// then steps of at most 0.1% up to $1,000,000). Undefined (null) without supply.
     pub min: Price<LazyPerBlock<Cents>>,
-    /// Highest creation price (spot when the output was created) among the cohort's unspent
-    /// outputs.
+    /// Highest occupied bucket of the price grid among the cohort's unspent outputs: creation
+    /// prices rounded to four significant digits of the price in cents (exact cents under $100,
+    /// then steps of at most 0.1% up to $1,000,000). Undefined (null) without supply.
     pub max: Price<LazyPerBlock<Cents>>,
     /// Share of the cohort's unspent supply with a creation price near spot.
     pub supply_density: Density<LazyPercentPerBlock<PartsPerMillion32>>,
@@ -42,9 +44,14 @@ pub struct PerCoin<M: StorageMode = Rw> {
     pub avg: PriceWithMvrv<M>,
     /// Realized price: realized cap divided by supply, the weighted mean.
     pub realized_price: Price<LazyPerBlock<Cents>>,
+    /// On the price grid: creation prices rounded to four significant digits of the price in
+    /// cents (exact cents under $100, then steps of at most 0.1% up to $1,000,000). Undefined
+    /// (null) without supply.
     #[traversable(flatten)]
     pub percentiles: ByPercentile<Price<LazyPerBlock<Cents>>>,
-    /// Median realized price: the weighted median.
+    /// Median realized price: the weighted median, on the price grid: creation prices rounded to
+    /// four significant digits of the price in cents (exact cents under $100, then steps of at
+    /// most 0.1% up to $1,000,000). Undefined (null) without supply.
     pub median_realized_price: Price<LazyPerBlock<Cents>>,
 }
 
@@ -54,6 +61,9 @@ pub struct PerDollar<M: StorageMode = Rw> {
     pub avg: PriceWithRatio<M>,
     /// Capitalized price: the weighted mean.
     pub capitalized_price: Price<LazyPerBlock<Cents>>,
+    /// On the price grid: creation prices rounded to four significant digits of the price in
+    /// cents (exact cents under $100, then steps of at most 0.1% up to $1,000,000). Undefined
+    /// (null) while the cohort's capital is zero.
     #[traversable(flatten)]
     pub percentiles: ByPercentile<Price<LazyPerBlock<Cents>>>,
 }

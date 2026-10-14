@@ -20,14 +20,18 @@ pub struct Capital<M: StorageMode = Rw> {
     /// Total capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
     /// created.
     pub total: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the total capital, under its jargon name.
+    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// created.
     pub realized_cap: LazyFiatPerBlock<Cents>,
     /// Share of all capital.
     pub share: PercentPerBlock<PartsPerMillion32, M>,
-    /// Capital in profit: creation price at or below the current spot price.
+    /// Capital in profit: creation-date USD value of the outputs whose creation price is at or
+    /// below the current spot price.
     pub in_profit: Part<LazyFiatPerBlock<Cents>, M>,
-    /// Capital in loss: creation price above the current spot price.
+    /// Capital in loss: creation-date USD value of the outputs whose creation price is above the
+    /// current spot price.
     pub in_loss: Part<LazyFiatPerBlock<Cents>, M>,
+    /// Change in the cohort's capital over a trailing window.
     pub delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
 }
 impl Capital {

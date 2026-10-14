@@ -15,6 +15,7 @@ use crate::state::UTXOStates;
 /// UTXO cohorts, members first: amount ranges and spendable output types.
 #[derive(Traversable)]
 pub struct CohortMetrics<M: StorageMode = Rw> {
+    /// UTXO amount bands classify each output by its own value.
     pub amounts: Box<AmountRange<CohortVecs<M>>>,
     pub types: Box<SpendableType<CohortVecs<M>>>,
 }

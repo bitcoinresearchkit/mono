@@ -145,18 +145,18 @@ pub struct PredicateSupply<M: StorageMode = Rw> {
     share_ppm: CachedSeries<Height, PartsPerMillion32, M>,
 }
 
-/// Per-block reuse events. An output counts when it lands on an address that had already
-/// received (reuse) or spent more than once (respending); only an address's very first output
-/// is never a reuse event. An input counts when it spends from an address meeting the
-/// predicate before the input. Multiple qualifying outputs or inputs of one address count
-/// separately.
+/// Per-block reuse events.
 #[derive(Traversable)]
 pub struct ReuseEvents<M: StorageMode = Rw> {
-    /// Outputs classified by the predicate, and their share of the outputs the
-    /// addresses received.
+    /// Received outputs that leave their address meeting the predicate: for reuse, every output
+    /// after an address's first lifetime output; for respending, outputs to an address that had
+    /// already spent more than one output when the receive was applied. Multiple qualifying
+    /// outputs to one address count separately. Shares are of the outputs the addresses
+    /// received.
     pub outputs: EventCount<M>,
-    /// Inputs classified by the predicate, and their share of the inputs the
-    /// addresses spent.
+    /// Inputs spending from an address that met the predicate immediately before the input was
+    /// applied. Multiple qualifying inputs of one address count separately. Shares are of the
+    /// inputs the addresses spent.
     pub inputs: EventCount<M>,
     /// Distinct active addresses meeting the predicate after their block's
     /// events, and their share of active addresses, counted per block (an

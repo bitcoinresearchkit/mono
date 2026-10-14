@@ -13,9 +13,11 @@ use super::Sources;
 pub struct CapitalMetrics {
     #[traversable(flatten)]
     views: CapitalViews,
-    /// Capital whose creation price is at or below current spot price.
+    /// Capital in profit: creation-date USD value of the outputs whose creation price is at or
+    /// below the current spot price.
     in_profit: LazyFiatPerBlock<Cents>,
-    /// Capital whose creation price is above current spot price.
+    /// Capital in loss: creation-date USD value of the outputs whose creation price is above the
+    /// current spot price.
     in_loss: LazyFiatPerBlock<Cents>,
 }
 

@@ -24,7 +24,6 @@ where
     #[traversable(flatten)]
     rolling: RollingTotals<T::Sum>,
     #[traversable(flatten)]
-    /// Statistics in the quantity's wide type, like its sums.
     distribution: RollingDistribution<T::Sum, M>,
 }
 

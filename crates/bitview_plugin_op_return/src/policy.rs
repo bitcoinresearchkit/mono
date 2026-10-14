@@ -10,7 +10,8 @@ pub struct Policy<T> {
     /// than one OP_RETURN output, the pre-v30 nonstandard relay shape.
     pub pre_v30_nonstandard: T,
     /// Restricted to transactions with at least one OP_RETURN output containing
-    /// more than 82 post-OP_RETURN bytes.
+    /// more than 82 post-OP_RETURN bytes. Output counts and data bytes count only
+    /// those oversized outputs.
     pub oversized: T,
     /// Restricted to transactions containing more than one OP_RETURN output.
     pub multiple: T,

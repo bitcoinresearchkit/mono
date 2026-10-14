@@ -17,11 +17,11 @@ pub struct CapitalVecs<M: StorageMode = Rw> {
     #[deref_mut]
     #[traversable(flatten)]
     pub base: CohortCapital<M>,
-    /// Capital in profit: the cohort's outputs whose creation price is less
-    /// than or equal to the represented block's spot price.
+    /// Capital in profit: creation-date USD value of the cohort's outputs whose creation price is
+    /// at or below the represented block's spot price.
     pub in_profit: Fiat<Cents, M>,
-    /// Capital in loss: the cohort's outputs whose creation price is greater
-    /// than the represented block's spot price.
+    /// Capital in loss: creation-date USD value of the cohort's outputs whose creation price is
+    /// above the represented block's spot price.
     pub in_loss: Fiat<Cents, M>,
 }
 

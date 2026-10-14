@@ -101,7 +101,10 @@ has to be deleted by hand.
   where calibration starts (were ±5 from uncalibrated bands)
 - Bedrock's modes are `unweighted`, `awake` and `mobile` (were `raw`, `cointime`, `coinflow`; ids
   `bedrock_awake_floor_pct95`, ...); each mode publishes `floor`, `cost_basis_above_floor` (the creation-price
-  percentiles of the supply at or above its 95th-percentile floor) and `supply_in_loss_share_threshold`
+  percentiles of the supply at or above its 95th-percentile floor) and `supply_in_loss_share_threshold`. Calibration
+  uses block observations: each mode's loss thresholds are percentiles of its finite loss shares from earlier blocks,
+  available once 52,560 such observations (one nominal year) exist and the current share is finite (was daily, once
+  365 days were)
 - One word per concept in paths and ids: `avg` for a mean (was `average`), `median` for the 50th percentile in every
   percentile set (was `pct50`), unpadded percentiles (`pct5`, was `pct05`; the rarity bands' price ids `pct1`, `pct2`,
   `pct5`, were `pct01`, ...), and `block` for a node's own per-block series beside its derived children (was `base`)
@@ -175,6 +178,8 @@ has to be deleted by hand.
   `empty_output_tx_index`, `p2ms_output_tx_index`, `unknown_output_tx_index` and `op_return_tx_index` (were `tx_index`,
   at `.tx_index`, was `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both
   `value`)
+- `input_value` and `output_value` are per record, one value per input and per output (were each transaction's input
+  and output totals, at `transactions.fees.{input_value, output_value}`; the totals are gone)
 - `input_value` is the indexer's, at `indexer.inputs.value` (was `inputs.value`): the indexer writes each input's spent
   value as it resolves the input (the unspent-output store carries the value), so `transactions` no longer depends on
   `inputs`. The indexer reindexes (version 42)

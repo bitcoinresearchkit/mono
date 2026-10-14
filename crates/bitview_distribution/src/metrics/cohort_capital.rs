@@ -24,12 +24,14 @@ pub struct CapitalViews {
     /// Capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
     /// created.
     total: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the capital, under its jargon name.
+    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// created.
     realized_cap: LazyFiatPerBlock<Cents>,
     /// Change in the cohort's capital over a trailing window.
     delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
     /// The cohort's share of the capital it is part of: all unspent outputs', or for address
-    /// balance bands, all addresses'.
+    /// balance bands, all addresses'. Across UTXO age ranges, these shares are the realized cap
+    /// HODL waves.
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 

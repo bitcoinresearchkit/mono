@@ -37,7 +37,7 @@ pub struct Realized<M: StorageMode = Rw> {
     /// Spent output profit ratio (SOPR): spend-time value of the outputs spent over the
     /// window divided by their creation-time value.
     pub sopr: RollingWindows<Ratio, M>,
-    /// SOPR without the outputs spent within an hour of their creation.
+    /// Adjusted SOPR (aSOPR): SOPR without the outputs spent within an hour of their creation.
     pub adjusted_sopr: AdjustedSopr<M>,
     /// Gross realized profit and loss over the window divided by the realized cap.
     pub sell_side_risk_ratio: RatioRollingWindows<PartsPerMillion32, M>,

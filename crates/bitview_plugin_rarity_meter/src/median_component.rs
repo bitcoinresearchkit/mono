@@ -10,7 +10,7 @@ use crate::Component;
 
 #[derive(Traversable)]
 pub struct MedianComponent<M: StorageMode = Rw> {
-    /// Median creation price from the existing weighted cost-basis age.
+    /// Median creation price from the cohort's weighted cost-basis distribution.
     #[traversable(flatten)]
     pub price: PriceWithRatio<M>,
     #[traversable(flatten)]
