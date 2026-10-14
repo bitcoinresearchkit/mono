@@ -49,7 +49,6 @@ impl Vecs {
                     mappings,
                 ),
                 coindays_consumed: flow("coindays_consumed")?,
-                coindays_stored: flow("coindays_stored")?,
                 wakefulness: LazyPerBlock::from_height_source::<BoundedToRatio>(
                     &name("wakefulness"),
                     version,

@@ -43,7 +43,7 @@ has to be deleted by hand.
   fetched hash could fail its own diff lookup
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (none is left):
   `Boolean`, `Score`, `Rank`, `Count`/`CountSigned`, `Bytes`, `VSize`, `Weight`, `SigOps`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
-  `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days/blocks/years, `Days`/`Years`,
+  `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days and blocks, `Days`,
   `Hashrate`, `Difficulty`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
 - Every series has its quantity's type: per-block values and their statistics are `Count`, `Bytes`, `Weight` and
   `SigOps` like their sums (the indexer's narrow storage forms `Count16`, `Bytes32`, `Weight32`, `SigOps32` and the
@@ -76,9 +76,8 @@ has to be deleted by hand.
   share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`. A node left with one unit is
   the series itself: `price.spot`, `price.close`, `price.ohlc`, realized caps and prices (were their `.usd`
   child), shares (were `.percent`), BTC changes over a window (were `.btc`). Prices in sats per USD (`*_price_sats` and
-  every other price's `_sats`) are gone; `sats_per_dollar` replaces `price_sats`. About 18,300 fewer series. Two
-  placements change besides: the entry cohorts' 24-hour SOPR is `realized.sopr.24h` (was `realized.sopr.raw`), and
-  market cap stays at `supply.market_cap` beside its `delta`
+  every other price's `_sats`) are gone; `sats_per_dollar` replaces `price_sats`. About 18,300 fewer series. One
+  placement changes besides: market cap stays at `supply.market_cap` beside its `delta`
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
 - Rarity meter components are keyed by their reference series' id (`awake_realized_price`, `mobile_realized_price`,
   `true_market_mean`, `cost_basis_per_coin_median`, `sth_awake_cost_basis_per_dollar_median`,
@@ -169,9 +168,8 @@ has to be deleted by hand.
   fee siblings; prices are `price.{open, high, low, close}` (were under `price.split`)
 - Gone, as duplicates or one division of published series: the average UTXO amount (`avg_utxo_amount*`, `<type>_avg_utxo_amount*`: supply over UTXO count)
 - Descriptions: per-block values no longer claim time-period indexes they don't have; the holders' realized,
-  unrealized, activity and output series say what they measure (coin years destroyed: trailing 365-day coin days
-  destroyed in coin-years); undefined values are described as null; absolute deltas no longer mention a relative
-  change; the address state lookups are described
+  unrealized, activity and output series say what they measure; undefined values are described as null; absolute
+  deltas no longer mention a relative change; the address state lookups are described
 - Transaction features, patterns, policy and CPFP roles are member-first: each is one node holding its
   per-transaction `flag` beside its per-block count, `transactions.features.p2tr.{flag, block, cumulative, sum}` (the
   flags and most counts were the indexer's only), `transactions.patterns.coinjoin.{flag, block, cumulative, sum}` (were
@@ -207,13 +205,14 @@ has to be deleted by hand.
   `outputs.spendable_count` and `outputs.op_return_value` sit at the outputs root (were under `by_type` and `value`)
 - Age and UTXO cohorts are member-first: `age.ranges.<range>`, `age.epochs.<epoch>`, `age.classes.<year>`,
   `utxos.amounts.<band>` and `utxos.types.<type>` each hold `supply.{total, delta, share}`, `capital` (below),
-  `outputs.{unspent_count, spent_count}`, `activity.transfer_volume`, `realized.{profit, loss}` and, in age,
-  `supply.{in_profit, in_loss}`, `activity.{transfer_volume.{in_profit, in_loss}, coindays_destroyed}`,
-  `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were metric-first:
-  `age.supply.total.age.<range>`, `utxos.realized.cap.utxo_amount.<band>`, ...). Age ranges also hold `supply.matured`,
-  `activity.coindays_created` (was `age.coindays_created.<range>`) and `cost_basis.per_coin.{avg, realized_price}`; UTXO
-  amounts and types `cost_basis.per_coin.{avg, realized_price}`. Ids are unchanged, but for the `cost_basis` and
-  `capital` ones (below)
+  `outputs.{unspent_count, spent_count}`, `activity.transfer_volume`, `realized.{profit, loss}` and
+  `cost_basis.per_coin.{avg, realized_price}` and, in age, `supply.{in_profit, in_loss}`,
+  `activity.coindays_destroyed`, `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were
+  metric-first: `age.supply.total.age.<range>`, `utxos.realized.cap.utxo_amount.<band>`, ...). Age ranges also hold
+  `supply.matured`, `activity.coindays_created` (was `age.coindays_created.<range>`) and
+  `activity.transfer_volume.{in_profit, in_loss}`; the epochs', classes' and entry cohorts' volume in profit and in
+  loss is gone (`transfer_volume_in_profit_cumulative_by_epoch`, `..._by_entry`, ...; the age ranges and holders keep
+  the split). Ids are unchanged, but for the `cost_basis` and `capital` ones (below)
 - P2PK is one output type in every type family: `outputs.types.p2pk`, `inputs.types.p2pk`, `utxos.types.p2pk` and
   `addresses.types.p2pk` count the 33- and 65-byte keys as one type (ids `p2pk_*`; were `p2pk33_*` and `p2pk65_*`):
   counts and amounts add up, a transaction with both counts once, and shares and averages divide the combined
@@ -266,8 +265,8 @@ has to be deleted by hand.
   `cointime.cohorts.<cohort>.awake` holds `supply.{total, in_loss.share}`, `capital.{total, realized_cap}` and
   `cost_basis` (the wakefulness-weighted mean creation prices, URPD percentiles, `supply_density` and
   `capital_density`), beside `dormant.supply`; Coinflow's cohorts have `mobile` and `immobile` in their place. Age
-  ranges are `cointime.age_ranges.<range>.{coindays_created, coindays_consumed, coindays_stored, wakefulness,
-  awake_to_dormant, awake.supply, dormant.supply}` and `coinflow.age_ranges.<range>.{spending_rate, spending_exposure,
+  ranges are `cointime.age_ranges.<range>.{coindays_created, coindays_consumed, wakefulness, awake_to_dormant,
+  awake.supply, dormant.supply}` and `coinflow.age_ranges.<range>.{spending_rate, spending_exposure,
   mobility, mobile.supply, immobile.supply}`. `cointime.cap` is `cointime.caps`; VOCDD sits in
   `cointime.reserve_risk.vocdd` beside its median (was `cointime.value.vocdd`) and Reserve Risk itself is
   `cointime.reserve_risk.block` (was `.value`); `hodled_or_lost_supply` sits at `cointime.supply.hodled_or_lost`, beside
@@ -284,7 +283,8 @@ has to be deleted by hand.
   `fiat`). AVIV is `prices.true_market_mean.aviv` (id `aviv`; was `cap.aviv`, id `aviv_ratio`).
   URPD ids name the weighted side (`awake_cost_basis_per_coin_median`, `sth_mobile_cost_basis_per_dollar_pct5`,
   `awake_supply_density`; were `cointime_cost_basis_per_coin_median`, `sth_coinflow_cost_basis_per_dollar_pct5`,
-  `cointime_urpd_all_supply_density_total`). Gone: each age range's `dormancy` (one minus its wakefulness),
+  `cointime_urpd_all_supply_density_total`). Gone: each age range's `dormancy` (one minus its wakefulness) and
+  `coindays_stored` (cumulative coin days created minus consumed),
   `cointime.supply.active.in_loss.share` (the awake share under another name) and the URPD `capitalized_price` per
   cohort (a rounded copy of the exact awake or mobile `capitalized_price`)
 - The 4- and 6-month age cutoffs take the age ranges' frame in their ids, in holders, Cointime and Coinflow:
@@ -308,7 +308,12 @@ has to be deleted by hand.
   over the supply in profit or loss)
 - Gone, as niche and one division or subtraction of published series: `mining.rewards.fees.to_subsidy` (ids
   `fee_to_subsidy_*`, beside `fees.share`), `supply.market_minus_realized_cap_growth_rate` (the difference of two
-  published growth rates) and OP_RETURN's `data_bytes.share` (`*_data_share`)
+  published growth rates), OP_RETURN's `data_bytes.share` (`*_data_share`) and the holders' `coinyears_destroyed`
+  (`sth_coinyears_destroyed`, ...: the yearly coin days destroyed over 365)
+- SOPR, MVRV and NUPL are published for the holders' cohorts (MVRV also for Cointime's and Coinflow's weighted cohorts
+  and prices); those of age ranges, epochs, classes, UTXO amounts and types and entry cohorts are gone, each one
+  division of the cohort's published series (Bitview Studio rebuilds them): `class_2009_sopr_24h`, `epoch_0_mvrv`,
+  `utxos_1btc_to_10btc_nupl`, `p2pkh_nupl`, `rookie_nupl`, ...
 - Capital mirrors supply in every cohort family: the cohort's unspent outputs valued at their creation price (the
   realized cap), `capital` beside `supply` with the same shape; `realized` keeps the flows. Holders: `capital.{total,
   realized_cap, share, in_profit.{block, share}, in_loss.{block, share}, delta}` (were `realized_cap` with its `delta`,
@@ -326,25 +331,24 @@ has to be deleted by hand.
   counts the genesis output's 50 BTC, which the UTXO set leaves out, so its share reads a hair above 100% in the first
   years)
 - Profitability bands are filter-first, each band a subset of the cohort node: `profitability.<filter>.<band>`
-  (filters `all`, `sth`, `lth`; were metric-first) holds `supply.{total, share}`, `capital.{total, realized_cap,
-  share}` and `unrealized.net_pnl`. Band keys start with their side and spell percent out (`profit_over_1000_percent`,
+  (filters `all`, `sth`, `lth`; were metric-first) holds `supply.{total, share}` and `capital.{total, realized_cap,
+  share}`. Band keys start with their side and spell percent out (`profit_over_1000_percent`,
   `profit_10_to_20_percent`, `loss_0_to_10_percent`, ...; were `_10pct_to_20pct_in_profit`, ...), and ids lead with
   the filter like every cohort (`sth_profit_10_to_20_percent_supply`, `lth_loss_0_to_10_percent_capital`,
-  `profit_10_to_20_percent_net_unrealized_pnl` for all; were `utxos_10pct_to_20pct_in_profit_sth_supply`, ...). Net
-  unrealized profit or loss is signed (was a magnitude, positive in loss bands too); shares are of the band's filter,
-  so a filter's bands add up to 100%. Per-band NUPL and supply deltas are gone (NUPL is `net_pnl` over `supply.total`
-  in USD): 525 series
+  `profit_10_to_20_percent_capital` for all; were `utxos_10pct_to_20pct_in_profit_sth_supply`, ...). Shares are of the
+  band's filter, so a filter's bands add up to 100%. Per-band net unrealized PnL, NUPL and supply deltas are gone (the
+  net PnL is `supply.total` in USD minus `capital.total`, NUPL that over the supply in USD): 600 series
 - Mean creation prices sit with the other creation-price statistics, each name analysts use beside its descriptive
-  series, in holders, entry, age ranges, UTXO cohorts, Cointime and Coinflow: `cost_basis.per_coin.avg` with its jargon
-  `realized_price` and, where they exist, `avg.{ratio, mvrv}` and `median_realized_price` beside the percentiles;
+  series, in holders, entry, age cohorts, UTXO cohorts, Cointime and Coinflow: `cost_basis.per_coin.avg` with its
+  jargon `realized_price` and, where they exist, `avg.{ratio, mvrv}` and `median_realized_price` beside the percentiles;
   `cost_basis.per_dollar.avg.{block, ratio}` with `capitalized_price`. Ids: `sth_cost_basis_per_coin_avg[_ratio]`,
   `sth_cost_basis_per_dollar_avg[_ratio]` and the jargon `sth_realized_price`, `sth_mvrv`, `sth_capitalized_price` and
   `sth_median_realized_price` (a second id for `cost_basis.per_coin.median`). They were `realized.{price, mvrv,
-  capitalized_price}` (holders), `realized.{price, mvrv}` (entry), `realized.price` (age ranges, UTXO cohorts) and
+  capitalized_price}` (holders), `realized.price` (entry, age cohorts, UTXO cohorts) and
   `realized_price`, `capitalized_price` beside `cost_basis` (Cointime, Coinflow); the `*_realized_price_ratio` and
-  `*_capitalized_price_ratio` ids are `*_cost_basis_per_{coin,dollar}_avg_ratio`, and age ranges and UTXO cohorts gain
+  `*_capitalized_price_ratio` ids are `*_cost_basis_per_{coin,dollar}_avg_ratio`, and entry, age and UTXO cohorts gain
   `*_cost_basis_per_coin_avg`. Cointime and Coinflow gain MVRV (`awake_mvrv`, `sth_mobile_mvrv`, ...); the entry
-  cohorts' SOPR has the 1w, 1m and 1y windows too, and their `value_destroyed` sits in `realized` (was under `sopr`)
+  cohorts' `value_destroyed` sits in `realized` (was under `sopr`)
 - Three duplicates are gone. `realized.net_pnl.delta` in the holders, age and entry cohorts (ids
   `*net_realized_pnl_delta_*`): the window's change of the cumulative net PnL, which is `realized.net_pnl.sum`
   without the window's first block, and its rate, that change divided by the cumulative at the window's start.
@@ -610,8 +614,7 @@ has to be deleted by hand.
   `coinblocks_destroyed` and each age range's `coindays_created` beside their siblings (the age plugin's series, same
   ids)
 - Cointime series from the paper: AVIV-NUPL (`aviv_nupl`, 1 - 1/AVIV), MVRVs of the active, vaulted and Cointime
-  prices (`active_mvrv`, `vaulted_mvrv`, `cointime_mvrv`), the adjusted stock-to-flow (`cointime_adjusted_stock_to_flow`,
-  one over the adjusted inflation rate), investorness and producerness (investor cap and thermocap over realized cap)
+  prices (`active_mvrv`, `vaulted_mvrv`, `cointime_mvrv`), investorness and producerness (investor cap and thermocap over realized cap)
   and concurrent liveliness (coinblocks destroyed over created within each window, `concurrent_liveliness_24h`...`_1y`;
   a single block's ratio is too noisy to serve). Cointime and Coinflow's four age cutoffs gain supply, the in-loss
   share and realized cap, like `sth` and `lth`
@@ -668,6 +671,8 @@ has to be deleted by hand.
   the nearest cent (were truncated). Five digits made those plugins' recompute 3.3 times slower; four make it 11%
   faster than whole dollars, with a 46,001-bucket price index (was 190,001)
 - Block-to-pool attribution follows mempool's current `pools-v2.json` (a new Foundry USA payout address)
+- The average address balance is the exact mean (was floored to whole sats: 3 sats over two addresses read 1) and
+  undefined (null) while no address is funded (was 0), computed on read
 - The two BIP30-overwritten coinbase outputs leave their P2PK addresses at 91,842 and 91,880, as if never received:
   each address holds 50 BTC in one output (was 100 BTC in two) and no longer counts as reused, and the address
   supply, balance bands, realized cap and supply shares follow; no spend, volume or realized profit and loss is
@@ -718,10 +723,8 @@ has to be deleted by hand.
 - Coinflow's expected spending exposure integrates through age ranges where nothing moved (it stopped there and
   extrapolated the fit) and stops only where a range is empty, and the youngest range's remaining half hour counts as
   a half hour (was an hour). Mobility and everything weighted by it follow
-- NUPL comes from the quantities that define it rather than a rounded price or MVRV: an entry cohort's from its net
-  unrealized profit/loss over its market cap (its supply at spot, as for holder cohorts), AVIV NUPL from active
-  capitalization above investor capitalization. Both were null when a sub-cent mean price floored to zero (e.g. `veteran_nupl` at block
-  74,641) or True Market Mean was zero
+- AVIV NUPL comes from the quantities that define it, active capitalization above investor capitalization, rather
+  than a rounded price: it was null while True Market Mean was zero
 - Investor capitalization is signed (realized cap minus thermo cap goes negative when coins are re-acquired for less
   than their issuance value, which would have stopped the computation; it has not happened yet), and so is
   investorness. True Market Mean is null unless investor capitalization is positive, and AVIV with it
@@ -863,7 +866,7 @@ has to be deleted by hand.
   (supplies, weights and loss shares) and inscription fees. At 300,000 blocks coinflow takes 4.4 s instead of 33 s
   and bedrock 1.2 s instead of 5 s
 - Spot-to-price ratios are stored, computed once after the block loop, instead of lazy views that read two vectors
-  per value: MVRV and the mean-price ratios of every cohort (holders, entry, Cointime, Coinflow), the Cointime prices'
+  per value: MVRV and the mean-price ratios of every cohort (holders, Cointime, Coinflow), the Cointime prices'
   ratios (with their MVRVs, AVIV and AVIV-NUPL) and the moving averages' ratios (with the Mayer multiple)
 - The age ranges no longer track the capitalized cap of their supply in profit and in loss (two `u128` products per
   price move and two stored vectors per range), which only pain, greed, net sentiment and the per-dollar in-profit

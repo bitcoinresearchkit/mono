@@ -11,12 +11,6 @@ pub trait RealizedOps: Default + Clone + Send + Sync + 'static {
     fn value_destroyed(&self) -> Cents {
         Cents::ZERO
     }
-    fn sent_in_profit(&self) -> Sats {
-        Sats::ZERO
-    }
-    fn sent_in_loss(&self) -> Sats {
-        Sats::ZERO
-    }
     fn reset_single_iteration_values(&mut self);
     fn increment(&mut self, price: Cents, sats: Sats);
     fn increment_snapshot(&mut self, price_sats: CentsSats, capitalized_cap: CentsSquaredSats);

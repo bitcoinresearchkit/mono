@@ -1,6 +1,6 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
-use bitview_distribution::metrics::{CohortCostBasis, ShareTotals};
+use bitview_distribution::{families::CumulativeValue, metrics::ShareTotals};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CentsSquaredSats, CoinDays};
 use bitview_transforms::SatsToCents;
@@ -40,7 +40,14 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// duration, one coin day per BTC per day.
     #[traversable(wrap = "activity", rename = "coindays_created")]
     pub coindays_created: PerBlockCumulativeRolling<CoinDays, M>,
-    cost_basis: CohortCostBasis<M>,
+    /// Transfer volume whose spending price is greater than or equal to the
+    /// spent outputs' creation price.
+    #[traversable(wrap = "activity/transfer_volume", rename = "in_profit")]
+    pub transfer_volume_in_profit: CumulativeValue<M>,
+    /// Transfer volume whose spending price is below the spent outputs'
+    /// creation price.
+    #[traversable(wrap = "activity/transfer_volume", rename = "in_loss")]
+    pub transfer_volume_in_loss: CumulativeValue<M>,
     #[traversable(hidden)]
     pub raw: RawSources<M>,
 }
@@ -107,12 +114,15 @@ impl RangeVecs {
             mappings,
             window_starts,
         )?;
-        let cost_basis = CohortCostBasis::import(
-            db,
-            |metric| CohortContext::Utxo.metric_name(cohort, metric),
-            version,
-            mappings,
-        )?;
+        let volume = |metric: &str| {
+            CumulativeValue::import(
+                db,
+                &CohortContext::Utxo.metric_name(cohort, metric),
+                version + Version::ONE,
+                mappings,
+                window_starts,
+            )
+        };
         let raw = RawSources {
             cap: import_raw(db, cohort, "cap_raw", version)?,
             capitalized_cap: import_raw(db, cohort, "capitalized_cap_raw", version)?,
@@ -131,7 +141,8 @@ impl RangeVecs {
             matured,
             matured_sources,
             coindays_created,
-            cost_basis,
+            transfer_volume_in_profit: volume("transfer_volume_in_profit")?,
+            transfer_volume_in_loss: volume("transfer_volume_in_loss")?,
             raw,
         })
     }
@@ -156,8 +167,11 @@ impl RangeVecs {
     ) -> Cents {
         let capital = self.cohort.push(state, price);
         let realized = &state.realized;
-        self.cost_basis
-            .push(realized.cap_raw().realized_price(state.supply_value()));
+        let (in_profit, in_loss) = realized.sent_split();
+        self.transfer_volume_in_profit
+            .push_block(in_profit, SatsToCents::apply(in_profit, price));
+        self.transfer_volume_in_loss
+            .push_block(in_loss, SatsToCents::apply(in_loss, price));
         self.raw.cap.push(realized.cap_raw());
         self.raw
             .capitalized_cap
@@ -174,15 +188,18 @@ impl RangeVecs {
             capitalized_cap,
             peak_regret,
         } = &mut self.raw;
-        self.cohort.stored_vecs_mut().chain([
-            self.matured_sources.sats.stored_mut(),
-            self.matured_sources.cents.stored_mut(),
-            self.coindays_created.stored_mut(),
-            self.cost_basis.stored_mut(),
-            cap as &mut dyn AnyStoredVec,
-            capitalized_cap,
-            peak_regret,
-        ])
+        self.cohort
+            .stored_vecs_mut()
+            .chain(self.transfer_volume_in_profit.stored_vecs_mut())
+            .chain(self.transfer_volume_in_loss.stored_vecs_mut())
+            .chain([
+                self.matured_sources.sats.stored_mut(),
+                self.matured_sources.cents.stored_mut(),
+                self.coindays_created.stored_mut(),
+                cap as &mut dyn AnyStoredVec,
+                capitalized_cap,
+                peak_regret,
+            ])
     }
 }
 

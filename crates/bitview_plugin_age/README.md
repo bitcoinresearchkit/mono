@@ -10,7 +10,7 @@ The overlapping all/STH/LTH and four/six-month filters, cost-basis percentiles,
 density and aggregate-relative metrics belong to Holders.
 Age publishes exact disjoint raw capital products so consumers can combine
 bands before rounding weighted prices. These intermediate products stay out of
-the public catalogue. Age exposes total realized cap and each band's realized
+the public catalogue. Age exposes total realized cap and each cohort's realized
 price (its exact raw product over its supply, stored), with no cap change/growth,
 realized-price ratios, SOPR, MVRV, NUPL or presentation-only loss/supply aliases.
 

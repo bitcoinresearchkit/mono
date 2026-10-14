@@ -30,9 +30,6 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// spent from, this takes coin days from the ranges where they were
     /// created, so consumption never exceeds creation in any range.
     pub coindays_consumed: PerBlockCumulativeRolling<CoinDays, M>,
-    /// Cumulative coin days created in the range minus cumulative coin days
-    /// consumed from it.
-    pub coindays_stored: PerBlockCumulativeRolling<CoinDays, M>,
     /// Wakefulness: cumulative coin days consumed from the range divided by
     /// cumulative coin days created in it. Higher values mean more of the
     /// holding time accumulated in the range has been consumed by spending.

@@ -6,7 +6,7 @@ mod ohlc;
 mod ratio;
 
 pub use arithmetic::{
-    BlocksToDays, CountPerSecond, DaysToYears, DifficultyToHashrate, OneMinusPpm, WeightToVSize,
+    BlocksToDays, CountPerSecond, DifficultyToHashrate, OneMinusPpm, WeightToVSize,
 };
 pub use convert::Convert;
 pub use currency::{AvgCentsToUsd, AvgSatsToBtc, CentsUnsignedToSats, SatsToCents};

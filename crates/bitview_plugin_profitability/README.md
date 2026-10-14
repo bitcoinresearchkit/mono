@@ -4,7 +4,7 @@ Profit and loss bands of the UTXO set: 25 bands from over 1000% in profit to
 90-100% in loss, for all, short-term and long-term holders, at
 `profitability.<filter>.<band>`. Each band
 publishes its supply and capital, each with its share of the filter's total (a
-filter's bands add up to 100%), and its signed net unrealized profit or loss.
+filter's bands add up to 100%).
 
 The plugin consumes the published UTXO Set, block prices, and monotonic timestamps.
 It owns one complete `ComputePlugin::compute_state()`, its database, and a resident

@@ -1,6 +1,9 @@
-use bitview_cohort::CohortId;
+use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
-use bitview_distribution::{metrics::ShareTotals, state::RealizedOps};
+use bitview_distribution::{
+    metrics::{CohortCostBasis, ShareTotals},
+    state::RealizedOps,
+};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
@@ -23,6 +26,7 @@ pub struct CohortVecs<M: StorageMode = Rw> {
     pub activity: ActivityVecs<M>,
     pub realized: RealizedVecs<M>,
     pub unrealized: UnrealizedVecs<M>,
+    cost_basis: CohortCostBasis<M>,
 }
 
 impl CohortVecs {
@@ -57,6 +61,12 @@ impl CohortVecs {
             activity: ActivityVecs::import(db, cohort, version, mappings, window_starts)?,
             realized: RealizedVecs::import(db, cohort, version, mappings, window_starts)?,
             unrealized: UnrealizedVecs::import(db, cohort, version, mappings)?,
+            cost_basis: CohortCostBasis::import(
+                db,
+                |metric| CohortContext::Utxo.metric_name(cohort, metric),
+                version,
+                mappings,
+            )?,
         })
     }
 
@@ -75,8 +85,9 @@ impl CohortVecs {
         self.unrealized.push(&profitability);
         self.outputs.push(state.output_counts());
         self.activity
-            .push(state.transfer_volume(), state.core_activity(), price);
+            .push(state.transfer_volume(), state.coindays_destroyed(), price);
         self.realized.push(&realized);
+        self.cost_basis.push(realized.price());
         realized.cap
     }
 
@@ -89,5 +100,6 @@ impl CohortVecs {
             .chain(self.activity.stored_vecs_mut())
             .chain(self.realized.stored_vecs_mut())
             .chain(self.unrealized.stored_vecs_mut())
+            .chain([self.cost_basis.stored_mut()])
     }
 }

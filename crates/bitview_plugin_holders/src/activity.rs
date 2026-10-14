@@ -1,11 +1,10 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{CoinDays, CoinYears, Days};
-use bitview_transforms::DaysToYears;
+use bitview_primitives::{CoinDays, Days};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, LazyPerBlock, LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling,
+    CachedSeries, LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling,
     LazyWindowStartVec, RollingWindows,
 };
 use brk_error::Result;
@@ -29,9 +28,6 @@ pub struct Activity<M: StorageMode = Rw> {
     pub transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
     /// Coin days destroyed (CDD): spent coin amounts multiplied by their age in days.
     pub coindays_destroyed: LazyPerBlockCumulativeRolling<CoinDays>,
-    /// Coin years destroyed (CYD): coin days destroyed over the trailing 365
-    /// days, in coin-years.
-    pub coinyears_destroyed: LazyPerBlock<CoinYears, CoinDays>,
     /// Dormancy: coin days destroyed per spent coin over the window, the average age in days
     /// of the coins spent.
     pub dormancy: RollingWindows<Days, M>,
@@ -64,12 +60,6 @@ impl Activity {
             windows,
             mappings,
         );
-        let coinyears_destroyed = LazyPerBlock::from_height_source::<DaysToYears>(
-            &id.metric_name("coinyears_destroyed"),
-            v,
-            &coindays_destroyed.sum._1y.height,
-            mappings,
-        );
         Ok(Self {
             transfer_volume: value("transfer_volume", &c.volume_sats, &c.volume_cents),
             transfer_volume_in_profit: value(
@@ -83,7 +73,6 @@ impl Activity {
                 &c.volume_loss_cents,
             ),
             coindays_destroyed,
-            coinyears_destroyed,
             dormancy: RollingWindows::import(db, &id.metric_name("dormancy"), v, mappings)?,
         })
     }

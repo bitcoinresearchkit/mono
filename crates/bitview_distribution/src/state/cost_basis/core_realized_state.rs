@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use bitview_primitives::CentsSquaredSats;
 use brk_types::{Cents, CentsSats, Sats};
 use vecdb::unlikely;
@@ -11,8 +9,6 @@ use super::{MinimalRealizedState, RealizedOps};
 pub struct CoreRealizedState {
     minimal: MinimalRealizedState,
     value_destroyed_raw: u128,
-    sent_in_profit: Sats,
-    sent_in_loss: Sats,
 }
 
 impl RealizedOps for CoreRealizedState {
@@ -48,21 +44,9 @@ impl RealizedOps for CoreRealizedState {
     }
 
     #[inline]
-    fn sent_in_profit(&self) -> Sats {
-        self.sent_in_profit
-    }
-
-    #[inline]
-    fn sent_in_loss(&self) -> Sats {
-        self.sent_in_loss
-    }
-
-    #[inline]
     fn reset_single_iteration_values(&mut self) {
         self.minimal.reset_single_iteration_values();
         self.value_destroyed_raw = 0;
-        self.sent_in_profit = Sats::ZERO;
-        self.sent_in_loss = Sats::ZERO;
     }
 
     #[inline]
@@ -92,10 +76,6 @@ impl RealizedOps for CoreRealizedState {
         self.minimal
             .send(sats, current_ps, prev_ps, ath_ps, prev_capitalized_cap);
         self.value_destroyed_raw += prev_ps.as_u128();
-        match current_ps.cmp(&prev_ps) {
-            Ordering::Greater | Ordering::Equal => self.sent_in_profit += sats,
-            Ordering::Less => self.sent_in_loss += sats,
-        }
     }
 }
 

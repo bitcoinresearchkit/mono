@@ -7,7 +7,7 @@ use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyPercentPerBlock, LazySpotValuePerBlock, import_cached,
 };
 use brk_error::Result;
-use brk_types::{Cents, CentsSats, CentsSigned, Height, Sats, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, PcoVecValue, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 use crate::{
@@ -27,8 +27,6 @@ pub struct Metrics<M: StorageMode = Rw> {
     supply_stored: Bands<Sats, M>,
     #[traversable(hidden)]
     capital_stored: Bands<Cents, M>,
-    #[traversable(hidden)]
-    net_pnl_stored: Bands<CentsSigned, M>,
     /// Each filter's supply and capital, the denominators of its bands' shares.
     #[traversable(hidden)]
     supply_total: Totals<Sats, M>,
@@ -41,7 +39,6 @@ pub struct Metrics<M: StorageMode = Rw> {
 struct Band {
     supply: BandSupply,
     capital: BandCapital,
-    unrealized: BandUnrealized,
 }
 
 #[derive(Clone, Traversable)]
@@ -62,18 +59,10 @@ struct BandCapital {
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 
-#[derive(Clone, Traversable)]
-struct BandUnrealized {
-    /// Net unrealized profit and loss: the supply's market value minus its capital, positive in
-    /// profit and negative in loss.
-    net_pnl: LazyFiatPerBlock<CentsSigned>,
-}
-
 /// A band's stored series and its filter's totals.
 struct BandSources<'a> {
     supply: &'a CachedSeries<Height, Sats>,
     capital: &'a CachedSeries<Height, Cents>,
-    net_pnl: &'a CachedSeries<Height, CentsSigned>,
     supply_total: &'a CachedSeries<Height, Sats>,
     capital_total: &'a CachedSeries<Height, Cents>,
 }
@@ -117,14 +106,6 @@ impl Band {
                     mappings,
                 ),
             },
-            unrealized: BandUnrealized {
-                net_pnl: LazyFiatPerBlock::from_cents_source(
-                    &name("net_unrealized_pnl"),
-                    version,
-                    sources.net_pnl,
-                    mappings,
-                ),
-            },
         }
     }
 }
@@ -138,7 +119,6 @@ impl Metrics {
     ) -> Result<Box<Self>> {
         let supply_stored = Self::import_bands(db, "supply_sats", version)?;
         let capital_stored = Self::import_bands(db, "realized_cap_cents", version)?;
-        let net_pnl_stored = Self::import_bands(db, "net_unrealized_pnl_cents", version)?;
         let supply_total = Self::import_totals(db, "profitability_supply_sats", version)?;
         let capital_total = Self::import_totals(db, "profitability_capital_cents", version)?;
         let terms = Terms::from_fn(|term| {
@@ -150,7 +130,6 @@ impl Metrics {
                     BandSources {
                         supply: band.select(supply_stored.select(term)),
                         capital: band.select(capital_stored.select(term)),
-                        net_pnl: band.select(net_pnl_stored.select(term)),
                         supply_total: supply_total.select(term),
                         capital_total: capital_total.select(term),
                     },
@@ -163,7 +142,6 @@ impl Metrics {
             terms,
             supply_stored,
             capital_stored,
-            net_pnl_stored,
             supply_total,
             capital_total,
         }))
@@ -194,23 +172,14 @@ impl Metrics {
         Terms::try_from_fn(|term| import_cached(db, &term.metric_name(metric), version))
     }
 
-    pub(crate) fn push(
-        &mut self,
-        spot: Cents,
-        bands: &ProfitabilityRange<Bucket>,
-        totals: &Bucket,
-    ) {
+    pub(crate) fn push(&mut self, bands: &ProfitabilityRange<Bucket>, totals: &Bucket) {
         for term in TERMS {
             for &band in ProfitabilityRangeId::ALL {
                 let bucket = band.select(bands);
-                let supply = *term.select(&bucket.supply);
-                let capital = *term.select(&bucket.cap);
                 band.select_mut(self.supply_stored.select_mut(term))
-                    .push(supply);
+                    .push(*term.select(&bucket.supply));
                 band.select_mut(self.capital_stored.select_mut(term))
-                    .push(capital);
-                band.select_mut(self.net_pnl_stored.select_mut(term))
-                    .push(Self::net_pnl(spot, capital, supply));
+                    .push(*term.select(&bucket.cap));
             }
             self.supply_total
                 .select_mut(term)
@@ -237,14 +206,7 @@ impl Metrics {
         }
         bands(&mut self.supply_stored)
             .chain(bands(&mut self.capital_stored))
-            .chain(bands(&mut self.net_pnl_stored))
             .chain(totals(&mut self.supply_total))
             .chain(totals(&mut self.capital_total))
-    }
-
-    /// The supply's market value at `spot` minus its capital.
-    fn net_pnl(spot: Cents, capital: Cents, supply: Sats) -> CentsSigned {
-        let market = CentsSats::from_price_sats(spot, supply).to_cents_rounded();
-        CentsSigned::new(market.inner() as i64 - capital.inner() as i64)
     }
 }

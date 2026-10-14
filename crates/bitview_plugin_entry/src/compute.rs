@@ -151,9 +151,6 @@ impl ComputePlugin for Vecs {
                 self.save(h + 1, context.exit())?;
             }
         }
-        for cohort in self.cohorts.iter_mut() {
-            cohort.compute_rest(Height::from(start), deps.prices, context.exit())?;
-        }
         self.live = Some(live);
         Ok(())
     }

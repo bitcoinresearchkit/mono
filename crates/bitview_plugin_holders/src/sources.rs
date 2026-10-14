@@ -22,16 +22,10 @@ impl<'a> Sources<'a> {
                 r.outputs.spent_count.stored.cumulative_source(),
                 r.activity.transfer_volume.sats.cumulative_source(),
                 r.activity.transfer_volume.cents.cumulative_source(),
-                r.activity
-                    .transfer_volume_in_profit
-                    .sats
-                    .cumulative_source(),
-                r.activity
-                    .transfer_volume_in_profit
-                    .cents
-                    .cumulative_source(),
-                r.activity.transfer_volume_in_loss.sats.cumulative_source(),
-                r.activity.transfer_volume_in_loss.cents.cumulative_source(),
+                r.transfer_volume_in_profit.sats.cumulative_source(),
+                r.transfer_volume_in_profit.cents.cumulative_source(),
+                r.transfer_volume_in_loss.sats.cumulative_source(),
+                r.transfer_volume_in_loss.cents.cumulative_source(),
                 r.activity.coindays_destroyed.stored.cumulative_source(),
                 &r.capital.stored,
                 &r.raw.cap,
@@ -88,31 +82,25 @@ impl<'a> Sources<'a> {
                 |row, value| row.volume_cents = value,
             )?;
             read(
-                r.activity
-                    .transfer_volume_in_profit
-                    .sats
-                    .cumulative_source(),
+                r.transfer_volume_in_profit.sats.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_profit_sats = value,
             )?;
             read(
-                r.activity
-                    .transfer_volume_in_profit
-                    .cents
-                    .cumulative_source(),
+                r.transfer_volume_in_profit.cents.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_profit_cents = value,
             )?;
             read(
-                r.activity.transfer_volume_in_loss.sats.cumulative_source(),
+                r.transfer_volume_in_loss.sats.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_loss_sats = value,
             )?;
             read(
-                r.activity.transfer_volume_in_loss.cents.cumulative_source(),
+                r.transfer_volume_in_loss.cents.cumulative_source(),
                 start,
                 &mut band,
                 |row, value| row.volume_loss_cents = value,

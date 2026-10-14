@@ -44,12 +44,8 @@ impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
     }
 
     #[inline(always)]
-    pub fn core_activity(&self) -> (CoinDays, Sats, Sats) {
-        (
-            CoinDays::new(f64::from(Bitcoin::from(self.satdays_destroyed))),
-            self.realized.sent_in_profit(),
-            self.realized.sent_in_loss(),
-        )
+    pub fn coindays_destroyed(&self) -> CoinDays {
+        CoinDays::new(f64::from(Bitcoin::from(self.satdays_destroyed)))
     }
 
     #[inline(always)]

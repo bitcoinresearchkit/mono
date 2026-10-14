@@ -1,5 +1,3 @@
-mod days_to_years;
-pub use days_to_years::DaysToYears;
 mod blocks_to_days;
 mod count_per_second;
 mod difficulty_to_hashrate;

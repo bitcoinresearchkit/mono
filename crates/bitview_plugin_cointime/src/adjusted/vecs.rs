@@ -1,6 +1,6 @@
-use bitview_primitives::{PartsPerMillionSigned32, Ratio64, Years};
+use bitview_primitives::{PartsPerMillionSigned32, Ratio64};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, PerBlock, PercentPerBlock};
+use bitview_vecs::{PerBlock, PercentPerBlock};
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
@@ -12,10 +12,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// is at most 50 BTC. Higher values combine faster issuance with a larger
     /// active-to-vaulted holding-time ratio.
     pub inflation_rate: PercentPerBlock<PartsPerMillionSigned32, M>,
-    /// Cointime-adjusted stock-to-flow: one over the adjusted inflation rate,
-    /// the years of adjusted issuance that would equal the supply. Null when the
-    /// adjusted inflation rate is zero or negative.
-    pub stock_to_flow: LazyPerBlock<Years, PartsPerMillionSigned32>,
     /// Cointime-adjusted transaction velocity: velocity divided by liveliness,
     /// the turnover of the active supply rather than of all supply. Null until
     /// the first coins are spent (liveliness zero).

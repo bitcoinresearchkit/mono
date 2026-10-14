@@ -112,43 +112,31 @@ impl Vecs {
             let created = id.select(created);
             let RangeVecs {
                 coindays_consumed,
-                coindays_stored: stored,
-                wakefulness_source: activity,
+                wakefulness_source: wakefulness,
                 ..
             } = id.select_mut(&mut self.ranges);
             let consumed = &coindays_consumed.cumulative.height;
             let source_end = created.len().min(consumed.len());
             let mut start = prepare_computed(
-                [stored.stored_mut(), activity],
+                [&mut *wakefulness],
                 created.version() + consumed.version(),
                 usize::from(starting_height).min(source_end),
                 exit,
             )?;
-            // Persist the common rewind before appending either output.
-            let mut end = start;
-            loop {
+            while start < source_end {
+                let end = wakefulness.batch_end(source_end);
                 let mut consumed = consumed.collect_range_at(start, end).into_iter();
                 created.fold_range_at(start, end, (), |(), created| {
                     let consumed = consumed.next().unwrap();
-                    stored.cumulative.height.push(
-                        created
-                            .checked_sub(consumed)
-                            .expect("coindays stored underflow"),
+                    debug_assert!(
+                        created.checked_sub(consumed).is_some(),
+                        "coin days consumed exceed those created"
                     );
-                    activity.push(BoundedRatio::from(f64::from(consumed) / f64::from(created)));
+                    wakefulness.push(BoundedRatio::from(f64::from(consumed) / f64::from(created)));
                 });
                 let _lock = exit.lock();
-                stored.write()?;
-                activity.write()?;
-                if end == source_end {
-                    break;
-                }
+                wakefulness.write()?;
                 start = end;
-                end = stored
-                    .cumulative
-                    .height
-                    .batch_end(source_end)
-                    .min(activity.batch_end(source_end));
             }
         }
         Ok(())

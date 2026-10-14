@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use bitview_primitives::CentsSquaredSats;
 use brk_types::{Cents, CentsSats, Sats};
 
@@ -11,6 +13,10 @@ pub struct RealizedState {
     capitalized_cap_raw: CentsSquaredSats,
     /// Raw realized peak regret: sum((peak minus sell price) times sats).
     peak_regret_raw: u128,
+    /// Sats spent at or above their creation price in the block.
+    sent_in_profit: Sats,
+    /// Sats spent below their creation price in the block.
+    sent_in_loss: Sats,
 }
 
 impl RealizedOps for RealizedState {
@@ -42,19 +48,11 @@ impl RealizedOps for RealizedState {
     }
 
     #[inline]
-    fn sent_in_profit(&self) -> Sats {
-        self.core.sent_in_profit()
-    }
-
-    #[inline]
-    fn sent_in_loss(&self) -> Sats {
-        self.core.sent_in_loss()
-    }
-
-    #[inline]
     fn reset_single_iteration_values(&mut self) {
         self.core.reset_single_iteration_values();
         self.peak_regret_raw = 0;
+        self.sent_in_profit = Sats::ZERO;
+        self.sent_in_loss = Sats::ZERO;
     }
 
     #[inline]
@@ -93,6 +91,10 @@ impl RealizedOps for RealizedState {
             .send(sats, current_ps, prev_ps, ath_ps, prev_capitalized_cap);
         self.peak_regret_raw += (ath_ps - current_ps).as_u128();
         self.capitalized_cap_raw -= prev_capitalized_cap;
+        match current_ps.cmp(&prev_ps) {
+            Ordering::Greater | Ordering::Equal => self.sent_in_profit += sats,
+            Ordering::Less => self.sent_in_loss += sats,
+        }
     }
 }
 
@@ -110,5 +112,11 @@ impl RealizedState {
     #[inline]
     pub fn peak_regret_raw(&self) -> u128 {
         self.peak_regret_raw
+    }
+
+    /// The block's transfer volume in profit and in loss.
+    #[inline]
+    pub fn sent_split(&self) -> (Sats, Sats) {
+        (self.sent_in_profit, self.sent_in_loss)
     }
 }

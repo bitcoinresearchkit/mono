@@ -13,13 +13,7 @@ use super::Sources;
 #[derive(Clone, Traversable)]
 pub struct ActivityMetrics {
     /// Spent BTC and its value at the spending block's spot price.
-    pub(crate) transfer_volume: LazyValuePerBlockCumulativeRolling,
-    #[traversable(wrap = "transfer_volume", rename = "in_profit")]
-    /// Spent value whose spending price is at or above its creation price.
-    transfer_volume_in_profit: LazyValuePerBlockCumulativeRolling,
-    #[traversable(wrap = "transfer_volume", rename = "in_loss")]
-    /// Spent value whose spending price is below its creation price.
-    transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
+    transfer_volume: LazyValuePerBlockCumulativeRolling,
     /// Spent BTC multiplied by its age in days.
     coindays_destroyed: LazyPerBlockCumulativeRolling<CoinDays>,
 }
@@ -39,22 +33,6 @@ impl ActivityMetrics {
                 version,
                 sources.transfer_sats.cumulative_source(),
                 sources.transfer_cents.cumulative_source(),
-                mappings,
-                windows,
-            ),
-            transfer_volume_in_profit: LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
-                &name("transfer_volume_in_profit"),
-                version,
-                sources.profit_sats.cumulative_source(),
-                sources.profit_cents.cumulative_source(),
-                mappings,
-                windows,
-            ),
-            transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
-                &name("transfer_volume_in_loss"),
-                version,
-                sources.loss_sats.cumulative_source(),
-                sources.loss_cents.cumulative_source(),
                 mappings,
                 windows,
             ),

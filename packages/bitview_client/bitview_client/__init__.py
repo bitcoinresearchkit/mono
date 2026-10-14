@@ -110,8 +110,6 @@ Cohort = str
 CoinBlocks = float
 # Bitcoin multiplied by the days it was held.
 CoinDays = float
-# Bitcoin multiplied by the years it was held.
-CoinYears = float
 # Up to the first 100 bytes of a coinbase transaction's first-input
 # `scriptSig`. Bytes are preserved for storage and exposed as a string by
 # mapping each byte to the same-valued Unicode code point. Pool attribution
@@ -303,8 +301,6 @@ WeightFract = float
 Year1 = int
 # Index of a decade.
 Year10 = int
-# A duration in years.
-Years = float
 class AddressAfterTxidParam(TypedDict):
     """
     Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
@@ -3457,25 +3453,13 @@ class Velocity(_Node):
 
 class Adjusted(_Node):
     inflation_rate: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_inflation_rate')
-    stock_to_flow: SeriesPattern1[Optional[Years]] = _at(SeriesPattern1, '*_stock_to_flow')
     velocity: Velocity = _at(Velocity, '*_velocity')
-
-
-class Loss0To10PercentUnrealized(_Node):
-    net_pnl: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
 
 
 class Loss0To10PercentCapital(_Node):
     total: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_capital')
     realized_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_cap')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_capital_share')
-
-
-class RookieUnrealized(_Node):
-    profit: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_unrealized_profit')
-    loss: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_unrealized_loss')
-    net_pnl: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_net_unrealized_pnl')
-    nupl: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_nupl')
 
 
 class CapitalDensity(_Node):
@@ -3488,11 +3472,6 @@ class Avg(_Node):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg')
     ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg_ratio')
     mvrv: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mvrv')
-
-
-class RookieCostBasisPerCoin(_Node):
-    avg: Avg = _at(Avg, '*')
-    realized_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_price')
 
 
 class AllCostBasisPerCoin(_Node):
@@ -3564,16 +3543,16 @@ class ReusedCount(_Node):
     total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_reused_address_count')
 
 
-class Ranges10yTo12yCostBasisPerCoin(_Node):
+class RookieCostBasisPerCoin(_Node):
     avg: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg')
     realized_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_price')
 
 
-class RookieCostBasis(_Node, Generic[A]):
-    per_coin: A = _at(0, '*')
+class RookieCostBasis(_Node):
+    per_coin: RookieCostBasisPerCoin = _at(RookieCostBasisPerCoin, '*')
 
 
-class Classes2009Unrealized(_Node):
+class RookieUnrealized(_Node):
     profit: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_unrealized_profit')
     loss: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_unrealized_loss')
     net_pnl: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_net_unrealized_pnl')
@@ -3829,7 +3808,6 @@ class Loss0To10PercentSupply(_Node):
 class Loss0To10Percent(_Node):
     supply: Loss0To10PercentSupply = _at(Loss0To10PercentSupply, '*_supply')
     capital: Loss0To10PercentCapital = _at(Loss0To10PercentCapital, '*')
-    unrealized: Loss0To10PercentUnrealized = _at(Loss0To10PercentUnrealized, '*_net_unrealized_pnl')
 
 
 class ProfitabilityAll(_Node):
@@ -4345,7 +4323,6 @@ class Value(_Node):
 class CointimeAgeRanges10yTo12y(_Node):
     coindays_created: CoinblocksDestroyed[Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_created')
     coindays_consumed: CoinblocksDestroyed[Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_consumed')
-    coindays_stored: CoinblocksDestroyed[Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_stored')
     wakefulness: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, '*_wakefulness')
     awake_to_dormant: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, '*_awake_to_dormant')
     awake: Immobile = _at(Immobile, '*_awake_supply')
@@ -4360,14 +4337,6 @@ class CointimeActivity(_Node):
     vaultedness: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, 'vaultedness')
     liveliness_to_vaultedness: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, 'liveliness_to_vaultedness')
     concurrent_liveliness: InputsPerSecond[Optional[Ratio]] = _at(InputsPerSecond, 'concurrent_liveliness')
-
-
-class RookieRealized(_Node):
-    profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_profit')
-    loss: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_loss')
-    net_pnl: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_net_realized_pnl')
-    value_destroyed: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_value_destroyed')
-    sopr: InputsPerSecond[Optional[Ratio]] = _at(InputsPerSecond, '*_sopr')
 
 
 class AdjustedSopr(_Node):
@@ -4395,7 +4364,6 @@ class AllRealized(_Node):
 class AllActivity(_Node):
     transfer_volume: TransferVolume = _at(TransferVolume, '*_transfer_volume')
     coindays_destroyed: CoinblocksDestroyed[Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_destroyed')
-    coinyears_destroyed: SeriesPattern1[Optional[CoinYears]] = _at(SeriesPattern1, '*_coinyears_destroyed')
     dormancy: InputsPerSecond[Optional[Days]] = _at(InputsPerSecond, '*_dormancy')
 
 
@@ -4464,11 +4432,11 @@ class Balances0sats(_Node):
 
 
 class RookieActivity(_Node):
-    transfer_volume: TransferVolume = _at(TransferVolume, '*_transfer_volume')
+    transfer_volume: OpReturnValue = _at(OpReturnValue, '*_transfer_volume')
     coindays_destroyed: CoinblocksDestroyed[Optional[CoinDays]] = _at(CoinblocksDestroyed, '*_coindays_destroyed')
 
 
-class Classes2009Realized(_Node):
+class RookieRealized(_Node):
     profit: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_profit')
     loss: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_realized_loss')
     net_pnl: CoinblocksDestroyed[Optional[Dollars]] = _at(CoinblocksDestroyed, '*_net_realized_pnl')
@@ -4486,38 +4454,13 @@ class RookieOutputs(_Node):
     spent_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_spent_utxo_count')
 
 
-class Rookie(_Node, Generic[A, B, C, D, E, F]):
-    supply: A = _at(0, '*_supply')
-    capital: B = _at(1, '*')
-    outputs: RookieOutputs = _at(RookieOutputs, '*')
-    activity: C = _at(2, '*')
-    realized: D = _at(3, '*')
-    unrealized: E = _at(4, '*')
-    cost_basis: F = _at(5, '*')
-
-
-class Entry(_Node):
-    veteran: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis[RookieCostBasisPerCoin]] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, (RookieCostBasis, RookieCostBasisPerCoin)), '*')
-    rookie: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis[RookieCostBasisPerCoin]] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, (RookieCostBasis, RookieCostBasisPerCoin)), 'rookie')
-
-
-class Holders(_Node, Generic[A, B]):
-    all: A = _at(0, '')
-    sth: B = _at(1, 'sth')
-    lth: B = _at(1, 'lth')
-    under_4m: B = _at(1, '*_under_4m_old')
-    under_6m: B = _at(1, '*_under_6m_old')
-    over_4m: B = _at(1, '*_over_4m_old')
-    over_6m: B = _at(1, '*_over_6m_old')
-
-
 class Amounts0sats(_Node):
     supply: AddressesSupply = _at(AddressesSupply, '*_supply')
     capital: AddressesCapital = _at(AddressesCapital, '*')
     outputs: RookieOutputs = _at(RookieOutputs, '*')
     activity: Balances0satsActivity = _at(Balances0satsActivity, '*_transfer_volume')
     realized: Balances0satsRealized = _at(Balances0satsRealized, '*_realized')
-    cost_basis: RookieCostBasis[Ranges10yTo12yCostBasisPerCoin] = _at((RookieCostBasis, Ranges10yTo12yCostBasisPerCoin), '*')
+    cost_basis: RookieCostBasis = _at(RookieCostBasis, '*')
 
 
 class UtxosTypes(_Node):
@@ -4572,44 +4515,60 @@ class Utxos(_Node):
     types: UtxosTypes = _at(UtxosTypes, 'output')
 
 
-class Classes2009(_Node):
-    supply: RookieSupply = _at(RookieSupply, '*_supply')
-    capital: RookieCapital = _at(RookieCapital, '*')
+class Rookie(_Node, Generic[A, B, C, D, E, F]):
+    supply: A = _at(0, '*_supply')
+    capital: B = _at(1, '*')
     outputs: RookieOutputs = _at(RookieOutputs, '*')
-    activity: RookieActivity = _at(RookieActivity, '*')
-    realized: Classes2009Realized = _at(Classes2009Realized, '*')
-    unrealized: Classes2009Unrealized = _at(Classes2009Unrealized, '*')
+    activity: C = _at(2, '*')
+    realized: D = _at(3, '*')
+    unrealized: E = _at(4, '*')
+    cost_basis: F = _at(5, '*')
+
+
+class Entry(_Node):
+    veteran: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*')
+    rookie: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), 'rookie')
+
+
+class Holders(_Node, Generic[A, B]):
+    all: A = _at(0, '')
+    sth: B = _at(1, 'sth')
+    lth: B = _at(1, 'lth')
+    under_4m: B = _at(1, '*_under_4m_old')
+    under_6m: B = _at(1, '*_under_6m_old')
+    over_4m: B = _at(1, '*_over_4m_old')
+    over_6m: B = _at(1, '*_over_6m_old')
 
 
 class Classes(_Node):
-    _2009: Classes2009 = _at(Classes2009, '*_2009')
-    _2010: Classes2009 = _at(Classes2009, '*_2010')
-    _2011: Classes2009 = _at(Classes2009, '*_2011')
-    _2012: Classes2009 = _at(Classes2009, '*_2012')
-    _2013: Classes2009 = _at(Classes2009, '*_2013')
-    _2014: Classes2009 = _at(Classes2009, '*_2014')
-    _2015: Classes2009 = _at(Classes2009, '*_2015')
-    _2016: Classes2009 = _at(Classes2009, '*_2016')
-    _2017: Classes2009 = _at(Classes2009, '*_2017')
-    _2018: Classes2009 = _at(Classes2009, '*_2018')
-    _2019: Classes2009 = _at(Classes2009, '*_2019')
-    _2020: Classes2009 = _at(Classes2009, '*_2020')
-    _2021: Classes2009 = _at(Classes2009, '*_2021')
-    _2022: Classes2009 = _at(Classes2009, '*_2022')
-    _2023: Classes2009 = _at(Classes2009, '*_2023')
-    _2024: Classes2009 = _at(Classes2009, '*_2024')
-    _2025: Classes2009 = _at(Classes2009, '*_2025')
-    _2026: Classes2009 = _at(Classes2009, '*_2026')
-    _2027: Classes2009 = _at(Classes2009, '*_2027')
+    _2009: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2009')
+    _2010: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2010')
+    _2011: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2011')
+    _2012: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2012')
+    _2013: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2013')
+    _2014: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2014')
+    _2015: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2015')
+    _2016: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2016')
+    _2017: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2017')
+    _2018: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2018')
+    _2019: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2019')
+    _2020: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2020')
+    _2021: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2021')
+    _2022: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2022')
+    _2023: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2023')
+    _2024: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2024')
+    _2025: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2025')
+    _2026: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2026')
+    _2027: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2027')
 
 
 class Epochs(_Node):
-    _0: Classes2009 = _at(Classes2009, '*_0')
-    _1: Classes2009 = _at(Classes2009, '*_1')
-    _2: Classes2009 = _at(Classes2009, '*_2')
-    _3: Classes2009 = _at(Classes2009, '*_3')
-    _4: Classes2009 = _at(Classes2009, '*_4')
-    _5: Classes2009 = _at(Classes2009, '*_5')
+    _0: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_0')
+    _1: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_1')
+    _2: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_2')
+    _3: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_3')
+    _4: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_4')
+    _5: Rookie[RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis] = _at((Rookie, RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis), '*_5')
 
 
 class Ranges10yTo12y(_Node):
@@ -4617,9 +4576,9 @@ class Ranges10yTo12y(_Node):
     capital: RookieCapital = _at(RookieCapital, '*')
     outputs: RookieOutputs = _at(RookieOutputs, '*')
     activity: Ranges10yTo12yActivity = _at(Ranges10yTo12yActivity, '*')
-    realized: Classes2009Realized = _at(Classes2009Realized, '*')
-    unrealized: Classes2009Unrealized = _at(Classes2009Unrealized, '*')
-    cost_basis: RookieCostBasis[Ranges10yTo12yCostBasisPerCoin] = _at((RookieCostBasis, Ranges10yTo12yCostBasisPerCoin), '*')
+    realized: RookieRealized = _at(RookieRealized, '*')
+    unrealized: RookieUnrealized = _at(RookieUnrealized, '*')
+    cost_basis: RookieCostBasis = _at(RookieCostBasis, '*')
 
 
 class Ranges(_Node, Generic[A]):

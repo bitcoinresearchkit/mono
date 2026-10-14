@@ -5,13 +5,13 @@ use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, CumulativeSource, LazyPerBlock, LazyPercentCumulativeRolling,
-    LazyPercentPerBlock, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, LazySpotValuePerBlock,
-    LazyWindowStartVec, PerBlockCumulativeAverage, PerBlockCumulativeRolling, import_cached,
+    CachedSeries, CumulativeSource, LazyIndexedVec, LazyPerBlock, LazyPercentCumulativeRolling,
+    LazyPercentPerBlock, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, LazyWindowStartVec,
+    PerBlockCumulativeAverage, PerBlockCumulativeRolling, import_cached,
 };
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, Version};
+use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use vecdb::{
     AnyStoredVec, BinaryTransform, Database, Ident, ReadableBoxedVec, ReadableCloneableVec,
     ReadableVec, Rw, StorageMode, WritableVec,
@@ -44,8 +44,8 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     pub new: NewAddressCount,
     pub activity: ActivityVecs<M>,
     /// Mean balance of a funded address: the supply held by the addresses divided
-    /// by the funded address count.
-    pub avg_balance: AvgBalance<M>,
+    /// by the funded address count. Undefined (null) while no address is funded.
+    pub avg_balance: AvgBalance,
     /// Addresses that have received more than one output over their lifetime.
     pub reused: ReuseVecs<M>,
     /// Addresses from which more than one output has been spent over their
@@ -99,12 +99,12 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
     pub active: PerBlockCumulativeAverage<Count, M>,
 }
 
-#[derive(Traversable)]
-pub struct AvgBalance<M: StorageMode = Rw> {
-    #[traversable(flatten)]
-    pub value: LazySpotValuePerBlock,
-    #[traversable(hidden)]
-    stored: CachedSeries<Height, Sats, M>,
+#[derive(Clone, Traversable)]
+pub struct AvgBalance {
+    /// Reported in BTC.
+    pub btc: LazyPerBlock<Bitcoin>,
+    /// Reported in US dollars: the BTC mean at the spot price.
+    pub usd: LazyPerBlock<Dollars>,
 }
 
 /// Addresses meeting a reuse predicate: receive-based reuse (more than one lifetime receive)
@@ -203,7 +203,8 @@ impl AddressVecs {
         let total = StoredCount::import(ctx, &name("total_address_count"), count_version)?;
         let new = NewAddressCount::new(ctx, &name("new_address_count"), &total.stored);
         let activity = ActivityVecs::import(ctx, prefix)?;
-        let avg_balance = AvgBalance::import(ctx, &name("avg_address_balance"))?;
+        let avg_balance =
+            AvgBalance::new(ctx, &name("avg_address_balance"), &supply, &funded.stored);
         let reused = ReuseVecs::import(
             ctx,
             prefix,
@@ -293,8 +294,8 @@ impl AddressVecs {
         })
     }
 
-    /// Series derived after the block loop: the total count, and the average balance and
-    /// supply shares over the supply the addresses hold.
+    /// Series derived after the block loop: the total count, and the supply shares over the
+    /// supply the addresses hold.
     pub fn compute(&mut self, max_from: Height, exit: &Exit) -> Result<()> {
         let supply = &self.supply;
         self.total.stored.compute_transform2(
@@ -304,8 +305,6 @@ impl AddressVecs {
             |(height, funded, empty, _)| (height, funded + empty),
             exit,
         )?;
-        self.avg_balance
-            .compute(supply, &self.funded.stored, max_from, exit)?;
         for predicate in [
             &mut self.reused.supply,
             &mut self.respent.supply,
@@ -413,29 +412,39 @@ impl ActivityVecs {
 }
 
 impl AvgBalance {
-    fn import(ctx: &ImportContext<'_>, name: &str) -> Result<Self> {
-        let version = ctx.version + Version::ONE;
-        let stored = import_cached(ctx.db, &format!("{name}_sats"), version)?;
-        let value =
-            LazySpotValuePerBlock::from_sats_source(name, version, &stored, ctx.mappings, ctx.spot);
-        Ok(Self { value, stored })
-    }
-
-    fn compute(
-        &mut self,
-        supply: &impl ReadableVec<Height, Sats>,
+    fn new(
+        ctx: &ImportContext<'_>,
+        name: &str,
+        supply: &CachedSeries<Height, Sats>,
         funded: &CachedSeries<Height, Count>,
-        max_from: Height,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.stored.compute_transform2(
-            max_from,
+    ) -> Self {
+        let version = ctx.version + Version::TWO;
+        let btc = LazyIndexedVec::new(
+            &format!("{name}_source"),
+            version,
             supply,
             funded,
-            |(height, supply, count, _)| (height, supply / count),
-            exit,
-        )?;
-        Ok(())
+            // No funded address divides by zero: a non-finite mean, served as null.
+            |_, supply, count| {
+                Bitcoin::from(f64::from(Bitcoin::from(supply)) / u64::from(count) as f64)
+            },
+        );
+        let usd = LazyIndexedVec::new(
+            &format!("{name}_usd_source"),
+            version,
+            &btc,
+            ctx.spot,
+            |_, btc, spot| Dollars::from(f64::from(btc) * f64::from(Dollars::from(spot))),
+        );
+        Self {
+            btc: LazyPerBlock::from_height_source::<Ident>(name, version, &btc, ctx.mappings),
+            usd: LazyPerBlock::from_height_source::<Ident>(
+                &format!("{name}_usd"),
+                version,
+                &usd,
+                ctx.mappings,
+            ),
+        }
     }
 }
 
