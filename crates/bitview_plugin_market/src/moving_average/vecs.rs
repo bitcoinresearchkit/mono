@@ -6,16 +6,14 @@ use vecdb::{Rw, StorageMode};
 
 use super::{ema_vecs::EmaVecs, sma::SmaVecs};
 
-const EMA_PERIOD_COUNT: usize = 16;
+const EMA_PERIOD_COUNT: usize = 14;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EmaPeriodId {
     OneWeek,
     EightDays,
-    TwelveDays,
     ThirteenDays,
     TwentyOneDays,
-    TwentySixDays,
     OneMonth,
     ThirtyFourDays,
     FiftyFiveDays,
@@ -31,10 +29,8 @@ pub enum EmaPeriodId {
 const EMA_PERIOD_IDS: [EmaPeriodId; EMA_PERIOD_COUNT] = [
     EmaPeriodId::OneWeek,
     EmaPeriodId::EightDays,
-    EmaPeriodId::TwelveDays,
     EmaPeriodId::ThirteenDays,
     EmaPeriodId::TwentyOneDays,
-    EmaPeriodId::TwentySixDays,
     EmaPeriodId::OneMonth,
     EmaPeriodId::ThirtyFourDays,
     EmaPeriodId::FiftyFiveDays,
@@ -53,10 +49,8 @@ impl EmaPeriodId {
         match self {
             Self::OneWeek => 7,
             Self::EightDays => 8,
-            Self::TwelveDays => 12,
             Self::ThirteenDays => 13,
             Self::TwentyOneDays => 21,
-            Self::TwentySixDays => 26,
             Self::OneMonth => 30,
             Self::ThirtyFourDays => 34,
             Self::FiftyFiveDays => 55,
@@ -74,10 +68,8 @@ impl EmaPeriodId {
         match self {
             Self::OneWeek => "1w",
             Self::EightDays => "8d",
-            Self::TwelveDays => "12d",
             Self::ThirteenDays => "13d",
             Self::TwentyOneDays => "21d",
-            Self::TwentySixDays => "26d",
             Self::OneMonth => "1m",
             Self::ThirtyFourDays => "34d",
             Self::FiftyFiveDays => "55d",
@@ -95,10 +87,8 @@ impl EmaPeriodId {
         Ok(EmaVecs {
             _1w: create(Self::OneWeek)?,
             _8d: create(Self::EightDays)?,
-            _12d: create(Self::TwelveDays)?,
             _13d: create(Self::ThirteenDays)?,
             _21d: create(Self::TwentyOneDays)?,
-            _26d: create(Self::TwentySixDays)?,
             _1m: create(Self::OneMonth)?,
             _34d: create(Self::ThirtyFourDays)?,
             _55d: create(Self::FiftyFiveDays)?,
@@ -115,10 +105,8 @@ impl EmaPeriodId {
         match self {
             Self::OneWeek => &values._1w,
             Self::EightDays => &values._8d,
-            Self::TwelveDays => &values._12d,
             Self::ThirteenDays => &values._13d,
             Self::TwentyOneDays => &values._21d,
-            Self::TwentySixDays => &values._26d,
             Self::OneMonth => &values._1m,
             Self::ThirtyFourDays => &values._34d,
             Self::FiftyFiveDays => &values._55d,
@@ -136,10 +124,8 @@ impl EmaPeriodId {
         match self {
             Self::OneWeek => &mut values._1w,
             Self::EightDays => &mut values._8d,
-            Self::TwelveDays => &mut values._12d,
             Self::ThirteenDays => &mut values._13d,
             Self::TwentyOneDays => &mut values._21d,
-            Self::TwentySixDays => &mut values._26d,
             Self::OneMonth => &mut values._1m,
             Self::ThirtyFourDays => &mut values._34d,
             Self::FiftyFiveDays => &mut values._55d,

@@ -24,7 +24,11 @@ pub trait ComputeRollingStats {
         Self::T: From<A> + Default + AddAssign + SubAssign;
 
     /// Compute rolling average with variable window starts.
-    /// For each index i, computes mean of values from `window_starts[i]` to i (inclusive).
+    /// For each index i, computes mean of values from `window_starts[i]` to i (inclusive); an
+    /// undefined value counts as zero. Every 1,024th row rebuilds its window's f64 sum from the
+    /// values and the rows after continue from it, so a row's value depends on its position
+    /// alone: a resumed run matches an uninterrupted one bit for bit, and rounding never builds
+    /// up past one stride.
     fn compute_rolling_average<A>(
         &mut self,
         max_from: Self::I,
@@ -37,39 +41,10 @@ pub trait ComputeRollingStats {
         f64: From<A> + From<Self::T>,
         Self::T: From<f64> + Default;
 
-    /// Compute rolling standard deviation with variable window starts.
-    /// For each index `i`, computes SD of values from `window_starts[i]` to `i` (inclusive):
-    /// `SD = sqrt(E[X²] - E[X]²)`, both moments kept in f64.
-    fn compute_rolling_sd<A>(
-        &mut self,
-        max_from: Self::I,
-        window_starts: &impl ReadableVec<Self::I, Self::I>,
-        values: &impl ReadableVec<Self::I, A>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecValue,
-        f64: From<A>,
-        Self::T: From<f64>;
-
     /// Compute rolling EMA with variable window starts.
     /// For each index `i`, computes an exponential moving average with
     /// `α = 2/(span+1)` where `span = i - window_starts[i] + 1`.
     fn compute_rolling_ema<A>(
-        &mut self,
-        max_from: Self::I,
-        window_starts: &impl ReadableVec<Self::I, Self::I>,
-        values: &impl ReadableVec<Self::I, A>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecValue,
-        f64: From<A> + From<Self::T>,
-        Self::T: From<f64> + Default;
-
-    /// Compute rolling RMA (Wilder's smoothing) with variable window starts.
-    /// `α = 1/span` where `span = i - window_starts[i] + 1`.
-    fn compute_rolling_rma<A>(
         &mut self,
         max_from: Self::I,
         window_starts: &impl ReadableVec<Self::I, Self::I>,
@@ -104,6 +79,9 @@ pub trait ComputeRollingStats {
         Self::T: From<A> + Ord + Default,
         A: VecValue;
 }
+
+/// Rows at multiples of this rebuild their window's sum from its values.
+const ANCHOR_STRIDE: usize = 1024;
 
 impl<V> ComputeRollingStats for EagerVec<V>
 where
@@ -186,49 +164,55 @@ where
         f64: From<A> + From<V::T>,
         V::T: From<f64> + Default,
     {
-        compute_rolling_window(
-            self,
-            Version::new(4),
-            max_from,
-            window_starts,
-            values,
-            exit,
-            |sum: &mut f64, value| *sum += value,
-            |sum, value| *sum -= value,
-            |sum, count| V::T::from(sum / count),
-        )
-    }
+        // Leaving values are read through one cursor across batches, so each compressed page is
+        // decompressed once; only a replay from an anchor behind it starts a new one.
+        let mut leaving = values.cursor();
 
-    fn compute_rolling_sd<A>(
-        &mut self,
-        max_from: V::I,
-        window_starts: &impl ReadableVec<V::I, V::I>,
-        values: &impl ReadableVec<V::I, A>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecValue,
-        f64: From<A>,
-        V::T: From<f64>,
-    {
-        compute_rolling_window(
-            self,
-            Version::new(3),
+        self.compute_init(
+            Version::new(4) + window_starts.version() + values.version(),
             max_from,
-            window_starts,
-            values,
             exit,
-            |(sum, sum_sq): &mut (f64, f64), value| {
-                *sum += value;
-                *sum_sq += value * value;
-            },
-            |(sum, sum_sq), value| {
-                *sum -= value;
-                *sum_sq -= value * value;
-            },
-            |(sum, sum_sq), count| {
-                let mean = sum / count;
-                V::T::from((sum_sq / count - mean * mean).max(0.0).sqrt())
+            |this| {
+                let skip = this.len();
+                let source_len = window_starts.len().min(values.len());
+                let end = this.batch_end(source_len);
+                if skip >= end {
+                    return Ok(());
+                }
+
+                let anchor = skip - skip % ANCHOR_STRIDE;
+                let starts_batch = window_starts.collect_range_at(anchor, end);
+                let values_batch = values.collect_range_at(anchor, end);
+                let mut sum = 0.0;
+                let mut prev_start = 0;
+
+                for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
+                    let i = anchor + j;
+                    let start = start.to_usize();
+                    debug_assert!(prev_start <= start, "window starts never move back");
+                    if i.is_multiple_of(ANCHOR_STRIDE) {
+                        sum = values.fold_range_at(start, i + 1, 0.0, |sum, value| {
+                            sum + defined(f64::from(value))
+                        });
+                        if leaving.position() > start {
+                            leaving = values.cursor();
+                        }
+                        leaving.advance(start - leaving.position());
+                    } else {
+                        sum += defined(f64::from(value));
+                        if prev_start < start {
+                            leaving.for_each(start - prev_start, |value: A| {
+                                sum -= defined(f64::from(value));
+                            });
+                        }
+                    }
+                    prev_start = start;
+                    if i >= skip {
+                        this.push(V::T::from(sum / (i - start + 1) as f64));
+                    }
+                }
+
+                Ok(())
             },
         )
     }
@@ -245,26 +229,46 @@ where
         f64: From<A> + From<V::T>,
         V::T: From<f64> + Default,
     {
-        compute_rolling_exponential(self, max_from, window_starts, values, exit, |span| {
-            2.0 / (span + 1.0)
-        })
-    }
+        // The stored output is the whole state: it must hold `prev` exactly (an f64-backed type), so a
+        // resume continues bit for bit where an uninterrupted run would be.
+        self.compute_init(
+            Version::new(3) + window_starts.version() + values.version(),
+            max_from,
+            exit,
+            |this| {
+                let skip = this.len();
+                let source_len = window_starts.len().min(values.len());
+                let end = this.batch_end(source_len);
+                if skip >= end {
+                    return Ok(());
+                }
 
-    fn compute_rolling_rma<A>(
-        &mut self,
-        max_from: V::I,
-        window_starts: &impl ReadableVec<V::I, V::I>,
-        values: &impl ReadableVec<V::I, A>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecValue,
-        f64: From<A> + From<V::T>,
-        V::T: From<f64> + Default,
-    {
-        compute_rolling_exponential(self, max_from, window_starts, values, exit, |span| {
-            1.0 / span
-        })
+                let mut prev = if skip > 0 {
+                    f64::from(this.collect_one_at(skip - 1).unwrap())
+                } else {
+                    0.0_f64
+                };
+
+                let starts_batch = window_starts.collect_range_at(skip, end);
+                let values_batch = values.collect_range_at(skip, end);
+
+                for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
+                    let i = skip + j;
+                    let span = (i - start.to_usize() + 1) as f64;
+                    let alpha = 2.0 / (span + 1.0);
+                    let value = f64::from(value);
+                    prev = alpha * value + (1.0 - alpha) * prev;
+                    let out = V::T::from(prev);
+                    debug_assert!(
+                        f64::from(out.clone()) == prev || prev.is_nan(),
+                        "exponential average state must be stored exactly"
+                    );
+                    this.push(out);
+                }
+
+                Ok(())
+            },
+        )
     }
 
     fn compute_all_time_high<A>(
@@ -302,142 +306,12 @@ where
     }
 }
 
-fn compute_rolling_exponential<V: StoredVec, A, F>(
-    vec: &mut EagerVec<V>,
-    max_from: V::I,
-    window_starts: &impl ReadableVec<V::I, V::I>,
-    values: &impl ReadableVec<V::I, A>,
-    exit: &Exit,
-    alpha_fn: F,
-) -> Result<()>
-where
-    A: VecValue,
-    f64: From<A> + From<V::T>,
-    V::T: From<f64> + Default,
-    F: Fn(f64) -> f64,
-{
-    // The stored output is the whole state: it must hold `prev` exactly (an f64-backed type), so a
-    // resume continues bit for bit where an uninterrupted run would be.
-    vec.compute_init(
-        Version::new(3) + window_starts.version() + values.version(),
-        max_from,
-        exit,
-        |this| {
-            let skip = this.len();
-            let source_len = window_starts.len().min(values.len());
-            let end = this.batch_end(source_len);
-            if skip >= end {
-                return Ok(());
-            }
-
-            let mut prev = if skip > 0 {
-                f64::from(this.collect_one_at(skip - 1).unwrap())
-            } else {
-                0.0_f64
-            };
-
-            let starts_batch = window_starts.collect_range_at(skip, end);
-            let values_batch = values.collect_range_at(skip, end);
-
-            for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
-                let i = skip + j;
-                let span = (i - start.to_usize() + 1) as f64;
-                let alpha = alpha_fn(span);
-                let value = f64::from(value);
-                prev = alpha * value + (1.0 - alpha) * prev;
-                let out = V::T::from(prev);
-                debug_assert!(
-                    f64::from(out.clone()) == prev || prev.is_nan(),
-                    "exponential average state must be stored exactly"
-                );
-                this.push(out);
-            }
-
-            Ok(())
-        },
-    )
-}
-
-/// Rows at multiples of this rebuild their window's sums from its values.
-const ANCHOR_STRIDE: usize = 1024;
-
 /// Rolling window statistics kept as f64 sums of the window's values (`add`, `remove`), written
 /// by `output` from the sums and the window's count. A row at a multiple of [`ANCHOR_STRIDE`]
 /// rebuilds the sums from its window; the rows after continue from it, adding the entering value
 /// and removing the leaving ones. A row's value thus depends on its position alone: a run
 /// resuming anywhere replays from the anchor at or before it, matching an uninterrupted run bit
 /// for bit, and rounding never builds up past one stride.
-#[allow(clippy::too_many_arguments)]
-fn compute_rolling_window<V: StoredVec, A, S>(
-    vec: &mut EagerVec<V>,
-    version: Version,
-    max_from: V::I,
-    window_starts: &impl ReadableVec<V::I, V::I>,
-    values: &impl ReadableVec<V::I, A>,
-    exit: &Exit,
-    add: impl Fn(&mut S, f64),
-    remove: impl Fn(&mut S, f64),
-    output: impl Fn(S, f64) -> V::T,
-) -> Result<()>
-where
-    A: VecValue,
-    f64: From<A>,
-    S: Copy + Default,
-{
-    // Leaving values are read through one cursor across batches, so each compressed page is
-    // decompressed once; only a replay from an anchor behind it starts a new one.
-    let mut leaving = values.cursor();
-
-    vec.compute_init(
-        version + window_starts.version() + values.version(),
-        max_from,
-        exit,
-        |this| {
-            let skip = this.len();
-            let source_len = window_starts.len().min(values.len());
-            let end = this.batch_end(source_len);
-            if skip >= end {
-                return Ok(());
-            }
-
-            let anchor = skip - skip % ANCHOR_STRIDE;
-            let starts_batch = window_starts.collect_range_at(anchor, end);
-            let values_batch = values.collect_range_at(anchor, end);
-            let mut sums = S::default();
-            let mut prev_start = 0;
-
-            for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
-                let i = anchor + j;
-                let start = start.to_usize();
-                debug_assert!(prev_start <= start, "window starts never move back");
-                if i.is_multiple_of(ANCHOR_STRIDE) {
-                    sums = values.fold_range_at(start, i + 1, S::default(), |mut sums, value| {
-                        add(&mut sums, defined(f64::from(value)));
-                        sums
-                    });
-                    if leaving.position() > start {
-                        leaving = values.cursor();
-                    }
-                    leaving.advance(start - leaving.position());
-                } else {
-                    add(&mut sums, defined(f64::from(value)));
-                    if prev_start < start {
-                        leaving.for_each(start - prev_start, |value: A| {
-                            remove(&mut sums, defined(f64::from(value)));
-                        });
-                    }
-                }
-                prev_start = start;
-                if i >= skip {
-                    this.push(output(sums, (i - start + 1) as f64));
-                }
-            }
-
-            Ok(())
-        },
-    )
-}
-
 fn compute_all_time_extreme<V: StoredVec, A, F>(
     vec: &mut EagerVec<V>,
     max_from: V::I,

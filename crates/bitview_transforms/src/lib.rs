@@ -6,15 +6,12 @@ mod ohlc;
 mod ratio;
 
 pub use arithmetic::{
-    BlocksToDays, CountPerSecond, DaysToYears, DifficultyToHashrate, OneMinusPpm, TimesSqrt,
-    WeightToVSize,
+    BlocksToDays, CountPerSecond, DaysToYears, DifficultyToHashrate, OneMinusPpm, WeightToVSize,
 };
 pub use convert::Convert;
-pub use currency::{
-    AvgCentsToUsd, AvgSatsToBtc, CentsTimesTenths, CentsUnsignedToSats, SatsToCents,
-};
+pub use currency::{AvgCentsToUsd, AvgSatsToBtc, CentsUnsignedToSats, SatsToCents};
 pub use ohlc::{OhlcCentsToHighCents, OhlcCentsToLowCents};
 pub use ratio::{
-    AvivNupl, BoundedOdds, BoundedToRatio, Cagr, FixedToPercent, FixedToRatio, PriceTimesRatio,
-    Quotient, RelativeChange, price_ratio,
+    AvivNupl, BoundedOdds, BoundedToRatio, FixedToPercent, FixedToRatio, PriceTimesRatio, Quotient,
+    RelativeChange, price_ratio,
 };

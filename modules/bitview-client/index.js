@@ -349,14 +349,6 @@ prior template's transactions or a full transaction body.
  * @typedef {number} BytesFract
  */
 /**
- * Investor phase from the Capital Sentiment model.
- *
- * Codes are explicit because phase values are persisted. Code `0` represents
- * unavailable model inputs and is therefore not a phase.
- *
- * @typedef {("raging_bull"|"bull"|"cautious_bull"|"hopeful_bull"|"early_bull"|"weak_bull"|"limbo"|"deep_bear"|"bear"|"early_bear")} CapitalSentimentPhase
- */
-/**
  * URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
  *
  * Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
@@ -2501,42 +2493,41 @@ function addressPayloadHashPrefix(payload, nibbles) {
 // Index group constants and factory
 
 const _i1 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height"]);
-const _i2 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height"]);
+const _i2 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch"]);
 const _i3 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch"]);
-const _i4 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch"]);
-const _i5 = /** @type {const} */ (["minute10"]);
-const _i6 = /** @type {const} */ (["minute30"]);
-const _i7 = /** @type {const} */ (["hour1"]);
-const _i8 = /** @type {const} */ (["hour4"]);
-const _i9 = /** @type {const} */ (["hour12"]);
-const _i10 = /** @type {const} */ (["day1"]);
-const _i11 = /** @type {const} */ (["day3"]);
-const _i12 = /** @type {const} */ (["week1"]);
-const _i13 = /** @type {const} */ (["month1"]);
-const _i14 = /** @type {const} */ (["month3"]);
-const _i15 = /** @type {const} */ (["month6"]);
-const _i16 = /** @type {const} */ (["year1"]);
-const _i17 = /** @type {const} */ (["year10"]);
-const _i18 = /** @type {const} */ (["halving"]);
-const _i19 = /** @type {const} */ (["epoch"]);
-const _i20 = /** @type {const} */ (["height"]);
-const _i21 = /** @type {const} */ (["tx_index"]);
+const _i4 = /** @type {const} */ (["minute10"]);
+const _i5 = /** @type {const} */ (["minute30"]);
+const _i6 = /** @type {const} */ (["hour1"]);
+const _i7 = /** @type {const} */ (["hour4"]);
+const _i8 = /** @type {const} */ (["hour12"]);
+const _i9 = /** @type {const} */ (["day1"]);
+const _i10 = /** @type {const} */ (["day3"]);
+const _i11 = /** @type {const} */ (["week1"]);
+const _i12 = /** @type {const} */ (["month1"]);
+const _i13 = /** @type {const} */ (["month3"]);
+const _i14 = /** @type {const} */ (["month6"]);
+const _i15 = /** @type {const} */ (["year1"]);
+const _i16 = /** @type {const} */ (["year10"]);
+const _i17 = /** @type {const} */ (["halving"]);
+const _i18 = /** @type {const} */ (["epoch"]);
+const _i19 = /** @type {const} */ (["height"]);
+const _i20 = /** @type {const} */ (["tx_index"]);
+const _i21 = /** @type {const} */ (["txin_index"]);
 const _i22 = /** @type {const} */ (["txin_index"]);
-const _i23 = /** @type {const} */ (["txin_index"]);
+const _i23 = /** @type {const} */ (["txout_index"]);
 const _i24 = /** @type {const} */ (["txout_index"]);
-const _i25 = /** @type {const} */ (["txout_index"]);
-const _i26 = /** @type {const} */ (["empty_output_index"]);
-const _i27 = /** @type {const} */ (["op_return_index"]);
-const _i28 = /** @type {const} */ (["p2a_address_index"]);
-const _i29 = /** @type {const} */ (["p2ms_output_index"]);
-const _i30 = /** @type {const} */ (["p2pk33_address_index"]);
-const _i31 = /** @type {const} */ (["p2pk65_address_index"]);
-const _i32 = /** @type {const} */ (["p2pkh_address_index"]);
-const _i33 = /** @type {const} */ (["p2sh_address_index"]);
-const _i34 = /** @type {const} */ (["p2tr_address_index"]);
-const _i35 = /** @type {const} */ (["p2wpkh_address_index"]);
-const _i36 = /** @type {const} */ (["p2wsh_address_index"]);
-const _i37 = /** @type {const} */ (["unknown_output_index"]);
+const _i25 = /** @type {const} */ (["empty_output_index"]);
+const _i26 = /** @type {const} */ (["op_return_index"]);
+const _i27 = /** @type {const} */ (["p2a_address_index"]);
+const _i28 = /** @type {const} */ (["p2ms_output_index"]);
+const _i29 = /** @type {const} */ (["p2pk33_address_index"]);
+const _i30 = /** @type {const} */ (["p2pk65_address_index"]);
+const _i31 = /** @type {const} */ (["p2pkh_address_index"]);
+const _i32 = /** @type {const} */ (["p2sh_address_index"]);
+const _i33 = /** @type {const} */ (["p2tr_address_index"]);
+const _i34 = /** @type {const} */ (["p2wpkh_address_index"]);
+const _i35 = /** @type {const} */ (["p2wsh_address_index"]);
+const _i36 = /** @type {const} */ (["unknown_output_index"]);
 
 /**
  * Generic series pattern factory.
@@ -2565,42 +2556,41 @@ function _mp(client, name, indexes) {
 }
 
 /** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T | null>, readonly minute30: DateSeriesEndpoint<T | null>, readonly hour1: DateSeriesEndpoint<T | null>, readonly hour4: DateSeriesEndpoint<T | null>, readonly hour12: DateSeriesEndpoint<T | null>, readonly day1: DateSeriesEndpoint<T | null>, readonly day3: DateSeriesEndpoint<T | null>, readonly week1: DateSeriesEndpoint<T | null>, readonly month1: DateSeriesEndpoint<T | null>, readonly month3: DateSeriesEndpoint<T | null>, readonly month6: DateSeriesEndpoint<T | null>, readonly year1: DateSeriesEndpoint<T | null>, readonly year10: DateSeriesEndpoint<T | null>, readonly halving: SeriesEndpoint<T>, readonly epoch: SeriesEndpoint<T>, readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern1 */
-/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T | null>, readonly minute30: DateSeriesEndpoint<T | null>, readonly hour1: DateSeriesEndpoint<T | null>, readonly hour4: DateSeriesEndpoint<T | null>, readonly hour12: DateSeriesEndpoint<T | null>, readonly day1: DateSeriesEndpoint<T | null>, readonly day3: DateSeriesEndpoint<T | null>, readonly week1: DateSeriesEndpoint<T | null>, readonly month1: DateSeriesEndpoint<T | null>, readonly month3: DateSeriesEndpoint<T | null>, readonly month6: DateSeriesEndpoint<T | null>, readonly year1: DateSeriesEndpoint<T | null>, readonly year10: DateSeriesEndpoint<T | null>, readonly halving: SeriesEndpoint<T | null>, readonly epoch: SeriesEndpoint<T | null>, readonly height: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern2 */
-/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T>, readonly minute30: DateSeriesEndpoint<T>, readonly hour1: DateSeriesEndpoint<T>, readonly hour4: DateSeriesEndpoint<T>, readonly hour12: DateSeriesEndpoint<T>, readonly day1: DateSeriesEndpoint<T>, readonly day3: DateSeriesEndpoint<T>, readonly week1: DateSeriesEndpoint<T>, readonly month1: DateSeriesEndpoint<T>, readonly month3: DateSeriesEndpoint<T>, readonly month6: DateSeriesEndpoint<T>, readonly year1: DateSeriesEndpoint<T>, readonly year10: DateSeriesEndpoint<T>, readonly halving: SeriesEndpoint<T>, readonly epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern3 */
-/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T | null>, readonly minute30: DateSeriesEndpoint<T | null>, readonly hour1: DateSeriesEndpoint<T | null>, readonly hour4: DateSeriesEndpoint<T | null>, readonly hour12: DateSeriesEndpoint<T | null>, readonly day1: DateSeriesEndpoint<T | null>, readonly day3: DateSeriesEndpoint<T | null>, readonly week1: DateSeriesEndpoint<T | null>, readonly month1: DateSeriesEndpoint<T | null>, readonly month3: DateSeriesEndpoint<T | null>, readonly month6: DateSeriesEndpoint<T | null>, readonly year1: DateSeriesEndpoint<T | null>, readonly year10: DateSeriesEndpoint<T | null>, readonly halving: SeriesEndpoint<T>, readonly epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern4 */
-/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern5 */
-/** @template T @typedef {{ name: string, by: { readonly minute30: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern6 */
-/** @template T @typedef {{ name: string, by: { readonly hour1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern7 */
-/** @template T @typedef {{ name: string, by: { readonly hour4: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern8 */
-/** @template T @typedef {{ name: string, by: { readonly hour12: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern9 */
-/** @template T @typedef {{ name: string, by: { readonly day1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern10 */
-/** @template T @typedef {{ name: string, by: { readonly day3: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern11 */
-/** @template T @typedef {{ name: string, by: { readonly week1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern12 */
-/** @template T @typedef {{ name: string, by: { readonly month1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern13 */
-/** @template T @typedef {{ name: string, by: { readonly month3: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern14 */
-/** @template T @typedef {{ name: string, by: { readonly month6: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern15 */
-/** @template T @typedef {{ name: string, by: { readonly year1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern16 */
-/** @template T @typedef {{ name: string, by: { readonly year10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern17 */
-/** @template T @typedef {{ name: string, by: { readonly halving: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern18 */
-/** @template T @typedef {{ name: string, by: { readonly epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern19 */
-/** @template T @typedef {{ name: string, by: { readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern20 */
-/** @template T @typedef {{ name: string, by: { readonly tx_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern21 */
-/** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern22 */
-/** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern23 */
-/** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern24 */
-/** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern25 */
-/** @template T @typedef {{ name: string, by: { readonly empty_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern26 */
-/** @template T @typedef {{ name: string, by: { readonly op_return_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern27 */
-/** @template T @typedef {{ name: string, by: { readonly p2a_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern28 */
-/** @template T @typedef {{ name: string, by: { readonly p2ms_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern29 */
-/** @template T @typedef {{ name: string, by: { readonly p2pk33_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern30 */
-/** @template T @typedef {{ name: string, by: { readonly p2pk65_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern31 */
-/** @template T @typedef {{ name: string, by: { readonly p2pkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern32 */
-/** @template T @typedef {{ name: string, by: { readonly p2sh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern33 */
-/** @template T @typedef {{ name: string, by: { readonly p2tr_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
-/** @template T @typedef {{ name: string, by: { readonly p2wpkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
-/** @template T @typedef {{ name: string, by: { readonly p2wsh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern36 */
-/** @template T @typedef {{ name: string, by: { readonly unknown_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern37 */
+/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T>, readonly minute30: DateSeriesEndpoint<T>, readonly hour1: DateSeriesEndpoint<T>, readonly hour4: DateSeriesEndpoint<T>, readonly hour12: DateSeriesEndpoint<T>, readonly day1: DateSeriesEndpoint<T>, readonly day3: DateSeriesEndpoint<T>, readonly week1: DateSeriesEndpoint<T>, readonly month1: DateSeriesEndpoint<T>, readonly month3: DateSeriesEndpoint<T>, readonly month6: DateSeriesEndpoint<T>, readonly year1: DateSeriesEndpoint<T>, readonly year10: DateSeriesEndpoint<T>, readonly halving: SeriesEndpoint<T>, readonly epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern2 */
+/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T | null>, readonly minute30: DateSeriesEndpoint<T | null>, readonly hour1: DateSeriesEndpoint<T | null>, readonly hour4: DateSeriesEndpoint<T | null>, readonly hour12: DateSeriesEndpoint<T | null>, readonly day1: DateSeriesEndpoint<T | null>, readonly day3: DateSeriesEndpoint<T | null>, readonly week1: DateSeriesEndpoint<T | null>, readonly month1: DateSeriesEndpoint<T | null>, readonly month3: DateSeriesEndpoint<T | null>, readonly month6: DateSeriesEndpoint<T | null>, readonly year1: DateSeriesEndpoint<T | null>, readonly year10: DateSeriesEndpoint<T | null>, readonly halving: SeriesEndpoint<T>, readonly epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern3 */
+/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern4 */
+/** @template T @typedef {{ name: string, by: { readonly minute30: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern5 */
+/** @template T @typedef {{ name: string, by: { readonly hour1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern6 */
+/** @template T @typedef {{ name: string, by: { readonly hour4: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern7 */
+/** @template T @typedef {{ name: string, by: { readonly hour12: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern8 */
+/** @template T @typedef {{ name: string, by: { readonly day1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern9 */
+/** @template T @typedef {{ name: string, by: { readonly day3: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern10 */
+/** @template T @typedef {{ name: string, by: { readonly week1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern11 */
+/** @template T @typedef {{ name: string, by: { readonly month1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern12 */
+/** @template T @typedef {{ name: string, by: { readonly month3: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern13 */
+/** @template T @typedef {{ name: string, by: { readonly month6: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern14 */
+/** @template T @typedef {{ name: string, by: { readonly year1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern15 */
+/** @template T @typedef {{ name: string, by: { readonly year10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern16 */
+/** @template T @typedef {{ name: string, by: { readonly halving: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern17 */
+/** @template T @typedef {{ name: string, by: { readonly epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern18 */
+/** @template T @typedef {{ name: string, by: { readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern19 */
+/** @template T @typedef {{ name: string, by: { readonly tx_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern20 */
+/** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern21 */
+/** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern22 */
+/** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern23 */
+/** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern24 */
+/** @template T @typedef {{ name: string, by: { readonly empty_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern25 */
+/** @template T @typedef {{ name: string, by: { readonly op_return_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern26 */
+/** @template T @typedef {{ name: string, by: { readonly p2a_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern27 */
+/** @template T @typedef {{ name: string, by: { readonly p2ms_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern28 */
+/** @template T @typedef {{ name: string, by: { readonly p2pk33_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern29 */
+/** @template T @typedef {{ name: string, by: { readonly p2pk65_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern30 */
+/** @template T @typedef {{ name: string, by: { readonly p2pkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern31 */
+/** @template T @typedef {{ name: string, by: { readonly p2sh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern32 */
+/** @template T @typedef {{ name: string, by: { readonly p2tr_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern33 */
+/** @template T @typedef {{ name: string, by: { readonly p2wpkh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
+/** @template T @typedef {{ name: string, by: { readonly p2wsh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
+/** @template T @typedef {{ name: string, by: { readonly unknown_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern36 */
 
 // Series tree
 
@@ -3141,21 +3131,6 @@ const _RarityMeter = _s({
 
 /**
  * @typedef {{
- *   isLong: SeriesPattern1<Boolean>,
- *   isShort: SeriesPattern1<Boolean>,
- *   phase: SeriesPattern2<CapitalSentimentPhase>,
- *   score: SeriesPattern2<Score>,
- * }} CapitalSentiment
- */
-const _CapitalSentiment = _s({
-  isLong: [_i1, '*_is_long'],
-  isShort: [_i1, '*_is_short'],
-  phase: [_i2, '*_phase'],
-  score: [_i2, '*_score'],
-});
-
-/**
- * @typedef {{
  *   pct10: SeriesPattern1<?Dollars>,
  *   pct20: SeriesPattern1<?Dollars>,
  *   pct30: SeriesPattern1<?Dollars>,
@@ -3305,44 +3280,6 @@ const _MobileCapital = _s({
  */
 const _SupplyInLoss = _s({
   share: [_i1, '*'],
-});
-
-/**
- * @typedef {{
- *   supplyAdjusted: SeriesPattern1<?Float32>,
- *   flow: SeriesPattern1<?Float32>,
- * }} Dormancy
- */
-const _Dormancy = _s({
-  supplyAdjusted: [_i1, '*_supply_adjusted'],
-  flow: [_i1, '*_flow'],
-});
-
-/**
- * @typedef {{
- *   puellMultiple: SeriesPattern1<?Ratio>,
- *   nvt: SeriesPattern1<?Ratio>,
- *   gini: SeriesPattern1<?Ratio>,
- *   rhodlRatio: SeriesPattern1<?Ratio>,
- *   thermoCapMultiple: SeriesPattern1<?Ratio>,
- *   coindaysDestroyedSupplyAdjusted: SeriesPattern1<?Days>,
- *   coinyearsDestroyedSupplyAdjusted: SeriesPattern1<?Years>,
- *   dormancy: Dormancy,
- *   stockToFlow: SeriesPattern1<?Years>,
- *   sellerExhaustionConstant: SeriesPattern1<?Ratio>,
- * }} Indicators
- */
-const _Indicators = _s({
-  puellMultiple: [_i1, 'puell_multiple'],
-  nvt: [_i1, 'nvt'],
-  gini: [_i1, 'gini'],
-  rhodlRatio: [_i1, 'rhodl_ratio'],
-  thermoCapMultiple: [_i1, 'thermo_cap_multiple'],
-  coindaysDestroyedSupplyAdjusted: [_i1, 'coindays_*'],
-  coinyearsDestroyedSupplyAdjusted: [_i1, 'coinyears_*'],
-  dormancy: [_Dormancy, 'dormancy'],
-  stockToFlow: [_i1, 'stock_to_flow'],
-  sellerExhaustionConstant: [_i1, 'seller_exhaustion_constant'],
 });
 
 /**
@@ -3642,81 +3579,14 @@ const _DeltaRate = _s({
 
 /**
  * @typedef {{
- *   line: SeriesPattern1<?Dollars>,
- *   signal: SeriesPattern1<?Dollars>,
- *   histogram: SeriesPattern1<?Dollars>,
- * }} Macd1m
- */
-const _Macd1m = _s({
-  line: [_i1, 'macd_line_*'],
-  signal: [_i1, 'macd_signal_*'],
-  histogram: [_i1, 'macd_histogram_*'],
-});
-
-/**
- * @typedef {{
- *   k: SeriesPattern1<?Percent>,
- *   d: SeriesPattern1<?Percent>,
- * }} Stochastic
- */
-const _Stochastic = _s({
-  k: [_i1, 'stochastic_rsi_k_*'],
-  d: [_i1, 'stochastic_rsi_d_*'],
-});
-
-/**
- * @typedef {{
- *   block: SeriesPattern1<?Percent>,
- *   stochastic: Stochastic,
- * }} Rsi1m
- */
-const _Rsi1m = _s({
-  block: [_i1, 'rsi_*'],
-  stochastic: [_Stochastic, '*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   _24h: A,
- *   _1w: A,
- *   _1m: A,
- * }} Macd
- */
-/** @type {_Make} */
-const _Macd = (c, b, f0) => _n(c, b, {
-  _24h: [f0, '*'],
-  _1w: [f0, '1w'],
-  _1m: [f0, '1m'],
-});
-
-/**
- * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Ratio>,
- *   x2: SeriesPattern1<?Dollars>,
- * }} Sma350d
- */
-const _Sma350d = _s({
-  block: [_i1, '*'],
-  ratio: [_i1, '*_ratio'],
-  x2: [_i1, '*_x2'],
-});
-
-/**
- * @typedef {{
- *   block: SeriesPattern1<?Dollars>,
- *   ratio: SeriesPattern1<?Ratio>,
- *   x24: SeriesPattern1<?Dollars>,
- *   x08: SeriesPattern1<?Dollars>,
  *   mayerMultiple: SeriesPattern1<?Ratio>,
  * }} Sma200d
  */
 const _Sma200d = _s({
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
-  x24: [_i1, '*_x2_4'],
-  x08: [_i1, '*_x0_8'],
   mayerMultiple: [_i1, 'mayer_multiple'],
 });
 
@@ -3724,16 +3594,16 @@ const _Sma200d = _s({
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Ratio>,
- * }} Ema12d
+ * }} Ema13d
  */
-const _Ema12d = _s({
+const _Ema13d = _s({
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
 });
 
 /**
  * @typedef {{
- *   avg: Ema12d,
+ *   avg: Ema13d,
  *   capitalizedPrice: SeriesPattern1<?Dollars>,
  *   pct5: SeriesPattern1<?Dollars>,
  *   pct10: SeriesPattern1<?Dollars>,
@@ -3757,7 +3627,7 @@ const _Ema12d = _s({
  * }} PerDollar
  */
 const _PerDollar = _s({
-  avg: [_Ema12d, '*_cost_basis_per_dollar_avg'],
+  avg: [_Ema13d, '*_cost_basis_per_dollar_avg'],
   capitalizedPrice: [_i1, '*_capitalized_price'],
   pct5: [_i1, '*_cost_basis_per_dollar_pct5'],
   pct10: [_i1, '*_cost_basis_per_dollar_pct10'],
@@ -3816,95 +3686,85 @@ const _AllCostBasis = _s({
 
 /**
  * @typedef {{
- *   _1w: Ema12d,
- *   _8d: Ema12d,
- *   _12d: Ema12d,
- *   _13d: Ema12d,
- *   _21d: Ema12d,
- *   _26d: Ema12d,
- *   _1m: Ema12d,
- *   _34d: Ema12d,
- *   _55d: Ema12d,
- *   _89d: Ema12d,
- *   _144d: Ema12d,
- *   _200d: Ema12d,
- *   _1y: Ema12d,
- *   _2y: Ema12d,
- *   _200w: Ema12d,
- *   _4y: Ema12d,
+ *   _1w: Ema13d,
+ *   _8d: Ema13d,
+ *   _13d: Ema13d,
+ *   _21d: Ema13d,
+ *   _1m: Ema13d,
+ *   _34d: Ema13d,
+ *   _55d: Ema13d,
+ *   _89d: Ema13d,
+ *   _144d: Ema13d,
+ *   _200d: Ema13d,
+ *   _1y: Ema13d,
+ *   _2y: Ema13d,
+ *   _200w: Ema13d,
+ *   _4y: Ema13d,
  * }} Ema
  */
 const _Ema = _s({
-  _1w: [_Ema12d, '*_1w'],
-  _8d: [_Ema12d, '*_8d'],
-  _12d: [_Ema12d, '*_12d'],
-  _13d: [_Ema12d, '*_13d'],
-  _21d: [_Ema12d, '*_21d'],
-  _26d: [_Ema12d, '*_26d'],
-  _1m: [_Ema12d, '*_1m'],
-  _34d: [_Ema12d, '*_34d'],
-  _55d: [_Ema12d, '*_55d'],
-  _89d: [_Ema12d, '*_89d'],
-  _144d: [_Ema12d, '*_144d'],
-  _200d: [_Ema12d, '*_200d'],
-  _1y: [_Ema12d, '*_1y'],
-  _2y: [_Ema12d, '*_2y'],
-  _200w: [_Ema12d, '*_200w'],
-  _4y: [_Ema12d, '*_4y'],
+  _1w: [_Ema13d, '*_1w'],
+  _8d: [_Ema13d, '*_8d'],
+  _13d: [_Ema13d, '*_13d'],
+  _21d: [_Ema13d, '*_21d'],
+  _1m: [_Ema13d, '*_1m'],
+  _34d: [_Ema13d, '*_34d'],
+  _55d: [_Ema13d, '*_55d'],
+  _89d: [_Ema13d, '*_89d'],
+  _144d: [_Ema13d, '*_144d'],
+  _200d: [_Ema13d, '*_200d'],
+  _1y: [_Ema13d, '*_1y'],
+  _2y: [_Ema13d, '*_2y'],
+  _200w: [_Ema13d, '*_200w'],
+  _4y: [_Ema13d, '*_4y'],
 });
 
 /**
  * @typedef {{
- *   _1w: Ema12d,
- *   _8d: Ema12d,
- *   _13d: Ema12d,
- *   _21d: Ema12d,
- *   _1m: Ema12d,
- *   _34d: Ema12d,
- *   _50d: Ema12d,
- *   _55d: Ema12d,
- *   _89d: Ema12d,
- *   _111d: Ema12d,
- *   _144d: Ema12d,
+ *   _1w: Ema13d,
+ *   _8d: Ema13d,
+ *   _13d: Ema13d,
+ *   _21d: Ema13d,
+ *   _1m: Ema13d,
+ *   _34d: Ema13d,
+ *   _50d: Ema13d,
+ *   _55d: Ema13d,
+ *   _89d: Ema13d,
+ *   _144d: Ema13d,
  *   _200d: Sma200d,
- *   _350d: Sma350d,
- *   _1y: Ema12d,
- *   _2y: Ema12d,
- *   _200w: Ema12d,
- *   _4y: Ema12d,
+ *   _1y: Ema13d,
+ *   _2y: Ema13d,
+ *   _200w: Ema13d,
+ *   _4y: Ema13d,
  * }} MarketSma
  */
 const _MarketSma = _s({
-  _1w: [_Ema12d, '*_1w'],
-  _8d: [_Ema12d, '*_8d'],
-  _13d: [_Ema12d, '*_13d'],
-  _21d: [_Ema12d, '*_21d'],
-  _1m: [_Ema12d, '*_1m'],
-  _34d: [_Ema12d, '*_34d'],
-  _50d: [_Ema12d, '*_50d'],
-  _55d: [_Ema12d, '*_55d'],
-  _89d: [_Ema12d, '*_89d'],
-  _111d: [_Ema12d, '*_111d'],
-  _144d: [_Ema12d, '*_144d'],
+  _1w: [_Ema13d, '*_1w'],
+  _8d: [_Ema13d, '*_8d'],
+  _13d: [_Ema13d, '*_13d'],
+  _21d: [_Ema13d, '*_21d'],
+  _1m: [_Ema13d, '*_1m'],
+  _34d: [_Ema13d, '*_34d'],
+  _50d: [_Ema13d, '*_50d'],
+  _55d: [_Ema13d, '*_55d'],
+  _89d: [_Ema13d, '*_89d'],
+  _144d: [_Ema13d, '*_144d'],
   _200d: [_Sma200d, '*_200d'],
-  _350d: [_Sma350d, '*_350d'],
-  _1y: [_Ema12d, '*_1y'],
-  _2y: [_Ema12d, '*_2y'],
-  _200w: [_Ema12d, '*_200w'],
-  _4y: [_Ema12d, '*_4y'],
+  _1y: [_Ema13d, '*_1y'],
+  _2y: [_Ema13d, '*_2y'],
+  _200w: [_Ema13d, '*_200w'],
+  _4y: [_Ema13d, '*_4y'],
 });
 
 /**
  * @typedef {{
  *   _1w: SeriesPattern1<?Dollars>,
- *   _2w: SeriesPattern1<?Dollars>,
  *   _1m: SeriesPattern1<?Dollars>,
  *   _1y: SeriesPattern1<?Dollars>,
  * }} RangeMax
  */
 const _RangeMax = _s({
   _1w: [_i1, '*_1w'],
-  _2w: [_i1, '*_2w'],
   _1m: [_i1, '*_1m'],
   _1y: [_i1, '*_1y'],
 });
@@ -3914,37 +3774,12 @@ const _RangeMax = _s({
  *   min: RangeMax,
  *   max: RangeMax,
  *   trueRange: SeriesPattern1<?Dollars>,
- *   trueRangeSum2w: SeriesPattern1<?Dollars>,
- *   choppinessIndex2w: SeriesPattern1<?Percent>,
  * }} Range
  */
 const _Range = _s({
   min: [_RangeMax, '*_min'],
   max: [_RangeMax, '*_max'],
   trueRange: [_i1, '*_true_range'],
-  trueRangeSum2w: [_i1, '*_true_range_sum_2w'],
-  choppinessIndex2w: [_i1, '*_choppiness_index_2w'],
-});
-
-/**
- * @typedef {{
- *   _2y: SeriesPattern1<?Percent>,
- *   _3y: SeriesPattern1<?Percent>,
- *   _4y: SeriesPattern1<?Percent>,
- *   _5y: SeriesPattern1<?Percent>,
- *   _6y: SeriesPattern1<?Percent>,
- *   _8y: SeriesPattern1<?Percent>,
- *   _10y: SeriesPattern1<?Percent>,
- * }} Cagr
- */
-const _Cagr = _s({
-  _2y: [_i1, '*_2y'],
-  _3y: [_i1, '*_3y'],
-  _4y: [_i1, '*_4y'],
-  _5y: [_i1, '*_5y'],
-  _6y: [_i1, '*_6y'],
-  _8y: [_i1, '*_8y'],
-  _10y: [_i1, '*_10y'],
 });
 
 /**
@@ -3962,9 +3797,9 @@ const _Cagr = _s({
  *   _6y: SeriesPattern1<?Percent>,
  *   _8y: SeriesPattern1<?Percent>,
  *   _10y: SeriesPattern1<?Percent>,
- * }} Periods
+ * }} Returns
  */
-const _Periods = _s({
+const _Returns = _s({
   _24h: [_i1, '*_24h'],
   _1w: [_i1, '*_1w'],
   _1m: [_i1, '*_1m'],
@@ -3982,39 +3817,6 @@ const _Periods = _s({
 
 /**
  * @typedef {{
- *   _24h: SeriesPattern1<?Dollars>,
- *   _1w: SeriesPattern1<?Dollars>,
- *   _1m: SeriesPattern1<?Dollars>,
- *   _3m: SeriesPattern1<?Dollars>,
- *   _6m: SeriesPattern1<?Dollars>,
- *   _1y: SeriesPattern1<?Dollars>,
- *   _2y: SeriesPattern1<?Dollars>,
- *   _3y: SeriesPattern1<?Dollars>,
- *   _4y: SeriesPattern1<?Dollars>,
- *   _5y: SeriesPattern1<?Dollars>,
- *   _6y: SeriesPattern1<?Dollars>,
- *   _8y: SeriesPattern1<?Dollars>,
- *   _10y: SeriesPattern1<?Dollars>,
- * }} Lookback
- */
-const _Lookback = _s({
-  _24h: [_i1, '*_24h_ago'],
-  _1w: [_i1, '*_1w_ago'],
-  _1m: [_i1, '*_1m_ago'],
-  _3m: [_i1, '*_3m_ago'],
-  _6m: [_i1, '*_6m_ago'],
-  _1y: [_i1, '*_1y_ago'],
-  _2y: [_i1, '*_2y_ago'],
-  _3y: [_i1, '*_3y_ago'],
-  _4y: [_i1, '*_4y_ago'],
-  _5y: [_i1, '*_5y_ago'],
-  _6y: [_i1, '*_6y_ago'],
-  _8y: [_i1, '*_8y_ago'],
-  _10y: [_i1, '*_10y_ago'],
-});
-
-/**
- * @typedef {{
  *   high: SeriesPattern1<?Dollars>,
  *   drawdown: SeriesPattern1<?Percent>,
  *   daysSince: SeriesPattern1<?Days>,
@@ -4026,6 +3828,23 @@ const _Ath = _s({
   drawdown: [_i1, '*_drawdown'],
   daysSince: [_i1, 'days_since_*_ath'],
   maxDaysBetween: [_i1, 'max_days_between_*_ath'],
+});
+
+/**
+ * @typedef {{
+ *   ath: Ath,
+ *   returns: Returns,
+ *   range: Range,
+ *   sma: MarketSma,
+ *   ema: Ema,
+ * }} Market
+ */
+const _Market = _s({
+  ath: [_Ath, '*'],
+  returns: [_Returns, '*_return'],
+  range: [_Range, '*'],
+  sma: [_MarketSma, '*_sma'],
+  ema: [_Ema, '*_ema'],
 });
 
 /**
@@ -4131,7 +3950,7 @@ const _SizeWeight = _s({
 /**
  * @template A
  * @typedef {{
- *   txIndex: SeriesPattern21<A>,
+ *   txIndex: SeriesPattern20<A>,
  *   min: EffectiveFeeRateMax<A>,
  *   max: EffectiveFeeRateMax<A>,
  *   pct10: EffectiveFeeRateMax<A>,
@@ -4142,7 +3961,7 @@ const _SizeWeight = _s({
  * }} EffectiveFeeRate
  */
 const _EffectiveFeeRate = _s({
-  txIndex: [_i21, '*'],
+  txIndex: [_i20, '*'],
   min: [_EffectiveFeeRateMax, '*_min'],
   max: [_EffectiveFeeRateMax, '*_max'],
   pct10: [_EffectiveFeeRateMax, '*_pct10'],
@@ -4381,13 +4200,13 @@ const _AaopoolRewards = _s({
 
 /**
  * @typedef {{
- *   btc: SeriesPattern20<?Bitcoin>,
- *   usd: SeriesPattern20<?Dollars>,
+ *   btc: SeriesPattern19<?Bitcoin>,
+ *   usd: SeriesPattern19<?Dollars>,
  * }} Block
  */
 const _Block = _s({
-  btc: [_i20, '*'],
-  usd: [_i20, '*_usd'],
+  btc: [_i19, '*'],
+  usd: [_i19, '*_usd'],
 });
 
 /**
@@ -4446,11 +4265,11 @@ const _TransferVolume = _s({
 
 /**
  * @typedef {{
- *   txinIndex: SeriesPattern25<TxInIndex>,
+ *   txinIndex: SeriesPattern24<TxInIndex>,
  * }} Spent
  */
 const _Spent = _s({
-  txinIndex: [_i25, '*'],
+  txinIndex: [_i24, '*'],
 });
 
 /**
@@ -4607,12 +4426,12 @@ const _InputsPerSecond = _s({
 
 /**
  * @typedef {{
- *   block: SeriesPattern20<Count>,
+ *   block: SeriesPattern19<Count>,
  *   sum: InputsPerSecond<Count>,
  * }} New
  */
 const _New = _s({
-  block: [_i20, '*'],
+  block: [_i19, '*'],
   sum: [_InputsPerSecond, '*_sum'],
 });
 
@@ -4804,55 +4623,6 @@ const _Ranges10yTo12ySupply = _s({
 
 /**
  * @typedef {{
- *   avg: InputsPerSecond<?Percent>,
- * }} Daily
- */
-const _Daily = _s({
-  avg: [_InputsPerSecond, '*'],
-});
-
-/**
- * @typedef {{
- *   periods: Periods,
- *   cagr: Cagr,
- *   daily: Daily,
- * }} Returns
- */
-const _Returns = _s({
-  periods: [_Periods, '*_return'],
-  cagr: [_Cagr, '*_cagr'],
-  daily: [_Daily, '*_return_24h_avg'],
-});
-
-/**
- * @typedef {{
- *   ath: Ath,
- *   lookback: Lookback,
- *   returns: Returns,
- *   volatility: InputsPerSecond<?Percent>,
- *   range: Range,
- *   sma: MarketSma,
- *   ema: Ema,
- *   rsi: Macd<Rsi1m>,
- *   piCycle: SeriesPattern1<?Ratio>,
- *   macd: Macd<Macd1m>,
- * }} Market
- */
-const _Market = _s({
-  ath: [_Ath, '*'],
-  lookback: [_Lookback, '*'],
-  returns: [_Returns, '*'],
-  volatility: [_InputsPerSecond, '*_volatility'],
-  range: [_Range, '*'],
-  sma: [_MarketSma, '*_sma'],
-  ema: [_Ema, '*_ema'],
-  rsi: [(c, b) => _Macd(c, b, _Rsi1m), '24h'],
-  piCycle: [_i1, 'pi_cycle'],
-  macd: [(c, b) => _Macd(c, b, _Macd1m), '24h'],
-});
-
-/**
- * @typedef {{
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
  * }} BlocksMined
@@ -4881,7 +4651,7 @@ const _Aaopool = _s({
 
 /**
  * @typedef {{
- *   pool: SeriesPattern20<PoolSlug>,
+ *   pool: SeriesPattern19<PoolSlug>,
  *   unknown: Aaopool,
  *   blockfills: Aaopool,
  *   ultimuspool: Aaopool,
@@ -5051,7 +4821,7 @@ const _Aaopool = _s({
  * }} Pools
  */
 const _Pools = _s({
-  pool: [_i20, '*'],
+  pool: [_i19, '*'],
   unknown: [_Aaopool, 'unknown'],
   blockfills: [_Aaopool, 'blockfills'],
   ultimuspool: [_Aaopool, 'ultimuspool'],
@@ -5222,14 +4992,14 @@ const _Pools = _s({
 
 /**
  * @typedef {{
- *   block: SeriesPattern20<Bytes>,
+ *   block: SeriesPattern19<Bytes>,
  *   cumulative: SeriesPattern1<Bytes>,
  *   sum: InputsPerSecond<Bytes>,
  *   chainShare: SeriesPattern1<?Percent>,
  * }} DataBytes
  */
 const _DataBytes = _s({
-  block: [_i20, '*'],
+  block: [_i19, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_InputsPerSecond, '*_sum'],
   chainShare: [_i1, '*_chain_share'],
@@ -5237,15 +5007,15 @@ const _DataBytes = _s({
 
 /**
  * @typedef {{
- *   flag: SeriesPattern21<Boolean>,
- *   block: SeriesPattern20<Count>,
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
  * }} TransactionsFeaturesExplicitlyRbf
  */
 const _TransactionsFeaturesExplicitlyRbf = _s({
-  flag: [_i21, 'is_*'],
-  block: [_i20, '*_tx_count'],
+  flag: [_i20, 'is_*'],
+  block: [_i19, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_InputsPerSecond, '*_tx_count_sum'],
 });
@@ -5275,7 +5045,7 @@ const _Patterns = _s({
 /**
  * @typedef {{
  *   fee: EffectiveFeeRate<Sats>,
- *   feeRate: SeriesPattern21<?FeeRate>,
+ *   feeRate: SeriesPattern20<?FeeRate>,
  *   effectiveFeeRate: EffectiveFeeRate<?FeeRate>,
  *   cpfpParent: TransactionsFeaturesExplicitlyRbf,
  *   cpfpChild: TransactionsFeaturesExplicitlyRbf,
@@ -5283,7 +5053,7 @@ const _Patterns = _s({
  */
 const _TransactionsFees = _s({
   fee: [_EffectiveFeeRate, 'tx_*'],
-  feeRate: [_i21, '*_rate'],
+  feeRate: [_i20, '*_rate'],
   effectiveFeeRate: [_EffectiveFeeRate, 'effective_*_rate'],
   cpfpParent: [_TransactionsFeaturesExplicitlyRbf, 'cpfp_parent'],
   cpfpChild: [_TransactionsFeaturesExplicitlyRbf, 'cpfp_child'],
@@ -5291,15 +5061,15 @@ const _TransactionsFees = _s({
 
 /**
  * @typedef {{
- *   flag: SeriesPattern21<Boolean>,
- *   block: SeriesPattern20<Count>,
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
  * }} Annex
  */
 const _Annex = _s({
-  flag: [_i21, 'has_*'],
-  block: [_i20, '*_tx_count'],
+  flag: [_i20, 'has_*'],
+  block: [_i19, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_InputsPerSecond, '*_tx_count_sum'],
 });
@@ -5307,7 +5077,7 @@ const _Annex = _s({
 /**
  * @template A, B
  * @typedef {{
- *   block: SeriesPattern20<A>,
+ *   block: SeriesPattern19<A>,
  *   cumulative: SeriesPattern1<A>,
  *   sum: InputsPerSecond<A>,
  *   avg: InputsPerSecond<B>,
@@ -5321,7 +5091,7 @@ const _Annex = _s({
  * }} BlocksSize
  */
 const _BlocksSize = _s({
-  block: [_i20, '*'],
+  block: [_i19, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_InputsPerSecond, '*_sum'],
   avg: [_InputsPerSecond, '*_avg'],
@@ -5337,12 +5107,12 @@ const _BlocksSize = _s({
 /**
  * @template A, B
  * @typedef {{
- *   block: SeriesPattern20<A>,
+ *   block: SeriesPattern19<A>,
  *   avg: InputsPerSecond<B>,
  * }} Interval
  */
 const _Interval = _s({
-  block: [_i20, '*'],
+  block: [_i19, '*'],
   avg: [_InputsPerSecond, '*_avg'],
 });
 
@@ -5366,13 +5136,13 @@ const _AddressesActivity = _s({
 /**
  * @template A
  * @typedef {{
- *   block: SeriesPattern20<A>,
+ *   block: SeriesPattern19<A>,
  *   cumulative: SeriesPattern1<A>,
  *   sum: InputsPerSecond<A>,
  * }} CoinblocksDestroyed
  */
 const _CoinblocksDestroyed = _s({
-  block: [_i20, '*'],
+  block: [_i19, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_InputsPerSecond, '*_sum'],
 });
@@ -5380,16 +5150,16 @@ const _CoinblocksDestroyed = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Float64>,
- *   hodlBank: SeriesPattern20<?Float64>,
+ *   hodlBank: SeriesPattern19<?Float64>,
  *   vocdd: CoinblocksDestroyed<?Float64>,
- *   vocddMedian1m: SeriesPattern20<?Float64>,
+ *   vocddMedian1m: SeriesPattern19<?Float64>,
  * }} ReserveRisk
  */
 const _ReserveRisk = _s({
   block: [_i1, 'reserve_risk'],
-  hodlBank: [_i20, 'hodl_bank'],
+  hodlBank: [_i19, 'hodl_bank'],
   vocdd: [_CoinblocksDestroyed, '*'],
-  vocddMedian1m: [_i20, '*_median_1m'],
+  vocddMedian1m: [_i19, '*_median_1m'],
 });
 
 /**
@@ -6197,7 +5967,7 @@ const _Protocols = _s({
 
 /**
  * @typedef {{
- *   flag: SeriesPattern21<Boolean>,
+ *   flag: SeriesPattern20<Boolean>,
  *   outputCount: CoinblocksDestroyed<Count>,
  *   dataBytes: DataBytes,
  *   txCount: CoinblocksDestroyed<Count>,
@@ -6208,7 +5978,7 @@ const _Protocols = _s({
  * }} OpReturn
  */
 const _OpReturn = _s({
-  flag: [_i21, 'has_*'],
+  flag: [_i20, 'has_*'],
   outputCount: [_CoinblocksDestroyed, '*_output_count'],
   dataBytes: [_DataBytes, '*_data_bytes'],
   txCount: [_CoinblocksDestroyed, '*_tx_count'],
@@ -6220,13 +5990,13 @@ const _OpReturn = _s({
 
 /**
  * @typedef {{
- *   flag: SeriesPattern21<Boolean>,
+ *   flag: SeriesPattern20<Boolean>,
  *   count: CoinblocksDestroyed<Count>,
  *   fees: InscriptionFees,
  * }} Inscription
  */
 const _Inscription = _s({
-  flag: [_i21, 'has_*'],
+  flag: [_i20, 'has_*'],
   count: [_CoinblocksDestroyed, '*_tx_count'],
   fees: [_InscriptionFees, '*'],
 });
@@ -6341,7 +6111,7 @@ const _Inputs = _s({
  *   vsize: BlocksSize<VSize, ?VSizeFract>,
  *   size: BlocksSize<Bytes, ?BytesFract>,
  *   weight: BlocksSize<Weight, ?WeightFract>,
- *   fullness: SeriesPattern20<?Percent>,
+ *   fullness: SeriesPattern19<?Percent>,
  *   difficulty: BlocksDifficulty,
  *   halving: BlocksHalving,
  * }} Blocks
@@ -6352,92 +6122,81 @@ const _Blocks = _s({
   vsize: [_BlocksSize, '*_vsize'],
   size: [_BlocksSize, '*_size'],
   weight: [_BlocksSize, '*_weight'],
-  fullness: [_i20, '*_fullness'],
+  fullness: [_i19, '*_fullness'],
   difficulty: [_BlocksDifficulty, 'difficulty'],
   halving: [_BlocksHalving, 'halving'],
 });
 
 /**
  * @typedef {{
- *   open: SeriesPattern3<?Dollars>,
- *   high: SeriesPattern3<?Dollars>,
- *   low: SeriesPattern3<?Dollars>,
- *   close: SeriesPattern4<?Dollars>,
- *   ohlc: SeriesPattern3<OHLCDollars>,
+ *   open: SeriesPattern2<?Dollars>,
+ *   high: SeriesPattern2<?Dollars>,
+ *   low: SeriesPattern2<?Dollars>,
+ *   close: SeriesPattern3<?Dollars>,
+ *   ohlc: SeriesPattern2<OHLCDollars>,
  *   spot: SeriesPattern1<?Dollars>,
  *   satsPerDollar: SeriesPattern1<Sats>,
  * }} Price
  */
 const _Price = _s({
-  open: [_i3, '*_open'],
-  high: [_i3, '*_high'],
-  low: [_i3, '*_low'],
-  close: [_i4, '*_close'],
-  ohlc: [_i3, '*_ohlc'],
+  open: [_i2, '*_open'],
+  high: [_i2, '*_high'],
+  low: [_i2, '*_low'],
+  close: [_i3, '*_close'],
+  ohlc: [_i2, '*_ohlc'],
   spot: [_i1, '*'],
   satsPerDollar: [_i1, 'sats_per_dollar'],
 });
 
 /**
  * @typedef {{
- *   monotonic: SeriesPattern20<Timestamp>,
- *   resolutions: SeriesPattern3<Timestamp>,
+ *   monotonic: SeriesPattern19<Timestamp>,
+ *   resolutions: SeriesPattern2<Timestamp>,
  * }} MappingsTimestamp
  */
 const _MappingsTimestamp = _s({
-  monotonic: [_i20, '*_monotonic'],
-  resolutions: [_i3, '*'],
+  monotonic: [_i19, '*_monotonic'],
+  resolutions: [_i2, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern24<TxOutIndex>,
+ *   identity: SeriesPattern23<TxOutIndex>,
  * }} TxoutIndex
  */
 const _TxoutIndex = _s({
-  identity: [_i24, '*'],
+  identity: [_i23, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern22<TxInIndex>,
+ *   identity: SeriesPattern21<TxInIndex>,
  * }} TxinIndex
  */
 const _TxinIndex = _s({
-  identity: [_i22, '*'],
+  identity: [_i21, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern21<TxIndex>,
- *   inputCount: SeriesPattern21<Count>,
- *   outputCount: SeriesPattern21<Count>,
+ *   identity: SeriesPattern20<TxIndex>,
+ *   inputCount: SeriesPattern20<Count>,
+ *   outputCount: SeriesPattern20<Count>,
  * }} MappingsTxIndex
  */
 const _MappingsTxIndex = _s({
-  identity: [_i21, '*_index'],
-  inputCount: [_i21, '*_input_count'],
-  outputCount: [_i21, '*_output_count'],
-});
-
-/**
- * @typedef {{
- *   date: SeriesPattern17<Date>,
- *   firstHeight: SeriesPattern17<Height>,
- * }} MappingsYear10
- */
-const _MappingsYear10 = _s({
-  date: [_i17, '*'],
-  firstHeight: [_i17, 'first_height'],
+  identity: [_i20, '*_index'],
+  inputCount: [_i20, '*_input_count'],
+  outputCount: [_i20, '*_output_count'],
 });
 
 /**
  * @typedef {{
  *   date: SeriesPattern16<Date>,
  *   firstHeight: SeriesPattern16<Height>,
- * }} MappingsYear1
+ * }} MappingsYear10
  */
-const _MappingsYear1 = _s({
+const _MappingsYear10 = _s({
   date: [_i16, '*'],
   firstHeight: [_i16, 'first_height'],
 });
@@ -6446,9 +6205,9 @@ const _MappingsYear1 = _s({
  * @typedef {{
  *   date: SeriesPattern15<Date>,
  *   firstHeight: SeriesPattern15<Height>,
- * }} MappingsMonth6
+ * }} MappingsYear1
  */
-const _MappingsMonth6 = _s({
+const _MappingsYear1 = _s({
   date: [_i15, '*'],
   firstHeight: [_i15, 'first_height'],
 });
@@ -6457,9 +6216,9 @@ const _MappingsMonth6 = _s({
  * @typedef {{
  *   date: SeriesPattern14<Date>,
  *   firstHeight: SeriesPattern14<Height>,
- * }} MappingsMonth3
+ * }} MappingsMonth6
  */
-const _MappingsMonth3 = _s({
+const _MappingsMonth6 = _s({
   date: [_i14, '*'],
   firstHeight: [_i14, 'first_height'],
 });
@@ -6468,9 +6227,9 @@ const _MappingsMonth3 = _s({
  * @typedef {{
  *   date: SeriesPattern13<Date>,
  *   firstHeight: SeriesPattern13<Height>,
- * }} MappingsMonth1
+ * }} MappingsMonth3
  */
-const _MappingsMonth1 = _s({
+const _MappingsMonth3 = _s({
   date: [_i13, '*'],
   firstHeight: [_i13, 'first_height'],
 });
@@ -6479,9 +6238,9 @@ const _MappingsMonth1 = _s({
  * @typedef {{
  *   date: SeriesPattern12<Date>,
  *   firstHeight: SeriesPattern12<Height>,
- * }} MappingsWeek1
+ * }} MappingsMonth1
  */
-const _MappingsWeek1 = _s({
+const _MappingsMonth1 = _s({
   date: [_i12, '*'],
   firstHeight: [_i12, 'first_height'],
 });
@@ -6490,9 +6249,9 @@ const _MappingsWeek1 = _s({
  * @typedef {{
  *   date: SeriesPattern11<Date>,
  *   firstHeight: SeriesPattern11<Height>,
- * }} MappingsDay3
+ * }} MappingsWeek1
  */
-const _MappingsDay3 = _s({
+const _MappingsWeek1 = _s({
   date: [_i11, '*'],
   firstHeight: [_i11, 'first_height'],
 });
@@ -6501,147 +6260,158 @@ const _MappingsDay3 = _s({
  * @typedef {{
  *   date: SeriesPattern10<Date>,
  *   firstHeight: SeriesPattern10<Height>,
- * }} MappingsDay1
+ * }} MappingsDay3
  */
-const _MappingsDay1 = _s({
+const _MappingsDay3 = _s({
   date: [_i10, '*'],
   firstHeight: [_i10, 'first_height'],
 });
 
 /**
  * @typedef {{
+ *   date: SeriesPattern9<Date>,
  *   firstHeight: SeriesPattern9<Height>,
- * }} MappingsHour12
+ * }} MappingsDay1
  */
-const _MappingsHour12 = _s({
-  firstHeight: [_i9, '*'],
+const _MappingsDay1 = _s({
+  date: [_i9, '*'],
+  firstHeight: [_i9, 'first_height'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern8<Height>,
- * }} MappingsHour4
+ * }} MappingsHour12
  */
-const _MappingsHour4 = _s({
+const _MappingsHour12 = _s({
   firstHeight: [_i8, '*'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern7<Height>,
- * }} MappingsHour1
+ * }} MappingsHour4
  */
-const _MappingsHour1 = _s({
+const _MappingsHour4 = _s({
   firstHeight: [_i7, '*'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern6<Height>,
- * }} MappingsMinute30
+ * }} MappingsHour1
  */
-const _MappingsMinute30 = _s({
+const _MappingsHour1 = _s({
   firstHeight: [_i6, '*'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern5<Height>,
- * }} MappingsMinute10
+ * }} MappingsMinute30
  */
-const _MappingsMinute10 = _s({
+const _MappingsMinute30 = _s({
   firstHeight: [_i5, '*'],
 });
 
 /**
  * @typedef {{
- *   firstHeight: SeriesPattern18<Height>,
+ *   firstHeight: SeriesPattern4<Height>,
+ * }} MappingsMinute10
+ */
+const _MappingsMinute10 = _s({
+  firstHeight: [_i4, '*'],
+});
+
+/**
+ * @typedef {{
+ *   firstHeight: SeriesPattern17<Height>,
  * }} MappingsHalving
  */
 const _MappingsHalving = _s({
+  firstHeight: [_i17, '*'],
+});
+
+/**
+ * @typedef {{
+ *   firstHeight: SeriesPattern18<Height>,
+ * }} MappingsEpoch
+ */
+const _MappingsEpoch = _s({
   firstHeight: [_i18, '*'],
 });
 
 /**
  * @typedef {{
- *   firstHeight: SeriesPattern19<Height>,
- * }} MappingsEpoch
- */
-const _MappingsEpoch = _s({
-  firstHeight: [_i19, '*'],
-});
-
-/**
- * @typedef {{
- *   minute10: SeriesPattern20<Minute10>,
- *   minute30: SeriesPattern20<Minute30>,
- *   hour1: SeriesPattern20<Hour1>,
- *   hour4: SeriesPattern20<Hour4>,
- *   hour12: SeriesPattern20<Hour12>,
- *   day1: SeriesPattern20<Day1>,
- *   day3: SeriesPattern20<Day3>,
- *   epoch: SeriesPattern20<Epoch>,
- *   halving: SeriesPattern20<Halving>,
- *   week1: SeriesPattern20<Week1>,
- *   month1: SeriesPattern20<Month1>,
- *   month3: SeriesPattern20<Month3>,
- *   month6: SeriesPattern20<Month6>,
- *   year1: SeriesPattern20<Year1>,
- *   year10: SeriesPattern20<Year10>,
+ *   minute10: SeriesPattern19<Minute10>,
+ *   minute30: SeriesPattern19<Minute30>,
+ *   hour1: SeriesPattern19<Hour1>,
+ *   hour4: SeriesPattern19<Hour4>,
+ *   hour12: SeriesPattern19<Hour12>,
+ *   day1: SeriesPattern19<Day1>,
+ *   day3: SeriesPattern19<Day3>,
+ *   epoch: SeriesPattern19<Epoch>,
+ *   halving: SeriesPattern19<Halving>,
+ *   week1: SeriesPattern19<Week1>,
+ *   month1: SeriesPattern19<Month1>,
+ *   month3: SeriesPattern19<Month3>,
+ *   month6: SeriesPattern19<Month6>,
+ *   year1: SeriesPattern19<Year1>,
+ *   year10: SeriesPattern19<Year10>,
  * }} MappingsHeight
  */
 const _MappingsHeight = _s({
-  minute10: [_i20, '*'],
-  minute30: [_i20, 'minute30'],
-  hour1: [_i20, 'hour1'],
-  hour4: [_i20, 'hour4'],
-  hour12: [_i20, 'hour12'],
-  day1: [_i20, 'day1'],
-  day3: [_i20, 'day3'],
-  epoch: [_i20, 'epoch'],
-  halving: [_i20, 'halving'],
-  week1: [_i20, 'week1'],
-  month1: [_i20, 'month1'],
-  month3: [_i20, 'month3'],
-  month6: [_i20, 'month6'],
-  year1: [_i20, 'year1'],
-  year10: [_i20, 'year10'],
+  minute10: [_i19, '*'],
+  minute30: [_i19, 'minute30'],
+  hour1: [_i19, 'hour1'],
+  hour4: [_i19, 'hour4'],
+  hour12: [_i19, 'hour12'],
+  day1: [_i19, 'day1'],
+  day3: [_i19, 'day3'],
+  epoch: [_i19, 'epoch'],
+  halving: [_i19, 'halving'],
+  week1: [_i19, 'week1'],
+  month1: [_i19, 'month1'],
+  month3: [_i19, 'month3'],
+  month6: [_i19, 'month6'],
+  year1: [_i19, 'year1'],
+  year10: [_i19, 'year10'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern27<OpReturnIndex>,
+ *   identity: SeriesPattern26<OpReturnIndex>,
  * }} OutputsOpReturn
  */
 const _OutputsOpReturn = _s({
-  identity: [_i27, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern37<UnknownOutputIndex>,
- * }} OutputsUnknown
- */
-const _OutputsUnknown = _s({
-  identity: [_i37, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern26<EmptyOutputIndex>,
- * }} OutputsEmpty
- */
-const _OutputsEmpty = _s({
   identity: [_i26, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern29<P2MSOutputIndex>,
+ *   identity: SeriesPattern36<UnknownOutputIndex>,
+ * }} OutputsUnknown
+ */
+const _OutputsUnknown = _s({
+  identity: [_i36, '*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern25<EmptyOutputIndex>,
+ * }} OutputsEmpty
+ */
+const _OutputsEmpty = _s({
+  identity: [_i25, '*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern28<P2MSOutputIndex>,
  * }} OutputsP2ms
  */
 const _OutputsP2ms = _s({
-  identity: [_i29, '*'],
+  identity: [_i28, '*'],
 });
 
 /**
@@ -6661,90 +6431,90 @@ const _MappingsOutputs = _s({
 
 /**
  * @typedef {{
- *   identity: SeriesPattern28<P2AAddressIndex>,
- *   address: SeriesPattern28<Address>,
+ *   identity: SeriesPattern27<P2AAddressIndex>,
+ *   address: SeriesPattern27<Address>,
  * }} MappingsAddressesP2a
  */
 const _MappingsAddressesP2a = _s({
-  identity: [_i28, '*_index'],
-  address: [_i28, '*'],
+  identity: [_i27, '*_index'],
+  address: [_i27, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern36<P2WSHAddressIndex>,
- *   address: SeriesPattern36<Address>,
+ *   identity: SeriesPattern35<P2WSHAddressIndex>,
+ *   address: SeriesPattern35<Address>,
  * }} MappingsAddressesP2wsh
  */
 const _MappingsAddressesP2wsh = _s({
-  identity: [_i36, '*_index'],
-  address: [_i36, '*'],
-});
-
-/**
- * @typedef {{
- *   identity: SeriesPattern35<P2WPKHAddressIndex>,
- *   address: SeriesPattern35<Address>,
- * }} MappingsAddressesP2wpkh
- */
-const _MappingsAddressesP2wpkh = _s({
   identity: [_i35, '*_index'],
   address: [_i35, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern34<P2TRAddressIndex>,
+ *   identity: SeriesPattern34<P2WPKHAddressIndex>,
  *   address: SeriesPattern34<Address>,
- * }} MappingsAddressesP2tr
+ * }} MappingsAddressesP2wpkh
  */
-const _MappingsAddressesP2tr = _s({
+const _MappingsAddressesP2wpkh = _s({
   identity: [_i34, '*_index'],
   address: [_i34, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern33<P2SHAddressIndex>,
+ *   identity: SeriesPattern33<P2TRAddressIndex>,
  *   address: SeriesPattern33<Address>,
- * }} MappingsAddressesP2sh
+ * }} MappingsAddressesP2tr
  */
-const _MappingsAddressesP2sh = _s({
+const _MappingsAddressesP2tr = _s({
   identity: [_i33, '*_index'],
   address: [_i33, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern32<P2PKHAddressIndex>,
+ *   identity: SeriesPattern32<P2SHAddressIndex>,
  *   address: SeriesPattern32<Address>,
- * }} MappingsAddressesP2pkh
+ * }} MappingsAddressesP2sh
  */
-const _MappingsAddressesP2pkh = _s({
+const _MappingsAddressesP2sh = _s({
   identity: [_i32, '*_index'],
   address: [_i32, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern31<P2PK65AddressIndex>,
+ *   identity: SeriesPattern31<P2PKHAddressIndex>,
  *   address: SeriesPattern31<Address>,
- * }} MappingsAddressesP2pk65
+ * }} MappingsAddressesP2pkh
  */
-const _MappingsAddressesP2pk65 = _s({
+const _MappingsAddressesP2pkh = _s({
   identity: [_i31, '*_index'],
   address: [_i31, '*'],
 });
 
 /**
  * @typedef {{
- *   identity: SeriesPattern30<P2PK33AddressIndex>,
+ *   identity: SeriesPattern30<P2PK65AddressIndex>,
  *   address: SeriesPattern30<Address>,
+ * }} MappingsAddressesP2pk65
+ */
+const _MappingsAddressesP2pk65 = _s({
+  identity: [_i30, '*_index'],
+  address: [_i30, '*'],
+});
+
+/**
+ * @typedef {{
+ *   identity: SeriesPattern29<P2PK33AddressIndex>,
+ *   address: SeriesPattern29<Address>,
  * }} MappingsAddressesP2pk33
  */
 const _MappingsAddressesP2pk33 = _s({
-  identity: [_i30, '*_index'],
-  address: [_i30, '*'],
+  identity: [_i29, '*_index'],
+  address: [_i29, '*'],
 });
 
 /**
@@ -6823,54 +6593,54 @@ const _Mappings = _s({
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<OpReturnIndex>,
- *   txIndex: SeriesPattern27<TxIndex>,
- *   protocol: SeriesPattern27<OpReturnKind>,
- *   postOpReturnBytes: SeriesPattern27<Bytes>,
+ *   firstIndex: SeriesPattern19<OpReturnIndex>,
+ *   txIndex: SeriesPattern26<TxIndex>,
+ *   protocol: SeriesPattern26<OpReturnKind>,
+ *   postOpReturnBytes: SeriesPattern26<Bytes>,
  * }} IndexerOpReturn
  */
 const _IndexerOpReturn = _s({
-  firstIndex: [_i20, 'first_*_index'],
-  txIndex: [_i27, '*_tx_index'],
-  protocol: [_i27, '*_protocol'],
-  postOpReturnBytes: [_i27, '*_post_op_return_bytes'],
+  firstIndex: [_i19, 'first_*_index'],
+  txIndex: [_i26, '*_tx_index'],
+  protocol: [_i26, '*_protocol'],
+  postOpReturnBytes: [_i26, '*_post_op_return_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<UnknownOutputIndex>,
- *   txIndex: SeriesPattern37<TxIndex>,
- *   legacySigops: SeriesPattern37<SigOps>,
+ *   firstIndex: SeriesPattern19<UnknownOutputIndex>,
+ *   txIndex: SeriesPattern36<TxIndex>,
+ *   legacySigops: SeriesPattern36<SigOps>,
  * }} ScriptsUnknown
  */
 const _ScriptsUnknown = _s({
-  firstIndex: [_i20, 'first_*_output_index'],
-  txIndex: [_i37, '*_output_tx_index'],
-  legacySigops: [_i37, '*_legacy_sigops'],
+  firstIndex: [_i19, 'first_*_output_index'],
+  txIndex: [_i36, '*_output_tx_index'],
+  legacySigops: [_i36, '*_legacy_sigops'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2MSOutputIndex>,
- *   txIndex: SeriesPattern29<TxIndex>,
- *   legacySigops: SeriesPattern29<SigOps>,
+ *   firstIndex: SeriesPattern19<P2MSOutputIndex>,
+ *   txIndex: SeriesPattern28<TxIndex>,
+ *   legacySigops: SeriesPattern28<SigOps>,
  * }} ScriptsP2ms
  */
 const _ScriptsP2ms = _s({
-  firstIndex: [_i20, 'first_*_output_index'],
-  txIndex: [_i29, '*_output_tx_index'],
-  legacySigops: [_i29, '*_legacy_sigops'],
+  firstIndex: [_i19, 'first_*_output_index'],
+  txIndex: [_i28, '*_output_tx_index'],
+  legacySigops: [_i28, '*_legacy_sigops'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<EmptyOutputIndex>,
- *   txIndex: SeriesPattern26<TxIndex>,
+ *   firstIndex: SeriesPattern19<EmptyOutputIndex>,
+ *   txIndex: SeriesPattern25<TxIndex>,
  * }} ScriptsEmpty
  */
 const _ScriptsEmpty = _s({
-  firstIndex: [_i20, 'first_*_index'],
-  txIndex: [_i26, '*_tx_index'],
+  firstIndex: [_i19, 'first_*_index'],
+  txIndex: [_i25, '*_tx_index'],
 });
 
 /**
@@ -6888,90 +6658,90 @@ const _Scripts = _s({
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2AAddressIndex>,
- *   bytes: SeriesPattern28<P2ABytes>,
+ *   firstIndex: SeriesPattern19<P2AAddressIndex>,
+ *   bytes: SeriesPattern27<P2ABytes>,
  * }} IndexerAddressesP2a
  */
 const _IndexerAddressesP2a = _s({
-  firstIndex: [_i20, 'first_*_address_index'],
-  bytes: [_i28, '*_bytes'],
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i27, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2TRAddressIndex>,
- *   bytes: SeriesPattern34<P2TRBytes>,
+ *   firstIndex: SeriesPattern19<P2TRAddressIndex>,
+ *   bytes: SeriesPattern33<P2TRBytes>,
  * }} IndexerAddressesP2tr
  */
 const _IndexerAddressesP2tr = _s({
-  firstIndex: [_i20, 'first_*_address_index'],
-  bytes: [_i34, '*_bytes'],
-});
-
-/**
- * @typedef {{
- *   firstIndex: SeriesPattern20<P2WSHAddressIndex>,
- *   bytes: SeriesPattern36<P2WSHBytes>,
- * }} IndexerAddressesP2wsh
- */
-const _IndexerAddressesP2wsh = _s({
-  firstIndex: [_i20, 'first_*_address_index'],
-  bytes: [_i36, '*_bytes'],
-});
-
-/**
- * @typedef {{
- *   firstIndex: SeriesPattern20<P2WPKHAddressIndex>,
- *   bytes: SeriesPattern35<P2WPKHBytes>,
- * }} IndexerAddressesP2wpkh
- */
-const _IndexerAddressesP2wpkh = _s({
-  firstIndex: [_i20, 'first_*_address_index'],
-  bytes: [_i35, '*_bytes'],
-});
-
-/**
- * @typedef {{
- *   firstIndex: SeriesPattern20<P2SHAddressIndex>,
- *   bytes: SeriesPattern33<P2SHBytes>,
- * }} IndexerAddressesP2sh
- */
-const _IndexerAddressesP2sh = _s({
-  firstIndex: [_i20, 'first_*_address_index'],
+  firstIndex: [_i19, 'first_*_address_index'],
   bytes: [_i33, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2PKHAddressIndex>,
- *   bytes: SeriesPattern32<P2PKHBytes>,
- * }} IndexerAddressesP2pkh
+ *   firstIndex: SeriesPattern19<P2WSHAddressIndex>,
+ *   bytes: SeriesPattern35<P2WSHBytes>,
+ * }} IndexerAddressesP2wsh
  */
-const _IndexerAddressesP2pkh = _s({
-  firstIndex: [_i20, 'first_*_address_index'],
+const _IndexerAddressesP2wsh = _s({
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i35, '*_bytes'],
+});
+
+/**
+ * @typedef {{
+ *   firstIndex: SeriesPattern19<P2WPKHAddressIndex>,
+ *   bytes: SeriesPattern34<P2WPKHBytes>,
+ * }} IndexerAddressesP2wpkh
+ */
+const _IndexerAddressesP2wpkh = _s({
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i34, '*_bytes'],
+});
+
+/**
+ * @typedef {{
+ *   firstIndex: SeriesPattern19<P2SHAddressIndex>,
+ *   bytes: SeriesPattern32<P2SHBytes>,
+ * }} IndexerAddressesP2sh
+ */
+const _IndexerAddressesP2sh = _s({
+  firstIndex: [_i19, 'first_*_address_index'],
   bytes: [_i32, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2PK33AddressIndex>,
- *   bytes: SeriesPattern30<P2PK33Bytes>,
- * }} IndexerAddressesP2pk33
+ *   firstIndex: SeriesPattern19<P2PKHAddressIndex>,
+ *   bytes: SeriesPattern31<P2PKHBytes>,
+ * }} IndexerAddressesP2pkh
  */
-const _IndexerAddressesP2pk33 = _s({
-  firstIndex: [_i20, 'first_*_address_index'],
-  bytes: [_i30, '*_bytes'],
+const _IndexerAddressesP2pkh = _s({
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i31, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern20<P2PK65AddressIndex>,
- *   bytes: SeriesPattern31<P2PK65Bytes>,
+ *   firstIndex: SeriesPattern19<P2PK33AddressIndex>,
+ *   bytes: SeriesPattern29<P2PK33Bytes>,
+ * }} IndexerAddressesP2pk33
+ */
+const _IndexerAddressesP2pk33 = _s({
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i29, '*_bytes'],
+});
+
+/**
+ * @typedef {{
+ *   firstIndex: SeriesPattern19<P2PK65AddressIndex>,
+ *   bytes: SeriesPattern30<P2PK65Bytes>,
  * }} IndexerAddressesP2pk65
  */
 const _IndexerAddressesP2pk65 = _s({
-  firstIndex: [_i20, 'first_*_address_index'],
-  bytes: [_i31, '*_bytes'],
+  firstIndex: [_i19, 'first_*_address_index'],
+  bytes: [_i30, '*_bytes'],
 });
 
 /**
@@ -6999,47 +6769,47 @@ const _IndexerAddresses = _s({
 
 /**
  * @typedef {{
- *   firstTxoutIndex: SeriesPattern20<TxOutIndex>,
- *   value: SeriesPattern24<Sats>,
- *   outputType: SeriesPattern24<OutputType>,
- *   typeIndex: SeriesPattern24<TypeIndex>,
+ *   firstTxoutIndex: SeriesPattern19<TxOutIndex>,
+ *   value: SeriesPattern23<Sats>,
+ *   outputType: SeriesPattern23<OutputType>,
+ *   typeIndex: SeriesPattern23<TypeIndex>,
  * }} IndexerOutputs
  */
 const _IndexerOutputs = _s({
-  firstTxoutIndex: [_i20, 'first_txout_index'],
-  value: [_i24, '*_value'],
-  outputType: [_i24, '*_type'],
-  typeIndex: [_i24, 'type_index'],
+  firstTxoutIndex: [_i19, 'first_txout_index'],
+  value: [_i23, '*_value'],
+  outputType: [_i23, '*_type'],
+  typeIndex: [_i23, 'type_index'],
 });
 
 /**
  * @typedef {{
- *   firstTxinIndex: SeriesPattern20<TxInIndex>,
- *   outpoint: SeriesPattern23<OutPoint>,
- *   txoutIndex: SeriesPattern23<TxOutIndex>,
- *   txIndex: SeriesPattern22<TxIndex>,
- *   outputType: SeriesPattern22<OutputType>,
- *   typeIndex: SeriesPattern23<TypeIndex>,
- *   value: SeriesPattern22<Sats>,
+ *   firstTxinIndex: SeriesPattern19<TxInIndex>,
+ *   outpoint: SeriesPattern22<OutPoint>,
+ *   txoutIndex: SeriesPattern22<TxOutIndex>,
+ *   txIndex: SeriesPattern21<TxIndex>,
+ *   outputType: SeriesPattern21<OutputType>,
+ *   typeIndex: SeriesPattern22<TypeIndex>,
+ *   value: SeriesPattern21<Sats>,
  * }} IndexerInputs
  */
 const _IndexerInputs = _s({
-  firstTxinIndex: [_i20, 'first_txin_*'],
-  outpoint: [_i23, 'outpoint'],
-  txoutIndex: [_i23, 'spent_txout_*'],
-  txIndex: [_i22, 'input_tx_*'],
-  outputType: [_i22, 'output_type'],
-  typeIndex: [_i23, 'type_*'],
-  value: [_i22, 'input_value'],
+  firstTxinIndex: [_i19, 'first_txin_*'],
+  outpoint: [_i22, 'outpoint'],
+  txoutIndex: [_i22, 'spent_txout_*'],
+  txIndex: [_i21, 'input_tx_*'],
+  outputType: [_i21, 'output_type'],
+  typeIndex: [_i22, 'type_*'],
+  value: [_i21, 'input_value'],
 });
 
 /**
  * @typedef {{
- *   block: SeriesPattern20<Count>,
+ *   block: SeriesPattern19<Count>,
  * }} OneInput
  */
 const _OneInput = _s({
-  block: [_i20, '*'],
+  block: [_i19, '*'],
 });
 
 /**
@@ -7061,24 +6831,24 @@ const _Versions = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   flag: SeriesPattern21<Boolean>,
- *   block: SeriesPattern20<Count>,
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  * }} IndexerTransactionsFeaturesExplicitlyRbf
  */
 const _IndexerTransactionsFeaturesExplicitlyRbf = _s({
-  flag: [_i21, 'is_*'],
-  block: [_i20, '*_tx_count'],
+  flag: [_i20, 'is_*'],
+  block: [_i19, '*_tx_count'],
 });
 
 /**
  * @typedef {{
- *   flag: SeriesPattern21<Boolean>,
- *   block: SeriesPattern20<Count>,
+ *   flag: SeriesPattern20<Boolean>,
+ *   block: SeriesPattern19<Count>,
  * }} FeaturesEmpty
  */
 const _FeaturesEmpty = _s({
-  flag: [_i21, 'has_*'],
-  block: [_i20, '*_tx_count'],
+  flag: [_i20, 'has_*'],
+  block: [_i19, '*_tx_count'],
 });
 
 /**
@@ -7220,54 +6990,54 @@ const _IndexerTransactionsFeatures = _s({
 
 /**
  * @typedef {{
- *   firstTxIndex: SeriesPattern20<TxIndex>,
- *   txid: SeriesPattern21<Txid>,
- *   version: SeriesPattern21<TxVersion>,
- *   locktime: SeriesPattern21<RawLockTime>,
- *   weight: SeriesPattern21<Weight>,
- *   size: SeriesPattern21<Bytes>,
- *   sigopCost: SeriesPattern21<SigOps>,
- *   firstTxinIndex: SeriesPattern21<TxInIndex>,
- *   firstTxoutIndex: SeriesPattern21<TxOutIndex>,
+ *   firstTxIndex: SeriesPattern19<TxIndex>,
+ *   txid: SeriesPattern20<Txid>,
+ *   version: SeriesPattern20<TxVersion>,
+ *   locktime: SeriesPattern20<RawLockTime>,
+ *   weight: SeriesPattern20<Weight>,
+ *   size: SeriesPattern20<Bytes>,
+ *   sigopCost: SeriesPattern20<SigOps>,
+ *   firstTxinIndex: SeriesPattern20<TxInIndex>,
+ *   firstTxoutIndex: SeriesPattern20<TxOutIndex>,
  *   features: IndexerTransactionsFeatures,
  *   versions: Versions<OneInput>,
  * }} IndexerTransactions
  */
 const _IndexerTransactions = _s({
-  firstTxIndex: [_i20, 'first_*_index'],
-  txid: [_i21, 'txid'],
-  version: [_i21, '*_version'],
-  locktime: [_i21, '*_locktime'],
-  weight: [_i21, '*_weight'],
-  size: [_i21, '*_size'],
-  sigopCost: [_i21, '*_sigop_cost'],
-  firstTxinIndex: [_i21, 'first_txin_index'],
-  firstTxoutIndex: [_i21, 'first_txout_index'],
+  firstTxIndex: [_i19, 'first_*_index'],
+  txid: [_i20, 'txid'],
+  version: [_i20, '*_version'],
+  locktime: [_i20, '*_locktime'],
+  weight: [_i20, '*_weight'],
+  size: [_i20, '*_size'],
+  sigopCost: [_i20, '*_sigop_cost'],
+  firstTxinIndex: [_i20, 'first_txin_index'],
+  firstTxoutIndex: [_i20, 'first_txout_index'],
   features: [_IndexerTransactionsFeatures, 'sighash'],
   versions: [(c, b) => _Versions(c, b, _OneInput), '*_count'],
 });
 
 /**
  * @typedef {{
- *   blockhash: SeriesPattern20<BlockHash>,
- *   coinbaseTag: SeriesPattern20<CoinbaseTag>,
- *   timestamp: SeriesPattern20<Timestamp>,
- *   size: SeriesPattern20<Bytes>,
- *   weight: SeriesPattern20<Weight>,
- *   segwitTxCount: SeriesPattern20<Count>,
- *   segwitSize: SeriesPattern20<Bytes>,
- *   segwitWeight: SeriesPattern20<Weight>,
+ *   blockhash: SeriesPattern19<BlockHash>,
+ *   coinbaseTag: SeriesPattern19<CoinbaseTag>,
+ *   timestamp: SeriesPattern19<Timestamp>,
+ *   size: SeriesPattern19<Bytes>,
+ *   weight: SeriesPattern19<Weight>,
+ *   segwitTxCount: SeriesPattern19<Count>,
+ *   segwitSize: SeriesPattern19<Bytes>,
+ *   segwitWeight: SeriesPattern19<Weight>,
  * }} IndexerBlocks
  */
 const _IndexerBlocks = _s({
-  blockhash: [_i20, 'blockhash'],
-  coinbaseTag: [_i20, 'coinbase_tag'],
-  timestamp: [_i20, 'timestamp'],
-  size: [_i20, 'block_size'],
-  weight: [_i20, 'block_weight'],
-  segwitTxCount: [_i20, '*_tx_count'],
-  segwitSize: [_i20, '*_size'],
-  segwitWeight: [_i20, '*_weight'],
+  blockhash: [_i19, 'blockhash'],
+  coinbaseTag: [_i19, 'coinbase_tag'],
+  timestamp: [_i19, 'timestamp'],
+  size: [_i19, 'block_size'],
+  weight: [_i19, 'block_weight'],
+  segwitTxCount: [_i19, '*_tx_count'],
+  segwitSize: [_i19, '*_size'],
+  segwitWeight: [_i19, '*_weight'],
 });
 
 /**
@@ -7312,11 +7082,9 @@ const _Indexer = _s({
  *   entry: Entry,
  *   profitability: Profitability,
  *   supply: Supply,
- *   indicators: Indicators,
  *   cointime: Cointime,
  *   coinflow: Coinflow,
  *   bedrock: Bedrock,
- *   capitalSentiment: CapitalSentiment,
  *   rarityMeter: RarityMeter,
  * }} SeriesTree
  */
@@ -7340,11 +7108,9 @@ const _SeriesTree = _s({
   entry: [_Entry, 'veteran'],
   profitability: [_Profitability, 'sth'],
   supply: [_Supply, 'circulating_supply'],
-  indicators: [_Indicators, 'destroyed_supply_adjusted'],
   cointime: [_Cointime, 'utxos'],
   coinflow: [_Coinflow, 'utxos'],
   bedrock: [_Bedrock, 'bedrock'],
-  capitalSentiment: [_CapitalSentiment, 'capital_sentiment'],
   rarityMeter: [_RarityMeter, 'rarity_meter'],
 });
 

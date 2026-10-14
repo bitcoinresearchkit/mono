@@ -17,13 +17,11 @@ bitview_plugin_addresses = { workspace = true }
 bitview_plugin_age = { workspace = true }
 bitview_plugin_bedrock = { workspace = true }
 bitview_plugin_blocks = { workspace = true }
-bitview_plugin_capital_sentiment = { workspace = true }
 bitview_plugin_coinflow = { workspace = true }
 bitview_plugin_cointime = { workspace = true }
 bitview_plugin_entry = { workspace = true }
 bitview_plugin_holders = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
-bitview_plugin_indicators = { workspace = true }
 bitview_plugin_inputs = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_market = { workspace = true }

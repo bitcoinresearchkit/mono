@@ -31,7 +31,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     live: M::WriteOnly<Option<LiveState<UTXOStates>>>,
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     #[traversable(flatten)]
-    pub cohorts: CohortMetrics<M>,
+    cohorts: CohortMetrics<M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

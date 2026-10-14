@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{FiatPerBlock, LazyFiatPerBlock, LazyLookbackVec, PercentPerBlock, Price};
+use bitview_vecs::{LazyFiatPerBlock, LazyLookbackVec, Price};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableCloneableVec};
@@ -29,13 +29,11 @@ impl Vecs {
         Ok(Vecs {
             min: PriceMinMaxVecs {
                 _1w: Price::import(db, "price_min_1w", version + v1, mappings)?,
-                _2w: Price::import(db, "price_min_2w", version + v1, mappings)?,
                 _1m: Price::import(db, "price_min_1m", version + v1, mappings)?,
                 _1y: Price::import(db, "price_min_1y", version + v1, mappings)?,
             },
             max: PriceMinMaxVecs {
                 _1w: Price::import(db, "price_max_1w", version + v1, mappings)?,
-                _2w: Price::import(db, "price_max_2w", version + v1, mappings)?,
                 _1m: Price::import(db, "price_max_1m", version + v1, mappings)?,
                 _1y: Price::import(db, "price_max_1y", version + v1, mappings)?,
             },
@@ -45,18 +43,6 @@ impl Vecs {
                 &true_range_source,
                 mappings,
             ),
-            true_range_sum_2w: FiatPerBlock::import(
-                db,
-                "price_true_range_sum_2w",
-                version + Version::TWO,
-                mappings,
-            )?,
-            choppiness_index_2w: PercentPerBlock::import(
-                db,
-                "price_choppiness_index_2w",
-                version + v1,
-                mappings,
-            )?,
         })
     }
 }

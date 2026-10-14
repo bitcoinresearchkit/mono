@@ -7,13 +7,11 @@ use bitview_plugin_addresses::{ID as ADDRESSES_ID, Vecs as Addresses};
 use bitview_plugin_age::{ID as AGE_ID, Vecs as Age};
 use bitview_plugin_bedrock::{ID as BEDROCK_ID, Vecs as Bedrock};
 use bitview_plugin_blocks::{ID as BLOCKS_ID, Vecs as Blocks};
-use bitview_plugin_capital_sentiment::{ID as CAPITAL_SENTIMENT_ID, Vecs as CapitalSentiment};
 use bitview_plugin_coinflow::{ID as COINFLOW_ID, Vecs as Coinflow};
 use bitview_plugin_cointime::{ID as COINTIME_ID, Vecs as Cointime};
 use bitview_plugin_entry::{ID as ENTRY_ID, Vecs as Entry};
 use bitview_plugin_holders::{ID as HOLDERS_ID, Vecs as Holders};
 use bitview_plugin_indexer::{ID as INDEXER_ID, Indexer};
-use bitview_plugin_indicators::{ID as INDICATORS_ID, Vecs as Indicators};
 use bitview_plugin_inputs::{ID as INPUTS_ID, Vecs as Inputs};
 use bitview_plugin_mappings::{ID as MAPPINGS_ID, Vecs as Mappings};
 use bitview_plugin_market::{ID as MARKET_ID, Vecs as Market};
@@ -224,7 +222,7 @@ impl DefaultPlugins {
         })?;
         let all_chain = holders.all_chain_sources();
 
-        let (cointime, coinflow, bedrock, capital_sentiment, indicators, entry, profitability) =
+        let (cointime, coinflow, bedrock, entry, profitability) =
             thread::scope(|scope| -> Result<_> {
                 let cointime = big_thread().spawn_scoped(scope, || -> Result<_> {
                     timed(Phase::Import, COINTIME_ID, || {
@@ -251,11 +249,6 @@ impl DefaultPlugins {
                         Ok(Box::new(Bedrock::import(context, &mappings)?))
                     })
                 })?;
-                let capital_sentiment = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, CAPITAL_SENTIMENT_ID, || {
-                        Ok(Box::new(CapitalSentiment::import(context, &mappings)?))
-                    })
-                })?;
                 let entry = big_thread().spawn_scoped(scope, || -> Result<_> {
                     timed(Phase::Import, ENTRY_ID, || {
                         Ok(Box::new(Entry::import(
@@ -276,22 +269,10 @@ impl DefaultPlugins {
                         )?))
                     })
                 })?;
-                let indicators = timed(Phase::Import, INDICATORS_ID, || -> Result<_> {
-                    Ok(Box::new(Indicators::import(
-                        context,
-                        &mappings,
-                        &all_chain,
-                        &mining,
-                        &holders,
-                        &transactions,
-                    )?))
-                })?;
                 Ok((
                     cointime.join().unwrap()?,
                     coinflow.join().unwrap()?,
                     bedrock.join().unwrap()?,
-                    capital_sentiment.join().unwrap()?,
-                    indicators,
                     entry.join().unwrap()?,
                     profitability.join().unwrap()?,
                 ))
@@ -327,7 +308,6 @@ impl DefaultPlugins {
             blocks,
             mining,
             transactions,
-            indicators,
             market,
             age,
             holders,
@@ -340,7 +320,6 @@ impl DefaultPlugins {
             cointime,
             coinflow,
             bedrock,
-            capital_sentiment,
             rarity_meter,
             mappings,
             inputs,

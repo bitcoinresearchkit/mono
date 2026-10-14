@@ -44,8 +44,7 @@ has to be deleted by hand.
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (none is left):
   `Boolean`, `Score`, `Rank`, `Count`/`CountSigned`, `Bytes`, `VSize`, `Weight`, `SigOps`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
   `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days/blocks/years, `Days`/`Years`,
-  `Hashrate`, `Difficulty`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. MACD
-  series are `Dollars`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
+  `Hashrate`, `Difficulty`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
 - Every series has its quantity's type: per-block values and their statistics are `Count`, `Bytes`, `Weight` and
   `SigOps` like their sums (the indexer's narrow storage forms `Count16`, `Bytes32`, `Weight32`, `SigOps32` and the
   5-byte indexes stay internal, published through views), so block size and weight, transaction, input and output
@@ -58,12 +57,10 @@ has to be deleted by hand.
   `address_type` field and path parameter (was `addr_type`), and the error codes `invalid_address` and
   `unknown_address` (were `invalid_addr`, `unknown_addr`). The indexer reindexes (version 40)
 - Undefined values are null instead of a made-up number: shares, ratios and relative changes over a zero denominator
-  or base (supply, capital and fee shares, NUPL, NVT, thermo-cap multiple, RHODL, Puell, velocity, delta rates from a
-  zero start, price returns and drawdown before a price exists), cost basis and realized or capitalized prices of
-  empty cohorts, SOPR and the realized profit-to-loss ratio without value destroyed (were 1), RSI and stochastic RSI
-  without movement (were 50% and 0), choppiness, dormancy, supply-adjusted CDD/CYD, seller exhaustion, Gini and the
-  coinflow spending rate of empty ranges (all were 0). Rolling averages and standard deviations count an undefined
-  value as zero
+  or base (supply, capital and fee shares, NUPL, velocity, delta rates from a zero start, price returns and drawdown
+  before a price exists), cost basis and realized or capitalized prices of empty cohorts, SOPR and the realized
+  profit-to-loss ratio without value destroyed (were 1), dormancy and the coinflow spending rate of empty ranges (were
+  0). Rolling averages count an undefined value as zero
 - Typed values as nullable exactly where the JSON can hold `null`: a period without blocks (date resolutions; height,
   halving and epoch never) or a type's own undefined value (non-finite floats and the `FeeRate` sentinel); CSV
   writes undefined values as empty cells
@@ -72,10 +69,10 @@ has to be deleted by hand.
 - One unit per quantity: the `_cents` copies of USD series and the `_sats` copies of BTC amounts are gone from the API
   and the clients (they stay the exact storage; the USD and BTC series print the same values exactly); the true range is
   in USD too (was cents). Unitless numbers have one form, the one they are read in: shares, rates and changes in
-  percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, NVT, liveliness, Gini, sell-side risk, every `X_to_Y`) as a ratio;
-  `ppm`/`bps` stay internal. Return deviations and volatility, the Cointime and Coinflow in-loss shares and the Bedrock
-  loss thresholds (which drop their `_ratio` suffix) are in percent (were decimals); Gini and sell-side risk keep only
-  their ratio, and the rarity meter's seller-exhaustion thresholds follow sell-side risk into a ratio (were percent). A
+  percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, liveliness, sell-side risk, every `X_to_Y`) as a ratio;
+  `ppm` stays internal. The Cointime and Coinflow in-loss shares and the Bedrock loss thresholds (which drop their
+  `_ratio` suffix) are in percent (were decimals); sell-side risk is a ratio (was percent: same ids, 100 times
+  smaller), and the rarity meter's seller-exhaustion thresholds follow sell-side risk into a ratio (were percent). A
   share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`. A node left with one unit is
   the series itself: `price.spot`, `price.close`, `price.ohlc`, realized caps and prices (were their `.usd`
   child), shares (were `.percent`), BTC changes over a window (were `.btc`). Prices in sats per USD (`*_price_sats` and
@@ -106,13 +103,21 @@ has to be deleted by hand.
   under `avg` (were the window keys directly under the series)
 - A series with derived siblings (a price beside its `ratio`, a USD value beside its `delta` or `share`) sits under
   `block` (was `usd`): `market.sma.200d.block`, `holders.sth.capital.in_profit.block`, `supply.market_cap.block`
-- Market: moving averages, RSI, MACD and Pi Cycle sit at the root (`market.sma.200d`, `market.rsi.1w`; were under
-  `moving_average` and `technical`); the 24-hour return's statistics are `market.returns.daily.{avg, sd}.<window>` (were
-  `sd_24h.<window>.{sma, sd}`; ids `price_return_24h_avg_*`, were `_sma_*`); the all-time high's years copies are gone
-  (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio. RSI is
-  `market.rsi.<window>.block` (id `rsi_<window>`) beside `stochastic.{k, d}` (ids `stochastic_rsi_k_<window>`, were
-  `rsi_stoch_k_<window>`); MACD's fast and slow EMAs, intermediates of its line, leave the tree; lookback prices are
-  `price_<window>_ago` (were `price_past_<window>`)
+- Market: moving averages sit at the root (`market.sma.200d`, `market.ema.200d`; were under `moving_average`), price
+  returns at `market.returns.<window>` (were under `periods`; ids `price_return_<window>` unchanged); the all-time high's years copies are
+  gone (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio
+- Market indicators that are standard chart formulas over published prices are gone (Bitview Studio rebuilds them):
+  RSI and stochastic RSI (which smoothed overlapping 24-hour returns, not bar closes), MACD with its 12- and 26-day
+  EMAs, volatility, the 24-hour return's window averages and deviations, CAGR, the lookback prices
+  (`price_past_<window>`), Pi Cycle with the 111- and 350-day SMAs and the doubled 350-day SMA, the 200-day SMA's 2.4
+  and 0.8 bands, the choppiness index, the two-week true-range sum and the two-week price range. The true range and
+  the 1-week, 1-month and 1-year price ranges stay
+- The `indicators` plugin is gone: Puell Multiple, NVT, Thermocap Multiple, Gini, Stock-to-Flow, RHODL Ratio,
+  Dormancy Flow, Seller Exhaustion Constant and the supply-adjusted coin days destroyed, coin years destroyed and
+  dormancy are short formulas over published series (Bitview Studio rebuilds them). RHODL lacked its market-age
+  weighting and Dormancy Flow was the reciprocal of supply-adjusted dormancy, not Puell's annualized definition
+- The `capital_sentiment` plugin is gone: its phases, score and long/short strategy are an opinionated reading of
+  spot against the published all, short- and long-term capitalized prices and the 1-year SMA
 - Mining: hash price and hash value are per PH/s only, as `mining.hashrate.{price, value}.{block, atl, rebound}` (were
   per TH/s and PH/s with `*_min`); `fees.share`/`subsidy.share` (were `dominance`); output volume leaves the tree (the
   transaction volume minus fees, not a reward; the block endpoints still report it); unclaimed rewards gain window
@@ -162,8 +167,7 @@ has to be deleted by hand.
 - Address balance bands' address count sits at `funded` like the root's and types' (was `address_count`; ids
   unchanged); the per-transaction vsize distributions (`tx_vsize_median`, ...) have every index like their weight and
   fee siblings; prices are `price.{open, high, low, close}` (were under `price.split`)
-- Gone, as duplicates or one division of published series: `market.returns.daily.sd` (`price_return_24h_sd_<W>` is
-  `volatility` divided by the square root of the window's days) and the average UTXO amount (`avg_utxo_amount*`, `<type>_avg_utxo_amount*`: supply over UTXO count)
+- Gone, as duplicates or one division of published series: the average UTXO amount (`avg_utxo_amount*`, `<type>_avg_utxo_amount*`: supply over UTXO count)
 - Descriptions: per-block values no longer claim time-period indexes they don't have; the holders' realized,
   unrealized, activity and output series say what they measure (coin years destroyed: trailing 365-day coin days
   destroyed in coin-years); undefined values are described as null; absolute deltas no longer mention a relative
@@ -186,10 +190,8 @@ has to be deleted by hand.
 - Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
   `mappings.addr.<type>.{identity, addr}`, ids `<type>_addr`); the P2MS, empty, unknown and OP_RETURN output indexes
   at `mappings.outputs.<type>.identity`
-- Supply and indicators: `supply.burned` is a flow with window sums, ids `burned`, `burned_cumulative`,
-  `burned_sum_<window>` (were `unspendable_supply`, `unspendable_supply_cumulative`), and `outputs.op_return_value`
-  gains window sums. `coindays_destroyed_supply_adjusted`, `coinyears_destroyed_supply_adjusted` and
-  `indicators.dormancy.supply_adjusted` (were `_adj`); `seller_exhaustion_constant` (was `seller_exhaustion`)
+- Supply: `supply.burned` is a flow with window sums, ids `burned`, `burned_cumulative`, `burned_sum_<window>` (were
+  `unspendable_supply`, `unspendable_supply_cumulative`), and `outputs.op_return_value` gains window sums
 - Transaction, input and output counts have one shape: `transactions.count`, `inputs.count` and `outputs.count` hold
   `block`, `cumulative` and the window statistics directly (were under `total` and `rolling`, with the block's count at
   `inputs.count.sum` and `outputs.count.total.sum`). The block counts are ids `input_count` and `output_count` (were `input_count_sum`,
@@ -404,6 +406,8 @@ has to be deleted by hand.
   per-record data (`transactions.raw`, `inputs.raw`, `addrs.raw`, `scripts.raw`, block hashes, sizes, timestamps...)
   is `indexer.*`. `difficulty` stays one series at `blocks.difficulty.block`
 - Removed the `constants` plugin and its 18 `constant_*` series: chart reference lines are drawn client-side
+- Removed the `bitview_plugin_indicators` and `bitview_plugin_capital_sentiment` crates with their `HasIndicators` and
+  `HasCapitalSentiment` capabilities and `brk_types::CapitalSentimentPhase`
 - Removed `brk_fetcher`, `brk_iterator` and the `brk` umbrella crate; depend on `brk_reader`, `brk_rpc` and
   `brk_types` directly
 - Moved Bitview's index, value and state types from `brk_types` to the new `bitview_primitives` crate (calendar and
@@ -436,8 +440,7 @@ has to be deleted by hand.
 - `ComputePluginSet::commit(complete)` is required (a composition that left it out never published new data);
   `complete` is false after a bootstrap `Reimport`
 - `#[plugin_set(has = ...)]` derives capability impls. Removed the unused `HasSupply`, `HasConstants`,
-  `HasIndicators`, `HasOpReturn`, `HasRarityMeter`, `HasCapitalSentiment`, `HasMarket`, `HasDistributionUtxos` and
-  `HasBedrock` (with `bitview_query`'s `SupportsBedrock`);
+  `HasOpReturn`, `HasRarityMeter`, `HasMarket`, `HasDistributionUtxos` and `HasBedrock` (with `bitview_query`'s `SupportsBedrock`);
   `Indexer::indexed_height` is gone; `Lengths` comes only from `bitview_primitives`
 - The pipeline-wide `Publication` gate is gone (`bitview_plugin::Publication`, `ComputePluginSet::publication`,
   `Query::reads_under`): readers pin the indexer's published state instead (`Indexer::pin`, which never waits;
@@ -487,10 +490,10 @@ has to be deleted by hand.
   `Error::DifferentValueSize` is new; `WrongEndian`, `TryLockError`, `SystemTimeError`, `FailedKeyTryIntoUsize` and
   `VersionCannotBeZero` are gone. `compute_sum_from_indexes` and `compute_transform2_batched` are removed, and
   `AnyStoredVec::any_validate_computed_version_or_reset` returns whether the computed version changed
-- Rolling statistics (`compute_rolling_sum/average/sd/ema/rma`, `compute_all_time_high/low`) moved from `EagerVec` to
-  the `bitview_compute::ComputeRollingStats` extension trait (`EagerVec::compute_init` replaces
-  `repeat_until_complete` and is public for such extensions);
-  `compute_expanding_sd` and `compute_sma` are removed
+- Rolling statistics (`compute_rolling_sum/average/ema`, `compute_all_time_high/low`) moved from `EagerVec` to the
+  `bitview_compute::ComputeRollingStats` extension trait (`EagerVec::compute_init` replaces `repeat_until_complete`
+  and is public for such extensions); `compute_rolling_sd`, `compute_rolling_rma`, `compute_expanding_sd` and
+  `compute_sma` are removed
 - `bitview_transforms`: `Convert` replaces `SatsToBitcoin`, `SatsSignedToBitcoin`, `CentsUnsignedToDollars`,
   `CentsSignedToDollars` and `OhlcCentsToDollars`; `Quotient<P>` the `Ratio{Cents,Sats,Count,Bytes,CentsSignedCents}`
   transforms; `RelativeChange<P>` `RatioDiff{Cents,Dollars}`. `bitview_vecs`: `Percent*` types hold the fixed-point
@@ -501,8 +504,8 @@ has to be deleted by hand.
   `LazyValueDerivedResolutions` and `SpotValueSource` are gone. Flow types (`PerBlockCumulativeRolling`,
   `LazyPerBlockCumulativeRolling`, value and fiat cumulatives) expose a window `sum` field (no `average`, no `rolling`
   field or `Deref` to rolling totals); `RollingAmountTotals`, `LazyFiatPerBlockCumulativeRolling` and
-  `LazyRollingAvgFiatFromHeight` are gone (`ValuePerBlockFull`, a distribution, keeps its `avg`). `RollingAvgSd`
-  replaces `StdDevPerBlock` (mean and standard deviation per window, stat-first).
+  `LazyRollingAvgFiatFromHeight` are gone (`ValuePerBlockFull`, a distribution, keeps its `avg`). `StdDevPerBlock`
+  is gone.
   `LazySpotValuePerBlock::from_sats_source_named` names the USD series. `Halving::subsidy` gives the scheduled subsidy;
   `bitview_plugin_blocks::ONE_TERA_HASH` and `ThsToPhs` are gone. `PercentileId::{Pct5, Median}` (were `Pct05`/`Pct50`)
   with `suffix()`; `RarityPercentileId::Median` (was `Pct50`), `price_suffix` is gone. `FiatType`/`AmountType` lose
@@ -672,20 +675,16 @@ has to be deleted by hand.
 
 - Exponential averages store their exact state. At the tip every block resumed from the stored output, and the price
   EMAs truncated to whole cents: the 200-day EMA settled about $72 low and the 4-year one about $500, and nodes
-  differed by run history. MACD line and histogram are whole cents; RSI averages are f64
-- Rolling averages and standard deviations depend on a row's position alone, not on how updates batched the blocks
-  (hash-rate SMAs, stochastic RSI and the price-return volatility chain to seller exhaustion): every 1,024th row
-  rebuilds the window's sums from its values, the rows after continue from it, and a resume replays from the last
-  such row. A resume rebuilt the sums where it started (before that, from rounded stored outputs), so the last digits
-  depended on update history
+  differed by run history
+- Rolling averages depend on a row's position alone, not on how updates batched the blocks (e.g. the hash-rate
+  SMAs): every 1,024th row rebuilds the window's sum from its values, the rows after continue from it, and a resume
+  replays from the last such row. A resume rebuilt the sum where it started (before that, from rounded stored
+  outputs), so the last digits depended on update history
 - Block weight totals and statistics are exact (they were derived from vbytes × 4, off by up to 3 WU per block);
   block vsize is weight / 4 rounded up, like Bitcoin Core (was rounded down)
-- True range and its two-week sum are exact cents (the sum drifted as an f32 running sum)
-- Puell Multiple uses daily issuance, as defined: the trailing 24-hour subsidy in USD over its 365-day daily mean
-  (the 365-day sum over 365). It was the block's subsidy over its 365-day per-block mean
+- True range is exact cents
 - The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
-  blocks), the reciprocal of stock-to-flow, which uses the scheduled subsidy too (was the derived one, zero for a block
-  whose miner claimed nothing); it was the trailing 365-day supply change, which lagged a halving by up to a year (that
+  blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply change, which lagged a halving by up to a year (that
   change remains the supply's 1-year `delta.rate`). Cointime's adjusted inflation follows
 - Cointime's active and vaulted caps are market cap times liveliness and vaultedness, as in the Cointime paper, so
   they add up to market cap (were realized cap times them), and AVIV is active cap over investor cap, spot over True
@@ -697,7 +696,6 @@ has to be deleted by hand.
   (at 91842 the cohorts showed 50 BTC of transfer volume for it). Coinblocks destroyed leave them out too (9,400
   fewer from 91880 on), which moves Cointime's liveliness and everything built on it very slightly. `supply.burned`
   counts the two outputs (it left out 100 BTC from 91880 on)
-- Stock-to-flow is NaN once the scheduled subsidy is zero, like Cointime's adjusted stock-to-flow (was 0)
 - Holders' supply density is NaN for an empty cohort, like Cointime's and Coinflow's (was 0)
 - Reserve Risk is time-weighted, like Glassnode's daily definition: the HODL bank accrues each block's opportunity
   cost times the time since the previous block in days, on monotonic timestamps (it added a full price per block,
@@ -717,8 +715,6 @@ has to be deleted by hand.
 - Cost-basis percentiles use the nearest rank, the first coin (or dollar) at or past p% of the total: the median of
   three equal coins is the middle one (was the first). Holders' percentiles and medians and the URPD statistics of
   Cointime, Coinflow and Bedrock
-- Rolling standard deviations keep both moments in f64 (they subtracted the square of the rounded stored mean, which
-  erased small volatility)
 - Coinflow's expected spending exposure integrates through age ranges where nothing moved (it stopped there and
   extrapolated the fit) and stops only where a range is empty, and the youngest range's remaining half hour counts as
   a half hour (was an hour). Mobility and everything weighted by it follow

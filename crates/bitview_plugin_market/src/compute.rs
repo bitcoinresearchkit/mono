@@ -38,17 +38,6 @@ impl ComputePlugin for Vecs {
         ath?;
         range?;
         moving_average?;
-
-        let (returns, technical) = join(
-            || self.returns.compute(indexer, blocks, exit),
-            || {
-                self.technical
-                    .compute(indexer, prices, blocks, &self.moving_average, exit)
-            },
-        );
-        returns?;
-        technical?;
-
         Ok(())
     }
 }

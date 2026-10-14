@@ -1,10 +1,10 @@
 use std::ops::{Add, AddAssign};
 
 use bitview_primitives::{
-    BasisPoints32, Bytes, Bytes32, BytesFract, CentsFract, CoinBlocks, CoinDays, Count, Count16,
-    Count32, CountFract, Float64, PartsPerMillion32, PartsPerMillion64, PartsPerMillionSigned32,
-    PartsPerMillionSigned64, Percent, Percent64, PriceRatio, SatsFract, Seconds, SecondsFract,
-    SigOpsFract, VSizeFract, WeightFract,
+    Bytes, Bytes32, BytesFract, CentsFract, CoinBlocks, CoinDays, Count, Count16, Count32,
+    CountFract, Float64, PartsPerMillion32, PartsPerMillion64, PartsPerMillionSigned32,
+    PartsPerMillionSigned64, PriceRatio, SatsFract, Seconds, SecondsFract, SigOpsFract, VSizeFract,
+    WeightFract,
 };
 use brk_types::{Cents, CentsSigned, Sats, SigOps, VSize, Weight, Weight32};
 use schemars::JsonSchema;
@@ -99,11 +99,6 @@ impl Quantity for CentsSigned {
     type Sum = CentsSigned;
 }
 
-impl Quantity for Percent64 {
-    type Fract = Percent;
-    type Sum = Percent64;
-}
-
 impl Quantity for CoinDays {
     type Fract = CoinDays;
     type Sum = CoinDays;
@@ -130,10 +125,6 @@ impl FixedRatio for PartsPerMillion32 {
 
 impl FixedRatio for PriceRatio {
     const SUFFIX: &'static str = "ppm";
-}
-
-impl FixedRatio for BasisPoints32 {
-    const SUFFIX: &'static str = "bps";
 }
 
 impl FixedRatio for PartsPerMillionSigned32 {

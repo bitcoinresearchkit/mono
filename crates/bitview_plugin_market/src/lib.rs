@@ -2,15 +2,11 @@ mod ath;
 mod compute;
 mod dependencies;
 mod import;
-mod lookback;
 mod moving_average;
 mod range;
 mod returns;
-mod technical;
-mod volatility;
 
 pub use dependencies::Dependencies;
-pub use moving_average::Vecs as MovingAverageVecs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
@@ -18,11 +14,9 @@ use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use ath::Vecs as AthVecs;
-use lookback::Vecs as LookbackVecs;
+use moving_average::Vecs as MovingAverageVecs;
 use range::Vecs as RangeVecs;
-use returns::Vecs as ReturnsVecs;
-use technical::Vecs as TechnicalVecs;
-use volatility::Vecs as VolatilityVecs;
+use returns::Returns;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("market"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
@@ -32,19 +26,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     ath: AthVecs<M>,
-    lookback: LookbackVecs,
-    returns: ReturnsVecs<M>,
-    /// Population standard deviation of per-block trailing-24-hour spot-price
-    /// returns over a trailing monotonic-time window, multiplied by the
-    /// square root of that window's day count. Larger values mean Bitcoin's
-    /// daily returns varied more within the window; this measures dispersion,
-    /// not price direction.
-    pub volatility: VolatilityVecs,
+    /// Bitcoin spot-price return from the first block in a trailing
+    /// monotonic-time window through the represented block: represented-block
+    /// price divided by the window's starting price, minus one. Positive values
+    /// mean price increased and negative values mean it decreased.
+    returns: Returns,
     range: RangeVecs<M>,
     #[traversable(flatten)]
-    pub moving_average: MovingAverageVecs<M>,
-    #[traversable(flatten)]
-    technical: TechnicalVecs<M>,
+    moving_average: MovingAverageVecs<M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

@@ -5,15 +5,11 @@ use bitview_plugin_addresses::{Dependencies as AddressesDependencies, ID as ADDR
 use bitview_plugin_age::{Dependencies as AgeDependencies, ID as AGE_ID};
 use bitview_plugin_bedrock::{Dependencies as BedrockDependencies, ID as BEDROCK_ID};
 use bitview_plugin_blocks::{Dependencies as BlocksDependencies, ID as BLOCKS_ID};
-use bitview_plugin_capital_sentiment::{
-    Dependencies as CapitalSentimentDependencies, ID as CAPITAL_SENTIMENT_ID,
-};
 use bitview_plugin_coinflow::{Dependencies as CoinflowDependencies, ID as COINFLOW_ID};
 use bitview_plugin_cointime::{Dependencies as CointimeDependencies, ID as COINTIME_ID};
 use bitview_plugin_entry::{Dependencies as EntryDependencies, ID as ENTRY_ID};
 use bitview_plugin_holders::{Dependencies as HoldersDependencies, ID as HOLDERS_ID};
 use bitview_plugin_indexer::ID as INDEXER_ID;
-use bitview_plugin_indicators::{Dependencies as IndicatorsDependencies, ID as INDICATORS_ID};
 use bitview_plugin_inputs::{Dependencies as InputsDependencies, ID as INPUTS_ID};
 use bitview_plugin_mappings::{Dependencies as MappingsDependencies, ID as MAPPINGS_ID};
 use bitview_plugin_market::{Dependencies as MarketDependencies, ID as MARKET_ID};
@@ -117,7 +113,7 @@ impl DefaultPlugins {
 
             // Market, UTXOs, Addresses, Outputs → History → Age → Holders, and Transactions →
             // Mining + OP_RETURN are independent complete-plugin branches.
-            let market = scope.spawn(|| -> Result<_> {
+            let market = scope.spawn(|| {
                 timed(Phase::Compute, MARKET_ID, || {
                     self.market.compute(
                         MarketDependencies {
@@ -128,8 +124,7 @@ impl DefaultPlugins {
                         },
                         context,
                     )
-                })?;
-                Ok(self.market.as_ref())
+                })
             });
 
             let tx_mining_op_return = scope.spawn(|| -> Result<_> {
@@ -178,7 +173,7 @@ impl DefaultPlugins {
             });
 
             // Addresses run alongside UTXOs: they read neither.
-            let utxos = scope.spawn(|| -> Result<_> {
+            let utxos = scope.spawn(|| {
                 timed(Phase::Compute, UTXOS_ID, || {
                     self.utxos.compute(
                         UtxosDependencies {
@@ -188,8 +183,7 @@ impl DefaultPlugins {
                         },
                         context,
                     )
-                })?;
-                Ok(self.utxos.as_ref())
+                })
             });
             let addresses = scope.spawn(|| {
                 timed(Phase::Compute, ADDRESSES_ID, || {
@@ -313,21 +307,6 @@ impl DefaultPlugins {
                     })?;
                     Ok(self.coinflow.as_ref())
                 });
-                let capital_sentiment = scope.spawn(|| -> Result<_> {
-                    let market = market.join().unwrap()?;
-                    timed(Phase::Compute, CAPITAL_SENTIMENT_ID, || {
-                        self.capital_sentiment.compute(
-                            CapitalSentimentDependencies {
-                                indexer,
-                                price: self.price.as_ref(),
-                                holders: self.holders.as_ref(),
-                                moving_average: &market.moving_average,
-                            },
-                            context,
-                        )
-                    })?;
-                    Ok(market)
-                });
                 let mining = tx_mining_op_return.join().unwrap()?;
                 let pools = scope.spawn(|| {
                     timed(Phase::Compute, POOLS_ID, || {
@@ -393,27 +372,14 @@ impl DefaultPlugins {
                         context,
                     )
                 })?;
-                let market = capital_sentiment.join().unwrap()?;
-                let utxos = utxos.join().unwrap()?;
-                addresses.join().unwrap()?;
-                timed(Phase::Compute, INDICATORS_ID, || {
-                    self.indicators.compute(
-                        IndicatorsDependencies {
-                            utxos,
-                            indexer,
-                            mining,
-                            age: self.age.as_ref(),
-                            holders: self.holders.as_ref(),
-                            market,
-                        },
-                        context,
-                    )
-                })?;
                 pools.join().unwrap()?;
                 entry.join().unwrap()?;
                 profitability.join().unwrap()?;
                 Ok(())
             })?;
+            market.join().unwrap()?;
+            utxos.join().unwrap()?;
+            addresses.join().unwrap()?;
             Ok(())
         })?;
 

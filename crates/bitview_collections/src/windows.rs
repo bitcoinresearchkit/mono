@@ -18,7 +18,6 @@ pub struct Windows<A> {
 
 impl<A> Windows<A> {
     const SUFFIXES: [&'static str; 4] = ["24h", "1w", "1m", "1y"];
-    pub const DAYS: [usize; 4] = [1, 7, 30, 365];
 
     pub fn try_from_fn<E>(mut f: impl FnMut(&str) -> Result<A, E>) -> Result<Self, E> {
         Ok(Self {

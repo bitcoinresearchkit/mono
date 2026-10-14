@@ -1,7 +1,7 @@
 use bitview_collections::PercentViews;
 use bitview_compute::{FixedRatio, NumericValue};
-use bitview_primitives::{PartsPerMillionSigned64, Percent};
-use bitview_transforms::{Cagr, FixedToPercent};
+use bitview_primitives::Percent;
+use bitview_transforms::FixedToPercent;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -122,20 +122,5 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
     fn from_fixed(name: &str, version: Version, fixed: LazyPerBlock<B, B>) -> Self {
         let percent = LazyPerBlock::from_lazy::<FixedToPercent, B>(name, version, &fixed);
         Self(PercentViews { fixed, percent })
-    }
-}
-
-impl LazyPercentPerBlock<PartsPerMillionSigned64> {
-    pub fn from_lazy_cagr(name: &str, version: Version, years: u8, source: &Self) -> Self {
-        match years {
-            2 => Self::from_lazy_percent::<Cagr<2>>(name, version, source),
-            3 => Self::from_lazy_percent::<Cagr<3>>(name, version, source),
-            4 => Self::from_lazy_percent::<Cagr<4>>(name, version, source),
-            5 => Self::from_lazy_percent::<Cagr<5>>(name, version, source),
-            6 => Self::from_lazy_percent::<Cagr<6>>(name, version, source),
-            8 => Self::from_lazy_percent::<Cagr<8>>(name, version, source),
-            10 => Self::from_lazy_percent::<Cagr<10>>(name, version, source),
-            _ => unreachable!("unsupported DCA CAGR period: {years} years"),
-        }
     }
 }

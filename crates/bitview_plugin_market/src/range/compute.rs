@@ -1,11 +1,9 @@
-use bitview_compute::{ComputeRollingStats, compute_rolling_extrema_from_starts};
+use bitview_compute::compute_rolling_extrema_from_starts;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::PartsPerMillion32;
 use brk_error::Result;
 use brk_exit::Exit;
-use vecdb::VecIndex;
 
 use super::Vecs;
 
@@ -27,11 +25,6 @@ impl Vecs {
                 blocks.lookback.start_vec(7),
             ),
             (
-                &mut self.min._2w.cents.height,
-                &mut self.max._2w.cents.height,
-                blocks.lookback.start_vec(14),
-            ),
-            (
                 &mut self.min._1m.cents.height,
                 &mut self.max._1m.cents.height,
                 blocks.lookback.start_vec(30),
@@ -51,32 +44,6 @@ impl Vecs {
                 exit,
             )?;
         }
-
-        // 2w rolling sum of true range
-        self.true_range_sum_2w.cents.height.compute_rolling_sum(
-            starting_height,
-            blocks.lookback.start_vec(14),
-            &self.true_range.cents.height,
-            exit,
-        )?;
-
-        self.choppiness_index_2w.fixed.height.compute_transform4(
-            starting_height,
-            &self.true_range_sum_2w.cents.height,
-            &self.max._2w.cents.height,
-            &self.min._2w.cents.height,
-            blocks.lookback.start_vec(14),
-            |(h, tr_sum, max, min, window_start, ..)| {
-                let range = f64::from(max) - f64::from(min);
-                let n = (h.to_usize() - window_start.to_usize() + 1) as f64;
-                // Undefined without a range or with a single block.
-                (
-                    h,
-                    PartsPerMillion32::from((f64::from(tr_sum) / range).log10() / n.log10()),
-                )
-            },
-            exit,
-        )?;
 
         Ok(())
     }

@@ -8,7 +8,6 @@ mod lazy_rolling;
 mod lazy_with_deltas;
 mod percentiles_vecs;
 mod rolling;
-mod std_dev;
 mod stored;
 mod type_counts;
 
@@ -22,6 +21,5 @@ pub use lazy_rolling::LazyPerBlockRolling;
 pub use lazy_with_deltas::LazyPerBlockWithDeltas;
 pub use percentiles_vecs::PercentilesVecs;
 pub use rolling::PerBlockRolling;
-pub use std_dev::RollingAvgSd;
 pub use stored::PerBlock;
 pub use type_counts::{CoinbasePolicy, compute_type_counts};

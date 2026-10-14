@@ -2,8 +2,6 @@ mod bounded_odds;
 pub use bounded_odds::BoundedOdds;
 mod bounded_to_ratio;
 pub use bounded_to_ratio::BoundedToRatio;
-mod cagr;
-pub use cagr::Cagr;
 mod fixed_to_ratio;
 pub use fixed_to_ratio::FixedToRatio;
 mod fixed_to_percent;

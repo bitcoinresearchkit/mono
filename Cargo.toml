@@ -52,13 +52,11 @@ bitview_plugin_addresses = { version = "0.12.2", path = "crates/bitview_plugin_a
 bitview_plugin_age = { version = "0.12.2", path = "crates/bitview_plugin_age" }
 bitview_plugin_bedrock = { version = "0.12.2", path = "crates/bitview_plugin_bedrock" }
 bitview_plugin_blocks = { version = "0.12.2", path = "crates/bitview_plugin_blocks" }
-bitview_plugin_capital_sentiment = { version = "0.12.2", path = "crates/bitview_plugin_capital_sentiment" }
 bitview_plugin_coinflow = { version = "0.12.2", path = "crates/bitview_plugin_coinflow" }
 bitview_plugin_cointime = { version = "0.12.2", path = "crates/bitview_plugin_cointime" }
 bitview_plugin_entry = { version = "0.12.2", path = "crates/bitview_plugin_entry" }
 bitview_plugin_holders = { version = "0.12.2", path = "crates/bitview_plugin_holders" }
 bitview_plugin_indexer = { version = "0.12.2", path = "crates/bitview_plugin_indexer" }
-bitview_plugin_indicators = { version = "0.12.2", path = "crates/bitview_plugin_indicators" }
 bitview_plugin_inputs = { version = "0.12.2", path = "crates/bitview_plugin_inputs" }
 bitview_plugin_mappings = { version = "0.12.2", path = "crates/bitview_plugin_mappings" }
 bitview_plugin_market = { version = "0.12.2", path = "crates/bitview_plugin_market" }

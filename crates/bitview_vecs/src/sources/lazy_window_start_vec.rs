@@ -7,8 +7,7 @@ use vecdb::{
     ReadableCloneableVec, ReadableVec, TypedVec, short_type_name,
 };
 
-const HOUR_SECONDS: u64 = 60 * 60;
-const DAY_SECONDS: u64 = 24 * HOUR_SECONDS;
+const DAY_SECONDS: u64 = 24 * 60 * 60;
 /// First backward read when locating a window start; grows 4x per step.
 const WINDOW_READ_CHUNK: usize = 1 << 10;
 /// Sorted requests closer than this many heights share one contiguous
@@ -31,34 +30,16 @@ pub struct LazyWindowStartVec {
 }
 
 impl LazyWindowStartVec {
-    pub fn hours(
-        name: &str,
-        version: Version,
-        hours: u64,
-        timestamps: &(impl ReadableCloneableVec<Height, Timestamp> + ?Sized),
-    ) -> Self {
-        Self::new(name, version, hours * HOUR_SECONDS, timestamps)
-    }
-
     pub fn days(
         name: &str,
         version: Version,
         days: u64,
         timestamps: &(impl ReadableCloneableVec<Height, Timestamp> + ?Sized),
     ) -> Self {
-        Self::new(name, version, days * DAY_SECONDS, timestamps)
-    }
-
-    fn new(
-        name: &str,
-        version: Version,
-        duration_seconds: u64,
-        timestamps: &(impl ReadableCloneableVec<Height, Timestamp> + ?Sized),
-    ) -> Self {
         Self {
             name: Arc::from(name),
             version,
-            duration_seconds,
+            duration_seconds: days * DAY_SECONDS,
             timestamps: timestamps.read_only_boxed_clone(),
         }
     }

@@ -508,13 +508,11 @@ dependencies = [
  "bitview_plugin_age",
  "bitview_plugin_bedrock",
  "bitview_plugin_blocks",
- "bitview_plugin_capital_sentiment",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
  "bitview_plugin_entry",
  "bitview_plugin_holders",
  "bitview_plugin_indexer",
- "bitview_plugin_indicators",
  "bitview_plugin_inputs",
  "bitview_plugin_mappings",
  "bitview_plugin_market",
@@ -718,26 +716,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_plugin_capital_sentiment"
-version = "0.12.2"
-dependencies = [
- "bitview_compute",
- "bitview_plugin",
- "bitview_plugin_holders",
- "bitview_plugin_indexer",
- "bitview_plugin_mappings",
- "bitview_plugin_market",
- "bitview_plugin_price",
- "bitview_primitives",
- "bitview_traversable",
- "bitview_vecs",
- "brk_error",
- "brk_exit",
- "brk_types",
- "vecdb",
-]
-
-[[package]]
 name = "bitview_plugin_coinflow"
 version = "0.12.2"
 dependencies = [
@@ -857,32 +835,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_plugin_indicators"
-version = "0.12.2"
-dependencies = [
- "bitview_cohort",
- "bitview_distribution",
- "bitview_plugin",
- "bitview_plugin_age",
- "bitview_plugin_holders",
- "bitview_plugin_indexer",
- "bitview_plugin_mappings",
- "bitview_plugin_market",
- "bitview_plugin_mining",
- "bitview_plugin_transactions",
- "bitview_plugin_utxos",
- "bitview_primitives",
- "bitview_transforms",
- "bitview_traversable",
- "bitview_vecs",
- "brk_error",
- "brk_exit",
- "brk_types",
- "rayon",
- "vecdb",
-]
-
-[[package]]
 name = "bitview_plugin_inputs"
 version = "0.12.2"
 dependencies = [
@@ -946,7 +898,6 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "rayon",
  "vecdb",
 ]

@@ -5,13 +5,11 @@ use bitview_plugin_addresses::Vecs as Addresses;
 use bitview_plugin_age::Vecs as Age;
 use bitview_plugin_bedrock::Vecs as Bedrock;
 use bitview_plugin_blocks::Vecs as Blocks;
-use bitview_plugin_capital_sentiment::Vecs as CapitalSentiment;
 use bitview_plugin_coinflow::Vecs as Coinflow;
 use bitview_plugin_cointime::Vecs as Cointime;
 use bitview_plugin_entry::Vecs as Entry;
 use bitview_plugin_holders::Vecs as Holders;
 use bitview_plugin_indexer::Indexer;
-use bitview_plugin_indicators::Vecs as Indicators;
 use bitview_plugin_inputs::Vecs as Inputs;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_plugin_market::Vecs as Market;
@@ -71,12 +69,10 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     #[plugin_set(has = bitview_plugin_profitability::HasProfitability<M>)]
     profitability: Box<Profitability<M>>,
     supply: Box<Supply<M>>,
-    indicators: Box<Indicators<M>>,
     #[plugin_set(has = bitview_plugin_cointime::HasCointime<M>)]
     cointime: Box<Cointime<M>>,
     #[plugin_set(has = bitview_plugin_coinflow::HasCoinflow<M>)]
     coinflow: Box<Coinflow<M>>,
     bedrock: Box<Bedrock<M>>,
-    capital_sentiment: Box<CapitalSentiment<M>>,
     rarity_meter: Box<RarityMeter<M>>,
 }

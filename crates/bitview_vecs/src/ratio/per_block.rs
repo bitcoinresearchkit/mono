@@ -22,7 +22,7 @@ pub struct RatioPerBlock<R: FixedRatio, M: StorageMode = Rw> {
 const VERSION: Version = Version::new(3);
 
 impl<R: FixedRatio> RatioPerBlock<R> {
-    pub fn import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,

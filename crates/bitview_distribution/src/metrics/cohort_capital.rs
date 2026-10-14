@@ -23,7 +23,7 @@ use crate::families::import_stored;
 pub struct CapitalViews {
     /// Capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
     /// created.
-    pub total: LazyFiatPerBlock<Cents>,
+    total: LazyFiatPerBlock<Cents>,
     /// Realized cap: the capital, under its jargon name.
     realized_cap: LazyFiatPerBlock<Cents>,
     /// Change in the cohort's capital over a trailing window.

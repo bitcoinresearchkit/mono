@@ -1,11 +1,10 @@
-use bitview_collections::ByLookbackPeriod;
 use bitview_plugin::ImportContext;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use brk_error::{Error, Result};
+use brk_error::Result;
 
-use super::{STORAGE, Vecs, ath, lookback, moving_average, range, returns, technical, volatility};
+use super::{STORAGE, Vecs, ath, moving_average, range, returns};
 
 impl Vecs {
     pub fn import(
@@ -19,26 +18,16 @@ impl Vecs {
 
         let spot_price = prices.spot.cents.resolutions.height_source();
         let ath = ath::Vecs::import(&db, version, mappings, spot_price)?;
-        let window_starts = ByLookbackPeriod::try_new(|_, days| {
-            Ok::<_, Error>(blocks.lookback.start_vec(days as usize))
-        })?;
-        let lookback = lookback::Vecs::new(version, mappings, &window_starts, prices)?;
-        let returns = returns::Vecs::import(&db, version, mappings, &window_starts, prices)?;
-        let volatility = volatility::Vecs::new(version, &returns);
+        let returns = returns::import(version, mappings, &blocks.lookback, prices);
         let range = range::Vecs::import(&db, version, mappings, spot_price)?;
         let moving_average = moving_average::Vecs::import(&db, version, mappings, blocks)?;
-        let technical =
-            technical::Vecs::import(&db, version, mappings, &returns.periods._24h.percent)?;
 
         let this = Self {
             db,
             ath,
-            lookback,
             returns,
-            volatility,
             range,
             moving_average,
-            technical,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

@@ -6,14 +6,10 @@ pub struct EmaVecs<T> {
     pub _1w: T,
     /// Uses a trailing 8-day span.
     pub _8d: T,
-    /// Uses a trailing 12-day span.
-    pub _12d: T,
     /// Uses a trailing 13-day span.
     pub _13d: T,
     /// Uses a trailing 21-day span.
     pub _21d: T,
-    /// Uses a trailing 26-day span.
-    pub _26d: T,
     /// Uses a trailing 30-day span.
     pub _1m: T,
     /// Uses a trailing 34-day span.

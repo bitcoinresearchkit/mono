@@ -1,6 +1,5 @@
-use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
-use bitview_vecs::{FiatPerBlock, LazyFiatPerBlock, PercentPerBlock};
+use bitview_vecs::LazyFiatPerBlock;
 use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
@@ -18,16 +17,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// previous blocks' spot prices. The genesis block is zero; this is not an
     /// open-high-low-close price range.
     pub true_range: LazyFiatPerBlock<Cents>,
-    /// Sum of per-block spot-price true range over the trailing 14-day
-    /// monotonic-time window, in USD per BTC. This measures the spot-price
-    /// path length over the window, not its high-low range.
-    pub true_range_sum_2w: FiatPerBlock<Cents, M>,
-    /// Two-week Choppiness Index: base-10 logarithm of the trailing true-range
-    /// sum divided by the two-week high-low range, divided by the base-10
-    /// logarithm of the number of blocks in the window. Undefined (null) when the
-    /// high-low range is zero or the window contains fewer than two blocks.
-    /// Higher values mean price traveled a longer path relative to its net
-    /// range and was therefore choppier; lower nonzero values mean a more
-    /// direct trend.
-    pub choppiness_index_2w: PercentPerBlock<PartsPerMillion32, M>,
 }

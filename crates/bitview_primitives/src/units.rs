@@ -131,11 +131,6 @@ scalar! {
 }
 
 scalar! {
-    /// A percentage at double precision, for sums of percentages.
-    float Percent64(f64)
-}
-
-scalar! {
     /// A number of things.
     int Count(u64)
 }
@@ -188,13 +183,6 @@ impl From<Bytes32> for Bytes {
     #[inline]
     fn from(value: Bytes32) -> Self {
         Self(u64::from(value.0))
-    }
-}
-
-impl From<Percent> for Percent64 {
-    #[inline]
-    fn from(value: Percent) -> Self {
-        Self(f64::from(value.0))
     }
 }
 
