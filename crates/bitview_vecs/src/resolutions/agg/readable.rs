@@ -12,7 +12,7 @@ where
     Strat: AggFold<O, S1I, S1T>,
 {
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<O>) {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let to = to.min(mapping.len());
         if from >= to {
             return;
@@ -22,7 +22,7 @@ where
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(O)) {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let to = to.min(mapping.len());
         if from >= to {
             return;
@@ -35,7 +35,7 @@ where
     where
         Self: Sized,
     {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let to = to.min(mapping.len());
         if from >= to {
             return init;
@@ -54,7 +54,7 @@ where
     where
         Self: Sized,
     {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let to = to.min(mapping.len());
         if from >= to {
             return Ok(init);
@@ -64,7 +64,7 @@ where
 
     #[inline]
     fn collect_one_at(&self, index: usize) -> Option<O> {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         if index >= mapping.len() {
             return None;
         }
@@ -75,7 +75,7 @@ where
         if indices.is_empty() {
             return;
         }
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let indices = &indices[..indices.partition_point(|&index| index < mapping.len())];
         if indices.is_empty() {
             return;

@@ -10,6 +10,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+arc-swap = { workspace = true }
 bitcoin = { workspace = true }
 brk_error = { workspace = true }
 brk_rpc = { workspace = true }

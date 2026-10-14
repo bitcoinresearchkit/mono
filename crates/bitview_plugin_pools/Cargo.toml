@@ -8,6 +8,7 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+arc-swap = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_compute = { workspace = true }
 bitview_vecs = { workspace = true }
@@ -19,7 +20,7 @@ brk_error = { workspace = true, features = ["vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
-parking_lot = { workspace = true }
+rangeindex = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
 vecdb = { workspace = true }

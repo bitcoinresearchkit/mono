@@ -1,43 +1,35 @@
 use std::thread;
 
-use bitview_plugin::{BootstrapAction, ComputePlugin, ComputePluginSet, UpdateContext};
-use bitview_plugin_addresses::{Dependencies as AddressesDependencies, ID as ADDRESSES_ID};
-use bitview_plugin_age::{Dependencies as AgeDependencies, ID as AGE_ID};
-use bitview_plugin_bedrock::{Dependencies as BedrockDependencies, ID as BEDROCK_ID};
-use bitview_plugin_blocks::{Dependencies as BlocksDependencies, ID as BLOCKS_ID};
-use bitview_plugin_coinflow::{Dependencies as CoinflowDependencies, ID as COINFLOW_ID};
-use bitview_plugin_cointime::{Dependencies as CointimeDependencies, ID as COINTIME_ID};
-use bitview_plugin_entry::{Dependencies as EntryDependencies, ID as ENTRY_ID};
-use bitview_plugin_holders::{Dependencies as HoldersDependencies, ID as HOLDERS_ID};
-use bitview_plugin_indexer::ID as INDEXER_ID;
-use bitview_plugin_inputs::{Dependencies as InputsDependencies, ID as INPUTS_ID};
-use bitview_plugin_mappings::{Dependencies as MappingsDependencies, ID as MAPPINGS_ID};
-use bitview_plugin_market::{Dependencies as MarketDependencies, ID as MARKET_ID};
-use bitview_plugin_mining::{Dependencies as MiningDependencies, ID as MINING_ID};
-use bitview_plugin_op_return::{Dependencies as OpReturnDependencies, ID as OP_RETURN_ID};
-use bitview_plugin_outputs::{Dependencies as OutputsDependencies, ID as OUTPUTS_ID};
-use bitview_plugin_pools::{Dependencies as PoolsDependencies, ID as POOLS_ID};
-use bitview_plugin_price::{Dependencies as PriceDependencies, ID as PRICE_ID};
-use bitview_plugin_profitability::{
-    Dependencies as ProfitabilityDependencies, ID as PROFITABILITY_ID,
-};
-use bitview_plugin_rarity_meter::{Dependencies as RarityMeterDependencies, ID as RARITY_METER_ID};
-use bitview_plugin_supply::{Dependencies as SupplyDependencies, ID as SUPPLY_ID};
-use bitview_plugin_transactions::{
-    Dependencies as TransactionsDependencies, ID as TRANSACTIONS_ID,
-};
-use bitview_plugin_utxo_set::{Dependencies as UtxoSetDependencies, ID as UTXO_SET_ID};
-use bitview_plugin_utxos::{Dependencies as UtxosDependencies, ID as UTXOS_ID};
+use bitview_plugin::{BootstrapAction, ComputePluginSet, UpdateContext};
+use bitview_plugin_addresses::Dependencies as AddressesDependencies;
+use bitview_plugin_age::Dependencies as AgeDependencies;
+use bitview_plugin_bedrock::Dependencies as BedrockDependencies;
+use bitview_plugin_blocks::Dependencies as BlocksDependencies;
+use bitview_plugin_coinflow::Dependencies as CoinflowDependencies;
+use bitview_plugin_cointime::Dependencies as CointimeDependencies;
+use bitview_plugin_entry::Dependencies as EntryDependencies;
+use bitview_plugin_holders::Dependencies as HoldersDependencies;
+use bitview_plugin_inputs::Dependencies as InputsDependencies;
+use bitview_plugin_mappings::Dependencies as MappingsDependencies;
+use bitview_plugin_market::Dependencies as MarketDependencies;
+use bitview_plugin_mining::Dependencies as MiningDependencies;
+use bitview_plugin_op_return::Dependencies as OpReturnDependencies;
+use bitview_plugin_outputs::Dependencies as OutputsDependencies;
+use bitview_plugin_pools::Dependencies as PoolsDependencies;
+use bitview_plugin_price::Dependencies as PriceDependencies;
+use bitview_plugin_profitability::Dependencies as ProfitabilityDependencies;
+use bitview_plugin_rarity_meter::Dependencies as RarityMeterDependencies;
+use bitview_plugin_supply::Dependencies as SupplyDependencies;
+use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
+use bitview_plugin_utxo_set::Dependencies as UtxoSetDependencies;
+use bitview_plugin_utxos::Dependencies as UtxosDependencies;
 use bitview_urpd::ReplayInputs;
 use brk_error::Result;
 use rayon::join;
 use tracing::info;
 use vecdb::ReadableCloneableVec;
 
-use crate::{
-    DefaultPlugins,
-    timing::{Phase, timed},
-};
+use crate::{DefaultPlugins, timing::timed_compute};
 
 const REIMPORT_THRESHOLD: u32 = 10_000;
 
@@ -66,100 +58,91 @@ impl DefaultPlugins {
     }
 
     fn compute_indexer(&mut self, context: UpdateContext<'_>) -> Result<()> {
-        timed(Phase::Compute, INDEXER_ID, || {
-            self.indexer.compute((), context)
-        })
+        timed_compute(&mut *self.indexer, (), context)
     }
 
     fn compute_dependents(&mut self, context: UpdateContext<'_>) -> Result<()> {
         let indexer = self.indexer.as_ref();
 
-        timed(Phase::Compute, MAPPINGS_ID, || {
-            self.mappings
-                .compute(MappingsDependencies { indexer }, context)
-        })?;
+        timed_compute(
+            &mut *self.mappings,
+            MappingsDependencies { indexer },
+            context,
+        )?;
 
         thread::scope(|scope| -> Result<()> {
-            timed(Phase::Compute, BLOCKS_ID, || {
-                self.blocks.compute(
-                    BlocksDependencies {
-                        indexer,
-                        mappings: self.mappings.as_ref(),
-                    },
-                    context,
-                )
-            })?;
+            timed_compute(
+                &mut *self.blocks,
+                BlocksDependencies {
+                    indexer,
+                    mappings: self.mappings.as_ref(),
+                },
+                context,
+            )?;
 
             // Only the UTXO set reads inputs' spends: everything before it runs alongside.
             let inputs = scope.spawn(|| -> Result<_> {
-                timed(Phase::Compute, INPUTS_ID, || {
-                    self.inputs.compute(
-                        InputsDependencies {
-                            mappings: self.mappings.as_ref(),
-                            indexer,
-                        },
-                        context,
-                    )
-                })?;
+                timed_compute(
+                    &mut *self.inputs,
+                    InputsDependencies {
+                        mappings: self.mappings.as_ref(),
+                        indexer,
+                    },
+                    context,
+                )?;
                 Ok(self.inputs.as_ref())
             });
-            timed(Phase::Compute, PRICE_ID, || {
-                self.price.compute(PriceDependencies { indexer }, context)
-            })?;
+            timed_compute(&mut *self.price, PriceDependencies { indexer }, context)?;
 
             // Market, UTXOs, Addresses, Outputs → History → Age → Holders, and Transactions →
             // Mining + OP_RETURN are independent complete-plugin branches.
             let market = scope.spawn(|| {
-                timed(Phase::Compute, MARKET_ID, || {
-                    self.market.compute(
-                        MarketDependencies {
-                            indexer,
-                            price: self.price.as_ref(),
-                            mappings: self.mappings.as_ref(),
-                        },
-                        context,
-                    )
-                })
+                timed_compute(
+                    &mut *self.market,
+                    MarketDependencies {
+                        indexer,
+                        price: self.price.as_ref(),
+                        mappings: self.mappings.as_ref(),
+                    },
+                    context,
+                )
             });
 
             let tx_mining_op_return = scope.spawn(|| -> Result<_> {
-                timed(Phase::Compute, TRANSACTIONS_ID, || {
-                    self.transactions.compute(
-                        TransactionsDependencies {
-                            indexer,
-                            mappings: self.mappings.as_ref(),
-                            price: self.price.as_ref(),
-                        },
-                        context,
-                    )
-                })?;
+                timed_compute(
+                    &mut *self.transactions,
+                    TransactionsDependencies {
+                        indexer,
+                        mappings: self.mappings.as_ref(),
+                        price: self.price.as_ref(),
+                    },
+                    context,
+                )?;
 
                 let (mining, op_return) = join(
                     || {
-                        timed(Phase::Compute, MINING_ID, || {
-                            self.mining.compute(
-                                MiningDependencies {
-                                    indexer,
-                                    mappings: self.mappings.as_ref(),
-                                    blocks: self.blocks.as_ref(),
-                                    transactions: self.transactions.as_ref(),
-                                    price: self.price.as_ref(),
-                                },
-                                context,
-                            )
-                        })
+                        timed_compute(
+                            &mut *self.mining,
+                            MiningDependencies {
+                                indexer,
+                                mappings: self.mappings.as_ref(),
+                                blocks: self.blocks.as_ref(),
+                                transactions: self.transactions.as_ref(),
+                                price: self.price.as_ref(),
+                            },
+                            context,
+                        )
                     },
                     || {
-                        timed(Phase::Compute, OP_RETURN_ID, || {
-                            self.op_return.compute(
-                                OpReturnDependencies {
-                                    indexer,
-                                    fees: &self.transactions.fees,
-                                    price: self.price.as_ref(),
-                                },
-                                context,
-                            )
-                        })
+                        timed_compute(
+                            &mut *self.op_return,
+                            OpReturnDependencies {
+                                indexer,
+                                fees: &self.transactions.fees,
+                                price: self.price.as_ref(),
+                            },
+                            context,
+                        )
                     },
                 );
                 mining?;
@@ -169,79 +152,73 @@ impl DefaultPlugins {
 
             // Addresses run alongside UTXOs: they read neither.
             let utxos = scope.spawn(|| {
-                timed(Phase::Compute, UTXOS_ID, || {
-                    self.utxos.compute(
-                        UtxosDependencies {
-                            indexer,
-                            mappings: &self.mappings,
-                            price: &self.price,
-                        },
-                        context,
-                    )
-                })
-            });
-            let addresses = scope.spawn(|| {
-                timed(Phase::Compute, ADDRESSES_ID, || {
-                    self.addresses.compute(
-                        AddressesDependencies {
-                            indexer,
-                            mappings: &self.mappings,
-                            price: &self.price,
-                        },
-                        context,
-                    )
-                })
-            });
-
-            timed(Phase::Compute, OUTPUTS_ID, || {
-                self.outputs.compute(
-                    OutputsDependencies {
+                timed_compute(
+                    &mut *self.utxos,
+                    UtxosDependencies {
                         indexer,
                         mappings: &self.mappings,
                         price: &self.price,
                     },
                     context,
                 )
-            })?;
-            let creations = &self.outputs.creations;
-            let inputs = inputs.join().unwrap()?;
-
-            timed(Phase::Compute, UTXO_SET_ID, || {
-                self.utxo_set.compute(
-                    UtxoSetDependencies {
-                        spends: &inputs.spends,
-                        creations,
-                        from: indexer.compute_start().height,
-                        end: creations.end(),
-                    },
-                    context,
-                )
-            })?;
-
-            let history = self.utxo_set.reader(&inputs.spends, creations)?;
-            timed(Phase::Compute, AGE_ID, || {
-                self.age.compute(
-                    AgeDependencies {
-                        history: &history,
-                        from: indexer.compute_start().height,
-                        mappings: self.mappings.as_ref(),
-                        price: self.price.as_ref(),
-                    },
-                    context,
-                )
-            })?;
-            timed(Phase::Compute, HOLDERS_ID, || {
-                self.holders.compute(
-                    HoldersDependencies {
-                        history: &history,
-                        from: indexer.compute_start().height,
-                        age: &self.age,
+            });
+            let addresses = scope.spawn(|| {
+                timed_compute(
+                    &mut *self.addresses,
+                    AddressesDependencies {
+                        indexer,
                         mappings: &self.mappings,
                         price: &self.price,
                     },
                     context,
                 )
-            })?;
+            });
+
+            timed_compute(
+                &mut *self.outputs,
+                OutputsDependencies {
+                    indexer,
+                    mappings: &self.mappings,
+                    price: &self.price,
+                },
+                context,
+            )?;
+            let creations = &self.outputs.creations;
+            let inputs = inputs.join().unwrap()?;
+
+            timed_compute(
+                &mut *self.utxo_set,
+                UtxoSetDependencies {
+                    spends: &inputs.spends,
+                    creations,
+                    from: indexer.compute_start().height,
+                    end: creations.end(),
+                },
+                context,
+            )?;
+
+            let history = self.utxo_set.reader(&inputs.spends, creations)?;
+            timed_compute(
+                &mut *self.age,
+                AgeDependencies {
+                    history: &history,
+                    from: indexer.compute_start().height,
+                    mappings: self.mappings.as_ref(),
+                    price: self.price.as_ref(),
+                },
+                context,
+            )?;
+            timed_compute(
+                &mut *self.holders,
+                HoldersDependencies {
+                    history: &history,
+                    from: indexer.compute_start().height,
+                    age: &self.age,
+                    mappings: &self.mappings,
+                    price: &self.price,
+                },
+                context,
+            )?;
             let urpd = ReplayInputs {
                 history: &history,
                 prices: &self.price.spot.cents.height,
@@ -261,109 +238,103 @@ impl DefaultPlugins {
                 .read_only_boxed_clone();
             thread::scope(|scope| -> Result<()> {
                 let entry = scope.spawn(|| {
-                    timed(Phase::Compute, ENTRY_ID, || {
-                        self.entry.compute(
-                            EntryDependencies {
-                                history: &history,
-                                from: indexer.compute_start().height,
-                                prices: &prices,
-                                timestamps: &timestamps,
-                                capitalized_price: &capitalized_price,
-                            },
-                            context,
-                        )
-                    })
-                });
-                let profitability = scope.spawn(|| {
-                    timed(Phase::Compute, PROFITABILITY_ID, || {
-                        self.profitability.compute(
-                            ProfitabilityDependencies {
-                                history: &history,
-                                from: indexer.compute_start().height,
-                                prices: &prices,
-                                timestamps: &timestamps,
-                            },
-                            context,
-                        )
-                    })
-                });
-                let coinflow = scope.spawn(|| -> Result<_> {
-                    timed(Phase::Compute, COINFLOW_ID, || {
-                        self.coinflow.compute(
-                            CoinflowDependencies {
-                                urpd,
-                                indexer,
-                                mappings: self.mappings.as_ref(),
-                                price: self.price.as_ref(),
-                                age: self.age.as_ref(),
-                            },
-                            context,
-                        )
-                    })?;
-                    Ok(self.coinflow.as_ref())
-                });
-                let mining = tx_mining_op_return.join().unwrap()?;
-                let pools = scope.spawn(|| {
-                    timed(Phase::Compute, POOLS_ID, || {
-                        self.pools
-                            .compute(PoolsDependencies { indexer, mining }, context)
-                    })
-                });
-                timed(Phase::Compute, SUPPLY_ID, || {
-                    self.supply.compute(
-                        SupplyDependencies {
-                            indexer,
-                            outputs: self.outputs.as_ref(),
-                            mining,
-                            price: self.price.as_ref(),
+                    timed_compute(
+                        &mut *self.entry,
+                        EntryDependencies {
+                            history: &history,
+                            from: indexer.compute_start().height,
+                            prices: &prices,
+                            timestamps: &timestamps,
+                            capitalized_price: &capitalized_price,
                         },
                         context,
                     )
-                })?;
-
-                timed(Phase::Compute, COINTIME_ID, || {
-                    self.cointime.compute(
-                        CointimeDependencies {
+                });
+                let profitability = scope.spawn(|| {
+                    timed_compute(
+                        &mut *self.profitability,
+                        ProfitabilityDependencies {
+                            history: &history,
+                            from: indexer.compute_start().height,
+                            prices: &prices,
+                            timestamps: &timestamps,
+                        },
+                        context,
+                    )
+                });
+                let coinflow = scope.spawn(|| -> Result<_> {
+                    timed_compute(
+                        &mut *self.coinflow,
+                        CoinflowDependencies {
                             urpd,
                             indexer,
                             mappings: self.mappings.as_ref(),
                             price: self.price.as_ref(),
-                            inflation_rate: &self.supply.inflation_rate,
-                            velocity_btc: &self.supply.velocity.btc,
-                            velocity_usd: &self.supply.velocity.usd,
                             age: self.age.as_ref(),
-                            holders: self.holders.as_ref(),
                         },
                         context,
+                    )?;
+                    Ok(self.coinflow.as_ref())
+                });
+                let mining = tx_mining_op_return.join().unwrap()?;
+                let pools = scope.spawn(|| {
+                    timed_compute(
+                        &mut *self.pools,
+                        PoolsDependencies { indexer, mining },
+                        context,
                     )
-                })?;
+                });
+                timed_compute(
+                    &mut *self.supply,
+                    SupplyDependencies {
+                        indexer,
+                        outputs: self.outputs.as_ref(),
+                        mining,
+                        price: self.price.as_ref(),
+                    },
+                    context,
+                )?;
+
+                timed_compute(
+                    &mut *self.cointime,
+                    CointimeDependencies {
+                        urpd,
+                        indexer,
+                        mappings: self.mappings.as_ref(),
+                        price: self.price.as_ref(),
+                        inflation_rate: &self.supply.inflation_rate,
+                        velocity_btc: &self.supply.velocity.btc,
+                        velocity_usd: &self.supply.velocity.usd,
+                        age: self.age.as_ref(),
+                        holders: self.holders.as_ref(),
+                    },
+                    context,
+                )?;
                 let coinflow = coinflow.join().unwrap()?;
 
-                timed(Phase::Compute, BEDROCK_ID, || {
-                    self.bedrock.compute(
-                        BedrockDependencies {
-                            urpd,
-                            indexer,
-                            age: &self.age,
-                            holders: &self.holders,
-                            cointime: &self.cointime,
-                            coinflow,
-                        },
-                        context,
-                    )
-                })?;
-                timed(Phase::Compute, RARITY_METER_ID, || {
-                    self.rarity_meter.compute(
-                        RarityMeterDependencies {
-                            indexer,
-                            holders: self.holders.as_ref(),
-                            cointime: self.cointime.as_ref(),
-                            coinflow,
-                            price: self.price.as_ref(),
-                        },
-                        context,
-                    )
-                })?;
+                timed_compute(
+                    &mut *self.bedrock,
+                    BedrockDependencies {
+                        urpd,
+                        indexer,
+                        age: &self.age,
+                        holders: &self.holders,
+                        cointime: &self.cointime,
+                        coinflow,
+                    },
+                    context,
+                )?;
+                timed_compute(
+                    &mut *self.rarity_meter,
+                    RarityMeterDependencies {
+                        indexer,
+                        holders: self.holders.as_ref(),
+                        cointime: self.cointime.as_ref(),
+                        coinflow,
+                        price: self.price.as_ref(),
+                    },
+                    context,
+                )?;
                 pools.join().unwrap()?;
                 entry.join().unwrap()?;
                 profitability.join().unwrap()?;

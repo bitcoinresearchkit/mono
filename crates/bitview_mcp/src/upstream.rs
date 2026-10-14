@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 use ureq::{Agent, Body, http::Response};
 
 use crate::{
@@ -16,11 +16,11 @@ const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(15);
 #[derive(Clone)]
 pub struct Upstream {
     agent: Agent,
-    api_bases: Vec<String>,
+    api_url: String,
 }
 
 impl Upstream {
-    pub fn new(api_bases: Vec<String>) -> Self {
+    pub fn new(api_url: String) -> Self {
         let config = Agent::config_builder()
             .timeout_global(Some(UPSTREAM_TIMEOUT))
             .http_status_as_error(false)
@@ -29,20 +29,20 @@ impl Upstream {
             .build();
         Self {
             agent: Agent::new_with_config(config),
-            api_bases,
+            api_url,
         }
     }
 
     pub fn prepare(
         &self,
         operation: &Operation,
-        arguments: &Map<String, Value>,
+        arguments: &Value,
     ) -> Result<PreparedRequest, String> {
         let mut path = operation.http.path.clone();
         let mut query = String::new();
 
         for parameter in &operation.http.parameters {
-            let Some(value) = arguments.get(&parameter.name) else {
+            let Some(value) = arguments.get(parameter.name.as_str()) else {
                 continue;
             };
             if value.is_null() {
@@ -76,41 +76,28 @@ impl Upstream {
         if path.contains('{') || path.contains('}') {
             return Err("a required path parameter is missing".to_string());
         }
-        path.push_str(&query);
-        let longest_base = self.api_bases.iter().map(String::len).max().unwrap_or(0);
-        if longest_base.saturating_add(path.len()) > MAX_UPSTREAM_URL_BYTES {
+        let url = format!("{}{path}{query}", self.api_url);
+        if url.len() > MAX_UPSTREAM_URL_BYTES {
             return Err(format!(
                 "upstream URL exceeds the {MAX_UPSTREAM_URL_BYTES}-byte limit"
             ));
         }
 
-        Ok(PreparedRequest { path })
+        Ok(PreparedRequest { url })
     }
 
     pub fn fetch(&self, request: PreparedRequest) -> Result<UpstreamResponse, String> {
-        let PreparedRequest { path } = request;
-        let mut last_error = None;
-        for api_base in &self.api_bases {
-            let url = format!("{api_base}{path}");
-            let response = self
-                .agent
-                .get(&url)
-                .header(
-                    "Accept",
-                    "application/json, text/plain, text/csv, application/octet-stream",
-                )
-                .call();
-            match response {
-                Ok(response) => return self.read_response(url, response),
-                Err(error) => last_error = Some(error),
-            }
-        }
-        Err(format!(
-            "Bitview API request failed: {}",
-            last_error
-                .map(|error| error.to_string())
-                .unwrap_or_else(|| "no API base URL configured".to_string())
-        ))
+        let PreparedRequest { url } = request;
+        let response = self
+            .agent
+            .get(&url)
+            .header(
+                "Accept",
+                "application/json, text/plain, text/csv, application/octet-stream",
+            )
+            .call()
+            .map_err(|error| format!("Bitview API request failed: {error}"))?;
+        self.read_response(url, response)
     }
 
     fn read_response(

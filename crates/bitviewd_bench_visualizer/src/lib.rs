@@ -60,7 +60,7 @@ fn generate_machine(dir: &Path) -> Result {
     let complete = runs.iter().filter(|run| run.complete()).collect::<Vec<_>>();
     let output = dir.join("compare.svg");
     if complete.is_empty() {
-        // A replaced run may have been the last complete one.
+        // A deleted run may have been the last complete one.
         if output.exists() {
             fs::remove_file(&output)?;
         }
@@ -155,8 +155,8 @@ fn summary(run: &Run) -> Vec<String> {
     if let Some(height) = meta("chain_height") {
         totals.push(format!("chain height {height}"));
     }
-    if let Some(peak) = run.memory.max("peak_physical_bytes") {
-        totals.push(format!("peak footprint {}", format::bytes(peak)));
+    if let Some((name, peak)) = run.peak_memory() {
+        totals.push(format!("{name} {}", format::bytes(peak)));
     }
     if let (Some(read), Some(written)) =
         (run.io.growth("read_bytes"), run.io.growth("written_bytes"))
@@ -215,6 +215,7 @@ fn dashboard(run: &Run, output: &Path) -> Result {
         ("physical_bytes", "footprint", false, 0),
         ("peak_physical_bytes", "peak footprint", true, 0),
         ("resident_bytes", "resident", false, 3),
+        ("peak_resident_bytes", "peak resident", true, 3),
         ("swap_used_bytes", "swap (system)", false, 2),
     ]
     .into_iter()
@@ -239,7 +240,7 @@ fn dashboard(run: &Run, output: &Path) -> Result {
                 .map(|(time, ms)| (time, ms / 1_000.0))
                 .collect::<Vec<_>>()
         };
-        let total = |column: &str| run.cpu.last(column).unwrap_or_default() / 1_000.0;
+        let total = |column: &str| run.cpu.growth(column).unwrap_or_default() / 1_000.0;
         panels.push(Panel::Lines(
             "CPU (cores busy, 60 s average)",
             Unit::Plain("cores"),
@@ -393,7 +394,7 @@ fn compare(machine: &str, runs: &[&Run], output: &Path) -> Result {
                 format::duration(run.end_s()),
                 format::duration(run.cycle_seconds("indexing")),
                 format::duration(run.cycle_seconds("compute") + run.cycle_seconds("catch-up")),
-                bytes(run.memory.max("peak_physical_bytes")),
+                bytes(run.peak_memory().map(|(_, peak)| peak)),
                 bytes(run.io.growth("read_bytes")),
                 bytes(run.io.growth("written_bytes")),
                 bytes(run.disk.last("physical_bytes")),
@@ -426,10 +427,9 @@ fn compare(machine: &str, runs: &[&Run], output: &Path) -> Result {
         series(
             &|run| chart::mean(&run.memory.column("physical_bytes")),
             &|run| {
-                format!(
-                    "peak {}",
-                    format::bytes(run.memory.max("peak_physical_bytes").unwrap_or_default())
-                )
+                run.peak_memory().map_or_else(String::new, |(name, peak)| {
+                    format!("{name} {}", format::bytes(peak))
+                })
             },
         ),
     ));

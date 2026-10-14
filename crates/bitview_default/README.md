@@ -12,8 +12,8 @@ calls and publishes reads only after the entire graph succeeds. Internal phases,
 replay progress, scratch buffers and recovery stay inside the owning plugin.
 
 Inputs and Outputs finish their contributions before UTXO Set updates the
-canonical origin state. UTXOs runs alongside Outputs, History and Age; Addresses
-then consumes UTXOs’s completed output-type sources in its own complete update.
+canonical origin state. UTXOs and Addresses run alongside each other and alongside
+Outputs, History and Age: both read only the Indexer, Mappings and Price.
 Holders consumes Age’s completed disjoint accounting and canonical History
 for the seven overlapping age filters; Entry then classifies outputs by creation
 price against its all-chain capitalized price, and Profitability splits all,

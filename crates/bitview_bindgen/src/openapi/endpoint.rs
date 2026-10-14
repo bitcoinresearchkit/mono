@@ -49,11 +49,6 @@ impl Endpoint {
         matches!(self.response_kind, ResponseKind::Binary)
     }
 
-    /// Returns true if this endpoint returns plain text (typed or opaque).
-    pub(crate) fn returns_text(&self) -> bool {
-        matches!(self.response_kind, ResponseKind::Text(_))
-    }
-
     /// Schema name attached to the response, if any.
     pub(crate) fn schema_name(&self) -> Option<&str> {
         self.response_kind.schema_name()

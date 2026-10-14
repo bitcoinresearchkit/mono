@@ -3,7 +3,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitview_plugin::PluginId;
+use bitview_plugin::{ComputePlugin, PluginId, UpdateContext};
+use brk_error::Result;
 use tracing::info;
 
 #[derive(Clone, Copy)]
@@ -28,9 +29,10 @@ impl Phase {
     }
 }
 
-pub fn timed<T>(phase: Phase, plugin: PluginId, f: impl FnOnce() -> T) -> T {
+/// Runs `f`, logging its duration once it succeeds; a failure propagates unlogged.
+pub fn timed<T>(phase: Phase, plugin: PluginId, f: impl FnOnce() -> Result<T>) -> Result<T> {
     let start = Instant::now();
-    let result = f();
+    let result = f()?;
     let elapsed = start.elapsed();
     let duration_ns = duration_ns(elapsed);
     let plugin_name = plugin_name(plugin);
@@ -48,7 +50,18 @@ pub fn timed<T>(phase: Phase, plugin: PluginId, f: impl FnOnce() -> T) -> T {
         elapsed,
     );
 
-    result
+    Ok(result)
+}
+
+/// Computes `plugin`, timed under its own id.
+pub fn timed_compute<P: ComputePlugin>(
+    plugin: &mut P,
+    dependencies: P::Dependencies<'_>,
+    context: UpdateContext<'_>,
+) -> Result<()> {
+    timed(Phase::Compute, plugin.id(), || {
+        plugin.compute(dependencies, context)
+    })
 }
 
 fn plugin_name(plugin: PluginId) -> Cow<'static, str> {

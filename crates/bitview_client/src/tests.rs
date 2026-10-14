@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
-use crate::{AnySeriesPattern, BitviewClient, generated::Node};
+use crate::{AnySeriesPattern, BitviewClient, Node};
 
 /// Every typed path of the API contract resolves to its series and indexes, and the tree holds
 /// nothing else. The contract is a workspace snapshot: a published copy of this crate (packaged

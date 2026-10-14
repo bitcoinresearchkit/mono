@@ -19,6 +19,13 @@ pub struct ProcessMonitor {
     cpu: BufWriter<File>,
 }
 
+/// The peak column: macOS's lifetime peak footprint; Linux's `VmHWM`, the peak of the whole
+/// resident size, as Linux keeps no peak of anonymous and shared memory.
+#[cfg(target_os = "macos")]
+const PEAK: &str = "peak_physical_bytes";
+#[cfg(target_os = "linux")]
+const PEAK: &str = "peak_resident_bytes";
+
 struct Sample {
     physical: u64,
     peak: u64,
@@ -32,7 +39,7 @@ impl ProcessMonitor {
         let mut memory = BufWriter::new(File::create(path.join("memory.csv"))?);
         writeln!(
             memory,
-            "timestamp_ms,physical_bytes,peak_physical_bytes,resident_bytes,swap_used_bytes"
+            "timestamp_ms,physical_bytes,{PEAK},resident_bytes,swap_used_bytes"
         )?;
         let mut io = BufWriter::new(File::create(path.join("io.csv"))?);
         writeln!(io, "timestamp_ms,read_bytes,written_bytes,page_ins")?;

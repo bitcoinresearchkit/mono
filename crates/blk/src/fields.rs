@@ -1,11 +1,11 @@
-use std::cell::OnceCell;
+use std::{cell::OnceCell, ops::Deref};
 
 use bitcoin::{
-    Address, Block, Network, ScriptBuf, Transaction, TxIn, TxOut, consensus::encode::serialize_hex,
-    hex::DisplayHex,
+    Address, Block, Network, ScriptBuf, Transaction, TxIn, TxOut, Txid,
+    consensus::encode::serialize_hex, hex::DisplayHex,
 };
 use brk_error::{Error, Result};
-use brk_types::ReadBlock;
+use brk_types::{OutputType, ReadBlock};
 use serde_json::{Map, Value, json};
 
 use crate::path::{Path, Step};
@@ -117,9 +117,12 @@ impl<'a> Ctx<'a> {
     }
 
     fn size_and_weight(&self) -> (usize, usize) {
-        *self
-            .size_weight
-            .get_or_init(|| (self.block.total_size(), self.block.weight().to_wu() as usize))
+        *self.size_weight.get_or_init(|| {
+            (
+                self.block.total_size(),
+                self.block.weight().to_wu() as usize,
+            )
+        })
     }
 
     fn block_field(&self, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
@@ -168,53 +171,46 @@ impl<'a> Ctx<'a> {
                 scalar(json!(b.txdata[0].input[0].script_sig.to_hex_string()))
             }
             "tx" => pick(&b.txdata, name, index, |i, tx| {
-                self.resolve_tx(tx, i == 0, rest)
+                self.resolve_tx(&Tx::new(b, tx, i), rest)
             }),
             other => Err(unknown("block", other)),
         }
     }
 
-    fn resolve_tx(&self, tx: &Transaction, is_coinbase: bool, steps: &[Step]) -> Result<Value> {
+    fn resolve_tx(&self, tx: &Tx, steps: &[Step]) -> Result<Value> {
         if steps.is_empty() {
             let mut obj = Map::with_capacity(TX_FIELDS.len());
             for &name in TX_FIELDS {
                 obj.insert(
                     name.into(),
-                    self.tx_field(tx, is_coinbase, name, None, &[])
-                        .expect("known tx field"),
+                    self.tx_field(tx, name, None, &[]).expect("known tx field"),
                 );
             }
             return Ok(Value::Object(obj));
         }
         let (step, rest) = pop(steps)?;
-        self.tx_field(tx, is_coinbase, &step.name, step.index, rest)
+        self.tx_field(tx, &step.name, step.index, rest)
     }
 
-    fn tx_field(
-        &self,
-        tx: &Transaction,
-        is_coinbase: bool,
-        name: &str,
-        index: Option<usize>,
-        rest: &[Step],
-    ) -> Result<Value> {
+    fn tx_field(&self, tx: &Tx, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
         let scalar = |v| scalar_leaf(v, name, index, rest);
+        let is_coinbase = tx.index == 0;
         match name {
-            "txid" => scalar(json!(tx.compute_txid().to_string())),
+            "txid" => scalar(json!(tx.id_and_sizes().0.to_string())),
             "wtxid" => scalar(json!(tx.compute_wtxid().to_string())),
             "version" => scalar(json!(tx.version.0)),
             "locktime" => scalar(json!(tx.lock_time.to_consensus_u32())),
             "size" => scalar(json!(tx.total_size())),
             "base_size" => scalar(json!(tx.base_size())),
-            "vsize" => scalar(json!(tx.vsize())),
-            "weight" => scalar(json!(tx.weight().to_wu())),
+            "vsize" => scalar(json!(tx.weight().div_ceil(4))),
+            "weight" => scalar(json!(tx.weight())),
             "inputs" => scalar(json!(tx.input.len())),
             "outputs" => scalar(json!(tx.output.len())),
             "is_coinbase" => scalar(json!(is_coinbase)),
             "has_witness" => scalar(json!(tx_has_witness(tx))),
             "is_rbf" => scalar(json!(tx_is_rbf(tx))),
             "total_out" => scalar(json!(tx_total_out(tx))),
-            "hex" => scalar(json!(serialize_hex(tx))),
+            "hex" => scalar(json!(serialize_hex(tx.tx))),
             "vin" => pick(&tx.input, name, index, |j, vin| {
                 resolve_vin(vin, is_coinbase && j == 0, rest)
             }),
@@ -253,7 +249,7 @@ impl<'a> Ctx<'a> {
             "value" => scalar(json!(vout.value.to_sat())),
             "script_pubkey" => scalar(json!(vout.script_pubkey.to_hex_string())),
             "script_pubkey_asm" => scalar(json!(vout.script_pubkey.to_asm_string())),
-            "type" => scalar(json!(script_type(&vout.script_pubkey))),
+            "type" => scalar(json!(OutputType::from(&vout.script_pubkey))),
             "address" => scalar(self.address_value(&vout.script_pubkey)),
             other => Err(unknown("vout", other)),
         }
@@ -263,6 +259,59 @@ impl<'a> Ctx<'a> {
         Address::from_script(s, self.network)
             .map(|a| Value::String(a.to_string()))
             .unwrap_or(Value::Null)
+    }
+}
+
+/// A block transaction whose txid is computed at most once, from the raw block
+/// bytes when available, with its sizes alongside; size-only queries skip the hash.
+struct Tx<'a> {
+    block: &'a ReadBlock,
+    tx: &'a Transaction,
+    index: usize,
+    id_and_sizes: OnceCell<(Txid, u32, u32)>,
+}
+
+impl<'a> Tx<'a> {
+    fn new(block: &'a ReadBlock, tx: &'a Transaction, index: usize) -> Self {
+        Self {
+            block,
+            tx,
+            index,
+            id_and_sizes: OnceCell::new(),
+        }
+    }
+
+    /// Txid, base size and total size.
+    fn id_and_sizes(&self) -> (Txid, u32, u32) {
+        *self
+            .id_and_sizes
+            .get_or_init(|| self.block.compute_tx_id_and_sizes(self.index))
+    }
+
+    fn base_size(&self) -> u32 {
+        self.id_and_sizes.get().map_or_else(
+            || self.tx.base_size() as u32,
+            |&(_, base_size, _)| base_size,
+        )
+    }
+
+    fn total_size(&self) -> u32 {
+        self.id_and_sizes.get().map_or_else(
+            || self.tx.total_size() as u32,
+            |&(_, _, total_size)| total_size,
+        )
+    }
+
+    fn weight(&self) -> u32 {
+        3 * self.base_size() + self.total_size()
+    }
+}
+
+impl Deref for Tx<'_> {
+    type Target = Transaction;
+
+    fn deref(&self) -> &Transaction {
+        self.tx
     }
 }
 
@@ -301,12 +350,15 @@ fn vin_field(
                     "'witness' element has no fields to drill into".into(),
                 ));
             }
-            let items: Vec<String> = vin
-                .witness
-                .iter()
-                .map(|w| w.to_lower_hex_string())
-                .collect();
-            pick(&items, name, index, |_, hex| Ok(Value::String(hex.clone())))
+            let hex = |w: &[u8]| Value::String(w.to_lower_hex_string());
+            match index {
+                Some(i) => vin
+                    .witness
+                    .nth(i)
+                    .map(hex)
+                    .ok_or_else(|| out_of_range(name, i, vin.witness.len())),
+                None => Ok(Value::Array(vin.witness.iter().map(hex).collect())),
+            }
         }
         "has_witness" => scalar(json!(!vin.witness.is_empty())),
         "is_rbf" => scalar(json!(vin.sequence.is_rbf())),
@@ -384,25 +436,5 @@ fn subsidy_sats(height: u32) -> u64 {
         0
     } else {
         (50 * 100_000_000u64) >> halvings
-    }
-}
-
-fn script_type(s: &ScriptBuf) -> &'static str {
-    if s.is_p2pkh() {
-        "p2pkh"
-    } else if s.is_p2sh() {
-        "p2sh"
-    } else if s.is_p2wpkh() {
-        "p2wpkh"
-    } else if s.is_p2wsh() {
-        "p2wsh"
-    } else if s.is_p2tr() {
-        "p2tr"
-    } else if s.is_op_return() {
-        "op_return"
-    } else if s.is_p2pk() {
-        "p2pk"
-    } else {
-        "unknown"
     }
 }

@@ -73,3 +73,10 @@ crate = "statedb"
 item = "state::State::is_empty"
 level = "allow"
 reason = "pairs with the public `len` (clippy::len_without_is_empty)"
+
+[[override]]
+lint = "hawk::dead_public"
+crate = "rangeindex"
+item = "pages::Pages::<T>::is_empty"
+level = "allow"
+reason = "pairs with the public `len` (clippy::len_without_is_empty)"

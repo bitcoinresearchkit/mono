@@ -1,28 +1,19 @@
 use bitview_default::DefaultPlugins;
-use bitview_plugin::{ImportContext, PluginSet};
-use bitview_traversable::Traversable;
+use bitview_plugin::ImportContext;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use tempfile::{TempDir, tempdir};
-use vecdb::{Budgeted, Rw, StorageMode};
-
-/// Every plugin in the repository: the defaults plus any optional plugin (none today).
-#[derive(PluginSet, Traversable)]
-pub struct AllPlugins<M: StorageMode = Rw> {
-    #[traversable(flatten)]
-    #[plugin_set(flatten)]
-    pub(crate) defaults: DefaultPlugins<M>,
-}
+use vecdb::Budgeted;
 
 /// A fresh offline import; the data directory lives as long as this value.
 pub struct Imported {
-    pub plugins: AllPlugins,
-    pub(crate) dir: TempDir,
+    pub plugins: DefaultPlugins,
+    pub dir: TempDir,
 }
 
-/// Imports every plugin into a temporary directory, without a node (like bindgen).
+/// Imports every plugin into a temporary directory, without a node.
 pub fn import() -> Result<Imported> {
     Budgeted::init_global(bitview::DEFAULT_CACHE_BUDGET)?;
     let dir = tempdir()?;
@@ -30,11 +21,6 @@ pub fn import() -> Result<Imported> {
     let reader = Reader::new(dir.path().join("blocks"), &client);
     let exit = Exit::new();
     let context = ImportContext::new(dir.path(), &exit);
-
-    let defaults = DefaultPlugins::import(context, &reader)?;
-
-    Ok(Imported {
-        plugins: AllPlugins { defaults },
-        dir,
-    })
+    let plugins = DefaultPlugins::import(context, &reader)?;
+    Ok(Imported { plugins, dir })
 }

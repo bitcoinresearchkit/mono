@@ -8,673 +8,19 @@
 #![allow(clippy::useless_format)]
 #![allow(clippy::unnecessary_to_owned)]
 
-use crate::{DateSeriesData, FormatResponse};
+use crate::{
+    BitviewClientBase, BitviewClientOptions, BitviewError, DateSeriesEndpoint, FormatResponse,
+    Node, Result, SeriesEndpoint, SeriesValue,
+    address::validate_address_payload_for_type,
+    address_hash_prefix, address_payload_hash_prefix,
+    client_base::{parse_text, query_pair},
+};
 pub use bitview_catalog::*;
 pub use bitview_cohort::*;
 pub use bitview_primitives::*;
 pub use bitview_types::*;
 pub use brk_types::*;
-use serde::de::DeserializeOwned;
-use std::ops::{Bound, RangeBounds};
-use std::str::FromStr;
-use std::sync::{Arc, LazyLock, OnceLock};
-
-/// Lazily initialized typed series-tree node.
-pub type LazyNode<T> = LazyLock<Box<T>, Box<dyn FnOnce() -> Box<T> + Send + Sync>>;
-
-/// Error type for Bitview client operations.
-#[derive(Debug)]
-pub struct BitviewError {
-    /// HTTP status of the server's error answer.
-    pub status: Option<u16>,
-    /// The server's machine-readable code, from its error body.
-    pub code: Option<ErrorCode>,
-    pub message: String,
-}
-
-impl BitviewError {
-    /// A client-side error, not an answer from the server.
-    pub fn new(message: impl Into<String>) -> Self {
-        Self {
-            status: None,
-            code: None,
-            message: message.into(),
-        }
-    }
-}
-
-impl std::fmt::Display for BitviewError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-impl std::error::Error for BitviewError {}
-
-/// Result using the Bitview client's error type.
-pub type Result<T> = std::result::Result<T, BitviewError>;
-
-/// BRK address type and raw payload bytes used by the hash-prefix index.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AddressPayload {
-    pub address_type: OutputType,
-    pub payload: Vec<u8>,
-}
-
-/// BRK address type and leading hex nibbles of the address-payload hash.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AddressHashPrefix {
-    pub address_type: OutputType,
-    pub prefix: String,
-}
-
-/// Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`.
-pub fn address_payload_hash_prefix(payload: &[u8], nibbles: usize) -> Result<String> {
-    if payload.is_empty() {
-        return Err(BitviewError::new("Expected a non-empty address payload"));
-    }
-    if payload.len() > 65 {
-        return Err(BitviewError::new(
-            "Expected at most 65 address payload bytes",
-        ));
-    }
-    if !(1..=16).contains(&nibbles) {
-        return Err(BitviewError::new(
-            "Expected hash-prefix length from 1 to 16 hex nibbles",
-        ));
-    }
-    Ok(format!("{:016x}", rapidhash::v3::rapidhash_v3(payload))[..nibbles].to_string())
-}
-
-fn validate_address_payload_for_type(address_type: OutputType, payload: &[u8]) -> Result<()> {
-    let expected: &[usize] = match address_type {
-        OutputType::P2A => &[2],
-        OutputType::P2PK33 => &[33],
-        OutputType::P2PK65 => &[65],
-        OutputType::P2PKH | OutputType::P2SH | OutputType::P2WPKH => &[20],
-        OutputType::P2WSH | OutputType::P2TR => &[32],
-        OutputType::P2MS | OutputType::OpReturn | OutputType::Empty | OutputType::Unknown => {
-            return Err(BitviewError::new(format!(
-                "Unsupported address type for address payload hash-prefix: {address_type:?}"
-            )));
-        }
-    };
-
-    if !expected.contains(&payload.len()) {
-        let joined = expected
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(" or ");
-        return Err(BitviewError::new(format!(
-            "Expected {address_type} address payload length {joined} bytes"
-        )));
-    }
-
-    Ok(())
-}
-
-/// Decode a mainnet Bitcoin address into the BRK address type and raw payload bytes.
-pub fn decode_address_payload(address: &str) -> Result<AddressPayload> {
-    if address.is_empty() {
-        return Err(BitviewError::new("Expected an address string"));
-    }
-    let addr_bytes =
-        AddressBytes::from_str(address).map_err(|e| BitviewError::new(e.to_string()))?;
-    let address_type = OutputType::from(&addr_bytes);
-
-    Ok(AddressPayload {
-        address_type,
-        payload: addr_bytes.as_slice().to_vec(),
-    })
-}
-
-/// Decode a mainnet Bitcoin address and compute its hash prefix.
-pub fn address_hash_prefix(address: &str, nibbles: usize) -> Result<AddressHashPrefix> {
-    let decoded = decode_address_payload(address)?;
-    Ok(AddressHashPrefix {
-        address_type: decoded.address_type,
-        prefix: address_payload_hash_prefix(&decoded.payload, nibbles)?,
-    })
-}
-
-/// Options for configuring the Bitview client.
-#[derive(Debug, Clone)]
-pub struct BitviewClientOptions {
-    pub base_url: String,
-    pub timeout_secs: u64,
-}
-
-impl Default for BitviewClientOptions {
-    fn default() -> Self {
-        Self {
-            base_url: "http://localhost:3110".to_string(),
-            timeout_secs: 30,
-        }
-    }
-}
-
-/// `name=value`, the value percent-encoded (RFC 3986 unreserved characters pass through).
-fn query_pair(name: &str, value: impl std::fmt::Display) -> String {
-    let value = value.to_string();
-    let mut pair = format!("{name}=");
-    for byte in value.bytes() {
-        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-            pair.push(char::from(byte));
-        } else {
-            pair.push_str(&format!("%{byte:02X}"));
-        }
-    }
-    pair
-}
-
-/// Base HTTP client for making requests. Reuses connections via ureq::Agent.
-#[derive(Debug, Clone)]
-pub struct BitviewClientBase {
-    agent: ureq::Agent,
-    base_url: String,
-}
-
-impl BitviewClientBase {
-    /// Create a new client with the given base URL.
-    pub fn new(base_url: impl Into<String>) -> Self {
-        Self::with_options(BitviewClientOptions {
-            base_url: base_url.into(),
-            ..Default::default()
-        })
-    }
-
-    /// Create a new client with options.
-    pub fn with_options(options: BitviewClientOptions) -> Self {
-        let agent = ureq::Agent::config_builder()
-            .timeout_global(Some(std::time::Duration::from_secs(options.timeout_secs)))
-            .http_status_as_error(false)
-            .build()
-            .into();
-        Self {
-            agent,
-            base_url: options.base_url.trim_end_matches('/').to_string(),
-        }
-    }
-
-    fn url(&self, path: &str) -> String {
-        format!("{}{}", self.base_url, path)
-    }
-
-    /// Passes a successful answer through; an error status becomes a `BitviewError` with the
-    /// server's code and message when it sent an error body.
-    fn check(
-        response: std::result::Result<ureq::http::Response<ureq::Body>, ureq::Error>,
-    ) -> Result<ureq::http::Response<ureq::Body>> {
-        let mut response = response.map_err(|e| BitviewError::new(e.to_string()))?;
-        let status = response.status();
-        if status.is_success() {
-            return Ok(response);
-        }
-        let text = response.body_mut().read_to_string().unwrap_or_default();
-        // Fields read one by one: a code this client doesn't know keeps the server's message.
-        let detail = serde_json::from_str::<serde_json::Value>(&text)
-            .ok()
-            .and_then(|mut body| body.get_mut("error").map(serde_json::Value::take));
-        let field = |name: &str| detail.as_ref().and_then(|detail| detail.get(name)).cloned();
-        let code = field("code").and_then(|code| serde_json::from_value::<ErrorCode>(code).ok());
-        let message = match field("message") {
-            Some(serde_json::Value::String(message)) => message,
-            _ if text.is_empty() => status.to_string(),
-            _ => text,
-        };
-        Err(BitviewError {
-            status: Some(status.as_u16()),
-            code,
-            message,
-        })
-    }
-
-    /// Make a GET request and deserialize JSON response.
-    pub fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
-            body.read_json()
-        })
-    }
-
-    /// Make a GET request and return raw text response.
-    pub fn get_text(&self, path: &str) -> Result<String> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
-            body.read_to_string()
-        })
-    }
-
-    /// Make a GET request and return raw bytes response.
-    pub fn get_bytes(&self, path: &str) -> Result<Vec<u8>> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
-            body.read_to_vec()
-        })
-    }
-
-    /// Make a POST request and deserialize JSON response.
-    pub fn post_json<T: DeserializeOwned>(&self, path: &str, body: &str) -> Result<T> {
-        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
-            body.read_json()
-        })
-    }
-
-    /// Make a POST request and return raw text response.
-    pub fn post_text(&self, path: &str, body: &str) -> Result<String> {
-        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
-            body.read_to_string()
-        })
-    }
-
-    /// Make a POST request and return raw bytes response.
-    pub fn post_bytes(&self, path: &str, body: &str) -> Result<Vec<u8>> {
-        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
-            body.read_to_vec()
-        })
-    }
-
-    /// Reads a successful response's whole body: the server bounds its responses, so the
-    /// client adds no cap (ureq's default stops at 10 MiB, below the full UTXO set).
-    fn read<T>(
-        response: std::result::Result<ureq::http::Response<ureq::Body>, ureq::Error>,
-        read: impl FnOnce(ureq::BodyWithConfig<'_>) -> std::result::Result<T, ureq::Error>,
-    ) -> Result<T> {
-        let mut response = Self::check(response)?;
-        read(response.body_mut().with_config().limit(u64::MAX))
-            .map_err(|e| BitviewError::new(e.to_string()))
-    }
-}
-
-/// Non-generic trait for series patterns (usable in collections).
-pub trait AnySeriesPattern {
-    /// Get the series name.
-    fn name(&self) -> &str;
-
-    /// Get the list of available indexes for this series.
-    fn indexes(&self) -> &'static [Index];
-}
-
-/// Generic trait for series patterns with endpoint access.
-pub trait SeriesPattern<T>: AnySeriesPattern {
-    /// Get an endpoint builder for a specific index, if supported.
-    fn get(&self, index: Index) -> Option<SeriesEndpoint<T>>;
-}
-
-impl<P: AnySeriesPattern> AnySeriesPattern for LazyNode<P> {
-    fn name(&self) -> &str {
-        (**self).name()
-    }
-
-    fn indexes(&self) -> &'static [Index] {
-        (**self).indexes()
-    }
-}
-
-impl<T, P: SeriesPattern<T>> SeriesPattern<T> for LazyNode<P> {
-    fn get(&self, index: Index) -> Option<SeriesEndpoint<T>> {
-        (**self).get(index)
-    }
-}
-
-/// Shared endpoint configuration.
-#[derive(Clone)]
-struct EndpointConfig {
-    client: Arc<BitviewClientBase>,
-    name: Arc<str>,
-    index: Index,
-    start: Option<i64>,
-    end: Option<i64>,
-}
-
-impl EndpointConfig {
-    fn new(client: Arc<BitviewClientBase>, name: Arc<str>, index: Index) -> Self {
-        Self {
-            client,
-            name,
-            index,
-            start: None,
-            end: None,
-        }
-    }
-
-    fn path(&self) -> String {
-        format!("/api/series/{}/{}", self.name, self.index.name())
-    }
-
-    fn build_path(&self, format: Option<&str>) -> String {
-        let mut params = Vec::new();
-        if let Some(s) = self.start {
-            params.push(format!("start={}", s));
-        }
-        if let Some(e) = self.end {
-            params.push(format!("end={}", e));
-        }
-        if let Some(fmt) = format {
-            params.push(format!("format={}", fmt));
-        }
-        let p = self.path();
-        if params.is_empty() {
-            p
-        } else {
-            format!("{}?{}", p, params.join("&"))
-        }
-    }
-
-    fn get_json<T: DeserializeOwned>(&self, format: Option<&str>) -> Result<T> {
-        self.client.get_json(&self.build_path(format))
-    }
-
-    fn get_text(&self, format: Option<&str>) -> Result<String> {
-        self.client.get_text(&self.build_path(format))
-    }
-
-    fn get_len(&self) -> Result<i64> {
-        self.client.get_json(&format!(
-            "/api/series/{}/{}/len",
-            self.name,
-            self.index.name()
-        ))
-    }
-
-    fn get_version(&self) -> Result<u32> {
-        self.client.get_json(&format!(
-            "/api/series/{}/{}/version",
-            self.name,
-            self.index.name()
-        ))
-    }
-}
-
-/// Builder for series endpoint queries.
-///
-/// Parameterized by element type `T` and response type `D` (defaults to `SeriesData<T>`).
-/// For date-based indexes, use `DateSeriesEndpoint<T>` which sets `D = DateSeriesData<T>`.
-///
-/// # Examples
-/// ```ignore
-/// let data = endpoint.fetch()?;                   // all data
-/// let data = endpoint.get(5).fetch()?;             // single item
-/// let data = endpoint.range(..10).fetch()?;        // first 10
-/// let data = endpoint.range(100..200).fetch()?;    // range [100, 200)
-/// let data = endpoint.take(10).fetch()?;           // first 10 (convenience)
-/// let data = endpoint.last(10).fetch()?;           // last 10
-/// let data = endpoint.skip(100).take(10).fetch()?; // iterator-style
-/// ```
-pub struct SeriesEndpoint<T, D = SeriesData<T>> {
-    config: EndpointConfig,
-    _marker: std::marker::PhantomData<fn() -> (T, D)>,
-}
-
-/// Date-based series endpoint with date and timestamp selectors.
-pub struct DateSeriesEndpoint<T>(SeriesEndpoint<T, DateSeriesData<T>>);
-
-impl<T: DeserializeOwned, D: DeserializeOwned> SeriesEndpoint<T, D> {
-    pub fn new(client: Arc<BitviewClientBase>, name: Arc<str>, index: Index) -> Self {
-        Self {
-            config: EndpointConfig::new(client, name, index),
-            _marker: std::marker::PhantomData,
-        }
-    }
-
-    /// Select a specific index position.
-    pub fn get(mut self, index: usize) -> SingleItemBuilder<T, D> {
-        self.config.start = Some(index as i64);
-        self.config.end = Some(index as i64 + 1);
-        SingleItemBuilder {
-            config: self.config,
-            _marker: std::marker::PhantomData,
-        }
-    }
-
-    /// Select a range using Rust range syntax.
-    ///
-    /// # Examples
-    /// ```ignore
-    /// endpoint.range(..10)      // first 10
-    /// endpoint.range(100..110)  // indices 100-109
-    /// endpoint.range(100..)     // from 100 to end
-    /// ```
-    pub fn range<R: RangeBounds<usize>>(mut self, range: R) -> RangeBuilder<T, D> {
-        self.config.start = match range.start_bound() {
-            Bound::Included(&n) => Some(n as i64),
-            Bound::Excluded(&n) => Some(n as i64 + 1),
-            Bound::Unbounded => None,
-        };
-        self.config.end = match range.end_bound() {
-            Bound::Included(&n) => Some(n as i64 + 1),
-            Bound::Excluded(&n) => Some(n as i64),
-            Bound::Unbounded => None,
-        };
-        RangeBuilder {
-            config: self.config,
-            _marker: std::marker::PhantomData,
-        }
-    }
-
-    /// Take the first n items.
-    pub fn take(self, n: usize) -> RangeBuilder<T, D> {
-        self.range(..n)
-    }
-
-    /// Take the last n items.
-    pub fn last(mut self, n: usize) -> RangeBuilder<T, D> {
-        if n == 0 {
-            self.config.end = Some(0);
-        } else {
-            self.config.start = Some(-(n as i64));
-        }
-        RangeBuilder {
-            config: self.config,
-            _marker: std::marker::PhantomData,
-        }
-    }
-
-    /// Skip the first n items. Chain with `take(n)` to get a range.
-    pub fn skip(mut self, n: usize) -> SkippedBuilder<T, D> {
-        self.config.start = Some(n as i64);
-        SkippedBuilder {
-            config: self.config,
-            _marker: std::marker::PhantomData,
-        }
-    }
-
-    /// Fetch all data as parsed JSON.
-    pub fn fetch(self) -> Result<D> {
-        self.config.get_json(None)
-    }
-
-    /// Fetch all data as CSV string.
-    pub fn fetch_csv(self) -> Result<String> {
-        self.config.get_text(Some("csv"))
-    }
-
-    /// Total number of data points for this series.
-    #[allow(clippy::len_without_is_empty)]
-    pub fn len(&self) -> Result<i64> {
-        self.config.get_len()
-    }
-
-    /// Current version of the series.
-    pub fn version(&self) -> Result<u32> {
-        self.config.get_version()
-    }
-
-    /// Get the base endpoint path.
-    pub fn path(&self) -> String {
-        self.config.path()
-    }
-}
-
-fn required_date_index(position: Option<usize>) -> Result<usize> {
-    position
-        .ok_or_else(|| BitviewError::new("Date or timestamp is not representable for this index"))
-}
-
-/// Date-specific methods available only on `DateSeriesEndpoint`.
-impl<T: DeserializeOwned> SeriesEndpoint<T, DateSeriesData<T>> {
-    /// Select a specific date position (for day-precision or coarser indexes).
-    pub fn get_date(self, date: Date) -> Result<SingleItemBuilder<T, DateSeriesData<T>>> {
-        let index = required_date_index(self.config.index.date_to_index(date))?;
-        Ok(self.get(index))
-    }
-
-    /// Select a date range (for day-precision or coarser indexes).
-    pub fn date_range(self, start: Date, end: Date) -> Result<RangeBuilder<T, DateSeriesData<T>>> {
-        let s = required_date_index(self.config.index.date_to_index(start))?;
-        let e = required_date_index(self.config.index.date_to_index(end))?;
-        Ok(self.range(s..e))
-    }
-
-    /// Select a specific timestamp position (works for all date-based indexes including sub-daily).
-    pub fn get_timestamp(self, ts: Timestamp) -> Result<SingleItemBuilder<T, DateSeriesData<T>>> {
-        let index = required_date_index(self.config.index.timestamp_to_index(ts))?;
-        Ok(self.get(index))
-    }
-
-    /// Select a timestamp range (works for all date-based indexes including sub-daily).
-    pub fn timestamp_range(
-        self,
-        start: Timestamp,
-        end: Timestamp,
-    ) -> Result<RangeBuilder<T, DateSeriesData<T>>> {
-        let s = required_date_index(self.config.index.timestamp_to_index(start))?;
-        let e = required_date_index(self.config.index.timestamp_to_index(end))?;
-        Ok(self.range(s..e))
-    }
-}
-
-impl<T: DeserializeOwned> DateSeriesEndpoint<T> {
-    pub fn new(client: Arc<BitviewClientBase>, name: Arc<str>, index: Index) -> Self {
-        Self(SeriesEndpoint::new(client, name, index))
-    }
-
-    pub fn get(self, index: usize) -> SingleItemBuilder<T, DateSeriesData<T>> {
-        self.0.get(index)
-    }
-
-    pub fn range<R: RangeBounds<usize>>(self, range: R) -> RangeBuilder<T, DateSeriesData<T>> {
-        self.0.range(range)
-    }
-
-    pub fn take(self, n: usize) -> RangeBuilder<T, DateSeriesData<T>> {
-        self.0.take(n)
-    }
-
-    pub fn last(self, n: usize) -> RangeBuilder<T, DateSeriesData<T>> {
-        self.0.last(n)
-    }
-
-    pub fn skip(self, n: usize) -> SkippedBuilder<T, DateSeriesData<T>> {
-        self.0.skip(n)
-    }
-
-    pub fn fetch(self) -> Result<DateSeriesData<T>> {
-        self.0.fetch()
-    }
-
-    pub fn fetch_csv(self) -> Result<String> {
-        self.0.fetch_csv()
-    }
-
-    #[allow(clippy::len_without_is_empty)]
-    pub fn len(&self) -> Result<i64> {
-        self.0.len()
-    }
-
-    pub fn version(&self) -> Result<u32> {
-        self.0.version()
-    }
-
-    pub fn path(&self) -> String {
-        self.0.path()
-    }
-
-    pub fn get_date(self, date: Date) -> Result<SingleItemBuilder<T, DateSeriesData<T>>> {
-        self.0.get_date(date)
-    }
-
-    pub fn date_range(self, start: Date, end: Date) -> Result<RangeBuilder<T, DateSeriesData<T>>> {
-        self.0.date_range(start, end)
-    }
-
-    pub fn get_timestamp(
-        self,
-        timestamp: Timestamp,
-    ) -> Result<SingleItemBuilder<T, DateSeriesData<T>>> {
-        self.0.get_timestamp(timestamp)
-    }
-
-    pub fn timestamp_range(
-        self,
-        start: Timestamp,
-        end: Timestamp,
-    ) -> Result<RangeBuilder<T, DateSeriesData<T>>> {
-        self.0.timestamp_range(start, end)
-    }
-}
-
-/// Builder for single item access.
-pub struct SingleItemBuilder<T, D = SeriesData<T>> {
-    config: EndpointConfig,
-    _marker: std::marker::PhantomData<fn() -> (T, D)>,
-}
-
-impl<T: DeserializeOwned, D: DeserializeOwned> SingleItemBuilder<T, D> {
-    /// Fetch the single item.
-    pub fn fetch(self) -> Result<D> {
-        self.config.get_json(None)
-    }
-
-    /// Fetch the single item as CSV.
-    pub fn fetch_csv(self) -> Result<String> {
-        self.config.get_text(Some("csv"))
-    }
-}
-
-/// Builder after calling `skip(n)`. Chain with `take(n)` to specify count.
-pub struct SkippedBuilder<T, D = SeriesData<T>> {
-    config: EndpointConfig,
-    _marker: std::marker::PhantomData<fn() -> (T, D)>,
-}
-
-impl<T: DeserializeOwned, D: DeserializeOwned> SkippedBuilder<T, D> {
-    /// Take n items after the skipped position.
-    pub fn take(mut self, n: usize) -> RangeBuilder<T, D> {
-        let start = self.config.start.unwrap_or(0);
-        self.config.end = Some(start + n as i64);
-        RangeBuilder {
-            config: self.config,
-            _marker: std::marker::PhantomData,
-        }
-    }
-
-    /// Fetch from the skipped position to the end.
-    pub fn fetch(self) -> Result<D> {
-        self.config.get_json(None)
-    }
-
-    /// Fetch from the skipped position to the end as CSV.
-    pub fn fetch_csv(self) -> Result<String> {
-        self.config.get_text(Some("csv"))
-    }
-}
-
-/// Builder with range fully specified.
-pub struct RangeBuilder<T, D = SeriesData<T>> {
-    config: EndpointConfig,
-    _marker: std::marker::PhantomData<fn() -> (T, D)>,
-}
-
-impl<T: DeserializeOwned, D: DeserializeOwned> RangeBuilder<T, D> {
-    /// Fetch the range as parsed JSON.
-    pub fn fetch(self) -> Result<D> {
-        self.config.get_json(None)
-    }
-
-    /// Fetch the range as CSV string.
-    pub fn fetch_csv(self) -> Result<String> {
-        self.config.get_text(Some("csv"))
-    }
-}
+use std::sync::{Arc, OnceLock};
 
 // Static index arrays
 const _I1: &[Index] = &[
@@ -746,83 +92,6 @@ const _I33: &[Index] = &[Index::P2WPKHAddressIndex];
 const _I34: &[Index] = &[Index::P2WSHAddressIndex];
 const _I35: &[Index] = &[Index::UnknownOutputIndex];
 
-#[inline]
-fn _ep<T: DeserializeOwned>(
-    c: &Arc<BitviewClientBase>,
-    n: &Arc<str>,
-    i: Index,
-) -> SeriesEndpoint<T> {
-    SeriesEndpoint::new(c.clone(), n.clone(), i)
-}
-
-#[inline]
-fn _dep<T: DeserializeOwned>(
-    c: &Arc<BitviewClientBase>,
-    n: &Arc<str>,
-    i: Index,
-) -> DateSeriesEndpoint<T> {
-    DateSeriesEndpoint::new(c.clone(), n.clone(), i)
-}
-
-/// A leaf accessor: the series name plus one endpoint method per index (`date` for date indexes),
-/// each with its value type (`T::Nullable` where values can be missing); `get` takes the weakest.
-macro_rules! accessor {
-    ($name:ident, $by:ident, $indexes:ident, $any:ty { $($kind:ident $method:ident: $index:ident -> $value:ty,)* }) => {
-        pub struct $by<T> {
-            client: Arc<BitviewClientBase>,
-            name: Arc<str>,
-            _marker: std::marker::PhantomData<T>,
-        }
-        impl<T: DeserializeOwned + SeriesValue<Nullable: DeserializeOwned>> $by<T> {
-            $(accessor!(@method $kind $method $index $value);)*
-        }
-        pub struct $name<T> {
-            name: Arc<str>,
-            pub by: $by<T>,
-        }
-        impl<T: DeserializeOwned> $name<T> {
-            pub fn new(client: Arc<BitviewClientBase>, name: String) -> Self {
-                let name: Arc<str> = name.into();
-                Self { name: name.clone(), by: $by { client, name, _marker: std::marker::PhantomData } }
-            }
-            pub fn name(&self) -> &str {
-                &self.name
-            }
-        }
-        impl<T> AnySeriesPattern for $name<T> {
-            fn name(&self) -> &str {
-                &self.name
-            }
-            fn indexes(&self) -> &'static [Index] {
-                $indexes
-            }
-        }
-        impl<T: DeserializeOwned + SeriesValue<Nullable: DeserializeOwned>> SeriesPattern<$any> for $name<T> {
-            fn get(&self, index: Index) -> Option<SeriesEndpoint<$any>> {
-                $indexes.contains(&index).then(|| _ep(&self.by.client, &self.by.name, index))
-            }
-        }
-        impl<T: DeserializeOwned + SeriesValue<Nullable: DeserializeOwned> + Send + Sync + 'static> Node for $name<T> {
-            fn build(client: Arc<BitviewClientBase>, name: String) -> Self {
-                Self::new(client, name)
-            }
-            #[cfg(test)]
-            fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern)) {
-                f(path, self)
-            }
-        }
-    };
-    (@method date $method:ident $index:ident $value:ty) => {
-        pub fn $method(&self) -> DateSeriesEndpoint<$value> {
-            _dep(&self.client, &self.name, Index::$index)
-        }
-    };
-    (@method plain $method:ident $index:ident $value:ty) => {
-        pub fn $method(&self) -> SeriesEndpoint<$value> {
-            _ep(&self.client, &self.name, Index::$index)
-        }
-    };
-}
 accessor! { SeriesPattern1, SeriesPattern1By, _I1, T::Nullable {
     date minute10: Minute10 -> T::Nullable,
     date minute30: Minute30 -> T::Nullable,
@@ -957,62 +226,6 @@ accessor! { SeriesPattern34, SeriesPattern34By, _I34, T {
 accessor! { SeriesPattern35, SeriesPattern35By, _I35, T {
     plain unknown_output_index: UnknownOutputIndex -> T,
 } }
-
-/// A series value type, as a type parameter of the leaf accessors.
-pub trait SeriesValue {
-    /// The value where it can be missing (e.g. a period without blocks): `Option<Self>`, or the
-    /// value itself when it is already optional.
-    type Nullable;
-}
-
-impl<T> SeriesValue for Option<T> {
-    type Nullable = Option<T>;
-}
-
-/// A series-tree node or leaf, built from its series name or base.
-pub(crate) trait Node: Sized + Send + Sync + 'static {
-    fn build(client: Arc<BitviewClientBase>, name: String) -> Self;
-    #[cfg(test)]
-    fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern));
-}
-
-/// A child named by `template`: `*` stands for the parent's base, and with an empty base the `_`
-/// joining it goes too.
-fn child<T: Node>(
-    client: &Arc<BitviewClientBase>,
-    base: &Arc<str>,
-    template: &'static str,
-) -> LazyNode<T> {
-    let (client, base) = (client.clone(), base.clone());
-    LazyLock::new(Box::new(move || {
-        let name = if !base.is_empty() {
-            template.replacen('*', &base, 1)
-        } else if let Some(rest) = template.strip_prefix("*_") {
-            rest.to_owned()
-        } else {
-            template.replacen("_*", "", 1).replacen('*', "", 1)
-        };
-        Box::new(T::build(client, name))
-    }))
-}
-
-/// A series-tree shape: a struct with one lazy field per child, documented with its canonical path.
-macro_rules! shape {
-    ($name:ident $(<$($p:ident),+>)? at $at:literal { $($field:ident: $ty:ty = $template:literal,)* }) => {
-        #[doc = concat!("Series-tree node, e.g. at `", $at, "`.")]
-        pub struct $name $(<$($p),+>)? { $(pub $field: LazyNode<$ty>,)* }
-        impl $(<$($p: Send + Sync + 'static),+>)? Node for $name $(<$($p),+>)? where $($ty: Node,)* {
-            fn build(client: Arc<BitviewClientBase>, base: String) -> Self {
-                let base: Arc<str> = base.into();
-                Self { $($field: child(&client, &base, $template),)* }
-            }
-            #[cfg(test)]
-            fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern)) {
-                $(self.$field.visit(&format!("{path}{}{}", if path.is_empty() { "" } else { "." }, stringify!($field)), f);)*
-            }
-        }
-    };
-}
 impl SeriesValue for Address {
     type Nullable = Option<Address>;
 }
@@ -2969,9 +2182,6 @@ pub mod tree {
     } }
 }
 pub use tree::SeriesTree;
-fn create_series_tree(client: Arc<BitviewClientBase>) -> SeriesTree {
-    SeriesTree::build(client, String::new())
-}
 /// Main Bitview client with series tree and API methods.
 pub struct BitviewClient {
     base: Arc<BitviewClientBase>,
@@ -3003,7 +2213,7 @@ impl BitviewClient {
     /// Get the series tree for navigating series.
     pub fn series(&self) -> &SeriesTree {
         self.series
-            .get_or_init(|| Box::new(create_series_tree(self.base.clone())))
+            .get_or_init(|| Box::new(SeriesTree::build(self.base.clone(), String::new())))
     }
 
     /// Create a dynamic series endpoint builder for any series/index combination.
@@ -3039,7 +2249,7 @@ impl BitviewClient {
                 index.name()
             )));
         }
-        Ok(DateSeriesEndpoint::new(
+        Ok(SeriesEndpoint::new(
             self.base.clone(),
             Arc::from(series.into().as_str()),
             index,
@@ -3589,8 +2799,10 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-header)*
     ///
     /// Endpoint: `GET /api/block/{hash}/header`
-    pub fn get_block_header(&self, hash: BlockHash) -> Result<String> {
-        self.base.get_text(&format!("/api/block/{hash}/header"))
+    pub fn get_block_header(&self, hash: BlockHash) -> Result<Hex> {
+        self.base
+            .get_text(&format!("/api/block/{hash}/header"))
+            .and_then(parse_text)
     }
 
     /// Block hash by height
@@ -3600,8 +2812,10 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
     ///
     /// Endpoint: `GET /api/block-height/{height}`
-    pub fn get_block_by_height(&self, height: Height) -> Result<String> {
-        self.base.get_text(&format!("/api/block-height/{height}"))
+    pub fn get_block_by_height(&self, height: Height) -> Result<BlockHash> {
+        self.base
+            .get_text(&format!("/api/block-height/{height}"))
+            .and_then(parse_text)
     }
 
     /// Block by timestamp
@@ -3645,8 +2859,8 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
     ///
     /// Endpoint: `GET /api/blocks/tip/height`
-    pub fn get_block_tip_height(&self) -> Result<String> {
-        self.base.get_text(&format!("/api/blocks/tip/height"))
+    pub fn get_block_tip_height(&self) -> Result<Height> {
+        self.base.get_json(&format!("/api/blocks/tip/height"))
     }
 
     /// Block tip hash
@@ -3656,8 +2870,10 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
     ///
     /// Endpoint: `GET /api/blocks/tip/hash`
-    pub fn get_block_tip_hash(&self) -> Result<String> {
-        self.base.get_text(&format!("/api/blocks/tip/hash"))
+    pub fn get_block_tip_hash(&self) -> Result<BlockHash> {
+        self.base
+            .get_text(&format!("/api/blocks/tip/hash"))
+            .and_then(parse_text)
     }
 
     /// Transaction ID at index
@@ -3667,9 +2883,10 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-id)*
     ///
     /// Endpoint: `GET /api/block/{hash}/txid/{index}`
-    pub fn get_block_txid(&self, hash: BlockHash, index: BlockTxIndex) -> Result<String> {
+    pub fn get_block_txid(&self, hash: BlockHash, index: BlockTxIndex) -> Result<Txid> {
         self.base
             .get_text(&format!("/api/block/{hash}/txid/{index}"))
+            .and_then(parse_text)
     }
 
     /// Block transaction IDs
@@ -4094,8 +3311,10 @@ impl BitviewClient {
     /// Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
     ///
     /// Endpoint: `GET /api/tx-index/{index}`
-    pub fn get_tx_by_index(&self, index: TxIndex) -> Result<String> {
-        self.base.get_text(&format!("/api/tx-index/{index}"))
+    pub fn get_tx_by_index(&self, index: TxIndex) -> Result<Txid> {
+        self.base
+            .get_text(&format!("/api/tx-index/{index}"))
+            .and_then(parse_text)
     }
 
     /// CPFP info
@@ -4138,8 +3357,10 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*
     ///
     /// Endpoint: `GET /api/tx/{txid}/hex`
-    pub fn get_tx_hex(&self, txid: Txid) -> Result<String> {
-        self.base.get_text(&format!("/api/tx/{txid}/hex"))
+    pub fn get_tx_hex(&self, txid: Txid) -> Result<Hex> {
+        self.base
+            .get_text(&format!("/api/tx/{txid}/hex"))
+            .and_then(parse_text)
     }
 
     /// Transaction merkleblock proof
@@ -4149,9 +3370,10 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkleblock-proof)*
     ///
     /// Endpoint: `GET /api/tx/{txid}/merkleblock-proof`
-    pub fn get_tx_merkleblock_proof(&self, txid: Txid) -> Result<String> {
+    pub fn get_tx_merkleblock_proof(&self, txid: Txid) -> Result<Hex> {
         self.base
             .get_text(&format!("/api/tx/{txid}/merkleblock-proof"))
+            .and_then(parse_text)
     }
 
     /// Transaction merkle proof
@@ -4240,13 +3462,8 @@ impl BitviewClient {
     /// Endpoint: `POST /api/tx`
     pub fn post_tx(&self, body: &str) -> Result<Txid> {
         self.base
-            .post_text(&format!("/api/tx"), body)?
-            .parse::<Txid>()
-            .map_err(|error| {
-                BitviewError::new(format!(
-                    "Invalid submission response; outcome may be unknown: {error}"
-                ))
-            })
+            .post_text(&format!("/api/tx"), body)
+            .and_then(parse_text)
     }
 
     /// Latest UTXO set

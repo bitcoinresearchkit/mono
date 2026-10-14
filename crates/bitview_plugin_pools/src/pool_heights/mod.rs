@@ -1,8 +1,9 @@
 use std::{convert::Infallible, marker::PhantomData, sync::Arc};
 
+use arc_swap::ArcSwap;
 use bitview_primitives::PoolSlug;
 use brk_types::Height;
-use parking_lot::RwLock;
+use rangeindex::Pages;
 use rustc_hash::FxHashMap;
 use vecdb::{
     AnyVec, BytesVec, PrintableIndex, ReadOnlyClone, ReadableVec, TypedVec, VecIndex, VecValue,
@@ -23,16 +24,26 @@ pub enum Column {
     FeeCents,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct Record {
-    heights: Vec<Height>,
+    heights: Pages<Height>,
     /// Running reward totals through each of `heights`, for the first `totals.len()` of them.
-    totals: Vec<Rewards>,
+    totals: Pages<Rewards>,
 }
 
-#[derive(Default)]
-struct State {
-    by_pool: FxHashMap<PoolSlug, Record>,
+static NO_HEIGHTS: Pages<Height> = Pages::new();
+
+impl Record {
+    fn heights(record: Option<&Self>) -> &Pages<Height> {
+        record.map_or(&NO_HEIGHTS, |record| &record.heights)
+    }
+}
+
+/// One published state of every pool's blocks and reward totals. A clone shares every record
+/// and page; the compute stages one, updates it, and publishes it whole.
+#[derive(Clone, Default)]
+pub(crate) struct PoolSnapshot {
+    by_pool: FxHashMap<PoolSlug, Arc<Record>>,
     len: usize,
     version: Version,
     /// Blocks below this height have their rewards in every pool's totals.
@@ -41,8 +52,9 @@ struct State {
 }
 
 /// Every pool's blocks and reward running totals, in memory; all per-pool series read it.
+/// Each read loads one immutable snapshot, so readers never wait for the compute.
 #[derive(Clone, Default)]
-pub struct PoolHeights(Arc<RwLock<State>>);
+pub struct PoolHeights(Arc<ArcSwap<PoolSnapshot>>);
 
 impl PoolHeights {
     /// Rewards are filled by the first compute, once their sources are computed.
@@ -57,8 +69,11 @@ impl PoolHeights {
                 .heights
                 .push(Height::from(h));
         }
-        Self(Arc::new(RwLock::new(State {
-            by_pool,
+        Self(Arc::new(ArcSwap::from_pointee(PoolSnapshot {
+            by_pool: by_pool
+                .into_iter()
+                .map(|(slug, record)| (slug, Arc::new(record)))
+                .collect(),
             len,
             version: pool.version(),
             totals_len: 0,
@@ -66,89 +81,24 @@ impl PoolHeights {
         })))
     }
 
-    pub(crate) fn update(&self, min: usize, version: Version, slugs: &[PoolSlug]) {
-        let mut state = self.0.write();
-        // Only a rewind sweeps every pool; an append touches the new blocks' pools alone.
-        if min < state.len {
-            let totals_len = state.totals_len.min(min);
-            for record in state.by_pool.values_mut() {
-                let cut = record.heights.partition_point(|h| h.to_usize() < min);
-                record.heights.truncate(cut);
-                let filled = record
-                    .heights
-                    .partition_point(|h| h.to_usize() < totals_len);
-                record.totals.truncate(filled);
-            }
-            state.totals_len = totals_len;
-        }
-        debug_assert!(
-            min <= state.len,
-            "pool blocks resume within the known blocks"
-        );
-        state.len = min + slugs.len();
-        state.version = version;
-        for (offset, &slug) in slugs.iter().enumerate() {
-            state
-                .by_pool
-                .entry(slug)
-                .or_default()
-                .heights
-                .push(Height::from(min + offset));
-        }
+    /// The published snapshot, to update privately and then [`Self::publish`].
+    pub(crate) fn stage(&self) -> PoolSnapshot {
+        PoolSnapshot::clone(&self.0.load())
     }
 
-    /// Drops every total from the height where they must resume, `to` at most, and returns it:
-    /// their end under `version`, else zero.
-    pub(crate) fn resume_totals(&self, version: Version, to: usize) -> usize {
-        let mut state = self.0.write();
-        let from = if state.totals_version == version {
-            state.totals_len.min(to)
-        } else {
-            0
-        };
-        // Only a refill sweeps every pool; resuming at the end keeps every total.
-        if from < state.totals_len {
-            for record in state.by_pool.values_mut() {
-                let filled = record.heights.partition_point(|h| h.to_usize() < from);
-                record.totals.truncate(filled);
-            }
-        }
-        state.totals_len = from;
-        state.totals_version = version;
-        from
-    }
-
-    /// Folds the next blocks (each one's pool and rewards) into their pools' running totals.
-    pub(crate) fn append_totals(&self, blocks: impl IntoIterator<Item = (PoolSlug, Rewards)>) {
-        let mut state = self.0.write();
-        let mut height = state.totals_len;
-        for (slug, block) in blocks {
-            let record = state.by_pool.get_mut(&slug).expect("block's pool is known");
-            debug_assert_eq!(
-                record.heights.get(record.totals.len()),
-                Some(&Height::from(height)),
-                "rewards fold in block order"
-            );
-            let mut running = record.totals.last().copied().unwrap_or_default();
-            for (total, value) in running.iter_mut().zip(block) {
-                *total += value;
-            }
-            record.totals.push(running);
-            height += 1;
-        }
-        debug_assert!(height <= state.len, "rewards only for known blocks");
-        state.totals_len = height;
+    pub(crate) fn publish(&self, snapshot: PoolSnapshot) {
+        self.0.store(Arc::new(snapshot));
     }
 
     pub fn block_numbers(&self, slugs: &[PoolSlug], first_height: Height) -> Vec<u64> {
-        let state = self.0.read_recursive();
+        let snapshot = self.0.load();
         let first_height = first_height.to_usize();
 
         slugs
             .iter()
             .enumerate()
             .map(|(offset, slug)| {
-                state.by_pool.get(slug).map_or(0, |record| {
+                snapshot.by_pool.get(slug).map_or(0, |record| {
                     Self::cumulative_count(&record.heights, first_height + offset) as u64
                 })
             })
@@ -161,17 +111,92 @@ impl PoolHeights {
         through_height: Height,
         limit: usize,
     ) -> Vec<Height> {
-        let state = self.0.read_recursive();
-        let Some(record) = state.by_pool.get(&slug) else {
+        let snapshot = self.0.load();
+        let Some(record) = snapshot.by_pool.get(&slug) else {
             return Vec::new();
         };
         let end = Self::cumulative_count(&record.heights, through_height.to_usize());
         let start = end.saturating_sub(limit);
-        record.heights[start..end].iter().rev().copied().collect()
+        (start..end).rev().map(|i| record.heights[i]).collect()
     }
 
-    fn cumulative_count(heights: &[Height], through_height: usize) -> usize {
+    fn cumulative_count(heights: &Pages<Height>, through_height: usize) -> usize {
         heights.partition_point(|height| height.to_usize() <= through_height)
+    }
+}
+
+impl PoolSnapshot {
+    pub(crate) fn update(&mut self, min: usize, version: Version, slugs: &[PoolSlug]) {
+        // Only a rewind sweeps every pool; an append touches the new blocks' pools alone.
+        if min < self.len {
+            let totals_len = self.totals_len.min(min);
+            for record in self.by_pool.values_mut() {
+                let cut = record.heights.partition_point(|h| h.to_usize() < min);
+                let filled = record
+                    .heights
+                    .partition_point(|h| h.to_usize() < totals_len);
+                if cut < record.heights.len() || filled < record.totals.len() {
+                    let record = Arc::make_mut(record);
+                    record.heights.truncate(cut);
+                    record.totals.truncate(filled);
+                }
+            }
+            self.totals_len = totals_len;
+        }
+        debug_assert!(
+            min <= self.len,
+            "pool blocks resume within the known blocks"
+        );
+        self.len = min + slugs.len();
+        self.version = version;
+        for (offset, &slug) in slugs.iter().enumerate() {
+            Arc::make_mut(self.by_pool.entry(slug).or_default())
+                .heights
+                .push(Height::from(min + offset));
+        }
+    }
+
+    /// Drops every total from the height where they must resume, `to` at most, and returns it:
+    /// their end under `version`, else zero.
+    pub(crate) fn resume_totals(&mut self, version: Version, to: usize) -> usize {
+        let from = if self.totals_version == version {
+            self.totals_len.min(to)
+        } else {
+            0
+        };
+        // Only a refill sweeps every pool; resuming at the end keeps every total.
+        if from < self.totals_len {
+            for record in self.by_pool.values_mut() {
+                let filled = record.heights.partition_point(|h| h.to_usize() < from);
+                if filled < record.totals.len() {
+                    Arc::make_mut(record).totals.truncate(filled);
+                }
+            }
+        }
+        self.totals_len = from;
+        self.totals_version = version;
+        from
+    }
+
+    /// Folds the next blocks (each one's pool and rewards) into their pools' running totals.
+    pub(crate) fn append_totals(&mut self, blocks: impl IntoIterator<Item = (PoolSlug, Rewards)>) {
+        let mut height = self.totals_len;
+        for (slug, block) in blocks {
+            let record = Arc::make_mut(self.by_pool.get_mut(&slug).expect("block's pool is known"));
+            debug_assert_eq!(
+                record.heights.get(record.totals.len()),
+                Some(&Height::from(height)),
+                "rewards fold in block order"
+            );
+            let mut running = record.totals.last().copied().unwrap_or_default();
+            for (total, value) in running.iter_mut().zip(block) {
+                *total += value;
+            }
+            record.totals.push(running);
+            height += 1;
+        }
+        debug_assert!(height <= self.len, "rewards only for known blocks");
+        self.totals_len = height;
     }
 }
 
@@ -212,6 +237,13 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
         }
     }
 
+    fn len_of(&self, snapshot: &PoolSnapshot) -> usize {
+        match self.column {
+            Column::Blocks => snapshot.len,
+            _ => snapshot.totals_len.min(snapshot.len),
+        }
+    }
+
     /// The total through the first `position` of the pool's blocks.
     fn total(&self, record: Option<&Record>, position: usize) -> T {
         let value = match (self.column, record) {
@@ -245,18 +277,19 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
         to: usize,
         mut each: impl FnMut(T) -> Result<(), E>,
     ) -> Result<(), E> {
-        let to = to.min(self.len());
+        let snapshot = self.pool_heights.0.load();
+        let to = to.min(self.len_of(&snapshot));
         if from >= to {
             return Ok(());
         }
-        let state = self.pool_heights.0.read_recursive();
-        let record = state.by_pool.get(&self.slug);
-        let heights = record.map_or(&[][..], |record| record.heights.as_slice());
+        let record = snapshot.by_pool.get(&self.slug).map(Arc::as_ref);
+        let heights = Record::heights(record);
         let mut position = heights.partition_point(|height| height.to_usize() < from);
+        let mut upcoming = heights.iter(position..heights.len()).peekable();
         for height in from..to {
-            while heights
-                .get(position)
-                .is_some_and(|pool_height| pool_height.to_usize() == height)
+            while upcoming
+                .next_if(|pool_height| pool_height.to_usize() == height)
+                .is_some()
             {
                 position += 1;
             }
@@ -268,10 +301,10 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
 
 impl<T: VecValue + From<u64>> AnyVec for PoolCumulativeVec<T> {
     fn version(&self) -> Version {
-        let state = self.pool_heights.0.read_recursive();
+        let snapshot = self.pool_heights.0.load();
         match self.column {
-            Column::Blocks => state.version,
-            _ => state.version + state.totals_version,
+            Column::Blocks => snapshot.version,
+            _ => snapshot.version + snapshot.totals_version,
         }
     }
 
@@ -280,11 +313,7 @@ impl<T: VecValue + From<u64>> AnyVec for PoolCumulativeVec<T> {
     }
 
     fn len(&self) -> usize {
-        let state = self.pool_heights.0.read_recursive();
-        match self.column {
-            Column::Blocks => state.len,
-            _ => state.totals_len.min(state.len),
-        }
+        self.len_of(&self.pool_heights.0.load())
     }
 
     fn index_type_to_string(&self) -> &'static str {
@@ -309,12 +338,12 @@ impl<T: VecValue + From<u64>> ReadableVec<Height, T> for PoolCumulativeVec<T> {
     vecdb::visitor_read_methods!(T, for_each_value, try_for_each_value);
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
-        if index >= self.len() {
+        let snapshot = self.pool_heights.0.load();
+        if index >= self.len_of(&snapshot) {
             return None;
         }
-        let state = self.pool_heights.0.read_recursive();
-        let record = state.by_pool.get(&self.slug);
-        let heights = record.map_or(&[][..], |record| record.heights.as_slice());
+        let record = snapshot.by_pool.get(&self.slug).map(Arc::as_ref);
+        let heights = Record::heights(record);
         Some(self.total(record, PoolHeights::cumulative_count(heights, index)))
     }
 
@@ -322,10 +351,10 @@ impl<T: VecValue + From<u64>> ReadableVec<Height, T> for PoolCumulativeVec<T> {
         let Some(&first) = indices.first() else {
             return;
         };
-        let len = self.len();
-        let state = self.pool_heights.0.read_recursive();
-        let record = state.by_pool.get(&self.slug);
-        let heights = record.map_or(&[][..], |record| record.heights.as_slice());
+        let snapshot = self.pool_heights.0.load();
+        let len = self.len_of(&snapshot);
+        let record = snapshot.by_pool.get(&self.slug).map(Arc::as_ref);
+        let heights = Record::heights(record);
         let mut position = heights.partition_point(|height| height.to_usize() < first);
         // Lowest height not yet counted; a pool has at most one block per height, so at most
         // `index + 1 - next` of the following entries can be counted for `index`.
@@ -338,8 +367,10 @@ impl<T: VecValue + From<u64>> ReadableVec<Height, T> for PoolCumulativeVec<T> {
             let window = (index + 1)
                 .saturating_sub(next)
                 .min(heights.len() - position);
-            position += heights[position..position + window]
-                .partition_point(|height| height.to_usize() <= index);
+            position = heights
+                .partition_point_in(position..position + window, |height| {
+                    height.to_usize() <= index
+                });
             next = next.max(index + 1);
             out.push(self.total(record, position));
         }

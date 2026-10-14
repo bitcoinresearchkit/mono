@@ -35,7 +35,7 @@ impl ComputePlugin for Vecs {
             &price.spot.cents.height,
             exit,
             |vecs, addrs, heights, prices| {
-                let output_heights = mappings.output_heights.read();
+                let output_heights = mappings.output_heights.load_full();
                 let mut workspace = Workspace::new(indexer, &output_heights);
                 // An ordinary update is one chunk, the protected tail, written with its undo.
                 for (blocks, tail) in undo_chunks(heights) {

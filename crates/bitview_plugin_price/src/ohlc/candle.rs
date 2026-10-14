@@ -43,17 +43,17 @@ impl<I: VecIndex> LazyOhlcVec<I> {
         to: usize,
         mut each: impl FnMut(OHLCCents) -> Result<(), E>,
     ) -> Result<(), E> {
-        let mapping = self.first_heights.read();
+        let mapping = self.first_heights.load();
         let to = to.min(mapping.len());
         if from >= to {
             return Ok(());
         }
-        let first_heights = &mapping.as_slice()[from..to.saturating_add(1).min(mapping.len())];
+        let first_heights = mapping.starts();
         let price_len = self.prices.visible_len();
-        let first = |index: usize| first_heights[index].to_usize().min(price_len);
+        let first = |index: usize| first_heights[from + index].to_usize().min(price_len);
         let end = |index: usize| {
             first_heights
-                .get(index + 1)
+                .get(from + index + 1)
                 .map_or(price_len, |height| height.to_usize().min(price_len))
         };
         // Adjacent candles share one price read, so shared physical pages are decoded once,
@@ -130,7 +130,7 @@ impl<I: VecIndex> AnyVec for LazyOhlcVec<I> {
     }
 
     fn len(&self) -> usize {
-        self.first_heights.read().len()
+        self.first_heights.load().len()
     }
 
     fn index_type_to_string(&self) -> &'static str {
@@ -155,8 +155,8 @@ impl<I: VecIndex> ReadableVec<I, OHLCCents> for LazyOhlcVec<I> {
     vecdb::visitor_read_methods!(OHLCCents, for_each_candle, try_for_each_candle);
 
     fn collect_one_at(&self, index: usize) -> Option<OHLCCents> {
-        let mapping = self.first_heights.read();
-        let boundaries = mapping.as_slice();
+        let mapping = self.first_heights.load();
+        let boundaries = mapping.starts();
         let price_len = self.prices.visible_len();
         let first = boundaries.get(index)?.to_usize().min(price_len);
         let end = boundaries

@@ -17,6 +17,7 @@ urpd = ["price", "bitview_query/urpd"]
 price = ["bitview_query/price"]
 
 [dependencies]
+arc-swap = { workspace = true }
 bitcoin = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 brk_rpc = { workspace = true, features = ["async"] }

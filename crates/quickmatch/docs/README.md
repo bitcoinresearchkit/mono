@@ -21,8 +21,8 @@ npm install quickmatch-js
 ## Usage
 
 Corpus items must be lowercase ASCII.
-Constructors enforce these programmer preconditions with diagnostic panics;
-normalize or validate dynamic input before building a matcher. Query text is
+This is a precondition, only checked in Rust debug builds: normalize or validate
+dynamic input before building a matcher. Query text is
 lowercased and non-ASCII query characters are ignored. This is not a Unicode
 search engine.
 
@@ -51,8 +51,8 @@ import { QuickMatch, QuickMatchConfig } from "quickmatch-js";
 const items = ["file_name", "file_size", "created_at", "updated_at"];
 const qm = new QuickMatch(items);
 
-qm.matches("file name");  // ["file_name", "file_size"]
-qm.matches("filename");   // ["file_name", "file_size"]  (compound match)
+qm.matches("file name");  // ["file_name"]
+qm.matches("filename");   // ["file_name"]  (compound match)
 qm.matches("filenme");    // ["file_name", "file_size"]  (trigram fuzzy)
 
 // Custom config

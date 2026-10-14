@@ -2,10 +2,9 @@ use std::{
     collections::BTreeMap,
     error::Error,
     fs,
+    io::ErrorKind,
     path::{Path, PathBuf},
 };
-
-use crate::format;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -48,11 +47,17 @@ struct Csv {
 }
 
 impl Csv {
-    fn read(path: &Path) -> Option<Self> {
-        let content = fs::read_to_string(path).ok()?;
+    /// `None` for a missing or empty file: older recorders lacked some, a killed one may not
+    /// have written its header.
+    fn read(path: &Path) -> Result<Option<Self>> {
+        let Some(content) = read_optional(path)? else {
+            return Ok(None);
+        };
         let mut lines = content.lines();
-        let header = lines
-            .next()?
+        let Some(header) = lines.next() else {
+            return Ok(None);
+        };
+        let header = header
             .split(',')
             .map(str::to_owned)
             .collect::<Vec<_>>();
@@ -66,7 +71,7 @@ impl Csv {
         {
             rows.pop();
         }
-        Some(Self { header, rows })
+        Ok(Some(Self { header, rows }))
     }
 
     fn index(&self, name: &str) -> Option<usize> {
@@ -107,7 +112,7 @@ pub struct Table {
 
 impl Table {
     fn read(path: &Path) -> Result<Self> {
-        let Some(csv) = Csv::read(path) else {
+        let Some(csv) = Csv::read(path)? else {
             return Ok(Self::default());
         };
         let times = csv
@@ -160,12 +165,19 @@ impl Run {
     }
 
     pub fn end_s(&self) -> f64 {
-        self.duration_s.unwrap_or_else(|| {
-            self.memory
-                .column("physical_bytes")
-                .last()
-                .map_or(0.0, |(time, _)| *time)
-        })
+        self.duration_s
+            .unwrap_or_else(|| self.memory.times.last().copied().unwrap_or_default())
+    }
+
+    /// The process's peak memory and its name: macOS's peak footprint, else Linux's peak
+    /// resident size.
+    pub fn peak_memory(&self) -> Option<(&'static str, f64)> {
+        [
+            ("peak_physical_bytes", "peak footprint"),
+            ("peak_resident_bytes", "peak resident"),
+        ]
+        .into_iter()
+        .find_map(|(column, name)| Some((name, self.memory.max(column)?)))
     }
 
     /// Indexing when the indexer takes most of the cycle; the first other cycle computes, later
@@ -268,7 +280,7 @@ fn collect(dir: &Path, paths: &mut Vec<PathBuf>) -> Result<()> {
 }
 
 fn read(root: &Path, path: PathBuf) -> Result<Run> {
-    let meta = fs::read_to_string(path.join("metadata.txt"))
+    let meta = read_optional(&path.join("metadata.txt"))?
         .unwrap_or_default()
         .lines()
         .filter_map(|line| line.split_once('='))
@@ -279,9 +291,18 @@ fn read(root: &Path, path: PathBuf) -> Result<Run> {
         .get("started_at_unix")
         .and_then(|value| value.parse().ok())
         .unwrap_or(0);
-    let label = label(relative, started_at);
+    // The run's path below its machine: `<revision>/<run-id>`, `<revision>` for older runs.
+    let label = if relative.as_os_str().is_empty() {
+        "run".to_owned()
+    } else {
+        relative.display().to_string()
+    };
 
-    let run = Csv::read(&path.join("run.csv"));
+    let memory = Table::read(&path.join("memory.csv"))?;
+    if memory.times.is_empty() {
+        return Err("no memory samples".into());
+    }
+    let run = Csv::read(&path.join("run.csv"))?;
     let status = run.as_ref().and_then(|run| run.strings("status").pop());
     let duration_s = match &run {
         Some(run) => run
@@ -292,7 +313,7 @@ fn read(root: &Path, path: PathBuf) -> Result<Run> {
     };
 
     Ok(Run {
-        memory: Table::read(&path.join("memory.csv"))?,
+        memory,
         io: Table::read(&path.join("io.csv"))?,
         cpu: Table::read(&path.join("cpu.csv"))?,
         disk: Table::read(&path.join("disk.csv"))?,
@@ -308,24 +329,19 @@ fn read(root: &Path, path: PathBuf) -> Result<Run> {
     })
 }
 
-/// The run's path below its machine (its revision), plus its start time.
-fn label(relative: &Path, started_at: u64) -> String {
-    let name = if relative.as_os_str().is_empty() {
-        "run".to_owned()
-    } else {
-        relative.display().to_string()
-    };
-    if started_at == 0 {
-        name
-    } else {
-        format!("{name} ({})", format::datetime(started_at))
+/// A file's content, `None` when it does not exist.
+fn read_optional(path: &Path) -> Result<Option<String>> {
+    match fs::read_to_string(path) {
+        Ok(content) => Ok(Some(content)),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!("{}: {error}", path.display()).into()),
     }
 }
 
 /// Indexer heights: the `source` column when recorded, else the rows before the first drop
 /// (older files mixed compute-phase logs in after indexing).
 fn progress(path: &Path) -> Result<Vec<(f64, f64)>> {
-    let Some(csv) = Csv::read(path) else {
+    let Some(csv) = Csv::read(path)? else {
         return Ok(Vec::new());
     };
     let times = csv.numbers(path, "timestamp_ms")?;
@@ -346,7 +362,7 @@ fn progress(path: &Path) -> Result<Vec<(f64, f64)>> {
 }
 
 fn timings(path: &Path) -> Result<Vec<Timing>> {
-    let Some(csv) = Csv::read(path) else {
+    let Some(csv) = Csv::read(path)? else {
         return Ok(Vec::new());
     };
     let starts = csv.numbers(path, "start_ms")?;
@@ -366,7 +382,7 @@ fn timings(path: &Path) -> Result<Vec<Timing>> {
 }
 
 fn breakdown(path: &Path) -> Result<Vec<(String, f64)>> {
-    let Some(csv) = Csv::read(path) else {
+    let Some(csv) = Csv::read(path)? else {
         return Ok(Vec::new());
     };
     let mut rows = csv

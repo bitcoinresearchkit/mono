@@ -1,4 +1,4 @@
-use rangeindex::RangeMap;
+use rangeindex::{Pages, RangeMap};
 
 use vecdb::{ReadableVec, VecIndex, VecValue};
 
@@ -12,7 +12,7 @@ pub struct Sparse;
 
 impl Sparse {
     fn source_index<SI: VecIndex>(
-        mapping: &[SI],
+        mapping: &Pages<SI>,
         index: usize,
         source_len: usize,
     ) -> Option<usize> {
@@ -43,7 +43,7 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
         mut f: F,
     ) -> Result<B, E> {
         let source_len = source.visible_len();
-        let mapping = mapping.as_slice();
+        let mapping = mapping.starts();
 
         let mut indices: Vec<usize> = Vec::with_capacity(to - from);
         let mut slot_map: Vec<Option<u32>> = Vec::with_capacity(to - from);
@@ -75,7 +75,7 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
             return None;
         }
         Some(
-            Self::source_index(mapping.as_slice(), index, source.visible_len())
+            Self::source_index(mapping.starts(), index, source.visible_len())
                 .and_then(|i| source.collect_one_at(i)),
         )
     }
@@ -91,7 +91,7 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
             return;
         }
         let source_len = source.visible_len();
-        let mapping = mapping.as_slice();
+        let mapping = mapping.starts();
         let mut requested = Vec::with_capacity(indices.len());
         let slots: Vec<_> = indices
             .iter()

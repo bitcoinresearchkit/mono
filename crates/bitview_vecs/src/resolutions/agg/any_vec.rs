@@ -23,7 +23,7 @@ where
     }
 
     fn len(&self) -> usize {
-        self.mapping.read().len()
+        self.mapping.load().len()
     }
 
     #[inline]

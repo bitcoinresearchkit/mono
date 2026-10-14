@@ -18,7 +18,7 @@ pub struct ConnectArgs {
 }
 
 impl ConnectArgs {
-    pub fn bitcoin_dir(&self) -> PathBuf {
+    fn bitcoin_dir(&self) -> PathBuf {
         self.bitcoindir.clone().unwrap_or_else(default_bitcoin_dir)
     }
 

@@ -43,9 +43,6 @@ pub(crate) fn generate_rust_client(
     writeln!(output, "#![allow(clippy::unnecessary_to_owned)]\n").unwrap();
 
     client::generate_imports(&mut output);
-    client::generate_base_client(&mut output);
-    client::generate_series_pattern_trait(&mut output);
-    client::generate_endpoint(&mut output);
     client::generate_index_accessors(&mut output, accessors);
     tree::generate_tree(&mut output, model, shape_names, accessors, value_types);
     api::generate_main_client(&mut output, endpoints);

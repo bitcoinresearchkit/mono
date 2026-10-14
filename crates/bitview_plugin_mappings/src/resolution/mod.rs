@@ -5,31 +5,32 @@ use bitview_vecs::RangeMapVec;
 
 use crate::RangeMapLookupVec;
 use brk_types::Height;
-use rangeindex::SharedRangeMap;
-use vecdb::{AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, VecIndex, VecValue};
+use rangeindex::RangeMapWriter;
+use vecdb::{
+    AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex, VecValue,
+};
 
 pub use self::dated::DatedResolutionVecs;
 
-/// Resident period boundaries, incrementally maintained from the height mapping.
-#[derive(Clone, Traversable)]
-pub struct ResolutionVecs<I: VecIndex> {
+/// Resident period boundaries, incrementally maintained from the height mapping. Read-only
+/// clones keep the published views only: the updater stays with the computing plugin.
+#[derive(Traversable)]
+pub struct ResolutionVecs<I: VecIndex, M: StorageMode = Rw> {
     /// Lowest block height whose resolution index is at least the requested
     /// index. Empty indexes therefore use the first height of the next populated
     /// index; indexes preceding the first populated one resolve to height 0.
     pub first_height: RangeMapVec<I, Height>,
-    #[traversable(skip)]
-    boundaries: SharedRangeMap<Height, I>,
+    boundaries: M::WriteOnly<RangeMapWriter<Height, I>>,
     #[traversable(skip)]
     mapping: ReadableBoxedVec<Height, I>,
-    #[traversable(skip)]
-    indexed_height: usize,
+    indexed_height: M::WriteOnly<usize>,
 }
 
 impl<I: VecIndex> ResolutionVecs<I> {
     pub fn new(mapping: &impl ReadableCloneableVec<Height, I>) -> Self {
-        let boundaries = SharedRangeMap::new(Vec::new());
+        let boundaries = RangeMapWriter::default();
         let mut this = Self {
-            first_height: RangeMapVec::new("first_height", mapping.version(), boundaries.clone()),
+            first_height: RangeMapVec::new("first_height", mapping.version(), boundaries.shared()),
             boundaries,
             mapping: mapping.read_only_boxed_clone(),
             indexed_height: 0,
@@ -43,7 +44,7 @@ impl<I: VecIndex> ResolutionVecs<I> {
     where
         I: VecValue,
     {
-        RangeMapLookupVec::new(&self.boundaries, &self.mapping)
+        RangeMapLookupVec::new(self.boundaries.shared(), &self.mapping)
     }
 
     /// Keep boundaries through the final surviving block, then replay the

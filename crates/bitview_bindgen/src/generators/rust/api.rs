@@ -35,7 +35,7 @@ impl BitviewClient {{
     /// Get the series tree for navigating series.
     pub fn series(&self) -> &SeriesTree {{
         self.series
-            .get_or_init(|| Box::new(create_series_tree(self.base.clone())))
+            .get_or_init(|| Box::new(SeriesTree::build(self.base.clone(), String::new())))
     }}
 
     /// Create a dynamic series endpoint builder for any series/index combination.
@@ -64,7 +64,7 @@ impl BitviewClient {{
         if !index.is_date_based() {{
             return Err(BitviewError::new(format!("{{}} is not a date-based index", index.name())));
         }}
-        Ok(DateSeriesEndpoint::new(
+        Ok(SeriesEndpoint::new(
             self.base.clone(),
             Arc::from(series.into().as_str()),
             index,
@@ -112,6 +112,7 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
 fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
     let method_name = endpoint_to_method_name(endpoint);
     let return_type = build_return_type(endpoint);
+    let (fetch_method, decode) = fetch("get", endpoint);
 
     write_method_doc(output, endpoint);
 
@@ -124,18 +125,11 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
     .unwrap();
 
     let (path, index_arg) = build_path_template(endpoint);
-    let fetch_method = if endpoint.returns_binary() {
-        "get_bytes"
-    } else if endpoint.returns_json() {
-        "get_json"
-    } else {
-        "get_text"
-    };
 
     if endpoint.query_params.is_empty() {
         writeln!(
             output,
-            "        self.base.{}(&format!(\"{}\"{}))",
+            "        self.base.{}(&format!(\"{}\"{})){decode}",
             fetch_method, path, index_arg
         )
         .unwrap();
@@ -158,7 +152,7 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
             .unwrap();
             writeln!(output, "        }}").unwrap();
         } else {
-            writeln!(output, "        self.base.{}(&path)", fetch_method).unwrap();
+            writeln!(output, "        self.base.{}(&path){decode}", fetch_method).unwrap();
         }
     }
 
@@ -167,23 +161,8 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
 
 fn generate_post_method(output: &mut String, endpoint: &Endpoint) {
     let method_name = endpoint_to_method_name(endpoint);
-    // Keep typed action results (notably Txid) when their wire body is text.
-    // Existing GET text methods retain their String API.
-    let return_type = if endpoint.returns_text() {
-        endpoint
-            .schema_name()
-            .map(js_type_to_rust)
-            .unwrap_or_else(|| "String".to_owned())
-    } else {
-        build_return_type(endpoint)
-    };
-    let decode = if endpoint.returns_text() && return_type != "String" {
-        format!(
-            "?.parse::<{return_type}>().map_err(|error| BitviewError::new(format!(\"Invalid submission response; outcome may be unknown: {{error}}\")))"
-        )
-    } else {
-        String::new()
-    };
+    let return_type = build_return_type(endpoint);
+    let (fetch_method, decode) = fetch("post", endpoint);
 
     write_method_doc(output, endpoint);
 
@@ -203,13 +182,6 @@ fn generate_post_method(output: &mut String, endpoint: &Endpoint) {
         "body"
     } else {
         "\"\""
-    };
-    let fetch_method = if endpoint.returns_binary() {
-        "post_bytes"
-    } else if endpoint.returns_json() {
-        "post_json"
-    } else {
-        "post_text"
     };
 
     if endpoint.query_params.is_empty() {
@@ -232,11 +204,24 @@ fn generate_post_method(output: &mut String, endpoint: &Endpoint) {
     writeln!(output, "    }}\n").unwrap();
 }
 
+/// The base client method reading the response, and how its body is decoded: named text is
+/// numeric JSON (`Height`) or a string type (`BlockHash`, `Txid`, `Hex`); opaque text stays `String`.
+fn fetch(verb: &str, endpoint: &Endpoint) -> (String, &'static str) {
+    let (kind, decode) = if endpoint.returns_binary() {
+        ("bytes", "")
+    } else if endpoint.returns_json() || endpoint.response_kind.text_is_numeric() {
+        ("json", "")
+    } else if endpoint.schema_name().is_some() {
+        ("text", ".and_then(parse_text)")
+    } else {
+        ("text", "")
+    };
+    (format!("{verb}_{kind}"), decode)
+}
+
 fn build_return_type(endpoint: &Endpoint) -> String {
     let base = if endpoint.returns_binary() {
         "Vec<u8>".to_string()
-    } else if endpoint.returns_text() {
-        "String".to_string()
     } else {
         endpoint
             .schema_name()

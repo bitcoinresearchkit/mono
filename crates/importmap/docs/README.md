@@ -43,10 +43,12 @@ use importmap::ImportMap;
 
 let map = ImportMap::scan(dir, "")?;
 let html = fs::read_to_string("index.html")?;
-if let Some(updated) = map.update_html(&html) {
+if let Some(updated) = map.transform_html(&html) {
     fs::write("index.html", updated)?;
 }
 ```
+
+Or in place: `map.update_html_file(Path::new("index.html"))?`.
 
 ## Output
 
@@ -55,19 +57,22 @@ The markers get replaced with:
 ```html
 <head>
     <!-- IMPORTMAP -->
-    <link rel="modulepreload" href="/scripts/main.a1b2c3d4.js">
-    <link rel="modulepreload" href="/scripts/utils.e5f6g7h8.js">
+    <link rel="stylesheet" href="/styles/main.9f8e7d6c.css">
     <script type="importmap">
     {
       "imports": {
         "/scripts/main.js": "/scripts/main.a1b2c3d4.js",
-        "/scripts/utils.js": "/scripts/utils.e5f6g7h8.js"
+        "/scripts/utils.js": "/scripts/utils.e5f6a7b8.js"
       }
     }
     </script>
+    <link rel="modulepreload" href="/scripts/main.a1b2c3d4.js">
+    <link rel="modulepreload" href="/scripts/utils.e5f6a7b8.js">
     <!-- /IMPORTMAP -->
 </head>
 ```
+
+Stylesheets are kept only if their `<link rel="stylesheet">` is already between the markers, in the same order (cascade). Running the transform again is idempotent: already hashed hrefs are matched to their files and get the current hash.
 
 Your source files stay unchanged. The browser:
 1. Sees modulepreload → fetches all modules in parallel

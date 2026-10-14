@@ -1,31 +1,48 @@
-use std::path::Path;
+use std::{borrow::Cow, path::Path};
 
 use axum::{
     body::Body,
     extract::{Path as ExtractPath, State},
     http::{HeaderMap, Response, StatusCode},
 };
-
 use importmap::ImportMap;
+use tokio::task::spawn_blocking;
 
-use crate::{Error, HeaderMapExtended, Website, website::content_etag};
+use crate::{
+    Error, HeaderMapExtended, Website,
+    website::{File, content_etag},
+};
 
 pub async fn file_handler(
     State(website): State<Website>,
     headers: HeaderMap,
-    path: ExtractPath<String>,
+    ExtractPath(path): ExtractPath<String>,
 ) -> Result<Response<Body>, Error> {
-    serve(&website, &path.0, &headers)
+    serve(website, path, headers).await
 }
 
 pub async fn index_handler(
     State(website): State<Website>,
     headers: HeaderMap,
 ) -> Result<Response<Body>, Error> {
-    serve(&website, "", &headers)
+    serve(website, String::new(), headers).await
 }
 
-fn serve(
+/// Filesystem reads (and the release importmap scan) block, so they leave the executor.
+async fn serve(
+    website: Website,
+    path: String,
+    headers: HeaderMap,
+) -> Result<Response<Body>, Error> {
+    if website.filesystem_path().is_none() {
+        return respond(&website, &path, &headers);
+    }
+    spawn_blocking(move || respond(&website, &path, &headers))
+        .await
+        .map_err(|e| Error::internal(e.to_string()))?
+}
+
+fn respond(
     website: &Website,
     path: &str,
     request_headers: &HeaderMap,
@@ -35,33 +52,23 @@ fn serve(
     let is_html =
         path.is_empty() || Path::new(&path).extension().is_none() || path.ends_with(".html");
 
-    // Etag 304 check (release mode, HTML only)
-    if is_html
-        && let Some(etag) = website.index_etag_for(&path)
-        && request_headers.has_etag(etag)
-    {
-        return Ok(not_modified(etag));
-    }
-
-    let content = website.get_file(&path)?;
+    let File { contents, etag } = website.get_file(&path)?;
+    // Release only. Embedded files carry theirs; filesystem content is mutable, so hash it now.
+    let etag = (!cfg!(debug_assertions))
+        .then(|| etag.map_or_else(|| Cow::Owned(content_etag(&contents)), Cow::Borrowed));
     // Only a URL naming its content's hash is immutable; fixed names (JSON, workers, fonts) and
     // stale hashes revalidate.
-    let immutable =
-        !cfg!(debug_assertions) && !is_html && ImportMap::names_hash_of(Path::new(&path), &content);
-    // Mutable files and standalone HTML must be read before their validator is
-    // known. Only the immutable embedded index can use the early path above.
-    let etag = (!cfg!(debug_assertions) && !immutable).then(|| {
-        website
-            .index_etag_for(&path)
-            .map(str::to_owned)
-            .unwrap_or_else(|| content_etag(&content))
-    });
+    let immutable = !is_html
+        && etag
+            .as_deref()
+            .is_some_and(|etag| ImportMap::names_hash(Path::new(&path), etag.trim_matches('"')));
+    let etag = etag.filter(|_| !immutable);
     if let Some(etag) = etag.as_deref()
         && request_headers.has_etag(etag)
     {
         return Ok(not_modified(etag));
     }
-    let mut response = Response::new(Body::from(content));
+    let mut response = Response::new(Body::from(contents));
     let headers = response.headers_mut();
 
     if is_html {

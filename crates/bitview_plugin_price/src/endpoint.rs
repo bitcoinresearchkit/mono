@@ -3,7 +3,7 @@ use bitview_vecs::{
     with_resolution_fields,
 };
 use brk_types::{Cents, Dollars, Height, Version};
-use rangeindex::RangeMap;
+use rangeindex::{Pages, RangeMap};
 use vecdb::{AnyVec, LazyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, VecIndex};
 
 const COMPUTE_VERSION: Version = Version::ONE;
@@ -14,7 +14,7 @@ const COMPUTE_VERSION: Version = Version::ONE;
 pub(crate) struct Endpoint<const CLOSE: bool>;
 
 impl<const CLOSE: bool> Endpoint<CLOSE> {
-    fn height(first_heights: &[Height], index: usize, price_len: usize) -> Option<usize> {
+    fn height(first_heights: &Pages<Height>, index: usize, price_len: usize) -> Option<usize> {
         let first = first_heights[index].to_usize().min(price_len);
         let end = first_heights
             .get(index + 1)
@@ -26,7 +26,7 @@ impl<const CLOSE: bool> Endpoint<CLOSE> {
     /// One sorted read of the requested periods' heights; adjacent empty periods share one.
     fn read<S: ReadableVec<Height, Cents> + ?Sized>(
         source: &S,
-        first_heights: &[Height],
+        first_heights: &Pages<Height>,
         indices: impl ExactSizeIterator<Item = usize>,
     ) -> impl Iterator<Item = Cents> {
         let price_len = source.visible_len();
@@ -63,7 +63,7 @@ impl<const CLOSE: bool> AggFold<Cents, Height, Cents> for Endpoint<CLOSE> {
         init: B,
         f: F,
     ) -> Result<B, E> {
-        Self::read(source, mapping.as_slice(), from..to).try_fold(init, f)
+        Self::read(source, mapping.starts(), from..to).try_fold(init, f)
     }
 
     fn read_sorted_into<MI: VecIndex, S: ReadableVec<Height, Cents> + ?Sized>(
@@ -74,7 +74,7 @@ impl<const CLOSE: bool> AggFold<Cents, Height, Cents> for Endpoint<CLOSE> {
     ) {
         out.extend(Self::read(
             source,
-            mapping.as_slice(),
+            mapping.starts(),
             indices.iter().copied(),
         ));
     }

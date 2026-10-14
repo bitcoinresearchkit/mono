@@ -31,11 +31,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     init_with_default_level(None, "info")?;
 
     let arguments = Arguments::parse(env::args().skip(1)).unwrap_or_else(|error| usage(&error));
-    let (api_bases, api_url, public_url, display_name) = arguments.into_parts();
-    let catalog = Catalog::embedded().map_err(io::Error::other)?;
+    let (api_url, public_url, display_name) = arguments.into_parts();
+    let catalog = Catalog::embedded();
     let tool_count = catalog.tools().len();
     let pages = Pages::render(&display_name, &public_url, &api_url);
-    let app = server::router(api_bases, catalog, display_name, public_url, pages);
+    let app = server::router(api_url, catalog, display_name, public_url, pages);
     let (listener, bind) = bind_available(BIND_START).await?;
 
     info!("BRK MCP server listening on http://{bind} with {tool_count} tools");
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 fn usage(error: &str) -> ! {
     eprintln!("Error: {error}");
     eprintln!(
-        "Usage: bitview_mcp --api <REST_API_URL_OR_HOST> --url <PUBLIC_MCP_URL> --name <DISPLAY_NAME>"
+        "Usage: bitview_mcp --api <REST_API_URL> --url <PUBLIC_MCP_URL> --name <DISPLAY_NAME>"
     );
     process::exit(2);
 }

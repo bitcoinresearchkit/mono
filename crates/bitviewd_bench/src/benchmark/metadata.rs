@@ -1,12 +1,10 @@
 use std::{
-    env::consts,
     fmt,
     fs::File,
     io::{self, BufWriter, Write},
     path::Path,
     process::Command,
     thread,
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 use brk_types::Height;
@@ -43,57 +41,30 @@ impl fmt::Display for Storage {
     }
 }
 
-/// The code a run measures, as one directory name: the tag at HEAD (`v0.13.0`), else the short
-/// commit, else the crate version; `-dirty` with local changes.
-pub fn revision(workspace: &Path) -> String {
-    let mut revision = git(workspace, &["describe", "--tags", "--exact-match", "HEAD"]);
-    if revision.is_empty() {
-        revision = git(workspace, &["rev-parse", "--short", "HEAD"]);
-    }
-    if revision.is_empty() {
-        revision = format!("v{}", env!("CARGO_PKG_VERSION"));
-    }
-    let revision = revision.replace('/', "-");
-    if is_dirty(workspace) {
-        format!("{revision}-dirty")
-    } else {
-        revision
-    }
-}
-
 pub fn write(
     run_path: &Path,
-    workspace: &Path,
     data_path: &Path,
     blocks_path: &Path,
+    started_at: u32,
     chain_height: Height,
     cache_budget: usize,
 ) -> io::Result<()> {
     let mut writer = BufWriter::new(File::create(run_path.join("metadata.txt"))?);
-    let revision = git(workspace, &["rev-parse", "HEAD"]);
-    let dirty = is_dirty(workspace);
-    let started_at = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
 
+    // The build, from compile time (`build.rs`).
     writeln!(writer, "version={}", env!("CARGO_PKG_VERSION"))?;
-    writeln!(
-        writer,
-        "profile={}",
-        if cfg!(debug_assertions) {
-            "debug"
-        } else {
-            "release"
-        }
-    )?;
+    writeln!(writer, "revision={}", env!("BENCH_COMMIT"))?;
+    writeln!(writer, "dirty={}", env!("BENCH_DIRTY"))?;
+    writeln!(writer, "profile={}", env!("BENCH_PROFILE"))?;
+    writeln!(writer, "rustc={}", env!("BENCH_RUSTC"))?;
+    writeln!(writer, "rustflags={}", env!("BENCH_RUSTFLAGS"))?;
+    writeln!(writer, "target={}", env!("BENCH_TARGET"))?;
+    // The host and the input data.
     writeln!(writer, "hostname={}", command("uname", &["-n"]))?;
     writeln!(writer, "cpu={}", cpu())?;
     writeln!(writer, "ram_bytes={}", ram_bytes())?;
     writeln!(writer, "storage={}", storage(data_path))?;
     writeln!(writer, "blocks_storage={}", storage(blocks_path))?;
-    writeln!(writer, "target_os={}", consts::OS)?;
-    writeln!(writer, "target_arch={}", consts::ARCH)?;
     writeln!(
         writer,
         "parallelism={}",
@@ -101,33 +72,10 @@ pub fn write(
     )?;
     writeln!(writer, "started_at_unix={started_at}")?;
     writeln!(writer, "chain_height={chain_height}")?;
-    writeln!(writer, "revision={revision}")?;
-    writeln!(writer, "dirty={dirty}")?;
     writeln!(writer, "blocks_path={}", blocks_path.display())?;
     writeln!(writer, "data_path={}", data_path.display())?;
     writeln!(writer, "cache_budget={cache_budget}")?;
     writer.flush()
-}
-
-fn is_dirty(workspace: &Path) -> bool {
-    // Reports copied into `benches/` are not code.
-    !git(
-        workspace,
-        &["status", "--porcelain", "--", ".", ":!benches"],
-    )
-    .is_empty()
-}
-
-fn git(workspace: &Path, args: &[&str]) -> String {
-    Command::new("git")
-        .args(args)
-        .current_dir(workspace)
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .map(|output| output.trim().to_owned())
-        .unwrap_or_default()
 }
 
 fn command(program: &str, args: &[&str]) -> String {

@@ -1,4 +1,4 @@
-//! Rust series tree: one generic struct per model shape, declared through a local `shape!` macro.
+//! Rust series tree: one generic struct per model shape, declared through `bitview_client`'s `shape!` macro.
 
 use std::fmt::Write;
 
@@ -8,60 +8,6 @@ use crate::{
     rust_field_name,
 };
 
-const RUNTIME: &str = r#"
-/// A series value type, as a type parameter of the leaf accessors.
-pub trait SeriesValue {
-    /// The value where it can be missing (e.g. a period without blocks): `Option<Self>`, or the
-    /// value itself when it is already optional.
-    type Nullable;
-}
-
-impl<T> SeriesValue for Option<T> {
-    type Nullable = Option<T>;
-}
-
-/// A series-tree node or leaf, built from its series name or base.
-pub(crate) trait Node: Sized + Send + Sync + 'static {
-    fn build(client: Arc<BitviewClientBase>, name: String) -> Self;
-    #[cfg(test)]
-    fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern));
-}
-
-/// A child named by `template`: `*` stands for the parent's base, and with an empty base the `_`
-/// joining it goes too.
-fn child<T: Node>(client: &Arc<BitviewClientBase>, base: &Arc<str>, template: &'static str) -> LazyNode<T> {
-    let (client, base) = (client.clone(), base.clone());
-    LazyLock::new(Box::new(move || {
-        let name = if !base.is_empty() {
-            template.replacen('*', &base, 1)
-        } else if let Some(rest) = template.strip_prefix("*_") {
-            rest.to_owned()
-        } else {
-            template.replacen("_*", "", 1).replacen('*', "", 1)
-        };
-        Box::new(T::build(client, name))
-    }))
-}
-
-/// A series-tree shape: a struct with one lazy field per child, documented with its canonical path.
-macro_rules! shape {
-    ($name:ident $(<$($p:ident),+>)? at $at:literal { $($field:ident: $ty:ty = $template:literal,)* }) => {
-        #[doc = concat!("Series-tree node, e.g. at `", $at, "`.")]
-        pub struct $name $(<$($p),+>)? { $(pub $field: LazyNode<$ty>,)* }
-        impl $(<$($p: Send + Sync + 'static),+>)? Node for $name $(<$($p),+>)? where $($ty: Node,)* {
-            fn build(client: Arc<BitviewClientBase>, base: String) -> Self {
-                let base: Arc<str> = base.into();
-                Self { $($field: child(&client, &base, $template),)* }
-            }
-            #[cfg(test)]
-            fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern)) {
-                $(self.$field.visit(&format!("{path}{}{}", if path.is_empty() { "" } else { "." }, stringify!($field)), f);)*
-            }
-        }
-    };
-}
-"#;
-
 pub(crate) fn generate_tree(
     output: &mut String,
     model: &Model,
@@ -69,7 +15,6 @@ pub(crate) fn generate_tree(
     accessors: &[IndexSetPattern],
     value_types: &ValueTypes,
 ) {
-    output.push_str(RUNTIME);
     // Values that can be undefined are already optional; the others become optional where missing.
     for kind in &value_types.defined {
         writeln!(
@@ -148,9 +93,4 @@ use super::*;
         writeln!(output, "}} }}").unwrap();
     }
     writeln!(output, "}}\npub use tree::SeriesTree;").unwrap();
-    writeln!(
-        output,
-        "fn create_series_tree(client: Arc<BitviewClientBase>) -> SeriesTree {{ SeriesTree::build(client, String::new()) }}"
-    )
-    .unwrap();
 }

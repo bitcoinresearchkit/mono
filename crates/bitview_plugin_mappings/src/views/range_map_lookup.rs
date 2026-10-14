@@ -20,11 +20,11 @@ pub struct RangeMapLookupVec<I: VecIndex, T: VecIndex + VecValue> {
 
 impl<I: VecIndex, T: VecIndex + VecValue> RangeMapLookupVec<I, T> {
     pub(crate) fn new(
-        mapping: &SharedRangeMap<I, T>,
+        mapping: SharedRangeMap<I, T>,
         source: &(impl ReadableCloneableVec<I, T> + ?Sized),
     ) -> Self {
         Self {
-            mapping: mapping.clone(),
+            mapping,
             source: source.read_only_boxed_clone(),
         }
     }
@@ -36,7 +36,7 @@ impl<I: VecIndex, T: VecIndex + VecValue> RangeMapLookupVec<I, T> {
         mut fold: impl FnMut(B, T) -> Result<B, E>,
     ) -> Result<B, E> {
         let len = self.visible_len();
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let mut cursor = mapping.cursor();
         indices
             .into_iter()
@@ -124,7 +124,7 @@ impl<I: VecIndex, T: VecIndex + VecValue> ReadableVec<I, T> for RangeMapLookupVe
         if index >= self.visible_len() {
             return None;
         }
-        self.mapping.read().get_shared(I::from(index))
+        self.mapping.load().get_shared(I::from(index))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {

@@ -90,8 +90,13 @@ impl Query {
         // Statuses read other vectors: the raw readers above are released by now.
         let mut cached_status: Option<(Height, TxStatus)> = None;
         let mut utxos = Vec::with_capacity(outputs.len() + pending.created.len());
+        let tx_heights = self.plugins().mappings.tx_heights.load();
+        let mut tx_heights = tx_heights.cursor();
         for (tx_index, txid, vout, value) in outputs {
-            let height = self.confirmed_status_height_bounded(tx_index, lengths)?;
+            if tx_index >= lengths.tx_index {
+                return Err(Error::UnknownTxid);
+            }
+            let height: Height = tx_heights.get(tx_index).data()?;
             let status = if let Some((h, ref s)) = cached_status
                 && h == height
             {

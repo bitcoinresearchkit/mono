@@ -1,16 +1,17 @@
 use std::{
+    collections::HashMap,
     convert::Infallible,
     fmt::{Formatter, Result as FmtResult},
     fs,
-    hash::{DefaultHasher, Hash, Hasher},
     path::{Path, PathBuf},
     result::Result as StdResult,
     str::{self as StdStr, FromStr},
     sync::OnceLock,
 };
 
+use axum::body::Bytes;
 use importmap::ImportMap;
-use include_dir::{Dir, include_dir};
+use include_dir::{Dir, File as EmbeddedFile, include_dir};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{error, info};
 
@@ -19,13 +20,33 @@ use crate::Error;
 /// Embedded website assets
 static EMBEDDED_WEBSITE: Dir = include_dir!("$CARGO_MANIFEST_DIR/website");
 
-struct CachedIndex {
-    html: Vec<u8>,
-    etag: String,
+/// Cached embedded index.html with importmap injected.
+static INDEX_HTML: OnceLock<(Bytes, String)> = OnceLock::new();
+
+/// Embedded files' ETags by path, hashed once on first use.
+static EMBEDDED_ETAGS: OnceLock<HashMap<&'static Path, String>> = OnceLock::new();
+
+/// A file to serve. Embedded content carries its ETag (release only), computed once.
+pub(crate) struct File {
+    pub(crate) contents: Bytes,
+    pub(crate) etag: Option<&'static str>,
 }
 
-/// Cached embedded index.html with importmap injected.
-static INDEX_HTML: OnceLock<CachedIndex> = OnceLock::new();
+impl File {
+    fn fresh(contents: Vec<u8>) -> Self {
+        Self {
+            contents: contents.into(),
+            etag: None,
+        }
+    }
+
+    fn embedded(file: &'static EmbeddedFile<'static>) -> Self {
+        Self {
+            contents: Bytes::from_static(file.contents()),
+            etag: (!cfg!(debug_assertions)).then(|| embedded_etag(file)),
+        }
+    }
+}
 
 /// Website configuration:
 /// - `true` or omitted: serve embedded website
@@ -44,49 +65,28 @@ impl Website {
         !matches!(self, Self::Disabled)
     }
 
-    /// Returns the embedded index ETag (None for filesystem sites, debug builds,
-    /// disabled sites, or before the first index request).
-    fn index_etag(&self) -> Option<&str> {
-        if cfg!(debug_assertions) || !matches!(self, Self::Default) {
-            return None;
-        }
-        INDEX_HTML.get().map(|cached| cached.etag.as_str())
-    }
-
-    pub(crate) fn index_etag_for(&self, path: &str) -> Option<&str> {
-        let etag = self.index_etag()?;
-        (path.is_empty()
-            || path == "index.html"
-            || (Path::new(path).extension().is_none() && embedded_file(path).is_none()))
-        .then_some(etag)
-    }
-
     /// Returns the filesystem path if available, None means use embedded
-    fn filesystem_path(&self) -> Option<PathBuf> {
+    pub(crate) fn filesystem_path(&self) -> Option<&Path> {
         match self {
             Self::Disabled => None,
             Self::Default => {
-                if cfg!(debug_assertions) {
-                    let local = PathBuf::from("./website");
-                    local.exists().then_some(local)
-                } else {
-                    None
-                }
+                let local = Path::new("./website");
+                (cfg!(debug_assertions) && local.exists()).then_some(local)
             }
-            Self::Filesystem(p) => Some(p.clone()),
+            Self::Filesystem(p) => Some(p),
         }
     }
 
     /// Get file content by path (handles hash-stripping, SPA fallback, importmap)
     ///
     /// Returns an error if the website is disabled.
-    pub(crate) fn get_file(&self, path: &str) -> Result<Vec<u8>, Error> {
+    pub(crate) fn get_file(&self, path: &str) -> Result<File, Error> {
         if !self.is_enabled() {
             return Err(Error::not_found("Website is disabled"));
         }
         match self.filesystem_path() {
             None => self.get_embedded(path),
-            Some(base) => self.get_filesystem(&base, path),
+            Some(base) => self.get_filesystem(base, path),
         }
     }
 
@@ -105,55 +105,58 @@ impl Website {
         }
     }
 
-    fn get_index(&self) -> Result<Vec<u8>, Error> {
+    fn get_index(&self) -> Result<File, Error> {
         // Filesystem content is mutable and must never enter the embedded cache.
         if let Some(base) = self.filesystem_path() {
             if cfg!(debug_assertions) {
                 return fs::read(base.join("index.html"))
+                    .map(File::fresh)
                     .map_err(|e| Error::not_found(e.to_string()));
             }
             let html = fs::read_to_string(base.join("index.html"))
                 .map_err(|e| Error::not_found(e.to_string()))?;
-            let html = match ImportMap::scan(&base, "") {
+            let html = match ImportMap::scan(base, "") {
                 Ok(importmap) => importmap.transform_html(&html).unwrap_or(html),
                 Err(e) => {
                     error!("Failed to scan for importmap: {e}");
                     html
                 }
             };
-            return Ok(html.into_bytes());
+            return Ok(File::fresh(html.into_bytes()));
         }
 
         let file = EMBEDDED_WEBSITE
             .get_file("index.html")
             .expect("index.html must exist in embedded website");
         if cfg!(debug_assertions) {
-            return Ok(file.contents().to_vec());
+            return Ok(File::embedded(file));
         }
 
-        let cached = INDEX_HTML.get_or_init(|| {
+        let (html, etag) = INDEX_HTML.get_or_init(|| {
             let html = StdStr::from_utf8(file.contents()).expect("index.html must be valid UTF-8");
             let importmap = ImportMap::scan_embedded(&EMBEDDED_WEBSITE, "");
             let html = importmap
                 .transform_html(html)
                 .unwrap_or_else(|| html.to_string());
-            let html = html.into_bytes();
-            let etag = content_etag(&html);
-            CachedIndex { html, etag }
+            let etag = content_etag(html.as_bytes());
+            (html.into(), etag)
         });
 
-        Ok(cached.html.clone())
+        Ok(File {
+            contents: html.clone(),
+            etag: Some(etag),
+        })
     }
 
-    fn get_embedded(&self, path: &str) -> Result<Vec<u8>, Error> {
+    fn get_embedded(&self, path: &str) -> Result<File, Error> {
         // Index.html
         if path.is_empty() || path == "index.html" {
             return self.get_index();
         }
 
         // Try direct lookup, then with hash stripped
-        if let Some(bytes) = embedded_file(path) {
-            return Ok(bytes.to_vec());
+        if let Some(file) = embedded_file(path) {
+            return Ok(File::embedded(file));
         }
 
         // SPA fallback: no extension -> index.html
@@ -164,7 +167,7 @@ impl Website {
         Err(Error::not_found("File not found"))
     }
 
-    fn get_filesystem(&self, base: &Path, path: &str) -> Result<Vec<u8>, Error> {
+    fn get_filesystem(&self, base: &Path, path: &str) -> Result<File, Error> {
         // Root index.html (importmap, SPA)
         if path.is_empty() || path == "index.html" {
             return self.get_index();
@@ -194,21 +197,37 @@ impl Website {
             return self.get_index();
         }
 
-        fs::read(&file_path).map_err(|e| {
+        fs::read(&file_path).map(File::fresh).map_err(|e| {
             error!("{e}");
             Error::not_found("File not found")
         })
     }
 }
 
+/// The quoted importmap content hash, so a hashed URL's name can be checked against it.
 pub(crate) fn content_etag(content: &[u8]) -> String {
-    let mut hasher = DefaultHasher::new();
-    content.hash(&mut hasher);
-    format!("\"{}\"", hasher.finish())
+    format!("\"{}\"", ImportMap::hash(content))
+}
+
+fn embedded_etag(file: &EmbeddedFile<'static>) -> &'static str {
+    fn collect(dir: &'static Dir<'static>, etags: &mut HashMap<&'static Path, String>) {
+        for file in dir.files() {
+            etags.insert(file.path(), content_etag(file.contents()));
+        }
+        for dir in dir.dirs() {
+            collect(dir, etags);
+        }
+    }
+    let etags = EMBEDDED_ETAGS.get_or_init(|| {
+        let mut etags = HashMap::new();
+        collect(&EMBEDDED_WEBSITE, &mut etags);
+        etags
+    });
+    &etags[file.path()]
 }
 
 /// A file, its unhashed name, or a folder's own index.html (standalone page).
-fn embedded_file(path: &str) -> Option<&'static [u8]> {
+fn embedded_file(path: &str) -> Option<&'static EmbeddedFile<'static>> {
     EMBEDDED_WEBSITE
         .get_file(path)
         .or_else(|| {
@@ -216,7 +235,6 @@ fn embedded_file(path: &str) -> Option<&'static [u8]> {
                 .and_then(|unhashed| EMBEDDED_WEBSITE.get_file(unhashed.to_str()?))
         })
         .or_else(|| EMBEDDED_WEBSITE.get_file(Path::new(path).join("index.html")))
-        .map(|file| file.contents())
 }
 
 impl FromStr for Website {

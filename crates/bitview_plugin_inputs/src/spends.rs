@@ -46,7 +46,7 @@ pub(crate) fn compute(
             .unwrap_or(TxInIndex::from(txout_indexes.len())),
     );
     let (begin, finish) = (boundaries[0].to_usize(), boundaries[end - start].to_usize());
-    let output_heights = mappings.output_heights.read();
+    let output_heights = mappings.output_heights.load_full();
     let mut values = vecs.inputs.value.range_cursor_at(begin, finish);
     let mut origins = txout_indexes.range_cursor_at(begin, finish);
     let mut hashes = vecs.blocks.blockhash.cursor();

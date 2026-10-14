@@ -15,8 +15,10 @@ With no argument, it charts the workspace's `benches/` collection. The
 equivalent API call is `Visualizer::new(bitviewdir).generate()?`.
 
 Each directory of `benches/` is a machine (`apple-m6-16gb-external-tb`), and every directory
-below it that holds a `memory.csv` is one of its runs (`<revision>/`). Files are
-read by column name, so runs recorded by older recorders chart what they have.
+below it that holds a `memory.csv` is one of its runs (`<revision>/<run-id>/`,
+`<revision>/` for older ones), labelled by that path. Files are read by column
+name, so runs recorded by older recorders chart what they have. A run whose files
+cannot be read, or without memory samples, is reported and skipped.
 
 ## Charts
 

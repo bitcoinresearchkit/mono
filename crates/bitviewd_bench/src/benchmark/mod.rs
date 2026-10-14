@@ -14,7 +14,7 @@ use std::{
 
 use brk_error::{Error, Result};
 use brk_logger::register_hook;
-use brk_types::Height;
+use brk_types::{Height, Timestamp};
 use disk::DiskMonitor;
 use parking_lot::Mutex;
 use process::ProcessMonitor;
@@ -79,29 +79,34 @@ impl Benchmark {
         chain_height: Height,
         cache_budget: usize,
     ) -> Result<Self> {
-        let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(Path::parent)
-            .ok_or(Error::Internal("Invalid benchmark crate path"))?;
         let reports = data_path.join("benches");
         fs::create_dir_all(&reports)?;
         let lock = File::create(reports.join(".lock"))?;
         lock.try_lock()
             .map_err(|_| Error::Internal("Another benchmark is running on this data directory"))?;
-        // One run per machine and revision: a rerun replaces the previous one.
-        let path = reports
+        // Every run keeps its own directory, named by its UTC start (`20261014T153012Z`, then
+        // `-1`, `-2`... for restarts within the same second), so repetitions of one revision compare.
+        let started_at = Timestamp::now();
+        let revision = reports
             .join(metadata::machine(data_path))
-            .join(metadata::revision(workspace));
-        if path.exists() {
-            fs::remove_dir_all(&path)?;
+            .join(env!("BENCH_REVISION"));
+        fs::create_dir_all(&revision)?;
+        let run_id = started_at.to_iso8601().replace(['-', ':'], "");
+        let mut path = revision.join(&run_id);
+        let mut suffix = 0;
+        while let Err(error) = fs::create_dir(&path) {
+            if error.kind() != ErrorKind::AlreadyExists {
+                return Err(error.into());
+            }
+            suffix += 1;
+            path = revision.join(format!("{run_id}-{suffix}"));
         }
-        fs::create_dir_all(&path)?;
 
         metadata::write(
             &path,
-            workspace,
             data_path,
             blocks_path,
+            *started_at,
             chain_height,
             cache_budget,
         )?;
@@ -224,19 +229,22 @@ impl Benchmark {
         }
 
         let elapsed = measured.unwrap_or_else(|| ended_at.duration_since(started_at));
-        let run_result = self.0.run.lock().record(elapsed, outcome.as_str());
         let trace_result = self.0.trace.finish();
         let disk_result = self
             .0
             .disk
             .lock()
             .finish(elapsed.as_millis(), &self.0.path.join("disk_breakdown.csv"));
-
-        monitor_result?;
-        run_result?;
-        trace_result?;
-        disk_result?;
-        Ok(())
+        let recorded = monitor_result
+            .and(trace_result.map_err(Error::from))
+            .and(disk_result.map_err(Error::from));
+        // The status comes last: a run that lost recordings is not complete.
+        let outcome = match outcome {
+            Outcome::Complete if recorded.is_err() => Outcome::Failed,
+            outcome => outcome,
+        };
+        self.0.run.lock().record(elapsed, outcome.as_str())?;
+        recorded
     }
 }
 

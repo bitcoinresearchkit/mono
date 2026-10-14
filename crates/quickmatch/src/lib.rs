@@ -35,22 +35,23 @@ pub struct QuickMatch<'a> {
     max_word_count: usize,
     max_word_len: usize,
     max_query_len: usize,
+    /// Every word and adjacent-pair compound prefix (prefix and fuzzy search).
     word_index: FxHashMap<String, Vec<ItemId>>,
+    /// Complete words and compounds only (exact search).
+    exact_index: FxHashMap<String, Vec<ItemId>>,
     trigram_index: FxHashMap<[u8; 3], Vec<ItemId>>,
 }
 
 impl<'a> QuickMatch<'a> {
-    /// Build from pre-formatted lowercase ASCII items.
-    ///
-    /// # Panics
-    /// Panics if an item is not lowercase ASCII or there are more than u32::MAX items.
+    /// Build from pre-formatted lowercase ASCII items, at most `u32::MAX` of
+    /// them. Both preconditions are only checked in debug builds.
     pub fn new(items: &[&'a str]) -> Self {
         Self::build(items.iter().copied().map(Cow::Borrowed).collect())
     }
 
     fn build(items: Vec<Cow<'a, str>>) -> Self {
-        assert!(u32::try_from(items.len()).is_ok(), "Too many items");
-        assert!(
+        debug_assert!(u32::try_from(items.len()).is_ok(), "Too many items");
+        debug_assert!(
             items
                 .iter()
                 .all(|item| item.is_ascii() && !item.bytes().any(|byte| byte.is_ascii_uppercase())),
@@ -58,6 +59,7 @@ impl<'a> QuickMatch<'a> {
         );
 
         let mut word_index: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
+        let mut exact_index: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
         let mut trigram_index: FxHashMap<[u8; 3], Vec<ItemId>> = FxHashMap::default();
         let mut max_word_len = 0;
         let mut max_query_len = 0;
@@ -77,6 +79,7 @@ impl<'a> QuickMatch<'a> {
                 for len in 1..=word.len() {
                     Self::insert_word(&mut word_index, &word[..len], id);
                 }
+                Self::insert_word(&mut exact_index, word, id);
 
                 let mut bytes = word.bytes();
                 if let (Some(mut a), Some(mut b)) = (bytes.next(), bytes.next()) {
@@ -100,6 +103,7 @@ impl<'a> QuickMatch<'a> {
                     for len in from..=compound.len() {
                         Self::insert_word(&mut word_index, &compound[..len], id);
                     }
+                    Self::insert_word(&mut exact_index, &compound, id);
                 }
                 previous_word = Some(word);
             }
@@ -133,6 +137,7 @@ impl<'a> QuickMatch<'a> {
             items,
             item_rank,
             word_index,
+            exact_index,
             trigram_index,
         }
     }
@@ -203,18 +208,11 @@ impl<'a> QuickMatch<'a> {
             return vec![];
         }
 
-        let mut unknown_words: Vec<&str> = vec![];
-        let mut known_lists: Vec<&[ItemId]> = vec![];
-
-        for &word in &query_words {
-            if let Some(items) = self.word_index.get(word) {
-                known_lists.push(items)
-            } else if word.len() >= 3 && unknown_words.len() < trigram_budget {
-                unknown_words.push(word)
-            }
-        }
-
         if EXACT_WORDS {
+            let known_lists = query_words
+                .iter()
+                .filter_map(|&word| self.exact_index.get(word).map(Vec::as_slice))
+                .collect::<Vec<_>>();
             if !config.union_fallback() && known_lists.len() != query_words.len() {
                 return Vec::new();
             }
@@ -236,11 +234,25 @@ impl<'a> QuickMatch<'a> {
             );
         }
 
+        let mut unknown_words: Vec<&str> = vec![];
+        let mut known_lists: Vec<&[ItemId]> = vec![];
+
+        for &word in &query_words {
+            if let Some(items) = self.word_index.get(word) {
+                known_lists.push(items)
+            } else if word.len() >= 3 && unknown_words.len() < trigram_budget {
+                unknown_words.push(word)
+            }
+        }
+
         let pool = Self::intersect_lists(&known_lists);
+        // Disjoint known words: no fuzzy match can satisfy them all, so skip
+        // straight to the (optional) union fallback.
+        let disjoint = pool.as_ref().is_some_and(Vec::is_empty);
 
         // A swapped pair often shares no trigrams ("prcie" → "price").
         // Probe indexed corrections before the broader trigram fallback.
-        if !unknown_words.is_empty() && trigram_budget > 0 {
+        if !disjoint && !unknown_words.is_empty() && trigram_budget > 0 {
             let mut corrections: Vec<Vec<ItemId>> = vec![vec![]; unknown_words.len()];
             let mut budget = trigram_budget;
             for round in 0..trigram_budget {
@@ -264,10 +276,8 @@ impl<'a> QuickMatch<'a> {
                     let mut corrected = bytes.to_vec();
                     corrected.swap(at, at + 1);
                     let corrected = String::from_utf8(corrected).expect("query is ASCII");
-                    if let Some(hits) = self.word_index.get(corrected.as_str()) {
-                        corrections[i].extend(hits.iter().copied().filter(|id| {
-                            word_match(self.item(*id), &[corrected.as_str()], &sep, true).0 > 0
-                        }));
+                    if let Some(hits) = self.exact_index.get(corrected.as_str()) {
+                        corrections[i].extend_from_slice(hits);
                     }
                 }
                 if budget == 0 {
@@ -281,7 +291,9 @@ impl<'a> QuickMatch<'a> {
                 }
                 let mut lists = known_lists.clone();
                 lists.extend(corrections.iter().map(Vec::as_slice));
-                if let Some(candidates) = Self::intersect_lists(&lists) {
+                if let Some(candidates) = Self::intersect_lists(&lists)
+                    && !candidates.is_empty()
+                {
                     return self.rank::<false>(
                         candidates.into_iter().map(|id| (id, 0)),
                         &query_words,
@@ -294,7 +306,7 @@ impl<'a> QuickMatch<'a> {
         }
 
         // Try typo matching for unknown words
-        if !unknown_words.is_empty() && trigram_budget > 0 {
+        if !disjoint && !unknown_words.is_empty() && trigram_budget > 0 {
             let min_len = query.len().saturating_sub(3);
             let (scores, hit_count) =
                 self.score_trigrams(&unknown_words, trigram_budget, pool.as_deref(), min_len);
@@ -313,13 +325,11 @@ impl<'a> QuickMatch<'a> {
         }
 
         // Rank known candidates (intersection, or union as fallback)
-        let candidates = pool.unwrap_or_else(|| {
-            if config.union_fallback() {
-                Self::union_lists(&known_lists)
-            } else {
-                Vec::new()
-            }
-        });
+        let candidates = match pool {
+            Some(pool) if !pool.is_empty() => pool,
+            _ if config.union_fallback() => Self::union_lists(&known_lists),
+            _ => Vec::new(),
+        };
         self.rank::<false>(
             candidates.into_iter().map(|id| (id, 0)),
             &query_words,
@@ -329,25 +339,26 @@ impl<'a> QuickMatch<'a> {
         )
     }
 
-    /// Intersection of all posting lists, or `None` when there are no lists or
-    /// no overlap. IDs are appended in ascending order while the index builds.
+    /// Intersection of all posting lists (empty when they are disjoint), or
+    /// `None` when there are no lists, i.e. no constraint. IDs are appended in
+    /// ascending order while the index builds.
     fn intersect_lists(lists: &[&[ItemId]]) -> Option<Vec<ItemId>> {
         let (smallest_index, smallest) = lists
             .iter()
             .copied()
             .enumerate()
             .min_by_key(|(_, items)| items.len())?;
-        let result = smallest
-            .iter()
-            .copied()
-            .filter(|item| {
-                lists.iter().enumerate().all(|(index, items)| {
-                    index == smallest_index || items.binary_search(item).is_ok()
+        Some(
+            smallest
+                .iter()
+                .copied()
+                .filter(|item| {
+                    lists.iter().enumerate().all(|(index, items)| {
+                        index == smallest_index || items.binary_search(item).is_ok()
+                    })
                 })
-            })
-            .collect::<Vec<_>>();
-
-        (!result.is_empty()).then_some(result)
+                .collect(),
+        )
     }
 
     /// Union of all posting lists.
@@ -471,8 +482,8 @@ impl<'a> QuickMatch<'a> {
 }
 
 impl QuickMatch<'static> {
-    /// Own pre-formatted lowercase ASCII items. Panics on invalid corpus input,
-    /// as documented by [`Self::new`].
+    /// Own pre-formatted lowercase ASCII items, with the preconditions of
+    /// [`Self::new`].
     pub fn new_owned(items: Vec<String>) -> Self {
         Self::build(items.into_iter().map(Cow::Owned).collect())
     }

@@ -101,21 +101,14 @@ impl ImportMap {
             return;
         };
 
-        let short_hash = Self::short_hash(contents);
+        let hash = Self::hash(contents);
 
         let original_url = format!("{}/{}", base_url, path.display());
         let parent = path.parent().filter(|p| *p != Path::new(""));
 
         let hashed_url = match parent {
-            Some(p) => format!(
-                "{}/{}/{}.{}.{}",
-                base_url,
-                p.display(),
-                stem,
-                short_hash,
-                ext
-            ),
-            None => format!("{}/{}.{}.{}", base_url, stem, short_hash, ext),
+            Some(p) => format!("{}/{}/{}.{}.{}", base_url, p.display(), stem, hash, ext),
+            None => format!("{}/{}.{}.{}", base_url, stem, hash, ext),
         };
 
         self.0.insert(original_url, hashed_url);
@@ -127,9 +120,9 @@ impl ImportMap {
         Some(path.with_file_name(format!("{}.{}", name, ext)))
     }
 
-    /// Whether the filename carries these contents' hash (`foo.abc12345.js`), so it never changes.
-    pub fn names_hash_of(path: &Path, contents: &[u8]) -> bool {
-        Self::split_hash(path).is_some_and(|(_, hash, _)| hash == Self::short_hash(contents))
+    /// Whether the filename carries this content hash (`foo.abc12345.js`), so it never changes.
+    pub fn names_hash(path: &Path, hash: &str) -> bool {
+        Self::split_hash(path).is_some_and(|(_, named, _)| named == hash)
     }
 
     /// `foo.abc12345.js` -> (`foo`, `abc12345`, `js`) for a hashed extension and a well-formed hash.
@@ -144,7 +137,8 @@ impl ImportMap {
             .then_some((name, hash, ext))
     }
 
-    fn short_hash(contents: &[u8]) -> String {
+    /// The content hash hashed URLs carry: 8 hex chars.
+    pub fn hash(contents: &[u8]) -> String {
         let mut hash = format!("{:016x}", rapidhash_v3(contents));
         hash.truncate(Self::HASH_LEN);
         hash
@@ -183,10 +177,15 @@ impl ImportMap {
             }
         }
 
-        // Only include CSS already in HTML (preserves order for cascade correctness)
+        // Only include CSS already in HTML (preserves order for cascade correctness).
+        // Hrefs may already be hashed (re-transforming output): match them by their original URL.
         let mut content = String::new();
         for url in Self::extract_href_values(html, "stylesheet") {
-            if let Some(hashed) = css.remove(url) {
+            let hashed = css.remove(url).or_else(|| {
+                let original = Self::strip_hash(Path::new(url))?;
+                css.remove(original.to_str()?)
+            });
+            if let Some(hashed) = hashed {
                 writeln!(content, r#"<link rel="stylesheet" href="{hashed}">"#).unwrap();
             }
         }

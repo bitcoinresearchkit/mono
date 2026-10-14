@@ -1,4 +1,4 @@
-/// Encoded path and query, checked against every configured origin's URL limit.
+/// Encoded upstream URL, checked against the URL limit.
 pub struct PreparedRequest {
-    pub path: String,
+    pub url: String,
 }

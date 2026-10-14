@@ -3,33 +3,30 @@ use bitview_traversable::Traversable;
 use bitview_vecs::RangeMapVec;
 use brk_types::{Height, Timestamp};
 use derive_more::{Deref, DerefMut};
-use rangeindex::SharedRangeMap;
-use vecdb::{AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, VecIndex};
+use rangeindex::RangeMapWriter;
+use vecdb::{AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex};
 
 use super::ResolutionVecs;
 
-#[derive(Clone)]
 enum DateSource<I> {
     Period(fn(I) -> Date),
     FirstTimestamp(ReadableBoxedVec<Height, Timestamp>),
 }
 
 /// Resident date and first-height lookups, updated together before publication.
-#[derive(Clone, Deref, DerefMut, Traversable)]
-pub struct DatedResolutionVecs<I: VecIndex> {
+#[derive(Deref, DerefMut, Traversable)]
+pub struct DatedResolutionVecs<I: VecIndex, M: StorageMode = Rw> {
     /// UTC calendar date in `YYYY-MM-DD` format associated with the time-period
     /// index. At `day1`, this is the represented calendar day. At coarser
     /// indexes, it is derived from the first monotonic block timestamp at or
     /// after the period.
     pub date: RangeMapVec<I, Date>,
-    #[traversable(skip)]
-    dates: SharedRangeMap<Date, I>,
+    dates: M::WriteOnly<RangeMapWriter<Date, I>>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    resolution: ResolutionVecs<I>,
-    #[traversable(skip)]
-    date_source: DateSource<I>,
+    resolution: ResolutionVecs<I, M>,
+    date_source: M::WriteOnly<DateSource<I>>,
 }
 
 impl<I: VecIndex> DatedResolutionVecs<I> {
@@ -55,9 +52,9 @@ impl<I: VecIndex> DatedResolutionVecs<I> {
             DateSource::Period(_) => mapping.version(),
             DateSource::FirstTimestamp(timestamps) => timestamps.version(),
         };
-        let dates = SharedRangeMap::new(Vec::new());
+        let dates = RangeMapWriter::default();
         let this = Self {
-            date: RangeMapVec::new("date", version, dates.clone()),
+            date: RangeMapVec::new("date", version, dates.shared()),
             dates,
             resolution: ResolutionVecs::new(mapping),
             date_source,

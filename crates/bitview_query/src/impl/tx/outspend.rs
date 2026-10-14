@@ -91,7 +91,7 @@ impl Query {
         let txin_index_reader = self.plugins().outputs.spent.spending_txin_index.reader();
         let txid_reader = indexer.vecs().transactions.txid.reader();
 
-        let tx_heights = self.plugins().mappings.tx_heights.read();
+        let tx_heights = self.plugins().mappings.tx_heights.load();
         let mut tx_heights = tx_heights.cursor();
         let mut requested = Vec::new();
         let mut ordered = true;

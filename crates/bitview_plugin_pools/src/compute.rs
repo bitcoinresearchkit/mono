@@ -8,7 +8,7 @@ use brk_exit::Exit;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, Version, WritableVec};
 
-use crate::{Dependencies, Vecs};
+use crate::{Dependencies, Vecs, pool_heights::PoolSnapshot};
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
@@ -25,15 +25,18 @@ impl ComputePlugin for Vecs {
         let Dependencies { indexer, mining } = dependencies;
         let exit = context.exit();
 
-        self.compute_pool(indexer, exit)?;
-        self.fill_rewards(mining);
+        // Blocks and their totals publish together, once both are complete.
+        let mut snapshot = self.heights.stage();
+        self.compute_pool(indexer, exit, &mut snapshot)?;
+        self.fill_rewards(mining, &mut snapshot);
+        self.heights.publish(snapshot);
         Ok(())
     }
 }
 
 impl Vecs {
     /// Folds every new block's coinbase and fees into its pool's running totals.
-    fn fill_rewards(&self, mining: &MiningVecs) {
+    fn fill_rewards(&self, mining: &MiningVecs, snapshot: &mut PoolSnapshot) {
         let rewards = &mining.rewards;
         let coinbase = &rewards.coinbase.block;
         let fees = &rewards.fees.block;
@@ -49,10 +52,10 @@ impl Vecs {
             .min(fees.sats.len())
             .min(fees.cents.len());
         // A shorter source re-fills from its end, so no stale total survives.
-        let from = self.heights.resume_totals(version, to);
+        let from = snapshot.resume_totals(version, to);
         let (mut slugs, mut coinbase_sats, mut coinbase_cents, mut fee_sats, mut fee_cents) =
             Default::default();
-        // Bounded chunks, each folded under one write lock: long refills keep little scratch.
+        // Bounded chunks: long refills keep little scratch.
         for chunk in write_chunks(from..to) {
             let (start, end) = (chunk.start, chunk.end);
             self.pool.collect_range_into_at(start, end, &mut slugs);
@@ -75,11 +78,16 @@ impl Vecs {
                     ],
                 )
             });
-            self.heights.append_totals(blocks);
+            snapshot.append_totals(blocks);
         }
     }
 
-    fn compute_pool(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
+    fn compute_pool(
+        &mut self,
+        indexer: &Indexer,
+        exit: &Exit,
+        snapshot: &mut PoolSnapshot,
+    ) -> Result<()> {
         let dep_version: Version = [
             indexer.vecs().blocks.coinbase_tag.version(),
             indexer.vecs().transactions.first_tx_index.version(),
@@ -148,7 +156,7 @@ impl Vecs {
 
         let _lock = exit.lock();
         self.pool.write()?;
-        self.heights.update(min, self.pool.version(), &pool_slugs);
+        snapshot.update(min, self.pool.version(), &pool_slugs);
         Ok(())
     }
 }

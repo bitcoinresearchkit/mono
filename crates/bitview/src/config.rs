@@ -86,13 +86,8 @@ impl Config {
     pub fn import() -> Result<RunConfig> {
         let config_args = Self::parse_args()?;
 
-        let config = Self::load()?.with_overrides(config_args);
-
-        let data_path = config.bitviewdir();
-
-        config.check();
-        let runner = config.runner()?;
-        fs::create_dir_all(&data_path)?;
+        let runner = Self::load()?.with_overrides(config_args).runner()?;
+        fs::create_dir_all(&runner.server.data_path)?;
 
         Ok(runner)
     }
@@ -286,23 +281,6 @@ impl Config {
         );
     }
 
-    fn check(&self) {
-        let connect = self.connect();
-        if !connect.bitcoin_dir().is_dir() {
-            println!("{:?} isn't a valid directory", connect.bitcoin_dir());
-            println!("Please use the --bitcoindir parameter to set a valid path.");
-            println!("Run the program with '-h' for help.");
-            exit(1);
-        }
-
-        if !connect.blocks_dir().is_dir() {
-            println!("{:?} isn't a valid directory", connect.blocks_dir());
-            println!("Please use the --blocksdir parameter to set a valid path.");
-            println!("Run the program with '-h' for help.");
-            exit(1);
-        }
-    }
-
     fn read(path: &Path) -> io::Result<Self> {
         let contents = match fs::read_to_string(path) {
             Ok(contents) => contents,
@@ -314,10 +292,10 @@ impl Config {
                 ));
             }
         };
-        from_str(&contents).map_err(|_| {
+        from_str(&contents).map_err(|e| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("Invalid config: {}", path.display()),
+                format!("Invalid config {}: {e}", path.display()),
             )
         })
     }
@@ -383,10 +361,20 @@ impl Config {
         }
     }
 
+    /// Resolve everything a runner needs: the blocks directory must exist, and
+    /// [`ConnectArgs::client`] checks the RPC credentials.
     fn runner(&self) -> Result<RunConfig> {
+        let connect = self.connect();
+        let blocks_path = connect.blocks_dir();
+        if !blocks_path.is_dir() {
+            return Err(Error::NotFound(format!(
+                "{} isn't a valid blocks directory; set --blocksdir or --bitcoindir (run with -h for help)",
+                blocks_path.display()
+            )));
+        }
         Ok(RunConfig {
-            client: self.connect().client()?,
-            blocks_path: self.connect().blocks_dir(),
+            client: connect.client()?,
+            blocks_path,
             server: self.server_config(),
             cache_budget: self.cachebudget.unwrap_or(DEFAULT_CACHE_BUDGET),
         })

@@ -28,10 +28,7 @@ impl ClientConstants {
         let indexes = Index::all();
         let indexes: Vec<&'static str> = indexes.iter().map(|i| i.name()).collect();
 
-        let pools = pools();
-        let mut sorted_pools: Vec<_> = pools.iter().collect();
-        sorted_pools.sort_by_key(|p| p.name.to_lowercase());
-        let pool_map: BTreeMap<String, &'static str> = sorted_pools
+        let pool_map: BTreeMap<String, &'static str> = pools()
             .iter()
             .map(|p| (p.slug().to_string(), p.name))
             .collect();

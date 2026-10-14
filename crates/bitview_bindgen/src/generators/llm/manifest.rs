@@ -116,6 +116,7 @@ fn operation_from_endpoint(
         )
     })?;
     validate_tool_name(&name)?;
+    validate_http(endpoint, &name)?;
     if !names.insert(name.clone()) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -381,12 +382,13 @@ fn collect_component_refs(value: &Value, pending: &mut VecDeque<String>) -> io::
     match value {
         Value::Object(object) => {
             if let Some(reference) = object.get("$ref").and_then(Value::as_str) {
+                // The MCP bridge resolves only local `#/$defs/<name>` references.
                 if let Some(name) = reference.strip_prefix(COMPONENT_REF_PREFIX) {
                     pending.push_back(unescape_json_pointer(name));
-                } else if !reference.starts_with("#/$defs/") && !reference.starts_with("#/") {
+                } else if !reference.starts_with("#/$defs/") {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
-                        format!("external JSON Schema reference is not supported: {reference}"),
+                        format!("unsupported JSON Schema reference: {reference}"),
                     ));
                 }
             }
@@ -432,6 +434,55 @@ fn rewrite_component_refs(value: &mut Value) {
         }
         _ => {}
     }
+}
+
+/// The MCP bridge forwards tools as-is: each must be a read-only GET on a safe local path whose
+/// `{placeholders}` are exactly its path parameters, with unique parameter names.
+fn validate_http(endpoint: &Endpoint, name: &str) -> io::Result<()> {
+    let invalid = |reason: &str| {
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "MCP tool {name} ({} {}) {reason}",
+                endpoint.method, endpoint.path
+            ),
+        ))
+    };
+    if endpoint.method != "GET" {
+        return invalid("is not a read-only GET operation; mark it x-mcp-ignore");
+    }
+    let path = &endpoint.path;
+    if !path.starts_with('/')
+        || path.starts_with("//")
+        || path.contains(['?', '#'])
+        || path.split('/').any(|segment| segment == "..")
+    {
+        return invalid("has an unsafe path");
+    }
+    let placeholders = path
+        .split('/')
+        .filter_map(|segment| segment.strip_prefix('{')?.strip_suffix('}'))
+        .collect::<BTreeSet<_>>();
+    let path_params = endpoint
+        .path_params
+        .iter()
+        .map(|parameter| parameter.name.as_str())
+        .collect::<BTreeSet<_>>();
+    if placeholders != path_params
+        || path_params.len() != endpoint.path_params.len()
+        || path.matches('{').count() != placeholders.len()
+    {
+        return invalid("path placeholders do not match its path parameters");
+    }
+    let mut parameters = path_params;
+    if !endpoint
+        .query_params
+        .iter()
+        .all(|parameter| parameters.insert(&parameter.name))
+    {
+        return invalid("repeats a parameter name");
+    }
+    Ok(())
 }
 
 fn validate_tool_name(name: &str) -> io::Result<()> {

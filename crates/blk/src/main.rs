@@ -1,7 +1,11 @@
-use std::{env, process::ExitCode};
+use std::{
+    env,
+    io::{self, BufWriter, Write},
+    process::ExitCode,
+};
 
 use args::Args;
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_reader::Reader;
 use fields::Ctx;
 use formatter::Formatter;
@@ -19,6 +23,8 @@ mod usage;
 fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,
+        // Broken pipe (e.g. `blk … | head`) is a normal end-of-stream.
+        Err(Error::IO(e)) if e.kind() == io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("blk: {e}");
             ExitCode::from(1)
@@ -41,12 +47,9 @@ fn run() -> Result<()> {
     let mode = Mode::pick(args.pretty, args.compact, args.paths.len())?;
     let reader = Reader::new(args.connect.blocks_dir(), &client);
     let formatter = Formatter::new(mode, args.paths);
+    let mut out = BufWriter::new(io::stdout().lock());
     for block in reader.range(start, end)?.iter() {
-        let block = block?;
-        let line = formatter.format(&Ctx::new(&block, network))?;
-        if !line.is_empty() {
-            println!("{line}");
-        }
+        formatter.write(&Ctx::new(&block?, network), &mut out)?;
     }
-    Ok(())
+    Ok(out.flush()?)
 }

@@ -66,11 +66,23 @@ fn write_output(path: &Path, content: &str) -> io::Result<()> {
     write_if_changed(path, content)
 }
 
+/// Distinct series ids: a series reached through several typed paths counts once.
 fn count_metrics(node: &TreeNode) -> usize {
-    match node {
-        TreeNode::Leaf(_) => 1,
-        TreeNode::Branch(children) => children.values().map(count_metrics).sum(),
+    fn collect<'a>(node: &'a TreeNode, names: &mut BTreeSet<&'a str>) {
+        match node {
+            TreeNode::Leaf(leaf) => {
+                names.insert(leaf.name());
+            }
+            TreeNode::Branch(children) => {
+                for child in children.values() {
+                    collect(child, names);
+                }
+            }
+        }
     }
+    let mut names = BTreeSet::new();
+    collect(node, &mut names);
+    names.len()
 }
 
 fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&Endpoint]) -> String {
@@ -317,17 +329,24 @@ fn referenced_schemas<'a>(
     endpoints: &[&'a Endpoint],
     schemas: &'a TypeSchemas,
 ) -> BTreeSet<&'a str> {
+    // Roots: the schemas responses, parameters and request bodies reference, plus named text.
     let mut names = BTreeSet::new();
     for endpoint in endpoints {
-        if let Some(name) = endpoint.schema_name().filter(|name| *name != "*") {
-            names.insert(name);
+        if let Some(schema) = &endpoint.json_response_schema {
+            collect_refs(schema, &mut names);
         }
-        if let Some(body) = &endpoint.request_body
-            && schemas.contains_key(&body.body_type)
-        {
+        if let ResponseKind::Text(Some(text)) = &endpoint.response_kind {
+            names.insert(text.name.as_str());
+        }
+        for parameter in endpoint.path_params.iter().chain(&endpoint.query_params) {
+            collect_refs(&parameter.schema, &mut names);
+            names.insert(parameter.param_type.trim_end_matches("[]"));
+        }
+        if let Some(body) = &endpoint.request_body {
             names.insert(body.body_type.as_str());
         }
     }
+    names.retain(|name| schemas.contains_key(*name));
 
     let mut pending = names.iter().copied().collect::<Vec<_>>();
     while let Some(name) = pending.pop() {

@@ -5,7 +5,7 @@
 - Version: `v0.12.2`
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
-- Metrics: 20930
+- Metrics: 20689
 - Operations: 100
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
@@ -1579,6 +1579,25 @@ curl -s "https://bitview.space/version"
 - `orphans`: `string[]` (required) — Orphaned blocks (always empty)
 - `price`: `Dollars` (required) — USD price at block height
 
+### `BlockFeeRatesEntry`
+
+- `avgHeight`: `Height` (required) — Average block height in this window
+- `timestamp`: `Timestamp` (required) — Unix timestamp at the window midpoint
+- `avgFee_0`: `FeeRate` (required) — Minimum fee rate (sat/vB)
+- `avgFee_10`: `FeeRate` (required) — 10th percentile fee rate (sat/vB)
+- `avgFee_25`: `FeeRate` (required) — 25th percentile fee rate (sat/vB)
+- `avgFee_50`: `FeeRate` (required) — Median fee rate (sat/vB)
+- `avgFee_75`: `FeeRate` (required) — 75th percentile fee rate (sat/vB)
+- `avgFee_90`: `FeeRate` (required) — 90th percentile fee rate (sat/vB)
+- `avgFee_100`: `FeeRate` (required) — Maximum fee rate (sat/vB)
+
+### `BlockFeesEntry`
+
+- `avgHeight`: `Height` (required) — Average block height in this window
+- `timestamp`: `Timestamp` (required) — Unix timestamp at the window midpoint
+- `avgFees`: `Sats` (required) — Average fees per block in this window (sats)
+- `USD`: `Dollars` (required) — BTC/USD price at this height
+
 ### `BlockHash`
 
 `string`
@@ -1625,6 +1644,13 @@ curl -s "https://bitview.space/version"
 - `blockNumber`: `integer` (required) — This block's ordinal among blocks attributed to this pool
 - `minerNames`: `array | null` — Miner name tags found in coinbase scriptsig
 
+### `BlockRewardsEntry`
+
+- `avgHeight`: `Height` (required) — Average block height in this window
+- `timestamp`: `Timestamp` (required) — Unix timestamp at the window midpoint
+- `avgRewards`: `Sats` (required) — Average coinbase reward per block (subsidy + fees, sats)
+- `USD`: `Dollars` (required) — BTC/USD price at this height
+
 ### `BlockSizeEntry`
 
 - `avgHeight`: `Height` (required) — Average block height in this window
@@ -1664,6 +1690,10 @@ curl -s "https://bitview.space/version"
 - `height`: `Height` (required) — Block height
 - `hash`: `BlockHash` (required) — Block hash
 - `timestamp`: `string` (required) — Block timestamp in ISO 8601 format
+
+### `BlockTxIndex`
+
+`integer`
 
 ### `BlockWeightEntry`
 
@@ -1742,6 +1772,10 @@ curl -s "https://bitview.space/version"
 - `timeOffset`: `integer` (required) — Time offset from expected schedule (seconds)
 - `expectedBlocks`: `number` (required) — Expected blocks based on wall clock time since epoch start
 
+### `DifficultyAdjustmentEntry`
+
+`number[]`
+
 ### `DifficultyEntry`
 
 - `time`: `Timestamp` (required) — Unix timestamp of the difficulty adjustment
@@ -1768,6 +1802,10 @@ curl -s "https://bitview.space/version"
 ### `FeeRate`
 
 `number`
+
+### `Format`
+
+`json | csv`
 
 ### `HashrateEntry`
 
@@ -1818,6 +1856,15 @@ curl -s "https://bitview.space/version"
 
 `minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving | epoch | height | tx_index | txin_index | txout_index | empty_output_index | op_return_index | p2a_address_index | p2ms_output_index | p2pk33_address_index | p2pk65_address_index | p2pkh_address_index | p2sh_address_index | p2tr_address_index | p2wpkh_address_index | p2wsh_address_index | unknown_output_index`
 
+### `IndexInfo`
+
+- `index`: `Index` (required) — The canonical index name
+- `aliases`: `string[]` (required) — All Accepted query aliases
+
+### `Limit`
+
+`integer`
+
 ### `MempoolBlock`
 
 - `blockSize`: `integer` (required) — Total serialized block size in bytes (witness + non-witness).
@@ -1833,6 +1880,13 @@ curl -s "https://bitview.space/version"
 - `vsize`: `VSize` (required) — Total virtual size of all transactions in the mempool (vbytes)
 - `total_fee`: `Sats` (required) — Total fees of all transactions in the mempool (satoshis)
 - `fee_histogram`: `number[][]` (required) — Fee histogram: `[[fee_rate, vsize], ...]` sorted by descending fee rate
+
+### `MempoolRecentTx`
+
+- `txid`: `Txid` (required) — Transaction ID
+- `fee`: `Sats` (required) — Transaction fee (sats)
+- `vsize`: `VSize` (required) — Virtual size (vbytes)
+- `value`: `Sats` (required) — Total output value (sats)
 
 ### `MerkleProof`
 
@@ -1892,6 +1946,19 @@ curl -s "https://bitview.space/version"
 - `slug`: `PoolSlug` (required) — URL-friendly pool identifier
 - `unique_id`: `integer` (required) — Unique pool identifier
 
+### `PoolHashrateEntry`
+
+- `timestamp`: `Timestamp` (required) — Unix timestamp
+- `avgHashrate`: `integer` (required) — Average hashrate (H/s)
+- `share`: `number` (required) — Pool's share of total network hashrate (0.0 - 1.0)
+- `poolName`: `string` (required) — Pool name
+
+### `PoolInfo`
+
+- `name`: `string` (required) — Pool name
+- `slug`: `PoolSlug` (required) — URL-friendly pool identifier
+- `unique_id`: `integer` (required) — Unique numeric pool identifier
+
 ### `PoolSlug`
 
 `unknown | blockfills | ultimuspool | terrapool | luxor | 1thash | btccom | bitfarms | huobipool | wayicn | canoepool | btctop | bitcoincom | 175btc | gbminers | axbt | asicminer | bitminter | bitcoinrussia | btcserv | simplecoinus | btcguild | eligius | ozcoin | eclipsemc | maxbtc | triplemining | coinlab | 50btc | ghashio | stminingcorp | bitparking | mmpool | polmine | kncminer | bitalo | f2pool | hhtt | megabigpower | mtred | nmcbit | yourbtcnet | givemecoins | braiinspool | antpool | multicoinco | bcpoolio | cointerra | kanopool | solock | ckpool | nicehash | bitclub | bitcoinaffiliatenetwork | btcc | bwpool | exxbw | bitsolo | bitfury | 21inc | digitalbtc | 8baochi | mybtccoinpool | tbdice | hashpool | nexious | bravomining | hotpool | okexpool | bcmonster | 1hash | bixin | tatmaspool | viabtc | connectbtc | batpool | waterhole | dcexploration | dcex | btpool | 58coin | bitcoinindia | shawnp0wers | phashio | rigpool | haozhuzhu | 7pool | miningkings | hashbx | dpool | rawpool | haominer | helix | bitcoinukraine | poolin | secretsuperstar | tigerpoolnet | sigmapoolcom | okpooltop | hummerpool | tangpool | bytepool | spiderpool | novablock | miningcity | binancepool | minerium | lubiancom | okkong | aaopool | emcdpool | foundryusa | sbicrypto | arkpool | purebtccom | marapool | kucoinpool | entrustcharitypool | okminer | titan | pegapool | btcnuggets | cloudhashing | digitalxmintsy | telco214 | btcpoolparty | multipool | transactioncoinmining | btcdig | trickysbtcpool | btcmp | eobot | unomp | patels | gogreenlight | bitcoinindiapool | ekanembtc | canoe | tiger | 1m1x | zulupool | secpool | ocean | whitepool | wiz | wk057 | futurebitapollosolo | carbonnegative | portlandhodl | phoenix | neopool | maxipool | bitfufupool | gdpool | miningdutch | publicpool | miningsquared | innopolistech | btclab | parasite | redrockpool | est3lar | braiinssolo | solopoolcom | noderunners | dmnd`
@@ -1920,6 +1987,10 @@ curl -s "https://bitview.space/version"
 
 - `time`: `Timestamp` (required) — Unix timestamp
 - `USD`: `Dollars` (required) — BTC/USD price
+
+### `RangeIndex`
+
+`integer | string | string`
 
 ### `RawLockTime`
 
@@ -2008,6 +2079,14 @@ curl -s "https://bitview.space/version"
 - `description`: `string | null` — Human-readable metric definition, when documented.
 - `type`: `string` (required) — JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
 
+### `SeriesList`
+
+`string`
+
+### `SeriesName`
+
+`string`
+
 ### `SigOps`
 
 `integer`
@@ -2020,6 +2099,10 @@ curl -s "https://bitview.space/version"
 - `blocks_behind`: `Height` (required) — Number of blocks behind the tip
 - `last_indexed_at`: `string` (required) — Human-readable timestamp of the last indexed block (ISO 8601)
 - `last_indexed_at_unix`: `Timestamp` (required) — Unix timestamp of the last indexed block
+
+### `TimePeriod`
+
+`24h | 3d | 1w | 1m | 3m | 6m | 1y | 2y | 3y | all`
 
 ### `Timestamp`
 
@@ -2119,6 +2202,13 @@ curl -s "https://bitview.space/version"
 ### `UrpdWeight`
 
 `raw | cointime | coinflow`
+
+### `Utxo`
+
+- `txid`: `Txid` (required) — Transaction ID of the UTXO
+- `vout`: `Vout` (required) — Output index
+- `status`: `TxStatus` (required) — Confirmation status
+- `value`: `Sats` (required) — Output value in satoshis
 
 ### `UtxoChanges`
 

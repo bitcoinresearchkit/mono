@@ -1856,13 +1856,13 @@ function _wrapSeriesData(raw) {
 /** @template T @typedef {SeriesData<T> & DateSeriesDataExtras<T>} DateSeriesData */
 /** @typedef {SeriesData<any>} AnySeriesData */
 
-/** @template T @typedef {(onfulfilled?: (value: SeriesData<T>) => any, onrejected?: (reason: Error) => never) => Promise<SeriesData<T>>} Thenable */
-/** @template T @typedef {(onfulfilled?: (value: DateSeriesData<T>) => any, onrejected?: (reason: Error) => never) => Promise<DateSeriesData<T>>} DateThenable */
+/** @template T @typedef {PromiseLike<SeriesData<T>>['then']} Thenable */
+/** @template T @typedef {PromiseLike<DateSeriesData<T>>['then']} DateThenable */
 
 /**
  * @template T
  * @typedef {Object} SeriesEndpoint
- * @property {(index: number) => SingleItemBuilder<T>} get - Get single item at index
+ * @property {(index: number) => RangeBuilder<T>} get - Get single item at index
  * @property {(start?: number, end?: number) => RangeBuilder<T>} slice - Slice by index
  * @property {(n: number) => RangeBuilder<T>} first - Get first n items
  * @property {(n: number) => RangeBuilder<T>} last - Get last n items
@@ -1878,7 +1878,7 @@ function _wrapSeriesData(raw) {
 /**
  * @template T
  * @typedef {Object} DateSeriesEndpoint
- * @property {(index: number | globalThis.Date) => DateSingleItemBuilder<T>} get - Get single item at index or Date
+ * @property {(index: number | globalThis.Date) => DateRangeBuilder<T>} get - Get single item at index or Date
  * @property {(start?: number | globalThis.Date, end?: number | globalThis.Date) => DateRangeBuilder<T>} slice - Slice by index or Date
  * @property {(n: number) => DateRangeBuilder<T>} first - Get first n items
  * @property {(n: number) => DateRangeBuilder<T>} last - Get last n items
@@ -1905,18 +1905,6 @@ function _wrapSeriesData(raw) {
 /** @template T @typedef {ClientFetchOptions<SeriesData<T>> | ((value: SeriesData<T>) => void)} SeriesFetchArg */
 /** @template T @typedef {ClientFetchOptions<DateSeriesData<T>> | ((value: DateSeriesData<T>) => void)} DateSeriesFetchArg */
 
-/** @template T @typedef {Object} SingleItemBuilder
- * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch the item
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {Thenable<T>} then - Thenable
- */
-
-/** @template T @typedef {Object} DateSingleItemBuilder
- * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch the item
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {DateThenable<T>} then - Thenable
- */
-
 /** @template T @typedef {Object} SkippedBuilder
  * @property {(n: number) => RangeBuilder<T>} take - Take n items after skipped position
  * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch from skipped position to end
@@ -1932,13 +1920,13 @@ function _wrapSeriesData(raw) {
  */
 
 /** @template T @typedef {Object} RangeBuilder
- * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch the range
+ * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch the selection (one item or a range)
  * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
  * @property {Thenable<T>} then - Thenable
  */
 
 /** @template T @typedef {Object} DateRangeBuilder
- * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch the range
+ * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch the selection (one item or a range)
  * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
  * @property {DateThenable<T>} then - Thenable
  */

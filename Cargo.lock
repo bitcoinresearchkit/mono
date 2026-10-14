@@ -392,7 +392,6 @@ dependencies = [
 name = "bitview_cli"
 version = "0.12.2"
 dependencies = [
- "serde_json",
  "ureq",
 ]
 
@@ -492,7 +491,6 @@ dependencies = [
  "bitview_plugin",
  "bitview_query",
  "bitview_server",
- "bitview_traversable",
  "brk_error",
  "brk_exit",
  "brk_reader",
@@ -535,6 +533,7 @@ dependencies = [
  "axum",
  "base64 0.23.1",
  "brk_logger",
+ "http-body-util",
  "rmcp",
  "serde",
  "serde_json",
@@ -793,6 +792,7 @@ dependencies = [
 name = "bitview_plugin_mappings"
 version = "0.12.2"
 dependencies = [
+ "arc-swap",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_primitives",
@@ -802,7 +802,6 @@ dependencies = [
  "brk_exit",
  "brk_types",
  "derive_more",
- "parking_lot",
  "rangeindex",
  "schemars",
  "serde",
@@ -899,6 +898,7 @@ dependencies = [
 name = "bitview_plugin_pools"
 version = "0.12.2"
 dependencies = [
+ "arc-swap",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
@@ -910,7 +910,7 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
- "parking_lot",
+ "rangeindex",
  "rayon",
  "rustc-hash",
  "vecdb",
@@ -1140,6 +1140,7 @@ name = "bitview_server"
 version = "0.12.2"
 dependencies = [
  "aide",
+ "arc-swap",
  "axum",
  "bitcoin",
  "bitview_catalog",
@@ -1447,6 +1448,7 @@ dependencies = [
 name = "brk_reader"
 version = "0.12.2"
 dependencies = [
+ "arc-swap",
  "bitcoin",
  "brk_error",
  "brk_rpc",
@@ -3247,7 +3249,7 @@ dependencies = [
 name = "rangeindex"
 version = "0.12.2"
 dependencies = [
- "parking_lot",
+ "arc-swap",
 ]
 
 [[package]]

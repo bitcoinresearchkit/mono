@@ -1,5 +1,7 @@
+use std::io::{self, Write};
+
 use brk_error::Result;
-use serde_json::{Map, Value, to_string as SerdeJsonToString, to_string_pretty};
+use serde_json::{Map, Value, to_writer, to_writer_pretty};
 
 use crate::{fields::Ctx, mode::Mode, path::Path};
 
@@ -13,39 +15,44 @@ impl Formatter {
         Self { mode, fields }
     }
 
-    pub fn format(&self, ctx: &Ctx) -> Result<String> {
+    /// Writes one block's line (or pretty block) to `out`.
+    pub fn write(&self, ctx: &Ctx, out: &mut impl Write) -> Result<()> {
         match self.mode {
-            Mode::Bare => self.bare(ctx, false),
-            Mode::Tsv => self.tsv(ctx),
-            Mode::Json => Ok(SerdeJsonToString(&self.object(ctx)?)?),
-            Mode::Pretty if self.fields.len() == 1 => self.bare(ctx, true),
-            Mode::Pretty => Ok(to_string_pretty(&self.object(ctx)?)?),
+            Mode::Bare => self.bare(ctx, false, out),
+            Mode::Tsv => self.tsv(ctx, out),
+            Mode::Json => json(out, &self.object(ctx)?, false),
+            Mode::Pretty if self.fields.len() == 1 => self.bare(ctx, true, out),
+            Mode::Pretty => json(out, &self.object(ctx)?, true),
         }
     }
 
-    fn bare(&self, ctx: &Ctx, pretty: bool) -> Result<String> {
-        Ok(match ctx.resolve(&self.fields[0])? {
-            Value::String(s) => s,
-            other if pretty => to_string_pretty(&other)?,
-            other => other.to_string(),
-        })
+    fn bare(&self, ctx: &Ctx, pretty: bool, out: &mut impl Write) -> Result<()> {
+        match ctx.resolve(&self.fields[0])? {
+            Value::String(s) if s.is_empty() => Ok(()),
+            Value::String(s) => Ok(writeln!(out, "{s}")?),
+            other => json(out, &other, pretty),
+        }
     }
 
-    fn tsv(&self, ctx: &Ctx) -> Result<String> {
-        let mut row = String::new();
-        for (i, path) in self.fields.iter().enumerate() {
+    fn tsv(&self, ctx: &Ctx, out: &mut impl Write) -> Result<()> {
+        // Resolve every field first so a bad path never leaves a partial row.
+        let values = self
+            .fields
+            .iter()
+            .map(|path| ctx.resolve_str(path))
+            .collect::<Result<Vec<_>>>()?;
+        for (i, value) in values.iter().enumerate() {
             if i > 0 {
-                row.push('\t');
+                out.write_all(b"\t")?;
             }
-            for c in ctx.resolve_str(path)?.chars() {
-                row.push(if matches!(c, '\t' | '\n' | '\r') {
-                    ' '
-                } else {
-                    c
-                });
+            for (j, part) in value.split(['\t', '\n', '\r']).enumerate() {
+                if j > 0 {
+                    out.write_all(b" ")?;
+                }
+                out.write_all(part.as_bytes())?;
             }
         }
-        Ok(row)
+        Ok(out.write_all(b"\n")?)
     }
 
     fn object(&self, ctx: &Ctx) -> Result<Value> {
@@ -58,4 +65,15 @@ impl Formatter {
         }
         Ok(Value::Object(obj))
     }
+}
+
+fn json(out: &mut impl Write, value: &Value, pretty: bool) -> Result<()> {
+    // Through `io::Error` so a closed pipe keeps its `BrokenPipe` kind.
+    if pretty {
+        to_writer_pretty(&mut *out, value)
+    } else {
+        to_writer(&mut *out, value)
+    }
+    .map_err(io::Error::from)?;
+    Ok(out.write_all(b"\n")?)
 }

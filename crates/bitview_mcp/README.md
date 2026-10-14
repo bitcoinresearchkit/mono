@@ -50,8 +50,8 @@ bitview_mcp \
 
 All three options are required:
 
-- `--api` is the upstream Bitview REST origin. A bare host tries HTTPS first and
-  retries over HTTP only if HTTPS fails at the transport layer.
+- `--api` is the upstream Bitview REST origin. It must be an absolute HTTP(S)
+  origin.
 - `--url` is this server's public MCP URL. It must be an absolute HTTP(S)
   origin.
 - `--name` is the human-readable instance name shown on the landing page and

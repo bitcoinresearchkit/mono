@@ -4,7 +4,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, overload, Tuple, TYPE_CHECKING
+from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, Tuple, TYPE_CHECKING
 from http.client import HTTPSConnection, HTTPConnection
 from urllib.parse import urlencode, urlparse
 from datetime import date, datetime, timedelta, timezone
@@ -2341,32 +2341,17 @@ class _EndpointConfig:
 
 
 class RangeBuilder(Generic[T]):
-    """Builder with range specified."""
+    """Builder with a selection (one item or a range) specified."""
 
     def __init__(self, config: _EndpointConfig):
         self._config = config
 
     def fetch(self) -> SeriesData[T]:
-        """Fetch the range as parsed JSON."""
+        """Fetch the selection as parsed JSON."""
         return self._config.get_series()
 
     def fetch_csv(self) -> str:
-        """Fetch the range as CSV string."""
-        return self._config.get_csv()
-
-
-class SingleItemBuilder(Generic[T]):
-    """Builder for single item access."""
-
-    def __init__(self, config: _EndpointConfig):
-        self._config = config
-
-    def fetch(self) -> SeriesData[T]:
-        """Fetch the single item."""
-        return self._config.get_series()
-
-    def fetch_csv(self) -> str:
-        """Fetch as CSV."""
+        """Fetch the selection as CSV string."""
         return self._config.get_csv()
 
 
@@ -2395,12 +2380,6 @@ class DateRangeBuilder(RangeBuilder[T]):
         return self._config.get_date_series()
 
 
-class DateSingleItemBuilder(SingleItemBuilder[T]):
-    """Single item builder that returns DateSeriesData."""
-    def fetch(self) -> DateSeriesData[T]:
-        return self._config.get_date_series()
-
-
 class DateSkippedBuilder(SkippedBuilder[T]):
     """Skipped builder that returns DateSeriesData."""
     def take(self, n: int) -> DateRangeBuilder[T]:
@@ -2423,15 +2402,10 @@ class SeriesEndpoint(Generic[T]):
     def __init__(self, client: BitviewClient, name: str, index: Index):
         self._config = _EndpointConfig(client, name, index)
 
-    @overload
-    def __getitem__(self, key: int) -> SingleItemBuilder[T]: ...
-    @overload
-    def __getitem__(self, key: slice) -> RangeBuilder[T]: ...
-
-    def __getitem__(self, key: Union[int, slice]) -> Union[SingleItemBuilder[T], RangeBuilder[T]]:
+    def __getitem__(self, key: Union[int, slice]) -> RangeBuilder[T]:
         """Access single item or slice by integer index."""
         if isinstance(key, int):
-            return SingleItemBuilder(self._config._new(key, limit=1))
+            return RangeBuilder(self._config._new(key, limit=1))
         key = _contiguous(key)
         return RangeBuilder(self._config._new(key.start, key.stop))
 
@@ -2483,22 +2457,13 @@ class DateSeriesEndpoint(Generic[T]):
     def __init__(self, client: BitviewClient, name: str, index: Index):
         self._config = _EndpointConfig(client, name, index)
 
-    @overload
-    def __getitem__(self, key: int) -> DateSingleItemBuilder[T]: ...
-    @overload
-    def __getitem__(self, key: datetime) -> DateSingleItemBuilder[T]: ...
-    @overload
-    def __getitem__(self, key: date) -> DateSingleItemBuilder[T]: ...
-    @overload
-    def __getitem__(self, key: slice) -> DateRangeBuilder[T]: ...
-
-    def __getitem__(self, key: Union[int, slice, date, datetime]) -> Union[DateSingleItemBuilder[T], DateRangeBuilder[T]]:
+    def __getitem__(self, key: Union[int, slice, date, datetime]) -> DateRangeBuilder[T]:
         """Access single item or slice. Accepts int, date, or datetime."""
         if isinstance(key, (date, datetime)):
             idx = _date_to_index(self._config.index, key)
-            return DateSingleItemBuilder(self._config._new(idx, limit=1))
+            return DateRangeBuilder(self._config._new(idx, limit=1))
         if isinstance(key, int):
-            return DateSingleItemBuilder(self._config._new(key, limit=1))
+            return DateRangeBuilder(self._config._new(key, limit=1))
         key = _contiguous(key)
         start, stop = key.start, key.stop
         if isinstance(start, (date, datetime)):

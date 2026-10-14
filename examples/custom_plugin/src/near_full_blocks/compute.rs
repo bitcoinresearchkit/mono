@@ -29,17 +29,23 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let exit = context.exit();
+        // Seeded from the stored previous value on the first row, once the vec is validated
+        // and truncated, then carried in memory.
+        let mut current = None;
 
         self.streak.compute_transform(
             dependencies.from,
             dependencies.block_weights,
             |(height, weight, streak)| {
-                let previous = height
-                    .to_usize()
-                    .checked_sub(1)
-                    .and_then(|index| streak.collect_one_at(index))
-                    .unwrap_or_default();
-                (height, next_streak(weight, previous))
+                let current = current.get_or_insert_with(|| {
+                    height
+                        .to_usize()
+                        .checked_sub(1)
+                        .and_then(|index| streak.collect_one_at(index))
+                        .unwrap_or_default()
+                });
+                *current = next_streak(weight, *current);
+                (height, *current)
             },
             exit,
         )?;

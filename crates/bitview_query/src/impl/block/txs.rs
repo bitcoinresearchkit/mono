@@ -122,6 +122,10 @@ impl Query {
             outpoints: Vec<OutPoint>,
         }
 
+        // One mapping for the request; the cursor answers a block's transactions in O(1).
+        let tx_heights = self.plugins().mappings.tx_heights.load();
+        let mut tx_heights = tx_heights.cursor();
+
         let mut decoded_txs: Vec<DecodedTx> = Vec::with_capacity(len);
         let mut total_inputs: usize = 0;
         let mut cached_status: Option<(Height, TxStatus)> = None;
@@ -137,7 +141,8 @@ impl Query {
             let first_txin_index: TxInIndex = first_txin_cursor.get(idx).data()?;
             let position: BlkPosition = position_cursor.get(idx).data()?;
 
-            let height = self.confirmed_status_height_bounded(tx_index, safe)?;
+            // Every index is below `safe.tx_index` (checked above).
+            let height: Height = tx_heights.get(tx_index).data()?;
             let status = if let Some((h, ref s)) = cached_status
                 && h == height
             {

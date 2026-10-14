@@ -6,25 +6,22 @@ use std::{
 
 use aide::axum::ApiRouter;
 use bitview_bindgen::{ClientOutputPaths, generate_clients};
-use bitview_default::DefaultPlugins;
-use bitview_plugin::ImportContext;
+use bitview_devtools::import;
 use bitview_query::Vecs;
 use bitview_server::{ApiRoutes, finish_openapi};
-use brk_exit::Exit;
-use brk_reader::Reader;
-use brk_rpc::{Auth, Client};
 use color_eyre::{
     eyre::{Result, bail},
     install,
 };
 use serde_json::{json, to_string, to_string_pretty};
-use tempfile::tempdir;
-use vecdb::Budgeted;
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 #[cfg(not(unix))]
 use std::process::exit;
+
+/// The JavaScript package manifest: hand-written, only its version is generated.
+const PACKAGE_JSON: &str = "modules/bitview-client/package.json";
 
 /// Every generated file, relative to the workspace root (and to the check's output root).
 const GENERATED_OUTPUTS: &[&str] = &[
@@ -32,6 +29,7 @@ const GENERATED_OUTPUTS: &[&str] = &[
     "crates/bitview_client/src/generated.rs",
     "crates/bitview_cli/src/generated.rs",
     "modules/bitview-client/index.js",
+    PACKAGE_JSON,
     "packages/bitview_client/bitview_client/__init__.py",
     "website/llms.txt",
     "website/llms-full.txt",
@@ -51,7 +49,6 @@ impl OutputScope {
 }
 
 fn main() -> Result<()> {
-    Budgeted::init_global(bitview::DEFAULT_CACHE_BUDGET)?;
     install()?;
 
     let args = env::args().skip(1).collect::<Vec<_>>();
@@ -90,15 +87,8 @@ fn main() -> Result<()> {
 }
 
 fn generate(check: bool, scope: OutputScope) -> Result<()> {
-    let temporary = tempdir()?;
-    let tmp = temporary.path();
-
-    let client = Client::new("http://127.0.0.1:1", Auth::None)?;
-    let reader = Reader::new(tmp.join("blocks"), &client);
-    let exit = Exit::new();
-    let context = ImportContext::new(tmp, &exit);
-    let plugins = DefaultPlugins::import(context, &reader)?;
-    let vecs = Vecs::build(&plugins);
+    let imported = import()?;
+    let vecs = Vecs::build(&imported.plugins);
 
     let (_, openapi) = finish_openapi(ApiRouter::new().add_api_routes());
 
@@ -109,7 +99,12 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
         .to_path_buf();
 
     let output_root = if check {
-        tmp.join("generated")
+        let root = imported.dir.path().join("generated");
+        // Generation only bumps the manifest's version, so the check starts from the committed one.
+        let package_json = root.join(PACKAGE_JSON);
+        fs::create_dir_all(package_json.parent().unwrap())?;
+        fs::copy(workspace_root.join(PACKAGE_JSON), package_json)?;
+        root
     } else {
         workspace_root.clone()
     };

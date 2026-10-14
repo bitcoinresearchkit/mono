@@ -94,7 +94,7 @@ impl Emitter {
 }
 
 fn write_line<W: Write>(out: &mut W, ev: &Event) -> io::Result<()> {
-    to_writer(&mut *out, ev).map_err(io::Error::other)?;
+    to_writer(&mut *out, ev).map_err(io::Error::from)?;
     out.write_all(b"\n")
 }
 
