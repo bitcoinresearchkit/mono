@@ -542,12 +542,7 @@ mod truncation {
                 #[test]
                 fn truncate_rollback_reflush_and_reopen() -> Result<()> {
                     let _serial = crate::tests::serial();
-                    run_truncate_rollback_and_reopen::<V>()
-                }
-
-                #[test]
-                fn rollback_across_truncation_and_append() -> Result<()> {
-                    let _serial = crate::tests::serial();
+                    run_truncate_rollback_and_reopen::<V>()?;
                     run_rollback_across_truncation_and_append::<V>()
                 }
             }
