@@ -77,6 +77,27 @@ pub fn write_chunks(range: Range<usize>) -> impl Iterator<Item = Range<usize>> {
     })
 }
 
+/// Blocks at the end of every update written with undo: a reorg removing at most this many
+/// blocks rolls back to at or before its start, however long the update was.
+const UNDO_TAIL: usize = 10;
+
+/// Where the protected tail of an update over `range` starts: its last [`UNDO_TAIL`] blocks.
+pub fn undo_tail_start(range: &Range<usize>) -> usize {
+    range.end.saturating_sub(UNDO_TAIL).max(range.start)
+}
+
+/// `range` in the writes of a computation that keeps undo, each with whether it does:
+/// [`WRITE_INTERVAL`]-block chunks from the start (the bulk, whose last write is the baseline the
+/// undo lands on), then the protected tail ([`undo_tail_start`]), the only write with undo. An
+/// update of at most [`UNDO_TAIL`] blocks is that one write.
+pub fn undo_chunks(range: Range<usize>) -> impl Iterator<Item = (Range<usize>, bool)> {
+    let tail = undo_tail_start(&range);
+    (range.start..tail)
+        .step_by(WRITE_INTERVAL)
+        .map(move |from| (from..(from + WRITE_INTERVAL).min(tail), false))
+        .chain((tail < range.end).then_some((tail..range.end, true)))
+}
+
 /// Flushes a group under the exit lock: a soft quit never persists part of it.
 pub fn write_locked<'a, V: AnyStoredVec + ?Sized + 'a>(
     outputs: impl IntoIterator<Item = &'a mut V>,

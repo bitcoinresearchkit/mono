@@ -159,7 +159,7 @@ impl Components {
         spot: &impl ReadableVec<Height, Cents>,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.safe_lengths();
+        let starting_lengths = indexer.compute_start();
         let utxos = &holders.cohorts;
         let mobile = &coinflow.aggregate.cohorts.all.mobile;
 

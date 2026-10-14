@@ -1,8 +1,9 @@
 use std::{
     collections::BTreeMap,
     fs::{self, File},
-    io::Write,
+    io::{ErrorKind, Write},
     mem,
+    ops::Bound,
     path::PathBuf,
 };
 
@@ -143,6 +144,23 @@ where
         Ok(())
     }
 
+    /// Removes the change files above `stamp`, the vec's stamp before a write without undo: left
+    /// by an earlier rollback (kept until the vec writes again), they undo states the write
+    /// replaces, so a later rollback must stop at it instead of walking through them.
+    pub fn remove_changes_above(&self, stamp: Stamp) -> Result<()> {
+        if self.saved_stamped_changes == 0 {
+            return Ok(());
+        }
+        for file in self
+            .find_rollback_files()?
+            .range((Bound::Excluded(stamp), Bound::Unbounded))
+            .map(|(_, file)| file)
+        {
+            fs::remove_file(file)?;
+        }
+        Ok(())
+    }
+
     pub fn save_prev(&mut self) {
         self.previous_stored_len = self.stored_len();
         self.pushed.previous_mut().clear();
@@ -160,8 +178,14 @@ where
         Ok(fs::read(path)?)
     }
 
+    /// The change files by stamp: none when the vec never wrote one (no changes directory).
     pub fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
-        Ok(fs::read_dir(self.changes_path())?
+        let entries = match fs::read_dir(self.changes_path()) {
+            Ok(entries) => entries,
+            Err(err) if err.kind() == ErrorKind::NotFound => return Ok(BTreeMap::new()),
+            Err(err) => return Err(err.into()),
+        };
+        Ok(entries
             .filter_map(|entry| {
                 let path = entry.ok()?.path();
                 let stamp = Stamp::from(path.file_name()?.to_str()?.parse::<u64>().ok()?);

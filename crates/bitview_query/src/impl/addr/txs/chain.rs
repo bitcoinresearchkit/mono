@@ -1,4 +1,4 @@
-use crate::ReadPin;
+use crate::{ReadPin, check_bound};
 use bitview_primitives::TypeIndex;
 use brk_types::{Address, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
@@ -29,7 +29,7 @@ impl Query {
         limit: usize,
     ) -> Result<ResolvedAddrChainTxs> {
         let pin = self.pin_safe_lengths()?;
-        let (output_type, type_index) = self.resolve_addr(addr, pin.lengths())?;
+        let (output_type, type_index) = self.resolve_addr(addr, &pin)?;
         self.resolve_addr_chain_txs_for(output_type, type_index, after_txid, limit, &pin)
     }
 
@@ -51,6 +51,7 @@ impl Query {
     ) -> Result<Vec<TxIndex>> {
         let stores = self.indexer().stores();
         let safe = pin.lengths();
+        check_bound(pin, type_index, safe.to_type_index(output_type))?;
         if type_index >= safe.to_type_index(output_type) {
             return Err(Error::UnknownAddress);
         }
@@ -58,7 +59,7 @@ impl Query {
 
         let before = after_txid
             .as_ref()
-            .map(|txid| self.resolve_tx_index_bounded(txid, safe))
+            .map(|txid| self.resolve_tx_index_bounded(txid, pin))
             .transpose()?
             .unwrap_or(tx_index_len)
             .min(tx_index_len);

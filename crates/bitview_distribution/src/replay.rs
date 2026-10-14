@@ -54,8 +54,8 @@ pub trait Replay {
     fn checkpoint_len(&self) -> usize;
 
     /// Under the exit lock: rolls the checkpoints back to at most `start` and truncates the
-    /// outputs there; returns where they land, or 0 when they cannot, after lowering the
-    /// publication to genesis (readers must be off every row the reset drops).
+    /// outputs there, through [`Indexer::rewrite_from`] where they land; returns where, or 0
+    /// when they cannot (nothing rolled back: [`run`] resets the plugin).
     fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize>;
 
     /// The state at the start of `height`, from the checkpoints; `None` when they cannot give it.
@@ -83,7 +83,7 @@ pub fn run<R: Replay>(
     };
     let end = indexer.vecs().blocks.blockhash.len().min(spot.len());
     let mut start = resume.map_or(0, |len| {
-        usize::from(indexer.safe_lengths().height)
+        usize::from(indexer.compute_start().height)
             .min(end)
             .min(len)
             .min(plugin.checkpoint_len())
@@ -102,9 +102,11 @@ pub fn run<R: Replay>(
             start = 0;
         }
     }
+    // Readers leave every row first: the reset rebuilds this plugin alone, the others resume
+    // from the indexer's compute start.
     if start == 0 {
         let _lock = exit.lock();
-        plugin.reset()?;
+        indexer.rewrite_from(Height::ZERO, || plugin.reset())?;
         state = R::State::default();
     }
     prices.truncate(start);

@@ -3,7 +3,7 @@ use bitview_types::{BlockInfo, BlockTxIndex};
 use brk_types::{BlockHash, Height, Transaction, Txid};
 use vecdb::ReadableVec;
 
-use crate::{Error, OptionData, Query, ReadPin, Result};
+use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
 /// An immutable block range pinned at the published safe lengths.
 pub struct ResolvedBlocks {
@@ -135,6 +135,9 @@ impl Query {
         count: u32,
         guard: ReadPin,
     ) -> Result<ResolvedBlocks> {
+        if let Some(start) = start_height {
+            check_bound(&guard, start, guard.lengths().height)?;
+        }
         let (begin, end) = Self::resolve_block_range(start_height, count, guard.lengths().height);
         let anchor = end
             .checked_sub(1)

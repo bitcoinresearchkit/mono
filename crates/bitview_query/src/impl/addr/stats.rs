@@ -13,14 +13,19 @@ impl Query {
         // The mempool first (it never leads the chain), then the address state, written with the
         // published lengths under this lock, then the pin: all of one publication.
         let mempool = self.mempool();
-        let stable = self.plugins().addresses.state.read_stable();
+        let stable = self
+            .plugins()
+            .addresses
+            .state
+            .try_read_stable()
+            .ok_or(Error::StateUpdating)?;
         let pin = self.pin_safe_lengths()?;
         // Only a rollback, a failed write or a long catch-up leaves it at another length.
         if *stable != Some(pin.lengths().height) {
             return Err(Error::StateUpdating);
         }
         let chain_stats = self
-            .find_addr_bytes(&bytes, pin.lengths())?
+            .find_addr_bytes(&bytes, &pin)?
             .map(|(output_type, type_index)| self.addr_chain_stats(output_type, type_index))
             .transpose()?;
         drop(stable);

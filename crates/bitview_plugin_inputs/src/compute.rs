@@ -34,7 +34,7 @@ impl ComputePlugin for Vecs {
                     spends,
                     indexer,
                     mappings,
-                    indexer.safe_lengths().height,
+                    indexer.compute_start().height,
                     Height::from(indexer.vecs().blocks.blockhash.len()),
                     exit,
                 )

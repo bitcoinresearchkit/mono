@@ -24,7 +24,7 @@ impl ComputePlugin for Vecs {
         } = dependencies;
         let exit = context.exit();
 
-        let starting_lengths = indexer.safe_lengths();
+        let starting_lengths = indexer.compute_start();
         let vecs = indexer.vecs();
         let raw = &vecs.op_return;
         let txs = &vecs.transactions;

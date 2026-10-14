@@ -7,7 +7,7 @@ use super::Vecs;
 
 impl Vecs {
     pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let source = &indexer.vecs().transactions.features;
         for (target, source) in [
             (&mut self.segwit, &*indexer.vecs().blocks.segwit_tx_count),

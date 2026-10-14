@@ -17,8 +17,8 @@ pub(crate) struct Published {
     pub(crate) lengths: Lengths,
     pub(crate) revision: u64,
     pub(crate) tip: BlockHash,
-    /// The address-unspent stores as of `lengths`: `None` while the stores hold rows past a
-    /// lowered publication, which spends there may have deleted.
+    /// The address-unspent stores as of `lengths`: `None` exactly while the publication is
+    /// lowered, the stores holding rows past it, which spends there may have deleted.
     pub(crate) unspent: Option<AddrUnspentViews>,
     /// Shared by every publication since the last rollback: a rollback waits until no reader
     /// holds one of the publications before it.
@@ -45,10 +45,6 @@ impl State {
             }),
             lowering: Mutex::default(),
         }
-    }
-
-    pub fn lengths(&self) -> Lengths {
-        self.published.load().lengths
     }
 
     pub fn pin(&self) -> SafeLengths {

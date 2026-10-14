@@ -812,8 +812,8 @@ mod rollback_chain {
     };
     use tempfile::tempdir;
 
-    /// A rollback leaves the files past its landing until a write at their stamp replaces them: a
-    /// later, deeper rollback must skip them.
+    /// A rollback leaves the files past its landing until the vec writes again: a later, deeper
+    /// rollback must skip them.
     #[test]
     fn rollback_skips_files_an_earlier_rollback_left() -> Result<()> {
         let _serial = crate::tests::serial();
@@ -832,6 +832,13 @@ mod rollback_chain {
         vec.stamped_write_with_changes(Stamp::from(4))?;
         assert_eq!(vec.rollback_before(Stamp::from(2))?, Stamp::from(1));
         assert_eq!(vec.collect_holed(), vec![Some(10)]);
+        // A write without undo drops the files left above its starting stamp: a rollback across
+        // it fails to land (the caller rebuilds) instead of undoing through stale files.
+        vec.push(20);
+        vec.stamped_write_maybe_with_changes(Stamp::from(2), false)?;
+        vec.push(30);
+        vec.stamped_write_with_changes(Stamp::from(3))?;
+        assert_eq!(vec.rollback_landing(Stamp::from(2))?, None);
         Ok(())
     }
 }

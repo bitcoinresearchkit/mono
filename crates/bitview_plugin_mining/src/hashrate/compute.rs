@@ -35,7 +35,7 @@ impl Vecs {
         coinbase_usd_24h_sum: &impl ReadableVec<Height, Dollars>,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         // Each block's share of a day's work at the ten-minute target, summed over 24 hours.
         let daily_share = LazyVec::init(

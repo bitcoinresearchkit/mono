@@ -85,13 +85,24 @@ reorg rolled back).
 Data rewritten in place must stay coherent with the pin on its own: mask values a
 later publication wrote (the outputs spend index), write it with the publication
 under a lock its readers take before pinning (address state), or replace it by
-rename (UTXO set snapshots). A plugin about to rewrite rows below the published
-lengths first lowers the publication to where its rollback lands
-(`Indexer::lower_publication_to`), which waits for the pins of later publications.
+rename (UTXO set snapshots). A plugin rewriting rows below the published lengths
+(a rollback landing below its start, a truncation, a reset) does it through
+`Indexer::rewrite_from`, which first lowers the publication there and waits for
+the pins of later publications. While a rebuild has lowered it to genesis, or for
+a series range past a lowered publication, reads answer `StateUpdating`.
+
+Plugins recompute from `Indexer::compute_start`, fixed for the whole update, not
+from the publication: one plugin lowering it never makes another recompute.
+Plugins keeping undo (address state and caps, UTXO caps, the outputs spend index)
+write each update's last ten blocks as one protected tail
+(`bitview_compute::undo_chunks`), so a reorg up to ten blocks deep lands at or
+before its start however long the update was; a deeper one that cannot land
+rebuilds only that plugin.
 
 Bootstrap holds `exit.lock()` around every import (`ImportContext::exit`), so
-imports never wait on the node; no readers exist yet. A rollback's height persists
-as the indexer's rollback floor until a complete update commits
+imports never wait on the node; no readers exist yet, and every plugin computes
+before the server binds, so a version change resets data only then. A rollback's
+height persists as the indexer's rollback floor until a complete update commits
 (`ComputePluginSet::commit(complete)`), so dependents recompute from it after a
 soft quit.
 

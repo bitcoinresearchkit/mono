@@ -16,7 +16,7 @@ impl Vecs {
         activity: &activity::Vecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let coinblocks_destroyed = &age.coinblocks_destroyed;
 
         for (target, source) in [

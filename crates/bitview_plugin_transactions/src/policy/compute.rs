@@ -34,7 +34,7 @@ impl Vecs {
             &mut [flag],
             &mut [count],
             version,
-            indexer.safe_lengths(),
+            indexer.compute_start(),
             end_tx,
             tx_counts.len(),
             mappings,

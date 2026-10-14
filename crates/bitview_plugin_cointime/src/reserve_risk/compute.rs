@@ -20,7 +20,7 @@ impl Vecs {
         holders: &HoldersVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let coindays_destroyed = &holders.cohorts.all.activity.coindays_destroyed;
         let circulating_supply = &holders.cohorts.all.supply.total.btc.height;
 

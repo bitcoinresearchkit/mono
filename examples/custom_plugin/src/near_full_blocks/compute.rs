@@ -31,7 +31,7 @@ impl ComputePlugin for Vecs {
         let exit = context.exit();
 
         self.streak.compute_transform(
-            dependencies.safe_height,
+            dependencies.from,
             dependencies.block_weights,
             |(height, weight, streak)| {
                 let previous = height

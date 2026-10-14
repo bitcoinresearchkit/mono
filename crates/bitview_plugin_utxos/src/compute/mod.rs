@@ -2,7 +2,7 @@ mod block_loop;
 mod write;
 pub use block_loop::process_chunk;
 
-use bitview_compute::WRITE_INTERVAL;
+use bitview_compute::undo_chunks;
 use bitview_distribution::{readers::Columns, replay};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
@@ -34,18 +34,16 @@ impl ComputePlugin for Vecs {
             |vecs, utxos, heights, prices| {
                 let output_heights = mappings.output_heights.read();
                 let mut columns = Columns::new(indexer, &output_heights);
-                // Chunks count from the resume height, not absolute multiples: an ordinary
-                // update is one final chunk, written with its rollback changes.
-                for from in heights.clone().step_by(WRITE_INTERVAL) {
-                    let next = (from + WRITE_INTERVAL).min(heights.end);
+                // An ordinary update is one chunk, the protected tail, written with its undo.
+                for (blocks, tail) in undo_chunks(heights) {
                     process_chunk(
                         vecs,
                         utxos,
                         indexer,
                         &mut columns,
-                        from..next,
+                        blocks,
                         prices,
-                        next == heights.end,
+                        tail,
                         exit,
                     )?;
                 }

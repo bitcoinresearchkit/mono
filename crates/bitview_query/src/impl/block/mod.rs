@@ -1,4 +1,4 @@
-use crate::ReadPin;
+use crate::{ReadPin, check_bound};
 use bitview_primitives::BlockHashPrefix;
 use brk_types::{BlockHash, Height};
 use vecdb::ReadableVec;
@@ -34,6 +34,7 @@ impl Query {
         height: Height,
         guard: &ReadPin,
     ) -> Result<()> {
+        check_bound(guard, height, guard.lengths().height)?;
         if height >= guard.lengths().height {
             return Err(Error::NotFound("Block not found".into()));
         }

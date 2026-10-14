@@ -27,28 +27,28 @@ impl Replay for Vecs {
         self.caps.end()
     }
 
-    /// Rolls the caps back to the newest saved change at or below `start`. When the saved changes
-    /// do not reach it (a deep reorg, or a catch-up's unsaved chunk) nothing is rolled back and
-    /// the publication is lowered to genesis, so readers are off every row the reset drops. Also
-    /// truncates the outputs where the caps land: the block loop appends from there.
+    /// Rolls the caps back to the newest saved change at or below `start` and truncates the
+    /// outputs where they land (the block loop appends from there), readers lowered there first.
+    /// When the saved changes do not reach it (a reorg deeper than the protected tail) nothing is
+    /// rolled back and [`replay::run`](bitview_distribution::replay::run) resets the plugin.
     fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize> {
-        let landing = if start >= self.caps.end() {
-            start
-        } else {
-            let stamp = Stamp::from(Height::from(start));
+        let stamp = Stamp::from(Height::from(start));
+        let rewind = start < self.caps.end();
+        let landing = if rewind {
             match self.caps.rollback_landing(stamp)? {
-                Some(landing) if landing <= start => {
-                    let landed = self.caps.rollback_before(stamp)?;
-                    debug_assert_eq!(usize::from(Height::from(landed).incremented()), landing);
-                    landing
-                }
-                _ => {
-                    indexer.lower_publication_to(Height::ZERO);
-                    0
-                }
+                Some(landing) if landing <= start => landing,
+                _ => return Ok(0),
             }
+        } else {
+            start
         };
-        self.truncate_outputs(landing)?;
+        indexer.rewrite_from(Height::from(landing), || {
+            if rewind {
+                let landed = self.caps.rollback_before(stamp)?;
+                debug_assert_eq!(usize::from(Height::from(landed).incremented()), landing);
+            }
+            self.truncate_outputs(landing)
+        })?;
         Ok(landing)
     }
 

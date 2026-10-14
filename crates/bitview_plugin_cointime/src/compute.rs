@@ -68,7 +68,7 @@ impl Vecs {
         // Phase 4: pricing and reserve_risk are independent
         let (r3, r4) = join(
             || {
-                let from = indexer.safe_lengths().height;
+                let from = indexer.compute_start().height;
                 self.prices.compute(
                     from,
                     holders,
@@ -114,13 +114,13 @@ impl ComputePlugin for Vecs {
                 .as_array_mut()
                 .map(|cohort| &mut cohort.awake.cost_basis),
             dependencies.age.all_supply().version() + dependencies.urpd.timestamps.version(),
-            usize::from(dependencies.indexer.safe_lengths().height),
+            usize::from(dependencies.indexer.compute_start().height),
             dependencies.urpd,
             &weights,
             &supplies,
             context.exit(),
         )?;
-        let from = dependencies.indexer.safe_lengths().height;
+        let from = dependencies.indexer.compute_start().height;
         let spot = &dependencies.price.spot.cents.height;
         for cohort in self.aggregate.cohorts.iter_mut() {
             cohort

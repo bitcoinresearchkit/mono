@@ -27,7 +27,7 @@ impl ComputePlugin for Vecs {
         } = dependencies;
         self.compute_created(
             indexer,
-            usize::from(indexer.safe_lengths().height),
+            usize::from(indexer.compute_start().height),
             indexer.vecs().outputs.first_txout_index.len(),
             context.exit(),
         )?;
@@ -44,7 +44,7 @@ impl ComputePlugin for Vecs {
         let (fiat, counts) = join(
             || {
                 value.op_return_value.compute_cents(
-                    indexer.safe_lengths().height,
+                    indexer.compute_start().height,
                     &price.spot.cents.height,
                     exit,
                 )

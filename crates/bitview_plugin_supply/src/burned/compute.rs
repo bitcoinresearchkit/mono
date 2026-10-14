@@ -18,7 +18,7 @@ impl Vecs {
         prices: &PriceVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         self.total.compute_from_pair(
             starting_height,

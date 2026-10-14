@@ -29,7 +29,7 @@ impl Vecs {
         prices: &PriceVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         // coinbase and fees are independent — parallelize
         let window_starts = lookback.window_starts();

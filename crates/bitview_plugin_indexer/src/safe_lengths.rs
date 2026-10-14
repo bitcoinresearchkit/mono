@@ -27,6 +27,12 @@ impl SafeLengths {
         self.0.revision
     }
 
+    /// Whether a rollback or a rebuild lowered this publication: rows past it are being
+    /// rewritten until the next one, so a read beyond it is updating, not missing.
+    pub fn is_lowered(&self) -> bool {
+        self.0.unspent.is_none()
+    }
+
     /// The last published block's hash (the default hash while nothing is published).
     pub fn tip(&self) -> BlockHash {
         self.0.tip

@@ -37,13 +37,13 @@ impl ComputePlugin for Vecs {
                 .as_array_mut()
                 .map(|cohort| &mut cohort.mobile.cost_basis),
             dependencies.age.all_supply().version() + dependencies.urpd.timestamps.version(),
-            usize::from(dependencies.indexer.safe_lengths().height),
+            usize::from(dependencies.indexer.compute_start().height),
             dependencies.urpd,
             &weights,
             &supplies,
             context.exit(),
         )?;
-        let from = dependencies.indexer.safe_lengths().height;
+        let from = dependencies.indexer.compute_start().height;
         let spot = &dependencies.price.spot.cents.height;
         for cohort in self.aggregate.cohorts.iter_mut() {
             cohort
@@ -64,7 +64,7 @@ impl Vecs {
             price: _,
             age,
         } = dependencies;
-        let starting_lengths = indexer.safe_lengths();
+        let starting_lengths = indexer.compute_start();
         let transfer_volumes = AgeRange::from_fn(|id| {
             &id.select(&age.ranges)
                 .activity

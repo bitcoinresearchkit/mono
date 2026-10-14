@@ -34,7 +34,7 @@ impl Plugins {
         let indexer = self.defaults.indexer();
         self.near_full_blocks.compute(
             Dependencies {
-                safe_height: indexer.safe_lengths().height,
+                from: indexer.compute_start().height,
                 block_weights: &indexer.vecs().blocks.weight,
             },
             context,

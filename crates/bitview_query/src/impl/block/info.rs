@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use crate::ReadPin;
+use crate::{ReadPin, check_bound};
 use bitcoin::{
     Address as BitcoinAddress, BlockHash as BitcoinBlockHash, Network, Transaction,
     block::Header as BitcoinHeader,
@@ -58,6 +58,7 @@ impl Query {
         height: Height,
         guard: &ReadPin,
     ) -> Result<BlockHash> {
+        check_bound(guard, height, guard.lengths().height)?;
         if height >= guard.lengths().height {
             return Err(Error::OutOfRange("Block height out of range".into()));
         }
@@ -76,6 +77,7 @@ impl Query {
         height: Height,
         guard: &ReadPin,
     ) -> Result<BitcoinHeader> {
+        check_bound(guard, height, guard.lengths().height)?;
         if height >= guard.lengths().height {
             return Err(Error::OutOfRange("Block height out of range".into()));
         }
@@ -219,6 +221,7 @@ impl Query {
         hash: &BlockHash,
         guard: &ReadPin,
     ) -> Result<String> {
+        check_bound(guard, height, guard.lengths().height)?;
         if height >= guard.lengths().height {
             return Err(Error::NotFound("Block not found".into()));
         }

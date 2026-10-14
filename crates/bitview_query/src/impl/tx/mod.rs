@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use crate::ReadPin;
+use crate::{ReadPin, check_bound};
 use bitcoin::{
     MerkleBlock, Txid as BitcoinTxid,
     consensus::encode::serialize_hex,
     hashes::{Hash, sha256d},
     hex::DisplayHex,
 };
+use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::MerkleProof;
 use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
@@ -60,6 +61,7 @@ impl Query {
     fn txid_and_height_by_index(&self, index: TxIndex) -> Result<(Txid, Height)> {
         let plugins = self.plugins();
         let pin = self.pin_safe_lengths()?;
+        check_bound(&pin, index, pin.lengths().tx_index)?;
         if index >= pin.lengths().tx_index {
             return Err(Error::OutOfRange("Transaction index out of range".into()));
         }
@@ -109,9 +111,10 @@ impl Query {
     fn resolve_tx_outputs(
         &self,
         txid: &Txid,
-        safe: Lengths,
+        pin: &SafeLengths,
     ) -> Result<(TxIndex, TxOutIndex, usize)> {
-        let tx_index = self.resolve_tx_index_bounded(txid, safe)?;
+        let safe = pin.lengths();
+        let tx_index = self.resolve_tx_index_bounded(txid, pin)?;
         let first_txout_vec = &self.indexer().vecs().transactions.first_txout_index;
         let first_txout_reader = first_txout_vec.reader();
         let first = first_txout_reader
@@ -229,8 +232,14 @@ impl Query {
     /// has not yet covered. Use this from any path that will subsequently
     /// dereference indexer/plugins vecs by `tx_index`.
     #[inline]
-    pub(crate) fn resolve_tx_index_bounded(&self, txid: &Txid, bound: Lengths) -> Result<TxIndex> {
+    pub(crate) fn resolve_tx_index_bounded(
+        &self,
+        txid: &Txid,
+        pin: &SafeLengths,
+    ) -> Result<TxIndex> {
         let tx_index = self.resolve_tx_index(txid)?;
+        let bound = pin.lengths();
+        check_bound(pin, tx_index, bound.tx_index)?;
         if tx_index >= bound.tx_index
             || self
                 .indexer()

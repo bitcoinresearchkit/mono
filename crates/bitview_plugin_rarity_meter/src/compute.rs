@@ -49,7 +49,7 @@ impl ComputePlugin for Vecs {
         components_result?;
         extremes_result?;
 
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let local = self.components.local();
         let cycle = self.components.cycle();
         let jobs: [(&mut RarityMeterInner, &[&Component]); 2] =

@@ -62,12 +62,12 @@ impl ComputePlugin for Vecs {
         self.policy.compute(indexer, mappings, &self.fees, exit)?;
 
         self.volume.compute_cents(
-            indexer.safe_lengths().height,
+            indexer.compute_start().height,
             &prices.spot.cents.height,
             exit,
         )?;
         self.inscription.fees.compute_cents(
-            indexer.safe_lengths().height,
+            indexer.compute_start().height,
             &prices.spot.cents.height,
             exit,
         )?;

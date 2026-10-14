@@ -67,6 +67,10 @@ where
         self.0.save_rollback_state()
     }
 
+    fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()> {
+        self.0.any_remove_changes_above(stamp)
+    }
+
     fn remove(self) -> Result<()> {
         self.0.remove()
     }

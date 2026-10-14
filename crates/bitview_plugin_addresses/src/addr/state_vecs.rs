@@ -393,9 +393,9 @@ impl AddrStateVecs {
 
 impl<M: StorageMode> AddrStateVecs<M> {
     /// Keeps the state and its sidecars from changing while a reader pairs them; holds the
-    /// length they are written through.
-    pub fn read_stable(&self) -> RwLockReadGuard<'_, Option<Height>> {
-        self.stable.read()
+    /// length they are written through. `None` while a save holds them: readers never wait.
+    pub fn try_read_stable(&self) -> Option<RwLockReadGuard<'_, Option<Height>>> {
+        self.stable.try_read()
     }
 
     /// The lock a save holds over these vectors, with the length they are written through.

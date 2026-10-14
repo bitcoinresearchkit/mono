@@ -41,7 +41,7 @@ impl Query {
     ) -> Result<ResolvedAddrTxs> {
         let addr = parse_addr(addr)?;
         let (mempool, guard) = self.mempool_then_pin()?;
-        let chain_addr = self.find_addr_bytes(&addr, guard.lengths())?;
+        let chain_addr = self.find_addr_bytes(&addr, &guard)?;
         let tip = guard.tip();
         let mempool = mempool
             .map(|mempool| anchored(mempool.addr_txs(&addr, mempool_limit, &tip)))

@@ -20,7 +20,7 @@ pub fn process_chunk(
     columns: &mut Columns<'_, false>,
     blocks: Range<usize>,
     prices: &[Cents],
-    final_chunk: bool,
+    tail: bool,
     exit: &Exit,
 ) -> Result<()> {
     let last_height = Height::from(blocks.end - 1);
@@ -64,8 +64,8 @@ pub fn process_chunk(
         Ok(ControlFlow::Continue(()))
     })?;
     let _lock = exit.lock();
-    write(vecs, states, last_height, final_chunk)?;
-    if !final_chunk {
+    write(vecs, states, last_height, tail)?;
+    if !tail {
         vecs.flush()?;
     }
     Ok(())

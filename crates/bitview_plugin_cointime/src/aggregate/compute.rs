@@ -23,7 +23,7 @@ impl Vecs {
         age_range: &AgeRangeVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let accounting = age.accounting_sources();
         let weights = age_range.wakefulness_sources();
         compute_sources(

@@ -35,7 +35,7 @@ impl Vecs {
         transfer_volume: &mut CachedSeries<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.safe_lengths();
+        let starting_lengths = indexer.compute_start();
 
         self.compute_fees(
             Sources::from(indexer),

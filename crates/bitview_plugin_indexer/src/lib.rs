@@ -73,6 +73,8 @@ pub struct Indexer<M: StorageMode = Rw> {
     floor: M::WriteOnly<RollbackFloor>,
     /// The resume point [`Indexer::reorg`] resolved, which the update's index run consumes.
     resume: M::WriteOnly<Option<ResumePoint>>,
+    /// Where dependents recompute from in this update ([`Indexer::compute_start`]).
+    compute_start: M::WriteOnly<Lengths>,
     state: Arc<State>,
 }
 
@@ -186,12 +188,6 @@ impl<M: StorageMode> Indexer<M> {
             .unwrap_or_default()
     }
 
-    /// Copy the pipeline-safe bounds. This does not pin the backing data;
-    /// retain a [`Self::pin`] across dependent reads.
-    pub fn safe_lengths(&self) -> Lengths {
-        self.state.lengths()
-    }
-
     /// Pins the published state; never waits.
     pub fn pin(&self) -> SafeLengths {
         self.state.pin()
@@ -275,6 +271,7 @@ impl Indexer {
                 buffers: BlockBuffers::default(),
                 floor: RollbackFloor::load(&plugin_path)?,
                 resume: None,
+                compute_start: Lengths::default(),
                 state: Arc::new(State::new()),
             })
         };
@@ -309,13 +306,8 @@ impl Indexer {
                 if lengths.height.is_zero() && has_other_plugin_data(context)? {
                     indexer.floor.lower_to(Height::ZERO)?;
                 }
-                // Publish the floor a previous run left, so dependents recompute from it.
-                let published = match indexer.floor.height() {
-                    Some(floor) if floor < lengths.height => {
-                        Lengths::at(floor, &indexer.vecs).unwrap_or_default()
-                    }
-                    _ => lengths,
-                };
+                // Publish the floor a previous run left: rows past it may come from orphaned blocks.
+                let published = indexer.floored(lengths);
                 // The stores hold `lengths`: a lower floor leaves their views unavailable.
                 let unspent = (published == lengths).then(|| indexer.stores.addr_unspent_views());
                 indexer
@@ -417,6 +409,23 @@ impl Indexer {
         Ok(ImportValidation::Valid(local_lengths))
     }
 
+    /// `lengths`, lowered to the rollback floor when one lies below them.
+    fn floored(&self, lengths: Lengths) -> Lengths {
+        match self.floor.height() {
+            Some(floor) if floor < lengths.height => {
+                Lengths::at(floor, &self.vecs).unwrap_or_default()
+            }
+            _ => lengths,
+        }
+    }
+
+    /// Where dependents recompute from in this update: the indexer's resume point, lowered to
+    /// the rollback floor, fixed from the index run until the next one. Publication only guards
+    /// readers: a plugin lowering it (to rewrite its own rows) never moves the others' start.
+    pub fn compute_start(&self) -> Lengths {
+        self.compute_start
+    }
+
     fn resume_point(&self) -> Result<ResumePoint> {
         let client = self.reader.client();
         self.vecs.sync_bg_tasks()?;
@@ -508,6 +517,7 @@ impl Indexer {
         self.roll_back_to(&starting_lengths)?;
         debug!("Rollback done.");
         drop(lock);
+        self.compute_start = self.floored(starting_lengths);
 
         // Checked after the rollback: an orphaned tip above a shorter active chain must go.
         if starting_lengths.height > client.get_last_height()? {
@@ -681,11 +691,19 @@ impl Indexer {
         Ok(())
     }
 
-    /// Publishes the prefix below `height` before a plugin rewrites rows past it in place (a
-    /// rollback landing below the indexer's), once no reader holds a later publication.
-    pub fn lower_publication_to(&self, height: Height) {
+    /// Runs `rewrite`, which changes rows past `height` in place (a plugin's rollback landing
+    /// below where it resumes, a truncation, or a reset), after publishing the prefix below
+    /// `height` and waiting until no reader holds a later publication: every destructive
+    /// rewrite goes through here. A no-op lowering never waits. The rollback floor stays: a
+    /// plugin rewriting its own rows invalidates no chain.
+    pub fn rewrite_from<T>(
+        &self,
+        height: Height,
+        rewrite: impl FnOnce() -> Result<T>,
+    ) -> Result<T> {
         let lengths = Lengths::at(height, &self.vecs).unwrap_or_default();
         self.state.lower_before(&lengths, self.tip_of(&lengths));
+        rewrite()
     }
 
     /// Finishes the indexer's own writes and returns the lengths a commit publishes.
@@ -731,6 +749,7 @@ impl ReadOnlyClone for Indexer {
             buffers: (),
             floor: (),
             resume: (),
+            compute_start: (),
             state: self.state.clone(),
         }
     }

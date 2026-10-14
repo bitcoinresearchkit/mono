@@ -4,7 +4,7 @@ mod write;
 pub use block_loop::process_chunk;
 pub use readers::{AddrReaders, Workspace};
 
-use bitview_compute::WRITE_INTERVAL;
+use bitview_compute::undo_chunks;
 use bitview_distribution::replay;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
@@ -37,20 +37,22 @@ impl ComputePlugin for Vecs {
             |vecs, addrs, heights, prices| {
                 let output_heights = mappings.output_heights.read();
                 let mut workspace = Workspace::new(indexer, &output_heights);
-                let mut from = heights.start;
-                while from < heights.end {
-                    let to = (from + WRITE_INTERVAL).min(heights.end);
-                    from = process_chunk(
-                        vecs,
-                        addrs,
-                        indexer,
-                        mappings,
-                        &mut workspace,
-                        from..to,
-                        prices,
-                        to == heights.end,
-                        exit,
-                    )?;
+                // An ordinary update is one chunk, the protected tail, written with its undo.
+                for (blocks, tail) in undo_chunks(heights) {
+                    let mut from = blocks.start;
+                    while from < blocks.end {
+                        from = process_chunk(
+                            vecs,
+                            addrs,
+                            indexer,
+                            mappings,
+                            &mut workspace,
+                            from..blocks.end,
+                            prices,
+                            tail,
+                            exit,
+                        )?;
+                    }
                 }
                 Ok(())
             },

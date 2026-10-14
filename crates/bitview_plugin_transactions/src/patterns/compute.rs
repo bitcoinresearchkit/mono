@@ -48,7 +48,7 @@ impl Vecs {
             &mut flags,
             &mut counts,
             version,
-            indexer.safe_lengths(),
+            indexer.compute_start(),
             mappings.tx_index.input_count.len(),
             tx_counts.len(),
             mappings,

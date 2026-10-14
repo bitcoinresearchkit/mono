@@ -41,7 +41,7 @@ impl Vecs {
     ) -> Result<()> {
         self.distribution.compute(
             mappings,
-            &indexer.safe_lengths(),
+            &indexer.compute_start(),
             &indexer.vecs().transactions.first_tx_index,
             &self.tx,
             0,

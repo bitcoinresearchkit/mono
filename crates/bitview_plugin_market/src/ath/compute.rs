@@ -19,7 +19,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         self.high.cents.height.compute_all_time_high(
             starting_height,

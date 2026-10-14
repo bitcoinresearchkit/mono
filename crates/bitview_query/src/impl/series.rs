@@ -13,7 +13,7 @@ use serde_json::{Value, from_slice, to_writer};
 use vecdb::{BoundedVec, ReadableVec, ValueWriter, i64_to_usize};
 
 use crate::{
-    Error, Output, Query, ResolvedSeriesInfo, Result, SeriesNotFound,
+    Error, Output, Query, ResolvedSeriesInfo, Result, SeriesNotFound, check_bound,
     error::truncate_series_name,
     vecs::{SeriesEntry, SeriesEntryLookup},
 };
@@ -230,18 +230,24 @@ impl Query {
             .unwrap_or(0);
         let version: Version = read.columns().map(|v| v.version()).sum();
 
-        let resolve_bound = |ri: RangeIndex| -> Result<usize> {
-            let i = self.range_index_to_i64(ri, index, &read)?;
-            Ok(i64_to_usize(i, total))
-        };
+        let resolve_bound =
+            |ri: RangeIndex| -> Result<i64> { self.range_index_to_i64(ri, index, &read) };
 
         let start = match params.start() {
-            Some(ri) => resolve_bound(ri)?,
+            Some(ri) => {
+                let start = resolve_bound(ri)?;
+                // A start past a lowered publication targets rows being rewritten, not missing;
+                // ends and limits are caps, clamped as always.
+                if let Ok(start) = usize::try_from(start) {
+                    check_bound(read.pin(), start, total)?;
+                }
+                i64_to_usize(start, total)
+            }
             None => 0,
         };
 
         let end = match params.end() {
-            Some(ri) => resolve_bound(ri)?,
+            Some(ri) => i64_to_usize(resolve_bound(ri)?, total),
             None => params
                 .limit()
                 .map(|l| start.saturating_add(*l).min(total))

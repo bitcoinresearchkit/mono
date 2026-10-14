@@ -24,7 +24,7 @@ fn seed_bin(cents: Cents) -> Result<f64> {
 
 impl Vecs {
     fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         let source_version = [
             indexer.vecs().transactions.txid.version(),

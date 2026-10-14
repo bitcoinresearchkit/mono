@@ -7,7 +7,7 @@ use super::Vecs;
 
 impl Vecs {
     pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let source = &indexer.vecs().transactions.versions;
         for (target, source) in [
             (&mut self.v1, &*source.v1.block),

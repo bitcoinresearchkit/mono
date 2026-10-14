@@ -9,7 +9,7 @@ use brk_oracle::{
 use brk_types::Dollars;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, Result, check_bound};
 
 impl Query {
     pub fn live_price(&self) -> Result<Dollars> {
@@ -26,6 +26,7 @@ impl Query {
     /// seed-independent, so the result is exact.
     pub fn confirmed_payment_histogram(&self, height: usize) -> Result<HistogramEmaCompact> {
         let pin = self.pin_safe_lengths()?;
+        check_bound(&pin, height, pin.lengths().height.to_usize())?;
         let safe = self.check_histogram_height(height, pin.lengths())?;
         let seed = self.seed_bin_at(height)?;
         Ok(self
@@ -93,6 +94,7 @@ impl Query {
     /// in the block binned by value, with no payment filtering.
     pub fn confirmed_output_histogram(&self, height: usize) -> Result<HistogramRaw> {
         let pin = self.pin_safe_lengths()?;
+        check_bound(&pin, height, pin.lengths().height.to_usize())?;
         let safe = self.check_histogram_height(height, pin.lengths())?;
         self.output_histogram_for_blocks(height..height + 1, &safe)
     }

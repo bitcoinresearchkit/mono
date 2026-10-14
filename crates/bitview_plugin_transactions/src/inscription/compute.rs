@@ -18,7 +18,7 @@ impl Vecs {
         fees: &FeesVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let features = &indexer.vecs().transactions.features;
         self.count.compute_cumulative_transformed(
             starting_height,

@@ -5,7 +5,7 @@ use bitview_urpd::OriginUrpd;
 use brk_types::{Cents, Height, Sats};
 use vecdb::{AnyVec, ReadableVec};
 
-use crate::ReadPin;
+use crate::{ReadPin, check_bound};
 
 use crate::{Error, OptionData, Query, Result};
 
@@ -161,6 +161,7 @@ impl Query {
         pin: &ReadPin,
     ) -> Result<ResolvedUrpd> {
         let ages = Self::urpd_ages(cohort)?;
+        check_bound(pin, height, pin.lengths().height)?;
         let end = usize::from(height) + 1;
         if end > usize::from(pin.lengths().height) {
             return Err(Error::NotFound("Block is not published".into()));

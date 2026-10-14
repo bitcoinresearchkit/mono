@@ -18,7 +18,7 @@ impl Vecs {
         prices: &PriceVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.safe_lengths();
+        let starting_lengths = indexer.compute_start();
         let close = &prices.spot.cents.height;
 
         compute_sma_prefix(

@@ -26,7 +26,7 @@ impl Vecs {
         activity: &activity::Vecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         self.inflation_rate.fixed.height.compute_transform2(
             starting_height,

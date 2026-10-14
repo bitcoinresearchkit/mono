@@ -18,7 +18,7 @@ impl Vecs {
         value: &value::Vecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.safe_lengths();
+        let starting_lengths = indexer.compute_start();
         let realized_cap_cents = &holders.cohorts.all.capital.total.cents.height;
         let circulating_supply = &holders.cohorts.all.supply.total.btc.height;
 

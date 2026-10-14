@@ -42,12 +42,10 @@ impl Replay for Vecs {
 
     /// Also truncates the outputs where the state lands: the block loop appends from there.
     fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize> {
-        let landing = {
-            let stable = self.state.stable();
-            let mut written = stable.write();
-            self.roll_back_to(start, indexer, &mut written)?
-        };
-        self.truncate_outputs(landing)?;
+        let landing = self.roll_back_to(start, indexer)?;
+        if landing > 0 {
+            indexer.rewrite_from(Height::from(landing), || self.truncate_outputs(landing))?;
+        }
         Ok(landing)
     }
 
@@ -110,17 +108,14 @@ impl Vecs {
     }
 
     /// Rolls the address state (rewritten in place) and the caps back below `start`, to the
-    /// newest saved change under it, lowering the publication there first, and writes the state:
-    /// readers, who take its lock (`written`) before they pin, read it there at once. Returns where
-    /// it lands: `start` when nothing lies past it, or 0 when the saved changes do not reach below
-    /// it (a deep reorg, or a catch-up's unsaved chunk): nothing is rolled back and the publication
-    /// is lowered to genesis, so readers are off every row the caller's reset drops.
-    pub fn roll_back_to(
-        &mut self,
-        start: usize,
-        indexer: &Indexer,
-        written: &mut Option<Height>,
-    ) -> Result<usize> {
+    /// newest saved change under it, and writes the state. The publication is lowered to the
+    /// landing first; the state's lock (`written`, which readers take before they pin) is held
+    /// only for the rollback and the write, never while earlier pins drain: meanwhile readers
+    /// find the state at another length than their pin and answer at once that it is updating.
+    /// Returns where it lands: `start` when nothing lies past it, or 0 when the saved changes do
+    /// not reach below it (a reorg deeper than the protected tail): nothing is rolled back, and
+    /// the caller's reset rebuilds the plugin.
+    pub fn roll_back_to(&mut self, start: usize, indexer: &Indexer) -> Result<usize> {
         self.discard_unpublished_state();
         let current = usize::from(self.state.max_stamped_len()).max(self.caps.end());
         if start == 0 || start >= current {
@@ -132,24 +127,22 @@ impl Vecs {
             self.caps.rollback_landing(stamp)?,
         ) {
             (Some(state), Some(caps)) if usize::from(state) == caps && caps <= start => state,
-            _ => {
-                indexer.lower_publication_to(Height::ZERO);
-                return Ok(0);
-            }
+            _ => return Ok(0),
         };
-        if usize::from(landing) < start {
-            indexer.lower_publication_to(landing);
-        }
-        // The restored values sit in the write buffers until written.
-        *written = None;
-        let landing_stamp = Stamp::from(landing.decremented().unwrap_or_default());
-        let mut stamps = self.state.rollback_before(stamp)?;
-        stamps.push(self.caps.rollback_before(stamp)?);
-        debug_assert!(
-            stamps.iter().all(|s| *s == landing_stamp),
-            "rollback lands where its preflight did"
-        );
-        self.write_state(landing_stamp, false, written)?;
+        indexer.rewrite_from(landing, || {
+            let stable = self.state.stable();
+            let mut written = stable.write();
+            // The restored values sit in the write buffers until written.
+            *written = None;
+            let landing_stamp = Stamp::from(landing.decremented().unwrap_or_default());
+            let mut stamps = self.state.rollback_before(stamp)?;
+            stamps.push(self.caps.rollback_before(stamp)?);
+            debug_assert!(
+                stamps.iter().all(|s| *s == landing_stamp),
+                "rollback lands where its preflight did"
+            );
+            self.write_state(landing_stamp, false, &mut written)
+        })?;
         Ok(usize::from(landing))
     }
 

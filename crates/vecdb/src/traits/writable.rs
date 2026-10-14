@@ -60,8 +60,11 @@ where
     /// The stamp [`Self::rollback_before`] lands at for `stamp`, without rolling back; `None`
     /// when the saved changes do not reach below `stamp`.
     fn rollback_landing(&self, stamp: Stamp) -> Result<Option<Stamp>> {
-        let files = self.find_rollback_files()?;
         let mut current = self.stamp();
+        if current < stamp {
+            return Ok(Some(current));
+        }
+        let files = self.find_rollback_files()?;
         while current >= stamp {
             let Some(path) = files.get(&current) else {
                 return Ok(None);
@@ -80,7 +83,7 @@ where
 
         // Walk change files newest-first. Each rollback decrements the vec
         // stamp to the previous file's stamp. Files above it are left from an
-        // earlier rollback (kept until a write at their stamp replaces them);
+        // earlier rollback (kept until the next write replaces or removes them);
         // a missing one below it means the chain is broken.
         let mut undone = false;
         for (&file_stamp, _) in files.range(..=self.stamp()).rev() {

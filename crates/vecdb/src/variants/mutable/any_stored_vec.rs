@@ -67,8 +67,13 @@ where
         } else {
             // Advance the baseline without collecting old values that this
             // checkpoint explicitly discards.
+            self.any_remove_changes_above(self.stamp())?;
             self.write_saved_changes(stamp)
         }
+    }
+
+    fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()> {
+        self.vec.any_remove_changes_above(stamp)
     }
 
     fn any_save_rollback_state(&mut self) {

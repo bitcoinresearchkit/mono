@@ -16,7 +16,7 @@ impl Vecs {
         holders: &HoldersVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let circulating_supply = &holders.cohorts.all.supply.total.sats.height;
 
         self.coinblocks_created.compute_cumulative_transformed(

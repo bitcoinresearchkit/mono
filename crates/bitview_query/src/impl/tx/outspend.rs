@@ -10,7 +10,7 @@ impl Query {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
         let mempool = Self::lookup_mempool(mempool);
-        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, safe) {
+        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
                 let (mempool, tip) = mempool.ok_or(Error::UnknownTxid)?;
@@ -51,7 +51,7 @@ impl Query {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
         let mempool = Self::lookup_mempool(mempool);
-        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, safe) {
+        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
                 let (mempool, tip) = mempool.ok_or(Error::UnknownTxid)?;

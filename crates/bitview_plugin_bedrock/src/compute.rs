@@ -59,7 +59,7 @@ impl ComputePlugin for Vecs {
         let source_version = inputs.version;
         let range = inputs.prepare(
             self.model_stored_vecs_mut().collect::<Vec<_>>(),
-            usize::from(indexer.safe_lengths().height),
+            usize::from(indexer.compute_start().height),
             context.exit(),
         )?;
         let (start, end) = (range.start, range.end);

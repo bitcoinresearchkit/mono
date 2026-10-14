@@ -12,7 +12,7 @@ impl Vecs {
         lookback: &LookbackVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         let window_starts = lookback.window_starts();
         self.0.compute(starting_height, &window_starts, exit)?;

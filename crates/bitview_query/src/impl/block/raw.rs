@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use crate::ReadPin;
+use crate::{ReadPin, check_bound};
 use bitcoin::{Block as BitcoinBlock, Weight, consensus::deserialize, p2p::Magic};
 use brk_reader::BlkRead;
 use brk_types::{BlkPosition, BlockHash, Height};
@@ -21,6 +21,7 @@ struct RawRecord {
 impl Query {
     fn open_raw_record(&self, height: Height, guard: &ReadPin) -> Result<RawRecord> {
         let safe = guard.lengths();
+        check_bound(guard, height, safe.height)?;
         if height >= safe.height {
             return Err(Error::NotFound("Block not found".into()));
         }

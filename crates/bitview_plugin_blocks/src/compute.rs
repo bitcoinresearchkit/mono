@@ -20,7 +20,7 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies { indexer, mappings } = dependencies;
         let exit = context.exit();
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let window_starts = mappings.lookback.window_starts();
         let blocks = &indexer.vecs().blocks;
 

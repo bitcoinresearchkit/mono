@@ -381,6 +381,11 @@ where
         self.save_rollback_state();
     }
 
+    fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()> {
+        self.overflow.any_remove_changes_above(stamp)?;
+        self.compact.any_remove_changes_above(stamp)
+    }
+
     fn serialize_changes(&self) -> Result<Vec<u8>> {
         let compact = self.compact.serialize_changes()?;
         let overflow = self.overflow.serialize_changes()?;

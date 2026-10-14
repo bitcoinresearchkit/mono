@@ -15,7 +15,7 @@ impl Vecs {
         lookback: &LookbackVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let price = &prices.spot.cents.height;
 
         let [week, month, year] = &mut self.extrema;

@@ -15,7 +15,7 @@ const HOURS_PER_DAY: f64 = 24.0;
 
 impl Vecs {
     pub(crate) fn compute(&mut self, indexer: &Indexer, age: &AgeVecs, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let transfer_volumes = AgeRange::from_fn(|id| {
             &id.select(&age.ranges)
                 .activity

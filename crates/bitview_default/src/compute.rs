@@ -49,27 +49,19 @@ impl DefaultPlugins {
         self.compute_dependents(context)
     }
 
-    /// A reorg lowers the publication and rolls the address state (rewritten in place) back in one
-    /// step, under the lock address readers take before they pin, before the indexer rolls back:
-    /// they read the state of every publication, the lowered one the rest of the update computes
-    /// from included, and wait only for that step. A rollback that cannot land (`roll_back_to`
-    /// returns 0) lowers the publication to genesis instead, before the address plugin's compute
-    /// resets. Bootstrap has no readers; its plugins roll back as they compute.
+    /// A reorg rolls the address state (rewritten in place) back before the indexer rolls back,
+    /// each lowering the publication first: address readers never wait for earlier pins to
+    /// drain, they find the state at another length than their pin and answer that it is
+    /// updating. A rollback that cannot land (`roll_back_to` returns 0) leaves the state for the
+    /// address plugin's compute to reset (lowering the publication to genesis first). Bootstrap
+    /// has no readers; its plugins roll back as they compute.
     fn roll_back_reorg(&mut self, context: UpdateContext<'_>) -> Result<()> {
         let Some(starting) = self.indexer.reorg()? else {
             return Ok(());
         };
         let _lock = context.exit().lock();
-        {
-            let stable = self.addresses.state.stable();
-            let mut written = stable.write();
-            self.indexer.lower_publication_to(starting.height);
-            self.addresses.roll_back_to(
-                usize::from(starting.height),
-                &self.indexer,
-                &mut written,
-            )?;
-        }
+        self.addresses
+            .roll_back_to(usize::from(starting.height), &self.indexer)?;
         self.indexer.roll_back_to(&starting)
     }
 
@@ -219,7 +211,7 @@ impl DefaultPlugins {
                     UtxoSetDependencies {
                         spends: &inputs.spends,
                         creations,
-                        from: indexer.safe_lengths().height,
+                        from: indexer.compute_start().height,
                         end: creations.end(),
                     },
                     context,
@@ -231,7 +223,7 @@ impl DefaultPlugins {
                 self.age.compute(
                     AgeDependencies {
                         history: &history,
-                        from: indexer.safe_lengths().height,
+                        from: indexer.compute_start().height,
                         mappings: self.mappings.as_ref(),
                         price: self.price.as_ref(),
                     },
@@ -242,7 +234,7 @@ impl DefaultPlugins {
                 self.holders.compute(
                     HoldersDependencies {
                         history: &history,
-                        from: indexer.safe_lengths().height,
+                        from: indexer.compute_start().height,
                         age: &self.age,
                         mappings: &self.mappings,
                         price: &self.price,
@@ -273,7 +265,7 @@ impl DefaultPlugins {
                         self.entry.compute(
                             EntryDependencies {
                                 history: &history,
-                                from: indexer.safe_lengths().height,
+                                from: indexer.compute_start().height,
                                 prices: &prices,
                                 timestamps: &timestamps,
                                 capitalized_price: &capitalized_price,
@@ -287,7 +279,7 @@ impl DefaultPlugins {
                         self.profitability.compute(
                             ProfitabilityDependencies {
                                 history: &history,
-                                from: indexer.safe_lengths().height,
+                                from: indexer.compute_start().height,
                                 prices: &prices,
                                 timestamps: &timestamps,
                             },

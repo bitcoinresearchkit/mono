@@ -56,6 +56,12 @@ A rollback (or a rebuild beside other plugins' data) persists a rollback floor
 that the next import publishes, so dependents recompute from it even after a soft
 quit; a complete update's commit clears it.
 
+Dependents recompute from `Indexer::compute_start`: the update's resume point,
+lowered to that floor, fixed for the whole update. The publication only guards
+readers: a plugin rewriting its own rows in place (a rollback landing below its
+start, or a rebuild) lowers it first through `Indexer::rewrite_from`, which waits
+for the readers of later publications, without moving any other plugin's start.
+
 ## Use in a composition
 
 The normal entrypoint is `Indexer::import`, supplied by a plugin-set importer.

@@ -14,7 +14,7 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         self.total.compute_cumulative_sum_from_indexes(
-            indexer.safe_lengths().height,
+            indexer.compute_start().height,
             &indexer.vecs().transactions.first_tx_index,
             &mappings.height.tx_index_count,
             &*indexer.vecs().transactions.total_sigop_cost,

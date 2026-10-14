@@ -69,6 +69,10 @@ pub trait AnyStoredVec: AnyVec {
     #[doc(hidden)]
     fn any_save_rollback_state(&mut self);
 
+    /// Removes the change files above `stamp`, the stamp a write without undo starts from.
+    #[doc(hidden)]
+    fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()>;
+
     /// Flushes with the given stamp, optionally saving changes for rollback.
     #[inline]
     fn any_stamped_write_maybe_with_changes(
@@ -79,6 +83,7 @@ pub trait AnyStoredVec: AnyVec {
         if with_changes {
             self.any_stamped_write_with_changes(stamp)
         } else {
+            self.any_remove_changes_above(self.stamp())?;
             self.stamped_write(stamp)?;
             if self.saved_stamped_changes() > 0 {
                 self.any_save_rollback_state();

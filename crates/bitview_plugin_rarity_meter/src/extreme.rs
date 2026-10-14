@@ -131,7 +131,7 @@ where
         source: &impl ReadableVec<Height, T>,
         exit: &Exit,
     ) -> Result<()> {
-        self.compute(indexer.safe_lengths().height, source, COINS_IN_LOSS, exit)
+        self.compute(indexer.compute_start().height, source, COINS_IN_LOSS, exit)
     }
 
     pub fn compute_realized(
@@ -140,7 +140,7 @@ where
         source: &impl ReadableVec<Height, T>,
         exit: &Exit,
     ) -> Result<()> {
-        self.compute(indexer.safe_lengths().height, source, REALIZED, exit)
+        self.compute(indexer.compute_start().height, source, REALIZED, exit)
     }
 
     pub fn compute_sell_side_risk(
@@ -149,7 +149,7 @@ where
         source: &impl ReadableVec<Height, T>,
         exit: &Exit,
     ) -> Result<()> {
-        self.compute(indexer.safe_lengths().height, source, SELL_SIDE_RISK, exit)
+        self.compute(indexer.compute_start().height, source, SELL_SIDE_RISK, exit)
     }
 
     fn compute(

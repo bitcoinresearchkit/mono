@@ -2,7 +2,7 @@ use brk_types::{BlockHash, Height, TxIndex, Txid};
 use vecdb::ReadableVec;
 
 use super::ResolvedConfirmedTx;
-use crate::{Error, Query, ReadPin, Result};
+use crate::{Error, Query, ReadPin, Result, check_bound};
 
 /// One logical read of this query's published indexer state.
 ///
@@ -37,6 +37,7 @@ impl IndexerRead<'_> {
     fn validate_confirmed_position(&self, txid: &Txid, index: TxIndex) -> Result<Height> {
         let query = self.query;
         let safe = self.pin.lengths();
+        check_bound(&self.pin, index, safe.tx_index)?;
         if index >= safe.tx_index
             || query.indexer().vecs().transactions.txid.collect_one(index) != Some(*txid)
         {
@@ -54,6 +55,7 @@ impl IndexerRead<'_> {
     /// Read a confirmed block hash inside the pinned prefix.
     fn confirmed_block_hash(&self, height: Height) -> Result<BlockHash> {
         let query = self.query;
+        check_bound(&self.pin, height, self.pin.lengths().height)?;
         if height >= self.pin.lengths().height {
             return Err(Error::UnknownTxid);
         }

@@ -8,7 +8,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use tempfile::tempfile_in;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex};
 
 use super::Vecs;
 
@@ -16,13 +16,9 @@ use super::Vecs;
 pub(super) const RANGE_LEN: usize = 1 << 26;
 const RECORD_LEN: usize = size_of::<u64>();
 
-pub(super) fn reset_incomplete(vecs: &mut Vecs) -> Result<()> {
-    // A partial output range is not a block-level resume point.
-    if vecs.spending_txin_index.stamp() == Stamp::default() && !vecs.spending_txin_index.is_empty()
-    {
-        vecs.spending_txin_index.reset()?;
-    }
-    Ok(())
+/// Whether a build stopped part way: a partial output range is not a block-level resume point.
+pub(super) fn is_incomplete(vecs: &Vecs) -> bool {
+    vecs.spending_txin_index.stamp() == Stamp::default() && !vecs.spending_txin_index.is_empty()
 }
 
 /// Build an empty inverse index in output order. Scratch files are unlinked

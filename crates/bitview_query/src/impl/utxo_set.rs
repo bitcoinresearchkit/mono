@@ -5,7 +5,7 @@ use bitview_types::{UtxoChanges, UtxoOrigins, UtxoSet, UtxoSetDiff};
 use brk_types::{Bitcoin, BlockHash, Height, Sats};
 use vecdb::ReadableVec;
 
-use crate::ReadPin;
+use crate::{ReadPin, check_bound};
 
 use crate::{Error, OptionData, Query, Result};
 
@@ -34,6 +34,7 @@ impl Query {
 
     pub fn utxo_set_point_height(&self, height: Height) -> Result<UtxoSetPoint> {
         let pin = self.pin_safe_lengths()?;
+        check_bound(&pin, height, pin.lengths().height)?;
         if usize::from(height) >= self.utxo_set_end(&pin)? {
             return Err(Error::NotFound(format!("Block {height} is not published")));
         }

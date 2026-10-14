@@ -100,7 +100,7 @@ impl Vecs {
         let min = prepare_computed(
             [&mut self.pool],
             dep_version,
-            indexer.safe_lengths().height.to_usize(),
+            indexer.compute_start().height.to_usize(),
             exit,
         )?;
 

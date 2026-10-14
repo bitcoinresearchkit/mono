@@ -1,4 +1,4 @@
-use crate::ReadPin;
+use crate::{ReadPin, check_bound};
 use bitcoin::{ScriptBuf, Transaction as BitcoinTransaction};
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
@@ -319,6 +319,7 @@ impl Query {
     /// writer's stamped boundary mid-block).
     pub(crate) fn block_tx_range(&self, height: Height, guard: &ReadPin) -> Result<(usize, usize)> {
         let safe = guard.lengths();
+        check_bound(guard, height, safe.height)?;
         if height >= safe.height {
             return Err(Error::OutOfRange("Block height out of range".into()));
         }

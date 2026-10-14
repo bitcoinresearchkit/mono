@@ -23,7 +23,7 @@ impl Vecs {
             &txs.first_tx_index,
             txid_len,
             entries_len,
-            indexer.safe_lengths().height,
+            indexer.compute_start().height,
             types.version()
                 + txs.first_tx_index.version()
                 + txs.first_txin_index.version()

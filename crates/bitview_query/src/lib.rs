@@ -129,6 +129,18 @@ impl Deref for ReadPin {
     }
 }
 
+/// `StateUpdating` for a read targeting `index` at or past `bound` (its kind's exclusive bound in
+/// `pin`) while the pin is lowered: a rollback or rebuild is rewriting the canonical rows there,
+/// which are hidden, not missing. Otherwise `Ok`, and the caller treats it like any row past the
+/// tip (missing, or clamped); reads wholly inside the retained prefix proceed either way.
+#[cfg(any(feature = "series", feature = "price"))]
+pub(crate) fn check_bound<T: PartialOrd>(pin: &SafeLengths, index: T, bound: T) -> Result<()> {
+    if index >= bound && pin.is_lowered() {
+        return Err(Error::StateUpdating);
+    }
+    Ok(())
+}
+
 impl Query {
     /// How long a read may wait for admission and run.
     const READ_TIMEOUT: Duration = Duration::from_secs(4);
@@ -147,10 +159,15 @@ impl Query {
 
     /// Pins the published state for one read: every plugin's rows below its lengths stay put
     /// (only a rollback waits for the pin; pinning never waits), and this thread's reads stay
-    /// below them while the pin lives. Fails only past the deadline.
+    /// below them while the pin lives. Fails past the deadline, and while a rebuild lowered the
+    /// publication to genesis: the chain is updating, not empty.
     fn pin_safe_lengths(&self) -> Result<ReadPin> {
         self.check_deadline()?;
-        Ok(self.read_pin(self.indexer().pin()))
+        let pin = self.indexer().pin();
+        if pin.is_lowered() && pin.lengths().height.is_zero() {
+            return Err(Error::StateUpdating);
+        }
+        Ok(self.read_pin(pin))
     }
 
     /// Bounds this thread's reads by `pin` while the returned pin lives: how a value carried from

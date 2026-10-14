@@ -189,6 +189,10 @@ macro_rules! impl_vec_wrapper {
                 $crate::WritableVec::save_rollback_state(&mut self.0)
             }
 
+            fn any_remove_changes_above(&self, stamp: $crate::Stamp) -> $crate::Result<()> {
+                self.0.any_remove_changes_above(stamp)
+            }
+
             fn remove(self) -> $crate::Result<()> {
                 self.0.remove()
             }

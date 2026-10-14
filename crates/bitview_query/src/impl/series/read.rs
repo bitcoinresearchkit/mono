@@ -13,7 +13,7 @@ pub struct SeriesRead {
     bounds: ReadBounds,
     safe: Lengths,
     is_mutable: bool,
-    _pin: SafeLengths,
+    pin: SafeLengths,
 }
 
 impl SeriesRead {
@@ -38,12 +38,17 @@ impl SeriesRead {
             bounds,
             safe,
             is_mutable,
-            _pin: pin.into_inner(),
+            pin: pin.into_inner(),
         })
     }
 
     pub(super) fn safe_lengths(&self) -> Lengths {
         self.safe
+    }
+
+    /// The publication this read is pinned to.
+    pub(super) fn pin(&self) -> &SafeLengths {
+        &self.pin
     }
 
     pub(super) fn is_mutable(&self) -> bool {

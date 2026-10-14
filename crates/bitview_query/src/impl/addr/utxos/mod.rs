@@ -33,7 +33,7 @@ impl Query {
         let addr = &parse_addr(addr)?;
         let (mempool, pin) = self.mempool_then_pin()?;
         let lengths = pin.lengths();
-        let found = self.find_addr_bytes(addr, lengths)?;
+        let found = self.find_addr_bytes(addr, &pin)?;
         let tip = pin.tip();
         let pending = mempool
             .map(|mempool| anchored(mempool.addr_pending_utxos(addr, &tip)))

@@ -270,6 +270,10 @@ where
         <Self as WritableVec<I, T>>::save_rollback_state(self)
     }
 
+    fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()> {
+        self.base.remove_changes_above(stamp)
+    }
+
     fn remove(self) -> Result<()> {
         Self::remove(self)
     }
