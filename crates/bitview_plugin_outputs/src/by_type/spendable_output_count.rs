@@ -1,8 +1,9 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyIndexedVec, LazyPerBlockCumulativeRolling, LazyWindowStartVec};
+use bitview_vecs::{
+    LazyIndexedVec, LazyPerBlockCumulativeRolling, LazyWindowStartVec, shapes::Windows,
+};
 use brk_types::{Height, Version};
 use derive_more::Deref;
 use vecdb::{ReadableCloneableVec, ReadableVec};

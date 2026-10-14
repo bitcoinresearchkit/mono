@@ -35,9 +35,8 @@ application.
 ### Plugin platform
 
 - [`bitview_plugin`](../crates/bitview_plugin) defines plugin identity,
-  dependencies, storage ownership, update contexts, and read-only publication.
-- [`bitview_runtime`](../crates/bitview_runtime) imports a typed plugin set and
-  drives its bootstrap, update, compute, and publication lifecycle.
+  dependencies, storage ownership, update contexts, and the typed plugin set
+  (`PluginSet`, `ComputePluginSet`, with its derive) that `bitview` drives.
 - [`bitview_plugin_indexer`](../crates/bitview_plugin_indexer) is the root plugin.
   It assigns chain-order indexes and maintains the lookup state used by
   downstream plugins.
@@ -58,7 +57,8 @@ name lookups.
 ### Application and interfaces
 
 - [`bitview`](../crates/bitview) is the composition-independent daemon runtime:
-  configuration (file and arguments), logging, signal handling, the update loop,
+  configuration (file and arguments), logging, signal handling, the plugin set's
+  bootstrap and update lifecycle,
   mempool monitoring, query creation, and server startup.
 - [`bitview_query`](../crates/bitview_query) exposes generic series discovery
   plus typed capabilities for enabled plugins.

@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 
-use bitview_runtime::PluginSet;
+use bitview_plugin::PluginSet;
 use brk_error::Result;
 use vecdb::{Database, Header};
 

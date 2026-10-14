@@ -1,10 +1,9 @@
 use std::collections::BTreeMap;
 
-use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Hashrate, POOL_ATTRIBUTION_VERSION, pools};
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::Height;
 use vecdb::{BytesVec, ImportableVec, ReadableCloneableVec, Version};

@@ -453,6 +453,16 @@ has to be deleted by hand.
   `bitview::Config` is now the file and argument configuration (was `bitviewd::Config`); the former `bitview::Config`
   with resolved settings is `RunConfig`, and the low-level `bitview::run(config, exit, import)` is private. `bitviewd`
   is binary-only and has no features; the `bitview-bindgen` binary moved to the unpublished `bitview_devtools`
+- Removed `bitview_runtime`: `PluginSet`, `ComputePluginSet` and `BootstrapAction` live in `bitview_plugin`, whose
+  `derive` feature re-exports the `PluginSet` derive (`bitview_runtime_derive` is `bitview_plugin_derive`);
+  `bootstrap` and `DEFAULT_CACHE_BUDGET` live in `bitview` (`bitview_plugin::DEFAULT_CACHE_BUDGET` is gone).
+  Removed `bitview_collections` and `bitview_transforms`: their shapes are `bitview_vecs::shapes` (with
+  `DistributionStats` in `bitview_compute`) and their transforms `bitview_vecs::ops`. Plugin-only types moved into
+  their plugin: `TxDistribution` and `PerTxDistribution` (transactions, private), `bitview_plugin_price::SpotPrice`
+  with the price's OHLC and split views and transforms (private), `AgeBand` (coinflow, private) and `AvivNupl`
+  (cointime, private). `overwritten_output` is `bitview_plugin_indexer::overwritten_output` (was in outputs;
+  `DUPLICATE_COINBASES` is private). `bitviewd_latency` takes the data directory as its one argument (was read from
+  the bitview config)
 - `bitview` and `bitview_server` expose only the route-family features `full-api`, `chain`, `series`, `urpd` and
   `price` (the `bedrock` feature is gone). `bitview_query` drops its `tokio`, `indexer` and per-plugin features: the API
   features pull the plugins their endpoints read, and dependencies only one feature reads are optional under it

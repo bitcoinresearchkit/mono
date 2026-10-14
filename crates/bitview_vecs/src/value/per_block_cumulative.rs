@@ -1,11 +1,10 @@
-use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{BinaryTransform, Database, ReadableVec, Rw, StorageMode, VecValue};
 
-use crate::{IndexSources, LazyValueBlock, ValuePerBlock};
+use crate::{IndexSources, LazyValueBlock, ValuePerBlock, ops::SatsToCents};
 
 #[derive(Traversable)]
 pub struct ValuePerBlockCumulative<M: StorageMode = Rw> {

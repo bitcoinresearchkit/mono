@@ -43,10 +43,10 @@ bitview = { version = "0.12.2", path = "crates/bitview", default-features = fals
 bitview_bindgen = { version = "0.12.2", path = "crates/bitview_bindgen" }
 bitview_catalog = { version = "0.12.2", path = "crates/bitview_catalog" }
 bitview_cohort = { version = "0.12.2", path = "crates/bitview_cohort" }
-bitview_collections = { version = "0.12.2", path = "crates/bitview_collections" }
 bitview_compute = { version = "0.12.2", path = "crates/bitview_compute" }
 bitview_default = { version = "0.12.2", path = "crates/bitview_default" }
-bitview_plugin = { version = "0.12.2", path = "crates/bitview_plugin" }
+bitview_plugin = { version = "0.12.2", path = "crates/bitview_plugin", features = ["derive"] }
+bitview_plugin_derive = { version = "0.12.2", path = "crates/bitview_plugin_derive" }
 bitview_distribution = { version = "0.12.2", path = "crates/bitview_distribution" }
 bitview_plugin_addresses = { version = "0.12.2", path = "crates/bitview_plugin_addresses" }
 bitview_plugin_age = { version = "0.12.2", path = "crates/bitview_plugin_age" }
@@ -73,10 +73,7 @@ bitview_plugin_utxo_set = { version = "0.12.2", path = "crates/bitview_plugin_ut
 bitview_plugin_utxos = { version = "0.12.2", path = "crates/bitview_plugin_utxos" }
 bitview_primitives = { version = "0.12.2", path = "crates/bitview_primitives" }
 bitview_query = { version = "0.12.2", path = "crates/bitview_query", default-features = false }
-bitview_runtime = { version = "0.12.2", path = "crates/bitview_runtime" }
-bitview_runtime_derive = { version = "0.12.2", path = "crates/bitview_runtime_derive" }
 bitview_server = { version = "0.12.2", path = "crates/bitview_server", default-features = false }
-bitview_transforms = { version = "0.12.2", path = "crates/bitview_transforms" }
 bitview_traversable = { version = "0.12.2", path = "crates/bitview_traversable", features = ["pco", "derive"] }
 bitview_traversable_derive = { version = "0.12.2", path = "crates/bitview_traversable_derive" }
 bitview_types = { version = "0.12.2", path = "crates/bitview_types" }

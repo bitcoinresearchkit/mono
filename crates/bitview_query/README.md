@@ -132,7 +132,7 @@ unindexable date) keep their meaning through `From<brk_error::Error>`.
 
 ## Built On
 
-- `bitview_runtime::PluginSet` for generic plugin discovery
+- `bitview_plugin::PluginSet` for generic plugin discovery
 - `brk_mempool` for mempool queries
 - `brk_cpfp` for confirmed CPFP clusters (`chain`)
 - `brk_reader` for raw block access

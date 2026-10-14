@@ -1,10 +1,10 @@
 use bitview_cohort::AgeAggregateId;
-use bitview_collections::ByPercentile;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     Density, LazyPerBlock, LazyPercentPerBlock, PerBlock, Price, PriceWithMvrv, PriceWithRatio,
+    shapes::ByPercentile,
 };
 use brk_error::Result;
 use brk_exit::Exit;

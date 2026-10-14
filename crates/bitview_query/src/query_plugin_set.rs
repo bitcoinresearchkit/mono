@@ -1,3 +1,4 @@
+use bitview_plugin::PluginSet;
 #[cfg(feature = "chain")]
 use bitview_plugin_addresses::HasAddresses;
 #[cfg(feature = "urpd")]
@@ -25,7 +26,6 @@ use bitview_plugin_price::HasPrice;
 use bitview_plugin_transactions::HasTransactions;
 #[cfg(any(feature = "chain", feature = "urpd"))]
 use bitview_plugin_utxo_set::HasUtxoSet;
-use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use vecdb::Ro;
 

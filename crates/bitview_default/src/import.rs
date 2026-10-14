@@ -1,4 +1,4 @@
-use bitview_collections::Windows;
+use bitview_vecs::shapes::Windows;
 use std::{thread, time::Instant};
 
 use bitview_distribution::metrics::ShareTotals;

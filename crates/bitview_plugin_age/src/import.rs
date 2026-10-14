@@ -1,12 +1,11 @@
 use std::thread;
 
 use bitview_cohort::{AgeRange, ByEpoch, Class};
-use bitview_collections::Windows;
 use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, import_cached};
+use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, import_cached, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Height, Sats, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};

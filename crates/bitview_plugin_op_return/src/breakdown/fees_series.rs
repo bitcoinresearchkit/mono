@@ -1,10 +1,9 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
-use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyPercentCumulativeRolling, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
+    ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
 use brk_exit::Exit;

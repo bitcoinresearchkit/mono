@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -8,7 +7,7 @@ use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 use crate::{
     IndexSources, LazyRollingAvgsAmountFromHeight, RollingDistributionValuePerBlock,
-    ValuePerBlockCumulativeRolling, WindowStarts,
+    ValuePerBlockCumulativeRolling, WindowStarts, shapes::Windows,
 };
 
 #[derive(Deref, DerefMut, Traversable)]

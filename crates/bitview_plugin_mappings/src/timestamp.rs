@@ -1,11 +1,10 @@
-use bitview_collections::PerResolution;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{
     Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
     Week1, Year1, Year10,
 };
 use bitview_traversable::Traversable;
-use bitview_vecs::RangeMapVec;
+use bitview_vecs::{RangeMapVec, shapes::PerResolution};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS, BLOCKS_PER_HALVING, Height, Timestamp};

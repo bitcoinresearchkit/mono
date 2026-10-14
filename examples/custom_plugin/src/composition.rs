@@ -1,8 +1,9 @@
 use bitview::QueryPluginSet;
 use bitview_default::DefaultPlugins;
-use bitview_plugin::{ComputePlugin, ImportContext, UpdateContext};
+use bitview_plugin::{
+    BootstrapAction, ComputePlugin, ComputePluginSet, ImportContext, PluginSet, UpdateContext,
+};
 use bitview_plugin_indexer::HasIndexer;
-use bitview_runtime::{BootstrapAction, ComputePluginSet, PluginSet};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_reader::Reader;

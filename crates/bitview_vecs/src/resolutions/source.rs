@@ -1,11 +1,12 @@
-use bitview_collections::{PerResolution, with_resolution_fields};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{AnyVec, ReadOnlyClone, ReadableCloneableVec, VecValue};
 
-use crate::{CoarserIndex, IndexSources, LazyAggVec};
+use crate::{
+    CoarserIndex, IndexSources, LazyAggVec, shapes::PerResolution, with_resolution_fields,
+};
 
 macro_rules! define_resolutions {
     (

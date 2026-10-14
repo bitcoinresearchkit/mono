@@ -1,13 +1,12 @@
-use bitview_collections::Windows;
 use bitview_distribution::families::{CountWithDeltas, Supply};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, PartsPerMillion32};
-use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CachedSeries, CumulativeSource, LazyIndexedVec, LazyPerBlock, LazyPercentCumulativeRolling,
     LazyPercentPerBlock, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, LazyWindowStartVec,
-    PerBlockCumulativeAverage, PerBlockCumulativeRolling, import_cached,
+    PerBlockCumulativeAverage, PerBlockCumulativeRolling, import_cached, ops::Quotient,
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_exit::Exit;

@@ -1,11 +1,9 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
-use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyIndexedVec, LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock,
-    LazyWindowStartVec,
+    LazyWindowStartVec, ops::Quotient, shapes::Windows,
 };
 use brk_types::{Height, Sats, SatsSigned, Version};
 use vecdb::{BinaryTransform, ReadableCloneableVec};

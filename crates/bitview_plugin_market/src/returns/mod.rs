@@ -1,10 +1,10 @@
-use bitview_collections::ByLookbackPeriod;
 use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::PartsPerMillionSigned64;
-use bitview_transforms::RelativeChange;
-use bitview_vecs::{LazyPercentPerBlock, LazyWindowVec};
+use bitview_vecs::{
+    LazyPercentPerBlock, LazyWindowVec, ops::RelativeChange, shapes::ByLookbackPeriod,
+};
 use brk_types::{Dollars, Height, Version};
 use vecdb::BinaryTransform;
 

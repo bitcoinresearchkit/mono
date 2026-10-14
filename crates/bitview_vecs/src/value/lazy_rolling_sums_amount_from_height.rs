@@ -1,11 +1,12 @@
-use bitview_collections::Windows;
-use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::ReadableCloneableVec;
 
-use crate::{IndexSources, LazyPerBlock, LazyRollingSumAmountFromHeight, LazyRollingSumFromHeight};
+use crate::{
+    IndexSources, LazyPerBlock, LazyRollingSumAmountFromHeight, LazyRollingSumFromHeight,
+    ops::Convert, shapes::Windows,
+};
 
 /// Lazy rolling sums for all 4 windows, for Amount (sats + btc + cents + usd).
 #[derive(Clone, Deref, DerefMut, Traversable)]

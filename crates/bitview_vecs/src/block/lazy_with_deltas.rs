@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
@@ -6,7 +5,7 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{Ident, ReadableCloneableVec};
 
-use crate::{IndexSources, LazyPerBlock, LazyRollingDeltasFromHeight};
+use crate::{IndexSources, LazyPerBlock, LazyRollingDeltasFromHeight, shapes::Windows};
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyPerBlockWithDeltas<S, C, B>

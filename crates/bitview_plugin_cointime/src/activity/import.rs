@@ -1,11 +1,11 @@
-use bitview_collections::Windows;
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CoinBlocks, PartsPerMillion64};
-use bitview_transforms::{BoundedOdds, BoundedToRatio, Quotient};
 use bitview_vecs::{
     LazyPerBlock, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, LazyWindowStartVec,
     PerBlock, PerBlockCumulativeRolling,
+    ops::{BoundedOdds, BoundedToRatio, Quotient},
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::Version;

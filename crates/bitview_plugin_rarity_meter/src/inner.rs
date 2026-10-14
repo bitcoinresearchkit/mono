@@ -1,10 +1,9 @@
 use std::ops::Range;
 
-use bitview_collections::RarityPercentiles;
 use bitview_compute::prepare_computed;
 use bitview_primitives::{RARITY_PERCENTILES_LEN, RarityPercentileId, Score};
 use bitview_traversable::Traversable;
-use bitview_vecs::{IndexSources, PerBlock, Price};
+use bitview_vecs::{IndexSources, PerBlock, Price, shapes::RarityPercentiles};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};

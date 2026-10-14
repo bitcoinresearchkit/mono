@@ -1,6 +1,6 @@
 use std::thread;
 
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{BootstrapAction, ComputePlugin, ComputePluginSet, UpdateContext};
 use bitview_plugin_addresses::{Dependencies as AddressesDependencies, ID as ADDRESSES_ID};
 use bitview_plugin_age::{Dependencies as AgeDependencies, ID as AGE_ID};
 use bitview_plugin_bedrock::{Dependencies as BedrockDependencies, ID as BEDROCK_ID};
@@ -28,7 +28,6 @@ use bitview_plugin_transactions::{
 };
 use bitview_plugin_utxo_set::{Dependencies as UtxoSetDependencies, ID as UTXO_SET_ID};
 use bitview_plugin_utxos::{Dependencies as UtxosDependencies, ID as UTXOS_ID};
-use bitview_runtime::{BootstrapAction, ComputePluginSet};
 use bitview_urpd::ReplayInputs;
 use brk_error::Result;
 use rayon::join;

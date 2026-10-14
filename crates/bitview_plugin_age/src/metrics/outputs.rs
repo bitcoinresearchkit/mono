@@ -1,10 +1,9 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_collections::Windows;
 use bitview_distribution::families::{CountWithDeltas, CumulativeCount};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};

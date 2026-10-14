@@ -6,7 +6,6 @@ use std::{
     str::FromStr,
 };
 
-use bitview_runtime::DEFAULT_CACHE_BUDGET;
 use bitview_server::{
     CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, ServerConfig, Website,
 };
@@ -24,6 +23,9 @@ use crate::{
     RunConfig,
     paths::{default_bitview_dir, fix_user_path},
 };
+
+/// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`).
+pub const DEFAULT_CACHE_BUDGET: usize = 2 << 30;
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -77,7 +79,7 @@ pub struct Config {
 impl Config {
     /// Load persisted settings without creating directories, validating Bitcoin
     /// paths, parsing arguments, or constructing an RPC client.
-    pub fn load() -> io::Result<Self> {
+    fn load() -> io::Result<Self> {
         Self::read(&default_bitview_dir().join("config.toml"))
     }
 
@@ -369,7 +371,7 @@ impl Config {
     }
 
     /// Resolve server settings without validating node paths or constructing RPC.
-    pub fn server_config(&self) -> ServerConfig {
+    fn server_config(&self) -> ServerConfig {
         ServerConfig {
             bind: self.serverbind(),
             port: self.serverport(),

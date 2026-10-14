@@ -1,5 +1,6 @@
-use bitview_collections::DistributionStats;
-use bitview_compute::{ComputedVecValue, NumericValue, compute_rolling_distribution_from_starts};
+use bitview_compute::{
+    ComputedVecValue, DistributionStats, NumericValue, compute_rolling_distribution_from_starts,
+};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;

@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::type_complexity)]
 
+use bitview_plugin::PluginSet;
 use bitview_plugin_addresses::Vecs as Addresses;
 use bitview_plugin_age::Vecs as Age;
 use bitview_plugin_bedrock::Vecs as Bedrock;
@@ -24,7 +25,6 @@ use bitview_plugin_supply::Vecs as Supply;
 use bitview_plugin_transactions::Vecs as Transactions;
 use bitview_plugin_utxo_set::Vecs as UtxoSet;
 use bitview_plugin_utxos::Vecs as Utxos;
-use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use vecdb::{Rw, StorageMode};
 

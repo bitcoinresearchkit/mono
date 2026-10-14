@@ -1,9 +1,8 @@
 use bitview_cohort::{ByEntry, CohortId};
-use bitview_collections::Windows;
 use bitview_distribution::metrics::ShareTotals;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height};
 use vecdb::ReadableBoxedVec;

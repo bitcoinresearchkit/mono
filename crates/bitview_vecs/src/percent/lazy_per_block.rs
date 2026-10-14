@@ -1,13 +1,14 @@
-use bitview_collections::PercentViews;
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_primitives::Percent;
-use bitview_transforms::FixedToPercent;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{BinaryTransform, Ident, ReadableCloneableVec, UnaryTransform, VecValue};
 
-use crate::{IndexSources, LazyIndexedVec, LazyLookbackVec, LazyPerBlock};
+use crate::{
+    IndexSources, LazyIndexedVec, LazyLookbackVec, LazyPerBlock, ops::FixedToPercent,
+    shapes::PercentViews,
+};
 
 /// Fully lazy variant of `PercentPerBlock` — no stored vecs.
 ///

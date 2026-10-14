@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::FixedRatio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -6,7 +5,7 @@ use brk_types::Version;
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::{IndexSources, RatioPerBlock};
+use crate::{IndexSources, RatioPerBlock, shapes::Windows};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct RatioRollingWindows<R: FixedRatio, M: StorageMode = Rw>(

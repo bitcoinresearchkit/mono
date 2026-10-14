@@ -1,4 +1,3 @@
-use bitview_collections::{PerResolution, with_resolution_fields};
 use bitview_compute::ComputedVecValue;
 use bitview_traversable::Traversable;
 use brk_types::Version;
@@ -6,7 +5,7 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{LazyVec, MapOption, ReadableBoxedVec, ReadableCloneableVec, UnaryTransform, VecValue};
 
-use crate::Resolutions;
+use crate::{Resolutions, shapes::PerResolution, with_resolution_fields};
 
 macro_rules! define_derived_resolutions {
     (

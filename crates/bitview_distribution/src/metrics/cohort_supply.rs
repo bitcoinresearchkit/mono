@@ -1,7 +1,6 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};

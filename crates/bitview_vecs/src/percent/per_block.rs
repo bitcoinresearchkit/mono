@@ -1,7 +1,5 @@
-use bitview_collections::PercentViews;
 use bitview_compute::{ComputeDrawdown, FixedRatio};
 use bitview_primitives::Percent;
-use bitview_transforms::FixedToPercent;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -11,7 +9,7 @@ use vecdb::{
     BinaryTransform, Budgeted, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode, VecValue,
 };
 
-use crate::{IndexSources, LazyPerBlock, PerBlock};
+use crate::{IndexSources, LazyPerBlock, PerBlock, ops::FixedToPercent, shapes::PercentViews};
 
 /// Fixed-point storage and its one public view, as a percentage.
 #[derive(Deref, DerefMut, Traversable)]

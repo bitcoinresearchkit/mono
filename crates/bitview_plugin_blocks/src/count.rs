@@ -1,8 +1,7 @@
-use bitview_collections::Windows;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
-use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyWindowStartVec};
+use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyWindowStartVec, shapes::Windows};
 use brk_types::{Height, Version};
 use vecdb::{IndexVec, ReadOnlyClone};
 

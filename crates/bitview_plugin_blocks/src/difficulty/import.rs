@@ -1,8 +1,10 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, Difficulty, Epoch, PartsPerMillionSigned32};
-use bitview_transforms::{BlocksToDays, DifficultyToHashrate};
-use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
+use bitview_vecs::{
+    LazyPerBlock, LazyPercentPerBlock, Resolutions,
+    ops::{BlocksToDays, DifficultyToHashrate},
+};
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Height, Version};
 use vecdb::{Ident, IndexVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 

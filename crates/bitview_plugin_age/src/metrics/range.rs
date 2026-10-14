@@ -1,12 +1,11 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_collections::Windows;
 use bitview_distribution::{families::CumulativeValue, metrics::ShareTotals};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CentsSquaredSats, CoinDays};
-use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling, SatsCents,
+    ops::SatsToCents, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Cents, CentsSats, Height, Sats, Version};

@@ -1,12 +1,11 @@
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_primitives::Ratio;
-use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{BinaryTransform, Ident, ReadableCloneableVec};
 
-use crate::{IndexSources, LazyIndexedVec, LazyPerBlock};
+use crate::{IndexSources, LazyIndexedVec, LazyPerBlock, ops::FixedToRatio};
 
 /// Fully lazy variant of `RatioPerBlock` derived from one per-block source.
 #[derive(Clone, Traversable)]

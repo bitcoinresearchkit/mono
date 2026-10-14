@@ -1,12 +1,11 @@
 use bitview_compute::{NumericValue, Quantity};
 use bitview_primitives::CentsFract;
-use bitview_transforms::Convert;
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Dollars, Version};
 use schemars::JsonSchema;
 use vecdb::{Database, Rw};
 
-use crate::{Fiat, IndexSources, LazyPerBlock, PerBlock};
+use crate::{Fiat, IndexSources, LazyPerBlock, PerBlock, ops::Convert};
 
 /// A cents type that converts to dollars.
 pub trait FiatType:

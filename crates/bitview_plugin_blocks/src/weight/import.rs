@@ -1,8 +1,7 @@
-use bitview_collections::Windows;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
-use bitview_vecs::{LazyPercentVec, LazyWindowStartVec, PerBlockRolling};
+use bitview_vecs::{LazyPercentVec, LazyWindowStartVec, PerBlockRolling, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Height, Version, Weight, Weight32};
 use vecdb::Database;

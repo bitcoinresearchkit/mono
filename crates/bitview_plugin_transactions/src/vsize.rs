@@ -1,12 +1,13 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::WeightToVSize;
 use bitview_traversable::Traversable;
-use bitview_vecs::TxDistribution;
+use bitview_vecs::ops::WeightToVSize;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{TxIndex, VSize, Version, Weight32};
 use vecdb::{Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
+
+use crate::distribution::TxDistribution;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

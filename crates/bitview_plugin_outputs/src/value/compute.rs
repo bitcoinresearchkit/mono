@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use bitview_compute::prepare_computed;
+use bitview_plugin_indexer::overwritten_output;
 use bitview_primitives::{SupplyState, TxOutIndex};
 use bitview_vecs::CachedSeries;
 use brk_error::{OptionData, Result};
@@ -10,8 +11,6 @@ use statedb::{Amount, Creations};
 use vecdb::{
     AnyStoredVec, AnyVec, Bytes, BytesVec, OverflowVec, ReadableVec, VecIndex, WritableVec,
 };
-
-use crate::overwritten_output;
 
 pub(crate) fn compute_sats(
     target: &mut CachedSeries<Height, Sats>,

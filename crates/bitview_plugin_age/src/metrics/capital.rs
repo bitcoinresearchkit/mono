@@ -1,9 +1,8 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_collections::Windows;
 use bitview_distribution::{families::Fiat, metrics::CohortCapital};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};

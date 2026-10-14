@@ -1,11 +1,10 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{OhlcPrice, SplitPrice, SpotPrice};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, EagerVec, ImportableVec};
 
-use crate::{STORAGE, Vecs};
+use crate::{STORAGE, SpotPrice, Vecs, ohlc::OhlcPrice, split::SplitPrice};
 
 impl Vecs {
     pub fn import(context: ImportContext<'_>, mappings: &MappingsVecs) -> Result<Self> {

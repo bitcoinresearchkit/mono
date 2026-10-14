@@ -1,8 +1,9 @@
 use bitview_cohort::{AgeRange, CohortContext};
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::BoundedToRatio;
-use bitview_vecs::{LazyPerBlock, LazySpotValuePerBlock, PerBlock, import_cached};
+use bitview_vecs::{
+    LazyPerBlock, LazySpotValuePerBlock, PerBlock, import_cached, ops::BoundedToRatio,
+};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec};

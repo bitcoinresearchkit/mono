@@ -1,5 +1,4 @@
-use bitview_collections::{DistributionStats, Windows};
-use bitview_compute::compute_rolling_distribution_from_starts;
+use bitview_compute::{DistributionStats, compute_rolling_distribution_from_starts};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -7,7 +6,7 @@ use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
-use crate::{IndexSources, ValuePerBlock, WindowStarts};
+use crate::{IndexSources, ValuePerBlock, WindowStarts, shapes::Windows};
 
 /// Rolling distribution across 4 windows, stat-first naming.
 ///

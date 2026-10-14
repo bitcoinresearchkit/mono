@@ -1,4 +1,3 @@
-use bitview_collections::DistributionStats;
 use brk_error::Result;
 use brk_exit::Exit;
 use vecdb::{
@@ -6,7 +5,7 @@ use vecdb::{
     VecValue, Version, WritableVec,
 };
 
-use super::window::SlidingWindowSorted;
+use super::{DistributionStats, window::SlidingWindowSorted};
 
 /// Compute all 7 rolling distribution stats (min, max, p10, p25, median, p75, p90)
 /// in a single sorted-vec pass per window.

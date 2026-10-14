@@ -479,7 +479,7 @@
 
       .composition {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 2rem;
         margin-top: 2.5rem;
       }
@@ -827,15 +827,11 @@
         <div class="composition">
           <article>
             <h3>bitview_plugin</h3>
-            <p>Shared plugin identity, storage ownership, compute context, and publication gates.</p>
-          </article>
-          <article>
-            <h3>bitview_runtime</h3>
-            <p>Bootstrap and the composition-wide update lifecycle, without an official plugin set.</p>
+            <p>Shared plugin identity, storage ownership, compute context, and the composition traits.</p>
           </article>
           <article>
             <h3>bitview / bitview_default / bitviewd</h3>
-            <p>The runner library, the official plugin graph, and the binary that joins them.</p>
+            <p>The runner library (bootstrap and updates), the official plugin graph, and the binary that joins them.</p>
           </article>
         </div>
 

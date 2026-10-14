@@ -1,7 +1,6 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::FixedToPercent;
-use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached};
+use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached, ops::FixedToPercent};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;

@@ -1,10 +1,10 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::CoinDays;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling, LazyWindowStartVec,
+    shapes::Windows,
 };
 use brk_types::Version;
 

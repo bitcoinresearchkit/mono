@@ -12,6 +12,21 @@ serving. It never selects a composition: the official one lives in
 - `bitview::Config` is the file/argument configuration (`~/.bitview/config.toml`);
   `Config::import()` resolves it into a `RunConfig`.
 
+## Lifecycle
+
+`bitview::bootstrap` imports the composition (each import under the shutdown
+lock), creates each active plugin's root, rejects duplicate plugin IDs, and fully
+computes it before anything is served; a composition may request drop/reimport
+cycles (`BootstrapAction::Reimport`) to release transient startup memory, and such
+a partial pass commits with `complete = false`. Each later update computes the
+complete composition, then commits its pipeline-wide publication cursor
+(`ComputePluginSet::commit`), which is what readers see.
+
+Plugin-root cleanup is intentionally destructive. The active composition owns
+the complete `<data>/plugins` directory, and bootstrap removes every entry not
+claimed by an active `PluginId`. Compositions whose stored data must coexist
+should use separate data roots.
+
 The runner is designed for one long-lived instance per process. Its query view
 and process-wide services intentionally live until process exit; it is not a
 start-stop or multi-instance application server.

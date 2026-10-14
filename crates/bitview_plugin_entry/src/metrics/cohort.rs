@@ -1,10 +1,8 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_collections::Windows;
 use bitview_distribution::metrics::{CohortCostBasis, ShareTotals};
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, ops::SatsToCents, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Version};
 use vecdb::{

@@ -51,7 +51,7 @@ impl OutputScope {
 }
 
 fn main() -> Result<()> {
-    Budgeted::init_global(bitview_plugin::DEFAULT_CACHE_BUDGET)?;
+    Budgeted::init_global(bitview::DEFAULT_CACHE_BUDGET)?;
     install()?;
 
     let args = env::args().skip(1).collect::<Vec<_>>();

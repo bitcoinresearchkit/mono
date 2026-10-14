@@ -1,6 +1,5 @@
 mod by_type;
 mod compute;
-mod correction;
 mod count;
 mod dependencies;
 mod has;
@@ -9,7 +8,6 @@ mod spent;
 mod value;
 
 pub use by_type::{OutputTypeVecs, Vecs as TypesVecs};
-pub use correction::overwritten_output;
 pub use dependencies::Dependencies;
 pub use has::HasOutputs;
 

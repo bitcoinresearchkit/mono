@@ -1,11 +1,10 @@
-use bitview_collections::Windows;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{Ident, ReadableCloneableVec};
 
 use crate::{
     FiatType, IndexSources, LazyFiatBlock, LazyFiatPerBlock, LazyPerBlock,
-    LazyRollingSumsFiatFromHeight,
+    LazyRollingSumsFiatFromHeight, shapes::Windows,
 };
 
 #[derive(Clone, Traversable)]

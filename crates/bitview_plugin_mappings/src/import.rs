@@ -1,8 +1,7 @@
-use bitview_collections::PerResolution;
 use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30};
-use bitview_vecs::{IndexSources, LazyPreviousDeltaVec};
+use bitview_vecs::{IndexSources, LazyPreviousDeltaVec, shapes::PerResolution};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{IndexVec, ReadableCloneableVec};

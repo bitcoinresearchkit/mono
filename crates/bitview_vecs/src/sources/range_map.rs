@@ -28,7 +28,7 @@ impl<I: VecIndex, T: VecValue> RangeMapVec<I, T> {
         }
     }
 
-    pub(crate) fn mapping(&self) -> &SharedRangeMap<T, I> {
+    pub fn mapping(&self) -> &SharedRangeMap<T, I> {
         &self.mapping
     }
 

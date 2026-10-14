@@ -1,7 +1,6 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
-use bitview_vecs::{LazyWindowStartVec, PerBlockFullFromCumulative};
+use bitview_vecs::{LazyWindowStartVec, PerBlockFullFromCumulative, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{Database, LazyVec, ReadableCloneableVec};

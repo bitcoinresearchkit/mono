@@ -1,9 +1,9 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::FixedToPercent;
 use bitview_urpd::CostBasisVecs;
 use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock, import_cached,
+    ops::FixedToPercent,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};

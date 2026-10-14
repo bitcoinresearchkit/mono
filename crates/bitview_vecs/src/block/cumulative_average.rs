@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -12,6 +11,7 @@ use vecdb::{
 
 use crate::{
     CachedSeries, IndexSources, LazyPreviousDeltaVec, LazyRollingAvgsFromHeight, import_cached,
+    shapes::Windows,
 };
 
 /// Cumulative source of truth with lazy exact per-block values and rolling averages.

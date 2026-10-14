@@ -1,5 +1,6 @@
 use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId};
-use bitview_compute::AgeBand;
+
+use super::age_band::AgeBand;
 
 #[derive(Clone, Copy)]
 pub(super) struct DecayFit {

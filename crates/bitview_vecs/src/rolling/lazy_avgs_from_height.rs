@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
@@ -6,7 +5,7 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::ReadableCloneableVec;
 
-use crate::{IndexSources, LazyRollingAvgFromHeight};
+use crate::{IndexSources, LazyRollingAvgFromHeight, shapes::Windows};
 
 /// Lazy rolling averages for all 4 window durations (24h, 1w, 1m, 1y),
 /// derived from a cumulative vec + cached window starts.

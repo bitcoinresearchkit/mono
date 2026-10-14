@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin"
-description = "The shared contract and publication state for Bitview plugins"
+description = "The shared contract and composition traits for Bitview plugins"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,8 +8,12 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 readme = "README.md"
 
+[features]
+derive = ["bitview_plugin_derive"]
+
 [dependencies]
 brk_exit = { workspace = true }
+bitview_plugin_derive = { workspace = true, optional = true }
 bitview_traversable = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 vecdb = { workspace = true }

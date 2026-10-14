@@ -2,7 +2,7 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::{DifficultyVecs, LookbackVecs};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{HashPrice, HashValue, Hashrate, PartsPerMillionSigned32};
-use bitview_transforms::RelativeChange;
+use bitview_vecs::ops::RelativeChange;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Dollars, Height, Sats, TARGET_BLOCKS_PER_DAY_F64};

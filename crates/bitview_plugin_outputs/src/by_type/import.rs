@@ -1,10 +1,9 @@
 use bitview_cohort::ByType;
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, PartsPerMillion32};
-use bitview_transforms::Quotient;
 use bitview_vecs::{
     LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling, LazyWindowStartVec, import_cached,
+    ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::Version;

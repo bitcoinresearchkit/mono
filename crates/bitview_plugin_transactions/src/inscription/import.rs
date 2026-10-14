@@ -1,10 +1,8 @@
-use bitview_collections::Windows;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::PartsPerMillion32;
-use bitview_transforms::Quotient;
 use bitview_vecs::{
     IndexSources, LazyPercentCumulativeRolling, PerBlockCumulativeRolling,
-    ValuePerBlockCumulativeRolling,
+    ValuePerBlockCumulativeRolling, ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Height, Sats, Version};

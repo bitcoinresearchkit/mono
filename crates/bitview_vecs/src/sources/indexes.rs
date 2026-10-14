@@ -1,9 +1,8 @@
-use bitview_collections::{PerResolution, with_resolution_fields};
 use bitview_primitives::{Count, Date};
 use brk_types::{Height, Timestamp};
 use vecdb::ReadableBoxedVec;
 
-use crate::{LazyPreviousDeltaVec, RangeMapVec};
+use crate::{LazyPreviousDeltaVec, RangeMapVec, shapes::PerResolution, with_resolution_fields};
 
 macro_rules! define_index_sources {
     (

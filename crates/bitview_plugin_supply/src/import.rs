@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_distribution::AllChainSources;
 use bitview_plugin::ImportContext;
 use bitview_plugin_holders::Vecs as HoldersVecs;
@@ -7,7 +6,7 @@ use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::{Halving, PartsPerMillionSigned64};
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazyWindowStartVec,
+    LazyWindowStartVec, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Sats, Version};

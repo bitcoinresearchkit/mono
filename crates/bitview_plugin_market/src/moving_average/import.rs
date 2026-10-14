@@ -1,8 +1,7 @@
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::CentsFract;
-use bitview_transforms::Convert;
-use bitview_vecs::{PriceWithRatio, import_cached};
+use bitview_vecs::{PriceWithRatio, import_cached, ops::Convert};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, LazyVec, ReadableCloneableVec};

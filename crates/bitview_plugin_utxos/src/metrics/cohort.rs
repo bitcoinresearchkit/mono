@@ -1,5 +1,4 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_collections::Windows;
 use bitview_distribution::{
     families::{CountWithDeltas, CumulativeCount, CumulativeFiat, CumulativeValue},
     metrics::{CohortCapital, CohortCostBasis, CohortSupply, ShareTotals},
@@ -7,9 +6,8 @@ use bitview_distribution::{
 };
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
-use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, ops::SatsToCents, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, Rw, StorageMode};

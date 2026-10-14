@@ -1,10 +1,10 @@
 use bitview_cohort::{ProfitabilityRange, ProfitabilityRangeId};
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::PartsPerMillion32;
-use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyPercentPerBlock, LazySpotValuePerBlock, import_cached,
+    ops::Quotient,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};

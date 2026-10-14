@@ -1,6 +1,5 @@
 //! Stored cumulative source and rolling statistics for externally supplied block values.
 
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -11,7 +10,7 @@ use vecdb::{
     Database, ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
 };
 
-use crate::{IndexSources, PerBlock, RollingComplete, WindowStarts};
+use crate::{IndexSources, PerBlock, RollingComplete, WindowStarts, shapes::Windows};
 
 #[derive(Traversable)]
 pub struct PerBlockRolling<T, M: StorageMode = Rw>

@@ -4,20 +4,25 @@ Reusable metric vectors and views composed by Bitview plugins.
 
 Plugins compose the vectors in this crate. `vecdb` supplies storage, cache,
 and reader primitives; `bitview_compute` supplies stateful/range algorithms;
-`bitview_transforms` supplies scalar operations; `bitview_collections` and
-`bitview_cohort` supply typed shapes. None of those crates depends on this one.
+`bitview_cohort` supplies cohort shapes. None of those crates depends on this one.
 
 ## Layout
 
+- `shapes` (public): typed field groups (resolutions, windows, percentiles,
+  investment periods, percent views). They contain values; they do not
+  import vectors or choose cache policy.
+- `ops` (public): stateless, element-wise value transforms (currency conversion,
+  ratios, arithmetic) implementing vecdb's unary or binary transform interfaces
+  with only the numeric bounds they need. Generic adapters (`Ident`, `MapOption`,
+  `ReverseOperands`) belong to vecdb; Bitcoin block target constants to `brk_types`.
 - `views`: single-source readers with aligned metadata and no retained result cache.
 - `sources`: shared index and window-start readers.
 - `resolutions`: composition of a height source into time and chain resolutions.
-- `block`, `tx`: metric families organized by their source index.
+- `block`: per-block metric families.
 - `rolling`: rolling and delta compositions.
 - `value`, `fiat`, `percent`, `ratio`: unit-specific compositions.
-- `cohort`: cohort sources, aggregates, and typed count breakdowns.
 
-Modules are private; the crate root exposes the supported types. Files are
+Other modules are private; the crate root exposes the supported types. Files are
 named relative to their parent module (for example, `block/rolling.rs`, not
 `block/block_rolling.rs`) and define at most one public struct.
 Small implementation-only helpers stay private to their owner or family.
@@ -30,25 +35,15 @@ its stored ratio (`PriceWithMvrv` adds the ratio's MVRV id); cumulative families
 Traversal flattening preserves the public field layout without copying those
 components' fields into every wrapper.
 
-`Price` is the shared USD/cents/sats shape for stored, lazy, daily, and OHLC
-views. Its field types retain integer versus fractional sats and each sampling
-policy. `SpotPrice`, `OhlcPrice`, and `SplitPrice` own reusable price construction;
-plugins retain provider policy. Investment-specific stacks retain the existing
-`LazySpotValuePerBlock` instead of redeclaring its four unit fields.
-Opening-price views batch first-price lookups (or the preceding close for empty
-periods) directly against the shared spot source; they do not build full candles.
-
-`CohortSources<G, T>` stores one independently cached series per cohort of a
-`bitview_cohort::CohortGroup` (creation: age/epoch/class; UTXO: amount/type);
-`CumulativeCohortSources` and `CumulativeCohortValueSources` store running
-totals and sats/cents pairs with shared writer-checkpoint handling. Logical
-membership and value collections remain in `bitview_cohort`. Plugins keep these
-sources separate from public views, which reuse the source cache. Amount views
-compose the same block families.
+`Price` is the shared USD-over-cents shape for stored, lazy, and per-resolution
+price views; its field types retain each sampling policy. The spot price, its
+OHLC candles and their split views belong to `bitview_plugin_price`.
+Investment-specific stacks retain the existing `LazySpotValuePerBlock` instead
+of redeclaring its unit fields.
 
 `TypeCounts` composes a typed breakdown with `CountTotal`. Plugins select the
 total's adjustment and retention, including coinbase exclusion; vector assembly
-does not infer those business rules. OHLC, daily percentile prices, mapping
+does not infer those business rules. Daily percentile prices, mapping
 readers, and integer-cent SMA readers also live here; their plugins retain
 provider, calendar, percentile-selection, and period-selection policy.
 

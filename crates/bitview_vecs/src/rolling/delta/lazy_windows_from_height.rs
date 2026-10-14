@@ -1,11 +1,10 @@
-use bitview_collections::Windows;
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{DeltaChange, ReadableCloneableVec, VecValue};
 
-use crate::{IndexSources, LazyDeltaFromHeight, LazyDeltaPercentFromHeight};
+use crate::{IndexSources, LazyDeltaFromHeight, LazyDeltaPercentFromHeight, shapes::Windows};
 
 #[derive(Clone, Traversable)]
 pub struct LazyRollingDeltasFromHeight<S, C, B>

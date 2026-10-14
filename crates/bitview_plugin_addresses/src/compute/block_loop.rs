@@ -2,9 +2,8 @@ use std::ops::{ControlFlow, Range};
 
 use bitview_cohort::AddressTypeId;
 use bitview_distribution::readers::{BatchColumns, BlockBounds, index_range};
-use bitview_plugin_indexer::Indexer;
+use bitview_plugin_indexer::{Indexer, overwritten_output};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_plugin_outputs::overwritten_output;
 use bitview_primitives::{ByAddrType, FundedAddressData, TypeIndex};
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;

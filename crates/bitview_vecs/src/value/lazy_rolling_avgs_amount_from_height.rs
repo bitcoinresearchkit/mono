@@ -1,11 +1,13 @@
-use bitview_collections::Windows;
-use bitview_transforms::{AvgCentsToUsd, AvgSatsToBtc};
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::ReadableCloneableVec;
 
-use crate::{IndexSources, LazyPerBlock, LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight};
+use crate::{
+    IndexSources, LazyPerBlock, LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight,
+    ops::{AvgCentsToUsd, AvgSatsToBtc},
+    shapes::Windows,
+};
 
 /// Lazy rolling averages for all 4 windows, as mean sats/cents with BTC/USD views.
 #[derive(Clone, Deref, DerefMut, Traversable)]

@@ -1,6 +1,5 @@
-use bitview_collections::Windows;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, WindowStarts};
+use bitview_vecs::{LazyWindowStartVec, WindowStarts, shapes::Windows};
 use brk_types::{Height, Timestamp, Version};
 use vecdb::ReadableBoxedVec;
 

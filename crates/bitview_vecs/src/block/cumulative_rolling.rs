@@ -3,7 +3,6 @@
 //! The cumulative vector is the sole stored source of truth. Per-block values
 //! and window sums are derived lazily from it.
 
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -15,7 +14,9 @@ use vecdb::{
     VecValue, WritableVec,
 };
 
-use crate::{IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlock};
+use crate::{
+    IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlock, shapes::Windows,
+};
 
 #[derive(Traversable)]
 pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw>

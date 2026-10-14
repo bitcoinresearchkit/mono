@@ -1,10 +1,9 @@
-use bitview_collections::Windows;
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{BinaryTransform, ReadableCloneableVec, UnaryTransform};
 
-use crate::{IndexSources, LazyPercentPerBlock, LazyPercentRollingWindows};
+use crate::{IndexSources, LazyPercentPerBlock, LazyPercentRollingWindows, shapes::Windows};
 
 /// Lazy percent views of a cumulative and its rolling windows — no stored vecs.
 ///

@@ -4,9 +4,8 @@ use bitview_distribution::{
     metrics::{CohortCapital, CohortSupply, ShareTotals},
 };
 use bitview_primitives::Count;
-use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, import_cached};
+use bitview_vecs::{CachedSeries, import_cached, ops::SatsToCents};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{

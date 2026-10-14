@@ -1,7 +1,8 @@
 use std::{str::FromStr, sync::LazyLock};
 
 use bitcoin::Txid as BitcoinTxid;
-use brk_types::{Height, TxIndex, Txid, TxidPrefix, Version};
+use bitview_primitives::SupplyState;
+use brk_types::{Height, Sats, TxIndex, Txid, TxidPrefix, Version};
 
 // One version for all data sources
 // Increment on **change _OR_ addition**
@@ -9,16 +10,16 @@ pub const VERSION: Version = Version::new(42);
 
 /// A BIP30 duplicate coinbase (https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki): it re-created
 /// an earlier coinbase's txid and overwrote that coinbase's unspent outputs, as in Bitcoin Core.
-pub struct DuplicateCoinbase {
+struct DuplicateCoinbase {
     txid: &'static str,
-    pub height: Height,
+    height: Height,
     tx_index: TxIndex,
-    pub overwritten_height: Height,
+    overwritten_height: Height,
     overwritten_tx_index: TxIndex,
 }
 
 /// The two duplicate coinbases, both in 2010.
-pub const DUPLICATE_COINBASES: [DuplicateCoinbase; 2] = [
+const DUPLICATE_COINBASES: [DuplicateCoinbase; 2] = [
     DuplicateCoinbase {
         txid: "d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599",
         height: Height::new(91842),
@@ -34,6 +35,21 @@ pub const DUPLICATE_COINBASES: [DuplicateCoinbase; 2] = [
         overwritten_tx_index: TxIndex::new(142572),
     },
 ];
+
+/// The output a BIP30 duplicate coinbase at `height` overwrote: the earlier coinbase's height and
+/// its one lost 50 BTC output.
+pub fn overwritten_output(height: Height) -> Option<(Height, SupplyState)> {
+    let dup = DUPLICATE_COINBASES
+        .iter()
+        .find(|dup| dup.height == height)?;
+    Some((
+        dup.overwritten_height,
+        SupplyState {
+            value: Sats::FIFTY_BTC,
+            utxo_count: 1,
+        },
+    ))
+}
 
 /// The earlier coinbase whose outputs a BIP30 duplicate overwrote.
 pub fn overwritten_tx_index(tx_index: TxIndex) -> Option<TxIndex> {

@@ -1,8 +1,7 @@
 use bitview_cohort::AgeAggregateId;
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyWindowStartVec};
+use bitview_vecs::{CachedSeries, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};

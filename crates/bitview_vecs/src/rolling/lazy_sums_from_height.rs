@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::NumericValue;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
@@ -6,7 +5,7 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::ReadableCloneableVec;
 
-use crate::{IndexSources, LazyRollingSumFromHeight};
+use crate::{IndexSources, LazyRollingSumFromHeight, shapes::Windows};
 
 /// Lazy rolling sums for all 4 window durations (24h, 1w, 1m, 1y),
 /// derived from a cumulative vec + cached window starts.

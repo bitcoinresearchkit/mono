@@ -1,6 +1,5 @@
 use bitview_default::DefaultPlugins;
-use bitview_plugin::ImportContext;
-use bitview_runtime::PluginSet;
+use bitview_plugin::{ImportContext, PluginSet};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -25,7 +24,7 @@ pub struct Imported {
 
 /// Imports every plugin into a temporary directory, without a node (like bindgen).
 pub fn import() -> Result<Imported> {
-    Budgeted::init_global(bitview_plugin::DEFAULT_CACHE_BUDGET)?;
+    Budgeted::init_global(bitview::DEFAULT_CACHE_BUDGET)?;
     let dir = tempdir()?;
     let client = Client::new("http://127.0.0.1:1", Auth::None)?;
     let reader = Reader::new_without_rlimit(dir.path().join("blocks"), &client);

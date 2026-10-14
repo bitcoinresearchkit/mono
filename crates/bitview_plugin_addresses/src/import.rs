@@ -1,5 +1,4 @@
 use bitview_cohort::AddressType;
-use bitview_collections::Windows;
 use bitview_distribution::{
     RealizedCaps,
     metrics::{CapitalViews, ShareTotals, SupplyViews},
@@ -7,7 +6,7 @@ use bitview_distribution::{
 use bitview_plugin::ImportContext as PluginImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use vecdb::ReadableCloneableVec;
 

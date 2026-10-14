@@ -1,6 +1,7 @@
-use crate::state::{Transacted, UTXOStates};
-use bitview_plugin_outputs::overwritten_output;
+use bitview_plugin_indexer::overwritten_output;
 use brk_types::{Cents, Height, OutputType};
+
+use crate::state::{Transacted, UTXOStates};
 
 /// The genesis output never enters the set.
 pub fn normalize_supply(height: Height, received: &mut Transacted) {

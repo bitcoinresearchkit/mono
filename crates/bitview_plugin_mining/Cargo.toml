@@ -9,8 +9,6 @@ repository.workspace = true
 
 [dependencies]
 bitview_primitives = { workspace = true, features = ["storage"] }
-bitview_transforms = { workspace = true }
-bitview_collections = { workspace = true, features = ["storage"] }
 bitview_compute = { workspace = true }
 bitview_vecs = { workspace = true }
 brk_exit = { workspace = true }

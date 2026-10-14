@@ -45,6 +45,7 @@ price = [
 arc-swap = { workspace = true, optional = true }
 bitcoin = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"], optional = true }
+bitview_plugin = { workspace = true }
 bitview_plugin_blocks = { workspace = true, optional = true }
 bitview_plugin_coinflow = { workspace = true, optional = true }
 bitview_plugin_cointime = { workspace = true, optional = true }
@@ -59,7 +60,6 @@ bitview_plugin_price = { workspace = true, optional = true }
 bitview_plugin_transactions = { workspace = true, optional = true }
 bitview_plugin_utxo_set = { workspace = true, optional = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
-bitview_runtime = { workspace = true }
 bitview_types = { workspace = true }
 bitview_urpd = { workspace = true, optional = true }
 bitview_catalog = { workspace = true, optional = true }

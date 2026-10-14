@@ -1,10 +1,10 @@
 use bitview_primitives::{Boolean, Count};
 use bitview_traversable::Traversable;
-use bitview_vecs::{PerBlockCumulativeRolling, PerTxDistribution};
+use bitview_vecs::PerBlockCumulativeRolling;
 use brk_types::{FeeRate, Height, Sats, TxIndex};
 use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
 
-use crate::flagged::Classified;
+use crate::{distribution::PerTxDistribution, flagged::Classified};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

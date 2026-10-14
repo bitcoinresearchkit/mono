@@ -3,14 +3,13 @@
 //! The field types preserve each family's source, sampling and rounding policy.
 
 use bitview_compute::ComputedVecValue;
-use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
 use schemars::JsonSchema;
 use vecdb::{Database, Ident, ReadableCloneableVec, UnaryTransform};
 
-use crate::{IndexSources, LazyPerBlock, PerBlock};
+use crate::{IndexSources, LazyPerBlock, PerBlock, ops::Convert};
 
 /// Generic price metric: the series is the USD price, cents its exact storage.
 #[derive(Clone, Traversable)]

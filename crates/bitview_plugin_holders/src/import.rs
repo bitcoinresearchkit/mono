@@ -1,11 +1,9 @@
 use bitview_cohort::AgeAggregate;
-use bitview_collections::Windows;
 use bitview_distribution::AllChainSources;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_plugin_price::Vecs as Price;
-use bitview_transforms::SatsToCents;
-use bitview_vecs::{LazyIndexedVec, LazyWindowStartVec};
+use bitview_vecs::{LazyIndexedVec, LazyWindowStartVec, ops::SatsToCents, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats};
 use vecdb::{BinaryTransform, ReadableBoxedVec, ReadableCloneableVec};

@@ -4,19 +4,25 @@ mod compute;
 mod dependencies;
 mod has;
 mod import;
+mod ohlc;
 mod oracle_feed;
+mod split;
+mod spot;
 
 pub use dependencies::Dependencies;
 pub use has::HasPrice;
 pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
+pub use spot::SpotPrice;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Float64;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, OhlcPrice, SplitPrice, SpotPrice};
+use bitview_vecs::LazyPerBlock;
 use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, EagerVec, PcoVec, Rw, StorageMode};
+
+use crate::{ohlc::OhlcPrice, split::SplitPrice};
 
 const STORAGE: PluginStorage =
     PluginStorage::new(PluginId::new("price"), Version::new(20 + ORACLE_VERSION));

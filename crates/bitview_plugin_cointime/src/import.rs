@@ -1,10 +1,9 @@
-use bitview_collections::Windows;
 use bitview_distribution::AllChainSources;
 use bitview_plugin::ImportContext;
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlock};
+use bitview_vecs::{LazyWindowStartVec, PerBlock, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Version};
 use vecdb::ReadableCloneableVec;

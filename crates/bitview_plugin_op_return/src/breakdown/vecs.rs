@@ -1,8 +1,7 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Bytes, Count, OpReturnKind, OpReturnPolicyId};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling};
+use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, VSize, Version};

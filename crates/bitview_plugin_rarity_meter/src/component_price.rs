@@ -1,6 +1,5 @@
 use bitview_primitives::{CentsCompact, PartsPerMillion32};
-use bitview_transforms::PriceTimesRatio;
-use bitview_vecs::{IndexSources, LazyIndexedVec, LazyPerBlock, Price};
+use bitview_vecs::{IndexSources, LazyIndexedVec, LazyPerBlock, Price, ops::PriceTimesRatio};
 use brk_types::{Cents, Height, Version};
 use vecdb::{BinaryTransform, LazyVec, ReadableCloneableVec, ReadableVec};
 

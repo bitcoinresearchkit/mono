@@ -1,11 +1,10 @@
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::ReadableCloneableVec;
 
-use crate::{IndexSources, LazyRollingAvgsFromHeight, LazyRollingSumsFromHeight};
+use crate::{IndexSources, LazyRollingAvgsFromHeight, LazyRollingSumsFromHeight, shapes::Windows};
 
 /// Window sums and per-block averages of a distribution, from one cumulative source.
 #[derive(Clone, Traversable)]

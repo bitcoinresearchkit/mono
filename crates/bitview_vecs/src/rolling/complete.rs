@@ -1,7 +1,6 @@
 //! RollingComplete - Lazy rolling sums + stored rolling distribution per window.
 
-use crate::RollingTotals;
-use bitview_collections::Windows;
+use crate::{RollingTotals, shapes::Windows};
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;

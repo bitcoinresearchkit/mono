@@ -1,7 +1,7 @@
 # bitview_cohort
 
 UTXO and address cohort identities and their typed collections for on-chain analytics. Generic window,
-percentile and resolution groups live in `bitview_collections`; vector constructors live in `bitview_vecs`.
+percentile and resolution groups (`bitview_vecs::shapes`) and vector constructors live in `bitview_vecs`.
 
 Collections and identifiers work without the storage engine. The `storage` feature adds traversal
 (`bitview_traversable`), the parallel collection methods (`rayon`) and storage-enabled `brk_types`. The Rust

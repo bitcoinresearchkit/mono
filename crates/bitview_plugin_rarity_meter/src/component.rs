@@ -1,8 +1,9 @@
-use bitview_collections::RarityPercentiles;
 use bitview_primitives::Lengths;
 use bitview_primitives::{PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, Ratio};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, IndexSources, LazyRatioPerBlock, import_cached};
+use bitview_vecs::{
+    CachedSeries, IndexSources, LazyRatioPerBlock, import_cached, shapes::RarityPercentiles,
+};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};

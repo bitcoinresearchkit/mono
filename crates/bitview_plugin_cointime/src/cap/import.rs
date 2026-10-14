@@ -1,7 +1,9 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned32};
-use bitview_transforms::{Convert, Quotient};
-use bitview_vecs::{FiatPerBlock, LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, PerBlock};
+use bitview_vecs::{
+    FiatPerBlock, LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, PerBlock,
+    ops::{Convert, Quotient},
+};
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Dollars, Height, Version};
 use vecdb::{Database, Ident, ReadableCloneableVec};

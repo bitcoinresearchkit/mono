@@ -1,10 +1,11 @@
 use bitview_cohort::AgeAggregateId;
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::Ratio;
-use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RollingWindows};
+use bitview_vecs::{
+    LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RollingWindows, ops::Quotient,
+    shapes::Windows,
+};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};

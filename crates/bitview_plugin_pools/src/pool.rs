@@ -1,11 +1,10 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, Float64, Hashrate, PartsPerMillion32, PoolSlug};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyCumulativeValuePerBlock, LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock,
     LazyPercentRollingWindows, LazyRollingSumsAmountFromHeight, LazyRollingSumsFromHeight,
-    LazyWindowStartVec,
+    LazyWindowStartVec, shapes::Windows,
 };
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats};
 use vecdb::{DeltaSub, Ident, LazyDeltaVec, LazyVec, ReadableCloneableVec, Version};

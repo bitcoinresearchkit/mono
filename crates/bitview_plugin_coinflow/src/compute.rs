@@ -1,7 +1,7 @@
 use std::iter;
 
 use bitview_cohort::AgeRange;
-use bitview_compute::{AgeBand, prepare_computed};
+use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
@@ -9,7 +9,10 @@ use brk_exit::Exit;
 use brk_types::{Height, Timestamp, Version};
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
 
-use crate::{Dependencies, Vecs, model::PrimaryBatch};
+use crate::{
+    Dependencies, Vecs,
+    model::{AgeBand, PrimaryBatch},
+};
 
 const WRITE_INTERVAL: usize = 20_000;
 

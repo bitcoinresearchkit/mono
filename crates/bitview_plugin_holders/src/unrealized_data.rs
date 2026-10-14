@@ -1,6 +1,6 @@
 use bitview_distribution::state::UnrealizedState;
 use bitview_primitives::PartsPerMillionSigned32;
-use bitview_transforms::{Quotient, SatsToCents};
+use bitview_vecs::ops::{Quotient, SatsToCents};
 use brk_types::{Cents, CentsSigned};
 use vecdb::BinaryTransform;
 

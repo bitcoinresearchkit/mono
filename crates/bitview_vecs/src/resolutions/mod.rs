@@ -9,5 +9,3 @@ pub use coarser_index::CoarserIndex;
 pub use derived::DerivedResolutions;
 pub use lazy_indexes::LazyIndexes;
 pub use source::Resolutions;
-mod ohlc;
-pub use ohlc::LazyOhlcCentsVecs;

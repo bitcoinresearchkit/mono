@@ -1,7 +1,6 @@
 //! Lazy counterpart to `PerBlockCumulativeRolling`.
 
-use crate::LazyRollingSumsFromHeight;
-use bitview_collections::Windows;
+use crate::{LazyRollingSumsFromHeight, shapes::Windows};
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};

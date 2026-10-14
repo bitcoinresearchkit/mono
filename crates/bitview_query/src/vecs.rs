@@ -5,8 +5,8 @@ use std::{
 };
 
 use bitview_catalog::TreeNode;
+use bitview_plugin::PluginSet;
 use bitview_primitives::Index;
-use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use bitview_types::{
     DetailedSeriesCount, IndexInfo, PaginatedSeries, Pagination, SeriesCount, SeriesInfo,

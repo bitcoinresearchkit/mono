@@ -1,5 +1,3 @@
-use bitview_collections::{PerResolution, with_resolution_fields};
-use bitview_primitives::OHLCCents;
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use derive_more::{Deref, DerefMut};
@@ -7,7 +5,7 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{BytesVecValue, Formattable, LazyVec, ReadableCloneableVec, UnaryTransform};
 
-use crate::LazyOhlcCentsVecs;
+use crate::{shapes::PerResolution, with_resolution_fields};
 
 macro_rules! define_lazy_indexes {
     (
@@ -26,22 +24,6 @@ macro_rules! define_lazy_indexes {
         where
             T: BytesVecValue + Formattable + Serialize + JsonSchema,
             S: BytesVecValue;
-
-        impl<T> LazyIndexes<T, OHLCCents>
-        where
-            T: BytesVecValue + Formattable + Serialize + JsonSchema,
-        {
-            pub fn from_ohlc_indexes<Transform: UnaryTransform<OHLCCents, T>>(
-                name: &str,
-                version: Version,
-                source: &LazyOhlcCentsVecs,
-            ) -> Self {
-                Self(PerResolution {
-                    $($field: LazyVec::transformed::<Transform>(name, version, source.$field.read_only_boxed_clone()),)*
-                    $($epoch: LazyVec::transformed::<Transform>(name, version, source.$epoch.read_only_boxed_clone()),)*
-                })
-            }
-        }
 
         impl<T, S> LazyIndexes<T, S>
         where

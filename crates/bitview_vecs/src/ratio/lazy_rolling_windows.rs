@@ -1,11 +1,10 @@
-use bitview_collections::Windows;
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{BinaryTransform, ReadableCloneableVec, ReverseOperands};
 
-use crate::{IndexSources, LazyRatioPerBlock, LazyRollingRatioVec};
+use crate::{IndexSources, LazyRatioPerBlock, LazyRollingRatioVec, shapes::Windows};
 
 /// Fully lazy rolling ratio windows — 4 windows (24h, 1w, 1m, 1y), each with
 /// lazy fixed-point values and a lazy ratio view.

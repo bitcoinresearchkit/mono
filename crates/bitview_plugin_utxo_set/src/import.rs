@@ -2,8 +2,7 @@ use std::path::PathBuf;
 
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_transforms::Convert;
-use bitview_vecs::{LazyPerBlock, PerBlock, import_cached};
+use bitview_vecs::{LazyPerBlock, PerBlock, import_cached, ops::Convert};
 use brk_error::Result;
 use brk_types::Version;
 use statedb::History;

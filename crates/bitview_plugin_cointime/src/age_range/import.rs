@@ -1,11 +1,11 @@
 use bitview_cohort::{AgeRange, CohortContext};
-use bitview_collections::Windows;
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::{BoundedOdds, BoundedToRatio};
 use bitview_vecs::{
     LazyPerBlock, LazyPerBlockCumulativeRolling, LazySpotValuePerBlock, LazyWindowStartVec,
     PerBlockCumulativeRolling, import_cached,
+    ops::{BoundedOdds, BoundedToRatio},
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};

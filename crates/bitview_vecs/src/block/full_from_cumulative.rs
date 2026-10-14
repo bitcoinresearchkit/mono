@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -7,7 +6,10 @@ use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{Database, Ident, ReadableCloneableVec, Rw, StorageMode};
 
-use crate::{IndexSources, LazyPerBlock, LazyPreviousDeltaVec, RollingComplete, WindowStarts};
+use crate::{
+    IndexSources, LazyPerBlock, LazyPreviousDeltaVec, RollingComplete, WindowStarts,
+    shapes::Windows,
+};
 
 /// Per-block and rolling views backed by one canonical cumulative source.
 #[derive(Traversable)]

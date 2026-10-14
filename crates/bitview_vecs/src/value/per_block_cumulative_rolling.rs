@@ -1,11 +1,12 @@
-use bitview_collections::Windows;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
-use crate::{IndexSources, LazyRollingSumsAmountFromHeight, ValuePerBlockCumulative};
+use crate::{
+    IndexSources, LazyRollingSumsAmountFromHeight, ValuePerBlockCumulative, shapes::Windows,
+};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct ValuePerBlockCumulativeRolling<M: StorageMode = Rw> {

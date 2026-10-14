@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
@@ -8,7 +7,7 @@ use vecdb::{
     BinaryTransform, DeltaAvg, LazyDeltaVec, ReadableCloneableVec, ReverseOperands, UnaryTransform,
 };
 
-use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec};
+use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec, shapes::Windows};
 
 /// Fully lazy rolling percent windows — 4 windows (24h, 1w, 1m, 1y),
 /// each with lazy fixed-point values and a lazy percent view.

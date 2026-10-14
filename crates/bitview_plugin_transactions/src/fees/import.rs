@@ -1,13 +1,10 @@
-use bitview_collections::Windows;
-use bitview_vecs::{
-    IndexSources, LazyWindowStartVec, PerBlockCumulativeRolling, PerTxDistribution,
-};
+use bitview_vecs::{IndexSources, LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, EagerVec, ImportableVec};
 
 use super::Vecs;
-use crate::flagged::Flagged;
+use crate::{distribution::PerTxDistribution, flagged::Flagged};
 
 /// Bump this when fee/feerate aggregation logic changes (e.g., skip coinbase, skip zero-fee).
 const VERSION: Version = Version::new(5);

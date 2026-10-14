@@ -1,8 +1,8 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Float64;
 use bitview_vecs::{
     LazyIndexedVec, LazyPerBlock, LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling,
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};

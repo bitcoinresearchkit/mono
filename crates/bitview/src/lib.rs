@@ -20,14 +20,18 @@ use tokio::{
 use tracing::info;
 use vecdb::{Budgeted, ReadOnlyClone};
 
+mod bootstrap;
 mod config;
 mod paths;
+mod update;
 
+pub use bitview_plugin::{ImportContext, UpdateContext};
 pub use bitview_query::{Error, QueryPluginSet, Result};
-use bitview_runtime::{ComputePluginSet, update};
+pub use bootstrap::bootstrap;
+pub use config::{Config, DEFAULT_CACHE_BUDGET};
 
-pub use bitview_runtime::{ImportContext, UpdateContext, bootstrap};
-pub use config::Config;
+use bitview_plugin::ComputePluginSet;
+use update::update;
 
 /// Fully resolved settings for one Bitview runner.
 pub struct RunConfig {
@@ -37,7 +41,7 @@ pub struct RunConfig {
     pub blocks_path: PathBuf,
     /// HTTP server and data-directory settings.
     pub server: ServerConfig,
-    /// Bytes of the shared vector cache ([`bitview_runtime::DEFAULT_CACHE_BUDGET`] unless configured).
+    /// Bytes of the shared vector cache ([`DEFAULT_CACHE_BUDGET`] unless configured).
     pub cache_budget: usize,
 }
 

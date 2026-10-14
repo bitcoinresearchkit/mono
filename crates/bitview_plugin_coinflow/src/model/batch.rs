@@ -1,14 +1,16 @@
 use bitview_cohort::AgeRange;
-use bitview_compute::{
-    AgeBand, CohortAccounting, MINIMUM_DURATION_DAYS, collect_age_range, weighted_age_aggregates,
-};
+use bitview_compute::{CohortAccounting, collect_age_range, weighted_age_aggregates};
 use bitview_plugin_age::AccountingSources;
 use bitview_primitives::{BoundedRatio, CoinDays, Float64, PerDay};
 use brk_types::{Bitcoin, Height, Sats, Timestamp};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use vecdb::ReadableVec;
 
-use super::{PrimaryValues, decay::DecayFit};
+use super::{
+    PrimaryValues,
+    age_band::{AgeBand, MINIMUM_DURATION_DAYS},
+    decay::DecayFit,
+};
 
 #[derive(Default)]
 pub(crate) struct PrimaryBatch {

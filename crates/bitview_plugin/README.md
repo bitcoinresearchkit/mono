@@ -28,8 +28,17 @@ and passes them by value through the composition. The
 runnable default composition lives in
 [`bitview_default`](https://crates.io/crates/bitview_default), while
 [`bitview`](https://crates.io/crates/bitview) runs any compatible composition.
-Generic composition and update lifecycle traits live in
-[`bitview_runtime`](https://crates.io/crates/bitview_runtime).
+
+## Compositions
+
+`PluginSet` is a statically composed collection of plugins; `ComputePluginSet`
+adds its typed compute schedule (`compute`, `bootstrap_compute` returning a
+`BootstrapAction`) and `commit`. With the `derive` feature, `PluginSet` can be
+derived from composition fields: `#[plugin_set(flatten)]` for a nested
+composition, `#[plugin_set(skip)]` for non-plugin state, and
+`#[plugin_set(has = path::HasX<M>)]` to implement a plugin's capability trait,
+whose accessor is named after the field. `bitview` drives the lifecycle
+(bootstrap, then one update per new tip).
 
 The plugin API remains experimental while the built-in Bitview modules are
 extracted into independent crates.

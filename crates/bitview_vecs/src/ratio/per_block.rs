@@ -1,12 +1,11 @@
 use bitview_compute::FixedRatio;
 use bitview_primitives::Ratio;
-use bitview_transforms::FixedToRatio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::{IndexSources, LazyPerBlock, PerBlock};
+use crate::{IndexSources, LazyPerBlock, PerBlock, ops::FixedToRatio};
 
 /// Fixed-point storage and its one public view, as a ratio.
 #[derive(Traversable)]

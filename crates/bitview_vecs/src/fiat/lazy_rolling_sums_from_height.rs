@@ -1,5 +1,3 @@
-use bitview_collections::Windows;
-use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -7,6 +5,7 @@ use vecdb::ReadableCloneableVec;
 
 use crate::{
     FiatType, IndexSources, LazyPerBlock, LazyRollingSumFiatFromHeight, LazyRollingSumFromHeight,
+    ops::Convert, shapes::Windows,
 };
 
 #[derive(Clone, Deref, DerefMut, Traversable)]

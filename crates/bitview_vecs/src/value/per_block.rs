@@ -1,11 +1,10 @@
 use bitview_compute::NumericValue;
-use bitview_transforms::Convert;
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, Dollars, Sats, SatsSigned, Version};
 use schemars::JsonSchema;
 use vecdb::{Database, Rw};
 
-use crate::{IndexSources, LazyPerBlock, PerBlock, Value};
+use crate::{IndexSources, LazyPerBlock, PerBlock, Value, ops::Convert};
 
 /// A sats type that converts to bitcoin.
 pub trait AmountType: NumericValue + JsonSchema + Into<Bitcoin> {}

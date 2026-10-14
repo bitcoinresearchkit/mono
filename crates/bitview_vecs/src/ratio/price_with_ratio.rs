@@ -1,5 +1,4 @@
 use bitview_primitives::PriceRatio;
-use bitview_transforms::price_ratio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -7,7 +6,7 @@ use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
-use crate::{IndexSources, LazyPerBlock, Price, RatioPerBlock};
+use crate::{IndexSources, LazyPerBlock, Price, RatioPerBlock, ops::price_ratio};
 
 /// A price, a lazy view of its source, and its stored spot/price ratio.
 #[derive(Deref, DerefMut, Traversable)]

@@ -1,6 +1,6 @@
 [package]
 name = "bitview_vecs"
-description = "Composable metric vectors and views for Bitview plugins"
+description = "Composable metric vectors, views, shapes and value transforms for Bitview plugins"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,8 +9,6 @@ repository.workspace = true
 
 [dependencies]
 bitview_primitives = { workspace = true, features = ["storage"] }
-bitview_transforms = { workspace = true }
-bitview_collections = { workspace = true, features = ["storage"] }
 bitview_compute = { workspace = true }
 brk_exit = { workspace = true }
 rangeindex = { workspace = true }
@@ -21,5 +19,4 @@ derive_more = { workspace = true }
 rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
-tracing = { workspace = true }
 vecdb = { workspace = true, features = ["zstd"] }

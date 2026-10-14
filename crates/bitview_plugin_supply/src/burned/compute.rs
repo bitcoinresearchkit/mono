@@ -1,6 +1,6 @@
-use bitview_plugin_indexer::Indexer;
+use bitview_plugin_indexer::{Indexer, overwritten_output};
 use bitview_plugin_mining::Vecs as MiningVecs;
-use bitview_plugin_outputs::{Vecs as OutputsVecs, overwritten_output};
+use bitview_plugin_outputs::Vecs as OutputsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use brk_error::Result;
 use brk_exit::Exit;

@@ -1,13 +1,12 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PriceRatio;
-use bitview_transforms::AvivNupl;
 use bitview_vecs::{LazyPerBlock, LazyRatioPerBlock, PriceWithMvrv, PriceWithRatio, import_cached};
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, CentsSigned, Dollars, Height, Version};
 use vecdb::{Database, Ident, ReadableCloneableVec};
 
-use super::Vecs;
+use super::{Vecs, aviv_nupl::AvivNupl};
 
 impl Vecs {
     pub(crate) fn import(

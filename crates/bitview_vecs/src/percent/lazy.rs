@@ -1,11 +1,11 @@
-use bitview_collections::PercentViews;
 use bitview_compute::FixedRatio;
 use bitview_primitives::Percent;
-use bitview_transforms::FixedToPercent;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{LazyVec, ReadableCloneableVec, VecValue};
+
+use crate::{ops::FixedToPercent, shapes::PercentViews};
 
 /// Fully lazy lightweight percent container with no derived resolutions.
 #[derive(Clone, Deref, DerefMut, Traversable)]

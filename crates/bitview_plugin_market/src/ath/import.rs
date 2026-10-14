@@ -1,7 +1,8 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillionSigned32;
-use bitview_transforms::RelativeChange;
-use bitview_vecs::{LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock, PerBlock, Price};
+use bitview_vecs::{
+    LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock, PerBlock, Price, ops::RelativeChange,
+};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{BinaryTransform, Database, ReadableCloneableVec};

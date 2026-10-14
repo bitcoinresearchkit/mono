@@ -1,10 +1,10 @@
-use bitview_collections::Windows;
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::ReadableCloneableVec;
 
 use crate::{
     IndexSources, LazyCumulativeValuePerBlock, LazyRollingSumsAmountFromHeight, LazyValueBlock,
+    shapes::Windows,
 };
 
 #[derive(Clone, Traversable)]

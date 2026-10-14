@@ -1,7 +1,6 @@
-use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyPerSecondWindows, LazyWindowStartVec};
+use bitview_vecs::{LazyPerSecondWindows, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 
 use super::{CountVecs, STORAGE, TypesVecs, Vecs};
