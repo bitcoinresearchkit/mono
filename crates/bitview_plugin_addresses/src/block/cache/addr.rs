@@ -1,5 +1,4 @@
-use bitview_cohort::ByAddrType;
-use bitview_primitives::{DecodedAddrState, FundedAddressData, TypeIndex};
+use bitview_primitives::{ByAddrType, DecodedAddrState, FundedAddressData, TypeIndex};
 use brk_error::Result;
 use brk_types::OutputType;
 use rayon::prelude::*;

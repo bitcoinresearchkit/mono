@@ -8,41 +8,41 @@ use serde::{Deserialize, Serialize};
 pub struct AddressValidation {
     /// Whether the address is valid
     #[schemars(example = true)]
-    isvalid: bool,
+    pub isvalid: bool,
 
     /// The validated address
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "address")]
-    addr: Option<String>,
+    pub addr: Option<String>,
 
     /// The scriptPubKey in hex
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "scriptPubKey")]
-    script_pub_key: Option<String>,
+    pub script_pub_key: Option<String>,
 
     /// Whether this is a script address (P2SH)
     #[serde(skip_serializing_if = "Option::is_none")]
-    isscript: Option<bool>,
+    pub isscript: Option<bool>,
 
     /// Whether this is a witness address
     #[serde(skip_serializing_if = "Option::is_none")]
-    iswitness: Option<bool>,
+    pub iswitness: Option<bool>,
 
-    /// Witness version (0 for P2WPKH/P2WSH, 1 for P2TR)
+    /// Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
     #[serde(skip_serializing_if = "Option::is_none")]
-    witness_version: Option<u8>,
+    pub witness_version: Option<u8>,
 
     /// Witness program in hex
     #[serde(skip_serializing_if = "Option::is_none")]
-    witness_program: Option<String>,
+    pub witness_program: Option<String>,
 
     /// Error locations (empty array for most errors)
     #[serde(skip_serializing_if = "Option::is_none")]
-    error_locations: Option<Vec<usize>>,
+    pub error_locations: Option<Vec<usize>>,
 
     /// Error message for invalid addresses
     #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<String>,
+    pub error: Option<String>,
 }
 
 impl AddressValidation {
@@ -75,22 +75,10 @@ impl AddressValidation {
             output_type,
             OutputType::P2SH | OutputType::P2WSH | OutputType::P2TR
         );
-        let is_witness = matches!(
-            output_type,
-            OutputType::P2WPKH | OutputType::P2WSH | OutputType::P2TR | OutputType::P2A
-        );
-
-        let (witness_version, witness_program) = if is_witness {
-            let version = script.witness_version().map(|v| v.to_num());
-            let program = if script.len() > 2 {
-                Some(script.as_bytes()[2..].to_lower_hex_string())
-            } else {
-                None
-            };
-            (version, program)
-        } else {
-            (None, None)
-        };
+        let witness_version = script.witness_version().map(|v| v.to_num());
+        let is_witness = witness_version.is_some();
+        // A witness program is the version opcode, one push opcode, then the program.
+        let witness_program = is_witness.then(|| script.as_bytes()[2..].to_lower_hex_string());
 
         Self {
             isvalid: true,

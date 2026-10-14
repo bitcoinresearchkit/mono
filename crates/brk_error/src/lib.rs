@@ -18,7 +18,7 @@ use fjall::Error as FjallError;
 use jiff::Error as JiffError;
 #[cfg(feature = "serde_json")]
 use serde_json::Error as SerdeJsonError;
-use std::{borrow::Cow, io, path::PathBuf, result::Result as StdResult, time};
+use std::{borrow::Cow, io, path::PathBuf, result::Result as StdResult};
 
 use thiserror::Error;
 
@@ -72,9 +72,6 @@ pub enum Error {
     #[error(transparent)]
     RawDB(#[from] RawDBError),
 
-    #[error(transparent)]
-    SystemTimeError(#[from] time::SystemTimeError),
-
     #[cfg(feature = "bitcoin")]
     #[error(transparent)]
     BitcoinConsensusEncode(#[from] EncodeError),
@@ -121,9 +118,6 @@ pub enum Error {
     #[error("State is updating")]
     StateUpdating,
 
-    #[error("Failed to find the TXID in the blockchain")]
-    UnknownTxid,
-
     #[error("Unsupported type ({0})")]
     UnsupportedType(String),
 
@@ -159,6 +153,9 @@ pub enum Error {
     #[error("{0}")]
     TxRejected(String),
 
+    #[error("Data without a version marker at {path:?}")]
+    MissingVersion { path: PathBuf },
+
     #[error("Version mismatch at {path:?}: expected {expected}, found {found}")]
     VersionMismatch {
         path: PathBuf,
@@ -170,33 +167,28 @@ pub enum Error {
 impl Error {
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
-    #[cfg(feature = "vecdb")]
     pub fn is_lock_error(&self) -> bool {
-        let is_vecdb_lock = matches!(self, Error::VecDB(e) if e.is_lock_error())
-            || matches!(self, Error::RawDB(RawDBError::TryLock(_)));
-        #[cfg(feature = "fjall")]
-        {
-            is_vecdb_lock || matches!(self, Error::Fjall(FjallError::Locked))
-        }
-        #[cfg(not(feature = "fjall"))]
-        {
-            is_vecdb_lock
+        match self {
+            #[cfg(feature = "vecdb")]
+            Error::VecDB(e) => e.is_lock_error(),
+            #[cfg(feature = "vecdb")]
+            Error::RawDB(RawDBError::TryLock(_)) => true,
+            #[cfg(feature = "fjall")]
+            Error::Fjall(FjallError::Locked) => true,
+            _ => false,
         }
     }
 
     /// Returns true if this error indicates data corruption or version incompatibility.
     /// These errors may require resetting/deleting the data to recover.
-    #[cfg(feature = "vecdb")]
     pub fn is_data_error(&self) -> bool {
-        let is_vecdb_data = matches!(self, Error::VecDB(e) if e.is_data_error())
-            || matches!(self, Error::VersionMismatch { .. });
-        #[cfg(feature = "fjall")]
-        {
-            is_vecdb_data || matches!(self, Error::Fjall(error) if error.is_data_error())
-        }
-        #[cfg(not(feature = "fjall"))]
-        {
-            is_vecdb_data
+        match self {
+            #[cfg(feature = "vecdb")]
+            Error::VecDB(e) => e.is_data_error(),
+            #[cfg(feature = "fjall")]
+            Error::Fjall(e) => e.is_data_error(),
+            Error::VersionMismatch { .. } | Error::MissingVersion { .. } => true,
+            _ => false,
         }
     }
 }

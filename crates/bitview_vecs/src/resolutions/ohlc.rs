@@ -16,7 +16,6 @@ macro_rules! define_lazy_ohlc_cents_vecs {
         use bitview_primitives::{$($index,)* $($epoch_index,)*};
 
         #[derive(Clone, Deref, DerefMut, Traversable)]
-        #[traversable(merge)]
         pub struct LazyOhlcCentsVecs(
             pub PerResolution<
                 $(LazyOhlcVec<$index>,)*

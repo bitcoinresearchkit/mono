@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-use brk_error::{Error, Result};
+use brk_error::Result;
 use brk_types::{
     BlockHash, MempoolRecentTx, OutpointPrefix, Transaction, TxOutspend, TxStatus, Txid,
     TxidPrefix, Vin, Vout,
@@ -101,7 +101,6 @@ impl ReadOnlyState {
         if outspends.iter().all(|outspend| outspend.spent) {
             return Ok(());
         }
-        check_output_count(outspends.len())?;
         let state = self.pool()?;
         state.ensure_resolved_at(tip)?;
         Self::overlay_outspends(state, txid, outspends);
@@ -121,7 +120,6 @@ impl ReadOnlyState {
     }
 
     fn outspends_for(state: &Pool, txid: &Txid, output_count: usize) -> Result<Vec<TxOutspend>> {
-        check_output_count(output_count)?;
         let mut outspends = vec![TxOutspend::UNSPENT; output_count];
         Self::overlay_outspends(state, txid, &mut outspends);
         Ok(outspends)
@@ -218,13 +216,4 @@ impl ReadOnlyState {
             .map(|txid| state.first_seen(txid).map_or(0, u64::from))
             .collect()
     }
-}
-
-fn check_output_count(count: usize) -> Result<()> {
-    if count > usize::from(Vout::MAX) + 1 {
-        return Err(Error::Internal(
-            "Mempool output count exceeds index capacity",
-        ));
-    }
-    Ok(())
 }

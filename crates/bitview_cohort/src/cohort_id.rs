@@ -21,10 +21,6 @@ pub enum CohortId {
 }
 
 impl CohortId {
-    pub(crate) fn is_all(self) -> bool {
-        matches!(self, Self::All)
-    }
-
     pub fn name(self) -> &'static str {
         match self {
             Self::All => UTXO_ALL_NAME.id,

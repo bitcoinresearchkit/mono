@@ -1,6 +1,4 @@
-use bitcoin::{
-    Block as BitcoinBlock, BlockHash as BitcoinBlockHash, Txid, VarInt, block::Header, hashes::Hash,
-};
+use bitcoin::{Block as BitcoinBlock, BlockHash as BitcoinBlockHash, Txid, hashes::Hash};
 use derive_more::Deref;
 use sha2::{Digest, Sha256};
 
@@ -31,24 +29,6 @@ impl Block {
 
     pub fn hash(&self) -> &BlockHash {
         &self.hash
-    }
-
-    /// Compute total_size and weight in a single pass (2N tx serializations
-    /// instead of 3N from calling `total_size()` + `weight()` separately,
-    /// since `weight()` internally calls both `base_size()` and `total_size()`).
-    pub fn total_size_and_weight(&self) -> (usize, usize) {
-        let overhead = Header::SIZE + VarInt::from(self.txdata.len()).size();
-        let mut total_size = overhead;
-        let mut weight_wu = overhead * 4;
-        for (i, tx) in self.txdata.iter().enumerate() {
-            let base = tx.base_size();
-            let total = self
-                .raw_tx_bytes(i)
-                .map_or_else(|| tx.total_size(), |raw| raw.len());
-            total_size += total;
-            weight_wu += base * 3 + total;
-        }
-        (total_size, weight_wu)
     }
 
     pub fn set_raw_data(&mut self, bytes: Vec<u8>, tx_offsets: Vec<u32>) {

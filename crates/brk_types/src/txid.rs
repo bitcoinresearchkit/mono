@@ -1,10 +1,15 @@
-use std::{fmt, mem, str::FromStr};
+use std::{
+    fmt, mem,
+    str::{self, FromStr},
+};
 
 use bitcoin::{
     Txid as BitcoinTxid,
     hashes::{Hash, hex::HexToArrayError},
 };
 use derive_more::Deref;
+
+use crate::bytes::reversed_hex;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -44,7 +49,7 @@ impl Txid {
 impl From<BitcoinTxid> for Txid {
     #[inline]
     fn from(value: BitcoinTxid) -> Self {
-        unsafe { mem::transmute(value) }
+        Self(value.to_byte_array())
     }
 }
 
@@ -58,14 +63,14 @@ impl From<&BitcoinTxid> for &Txid {
 impl From<Txid> for BitcoinTxid {
     #[inline]
     fn from(value: Txid) -> Self {
-        unsafe { mem::transmute(value) }
+        Self::from_byte_array(value.0)
     }
 }
 
 impl From<&Txid> for BitcoinTxid {
     #[inline]
     fn from(value: &Txid) -> Self {
-        BitcoinTxid::from_slice(&value.0).unwrap()
+        Self::from_byte_array(value.0)
     }
 }
 
@@ -76,9 +81,16 @@ impl From<&Txid> for &BitcoinTxid {
     }
 }
 
+impl Txid {
+    #[inline]
+    fn hex(&self) -> [u8; 64] {
+        reversed_hex(&self.0)
+    }
+}
+
 impl fmt::Display for Txid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", BitcoinTxid::from(self))
+        f.write_str(str::from_utf8(&self.hex()).unwrap())
     }
 }
 
@@ -95,7 +107,7 @@ impl Serialize for Txid {
     where
         S: Serializer,
     {
-        serializer.collect_str(self)
+        serializer.serialize_str(str::from_utf8(&self.hex()).unwrap())
     }
 }
 
@@ -128,8 +140,7 @@ impl de::Visitor<'_> for TxidVisitor {
 #[cfg(feature = "storage")]
 impl Formattable for Txid {
     fn write_to(&self, buf: &mut Vec<u8>) {
-        use std::io::Write;
-        write!(buf, "{self}").unwrap();
+        buf.extend_from_slice(&self.hex());
     }
 
     fn fmt_json(&self, buf: &mut Vec<u8>) {

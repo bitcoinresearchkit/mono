@@ -1,5 +1,4 @@
-use bitview_cohort::ByAddrType;
-use bitview_primitives::TypeIndex;
+use bitview_primitives::{ByAddrType, TypeIndex};
 use brk_types::OutputType;
 use derive_more::{Deref, DerefMut};
 use rustc_hash::FxHashMap;

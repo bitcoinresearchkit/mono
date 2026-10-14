@@ -1,8 +1,7 @@
 use std::{sync::Arc, thread, time::Instant};
 
-use bitview_cohort::ByAddrType;
 use bitview_primitives::{
-    AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
+    AddressState, ByAddrType, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
     FundedAddressIndex, P2AAddressIndex, P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex,
     P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex, TypeIndex,
 };

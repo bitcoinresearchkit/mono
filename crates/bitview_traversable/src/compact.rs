@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use vecdb::{
-    AnyExportableVec, LazyVec, ReadOnlyClone, ReadableCloneableVec, Ro, Rw, StorageMode, StoredVec,
-    UnaryTransform, Version,
+    AnyExportableVec, AnyStoredVec, LazyVec, ReadOnlyClone, ReadableCloneableVec, Ro, Rw,
+    StorageMode, StoredVec, UnaryTransform, Version,
 };
 
 use crate::{Traversable, TreeNode};
@@ -80,6 +80,10 @@ where
 
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         self.view.iter_any_visible()
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.stored.iter_any_stored_mut()
     }
 }
 

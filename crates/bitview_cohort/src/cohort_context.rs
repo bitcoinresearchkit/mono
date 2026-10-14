@@ -34,9 +34,9 @@ impl CohortContext {
     }
 
     pub fn metric_name(&self, id: CohortId, metric: &str) -> String {
-        if id.is_all() {
-            return metric.to_owned();
+        match id {
+            CohortId::All => metric.to_owned(),
+            _ => format!("{}_{metric}", self.full_name(id)),
         }
-        format!("{}_{metric}", self.full_name(id))
     }
 }

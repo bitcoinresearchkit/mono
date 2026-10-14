@@ -5,8 +5,9 @@ pub use resolver::InputResolver;
 pub use source::InputSource;
 
 use bitcoin::Transaction;
-use bitview_cohort::ByAddrType;
-use bitview_primitives::{AddrIndexOutPoint, AddrIndexTxIndex, TxInIndex, TxOutIndex, TypeIndex};
+use bitview_primitives::{
+    AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, TxInIndex, TxOutIndex, TypeIndex,
+};
 use brk_store::Store;
 use brk_types::{OutPoint, OutputType, Sats, TxIndex, Txid, TxidPrefix, Unit, Vin};
 use vecdb::{PcoVec, WritableVec, unlikely};

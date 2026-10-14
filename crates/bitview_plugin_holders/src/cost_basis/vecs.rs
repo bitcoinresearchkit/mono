@@ -87,13 +87,13 @@ impl CostBasisVecs {
             self.supply_density
                 .iter_mut()
                 .chain(self.capital_density.iter_mut())
-                .flat_map(DensityVecs::stored_vecs_mut),
+                .flat_map(|density| density.iter_any_stored_mut()),
         );
         vecs.extend(
             self.per_coin
                 .iter_mut()
                 .chain(self.per_dollar.iter_mut())
-                .flat_map(PercentilesVecs::collect_vecs_mut),
+                .flat_map(|percentiles| percentiles.iter_any_stored_mut()),
         );
         vecs
     }

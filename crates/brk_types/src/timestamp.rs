@@ -6,11 +6,7 @@ use std::{
 use bitcoin::locktime::absolute::Time;
 use derive_more::Deref;
 use itoa::Buffer;
-use jiff::{
-    Timestamp as JiffTimestamp,
-    civil::{DateTime, date},
-    tz::TimeZone,
-};
+use jiff::Timestamp as JiffTimestamp;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -47,18 +43,6 @@ impl Timestamp {
 
     pub fn new(timestamp: u32) -> Self {
         Self(timestamp)
-    }
-
-    pub fn floor_seconds(self) -> Self {
-        let zoned = JiffTimestamp::from(self).to_zoned(TimeZone::UTC);
-        let date_time = DateTime::from(zoned);
-        let trunc_date_time = date(date_time.year(), date_time.month(), date_time.day()).at(
-            date_time.hour(),
-            date_time.minute(),
-            0,
-            0,
-        );
-        Self::from(trunc_date_time.to_zoned(TimeZone::UTC).unwrap().timestamp())
     }
 
     #[inline]

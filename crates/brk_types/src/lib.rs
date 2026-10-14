@@ -29,6 +29,7 @@ mod feerate;
 mod height;
 mod hints;
 mod histogram;
+mod integer_index;
 mod mempool_block;
 mod mempool_entry_info;
 mod mempool_info;

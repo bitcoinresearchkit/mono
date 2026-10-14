@@ -1,7 +1,9 @@
+use std::fmt::{self, Display, Formatter, Write};
+
 use derive_more::Deref;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _};
 
 #[cfg(feature = "storage")]
 use vecdb::Error;
@@ -49,11 +51,17 @@ unsafe impl Bytes for CoinbaseTag {
 }
 
 impl CoinbaseTag {
-    /// Returns the tag as a string, decoding each byte as its latin-1/Unicode codepoint.
+    /// The raw tag bytes.
     #[inline]
-    pub fn as_str(&self) -> String {
+    pub fn as_bytes(&self) -> &[u8] {
         let len = (self.0[0] as usize).min(100);
-        self.0[1..1 + len].iter().map(|&b| b as char).collect()
+        &self.0[1..1 + len]
+    }
+
+    /// The tag as text: each byte is the Latin-1/Unicode code point of the same value.
+    #[inline]
+    pub fn chars(&self) -> impl Iterator<Item = char> + '_ {
+        self.as_bytes().iter().map(|&b| char::from(b))
     }
 }
 
@@ -69,23 +77,49 @@ impl From<&[u8]> for CoinbaseTag {
     }
 }
 
-impl Serialize for CoinbaseTag {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&self.as_str())
+impl Display for CoinbaseTag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.chars().try_for_each(|c| f.write_char(c))
     }
 }
 
+impl Serialize for CoinbaseTag {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+/// The inverse of [`CoinbaseTag::chars`]: a code point above U+00FF is not a tag byte.
 impl<'de> Deserialize<'de> for CoinbaseTag {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
-        Ok(Self::from(s.as_bytes()))
+        let bytes = s
+            .chars()
+            .map(|c| {
+                u8::try_from(c).map_err(|_| D::Error::custom("coinbase tag char above U+00FF"))
+            })
+            .collect::<Result<Vec<u8>, _>>()?;
+        Ok(Self::from(bytes.as_slice()))
+    }
+}
+
+/// Writes `byte` as the UTF-8 encoding of the code point of the same value.
+#[cfg(feature = "storage")]
+#[inline(always)]
+fn push_latin1(buf: &mut Vec<u8>, byte: u8) {
+    if byte < 0x80 {
+        buf.push(byte);
+    } else {
+        buf.extend_from_slice(&[0xC0 | (byte >> 6), 0x80 | (byte & 0x3F)]);
     }
 }
 
 #[cfg(feature = "storage")]
 impl Formattable for CoinbaseTag {
     fn write_to(&self, buf: &mut Vec<u8>) {
-        buf.extend_from_slice(self.as_str().as_bytes());
+        for &b in self.as_bytes() {
+            push_latin1(buf, b);
+        }
     }
 
     fn fmt_csv(&self, buf: &mut Vec<u8>) {
@@ -96,7 +130,7 @@ impl Formattable for CoinbaseTag {
 
     fn fmt_json(&self, buf: &mut Vec<u8>) {
         buf.push(b'"');
-        for &b in self.as_str().as_bytes() {
+        for &b in self.as_bytes() {
             match b {
                 b'"' => buf.extend_from_slice(b"\\\""),
                 b'\\' => buf.extend_from_slice(b"\\\\"),
@@ -108,7 +142,7 @@ impl Formattable for CoinbaseTag {
                     buf.push(b"0123456789abcdef"[(b >> 4) as usize]);
                     buf.push(b"0123456789abcdef"[(b & 0xf) as usize]);
                 }
-                _ => buf.push(b),
+                _ => push_latin1(buf, b),
             }
         }
         buf.push(b'"');

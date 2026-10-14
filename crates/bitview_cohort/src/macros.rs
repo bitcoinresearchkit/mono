@@ -56,6 +56,7 @@ macro_rules! impl_cohort_collection {
                 self.as_array_mut().into_iter()
             }
 
+            #[cfg(feature = "storage")]
             pub fn par_iter_mut(&mut self) -> impl rayon::iter::ParallelIterator<Item = &mut T>
             where
                 T: Send + Sync,
@@ -73,39 +74,6 @@ macro_rules! impl_cohort_collection {
                 Ok(Self {
                     $($field: f($id::$variant)?),+
                 })
-            }
-        }
-        impl_collection_formattable!($collection { $($field),+ });
-    };
-}
-
-macro_rules! impl_collection_formattable {
-    (
-        $collection:ident {
-            $($field:ident),+ $(,)?
-        }
-    ) => {
-        #[cfg(feature = "storage")]
-        impl<T: vecdb::Formattable> vecdb::Formattable for $collection<T> {
-            fn write_to(&self, output: &mut Vec<u8>) {
-                output.push(b'{');
-                let mut first = true;
-                $(
-                    if !first {
-                        output.push(b',');
-                    }
-                    first = false;
-                    output.extend_from_slice(concat!("\"", stringify!($field), "\":").as_bytes());
-                    vecdb::Formattable::fmt_json(&self.$field, output);
-                )+
-                let _ = first;
-                output.push(b'}');
-            }
-
-            fn fmt_csv(&self, output: &mut Vec<u8>) {
-                let start = output.len();
-                vecdb::Formattable::write_to(self, output);
-                vecdb::escape_csv_cell(output, start);
             }
         }
     };

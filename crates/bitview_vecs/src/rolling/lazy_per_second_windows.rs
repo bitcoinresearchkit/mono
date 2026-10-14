@@ -8,7 +8,6 @@ use derive_more::{Deref, DerefMut};
 use crate::{LazyPerBlock, LazyRollingSumFromHeight, LazyRollingSumsFromHeight};
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyPerSecondWindows(
     /// Per-second average over a trailing window: the window's total
     /// count divided by its fixed duration in seconds. The divisor remains the

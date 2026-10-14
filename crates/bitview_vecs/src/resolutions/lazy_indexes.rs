@@ -17,7 +17,6 @@ macro_rules! define_lazy_indexes {
         use bitview_primitives::{$($index,)* $($epoch_index,)*};
 
         #[derive(Clone, Deref, DerefMut, Traversable)]
-        #[traversable(transparent)]
         pub struct LazyIndexes<T, S>(
             pub PerResolution<
                 $(LazyVec<$index, T, $index, S>,)*

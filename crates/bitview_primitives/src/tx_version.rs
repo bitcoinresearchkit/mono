@@ -37,13 +37,6 @@ impl From<Version> for TxVersion {
     }
 }
 
-impl From<TxVersion> for Version {
-    #[inline]
-    fn from(value: TxVersion) -> Self {
-        Self(value.0 as i32)
-    }
-}
-
 impl Display for TxVersion {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let mut buf = Buffer::new();

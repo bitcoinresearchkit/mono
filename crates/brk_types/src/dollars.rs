@@ -35,9 +35,17 @@ use vecdb::{Formattable, Pco};
 ))]
 pub struct Dollars(f64);
 
+/// Agrees with `Eq`: both zeros hash alike, as do all NaNs.
 impl Hash for Dollars {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.to_bits().hash(state);
+        let bits = if self.0.is_nan() {
+            Self::NAN.0.to_bits()
+        } else if self.0 == 0.0 {
+            0
+        } else {
+            self.0.to_bits()
+        };
+        bits.hash(state);
     }
 }
 
@@ -122,21 +130,10 @@ impl Div<Bitcoin> for Dollars {
     }
 }
 
-impl Mul<Dollars> for Dollars {
-    type Output = Self;
-    fn mul(self, rhs: Dollars) -> Self::Output {
-        Self::from(CentsSigned::from(self) * CentsSigned::from(rhs))
-    }
-}
-
 impl Mul<f64> for Dollars {
     type Output = Dollars;
     fn mul(self, rhs: f64) -> Self::Output {
-        if rhs.fract() != 0.0 {
-            Self::from(self.0 * rhs)
-        } else {
-            self * rhs as i64
-        }
+        Self(self.0 * rhs)
     }
 }
 
@@ -163,18 +160,14 @@ impl Mul<Sats> for Dollars {
 impl Mul<i64> for Dollars {
     type Output = Self;
     fn mul(self, rhs: i64) -> Self::Output {
-        Self::from(CentsSigned::from(self) * rhs)
+        Self(self.0 * rhs as f64)
     }
 }
 
 impl Mul<usize> for Dollars {
     type Output = Self;
     fn mul(self, rhs: usize) -> Self::Output {
-        if self.is_nan() {
-            self
-        } else {
-            Self::from(CentsSigned::from(self) * rhs)
-        }
+        Self(self.0 * rhs as f64)
     }
 }
 

@@ -12,7 +12,6 @@ use vecdb::{Budgeted, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode, 
 use crate::{IndexSources, RollingWindows, WindowStarts};
 
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct RollingDistribution<T, M: StorageMode = Rw>(pub DistributionStats<RollingWindows<T, M>>)
 where
     T: ComputedVecValue + PartialOrd + JsonSchema;

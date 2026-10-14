@@ -10,7 +10,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::FundedAddressData;
-use brk_types::{CheckedSub, Sats};
+use brk_types::Sats;
 
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
@@ -48,26 +48,14 @@ impl AddAssign<&SupplyState> for SupplyState {
 }
 
 impl SubAssign<&SupplyState> for SupplyState {
+    #[inline]
     fn sub_assign(&mut self, rhs: &Self) {
-        self.utxo_count = self
-            .utxo_count
-            .checked_sub(rhs.utxo_count)
-            .unwrap_or_else(|| {
-                panic!(
-                    "SupplyState underflow: cohort utxo_count {} < addr utxo_count {}. \
-                This indicates a desync between cohort state and addr data. \
-                Try deleting the compute cache and restarting fresh.",
-                    self.utxo_count, rhs.utxo_count
-                )
-            });
-        self.value = self.value.checked_sub(rhs.value).unwrap_or_else(|| {
-            panic!(
-                "SupplyState underflow: cohort value {} < addr value {}. \
-                This indicates a desync between cohort state and addr data. \
-                Try deleting the compute cache and restarting fresh.",
-                self.value, rhs.value
-            )
-        });
+        debug_assert!(
+            self.utxo_count >= rhs.utxo_count && self.value >= rhs.value,
+            "SupplyState underflow: {self} - {rhs}"
+        );
+        self.utxo_count -= rhs.utxo_count;
+        self.value = self.value - rhs.value;
     }
 }
 

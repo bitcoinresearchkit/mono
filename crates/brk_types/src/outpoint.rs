@@ -10,7 +10,7 @@ use crate::{TxIndex, Vout};
 use vecdb::{Formattable, Pco};
 
 /// The output a transaction input spends: its transaction index and output position, written as
-/// `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 65535}`).
+/// `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 4294967295}`).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
@@ -20,11 +20,6 @@ impl OutPoint {
     pub const COINBASE: Self = Self(u64::MAX);
 
     pub fn new(tx_index: TxIndex, vout: Vout) -> Self {
-        Self::with_vout_index(tx_index, u32::from(vout))
-    }
-
-    /// Keeps a vout past [`Vout`]'s range whole (see [`Vout`]'s `From<u32>`).
-    pub fn with_vout_index(tx_index: TxIndex, vout: u32) -> Self {
         Self((u64::from(tx_index) << 32) | u64::from(vout))
     }
 
@@ -33,18 +28,10 @@ impl OutPoint {
         TxIndex::from((self.0 >> 32) as u32)
     }
 
+    /// Coinbase: [`Vout::MAX`].
     #[inline(always)]
     pub fn vout(self) -> Vout {
-        if self.is_coinbase() {
-            return Vout::MAX;
-        }
         Vout::from(self.0 as u32)
-    }
-
-    /// The full output index, past [`Vout`]'s range included.
-    #[inline(always)]
-    pub fn vout_index(self) -> u32 {
-        self.0 as u32
     }
 
     #[inline(always)]
@@ -104,9 +91,6 @@ impl<'de> Deserialize<'de> for OutPoint {
         D: Deserializer<'de>,
     {
         let parts = OutPointParts::deserialize(deserializer)?;
-        if u32::from(parts.tx_index) == u32::MAX && parts.vout == Vout::MAX {
-            return Ok(Self::COINBASE);
-        }
         Ok(Self::new(parts.tx_index, parts.vout))
     }
 }

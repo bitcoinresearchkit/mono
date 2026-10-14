@@ -15,7 +15,6 @@ pub type IndexedPrice = Price<LazyIndexes<Cents, OHLCCents>, LazyIndexes<Dollars
 /// Each price of the OHLC candle as its own series: an empty period is a flat candle at the
 /// previous close.
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct SplitPrice(pub Ohlc<IndexedPrice>);
 
 impl SplitPrice {

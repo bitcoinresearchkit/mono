@@ -67,7 +67,7 @@ impl fmt::Display for RangeIndex {
         match self {
             Self::Int(i) => write!(f, "{i}"),
             Self::Date(d) => write!(f, "{d}"),
-            Self::Timestamp(t) => write!(f, "{t}"),
+            Self::Timestamp(t) => write!(f, "{}", JiffTimestamp::from(*t)),
         }
     }
 }

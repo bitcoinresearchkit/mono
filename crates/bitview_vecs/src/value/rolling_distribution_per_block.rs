@@ -14,7 +14,6 @@ use crate::{IndexSources, ValuePerBlock, WindowStarts};
 /// Tree: `avg._24h.sats.height`, `max._24h.sats.height`, etc.
 /// Series: `{name}_avg_24h`, `{name}_max_24h`, etc.
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw>(
     pub DistributionStats<Windows<ValuePerBlock<M>>>,
 );

@@ -1,7 +1,4 @@
-use std::{
-    iter,
-    ops::{Add, AddAssign},
-};
+use std::iter;
 
 use brk_types::OutputType;
 
@@ -111,28 +108,5 @@ impl<T> ByType<T> {
 
     pub fn iter_typed_mut(&mut self) -> impl Iterator<Item = (OutputTypeId, &mut T)> {
         OutputTypeId::all().zip(self.iter_mut())
-    }
-}
-
-impl<T> Add for ByType<T>
-where
-    T: Add<Output = T>,
-{
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            spendable: self.spendable + rhs.spendable,
-            unspendable: self.unspendable + rhs.unspendable,
-        }
-    }
-}
-
-impl<T> AddAssign for ByType<T>
-where
-    T: AddAssign,
-{
-    fn add_assign(&mut self, rhs: Self) {
-        self.spendable += rhs.spendable;
-        self.unspendable += rhs.unspendable;
     }
 }

@@ -78,7 +78,7 @@ impl Height {
 
 impl PartialEq<u64> for Height {
     fn eq(&self, other: &u64) -> bool {
-        self.0 == *other as u32
+        u64::from(self.0) == *other
     }
 }
 
@@ -140,7 +140,7 @@ impl VecdbCheckedSub<u32> for Height {
 
 impl CheckedSub<usize> for Height {
     fn checked_sub(self, rhs: usize) -> Option<Self> {
-        self.0.checked_sub(rhs as u32).map(Height::from)
+        (self.0 as usize).checked_sub(rhs).map(|h| Self(h as u32))
     }
 }
 #[cfg(feature = "storage")]
@@ -158,7 +158,7 @@ impl AddAssign<usize> for Height {
 
 impl CheckedSub<u64> for Height {
     fn checked_sub(self, rhs: u64) -> Option<Self> {
-        self.0.checked_sub(rhs as u32).map(Height::from)
+        u64::from(self.0).checked_sub(rhs).map(|h| Self(h as u32))
     }
 }
 #[cfg(feature = "storage")]

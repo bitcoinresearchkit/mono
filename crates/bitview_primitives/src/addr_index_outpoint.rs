@@ -30,7 +30,12 @@ impl From<(TypeIndex, OutPoint)> for AddrIndexOutPoint {
         let mut bytes = [0; 10];
         bytes[..4].copy_from_slice(&u32::from(addr_index).to_be_bytes());
         bytes[4..8].copy_from_slice(&u32::from(outpoint.tx_index()).to_be_bytes());
-        bytes[8..].copy_from_slice(&outpoint.vout().to_be_bytes());
+        let vout = u32::from(outpoint.vout());
+        debug_assert!(
+            vout <= u16::MAX as u32,
+            "address outpoint vout {vout} exceeds u16"
+        );
+        bytes[8..].copy_from_slice(&(vout as u16).to_be_bytes());
         Self(bytes)
     }
 }

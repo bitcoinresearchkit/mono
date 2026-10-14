@@ -7,9 +7,8 @@ pub use processed::ProcessedOutput;
 pub use processed::ProcessedOutputData;
 
 use bitcoin::{Script, constants::WITNESS_SCALE_FACTOR};
-use bitview_cohort::ByAddrType;
 use bitview_primitives::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, Index40, TxOutIndex, TypeIndex,
+    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, Index40, TxOutIndex, TypeIndex,
 };
 use brk_error::Result;
 use brk_store::Store;

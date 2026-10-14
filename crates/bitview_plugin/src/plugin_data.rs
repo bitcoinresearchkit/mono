@@ -31,7 +31,7 @@ where
     fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>) {
         let mut fragments = Vec::new();
         self.collect_series_descriptions(&mut fragments, descriptions);
-        assert!(
+        debug_assert!(
             fragments.is_empty(),
             "description fragments left after traversal"
         );

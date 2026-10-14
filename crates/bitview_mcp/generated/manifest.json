@@ -432,15 +432,6 @@
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -494,7 +485,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -588,10 +588,9 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
+              "minimum": 0,
               "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+              "format": "uint32"
             },
             "Weight": {
               "minimum": 0,
@@ -815,15 +814,6 @@
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -877,7 +867,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -971,10 +970,9 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
+              "minimum": 0,
               "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+              "format": "uint32"
             },
             "Weight": {
               "minimum": 0,
@@ -1305,15 +1303,6 @@
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -1367,7 +1356,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -1461,10 +1459,9 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
+              "minimum": 0,
               "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+              "format": "uint32"
             },
             "Weight": {
               "minimum": 0,
@@ -1674,15 +1671,6 @@
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -1736,7 +1724,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -1830,10 +1827,9 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
+              "minimum": 0,
               "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+              "format": "uint32"
             },
             "Weight": {
               "minimum": 0,
@@ -2004,10 +2000,9 @@
               }
             },
             "Vout": {
-              "maximum": 65535,
+              "minimum": 0,
               "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+              "format": "uint32"
             }
           }
         },
@@ -3330,15 +3325,6 @@
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -3392,7 +3378,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -3486,10 +3481,9 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
+              "minimum": 0,
               "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+              "format": "uint32"
             },
             "Weight": {
               "minimum": 0,
@@ -12079,15 +12073,6 @@
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -12141,7 +12126,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -12235,10 +12229,9 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
+              "minimum": 0,
               "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+              "format": "uint32"
             },
             "Weight": {
               "minimum": 0,
@@ -12532,11 +12525,10 @@
               ]
             },
             "Vout": {
-              "description": "Index of the output being spent in the previous transaction",
+              "description": "Index of the output being spent in the previous transaction (coinbase inputs: 4294967295)",
               "type": "integer",
-              "format": "uint16",
+              "format": "uint32",
               "minimum": 0,
-              "maximum": 65535,
               "examples": [
                 0,
                 1,

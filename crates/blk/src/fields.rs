@@ -119,7 +119,7 @@ impl<'a> Ctx<'a> {
     fn size_and_weight(&self) -> (usize, usize) {
         *self
             .size_weight
-            .get_or_init(|| self.block.total_size_and_weight())
+            .get_or_init(|| (self.block.total_size(), self.block.weight().to_wu() as usize))
     }
 
     fn block_field(&self, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
@@ -159,7 +159,7 @@ impl<'a> Ctx<'a> {
             "subsidy" => scalar(json!(subsidy_sats(*b.height()))),
             "header_hex" => scalar(json!(serialize_hex(&b.header))),
             "hex" => scalar(json!(serialize_hex(raw))),
-            "coinbase" => scalar(json!(b.coinbase_tag().as_str())),
+            "coinbase" => scalar(json!(b.coinbase_tag().to_string())),
             "coinbase_hex" => {
                 debug_assert!(
                     !b.txdata.is_empty() && !b.txdata[0].input.is_empty(),

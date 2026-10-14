@@ -3,12 +3,11 @@ use std::{
     result::Result as StdResult,
 };
 
-use brk_error::{Error, Result as ErrorResult};
 use brk_types::{Cents, CentsSats, OutputType, Sats};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
-use crate::{EmptyAddressData, unlikely};
+use crate::EmptyAddressData;
 
 #[cfg(feature = "storage")]
 use vecdb::Result;
@@ -260,15 +259,13 @@ impl FundedAddressData {
     }
 
     /// Applies a spent output and returns its exact realized-cap delta.
-    pub fn send(&mut self, amount: Sats, previous_price: Cents) -> ErrorResult<CentsSats> {
-        if unlikely(self.balance() < amount) {
-            return Err(Error::Internal("Previous amount smaller than sent amount"));
-        }
+    pub fn send(&mut self, amount: Sats, previous_price: Cents) -> CentsSats {
+        debug_assert!(self.balance() >= amount, "sent more than the balance");
         self.sent += amount;
         self.spent_txo_count += 1;
         let ps = CentsSats::from_price_sats(previous_price, amount);
         self.realized_cap_raw.subtract(ps);
-        Ok(ps)
+        ps
     }
 }
 

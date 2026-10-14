@@ -1,5 +1,4 @@
-use bitview_cohort::ByAddrType;
-use bitview_primitives::{AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, TypeIndex};
+use bitview_primitives::{AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, TypeIndex};
 use brk_store::Store;
 use brk_types::{Sats, TxIndex, TxidPrefix, Unit};
 

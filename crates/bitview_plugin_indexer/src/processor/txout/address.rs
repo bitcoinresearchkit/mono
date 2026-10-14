@@ -2,8 +2,7 @@ pub mod cache;
 
 use std::collections::hash_map::Entry;
 
-use bitview_cohort::ByAddrType;
-use bitview_primitives::{AddrHash, TypeIndex};
+use bitview_primitives::{AddrHash, ByAddrType, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{AddressBytes, OutputType, TxIndex, Vout};
 use rayon::prelude::*;

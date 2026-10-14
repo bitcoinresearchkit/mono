@@ -81,12 +81,8 @@ impl Transaction {
     }
 
     /// Re-encode to canonical Bitcoin protocol bytes via
-    /// `bitcoin::Transaction`. Lossless for mempool/confirmed txs
-    /// (verified bytewise round-trip against Core over a 1000-tx live
-    /// sample). Coinbase txs don't round-trip because brk's `Vout` is
-    /// `u16` while the protocol's coinbase vout is `0xFFFFFFFF`, nor does
-    /// a spend of an output past 65,535 (its `Vout` wraps) - callers that
-    /// may see either shouldn't rely on this.
+    /// `bitcoin::Transaction` (verified bytewise round-trip against Core
+    /// over a 1000-tx live sample).
     pub fn encode_bytes(&self) -> Vec<u8> {
         let bitcoin_tx: BitcoinTransaction = self.into();
         let mut buf = Vec::with_capacity(self.total_size);
@@ -167,24 +163,15 @@ fn count_sigops_with_witness_program(witness: &Witness, witness_program: &Script
     if witness_program.is_p2wpkh() {
         1
     } else if witness_program.is_p2wsh() {
-        witness
-            .last()
-            .map(|bytes| Script::from_bytes(bytes).count_sigops())
-            .unwrap_or(0)
+        witness.witness_script().map_or(0, Script::count_sigops)
     } else {
         0
     }
 }
 
-/// Re-encode a brk `Transaction` to a canonical `bitcoin::Transaction`.
-/// Lossless for mempool/confirmed txs (verified bytewise round-trip
-/// against Core's `getrawtransaction` over a 1000-tx live sample), but for
-/// a spend of an output past 65,535, whose `Vout` wraps.
-///
-/// Coinbase round-trip is **not** byte-perfect because brk's `Vout` is
-/// a `u16` and coinbase encodes `vout = 0xFFFFFFFF` in the protocol;
-/// the reconstructed value is `u16::MAX` (65535). Mempool txs are
-/// never coinbase, and confirmed-tx callers don't go through this path.
+/// Re-encode a brk `Transaction` to a canonical `bitcoin::Transaction`
+/// (lossless: verified bytewise round-trip against Core's
+/// `getrawtransaction` over a 1000-tx live sample).
 impl From<&Transaction> for BitcoinTransaction {
     #[inline]
     fn from(tx: &Transaction) -> Self {

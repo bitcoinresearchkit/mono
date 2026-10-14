@@ -236,7 +236,7 @@ impl Query {
                     .data()?
                     .1
                     .output
-                    .get(op.vout_index() as usize)
+                    .get(usize::from(op.vout()))
                     .data()?;
                 if output.value.to_sat() != u64::from(value) {
                     return Err(Error::Internal("Indexed prevout value mismatch"));
@@ -279,12 +279,9 @@ impl Query {
                         vout: prev_vout,
                         prevout,
                         script_sig: txin.script_sig,
-                        script_sig_asm: (),
                         witness,
                         is_coinbase,
                         sequence: txin.sequence.0,
-                        inner_redeem_script_asm: (),
-                        inner_witness_script_asm: (),
                     })
                 })
                 .collect::<Result<_>>()?;

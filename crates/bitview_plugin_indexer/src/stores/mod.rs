@@ -1,8 +1,8 @@
 use std::{fs, ops::Range, path::Path, time::Instant};
 
-use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_primitives::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, BlockHashPrefix, Index40, TxOutIndex, TypeIndex,
+    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, AddrTypeId, BlockHashPrefix, ByAddrType,
+    Index40, TxOutIndex, TypeIndex,
 };
 use brk_error::{Error, OptionData, Result};
 use brk_store::{AnyStore, Kind, PendingIngest, Store, open_database};
@@ -493,7 +493,7 @@ impl Stores {
             // Outputs created by removed transactions went with them; older ones are unspent again.
             if outpoint.tx_index() < starting_tx_index {
                 let txid = txids.get(outpoint.tx_index());
-                let key = UtxoKey::new(TxidPrefix::from(&txid), outpoint.vout_index());
+                let key = UtxoKey::new(TxidPrefix::from(&txid), u32::from(outpoint.vout()));
                 let value = values.get(index).data()?;
                 self.utxos.insert(
                     key,

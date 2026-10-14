@@ -31,27 +31,14 @@ impl From<RawLockTime> for LockTime {
 
 impl Display for RawLockTime {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let lock_time = LockTime::from(*self);
-        write!(f, "{lock_time}")
+        self.0.fmt(f)
     }
 }
 
 #[cfg(feature = "storage")]
 impl Formattable for RawLockTime {
+    #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
-        use std::io::Write;
-        write!(buf, "{self}").unwrap();
-    }
-
-    fn fmt_csv(&self, buf: &mut Vec<u8>) {
-        let start = buf.len();
-        self.write_to(buf);
-        vecdb::escape_csv_cell(buf, start);
-    }
-
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        buf.push(b'"');
-        self.write_to(buf);
-        buf.push(b'"');
+        buf.extend_from_slice(itoa::Buffer::new().format(self.0).as_bytes());
     }
 }

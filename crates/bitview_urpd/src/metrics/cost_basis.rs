@@ -154,10 +154,9 @@ impl CostBasisVecs {
     pub(super) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.per_coin
             .percentiles
-            .collect_vecs_mut()
-            .into_iter()
-            .chain(self.per_dollar.percentiles.collect_vecs_mut())
-            .chain(self.supply_density.stored_vecs_mut())
-            .chain(self.capital_density.stored_vecs_mut())
+            .iter_any_stored_mut()
+            .chain(self.per_dollar.percentiles.iter_any_stored_mut())
+            .chain(self.supply_density.iter_any_stored_mut())
+            .chain(self.capital_density.iter_any_stored_mut())
     }
 }

@@ -1,11 +1,11 @@
 use std::ops::{ControlFlow, Range};
 
-use bitview_cohort::{AddressTypeId, ByAddrType};
+use bitview_cohort::AddressTypeId;
 use bitview_distribution::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::overwritten_output;
-use bitview_primitives::{FundedAddressData, TypeIndex};
+use bitview_primitives::{ByAddrType, FundedAddressData, TypeIndex};
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
@@ -299,10 +299,11 @@ pub fn process_chunk(
             .map(|((output_type, addrs), (blocks_type, blocks))| {
                 debug_assert_eq!(output_type, blocks_type);
                 let first = batch.blocks.start;
-                process_shard(output_type, addrs, blocks, first, block_prices, base, &lost)
-                    .map(|blocks| (output_type, blocks))
+                let blocks =
+                    process_shard(output_type, addrs, blocks, first, block_prices, base, &lost);
+                (output_type, blocks)
             })
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Vec<_>>();
 
         for (offset, height) in batch.blocks.clone().enumerate() {
             let height = Height::from(height);
@@ -364,7 +365,7 @@ fn process_shard(
     prices: &[Cents],
     base: &AddrMetricsState,
     lost: &[Lost],
-) -> Result<Vec<(CohortLog, AddrMetricsState)>> {
+) -> Vec<(CohortLog, AddrMetricsState)> {
     let lost = lost
         .iter()
         .filter(|lost| output_type == OutputType::P2PK65 && addrs.contains_key(&lost.type_index))
@@ -408,7 +409,7 @@ fn process_shard(
             output_type,
             member.as_deref_mut(),
             &mut transfers,
-        )?;
+        );
         for lost in lost.iter().filter(|lost| lost.height == height) {
             process_lost(
                 lost.type_index,
@@ -422,5 +423,5 @@ fn process_shard(
         }
         processed.push((cohorts, metrics.clone()));
     }
-    Ok(processed)
+    processed
 }

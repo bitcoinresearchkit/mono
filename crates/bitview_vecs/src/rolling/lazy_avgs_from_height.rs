@@ -14,7 +14,6 @@ use crate::{IndexSources, LazyRollingAvgFromHeight};
 /// Nothing is stored on disk — all values are computed on-the-fly via
 /// `LazyDeltaVec<Height, T, T::Fract, DeltaAvg>`: `(cum[h] - cum[start-1]) / (h - start + 1)`.
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyRollingAvgsFromHeight<T>(
     /// Arithmetic mean of the per-block values over the trailing window ending
     /// at the represented block; each block has equal weight. At time-period

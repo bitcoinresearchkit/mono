@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{SeriesLeafWithSchema, TreeBranch};
+use crate::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch};
 
 /// Hierarchical tree node for organizing series into categories
 #[derive(Debug, Clone, Serialize, PartialEq, Eq, Deserialize, JsonSchema)]
@@ -42,7 +42,7 @@ impl TreeNode {
                     return;
                 };
                 if let Some(existing) = &leaf.leaf.description {
-                    assert_eq!(
+                    debug_assert_eq!(
                         existing,
                         description,
                         "Conflicting descriptions for series {}",
@@ -86,14 +86,12 @@ impl TreeNode {
                 let Some(description) = &leaf.leaf.description else {
                     return;
                 };
-                if let Some(existing) = descriptions.insert(leaf.name(), description.clone()) {
-                    assert_eq!(
-                        existing,
-                        *description,
-                        "Conflicting descriptions for series {}",
-                        leaf.name()
-                    );
-                }
+                let existing = descriptions.insert(leaf.name(), description.clone());
+                debug_assert!(
+                    existing.is_none_or(|existing| existing == *description),
+                    "Conflicting descriptions for series {}",
+                    leaf.name()
+                );
             }
         }
     }
@@ -112,31 +110,33 @@ impl TreeNode {
                     child.collect_units(units);
                 }
             }
-            Self::Leaf(leaf) => {
-                // `Option<T>` keeps `T`'s schema under `$defs`.
-                let schema = leaf
-                    .schema
-                    .get("$defs")
-                    .and_then(|defs| defs.get(leaf.kind()))
-                    .unwrap_or(&leaf.schema);
-                let Some(description) = schema.get("description").and_then(|d| d.as_str()) else {
-                    return;
-                };
-                // The first paragraph, unwrapped: later paragraphs are implementation notes.
-                let first = description.split("\n\n").next().unwrap_or_default();
-                let description = first.split_whitespace().collect::<Vec<_>>().join(" ");
-                if let Some(existing) = units.get(leaf.kind()) {
-                    debug_assert_eq!(
-                        existing.as_ref(),
-                        description.as_str(),
-                        "two value types share the name {}",
-                        leaf.kind()
-                    );
-                    return;
+            Self::Leaf(leaf) => match units.get(leaf.kind()) {
+                Some(existing) => debug_assert!(
+                    Self::unit(leaf).is_none_or(|unit| existing.as_ref() == unit),
+                    "two value types share the name {}",
+                    leaf.kind()
+                ),
+                None => {
+                    if let Some(unit) = Self::unit(leaf) {
+                        units.insert(leaf.kind(), Arc::from(unit));
+                    }
                 }
-                units.insert(leaf.kind(), Arc::from(description));
-            }
+            },
         }
+    }
+
+    /// A leaf's unit: the first paragraph of its value type's schema description, unwrapped
+    /// (later paragraphs are implementation notes).
+    fn unit(leaf: &SeriesLeafWithSchema) -> Option<String> {
+        // `Option<T>` keeps `T`'s schema under `$defs`.
+        let schema = leaf
+            .schema
+            .get("$defs")
+            .and_then(|defs| defs.get(leaf.kind()))
+            .unwrap_or(&leaf.schema);
+        let description = schema.get("description")?.as_str()?;
+        let first = description.split("\n\n").next().unwrap_or_default();
+        Some(first.split_whitespace().collect::<Vec<_>>().join(" "))
     }
 
     /// Wraps a node in a Branch with the given key.
@@ -176,37 +176,40 @@ impl TreeNode {
         Self::try_collapse_same_name_leaves(merged)
     }
 
-    /// If all entries in the map are leaves with the same series name,
+    /// If all entries in the map are leaves of the same series with compatible descriptions,
     /// collapse them into a single leaf with merged indexes.
     fn try_collapse_same_name_leaves(map: TreeBranch) -> Self {
-        if map.is_empty() {
+        if !Self::collapsible(&map) {
             return Self::Branch(map);
         }
-
-        // Check if all entries are compatible leaves for the same series.
-        let mut merged_leaf: Option<SeriesLeafWithSchema> = None;
-
-        for node in map.values() {
-            match node {
-                Self::Leaf(leaf) => {
-                    if let Some(merged) = &mut merged_leaf {
-                        if leaf.name() != merged.name() || merged.merge(leaf).is_none() {
-                            // Incompatible leaves cannot collapse.
-                            return Self::Branch(map);
-                        }
-                    } else {
-                        merged_leaf = Some(leaf.clone());
-                    }
-                }
-                Self::Branch(_) => {
-                    // Has non-leaf entries - can't collapse
-                    return Self::Branch(map);
-                }
-            }
+        let mut leaves = map.children.into_values().map(|node| match node {
+            Self::Leaf(leaf) => leaf,
+            Self::Branch(_) => unreachable!("checked by collapsible"),
+        });
+        let mut merged = leaves.next().expect("checked by collapsible");
+        for leaf in leaves {
+            let merged_ok = merged.merge(&leaf).is_some();
+            debug_assert!(merged_ok, "checked by collapsible");
         }
+        Self::Leaf(merged)
+    }
 
-        // All entries were leaves with the same name
-        Self::Leaf(merged_leaf.unwrap())
+    /// Whether every entry is a leaf of one series, its descriptions agreeing.
+    fn collapsible(map: &TreeBranch) -> bool {
+        let mut first: Option<&SeriesLeafWithSchema> = None;
+        let mut description = None;
+        map.values().all(|node| {
+            let Self::Leaf(leaf) = node else {
+                return false;
+            };
+            if first.get_or_insert(leaf).name() != leaf.name() {
+                return false;
+            }
+            let incoming = leaf.leaf.description.as_ref();
+            let agree = SeriesLeaf::descriptions_agree(description, incoming);
+            description = description.or(incoming);
+            agree
+        }) && first.is_some()
     }
 
     fn leaf_and_group(key: &str, series: &str) -> ! {

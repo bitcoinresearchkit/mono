@@ -37,7 +37,7 @@ pub use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch, TreeNode
 pub use bitview_primitives::Index;
 pub use compact::Compact;
 pub use indexmap::IndexMap;
-pub use vecdb::{AnyExportableVec, ReadOnlyClone, Ro, Rw, StorageMode};
+pub use vecdb::{AnyExportableVec, AnyStoredVec, ReadOnlyClone, Ro, Rw, StorageMode};
 
 #[cfg(feature = "derive")]
 pub use bitview_traversable_derive::Traversable;
@@ -49,6 +49,12 @@ pub trait Traversable {
     /// Only non-hidden vecs — used for building the public series list.
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         self.iter_any_exportable()
+    }
+
+    /// Every writable stored vec of derived and leaf impls, hidden ones included; lazy views yield
+    /// nothing. Skipped and write-only fields are left out; manual impls must forward it.
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        iter::empty()
     }
 
     /// Collects public series description fragments from documented field paths.
@@ -67,7 +73,7 @@ pub trait Traversable {
                     entry.insert(description_fragments.clone());
                 }
                 Entry::Occupied(entry) => {
-                    assert_eq!(
+                    debug_assert_eq!(
                         entry.get(),
                         description_fragments,
                         "Conflicting descriptions for series {}",
@@ -98,9 +104,9 @@ where
         leaf.nullable = indexes.clone();
     }
 
+    // Serializing (not `Schema::to_value`) applies schemars' canonical keyword order.
     let schema = SchemaGenerator::default().into_root_schema_for::<V::T>();
     let schema_json = to_value(schema).unwrap_or_default();
-
     let mut leaf = SeriesLeafWithSchema::new(leaf, schema_json);
     if V::T::MISSING {
         leaf.missing = indexes;
@@ -109,235 +115,131 @@ where
     TreeNode::Leaf(leaf)
 }
 
-// BytesVec implementation
-impl<I, T, C: CachePolicy> Traversable for BytesVec<I, T, C>
-where
+/// A vec published as one series leaf. `stored` vecs also yield themselves for writes.
+macro_rules! leaf {
+    (@ {$($stored:tt)*} [$($g:tt)*] $ty:ty where $($bounds:tt)+) => {
+        impl<$($g)*> Traversable for $ty
+        where
+            $($bounds)+
+        {
+            fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+                iter::once(self as &dyn AnyExportableVec)
+            }
+
+            $($stored)*
+
+            fn to_tree_node(&self) -> TreeNode {
+                make_leaf(self)
+            }
+        }
+    };
+    (stored $($rest:tt)+) => {
+        leaf!(@ {
+            fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+                iter::once(self as &mut dyn AnyStoredVec)
+            }
+        } $($rest)+);
+    };
+    ($($rest:tt)+) => {
+        leaf!(@ {} $($rest)+);
+    };
+}
+
+leaf!(stored [I, T, C] BytesVec<I, T, C> where
     I: VecIndex,
     T: BytesVecValue + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+    C: CachePolicy,
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-// ZeroCopyVec implementation (only if zerocopy feature enabled)
 #[cfg(feature = "zerocopy")]
-impl<I, T, C: CachePolicy> Traversable for ZeroCopyVec<I, T, C>
-where
+leaf!(stored [I, T, C] ZeroCopyVec<I, T, C> where
     I: VecIndex,
     T: ZeroCopyVecValue + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+    C: CachePolicy,
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-// PcoVec implementation (only if pco feature enabled)
 #[cfg(feature = "pco")]
-impl<I, T, C: CachePolicy> Traversable for PcoVec<I, T, C>
-where
+leaf!(stored [I, T, C] PcoVec<I, T, C> where
     I: VecIndex,
     T: PcoVecValue + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+    C: CachePolicy,
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-// LZ4Vec implementation (only if lz4 feature enabled)
 #[cfg(feature = "lz4")]
-impl<I, T, C: CachePolicy> Traversable for LZ4Vec<I, T, C>
-where
+leaf!(stored [I, T, C] LZ4Vec<I, T, C> where
     I: VecIndex,
     T: LZ4VecValue + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+    C: CachePolicy,
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-// ZstdVec implementation (only if zstd feature enabled)
 #[cfg(feature = "zstd")]
-impl<I, T, C: CachePolicy> Traversable for ZstdVec<I, T, C>
-where
+leaf!(stored [I, T, C] ZstdVec<I, T, C> where
     I: VecIndex,
     T: ZstdVecValue + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+    C: CachePolicy,
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-// EagerVec implementation (wraps any stored vector)
-impl<V> Traversable for EagerVec<V>
-where
+leaf!(stored [V] EagerVec<V> where
     V: StoredVec,
     V::T: Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-impl<V> Traversable for MutableVec<V>
-where
+leaf!(stored [V] MutableVec<V> where
     V: TypedVec,
-    MutableVec<V>: ReadableVec<V::I, V::T>,
+    MutableVec<V>: ReadableVec<V::I, V::T> + AnyStoredVec,
     V::T: Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+leaf!(stored [I, T] OverflowVec<I, T> where
+    I: VecIndex,
+    T: OverflowVecValue + Formattable + Serialize + JsonSchema,
+);
 
-impl<V> Traversable for ReadOnlyMutableVec<V>
-where
+leaf!([V] ReadOnlyMutableVec<V> where
     V: TypedVec + ReadableVec<V::I, V::T> + Clone,
     V::T: Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-impl<I, T> Traversable for OverflowVec<I, T>
-where
+leaf!([I, T] ReadOnlyOverflowVec<I, T> where
     I: VecIndex,
     T: OverflowVecValue + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-impl<I, T> Traversable for ReadOnlyOverflowVec<I, T>
-where
-    I: VecIndex,
-    T: OverflowVecValue + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-// Read-only compressed vec (PcoVec::ReadOnly, LZ4Vec::ReadOnly, ZstdVec::ReadOnly)
-impl<I, T, S, C: CachePolicy> Traversable for ReadOnlyCompressedVec<I, T, S, C>
-where
+// PcoVec::ReadOnly, LZ4Vec::ReadOnly, ZstdVec::ReadOnly
+leaf!([I, T, S, C] ReadOnlyCompressedVec<I, T, S, C> where
     I: VecIndex,
     T: VecValue + Formattable + Serialize + JsonSchema,
     S: CompressionStrategy<T>,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+    C: CachePolicy,
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-// Read-only raw vec (BytesVec::ReadOnly, ZeroCopyVec::ReadOnly)
-impl<I, T, S, C: CachePolicy> Traversable for ReadOnlyRawVec<I, T, S, C>
-where
+// BytesVec::ReadOnly, ZeroCopyVec::ReadOnly
+leaf!([I, T, S, C] ReadOnlyRawVec<I, T, S, C> where
     I: VecIndex,
     T: VecValue + Formattable + Serialize + JsonSchema,
     S: RawStrategy<T>,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+    C: CachePolicy,
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-impl<I, T, S> Traversable for IndexVec<I, T, S>
-where
+leaf!([I, T, S] IndexVec<I, T, S> where
     I: VecIndex,
     T: VecValue + Formattable + Serialize + JsonSchema,
     S: TypedVec<I = I>,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-impl<I, T, S1I, S1T> Traversable for LazyVec<I, T, S1I, S1T>
-where
+leaf!([I, T, S1I, S1T] LazyVec<I, T, S1I, S1T> where
     I: VecIndex,
     T: VecValue + Formattable + Serialize + JsonSchema,
     S1I: VecIndex,
     S1T: VecValue,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
+);
 
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
-
-impl<I, S, T, Op> Traversable for LazyDeltaVec<I, S, T, Op>
-where
+leaf!([I, S, T, Op] LazyDeltaVec<I, S, T, Op> where
     I: VecIndex,
     S: VecValue,
     T: VecValue + Formattable + Serialize + JsonSchema,
     Op: DeltaOp<S, T>,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);
 
 impl<T: Traversable + ?Sized> Traversable for Box<T> {
     fn to_tree_node(&self) -> TreeNode {
@@ -350,6 +252,10 @@ impl<T: Traversable + ?Sized> Traversable for Box<T> {
 
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         (**self).iter_any_visible()
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        (**self).iter_any_stored_mut()
     }
 
     fn collect_series_descriptions<'a>(
@@ -375,6 +281,11 @@ impl<T: Traversable> Traversable for Option<T> {
 
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         self.iter().flat_map(|inner| inner.iter_any_visible())
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.iter_mut()
+            .flat_map(|inner| inner.iter_any_stored_mut())
     }
 
     fn collect_series_descriptions<'a>(
@@ -403,6 +314,11 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
 
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         self.values().flat_map(|value| value.iter_any_visible())
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.values_mut()
+            .flat_map(|value| value.iter_any_stored_mut())
     }
 
     fn collect_series_descriptions<'a>(

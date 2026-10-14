@@ -15,7 +15,6 @@ macro_rules! define_resolutions {
         use bitview_primitives::{$($index,)* $($epoch_index,)*};
 
         #[derive(Clone, Deref, DerefMut, Traversable)]
-        #[traversable(transparent)]
         pub struct Resolutions<T>(
             pub PerResolution<
                 $(LazyAggVec<$index, Option<T>, Height, T>,)*

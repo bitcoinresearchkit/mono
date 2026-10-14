@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
 use brk_error::Result;
-use brk_types::Version;
-use vecdb::{Database, PAGE_SIZE};
+use vecdb::{Database, PAGE_SIZE, Version};
 
 use crate::{ImportContext, PLUGIN_DATA_DIR, PluginId};
 

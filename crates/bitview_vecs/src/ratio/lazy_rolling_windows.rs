@@ -10,7 +10,6 @@ use crate::{IndexSources, LazyRatioPerBlock, LazyRollingRatioVec};
 /// Fully lazy rolling ratio windows — 4 windows (24h, 1w, 1m, 1y), each with
 /// lazy fixed-point values and a lazy ratio view.
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyRatioRollingWindows<R: FixedRatio>(pub Windows<LazyRatioPerBlock<R>>);
 
 impl<R: FixedRatio> LazyRatioRollingWindows<R> {

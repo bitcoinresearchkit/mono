@@ -15,7 +15,7 @@ use bitview_plugin::{
     ComputePlugin, ImportContext, Plugin, PluginId, PluginStorage, UpdateContext,
 };
 use bitview_primitives::Lengths;
-use bitview_traversable::{Traversable, TreeNode};
+use bitview_traversable::{AnyStoredVec, Traversable, TreeNode};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_reader::{Reader, XOR_LEN, XORBytes};
@@ -213,6 +213,10 @@ where
 
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         self.vecs.iter_any_exportable()
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.vecs.iter_any_stored_mut()
     }
 
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {

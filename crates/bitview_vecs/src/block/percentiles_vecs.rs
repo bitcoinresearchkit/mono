@@ -4,7 +4,7 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
+use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 use crate::{CachedSeries, IndexSources, LazyPerBlock, Price, import_cached};
 
@@ -44,12 +44,5 @@ impl PercentilesVecs {
         for (target, &price) in self.stored.iter_mut().zip(prices) {
             target.push(price);
         }
-    }
-
-    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        self.stored
-            .iter_mut()
-            .map(|v| v as &mut dyn AnyStoredVec)
-            .collect()
     }
 }

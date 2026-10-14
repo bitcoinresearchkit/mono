@@ -1,5 +1,3 @@
-use std::ops::{Add, AddAssign};
-
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 use brk_types::OutputType;
@@ -8,74 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortId, CohortName};
 
-/// Spendable output types as analytics count them: P2PK is one type whatever its key's size
-/// (the indexer stores 33- and 65-byte keys apart).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum SpendableTypeId {
-    P2PK,
-    P2PKH,
-    P2MS,
-    P2SH,
-    P2WPKH,
-    P2WSH,
-    P2TR,
-    P2A,
-    Unknown,
-    Empty,
-}
-
 impl SpendableTypeId {
-    pub const ALL: &'static [Self] = &[
-        Self::P2PK,
-        Self::P2PKH,
-        Self::P2MS,
-        Self::P2SH,
-        Self::P2WPKH,
-        Self::P2WSH,
-        Self::P2TR,
-        Self::P2A,
-        Self::Unknown,
-        Self::Empty,
-    ];
-
-    #[inline]
-    pub const fn index(self) -> usize {
-        self as usize
-    }
-
-    #[inline]
-    pub fn select<T>(self, values: &SpendableType<T>) -> &T {
-        match self {
-            Self::P2PK => &values.p2pk,
-            Self::P2PKH => &values.p2pkh,
-            Self::P2MS => &values.p2ms,
-            Self::P2SH => &values.p2sh,
-            Self::P2WPKH => &values.p2wpkh,
-            Self::P2WSH => &values.p2wsh,
-            Self::P2TR => &values.p2tr,
-            Self::P2A => &values.p2a,
-            Self::Unknown => &values.unknown,
-            Self::Empty => &values.empty,
-        }
-    }
-
-    #[inline]
-    pub fn select_mut<T>(self, values: &mut SpendableType<T>) -> &mut T {
-        match self {
-            Self::P2PK => &mut values.p2pk,
-            Self::P2PKH => &mut values.p2pkh,
-            Self::P2MS => &mut values.p2ms,
-            Self::P2SH => &mut values.p2sh,
-            Self::P2WPKH => &mut values.p2wpkh,
-            Self::P2WSH => &mut values.p2wsh,
-            Self::P2TR => &mut values.p2tr,
-            Self::P2A => &mut values.p2a,
-            Self::Unknown => &mut values.unknown,
-            Self::Empty => &mut values.empty,
-        }
-    }
-
     /// `None` for OP_RETURN, the one unspendable type.
     #[inline]
     pub const fn from_output_type(value: OutputType) -> Option<Self> {
@@ -156,7 +87,9 @@ pub struct SpendableType<T> {
     empty: T,
 }
 
-impl_cohort_collection!(SpendableTypeId for SpendableType {
+// Spendable output types as analytics count them: P2PK is one type whatever its key's size
+// (the indexer stores 33- and 65-byte keys apart).
+define_cohort_id!(SpendableTypeId for SpendableType {
     P2PK => p2pk,
     P2PKH => p2pkh,
     P2MS => p2ms,
@@ -201,44 +134,5 @@ impl<T> SpendableType<T> {
 
     pub fn iter_typed_mut(&mut self) -> impl Iterator<Item = (SpendableTypeId, &mut T)> {
         SpendableTypeId::ALL.iter().copied().zip(self.iter_mut())
-    }
-}
-
-impl<T> Add for SpendableType<T>
-where
-    T: Add<Output = T>,
-{
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            p2pk: self.p2pk + rhs.p2pk,
-            p2pkh: self.p2pkh + rhs.p2pkh,
-            p2ms: self.p2ms + rhs.p2ms,
-            p2sh: self.p2sh + rhs.p2sh,
-            p2wpkh: self.p2wpkh + rhs.p2wpkh,
-            p2wsh: self.p2wsh + rhs.p2wsh,
-            p2tr: self.p2tr + rhs.p2tr,
-            p2a: self.p2a + rhs.p2a,
-            unknown: self.unknown + rhs.unknown,
-            empty: self.empty + rhs.empty,
-        }
-    }
-}
-
-impl<T> AddAssign for SpendableType<T>
-where
-    T: AddAssign,
-{
-    fn add_assign(&mut self, rhs: Self) {
-        self.p2pk += rhs.p2pk;
-        self.p2pkh += rhs.p2pkh;
-        self.p2ms += rhs.p2ms;
-        self.p2sh += rhs.p2sh;
-        self.p2wpkh += rhs.p2wpkh;
-        self.p2wsh += rhs.p2wsh;
-        self.p2tr += rhs.p2tr;
-        self.p2a += rhs.p2a;
-        self.unknown += rhs.unknown;
-        self.empty += rhs.empty;
     }
 }

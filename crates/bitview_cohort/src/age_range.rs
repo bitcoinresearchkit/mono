@@ -32,73 +32,14 @@ const HOURS_10Y: usize = 24 * 10 * 365;
 const HOURS_12Y: usize = 24 * 12 * 365;
 const HOURS_15Y: usize = 24 * 15 * 365;
 
-pub const AGE_RANGE_COUNT: usize = 23;
+pub const AGE_RANGE_COUNT: usize = AgeRangeId::ALL.len();
+pub const AGE_RANGE_IDS: [AgeRangeId; AGE_RANGE_COUNT] = *AgeRangeId::ALL.first_chunk().unwrap();
 const STH_AGE_RANGE_COUNT: usize = AgeRangeId::From5MTo6M.index();
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum AgeRangeId {
-    Under1H,
-    From1HTo1D,
-    From1DTo1W,
-    From1WTo1M,
-    From1MTo2M,
-    From2MTo3M,
-    From3MTo4M,
-    From4MTo5M,
-    From5MTo6M,
-    From6MTo9M,
-    From9MTo1Y,
-    From1YTo18M,
-    From18MTo2Y,
-    From2YTo3Y,
-    From3YTo4Y,
-    From4YTo5Y,
-    From5YTo6Y,
-    From6YTo7Y,
-    From7YTo8Y,
-    From8YTo10Y,
-    From10YTo12Y,
-    From12YTo15Y,
-    Over15Y,
-}
 
-pub const AGE_RANGE_IDS: [AgeRangeId; AGE_RANGE_COUNT] = [
-    AgeRangeId::Under1H,
-    AgeRangeId::From1HTo1D,
-    AgeRangeId::From1DTo1W,
-    AgeRangeId::From1WTo1M,
-    AgeRangeId::From1MTo2M,
-    AgeRangeId::From2MTo3M,
-    AgeRangeId::From3MTo4M,
-    AgeRangeId::From4MTo5M,
-    AgeRangeId::From5MTo6M,
-    AgeRangeId::From6MTo9M,
-    AgeRangeId::From9MTo1Y,
-    AgeRangeId::From1YTo18M,
-    AgeRangeId::From18MTo2Y,
-    AgeRangeId::From2YTo3Y,
-    AgeRangeId::From3YTo4Y,
-    AgeRangeId::From4YTo5Y,
-    AgeRangeId::From5YTo6Y,
-    AgeRangeId::From6YTo7Y,
-    AgeRangeId::From7YTo8Y,
-    AgeRangeId::From8YTo10Y,
-    AgeRangeId::From10YTo12Y,
-    AgeRangeId::From12YTo15Y,
-    AgeRangeId::Over15Y,
-];
-
-pub(crate) const STH_AGE_RANGE_IDS: &[AgeRangeId] = AGE_RANGE_IDS.split_at(STH_AGE_RANGE_COUNT).0;
-pub(crate) const LTH_AGE_RANGE_IDS: &[AgeRangeId] = AGE_RANGE_IDS.split_at(STH_AGE_RANGE_COUNT).1;
+pub(crate) const STH_AGE_RANGE_IDS: &[AgeRangeId] = AgeRangeId::ALL.split_at(STH_AGE_RANGE_COUNT).0;
+pub(crate) const LTH_AGE_RANGE_IDS: &[AgeRangeId] = AgeRangeId::ALL.split_at(STH_AGE_RANGE_COUNT).1;
 
 impl AgeRangeId {
-    pub const ALL: &'static [Self] = &AGE_RANGE_IDS;
-
-    #[inline]
-    pub const fn index(self) -> usize {
-        self as usize
-    }
-
     pub const fn cohort(self) -> CohortId {
         CohortId::Age(self)
     }
@@ -123,62 +64,6 @@ impl AgeRangeId {
             Term::Sth
         } else {
             Term::Lth
-        }
-    }
-
-    pub fn select<T>(self, values: &AgeRange<T>) -> &T {
-        match self {
-            Self::Under1H => &values.under_1h,
-            Self::From1HTo1D => &values._1h_to_1d,
-            Self::From1DTo1W => &values._1d_to_1w,
-            Self::From1WTo1M => &values._1w_to_1m,
-            Self::From1MTo2M => &values._1m_to_2m,
-            Self::From2MTo3M => &values._2m_to_3m,
-            Self::From3MTo4M => &values._3m_to_4m,
-            Self::From4MTo5M => &values._4m_to_5m,
-            Self::From5MTo6M => &values._5m_to_6m,
-            Self::From6MTo9M => &values._6m_to_9m,
-            Self::From9MTo1Y => &values._9m_to_1y,
-            Self::From1YTo18M => &values._1y_to_18m,
-            Self::From18MTo2Y => &values._18m_to_2y,
-            Self::From2YTo3Y => &values._2y_to_3y,
-            Self::From3YTo4Y => &values._3y_to_4y,
-            Self::From4YTo5Y => &values._4y_to_5y,
-            Self::From5YTo6Y => &values._5y_to_6y,
-            Self::From6YTo7Y => &values._6y_to_7y,
-            Self::From7YTo8Y => &values._7y_to_8y,
-            Self::From8YTo10Y => &values._8y_to_10y,
-            Self::From10YTo12Y => &values._10y_to_12y,
-            Self::From12YTo15Y => &values._12y_to_15y,
-            Self::Over15Y => &values.over_15y,
-        }
-    }
-
-    pub fn select_mut<T>(self, values: &mut AgeRange<T>) -> &mut T {
-        match self {
-            Self::Under1H => &mut values.under_1h,
-            Self::From1HTo1D => &mut values._1h_to_1d,
-            Self::From1DTo1W => &mut values._1d_to_1w,
-            Self::From1WTo1M => &mut values._1w_to_1m,
-            Self::From1MTo2M => &mut values._1m_to_2m,
-            Self::From2MTo3M => &mut values._2m_to_3m,
-            Self::From3MTo4M => &mut values._3m_to_4m,
-            Self::From4MTo5M => &mut values._4m_to_5m,
-            Self::From5MTo6M => &mut values._5m_to_6m,
-            Self::From6MTo9M => &mut values._6m_to_9m,
-            Self::From9MTo1Y => &mut values._9m_to_1y,
-            Self::From1YTo18M => &mut values._1y_to_18m,
-            Self::From18MTo2Y => &mut values._18m_to_2y,
-            Self::From2YTo3Y => &mut values._2y_to_3y,
-            Self::From3YTo4Y => &mut values._3y_to_4y,
-            Self::From4YTo5Y => &mut values._4y_to_5y,
-            Self::From5YTo6Y => &mut values._5y_to_6y,
-            Self::From6YTo7Y => &mut values._6y_to_7y,
-            Self::From7YTo8Y => &mut values._7y_to_8y,
-            Self::From8YTo10Y => &mut values._8y_to_10y,
-            Self::From10YTo12Y => &mut values._10y_to_12y,
-            Self::From12YTo15Y => &mut values._12y_to_15y,
-            Self::Over15Y => &mut values.over_15y,
         }
     }
 
@@ -346,7 +231,7 @@ pub struct AgeRange<T> {
     pub over_15y: T,
 }
 
-impl_cohort_collection!(AgeRangeId for AgeRange {
+define_cohort_id!(AgeRangeId for AgeRange {
     Under1H => under_1h,
     From1HTo1D => _1h_to_1d,
     From1DTo1W => _1d_to_1w,

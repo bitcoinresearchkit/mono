@@ -2,7 +2,6 @@ use std::{borrow::Cow, fmt, str::FromStr};
 
 use brk_error::{Error, Result as ErrorResult};
 use brk_types::Timestamp;
-use itoa::Buffer;
 use jiff::{Span, Timestamp as JiffTimestamp, civil::Date as Date_, tz::TimeZone};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{
@@ -56,10 +55,41 @@ impl Date {
         (self.0 % 1_00) as u8
     }
 
+    /// `YYYY-MM-DD`, zero-padded.
+    fn to_ascii(self) -> DateAscii {
+        let year = self.year();
+        debug_assert!(year <= 9999, "year {year} has more than four digits");
+        let digit = |value: u16| b'0' + (value % 10) as u8;
+        let (month, day) = (self.month() as u16, self.day() as u16);
+        DateAscii([
+            digit(year / 1000),
+            digit(year / 100),
+            digit(year / 10),
+            digit(year),
+            b'-',
+            digit(month / 10),
+            digit(month),
+            b'-',
+            digit(day / 10),
+            digit(day),
+        ])
+    }
+
     /// Validate dates constructed directly or decoded from persisted values.
     pub fn try_into_jiff(self) -> ErrorResult<Date_> {
         let year = i16::try_from(self.0 / 10_000).map_err(|_| Error::UnindexableDate)?;
         Date_::new(year, self.month() as i8, self.day() as i8).map_err(|_| Error::UnindexableDate)
+    }
+}
+
+/// A date's `YYYY-MM-DD` bytes: ASCII digits and dashes only.
+struct DateAscii([u8; 10]);
+
+impl DateAscii {
+    #[inline]
+    fn as_str(&self) -> &str {
+        // SAFETY: built only by `Date::to_ascii`, from ASCII digits and dashes.
+        unsafe { std::str::from_utf8_unchecked(&self.0) }
     }
 }
 
@@ -199,7 +229,7 @@ impl Serialize for Date {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        serializer.serialize_str(self.to_ascii().as_str())
     }
 }
 
@@ -231,28 +261,7 @@ impl<'de> Deserialize<'de> for Date {
 
 impl fmt::Display for Date {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut buf = Buffer::new();
-
-        let year = buf.format(self.year());
-        for _ in year.len()..4 {
-            f.write_str("0")?;
-        }
-        f.write_str(year)?;
-        f.write_str("-")?;
-
-        let month = self.month();
-        if month < 10 {
-            f.write_str("0")?;
-        }
-        f.write_str(buf.format(month))?;
-        f.write_str("-")?;
-
-        let day = self.day();
-        if day < 10 {
-            f.write_str("0")?;
-        }
-
-        f.write_str(buf.format(day))
+        f.write_str(self.to_ascii().as_str())
     }
 }
 
@@ -283,9 +292,9 @@ impl FromStr for Date {
 
 #[cfg(feature = "storage")]
 impl Formattable for Date {
+    #[inline]
     fn write_to(&self, buf: &mut Vec<u8>) {
-        use std::io::Write;
-        write!(buf, "{self}").unwrap();
+        buf.extend_from_slice(&self.to_ascii().0);
     }
 
     fn fmt_json(&self, buf: &mut Vec<u8>) {

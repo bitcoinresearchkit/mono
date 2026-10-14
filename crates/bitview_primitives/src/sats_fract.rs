@@ -2,7 +2,7 @@ use std::ops::{Div, Mul};
 
 use brk_types::{CheckedSub, Dollars};
 
-use crate::{Close, scalar::scalar};
+use crate::scalar::scalar;
 
 scalar! {
     /// Fractional satoshis (f64): mean amounts in sats, and USD prices expressed in sats.
@@ -81,12 +81,5 @@ impl Div<Dollars> for SatsFract {
         } else {
             Self(self.0 / rhs)
         }
-    }
-}
-
-impl Div<Close<Dollars>> for SatsFract {
-    type Output = Self;
-    fn div(self, rhs: Close<Dollars>) -> Self::Output {
-        self / *rhs
     }
 }

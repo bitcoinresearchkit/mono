@@ -1,4 +1,4 @@
-use bitview_cohort::ByAddrType;
+use bitview_primitives::ByAddrType;
 use derive_more::{Deref, DerefMut};
 
 /// A vector for each address type.

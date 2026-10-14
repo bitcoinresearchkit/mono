@@ -3,15 +3,17 @@ use std::fmt::{self, Debug};
 use brk_error::Error;
 use brk_types::{Height, Timestamp, TxIndex};
 use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer, Serialize, de::Error as DeError};
+use serde::{
+    Deserialize, Deserializer, Serialize,
+    de::{Error as DeError, Visitor},
+};
 
 use crate::{
-    Date, Day1, Day3, EmptyOutputIndex, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30,
+    Date, Day1, Day3, EmptyOutputIndex, Epoch, HOUR1_INTERVAL, HOUR4_INTERVAL, HOUR12_INTERVAL,
+    Halving, Hour1, Hour4, Hour12, MINUTE10_INTERVAL, MINUTE30_INTERVAL, Minute10, Minute30,
     Month1, Month3, Month6, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
     P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
     P2WSHAddressIndex, TxInIndex, TxOutIndex, UnknownOutputIndex, Week1, Year1, Year10,
-    hour1::HOUR1_INTERVAL, hour4::HOUR4_INTERVAL, hour12::HOUR12_INTERVAL,
-    minute10::MINUTE10_INTERVAL, minute30::MINUTE30_INTERVAL,
 };
 
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
@@ -319,14 +321,15 @@ impl Index {
 impl TryFrom<&str> for Index {
     type Error = Error;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let v = value.to_lowercase();
-        let v = v.as_str();
-        for idx in Self::all() {
-            if idx.possible_values().contains(&v) {
-                return Ok(idx);
-            }
-        }
-        Err(Error::Parse(format!("Invalid index: {value}")))
+        Self::all()
+            .into_iter()
+            .find(|index| {
+                index
+                    .possible_values()
+                    .iter()
+                    .any(|alias| alias.eq_ignore_ascii_case(value))
+            })
+            .ok_or_else(|| Error::Parse(format!("Invalid index: {value}")))
     }
 }
 
@@ -341,7 +344,23 @@ impl<'de> Deserialize<'de> for Index {
     where
         D: Deserializer<'de>,
     {
-        let str = String::deserialize(deserializer)?;
-        Index::try_from(str.as_str()).map_err(DeError::custom)
+        struct IndexVisitor;
+
+        impl Visitor<'_> for IndexVisitor {
+            type Value = Index;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("an index name")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: DeError,
+            {
+                Index::try_from(v).map_err(E::custom)
+            }
+        }
+
+        deserializer.deserialize_str(IndexVisitor)
     }
 }

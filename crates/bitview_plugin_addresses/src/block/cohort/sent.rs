@@ -1,6 +1,5 @@
 use bitview_cohort::AmountRangeId;
 use bitview_primitives::TypeIndex;
-use brk_error::Result;
 use brk_types::{Cents, CentsSats, OutputType, Sats};
 
 use super::{super::cache::AddrTypeLookup, transfer_address_cache::TransferAddressCache};
@@ -18,7 +17,7 @@ pub fn process_sent(
     output_type: OutputType,
     mut metrics: Option<&mut MemberState>,
     addresses: &mut TransferAddressCache,
-) -> Result<()> {
+) {
     for group in spends.chunk_by(|a, b| a.0 == b.0) {
         let type_index = group[0].0;
         let (mut is_first_encounter, also_received) = addresses.observe_send(type_index);
@@ -29,7 +28,7 @@ pub fn process_sent(
             let prev_balance = addr_data.balance();
             let will_be_empty = addr_data.has_1_utxos();
             let prev_bucket = AmountRangeId::from(prev_balance);
-            cohorts.send(prev_bucket, addr_data, value, current_price, prev_price)?;
+            cohorts.send(prev_bucket, addr_data, value, current_price, prev_price);
             let new_bucket = AmountRangeId::from(addr_data.balance());
             let crossing_boundary = prev_bucket != new_bucket;
             if let Some(metrics) = metrics.as_deref_mut() {
@@ -56,7 +55,6 @@ pub fn process_sent(
             }
         }
     }
-    Ok(())
 }
 
 /// Removes an output that left the set without a spend (a BIP30-overwritten coinbase): the

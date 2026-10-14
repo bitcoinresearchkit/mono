@@ -55,8 +55,7 @@ fn serialize_fee_histogram<S: Serializer>(
     map: &BTreeMap<FeeRate, VSize>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
-    let vec: Vec<(FeeRate, VSize)> = map.iter().rev().map(|(&r, &v)| (r, v)).collect();
-    vec.serialize(serializer)
+    serializer.collect_seq(map.iter().rev())
 }
 
 fn deserialize_fee_histogram<'de, D: Deserializer<'de>>(

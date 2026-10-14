@@ -9,7 +9,6 @@ use crate::{IndexSources, LazyPerBlock, LazyRollingAvgAmountFromHeight, LazyRoll
 
 /// Lazy rolling averages for all 4 windows, as mean sats/cents with BTC/USD views.
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyRollingAvgsAmountFromHeight(
     /// Arithmetic mean of the per-block values over the trailing window ending
     /// at the represented block; each block has equal weight. At time-period

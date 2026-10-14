@@ -9,7 +9,6 @@ use crate::{IndexSources, LazyPerBlock, PerBlock, Price};
 
 /// The block-level spot price: stored cents, lazy USD.
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct SpotPrice<M: StorageMode = Rw>(pub Price<PerBlock<Cents, M>>);
 
 impl SpotPrice {

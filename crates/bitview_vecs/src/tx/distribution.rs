@@ -25,7 +25,6 @@ const EDGE_SHARE: f64 = 0.02;
 
 /// Per-block distributions of a per-transaction value, statistic first, ids `{name}_{stat}`.
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct TxDistribution<T, M: StorageMode = Rw>(pub DistributionStats<PerBlock<T, M>>)
 where
     T: ComputedVecValue + PartialOrd + JsonSchema;

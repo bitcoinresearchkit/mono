@@ -9,7 +9,7 @@ repository.workspace = true
 
 [features]
 default = []
-storage = ["dep:vecdb", "brk_types/storage"]
+storage = ["dep:rayon", "dep:vecdb", "brk_types/storage"]
 
 [dependencies]
 bitcoin = { workspace = true }
@@ -19,6 +19,7 @@ derive_more = { workspace = true }
 itoa = { workspace = true }
 jiff = { workspace = true }
 rapidhash = { workspace = true }
+rayon = { workspace = true, optional = true }
 rustc-hash = { workspace = true }
 ryu = { workspace = true }
 schemars = { workspace = true }

@@ -66,7 +66,7 @@ RawLockTime = int
 # BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
 # one. Sums over many transactions or blocks use the full 64 bits.
 SigOps = int
-# Index of the output being spent in the previous transaction
+# Index of the output being spent in the previous transaction (coinbase inputs: 4294967295)
 Vout = int
 # Transaction witness: a stack of byte arrays, one per witness item.
 #
@@ -407,7 +407,7 @@ class AddressValidation(_AddressValidationRequired, total=False):
         scriptPubKey: The scriptPubKey in hex
         isscript: Whether this is a script address (P2SH)
         iswitness: Whether this is a witness address
-        witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR)
+        witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
         witness_program: Witness program in hex
         error_locations: Error locations (empty array for most errors)
         error: Error message for invalid addresses
@@ -770,19 +770,17 @@ class _TxInRequired(TypedDict):
 
 class TxIn(_TxInRequired, total=False):
     """
-    Transaction input
-
     Attributes:
         txid: Transaction ID of the output being spent
-        vout: Output index being spent (u16: coinbase is 65535, mempool.space uses u32: 4294967295)
+        vout: Output index being spent (coinbase: 4294967295)
         prevout: Information about the previous output being spent
         scriptsig: Signature script (hex, for non-SegWit inputs)
         scriptsig_asm: Signature script in assembly format
         witness: Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
         is_coinbase: Whether this input is a coinbase (block reward) input
         sequence: Input sequence number
-        inner_redeemscript_asm: Inner redeemscript in assembly (for P2SH-wrapped SegWit: scriptsig + witness both present)
-        inner_witnessscript_asm: Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
+        inner_redeemscript_asm: Inner redeemscript in assembly (P2SH inputs)
+        inner_witnessscript_asm: Inner witnessscript in assembly (P2WSH and P2SH-P2WSH: the witness script; P2TR script path: the leaf script)
     """
     witness: Witness
     inner_redeemscript_asm: str
@@ -1255,7 +1253,7 @@ class OptionalTimestampParam(TypedDict, total=False):
 class OutPoint(TypedDict):
     """
     The output a transaction input spends: its transaction index and output position, written as
-    `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 65535}`).
+    `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 4294967295}`).
     """
     tx_index: TxIndex
     vout: Vout
@@ -3763,7 +3761,7 @@ class Sum(_Node):
     _1y: AvgBalance = _at(AvgBalance, '*_1y')
 
 
-class AaopoolRewards(_Node):
+class Pools175btcRewards(_Node):
     cumulative: AvgBalance = _at(AvgBalance, '*_cumulative')
     sum: Sum = _at(Sum, '*_sum')
 
@@ -3958,182 +3956,182 @@ class BlocksMined(_Node):
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_sum')
 
 
-class Aaopool(_Node):
+class Pools175btc(_Node):
     blocks_mined: BlocksMined = _at(BlocksMined, '*_blocks_mined')
     share: ChainShare = _at(ChainShare, '*_share')
-    rewards: AaopoolRewards = _at(AaopoolRewards, '*_rewards')
+    rewards: Pools175btcRewards = _at(Pools175btcRewards, '*_rewards')
     fees_per_block: Sum = _at(Sum, '*_fees_per_block')
     hashrate: InputsPerSecond[Optional[Hashrate]] = _at(InputsPerSecond, '*_hashrate')
 
 
 class Pools(_Node):
     pool: SeriesPattern18[PoolSlug] = _at(SeriesPattern18, '*')
-    unknown: Aaopool = _at(Aaopool, 'unknown')
-    blockfills: Aaopool = _at(Aaopool, 'blockfills')
-    ultimuspool: Aaopool = _at(Aaopool, 'ultimuspool')
-    terrapool: Aaopool = _at(Aaopool, 'terrapool')
-    luxor: Aaopool = _at(Aaopool, 'luxor')
-    onethash: Aaopool = _at(Aaopool, 'onethash')
-    btccom: Aaopool = _at(Aaopool, 'btccom')
-    bitfarms: Aaopool = _at(Aaopool, 'bitfarms')
-    huobipool: Aaopool = _at(Aaopool, 'huobipool')
-    wayicn: Aaopool = _at(Aaopool, 'wayicn')
-    canoepool: Aaopool = _at(Aaopool, 'canoepool')
-    btctop: Aaopool = _at(Aaopool, 'btctop')
-    bitcoincom: Aaopool = _at(Aaopool, 'bitcoincom')
-    pool175btc: Aaopool = _at(Aaopool, 'pool175btc')
-    gbminers: Aaopool = _at(Aaopool, 'gbminers')
-    axbt: Aaopool = _at(Aaopool, 'axbt')
-    asicminer: Aaopool = _at(Aaopool, 'asicminer')
-    bitminter: Aaopool = _at(Aaopool, 'bitminter')
-    bitcoinrussia: Aaopool = _at(Aaopool, 'bitcoinrussia')
-    btcserv: Aaopool = _at(Aaopool, 'btcserv')
-    simplecoinus: Aaopool = _at(Aaopool, 'simplecoinus')
-    btcguild: Aaopool = _at(Aaopool, 'btcguild')
-    eligius: Aaopool = _at(Aaopool, 'eligius')
-    ozcoin: Aaopool = _at(Aaopool, 'ozcoin')
-    eclipsemc: Aaopool = _at(Aaopool, 'eclipsemc')
-    maxbtc: Aaopool = _at(Aaopool, 'maxbtc')
-    triplemining: Aaopool = _at(Aaopool, 'triplemining')
-    coinlab: Aaopool = _at(Aaopool, 'coinlab')
-    pool50btc: Aaopool = _at(Aaopool, 'pool50btc')
-    ghashio: Aaopool = _at(Aaopool, 'ghashio')
-    stminingcorp: Aaopool = _at(Aaopool, 'stminingcorp')
-    bitparking: Aaopool = _at(Aaopool, 'bitparking')
-    mmpool: Aaopool = _at(Aaopool, 'mmpool')
-    polmine: Aaopool = _at(Aaopool, 'polmine')
-    kncminer: Aaopool = _at(Aaopool, 'kncminer')
-    bitalo: Aaopool = _at(Aaopool, 'bitalo')
-    f2pool: Aaopool = _at(Aaopool, 'f2pool')
-    hhtt: Aaopool = _at(Aaopool, 'hhtt')
-    megabigpower: Aaopool = _at(Aaopool, 'megabigpower')
-    mtred: Aaopool = _at(Aaopool, 'mtred')
-    nmcbit: Aaopool = _at(Aaopool, 'nmcbit')
-    yourbtcnet: Aaopool = _at(Aaopool, 'yourbtcnet')
-    givemecoins: Aaopool = _at(Aaopool, 'givemecoins')
-    braiinspool: Aaopool = _at(Aaopool, 'braiinspool')
-    antpool: Aaopool = _at(Aaopool, 'antpool')
-    multicoinco: Aaopool = _at(Aaopool, 'multicoinco')
-    bcpoolio: Aaopool = _at(Aaopool, 'bcpoolio')
-    cointerra: Aaopool = _at(Aaopool, 'cointerra')
-    kanopool: Aaopool = _at(Aaopool, 'kanopool')
-    solock: Aaopool = _at(Aaopool, 'solock')
-    ckpool: Aaopool = _at(Aaopool, 'ckpool')
-    nicehash: Aaopool = _at(Aaopool, 'nicehash')
-    bitclub: Aaopool = _at(Aaopool, 'bitclub')
-    bitcoinaffiliatenetwork: Aaopool = _at(Aaopool, 'bitcoinaffiliatenetwork')
-    btcc: Aaopool = _at(Aaopool, 'btcc')
-    bwpool: Aaopool = _at(Aaopool, 'bwpool')
-    exxbw: Aaopool = _at(Aaopool, 'exxbw')
-    bitsolo: Aaopool = _at(Aaopool, 'bitsolo')
-    bitfury: Aaopool = _at(Aaopool, 'bitfury')
-    twentyoneinc: Aaopool = _at(Aaopool, 'twentyoneinc')
-    digitalbtc: Aaopool = _at(Aaopool, 'digitalbtc')
-    eightbaochi: Aaopool = _at(Aaopool, 'eightbaochi')
-    mybtccoinpool: Aaopool = _at(Aaopool, 'mybtccoinpool')
-    tbdice: Aaopool = _at(Aaopool, 'tbdice')
-    hashpool: Aaopool = _at(Aaopool, 'hashpool')
-    nexious: Aaopool = _at(Aaopool, 'nexious')
-    bravomining: Aaopool = _at(Aaopool, 'bravomining')
-    hotpool: Aaopool = _at(Aaopool, 'hotpool')
-    okexpool: Aaopool = _at(Aaopool, 'okexpool')
-    bcmonster: Aaopool = _at(Aaopool, 'bcmonster')
-    onehash: Aaopool = _at(Aaopool, 'onehash')
-    bixin: Aaopool = _at(Aaopool, 'bixin')
-    tatmaspool: Aaopool = _at(Aaopool, 'tatmaspool')
-    viabtc: Aaopool = _at(Aaopool, 'viabtc')
-    connectbtc: Aaopool = _at(Aaopool, 'connectbtc')
-    batpool: Aaopool = _at(Aaopool, 'batpool')
-    waterhole: Aaopool = _at(Aaopool, 'waterhole')
-    dcexploration: Aaopool = _at(Aaopool, 'dcexploration')
-    dcex: Aaopool = _at(Aaopool, 'dcex')
-    btpool: Aaopool = _at(Aaopool, 'btpool')
-    fiftyeightcoin: Aaopool = _at(Aaopool, 'fiftyeightcoin')
-    bitcoinindia: Aaopool = _at(Aaopool, 'bitcoinindia')
-    shawnp0wers: Aaopool = _at(Aaopool, 'shawnp0wers')
-    phashio: Aaopool = _at(Aaopool, 'phashio')
-    rigpool: Aaopool = _at(Aaopool, 'rigpool')
-    haozhuzhu: Aaopool = _at(Aaopool, 'haozhuzhu')
-    sevenpool: Aaopool = _at(Aaopool, 'sevenpool')
-    miningkings: Aaopool = _at(Aaopool, 'miningkings')
-    hashbx: Aaopool = _at(Aaopool, 'hashbx')
-    dpool: Aaopool = _at(Aaopool, 'dpool')
-    rawpool: Aaopool = _at(Aaopool, 'rawpool')
-    haominer: Aaopool = _at(Aaopool, 'haominer')
-    helix: Aaopool = _at(Aaopool, 'helix')
-    bitcoinukraine: Aaopool = _at(Aaopool, 'bitcoinukraine')
-    poolin: Aaopool = _at(Aaopool, 'poolin')
-    secretsuperstar: Aaopool = _at(Aaopool, 'secretsuperstar')
-    tigerpoolnet: Aaopool = _at(Aaopool, 'tigerpoolnet')
-    sigmapoolcom: Aaopool = _at(Aaopool, 'sigmapoolcom')
-    okpooltop: Aaopool = _at(Aaopool, 'okpooltop')
-    hummerpool: Aaopool = _at(Aaopool, 'hummerpool')
-    tangpool: Aaopool = _at(Aaopool, 'tangpool')
-    bytepool: Aaopool = _at(Aaopool, 'bytepool')
-    spiderpool: Aaopool = _at(Aaopool, 'spiderpool')
-    novablock: Aaopool = _at(Aaopool, 'novablock')
-    miningcity: Aaopool = _at(Aaopool, 'miningcity')
-    binancepool: Aaopool = _at(Aaopool, 'binancepool')
-    minerium: Aaopool = _at(Aaopool, 'minerium')
-    lubiancom: Aaopool = _at(Aaopool, 'lubiancom')
-    okkong: Aaopool = _at(Aaopool, 'okkong')
-    aaopool: Aaopool = _at(Aaopool, 'aaopool')
-    emcdpool: Aaopool = _at(Aaopool, 'emcdpool')
-    foundryusa: Aaopool = _at(Aaopool, 'foundryusa')
-    sbicrypto: Aaopool = _at(Aaopool, 'sbicrypto')
-    arkpool: Aaopool = _at(Aaopool, 'arkpool')
-    purebtccom: Aaopool = _at(Aaopool, 'purebtccom')
-    marapool: Aaopool = _at(Aaopool, 'marapool')
-    kucoinpool: Aaopool = _at(Aaopool, 'kucoinpool')
-    entrustcharitypool: Aaopool = _at(Aaopool, 'entrustcharitypool')
-    okminer: Aaopool = _at(Aaopool, 'okminer')
-    titan: Aaopool = _at(Aaopool, 'titan')
-    pegapool: Aaopool = _at(Aaopool, 'pegapool')
-    btcnuggets: Aaopool = _at(Aaopool, 'btcnuggets')
-    cloudhashing: Aaopool = _at(Aaopool, 'cloudhashing')
-    digitalxmintsy: Aaopool = _at(Aaopool, 'digitalxmintsy')
-    telco214: Aaopool = _at(Aaopool, 'telco214')
-    btcpoolparty: Aaopool = _at(Aaopool, 'btcpoolparty')
-    multipool: Aaopool = _at(Aaopool, 'multipool')
-    transactioncoinmining: Aaopool = _at(Aaopool, 'transactioncoinmining')
-    btcdig: Aaopool = _at(Aaopool, 'btcdig')
-    trickysbtcpool: Aaopool = _at(Aaopool, 'trickysbtcpool')
-    btcmp: Aaopool = _at(Aaopool, 'btcmp')
-    eobot: Aaopool = _at(Aaopool, 'eobot')
-    unomp: Aaopool = _at(Aaopool, 'unomp')
-    patels: Aaopool = _at(Aaopool, 'patels')
-    gogreenlight: Aaopool = _at(Aaopool, 'gogreenlight')
-    bitcoinindiapool: Aaopool = _at(Aaopool, 'bitcoinindiapool')
-    ekanembtc: Aaopool = _at(Aaopool, 'ekanembtc')
-    canoe: Aaopool = _at(Aaopool, 'canoe')
-    tiger: Aaopool = _at(Aaopool, 'tiger')
-    onem1x: Aaopool = _at(Aaopool, 'onem1x')
-    zulupool: Aaopool = _at(Aaopool, 'zulupool')
-    secpool: Aaopool = _at(Aaopool, 'secpool')
-    ocean: Aaopool = _at(Aaopool, 'ocean')
-    whitepool: Aaopool = _at(Aaopool, 'whitepool')
-    wiz: Aaopool = _at(Aaopool, 'wiz')
-    wk057: Aaopool = _at(Aaopool, 'wk057')
-    futurebitapollosolo: Aaopool = _at(Aaopool, 'futurebitapollosolo')
-    carbonnegative: Aaopool = _at(Aaopool, 'carbonnegative')
-    portlandhodl: Aaopool = _at(Aaopool, 'portlandhodl')
-    phoenix: Aaopool = _at(Aaopool, 'phoenix')
-    neopool: Aaopool = _at(Aaopool, 'neopool')
-    maxipool: Aaopool = _at(Aaopool, 'maxipool')
-    bitfufupool: Aaopool = _at(Aaopool, 'bitfufupool')
-    gdpool: Aaopool = _at(Aaopool, 'gdpool')
-    miningdutch: Aaopool = _at(Aaopool, 'miningdutch')
-    publicpool: Aaopool = _at(Aaopool, 'publicpool')
-    miningsquared: Aaopool = _at(Aaopool, 'miningsquared')
-    innopolistech: Aaopool = _at(Aaopool, 'innopolistech')
-    btclab: Aaopool = _at(Aaopool, 'btclab')
-    parasite: Aaopool = _at(Aaopool, 'parasite')
-    redrockpool: Aaopool = _at(Aaopool, 'redrockpool')
-    est3lar: Aaopool = _at(Aaopool, 'est3lar')
-    braiinssolo: Aaopool = _at(Aaopool, 'braiinssolo')
-    solopool: Aaopool = _at(Aaopool, 'solopool')
-    noderunners: Aaopool = _at(Aaopool, 'noderunners')
-    dmnd: Aaopool = _at(Aaopool, 'dmnd')
+    unknown: Pools175btc = _at(Pools175btc, 'unknown')
+    blockfills: Pools175btc = _at(Pools175btc, 'blockfills')
+    ultimuspool: Pools175btc = _at(Pools175btc, 'ultimuspool')
+    terrapool: Pools175btc = _at(Pools175btc, 'terrapool')
+    luxor: Pools175btc = _at(Pools175btc, 'luxor')
+    _1thash: Pools175btc = _at(Pools175btc, '1thash')
+    btccom: Pools175btc = _at(Pools175btc, 'btccom')
+    bitfarms: Pools175btc = _at(Pools175btc, 'bitfarms')
+    huobipool: Pools175btc = _at(Pools175btc, 'huobipool')
+    wayicn: Pools175btc = _at(Pools175btc, 'wayicn')
+    canoepool: Pools175btc = _at(Pools175btc, 'canoepool')
+    btctop: Pools175btc = _at(Pools175btc, 'btctop')
+    bitcoincom: Pools175btc = _at(Pools175btc, 'bitcoincom')
+    _175btc: Pools175btc = _at(Pools175btc, '175btc')
+    gbminers: Pools175btc = _at(Pools175btc, 'gbminers')
+    axbt: Pools175btc = _at(Pools175btc, 'axbt')
+    asicminer: Pools175btc = _at(Pools175btc, 'asicminer')
+    bitminter: Pools175btc = _at(Pools175btc, 'bitminter')
+    bitcoinrussia: Pools175btc = _at(Pools175btc, 'bitcoinrussia')
+    btcserv: Pools175btc = _at(Pools175btc, 'btcserv')
+    simplecoinus: Pools175btc = _at(Pools175btc, 'simplecoinus')
+    btcguild: Pools175btc = _at(Pools175btc, 'btcguild')
+    eligius: Pools175btc = _at(Pools175btc, 'eligius')
+    ozcoin: Pools175btc = _at(Pools175btc, 'ozcoin')
+    eclipsemc: Pools175btc = _at(Pools175btc, 'eclipsemc')
+    maxbtc: Pools175btc = _at(Pools175btc, 'maxbtc')
+    triplemining: Pools175btc = _at(Pools175btc, 'triplemining')
+    coinlab: Pools175btc = _at(Pools175btc, 'coinlab')
+    _50btc: Pools175btc = _at(Pools175btc, '50btc')
+    ghashio: Pools175btc = _at(Pools175btc, 'ghashio')
+    stminingcorp: Pools175btc = _at(Pools175btc, 'stminingcorp')
+    bitparking: Pools175btc = _at(Pools175btc, 'bitparking')
+    mmpool: Pools175btc = _at(Pools175btc, 'mmpool')
+    polmine: Pools175btc = _at(Pools175btc, 'polmine')
+    kncminer: Pools175btc = _at(Pools175btc, 'kncminer')
+    bitalo: Pools175btc = _at(Pools175btc, 'bitalo')
+    f2pool: Pools175btc = _at(Pools175btc, 'f2pool')
+    hhtt: Pools175btc = _at(Pools175btc, 'hhtt')
+    megabigpower: Pools175btc = _at(Pools175btc, 'megabigpower')
+    mtred: Pools175btc = _at(Pools175btc, 'mtred')
+    nmcbit: Pools175btc = _at(Pools175btc, 'nmcbit')
+    yourbtcnet: Pools175btc = _at(Pools175btc, 'yourbtcnet')
+    givemecoins: Pools175btc = _at(Pools175btc, 'givemecoins')
+    braiinspool: Pools175btc = _at(Pools175btc, 'braiinspool')
+    antpool: Pools175btc = _at(Pools175btc, 'antpool')
+    multicoinco: Pools175btc = _at(Pools175btc, 'multicoinco')
+    bcpoolio: Pools175btc = _at(Pools175btc, 'bcpoolio')
+    cointerra: Pools175btc = _at(Pools175btc, 'cointerra')
+    kanopool: Pools175btc = _at(Pools175btc, 'kanopool')
+    solock: Pools175btc = _at(Pools175btc, 'solock')
+    ckpool: Pools175btc = _at(Pools175btc, 'ckpool')
+    nicehash: Pools175btc = _at(Pools175btc, 'nicehash')
+    bitclub: Pools175btc = _at(Pools175btc, 'bitclub')
+    bitcoinaffiliatenetwork: Pools175btc = _at(Pools175btc, 'bitcoinaffiliatenetwork')
+    btcc: Pools175btc = _at(Pools175btc, 'btcc')
+    bwpool: Pools175btc = _at(Pools175btc, 'bwpool')
+    exxbw: Pools175btc = _at(Pools175btc, 'exxbw')
+    bitsolo: Pools175btc = _at(Pools175btc, 'bitsolo')
+    bitfury: Pools175btc = _at(Pools175btc, 'bitfury')
+    _21inc: Pools175btc = _at(Pools175btc, '21inc')
+    digitalbtc: Pools175btc = _at(Pools175btc, 'digitalbtc')
+    _8baochi: Pools175btc = _at(Pools175btc, '8baochi')
+    mybtccoinpool: Pools175btc = _at(Pools175btc, 'mybtccoinpool')
+    tbdice: Pools175btc = _at(Pools175btc, 'tbdice')
+    hashpool: Pools175btc = _at(Pools175btc, 'hashpool')
+    nexious: Pools175btc = _at(Pools175btc, 'nexious')
+    bravomining: Pools175btc = _at(Pools175btc, 'bravomining')
+    hotpool: Pools175btc = _at(Pools175btc, 'hotpool')
+    okexpool: Pools175btc = _at(Pools175btc, 'okexpool')
+    bcmonster: Pools175btc = _at(Pools175btc, 'bcmonster')
+    _1hash: Pools175btc = _at(Pools175btc, '1hash')
+    bixin: Pools175btc = _at(Pools175btc, 'bixin')
+    tatmaspool: Pools175btc = _at(Pools175btc, 'tatmaspool')
+    viabtc: Pools175btc = _at(Pools175btc, 'viabtc')
+    connectbtc: Pools175btc = _at(Pools175btc, 'connectbtc')
+    batpool: Pools175btc = _at(Pools175btc, 'batpool')
+    waterhole: Pools175btc = _at(Pools175btc, 'waterhole')
+    dcexploration: Pools175btc = _at(Pools175btc, 'dcexploration')
+    dcex: Pools175btc = _at(Pools175btc, 'dcex')
+    btpool: Pools175btc = _at(Pools175btc, 'btpool')
+    _58coin: Pools175btc = _at(Pools175btc, '58coin')
+    bitcoinindia: Pools175btc = _at(Pools175btc, 'bitcoinindia')
+    shawnp0wers: Pools175btc = _at(Pools175btc, 'shawnp0wers')
+    phashio: Pools175btc = _at(Pools175btc, 'phashio')
+    rigpool: Pools175btc = _at(Pools175btc, 'rigpool')
+    haozhuzhu: Pools175btc = _at(Pools175btc, 'haozhuzhu')
+    _7pool: Pools175btc = _at(Pools175btc, '7pool')
+    miningkings: Pools175btc = _at(Pools175btc, 'miningkings')
+    hashbx: Pools175btc = _at(Pools175btc, 'hashbx')
+    dpool: Pools175btc = _at(Pools175btc, 'dpool')
+    rawpool: Pools175btc = _at(Pools175btc, 'rawpool')
+    haominer: Pools175btc = _at(Pools175btc, 'haominer')
+    helix: Pools175btc = _at(Pools175btc, 'helix')
+    bitcoinukraine: Pools175btc = _at(Pools175btc, 'bitcoinukraine')
+    poolin: Pools175btc = _at(Pools175btc, 'poolin')
+    secretsuperstar: Pools175btc = _at(Pools175btc, 'secretsuperstar')
+    tigerpoolnet: Pools175btc = _at(Pools175btc, 'tigerpoolnet')
+    sigmapoolcom: Pools175btc = _at(Pools175btc, 'sigmapoolcom')
+    okpooltop: Pools175btc = _at(Pools175btc, 'okpooltop')
+    hummerpool: Pools175btc = _at(Pools175btc, 'hummerpool')
+    tangpool: Pools175btc = _at(Pools175btc, 'tangpool')
+    bytepool: Pools175btc = _at(Pools175btc, 'bytepool')
+    spiderpool: Pools175btc = _at(Pools175btc, 'spiderpool')
+    novablock: Pools175btc = _at(Pools175btc, 'novablock')
+    miningcity: Pools175btc = _at(Pools175btc, 'miningcity')
+    binancepool: Pools175btc = _at(Pools175btc, 'binancepool')
+    minerium: Pools175btc = _at(Pools175btc, 'minerium')
+    lubiancom: Pools175btc = _at(Pools175btc, 'lubiancom')
+    okkong: Pools175btc = _at(Pools175btc, 'okkong')
+    aaopool: Pools175btc = _at(Pools175btc, 'aaopool')
+    emcdpool: Pools175btc = _at(Pools175btc, 'emcdpool')
+    foundryusa: Pools175btc = _at(Pools175btc, 'foundryusa')
+    sbicrypto: Pools175btc = _at(Pools175btc, 'sbicrypto')
+    arkpool: Pools175btc = _at(Pools175btc, 'arkpool')
+    purebtccom: Pools175btc = _at(Pools175btc, 'purebtccom')
+    marapool: Pools175btc = _at(Pools175btc, 'marapool')
+    kucoinpool: Pools175btc = _at(Pools175btc, 'kucoinpool')
+    entrustcharitypool: Pools175btc = _at(Pools175btc, 'entrustcharitypool')
+    okminer: Pools175btc = _at(Pools175btc, 'okminer')
+    titan: Pools175btc = _at(Pools175btc, 'titan')
+    pegapool: Pools175btc = _at(Pools175btc, 'pegapool')
+    btcnuggets: Pools175btc = _at(Pools175btc, 'btcnuggets')
+    cloudhashing: Pools175btc = _at(Pools175btc, 'cloudhashing')
+    digitalxmintsy: Pools175btc = _at(Pools175btc, 'digitalxmintsy')
+    telco214: Pools175btc = _at(Pools175btc, 'telco214')
+    btcpoolparty: Pools175btc = _at(Pools175btc, 'btcpoolparty')
+    multipool: Pools175btc = _at(Pools175btc, 'multipool')
+    transactioncoinmining: Pools175btc = _at(Pools175btc, 'transactioncoinmining')
+    btcdig: Pools175btc = _at(Pools175btc, 'btcdig')
+    trickysbtcpool: Pools175btc = _at(Pools175btc, 'trickysbtcpool')
+    btcmp: Pools175btc = _at(Pools175btc, 'btcmp')
+    eobot: Pools175btc = _at(Pools175btc, 'eobot')
+    unomp: Pools175btc = _at(Pools175btc, 'unomp')
+    patels: Pools175btc = _at(Pools175btc, 'patels')
+    gogreenlight: Pools175btc = _at(Pools175btc, 'gogreenlight')
+    bitcoinindiapool: Pools175btc = _at(Pools175btc, 'bitcoinindiapool')
+    ekanembtc: Pools175btc = _at(Pools175btc, 'ekanembtc')
+    canoe: Pools175btc = _at(Pools175btc, 'canoe')
+    tiger: Pools175btc = _at(Pools175btc, 'tiger')
+    _1m1x: Pools175btc = _at(Pools175btc, '1m1x')
+    zulupool: Pools175btc = _at(Pools175btc, 'zulupool')
+    secpool: Pools175btc = _at(Pools175btc, 'secpool')
+    ocean: Pools175btc = _at(Pools175btc, 'ocean')
+    whitepool: Pools175btc = _at(Pools175btc, 'whitepool')
+    wiz: Pools175btc = _at(Pools175btc, 'wiz')
+    wk057: Pools175btc = _at(Pools175btc, 'wk057')
+    futurebitapollosolo: Pools175btc = _at(Pools175btc, 'futurebitapollosolo')
+    carbonnegative: Pools175btc = _at(Pools175btc, 'carbonnegative')
+    portlandhodl: Pools175btc = _at(Pools175btc, 'portlandhodl')
+    phoenix: Pools175btc = _at(Pools175btc, 'phoenix')
+    neopool: Pools175btc = _at(Pools175btc, 'neopool')
+    maxipool: Pools175btc = _at(Pools175btc, 'maxipool')
+    bitfufupool: Pools175btc = _at(Pools175btc, 'bitfufupool')
+    gdpool: Pools175btc = _at(Pools175btc, 'gdpool')
+    miningdutch: Pools175btc = _at(Pools175btc, 'miningdutch')
+    publicpool: Pools175btc = _at(Pools175btc, 'publicpool')
+    miningsquared: Pools175btc = _at(Pools175btc, 'miningsquared')
+    innopolistech: Pools175btc = _at(Pools175btc, 'innopolistech')
+    btclab: Pools175btc = _at(Pools175btc, 'btclab')
+    parasite: Pools175btc = _at(Pools175btc, 'parasite')
+    redrockpool: Pools175btc = _at(Pools175btc, 'redrockpool')
+    est3lar: Pools175btc = _at(Pools175btc, 'est3lar')
+    braiinssolo: Pools175btc = _at(Pools175btc, 'braiinssolo')
+    solopoolcom: Pools175btc = _at(Pools175btc, 'solopoolcom')
+    noderunners: Pools175btc = _at(Pools175btc, 'noderunners')
+    dmnd: Pools175btc = _at(Pools175btc, 'dmnd')
 
 
 class DataBytes(_Node):
@@ -5146,6 +5144,15 @@ class BitviewClient(BitviewClientBase):
     ]
 
     POOL_ID_TO_POOL_NAME = {
+      "175btc": "175btc",
+      "1hash": "1Hash",
+      "1m1x": "1M1X",
+      "1thash": "1THash",
+      "21inc": "21 Inc.",
+      "50btc": "50BTC",
+      "58coin": "58COIN",
+      "7pool": "7pool",
+      "8baochi": "8baochi",
       "aaopool": "AAO Pool",
       "antpool": "AntPool",
       "arkpool": "ArkPool",
@@ -5202,7 +5209,6 @@ class BitviewClient(BitviewClientBase):
       "dmnd": "DMND",
       "dpool": "DPOOL",
       "eclipsemc": "EclipseMC",
-      "eightbaochi": "8baochi",
       "ekanembtc": "EkanemBTC",
       "eligius": "Eligius",
       "emcdpool": "EMCDPool",
@@ -5211,7 +5217,6 @@ class BitviewClient(BitviewClientBase):
       "est3lar": "Est3lar",
       "exxbw": "EXX&BW",
       "f2pool": "F2Pool",
-      "fiftyeightcoin": "58COIN",
       "foundryusa": "Foundry USA",
       "futurebitapollosolo": "FutureBit Apollo Solo",
       "gbminers": "GBMiners",
@@ -5259,9 +5264,6 @@ class BitviewClient(BitviewClientBase):
       "okkong": "OKKONG",
       "okminer": "OKMINER",
       "okpooltop": "okpool.top",
-      "onehash": "1Hash",
-      "onem1x": "1M1X",
-      "onethash": "1THash",
       "ozcoin": "OzCoin",
       "parasite": "Parasite",
       "patels": "Patels",
@@ -5269,8 +5271,6 @@ class BitviewClient(BitviewClientBase):
       "phashio": "PHash.IO",
       "phoenix": "Phoenix",
       "polmine": "Polmine",
-      "pool175btc": "175btc",
-      "pool50btc": "50BTC",
       "poolin": "Poolin",
       "portlandhodl": "Portland.HODL",
       "publicpool": "Public Pool",
@@ -5281,12 +5281,11 @@ class BitviewClient(BitviewClientBase):
       "sbicrypto": "SBI Crypto",
       "secpool": "SECPOOL",
       "secretsuperstar": "SecretSuperstar",
-      "sevenpool": "7pool",
       "shawnp0wers": "shawnp0wers",
       "sigmapoolcom": "Sigmapool.com",
       "simplecoinus": "simplecoin.us",
       "solock": "Solo CK",
-      "solopool": "SoloPool.com",
+      "solopoolcom": "SoloPool.com",
       "spiderpool": "SpiderPool",
       "stminingcorp": "ST Mining Corp",
       "tangpool": "Tangpool",
@@ -5300,7 +5299,6 @@ class BitviewClient(BitviewClientBase):
       "transactioncoinmining": "transactioncoinmining",
       "trickysbtcpool": "Tricky's BTC Pool",
       "triplemining": "TripleMining",
-      "twentyoneinc": "21 Inc.",
       "ultimuspool": "ULTIMUSPOOL",
       "unknown": "Unknown",
       "unomp": "UNOMP",

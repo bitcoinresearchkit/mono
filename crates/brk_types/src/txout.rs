@@ -10,7 +10,7 @@ use serde_json::json;
 
 #[cfg(feature = "schemars")]
 use crate::OutputTypeNormalized;
-use crate::{Address, AddressBytes, OutputType, Sats};
+use crate::{Address, AddressBytes, OutputType, Sats, bytes::DisplayStr};
 
 /// Transaction output
 #[derive(Debug, Clone, Deserialize)]
@@ -66,20 +66,12 @@ impl JsonSchema for TxOut {
 }
 
 impl TxOut {
-    fn addr(&self) -> Option<Address> {
-        Address::try_from(&self.script_pubkey).ok()
-    }
-
     pub fn addr_bytes(&self) -> Option<AddressBytes> {
         AddressBytes::try_from(&self.script_pubkey).ok()
     }
 
     pub fn type_(&self) -> OutputType {
         OutputType::from(&self.script_pubkey)
-    }
-
-    fn script_pubkey_asm(&self) -> String {
-        self.script_pubkey.to_asm_string()
     }
 }
 
@@ -119,11 +111,17 @@ impl Serialize for TxOut {
         S: Serializer,
     {
         let output_type = self.type_();
-        let addr = self.addr();
+        let addr = Address::try_from((&self.script_pubkey, output_type)).ok();
         let field_count = if addr.is_some() { 5 } else { 4 };
         let mut state = serializer.serialize_struct("TxOut", field_count)?;
-        state.serialize_field("scriptpubkey", &self.script_pubkey.to_hex_string())?;
-        state.serialize_field("scriptpubkey_asm", &self.script_pubkey_asm())?;
+        state.serialize_field(
+            "scriptpubkey",
+            &DisplayStr(format_args!("{:x}", self.script_pubkey)),
+        )?;
+        state.serialize_field(
+            "scriptpubkey_asm",
+            &DisplayStr(self.script_pubkey.as_script()),
+        )?;
         state.serialize_field("scriptpubkey_type", &output_type.normalized())?;
         if let Some(addr) = &addr {
             state.serialize_field("scriptpubkey_address", addr)?;

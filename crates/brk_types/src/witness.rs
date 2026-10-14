@@ -1,4 +1,4 @@
-use bitcoin::Witness as BitcoinWitness;
+use bitcoin::{Script, Witness as BitcoinWitness};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -22,19 +22,16 @@ impl Witness {
         self.0.is_empty()
     }
 
+    /// P2WSH witness script (BIP141): the last item.
     #[inline]
-    pub(crate) fn len(&self) -> usize {
-        self.0.len()
+    pub(crate) fn witness_script(&self) -> Option<&Script> {
+        self.0.witness_script()
     }
 
+    /// Taproot script-path leaf script (BIP341, annex-aware).
     #[inline]
-    pub(crate) fn last(&self) -> Option<&[u8]> {
-        self.0.last()
-    }
-
-    #[inline]
-    pub(crate) fn second_to_last(&self) -> Option<&[u8]> {
-        self.0.second_to_last()
+    pub(crate) fn taproot_leaf_script(&self) -> Option<&Script> {
+        self.0.taproot_leaf_script().map(|leaf| leaf.script)
     }
 }
 

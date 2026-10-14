@@ -7,6 +7,5 @@ use vecdb::{Rw, StorageMode};
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw>(
     /// Number of transactions, including the coinbase transaction.
-    #[traversable(flatten)]
     pub PerBlockFullFromCumulative<Count16, M>,
 );

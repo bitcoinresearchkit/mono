@@ -27,27 +27,20 @@ pub struct Bitcoin(f64);
 impl Add for Bitcoin {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        Self::from(Sats::from(self) + Sats::from(rhs))
+        Self(self.0 + rhs.0)
     }
 }
 
 impl AddAssign for Bitcoin {
     fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs
-    }
-}
-
-impl Mul for Bitcoin {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self::from(Sats::from(self) * Sats::from(rhs))
+        self.0 += rhs.0;
     }
 }
 
 impl Mul<usize> for Bitcoin {
     type Output = Self;
     fn mul(self, rhs: usize) -> Self::Output {
-        Self::from(Sats::from(self) * rhs)
+        Self(self.0 * rhs as f64)
     }
 }
 

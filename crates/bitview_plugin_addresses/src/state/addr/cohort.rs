@@ -1,6 +1,5 @@
 use bitview_cohort::{AmountRange, AmountRangeId};
 use bitview_primitives::{FundedAddressData, SupplyState};
-use brk_error::Result;
 use brk_types::{Cents, CentsSats, Sats};
 
 use super::{super::CohortState, super::MinimalRealizedState};
@@ -130,8 +129,8 @@ impl CohortLog {
         value: Sats,
         current_price: Cents,
         prev_price: Cents,
-    ) -> Result<()> {
-        let prev_ps = addr_data.send(value, prev_price)?;
+    ) {
+        let prev_ps = addr_data.send(value, prev_price);
         self.0.push((
             bucket,
             Change::Send {
@@ -140,7 +139,6 @@ impl CohortLog {
                 prev_ps,
             },
         ));
-        Ok(())
     }
 
     pub fn apply_to(&self, cohorts: &mut AmountRange<AddrCohortState>) {

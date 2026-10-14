@@ -165,7 +165,7 @@ impl From<Sats> for SatsSigned {
 impl From<Bitcoin> for SatsSigned {
     #[inline]
     fn from(value: Bitcoin) -> Self {
-        Self::from(Sats::from(value))
+        Self((f64::from(value) * Sats::ONE_BTC_U64 as f64).round() as i64)
     }
 }
 

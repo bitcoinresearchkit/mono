@@ -89,12 +89,6 @@ impl FeeRate {
         }
     }
 
-    /// Values are canonical milli-sat/vB already.
-    #[inline]
-    pub const fn round_milli(self) -> Self {
-        self
-    }
-
     /// Arithmetic mean rounded to the nearest milli-sat/vB.
     #[inline]
     pub fn mean(a: Self, b: Self) -> Self {

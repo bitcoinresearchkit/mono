@@ -4,6 +4,7 @@ use std::{
 };
 
 use brk_types::{CheckedSub, StoreValue};
+use derive_more::{Deref, DerefMut};
 use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -12,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use vecdb::CheckedSub as VecdbCheckedSub;
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
 /// Index within its type (e.g., 0 for first P2WPKH address)
 #[derive(
@@ -149,5 +150,196 @@ impl Formattable for TypeIndex {
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut b = Buffer::new();
         buf.extend_from_slice(b.format(self.0).as_bytes());
+    }
+}
+
+/// A [`TypeIndex`] newtype for one script type's entities, with its `Index` name, aliases and
+/// initial vec capacity.
+macro_rules! typed_index {
+    ($(#[$meta:meta])* $name:ident, $index_name:literal, [$($alias:literal),+], $capacity:expr) => {
+        $(#[$meta])*
+        #[derive(
+            Debug,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Clone,
+            Copy,
+            Deref,
+            DerefMut,
+            Default,
+            Serialize,
+            Deserialize,
+            JsonSchema,
+        )]
+        #[cfg_attr(feature = "storage", derive(Pco))]
+        pub struct $name(TypeIndex);
+
+        impl From<TypeIndex> for $name {
+            #[inline]
+            fn from(value: TypeIndex) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<$name> for TypeIndex {
+            #[inline]
+            fn from(value: $name) -> Self {
+                value.0
+            }
+        }
+
+        impl From<u32> for $name {
+            #[inline]
+            fn from(value: u32) -> Self {
+                Self(TypeIndex::from(value))
+            }
+        }
+
+        impl From<$name> for u32 {
+            #[inline]
+            fn from(value: $name) -> Self {
+                Self::from(value.0)
+            }
+        }
+
+        impl From<usize> for $name {
+            #[inline]
+            fn from(value: usize) -> Self {
+                Self(TypeIndex::from(value))
+            }
+        }
+
+        impl From<$name> for usize {
+            #[inline]
+            fn from(value: $name) -> Self {
+                Self::from(value.0)
+            }
+        }
+
+        impl From<$name> for u64 {
+            #[inline]
+            fn from(value: $name) -> Self {
+                Self::from(value.0)
+            }
+        }
+
+        impl Add<usize> for $name {
+            type Output = Self;
+            #[inline]
+            fn add(self, rhs: usize) -> Self::Output {
+                Self(self.0 + rhs)
+            }
+        }
+
+        impl CheckedSub for $name {
+            #[inline]
+            fn checked_sub(self, rhs: Self) -> Option<Self> {
+                CheckedSub::checked_sub(self.0, rhs.0).map(Self)
+            }
+        }
+
+        #[cfg(feature = "storage")]
+        impl VecdbCheckedSub for $name {
+            #[inline]
+            fn checked_sub(self, rhs: Self) -> Option<Self> {
+                CheckedSub::checked_sub(self, rhs)
+            }
+        }
+
+        impl $name {
+            pub(crate) fn index_name() -> &'static str {
+                $index_name
+            }
+            pub(crate) fn index_aliases() -> &'static [&'static str] {
+                &[$($alias),+]
+            }
+        }
+
+        #[cfg(feature = "storage")]
+        impl PrintableIndex for $name {
+            fn to_string() -> &'static str {
+                Self::index_name()
+            }
+            fn to_possible_strings() -> &'static [&'static str] {
+                Self::index_aliases()
+            }
+        }
+
+        #[cfg(feature = "storage")]
+        impl VecIndex for $name {
+            const INITIAL_CAPACITY: usize = $capacity;
+        }
+
+        impl Display for $name {
+            fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+                self.0.fmt(f)
+            }
+        }
+
+        #[cfg(feature = "storage")]
+        impl Formattable for $name {
+            #[inline(always)]
+            fn write_to(&self, buf: &mut Vec<u8>) {
+                self.0.write_to(buf);
+            }
+        }
+    };
+}
+
+typed_index!(
+    /// Index of a P2PK address with an uncompressed (65-byte) public key.
+    P2PK65AddressIndex, "p2pk65_address_index", ["pk65addr", "p2pk65addr", "p2pk65_address_index"], 250_000
+);
+typed_index!(
+    /// Index of a P2PK address with a compressed (33-byte) public key.
+    P2PK33AddressIndex, "p2pk33_address_index", ["pk33addr", "p2pk33addr", "p2pk33_address_index"], 40_000
+);
+typed_index!(
+    /// Index of a P2PKH address.
+    P2PKHAddressIndex, "p2pkh_address_index", ["pkhaddr", "p2pkhaddr", "p2pkh_address_index"], 750_000_000
+);
+typed_index!(
+    /// Index of a P2SH address.
+    P2SHAddressIndex, "p2sh_address_index", ["shaddr", "p2shaddr", "p2sh_address_index"], 500_000_000
+);
+typed_index!(
+    /// Index of a P2WPKH address.
+    P2WPKHAddressIndex, "p2wpkh_address_index", ["wpkhaddr", "p2wpkhaddr", "p2wpkh_address_index"], 500_000_000
+);
+typed_index!(
+    /// Index of a P2WSH address.
+    P2WSHAddressIndex, "p2wsh_address_index", ["wshaddr", "p2wshaddr", "p2wsh_address_index"], 50_000_000
+);
+typed_index!(
+    /// Index of a P2TR (taproot) address.
+    P2TRAddressIndex, "p2tr_address_index", ["traddr", "p2traddr", "p2tr_address_index"], 100_000_000
+);
+typed_index!(
+    /// Index of a P2A (pay-to-anchor) address.
+    P2AAddressIndex, "p2a_address_index", ["aaddr", "p2aaddr", "p2a_address_index"], 1_000_000
+);
+typed_index!(
+    /// Index of a P2MS (bare multisig) output.
+    P2MSOutputIndex, "p2ms_output_index", ["msout", "p2msout", "p2ms_output_index"], 4_000_000
+);
+typed_index!(
+    /// Index of an OP_RETURN output.
+    OpReturnIndex, "op_return_index", ["op", "opreturn", "op_return", "op_return_index"], 0
+);
+typed_index!(
+    /// Index of an output with an empty script.
+    EmptyOutputIndex, "empty_output_index", ["emptyout", "empty_output_index"], 0
+);
+typed_index!(
+    /// Index of an output with an unrecognized script.
+    UnknownOutputIndex, "unknown_output_index", ["unknownout", "unknown_output_index"], 200_000
+);
+
+impl From<u64> for P2SHAddressIndex {
+    #[inline]
+    fn from(value: u64) -> Self {
+        Self(TypeIndex::from(value))
     }
 }

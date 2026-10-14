@@ -15,7 +15,6 @@ use crate::{IndexSources, LazyPerBlock, PerBlock};
 
 /// Fixed-point storage and its one public view, as a percentage.
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct PercentPerBlock<B: FixedRatio, M: StorageMode = Rw>(
     pub PercentViews<PerBlock<B, M>, LazyPerBlock<Percent, B>>,
 );

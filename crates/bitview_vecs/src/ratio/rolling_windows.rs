@@ -9,7 +9,6 @@ use vecdb::{Database, Rw, StorageMode};
 use crate::{IndexSources, RatioPerBlock};
 
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct RatioRollingWindows<R: FixedRatio, M: StorageMode = Rw>(
     pub Windows<RatioPerBlock<R, M>>,
 );

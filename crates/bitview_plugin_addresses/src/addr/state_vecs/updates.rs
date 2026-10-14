@@ -1,6 +1,5 @@
-use bitview_cohort::ByAddrType;
 use bitview_primitives::{
-    AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
+    AddressState, ByAddrType, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
     FundedAddressIndex, TypeIndex,
 };
 use brk_types::OutputType;

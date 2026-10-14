@@ -1,5 +1,4 @@
 use std::{
-    array::from_fn,
     fmt, mem,
     str::{self, FromStr},
 };
@@ -7,6 +6,8 @@ use std::{
 use bitcoin::{BlockHash as BitcoinBlockHash, hashes::Hash};
 use brk_error::Error;
 use derive_more::Deref;
+
+use crate::bytes::reversed_hex;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -29,12 +30,9 @@ use vecdb::{Bytes, Formattable};
 pub struct BlockHash([u8; 32]);
 
 impl BlockHash {
+    #[inline]
     fn hex(&self) -> [u8; 64] {
-        from_fn(|i| {
-            let byte = self.0[31 - i / 2];
-            let nibble = if i % 2 == 0 { byte >> 4 } else { byte & 15 };
-            b"0123456789abcdef"[nibble as usize]
-        })
+        reversed_hex(&self.0)
     }
 }
 
@@ -55,7 +53,7 @@ impl FromStr for BlockHash {
 impl From<BitcoinBlockHash> for BlockHash {
     #[inline]
     fn from(value: BitcoinBlockHash) -> Self {
-        unsafe { mem::transmute(value) }
+        Self(value.to_byte_array())
     }
 }
 
@@ -69,7 +67,7 @@ impl From<&BitcoinBlockHash> for &BlockHash {
 impl From<BlockHash> for BitcoinBlockHash {
     #[inline]
     fn from(value: BlockHash) -> Self {
-        unsafe { mem::transmute(value) }
+        Self::from_byte_array(value.0)
     }
 }
 
@@ -83,7 +81,7 @@ impl From<&BlockHash> for &BitcoinBlockHash {
 impl From<&BlockHash> for BitcoinBlockHash {
     #[inline]
     fn from(value: &BlockHash) -> Self {
-        BitcoinBlockHash::from_slice(&value.0).unwrap()
+        Self::from_byte_array(value.0)
     }
 }
 

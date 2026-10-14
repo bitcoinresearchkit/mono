@@ -1,4 +1,4 @@
-use crate::{AGE_BOUNDARIES, AGE_RANGE_COUNT, AGE_RANGE_IDS, AgeRangeId};
+use crate::{AGE_BOUNDARIES, AGE_RANGE_COUNT, AgeRangeId};
 use brk_types::{ONE_HOUR_IN_SEC, Timestamp};
 
 /// Visit origins crossing each age boundary, youngest first. The caller supplies
@@ -15,7 +15,12 @@ pub fn for_each_age_crossing(
         &AGE_BOUNDARIES,
         positions,
         |i, origin, timestamp| {
-            visit(origin, AGE_RANGE_IDS[i], AGE_RANGE_IDS[i + 1], timestamp);
+            visit(
+                origin,
+                AgeRangeId::ALL[i],
+                AgeRangeId::ALL[i + 1],
+                timestamp,
+            );
         },
     );
 }

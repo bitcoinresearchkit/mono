@@ -14,7 +14,6 @@ use crate::{IndexSources, LazyIndexedVec, LazyLookbackVec, LazyPerBlock};
 /// Fixed-point values are lazily derived from one source, and the percent view is chained
 /// from them.
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyPercentPerBlock<B: FixedRatio>(
     pub PercentViews<LazyPerBlock<B, B>, LazyPerBlock<Percent, B>>,
 );

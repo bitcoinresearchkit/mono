@@ -16,7 +16,6 @@ macro_rules! define_derived_resolutions {
         use bitview_primitives::{$($index,)* $($epoch_index,)*};
 
         #[derive(Clone, Deref, DerefMut, Traversable)]
-        #[traversable(transparent)]
         pub struct DerivedResolutions<T, S1T = T>(
             pub PerResolution<
                 $(LazyVec<$index, Option<T>, $index, Option<S1T>>,)*

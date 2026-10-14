@@ -1,5 +1,5 @@
 use bitview_primitives::{TxOutIndex, TypeIndex};
-use brk_types::{OutPoint, OutputType, Sats, StoreValue, TxIndex, TxidPrefix};
+use brk_types::{OutPoint, OutputType, Sats, StoreValue, TxIndex, TxidPrefix, Vout};
 
 use crate::stores::{Utxo, UtxoKey};
 
@@ -44,9 +44,9 @@ fn utxo_keys_keep_vouts_past_u16_apart() {
         assert_ne!(wide, UtxoKey::new(prefix, (2 << 16) + low).to_store_bytes());
         assert_eq!(wide[8..], (low as u16).to_be_bytes());
     }
-    let outpoint = OutPoint::with_vout_index(TxIndex::from(5_u32), 70_000);
+    let outpoint = OutPoint::new(TxIndex::from(5_u32), Vout::from(70_000_u32));
     assert_eq!(
-        (outpoint.tx_index(), outpoint.vout_index()),
+        (outpoint.tx_index(), u32::from(outpoint.vout())),
         (TxIndex::from(5_u32), 70_000)
     );
 }

@@ -19,9 +19,9 @@ pub struct SeriesData<T = Value> {
     #[serde(rename = "type", default)]
     pub value_type: String,
     /// Start index (inclusive) of the returned range
-    start: usize,
+    pub start: usize,
     /// End index (exclusive) of the returned range
-    end: usize,
+    pub end: usize,
     /// ISO 8601 timestamp of when the response was generated
     pub stamp: String,
     /// The series data. A value is `null` where it is missing (a period without blocks) or

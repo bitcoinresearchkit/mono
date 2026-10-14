@@ -10,7 +10,6 @@ use vecdb::{DeltaRate, ReadableCloneableVec, VecValue};
 use crate::{IndexSources, LazyDeltaFromHeight, LazyPerBlock};
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyDeltaPercentFromHeight<S, B>(
     pub PercentViews<LazyDeltaFromHeight<S, B, DeltaRate>, LazyPerBlock<Percent, B>>,
 )

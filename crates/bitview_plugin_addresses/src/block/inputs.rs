@@ -1,7 +1,6 @@
 use std::collections::hash_map::Entry;
 
-use bitview_cohort::ByAddrType;
-use bitview_primitives::TypeIndex;
+use bitview_primitives::{ByAddrType, TypeIndex};
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
 
 use crate::{

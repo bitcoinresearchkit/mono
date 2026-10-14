@@ -41,11 +41,11 @@ pub fn compute(stats: &[BlockStats], min_fee: FeeRate) -> RecommendedFees {
     let half_hour = (half_hour + PRIORITY_FACTOR / 2.0).max(MIN_HALF_HOUR_FEE);
 
     RecommendedFees {
-        fastest_fee: fastest.round_milli(),
-        half_hour_fee: half_hour.round_milli(),
-        hour_fee: hour.round_milli(),
-        economy_fee: economy.round_milli(),
-        minimum_fee: minimum_fee.round_milli(),
+        fastest_fee: fastest,
+        half_hour_fee: half_hour,
+        hour_fee: hour,
+        economy_fee: economy,
+        minimum_fee,
     }
 }
 

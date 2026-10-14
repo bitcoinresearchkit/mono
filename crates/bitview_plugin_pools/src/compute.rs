@@ -165,7 +165,7 @@ impl Vecs {
                             .get(output_type.get(txout_index), type_index.get(txout_index))
                             .and_then(|addr| self.pools.find_from_addr(&addr))
                     })
-                    .or_else(|| self.pools.find_from_coinbase_tag(&coinbase_tag.as_str()))
+                    .or_else(|| self.pools.find_from_coinbase_tag(&coinbase_tag.to_string()))
                     .unwrap_or(unknown)
                     .slug
             })

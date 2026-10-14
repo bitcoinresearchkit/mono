@@ -420,7 +420,6 @@ dependencies = [
  "rayon",
  "schemars",
  "serde",
- "vecdb",
 ]
 
 [[package]]
@@ -560,7 +559,6 @@ dependencies = [
  "bitview_traversable",
  "brk_error",
  "brk_exit",
- "brk_types",
  "vecdb",
 ]
 
@@ -766,7 +764,6 @@ version = "0.12.2"
 dependencies = [
  "arc-swap",
  "bitcoin",
- "bitview_cohort",
  "bitview_plugin",
  "bitview_primitives",
  "bitview_traversable",
@@ -1115,6 +1112,7 @@ dependencies = [
  "itoa",
  "jiff",
  "rapidhash",
+ "rayon",
  "rustc-hash",
  "ryu",
  "schemars",

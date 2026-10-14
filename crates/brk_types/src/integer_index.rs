@@ -1,0 +1,87 @@
+/// The impls every integer index newtype (`struct $t($inner)`) shares: arithmetic with itself and
+/// `usize`, checked subtraction, lossless conversions with `$inner` and `usize`, and integer
+/// formatting. Sentinels, narrowing conversions, capacity and aliases stay on each type.
+///
+/// The `vecdb` impls follow the calling crate's `storage` feature, which must enable `vecdb`.
+#[macro_export]
+macro_rules! impl_integer_index {
+    ($t:ident, $inner:ty) => {
+        impl ::std::ops::Add<$t> for $t {
+            type Output = Self;
+            #[inline]
+            fn add(self, rhs: $t) -> Self::Output {
+                Self(self.0 + rhs.0)
+            }
+        }
+
+        impl ::std::ops::Add<usize> for $t {
+            type Output = Self;
+            #[inline]
+            fn add(self, rhs: usize) -> Self::Output {
+                Self(self.0 + rhs as $inner)
+            }
+        }
+
+        impl ::std::ops::AddAssign<$t> for $t {
+            #[inline]
+            fn add_assign(&mut self, rhs: $t) {
+                self.0 += rhs.0
+            }
+        }
+
+        impl $crate::CheckedSub<$t> for $t {
+            #[inline]
+            fn checked_sub(self, rhs: Self) -> Option<Self> {
+                self.0.checked_sub(rhs.0).map(Self)
+            }
+        }
+        #[cfg(feature = "storage")]
+        impl vecdb::CheckedSub<$t> for $t {
+            #[inline]
+            fn checked_sub(self, rhs: Self) -> Option<Self> {
+                $crate::CheckedSub::checked_sub(self, rhs)
+            }
+        }
+
+        impl From<$inner> for $t {
+            #[inline]
+            fn from(value: $inner) -> Self {
+                Self(value)
+            }
+        }
+        impl From<$t> for $inner {
+            #[inline]
+            fn from(value: $t) -> Self {
+                value.0
+            }
+        }
+
+        impl From<usize> for $t {
+            #[inline]
+            fn from(value: usize) -> Self {
+                Self(value as $inner)
+            }
+        }
+        impl From<$t> for usize {
+            #[inline]
+            fn from(value: $t) -> Self {
+                value.0 as usize
+            }
+        }
+
+        impl ::std::fmt::Display for $t {
+            #[inline]
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                ::std::fmt::Display::fmt(&self.0, f)
+            }
+        }
+
+        #[cfg(feature = "storage")]
+        impl vecdb::Formattable for $t {
+            #[inline(always)]
+            fn write_to(&self, buf: &mut Vec<u8>) {
+                vecdb::Formattable::write_to(&self.0, buf)
+            }
+        }
+    };
+}

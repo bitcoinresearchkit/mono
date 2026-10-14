@@ -15,7 +15,6 @@ use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec};
 ///
 /// No stored vecs. All values are derived from one source.
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyPercentRollingWindows<B: FixedRatio>(pub Windows<LazyPercentPerBlock<B>>);
 
 impl<B: FixedRatio> LazyPercentRollingWindows<B> {

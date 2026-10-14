@@ -10,7 +10,6 @@ use vecdb::{Database, Rw, StorageMode};
 use crate::{IndexSources, PerBlock};
 
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct RollingWindows<T, M: StorageMode = Rw>(pub Windows<PerBlock<T, M>>)
 where
     T: ComputedVecValue + PartialOrd + JsonSchema;
