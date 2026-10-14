@@ -14,6 +14,7 @@ use crate::columns::Columns;
 
 #[derive(Traversable)]
 pub struct AdjustedSopr<M: StorageMode = Rw> {
+    /// Undefined (null) when the window's adjusted value destroyed is zero.
     #[traversable(flatten)]
     pub ratio: RollingWindows<Ratio, M>,
     /// Spend-time value of the outputs it keeps (spent an hour or more after creation).

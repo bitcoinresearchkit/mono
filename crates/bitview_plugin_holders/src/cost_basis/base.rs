@@ -40,9 +40,10 @@ pub struct CostBasis<M: StorageMode = Rw> {
 
 #[derive(Traversable)]
 pub struct PerCoin<M: StorageMode = Rw> {
-    /// The weighted mean.
+    /// The weighted mean; undefined (null) while the cohort holds no supply.
     pub avg: PriceWithMvrv<M>,
-    /// Realized price: realized cap divided by supply, the weighted mean.
+    /// Realized price: realized cap divided by supply, the weighted mean; undefined (null) while
+    /// the cohort holds no supply.
     pub realized_price: Price<LazyPerBlock<Cents>>,
     /// On the price grid: creation prices rounded to four significant digits of the price in
     /// cents (exact cents under $100, then steps of at most 0.1% up to $1,000,000). Undefined
@@ -57,9 +58,10 @@ pub struct PerCoin<M: StorageMode = Rw> {
 
 #[derive(Traversable)]
 pub struct PerDollar<M: StorageMode = Rw> {
-    /// The weighted mean.
+    /// The weighted mean; undefined (null) while the cohort's USD value at creation is zero.
     pub avg: PriceWithRatio<M>,
-    /// Capitalized price: the weighted mean.
+    /// Capitalized price: the weighted mean; undefined (null) while the cohort's USD value at
+    /// creation is zero.
     pub capitalized_price: Price<LazyPerBlock<Cents>>,
     /// On the price grid: creation prices rounded to four significant digits of the price in
     /// cents (exact cents under $100, then steps of at most 0.1% up to $1,000,000). Undefined

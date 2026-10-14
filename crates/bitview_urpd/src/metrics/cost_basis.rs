@@ -31,7 +31,7 @@ pub struct PerCoin<M: StorageMode = Rw> {
     /// The weighted mean: weighted realized cap divided by weighted supply; undefined (null) when
     /// the weighted supply is zero.
     pub avg: PriceWithMvrv<M>,
-    /// Realized price: the weighted mean.
+    /// Realized price: the weighted mean; undefined (null) when the weighted supply is zero.
     pub realized_price: Price<LazyPerBlock<Cents>>,
     /// From the URPD, creation prices rounded to four significant digits of the price in cents.
     #[traversable(flatten)]
@@ -45,7 +45,8 @@ pub struct PerDollar<M: StorageMode = Rw> {
     /// The weighted mean: sum(weight × creation price² × sats) / sum(weight × creation price ×
     /// sats); undefined (null) when the weighted invested value is zero.
     pub avg: PriceWithRatio<M>,
-    /// Capitalized price: the weighted mean.
+    /// Capitalized price: the weighted mean; undefined (null) when the weighted invested value
+    /// is zero.
     pub capitalized_price: Price<LazyPerBlock<Cents>>,
     /// From the URPD, creation prices rounded to four significant digits of the price in cents.
     #[traversable(flatten)]

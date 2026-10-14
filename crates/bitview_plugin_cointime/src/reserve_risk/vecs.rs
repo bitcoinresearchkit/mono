@@ -8,7 +8,8 @@ use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
 pub struct Vecs<M: StorageMode = Rw> {
     /// Reserve Risk: spot price in USD divided by the HODL bank. Lower positive
     /// values mean spot is cheaper relative to the accumulated holder reserve;
-    /// higher values mean it is more expensive.
+    /// higher values mean it is more expensive. Undefined (null) when the HODL
+    /// bank is zero.
     pub block: LazyPerBlock<Float64>,
     /// HODL bank: running sum of spot price in USD minus the 30-day VOCDD
     /// median, each block weighted by the time since the previous block in days

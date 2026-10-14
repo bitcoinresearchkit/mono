@@ -42,13 +42,13 @@ has to be deleted by hand.
 - Block template hashes are decimal strings (`hash`, `since`): JavaScript numbers lost precision past 2^53, so a
   fetched hash could fail its own diff lookup
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (none is left):
-  `Boolean`, `Score`, `Rank`, `Count`/`CountSigned`, `Bytes`, `VSize`, `Weight`, `SigOps`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
+  `Boolean`, `Score`, `Count`/`CountSigned`, `Bytes`, `VSize`, `Weight`, `SigOps`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
   `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days and blocks, `Days`,
   `Hashrate`, `Difficulty`, `HashPrice`, `HashValue`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
 - Every series has its quantity's type: per-block values and their statistics are `Count`, `Bytes`, `Weight` and
   `SigOps` like their sums (the indexer's narrow storage forms `Count16`, `Bytes32`, `Weight32`, `SigOps32` and the
   5-byte indexes stay internal, published through views), so block size and weight, transaction, input and output
-  counts and per-transaction weight read one type across `block`, `cumulative`, `sum` and the distribution statistics
+  counts read one type across `block`, `cumulative`, `sum` and the distribution statistics
   (recomputed on upgrade). Block interval is `Seconds`
 - `address` is spelled out: the address indexes are `p2pkh_address_index`, ..., `funded_address_index`,
   `empty_address_index` and `extended_empty_address_index` (were `*_addr_index`), with ids `first_<type>_address_index`
@@ -58,9 +58,9 @@ has to be deleted by hand.
   `unknown_address` (were `invalid_addr`, `unknown_addr`). The indexer reindexes (version 40)
 - Undefined values are null instead of a made-up number: shares, ratios and relative changes over a zero denominator
   or base (supply, capital and fee shares, NUPL, velocity, delta rates from a zero start, price returns and drawdown
-  before a price exists), cost basis and realized or capitalized prices of empty cohorts, SOPR and the realized
-  profit-to-loss ratio without value destroyed (were 1), dormancy and the coinflow spending rate of empty ranges (were
-  0). Rolling averages count an undefined value as zero
+  before a price exists), cost basis and realized or capitalized prices of empty cohorts, SOPR without value destroyed
+  and the realized profit-to-loss ratio without realized loss (were 1), dormancy and the coinflow spending rate of
+  empty ranges (were 0). Rolling averages count an undefined value as zero
 - Typed values as nullable exactly where the JSON can hold `null`: a period without blocks (date resolutions; height,
   halving and epoch never) or a type's own undefined value (non-finite floats and the `FeeRate` sentinel); CSV
   writes undefined values as empty cells
@@ -124,9 +124,9 @@ has to be deleted by hand.
   (`price_past_<window>`), Pi Cycle with the 111- and 350-day SMAs and the doubled 350-day SMA, the 200-day SMA's 2.4
   and 0.8 bands, the choppiness index, the two-week true-range sum and the two-week price range. The true range and
   the 1-week, 1-month and 1-year price ranges stay
-- The `indicators` plugin is gone: Puell Multiple, NVT, Thermocap Multiple, Gini, Stock-to-Flow, RHODL Ratio,
-  Dormancy Flow, Seller Exhaustion Constant and the supply-adjusted coin days destroyed, coin years destroyed and
-  dormancy are short formulas over published series (Bitview Studio rebuilds them). RHODL lacked its market-age
+- The `indicators` plugin is gone: Puell Multiple, NVT, Thermocap Multiple, Gini, RHODL Ratio, Dormancy Flow, Seller
+  Exhaustion Constant and the supply-adjusted coin days destroyed, coin years destroyed and dormancy are short
+  formulas over published series (Bitview Studio rebuilds them); Stock-to-Flow is gone without a replacement. RHODL lacked its market-age
   weighting and Dormancy Flow was the reciprocal of supply-adjusted dormancy, not Puell's annualized definition
 - The `capital_sentiment` plugin is gone: its phases, score and long/short strategy are an opinionated reading of
   spot against the published all, short- and long-term capitalized prices and the 1-year SMA
@@ -152,8 +152,8 @@ has to be deleted by hand.
 - Block size and weight: `blocks.size.block` (id `block_size`) and `blocks.weight.block` (`block_weight`) sit beside
   their cumulative and rolling statistics (the per-block values were only the indexer's); blocks are measured in weight
   and transactions in vsize, so block virtual size is gone (`blocks.vbytes`, `block_vbytes*`). The indexer's own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was
-  `indexer.blocks.size.block` with id `total_size`), `indexer.blocks.weight` (was `.weight.block`),
-  `indexer.blocks.timestamp` (was `.time.timestamp`), and `segwit_tx_count` (was `segwit_txs`) beside
+  `blocks.size.base` with id `total_size`), `indexer.blocks.weight` (was `blocks.weight.base`),
+  `indexer.blocks.timestamp` (was `blocks.time.timestamp`), and `segwit_tx_count` (was `segwit_txs`) beside
   `segwit_tx_size` and `segwit_tx_weight` (were `segwit_size`, `segwit_weight`); `p2ms_legacy_sigop_cost` and
   `unknown_legacy_sigop_cost` at `indexer.scripts.{p2ms,unknown}.legacy_sigop_cost` (BIP-141 cost; were
   `legacy_sigops`), and `post_op_return_bytes` (was `op_return_post_op_return_bytes`)
@@ -246,7 +246,7 @@ has to be deleted by hand.
   `addresses.balances.<band>` each balance band (were metric-first: `addresses.funded.<type>`,
   `addresses.supply.<band>`, ...). A type holds `funded` (with its window `delta`; was `addresses.delta`), `empty`,
   `total`, `new`, `activity`, `avg_balance`, `reused`, `respent` and `exposed`, reuse events under `events.{outputs,
-  inputs, active}.{count, share}` (were `events.output_to_reused_addr_count`, ...); a band holds `address_count`,
+  inputs, active}.{count, share}` (were `events.output_to_reused_addr_count`, ...); a band holds `funded`,
   `supply`, `capital`, `outputs.unspent_count`, `activity.transfer_volume` and `realized.{profit, loss}`
 - Address ids spell `address` out and say what they count: `funded_address_count` (was `addr_count`),
   `empty_address_count`, `total_address_count`, `new_address_count`, `sending_address_count` (was `sending_addrs`),
@@ -932,7 +932,7 @@ has to be deleted by hand.
   and bedrock 1.2 s instead of 5 s
 - Spot-to-price ratios are stored, computed once after the block loop, instead of lazy views that read two vectors
   per value: MVRV and the mean-price ratios of every cohort (holders, Cointime, Coinflow), the Cointime prices'
-  ratios (with their MVRVs, AVIV and AVIV-NUPL) and the moving averages' ratios (with the Mayer multiple)
+  ratios (with their MVRVs and AVIV; AVIV NUPL is computed on read from the capitalizations) and the moving averages' ratios (with the Mayer multiple)
 - The age ranges no longer track the capitalized cap of their supply in profit and in loss (two `u128` products per
   price move and two stored vectors per range), which only pain, greed, net sentiment and the per-dollar in-profit
   and in-loss means used

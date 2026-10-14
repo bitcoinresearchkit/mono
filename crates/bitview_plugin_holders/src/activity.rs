@@ -29,7 +29,7 @@ pub struct Activity<M: StorageMode = Rw> {
     /// Coin days destroyed (CDD): spent coin amounts multiplied by their age in days.
     pub coindays_destroyed: LazyPerBlockCumulativeRolling<CoinDays>,
     /// Dormancy: coin days destroyed per spent coin over the window, the average age in days
-    /// of the coins spent.
+    /// of the coins spent; undefined (null) when the window's transfer volume is zero.
     pub dormancy: RollingWindows<Days, M>,
 }
 impl Activity {

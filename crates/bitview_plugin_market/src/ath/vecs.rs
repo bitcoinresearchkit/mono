@@ -11,6 +11,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub high: Price<PerBlock<Cents, M>>,
     /// Bitcoin spot price divided by its running all-time high, minus one. Zero
     /// marks an all-time high; negative values measure the drawdown below it.
+    /// Null while the all-time high is zero.
     pub drawdown: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Exact elapsed seconds preserve the ATH timestamp across incremental updates.
     #[traversable(hidden)]

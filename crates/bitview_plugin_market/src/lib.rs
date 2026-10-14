@@ -29,7 +29,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Bitcoin spot-price return from the first block in a trailing
     /// monotonic-time window through the represented block: represented-block
     /// price divided by the window's starting price, minus one. Positive values
-    /// mean price increased and negative values mean it decreased.
+    /// mean price increased and negative values mean it decreased. Null when the
+    /// window's starting price is zero.
     returns: Returns,
     range: RangeVecs<M>,
     #[traversable(flatten)]

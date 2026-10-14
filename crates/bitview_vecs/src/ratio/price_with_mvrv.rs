@@ -15,7 +15,7 @@ pub struct PriceWithMvrv<M: StorageMode = Rw> {
     #[traversable(flatten)]
     price: PriceWithRatio<M>,
     /// MVRV (market value to realized value): spot divided by the price, the same series as the
-    /// ratio, computed from cent-precision prices: null while a price rounds to zero (2010),
+    /// ratio, computed from cent-precision prices: null while the price rounds to zero (2010),
     /// approximate while prices are a few cents.
     mvrv: LazyPerBlock<Ratio>,
 }
