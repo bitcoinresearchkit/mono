@@ -1,11 +1,8 @@
 use bitview_traversable::Traversable;
-use schemars::JsonSchema;
-use serde::Serialize;
-use vecdb::Formattable;
 
 use super::LossPercentileId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Traversable, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Traversable)]
 pub struct Percentiles<T> {
     /// Uses the 95th percentile of the mode's supply-in-loss history.
     pub pct95: T,
@@ -18,14 +15,6 @@ pub struct Percentiles<T> {
     /// Uses the 99.9th percentile of the mode's supply-in-loss history.
     pub pct99_9: T,
 }
-
-impl_named_row_formattable!(Percentiles {
-    pct95,
-    pct98,
-    pct99,
-    pct99_5,
-    pct99_9,
-});
 
 impl<T> Percentiles<T> {
     pub fn try_from_fn<E>(

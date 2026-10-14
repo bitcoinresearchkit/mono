@@ -21,7 +21,6 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             indexer,
             mappings,
-            blocks,
             price: prices,
         } = dependencies;
         let exit = context.exit();
@@ -29,7 +28,7 @@ impl ComputePlugin for Vecs {
         let ((r1, r2), (r3, r4)) = join(
             || {
                 join(
-                    || self.count.compute(indexer, &blocks.lookback, exit),
+                    || self.count.compute(indexer, &mappings.lookback, exit),
                     || self.features.compute(indexer, exit),
                 )
             },

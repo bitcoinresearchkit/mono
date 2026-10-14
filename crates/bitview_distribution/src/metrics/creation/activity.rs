@@ -6,7 +6,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, ops::SatsToCents, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
-use vecdb::{AnyStoredVec, BinaryTransform, Database, Rw, StorageMode};
+use vecdb::{BinaryTransform, Database, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct CreationActivity<M: StorageMode = Rw> {
@@ -52,12 +52,5 @@ impl CreationActivity {
         self.transfer_volume
             .push_block(volume, SatsToCents::apply(volume, price));
         self.coindays_destroyed.push_block(cdd);
-    }
-
-    pub(super) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.transfer_volume
-            .stored_vecs_mut()
-            .into_iter()
-            .chain([self.coindays_destroyed.stored_mut()])
     }
 }

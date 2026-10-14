@@ -1,10 +1,11 @@
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::{Compact, Traversable};
-use bitview_vecs::PerBlockRolling;
-use brk_types::Height;
+use bitview_vecs::{IndexSources, LazyWindowStartVec, PerBlockRolling, shapes::Windows};
+use brk_error::Result;
+use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{LazyVec, PcoVec, PcoVecValue, Rw, StorageMode};
+use vecdb::{Database, LazyVec, PcoVec, PcoVecValue, Rw, StorageMode};
 
 /// A per-block quantity the indexer stores: its value per block and its rolling statistics.
 #[derive(Deref, DerefMut, Traversable)]
@@ -25,10 +26,17 @@ where
     T: NumericValue + JsonSchema + Quantity + PcoVecValue,
 {
     /// The per-block series is the indexer's `source`, in the quantity's wide type.
-    pub fn new(source: &Compact<PcoVec<Height, T>, T::Sum>, rolling: PerBlockRolling<T>) -> Self {
-        Self {
+    pub fn import(
+        db: &Database,
+        name: &str,
+        version: Version,
+        source: &Compact<PcoVec<Height, T>, T::Sum>,
+        indexes: &IndexSources,
+        window_starts: &Windows<&LazyWindowStartVec>,
+    ) -> Result<Self> {
+        Ok(Self {
             block: source.view().clone(),
-            rolling,
-        }
+            rolling: PerBlockRolling::import(db, name, version, indexes, window_starts)?,
+        })
     }
 }

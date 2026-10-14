@@ -6,7 +6,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, Rw};
+use vecdb::{Database, ReadableCloneableVec, Rw};
 
 use crate::families::{CountWithDeltas, CumulativeCount};
 
@@ -59,13 +59,6 @@ impl StoredOutputs {
     pub fn push(&mut self, (unspent, spent): (Count, Count)) {
         self.unspent_count.push(unspent);
         self.spent_count.push_block(spent);
-    }
-
-    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 2] {
-        [
-            self.unspent_count.stored_mut(),
-            self.spent_count.stored_mut(),
-        ]
     }
 }
 

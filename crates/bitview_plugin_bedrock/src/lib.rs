@@ -1,30 +1,3 @@
-macro_rules! impl_named_row_formattable {
-    ($collection:ident { $($field:ident),+ $(,)? }) => {
-        impl<T: Formattable> Formattable for $collection<T> {
-            fn write_to(&self, output: &mut Vec<u8>) {
-                output.push(b'{');
-                let mut first = true;
-                $(
-                    if !first {
-                        output.push(b',');
-                    }
-                    first = false;
-                    output.extend_from_slice(concat!("\"", stringify!($field), "\":").as_bytes());
-                    self.$field.fmt_json(output);
-                )+
-                let _ = first;
-                output.push(b'}');
-            }
-
-            fn fmt_csv(&self, output: &mut Vec<u8>) {
-                let start = output.len();
-                self.write_to(output);
-                vecdb::escape_csv_cell(output, start);
-            }
-        }
-    };
-}
-
 mod block_result;
 mod calibration;
 mod compute;
@@ -42,7 +15,6 @@ mod percentiles;
 mod price_band_id;
 mod price_bands;
 mod thresholds;
-mod weighted;
 
 pub use dependencies::Dependencies;
 
@@ -50,13 +22,12 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use bitview_urpd::Replay;
 use brk_types::Version;
-use derive_more::{Deref, DerefMut};
 use vecdb::{Database, Rw, StorageMode};
 
 use block_result::BlockResult;
 use calibration::Calibration;
 use cumulative_bucket::CumulativeBucket;
-use level_id::{LEVEL_COUNT, LevelId};
+use level_id::LevelId;
 use levels::Levels;
 use loss_percentile_id::LossPercentileId;
 use mode_id::{MODE_COUNT, ModeId};
@@ -67,13 +38,11 @@ use percentiles::Percentiles;
 use price_band_id::PriceBandId;
 use price_bands::PriceBands;
 use thresholds::Thresholds;
-use weighted::{WeightedModeId, WeightedModes};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(17));
 pub const ID: PluginId = STORAGE.id();
-const WRITE_INTERVAL_BLOCKS: usize = 10_000;
 
-#[derive(Deref, DerefMut, Traversable)]
+#[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -82,8 +51,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     replay: M::WriteOnly<Replay>,
 
-    #[deref]
-    #[deref_mut]
     #[traversable(flatten)]
     modes: Modes<ModeVecs<M>>,
 }

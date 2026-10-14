@@ -53,8 +53,4 @@ impl<T> Terms<T> {
             _ => &mut self.all,
         }
     }
-
-    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
-        [&mut self.all, &mut self.sth, &mut self.lth].into_iter()
-    }
 }

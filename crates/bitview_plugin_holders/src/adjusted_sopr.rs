@@ -9,7 +9,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 use crate::columns::Columns;
 
@@ -66,11 +66,5 @@ impl AdjustedSopr {
             )?;
         }
         Ok(())
-    }
-    pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.ratio
-            .as_mut_array()
-            .into_iter()
-            .map(|v| &mut v.height as &mut dyn AnyStoredVec)
     }
 }

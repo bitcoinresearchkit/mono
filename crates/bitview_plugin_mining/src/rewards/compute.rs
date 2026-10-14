@@ -1,5 +1,5 @@
-use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::Halving;

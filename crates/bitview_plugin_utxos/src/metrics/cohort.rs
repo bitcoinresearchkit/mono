@@ -9,7 +9,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, ops::SatsToCents, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, BinaryTransform, Database, ReadableBoxedVec, Rw, StorageMode};
+use vecdb::{BinaryTransform, Database, ReadableBoxedVec, Rw, StorageMode};
 
 type State = UTXOCohortState<MinimalRealizedState, ()>;
 
@@ -108,22 +108,5 @@ impl CohortVecs {
         self.realized.profit.push_block(realized.profit);
         self.realized.loss.push_block(realized.loss);
         self.cost_basis.push(realized.price());
-    }
-
-    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        let [sats, cents] = self.activity.transfer_volume.stored_vecs_mut();
-        let [unspent_count, spent_count] = self.outputs.stored_vecs_mut();
-        [
-            self.supply.total.stored_mut(),
-            unspent_count,
-            spent_count,
-            sats,
-            cents,
-            self.capital.stored_mut(),
-            self.realized.profit.stored_mut(),
-            self.realized.loss.stored_mut(),
-            self.cost_basis.stored_mut(),
-        ]
-        .into_iter()
     }
 }

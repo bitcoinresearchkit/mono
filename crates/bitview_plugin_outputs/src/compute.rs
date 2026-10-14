@@ -22,7 +22,7 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies {
             indexer,
-            blocks,
+            mappings,
             price,
         } = dependencies;
         self.compute_created(
@@ -40,7 +40,7 @@ impl ComputePlugin for Vecs {
         } = self;
 
         let exit = context.exit();
-        count.compute(indexer, blocks, exit)?;
+        count.compute(indexer, mappings, exit)?;
         let (fiat, counts) = join(
             || {
                 value.op_return_value.compute_cents(

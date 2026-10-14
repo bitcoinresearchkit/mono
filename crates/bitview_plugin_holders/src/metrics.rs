@@ -95,16 +95,8 @@ impl Metrics {
         realized.compute(from, c, activity, exit)?;
         cost_basis.compute(from, spot, exit)
     }
-    pub(crate) fn state_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        self.columns.stored_vecs_mut()
-    }
-    pub(crate) fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut v = self.columns.stored_vecs_mut();
-        v.extend(self.supply.stored_vecs_mut());
-        v.extend(self.capital.stored_vecs_mut());
-        v.extend(self.activity.stored_vecs_mut());
-        v.extend(self.realized.stored_vecs_mut());
-        v.extend(self.cost_basis.stored_vecs_mut());
-        v
+    /// The columns the block loop writes.
+    pub(crate) fn state_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.columns.iter_any_stored_mut()
     }
 }

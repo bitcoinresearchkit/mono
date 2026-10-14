@@ -559,6 +559,7 @@ name = "bitview_plugin_addresses"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
+ "bitview_compute",
  "bitview_distribution",
  "bitview_plugin",
  "bitview_plugin_indexer",
@@ -623,8 +624,6 @@ dependencies = [
  "brk_types",
  "derive_more",
  "log",
- "schemars",
- "serde",
  "vecdb",
 ]
 
@@ -643,6 +642,7 @@ dependencies = [
  "brk_exit",
  "brk_types",
  "derive_more",
+ "rayon",
  "schemars",
  "vecdb",
 ]
@@ -679,7 +679,6 @@ dependencies = [
  "bitview_distribution",
  "bitview_plugin",
  "bitview_plugin_age",
- "bitview_plugin_blocks",
  "bitview_plugin_holders",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
@@ -772,8 +771,8 @@ name = "bitview_plugin_inputs"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
+ "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_blocks",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_primitives",
@@ -816,7 +815,6 @@ version = "0.12.2"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_blocks",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
@@ -856,6 +854,7 @@ dependencies = [
 name = "bitview_plugin_op_return"
 version = "0.12.2"
 dependencies = [
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
@@ -879,7 +878,6 @@ dependencies = [
  "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_blocks",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
@@ -901,6 +899,7 @@ dependencies = [
 name = "bitview_plugin_pools"
 version = "0.12.2"
 dependencies = [
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
@@ -914,7 +913,6 @@ dependencies = [
  "parking_lot",
  "rayon",
  "rustc-hash",
- "tracing",
  "vecdb",
 ]
 
@@ -922,6 +920,7 @@ dependencies = [
 name = "bitview_plugin_price"
 version = "0.12.2"
 dependencies = [
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
@@ -954,7 +953,6 @@ dependencies = [
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
- "brk_exit",
  "brk_types",
  "statedb",
  "vecdb",
@@ -1012,7 +1010,6 @@ version = "0.12.2"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_blocks",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
@@ -1053,6 +1050,7 @@ name = "bitview_plugin_utxos"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
+ "bitview_compute",
  "bitview_distribution",
  "bitview_plugin",
  "bitview_plugin_indexer",

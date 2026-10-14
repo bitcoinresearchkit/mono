@@ -1,10 +1,10 @@
-use bitview_vecs::{IndexSources, LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
+use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, EagerVec, ImportableVec};
 
 use super::Vecs;
-use crate::{distribution::PerTxDistribution, flagged::Flagged};
+use crate::{distribution::PerTxDistribution, flagged::Classified};
 
 /// Bump this when fee/feerate aggregation logic changes (e.g., skip coinbase, skip zero-fee).
 const VERSION: Version = Version::new(5);
@@ -19,17 +19,15 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let v = version + VERSION;
-        let cpfp_role = |flag, count| -> Result<_> {
-            Ok(Flagged {
-                flag: EagerVec::import(db, flag, version + CHUNK_VERSION)?,
-                count: PerBlockCumulativeRolling::import(
-                    db,
-                    count,
-                    version + CHUNK_VERSION,
-                    mappings,
-                    window_starts,
-                )?,
-            })
+        let cpfp_role = |flag, count| {
+            Classified::import(
+                db,
+                flag,
+                count,
+                version + CHUNK_VERSION,
+                mappings,
+                window_starts,
+            )
         };
 
         Ok(Vecs {

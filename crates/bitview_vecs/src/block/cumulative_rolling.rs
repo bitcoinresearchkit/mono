@@ -143,34 +143,8 @@ where
         )?)
     }
 
-    pub fn validate_computed_version_or_reset(&mut self, version: Version) -> Result<()> {
-        self.last_cumulative = None;
-        self.cumulative
-            .height
-            .validate_computed_version_or_reset(version)?;
-        Ok(())
-    }
-
-    pub fn validate_and_truncate(&mut self, version: Version, height: Height) -> Result<()> {
-        self.last_cumulative = None;
-        Ok(self
-            .cumulative
-            .height
-            .validate_and_truncate(version, height)?)
-    }
-
-    pub fn truncate_if_needed_at(&mut self, len: usize) -> Result<()> {
-        self.last_cumulative = None;
-        Ok(self.cumulative.height.truncate_if_needed_at(len)?)
-    }
-
-    pub fn write(&mut self) -> Result<()> {
-        self.cumulative.height.write()?;
-        Ok(())
-    }
-
+    /// A pure borrow: a length change reloads the cached total.
     pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        self.last_cumulative = None;
         &mut self.cumulative.height
     }
 }

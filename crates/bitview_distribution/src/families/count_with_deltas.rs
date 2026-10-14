@@ -4,7 +4,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlockWithDeltas, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
+use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
 
@@ -40,9 +40,5 @@ impl CountWithDeltas {
     #[inline(always)]
     pub fn push(&mut self, count: Count) {
         self.stored.push(count);
-    }
-
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        &mut self.stored
     }
 }

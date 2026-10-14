@@ -1,4 +1,3 @@
-use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::PartsPerMillionSigned64;
@@ -10,12 +9,7 @@ pub type Returns = ByLookbackPeriod<LazyPercentPerBlock<PartsPerMillionSigned64>
 
 /// Spot-price returns over each trailing window: the represented block's price over the
 /// window's starting price, minus one.
-pub(crate) fn import(
-    version: Version,
-    mappings: &MappingsVecs,
-    lookback: &LookbackVecs,
-    prices: &PriceVecs,
-) -> Returns {
+pub(crate) fn import(version: Version, mappings: &MappingsVecs, prices: &PriceVecs) -> Returns {
     ByLookbackPeriod::from_fn(|name, days| {
         let metric_name = format!("price_return_{name}");
         let source = LazyDeltaVec::<
@@ -27,7 +21,7 @@ pub(crate) fn import(
             &format!("{metric_name}_ppm_source"),
             version,
             prices.spot.usd.height.read_only_boxed_clone(),
-            lookback.start_vec(days).read_only_boxed_clone(),
+            mappings.lookback.start_vec(days).read_only_boxed_clone(),
         );
         LazyPercentPerBlock::from_height_source(&metric_name, version, &source, mappings)
     })

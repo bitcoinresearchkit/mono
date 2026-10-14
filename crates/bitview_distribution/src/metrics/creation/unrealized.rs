@@ -4,7 +4,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 use crate::state::UnrealizedState;
 
@@ -55,13 +55,5 @@ impl CreationUnrealized {
         self.net_pnl.push(CentsSigned::new(
             state.unrealized_profit.inner() as i64 - state.unrealized_loss.inner() as i64,
         ));
-    }
-
-    pub(super) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
-        [
-            self.profit.stored_mut(),
-            self.loss.stored_mut(),
-            self.net_pnl.stored_mut(),
-        ]
     }
 }

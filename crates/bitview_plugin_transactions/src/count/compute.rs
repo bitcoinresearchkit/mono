@@ -1,5 +1,5 @@
-use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mappings::LookbackVecs;
 use brk_error::Result;
 use brk_exit::Exit;
 

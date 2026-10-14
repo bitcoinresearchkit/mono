@@ -1,4 +1,4 @@
-use super::{ModeId, Modes, Percentiles, Thresholds, WeightedModeId};
+use super::{ModeId, Modes, Percentiles, Thresholds};
 use bitview_compute::ExactOrderStats;
 use brk_types::{Height, Version};
 use vecdb::{ReadableVec, VecValue};
@@ -28,11 +28,11 @@ impl Calibration {
         Self {
             end,
             version,
-            histories: Modes::from_fn(|mode| match mode.weighted() {
-                None => Self::history(raw, end),
-                Some(WeightedModeId::Cointime) => Self::history(cointime, end),
-                Some(WeightedModeId::Coinflow) => Self::history(coinflow, end),
-            }),
+            histories: Modes {
+                unweighted: Self::history(raw, end),
+                awake: Self::history(cointime, end),
+                mobile: Self::history(coinflow, end),
+            },
         }
     }
     /// One block's loss shares by mode; non-finite shares are missing.
@@ -41,14 +41,12 @@ impl Calibration {
         cointime: Option<f64>,
         coinflow: Option<f64>,
     ) -> Modes<Option<f64>> {
-        Modes::from_fn(|mode| {
-            match mode.weighted() {
-                None => raw,
-                Some(WeightedModeId::Cointime) => cointime,
-                Some(WeightedModeId::Coinflow) => coinflow,
-            }
-            .filter(|v| v.is_finite())
-        })
+        let finite = |share: Option<f64>| share.filter(|v| v.is_finite());
+        Modes {
+            unweighted: finite(raw),
+            awake: finite(cointime),
+            mobile: finite(coinflow),
+        }
     }
     pub fn thresholds(&self, current: &Modes<Option<f64>>) -> Thresholds {
         Thresholds::from_fn(|mode| {

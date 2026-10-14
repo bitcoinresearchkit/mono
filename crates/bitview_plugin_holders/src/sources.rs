@@ -2,7 +2,7 @@ use crate::data::Data;
 use bitview_cohort::{AgeAggregate, AgeRangeId};
 use bitview_plugin_age::Vecs as Age;
 use brk_error::{Error, Result};
-use brk_types::{Height, Version};
+use brk_types::Height;
 use vecdb::{AnyVec, ReadableVec, VecValue};
 
 /// One batch of sums, constructed in a single walk over disjoint bands.
@@ -13,7 +13,8 @@ impl<'a> Sources<'a> {
     pub fn new(age: &'a Age) -> Self {
         Self { age }
     }
-    fn vectors(&self) -> impl Iterator<Item = &dyn AnyVec> {
+    /// Every input vector, for the computation's version and length.
+    pub fn vectors(&self) -> impl Iterator<Item = &dyn AnyVec> {
         AgeRangeId::ALL.iter().flat_map(move |id| {
             let r = id.select(&self.age.ranges);
             let vectors: [&dyn AnyVec; 24] = [
@@ -45,17 +46,12 @@ impl<'a> Sources<'a> {
             vectors
         })
     }
-    pub fn version(&self) -> Version {
-        Version::combine_all(self.vectors().map(AnyVec::version))
-    }
-    pub fn len(&self) -> usize {
-        self.vectors().map(AnyVec::len).min().unwrap_or_default()
-    }
     pub fn collect(&self, start: usize, end: usize) -> Result<Vec<AgeAggregate<Data>>> {
         let mut result = vec![AgeAggregate::<Data>::default(); end - start];
+        let mut band = vec![Data::default(); end - start];
         for &id in AgeRangeId::ALL {
             let r = id.select(&self.age.ranges);
-            let mut band = vec![Data::default(); end - start];
+            band.fill(Data::default());
             read(&r.supply.total.stored, start, &mut band, |row, value| {
                 row.supply = value
             })?;
@@ -182,7 +178,7 @@ impl<'a> Sources<'a> {
                     row.adjusted_value_destroyed = row.value_destroyed;
                 }
             }
-            for (target, row) in result.iter_mut().zip(band) {
+            for (target, &row) in result.iter_mut().zip(&band) {
                 for entry in target.containing_mut(id) {
                     *entry += row;
                 }
@@ -192,21 +188,24 @@ impl<'a> Sources<'a> {
     }
 }
 
+/// Assigns `source`'s values from `start` into `rows`, read in place.
 fn read<T: VecValue>(
     source: &impl ReadableVec<Height, T>,
     start: usize,
     rows: &mut [Data],
     mut assign: impl FnMut(&mut Data, T),
 ) -> Result<()> {
-    let values = source.collect_range_at(start, start + rows.len());
-    if values.len() != rows.len() {
+    let mut rows_left = rows.iter_mut();
+    source.for_each_range_at(start, start + rows_left.len(), |value| {
+        if let Some(row) = rows_left.next() {
+            assign(row, value);
+        }
+    });
+    if rows_left.len() != 0 {
         return Err(Error::NotFound(format!(
             "incomplete aggregate input {}",
             source.name()
         )));
-    }
-    for (row, value) in rows.iter_mut().zip(values) {
-        assign(row, value);
     }
     Ok(())
 }

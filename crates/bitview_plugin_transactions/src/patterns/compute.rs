@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+use bitview_compute::{WRITE_INTERVAL, write_locked};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Boolean, Count};
@@ -7,11 +8,11 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Height;
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyVec, ReadableVec, VecIndex, WritableVec};
 
 use super::{Vecs, coinjoin::Candidate};
+use crate::resume::prepare_blocks;
 
-const WRITE_INTERVAL: usize = 10_000;
 /// Heights one parallel task classifies.
 const TASK_HEIGHTS: usize = 64;
 /// Heights per wave of tasks, bounding the flags held before they are pushed in order.
@@ -40,61 +41,24 @@ impl Vecs {
             + features.inscription.flag.version()
             + mappings.height.tx_index_count.version();
 
-        {
-            let _lock = exit.lock();
-            for target in self.flags_mut() {
-                target.validate_computed_version_or_reset(version)?;
-            }
-            for target in self.counts_mut() {
-                target
-                    .cumulative
-                    .height
-                    .validate_computed_version_or_reset(version)?;
-            }
-        }
-        let starting_lengths = indexer.safe_lengths();
-        let target_tx = mappings.tx_index.input_count.len();
-        let target_height = mappings.height.tx_index_count.len();
-        let tx_len = self
-            .flags_mut()
-            .map(|v| v.len())
-            .min()
-            .unwrap_or_default()
-            .min(starting_lengths.tx_index.to_usize());
-        let count_len = self
-            .counts_mut()
-            .map(|v| v.cumulative.height.len())
-            .min()
-            .unwrap_or_default()
-            .min(starting_lengths.height.to_usize());
-        let start_height = count_len.min(mappings.tx_heights.resume_height(
-            tx_len,
-            target_tx,
-            target_height,
-        ));
-        if start_height >= target_height {
-            return Ok(());
-        }
-
         let first_tx = &indexer.vecs().transactions.first_tx_index;
-        let start_tx = first_tx.collect_one_at(start_height).unwrap().to_usize();
-        {
-            let _lock = exit.lock();
-            for target in self.flags_mut() {
-                target.truncate_if_needed_at(start_tx)?;
-            }
-            for target in self.counts_mut() {
-                target
-                    .cumulative
-                    .height
-                    .truncate_if_needed_at(start_height)?;
-            }
-        }
-
         let tx_counts = &mappings.height.tx_index_count;
-        let mut height = start_height;
-        while height < target_height {
-            let wave_end = (height + WAVE_HEIGHTS).min(target_height);
+        let (mut flags, mut counts) = self.stored_mut();
+        let (heights, _) = prepare_blocks(
+            &mut flags,
+            &mut counts,
+            version,
+            indexer.safe_lengths(),
+            mappings.tx_index.input_count.len(),
+            tx_counts.len(),
+            mappings,
+            first_tx,
+            exit,
+        )?;
+
+        let mut height = heights.start;
+        while height < heights.end {
+            let wave_end = (height + WAVE_HEIGHTS).min(heights.end);
             let tasks: Vec<Classified> = (height..wave_end)
                 .into_par_iter()
                 .step_by(TASK_HEIGHTS)
@@ -124,24 +88,17 @@ impl Vecs {
             }
             // A wave that passes a multiple of the interval writes, like the per-height loop did.
             if wave_end / WRITE_INTERVAL > height / WRITE_INTERVAL {
-                let _lock = exit.lock();
-                self.write()?;
+                self.write(exit)?;
             }
             height = wave_end;
         }
 
-        let _lock = exit.lock();
-        self.write()
+        self.write(exit)
     }
 
-    fn write(&mut self) -> Result<()> {
-        for target in self.flags_mut() {
-            target.write()?;
-        }
-        for target in self.counts_mut() {
-            target.cumulative.height.write()?;
-        }
-        Ok(())
+    fn write(&mut self, exit: &Exit) -> Result<()> {
+        let (flags, counts) = self.stored_mut();
+        write_locked(flags.into_iter().chain(counts), exit)
     }
 }
 

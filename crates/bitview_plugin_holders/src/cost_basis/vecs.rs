@@ -4,7 +4,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{DensityVecs, PerBlock, PercentilesVecs, Price};
 use brk_error::Result;
 use brk_types::{Cents, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
+use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 use super::CostBasisBlockData;
 
@@ -76,26 +76,5 @@ impl CostBasisVecs {
             id.select_mut(&mut self.per_coin).push(&values.per_coin);
             id.select_mut(&mut self.per_dollar).push(&values.per_dollar);
         }
-    }
-
-    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs: Vec<&mut dyn AnyStoredVec> = [&mut self.min, &mut self.max]
-            .into_iter()
-            .flat_map(|sources| sources.iter_mut())
-            .map(|price| &mut price.cents.height as &mut dyn AnyStoredVec)
-            .collect();
-        vecs.extend(
-            self.supply_density
-                .iter_mut()
-                .chain(self.capital_density.iter_mut())
-                .flat_map(|density| density.stored_vecs_mut()),
-        );
-        vecs.extend(
-            self.per_coin
-                .iter_mut()
-                .chain(self.per_dollar.iter_mut())
-                .flat_map(|percentiles| percentiles.stored_vecs_mut()),
-        );
-        vecs
     }
 }

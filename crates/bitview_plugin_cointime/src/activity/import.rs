@@ -14,35 +14,22 @@ use vecdb::Database;
 use super::{DerivedVecs, Vecs};
 
 impl DerivedVecs {
-    fn import_with_prefix(
-        db: &Database,
-        prefix: &str,
-        version: Version,
-        mappings: &MappingsVecs,
-    ) -> Result<Self> {
-        let name = |metric: &str| {
-            if prefix.is_empty() {
-                metric.to_owned()
-            } else {
-                format!("{prefix}_{metric}")
-            }
-        };
-        let liveliness_name = name("liveliness");
+    fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         let version = version + Version::ONE;
         let liveliness_source =
-            PerBlock::import(db, &name("liveliness_bounded_source"), version, mappings)?;
+            PerBlock::import(db, "liveliness_bounded_source", version, mappings)?;
         let liveliness = LazyPerBlock::from_resolutions::<BoundedToRatio>(
-            &liveliness_name,
+            "liveliness",
             version,
             &liveliness_source,
         );
         let vaultedness = LazyPerBlock::from_resolutions::<BoundedToRatio<true>>(
-            &name("vaultedness"),
+            "vaultedness",
             version,
             &liveliness_source,
         );
         let liveliness_to_vaultedness = LazyPerBlock::from_resolutions::<BoundedOdds>(
-            &name("liveliness_to_vaultedness"),
+            "liveliness_to_vaultedness",
             version + Version::ONE,
             &liveliness_source,
         );
@@ -101,7 +88,7 @@ impl Vecs {
                 mappings,
                 window_starts,
             )?,
-            derived: DerivedVecs::import_with_prefix(db, "", version, mappings)?,
+            derived: DerivedVecs::import(db, version, mappings)?,
             concurrent_liveliness,
         })
     }

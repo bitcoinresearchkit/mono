@@ -14,13 +14,6 @@ impl<T> Default for AddrTypeToTypeIndexMap<T> {
 }
 
 impl<T> AddrTypeToTypeIndexMap<T> {
-    /// Create with pre-allocated capacity per address type.
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self(ByAddrType::from_fn(|_| {
-            FxHashMap::with_capacity_and_hasher(capacity, Default::default())
-        }))
-    }
-
     /// Insert a value for a specific address type and type_index.
     pub fn insert_for_type(&mut self, addr_type: OutputType, type_index: TypeIndex, value: T) {
         self.get_mut(addr_type).unwrap().insert(type_index, value);

@@ -5,7 +5,7 @@ use bitview_primitives::Lengths;
 use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::{Error, Result};
 use brk_oracle::{Oracle, PaymentFilter};
-use brk_types::{OutputType, Sats, TxIndex, Weight};
+use brk_types::{OutputType, Sats};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, StorageMode, VecIndex};
 
@@ -33,6 +33,7 @@ pub fn feed_blocks_with<IM: StorageMode>(
     cap: Option<&Lengths>,
     mut on_block: impl FnMut(usize, &Oracle, f64),
 ) -> Result<()> {
+    let vecs = indexer.vecs();
     let (total_txs, total_outputs, height_len) = match cap {
         Some(c) => (
             c.tx_index.to_usize(),
@@ -40,146 +41,89 @@ pub fn feed_blocks_with<IM: StorageMode>(
             c.height.to_usize(),
         ),
         None => (
-            indexer.vecs().transactions.txid.len(),
-            indexer.vecs().outputs.value.len(),
-            indexer.vecs().transactions.first_tx_index.len(),
+            vecs.transactions.txid.len(),
+            vecs.outputs.value.len(),
+            vecs.transactions.first_tx_index.len(),
         ),
     };
 
-    // Pre-collect height-indexed data for the range (plus one extra for next-block lookups)
     if range.start > range.end || range.end > height_len {
         return Err(Error::Internal("Invalid oracle block range"));
     }
     if range.is_empty() {
         return Ok(());
     }
-    let collect_end = range.end.saturating_add(1).min(height_len);
-    let first_tx_indexes: Vec<TxIndex> = indexer
-        .vecs()
+    // One extra boundary for the last block's end.
+    let collect_end = (range.end + 1).min(height_len);
+    let first_tx_indexes = vecs
         .transactions
         .first_tx_index
         .collect_range_at(range.start, collect_end);
-
-    let out_firsts: Vec<TxOutIndex> = indexer
-        .vecs()
+    let out_firsts = vecs
         .outputs
         .first_txout_index
         .collect_range_at(range.start, collect_end);
-    if first_tx_indexes.len() != collect_end - range.start
-        || out_firsts.len() != collect_end - range.start
-    {
-        return Err(Error::Internal("Incomplete oracle block boundaries"));
-    }
+    let tx_at = |idx: usize| {
+        first_tx_indexes
+            .get(idx)
+            .map_or(total_txs, |i| i.to_usize())
+    };
+    let out_at = |idx: usize| out_firsts.get(idx).map_or(total_outputs, |i| i.to_usize());
 
-    let vecs = indexer.vecs();
     // Reused across batches: each batch's per-tx first outputs and output columns, read in large
     // range reads, then each block's histogram built in parallel and fed in block order.
-    let mut tx_firsts: Vec<usize> = Vec::new();
+    let mut first_outputs: Vec<Index40<TxOutIndex>> = Vec::new();
     let mut values: Vec<Sats> = Vec::new();
     let mut output_types: Vec<OutputType> = Vec::new();
-    let mut first_outputs: Vec<Index40<TxOutIndex>> = Vec::new();
-    // Each block's non-coinbase transactions (absolute) and output end.
-    let mut blocks: Vec<(Range<usize>, usize)> = Vec::new();
 
     for batch_start in (0..range.len()).step_by(BATCH_HEIGHTS) {
         let batch_end = (batch_start + BATCH_HEIGHTS).min(range.len());
-
-        // Every block's bounds are checked before the batch is read: consecutive blocks share
-        // their edges, so the batch's ranges are then ordered and bounded by the per-block limits.
-        blocks.clear();
-        for idx in batch_start..batch_end {
-            let next_first_tx_index = first_tx_indexes
-                .get(idx + 1)
-                .copied()
-                .unwrap_or(TxIndex::from(total_txs))
-                .to_usize();
-            let first_tx = first_tx_indexes[idx].to_usize();
-            let block_first_tx = first_tx
-                .checked_add(1)
-                .ok_or(Error::Internal("Invalid oracle coinbase boundary"))?;
-            let tx_count = next_first_tx_index
-                .checked_sub(block_first_tx)
-                .ok_or(Error::Internal("Invalid oracle transaction boundaries"))?;
-            // Necessary serialization bounds, deliberately looser than full
-            // consensus validation: at least 10 base bytes per transaction and
-            // 9 per output, each costing four weight units.
-            if next_first_tx_index > total_txs
-                || tx_count >= u64::from(Weight::MAX_BLOCK) as usize / 40
-            {
-                return Err(Error::Internal(
-                    "Oracle block transaction count exceeds bounds",
-                ));
-            }
-
-            let out_end = out_firsts
-                .get(idx + 1)
-                .copied()
-                .unwrap_or(TxOutIndex::from(total_outputs))
-                .to_usize();
-            let block_out_start = out_firsts[idx].to_usize();
-            let block_outputs = out_end
-                .checked_sub(block_out_start)
-                .ok_or(Error::Internal("Invalid oracle block output boundaries"))?;
-            if out_end > total_outputs || block_outputs > u64::from(Weight::MAX_BLOCK) as usize / 36
-            {
-                return Err(Error::Internal("Oracle block output count exceeds bounds"));
-            }
-            blocks.push((block_first_tx..next_first_tx_index, out_end));
-        }
-
-        let tx_base = first_tx_indexes[batch_start].to_usize();
-        let tx_end = blocks.last().map_or(tx_base, |(txs, _)| txs.end);
-        let out_base = out_firsts[batch_start].to_usize();
-        let batch_out_end = blocks.last().map_or(out_base, |(_, out_end)| *out_end);
+        let (tx_base, tx_end) = (tx_at(batch_start), tx_at(batch_end));
+        let (out_base, out_end) = (out_at(batch_start), out_at(batch_end));
         vecs.transactions.first_txout_index.collect_range_into_at(
             tx_base,
             tx_end,
             &mut first_outputs,
         );
-        tx_firsts.clear();
-        tx_firsts.extend(first_outputs.iter().map(|first| first.get().to_usize()));
         vecs.outputs
             .value
-            .collect_range_into_at(out_base, batch_out_end, &mut values);
+            .collect_range_into_at(out_base, out_end, &mut values);
         vecs.outputs
             .output_type
-            .collect_range_into_at(out_base, batch_out_end, &mut output_types);
-        if tx_firsts.len() != tx_end - tx_base
-            || values.len() != batch_out_end - out_base
-            || output_types.len() != values.len()
-        {
-            return Err(Error::Internal("Incomplete oracle output data"));
-        }
+            .collect_range_into_at(out_base, out_end, &mut output_types);
+        debug_assert!(
+            first_outputs.len() == tx_end - tx_base
+                && values.len() == out_end - out_base
+                && output_types.len() == values.len(),
+            "complete oracle output data"
+        );
+        let first_output = |tx: usize| first_outputs[tx - tx_base].get().to_usize();
 
-        for (offset, (txs, out_end)) in blocks.iter_mut().enumerate() {
-            let block_out_start = out_firsts[batch_start + offset].to_usize();
-            *txs = txs.start - tx_base..txs.end - tx_base;
-            let tx_starts = &tx_firsts[txs.clone()];
-            if tx_starts
-                .iter()
-                .any(|start| *start < block_out_start || *start > *out_end)
-                || tx_starts.windows(2).any(|pair| pair[0] > pair[1])
-            {
-                return Err(Error::Internal(
-                    "Invalid oracle transaction output boundaries",
-                ));
-            }
-        }
-
-        let histograms = blocks
-            .par_iter()
-            .enumerate()
-            .map(|(offset, (txs, out_end))| {
-                let tx_starts = &tx_firsts[txs.clone()];
-                let tx_outputs = (0..tx_starts.len()).map(|tx| {
-                    let lo = tx_starts[tx] - out_base;
-                    let hi = tx_starts.get(tx + 1).map_or(*out_end, |s| *s) - out_base;
+        let histograms = (batch_start..batch_end)
+            .into_par_iter()
+            .map(|idx| {
+                // The coinbase pays no one: skip each block's first transaction.
+                let txs = tx_at(idx) + 1..tx_at(idx + 1);
+                let block_out_end = out_at(idx + 1);
+                debug_assert!(
+                    txs.clone().all(|tx| first_output(tx) >= out_at(idx)
+                        && first_output(tx) <= block_out_end
+                        && (tx == txs.start || first_output(tx - 1) <= first_output(tx))),
+                    "ordered transaction output boundaries inside their block"
+                );
+                let tx_outputs = txs.clone().map(|tx| {
+                    let lo = first_output(tx) - out_base;
+                    let hi = if tx + 1 < txs.end {
+                        first_output(tx + 1)
+                    } else {
+                        block_out_end
+                    } - out_base;
                     values[lo..hi]
                         .iter()
                         .copied()
                         .zip(output_types[lo..hi].iter().copied())
                 });
-                PaymentFilter::for_height(range.start + batch_start + offset).histogram(tx_outputs)
+                PaymentFilter::for_height(range.start + idx).histogram(tx_outputs)
             })
             .collect::<Vec<_>>();
 

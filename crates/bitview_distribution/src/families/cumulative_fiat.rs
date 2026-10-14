@@ -8,7 +8,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{Cents, Version};
-use vecdb::{AnyStoredVec, Database, PcoVecValue, Rw, StorageMode};
+use vecdb::{Database, PcoVecValue, Rw, StorageMode};
 
 /// One cohort's fiat flow, stored as its running total `{name}_cumulative_cents`.
 #[derive(Traversable)]
@@ -45,9 +45,5 @@ impl<C: FiatType + PcoVecValue + AddAssign + Default> CumulativeFiat<C> {
     #[inline(always)]
     pub fn push_block(&mut self, value: C) {
         self.stored.push_block(value);
-    }
-
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        self.stored.stored_mut()
     }
 }

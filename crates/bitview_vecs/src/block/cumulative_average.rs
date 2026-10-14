@@ -5,8 +5,7 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
-    WritableVec,
+    AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue, WritableVec,
 };
 
 use crate::{
@@ -110,10 +109,5 @@ where
     /// The stored running total the views derive from.
     pub fn cumulative_source(&self) -> &CachedSeries<Height, T> {
         &self.cumulative
-    }
-
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        self.last_cumulative = None;
-        &mut self.cumulative
     }
 }

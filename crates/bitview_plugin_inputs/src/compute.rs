@@ -19,22 +19,19 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        let Dependencies {
-            indexer,
-            blocks,
-            mappings,
-        } = dependencies;
+        let Dependencies { indexer, mappings } = dependencies;
         let exit = context.exit();
 
         let Vecs {
-            origins,
+            spends,
             count,
             types,
             ..
         } = self;
-        let (origins_result, rest_result) = join(
+        let (spends_result, rest_result) = join(
             || {
-                origins.compute(
+                crate::spends::compute(
+                    spends,
                     indexer,
                     mappings,
                     indexer.safe_lengths().height,
@@ -43,11 +40,11 @@ impl ComputePlugin for Vecs {
                 )
             },
             || {
-                count.compute(indexer, blocks, exit)?;
+                count.compute(indexer, mappings, exit)?;
                 types.compute(indexer, exit)
             },
         );
-        origins_result?;
+        spends_result?;
         rest_result?;
 
         Ok(())

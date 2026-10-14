@@ -1,5 +1,5 @@
 use bitview_compute::{Retained, SortedWindow};
-use bitview_primitives::Float64;
+use bitview_primitives::{DollarDaysPerCoin, Float64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock, PerBlockCumulativeRolling};
 use brk_types::Height;
@@ -22,13 +22,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// multiplied by the block's coin days destroyed and divided by circulating
     /// supply in BTC. Reported in USD-days per BTC of circulating supply. Returns
     /// zero when circulating supply is zero.
-    pub vocdd: PerBlockCumulativeRolling<Float64, M>,
+    pub vocdd: PerBlockCumulativeRolling<DollarDaysPerCoin, M>,
     /// Median over the blocks of the trailing 30 days of the trailing 24-hour
     /// supply-adjusted value of coin days destroyed (VOCDD): each block's coin
     /// days destroyed times its spot price, divided by circulating supply,
     /// summed over the trailing 24 hours, in USD-days per BTC. Reserve Risk's
     /// input, not a published series.
     #[traversable(hidden)]
-    pub vocdd_median_1m: M::Stored<EagerVec<PcoVec<Height, Float64>>>,
+    pub(crate) vocdd_median_1m: M::Stored<EagerVec<PcoVec<Height, DollarDaysPerCoin>>>,
     pub(crate) vocdd_median_1m_window: M::WriteOnly<Retained<SortedWindow>>,
 }

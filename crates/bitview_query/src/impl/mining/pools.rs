@@ -54,7 +54,7 @@ impl Query {
         }
 
         let start = start_height(self, time_period, tip)?.to_usize();
-        let lookback = &plugins.blocks.lookback;
+        let lookback = &plugins.mappings.lookback;
 
         let pools = pools();
         let mut pool_data: Vec<(&'static Pool, u64)> = Vec::new();
@@ -155,7 +155,7 @@ impl Query {
                 + 1;
             Ok((count, count as f64 / network_blocks as f64))
         };
-        let lookback = &plugins.blocks.lookback;
+        let lookback = &plugins.mappings.lookback;
         let (total_24h, share_24h) =
             window_stats(lookback._24h.collect_one(current_height).data()?)?;
         let (total_1w, share_1w) = window_stats(lookback._1w.collect_one(current_height).data()?)?;

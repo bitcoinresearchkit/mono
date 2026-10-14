@@ -2,9 +2,9 @@ use std::ops::{Add, AddAssign};
 
 use bitview_primitives::{
     Bytes, Bytes32, BytesFract, CentsFract, CoinBlocks, CoinDays, Count, Count16, Count32,
-    CountFract, Float64, PartsPerMillion32, PartsPerMillion64, PartsPerMillionSigned32,
-    PartsPerMillionSigned64, PriceRatio, SatsFract, Seconds, SecondsFract, SigOpsFract, VSizeFract,
-    WeightFract,
+    CountFract, DollarBlocks, DollarDaysPerCoin, Float64, PartsPerMillion32, PartsPerMillion64,
+    PartsPerMillionSigned32, PartsPerMillionSigned64, PriceRatio, SatsFract, Seconds, SecondsFract,
+    SigOpsFract, VSizeFract, WeightFract,
 };
 use brk_types::{Cents, CentsSigned, Sats, SigOps, VSize, Weight, Weight32};
 use schemars::JsonSchema;
@@ -107,6 +107,16 @@ impl Quantity for CoinDays {
 impl Quantity for CoinBlocks {
     type Fract = CoinBlocks;
     type Sum = CoinBlocks;
+}
+
+impl Quantity for DollarBlocks {
+    type Fract = DollarBlocks;
+    type Sum = DollarBlocks;
+}
+
+impl Quantity for DollarDaysPerCoin {
+    type Fract = DollarDaysPerCoin;
+    type Sum = DollarDaysPerCoin;
 }
 
 impl Quantity for Float64 {

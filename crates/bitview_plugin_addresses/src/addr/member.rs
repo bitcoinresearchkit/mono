@@ -9,11 +9,10 @@ use bitview_vecs::{
     shapes::Windows,
 };
 use brk_error::Result;
-use brk_exit::Exit;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use vecdb::{
-    AnyStoredVec, BinaryTransform, Database, Ident, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, Rw, StorageMode, WritableVec,
+    BinaryTransform, Database, Ident, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw,
+    StorageMode, WritableVec,
 };
 
 use super::{BlockActivityCounts, ExposedState, MemberState, ReuseState};
@@ -37,7 +36,7 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     /// block.
     pub empty: StoredCount<M>,
     /// All previously seen addresses, funded or empty.
-    pub total: StoredCount<M>,
+    pub total: LazyPerBlock<Count>,
     /// Addresses first observed in each block: the increase in the total address
     /// count.
     pub new: NewAddressCount,
@@ -45,7 +44,9 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     /// Mean balance of a funded address: the supply held by the addresses divided
     /// by the funded address count. Undefined (null) while no address is funded.
     pub avg_balance: AvgBalance,
-    /// Addresses that have received more than one output over their lifetime.
+    /// Addresses that have received more than one output over their lifetime. The two coinbase
+    /// outputs overwritten by BIP30 duplicates at heights 91,842 and 91,880 do not count as
+    /// received.
     pub reused: ReuseVecs<M>,
     /// Addresses from which more than one output has been spent over their
     /// lifetime.
@@ -140,8 +141,6 @@ pub struct PredicateSupply<M: StorageMode = Rw> {
     pub value: Supply<M>,
     /// The predicate's supply divided by all the supply the addresses hold.
     pub share: LazyPercentPerBlock<PartsPerMillion32>,
-    #[traversable(hidden)]
-    share_ppm: CachedSeries<Height, PartsPerMillion32, M>,
 }
 
 /// Per-block reuse events.
@@ -199,8 +198,21 @@ impl AddressVecs {
             ctx.windows,
         )?;
         let empty = StoredCount::import(ctx, &name("empty_address_count"), count_version)?;
-        let total = StoredCount::import(ctx, &name("total_address_count"), count_version)?;
-        let new = NewAddressCount::new(ctx, &name("new_address_count"), &total.stored);
+        let total_name = name("total_address_count");
+        let total_source = LazyIndexedVec::new(
+            &format!("{total_name}_source"),
+            count_version,
+            &funded.stored,
+            &empty.stored,
+            |_, funded, empty| funded + empty,
+        );
+        let total = LazyPerBlock::from_height_source::<Ident>(
+            &total_name,
+            count_version,
+            &total_source,
+            ctx.mappings,
+        );
+        let new = NewAddressCount::new(ctx, &name("new_address_count"), &total_source);
         let activity = ActivityVecs::import(ctx, prefix)?;
         let avg_balance =
             AvgBalance::new(ctx, &name("avg_address_balance"), &supply, &funded.stored);
@@ -209,6 +221,7 @@ impl AddressVecs {
             prefix,
             "reused",
             &activity,
+            &supply,
             outputs.cumulative_source(),
             inputs.cumulative_source(),
         )?;
@@ -217,12 +230,13 @@ impl AddressVecs {
             prefix,
             "respent",
             &activity,
+            &supply,
             outputs.cumulative_source(),
             inputs.cumulative_source(),
         )?;
         let exposed = ExposedVecs {
             count: FundedTotal::import(ctx, prefix, "exposed")?,
-            supply: PredicateSupply::import(ctx, &name("exposed_address_supply"))?,
+            supply: PredicateSupply::import(ctx, &name("exposed_address_supply"), &supply)?,
         };
         Ok(Self {
             funded,
@@ -292,49 +306,6 @@ impl AddressVecs {
             },
         })
     }
-
-    /// Series derived after the block loop: the total count, and the supply shares over the
-    /// supply the addresses hold.
-    pub fn compute(&mut self, max_from: Height, exit: &Exit) -> Result<()> {
-        let supply = &self.supply;
-        self.total.stored.compute_transform2(
-            max_from,
-            &self.funded.stored,
-            &self.empty.stored,
-            |(height, funded, empty, _)| (height, funded + empty),
-            exit,
-        )?;
-        for predicate in [
-            &mut self.reused.supply,
-            &mut self.respent.supply,
-            &mut self.exposed.supply,
-        ] {
-            predicate.compute(supply, max_from, exit)?;
-        }
-        Ok(())
-    }
-
-    /// The vecs the block loop writes.
-    pub fn loop_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        let [sending, receiving, bidirectional, reactivated, active] = self.activity.vecs_mut();
-        [
-            self.funded.stored_mut(),
-            &mut self.empty.stored as &mut dyn AnyStoredVec,
-            &mut self.supply,
-            self.outputs.stored_mut(),
-            self.inputs.stored_mut(),
-            sending,
-            receiving,
-            bidirectional,
-            reactivated,
-            active,
-        ]
-        .into_iter()
-        .chain(self.reused.loop_vecs_mut())
-        .chain(self.respent.loop_vecs_mut())
-        .chain(self.exposed.count.vecs_mut())
-        .chain([self.exposed.supply.value.stored_mut()])
-    }
 }
 
 impl StoredCount {
@@ -351,7 +322,11 @@ impl StoredCount {
 }
 
 impl NewAddressCount {
-    fn new(ctx: &ImportContext<'_>, name: &str, total: &CachedSeries<Height, Count>) -> Self {
+    fn new(
+        ctx: &ImportContext<'_>,
+        name: &str,
+        total: &impl ReadableCloneableVec<Height, Count>,
+    ) -> Self {
         Self {
             block: LazyPreviousDeltaVec::new(name, ctx.version, total),
             sum: LazyRollingSumsFromHeight::new(
@@ -398,16 +373,6 @@ impl ActivityVecs {
         self.active
             .push_block(Count::from(u64::from(counts.active())));
     }
-
-    fn vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 5] {
-        [
-            self.sending.stored_mut(),
-            self.receiving.stored_mut(),
-            self.bidirectional.stored_mut(),
-            self.reactivated.stored_mut(),
-            self.active.stored_mut(),
-        ]
-    }
 }
 
 impl AvgBalance {
@@ -453,6 +418,7 @@ impl ReuseVecs {
         prefix: &str,
         predicate: &str,
         activity: &ActivityVecs,
+        address_supply: &CachedSeries<Height, Sats>,
         outputs: &impl ReadableCloneableVec<Height, Count>,
         inputs: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
@@ -497,7 +463,11 @@ impl ReuseVecs {
         );
         Ok(Self {
             count: FundedTotal::import(ctx, prefix, predicate)?,
-            supply: PredicateSupply::import(ctx, &name(&format!("{predicate}_address_supply")))?,
+            supply: PredicateSupply::import(
+                ctx,
+                &name(&format!("{predicate}_address_supply")),
+                address_supply,
+            )?,
             events: ReuseEvents {
                 outputs: EventCount {
                     count: output_count,
@@ -530,20 +500,6 @@ impl ReuseVecs {
             .push_block(Count::from(state.input_events));
         events.active.count.push_block(Count::from(state.active));
     }
-
-    fn loop_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        let Self {
-            count,
-            supply,
-            events,
-        } = self;
-        count.vecs_mut().into_iter().chain([
-            supply.value.stored_mut(),
-            events.outputs.count.stored_mut(),
-            events.inputs.count.stored_mut(),
-            events.active.count.stored_mut(),
-        ])
-    }
 }
 
 impl FundedTotal {
@@ -568,41 +524,28 @@ impl FundedTotal {
         self.funded.push(funded);
         self.total.push(total);
     }
-
-    fn vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 2] {
-        [&mut self.funded.stored, &mut self.total.stored]
-    }
 }
 
 impl PredicateSupply {
-    fn import(ctx: &ImportContext<'_>, name: &str) -> Result<Self> {
+    /// `address_supply` is the supply all the member's addresses hold, the share's denominator.
+    fn import(
+        ctx: &ImportContext<'_>,
+        name: &str,
+        address_supply: &CachedSeries<Height, Sats>,
+    ) -> Result<Self> {
         let version = ctx.version + Version::ONE;
         let value = Supply::import(ctx.db, name, version, ctx.mappings, ctx.spot)?;
         let share_name = format!("{name}_share");
-        let share_ppm = import_cached(ctx.db, &format!("{share_name}_ppm"), version)?;
+        let source = LazyIndexedVec::new(
+            &format!("{share_name}_ppm"),
+            version,
+            &value.stored,
+            address_supply,
+            |_, part, total| Quotient::<PartsPerMillion32>::apply(part, total),
+        );
         let share =
-            LazyPercentPerBlock::from_height_source(&share_name, version, &share_ppm, ctx.mappings);
-        Ok(Self {
-            value,
-            share,
-            share_ppm,
-        })
-    }
-
-    fn compute(
-        &mut self,
-        supply: &impl ReadableVec<Height, Sats>,
-        max_from: Height,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.share_ppm.compute_transform2(
-            max_from,
-            &self.value.stored,
-            supply,
-            |(height, part, total, _)| (height, Quotient::<PartsPerMillion32>::apply(part, total)),
-            exit,
-        )?;
-        Ok(())
+            LazyPercentPerBlock::from_height_source(&share_name, version, &source, ctx.mappings);
+        Ok(Self { value, share })
     }
 }
 

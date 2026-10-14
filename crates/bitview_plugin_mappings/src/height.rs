@@ -52,8 +52,8 @@ pub struct Vecs {
     /// Zero-based UTC calendar year containing the block's monotonic timestamp,
     /// with 2009 equal to 0.
     pub year1: RangeMapLookupVec<Height, Year1>,
-    /// Zero-based ten-year UTC period containing the block's monotonic timestamp,
-    /// with 2009 through 2018 equal to 0.
+    /// Zero-based UTC decade containing the block's monotonic timestamp: 0 is
+    /// 2009 alone, 1 is 2010 through 2019, 2 is 2020 through 2029, and so on.
     pub year10: RangeMapLookupVec<Height, Year10>,
     /// Number of transactions in the indexed block, including coinbase. Hidden:
     /// the public series is `transactions.count` (`tx_count`).

@@ -1,10 +1,9 @@
 use bitview_compute::ComputeRollingMedianFromStarts;
-use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::{CoinDays, Float64};
+use bitview_primitives::{CoinDays, DollarDaysPerCoin, Float64};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Dollars, Timestamp};
@@ -16,7 +15,6 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        blocks: &BlocksVecs,
         mappings: &MappingsVecs,
         prices: &PriceVecs,
         holders: &HoldersVecs,
@@ -43,10 +41,10 @@ impl Vecs {
                 });
                 let supply_f64 = f64::from(supply);
                 let value = if supply_f64 == 0.0 {
-                    Float64::ZERO
+                    DollarDaysPerCoin::ZERO
                 } else {
                     // VOCDD = price × (CDD / supply)
-                    Float64::from(f64::from(price) * f64::from(cdd) / supply_f64)
+                    DollarDaysPerCoin::from(f64::from(price) * f64::from(cdd) / supply_f64)
                 };
                 *cumulative += value;
                 (i, *cumulative)
@@ -56,7 +54,7 @@ impl Vecs {
 
         self.vocdd_median_1m.compute_rolling_median_from_starts(
             starting_height,
-            &blocks.lookback._1m,
+            &mappings.lookback._1m,
             &self.vocdd.sum._24h.height,
             &mut self.vocdd_median_1m_window,
             exit,
@@ -71,7 +69,13 @@ impl Vecs {
             &prices.spot.usd.height,
             &self.vocdd_median_1m,
             timestamps,
-            |(height, price, median, timestamp, this): (_, Dollars, Float64, Timestamp, _)| {
+            |(height, price, median, timestamp, this): (
+                _,
+                Dollars,
+                DollarDaysPerCoin,
+                Timestamp,
+                _,
+            )| {
                 let (bank, previous) = state.get_or_insert_with(|| {
                     let previous = height.decremented();
                     (

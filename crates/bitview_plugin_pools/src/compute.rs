@@ -1,3 +1,4 @@
+use bitview_compute::{prepare_computed, write_chunks};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mining::Vecs as MiningVecs;
@@ -5,7 +6,6 @@ use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-use tracing::warn;
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, Version, WritableVec};
 
 use crate::{Dependencies, Vecs};
@@ -35,66 +35,51 @@ impl Vecs {
     /// Folds every new block's coinbase and fees into its pool's running totals.
     fn fill_rewards(&self, mining: &MiningVecs) {
         let rewards = &mining.rewards;
-        let version = rewards.coinbase.block.sats.version()
-            + rewards.coinbase.block.cents.version()
-            + rewards.fees.block.sats.version()
-            + rewards.fees.block.cents.version();
-        let to = [
-            self.pool.len(),
-            rewards.coinbase.block.sats.len(),
-            rewards.coinbase.block.cents.len(),
-            rewards.fees.block.sats.len(),
-            rewards.fees.block.cents.len(),
-        ]
-        .into_iter()
-        .min()
-        .unwrap_or_default();
+        let coinbase = &rewards.coinbase.block;
+        let fees = &rewards.fees.block;
+        let version = coinbase.sats.version()
+            + coinbase.cents.version()
+            + fees.sats.version()
+            + fees.cents.version();
+        let to = self
+            .pool
+            .len()
+            .min(coinbase.sats.len())
+            .min(coinbase.cents.len())
+            .min(fees.sats.len())
+            .min(fees.cents.len());
         // A shorter source re-fills from its end, so no stale total survives.
-        let from = self.heights.totals_start(version).min(to);
-        let columns = [
-            rewards
-                .coinbase
-                .block
+        let from = self.heights.resume_totals(version, to);
+        let (mut slugs, mut coinbase_sats, mut coinbase_cents, mut fee_sats, mut fee_cents) =
+            Default::default();
+        // Bounded chunks, each folded under one write lock: long refills keep little scratch.
+        for chunk in write_chunks(from..to) {
+            let (start, end) = (chunk.start, chunk.end);
+            self.pool.collect_range_into_at(start, end, &mut slugs);
+            coinbase
                 .sats
-                .collect_range_at(from, to)
-                .into_iter()
-                .map(u64::from)
-                .collect::<Vec<_>>(),
-            rewards
-                .coinbase
-                .block
+                .collect_range_into_at(start, end, &mut coinbase_sats);
+            coinbase
                 .cents
-                .collect_range_at(from, to)
-                .into_iter()
-                .map(u64::from)
-                .collect(),
-            rewards
-                .fees
-                .block
-                .sats
-                .collect_range_at(from, to)
-                .into_iter()
-                .map(u64::from)
-                .collect(),
-            rewards
-                .fees
-                .block
-                .cents
-                .collect_range_at(from, to)
-                .into_iter()
-                .map(u64::from)
-                .collect(),
-        ];
-        let len = columns.iter().map(Vec::len).min().unwrap_or_default();
-        let blocks = (0..len)
-            .map(|index| columns.each_ref().map(|column| column[index]))
-            .collect::<Vec<_>>();
-        self.heights.fill_totals(from, &blocks, version);
+                .collect_range_into_at(start, end, &mut coinbase_cents);
+            fees.sats.collect_range_into_at(start, end, &mut fee_sats);
+            fees.cents.collect_range_into_at(start, end, &mut fee_cents);
+            let blocks = (0..end - start).map(|i| {
+                (
+                    slugs[i],
+                    [
+                        u64::from(coinbase_sats[i]),
+                        u64::from(coinbase_cents[i]),
+                        u64::from(fee_sats[i]),
+                        u64::from(fee_cents[i]),
+                    ],
+                )
+            });
+            self.heights.append_totals(blocks);
+        }
     }
 
     fn compute_pool(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
-
         let dep_version: Version = [
             indexer.vecs().blocks.coinbase_tag.version(),
             indexer.vecs().transactions.first_tx_index.version(),
@@ -112,19 +97,12 @@ impl Vecs {
         ]
         .into_iter()
         .sum();
-        let pool_vec_version = self.pool.header().vec_version();
-        let pool_computed = self.pool.header().computed_version();
-        let expected = pool_vec_version + dep_version;
-        if expected != pool_computed {
-            warn!(
-                "Pool version mismatch: vec_version={pool_vec_version:?} + dep={dep_version:?} = {expected:?}, stored computed={pool_computed:?}, len={}",
-                self.pool.len()
-            );
-        }
-        {
-            let _lock = exit.lock();
-            self.pool.validate_computed_version_or_reset(dep_version)?;
-        }
+        let min = prepare_computed(
+            [&mut self.pool],
+            dep_version,
+            indexer.safe_lengths().height.to_usize(),
+            exit,
+        )?;
 
         let first_txout_index = indexer.vecs().transactions.first_txout_index.reader();
         let output_type = indexer.vecs().outputs.output_type.reader();
@@ -132,13 +110,6 @@ impl Vecs {
         let addr_readers = indexer.vecs().addrs.addr_readers();
 
         let unknown = self.pools.get_unknown();
-
-        let min = starting_height.to_usize().min(self.pool.len());
-
-        {
-            let _lock = exit.lock();
-            self.pool.truncate_if_needed_at(min)?;
-        }
 
         let len = indexer.vecs().blocks.coinbase_tag.len();
         let coinbase_tags = indexer.vecs().blocks.coinbase_tag.reader();

@@ -1,6 +1,6 @@
-use bitview_cohort::AddressType;
 use bitview_distribution::replay::{LiveState, Replay, validate_outputs};
 use bitview_plugin_indexer::Indexer;
+use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
@@ -8,8 +8,6 @@ use vecdb::{AnyStoredVec, Stamp};
 
 use crate::{
     Vecs,
-    addr::AddressVecs,
-    balance::Balances,
     state::{AddrStates, MinimalRealizedState, RealizedOps},
 };
 
@@ -34,7 +32,7 @@ impl Replay for Vecs {
             *written = None;
         }
         drop(written);
-        let outputs = validate_outputs(self.loop_vecs_mut().into_par_iter(), version)?;
+        let outputs = validate_outputs(self.loop_vecs_mut(), version)?;
         Ok(outputs.filter(|_| !caps_changed && !state_changed))
     }
 
@@ -42,14 +40,19 @@ impl Replay for Vecs {
         usize::from(self.state.min_stamped_len()).min(self.caps.end())
     }
 
+    /// Also truncates the outputs where the state lands: the block loop appends from there.
     fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize> {
-        let stable = self.state.stable();
-        let mut written = stable.write();
-        self.roll_back_to(start, indexer, &mut written)
+        let landing = {
+            let stable = self.state.stable();
+            let mut written = stable.write();
+            self.roll_back_to(start, indexer, &mut written)?
+        };
+        self.truncate_outputs(landing)?;
+        Ok(landing)
     }
 
     fn restore(&self, addrs: &mut AddrStates, height: Height) -> Option<()> {
-        addrs.restore(&self.balances, height)?;
+        addrs.restore(&self.balances, &self.types, height)?;
         let caps = self.caps.load()?;
         for (state, cap) in addrs
             .amount_range
@@ -66,17 +69,37 @@ impl Replay for Vecs {
     fn reset(&mut self) -> Result<()> {
         self.state.reset()?;
         self.caps.reset()?;
-        self.loop_vecs_mut()
-            .into_iter()
-            .try_for_each(|v| v.any_truncate_if_needed_at(0))?;
-        Ok(())
+        self.truncate_outputs(0)
     }
 }
 
 impl Vecs {
-    /// Every height-indexed vec the block loop writes.
-    pub(crate) fn loop_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        loop_vecs(&mut self.all, &mut self.types, &mut self.balances)
+    fn truncate_outputs(&mut self, len: usize) -> Result<()> {
+        self.loop_vecs_mut()
+            .try_for_each(|v| v.any_truncate_if_needed_at(len))?;
+        Ok(())
+    }
+
+    /// Every height-indexed vec the block loop writes: all the members' and bands' stored vecs.
+    pub(crate) fn loop_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+        let Self {
+            all,
+            types,
+            balances,
+            ..
+        } = self;
+        rayon::iter::once(&mut **all)
+            .chain(types.par_iter_mut())
+            .flat_map_iter(|member| member.iter_any_stored_mut())
+            .chain(
+                balances
+                    .bands
+                    .par_iter_mut()
+                    .flat_map_iter(|band| band.iter_any_stored_mut()),
+            )
+            .chain(rayon::iter::once(
+                &mut balances.capital as &mut dyn AnyStoredVec,
+            ))
     }
 
     /// Drops the address state an update that failed before publishing left staged.
@@ -86,11 +109,12 @@ impl Vecs {
         }
     }
 
-    /// Rolls the address state (rewritten in place) back below `start`, to the newest saved
-    /// change under it, lowering the publication there first, and writes it: readers, who take its
-    /// lock (`written`) before they pin, read it there at once. Returns where it lands: `start`
-    /// when nothing lies past it, 0 when the saved changes do not reach below it or the vectors land
-    /// apart (left unwritten for the caller to reset).
+    /// Rolls the address state (rewritten in place) and the caps back below `start`, to the
+    /// newest saved change under it, lowering the publication there first, and writes the state:
+    /// readers, who take its lock (`written`) before they pin, read it there at once. Returns where
+    /// it lands: `start` when nothing lies past it, or 0 when the saved changes do not reach below
+    /// it (a deep reorg, or a catch-up's unsaved chunk): nothing is rolled back and the publication
+    /// is lowered to genesis, so readers are off every row the caller's reset drops.
     pub fn roll_back_to(
         &mut self,
         start: usize,
@@ -103,22 +127,30 @@ impl Vecs {
             return Ok(start);
         }
         let stamp = Stamp::from(Height::from(start));
-        if let Some(landing) = self.state.rollback_landing(stamp)?
-            && usize::from(landing) < start
-        {
+        let landing = match (
+            self.state.rollback_landing(stamp)?,
+            self.caps.rollback_landing(stamp)?,
+        ) {
+            (Some(state), Some(caps)) if usize::from(state) == caps && caps <= start => state,
+            _ => {
+                indexer.lower_publication_to(Height::ZERO);
+                return Ok(0);
+            }
+        };
+        if usize::from(landing) < start {
             indexer.lower_publication_to(landing);
         }
         // The restored values sit in the write buffers until written.
         *written = None;
+        let landing_stamp = Stamp::from(landing.decremented().unwrap_or_default());
         let mut stamps = self.state.rollback_before(stamp)?;
         stamps.push(self.caps.rollback_before(stamp)?);
-        let landing = stamps[0];
-        let recovered = usize::from(Height::from(landing).incremented());
-        if recovered > start || stamps.iter().any(|s| *s != landing) {
-            return Ok(0);
-        }
-        self.write_state(landing, false, written)?;
-        Ok(recovered)
+        debug_assert!(
+            stamps.iter().all(|s| *s == landing_stamp),
+            "rollback lands where its preflight did"
+        );
+        self.write_state(landing_stamp, false, written)?;
+        Ok(usize::from(landing))
     }
 
     pub(crate) fn save_caps(
@@ -137,18 +169,4 @@ impl Vecs {
         )?;
         Ok(())
     }
-}
-
-fn loop_vecs<'a>(
-    all: &'a mut AddressVecs,
-    types: &'a mut AddressType<AddressVecs>,
-    balances: &'a mut Balances,
-) -> Vec<&'a mut dyn AnyStoredVec> {
-    let mut vecs: Vec<&mut dyn AnyStoredVec> = Vec::with_capacity(512);
-    vecs.extend(all.loop_vecs_mut());
-    for member in types.iter_mut() {
-        vecs.extend(member.loop_vecs_mut());
-    }
-    vecs.extend(balances.vecs_mut());
-    vecs
 }

@@ -28,7 +28,6 @@ pub fn write(
     let stamp = Stamp::from(height);
 
     vecs.loop_vecs_mut()
-        .into_par_iter()
         .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
     if !publish_state {
         let stable = vecs.state.stable();

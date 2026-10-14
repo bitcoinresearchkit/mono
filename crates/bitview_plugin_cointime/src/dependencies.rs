@@ -1,5 +1,4 @@
 use bitview_plugin_age::Vecs as AgeVecs;
-use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -14,7 +13,6 @@ pub struct Dependencies<'a> {
     pub indexer: &'a Indexer,
     pub mappings: &'a MappingsVecs,
     pub price: &'a PriceVecs,
-    pub blocks: &'a BlocksVecs,
     pub inflation_rate: &'a LazyPercentPerBlock<PartsPerMillionSigned64>,
     pub velocity_btc: &'a LazyPerBlock<Ratio64>,
     pub velocity_usd: &'a LazyPerBlock<Ratio64>,

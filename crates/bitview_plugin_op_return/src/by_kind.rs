@@ -19,19 +19,6 @@ macro_rules! define_by_kind {
             pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
                 [$( &mut self.$field ),+].into_iter()
             }
-            pub fn new(mut create: impl FnMut(OpReturnKind, &'static str) -> T) -> Self {
-                Self {
-                    $($field: create(OpReturnKind::$kind, stringify!($field))),+
-                }
-            }
-
-            pub fn iter(&self) -> impl Iterator<Item = &T> {
-                [$( &self.$field ),+].into_iter()
-            }
-
-            pub fn iter_typed(&self) -> impl Iterator<Item = (OpReturnKind, &T)> {
-                [$( (OpReturnKind::$kind, &self.$field) ),+].into_iter()
-            }
         }
     };
 }

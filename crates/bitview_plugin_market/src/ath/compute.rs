@@ -36,23 +36,11 @@ impl Vecs {
             exit,
         )?;
 
-        let mut prev = None;
-        self.max_days_between.height.compute_transform(
+        compute_max_days_between(
+            &mut self.max_days_between.height,
             starting_height,
             &self.seconds_since.height,
-            |(i, seconds, slf)| {
-                if prev.is_none() {
-                    let i = i.to_usize();
-                    prev.replace(if i > 0 {
-                        slf.collect_one_at(i - 1).unwrap()
-                    } else {
-                        Days::default()
-                    });
-                }
-                let max = prev.unwrap().max(SecondsToDays::apply(seconds));
-                prev.replace(max);
-                (i, max)
-            },
+            &mappings.timestamp.monotonic,
             exit,
         )?;
 
@@ -95,5 +83,42 @@ fn compute_seconds_since(
         exit,
     )?;
 
+    Ok(())
+}
+
+/// Running maximum of the time elapsed since the previous ATH, measured before an ATH resets
+/// it: a completed interval counts at the block that ends it.
+fn compute_max_days_between(
+    max_days_between: &mut CachedSeries<Height, Days>,
+    starting_height: Height,
+    seconds_since: &impl ReadableVec<Height, Seconds>,
+    timestamps: &impl ReadableVec<Height, Timestamp>,
+    exit: &Exit,
+) -> Result<()> {
+    // The previous block's running maximum, seconds since its ATH and timestamp.
+    let mut prev: Option<(Days, Seconds, Timestamp)> = None;
+    max_days_between.compute_transform2(
+        starting_height,
+        seconds_since,
+        timestamps,
+        |(i, seconds, ts, slf)| {
+            if prev.is_none()
+                && let Some(h) = i.decremented()
+            {
+                prev = Some((
+                    slf.collect_one(h).unwrap(),
+                    seconds_since.collect_one(h).unwrap(),
+                    timestamps.collect_one(h).unwrap(),
+                ));
+            }
+            let max = prev.map_or(Days::default(), |(max, prev_seconds, prev_ts)| {
+                let elapsed = Seconds::from(*prev_seconds + (*ts - *prev_ts));
+                max.max(SecondsToDays::apply(elapsed))
+            });
+            prev = Some((max, seconds, ts));
+            (i, max)
+        },
+        exit,
+    )?;
     Ok(())
 }

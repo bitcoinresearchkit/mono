@@ -1,6 +1,7 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_plugin_blocks::{DifficultyVecs, LookbackVecs};
+use bitview_plugin_blocks::DifficultyVecs;
 use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mappings::LookbackVecs;
 use bitview_primitives::{HashPrice, HashValue, Hashrate, PartsPerMillionSigned32};
 use bitview_vecs::ops::RelativeChange;
 use brk_error::Result;

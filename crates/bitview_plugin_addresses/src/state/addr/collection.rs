@@ -1,28 +1,40 @@
-use bitview_cohort::AmountRange;
+use bitview_cohort::{AddressType, AmountRange};
 use brk_types::Height;
 
 use super::AddrCohortState;
-use crate::balance::Balances;
+use crate::{
+    addr::{AddrMetricsState, AddressVecs},
+    balance::Balances,
+};
 
 pub struct AddrStates {
     pub amount_range: AmountRange<AddrCohortState>,
+    /// The address types' running counters, retained between updates like the bands.
+    pub metrics: AddrMetricsState,
 }
 
 impl Default for AddrStates {
     fn default() -> Self {
         Self {
             amount_range: AmountRange::new(|_| AddrCohortState::new()),
+            metrics: AddrMetricsState::default(),
         }
     }
 }
 
 impl AddrStates {
-    /// The bands' states at the end of the block before `height`.
-    pub fn restore(&mut self, balances: &Balances, height: Height) -> Option<()> {
+    /// The bands' states and the counters at the end of the block before `height`.
+    pub fn restore(
+        &mut self,
+        balances: &Balances,
+        types: &AddressType<AddressVecs>,
+        height: Height,
+    ) -> Option<()> {
         let previous_height = height.decremented()?;
         for (state, band) in self.amount_range.iter_mut().zip(balances.bands.iter()) {
             band.restore(state, previous_height)?;
         }
+        self.metrics = AddrMetricsState::restore(types, height)?;
         Some(())
     }
 

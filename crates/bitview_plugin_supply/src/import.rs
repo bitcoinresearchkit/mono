@@ -9,8 +9,8 @@ use bitview_vecs::{
     LazyWindowStartVec, shapes::Windows,
 };
 use brk_error::Result;
-use brk_types::{Sats, Version};
-use vecdb::Ident;
+use brk_types::{Height, Sats, Version};
+use vecdb::{Ident, LazyVec, ReadableCloneableVec};
 
 use crate::{STORAGE, Vecs, burned, velocity};
 
@@ -38,11 +38,11 @@ impl Vecs {
         // Scheduled annual issuance (the block's scheduled subsidy x 52,560 blocks) over the
         // supply; undefined only without supply (block 0: the genesis output is unspendable).
         let inflation_version = version + Version::new(4);
-        let inflation_source = all_chain.with_supply(
+        let inflation_source = LazyVec::init(
             "inflation_rate_ppm_source",
             inflation_version,
-            &supply_metrics.sats.height,
-            |height, _, supply| {
+            supply_metrics.sats.height.read_only_boxed_clone(),
+            |height: Height, supply: Sats| {
                 PartsPerMillionSigned64::from(if supply.is_zero() {
                     f64::NAN
                 } else {

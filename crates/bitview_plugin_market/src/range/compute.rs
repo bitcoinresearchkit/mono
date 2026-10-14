@@ -1,6 +1,6 @@
 use bitview_compute::compute_rolling_extrema_from_starts;
-use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -12,7 +12,7 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         prices: &PriceVecs,
-        blocks: &BlocksVecs,
+        lookback: &LookbackVecs,
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
@@ -23,19 +23,19 @@ impl Vecs {
             (
                 &mut self.min._1w.cents.height,
                 &mut self.max._1w.cents.height,
-                blocks.lookback.start_vec(7),
+                lookback.start_vec(7),
                 week,
             ),
             (
                 &mut self.min._1m.cents.height,
                 &mut self.max._1m.cents.height,
-                blocks.lookback.start_vec(30),
+                lookback.start_vec(30),
                 month,
             ),
             (
                 &mut self.min._1y.cents.height,
                 &mut self.max._1y.cents.height,
-                blocks.lookback.start_vec(365),
+                lookback.start_vec(365),
                 year,
             ),
         ] {

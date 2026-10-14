@@ -543,6 +543,17 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} ratio - Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.
  */
 /**
+ * US dollars multiplied by blocks: coinblocks valued at the spot price.
+ *
+ * @typedef {number} DollarBlocks
+ */
+/**
+ * US dollars multiplied by days, per bitcoin: coin days valued at the spot price, per
+ * bitcoin of supply.
+ *
+ * @typedef {number} DollarDaysPerCoin
+ */
+/**
  * US Dollar amount
  *
  * @typedef {number} Dollars
@@ -4938,7 +4949,7 @@ const _CoinblocksDestroyed = _s({
  * @typedef {{
  *   block: SeriesPattern1<?Float64>,
  *   hodlBank: SeriesPattern1<?Float64>,
- *   vocdd: CoinblocksDestroyed<?Float64>,
+ *   vocdd: CoinblocksDestroyed<?DollarDaysPerCoin>,
  * }} ReserveRisk
  */
 const _ReserveRisk = _s({
@@ -4949,9 +4960,9 @@ const _ReserveRisk = _s({
 
 /**
  * @typedef {{
- *   destroyed: CoinblocksDestroyed<?Float64>,
- *   created: CoinblocksDestroyed<?Float64>,
- *   stored: CoinblocksDestroyed<?Float64>,
+ *   destroyed: CoinblocksDestroyed<?DollarBlocks>,
+ *   created: CoinblocksDestroyed<?DollarBlocks>,
+ *   stored: CoinblocksDestroyed<?DollarBlocks>,
  * }} Value
  */
 const _Value = _s({

@@ -1,5 +1,7 @@
-use bitview_primitives::Lengths;
-use bitview_primitives::{PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, Ratio};
+use bitview_compute::{prepare_computed, write_chunks, write_locked};
+use bitview_primitives::{
+    Lengths, PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, Ratio,
+};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CachedSeries, IndexSources, LazyRatioPerBlock, import_cached, shapes::RarityPercentiles,
@@ -11,9 +13,7 @@ use vecdb::{
     AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
 };
 
-use super::{
-    Band, BlockDecayPercentiles, COMPUTE_BATCH_SIZE, START_HEIGHT, component_price::ComponentPrice,
-};
+use super::{Band, BlockDecayPercentiles, START_HEIGHT, component_price::ComponentPrice};
 
 #[derive(Traversable)]
 pub struct Component<M: StorageMode = Rw> {
@@ -37,7 +37,7 @@ pub struct Component<M: StorageMode = Rw> {
     /// 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9
     /// percent.
     #[traversable(hidden)]
-    pub ratios: RarityPercentiles<CachedSeries<Height, PartsPerMillion32, M>>,
+    ratios: RarityPercentiles<CachedSeries<Height, PartsPerMillion32, M>>,
 
     price: M::WriteOnly<ComponentPrice>,
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
@@ -54,7 +54,7 @@ impl Component {
         price_source: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
         let version = version + VERSION;
-        let component_price = ComponentPrice::new(name, version, price_source);
+        let component_price = ComponentPrice::new(price_source);
         let ratios = RarityPercentiles::try_from_fn(|id| {
             import_cached(db, &format!("{name}_ratio_{}_ppm", id.suffix()), version)
         })?;
@@ -89,28 +89,18 @@ impl Component {
         ratio_source: &impl ReadableVec<Height, Ratio>,
         exit: &Exit,
     ) -> Result<()> {
-        let block_decay_pct = &mut self.block_decay_pct;
-        {
-            let _lock = exit.lock();
-            for vec in self.ratios.iter_mut() {
-                vec.validate_computed_version_or_reset(ratio_source.version())?;
-            }
-        }
-        let start = self
-            .ratios
-            .iter()
-            .map(|v| v.len())
-            .min()
-            .unwrap_or_default()
-            .min(usize::from(starting_lengths.height))
-            .min(ratio_source.len());
-        {
-            let _lock = exit.lock();
-            for vec in self.ratios.iter_mut() {
-                vec.truncate_if_needed_at(start)?;
-                vec.write()?;
-            }
-        }
+        let source_end = ratio_source.len();
+        let start = prepare_computed(
+            self.ratios.iter_any_stored_mut().collect::<Vec<_>>(),
+            ratio_source.version(),
+            usize::from(starting_lengths.height).min(source_end),
+            exit,
+        )?;
+        let Self {
+            ratios,
+            block_decay_pct,
+            ..
+        } = self;
         let expected_len = start.saturating_sub(START_HEIGHT);
         if block_decay_pct.len() != expected_len {
             block_decay_pct.reset();
@@ -119,26 +109,25 @@ impl Component {
                 block_decay_pct.add_bulk(START_HEIGHT, &historical);
             }
         }
-        let mut chunk_start = start;
-        while chunk_start < ratio_source.len() {
-            let end = (chunk_start + COMPUTE_BATCH_SIZE).min(ratio_source.len());
-            let new_ratios = ratio_source.collect_range_at(chunk_start, end);
-            let mut out = [0.0; RARITY_PERCENTILES_LEN];
-            for (offset, ratio) in new_ratios.iter().enumerate() {
-                let height = chunk_start + offset;
-                if height >= START_HEIGHT {
-                    block_decay_pct.add(height, **ratio);
+        let mut out = [0.0; RARITY_PERCENTILES_LEN];
+        for chunk in write_chunks(start..source_end) {
+            // Before calibration starts no ratio is observed: every percentile is undefined.
+            let observed = chunk.start.max(START_HEIGHT).min(chunk.end);
+            for _ in chunk.start..observed {
+                for target in ratios.iter_mut() {
+                    target.push(PartsPerMillion32::NAN);
                 }
+            }
+            let mut height = observed;
+            ratio_source.for_each_range_at(observed, chunk.end, |ratio| {
+                block_decay_pct.add(height, *ratio);
+                height += 1;
                 block_decay_pct.quantiles(&RARITY_PERCENTILES, &mut out);
-                for (target, value) in self.ratios.iter_mut().zip(out) {
+                for (target, value) in ratios.iter_mut().zip(out) {
                     target.push(PartsPerMillion32::from(value));
                 }
-            }
-            let _lock = exit.lock();
-            for vec in self.ratios.iter_mut() {
-                vec.write()?;
-            }
-            chunk_start = end;
+            });
+            write_locked(ratios.iter_any_stored_mut(), exit)?;
         }
 
         Ok(())

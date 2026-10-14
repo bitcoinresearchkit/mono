@@ -3,7 +3,6 @@ use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{BoundedRatio, PartsPerMillion32};
 use bitview_urpd::ReplayInputs;
 use brk_types::Height;
@@ -13,7 +12,6 @@ use vecdb::ReadableVec;
 pub struct Dependencies<'a> {
     pub urpd: ReplayInputs<'a>,
     pub indexer: &'a Indexer,
-    pub mappings: &'a MappingsVecs,
     pub holders: &'a HoldersVecs,
     pub age: &'a AgeVecs,
     pub cointime: &'a CointimeVecs,

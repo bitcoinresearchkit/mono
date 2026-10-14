@@ -19,7 +19,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Fractional days, using monotonic block time, since the latest block whose
     /// spot price equaled the running all-time high. Resets to zero at equality.
     pub days_since: LazyPerBlock<Days, Seconds>,
-    /// Longest fractional-day interval since a Bitcoin spot-price all-time high
-    /// observed through the represented block, including the ongoing interval.
+    /// Longest fractional-day interval between consecutive Bitcoin spot-price
+    /// all-time highs through the represented block, including the ongoing
+    /// interval since the latest one.
     pub max_days_between: PerBlock<Days, M>,
 }

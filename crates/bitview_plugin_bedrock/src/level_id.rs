@@ -1,7 +1,5 @@
 use super::Levels;
 
-pub const LEVEL_COUNT: usize = 9;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LevelId {
     Pct10,
@@ -16,6 +14,20 @@ pub enum LevelId {
 }
 
 impl LevelId {
+    pub const fn suffix(self) -> &'static str {
+        match self {
+            Self::Pct10 => "pct10",
+            Self::Pct20 => "pct20",
+            Self::Pct30 => "pct30",
+            Self::Pct40 => "pct40",
+            Self::Median => "median",
+            Self::Pct60 => "pct60",
+            Self::Pct70 => "pct70",
+            Self::Pct80 => "pct80",
+            Self::Pct90 => "pct90",
+        }
+    }
+
     pub fn select<T>(self, values: &Levels<T>) -> &T {
         match self {
             Self::Pct10 => &values.pct10,

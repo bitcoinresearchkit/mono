@@ -59,7 +59,7 @@ impl DefaultPlugins {
             Ok(Box::new(Blocks::import(context, &indexer, &mappings)?))
         })?;
 
-        let window_starts = blocks.lookback.window_starts();
+        let window_starts = mappings.lookback.window_starts();
 
         let (inputs, outputs, mining, transactions, pools, op_return) =
             thread::scope(|scope| -> Result<_> {
@@ -105,7 +105,7 @@ impl DefaultPlugins {
                 })?;
 
                 let transactions = transactions_handle.join().unwrap()?;
-                let block_size = blocks.size.size.cumulative_source();
+                let block_size = blocks.size.cumulative_source();
                 let chain_fees = transactions.fees.total_cumulative.read_only_boxed_clone();
                 let op_return_handle = {
                     let indexer = &indexer;
@@ -161,9 +161,7 @@ impl DefaultPlugins {
         let (age, market) = thread::scope(|scope| -> Result<_> {
             let market_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
                 timed(Phase::Import, MARKET_ID, || {
-                    Ok(Box::new(Market::import(
-                        context, &mappings, &blocks, &price,
-                    )?))
+                    Ok(Box::new(Market::import(context, &mappings, &price)?))
                 })
             })?;
 

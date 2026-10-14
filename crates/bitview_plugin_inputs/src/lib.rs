@@ -4,18 +4,18 @@ mod count;
 mod dependencies;
 mod has;
 mod import;
-mod origins;
+mod spends;
 
 pub use by_type::{InputTypeVecs, Vecs as TypesVecs};
 pub use count::Vecs as CountVecs;
 pub use dependencies::Dependencies;
 pub use has::HasInputs;
-pub use origins::OriginSpends;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPerSecondWindows;
 use brk_types::Version;
+use statedb::Spends;
 use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("inputs"), Version::new(9));
@@ -26,9 +26,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    /// Actual spends grouped by origin, retained for compute consumers.
+    /// Each block's spends grouped by the height of the output they spend, for compute
+    /// consumers.
     #[traversable(skip)]
-    pub origins: M::WriteOnly<OriginSpends>,
+    pub spends: M::WriteOnly<Spends>,
 
     pub count: CountVecs<M>,
     /// Transaction-input rate, excluding coinbase inputs.

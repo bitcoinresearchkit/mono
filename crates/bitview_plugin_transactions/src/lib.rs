@@ -12,6 +12,7 @@ mod import;
 mod inscription;
 mod patterns;
 mod policy;
+mod resume;
 mod sigops;
 mod versions;
 mod vsize;

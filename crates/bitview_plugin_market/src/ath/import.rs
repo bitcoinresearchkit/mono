@@ -22,7 +22,9 @@ impl Vecs {
 
         let high = Price::import(db, "price_ath", v, mappings)?;
 
-        let max_days_between = PerBlock::import(db, "max_days_between_price_ath", v, mappings)?;
+        // One: completed intervals count, not only the ongoing one.
+        let max_days_between =
+            PerBlock::import(db, "max_days_between_price_ath", v + Version::ONE, mappings)?;
 
         let seconds_since = PerBlock::import(db, "seconds_since_price_ath", v, mappings)?;
         let days_since = LazyPerBlock::from_resolutions::<SecondsToDays>(

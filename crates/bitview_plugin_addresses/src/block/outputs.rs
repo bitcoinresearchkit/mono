@@ -19,9 +19,8 @@ pub fn process_outputs(
     debug_assert_eq!(types.len(), output_count);
     debug_assert_eq!(indexes.len(), output_count);
 
-    let estimated = (output_count / 8 / SHARDS).max(8);
-    let mut received =
-        std::array::from_fn(|_| AddrTypeToTypeIndexMap::<Received>::with_capacity(estimated));
+    // Maps allocate on first insert: most shard/type pairs of a block stay empty.
+    let mut received: [AddrTypeToTypeIndexMap<Received>; SHARDS] = Default::default();
 
     for ((&value, &output_type), &type_index) in values.iter().zip(types).zip(indexes) {
         let tx_index = txs.next().expect("incomplete output transaction ranges");

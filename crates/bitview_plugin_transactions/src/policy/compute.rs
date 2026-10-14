@@ -1,16 +1,16 @@
+use bitview_compute::{WRITE_INTERVAL, write_locked};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Boolean, Count};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Sats;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyVec, ReadableVec, WritableVec};
 
 use super::Vecs;
-use crate::fees;
+use crate::{fees, resume::prepare_blocks};
 
 const FIRST_EPHEMERAL_DUST_HEIGHT: usize = 905_000;
-const WRITE_INTERVAL: usize = 10_000;
 
 impl Vecs {
     pub(crate) fn compute(
@@ -26,60 +26,33 @@ impl Vecs {
             + fees.fee.tx.version()
             + indexer.vecs().transactions.first_tx_index.version()
             + mappings.height.tx_index_count.version();
-        {
-            let _lock = exit.lock();
-            self.nonstandard
-                .flag
-                .validate_computed_version_or_reset(version)?;
-            self.nonstandard
-                .count
-                .validate_computed_version_or_reset(version)?;
-        }
-        let starting_lengths = indexer.safe_lengths();
-        let target_tx = fees.fee.tx.len();
-        let target_height = mappings.height.tx_index_count.len();
-        let tx_len = self
-            .nonstandard
-            .flag
-            .len()
-            .min(starting_lengths.tx_index.to_usize());
-        let count_len = self
-            .nonstandard
-            .count
-            .cumulative
-            .height
-            .len()
-            .min(starting_lengths.height.to_usize());
-        let next_height = mappings
-            .tx_heights
-            .resume_height(tx_len, target_tx, target_height);
-        let start_height = count_len.min(next_height);
-        if start_height >= target_height {
-            return Ok(());
-        }
-
         let first_tx = &indexer.vecs().transactions.first_tx_index;
-        let start_tx = first_tx.collect_one_at(start_height).unwrap().to_usize();
-        {
-            let _lock = exit.lock();
-            self.nonstandard.flag.truncate_if_needed_at(start_tx)?;
-            self.nonstandard.count.truncate_if_needed_at(start_height)?;
-        }
+        let tx_counts = &mappings.height.tx_index_count;
+        let end_tx = fees.fee.tx.len();
+        let (flag, count) = self.nonstandard.stored_mut();
+        let (heights, start_tx) = prepare_blocks(
+            &mut [flag],
+            &mut [count],
+            version,
+            indexer.safe_lengths(),
+            end_tx,
+            tx_counts.len(),
+            mappings,
+            first_tx,
+            exit,
+        )?;
         let mut unconditional = features
             .is_unconditionally_nonstandard
-            .range_cursor_at(start_tx, target_tx);
-        let mut has_dust = features
-            .dust_output
-            .flag
-            .range_cursor_at(start_tx, target_tx);
+            .range_cursor_at(start_tx, end_tx);
+        let mut has_dust = features.dust_output.flag.range_cursor_at(start_tx, end_tx);
         let mut fee = fees.fee.tx.cursor();
-        let mut tx_count = mappings.height.tx_index_count.cursor();
-        tx_count.advance(start_height);
+        let mut tx_count = tx_counts.cursor();
+        tx_count.advance(heights.start);
 
         let mut block_start = start_tx;
-        for height in start_height..target_height {
+        for height in heights {
             let block_end =
-                (block_start + u64::from(tx_count.next().unwrap()) as usize).min(target_tx);
+                (block_start + u64::from(tx_count.next().unwrap()) as usize).min(end_tx);
             let mut count = 0;
 
             for tx_index in block_start..block_end {
@@ -93,18 +66,18 @@ impl Vecs {
             self.nonstandard.count.push_block(Count::from(count));
 
             if (height + 1).is_multiple_of(WRITE_INTERVAL) {
-                let _lock = exit.lock();
-                self.nonstandard.flag.write()?;
-                self.nonstandard.count.write()?;
+                self.write(exit)?;
             }
 
             block_start = block_end;
         }
 
-        let _lock = exit.lock();
-        self.nonstandard.flag.write()?;
-        self.nonstandard.count.write()?;
-        Ok(())
+        self.write(exit)
+    }
+
+    fn write(&mut self, exit: &Exit) -> Result<()> {
+        let (flag, count) = self.nonstandard.stored_mut();
+        write_locked([flag, count], exit)
     }
 }
 

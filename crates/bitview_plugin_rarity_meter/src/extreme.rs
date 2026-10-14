@@ -1,7 +1,8 @@
 use std::{collections::VecDeque, iter::repeat_n};
 
 use bitview_compute::{
-    ExactOrderStats, FenwickTree, NumericValue, lower_nearest_rank, prepare_computed,
+    ExactOrderStats, FenwickTree, NumericValue, WRITE_INTERVAL, lower_nearest_rank,
+    prepare_computed, write_locked,
 };
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::PartsPerMillion32;
@@ -12,12 +13,11 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec};
+use vecdb::{Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec};
 
 use crate::threshold_vecs::ThresholdVecs;
 
 const MIN_HISTORY_BLOCKS: usize = 210_000;
-const WRITE_INTERVAL: usize = 10_000;
 /// Above this many missing outputs, coordinate compression is faster than
 /// applying exact live updates one at a time.
 const BULK_BACKFILL_THRESHOLD: usize = 10_000;
@@ -161,17 +161,11 @@ where
     ) -> Result<()> {
         let source_end = source.len();
         let start = prepare_computed(
-            [
-                &mut self.thresholds.tail0_1.height as &mut dyn AnyStoredVec,
-                &mut self.thresholds.tail0_05.height,
-                &mut self.thresholds.tail0_025.height,
-                &mut self.tail_share.fixed.height,
-            ],
+            self.iter_any_stored_mut().collect::<Vec<_>>(),
             source.version(),
             starting_height.to_usize().min(source_end),
             exit,
         )?;
-        self.write(exit)?;
 
         if source_end.saturating_sub(start) > BULK_BACKFILL_THRESHOLD {
             self.compute_bulk(source, start, source_end, config, exit)
@@ -306,12 +300,7 @@ where
     }
 
     fn write(&mut self, exit: &Exit) -> Result<()> {
-        let _lock = exit.lock();
-        for v in self.thresholds.iter_mut() {
-            v.height.write()?;
-        }
-        self.tail_share.fixed.height.write()?;
-        Ok(())
+        write_locked(self.iter_any_stored_mut(), exit)
     }
 }
 
@@ -467,7 +456,9 @@ impl LiveHistory {
 
         self.stats.insert(value);
         if let Some(expired) = self.window.push(value) {
-            assert!(self.stats.remove(expired));
+            // A value expires from the window that took it in.
+            let removed = self.stats.remove(expired);
+            debug_assert!(removed, "expired value not in the history");
         }
     }
 }

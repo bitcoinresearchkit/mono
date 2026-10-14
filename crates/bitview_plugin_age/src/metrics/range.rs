@@ -13,8 +13,8 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_types::{Cents, CentsSats, Height, Sats, Version};
 use vecdb::{
-    AnyStoredVec, BinaryTransform, Database, ImportableVec, ReadableBoxedVec, Rw, StorageMode,
-    WritableVec, ZstdVec, ZstdVecValue,
+    BinaryTransform, Database, ImportableVec, ReadableBoxedVec, Rw, StorageMode, WritableVec,
+    ZstdVec, ZstdVecValue,
 };
 
 use derive_more::{Deref, DerefMut};
@@ -181,26 +181,6 @@ impl RangeVecs {
             .peak_regret
             .push(CentsSats::new(realized.peak_regret_raw()));
         capital
-    }
-
-    pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        let RawSources {
-            cap,
-            capitalized_cap,
-            peak_regret,
-        } = &mut self.raw;
-        self.cohort
-            .stored_vecs_mut()
-            .chain(self.transfer_volume_in_profit.stored_vecs_mut())
-            .chain(self.transfer_volume_in_loss.stored_vecs_mut())
-            .chain([
-                self.matured_sources.sats.stored_mut(),
-                self.matured_sources.cents.stored_mut(),
-                self.coindays_created.stored_mut(),
-                cap as &mut dyn AnyStoredVec,
-                capitalized_cap,
-                peak_regret,
-            ])
     }
 }
 

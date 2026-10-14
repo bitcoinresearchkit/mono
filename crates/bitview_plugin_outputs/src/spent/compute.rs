@@ -37,19 +37,23 @@ impl Vecs {
             // Zero means uninitialized; every checkpoint counts completed blocks.
             let starting_stamp = Stamp::from(starting_lengths.height.incremented());
             if self.spending_txin_index.stamp() >= starting_stamp {
-                // Spends are rewritten in place: readers first fall back to where the rollback
-                // lands (a stamp counts completed blocks).
-                if let Some(landing) = self.spending_txin_index.rollback_landing(starting_stamp)?
-                    && landing < Stamp::from(starting_lengths.height)
-                {
-                    indexer.lower_publication_to(Height::from(landing));
+                // Spends are rewritten in place: readers first fall back to the prefix the
+                // rewrite keeps, where the rollback lands (a stamp counts completed blocks), or
+                // genesis when it cannot land and the index rebuilds.
+                match self.spending_txin_index.rollback_landing(starting_stamp)? {
+                    Some(landing) => {
+                        if landing < Stamp::from(starting_lengths.height) {
+                            indexer.lower_publication_to(Height::from(landing));
+                        }
+                        let landed = self.spending_txin_index.rollback_before(starting_stamp)?;
+                        debug_assert_eq!(landed, landing, "rollback lands where it planned");
+                    }
+                    None => {
+                        warn!("Could not roll back spent outputs; rebuilding");
+                        indexer.lower_publication_to(Height::ZERO);
+                        self.spending_txin_index.reset()?;
+                    }
                 }
-            }
-            if self.spending_txin_index.stamp() >= starting_stamp
-                && self.spending_txin_index.rollback_before(starting_stamp)? >= starting_stamp
-            {
-                warn!("Could not roll back spent outputs; rebuilding");
-                self.spending_txin_index.reset()?;
             }
             let min_txout_index = self
                 .spending_txin_index

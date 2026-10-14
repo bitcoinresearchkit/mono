@@ -16,7 +16,7 @@ use vecdb::{AnyVec, ReadableVec, Stamp, VecIndex, unlikely};
 use super::{AddrReaders, Workspace, readers::tx_indexes};
 use crate::{
     Vecs,
-    addr::{AddrMetricsState, SHARDS, SourcedAddrData},
+    addr::{MemberState, SHARDS, SourcedAddrData},
     block::{
         AddrTypeLookup, Received, TransferAddressCache, TxIndexes, process_inputs, process_lost,
         process_outputs, process_received, process_sent,
@@ -67,7 +67,6 @@ pub fn process_chunk(
     last_chunk: bool,
     exit: &Exit,
 ) -> Result<usize> {
-    let starting_height = Height::from(blocks.start);
     let start_usize = blocks.start;
     let end_usize = blocks.end;
 
@@ -172,23 +171,6 @@ pub fn process_chunk(
         .first_index
         .collect_range_at(start_usize, end_usize);
 
-    debug!(
-        "recovering addr metrics state from height {}",
-        starting_height
-    );
-    let mut state = AddrMetricsState::restore(&vecs.types, starting_height);
-    debug!("addr metrics state recovered");
-
-    // Pre-truncate all stored vecs to starting_height (one-time).
-    // This eliminates per-push truncation checks inside the block loop.
-    {
-        let _lock = exit.lock();
-        let start = starting_height.to_usize();
-        vecs.loop_vecs_mut()
-            .into_par_iter()
-            .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
-    }
-
     // Load cold address state once for each batch of blocks.
     let bounds = BlockBounds::new(indexer, blocks);
     let mut next = end_usize;
@@ -287,7 +269,7 @@ pub fn process_chunk(
         // Each address touches only its own state, so every shard of every type runs apart from
         // the same base metrics; cohort changes are logged per block and applied below in order.
         let block_prices = &prices[batch.blocks.clone()];
-        let mut base = state.clone();
+        let mut base = addr_states.metrics.clone();
         base.reset_per_block();
         let base = &base;
         let processed = cache
@@ -297,10 +279,20 @@ pub fn process_chunk(
             .into_par_iter()
             .map(|((output_type, addrs), (blocks_type, blocks))| {
                 debug_assert_eq!(output_type, blocks_type);
+                // P2A is not an address type: its addresses update only their own data.
+                let id = AddressTypeId::from_output_type(output_type);
+                let member = id.map(|id| *id.select(&base.0));
                 let first = batch.blocks.start;
-                let blocks =
-                    process_shard(output_type, addrs, blocks, first, block_prices, base, &lost);
-                (output_type, blocks)
+                let blocks = process_shard(
+                    output_type,
+                    addrs,
+                    blocks,
+                    first,
+                    block_prices,
+                    member,
+                    &lost,
+                );
+                (id, blocks)
             })
             .collect::<Vec<_>>();
 
@@ -311,18 +303,16 @@ pub fn process_chunk(
             } else {
                 debug!("Processing chain at {height}...");
             }
-            state.clone_from(base);
-            for (output_type, blocks) in &processed {
-                // P2A is not an address type: its addresses update only their own data.
-                let Some(id) = AddressTypeId::from_output_type(*output_type) else {
-                    continue;
-                };
-                let (cohorts, metrics) = &blocks[offset];
-                cohorts.apply_to(&mut addr_states.amount_range);
-                state.add_member_delta(metrics, base, id);
+            let metrics = &mut addr_states.metrics;
+            metrics.clone_from(base);
+            for (id, blocks) in &processed {
+                if let (Some(id), (cohorts, Some(member))) = (*id, &blocks[offset]) {
+                    cohorts.apply_to(&mut addr_states.amount_range);
+                    metrics.add_member_delta(id, *member, base);
+                }
             }
-            vecs.all.push(&state.all());
-            for (member, member_state) in vecs.types.iter_mut().zip(state.0.iter()) {
+            vecs.all.push(&metrics.all());
+            for (member, member_state) in vecs.types.iter_mut().zip(metrics.0.iter()) {
                 member.push(member_state);
             }
             vecs.balances
@@ -353,8 +343,9 @@ pub fn process_chunk(
 }
 
 /// Apply one shard of an address type's blocks in order: per block its transaction counts,
-/// receives, then spends (the block-level convention the README states). Returns each block's
-/// cohort changes and the metrics after it, of which only this type's values are meaningful.
+/// receives, then spends (the block-level convention the README states). `member` is the type's
+/// counters (none for P2A) the shard starts from. Returns each block's cohort changes and the
+/// member after it.
 #[allow(clippy::too_many_arguments)]
 fn process_shard(
     output_type: OutputType,
@@ -362,15 +353,14 @@ fn process_shard(
     blocks: Vec<TypeBlock>,
     first_height: usize,
     prices: &[Cents],
-    base: &AddrMetricsState,
+    mut member: Option<MemberState>,
     lost: &[Lost],
-) -> Vec<(CohortLog, AddrMetricsState)> {
+) -> Vec<(CohortLog, Option<MemberState>)> {
     let lost = lost
         .iter()
         .filter(|lost| output_type == OutputType::P2PK65 && addrs.contains_key(&lost.type_index))
         .copied()
         .collect::<Vec<_>>();
-    let mut metrics = base.clone();
     let mut lookup = AddrTypeLookup::new(addrs);
     let mut transfers = TransferAddressCache::default();
     let mut processed = Vec::with_capacity(blocks.len());
@@ -386,19 +376,19 @@ fn process_shard(
         ),
     ) in (first_height..).zip(blocks.into_iter().zip(prices))
     {
-        metrics.reset_per_block();
+        if let Some(member) = &mut member {
+            member.reset_per_block();
+        }
         lookup.update_tx_counts(&received, sent_txs);
         transfers.prepare(received.keys().copied());
         let mut cohorts = CohortLog::default();
-        // P2A is not an address type: its addresses update only their own data.
-        let mut member = metrics.member_mut(output_type);
         process_received(
             received,
             &mut cohorts,
             &mut lookup,
             price,
             output_type,
-            member.as_deref_mut(),
+            member.as_mut(),
         );
         process_sent(
             &spends,
@@ -406,7 +396,7 @@ fn process_shard(
             &mut lookup,
             price,
             output_type,
-            member.as_deref_mut(),
+            member.as_mut(),
             &mut transfers,
         );
         for lost in lost.iter().filter(|lost| lost.height == height) {
@@ -417,10 +407,10 @@ fn process_shard(
                 &mut cohorts,
                 &mut lookup,
                 output_type,
-                member.as_deref_mut(),
+                member.as_mut(),
             );
         }
-        processed.push((cohorts, metrics.clone()));
+        processed.push((cohorts, member));
     }
     processed
 }

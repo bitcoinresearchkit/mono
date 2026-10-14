@@ -2,9 +2,9 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{LazyPerSecondWindows, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
+use statedb::Spends;
 
 use super::{CountVecs, STORAGE, TypesVecs, Vecs};
-use crate::OriginSpends;
 
 impl Vecs {
     pub fn import(
@@ -26,9 +26,8 @@ impl Vecs {
             &count.cumulative.height,
         )?;
 
-        let origins = OriginSpends::open(db.path())?;
         let this = Self {
-            origins,
+            spends: Spends::open(db.path())?,
             db,
             count,
             per_second,

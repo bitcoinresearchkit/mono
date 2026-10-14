@@ -5,29 +5,32 @@ use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Window
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, VSize, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 use super::{BlockMetrics, DataBytesSeries, FeesSeries};
 use crate::{by_kind::ByKind, policy::Policy};
 
-/// Metrics of one protocol or policy: its matching `OP_RETURN` outputs and
-/// transactions.
+/// Metrics of a set of `OP_RETURN` outputs (all of them, or one protocol's or policy's) and
+/// of the transactions creating them.
 #[derive(Traversable)]
 pub struct BucketVecs<M: StorageMode = Rw> {
-    /// Number of matching `OP_RETURN` outputs.
+    /// Number of `OP_RETURN` outputs.
     pub output_count: PerBlockCumulativeRolling<Count, M>,
-    /// Script bytes following `OP_RETURN` in matching outputs.
+    /// Script bytes following the `OP_RETURN` opcode, summed over the outputs.
     pub data_bytes: DataBytesSeries<M>,
-    /// Number of matching transactions; each transaction counts once.
+    /// Number of transactions creating at least one of the outputs; each
+    /// transaction counts once.
     pub tx_count: PerBlockCumulativeRolling<Count, M>,
-    /// Full virtual sizes of matching transactions, in vbytes.
+    /// Full virtual sizes of the transactions creating the outputs, in vbytes;
+    /// each transaction is included once.
     pub tx_vsize: PerBlockCumulativeRolling<VSize, M>,
-    /// Full fees of matching transactions.
+    /// Full fees of the transactions creating the outputs; each transaction is
+    /// included once.
     pub fees: FeesSeries<M>,
 }
 
 impl BucketVecs {
-    fn import(
+    pub(crate) fn import(
         db: &Database,
         prefix: &str,
         version: Version,
@@ -62,18 +65,7 @@ impl BucketVecs {
         })
     }
 
-    fn len(&self) -> usize {
-        self.output_count
-            .cumulative
-            .height
-            .len()
-            .min(self.data_bytes.cumulative.height.len())
-            .min(self.tx_count.cumulative.height.len())
-            .min(self.tx_vsize.cumulative.height.len())
-            .min(self.fees.len())
-    }
-
-    fn push(&mut self, block: BlockMetrics) {
+    pub(crate) fn push(&mut self, block: BlockMetrics) {
         self.output_count
             .push_block(Count::from(block.output_count));
         self.data_bytes.data_bytes.push_block(block.data_bytes);
@@ -82,7 +74,8 @@ impl BucketVecs {
         self.fees.push_block(block.fees);
     }
 
-    fn stored_mut(&mut self) -> [&mut dyn AnyStoredVec; 5] {
+    /// The stored columns every block pushes to; fiat columns compute apart.
+    pub(crate) fn stored_mut(&mut self) -> [&mut dyn AnyStoredVec; 5] {
         [
             self.output_count.stored_mut(),
             self.data_bytes.data_bytes.stored_mut(),
@@ -90,6 +83,15 @@ impl BucketVecs {
             self.tx_vsize.stored_mut(),
             self.fees.stored_mut(),
         ]
+    }
+
+    pub(crate) fn compute_cents(
+        &mut self,
+        max_from: Height,
+        price_cents: &impl ReadableVec<Height, Cents>,
+        exit: &Exit,
+    ) -> Result<()> {
+        self.fees.compute_cents(max_from, price_cents, exit)
     }
 }
 
@@ -120,40 +122,10 @@ macro_rules! impl_breakdown {
                 })
             }
 
-            pub fn len(&self) -> usize {
-                self.iter().map(BucketVecs::len).min().unwrap_or_default()
-            }
-
             pub fn push(&mut self, values: [BlockMetrics; $id::ALL.len()]) {
                 for (id, bucket) in $id::ALL.iter().zip(self.iter_mut()) {
                     bucket.push(*id.get(&values));
                 }
-            }
-
-            pub fn validate_and_truncate(
-                &mut self,
-                version: Version,
-                height: Height,
-            ) -> Result<()> {
-                for target in self.iter_mut().flat_map(BucketVecs::stored_mut) {
-                    target.any_validate_computed_version_or_reset(version)?;
-                    target.any_truncate_if_needed_at(usize::from(height))?;
-                }
-                Ok(())
-            }
-
-            pub fn truncate_if_needed_at(&mut self, len: usize) -> Result<()> {
-                for target in self.iter_mut().flat_map(BucketVecs::stored_mut) {
-                    target.any_truncate_if_needed_at(len)?;
-                }
-                Ok(())
-            }
-
-            pub fn write(&mut self) -> Result<()> {
-                for target in self.iter_mut().flat_map(BucketVecs::stored_mut) {
-                    target.write()?;
-                }
-                Ok(())
             }
 
             pub fn compute_cents(
@@ -163,7 +135,7 @@ macro_rules! impl_breakdown {
                 exit: &Exit,
             ) -> Result<()> {
                 for bucket in self.iter_mut() {
-                    bucket.fees.compute_cents(max_from, price_cents, exit)?;
+                    bucket.compute_cents(max_from, price_cents, exit)?;
                 }
                 Ok(())
             }

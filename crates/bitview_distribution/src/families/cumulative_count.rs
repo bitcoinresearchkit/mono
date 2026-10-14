@@ -9,7 +9,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_types::Version;
 use schemars::JsonSchema;
-use vecdb::{AnyStoredVec, Database, PcoVecValue, Rw, StorageMode};
+use vecdb::{Database, PcoVecValue, Rw, StorageMode};
 
 /// One cohort's flow of a quantity, stored as its running total `{name}_cumulative`.
 #[derive(Traversable)]
@@ -49,9 +49,5 @@ where
     #[inline(always)]
     pub(crate) fn push_block(&mut self, value: T) {
         self.stored.push_block(value);
-    }
-
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        self.stored.stored_mut()
     }
 }

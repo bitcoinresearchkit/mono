@@ -53,14 +53,15 @@ pub trait Replay {
     /// The length the plugin's checkpoints reach.
     fn checkpoint_len(&self) -> usize;
 
-    /// Under the exit lock: rolls the checkpoints back to at most `start`; returns where they
-    /// land, 0 when they cannot.
+    /// Under the exit lock: rolls the checkpoints back to at most `start` and truncates the
+    /// outputs there; returns where they land, or 0 when they cannot, after lowering the
+    /// publication to genesis (readers must be off every row the reset drops).
     fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize>;
 
     /// The state at the start of `height`, from the checkpoints; `None` when they cannot give it.
     fn restore(&self, state: &mut Self::State, height: Height) -> Option<()>;
 
-    /// Under the exit lock: drops every checkpoint, for a replay from genesis.
+    /// Under the exit lock: drops every checkpoint and output, for a replay from genesis.
     fn reset(&mut self) -> Result<()>;
 }
 

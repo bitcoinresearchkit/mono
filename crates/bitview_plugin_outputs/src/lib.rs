@@ -12,13 +12,13 @@ pub use dependencies::Dependencies;
 pub use has::HasOutputs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyPerSecondWindows;
+use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyPerSecondWindows};
 use brk_types::Version;
 use statedb::Creations;
 use vecdb::{Database, Rw, StorageMode};
 
-use by_type::SpendableOutputCount;
 use count::Vecs as CountVecs;
 use spent::Vecs as SpentVecs;
 use value::Vecs as ValueVecs;
@@ -40,7 +40,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     per_second: LazyPerSecondWindows,
     /// Number of transaction outputs excluding `OP_RETURN` outputs, which are
     /// provably unspendable.
-    spendable_count: SpendableOutputCount,
+    spendable_count: LazyPerBlockCumulativeRolling<Count>,
     /// Transaction outputs by locking-script type, including coinbase outputs
     /// and coinbase transactions.
     types: TypesVecs<M>,

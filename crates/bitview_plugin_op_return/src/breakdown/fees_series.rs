@@ -9,7 +9,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
+    AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
 };
 
 #[derive(Traversable)]
@@ -51,10 +51,6 @@ impl FeesSeries {
         );
 
         Ok(Self { fees, chain_share })
-    }
-
-    pub fn len(&self) -> usize {
-        self.fees.cumulative.sats.height.len()
     }
 
     pub fn push_block(&mut self, value: Sats) {

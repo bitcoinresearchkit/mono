@@ -2177,12 +2177,12 @@ pub mod tree {
     shape! { ReserveRisk at "series().cointime.reserve_risk" {
         block: SeriesPattern1<Option<Float64>> = "*",
         hodl_bank: SeriesPattern1<Option<Float64>> = "hodl_bank",
-        vocdd: CoinblocksDestroyed<Option<Float64>> = "vocdd",
+        vocdd: CoinblocksDestroyed<Option<DollarDaysPerCoin>> = "vocdd",
     } }
     shape! { Value at "series().cointime.value" {
-        destroyed: CoinblocksDestroyed<Option<Float64>> = "*_destroyed",
-        created: CoinblocksDestroyed<Option<Float64>> = "*_created",
-        stored: CoinblocksDestroyed<Option<Float64>> = "*_stored",
+        destroyed: CoinblocksDestroyed<Option<DollarBlocks>> = "*_destroyed",
+        created: CoinblocksDestroyed<Option<DollarBlocks>> = "*_created",
+        stored: CoinblocksDestroyed<Option<DollarBlocks>> = "*_stored",
     } }
     shape! { CointimeAgeRanges10yTo12y at "series().cointime.age_ranges._10y_to_12y" {
         coindays_created: CoinblocksDestroyed<Option<CoinDays>> = "*_coindays_created",

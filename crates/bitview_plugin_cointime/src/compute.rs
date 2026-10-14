@@ -19,7 +19,6 @@ impl Vecs {
             urpd: _,
             mappings,
             price: prices,
-            blocks,
             inflation_rate,
             velocity_btc,
             velocity_usd,
@@ -83,7 +82,7 @@ impl Vecs {
             },
             || {
                 self.reserve_risk
-                    .compute(indexer, blocks, mappings, prices, holders, exit)
+                    .compute(indexer, mappings, prices, holders, exit)
             },
         );
         r3?;

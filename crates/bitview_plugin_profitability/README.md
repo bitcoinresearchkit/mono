@@ -21,6 +21,7 @@ Writes use the project exit guard. Crash recovery is outside the project contrac
 profit/loss, cost-basis percentiles, and density live in Holders.
 
 Creation prices sit on the shared price index's grid, four significant digits of
-the price in cents (exact under $100, at most 0.05% off above), and band
-boundaries are whole cents. Complementary filters (LTH, over 4m, over 6m) are their totals minus the
-young side, before cents rounding.
+the price in cents (exact under $100, at most 0.05% off above). Each band edge, the
+spot scaled by an exact rational factor, rounds up to the next grid price (never to
+whole cents first), and the spot's own grid price counts as profit: break-even
+belongs to the profit side. Long-term totals are all minus short-term, before cents rounding.

@@ -1,21 +1,18 @@
 use std::{
-    iter, mem,
+    mem,
     time::{Duration, Instant},
 };
 
 use bitview_cohort::AgeRange;
-use bitview_compute::{collect_cohort_weights, prepare_computed};
+use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_traversable::Traversable;
 use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
 use brk_error::Result;
-use brk_types::Version;
 use log::info;
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
 
-use crate::{
-    BlockResult, Calibration, CumulativeBucket, Dependencies, ModeId, ModeVecs, Vecs,
-    WRITE_INTERVAL_BLOCKS, WeightedModeId, WeightedModes,
-};
+use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeId, Vecs};
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
@@ -32,7 +29,6 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             urpd,
             indexer,
-            mappings,
             age,
             holders: _,
             cointime,
@@ -45,34 +41,29 @@ impl ComputePlugin for Vecs {
         let raw_loss_share = dependencies.raw_loss_share();
         let cointime_loss_share = dependencies.cointime_loss_share();
         let coinflow_loss_share = dependencies.coinflow_loss_share();
-        let source_version = Version::combine_all(
-            iter::once(mappings.timestamp.monotonic.version() + URPD_COMPUTE_VERSION)
-                .chain(iter::once(urpd.prices.version()))
-                .chain(iter::once(age.all_supply().version()))
-                .chain(iter::once(raw_loss_share.version()))
-                .chain(iter::once(cointime_loss_share.version()))
-                .chain(iter::once(coinflow_loss_share.version()))
-                .chain(age_supplies.iter().map(|vec| vec.version()))
-                .chain(cointime_wakefulness.iter().map(|vec| vec.version()))
-                .chain(coinflow_mobility.iter().map(|vec| vec.version())),
+        let mut inputs = Inputs::new(
+            urpd.timestamps.version() + URPD_COMPUTE_VERSION,
+            [
+                urpd.prices as &dyn AnyVec,
+                age.all_supply(),
+                raw_loss_share,
+                cointime_loss_share,
+                coinflow_loss_share,
+            ]
+            .into_iter()
+            .chain(age_supplies.iter().map(|vec| *vec as &dyn AnyVec))
+            .chain(cointime_wakefulness.iter().map(|vec| *vec as &dyn AnyVec))
+            .chain(coinflow_mobility.iter().map(|vec| *vec as &dyn AnyVec)),
         );
-        let end = iter::once(mappings.timestamp.monotonic.len())
-            .chain(iter::once(raw_loss_share.len()))
-            .chain(iter::once(cointime_loss_share.len()))
-            .chain(iter::once(coinflow_loss_share.len()))
-            .chain(age_supplies.iter().map(|vec| vec.len()))
-            .chain(cointime_wakefulness.iter().map(|vec| vec.len()))
-            .chain(coinflow_mobility.iter().map(|vec| vec.len()))
-            .min()
-            .unwrap_or_default();
-        let from = usize::from(indexer.safe_lengths().height).min(end);
-        let start = prepare_computed(
+        inputs.len = inputs.len.min(urpd.timestamps.len());
+        let source_version = inputs.version;
+        let range = inputs.prepare(
             self.model_stored_vecs_mut().collect::<Vec<_>>(),
-            source_version,
-            from,
+            usize::from(indexer.safe_lengths().height),
             context.exit(),
         )?;
-        if end.saturating_sub(start) >= WRITE_INTERVAL_BLOCKS {
+        let (start, end) = (range.start, range.end);
+        if end - start >= WRITE_INTERVAL {
             info!(
                 "Computing Bedrock for {} blocks ({start}..={})...",
                 end - start,
@@ -137,11 +128,11 @@ impl ComputePlugin for Vecs {
                     let cf_weights = supplies
                         .as_ref()
                         .and_then(|s| collect_cohort_weights(height, &mut worker.coinflow, s));
-                    let weights = WeightedModes::from_fn(|mode| match mode {
-                        WeightedModeId::Cointime => ct_weights.as_ref(),
-                        WeightedModeId::Coinflow => cf_weights.as_ref(),
-                    });
-                    result.evaluate(source, &weights, &mut worker.scratch);
+                    result.evaluate(
+                        source,
+                        &[ct_weights.as_ref(), cf_weights.as_ref()],
+                        &mut worker.scratch,
+                    );
                 }
                 Ok(result)
             },
@@ -163,11 +154,8 @@ impl ComputePlugin for Vecs {
                     );
                     last_progress = Instant::now();
                 }
-                if end_block.is_multiple_of(WRITE_INTERVAL_BLOCKS) || end_block == end {
-                    let _lock = context.exit().lock();
-                    for vec in self.model_stored_vecs_mut() {
-                        vec.write()?;
-                    }
+                if end_block.is_multiple_of(WRITE_INTERVAL) || end_block == end {
+                    write_locked(self.model_stored_vecs_mut(), context.exit())?;
                 }
                 Ok(())
             },
@@ -188,6 +176,6 @@ struct Worker<S, T, F> {
 
 impl Vecs {
     fn model_stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.modes.iter_mut().flat_map(ModeVecs::stored_vecs_mut)
+        self.modes.iter_any_stored_mut()
     }
 }

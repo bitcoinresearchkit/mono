@@ -1,12 +1,15 @@
 use std::{mem, time::Instant};
 
+use bitview_primitives::CentsCompact;
 use brk_types::{Cents, Height};
 use tracing::debug;
 use vecdb::VecIndex;
 
+/// Sparse table of the spot price's range maxima, in compact cents (exact for every price a
+/// cohort price map holds) to halve its ~19M entries at 1M heights.
 #[derive(Debug, Clone, Default)]
 pub struct PriceRangeMax {
-    levels: Vec<Vec<Cents>>,
+    levels: Vec<Vec<CentsCompact>>,
     n: usize,
 }
 
@@ -24,7 +27,11 @@ impl PriceRangeMax {
             self.levels.push(Vec::new());
         }
 
-        self.levels[0].extend_from_slice(&prices[old_n..new_n]);
+        self.levels[0].extend(
+            prices[old_n..new_n]
+                .iter()
+                .map(|&price| CentsCompact::from(price)),
+        );
         for level in 1..level_count {
             let half = 1 << (level - 1);
             let new_end = new_n.saturating_add(1).saturating_sub(1 << level);
@@ -48,7 +55,7 @@ impl PriceRangeMax {
             new_n,
             new_n - old_n,
             level_count,
-            (entries * mem::size_of::<Cents>()) as f64 / 1_000_000.0,
+            (entries * mem::size_of::<CentsCompact>()) as f64 / 1_000_000.0,
             start.elapsed().as_secs_f64() * 1000.0
         );
     }
@@ -63,7 +70,7 @@ impl PriceRangeMax {
         unsafe {
             let first = *values.get_unchecked(start);
             let last = *values.get_unchecked(end + 1 - width);
-            first.max(last)
+            Cents::from(first.max(last))
         }
     }
 

@@ -30,7 +30,6 @@ use inner::RarityMeterInner;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("rarity_meter"), Version::new(18));
 pub const ID: PluginId = STORAGE.id();
-const COMPUTE_BATCH_SIZE: usize = 100_000;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {

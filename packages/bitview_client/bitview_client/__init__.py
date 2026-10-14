@@ -152,6 +152,11 @@ Difficulty = float
 # A single difficulty adjustment entry.
 # Serializes as array: [timestamp, height, difficulty, change_percent]
 DifficultyAdjustmentEntry = List[float]
+# US dollars multiplied by blocks: coinblocks valued at the spot price.
+DollarBlocks = float
+# US dollars multiplied by days, per bitcoin: coin days valued at the spot price, per
+# bitcoin of supply.
+DollarDaysPerCoin = float
 # Index of an output with an empty script.
 EmptyOutputIndex = TypeIndex
 # Index of a difficulty epoch (2,016 blocks).
@@ -4205,13 +4210,13 @@ class CoinblocksDestroyed(_Node, Generic[A]):
 class ReserveRisk(_Node):
     block: SeriesPattern1[Optional[Float64]] = _at(SeriesPattern1, '*')
     hodl_bank: SeriesPattern1[Optional[Float64]] = _at(SeriesPattern1, 'hodl_bank')
-    vocdd: CoinblocksDestroyed[Optional[Float64]] = _at(CoinblocksDestroyed, 'vocdd')
+    vocdd: CoinblocksDestroyed[Optional[DollarDaysPerCoin]] = _at(CoinblocksDestroyed, 'vocdd')
 
 
 class Value(_Node):
-    destroyed: CoinblocksDestroyed[Optional[Float64]] = _at(CoinblocksDestroyed, '*_destroyed')
-    created: CoinblocksDestroyed[Optional[Float64]] = _at(CoinblocksDestroyed, '*_created')
-    stored: CoinblocksDestroyed[Optional[Float64]] = _at(CoinblocksDestroyed, '*_stored')
+    destroyed: CoinblocksDestroyed[Optional[DollarBlocks]] = _at(CoinblocksDestroyed, '*_destroyed')
+    created: CoinblocksDestroyed[Optional[DollarBlocks]] = _at(CoinblocksDestroyed, '*_created')
+    stored: CoinblocksDestroyed[Optional[DollarBlocks]] = _at(CoinblocksDestroyed, '*_stored')
 
 
 class CointimeAgeRanges10yTo12y(_Node):

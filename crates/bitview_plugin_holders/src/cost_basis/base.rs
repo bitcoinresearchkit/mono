@@ -9,7 +9,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
 use super::CostBasisVecs;
 use crate::columns::Columns;
@@ -85,12 +85,5 @@ impl CostBasis {
     ) -> Result<()> {
         self.per_coin.avg.compute_ratio(from, spot, exit)?;
         self.per_dollar.avg.compute_ratio(from, spot, exit)
-    }
-
-    pub(crate) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 2] {
-        [
-            &mut self.per_coin.avg.relative.fixed.height,
-            &mut self.per_dollar.avg.relative.fixed.height,
-        ]
     }
 }

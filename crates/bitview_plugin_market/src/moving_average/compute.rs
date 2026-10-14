@@ -1,6 +1,6 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
@@ -8,13 +8,13 @@ use brk_exit::Exit;
 use brk_types::{Cents, Height};
 use vecdb::ReadableVec;
 
-use super::{Vecs, vecs::EmaPeriodId};
+use super::Vecs;
 
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        blocks: &BlocksVecs,
+        lookback: &LookbackVecs,
         prices: &PriceVecs,
         exit: &Exit,
     ) -> Result<()> {
@@ -28,23 +28,19 @@ impl Vecs {
             exit,
         )?;
 
-        for &period in EmaPeriodId::ALL {
-            period
-                .select_mut(&mut self.ema_stored)
-                .compute_rolling_ema(
-                    starting_lengths.height,
-                    blocks.lookback.start_vec(period.days()),
-                    close,
-                    exit,
-                )?;
+        for (days, state) in self.ema_stored.iter_mut() {
+            state.compute_rolling_ema(
+                starting_lengths.height,
+                lookback.start_vec(days),
+                close,
+                exit,
+            )?;
         }
 
         let from = starting_lengths.height;
         self.sma.compute_ratios(from, close, exit)?;
-        for &period in EmaPeriodId::ALL {
-            period
-                .select_mut(&mut self.ema)
-                .compute_ratio(from, close, exit)?;
+        for (_, ema) in self.ema.iter_mut() {
+            ema.compute_ratio(from, close, exit)?;
         }
 
         Ok(())

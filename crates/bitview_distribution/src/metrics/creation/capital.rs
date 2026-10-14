@@ -5,7 +5,7 @@ use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::{families::Fiat, metrics::CohortCapital, state::UnrealizedState};
 
@@ -47,13 +47,5 @@ impl CreationCapital {
         self.base.push(total);
         self.in_profit.push(profitability.capital_in_profit);
         self.in_loss.push(profitability.capital_in_loss);
-    }
-
-    pub(super) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
-        [
-            self.base.stored_mut(),
-            self.in_profit.stored_mut(),
-            self.in_loss.stored_mut(),
-        ]
     }
 }

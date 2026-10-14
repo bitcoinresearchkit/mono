@@ -8,7 +8,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, Database, PcoVecValue, ReadableBoxedVec, Rw, StorageMode, WritableVec};
+use vecdb::{Database, PcoVecValue, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 use crate::{
     bucket::Bucket,
@@ -195,25 +195,5 @@ impl Metrics {
                 .select_mut(term)
                 .push(*term.select(&totals.cap));
         }
-    }
-
-    pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        fn bands<T: PcoVecValue>(
-            bands: &mut Bands<T, Rw>,
-        ) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-            bands
-                .iter_mut()
-                .flat_map(|term| term.iter_mut())
-                .map(|v| v as &mut dyn AnyStoredVec)
-        }
-        fn totals<T: PcoVecValue>(
-            totals: &mut Totals<T, Rw>,
-        ) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-            totals.iter_mut().map(|v| v as &mut dyn AnyStoredVec)
-        }
-        bands(&mut self.supply_stored)
-            .chain(bands(&mut self.capital_stored))
-            .chain(totals(&mut self.supply_total))
-            .chain(totals(&mut self.capital_total))
     }
 }

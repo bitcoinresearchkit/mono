@@ -45,7 +45,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     #[traversable(flatten)]
     all: Box<AddressVecs<M>>,
-    /// All addresses together.
+    /// All addresses together, the genesis output included, which Bitcoin Core leaves out of
+    /// the UTXO set: their share of all unspent outputs can exceed 100% in the earliest blocks.
     supply: SupplyViews,
     /// All addresses together.
     capital: CapitalViews,

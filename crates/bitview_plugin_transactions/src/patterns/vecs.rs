@@ -1,8 +1,5 @@
-use bitview_primitives::{Boolean, Count};
 use bitview_traversable::Traversable;
-use bitview_vecs::PerBlockCumulativeRolling;
-use brk_types::TxIndex;
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Rw, StorageMode};
 
 use crate::flagged::Classified;
 
@@ -20,27 +17,16 @@ pub struct Vecs<M: StorageMode = Rw> {
 }
 
 impl Vecs {
-    fn patterns_mut(&mut self) -> [&mut Classified<Rw>; 3] {
-        [
-            &mut self.coinjoin,
-            &mut self.consolidation,
-            &mut self.batch_payout,
-        ]
-    }
-
-    pub(super) fn flags_mut(
+    /// Every pattern's stored flags, then counts.
+    pub(super) fn stored_mut(
         &mut self,
-    ) -> impl Iterator<Item = &mut EagerVec<PcoVec<TxIndex, Boolean>>> {
-        self.patterns_mut()
-            .into_iter()
-            .map(|pattern| &mut pattern.flag)
-    }
-
-    pub(super) fn counts_mut(
-        &mut self,
-    ) -> impl Iterator<Item = &mut PerBlockCumulativeRolling<Count>> {
-        self.patterns_mut()
-            .into_iter()
-            .map(|pattern| &mut pattern.count)
+    ) -> ([&mut dyn AnyStoredVec; 3], [&mut dyn AnyStoredVec; 3]) {
+        let (coinjoin_flag, coinjoin_count) = self.coinjoin.stored_mut();
+        let (consolidation_flag, consolidation_count) = self.consolidation.stored_mut();
+        let (batch_payout_flag, batch_payout_count) = self.batch_payout.stored_mut();
+        (
+            [coinjoin_flag, consolidation_flag, batch_payout_flag],
+            [coinjoin_count, consolidation_count, batch_payout_count],
+        )
     }
 }

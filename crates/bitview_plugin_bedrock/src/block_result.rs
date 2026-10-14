@@ -5,7 +5,7 @@ use brk_types::Cents;
 
 use super::{
     CumulativeBucket, Levels, LossPercentileId, MODE_COUNT, ModeId, ModeResult, Modes, Percentiles,
-    PriceBands, Thresholds, WeightedModeId, WeightedModes,
+    PriceBands, Thresholds,
 };
 
 const LEVEL_PERCENTILES: Levels<f64> = Levels {
@@ -39,16 +39,16 @@ impl BlockResult {
         }
     }
 
+    /// `weights` are the awake and mobile modes' age-range weights.
     pub fn evaluate(
         &mut self,
         source: &OriginUrpd,
-        weights: &WeightedModes<Option<&AgeRange<f64>>>,
+        weights: &[Option<&AgeRange<f64>>; MODE_COUNT - 1],
         scratch: &mut Vec<CumulativeBucket>,
     ) {
-        let weights = WeightedModeId::ALL.map(|id| *weights.select(id));
         scratch.clear();
         let mut totals = [0_u64; MODE_COUNT];
-        for bucket in source.project(&weights, [AgeAggregateId::All.age_range_ids()]) {
+        for bucket in source.project(weights, [AgeAggregateId::All.age_range_ids()]) {
             totals[0] += u64::from(bucket.raw[0]);
             for (total, sats) in totals[1..].iter_mut().zip(bucket.weighted[0]) {
                 *total += u64::from(sats);

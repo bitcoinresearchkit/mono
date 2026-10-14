@@ -68,17 +68,24 @@ impl PoolHeights {
 
     pub(crate) fn update(&self, min: usize, version: Version, slugs: &[PoolSlug]) {
         let mut state = self.0.write();
-        let totals_len = state.totals_len.min(min);
-        for record in state.by_pool.values_mut() {
-            let cut = record.heights.partition_point(|h| h.to_usize() < min);
-            record.heights.truncate(cut);
-            let filled = record
-                .heights
-                .partition_point(|h| h.to_usize() < totals_len);
-            record.totals.truncate(filled);
+        // Only a rewind sweeps every pool; an append touches the new blocks' pools alone.
+        if min < state.len {
+            let totals_len = state.totals_len.min(min);
+            for record in state.by_pool.values_mut() {
+                let cut = record.heights.partition_point(|h| h.to_usize() < min);
+                record.heights.truncate(cut);
+                let filled = record
+                    .heights
+                    .partition_point(|h| h.to_usize() < totals_len);
+                record.totals.truncate(filled);
+            }
+            state.totals_len = totals_len;
         }
-        state.len = min;
-        state.totals_len = totals_len;
+        debug_assert!(
+            min <= state.len,
+            "pool blocks resume within the known blocks"
+        );
+        state.len = min + slugs.len();
         state.version = version;
         for (offset, &slug) in slugs.iter().enumerate() {
             state
@@ -88,41 +95,49 @@ impl PoolHeights {
                 .heights
                 .push(Height::from(min + offset));
         }
-        state.len += slugs.len();
     }
 
-    /// Height where reward totals must resume; everything from it is (re)filled.
-    pub(crate) fn totals_start(&self, version: Version) -> usize {
-        let state = self.0.read_recursive();
-        if state.totals_version == version {
-            state.totals_len
+    /// Drops every total from the height where they must resume, `to` at most, and returns it:
+    /// their end under `version`, else zero.
+    pub(crate) fn resume_totals(&self, version: Version, to: usize) -> usize {
+        let mut state = self.0.write();
+        let from = if state.totals_version == version {
+            state.totals_len.min(to)
         } else {
             0
-        }
-    }
-
-    /// `rewards[i]` belongs to block `from + i`; totals resume at `from` (see `totals_start`).
-    pub(crate) fn fill_totals(&self, from: usize, rewards: &[Rewards], version: Version) {
-        let mut state = self.0.write();
-        let end = (from + rewards.len()).min(state.len);
-        for record in state.by_pool.values_mut() {
-            let filled = record.heights.partition_point(|h| h.to_usize() < from);
-            record.totals.truncate(filled);
-            let mut running = record.totals.last().copied().unwrap_or_default();
-            for height in &record.heights[filled..] {
-                let height = height.to_usize();
-                if height >= end {
-                    break;
-                }
-                let block = rewards[height - from];
-                for (total, value) in running.iter_mut().zip(block) {
-                    *total += value;
-                }
-                record.totals.push(running);
+        };
+        // Only a refill sweeps every pool; resuming at the end keeps every total.
+        if from < state.totals_len {
+            for record in state.by_pool.values_mut() {
+                let filled = record.heights.partition_point(|h| h.to_usize() < from);
+                record.totals.truncate(filled);
             }
         }
-        state.totals_len = end;
+        state.totals_len = from;
         state.totals_version = version;
+        from
+    }
+
+    /// Folds the next blocks (each one's pool and rewards) into their pools' running totals.
+    pub(crate) fn append_totals(&self, blocks: impl IntoIterator<Item = (PoolSlug, Rewards)>) {
+        let mut state = self.0.write();
+        let mut height = state.totals_len;
+        for (slug, block) in blocks {
+            let record = state.by_pool.get_mut(&slug).expect("block's pool is known");
+            debug_assert_eq!(
+                record.heights.get(record.totals.len()),
+                Some(&Height::from(height)),
+                "rewards fold in block order"
+            );
+            let mut running = record.totals.last().copied().unwrap_or_default();
+            for (total, value) in running.iter_mut().zip(block) {
+                *total += value;
+            }
+            record.totals.push(running);
+            height += 1;
+        }
+        debug_assert!(height <= state.len, "rewards only for known blocks");
+        state.totals_len = height;
     }
 
     pub fn block_numbers(&self, slugs: &[PoolSlug], first_height: Height) -> Vec<u64> {
@@ -312,17 +327,20 @@ impl<T: VecValue + From<u64>> ReadableVec<Height, T> for PoolCumulativeVec<T> {
         let record = state.by_pool.get(&self.slug);
         let heights = record.map_or(&[][..], |record| record.heights.as_slice());
         let mut position = heights.partition_point(|height| height.to_usize() < first);
+        // Lowest height not yet counted; a pool has at most one block per height, so at most
+        // `index + 1 - next` of the following entries can be counted for `index`.
+        let mut next = first;
         out.reserve(indices.len());
         for &index in indices {
             if index >= len {
                 break;
             }
-            while heights
-                .get(position)
-                .is_some_and(|height| height.to_usize() <= index)
-            {
-                position += 1;
-            }
+            let window = (index + 1)
+                .saturating_sub(next)
+                .min(heights.len() - position);
+            position += heights[position..position + window]
+                .partition_point(|height| height.to_usize() <= index);
+            next = next.max(index + 1);
             out.push(self.total(record, position));
         }
     }

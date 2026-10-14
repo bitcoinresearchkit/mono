@@ -1,8 +1,8 @@
 use bitview_primitives::TxInIndex;
-use brk_cpfp::Cluster as Graph;
+use brk_cpfp::Cluster;
 use brk_types::{CpfpClusterTxIndex, FeeRate, OutPoint, Sats, VSize};
 use smallvec::SmallVec;
-use vecdb::{VecIndex, unlikely};
+use vecdb::VecIndex;
 
 #[derive(Default)]
 pub struct Block {
@@ -34,47 +34,32 @@ impl Block {
         self.outpoints.clear();
     }
 
-    /// `cluster`: scratch reused across blocks, one per worker.
-    pub fn compute(&mut self, cluster: &mut Cluster) {
-        debug_assert_eq!(self.input_values.len(), self.output_values.len());
-        debug_assert_eq!(self.input_values.len(), self.vsizes.len());
-        debug_assert_eq!(self.input_values.len(), self.txin_starts.len());
+    /// `components`: scratch reused across blocks, one per worker.
+    pub fn compute(&mut self, components: &mut Components) {
+        let n = self.input_values.len();
+        debug_assert_eq!(n, self.output_values.len());
+        debug_assert_eq!(n, self.vsizes.len());
+        debug_assert_eq!(n, self.txin_starts.len());
+        // The coinbase spends nothing: its single input carries the `Sats::MAX` sentinel.
+        debug_assert!(self.input_values[0].is_max());
 
-        self.fees.reserve(self.input_values.len());
-        self.fee_rates.reserve(self.input_values.len());
-        for ((&input, &output), &vsize) in self
-            .input_values
+        self.fees.reserve(n);
+        self.fee_rates.reserve(n);
+        self.fees.push(Sats::ZERO);
+        self.fee_rates
+            .push(FeeRate::from((Sats::ZERO, self.vsizes[0])));
+        for ((&input, &output), &vsize) in self.input_values[1..]
             .iter()
-            .zip(&self.output_values)
-            .zip(&self.vsizes)
+            .zip(&self.output_values[1..])
+            .zip(&self.vsizes[1..])
         {
-            let fee = if unlikely(input.is_max()) {
-                Sats::ZERO
-            } else {
-                self.transfer_volume += input;
-                input - output
-            };
+            let fee = input - output;
+            self.transfer_volume += input;
             self.total_fee += fee;
             self.fees.push(fee);
             self.fee_rates.push(FeeRate::from((fee, vsize)));
         }
-        self.compute_cluster(cluster);
-    }
-
-    /// Repair rates/CPFP from valid fees without decoding monetary inputs again.
-    pub fn compute_from_fees(&mut self, cluster: &mut Cluster) {
-        self.fee_rates.clear();
-        self.fee_rates.extend(
-            self.fees
-                .iter()
-                .zip(&self.vsizes)
-                .map(|(&fee, &size)| FeeRate::from((fee, size))),
-        );
-        self.compute_cluster(cluster);
-    }
-
-    fn compute_cluster(&mut self, cluster: &mut Cluster) {
-        cluster.compute(
+        components.compute(
             &self.txin_starts,
             &self.outpoints,
             self.input_begin,
@@ -87,16 +72,17 @@ impl Block {
     }
 }
 
+/// A block's same-block dependency components, linearized one at a time.
 #[derive(Default)]
-pub struct Cluster {
+pub struct Components {
     parents: Vec<SmallVec<[usize; 2]>>,
     roots: Vec<usize>,
     members: Vec<(usize, usize)>,
     local_index: Vec<u32>,
-    graph: Graph,
+    cluster: Cluster,
 }
 
-impl Cluster {
+impl Components {
     /// Computes chunk rates for each same-block dependency component.
     #[allow(clippy::too_many_arguments)]
     fn compute(
@@ -158,7 +144,7 @@ impl Cluster {
                 vsizes,
                 effective_fee_rates,
                 &mut self.local_index,
-                &mut self.graph,
+                &mut self.cluster,
             );
             start = end;
         }
@@ -172,15 +158,15 @@ impl Cluster {
         vsizes: &[VSize],
         rates: &mut [FeeRate],
         local_index: &mut [u32],
-        graph: &mut Graph,
+        cluster: &mut Cluster,
     ) {
         for (local, &(_, tx)) in members.iter().enumerate() {
             local_index[tx] = local as u32;
         }
 
-        graph.clear();
+        cluster.clear();
         for &(_, tx) in members {
-            graph.push(
+            cluster.push(
                 fees[tx],
                 vsizes[tx],
                 parents[tx]
@@ -189,7 +175,7 @@ impl Cluster {
             );
         }
 
-        graph.linearize(|txs, feerate| {
+        cluster.linearize(|txs, feerate| {
             for &local in txs {
                 rates[members[u32::from(local) as usize].1] = feerate;
             }

@@ -3,9 +3,7 @@ use std::ops::AddAssign;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::{
-    AnyStoredVec, AnyVec, Database, PcoVecValue, ReadableVec, Rw, StorageMode, WritableVec,
-};
+use vecdb::{AnyVec, Database, PcoVecValue, ReadableVec, Rw, StorageMode, WritableVec};
 
 use crate::{CachedSeries, CumulativeState, import_cached};
 
@@ -36,10 +34,5 @@ impl<T: PcoVecValue + AddAssign + Default> CumulativeSource<T> {
             self.last
                 .accumulate(len, || self.stored.collect_last(), |total| *total += value);
         self.stored.push(cumulative);
-    }
-
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        self.last = Default::default();
-        &mut self.stored
     }
 }

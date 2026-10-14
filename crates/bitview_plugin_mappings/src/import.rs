@@ -12,6 +12,7 @@ use crate::{
     chain_counts::ChainCounts,
     height::Vecs as HeightVecs,
     height_lookup::HeightLookup,
+    lookback::LookbackVecs,
     resolution::{DatedResolutionVecs, ResolutionVecs},
     timestamp::Timestamps,
     tx_index::Vecs as TxIndexVecs,
@@ -29,6 +30,7 @@ impl Vecs {
         let monotonic = Timestamps::import_monotonic(&db, version)?;
         let chain_counts = ChainCounts::new(version, indexer);
         let monotonic_source = monotonic.read_only_boxed_clone();
+        let lookback = LookbackVecs::new(version, &monotonic_source);
         let epoch_source = IndexVec::new(
             "difficulty_epoch",
             Version::ZERO,
@@ -209,6 +211,7 @@ impl Vecs {
             txin_index,
             txout_index,
             timestamp,
+            lookback,
             db,
         };
 

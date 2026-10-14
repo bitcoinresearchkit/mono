@@ -1,31 +1,23 @@
-use super::WeightedModeId;
-
 pub const MODE_COUNT: usize = 3;
 
+/// A Bedrock mode: the unweighted distribution, or one weighted by wakefulness (Cointime) or
+/// mobility (Coinflow).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum ModeId {
-    Raw,
-    Cointime,
-    Coinflow,
+    Unweighted,
+    Awake,
+    Mobile,
 }
 
 impl ModeId {
-    pub const ALL: [Self; MODE_COUNT] = [Self::Raw, Self::Cointime, Self::Coinflow];
+    pub const ALL: [Self; MODE_COUNT] = [Self::Unweighted, Self::Awake, Self::Mobile];
 
     pub const fn name(self) -> &'static str {
         match self {
-            Self::Raw => "unweighted",
-            Self::Cointime => "awake",
-            Self::Coinflow => "mobile",
-        }
-    }
-
-    pub const fn weighted(self) -> Option<WeightedModeId> {
-        match self {
-            Self::Raw => None,
-            Self::Cointime => Some(WeightedModeId::Cointime),
-            Self::Coinflow => Some(WeightedModeId::Coinflow),
+            Self::Unweighted => "unweighted",
+            Self::Awake => "awake",
+            Self::Mobile => "mobile",
         }
     }
 }

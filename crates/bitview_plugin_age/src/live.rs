@@ -10,5 +10,6 @@ pub(crate) struct LiveState {
     pub prices: Vec<Cents>,
     pub timestamps: Vec<Timestamp>,
     pub max: PriceRangeMax,
-    pub version: (Version, Version, (u64, u64)),
+    /// The inputs' combined version.
+    pub version: Version,
 }

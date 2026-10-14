@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use bitview_compute::prepare_computed;
+use bitview_compute::{prepare_computed, write_chunks, write_locked};
 use bitview_primitives::{RARITY_PERCENTILES_LEN, RarityPercentileId, Score};
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock, Price, shapes::RarityPercentiles};
@@ -9,7 +9,7 @@ use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
-use super::{COMPUTE_BATCH_SIZE, Component, START_HEIGHT, component};
+use super::{Component, START_HEIGHT, component};
 
 #[derive(Traversable)]
 pub struct RarityMeterInner<M: StorageMode = Rw> {
@@ -64,6 +64,8 @@ impl RarityMeterInner {
         })
     }
 
+    /// Local and Cycle: prices from their components' boundaries, and scores summing each
+    /// component's level.
     pub(crate) fn compute(
         &mut self,
         components: &[&Component],
@@ -71,108 +73,42 @@ impl RarityMeterInner {
         starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let dependency_version = boundary_version(components);
-        let source_end = components
+        let version = boundary_version(components);
+        let prices_end = components
             .iter()
             .map(|component| component::boundary_len(component))
             .min()
             .unwrap_or_default();
-
-        let prices_start = prepare_computed(
-            self.prices
-                .iter_mut()
-                .map(|p| &mut p.cents.height as &mut dyn AnyStoredVec)
-                .collect::<Vec<_>>(),
-            dependency_version,
-            usize::from(starting_height).min(source_end),
-            exit,
-        )?;
-        let score_end = source_end.min(spot.len());
-        let level_version = self.prices_version() + spot.version();
-        let level_start = prepare_computed(
-            [&mut self.level.height],
-            level_version,
-            usize::from(starting_height).min(score_end),
-            exit,
-        )?;
-        let score_start = prepare_computed(
-            [&mut self.score.height],
-            dependency_version + spot.version(),
-            usize::from(starting_height).min(score_end),
-            exit,
-        )?;
-        let mut start = prices_start;
-        if level_start < score_end {
-            start = start.min(level_start);
-        }
-        if score_start < score_end {
-            start = start.min(score_start);
-        }
-        while start < source_end {
-            let end = (start + COMPUTE_BATCH_SIZE).min(source_end);
-            let component_prices: Vec<_> = components
-                .iter()
-                .map(|component| component::collect_boundary_prices(component, start, end))
-                .collect();
-            let spot = spot.collect_range_at(start, end.min(score_end));
-            for offset in 0..end - start {
-                let height = start + offset;
-                let calibrated = height >= START_HEIGHT;
-                let values = if calibrated {
-                    RarityMeterInner::combine_percentiles(&component_prices, offset)
-                } else {
-                    [Cents::NAN; RARITY_PERCENTILES_LEN]
-                };
-                if height >= prices_start {
-                    for (price, value) in self.prices.iter_mut().zip(values) {
-                        price.cents.height.push(value);
-                    }
-                }
-                if let Some(&close) = spot.get(offset) {
-                    if height >= level_start {
-                        self.level.height.push(if calibrated {
-                            let lower = RarityPercentileId::BOUNDARIES[..5]
+        self.compute_rows(
+            spot,
+            starting_height,
+            (version, prices_end),
+            (version + spot.version(), prices_end.min(spot.len())),
+            |range| {
+                components
+                    .iter()
+                    .map(|component| {
+                        component::collect_boundary_prices(component, range.start, range.end)
+                    })
+                    .collect()
+            },
+            |range, bands, spot| {
+                (0..range.len())
+                    .map(|offset| {
+                        Self::total_score(
+                            bands
                                 .iter()
-                                .filter(|&&id| {
-                                    !values[id as usize].is_nan() && close < values[id as usize]
-                                })
-                                .count() as i8;
-                            let upper = RarityPercentileId::BOUNDARIES[5..]
-                                .iter()
-                                .filter(|&&id| close > values[id as usize])
-                                .count() as i8;
-                            Score::new(upper - lower)
-                        } else {
-                            Score::NAN
-                        });
-                    }
-                    if height >= score_start {
-                        self.score.height.push(if calibrated {
-                            RarityMeterInner::capped_score(
-                                component_prices
-                                    .iter()
-                                    .map(|bands| {
-                                        i16::from(RarityMeterInner::score_at(close, bands, offset))
-                                    })
-                                    .sum(),
-                            )
-                        } else {
-                            Score::NAN
-                        });
-                    }
-                }
-            }
-            let _lock = exit.lock();
-            for price in self.prices.iter_mut() {
-                price.cents.height.write()?;
-            }
-            self.level.height.write()?;
-            self.score.height.write()?;
-            start = end;
-        }
-        Ok(())
+                                .map(|bands| i16::from(Self::score_at(spot[offset], bands, offset)))
+                                .sum(),
+                        )
+                    })
+                    .collect()
+            },
+            exit,
+        )
     }
 
+    /// Full: prices from Local's and Cycle's boundaries, and scores summing theirs.
     pub(crate) fn compute_combined(
         &mut self,
         meters: &[&RarityMeterInner],
@@ -180,42 +116,51 @@ impl RarityMeterInner {
         starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let dependency_version = meters.iter().map(|meter| meter.prices_version()).sum();
-        let source_end = meters
+        let prices_version = meters.iter().map(|meter| meter.prices_version()).sum();
+        let prices_end = meters
             .iter()
             .map(|meter| meter.prices_len())
             .min()
             .unwrap_or_default();
-
-        self.compute_prices(
+        let score_version = meters
+            .iter()
+            .map(|meter| meter.score.height.version())
+            .sum();
+        let score_end = meters
+            .iter()
+            .map(|meter| meter.score.height.len())
+            .min()
+            .unwrap_or_default();
+        self.compute_rows(
+            spot,
             starting_height,
-            source_end,
-            dependency_version,
+            (prices_version, prices_end),
+            (score_version, score_end),
             |range| {
-                let meter_prices: Vec<_> = meters
+                meters
                     .iter()
                     .map(|meter| {
                         meter.prices.boundary_refs().map(|price| {
                             price.cents.height.collect_range_at(range.start, range.end)
                         })
                     })
+                    .collect()
+            },
+            |range, _, _| {
+                let scores: Vec<_> = meters
+                    .iter()
+                    .map(|meter| meter.score.height.collect_range_at(range.start, range.end))
                     .collect();
-
                 (0..range.len())
                     .map(|offset| {
-                        if range.start + offset >= START_HEIGHT {
-                            RarityMeterInner::combine_percentiles(&meter_prices, offset)
-                        } else {
-                            [Cents::NAN; RARITY_PERCENTILES_LEN]
-                        }
+                        Self::total_score(
+                            scores.iter().map(|scores| i16::from(*scores[offset])).sum(),
+                        )
                     })
                     .collect()
             },
             exit,
-        )?;
-
-        self.compute_level(spot, starting_height, exit)?;
-        self.compute_combined_score(meters, starting_height, exit)
+        )
     }
 
     fn prices_len(&self) -> usize {
@@ -225,41 +170,114 @@ impl RarityMeterInner {
             .min()
             .unwrap_or_default()
     }
+
     fn prices_version(&self) -> Version {
         self.prices.iter().map(|p| p.cents.height.version()).sum()
     }
-    fn compute_prices(
+
+    /// One pass pushing the prices, level and score, each from where it resumes and through its
+    /// end (`prices` and `score` give their versions and ends; the level follows the prices and
+    /// spot). `boundaries` gives each source's ten boundary prices over a range, `scores` the
+    /// scores over a range from those and spot. Before calibration starts every value is
+    /// undefined and nothing is read.
+    #[allow(clippy::too_many_arguments)]
+    fn compute_rows(
         &mut self,
+        spot: &impl ReadableVec<Height, Cents>,
         starting_height: Height,
-        source_end: usize,
-        version: Version,
-        mut compute: impl FnMut(Range<usize>) -> Vec<[Cents; RARITY_PERCENTILES_LEN]>,
+        (prices_version, prices_end): (Version, usize),
+        (score_version, score_end): (Version, usize),
+        boundaries: impl Fn(Range<usize>) -> Vec<[Vec<Cents>; 10]>,
+        scores: impl Fn(Range<usize>, &[[Vec<Cents>; 10]], &[Cents]) -> Vec<Score>,
         exit: &Exit,
     ) -> Result<()> {
-        let start = prepare_computed(
-            self.prices
-                .iter_mut()
-                .map(|price| &mut price.cents.height as &mut dyn AnyStoredVec)
-                .collect::<Vec<_>>(),
-            version,
-            usize::from(starting_height).min(source_end),
+        debug_assert!(score_end <= prices_end, "scores past the prices");
+        let max_from = usize::from(starting_height);
+        let prices_start = prepare_computed(
+            self.prices.iter_any_stored_mut().collect::<Vec<_>>(),
+            prices_version,
+            max_from.min(prices_end),
             exit,
         )?;
-        let mut chunk_start = start;
-        while chunk_start < source_end {
-            let end = (chunk_start + COMPUTE_BATCH_SIZE).min(source_end);
-            for values in compute(chunk_start..end) {
-                for (price, value) in self.prices.iter_mut().zip(values) {
-                    price.cents.height.push(value);
+        let level_end = prices_end.min(spot.len());
+        let level_version = self.prices_version() + spot.version();
+        let level_start = prepare_computed(
+            [&mut self.level.height],
+            level_version,
+            max_from.min(level_end),
+            exit,
+        )?;
+        let score_start = prepare_computed(
+            [&mut self.score.height],
+            score_version,
+            max_from.min(score_end),
+            exit,
+        )?;
+        let mut start = prices_start;
+        if level_start < level_end {
+            start = start.min(level_start);
+        }
+        if score_start < score_end {
+            start = start.min(score_start);
+        }
+        let levels = level_start..level_end;
+        let scored = score_start..score_end;
+        for chunk in write_chunks(start..prices_end) {
+            let calibrated = chunk.start.max(START_HEIGHT).min(chunk.end);
+            for height in chunk.start..calibrated {
+                if height >= prices_start {
+                    for price in self.prices.iter_mut() {
+                        price.cents.height.push(Cents::NAN);
+                    }
+                }
+                if levels.contains(&height) {
+                    self.level.height.push(Score::NAN);
+                }
+                if scored.contains(&height) {
+                    self.score.height.push(Score::NAN);
                 }
             }
-            let _lock = exit.lock();
-            for price in self.prices.iter_mut() {
-                price.cents.height.write()?;
+            if calibrated < chunk.end {
+                let bands = boundaries(calibrated..chunk.end);
+                let spot =
+                    spot.collect_range_at(calibrated, chunk.end.min(level_end).max(calibrated));
+                let scores = scores(
+                    calibrated..chunk.end.min(score_end).max(calibrated),
+                    &bands,
+                    &spot,
+                );
+                for offset in 0..chunk.end - calibrated {
+                    let height = calibrated + offset;
+                    let values = Self::combine_percentiles(&bands, offset);
+                    if height >= prices_start {
+                        for (price, value) in self.prices.iter_mut().zip(values) {
+                            price.cents.height.push(value);
+                        }
+                    }
+                    if levels.contains(&height) {
+                        self.level.height.push(Self::level(spot[offset], &values));
+                    }
+                    if scored.contains(&height) {
+                        self.score.height.push(scores[offset]);
+                    }
+                }
             }
-            chunk_start = end;
+            write_locked(self.iter_any_stored_mut(), exit)?;
         }
         Ok(())
+    }
+
+    /// Upper boundaries spot exceeds minus lower boundaries it stays under.
+    fn level(close: Cents, values: &[Cents; RARITY_PERCENTILES_LEN]) -> Score {
+        let lower = RarityPercentileId::BOUNDARIES[..5]
+            .iter()
+            .filter(|&&id| !values[id as usize].is_nan() && close < values[id as usize])
+            .count() as i8;
+        let upper = RarityPercentileId::BOUNDARIES[5..]
+            .iter()
+            .filter(|&&id| close > values[id as usize])
+            .count() as i8;
+        Score::new(upper - lower)
     }
 
     pub fn needs_compute(
@@ -292,97 +310,13 @@ impl RarityMeterInner {
             || self.score.height.len() > starting_height
     }
 
-    fn compute_level(
-        &mut self,
-        spot: &impl ReadableVec<Height, Cents>,
-        starting_height: Height,
-        exit: &Exit,
-    ) -> Result<()> {
-        let bands = self.prices.boundary_refs().map(|price| &price.cents.height);
-        let source_end = bands
-            .iter()
-            .map(|band| band.len())
-            .min()
-            .unwrap_or_default()
-            .min(spot.len());
-
-        let version = self.prices_version() + spot.version();
-        self.level.height.compute_batched_to(
-            starting_height,
-            source_end,
-            version,
-            COMPUTE_BATCH_SIZE,
-            |level, range| {
-                let spot = spot.collect_range_at(range.start, range.end);
-                let bands = bands
-                    .each_ref()
-                    .map(|band| band.collect_range_at(range.start, range.end));
-                for (offset, price) in spot.into_iter().enumerate() {
-                    level.push(if range.start + offset >= START_HEIGHT {
-                        Score::new(Self::score_at(price, &bands, offset))
-                    } else {
-                        Score::NAN
-                    });
-                }
-
-                Ok(())
-            },
-            exit,
-        )?;
-
-        Ok(())
-    }
-
-    fn compute_combined_score(
-        &mut self,
-        meters: &[&RarityMeterInner],
-        starting_height: Height,
-        exit: &Exit,
-    ) -> Result<()> {
-        let dependency_version = meters
-            .iter()
-            .map(|meter| meter.score.height.version())
-            .sum();
-        let source_end = meters
-            .iter()
-            .map(|meter| meter.score.height.len())
-            .min()
-            .unwrap_or_default();
-
-        self.score.height.compute_batched_to(
-            starting_height,
-            source_end,
-            dependency_version,
-            COMPUTE_BATCH_SIZE,
-            |score, range| {
-                let meter_scores: Vec<_> = meters
-                    .iter()
-                    .map(|meter| meter.score.height.collect_range_at(range.start, range.end))
-                    .collect();
-                for offset in 0..range.len() {
-                    score.push(if range.start + offset >= START_HEIGHT {
-                        Self::capped_score(
-                            meter_scores
-                                .iter()
-                                .map(|scores| i16::from(*scores[offset]))
-                                .sum(),
-                        )
-                    } else {
-                        Score::NAN
-                    });
-                }
-
-                Ok(())
-            },
-            exit,
-        )?;
-
-        Ok(())
-    }
-
-    /// Above the undefined minimum: 16 components score at most 80 either way.
-    fn capped_score(value: i16) -> Score {
-        Score::new(value.clamp(-i16::from(i8::MAX), i16::from(i8::MAX)) as i8)
+    /// 16 components score at most 80 either way, above the undefined minimum.
+    fn total_score(value: i16) -> Score {
+        debug_assert!(
+            value.unsigned_abs() <= 80,
+            "score {value} beyond 16 components"
+        );
+        Score::new(value as i8)
     }
 
     fn combine_percentiles(

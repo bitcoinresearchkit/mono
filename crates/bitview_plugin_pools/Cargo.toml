@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 bitview_primitives = { workspace = true, features = ["storage"] }
+bitview_compute = { workspace = true }
 bitview_vecs = { workspace = true }
 brk_exit = { workspace = true }
 bitview_plugin = { workspace = true }
@@ -21,5 +22,4 @@ brk_types = { workspace = true, features = ["storage"] }
 parking_lot = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
-tracing = { workspace = true }
 vecdb = { workspace = true }

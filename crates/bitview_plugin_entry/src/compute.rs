@@ -1,12 +1,13 @@
 use bitview_cohort::{Age, ByEntry, EntryPrice};
-use bitview_compute::{WRITE_INTERVAL, prepare_computed, save_stamped};
+use bitview_compute::{Inputs, save_stamped, write_chunks};
 use bitview_distribution::state::cost_basis::age_index;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
+use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Sats, Version};
 use statedb::Amount;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
+use vecdb::{AnyVec, Database, ReadableVec};
 
 use crate::{
     Dependencies, Vecs,
@@ -33,29 +34,29 @@ impl ComputePlugin for Vecs {
 
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();
-        let version = (
-            deps.prices.version(),
-            deps.timestamps.version(),
-            deps.capitalized_price.version(),
-            deps.history.versions(),
+        let Dependencies {
+            history,
+            from,
+            prices,
+            timestamps,
+            capitalized_price,
+        } = deps;
+        let mut inputs = Inputs::new(
+            Version::ONE + age_index::history_version(history),
+            [
+                prices as &dyn AnyVec,
+                timestamps as &dyn AnyVec,
+                capitalized_price as &dyn AnyVec,
+            ],
         );
-        let base_version = Version::ONE
-            + version.0
-            + version.1
-            + version.2
-            + age_index::history_version(deps.history);
-        let end = deps
-            .history
-            .len()
-            .min(deps.prices.len())
-            .min(deps.timestamps.len())
-            .min(deps.capitalized_price.len());
-        let start = prepare_computed(
-            self.state_vecs_mut(),
-            base_version,
-            usize::from(deps.from).min(end),
+        inputs.len = inputs.len.min(history.len());
+        let version = inputs.version;
+        let range = inputs.prepare(
+            self.cohorts.iter_any_stored_mut().collect::<Vec<_>>(),
+            usize::from(from),
             context.exit(),
         )?;
+        let (start, end) = (range.start, range.end);
         if end == 0 {
             return Ok(());
         }
@@ -63,13 +64,13 @@ impl ComputePlugin for Vecs {
             Some(live)
                 if live.origins.len() == start
                     && live.version == version
-                    && deps.history.matches(&live.origins)? =>
+                    && history.matches(&live.origins)? =>
             {
                 (live, true)
             }
             _ => (
                 LiveState {
-                    origins: deps.history.state_at(start)?,
+                    origins: history.state_at(start)?,
                     cohorts: ByEntry::from_fn(|_| CohortState::default()),
                     entries: Vec::new(),
                     prices: Vec::new(),
@@ -80,14 +81,10 @@ impl ComputePlugin for Vecs {
             ),
         };
         let data_start = live.prices.len();
-        live.prices
-            .extend(deps.prices.collect_range_at(data_start, end));
-        live.timestamps
-            .extend(deps.timestamps.collect_range_at(data_start, end));
+        prices.read_into_at(data_start, end, &mut live.prices);
+        timestamps.read_into_at(data_start, end, &mut live.timestamps);
         let anchor_start = data_start.saturating_sub(1);
-        let anchors = deps
-            .capitalized_price
-            .collect_range_at(anchor_start, end.saturating_sub(1));
+        let anchors = capitalized_price.collect_range_at(anchor_start, end.saturating_sub(1));
         if live.prices.len() != end
             || live.timestamps.len() != end
             || anchors.len() != end.saturating_sub(1) - anchor_start
@@ -113,61 +110,50 @@ impl ComputePlugin for Vecs {
                 state.finish_restore();
             }
         }
-        let mut cursor = deps.history.cursor(&mut live.origins)?;
-        for h in start..end {
-            let price = live.prices[h];
-            let diff = cursor.advance()?.expect("validated entry history range");
-            live.cohorts
-                .get_mut(live.entries[h])
-                .receive_utxo(&supply(diff.created), price);
-            for (origin, amount) in diff.spent() {
-                let origin = origin as usize;
-                let age = Age::new(live.timestamps[h], live.timestamps[origin]);
-                live.cohorts.get_mut(live.entries[origin]).send_utxo(
-                    &supply(amount),
-                    price,
-                    live.prices[origin],
-                    price,
-                    age,
-                );
-            }
-            // A BIP30-overwritten coinbase leaves the set without being spent.
-            if let Some((origin, amount)) = diff.correction() {
-                let origin = origin as usize;
+        let mut cursor = history.cursor(&mut live.origins)?;
+        for chunk in write_chunks(range) {
+            for h in chunk.clone() {
+                let price = live.prices[h];
+                let diff = cursor.advance()?.expect("validated entry history range");
                 live.cohorts
-                    .get_mut(live.entries[origin])
-                    .decrement_snapshot(&CostBasisSnapshot::from_utxo(
-                        live.prices[origin],
+                    .get_mut(live.entries[h])
+                    .receive_utxo(&supply(diff.created), price);
+                for (origin, amount) in diff.spent() {
+                    let origin = origin as usize;
+                    let age = Age::new(live.timestamps[h], live.timestamps[origin]);
+                    live.cohorts.get_mut(live.entries[origin]).send_utxo(
                         &supply(amount),
-                    ));
+                        price,
+                        live.prices[origin],
+                        price,
+                        age,
+                    );
+                }
+                // A BIP30-overwritten coinbase leaves the set without being spent.
+                if let Some((origin, amount)) = diff.correction() {
+                    let origin = origin as usize;
+                    live.cohorts
+                        .get_mut(live.entries[origin])
+                        .decrement_snapshot(&CostBasisSnapshot::from_utxo(
+                            live.prices[origin],
+                            &supply(amount),
+                        ));
+                }
+                for (target, state) in self.cohorts.iter_mut().zip(live.cohorts.iter_mut()) {
+                    state.apply_pending();
+                    target.push(state, price);
+                    state.reset_single_iteration_values();
+                }
             }
-            for (target, state) in self.cohorts.iter_mut().zip(live.cohorts.iter_mut()) {
-                state.apply_pending();
-                target.push(state, price);
-                state.reset_single_iteration_values();
-            }
-            if (h + 1).is_multiple_of(WRITE_INTERVAL) || h + 1 == end {
-                save_stamped(
-                    &self.db,
-                    self.cohorts
-                        .iter_mut()
-                        .flat_map(|cohort| cohort.stored_vecs_mut()),
-                    h + 1,
-                    true,
-                    context.exit(),
-                )?;
-            }
+            save_stamped(
+                &self.db,
+                self.cohorts.iter_any_stored_mut(),
+                chunk.end,
+                true,
+                context.exit(),
+            )?;
         }
         self.live = Some(live);
         Ok(())
-    }
-}
-
-impl Vecs {
-    fn state_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        self.cohorts
-            .iter_mut()
-            .flat_map(|cohort| cohort.stored_vecs_mut())
-            .collect()
     }
 }

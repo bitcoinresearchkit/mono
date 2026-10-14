@@ -1,5 +1,5 @@
 use bitview_cohort::{AddressType, AddressTypeId};
-use brk_types::{Height, OutputType};
+use brk_types::Height;
 
 use super::{MemberState, delta::ShardDelta};
 use crate::addr::AddressVecs;
@@ -9,16 +9,15 @@ use crate::addr::AddressVecs;
 pub struct AddrMetricsState(pub AddressType<MemberState>);
 
 impl AddrMetricsState {
-    /// The counters at the start of `height`, from the members' stored series.
-    pub fn restore(types: &AddressType<AddressVecs>, height: Height) -> Self {
+    /// The counters at the start of `height`, from the members' stored series; `None` without
+    /// the block before.
+    pub fn restore(types: &AddressType<AddressVecs>, height: Height) -> Option<Self> {
         let Some(previous) = height.decremented() else {
-            return Self::default();
+            return Some(Self::default());
         };
-        Self(AddressType::from_fn(|id| {
-            id.select(types)
-                .restore(previous)
-                .expect("address metrics stored through the resume height")
-        }))
+        AddressType::try_from_fn(|id| id.select(types).restore(previous).ok_or(()))
+            .ok()
+            .map(Self)
     }
 
     #[inline]
@@ -26,16 +25,10 @@ impl AddrMetricsState {
         self.0.iter_mut().for_each(MemberState::reset_per_block);
     }
 
-    /// The member `output_type`'s addresses update; `None` for P2A, not an address type.
-    #[inline]
-    pub fn member_mut(&mut self, output_type: OutputType) -> Option<&mut MemberState> {
-        self.0.get_mut(output_type)
-    }
-
-    /// Adds the change to one member's values of a shard that started from `base`.
-    pub fn add_member_delta(&mut self, shard: &Self, base: &Self, id: AddressTypeId) {
+    /// Adds the change of member `id` in a shard that started from `base`.
+    pub fn add_member_delta(&mut self, id: AddressTypeId, shard: MemberState, base: &Self) {
         id.select_mut(&mut self.0)
-            .add_delta(*id.select(&shard.0), *id.select(&base.0));
+            .add_delta(shard, *id.select(&base.0));
     }
 
     /// Every address type together.

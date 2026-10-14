@@ -47,15 +47,16 @@ impl<I: VecIndex> ResolutionVecs<I> {
     }
 
     /// Keep boundaries through the final surviving block, then replay the
-    /// affected height suffix. Returns the number of preserved period entries.
-    pub fn update(&mut self, starting_height: Height) -> usize {
+    /// affected height suffix. Returns the number of preserved period entries
+    /// when the boundaries changed, `None` when no period started or ended.
+    pub fn update(&mut self, starting_height: Height) -> Option<usize> {
         let source_len = self.mapping.len();
         let from = starting_height
             .to_usize()
             .min(self.indexed_height)
             .min(source_len);
         if from == source_len && from == self.indexed_height {
-            return self.first_height.len();
+            return None;
         }
 
         let keep = from
@@ -71,8 +72,11 @@ impl<I: VecIndex> ResolutionVecs<I> {
                     values.resize(len - keep, Height::from(height + offset));
                 }
             });
-        self.boundaries.update_at(keep, values);
         self.indexed_height = source_len;
-        keep
+        if values.is_empty() && keep == self.first_height.len() {
+            return None;
+        }
+        self.boundaries.update_at(keep, values);
+        Some(keep)
     }
 }

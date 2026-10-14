@@ -1,4 +1,3 @@
-use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PriceRatio, Ratio};
 use bitview_traversable::Traversable;
@@ -54,7 +53,6 @@ impl SmaVecs {
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
-        lookback: &LookbackVecs,
         prefix_sum: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
         let version = version + VERSION;
@@ -69,7 +67,7 @@ impl SmaVecs {
                         concat!("price_sma_", $name, "_cents_source"),
                         version,
                         prefix_sum.read_only_boxed_clone(),
-                        lookback.start_vec($days).read_only_boxed_clone(),
+                        mappings.lookback.start_vec($days).read_only_boxed_clone(),
                     ),
                     mappings,
                 )?

@@ -1,11 +1,8 @@
 use bitview_traversable::Traversable;
-use schemars::JsonSchema;
-use serde::Serialize;
-use vecdb::Formattable;
 
 use super::LevelId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Traversable, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Traversable)]
 pub struct Levels<T> {
     /// Returns the 10th percentile of that subset's creation-price distribution.
     pub pct10: T,
@@ -27,18 +24,6 @@ pub struct Levels<T> {
     pub pct90: T,
 }
 
-impl_named_row_formattable!(Levels {
-    pct10,
-    pct20,
-    pct30,
-    pct40,
-    median,
-    pct60,
-    pct70,
-    pct80,
-    pct90,
-});
-
 impl<T> Levels<T> {
     pub fn try_from_fn<E>(mut create: impl FnMut(LevelId) -> Result<T, E>) -> Result<Self, E> {
         Ok(Self {
@@ -52,6 +37,21 @@ impl<T> Levels<T> {
             pct80: create(LevelId::Pct80)?,
             pct90: create(LevelId::Pct90)?,
         })
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        [
+            &self.pct10,
+            &self.pct20,
+            &self.pct30,
+            &self.pct40,
+            &self.median,
+            &self.pct60,
+            &self.pct70,
+            &self.pct80,
+            &self.pct90,
+        ]
+        .into_iter()
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {

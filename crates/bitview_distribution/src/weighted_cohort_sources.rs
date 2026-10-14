@@ -5,7 +5,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, Database, PcoVecValue, Rw, StorageMode, WritableVec};
+use vecdb::{Database, PcoVecValue, Rw, StorageMode, WritableVec};
 
 /// Height-indexed sources of every aggregate cohort split by a weighted model: its weighted side
 /// (awake, mobile) and the complement (dormant, immobile). The model owns the weights and the
@@ -67,28 +67,6 @@ impl WeightedCohortSources {
             id.select_mut(&mut self.weighted_supply_in_loss_share)
                 .push(state.supply_in_loss.value());
         }
-    }
-
-    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        let Self {
-            weighted_supply,
-            complement_supply,
-            weighted_realized_cap,
-            weighted_realized_price,
-            weighted_capitalized_price,
-            weighted_supply_in_loss_share,
-        } = self;
-        fn stored<T: PcoVecValue>(
-            vecs: &mut AgeAggregate<CachedSeries<Height, T>>,
-        ) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-            vecs.iter_mut().map(|vec| vec as &mut dyn AnyStoredVec)
-        }
-        stored(weighted_supply)
-            .chain(stored(complement_supply))
-            .chain(stored(weighted_realized_cap))
-            .chain(stored(weighted_realized_price))
-            .chain(stored(weighted_capitalized_price))
-            .chain(stored(weighted_supply_in_loss_share))
     }
 }
 

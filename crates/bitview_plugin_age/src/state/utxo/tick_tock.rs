@@ -102,9 +102,11 @@ fn move_created_tail(
 ) {
     let correction = u128::from(sats) * u128::from(tail_seconds);
     let younger_value = younger.select_mut(created_sat_seconds);
-    *younger_value = younger_value
-        .checked_sub(correction)
-        .expect("created sat-seconds underflow");
+    debug_assert!(
+        *younger_value >= correction,
+        "created sat-seconds underflow"
+    );
+    *younger_value -= correction;
     *older.select_mut(created_sat_seconds) += correction;
 }
 

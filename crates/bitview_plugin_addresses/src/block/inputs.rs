@@ -37,11 +37,9 @@ pub fn process_inputs(
     let txin_index_to_type_index = &txin_index_to_type_index[..input_count];
     let txin_index_to_prev_height = &txin_index_to_prev_height[..input_count];
 
-    // Addresses are spread across eight types.
-    let estimated = (input_count / 8 / SHARDS).max(8);
+    // Vectors and maps allocate on first insert: most shard/type pairs of a block stay empty.
     let mut spends: [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS] = Default::default();
-    let mut tx_index_vecs =
-        std::array::from_fn(|_| AddrTypeToTypeIndexMap::<TxIndexes>::with_capacity(estimated));
+    let mut tx_index_vecs: [AddrTypeToTypeIndexMap<TxIndexes>; SHARDS] = Default::default();
 
     let mut processed = 0;
     for (local_idx, tx_index) in txs.enumerate() {

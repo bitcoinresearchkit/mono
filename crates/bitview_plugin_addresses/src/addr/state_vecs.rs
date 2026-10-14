@@ -1,4 +1,4 @@
-use std::{sync::Arc, thread, time::Instant};
+use std::{sync::Arc, time::Instant};
 
 use bitview_primitives::{
     AddressState, ByAddrType, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
@@ -20,7 +20,7 @@ use super::{AddrTypeToTypeIndexMap, AddrTypeToVec, SourcedAddrData};
 
 mod updates;
 
-use updates::AddrUpdates;
+use updates::{AddrUpdates, SidecarPushes};
 
 use crate::SAVED_CHECKPOINTS;
 const FUNDED_DATA_VERSION: Version = Version::new(3);
@@ -281,19 +281,15 @@ impl AddrStateVecs {
 
     fn insert_sidecar<I, T>(
         sidecar: &mut OverflowVec<I, T>,
-        values: Vec<(OutputType, TypeIndex, T)>,
+        pushes: SidecarPushes<T>,
         primaries: &mut AddrTypeToVec<(TypeIndex, AddressState)>,
         to_state: fn(I) -> AddressState,
     ) where
         I: VecIndex,
         T: OverflowVecValue,
     {
-        let (metadata, values): (Vec<_>, Vec<_>) = values
-            .into_iter()
-            .map(|(addr_type, type_index, value)| ((addr_type, type_index), value))
-            .unzip();
-        let indices = sidecar.fill_holes_or_push_many(values);
-        for ((addr_type, type_index), index) in metadata.into_iter().zip(indices) {
+        let indices = sidecar.fill_holes_or_push_many(pushes.values);
+        for ((addr_type, type_index), index) in pushes.addresses.into_iter().zip(indices) {
             primaries
                 .get_mut_unwrap(addr_type)
                 .push((type_index, to_state(index)));
@@ -326,21 +322,44 @@ impl AddrStateVecs {
             ..
         } = self;
 
-        thread::scope(|scope| {
-            let p2a = scope.spawn(|| Self::update_primary(p2a, u_p2a));
-            let p2pk33 = scope.spawn(|| Self::update_primary(p2pk33, u_p2pk33));
-            let p2pk65 = scope.spawn(|| Self::update_primary(p2pk65, u_p2pk65));
-            let p2pkh = scope.spawn(|| Self::update_primary(p2pkh, u_p2pkh));
-            let p2sh = scope.spawn(|| Self::update_primary(p2sh, u_p2sh));
-            let p2tr = scope.spawn(|| Self::update_primary(p2tr, u_p2tr));
-            let p2wpkh = scope.spawn(|| Self::update_primary(p2wpkh, u_p2wpkh));
-            let p2wsh = scope.spawn(|| Self::update_primary(p2wsh, u_p2wsh));
-
-            for handle in [p2a, p2pk33, p2pk65, p2pkh, p2sh, p2tr, p2wpkh, p2wsh] {
-                handle.join().unwrap()?;
-            }
-            Ok(())
-        })
+        // Each type's vector is its own: they update side by side on the pool.
+        let (((p2a, p2pk33), (p2pk65, p2pkh)), ((p2sh, p2tr), (p2wpkh, p2wsh))) = join(
+            || {
+                join(
+                    || {
+                        join(
+                            || Self::update_primary(p2a, u_p2a),
+                            || Self::update_primary(p2pk33, u_p2pk33),
+                        )
+                    },
+                    || {
+                        join(
+                            || Self::update_primary(p2pk65, u_p2pk65),
+                            || Self::update_primary(p2pkh, u_p2pkh),
+                        )
+                    },
+                )
+            },
+            || {
+                join(
+                    || {
+                        join(
+                            || Self::update_primary(p2sh, u_p2sh),
+                            || Self::update_primary(p2tr, u_p2tr),
+                        )
+                    },
+                    || {
+                        join(
+                            || Self::update_primary(p2wpkh, u_p2wpkh),
+                            || Self::update_primary(p2wsh, u_p2wsh),
+                        )
+                    },
+                )
+            },
+        );
+        [p2a, p2pk33, p2pk65, p2pkh, p2sh, p2tr, p2wpkh, p2wsh]
+            .into_iter()
+            .collect()
     }
 
     fn update_primary<I: VecIndex>(

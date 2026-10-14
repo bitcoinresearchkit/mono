@@ -9,8 +9,7 @@ use vecdb::ReadableCloneableVec;
 
 use crate::{
     STORAGE, Vecs,
-    breakdown::{KindBreakdownVecs, PolicyBreakdownVecs},
-    total::Total,
+    breakdown::{BucketVecs, KindBreakdownVecs, PolicyBreakdownVecs},
 };
 
 impl Vecs {
@@ -24,7 +23,7 @@ impl Vecs {
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 1_000_000)?;
         let version = STORAGE.schema_version();
-        let total = Total::import(
+        let total = BucketVecs::import(
             &db,
             "op_return",
             version,

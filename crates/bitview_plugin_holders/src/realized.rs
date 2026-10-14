@@ -9,7 +9,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, CentsSigned, Height, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 use crate::{activity::Activity, adjusted_sopr::AdjustedSopr, columns::Columns};
 
@@ -142,26 +142,5 @@ impl Realized {
                 )?;
         }
         Ok(())
-    }
-    pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        let Self {
-            profit_to_loss,
-            sopr,
-            adjusted_sopr,
-            sell_side_risk_ratio,
-            ..
-        } = self;
-        profit_to_loss
-            .as_mut_array()
-            .into_iter()
-            .chain(sopr.as_mut_array())
-            .map(|v| &mut v.height as &mut dyn AnyStoredVec)
-            .chain(adjusted_sopr.stored_vecs_mut())
-            .chain(
-                sell_side_risk_ratio
-                    .as_mut_array()
-                    .into_iter()
-                    .map(|v| &mut v.fixed.height as &mut dyn AnyStoredVec),
-            )
     }
 }

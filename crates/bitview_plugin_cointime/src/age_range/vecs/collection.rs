@@ -44,7 +44,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// The range weighted by one minus its wakefulness.
     pub dormant: SideVecs,
     #[traversable(hidden)]
-    pub wakefulness_source: CachedSeries<Height, BoundedRatio, M>,
+    pub(crate) wakefulness_source: CachedSeries<Height, BoundedRatio, M>,
 }
 
 impl<M: StorageMode> Vecs<M> {

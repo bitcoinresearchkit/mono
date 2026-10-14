@@ -16,7 +16,7 @@ where
     /// Clamps the retained prefix to `to`, then writes after every batch, or once when there is
     /// nothing to compute (truncation only). The callback must append exactly one value for
     /// every index in its range.
-    pub fn compute_batched_to<F>(
+    pub(crate) fn compute_batched_to<F>(
         &mut self,
         max_from: V::I,
         to: usize,

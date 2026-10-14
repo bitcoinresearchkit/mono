@@ -19,6 +19,7 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies {
             indexer,
+            mappings,
             blocks,
             transactions,
             price: prices,
@@ -27,11 +28,11 @@ impl ComputePlugin for Vecs {
 
         // Block rewards (coinbase, subsidy, fee share, etc.)
         self.rewards
-            .compute(indexer, &blocks.lookback, transactions, prices, exit)?;
+            .compute(indexer, &mappings.lookback, transactions, prices, exit)?;
 
         self.hashrate.compute(
             indexer,
-            &blocks.lookback,
+            &mappings.lookback,
             &blocks.difficulty,
             &self.rewards.coinbase.sum._24h.sats.height,
             &self.rewards.coinbase.sum._24h.usd.height,

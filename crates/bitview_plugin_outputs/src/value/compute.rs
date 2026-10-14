@@ -12,6 +12,8 @@ use vecdb::{
     AnyStoredVec, AnyVec, Bytes, BytesVec, OverflowVec, ReadableVec, VecIndex, WritableVec,
 };
 
+use crate::STORAGE;
+
 pub(crate) fn compute_sats(
     target: &mut CachedSeries<Height, Sats>,
     created: &mut Creations,
@@ -25,7 +27,11 @@ pub(crate) fn compute_sats(
     exit: &Exit,
 ) -> Result<()> {
     let (output_types, values) = output_data;
-    let version = first_txout.version() + output_types.version() + values.version();
+    // The producer's own version and its inputs': a bump of either rebuilds the journal.
+    let version = STORAGE.schema_version()
+        + first_txout.version()
+        + output_types.version()
+        + values.version();
     let end = range.end.min(first_txout.len());
     let start = {
         let _lock = exit.lock();

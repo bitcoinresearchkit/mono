@@ -1,11 +1,11 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::{Database, EagerVec, ImportableVec};
+use vecdb::Database;
 
 use super::Vecs;
-use crate::flagged::Flagged;
+use crate::flagged::Classified;
 
 impl Vecs {
     pub(crate) fn import(
@@ -15,18 +15,8 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let pattern = |flag, count| -> Result<_> {
-            Ok(Flagged {
-                flag: EagerVec::import(db, flag, version)?,
-                count: PerBlockCumulativeRolling::import(
-                    db,
-                    count,
-                    version,
-                    mappings,
-                    window_starts,
-                )?,
-            })
-        };
+        let pattern =
+            |flag, count| Classified::import(db, flag, count, version, mappings, window_starts);
         Ok(Vecs {
             coinjoin: pattern("is_coinjoin", "coinjoin_tx_count")?,
             consolidation: pattern("is_consolidation", "consolidation_tx_count")?,

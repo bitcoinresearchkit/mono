@@ -1,3 +1,4 @@
+use bitview_compute::{prepare_computed, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::Float64;
@@ -36,24 +37,24 @@ impl Vecs {
         .into_iter()
         .sum();
         let total_heights = indexer.vecs().blocks.timestamp.len();
-        {
+        let committed = prepare_computed(
+            [
+                &mut self.spot.cents.height as &mut dyn AnyStoredVec,
+                &mut self.oracle_bin,
+            ],
+            source_version,
+            starting_height.to_usize(),
+            exit,
+        )?;
+        // The slow regime's shape profile is not stored, so resuming inside that regime
+        // replays it from its start.
+        if (START_HEIGHT_SLOW + 1..START_HEIGHT_FAST).contains(&committed) {
             let _lock = exit.lock();
-            let spot = &mut self.spot.cents.height;
-            spot.validate_computed_version_or_reset(source_version)?;
-            self.oracle_bin
-                .validate_computed_version_or_reset(source_version)?;
-
-            // Reorg: truncate to starting_lengths. The slow regime's shape profile is not
-            // stored, so resuming inside that regime replays it from its start.
-            let mut committed = starting_height
-                .to_usize()
-                .min(spot.len())
-                .min(self.oracle_bin.len());
-            if (START_HEIGHT_SLOW + 1..START_HEIGHT_FAST).contains(&committed) {
-                committed = START_HEIGHT_SLOW;
-            }
-            spot.truncate_if_needed_at(committed)?;
-            self.oracle_bin.truncate_if_needed_at(committed)?;
+            self.spot
+                .cents
+                .height
+                .truncate_if_needed_at(START_HEIGHT_SLOW)?;
+            self.oracle_bin.truncate_if_needed_at(START_HEIGHT_SLOW)?;
         }
 
         let seed_len = total_heights.min(START_HEIGHT_SLOW);
@@ -147,12 +148,12 @@ impl ComputePlugin for Vecs {
         let exit = context.exit();
 
         self.compute_prices(indexer, exit)?;
-        {
-            let _lock = exit.lock();
-            self.spot.cents.height.write()?;
-            self.oracle_bin.write()?;
-        }
-
-        Ok(())
+        write_locked(
+            [
+                &mut self.spot.cents.height as &mut dyn AnyStoredVec,
+                &mut self.oracle_bin,
+            ],
+            exit,
+        )
     }
 }

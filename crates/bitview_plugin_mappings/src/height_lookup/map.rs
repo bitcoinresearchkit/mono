@@ -35,7 +35,7 @@ impl<I: VecIndex> From<Vec<I>> for HeightMap<I> {
 }
 
 impl HeightMap<TxIndex> {
-    pub fn resume_height(&self, tx_len: usize, target_tx: usize, target_height: usize) -> usize {
+    pub(crate) fn resume_height(&self, tx_len: usize, target_tx: usize, target_height: usize) -> usize {
         if tx_len >= target_tx {
             target_height
         } else {

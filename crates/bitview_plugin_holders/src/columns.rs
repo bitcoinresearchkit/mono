@@ -4,7 +4,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, CumulativeState, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Sats, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
 use crate::{data::Data, unrealized_data::UnrealizedData};
 
@@ -214,40 +214,5 @@ impl Columns {
             .push(d.unrealized_profit + d.unrealized_loss);
         self.cap_profit.push(unrealized.cap_in_profit);
         self.cap_loss.push(unrealized.cap_in_loss);
-    }
-    pub fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        self.peak = Default::default();
-        vec![
-            &mut self.supply,
-            &mut self.count,
-            &mut self.spent_count,
-            &mut self.volume_sats,
-            &mut self.volume_cents,
-            &mut self.volume_profit_sats,
-            &mut self.volume_profit_cents,
-            &mut self.volume_loss_sats,
-            &mut self.volume_loss_cents,
-            &mut self.adjusted_volume,
-            &mut self.adjusted_value_destroyed,
-            &mut self.cdd,
-            &mut self.cap,
-            &mut self.profit,
-            &mut self.loss,
-            &mut self.net_pnl,
-            &mut self.value_destroyed,
-            &mut self.unrealized_profit,
-            &mut self.unrealized_loss,
-            &mut self.supply_profit,
-            &mut self.supply_loss,
-            &mut self.price,
-            &mut self.capitalized_price,
-            &mut self.gross_pnl,
-            &mut self.peak_regret,
-            &mut self.unrealized_net_pnl,
-            &mut self.nupl,
-            &mut self.unrealized_gross_pnl,
-            &mut self.cap_profit,
-            &mut self.cap_loss,
-        ]
     }
 }

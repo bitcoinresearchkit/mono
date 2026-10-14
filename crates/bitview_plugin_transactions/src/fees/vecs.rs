@@ -1,6 +1,4 @@
-use bitview_primitives::{Boolean, Count};
 use bitview_traversable::Traversable;
-use bitview_vecs::PerBlockCumulativeRolling;
 use brk_types::{FeeRate, Height, Sats, TxIndex};
 use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
 
@@ -49,24 +47,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// lower than their raw fee rate because their fee raises the rate at which a same-block
     /// chunk is evaluated.
     pub(crate) cpfp_child: Classified<M>,
-}
-
-impl Vecs {
-    fn cpfp_roles_mut(&mut self) -> [&mut Classified<Rw>; 2] {
-        [&mut self.cpfp_parent, &mut self.cpfp_child]
-    }
-
-    pub(super) fn cpfp_flags_mut(
-        &mut self,
-    ) -> impl Iterator<Item = &mut EagerVec<PcoVec<TxIndex, Boolean>>> {
-        self.cpfp_roles_mut().into_iter().map(|role| &mut role.flag)
-    }
-
-    pub(super) fn cpfp_counts_mut(
-        &mut self,
-    ) -> impl Iterator<Item = &mut PerBlockCumulativeRolling<Count>> {
-        self.cpfp_roles_mut()
-            .into_iter()
-            .map(|role| &mut role.count)
-    }
 }

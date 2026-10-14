@@ -67,8 +67,9 @@ impl<I: VecIndex> DatedResolutionVecs<I> {
     }
 
     pub fn update(&mut self, starting_height: Height) {
-        let keep = self.resolution.update(starting_height);
-        self.update_dates(keep);
+        if let Some(keep) = self.resolution.update(starting_height) {
+            self.update_dates(keep);
+        }
     }
 
     fn update_dates(&self, from: usize) {

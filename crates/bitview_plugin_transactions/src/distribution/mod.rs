@@ -7,7 +7,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitview_compute::{ComputedVecValue, DistributionStats, NumericValue, prepare_computed};
+use bitview_compute::{
+    ComputedVecValue, DistributionStats, NumericValue, prepare_computed, write_locked,
+};
 use bitview_primitives::{Count, Lengths};
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock};
@@ -17,10 +19,7 @@ use brk_types::{Height, TxIndex, VSize, get_weighted_percentiles};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use tracing::info;
-use vecdb::{
-    AnyStoredVec, Budgeted, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode, VecIndex,
-    Version, WritableVec,
-};
+use vecdb::{Database, ReadableVec, Rw, StorageMode, VecIndex, Version, WritableVec};
 
 /// Share of a block's vsize at each end whose extreme rates bound the effective fee rate range.
 const EDGE_SHARE: f64 = 0.02;
@@ -128,7 +127,7 @@ where
         let version = source_version + first_tx_index.version() + counts.version() + Version::TWO;
         let end = first_tx_index.len().min(counts.len());
         let start = prepare_computed(
-            self.height_vecs_mut(),
+            self.iter_any_stored_mut().collect::<Vec<_>>(),
             version,
             usize::from(max_from).min(end),
             exit,
@@ -153,19 +152,7 @@ where
                 last_progress = Instant::now();
             }
         }
-        let _lock = exit.lock();
-        for target in self.height_vecs_mut() {
-            target.write()?;
-        }
-        Ok(())
-    }
-
-    fn height_vecs_mut(&mut self) -> Vec<&mut EagerVec<PcoVec<Height, T, Budgeted>>> {
-        self.0
-            .as_mut_array()
-            .into_iter()
-            .map(|stat| &mut stat.height)
-            .collect()
+        write_locked(self.iter_any_stored_mut(), exit)
     }
 }
 

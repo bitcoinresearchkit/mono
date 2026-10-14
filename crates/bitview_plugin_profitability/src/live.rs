@@ -9,7 +9,7 @@ use brk_types::{Cents, Version};
 use crate::bucket::Bucket;
 
 /// Writer-owned derived state, retained only after the complete update succeeds.
-pub(crate) type LiveState = AgeIndexLive<(Version, Version, (u64, u64))>;
+pub(crate) type LiveState = AgeIndexLive<Version>;
 
 /// Each band's supply and capital at `spot`, and the filters' totals.
 pub(crate) fn ranges(index: &PriceIndex<4>, spot: Cents) -> (ProfitabilityRange<Bucket>, Bucket) {

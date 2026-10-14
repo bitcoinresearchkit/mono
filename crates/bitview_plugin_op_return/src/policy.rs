@@ -32,16 +32,6 @@ impl<T> Policy<T> {
         })
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
-        [
-            &self.pre_v30_standard,
-            &self.pre_v30_nonstandard,
-            &self.oversized,
-            &self.multiple,
-        ]
-        .into_iter()
-    }
-
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         [
             &mut self.pre_v30_standard,

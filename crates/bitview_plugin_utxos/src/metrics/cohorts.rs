@@ -46,14 +46,11 @@ impl CohortMetrics {
         }
     }
 
+    /// Every stored vec of every cohort, in parallel across cohorts.
     pub fn par_iter_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        let mut vecs: Vec<&mut dyn AnyStoredVec> = Vec::with_capacity(512);
-        for cohort in self.amounts.iter_mut() {
-            vecs.extend(cohort.stored_vecs_mut());
-        }
-        for cohort in self.types.iter_mut() {
-            vecs.extend(cohort.stored_vecs_mut());
-        }
-        vecs.into_par_iter()
+        self.amounts
+            .par_iter_mut()
+            .chain(self.types.par_iter_mut())
+            .flat_map_iter(|cohort| cohort.iter_any_stored_mut())
     }
 }

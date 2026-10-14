@@ -11,7 +11,6 @@ use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height};
-use rayon::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
 pub fn process_chunk(
@@ -24,12 +23,6 @@ pub fn process_chunk(
     final_chunk: bool,
     exit: &Exit,
 ) -> Result<()> {
-    {
-        let _lock = exit.lock();
-        vecs.cohorts
-            .par_iter_vecs_mut()
-            .try_for_each(|v| v.any_truncate_if_needed_at(blocks.start))?;
-    }
     let last_height = Height::from(blocks.end - 1);
     let bounds = BlockBounds::new(indexer, blocks);
     columns.for_each_batch(&bounds, |batch, columns| {

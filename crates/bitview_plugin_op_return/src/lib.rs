@@ -5,19 +5,16 @@ mod compute;
 mod dependencies;
 mod import;
 mod policy;
-mod total;
 
 pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_plugin_indexer::FlagView;
 use bitview_traversable::Traversable;
-use brk_error::Result;
-use brk_types::{Height, Version};
-use vecdb::{Database, Rw, StorageMode};
+use brk_types::Version;
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
-use breakdown::{KindBreakdownVecs, PolicyBreakdownVecs};
-use total::Total;
+use breakdown::{BucketVecs, KindBreakdownVecs, PolicyBreakdownVecs};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("op_return"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
@@ -29,9 +26,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Transactions that create at least one output whose locking script begins with `OP_RETURN`.
     /// Whether the transaction is one of them.
     flag: FlagView,
-    // Metrics across every `OP_RETURN` output and every transaction carrying at least one such output.
+    /// Metrics across every `OP_RETURN` output and every transaction creating at least one.
     #[traversable(flatten)]
-    total: Total<M>,
+    total: BucketVecs<M>,
     /// Metrics by detected `OP_RETURN` payload protocol. Output bytes belong
     /// to one protocol, while transaction counts, full virtual sizes, and full
     /// fees are counted once for every protocol present in a transaction, so
@@ -53,31 +50,12 @@ where
 }
 
 impl Vecs {
-    fn min_len(&self) -> usize {
+    /// Every column a block pushes to, in all buckets.
+    fn stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.total
-            .len()
-            .min(self.protocols.len())
-            .min(self.policies.len())
-    }
-
-    fn validate_and_truncate(&mut self, version: Version, height: Height) -> Result<()> {
-        self.total.validate_and_truncate(version, height)?;
-        self.protocols.validate_and_truncate(version, height)?;
-        self.policies.validate_and_truncate(version, height)?;
-        Ok(())
-    }
-
-    fn truncate_if_needed_at(&mut self, len: usize) -> Result<()> {
-        self.total.truncate_if_needed_at(len)?;
-        self.protocols.truncate_if_needed_at(len)?;
-        self.policies.truncate_if_needed_at(len)?;
-        Ok(())
-    }
-
-    fn write(&mut self) -> Result<()> {
-        self.total.write()?;
-        self.protocols.write()?;
-        self.policies.write()?;
-        Ok(())
+            .stored_mut()
+            .into_iter()
+            .chain(self.protocols.iter_mut().flat_map(BucketVecs::stored_mut))
+            .chain(self.policies.iter_mut().flat_map(BucketVecs::stored_mut))
     }
 }

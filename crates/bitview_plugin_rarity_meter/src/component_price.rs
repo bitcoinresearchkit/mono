@@ -1,27 +1,19 @@
-use bitview_primitives::{CentsCompact, PartsPerMillion32};
+use bitview_primitives::PartsPerMillion32;
 use bitview_vecs::{IndexSources, LazyIndexedVec, LazyPerBlock, Price, ops::PriceTimesRatio};
 use brk_types::{Cents, Height, Version};
-use vecdb::{BinaryTransform, LazyVec, ReadableCloneableVec, ReadableVec};
+use vecdb::{BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec};
 
+/// A component's reference price, which its ratio percentiles multiply into price bands.
 #[derive(Clone)]
 pub struct ComponentPrice {
-    price: LazyVec<Height, CentsCompact, Height, Cents>,
+    price: ReadableBoxedVec<Height, Cents>,
 }
 
 impl ComponentPrice {
-    pub fn new(
-        name: &str,
-        version: Version,
-        source: &impl ReadableCloneableVec<Height, Cents>,
-    ) -> Self {
-        let compact = LazyVec::init(
-            &format!("{name}_compact_price"),
-            version,
-            source.read_only_boxed_clone(),
-            |_, value| CentsCompact::from(value),
-        );
-
-        Self { price: compact }
+    pub fn new(source: &impl ReadableCloneableVec<Height, Cents>) -> Self {
+        Self {
+            price: source.read_only_boxed_clone(),
+        }
     }
 
     pub fn price_for_ratio(
@@ -36,9 +28,7 @@ impl ComponentPrice {
             version,
             ratio,
             &self.price,
-            |_, ratio, price| {
-                PriceTimesRatio::<PartsPerMillion32>::apply(Cents::from(price), ratio)
-            },
+            |_, ratio, price| PriceTimesRatio::<PartsPerMillion32>::apply(price, ratio),
         );
 
         Price::from_height_source(name, version, &source, mappings)
@@ -59,7 +49,7 @@ impl ComponentPrice {
                         .iter()
                         .zip(&prices[at - start..])
                         .map(|(&ratio, &price)| {
-                            PriceTimesRatio::<PartsPerMillion32>::apply(Cents::from(price), ratio)
+                            PriceTimesRatio::<PartsPerMillion32>::apply(price, ratio)
                         }),
                 );
             });

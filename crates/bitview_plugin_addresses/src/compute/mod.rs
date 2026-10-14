@@ -4,10 +4,10 @@ mod write;
 pub use block_loop::process_chunk;
 pub use readers::{AddrReaders, Workspace};
 
+use bitview_compute::WRITE_INTERVAL;
 use bitview_distribution::replay;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
-use brk_types::Height;
 use vecdb::Database;
 
 use crate::{Dependencies, Vecs};
@@ -39,7 +39,7 @@ impl ComputePlugin for Vecs {
                 let mut workspace = Workspace::new(indexer, &output_heights);
                 let mut from = heights.start;
                 while from < heights.end {
-                    let to = (from + 10_000).min(heights.end);
+                    let to = (from + WRITE_INTERVAL).min(heights.end);
                     from = process_chunk(
                         vecs,
                         addrs,
@@ -51,12 +51,6 @@ impl ComputePlugin for Vecs {
                         to == heights.end,
                         exit,
                     )?;
-                }
-                // Derive the rest from the members' completed series.
-                let from = Height::from(heights.start);
-                vecs.all.compute(from, exit)?;
-                for member in vecs.types.iter_mut() {
-                    member.compute(from, exit)?;
                 }
                 Ok(())
             },

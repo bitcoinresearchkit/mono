@@ -41,7 +41,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// The range weighted by one minus its mobility.
     pub immobile: SideVecs,
     #[traversable(hidden)]
-    pub mobility_source: CachedSeries<Height, BoundedRatio, M>,
+    pub(crate) mobility_source: CachedSeries<Height, BoundedRatio, M>,
 }
 
 impl<M: StorageMode> Vecs<M> {

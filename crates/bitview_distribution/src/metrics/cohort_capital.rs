@@ -8,9 +8,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{
-    AnyStoredVec, BinaryTransform, Database, ReadableCloneableVec, Rw, StorageMode, WritableVec,
-};
+use vecdb::{BinaryTransform, Database, ReadableCloneableVec, Rw, StorageMode, WritableVec};
 
 use crate::families::import_stored;
 
@@ -99,9 +97,5 @@ impl CohortCapital {
     #[inline(always)]
     pub fn push(&mut self, capital: Cents) {
         self.stored.push(capital);
-    }
-
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        &mut self.stored
     }
 }

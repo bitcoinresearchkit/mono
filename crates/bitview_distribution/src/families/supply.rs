@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
+use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
 
@@ -33,9 +33,5 @@ impl Supply {
     #[inline(always)]
     pub fn push(&mut self, sats: Sats) {
         self.stored.push(sats);
-    }
-
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        &mut self.stored
     }
 }

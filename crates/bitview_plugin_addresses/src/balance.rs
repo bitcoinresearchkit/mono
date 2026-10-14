@@ -9,8 +9,8 @@ use bitview_vecs::{CachedSeries, import_cached, ops::SatsToCents};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{
-    AnyStoredVec, BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw,
-    StorageMode, WritableVec,
+    BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
+    WritableVec,
 };
 
 use crate::{
@@ -155,21 +155,6 @@ impl BalanceVecs {
         state.addr_count = u64::from(self.address_count.stored.collect_one(height)?);
         Some(())
     }
-
-    pub fn vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        let [sats, cents] = self.activity.transfer_volume.stored_vecs_mut();
-        [
-            self.address_count.stored_mut(),
-            self.supply.total.stored_mut(),
-            self.outputs.unspent_count.stored_mut(),
-            sats,
-            cents,
-            self.capital.stored_mut(),
-            self.realized.profit.stored_mut(),
-            self.realized.loss.stored_mut(),
-        ]
-        .into_iter()
-    }
 }
 
 /// The balance bands and the capital all addresses hold: the address root's capital and the bands'
@@ -210,12 +195,5 @@ impl Balances {
             capital += state.inner.realized.cap();
         }
         self.capital.push(capital);
-    }
-
-    pub fn vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.bands
-            .iter_mut()
-            .flat_map(BalanceVecs::vecs_mut)
-            .chain([&mut self.capital as &mut dyn AnyStoredVec])
     }
 }

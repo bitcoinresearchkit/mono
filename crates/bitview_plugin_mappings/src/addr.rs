@@ -9,10 +9,9 @@ use bitview_primitives::{
 };
 use bitview_traversable::Traversable;
 use brk_types::{
-    Address, AddressBytes, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes,
-    P2WPKHBytes, P2WSHBytes, TxIndex, Version,
+    P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes, P2WPKHBytes, P2WSHBytes,
+    TxIndex, Version,
 };
-use vecdb::{LazyVec, ReadableCloneableVec};
 
 use self::{address::AddressVecs, identity::IdentityVecs};
 
@@ -54,173 +53,36 @@ pub struct OutputVecs {
 
 impl Vecs {
     pub fn new(version: Version, indexer: &Indexer) -> Self {
+        let addrs = &indexer.vecs().addrs;
         Self {
-            p2pk33: AddressVecs {
-                identity: LazyVec::init(
-                    "p2pk33_address_index",
-                    version,
-                    indexer.vecs().addrs.p2pk33.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                address: LazyVec::init(
-                    "p2pk33_address",
-                    version,
-                    indexer.vecs().addrs.p2pk33.bytes.read_only_boxed_clone(),
-                    |_, bytes| Address::try_from(&AddressBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2pk65: AddressVecs {
-                identity: LazyVec::init(
-                    "p2pk65_address_index",
-                    version,
-                    indexer.vecs().addrs.p2pk65.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                address: LazyVec::init(
-                    "p2pk65_address",
-                    version,
-                    indexer.vecs().addrs.p2pk65.bytes.read_only_boxed_clone(),
-                    |_, bytes| Address::try_from(&AddressBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2pkh: AddressVecs {
-                identity: LazyVec::init(
-                    "p2pkh_address_index",
-                    version,
-                    indexer.vecs().addrs.p2pkh.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                address: LazyVec::init(
-                    "p2pkh_address",
-                    version,
-                    indexer.vecs().addrs.p2pkh.bytes.read_only_boxed_clone(),
-                    |_, bytes| Address::try_from(&AddressBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2sh: AddressVecs {
-                identity: LazyVec::init(
-                    "p2sh_address_index",
-                    version,
-                    indexer.vecs().addrs.p2sh.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                address: LazyVec::init(
-                    "p2sh_address",
-                    version,
-                    indexer.vecs().addrs.p2sh.bytes.read_only_boxed_clone(),
-                    |_, bytes| Address::try_from(&AddressBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2tr: AddressVecs {
-                identity: LazyVec::init(
-                    "p2tr_address_index",
-                    version,
-                    indexer.vecs().addrs.p2tr.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                address: LazyVec::init(
-                    "p2tr_address",
-                    version,
-                    indexer.vecs().addrs.p2tr.bytes.read_only_boxed_clone(),
-                    |_, bytes| Address::try_from(&AddressBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2wpkh: AddressVecs {
-                identity: LazyVec::init(
-                    "p2wpkh_address_index",
-                    version,
-                    indexer.vecs().addrs.p2wpkh.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                address: LazyVec::init(
-                    "p2wpkh_address",
-                    version,
-                    indexer.vecs().addrs.p2wpkh.bytes.read_only_boxed_clone(),
-                    |_, bytes| Address::try_from(&AddressBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2wsh: AddressVecs {
-                identity: LazyVec::init(
-                    "p2wsh_address_index",
-                    version,
-                    indexer.vecs().addrs.p2wsh.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                address: LazyVec::init(
-                    "p2wsh_address",
-                    version,
-                    indexer.vecs().addrs.p2wsh.bytes.read_only_boxed_clone(),
-                    |_, bytes| Address::try_from(&AddressBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2a: AddressVecs {
-                identity: LazyVec::init(
-                    "p2a_address_index",
-                    version,
-                    indexer.vecs().addrs.p2a.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                address: LazyVec::init(
-                    "p2a_address",
-                    version,
-                    indexer.vecs().addrs.p2a.bytes.read_only_boxed_clone(),
-                    |_, bytes| Address::try_from(&AddressBytes::from(bytes)).unwrap(),
-                ),
-            },
+            p2pk33: AddressVecs::new("p2pk33", version, &addrs.p2pk33.bytes),
+            p2pk65: AddressVecs::new("p2pk65", version, &addrs.p2pk65.bytes),
+            p2pkh: AddressVecs::new("p2pkh", version, &addrs.p2pkh.bytes),
+            p2sh: AddressVecs::new("p2sh", version, &addrs.p2sh.bytes),
+            p2tr: AddressVecs::new("p2tr", version, &addrs.p2tr.bytes),
+            p2wpkh: AddressVecs::new("p2wpkh", version, &addrs.p2wpkh.bytes),
+            p2wsh: AddressVecs::new("p2wsh", version, &addrs.p2wsh.bytes),
+            p2a: AddressVecs::new("p2a", version, &addrs.p2a.bytes),
         }
     }
 }
 
 impl OutputVecs {
     pub fn new(version: Version, indexer: &Indexer) -> Self {
+        let scripts = &indexer.vecs().scripts;
         Self {
-            p2ms: IdentityVecs {
-                identity: LazyVec::init(
-                    "p2ms_output_index",
-                    version,
-                    indexer
-                        .vecs()
-                        .scripts
-                        .p2ms
-                        .to_tx_index
-                        .read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-            },
-            empty: IdentityVecs {
-                identity: LazyVec::init(
-                    "empty_output_index",
-                    version,
-                    indexer
-                        .vecs()
-                        .scripts
-                        .empty
-                        .to_tx_index
-                        .read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-            },
-            unknown: IdentityVecs {
-                identity: LazyVec::init(
-                    "unknown_output_index",
-                    version,
-                    indexer
-                        .vecs()
-                        .scripts
-                        .unknown
-                        .to_tx_index
-                        .read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-            },
-            op_return: IdentityVecs {
-                identity: LazyVec::init(
-                    "op_return_index",
-                    version,
-                    indexer.vecs().op_return.to_tx_index.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-            },
+            p2ms: IdentityVecs::new("p2ms_output_index", version, &scripts.p2ms.to_tx_index),
+            empty: IdentityVecs::new("empty_output_index", version, &scripts.empty.to_tx_index),
+            unknown: IdentityVecs::new(
+                "unknown_output_index",
+                version,
+                &scripts.unknown.to_tx_index,
+            ),
+            op_return: IdentityVecs::new(
+                "op_return_index",
+                version,
+                &indexer.vecs().op_return.to_tx_index,
+            ),
         }
     }
 }

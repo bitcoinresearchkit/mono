@@ -3,32 +3,31 @@ use bitview_compute::{CohortAccounting, collect_age_range};
 use bitview_primitives::CentsSquaredSats;
 use brk_types::{CentsSats, Height, Sats, Version};
 use rayon::join;
-use vecdb::ReadableVec;
+use vecdb::{AnyVec, LazyVec, ZstdVec};
 
 use crate::Vecs;
 
 /// Read-only accounting inputs for weighted consumers; no cloned source or result cache.
 pub struct AccountingSources<'a> {
-    supplies: AgeRange<&'a dyn ReadableVec<Height, Sats>>,
-    loss_supplies: AgeRange<&'a dyn ReadableVec<Height, Sats>>,
-    cap_raw: AgeRange<&'a dyn ReadableVec<Height, CentsSats>>,
-    capitalized_cap_raw: AgeRange<&'a dyn ReadableVec<Height, CentsSquaredSats>>,
+    supplies: AgeRange<&'a SupplySource>,
+    loss_supplies: AgeRange<&'a SupplySource>,
+    cap_raw: AgeRange<&'a ZstdVec<Height, CentsSats>>,
+    capitalized_cap_raw: AgeRange<&'a ZstdVec<Height, CentsSquaredSats>>,
 }
+
+/// An age range's supply in sats, as its series publishes it.
+type SupplySource = LazyVec<Height, Sats, Height, Sats>;
 
 impl Vecs {
     pub fn accounting_sources(&self) -> AccountingSources<'_> {
         let ranges = &self.ranges;
         AccountingSources {
-            supplies: AgeRange::from_fn(|id| {
-                &id.select(ranges).supply.total.value.sats.height as _
-            }),
+            supplies: AgeRange::from_fn(|id| &id.select(ranges).supply.total.value.sats.height),
             loss_supplies: AgeRange::from_fn(|id| {
-                &id.select(ranges).supply.in_loss.value.sats.height as _
+                &id.select(ranges).supply.in_loss.value.sats.height
             }),
-            cap_raw: AgeRange::from_fn(|id| &id.select(ranges).raw.cap as _),
-            capitalized_cap_raw: AgeRange::from_fn(|id| {
-                &id.select(ranges).raw.capitalized_cap as _
-            }),
+            cap_raw: AgeRange::from_fn(|id| &id.select(ranges).raw.cap),
+            capitalized_cap_raw: AgeRange::from_fn(|id| &id.select(ranges).raw.capitalized_cap),
         }
     }
 }

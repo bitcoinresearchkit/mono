@@ -33,6 +33,17 @@ scalar! {
 }
 
 scalar! {
+    /// US dollars multiplied by blocks: coinblocks valued at the spot price.
+    float DollarBlocks(f64)
+}
+
+scalar! {
+    /// US dollars multiplied by days, per bitcoin: coin days valued at the spot price, per
+    /// bitcoin of supply.
+    float DollarDaysPerCoin(f64)
+}
+
+scalar! {
     /// A duration in days.
     float Days(f32)
 }

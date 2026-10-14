@@ -53,8 +53,8 @@ impl DefaultPlugins {
     /// step, under the lock address readers take before they pin, before the indexer rolls back:
     /// they read the state of every publication, the lowered one the rest of the update computes
     /// from included, and wait only for that step. A rollback that cannot land (`roll_back_to`
-    /// returns 0) is left to the address plugin's compute, which resets. Bootstrap has no readers;
-    /// its plugins roll back as they compute.
+    /// returns 0) lowers the publication to genesis instead, before the address plugin's compute
+    /// resets. Bootstrap has no readers; its plugins roll back as they compute.
     fn roll_back_reorg(&mut self, context: UpdateContext<'_>) -> Result<()> {
         let Some(starting) = self.indexer.reorg()? else {
             return Ok(());
@@ -89,7 +89,13 @@ impl DefaultPlugins {
 
         thread::scope(|scope| -> Result<()> {
             timed(Phase::Compute, BLOCKS_ID, || {
-                self.blocks.compute(BlocksDependencies { indexer }, context)
+                self.blocks.compute(
+                    BlocksDependencies {
+                        indexer,
+                        mappings: self.mappings.as_ref(),
+                    },
+                    context,
+                )
             })?;
 
             // Only the UTXO set reads inputs' spends: everything before it runs alongside.
@@ -99,7 +105,6 @@ impl DefaultPlugins {
                         InputsDependencies {
                             mappings: self.mappings.as_ref(),
                             indexer,
-                            blocks: self.blocks.as_ref(),
                         },
                         context,
                     )
@@ -119,7 +124,6 @@ impl DefaultPlugins {
                             indexer,
                             price: self.price.as_ref(),
                             mappings: self.mappings.as_ref(),
-                            blocks: self.blocks.as_ref(),
                         },
                         context,
                     )
@@ -132,7 +136,6 @@ impl DefaultPlugins {
                         TransactionsDependencies {
                             indexer,
                             mappings: self.mappings.as_ref(),
-                            blocks: self.blocks.as_ref(),
                             price: self.price.as_ref(),
                         },
                         context,
@@ -145,6 +148,7 @@ impl DefaultPlugins {
                             self.mining.compute(
                                 MiningDependencies {
                                     indexer,
+                                    mappings: self.mappings.as_ref(),
                                     blocks: self.blocks.as_ref(),
                                     transactions: self.transactions.as_ref(),
                                     price: self.price.as_ref(),
@@ -201,7 +205,7 @@ impl DefaultPlugins {
                 self.outputs.compute(
                     OutputsDependencies {
                         indexer,
-                        blocks: &self.blocks,
+                        mappings: &self.mappings,
                         price: &self.price,
                     },
                     context,
@@ -213,7 +217,7 @@ impl DefaultPlugins {
             timed(Phase::Compute, UTXO_SET_ID, || {
                 self.utxo_set.compute(
                     UtxoSetDependencies {
-                        spends: inputs.origins.spends(),
+                        spends: &inputs.spends,
                         creations,
                         from: indexer.safe_lengths().height,
                         end: creations.end(),
@@ -222,7 +226,7 @@ impl DefaultPlugins {
                 )
             })?;
 
-            let history = self.utxo_set.reader(inputs.origins.spends(), creations)?;
+            let history = self.utxo_set.reader(&inputs.spends, creations)?;
             timed(Phase::Compute, AGE_ID, || {
                 self.age.compute(
                     AgeDependencies {
@@ -332,7 +336,6 @@ impl DefaultPlugins {
                             indexer,
                             mappings: self.mappings.as_ref(),
                             price: self.price.as_ref(),
-                            blocks: self.blocks.as_ref(),
                             inflation_rate: &self.supply.inflation_rate,
                             velocity_btc: &self.supply.velocity.btc,
                             velocity_usd: &self.supply.velocity.usd,
@@ -349,7 +352,6 @@ impl DefaultPlugins {
                         BedrockDependencies {
                             urpd,
                             indexer,
-                            mappings: &self.mappings,
                             age: &self.age,
                             holders: &self.holders,
                             cointime: &self.cointime,

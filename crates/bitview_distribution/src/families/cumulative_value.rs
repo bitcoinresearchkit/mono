@@ -5,7 +5,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 /// One cohort's flow of bitcoin, stored as running totals `{name}_cumulative_{sats,cents}`.
 #[derive(Traversable)]
@@ -45,9 +45,5 @@ impl CumulativeValue {
         debug_assert!(!cents.is_nan(), "NaN cohort value");
         self.sats.push_block(sats);
         self.cents.push_block(cents);
-    }
-
-    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 2] {
-        [self.sats.stored_mut(), self.cents.stored_mut()]
     }
 }

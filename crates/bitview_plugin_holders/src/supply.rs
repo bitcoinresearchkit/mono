@@ -9,7 +9,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, SatsSigned, Version};
-use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 use crate::{columns::Columns, part::Part};
 
@@ -107,12 +107,5 @@ impl Supply {
                 exit,
             )?;
         Ok(())
-    }
-    pub(crate) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
-        [
-            &mut self.share.fixed.height,
-            &mut self.in_profit.share.fixed.height,
-            &mut self.in_loss.share.fixed.height,
-        ]
     }
 }

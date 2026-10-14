@@ -23,5 +23,5 @@ pub struct DerivedVecs<M: StorageMode = Rw> {
     pub liveliness_to_vaultedness: LazyPerBlock<Ratio64, BoundedRatio>,
     /// Canonical bounded source; cumulative coinblock inputs remain unrounded.
     #[traversable(hidden)]
-    pub liveliness_source: PerBlock<BoundedRatio, M>,
+    pub(crate) liveliness_source: PerBlock<BoundedRatio, M>,
 }

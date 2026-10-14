@@ -1,17 +1,17 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
-use bitview_compute::prepare_computed;
+use bitview_compute::{Inputs, collect_age_range, write_chunks, write_locked};
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{BoundedRatio, CoinDays};
+use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Height, Sats, Version};
-use vecdb::ReadableVec;
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use super::{RangeVecs, Vecs};
 
 const HOURS_PER_DAY: f64 = 24.0;
-const WRITE_INTERVAL: usize = 10_000;
 
 impl Vecs {
     pub(crate) fn compute(&mut self, indexer: &Indexer, age: &AgeVecs, exit: &Exit) -> Result<()> {
@@ -50,39 +50,39 @@ impl Vecs {
         source_coindays_destroyed: &AgeRange<&impl ReadableVec<Height, CoinDays>>,
         exit: &Exit,
     ) -> Result<()> {
-        let version = Version::combine_all(
+        let inputs = Inputs::new(
+            Version::ZERO,
             transfer_volumes
                 .iter()
-                .map(|vec| vec.version())
-                .chain(source_coindays_destroyed.iter().map(|vec| vec.version())),
+                .map(|vec| *vec as &dyn AnyVec)
+                .chain(
+                    source_coindays_destroyed
+                        .iter()
+                        .map(|vec| *vec as &dyn AnyVec),
+                ),
         );
-        let source_end = transfer_volumes
-            .iter()
-            .map(|vec| vec.len())
-            .chain(source_coindays_destroyed.iter().map(|vec| vec.len()))
-            .min()
-            .unwrap_or_default();
-        let bounds = age_bounds_days();
-        let start = prepare_computed(
-            self.ranges
-                .as_array_mut()
-                .map(|range| range.coindays_consumed.stored_mut()),
-            version,
-            usize::from(starting_height).min(source_end),
+        let range = inputs.prepare(
+            self.consumed_vecs_mut().collect::<Vec<_>>(),
+            usize::from(starting_height),
             exit,
         )?;
-        let mut chunk_start = start;
-        while chunk_start < source_end {
-            let chunk_end = (chunk_start + WRITE_INTERVAL).min(source_end);
-            let transfer_batches = AgeRange::from_fn(|id| {
-                id.select(transfer_volumes)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            let destroyed_batches = AgeRange::from_fn(|id| {
-                id.select(source_coindays_destroyed)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            for offset in 0..chunk_end - chunk_start {
+        let bounds = age_bounds_days();
+        let mut transfer_batches = AgeRange::default();
+        let mut destroyed_batches = AgeRange::default();
+        for chunk in write_chunks(range) {
+            collect_age_range(
+                transfer_volumes,
+                &mut transfer_batches,
+                chunk.start,
+                chunk.end,
+            );
+            collect_age_range(
+                source_coindays_destroyed,
+                &mut destroyed_batches,
+                chunk.start,
+                chunk.end,
+            );
+            for offset in 0..chunk.len() {
                 let volumes_btc = AgeRange::from_fn(|id| {
                     f64::from(Bitcoin::from(id.select(&transfer_batches)[offset]))
                 });
@@ -93,13 +93,15 @@ impl Vecs {
                     range.coindays_consumed.push_block(CoinDays::from(*value));
                 }
             }
-            let _lock = exit.lock();
-            for range in self.ranges.iter_mut() {
-                range.coindays_consumed.write()?;
-            }
-            chunk_start = chunk_end;
+            write_locked(self.consumed_vecs_mut(), exit)?;
         }
         Ok(())
+    }
+
+    fn consumed_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.ranges
+            .iter_mut()
+            .flat_map(|range| range.coindays_consumed.iter_any_stored_mut())
     }
 
     fn compute_rest(

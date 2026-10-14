@@ -1,16 +1,14 @@
-use bitview_compute::prepare_computed;
+use bitview_compute::{WRITE_INTERVAL, prepare_computed};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Boolean, Count, Count16};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, TxIndex};
-use vecdb::{AnyStoredVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
 use crate::FeesVecs;
-
-const WRITE_INTERVAL: usize = 10_000;
 
 impl Vecs {
     pub(crate) fn compute(
@@ -46,7 +44,7 @@ impl Vecs {
         first_tx: &impl ReadableVec<Height, TxIndex>,
         tx_counts: &impl ReadableVec<Height, Count>,
         inscription_counts: &impl ReadableVec<Height, Count16>,
-        inscriptions: &impl ReadableVec<TxIndex, Boolean>,
+        inscriptions: &PcoVec<TxIndex, Boolean>,
         fees: &impl ReadableVec<TxIndex, Sats>,
         exit: &Exit,
     ) -> Result<()> {
@@ -78,7 +76,8 @@ impl Vecs {
             .collect_last()
             .unwrap_or_default();
         let mut block_start = first_tx.collect_one_at(start_height).unwrap().to_usize();
-        let mut inscriptions = inscriptions.cursor();
+        // Only blocks with inscriptions read, in increasing order: the flags keep their decoder.
+        let mut inscriptions = inscriptions.range_cursor_at(block_start, end_tx);
         let mut fees = fees.cursor();
         let mut counts = tx_counts.cursor();
         let mut inscription_counts = inscription_counts.cursor();

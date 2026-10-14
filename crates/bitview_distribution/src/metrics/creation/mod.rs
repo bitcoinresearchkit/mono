@@ -19,7 +19,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 use super::{CohortCostBasis, ShareTotals, StoredOutputs};
 use crate::state::{MappedUTXOCohortState, RealizedOps};
@@ -92,17 +92,5 @@ impl CreationCohort {
         self.realized.push(&realized);
         self.cost_basis.push(realized.price());
         realized.cap
-    }
-
-    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.supply
-            .stored_vecs_mut()
-            .into_iter()
-            .chain(self.capital.stored_vecs_mut())
-            .chain(self.outputs.stored_vecs_mut())
-            .chain(self.activity.stored_vecs_mut())
-            .chain(self.realized.stored_vecs_mut())
-            .chain(self.unrealized.stored_vecs_mut())
-            .chain([self.cost_basis.stored_mut()])
     }
 }

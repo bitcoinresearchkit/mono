@@ -8,6 +8,7 @@ mod has;
 mod height;
 mod height_lookup;
 mod import;
+mod lookback;
 mod resolution;
 mod timestamp;
 mod tx_index;
@@ -18,6 +19,7 @@ mod views;
 pub use dependencies::Dependencies;
 pub use has::HasMappings;
 pub use height_lookup::HeightMap;
+pub use lookback::LookbackVecs;
 pub use views::{LazyCumulativeIndexVec, LazyIndexCountVec, RangeMapLookupVec};
 
 use std::ops::Deref;
@@ -78,6 +80,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     txin_index: TxInIndexVecs,
     txout_index: TxOutIndexVecs,
     pub timestamp: Timestamps<M>,
+    // First block height inside each trailing duration (from the monotonic timestamps):
+    // window starts for other plugins, not a public series.
+    #[traversable(hidden)]
+    pub lookback: LookbackVecs,
 }
 
 impl<M: StorageMode> Deref for Vecs<M> {

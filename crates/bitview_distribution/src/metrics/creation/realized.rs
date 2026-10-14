@@ -5,7 +5,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct CreationRealized<M: StorageMode = Rw> {
@@ -71,14 +71,5 @@ impl CreationRealized {
         self.loss.push_block(values.loss);
         self.net_pnl.push_block(values.net_pnl);
         self.value_destroyed.push_block(values.value_destroyed);
-    }
-
-    pub(super) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 4] {
-        [
-            self.profit.stored_mut(),
-            self.loss.stored_mut(),
-            self.net_pnl.stored_mut(),
-            self.value_destroyed.stored_mut(),
-        ]
     }
 }

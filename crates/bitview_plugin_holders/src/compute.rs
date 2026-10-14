@@ -1,7 +1,8 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
-use bitview_compute::prepare_computed;
+use bitview_compute::{Inputs, write_chunks};
 use bitview_distribution::state::cost_basis::{DensityBand, PRICE_INDEX_VERSION, age_index};
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_traversable::Traversable;
 use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -21,49 +22,30 @@ impl ComputePlugin for Vecs {
     }
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();
+        let exit = context.exit();
         let sources = Sources::new(deps.age);
-        let version = (
-            deps.price.spot.cents.height.version(),
-            deps.mappings.timestamp.monotonic.version(),
-            deps.history.versions(),
-            sources.version(),
+        let spot = &deps.price.spot.cents.height;
+        let monotonic = &deps.mappings.timestamp.monotonic;
+        let mut inputs = Inputs::new(
+            Version::ONE + PRICE_INDEX_VERSION + age_index::history_version(deps.history),
+            [spot as &dyn AnyVec, monotonic]
+                .into_iter()
+                .chain(sources.vectors()),
         );
-        let base_version = Version::ONE
-            + PRICE_INDEX_VERSION
-            + version.0
-            + version.1
-            + version.3
-            + age_index::history_version(deps.history);
-        let end = deps
-            .history
-            .len()
-            .min(deps.price.spot.cents.height.len())
-            .min(deps.mappings.timestamp.monotonic.len())
-            .min(sources.len());
-        let start = prepare_computed(
-            self.state_vecs_mut(),
-            base_version,
-            usize::from(deps.from).min(end),
-            context.exit(),
-        )?;
+        inputs.len = inputs.len.min(deps.history.len());
+        let version = inputs.version;
+        let range = inputs.prepare(self.state_vecs_mut(), usize::from(deps.from), exit)?;
+        let (start, end) = (range.start, range.end);
         if end == 0 {
             return Ok(());
         }
-        let (mut live, spots) = LiveState::resume(
-            live,
-            version,
-            deps.history,
-            start,
-            end,
-            &deps.price.spot.cents.height,
-            &deps.mappings.timestamp.monotonic,
-        )?;
+        let (mut live, spots) =
+            LiveState::resume(live, version, deps.history, start, end, spot, monotonic)?;
         let mut cursor = deps.history.cursor(&mut live.origins)?;
-        for from in (start..end).step_by(10_000) {
-            let next = (from + 10_000).min(end);
-            let rows = sources.collect(from, next)?;
+        for chunk in write_chunks(range) {
+            let rows = sources.collect(chunk.start, chunk.end)?;
             for (offset, row) in rows.iter().enumerate() {
-                let h = from + offset;
+                let h = chunk.start + offset;
                 let spot = spots[h - start];
                 age_index::advance(
                     &mut live.index,
@@ -85,7 +67,11 @@ impl ComputePlugin for Vecs {
                     .into_iter();
                 self.cost_basis.push(AgeAggregate::from_fn(|id| {
                     let (sats, cap) = age_index::selected(id, &total);
-                    let positive = |value: i128| value.max(0) as u128;
+                    // Canonical balances and nested cuts keep every total nonnegative.
+                    let positive = |value: i128| {
+                        debug_assert!(value >= 0, "negative cost-basis total {value}");
+                        value as u128
+                    };
                     let (supply_density, capital_density) = if let Some((profit, loss)) = &split {
                         let (profit_sats, profit_cap) = age_index::selected(id, profit);
                         let (loss_sats, loss_cap) = age_index::selected(id, loss);
@@ -115,7 +101,7 @@ impl ComputePlugin for Vecs {
                         .push(id.select(row), id.select(&unrealized));
                 }
             }
-            self.save(next, false, context.exit())?;
+            self.save(chunk.end, false, exit)?;
         }
         drop(cursor);
         let all_capital = self.cohorts.all.capital_cents().read_only_boxed_clone();
@@ -124,35 +110,35 @@ impl ComputePlugin for Vecs {
                 Height::from(start),
                 &self.all_supply,
                 &all_capital,
-                &deps.price.spot.cents.height,
-                context.exit(),
+                spot,
+                exit,
             )?;
         }
-        self.save(end, true, context.exit())?;
+        self.save(end, true, exit)?;
         self.live = Some(live);
         Ok(())
     }
 }
 impl Vecs {
+    /// The block loop's outputs: the cost-basis sources and each cohort's columns. The rest
+    /// derive from them after the loop, each validating its own version.
     fn state_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut v = self.cost_basis.collect_vecs_mut();
-        for metrics in self.cohorts.iter_mut() {
-            v.extend(metrics.state_vecs_mut());
-        }
-        v
+        self.cost_basis
+            .iter_any_stored_mut()
+            .chain(
+                self.cohorts
+                    .iter_mut()
+                    .flat_map(|metrics| metrics.state_vecs_mut()),
+            )
+            .collect()
     }
-    fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut v = self.cost_basis.collect_vecs_mut();
-        for metrics in self.cohorts.iter_mut() {
-            v.extend(metrics.stored_vecs_mut());
-        }
-        v
-    }
+
+    /// Saves the block loop's outputs, or with `final_chunk` every output, stamped through `end`.
     fn save(&mut self, end: usize, final_chunk: bool, exit: &Exit) -> Result<()> {
         let _lock = exit.lock();
         let stamp = Stamp::from(Height::from(end - 1));
         let vectors = if final_chunk {
-            self.stored_vecs_mut()
+            self.iter_any_stored_mut().collect()
         } else {
             self.state_vecs_mut()
         };

@@ -34,6 +34,15 @@ impl<const N: usize> RealizedCaps<N> {
             .any_validate_computed_version_or_reset(version)?)
     }
 
+    /// The end [`Self::rollback_before`] restores for `stamp`, `None` when the saved changes do
+    /// not reach it.
+    pub fn rollback_landing(&self, stamp: Stamp) -> Result<Option<usize>> {
+        Ok(self
+            .values
+            .rollback_landing(stamp)?
+            .map(|landing| usize::from(Height::from(landing).incremented())))
+    }
+
     pub fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp> {
         Ok(self.values.rollback_before(stamp)?)
     }

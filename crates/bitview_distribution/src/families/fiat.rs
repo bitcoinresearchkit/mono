@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, FiatType, LazyFiatPerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, Database, PcoVecValue, Rw, StorageMode, WritableVec};
+use vecdb::{Database, PcoVecValue, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
 
@@ -31,9 +31,5 @@ impl<C: FiatType + PcoVecValue> Fiat<C> {
     #[inline(always)]
     pub(crate) fn push(&mut self, value: C) {
         self.stored.push(value);
-    }
-
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        &mut self.stored
     }
 }

@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, Price, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
+use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 /// A cohort's mean creation price; `name` gives each series name from its metric
 /// (`cost_basis_per_coin_avg` -> `utxos_1d_to_1w_old_cost_basis_per_coin_avg`).
@@ -47,9 +47,5 @@ impl CohortCostBasis {
     #[inline(always)]
     pub fn push(&mut self, avg: Cents) {
         self.stored.push(avg);
-    }
-
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        &mut self.stored
     }
 }

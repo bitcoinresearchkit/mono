@@ -22,7 +22,6 @@ impl ComputePlugin for Vecs {
             indexer,
             price: prices,
             mappings,
-            blocks,
         } = dependencies;
         let exit = context.exit();
 
@@ -30,8 +29,14 @@ impl ComputePlugin for Vecs {
             || self.ath.compute(indexer, prices, mappings, exit),
             || {
                 join(
-                    || self.range.compute(indexer, prices, blocks, exit),
-                    || self.moving_average.compute(indexer, blocks, prices, exit),
+                    || {
+                        self.range
+                            .compute(indexer, prices, &mappings.lookback, exit)
+                    },
+                    || {
+                        self.moving_average
+                            .compute(indexer, &mappings.lookback, prices, exit)
+                    },
                 )
             },
         );

@@ -1,7 +1,7 @@
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_primitives::Float64;
+use bitview_primitives::DollarBlocks;
 use brk_error::Result;
 use brk_exit::Exit;
 
@@ -37,7 +37,7 @@ impl Vecs {
                 starting_height,
                 &prices.spot.usd.height,
                 source,
-                |price, value| Float64::from(f64::from(price) * f64::from(value)),
+                |price, value| DollarBlocks::from(f64::from(price) * f64::from(value)),
                 exit,
             )?;
         }

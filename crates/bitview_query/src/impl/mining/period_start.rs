@@ -10,7 +10,7 @@ use crate::{Error as QueryError, OptionData, Query, Result};
 /// "all-time" case from a transient stamp-lag dropout that would
 /// otherwise silently widen a windowed query to the full chain.
 pub fn start_height(query: &Query, period: TimePeriod, tip: Height) -> Result<Height> {
-    let lookback = &query.plugins().blocks.lookback;
+    let lookback = &query.plugins().mappings.lookback;
     let start = match period {
         TimePeriod::Day => lookback._24h.collect_one(tip).data()?,
         TimePeriod::ThreeDays => lookback._3d.collect_one(tip).data()?,
