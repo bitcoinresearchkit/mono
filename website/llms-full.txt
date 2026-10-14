@@ -1538,7 +1538,7 @@ curl -s "https://bitview.space/version"
 - `scriptPubKey`: `string | null` — The scriptPubKey in hex
 - `isscript`: `boolean | null` — Whether this is a script address (P2SH)
 - `iswitness`: `boolean | null` — Whether this is a witness address
-- `witness_version`: `integer | null` — Witness version (0 for P2WPKH/P2WSH, 1 for P2TR)
+- `witness_version`: `integer | null` — Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
 - `witness_program`: `string | null` — Witness program in hex
 - `error_locations`: `array | null` — Error locations (empty array for most errors)
 - `error`: `string | null` — Error message for invalid addresses
@@ -2046,15 +2046,15 @@ curl -s "https://bitview.space/version"
 ### `TxIn`
 
 - `txid`: `Txid` (required) — Transaction ID of the output being spent
-- `vout`: `Vout` (required) — Output index being spent (u16: coinbase is 65535, mempool.space uses u32: 4294967295)
+- `vout`: `Vout` (required) — Output index being spent (coinbase: 4294967295)
 - `prevout`: `TxOut | null` (required) — Information about the previous output being spent
 - `scriptsig`: `string` (required) — Signature script (hex, for non-SegWit inputs)
 - `scriptsig_asm`: `string` (required) — Signature script in assembly format
 - `witness`: `Witness` — Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
 - `is_coinbase`: `boolean` (required) — Whether this input is a coinbase (block reward) input
 - `sequence`: `integer` (required) — Input sequence number
-- `inner_redeemscript_asm`: `string` — Inner redeemscript in assembly (for P2SH-wrapped SegWit: scriptsig + witness both present)
-- `inner_witnessscript_asm`: `string` — Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
+- `inner_redeemscript_asm`: `string` — Inner redeemscript in assembly (P2SH inputs)
+- `inner_witnessscript_asm`: `string` — Inner witnessscript in assembly (P2WSH and P2SH-P2WSH: the witness script; P2TR script path: the leaf script)
 
 ### `TxIndex`
 
