@@ -1,6 +1,6 @@
 use bitcoin::{
     Amount, Script, Transaction, TxIn, TxOut, WitnessVersion, constants::WITNESS_SCALE_FACTOR,
-    policy::MAX_STANDARD_TX_SIGOPS_COST, taproot::LeafVersion,
+    policy::MAX_STANDARD_TX_SIGOPS_COST, script::Instruction, taproot::LeafVersion,
 };
 use brk_types::{Height, OutputType, SigOps32};
 
@@ -63,11 +63,20 @@ impl Accumulator {
         self.nonstandard |= match output.output_type {
             OutputType::Empty => true,
             OutputType::Unknown => !is_standard_unknown_witness(script),
-            OutputType::P2MS => has_too_many_bare_multisig_keys(output.legacy_sigops),
+            // Core's solver: valid public key encodings, a push-only data tail.
+            OutputType::P2MS => {
+                has_too_many_bare_multisig_keys(output.legacy_sigops)
+                    || script.instructions().any(|instruction| {
+                        matches!(instruction, Ok(Instruction::PushBytes(key)) if !is_valid_pubkey(key.as_bytes()))
+                    })
+            }
+            OutputType::P2PK33 | OutputType::P2PK65 => {
+                !is_valid_pubkey(&script.as_bytes()[1..script.len() - 1])
+            }
             OutputType::OpReturn => {
                 self.op_return_count += 1;
                 self.op_return_script_bytes += script.len();
-                false
+                !Script::from_bytes(&script.as_bytes()[1..]).is_push_only()
             }
             _ => false,
         };
@@ -109,6 +118,16 @@ pub fn has_nonstandard_header(tx: &ComputedTx, sigops: ComputedSigOps, height: u
         || u32::from(sigops.total) > MAX_STANDARD_TX_SIGOPS_COST
         || height >= FIRST_V30_POLICY_HEIGHT
             && u32::from(sigops.executed_legacy) > MAX_EXECUTED_LEGACY_SIGOP_COST
+}
+
+/// Core's `CPubKey::ValidSize`: a compressed (0x02, 0x03) or uncompressed (0x04, 0x06, 0x07)
+/// key of its header's length.
+fn is_valid_pubkey(key: &[u8]) -> bool {
+    match key.first() {
+        Some(0x02 | 0x03) => key.len() == 33,
+        Some(0x04 | 0x06 | 0x07) => key.len() == 65,
+        _ => false,
+    }
 }
 
 #[inline]

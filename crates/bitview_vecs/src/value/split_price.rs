@@ -1,85 +1,44 @@
 use bitview_collections::Ohlc;
 use bitview_primitives::OHLCCents;
-use bitview_transforms::{Convert, OhlcCentsToHighCents, OhlcCentsToLowCents};
+use bitview_transforms::{
+    Convert, OhlcCentsToCloseCents, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToOpenCents,
+};
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Dollars, Version};
 use derive_more::{Deref, DerefMut};
+use vecdb::UnaryTransform;
 
-use crate::{IndexSources, LazyIndexes, OhlcPrice, Price, Resolutions, SpotPrice};
+use crate::{LazyIndexes, OhlcPrice, Price};
 
-pub type IndexedPrice<S = OHLCCents> = Price<LazyIndexes<Cents, S>, LazyIndexes<Dollars, Cents>>;
-pub type ClosePrice = Price<Resolutions<Cents>, Resolutions<Dollars>>;
+pub type IndexedPrice = Price<LazyIndexes<Cents, OHLCCents>, LazyIndexes<Dollars, Cents>>;
 
+/// Each price of the OHLC candle as its own series: an empty period is a flat candle at the
+/// previous close.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct SplitPrice(pub Ohlc<IndexedPrice, ClosePrice, IndexedPrice<Cents>>);
+pub struct SplitPrice(pub Ohlc<IndexedPrice>);
 
 impl SplitPrice {
-    pub fn new(
-        name: &str,
-        version: Version,
-        indexes: &IndexSources,
-        spot: &SpotPrice,
-        ohlc: &OhlcPrice,
-    ) -> Self {
-        let open_cents = LazyIndexes::from_open_source(
-            &format!("{name}_open_cents"),
-            version,
-            &spot.cents.height,
-            indexes,
-        );
-        let high_cents = LazyIndexes::from_ohlc_indexes::<OhlcCentsToHighCents>(
-            &format!("{name}_high_cents"),
-            version,
-            &ohlc.cents,
-        );
-        let low_cents = LazyIndexes::from_ohlc_indexes::<OhlcCentsToLowCents>(
-            &format!("{name}_low_cents"),
-            version,
-            &ohlc.cents,
-        );
-        let open_usd = LazyIndexes::from_lazy_indexes::<Convert, _>(
-            &format!("{name}_open"),
-            version,
-            &open_cents,
-        );
-        let high_usd = LazyIndexes::from_lazy_indexes::<Convert, _>(
-            &format!("{name}_high"),
-            version,
-            &high_cents,
-        );
-        let low_usd = LazyIndexes::from_lazy_indexes::<Convert, _>(
-            &format!("{name}_low"),
-            version,
-            &low_cents,
-        );
+    pub fn new(name: &str, version: Version, ohlc: &OhlcPrice) -> Self {
         Self(Ohlc {
-            open: Price {
-                usd: open_usd,
-                cents: open_cents,
-            },
-            high: Price {
-                usd: high_usd,
-                cents: high_cents,
-            },
-            low: Price {
-                usd: low_usd,
-                cents: low_cents,
-            },
-            close: Price {
-                usd: Resolutions::from_source(
-                    &format!("{name}_close"),
-                    &spot.usd.height,
-                    version,
-                    indexes,
-                ),
-                cents: Resolutions::from_source(
-                    &format!("{name}_close_cents"),
-                    &spot.cents.height,
-                    version,
-                    indexes,
-                ),
-            },
+            open: split::<OhlcCentsToOpenCents>(name, "open", version, ohlc),
+            high: split::<OhlcCentsToHighCents>(name, "high", version, ohlc),
+            low: split::<OhlcCentsToLowCents>(name, "low", version, ohlc),
+            close: split::<OhlcCentsToCloseCents>(name, "close", version, ohlc),
         })
     }
+}
+
+/// One price of the candle, `F` picking it.
+fn split<F: UnaryTransform<OHLCCents, Cents>>(
+    name: &str,
+    field: &str,
+    version: Version,
+    ohlc: &OhlcPrice,
+) -> IndexedPrice {
+    let cents =
+        LazyIndexes::from_ohlc_indexes::<F>(&format!("{name}_{field}_cents"), version, &ohlc.cents);
+    let usd =
+        LazyIndexes::from_lazy_indexes::<Convert, _>(&format!("{name}_{field}"), version, &cents);
+    Price { usd, cents }
 }

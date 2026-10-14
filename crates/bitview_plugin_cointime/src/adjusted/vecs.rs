@@ -8,8 +8,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Cointime-adjusted supply inflation rate: the scheduled annual issuance
     /// over the circulating supply, multiplied by `liveliness / (1 - liveliness)`,
     /// the ratio of active to vaulted supply. Liveliness is cumulative coinblocks
-    /// destroyed divided by cumulative coinblocks created. Null while the supply
-    /// is at most 50 BTC. Higher values combine faster issuance with a larger
+    /// destroyed divided by cumulative coinblocks created. Null without supply
+    /// (block 0). Higher values combine faster issuance with a larger
     /// active-to-vaulted holding-time ratio.
     pub inflation_rate: PercentPerBlock<PartsPerMillionSigned32, M>,
     /// Cointime-adjusted transaction velocity: velocity divided by liveliness,

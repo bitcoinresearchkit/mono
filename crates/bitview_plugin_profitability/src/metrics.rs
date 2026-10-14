@@ -37,7 +37,13 @@ pub struct Metrics<M: StorageMode = Rw> {
 /// One band of one age filter: the subset of the cohort node that a band carries.
 #[derive(Clone, Traversable)]
 struct Band {
+    /// Outputs are placed by their creation price rounded to four significant digits of cents
+    /// (exact under $100, then steps of at most 0.1%); a band's edge rounds up to that grid, and
+    /// the spot's own grid price counts as profit.
     supply: BandSupply,
+    /// Outputs are placed by their creation price rounded to four significant digits of cents
+    /// (exact under $100, then steps of at most 0.1%); a band's edge rounds up to that grid, and
+    /// the spot's own grid price counts as profit.
     capital: BandCapital,
 }
 

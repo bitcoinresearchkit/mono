@@ -493,6 +493,11 @@ has to be deleted by hand.
   `LazyRollingComplete` and `LazyRollingDistribution` are removed. Readers of `fees.fee.distribution.block.median`
   read `fees.fee.distribution.median`. `brk_types::get_weighted_percentiles` takes integer percents and returns the
   first value whose cumulative vsize reaches each (Bitcoin Core's rank rule; was a rounded target)
+- `bitview_cohort::PROFITABILITY_EDGE_DIVISORS` and `BREAK_EVEN_DIVISOR` replace `compute_profitability_boundaries`,
+  and `PriceIndex::before_cut(GridCut)` sums the buckets below a grid cut (`GridCut::below` an exact edge, `through`
+  a price's bucket). `SplitPrice::new(name, version, ohlc)`
+  reads only the candle and `bitview_collections::Ohlc<T>` has one field type (`ClosePrice` and `LazyIndexes::from_open_source` are gone);
+  `bitview_transforms` gains `OhlcCentsToOpenCents` and `OhlcCentsToCloseCents`
 - `Cents::round_to_dollar(i32)` and `CentsCompact::round_to_dollar(i32)` are `round_to_significant(u32)`: significant
   digits of the amount in cents (were whole dollars, then digits); `bitview_urpd::COST_BASIS_PRICE_DIGITS` is a `u32`
   (4, was 5). `bitview_distribution::state::cost_basis::PRICE_INDEX_VERSION` is the price grid's version for a price
@@ -723,8 +728,19 @@ has to be deleted by hand.
   rolling-window percentile and median (were linearly interpolated), the VOCDD median behind Reserve Risk included
 - True range is exact cents
 - The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
-  blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply change, which lagged a halving by up to a year (that
-  change remains the supply's 1-year `delta.rate`). Cointime's adjusted inflation follows
+  blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply
+  change, which lagged a halving by up to a year (that change remains the supply's 1-year `delta.rate`). It is
+  undefined only without supply, at block 0. Cointime's adjusted inflation follows
+- Profitability bands place each edge exactly: the creation price `spot × 100 / (100 ± p)` rounds up to the price
+  grid and the outputs below it fall in the more profitable band, while the outputs in the spot's own grid bucket
+  count as profit, like the holders' densities (the edge was rounded down to whole cents, then to the nearest
+  grid price, so an output at an edge could land on either side, and break-even outputs were in loss)
+- `price.close` of a period without blocks is the previous close, a flat candle like the other split prices and
+  `price.ohlc` (was null); every split price is a view of the candle
+- Transactions are nonstandard, as Bitcoin Core's solver rules, when an OP_RETURN output's data is not push-only or
+  a P2PK or bare multisig output holds a key with an invalid encoding (all were standard; spends of such outputs
+  are not yet flagged); coinbase transactions are not evaluated (the
+  description said they were nonstandard)
 - Cointime's active and vaulted caps are market cap times liveliness and vaultedness, as in the Cointime paper, so
   they add up to market cap (were realized cap times them), and AVIV is active cap over investor cap, spot over True
   Market Mean (was realized cap times liveliness over investor cap). The adjusted velocity is velocity over

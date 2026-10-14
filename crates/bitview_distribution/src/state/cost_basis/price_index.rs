@@ -60,6 +60,34 @@ fn cents_to_bucket(price: Cents) -> usize {
     }
 }
 
+/// A position on the price grid: the buckets before it are below the cut.
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct GridCut(usize);
+
+impl GridCut {
+    /// Below the exact price `numer / denom` cents: an edge between grid prices rounds up to
+    /// the next one.
+    pub fn below(numer: u128, denom: u128) -> Self {
+        let past = |bucket: usize| u64::from(bucket_to_cents(bucket)) as u128 * denom >= numer;
+        let (mut low, mut high) = (0, TREE_SIZE);
+        while low < high {
+            let mid = (low + high) / 2;
+            if past(mid) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+        Self(low)
+    }
+
+    /// Through `price`'s bucket: prices rounding to it count, like the in-profit side of
+    /// `PriceIndex::density_split`.
+    pub fn through(price: Cents) -> Self {
+        Self(cents_to_bucket(price) + 1)
+    }
+}
+
 /// A price with its bucket, mapped once: an origin height's price is added and removed many times.
 #[derive(Clone, Copy)]
 pub struct BucketedPrice {
@@ -125,12 +153,21 @@ impl<const N: usize> PriceIndex<N> {
     }
 
     /// Totals strictly below the represented boundary bucket.
-    pub fn before(&self, price: Cents) -> PriceTotals<N> {
+    fn before(&self, price: Cents) -> PriceTotals<N> {
         let bucket = cents_to_bucket(price);
         if bucket == 0 {
             PriceTotals::default()
         } else {
             self.tree.prefix_sum(bucket - 1)
+        }
+    }
+
+    /// Totals of the buckets before `cut`.
+    pub fn before_cut(&self, cut: GridCut) -> PriceTotals<N> {
+        if cut.0 == 0 {
+            PriceTotals::default()
+        } else {
+            self.tree.prefix_sum(cut.0 - 1)
         }
     }
 

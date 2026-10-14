@@ -31,7 +31,7 @@ pub use per_block_cumulative_rolling::ValuePerBlockCumulativeRolling;
 pub use per_block_full::ValuePerBlockFull;
 pub use price::Price;
 pub use rolling_distribution_per_block::RollingDistributionValuePerBlock;
-pub use split_price::{ClosePrice, IndexedPrice, SplitPrice};
+pub use split_price::{IndexedPrice, SplitPrice};
 pub use spot_price::SpotPrice;
 mod sats_cents;
 pub use sats_cents::SatsCents;

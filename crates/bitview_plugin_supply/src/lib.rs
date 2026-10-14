@@ -31,8 +31,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// duplicates overwrote (blocks 91812 and 91722, at 91842 and 91880).
     burned: burned::Vecs<M>,
     /// Scheduled annual issuance over the circulating supply: the represented
-    /// block's scheduled subsidy times 52,560 blocks, divided by the supply. The
-    /// reciprocal of stock-to-flow. Null while the supply is at most 50 BTC.
+    /// block's scheduled subsidy times 52,560 blocks, divided by the supply. Null
+    /// without supply (block 0, whose output is unspendable).
     pub inflation_rate: LazyPercentPerBlock<PartsPerMillionSigned64>,
     pub velocity: velocity::Vecs,
     /// Circulating supply valued at the represented block's Bitcoin spot price.

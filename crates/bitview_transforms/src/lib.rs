@@ -10,7 +10,9 @@ pub use arithmetic::{
 };
 pub use convert::Convert;
 pub use currency::{AvgCentsToUsd, AvgSatsToBtc, CentsUnsignedToSats, SatsToCents};
-pub use ohlc::{OhlcCentsToHighCents, OhlcCentsToLowCents};
+pub use ohlc::{
+    OhlcCentsToCloseCents, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToOpenCents,
+};
 pub use ratio::{
     AvivNupl, BoundedOdds, BoundedToRatio, FixedToPercent, FixedToRatio, PriceTimesRatio, Quotient,
     RelativeChange, price_ratio,

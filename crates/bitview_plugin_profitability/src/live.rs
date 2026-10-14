@@ -1,5 +1,9 @@
-use bitview_cohort::{ProfitabilityRange, ProfitabilityRangeId, compute_profitability_boundaries};
-use bitview_distribution::state::cost_basis::{PriceIndex, PriceTotals, age_index::AgeIndexLive};
+use bitview_cohort::{
+    BREAK_EVEN_DIVISOR, PROFITABILITY_EDGE_DIVISORS, ProfitabilityRange, ProfitabilityRangeId,
+};
+use bitview_distribution::state::cost_basis::{
+    GridCut, PriceIndex, PriceTotals, age_index::AgeIndexLive,
+};
 use brk_types::{Cents, Version};
 
 use crate::bucket::Bucket;
@@ -15,11 +19,16 @@ pub(crate) fn ranges(index: &PriceIndex<4>, spot: Cents) -> (ProfitabilityRange<
         return (result, Bucket::default());
     }
     let mut previous = PriceTotals::default();
-    for (i, boundary) in compute_profitability_boundaries(spot)
-        .into_iter()
-        .enumerate()
-    {
-        let current = index.before(boundary);
+    let mut cut = GridCut::default();
+    for (i, divisor) in PROFITABILITY_EDGE_DIVISORS.into_iter().enumerate() {
+        // Break-even counts the spot's own bucket as profit, like the holders' densities. Cuts never
+        // move back: at a zero spot every edge is zero.
+        cut = cut.max(if divisor == BREAK_EVEN_DIVISOR {
+            GridCut::through(spot)
+        } else {
+            GridCut::below(spot.as_u128() * 100, u128::from(divisor))
+        });
+        let current = index.before_cut(cut);
         *ProfitabilityRangeId::ALL[i].select_mut(&mut result) = Bucket::between(previous, current);
         previous = current;
     }

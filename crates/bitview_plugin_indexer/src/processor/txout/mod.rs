@@ -23,6 +23,9 @@ use crate::{
     stores::{Utxo, UtxoKey},
 };
 
+/// Consensus's script size limit: Core treats a larger locking script as unspendable.
+const MAX_SCRIPT_SIZE: usize = 10_000;
+
 impl<'a> BlockProcessor<'a> {
     pub fn process_outputs(&self, addresses: &mut BlockAddresses) -> Result<Vec<ProcessedOutput>> {
         let total_outputs: usize = self.block.txdata.iter().map(|tx| tx.output.len()).sum();
@@ -36,6 +39,13 @@ impl<'a> BlockProcessor<'a> {
                 .map(|txout| {
                     let script = &txout.script_pubkey;
                     let output_type = OutputType::from(script);
+                    // Core leaves larger scripts out of its UTXO set as unspendable; none exist,
+                    // which keeps the UTXO set's totals equal to Core's.
+                    debug_assert!(
+                        output_type == OutputType::OpReturn || script.len() <= MAX_SCRIPT_SIZE,
+                        "unspendable {}-byte script outside Core's UTXO set",
+                        script.len()
+                    );
                     let legacy_sigops = executed_legacy_sigops_for_output(output_type, script);
                     let data = if output_type.is_addr() {
                         ProcessedOutputData::Address(

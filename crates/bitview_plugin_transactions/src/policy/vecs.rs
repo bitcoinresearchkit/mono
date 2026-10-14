@@ -11,7 +11,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// signature-operation limits, dust, and `OP_RETURN` policy. It does not
     /// model node adoption, fee floors, mempool or package topology, conflicts or
     /// replacement, or node-specific settings. Modeled rules change after height
-    /// 863,500 and at heights 905,000 and 921,000; coinbase is classified
-    /// nonstandard.
+    /// 863,500 and at heights 905,000 and 921,000; coinbase transactions are not
+    /// evaluated (never nonstandard).
     pub nonstandard: Classified<M>,
 }

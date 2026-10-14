@@ -1,14 +1,13 @@
 use bitview_collections::{PerResolution, with_resolution_fields};
 use bitview_primitives::OHLCCents;
 use bitview_traversable::Traversable;
-use brk_types::{Cents, Height, Version};
+use brk_types::Version;
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use serde::Serialize;
-use vecdb::{AnyVec, BytesVecValue, Formattable, LazyVec, ReadableCloneableVec, UnaryTransform};
+use vecdb::{BytesVecValue, Formattable, LazyVec, ReadableCloneableVec, UnaryTransform};
 
-use super::agg::open::Open;
-use crate::{IndexSources, LazyAggVec, LazyOhlcCentsVecs};
+use crate::LazyOhlcCentsVecs;
 
 macro_rules! define_lazy_indexes {
     (
@@ -28,37 +27,6 @@ macro_rules! define_lazy_indexes {
         where
             T: BytesVecValue + Formattable + Serialize + JsonSchema,
             S: BytesVecValue;
-
-        impl LazyIndexes<Cents, Cents> {
-            /// Opening prices read only period boundaries, carrying the previous
-            /// close for empty periods just like full OHLC candles.
-            pub fn from_open_source(
-                name: &str,
-                version: Version,
-                source: &impl ReadableCloneableVec<Height, Cents>,
-                indexes: &IndexSources,
-            ) -> Self {
-                let source = source.read_only_boxed_clone();
-                Self(PerResolution {
-                    $($field: LazyVec::init(
-                        name, version,
-                        LazyAggVec::<$index, Cents, Height, Cents, Open>::new(
-                            name, version + indexes.first_height.$field.version(),
-                            source.clone(), indexes.first_height.$field.mapping().clone(),
-                        ).read_only_boxed_clone(),
-                        |_, price| price,
-                    ),)*
-                    $($epoch: LazyVec::init(
-                        name, version,
-                        LazyAggVec::<$epoch_index, Cents, Height, Cents, Open>::new(
-                            name, version + indexes.first_height.$epoch.version(),
-                            source.clone(), indexes.first_height.$epoch.mapping().clone(),
-                        ).read_only_boxed_clone(),
-                        |_, price| price,
-                    ),)*
-                })
-            }
-        }
 
         impl<T> LazyIndexes<T, OHLCCents>
         where

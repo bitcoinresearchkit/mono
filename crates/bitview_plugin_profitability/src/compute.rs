@@ -25,7 +25,7 @@ impl ComputePlugin for Vecs {
             deps.timestamps.version(),
             deps.history.versions(),
         );
-        let base_version = Version::ONE
+        let base_version = Version::TWO
             + PRICE_INDEX_VERSION
             + version.0
             + version.1

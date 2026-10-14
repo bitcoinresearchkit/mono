@@ -34,10 +34,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Remaining satoshis after each block.
     #[traversable(hidden)]
     pub supply: M::Stored<CachedSeries<Height, Sats>>,
-    /// Value of all unspent transaction outputs after the represented block.
+    /// Value of all unspent transaction outputs after the represented block, as Bitcoin Core's
+    /// `gettxoutsetinfo` `total_amount` (provably unspendable outputs left out).
     #[traversable(rename = "supply")]
     circulating_supply: LazyPerBlock<Bitcoin, Sats>,
-    /// Remaining UTXO count after each block, including zero-value outputs.
+    /// Remaining UTXO count after each block, including zero-value outputs, as Bitcoin Core's
+    /// `gettxoutsetinfo` `txouts` (provably unspendable outputs left out).
     pub count: PerBlock<Count, M>,
 }
 

@@ -5,7 +5,6 @@ use rangeindex::SharedRangeMap;
 pub mod any_vec;
 pub mod clone;
 pub mod fold;
-pub mod open;
 pub mod readable;
 pub mod sparse;
 mod traversable;

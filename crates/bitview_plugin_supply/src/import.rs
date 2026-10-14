@@ -37,14 +37,14 @@ impl Vecs {
         let burned = burned::Vecs::import(&db, version, mappings, window_starts)?;
 
         // Scheduled annual issuance (the block's scheduled subsidy x 52,560 blocks) over the
-        // supply: the reciprocal of stock-to-flow.
-        let inflation_version = version + Version::new(3);
+        // supply; undefined only without supply (block 0: the genesis output is unspendable).
+        let inflation_version = version + Version::new(4);
         let inflation_source = all_chain.with_supply(
             "inflation_rate_ppm_source",
             inflation_version,
             &supply_metrics.sats.height,
             |height, _, supply| {
-                PartsPerMillionSigned64::from(if supply <= Sats::FIFTY_BTC {
+                PartsPerMillionSigned64::from(if supply.is_zero() {
                     f64::NAN
                 } else {
                     Halving::from(height).subsidy().as_u128() as f64 * 52_560.0

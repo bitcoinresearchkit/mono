@@ -1,86 +1,20 @@
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
-use brk_types::Cents;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::CohortName;
 
-/// Number of profitability range boundaries (24 boundaries → 25 buckets).
-const PROFITABILITY_BOUNDARY_COUNT: usize = 24;
+/// The 24 band edges, ascending, as divisors of the spot price: a band's edge is the creation
+/// price `spot × 100 / divisor` at which the profit or loss reaches its bound (`100 + P` for P%
+/// profit, `100 - L` for L% loss). The break-even edge (divisor 100, spot itself) counts as profit.
+pub const PROFITABILITY_EDGE_DIVISORS: [u64; 24] = [
+    1100, 600, 400, 300, 200, 190, 180, 170, 160, 150, 140, 130, 120, 110, 100, 90, 80, 70, 60, 50,
+    40, 30, 20, 10,
+];
 
-/// Compute 24 boundary prices from spot price for profitability bucketing.
-///
-/// Boundaries are returned in ascending price order (most profitable first → least profitable last).
-/// Bucket assignment: prices ascending in k-way merge means we start at the most-profitable bucket
-/// (lowest cost basis = highest profit) and advance the cursor as price crosses each boundary.
-///
-/// For P% profit: boundary = spot × 100 / (100 + P)
-/// For L% loss:   boundary = spot × 100 / (100 - L)
-///
-/// Returns boundaries in ascending order:
-/// [spot/11, spot/6, spot/4, spot/3, spot/2, spot×100/190, spot×100/180, ..., spot×100/10]
-pub fn compute_profitability_boundaries(spot: Cents) -> [Cents; PROFITABILITY_BOUNDARY_COUNT] {
-    let s = spot.as_u128();
-    // Divisors in ascending boundary order (ascending price):
-    // profit_over_1000_percent: price < spot/11          → boundary at spot*100/1100 = spot/11
-    // profit_500_to_1000_percent: spot/11 ≤ p < spot/6   → boundary at spot*100/600  = spot/6
-    // profit_300_to_500_percent: spot/6 ≤ p < spot/4     → boundary at spot*100/400  = spot/4
-    // profit_200_to_300_percent: spot/4 ≤ p < spot/3     → boundary at spot*100/300  = spot/3
-    // profit_100_to_200_percent: spot/3 ≤ p < spot/2     → boundary at spot*100/200  = spot/2
-    // profit_90_to_100_percent: spot/2 ≤ p < spot*100/190 → boundary at spot*100/190
-    // profit_80_to_90_percent:                            → boundary at spot*100/180
-    // profit_70_to_80_percent:                            → boundary at spot*100/170
-    // profit_60_to_70_percent:                            → boundary at spot*100/160
-    // profit_50_to_60_percent:                            → boundary at spot*100/150
-    // profit_40_to_50_percent:                            → boundary at spot*100/140
-    // profit_30_to_40_percent:                            → boundary at spot*100/130
-    // profit_20_to_30_percent:                            → boundary at spot*100/120
-    // profit_10_to_20_percent:                            → boundary at spot*100/110
-    // profit_0_to_10_percent:                             → boundary at spot (= spot*100/100)
-    // loss_0_to_10_percent: spot ≤ p < spot*100/90    → boundary at spot*100/90
-    // loss_10_to_20_percent:                          → boundary at spot*100/80
-    // loss_20_to_30_percent:                          → boundary at spot*100/70
-    // loss_30_to_40_percent:                          → boundary at spot*100/60
-    // loss_40_to_50_percent:                          → boundary at spot*100/50 = spot*2
-    // loss_50_to_60_percent:                          → boundary at spot*100/40 = spot*5/2
-    // loss_60_to_70_percent:                          → boundary at spot*100/30 = spot*10/3
-    // loss_70_to_80_percent:                          → boundary at spot*100/20 = spot*5
-    // loss_80_to_90_percent:                          → boundary at spot*100/10 = spot*10
-    // loss_90_to_100_percent: spot*10 ≤ p              (no upper boundary)
-    let divisors: [u128; PROFITABILITY_BOUNDARY_COUNT] = [
-        1100, // >1000% profit upper bound (spot/11)
-        600,  // 500-1000% profit upper bound (spot/6)
-        400,  // 300-500% profit upper bound (spot/4)
-        300,  // 200-300% profit upper bound (spot/3)
-        200,  // 100-200% profit upper bound (spot/2)
-        190,  // 90-100% profit upper bound
-        180,  // 80-90% profit upper bound
-        170,  // 70-80% profit upper bound
-        160,  // 60-70% profit upper bound
-        150,  // 50-60% profit upper bound
-        140,  // 40-50% profit upper bound
-        130,  // 30-40% profit upper bound
-        120,  // 20-30% profit upper bound
-        110,  // 10-20% profit upper bound
-        100,  // 0-10% profit upper bound (= spot)
-        90,   // 0-10% loss upper bound
-        80,   // 10-20% loss upper bound
-        70,   // 20-30% loss upper bound
-        60,   // 30-40% loss upper bound
-        50,   // 40-50% loss upper bound
-        40,   // 50-60% loss upper bound
-        30,   // 60-70% loss upper bound
-        20,   // 70-80% loss upper bound
-        10,   // 80-90% loss upper bound
-    ];
-
-    let mut boundaries = [Cents::ZERO; PROFITABILITY_BOUNDARY_COUNT];
-    for (i, &d) in divisors.iter().enumerate() {
-        boundaries[i] = Cents::from(s * 100 / d);
-    }
-    boundaries
-}
+/// The break-even edge's divisor: creation prices at spot are in profit, like the holders'.
+pub const BREAK_EVEN_DIVISOR: u64 = 100;
 
 /// Profitability range names (25 ranges, from most profitable to most in loss)
 pub const PROFITABILITY_RANGE_NAMES: ProfitabilityRange<CohortName> = ProfitabilityRange {
@@ -226,11 +160,11 @@ pub struct ProfitabilityRange<T> {
     /// Uses UTXOs whose represented-block spot price is more than 10% and no
     /// more than 20% above creation price.
     profit_10_to_20_percent: T,
-    /// Uses UTXOs whose represented-block spot price is above creation price by
-    /// no more than 10%.
-    profit_0_to_10_percent: T,
     /// Uses UTXOs whose represented-block spot price equals creation price or
-    /// is less than 10% below it.
+    /// is above it by no more than 10%.
+    profit_0_to_10_percent: T,
+    /// Uses UTXOs whose represented-block spot price is less than 10% below
+    /// creation price.
     loss_0_to_10_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 10% and less
     /// than 20% below creation price.

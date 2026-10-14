@@ -18,7 +18,7 @@ impl Vecs {
     fn import_inner(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         let spot = SpotPrice::import(db, "price", version, mappings)?;
         let ohlc = OhlcPrice::from_spot("price_ohlc", version, mappings, &spot);
-        let split = SplitPrice::new("price", version, mappings, &spot, &ohlc);
+        let split = SplitPrice::new("price", version, &ohlc);
         let sats_per_dollar = spot.sats_per_dollar("sats_per_dollar", version);
         let oracle_bin = EagerVec::import(db, "oracle_bin", version)?;
 
