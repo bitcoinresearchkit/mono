@@ -1148,17 +1148,11 @@ impl SeriesValue for P2WSHBytes {
 impl SeriesValue for PoolSlug {
     type Nullable = Option<PoolSlug>;
 }
-impl SeriesValue for Rank {
-    type Nullable = Option<Rank>;
-}
 impl SeriesValue for RawLockTime {
     type Nullable = Option<RawLockTime>;
 }
 impl SeriesValue for Sats {
     type Nullable = Option<Sats>;
-}
-impl SeriesValue for Score {
-    type Nullable = Option<Score>;
 }
 impl SeriesValue for Seconds {
     type Nullable = Option<Seconds>;
@@ -1229,8 +1223,8 @@ pub mod tree {
         pct99: SeriesPattern1<Option<Dollars>> = "*_pct99",
         pct99_5: SeriesPattern1<Option<Dollars>> = "*_pct99_5",
         pct99_9: SeriesPattern1<Option<Dollars>> = "*_pct99_9",
-        level: SeriesPattern1<Score> = "*_level",
-        score: SeriesPattern1<Score> = "*_score",
+        level: SeriesPattern1<Option<Score>> = "*_level",
+        score: SeriesPattern1<Option<Score>> = "*_score",
     } }
     shape! { Thresholds<A> at "series().rarity_meter.extremes.realized_loss_24h.thresholds" {
         tail0_1: SeriesPattern1<A> = "*_1",
@@ -1240,7 +1234,6 @@ pub mod tree {
     shape! { RealizedLoss24h<A> at "series().rarity_meter.extremes.realized_loss_24h" {
         thresholds: Thresholds<A> = "*_threshold_tail0",
         tail_share: SeriesPattern1<Option<Percent>> = "*_tail_share",
-        rank: SeriesPattern1<Rank> = "*_rank",
     } }
     shape! { Extremes at "series().rarity_meter.extremes" {
         supply_in_loss: RealizedLoss24h<Option<Bitcoin>> = "*_supply_in_loss",
@@ -1249,173 +1242,138 @@ pub mod tree {
         realized_peak_regret_24h: RealizedLoss24h<Option<Dollars>> = "*_realized_peak_regret_24h",
         sell_side_risk_ratio_24h: RealizedLoss24h<Option<Ratio>> = "*_sell_side_risk_ratio_24h",
     } }
-    shape! { Pct999 at "series().rarity_meter.components.active_price.pct99_9" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct99_9",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct99_9",
+    shape! { MobileRealizedPriceMedian at "series().rarity_meter.components.mobile_realized_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "mobile_realized_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "mobile_realized_price_band_*",
     } }
-    shape! { Pct995 at "series().rarity_meter.components.active_price.pct99_5" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct99_5",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct99_5",
+    shape! { AwakeRealizedPriceMedian at "series().rarity_meter.components.awake_realized_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "awake_realized_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "awake_realized_price_band_*",
     } }
-    shape! { Pct99 at "series().rarity_meter.components.active_price.pct99" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct99",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct99",
+    shape! { TrueMarketMeanMedian at "series().rarity_meter.components.true_market_mean.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "true_market_mean_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "true_market_mean_band_*",
     } }
-    shape! { Pct98 at "series().rarity_meter.components.active_price.pct98" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct98",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct98",
+    shape! { VaultedPriceMedian at "series().rarity_meter.components.vaulted_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "vaulted_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "vaulted_price_band_*",
     } }
-    shape! { Pct95 at "series().rarity_meter.components.active_price.pct95" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct95",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct95",
+    shape! { UtxosUnder6mOldCapitalizedPriceMedian at "series().rarity_meter.components.utxos_under_6m_old_capitalized_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "utxos_under_6m_old_capitalized_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "utxos_under_6m_old_capitalized_price_band_*",
     } }
-    shape! { Pct90 at "series().rarity_meter.components.active_price.pct90" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct90",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct90",
+    shape! { UtxosUnder6mOldRealizedPriceMedian at "series().rarity_meter.components.utxos_under_6m_old_realized_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "utxos_under_6m_old_realized_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "utxos_under_6m_old_realized_price_band_*",
     } }
-    shape! { Pct80 at "series().rarity_meter.components.active_price.pct80" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct80",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct80",
+    shape! { SthCapitalizedPriceMedian at "series().rarity_meter.components.sth_capitalized_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "sth_capitalized_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "sth_capitalized_price_band_*",
     } }
-    shape! { Pct70 at "series().rarity_meter.components.active_price.pct70" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct70",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct70",
+    shape! { SthRealizedPriceMedian at "series().rarity_meter.components.sth_realized_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "sth_realized_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "sth_realized_price_band_*",
     } }
-    shape! { Pct60 at "series().rarity_meter.components.active_price.pct60" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct60",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct60",
+    shape! { MobileCostBasisPerDollarMedianMedian at "series().rarity_meter.components.mobile_cost_basis_per_dollar_median.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "mobile_cost_basis_per_dollar_median_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "mobile_cost_basis_per_dollar_median_band_*",
     } }
-    shape! { Median at "series().rarity_meter.components.active_price.median" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_median",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_median",
+    shape! { MobileCostBasisPerCoinMedianMedian at "series().rarity_meter.components.mobile_cost_basis_per_coin_median.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "mobile_cost_basis_per_coin_median_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "mobile_cost_basis_per_coin_median_band_*",
     } }
-    shape! { Pct40 at "series().rarity_meter.components.active_price.pct40" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct40",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct40",
+    shape! { SthCostBasisPerDollarMedianMedian at "series().rarity_meter.components.sth_cost_basis_per_dollar_median.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "sth_cost_basis_per_dollar_median_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "sth_cost_basis_per_dollar_median_band_*",
     } }
-    shape! { Pct30 at "series().rarity_meter.components.active_price.pct30" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct30",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct30",
+    shape! { SthCostBasisPerCoinMedianMedian at "series().rarity_meter.components.sth_cost_basis_per_coin_median.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "sth_cost_basis_per_coin_median_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "sth_cost_basis_per_coin_median_band_*",
     } }
-    shape! { Pct20 at "series().rarity_meter.components.active_price.pct20" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct20",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct20",
+    shape! { CostBasisPerDollarMedianMedian at "series().rarity_meter.components.cost_basis_per_dollar_median.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "cost_basis_per_dollar_median_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "cost_basis_per_dollar_median_band_*",
     } }
-    shape! { Pct10 at "series().rarity_meter.components.active_price.pct10" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct10",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct10",
+    shape! { CostBasisPerCoinMedianMedian at "series().rarity_meter.components.cost_basis_per_coin_median.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "cost_basis_per_coin_median_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "cost_basis_per_coin_median_band_*",
     } }
-    shape! { Pct5 at "series().rarity_meter.components.active_price.pct5" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct5",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct5",
-    } }
-    shape! { Pct2 at "series().rarity_meter.components.active_price.pct2" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct2",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct2",
-    } }
-    shape! { Pct1 at "series().rarity_meter.components.active_price.pct1" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct1",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct1",
-    } }
-    shape! { Pct05 at "series().rarity_meter.components.active_price.pct0_5" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct0_5",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct0_5",
-    } }
-    shape! { Pct01 at "series().rarity_meter.components.active_price.pct0_1" {
-        ratio: SeriesPattern1<Option<Ratio>> = "*_ratio_pct0_1",
-        band: SeriesPattern1<Option<Dollars>> = "*_band_pct0_1",
-    } }
-    shape! { AwakeCostBasisPerCoinMedian at "series().rarity_meter.components.awake_cost_basis_per_coin_median" {
+    shape! { CostBasisPerCoinMedian<A> at "series().rarity_meter.components.cost_basis_per_coin_median" {
         block: SeriesPattern1<Option<Dollars>> = "*",
         ratio: SeriesPattern1<Option<Ratio>> = "*_ratio",
-        pct0_1: Pct01 = "*",
-        pct0_5: Pct05 = "*",
-        pct1: Pct1 = "*",
-        pct2: Pct2 = "*",
-        pct5: Pct5 = "*",
-        pct10: Pct10 = "*",
-        pct20: Pct20 = "*",
-        pct30: Pct30 = "*",
-        pct40: Pct40 = "*",
-        median: Median = "*",
-        pct60: Pct60 = "*",
-        pct70: Pct70 = "*",
-        pct80: Pct80 = "*",
-        pct90: Pct90 = "*",
-        pct95: Pct95 = "*",
-        pct98: Pct98 = "*",
-        pct99: Pct99 = "*",
-        pct99_5: Pct995 = "*",
-        pct99_9: Pct999 = "*",
+        pct0_1: A = "pct0_1",
+        pct0_5: A = "pct0_5",
+        pct1: A = "pct1",
+        pct2: A = "pct2",
+        pct5: A = "pct5",
+        pct10: A = "pct10",
+        pct20: A = "pct20",
+        pct30: A = "pct30",
+        pct40: A = "pct40",
+        median: A = "median",
+        pct60: A = "pct60",
+        pct70: A = "pct70",
+        pct80: A = "pct80",
+        pct90: A = "pct90",
+        pct95: A = "pct95",
+        pct98: A = "pct98",
+        pct99: A = "pct99",
+        pct99_5: A = "pct99_5",
+        pct99_9: A = "pct99_9",
     } }
-    shape! { ActivePrice at "series().rarity_meter.components.active_price" {
-        pct0_1: Pct01 = "*",
-        pct0_5: Pct05 = "*",
-        pct1: Pct1 = "*",
-        pct2: Pct2 = "*",
-        pct5: Pct5 = "*",
-        pct10: Pct10 = "*",
-        pct20: Pct20 = "*",
-        pct30: Pct30 = "*",
-        pct40: Pct40 = "*",
-        median: Median = "*",
-        pct60: Pct60 = "*",
-        pct70: Pct70 = "*",
-        pct80: Pct80 = "*",
-        pct90: Pct90 = "*",
-        pct95: Pct95 = "*",
-        pct98: Pct98 = "*",
-        pct99: Pct99 = "*",
-        pct99_5: Pct995 = "*",
-        pct99_9: Pct999 = "*",
+    shape! { CapitalizedPriceMedian at "series().rarity_meter.components.capitalized_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "capitalized_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "capitalized_price_band_*",
+    } }
+    shape! { RealizedPriceMedian at "series().rarity_meter.components.realized_price.median" {
+        ratio: SeriesPattern1<Option<Ratio>> = "realized_price_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "realized_price_band_*",
+    } }
+    shape! { AwakeRealizedPrice<A> at "series().rarity_meter.components.awake_realized_price" {
+        pct0_1: A = "pct0_1",
+        pct0_5: A = "pct0_5",
+        pct1: A = "pct1",
+        pct2: A = "pct2",
+        pct5: A = "pct5",
+        pct10: A = "pct10",
+        pct20: A = "pct20",
+        pct30: A = "pct30",
+        pct40: A = "pct40",
+        median: A = "median",
+        pct60: A = "pct60",
+        pct70: A = "pct70",
+        pct80: A = "pct80",
+        pct90: A = "pct90",
+        pct95: A = "pct95",
+        pct98: A = "pct98",
+        pct99: A = "*",
+        pct99_5: A = "*_5",
+        pct99_9: A = "*_9",
     } }
     shape! { Components at "series().rarity_meter.components" {
-        realized_price: ActivePrice = "realized_price",
-        capitalized_price: ActivePrice = "capitalized_price",
-        cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "*_coin_median",
-        cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "*_dollar_median",
-        sth_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "sth_*_coin_median",
-        sth_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "sth_*_dollar_median",
-        lth_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "lth_*_coin_median",
-        lth_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "lth_*_dollar_median",
-        awake_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "awake_*_coin_median",
-        awake_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "awake_*_dollar_median",
-        mobile_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "mobile_*_coin_median",
-        mobile_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "mobile_*_dollar_median",
-        sth_awake_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "sth_awake_*_coin_median",
-        sth_awake_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "sth_awake_*_dollar_median",
-        lth_awake_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "lth_awake_*_coin_median",
-        lth_awake_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "lth_awake_*_dollar_median",
-        sth_mobile_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "sth_mobile_*_coin_median",
-        sth_mobile_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "sth_mobile_*_dollar_median",
-        lth_mobile_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = "lth_mobile_*_coin_median",
-        lth_mobile_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = "lth_mobile_*_dollar_median",
-        sth_realized_price: ActivePrice = "sth_realized_price",
-        sth_capitalized_price: ActivePrice = "sth_capitalized_price",
-        lth_realized_price: ActivePrice = "lth_realized_price",
-        lth_capitalized_price: ActivePrice = "lth_capitalized_price",
-        utxos_over_6m_old_realized_price: ActivePrice = "utxos_over_6m_old_realized_price",
-        utxos_over_4m_old_realized_price: ActivePrice = "utxos_over_4m_old_realized_price",
-        utxos_under_4m_old_realized_price: ActivePrice = "utxos_under_4m_old_realized_price",
-        utxos_under_6m_old_realized_price: ActivePrice = "utxos_under_6m_old_realized_price",
-        utxos_under_4m_old_capitalized_price: ActivePrice = "utxos_under_4m_old_capitalized_price",
-        utxos_under_6m_old_capitalized_price: ActivePrice = "utxos_under_6m_old_capitalized_price",
-        vaulted_price: ActivePrice = "vaulted_price",
-        active_price: ActivePrice = "active_price",
-        true_market_mean: ActivePrice = "true_market_mean",
-        cointime_price: ActivePrice = "cointime_price",
-        awake_realized_price: ActivePrice = "awake_realized_price",
-        mobile_realized_price: ActivePrice = "mobile_realized_price",
+        realized_price: AwakeRealizedPrice<RealizedPriceMedian> = "*",
+        capitalized_price: AwakeRealizedPrice<CapitalizedPriceMedian> = "*",
+        cost_basis_per_coin_median: CostBasisPerCoinMedian<CostBasisPerCoinMedianMedian> = "cost_basis_per_coin_median",
+        cost_basis_per_dollar_median: CostBasisPerCoinMedian<CostBasisPerDollarMedianMedian> = "cost_basis_per_dollar_median",
+        sth_cost_basis_per_coin_median: CostBasisPerCoinMedian<SthCostBasisPerCoinMedianMedian> = "sth_cost_basis_per_coin_median",
+        sth_cost_basis_per_dollar_median: CostBasisPerCoinMedian<SthCostBasisPerDollarMedianMedian> = "sth_cost_basis_per_dollar_median",
+        mobile_cost_basis_per_coin_median: CostBasisPerCoinMedian<MobileCostBasisPerCoinMedianMedian> = "mobile_cost_basis_per_coin_median",
+        mobile_cost_basis_per_dollar_median: CostBasisPerCoinMedian<MobileCostBasisPerDollarMedianMedian> = "mobile_cost_basis_per_dollar_median",
+        sth_realized_price: AwakeRealizedPrice<SthRealizedPriceMedian> = "*",
+        sth_capitalized_price: AwakeRealizedPrice<SthCapitalizedPriceMedian> = "*",
+        utxos_under_6m_old_realized_price: AwakeRealizedPrice<UtxosUnder6mOldRealizedPriceMedian> = "*",
+        utxos_under_6m_old_capitalized_price: AwakeRealizedPrice<UtxosUnder6mOldCapitalizedPriceMedian> = "*",
+        vaulted_price: AwakeRealizedPrice<VaultedPriceMedian> = "*",
+        true_market_mean: AwakeRealizedPrice<TrueMarketMeanMedian> = "*",
+        awake_realized_price: AwakeRealizedPrice<AwakeRealizedPriceMedian> = "*",
+        mobile_realized_price: AwakeRealizedPrice<MobileRealizedPriceMedian> = "*",
     } }
     shape! { RarityMeter at "series().rarity_meter" {
-        components: Components = "cost_basis_per",
+        components: Components = "pct99",
         extremes: Extremes = "*",
         full: Cycle = "*",
-        full_v2: Cycle = "*_v2",
         local: Cycle = "local_*",
-        local_v2: Cycle = "local_*_v2",
         cycle: Cycle = "cycle_*",
-        cycle_v2: Cycle = "cycle_*_v2",
     } }
     shape! { CostBasisAboveFloor at "series().bedrock.awake.cost_basis_above_floor" {
         pct10: SeriesPattern1<Option<Dollars>> = "*_pct10",

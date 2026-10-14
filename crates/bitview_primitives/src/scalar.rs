@@ -9,6 +9,99 @@
 /// values as JSON `null` / an empty CSV cell (an undefined value: `Formattable::UNDEFINED`).
 macro_rules! scalar {
     ($(#[$meta:meta])* int $name:ident($repr:ty)) => {
+        $crate::scalar::scalar!(@int $(#[$meta])* $name($repr));
+
+        impl ::std::iter::Sum for $name {
+            fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+                Self(iter.map(|value| value.0).sum())
+            }
+        }
+
+        /// Saturating (`as` from a float clamps and maps NaN to zero; out of range is checked in
+        /// dev builds).
+        impl From<f64> for $name {
+            #[inline]
+            fn from(value: f64) -> Self {
+                debug_assert!(
+                    value.is_nan() || (<$repr>::MIN as f64..=<$repr>::MAX as f64).contains(&value),
+                    "{value} doesn't fit {}",
+                    stringify!($name)
+                );
+                Self(value as $repr)
+            }
+        }
+
+        impl From<$name> for f64 {
+            #[inline]
+            fn from(value: $name) -> Self {
+                value.0 as f64
+            }
+        }
+
+        #[cfg(feature = "storage")]
+        impl ::vecdb::Formattable for $name {
+            #[inline(always)]
+            fn write_to(&self, buf: &mut Vec<u8>) {
+                buf.extend_from_slice(::itoa::Buffer::new().format(self.0).as_bytes());
+            }
+        }
+    };
+
+    // An integer whose minimum is its undefined value, served as null.
+    ($(#[$meta:meta])* nullable int $name:ident($repr:ty)) => {
+        $crate::scalar::scalar!(@int $(#[$meta])* $name($repr));
+
+        impl $name {
+            /// The undefined value, served as null.
+            pub const NAN: Self = Self(<$repr>::MIN);
+        }
+
+        /// NaN is the undefined value; a finite value must fit (checked in dev builds).
+        impl From<f64> for $name {
+            #[inline]
+            fn from(value: f64) -> Self {
+                if value.is_nan() {
+                    return Self::NAN;
+                }
+                debug_assert!(
+                    (<$repr>::MIN as f64 + 1.0..=<$repr>::MAX as f64).contains(&value),
+                    "{value} doesn't fit {}",
+                    stringify!($name)
+                );
+                Self(value as $repr)
+            }
+        }
+
+        impl From<$name> for f64 {
+            #[inline]
+            fn from(value: $name) -> Self {
+                if value == $name::NAN { f64::NAN } else { value.0 as f64 }
+            }
+        }
+
+        #[cfg(feature = "storage")]
+        impl ::vecdb::Formattable for $name {
+            const UNDEFINED: bool = true;
+
+            #[inline(always)]
+            fn write_to(&self, buf: &mut Vec<u8>) {
+                if *self != Self::NAN {
+                    buf.extend_from_slice(::itoa::Buffer::new().format(self.0).as_bytes());
+                }
+            }
+
+            #[inline(always)]
+            fn fmt_json(&self, buf: &mut Vec<u8>) {
+                if *self == Self::NAN {
+                    buf.extend_from_slice(b"null");
+                } else {
+                    self.write_to(buf);
+                }
+            }
+        }
+    };
+
+    (@int $(#[$meta:meta])* $name:ident($repr:ty)) => {
         $(#[$meta])*
         #[derive(
             Debug,
@@ -61,27 +154,6 @@ macro_rules! scalar {
             }
         }
 
-        /// Saturating (`as` from a float clamps and maps NaN to zero; out of range is checked in
-        /// dev builds).
-        impl From<f64> for $name {
-            #[inline]
-            fn from(value: f64) -> Self {
-                debug_assert!(
-                    value.is_nan() || (<$repr>::MIN as f64..=<$repr>::MAX as f64).contains(&value),
-                    "{value} doesn't fit {}",
-                    stringify!($name)
-                );
-                Self(value as $repr)
-            }
-        }
-
-        impl From<$name> for f64 {
-            #[inline]
-            fn from(value: $name) -> Self {
-                value.0 as f64
-            }
-        }
-
         impl ::brk_types::CheckedSub for $name {
             #[inline]
             fn checked_sub(self, rhs: Self) -> Option<Self> {
@@ -127,25 +199,12 @@ macro_rules! scalar {
             }
         }
 
-        impl ::std::iter::Sum for $name {
-            fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-                Self(iter.map(|value| value.0).sum())
-            }
-        }
-
         impl ::std::fmt::Display for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 f.write_str(::itoa::Buffer::new().format(self.0))
             }
         }
 
-        #[cfg(feature = "storage")]
-        impl ::vecdb::Formattable for $name {
-            #[inline(always)]
-            fn write_to(&self, buf: &mut Vec<u8>) {
-                buf.extend_from_slice(::itoa::Buffer::new().format(self.0).as_bytes());
-            }
-        }
     };
 
     ($(#[$meta:meta])* float $name:ident(f32)) => {

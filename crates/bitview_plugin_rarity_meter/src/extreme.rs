@@ -2,7 +2,7 @@ use std::{collections::VecDeque, iter::repeat_n};
 
 use bitview_compute::{ExactOrderStats, FenwickTree, NumericValue, prepare_computed};
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{PartsPerMillion32, Rank};
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock, PercentPerBlock};
 use brk_error::Result;
@@ -19,7 +19,8 @@ const WRITE_INTERVAL: usize = 10_000;
 /// Above this many missing outputs, coordinate compression is faster than
 /// applying exact live updates one at a time.
 const BULK_BACKFILL_THRESHOLD: usize = 10_000;
-const BANDS: [(f64, u8); 3] = [(0.00025, 3), (0.0005, 2), (0.001, 1)];
+/// The highlighted tail shares, rarest first.
+const TAILS: [f64; 3] = [0.00025, 0.0005, 0.001];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum WindowKind {
@@ -52,7 +53,7 @@ const COINS_IN_LOSS: Config = Config {
     positive_only: true,
 };
 
-const SELLER_EXHAUSTION: Config = Config {
+const SELL_SIDE_RISK: Config = Config {
     upper_tail: false,
     window: WindowKind::Rolling(MIN_HISTORY_BLOCKS),
     positive_only: true,
@@ -60,8 +61,8 @@ const SELLER_EXHAUSTION: Config = Config {
 
 /// Historical extremeness of one metric.
 ///
-/// `tail_share` is the represented observation's top- or bottom-tail share, the three
-/// `thresholds` are the highlight boundaries, and `rank` is 0 through 3.
+/// `tail_share` is the represented observation's top- or bottom-tail share and the three
+/// `thresholds` are the highlight boundaries.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Extreme<T, M: StorageMode = Rw>
 where
@@ -79,11 +80,6 @@ where
     /// tail. A smaller percentage means a rarer observation. The represented
     /// observation is included in both numerator and denominator.
     pub tail_share: PercentPerBlock<PartsPerMillion32, M>,
-    /// Discrete extremeness rank, where a higher value means a rarer event: 3 at
-    /// or beyond the 0.025% tail boundary, 2 at or beyond 0.05%, 1 at or beyond
-    /// 0.1%, and 0 otherwise or while unavailable. The series' model determines
-    /// whether boundaries are crossed upward or downward.
-    pub rank: PerBlock<Rank, M>,
 
     history: M::WriteOnly<LiveHistory>,
 }
@@ -123,7 +119,6 @@ where
                 version,
                 mappings,
             )?,
-            rank: PerBlock::import(db, &format!("{name}_rank"), version, mappings)?,
             history: LiveHistory::new(),
         })
     }
@@ -146,18 +141,13 @@ where
         self.compute(indexer.safe_lengths().height, source, REALIZED, exit)
     }
 
-    pub fn compute_seller_exhaustion(
+    pub fn compute_sell_side_risk(
         &mut self,
         indexer: &Indexer,
         source: &impl ReadableVec<Height, T>,
         exit: &Exit,
     ) -> Result<()> {
-        self.compute(
-            indexer.safe_lengths().height,
-            source,
-            SELLER_EXHAUSTION,
-            exit,
-        )
+        self.compute(indexer.safe_lengths().height, source, SELL_SIDE_RISK, exit)
     }
 
     fn compute(
@@ -174,7 +164,6 @@ where
                 &mut self.thresholds.tail0_05.height,
                 &mut self.thresholds.tail0_025.height,
                 &mut self.tail_share.fixed.height,
-                &mut self.rank.height,
             ],
             source.version(),
             starting_height.to_usize().min(source_end),
@@ -300,7 +289,6 @@ where
             .fixed
             .height
             .push(PartsPerMillion32::from(state.tail));
-        self.rank.height.push(Rank::new(state.rank));
     }
 
     fn write_if_needed(
@@ -321,7 +309,6 @@ where
             v.height.write()?;
         }
         self.tail_share.fixed.height.write()?;
-        self.rank.height.write()?;
         Ok(())
     }
 }
@@ -540,7 +527,6 @@ impl HistoryStats for LiveHistory {
 struct EventState {
     thresholds: EventThresholds,
     tail: f64,
-    rank: u8,
 }
 
 struct EventThresholds {
@@ -558,7 +544,6 @@ impl EventState {
                 pct0_025: f64::NAN,
             },
             tail: f64::NAN,
-            rank: 0,
         }
     }
 
@@ -568,30 +553,13 @@ impl EventState {
         };
         let boundary = |tail: f64| history.quantile(percentile(tail));
         let thresholds = EventThresholds {
-            pct0_1: boundary(BANDS[2].0),
-            pct0_05: boundary(BANDS[1].0),
-            pct0_025: boundary(BANDS[0].0),
+            pct0_1: boundary(TAILS[2]),
+            pct0_05: boundary(TAILS[1]),
+            pct0_025: boundary(TAILS[0]),
         };
-        let rank = [
-            (thresholds.pct0_025, BANDS[0].1),
-            (thresholds.pct0_05, BANDS[1].1),
-            (thresholds.pct0_1, BANDS[2].1),
-        ]
-        .into_iter()
-        .find_map(|(boundary, rank)| {
-            let reached = if config.upper_tail {
-                value >= boundary
-            } else {
-                value <= boundary
-            };
-            reached.then_some(rank)
-        })
-        .unwrap_or_default();
-
         Self {
             thresholds,
             tail: history.tail(value, config.upper_tail),
-            rank,
         }
     }
 }

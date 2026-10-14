@@ -1043,7 +1043,6 @@ dependencies = [
  "bitview_collections",
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_bedrock",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
  "bitview_plugin_holders",

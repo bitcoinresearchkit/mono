@@ -243,13 +243,11 @@ PerDay = float
 PerSecond = float
 # A percentage: a ratio times 100.
 Percent = float
-# A discrete rank.
-Rank = int
 # A dimensionless ratio: a quotient, share or multiple.
 Ratio = float
 # A dimensionless ratio at double precision.
 Ratio64 = float
-# A signed model score.
+# A signed model score; undefined (null) where the model has no calibration yet.
 Score = int
 # Series name
 SeriesName = str
@@ -3133,8 +3131,8 @@ class Cycle(_Node):
     pct99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99')
     pct99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_5')
     pct99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_9')
-    level: SeriesPattern1[Score] = _at(SeriesPattern1, '*_level')
-    score: SeriesPattern1[Score] = _at(SeriesPattern1, '*_score')
+    level: SeriesPattern1[Optional[Score]] = _at(SeriesPattern1, '*_level')
+    score: SeriesPattern1[Optional[Score]] = _at(SeriesPattern1, '*_score')
 
 
 class Thresholds(_Node, Generic[A]):
@@ -3146,7 +3144,6 @@ class Thresholds(_Node, Generic[A]):
 class RealizedLoss24h(_Node, Generic[A]):
     thresholds: Thresholds[A] = _at(Thresholds, '*_threshold_tail0')
     tail_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_tail_share')
-    rank: SeriesPattern1[Rank] = _at(SeriesPattern1, '*_rank')
 
 
 class Extremes(_Node):
@@ -3157,195 +3154,157 @@ class Extremes(_Node):
     sell_side_risk_ratio_24h: RealizedLoss24h[Optional[Ratio]] = _at(RealizedLoss24h, '*_sell_side_risk_ratio_24h')
 
 
-class Pct999(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct99_9')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct99_9')
+class MobileRealizedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_realized_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_realized_price_band_*')
 
 
-class Pct995(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct99_5')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct99_5')
+class AwakeRealizedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'awake_realized_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'awake_realized_price_band_*')
 
 
-class Pct99(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct99')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct99')
+class TrueMarketMeanMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'true_market_mean_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'true_market_mean_band_*')
 
 
-class Pct98(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct98')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct98')
+class VaultedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'vaulted_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'vaulted_price_band_*')
 
 
-class Pct95(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct95')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct95')
+class UtxosUnder6mOldCapitalizedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_band_*')
 
 
-class Pct90(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct90')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct90')
+class UtxosUnder6mOldRealizedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_band_*')
 
 
-class Pct80(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct80')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct80')
+class SthCapitalizedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_capitalized_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_capitalized_price_band_*')
 
 
-class Pct70(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct70')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct70')
+class SthRealizedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_realized_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_realized_price_band_*')
 
 
-class Pct60(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct60')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct60')
+class MobileCostBasisPerDollarMedianMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_cost_basis_per_dollar_median_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_cost_basis_per_dollar_median_band_*')
 
 
-class Median(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_median')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_median')
+class MobileCostBasisPerCoinMedianMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_cost_basis_per_coin_median_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_cost_basis_per_coin_median_band_*')
 
 
-class Pct40(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct40')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct40')
+class SthCostBasisPerDollarMedianMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_cost_basis_per_dollar_median_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_cost_basis_per_dollar_median_band_*')
 
 
-class Pct30(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct30')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct30')
+class SthCostBasisPerCoinMedianMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_cost_basis_per_coin_median_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_cost_basis_per_coin_median_band_*')
 
 
-class Pct20(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct20')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct20')
+class CostBasisPerDollarMedianMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'cost_basis_per_dollar_median_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'cost_basis_per_dollar_median_band_*')
 
 
-class Pct10(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct10')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct10')
+class CostBasisPerCoinMedianMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'cost_basis_per_coin_median_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'cost_basis_per_coin_median_band_*')
 
 
-class Pct5(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct5')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct5')
-
-
-class Pct2(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct2')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct2')
-
-
-class Pct1(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct1')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct1')
-
-
-class Pct05(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct0_5')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct0_5')
-
-
-class Pct01(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio_pct0_1')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_band_pct0_1')
-
-
-class AwakeCostBasisPerCoinMedian(_Node):
+class CostBasisPerCoinMedian(_Node, Generic[A]):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio')
-    pct0_1: Pct01 = _at(Pct01, '*')
-    pct0_5: Pct05 = _at(Pct05, '*')
-    pct1: Pct1 = _at(Pct1, '*')
-    pct2: Pct2 = _at(Pct2, '*')
-    pct5: Pct5 = _at(Pct5, '*')
-    pct10: Pct10 = _at(Pct10, '*')
-    pct20: Pct20 = _at(Pct20, '*')
-    pct30: Pct30 = _at(Pct30, '*')
-    pct40: Pct40 = _at(Pct40, '*')
-    median: Median = _at(Median, '*')
-    pct60: Pct60 = _at(Pct60, '*')
-    pct70: Pct70 = _at(Pct70, '*')
-    pct80: Pct80 = _at(Pct80, '*')
-    pct90: Pct90 = _at(Pct90, '*')
-    pct95: Pct95 = _at(Pct95, '*')
-    pct98: Pct98 = _at(Pct98, '*')
-    pct99: Pct99 = _at(Pct99, '*')
-    pct99_5: Pct995 = _at(Pct995, '*')
-    pct99_9: Pct999 = _at(Pct999, '*')
+    pct0_1: A = _at(0, 'pct0_1')
+    pct0_5: A = _at(0, 'pct0_5')
+    pct1: A = _at(0, 'pct1')
+    pct2: A = _at(0, 'pct2')
+    pct5: A = _at(0, 'pct5')
+    pct10: A = _at(0, 'pct10')
+    pct20: A = _at(0, 'pct20')
+    pct30: A = _at(0, 'pct30')
+    pct40: A = _at(0, 'pct40')
+    median: A = _at(0, 'median')
+    pct60: A = _at(0, 'pct60')
+    pct70: A = _at(0, 'pct70')
+    pct80: A = _at(0, 'pct80')
+    pct90: A = _at(0, 'pct90')
+    pct95: A = _at(0, 'pct95')
+    pct98: A = _at(0, 'pct98')
+    pct99: A = _at(0, 'pct99')
+    pct99_5: A = _at(0, 'pct99_5')
+    pct99_9: A = _at(0, 'pct99_9')
 
 
-class ActivePrice(_Node):
-    pct0_1: Pct01 = _at(Pct01, '*')
-    pct0_5: Pct05 = _at(Pct05, '*')
-    pct1: Pct1 = _at(Pct1, '*')
-    pct2: Pct2 = _at(Pct2, '*')
-    pct5: Pct5 = _at(Pct5, '*')
-    pct10: Pct10 = _at(Pct10, '*')
-    pct20: Pct20 = _at(Pct20, '*')
-    pct30: Pct30 = _at(Pct30, '*')
-    pct40: Pct40 = _at(Pct40, '*')
-    median: Median = _at(Median, '*')
-    pct60: Pct60 = _at(Pct60, '*')
-    pct70: Pct70 = _at(Pct70, '*')
-    pct80: Pct80 = _at(Pct80, '*')
-    pct90: Pct90 = _at(Pct90, '*')
-    pct95: Pct95 = _at(Pct95, '*')
-    pct98: Pct98 = _at(Pct98, '*')
-    pct99: Pct99 = _at(Pct99, '*')
-    pct99_5: Pct995 = _at(Pct995, '*')
-    pct99_9: Pct999 = _at(Pct999, '*')
+class CapitalizedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'capitalized_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'capitalized_price_band_*')
+
+
+class RealizedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'realized_price_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'realized_price_band_*')
+
+
+class AwakeRealizedPrice(_Node, Generic[A]):
+    pct0_1: A = _at(0, 'pct0_1')
+    pct0_5: A = _at(0, 'pct0_5')
+    pct1: A = _at(0, 'pct1')
+    pct2: A = _at(0, 'pct2')
+    pct5: A = _at(0, 'pct5')
+    pct10: A = _at(0, 'pct10')
+    pct20: A = _at(0, 'pct20')
+    pct30: A = _at(0, 'pct30')
+    pct40: A = _at(0, 'pct40')
+    median: A = _at(0, 'median')
+    pct60: A = _at(0, 'pct60')
+    pct70: A = _at(0, 'pct70')
+    pct80: A = _at(0, 'pct80')
+    pct90: A = _at(0, 'pct90')
+    pct95: A = _at(0, 'pct95')
+    pct98: A = _at(0, 'pct98')
+    pct99: A = _at(0, '*')
+    pct99_5: A = _at(0, '*_5')
+    pct99_9: A = _at(0, '*_9')
 
 
 class Components(_Node):
-    realized_price: ActivePrice = _at(ActivePrice, 'realized_price')
-    capitalized_price: ActivePrice = _at(ActivePrice, 'capitalized_price')
-    cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, '*_coin_median')
-    cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, '*_dollar_median')
-    sth_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'sth_*_coin_median')
-    sth_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'sth_*_dollar_median')
-    lth_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'lth_*_coin_median')
-    lth_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'lth_*_dollar_median')
-    awake_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'awake_*_coin_median')
-    awake_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'awake_*_dollar_median')
-    mobile_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'mobile_*_coin_median')
-    mobile_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'mobile_*_dollar_median')
-    sth_awake_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'sth_awake_*_coin_median')
-    sth_awake_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'sth_awake_*_dollar_median')
-    lth_awake_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'lth_awake_*_coin_median')
-    lth_awake_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'lth_awake_*_dollar_median')
-    sth_mobile_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'sth_mobile_*_coin_median')
-    sth_mobile_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'sth_mobile_*_dollar_median')
-    lth_mobile_cost_basis_per_coin_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'lth_mobile_*_coin_median')
-    lth_mobile_cost_basis_per_dollar_median: AwakeCostBasisPerCoinMedian = _at(AwakeCostBasisPerCoinMedian, 'lth_mobile_*_dollar_median')
-    sth_realized_price: ActivePrice = _at(ActivePrice, 'sth_realized_price')
-    sth_capitalized_price: ActivePrice = _at(ActivePrice, 'sth_capitalized_price')
-    lth_realized_price: ActivePrice = _at(ActivePrice, 'lth_realized_price')
-    lth_capitalized_price: ActivePrice = _at(ActivePrice, 'lth_capitalized_price')
-    utxos_over_6m_old_realized_price: ActivePrice = _at(ActivePrice, 'utxos_over_6m_old_realized_price')
-    utxos_over_4m_old_realized_price: ActivePrice = _at(ActivePrice, 'utxos_over_4m_old_realized_price')
-    utxos_under_4m_old_realized_price: ActivePrice = _at(ActivePrice, 'utxos_under_4m_old_realized_price')
-    utxos_under_6m_old_realized_price: ActivePrice = _at(ActivePrice, 'utxos_under_6m_old_realized_price')
-    utxos_under_4m_old_capitalized_price: ActivePrice = _at(ActivePrice, 'utxos_under_4m_old_capitalized_price')
-    utxos_under_6m_old_capitalized_price: ActivePrice = _at(ActivePrice, 'utxos_under_6m_old_capitalized_price')
-    vaulted_price: ActivePrice = _at(ActivePrice, 'vaulted_price')
-    active_price: ActivePrice = _at(ActivePrice, 'active_price')
-    true_market_mean: ActivePrice = _at(ActivePrice, 'true_market_mean')
-    cointime_price: ActivePrice = _at(ActivePrice, 'cointime_price')
-    awake_realized_price: ActivePrice = _at(ActivePrice, 'awake_realized_price')
-    mobile_realized_price: ActivePrice = _at(ActivePrice, 'mobile_realized_price')
+    realized_price: AwakeRealizedPrice[RealizedPriceMedian] = _at((AwakeRealizedPrice, RealizedPriceMedian), '*')
+    capitalized_price: AwakeRealizedPrice[CapitalizedPriceMedian] = _at((AwakeRealizedPrice, CapitalizedPriceMedian), '*')
+    cost_basis_per_coin_median: CostBasisPerCoinMedian[CostBasisPerCoinMedianMedian] = _at((CostBasisPerCoinMedian, CostBasisPerCoinMedianMedian), 'cost_basis_per_coin_median')
+    cost_basis_per_dollar_median: CostBasisPerCoinMedian[CostBasisPerDollarMedianMedian] = _at((CostBasisPerCoinMedian, CostBasisPerDollarMedianMedian), 'cost_basis_per_dollar_median')
+    sth_cost_basis_per_coin_median: CostBasisPerCoinMedian[SthCostBasisPerCoinMedianMedian] = _at((CostBasisPerCoinMedian, SthCostBasisPerCoinMedianMedian), 'sth_cost_basis_per_coin_median')
+    sth_cost_basis_per_dollar_median: CostBasisPerCoinMedian[SthCostBasisPerDollarMedianMedian] = _at((CostBasisPerCoinMedian, SthCostBasisPerDollarMedianMedian), 'sth_cost_basis_per_dollar_median')
+    mobile_cost_basis_per_coin_median: CostBasisPerCoinMedian[MobileCostBasisPerCoinMedianMedian] = _at((CostBasisPerCoinMedian, MobileCostBasisPerCoinMedianMedian), 'mobile_cost_basis_per_coin_median')
+    mobile_cost_basis_per_dollar_median: CostBasisPerCoinMedian[MobileCostBasisPerDollarMedianMedian] = _at((CostBasisPerCoinMedian, MobileCostBasisPerDollarMedianMedian), 'mobile_cost_basis_per_dollar_median')
+    sth_realized_price: AwakeRealizedPrice[SthRealizedPriceMedian] = _at((AwakeRealizedPrice, SthRealizedPriceMedian), '*')
+    sth_capitalized_price: AwakeRealizedPrice[SthCapitalizedPriceMedian] = _at((AwakeRealizedPrice, SthCapitalizedPriceMedian), '*')
+    utxos_under_6m_old_realized_price: AwakeRealizedPrice[UtxosUnder6mOldRealizedPriceMedian] = _at((AwakeRealizedPrice, UtxosUnder6mOldRealizedPriceMedian), '*')
+    utxos_under_6m_old_capitalized_price: AwakeRealizedPrice[UtxosUnder6mOldCapitalizedPriceMedian] = _at((AwakeRealizedPrice, UtxosUnder6mOldCapitalizedPriceMedian), '*')
+    vaulted_price: AwakeRealizedPrice[VaultedPriceMedian] = _at((AwakeRealizedPrice, VaultedPriceMedian), '*')
+    true_market_mean: AwakeRealizedPrice[TrueMarketMeanMedian] = _at((AwakeRealizedPrice, TrueMarketMeanMedian), '*')
+    awake_realized_price: AwakeRealizedPrice[AwakeRealizedPriceMedian] = _at((AwakeRealizedPrice, AwakeRealizedPriceMedian), '*')
+    mobile_realized_price: AwakeRealizedPrice[MobileRealizedPriceMedian] = _at((AwakeRealizedPrice, MobileRealizedPriceMedian), '*')
 
 
 class RarityMeter(_Node):
-    components: Components = _at(Components, 'cost_basis_per')
+    components: Components = _at(Components, 'pct99')
     extremes: Extremes = _at(Extremes, '*')
     full: Cycle = _at(Cycle, '*')
-    full_v2: Cycle = _at(Cycle, '*_v2')
     local: Cycle = _at(Cycle, 'local_*')
-    local_v2: Cycle = _at(Cycle, 'local_*_v2')
     cycle: Cycle = _at(Cycle, 'cycle_*')
-    cycle_v2: Cycle = _at(Cycle, 'cycle_*_v2')
 
 
 class CostBasisAboveFloor(_Node):

@@ -10,36 +10,35 @@ use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
-use super::{COMPUTE_BATCH_SIZE, Component, component};
+use super::{COMPUTE_BATCH_SIZE, Component, START_HEIGHT, component};
 
 #[derive(Traversable)]
 pub struct RarityMeterInner<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    /// Consensus historical price boundaries across the meter's reference
-    /// models. Lower-percentile bands represent unusually low spot valuations;
-    /// upper-percentile bands represent unusually high valuations. To require
-    /// agreement between models, lower boundaries from 0.1% through 5% use the
-    /// highest corresponding component boundary and upper boundaries from 95%
-    /// through 99.9% use the lowest. The 10th through 90th percentiles are
-    /// logarithmically interpolated between the combined 5th and 95th boundaries
-    /// when both are positive, otherwise linearly interpolated.
+    /// Historical price boundaries that any of the meter's reference models calls rare.
+    /// Lower-percentile bands represent unusually low spot valuations;
+    /// upper-percentile bands represent unusually high valuations. Lower boundaries from
+    /// 0.1% through 5% use the highest corresponding component boundary and upper
+    /// boundaries from 95% through 99.9% the lowest, so spot crosses one as soon as it
+    /// crosses that boundary for any model. The 10th through 90th percentiles are logarithmically interpolated
+    /// between the combined 5th and 95th boundaries when both are positive, otherwise
+    /// linearly interpolated. Null before height 210,000, where calibration starts.
     pub prices: RarityPercentiles<Price<PerBlock<Cents, M>>>,
     /// Signed count of combined extreme boundaries crossed by spot price.
     /// Negative values mean spot is below lower bands and therefore unusually
     /// low; positive values mean it is above upper bands and unusually high;
     /// zero means neither side is crossed. It equals upper boundaries exceeded
-    /// minus lower boundaries not reached and ranges from -5 through 5.
+    /// minus lower boundaries not reached and ranges from -5 through 5. Null before
+    /// height 210,000.
     pub level: PerBlock<Score, M>,
     /// Agreement score across the meter's component models. More negative
     /// values mean more models identify a rare low valuation; more positive
     /// values mean more models identify a rare high valuation. It sums each
-    /// component's rarity level: two-tailed ratio components contribute from -5
-    /// through 5 and lower-only direct components from -5 through 0. The total
-    /// is capped to the storage range of -128 through 127.
+    /// component's rarity level, from -5 through 5. Null before height 210,000.
     pub score: PerBlock<Score, M>,
 }
 
-const VERSION: Version = Version::TWO;
+const VERSION: Version = Version::new(3);
 
 impl RarityMeterInner {
     pub(crate) fn import(
@@ -69,16 +68,14 @@ impl RarityMeterInner {
     pub(crate) fn compute(
         &mut self,
         components: &[&Component],
-        lower_components: &[[&impl ReadableVec<Height, Cents>; 5]],
         spot: &impl ReadableVec<Height, Cents>,
         starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let dependency_version = boundary_version(components, lower_components);
+        let dependency_version = boundary_version(components);
         let source_end = components
             .iter()
             .map(|component| component::boundary_len(component))
-            .chain(lower_components.iter().flatten().map(|band| band.len()))
             .min()
             .unwrap_or_default();
 
@@ -118,19 +115,15 @@ impl RarityMeterInner {
                 .iter()
                 .map(|component| component::collect_boundary_prices(component, start, end))
                 .collect();
-            let lower_prices: Vec<_> = lower_components
-                .iter()
-                .map(|bands| {
-                    bands
-                        .each_ref()
-                        .map(|band| band.collect_range_at(start, end))
-                })
-                .collect();
             let spot = spot.collect_range_at(start, end.min(score_end));
             for offset in 0..end - start {
                 let height = start + offset;
-                let values =
-                    RarityMeterInner::combine_percentiles(&component_prices, &lower_prices, offset);
+                let calibrated = height >= START_HEIGHT;
+                let values = if calibrated {
+                    RarityMeterInner::combine_percentiles(&component_prices, offset)
+                } else {
+                    [Cents::NAN; RARITY_PERCENTILES_LEN]
+                };
                 if height >= prices_start {
                     for (price, value) in self.prices.iter_mut().zip(values) {
                         price.cents.height.push(value);
@@ -138,31 +131,35 @@ impl RarityMeterInner {
                 }
                 if let Some(&close) = spot.get(offset) {
                     if height >= level_start {
-                        let lower = RarityPercentileId::BOUNDARIES[..5]
-                            .iter()
-                            .filter(|&&id| {
-                                !values[id as usize].is_nan() && close < values[id as usize]
-                            })
-                            .count() as i8;
-                        let upper = RarityPercentileId::BOUNDARIES[5..]
-                            .iter()
-                            .filter(|&&id| close > values[id as usize])
-                            .count() as i8;
-                        self.level.height.push(Score::new(upper - lower));
+                        self.level.height.push(if calibrated {
+                            let lower = RarityPercentileId::BOUNDARIES[..5]
+                                .iter()
+                                .filter(|&&id| {
+                                    !values[id as usize].is_nan() && close < values[id as usize]
+                                })
+                                .count() as i8;
+                            let upper = RarityPercentileId::BOUNDARIES[5..]
+                                .iter()
+                                .filter(|&&id| close > values[id as usize])
+                                .count() as i8;
+                            Score::new(upper - lower)
+                        } else {
+                            Score::NAN
+                        });
                     }
                     if height >= score_start {
-                        let score = component_prices
-                            .iter()
-                            .map(|bands| {
-                                i16::from(RarityMeterInner::score_at(close, bands, offset))
-                            })
-                            .chain(lower_prices.iter().map(|bands| {
-                                i16::from(RarityMeterInner::lower_score_at(close, bands, offset))
-                            }))
-                            .sum();
-                        self.score
-                            .height
-                            .push(RarityMeterInner::capped_score(score));
+                        self.score.height.push(if calibrated {
+                            RarityMeterInner::capped_score(
+                                component_prices
+                                    .iter()
+                                    .map(|bands| {
+                                        i16::from(RarityMeterInner::score_at(close, bands, offset))
+                                    })
+                                    .sum(),
+                            )
+                        } else {
+                            Score::NAN
+                        });
                     }
                 }
             }
@@ -206,7 +203,13 @@ impl RarityMeterInner {
                     .collect();
 
                 (0..range.len())
-                    .map(|offset| RarityMeterInner::combine_percentiles(&meter_prices, &[], offset))
+                    .map(|offset| {
+                        if range.start + offset >= START_HEIGHT {
+                            RarityMeterInner::combine_percentiles(&meter_prices, offset)
+                        } else {
+                            [Cents::NAN; RARITY_PERCENTILES_LEN]
+                        }
+                    })
                     .collect()
             },
             exit,
@@ -263,20 +266,18 @@ impl RarityMeterInner {
     pub fn needs_compute(
         &self,
         components: &[&Component],
-        lower_components: &[[&impl ReadableVec<Height, Cents>; 5]],
         spot: &impl ReadableVec<Height, Cents>,
         starting_height: Height,
     ) -> bool {
         let prices_end = components
             .iter()
             .map(|component| component::boundary_len(component))
-            .chain(lower_components.iter().flatten().map(|band| band.len()))
             .min()
             .unwrap_or_default();
         let score_end = prices_end.min(spot.len());
         let starting_height = usize::from(starting_height);
 
-        let version = boundary_version(components, lower_components);
+        let version = boundary_version(components);
         self.prices.iter().any(|price| {
             let target = &price.cents.height;
             target.header().computed_version() != target.header().vec_version() + version
@@ -318,7 +319,11 @@ impl RarityMeterInner {
                     .each_ref()
                     .map(|band| band.collect_range_at(range.start, range.end));
                 for (offset, price) in spot.into_iter().enumerate() {
-                    level.push(Score::new(Self::score_at(price, &bands, offset)));
+                    level.push(if range.start + offset >= START_HEIGHT {
+                        Score::new(Self::score_at(price, &bands, offset))
+                    } else {
+                        Score::NAN
+                    });
                 }
 
                 Ok(())
@@ -356,12 +361,16 @@ impl RarityMeterInner {
                     .map(|meter| meter.score.height.collect_range_at(range.start, range.end))
                     .collect();
                 for offset in 0..range.len() {
-                    score.push(Self::capped_score(
-                        meter_scores
-                            .iter()
-                            .map(|scores| i16::from(*scores[offset]))
-                            .sum(),
-                    ));
+                    score.push(if range.start + offset >= START_HEIGHT {
+                        Self::capped_score(
+                            meter_scores
+                                .iter()
+                                .map(|scores| i16::from(*scores[offset]))
+                                .sum(),
+                        )
+                    } else {
+                        Score::NAN
+                    });
                 }
 
                 Ok(())
@@ -372,13 +381,13 @@ impl RarityMeterInner {
         Ok(())
     }
 
+    /// Above the undefined minimum: 16 components score at most 80 either way.
     fn capped_score(value: i16) -> Score {
-        Score::new(value.clamp(i16::from(i8::MIN), i16::from(i8::MAX)) as i8)
+        Score::new(value.clamp(-i16::from(i8::MAX), i16::from(i8::MAX)) as i8)
     }
 
     fn combine_percentiles(
         component_prices: &[[Vec<Cents>; 10]],
-        lower_component_prices: &[[Vec<Cents>; 5]],
         offset: usize,
     ) -> [Cents; RARITY_PERCENTILES_LEN] {
         let boundary_values = RarityPercentileId::BOUNDARIES.map(|id| {
@@ -387,10 +396,7 @@ impl RarityMeterInner {
                 .iter()
                 .map(|component| component[index][offset]);
             if id.is_lower_boundary() {
-                lower_component_prices
-                    .iter()
-                    .map(|component| component[index][offset])
-                    .chain(values)
+                values
                     .filter(|value| !value.is_nan())
                     .max()
                     .unwrap_or(Cents::NAN)
@@ -429,27 +435,11 @@ impl RarityMeterInner {
 
         upper - lower
     }
-
-    fn lower_score_at(price: Cents, bands: &[Vec<Cents>; 5], index: usize) -> i8 {
-        -(bands
-            .iter()
-            .map(|band| band[index])
-            .filter(|band| !band.is_nan() && price < *band)
-            .count() as i8)
-    }
 }
 
-fn boundary_version(
-    components: &[&Component],
-    lower_components: &[[&impl ReadableVec<Height, Cents>; 5]],
-) -> Version {
+fn boundary_version(components: &[&Component]) -> Version {
     components
         .iter()
         .map(|c| component::boundary_version(c))
-        .sum::<Version>()
-        + lower_components
-            .iter()
-            .flatten()
-            .map(|band| band.version())
-            .sum::<Version>()
+        .sum()
 }

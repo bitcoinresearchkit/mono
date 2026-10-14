@@ -42,7 +42,7 @@ pub struct Component<M: StorageMode = Rw> {
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
 }
 
-const VERSION: Version = Version::new(12);
+const VERSION: Version = Version::new(13);
 
 impl Component {
     pub(crate) fn import(

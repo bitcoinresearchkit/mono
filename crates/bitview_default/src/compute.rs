@@ -363,7 +363,6 @@ impl DefaultPlugins {
                     self.rarity_meter.compute(
                         RarityMeterDependencies {
                             indexer,
-                            bedrock: self.bedrock.as_ref(),
                             holders: self.holders.as_ref(),
                             cointime: self.cointime.as_ref(),
                             coinflow,

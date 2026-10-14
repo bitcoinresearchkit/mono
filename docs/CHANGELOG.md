@@ -82,15 +82,23 @@ has to be deleted by hand.
   placement changes besides: market cap stays at `supply.market_cap` beside its `delta`
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
 - Rarity meter components are keyed by their reference series' id (`awake_realized_price`, `mobile_realized_price`,
-  `true_market_mean`, `cost_basis_per_coin_median`, `sth_awake_cost_basis_per_dollar_median`,
-  `utxos_under_4m_old_realized_price`; were `awake_price`, `coinflow_price`, `true_market_mean_price`,
-  `median_price_btc_weighted`, `sth_cointime_median_price_usd_weighted`, `under_4m_realized_price`), each percentile's
+  `true_market_mean`, `cost_basis_per_coin_median`, `utxos_under_6m_old_realized_price`; were `awake_price`,
+  `coinflow_price`, `true_market_mean_price`, `median_price_btc_weighted`, `under_6m_realized_price`), each percentile's
   price is its `band` (ids `<component>_band_<pct>`, were `<component>_<pct>`), and a median component's reference
   shares its source's id. Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`,
   `realized_loss_24h`, `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`,
   `capitulation`, `peak_regret`, `seller_exhaustion`), with `thresholds.{tail0_1, tail0_05, tail0_025}` and
   `tail_share` (were `threshold_pct0_1`, ... and `tail`); the 0.025% threshold's id names its tail
   (`rarity_meter_supply_in_loss_threshold_tail0_025`, was `rarity_meter_coins_in_loss_threshold`)
+- The rarity meter is one set, `local`, `cycle` and `full` (the `_v2` meters are gone), over 16 reference models.
+  Local reads the short-term holders' and under-six-month cohorts' realized and capitalized prices and the
+  short-term holders' median creation prices per coin and per dollar; cycle the all-chain realized and capitalized
+  prices and median creation prices, the mobile supply's medians, the vaulted price, True Market Mean and the awake
+  and mobile realized prices; full both. Gone: the components of the long-term holders, of the over-4- and
+  over-6-month and under-4-month cohorts, the awake medians, the Cointime and active prices and the medians no meter
+  read (20 components), the Bedrock floors (the meter no longer reads Bedrock) and the extremes' `rank` (a coarse
+  copy of `tail_share` that counted a missing value as 0). Bands, levels and scores are null before height 210,000,
+  where calibration starts (were ±5 from uncalibrated bands)
 - Bedrock's modes are `unweighted`, `awake` and `mobile` (were `raw`, `cointime`, `coinflow`; ids
   `bedrock_awake_floor_pct95`, ...); each mode publishes `floor`, `cost_basis_above_floor` (the creation-price
   percentiles of the supply at or above its 95th-percentile floor) and `supply_in_loss_share_threshold`
@@ -498,6 +506,8 @@ has to be deleted by hand.
   a price's bucket). `SplitPrice::new(name, version, ohlc)`
   reads only the candle and `bitview_collections::Ohlc<T>` has one field type (`ClosePrice` and `LazyIndexes::from_open_source` are gone);
   `bitview_transforms` gains `OhlcCentsToOpenCents` and `OhlcCentsToCloseCents`
+- `bitview_primitives::Score` has an undefined value (`Score::NAN`, `i8::MIN`, served as null; `scalar!` gains
+  `nullable int`) and `Rank` is gone; `bitview_plugin_rarity_meter::Dependencies` no longer takes `bedrock`
 - `Cents::round_to_dollar(i32)` and `CentsCompact::round_to_dollar(i32)` are `round_to_significant(u32)`: significant
   digits of the amount in cents (were whole dollars, then digits); `bitview_urpd::COST_BASIS_PRICE_DIGITS` is a `u32`
   (4, was 5). `bitview_distribution::state::cost_basis::PRICE_INDEX_VERSION` is the price grid's version for a price

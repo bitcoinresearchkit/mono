@@ -1074,11 +1074,6 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {(number|string|string)} RangeIndex
  */
 /**
- * A discrete rank.
- *
- * @typedef {number} Rank
- */
-/**
  * A dimensionless ratio: a quotient, share or multiple.
  *
  * @typedef {number} Ratio
@@ -1165,7 +1160,7 @@ on serialization otherwise.
  * @typedef {number} SatsSigned
  */
 /**
- * A signed model score.
+ * A signed model score; undefined (null) where the model has no calibration yet.
  *
  * @typedef {number} Score
  */
@@ -2639,8 +2634,8 @@ const _s = (children) => (c, b) => _n(c, b, children);
  *   pct99: SeriesPattern1<?Dollars>,
  *   pct995: SeriesPattern1<?Dollars>,
  *   pct999: SeriesPattern1<?Dollars>,
- *   level: SeriesPattern1<Score>,
- *   score: SeriesPattern1<Score>,
+ *   level: SeriesPattern1<?Score>,
+ *   score: SeriesPattern1<?Score>,
  * }} Cycle
  */
 const _Cycle = _s({
@@ -2686,13 +2681,11 @@ const _Thresholds = _s({
  * @typedef {{
  *   thresholds: Thresholds<A>,
  *   tailShare: SeriesPattern1<?Percent>,
- *   rank: SeriesPattern1<Rank>,
  * }} RealizedLoss24h
  */
 const _RealizedLoss24h = _s({
   thresholds: [_Thresholds, '*_threshold_tail0'],
   tailShare: [_i1, '*_tail_share'],
-  rank: [_i1, '*_rank'],
 });
 
 /**
@@ -2716,382 +2709,313 @@ const _Extremes = _s({
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct999
+ * }} MobileRealizedPriceMedian
  */
-const _Pct999 = _s({
-  ratio: [_i1, '*_ratio_pct99_9'],
-  band: [_i1, '*_band_pct99_9'],
+const _MobileRealizedPriceMedian = _s({
+  ratio: [_i1, 'mobile_realized_price_ratio_*'],
+  band: [_i1, 'mobile_realized_price_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct995
+ * }} AwakeRealizedPriceMedian
  */
-const _Pct995 = _s({
-  ratio: [_i1, '*_ratio_pct99_5'],
-  band: [_i1, '*_band_pct99_5'],
+const _AwakeRealizedPriceMedian = _s({
+  ratio: [_i1, 'awake_realized_price_ratio_*'],
+  band: [_i1, 'awake_realized_price_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct99
+ * }} TrueMarketMeanMedian
  */
-const _Pct99 = _s({
-  ratio: [_i1, '*_ratio_pct99'],
-  band: [_i1, '*_band_pct99'],
+const _TrueMarketMeanMedian = _s({
+  ratio: [_i1, 'true_market_mean_ratio_*'],
+  band: [_i1, 'true_market_mean_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct98
+ * }} VaultedPriceMedian
  */
-const _Pct98 = _s({
-  ratio: [_i1, '*_ratio_pct98'],
-  band: [_i1, '*_band_pct98'],
+const _VaultedPriceMedian = _s({
+  ratio: [_i1, 'vaulted_price_ratio_*'],
+  band: [_i1, 'vaulted_price_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct95
+ * }} UtxosUnder6mOldCapitalizedPriceMedian
  */
-const _Pct95 = _s({
-  ratio: [_i1, '*_ratio_pct95'],
-  band: [_i1, '*_band_pct95'],
+const _UtxosUnder6mOldCapitalizedPriceMedian = _s({
+  ratio: [_i1, 'utxos_under_6m_old_capitalized_price_ratio_*'],
+  band: [_i1, 'utxos_under_6m_old_capitalized_price_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct90
+ * }} UtxosUnder6mOldRealizedPriceMedian
  */
-const _Pct90 = _s({
-  ratio: [_i1, '*_ratio_pct90'],
-  band: [_i1, '*_band_pct90'],
+const _UtxosUnder6mOldRealizedPriceMedian = _s({
+  ratio: [_i1, 'utxos_under_6m_old_realized_price_ratio_*'],
+  band: [_i1, 'utxos_under_6m_old_realized_price_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct80
+ * }} SthCapitalizedPriceMedian
  */
-const _Pct80 = _s({
-  ratio: [_i1, '*_ratio_pct80'],
-  band: [_i1, '*_band_pct80'],
+const _SthCapitalizedPriceMedian = _s({
+  ratio: [_i1, 'sth_capitalized_price_ratio_*'],
+  band: [_i1, 'sth_capitalized_price_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct70
+ * }} SthRealizedPriceMedian
  */
-const _Pct70 = _s({
-  ratio: [_i1, '*_ratio_pct70'],
-  band: [_i1, '*_band_pct70'],
+const _SthRealizedPriceMedian = _s({
+  ratio: [_i1, 'sth_realized_price_ratio_*'],
+  band: [_i1, 'sth_realized_price_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct60
+ * }} MobileCostBasisPerDollarMedianMedian
  */
-const _Pct60 = _s({
-  ratio: [_i1, '*_ratio_pct60'],
-  band: [_i1, '*_band_pct60'],
+const _MobileCostBasisPerDollarMedianMedian = _s({
+  ratio: [_i1, 'mobile_cost_basis_per_dollar_median_ratio_*'],
+  band: [_i1, 'mobile_cost_basis_per_dollar_median_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Median
+ * }} MobileCostBasisPerCoinMedianMedian
  */
-const _Median = _s({
-  ratio: [_i1, '*_ratio_median'],
-  band: [_i1, '*_band_median'],
+const _MobileCostBasisPerCoinMedianMedian = _s({
+  ratio: [_i1, 'mobile_cost_basis_per_coin_median_ratio_*'],
+  band: [_i1, 'mobile_cost_basis_per_coin_median_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct40
+ * }} SthCostBasisPerDollarMedianMedian
  */
-const _Pct40 = _s({
-  ratio: [_i1, '*_ratio_pct40'],
-  band: [_i1, '*_band_pct40'],
+const _SthCostBasisPerDollarMedianMedian = _s({
+  ratio: [_i1, 'sth_cost_basis_per_dollar_median_ratio_*'],
+  band: [_i1, 'sth_cost_basis_per_dollar_median_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct30
+ * }} SthCostBasisPerCoinMedianMedian
  */
-const _Pct30 = _s({
-  ratio: [_i1, '*_ratio_pct30'],
-  band: [_i1, '*_band_pct30'],
+const _SthCostBasisPerCoinMedianMedian = _s({
+  ratio: [_i1, 'sth_cost_basis_per_coin_median_ratio_*'],
+  band: [_i1, 'sth_cost_basis_per_coin_median_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct20
+ * }} CostBasisPerDollarMedianMedian
  */
-const _Pct20 = _s({
-  ratio: [_i1, '*_ratio_pct20'],
-  band: [_i1, '*_band_pct20'],
+const _CostBasisPerDollarMedianMedian = _s({
+  ratio: [_i1, 'cost_basis_per_dollar_median_ratio_*'],
+  band: [_i1, 'cost_basis_per_dollar_median_band_*'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Ratio>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Pct10
+ * }} CostBasisPerCoinMedianMedian
  */
-const _Pct10 = _s({
-  ratio: [_i1, '*_ratio_pct10'],
-  band: [_i1, '*_band_pct10'],
+const _CostBasisPerCoinMedianMedian = _s({
+  ratio: [_i1, 'cost_basis_per_coin_median_ratio_*'],
+  band: [_i1, 'cost_basis_per_coin_median_band_*'],
 });
 
 /**
- * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
- *   band: SeriesPattern1<?Dollars>,
- * }} Pct5
- */
-const _Pct5 = _s({
-  ratio: [_i1, '*_ratio_pct5'],
-  band: [_i1, '*_band_pct5'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
- *   band: SeriesPattern1<?Dollars>,
- * }} Pct2
- */
-const _Pct2 = _s({
-  ratio: [_i1, '*_ratio_pct2'],
-  band: [_i1, '*_band_pct2'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
- *   band: SeriesPattern1<?Dollars>,
- * }} Pct1
- */
-const _Pct1 = _s({
-  ratio: [_i1, '*_ratio_pct1'],
-  band: [_i1, '*_band_pct1'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
- *   band: SeriesPattern1<?Dollars>,
- * }} Pct05
- */
-const _Pct05 = _s({
-  ratio: [_i1, '*_ratio_pct0_5'],
-  band: [_i1, '*_band_pct0_5'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
- *   band: SeriesPattern1<?Dollars>,
- * }} Pct01
- */
-const _Pct01 = _s({
-  ratio: [_i1, '*_ratio_pct0_1'],
-  band: [_i1, '*_band_pct0_1'],
-});
-
-/**
+ * @template A
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Ratio>,
- *   pct01: Pct01,
- *   pct05: Pct05,
- *   pct1: Pct1,
- *   pct2: Pct2,
- *   pct5: Pct5,
- *   pct10: Pct10,
- *   pct20: Pct20,
- *   pct30: Pct30,
- *   pct40: Pct40,
- *   median: Median,
- *   pct60: Pct60,
- *   pct70: Pct70,
- *   pct80: Pct80,
- *   pct90: Pct90,
- *   pct95: Pct95,
- *   pct98: Pct98,
- *   pct99: Pct99,
- *   pct995: Pct995,
- *   pct999: Pct999,
- * }} AwakeCostBasisPerCoinMedian
+ *   pct01: A,
+ *   pct05: A,
+ *   pct1: A,
+ *   pct2: A,
+ *   pct5: A,
+ *   pct10: A,
+ *   pct20: A,
+ *   pct30: A,
+ *   pct40: A,
+ *   median: A,
+ *   pct60: A,
+ *   pct70: A,
+ *   pct80: A,
+ *   pct90: A,
+ *   pct95: A,
+ *   pct98: A,
+ *   pct99: A,
+ *   pct995: A,
+ *   pct999: A,
+ * }} CostBasisPerCoinMedian
  */
-const _AwakeCostBasisPerCoinMedian = _s({
+/** @type {_Make} */
+const _CostBasisPerCoinMedian = (c, b, f0) => _n(c, b, {
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
-  pct01: [_Pct01, '*'],
-  pct05: [_Pct05, '*'],
-  pct1: [_Pct1, '*'],
-  pct2: [_Pct2, '*'],
-  pct5: [_Pct5, '*'],
-  pct10: [_Pct10, '*'],
-  pct20: [_Pct20, '*'],
-  pct30: [_Pct30, '*'],
-  pct40: [_Pct40, '*'],
-  median: [_Median, '*'],
-  pct60: [_Pct60, '*'],
-  pct70: [_Pct70, '*'],
-  pct80: [_Pct80, '*'],
-  pct90: [_Pct90, '*'],
-  pct95: [_Pct95, '*'],
-  pct98: [_Pct98, '*'],
-  pct99: [_Pct99, '*'],
-  pct995: [_Pct995, '*'],
-  pct999: [_Pct999, '*'],
+  pct01: [f0, 'pct0_1'],
+  pct05: [f0, 'pct0_5'],
+  pct1: [f0, 'pct1'],
+  pct2: [f0, 'pct2'],
+  pct5: [f0, 'pct5'],
+  pct10: [f0, 'pct10'],
+  pct20: [f0, 'pct20'],
+  pct30: [f0, 'pct30'],
+  pct40: [f0, 'pct40'],
+  median: [f0, 'median'],
+  pct60: [f0, 'pct60'],
+  pct70: [f0, 'pct70'],
+  pct80: [f0, 'pct80'],
+  pct90: [f0, 'pct90'],
+  pct95: [f0, 'pct95'],
+  pct98: [f0, 'pct98'],
+  pct99: [f0, 'pct99'],
+  pct995: [f0, 'pct99_5'],
+  pct999: [f0, 'pct99_9'],
 });
 
 /**
  * @typedef {{
- *   pct01: Pct01,
- *   pct05: Pct05,
- *   pct1: Pct1,
- *   pct2: Pct2,
- *   pct5: Pct5,
- *   pct10: Pct10,
- *   pct20: Pct20,
- *   pct30: Pct30,
- *   pct40: Pct40,
- *   median: Median,
- *   pct60: Pct60,
- *   pct70: Pct70,
- *   pct80: Pct80,
- *   pct90: Pct90,
- *   pct95: Pct95,
- *   pct98: Pct98,
- *   pct99: Pct99,
- *   pct995: Pct995,
- *   pct999: Pct999,
- * }} ActivePrice
+ *   ratio: SeriesPattern1<?Ratio>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} CapitalizedPriceMedian
  */
-const _ActivePrice = _s({
-  pct01: [_Pct01, '*'],
-  pct05: [_Pct05, '*'],
-  pct1: [_Pct1, '*'],
-  pct2: [_Pct2, '*'],
-  pct5: [_Pct5, '*'],
-  pct10: [_Pct10, '*'],
-  pct20: [_Pct20, '*'],
-  pct30: [_Pct30, '*'],
-  pct40: [_Pct40, '*'],
-  median: [_Median, '*'],
-  pct60: [_Pct60, '*'],
-  pct70: [_Pct70, '*'],
-  pct80: [_Pct80, '*'],
-  pct90: [_Pct90, '*'],
-  pct95: [_Pct95, '*'],
-  pct98: [_Pct98, '*'],
-  pct99: [_Pct99, '*'],
-  pct995: [_Pct995, '*'],
-  pct999: [_Pct999, '*'],
+const _CapitalizedPriceMedian = _s({
+  ratio: [_i1, 'capitalized_price_ratio_*'],
+  band: [_i1, 'capitalized_price_band_*'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: ActivePrice,
- *   capitalizedPrice: ActivePrice,
- *   costBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   costBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   sthCostBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   sthCostBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   lthCostBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   lthCostBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   awakeCostBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   awakeCostBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   mobileCostBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   mobileCostBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   sthAwakeCostBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   sthAwakeCostBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   lthAwakeCostBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   lthAwakeCostBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   sthMobileCostBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   sthMobileCostBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   lthMobileCostBasisPerCoinMedian: AwakeCostBasisPerCoinMedian,
- *   lthMobileCostBasisPerDollarMedian: AwakeCostBasisPerCoinMedian,
- *   sthRealizedPrice: ActivePrice,
- *   sthCapitalizedPrice: ActivePrice,
- *   lthRealizedPrice: ActivePrice,
- *   lthCapitalizedPrice: ActivePrice,
- *   utxosOver6mOldRealizedPrice: ActivePrice,
- *   utxosOver4mOldRealizedPrice: ActivePrice,
- *   utxosUnder4mOldRealizedPrice: ActivePrice,
- *   utxosUnder6mOldRealizedPrice: ActivePrice,
- *   utxosUnder4mOldCapitalizedPrice: ActivePrice,
- *   utxosUnder6mOldCapitalizedPrice: ActivePrice,
- *   vaultedPrice: ActivePrice,
- *   activePrice: ActivePrice,
- *   trueMarketMean: ActivePrice,
- *   cointimePrice: ActivePrice,
- *   awakeRealizedPrice: ActivePrice,
- *   mobileRealizedPrice: ActivePrice,
+ *   ratio: SeriesPattern1<?Ratio>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} RealizedPriceMedian
+ */
+const _RealizedPriceMedian = _s({
+  ratio: [_i1, 'realized_price_ratio_*'],
+  band: [_i1, 'realized_price_band_*'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   pct01: A,
+ *   pct05: A,
+ *   pct1: A,
+ *   pct2: A,
+ *   pct5: A,
+ *   pct10: A,
+ *   pct20: A,
+ *   pct30: A,
+ *   pct40: A,
+ *   median: A,
+ *   pct60: A,
+ *   pct70: A,
+ *   pct80: A,
+ *   pct90: A,
+ *   pct95: A,
+ *   pct98: A,
+ *   pct99: A,
+ *   pct995: A,
+ *   pct999: A,
+ * }} AwakeRealizedPrice
+ */
+/** @type {_Make} */
+const _AwakeRealizedPrice = (c, b, f0) => _n(c, b, {
+  pct01: [f0, 'pct0_1'],
+  pct05: [f0, 'pct0_5'],
+  pct1: [f0, 'pct1'],
+  pct2: [f0, 'pct2'],
+  pct5: [f0, 'pct5'],
+  pct10: [f0, 'pct10'],
+  pct20: [f0, 'pct20'],
+  pct30: [f0, 'pct30'],
+  pct40: [f0, 'pct40'],
+  median: [f0, 'median'],
+  pct60: [f0, 'pct60'],
+  pct70: [f0, 'pct70'],
+  pct80: [f0, 'pct80'],
+  pct90: [f0, 'pct90'],
+  pct95: [f0, 'pct95'],
+  pct98: [f0, 'pct98'],
+  pct99: [f0, '*'],
+  pct995: [f0, '*_5'],
+  pct999: [f0, '*_9'],
+});
+
+/**
+ * @typedef {{
+ *   realizedPrice: AwakeRealizedPrice<RealizedPriceMedian>,
+ *   capitalizedPrice: AwakeRealizedPrice<CapitalizedPriceMedian>,
+ *   costBasisPerCoinMedian: CostBasisPerCoinMedian<CostBasisPerCoinMedianMedian>,
+ *   costBasisPerDollarMedian: CostBasisPerCoinMedian<CostBasisPerDollarMedianMedian>,
+ *   sthCostBasisPerCoinMedian: CostBasisPerCoinMedian<SthCostBasisPerCoinMedianMedian>,
+ *   sthCostBasisPerDollarMedian: CostBasisPerCoinMedian<SthCostBasisPerDollarMedianMedian>,
+ *   mobileCostBasisPerCoinMedian: CostBasisPerCoinMedian<MobileCostBasisPerCoinMedianMedian>,
+ *   mobileCostBasisPerDollarMedian: CostBasisPerCoinMedian<MobileCostBasisPerDollarMedianMedian>,
+ *   sthRealizedPrice: AwakeRealizedPrice<SthRealizedPriceMedian>,
+ *   sthCapitalizedPrice: AwakeRealizedPrice<SthCapitalizedPriceMedian>,
+ *   utxosUnder6mOldRealizedPrice: AwakeRealizedPrice<UtxosUnder6mOldRealizedPriceMedian>,
+ *   utxosUnder6mOldCapitalizedPrice: AwakeRealizedPrice<UtxosUnder6mOldCapitalizedPriceMedian>,
+ *   vaultedPrice: AwakeRealizedPrice<VaultedPriceMedian>,
+ *   trueMarketMean: AwakeRealizedPrice<TrueMarketMeanMedian>,
+ *   awakeRealizedPrice: AwakeRealizedPrice<AwakeRealizedPriceMedian>,
+ *   mobileRealizedPrice: AwakeRealizedPrice<MobileRealizedPriceMedian>,
  * }} Components
  */
 const _Components = _s({
-  realizedPrice: [_ActivePrice, 'realized_price'],
-  capitalizedPrice: [_ActivePrice, 'capitalized_price'],
-  costBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, '*_coin_median'],
-  costBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, '*_dollar_median'],
-  sthCostBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, 'sth_*_coin_median'],
-  sthCostBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, 'sth_*_dollar_median'],
-  lthCostBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, 'lth_*_coin_median'],
-  lthCostBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, 'lth_*_dollar_median'],
-  awakeCostBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, 'awake_*_coin_median'],
-  awakeCostBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, 'awake_*_dollar_median'],
-  mobileCostBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, 'mobile_*_coin_median'],
-  mobileCostBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, 'mobile_*_dollar_median'],
-  sthAwakeCostBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, 'sth_awake_*_coin_median'],
-  sthAwakeCostBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, 'sth_awake_*_dollar_median'],
-  lthAwakeCostBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, 'lth_awake_*_coin_median'],
-  lthAwakeCostBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, 'lth_awake_*_dollar_median'],
-  sthMobileCostBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, 'sth_mobile_*_coin_median'],
-  sthMobileCostBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, 'sth_mobile_*_dollar_median'],
-  lthMobileCostBasisPerCoinMedian: [_AwakeCostBasisPerCoinMedian, 'lth_mobile_*_coin_median'],
-  lthMobileCostBasisPerDollarMedian: [_AwakeCostBasisPerCoinMedian, 'lth_mobile_*_dollar_median'],
-  sthRealizedPrice: [_ActivePrice, 'sth_realized_price'],
-  sthCapitalizedPrice: [_ActivePrice, 'sth_capitalized_price'],
-  lthRealizedPrice: [_ActivePrice, 'lth_realized_price'],
-  lthCapitalizedPrice: [_ActivePrice, 'lth_capitalized_price'],
-  utxosOver6mOldRealizedPrice: [_ActivePrice, 'utxos_over_6m_old_realized_price'],
-  utxosOver4mOldRealizedPrice: [_ActivePrice, 'utxos_over_4m_old_realized_price'],
-  utxosUnder4mOldRealizedPrice: [_ActivePrice, 'utxos_under_4m_old_realized_price'],
-  utxosUnder6mOldRealizedPrice: [_ActivePrice, 'utxos_under_6m_old_realized_price'],
-  utxosUnder4mOldCapitalizedPrice: [_ActivePrice, 'utxos_under_4m_old_capitalized_price'],
-  utxosUnder6mOldCapitalizedPrice: [_ActivePrice, 'utxos_under_6m_old_capitalized_price'],
-  vaultedPrice: [_ActivePrice, 'vaulted_price'],
-  activePrice: [_ActivePrice, 'active_price'],
-  trueMarketMean: [_ActivePrice, 'true_market_mean'],
-  cointimePrice: [_ActivePrice, 'cointime_price'],
-  awakeRealizedPrice: [_ActivePrice, 'awake_realized_price'],
-  mobileRealizedPrice: [_ActivePrice, 'mobile_realized_price'],
+  realizedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _RealizedPriceMedian), '*'],
+  capitalizedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _CapitalizedPriceMedian), '*'],
+  costBasisPerCoinMedian: [(c, b) => _CostBasisPerCoinMedian(c, b, _CostBasisPerCoinMedianMedian), 'cost_basis_per_coin_median'],
+  costBasisPerDollarMedian: [(c, b) => _CostBasisPerCoinMedian(c, b, _CostBasisPerDollarMedianMedian), 'cost_basis_per_dollar_median'],
+  sthCostBasisPerCoinMedian: [(c, b) => _CostBasisPerCoinMedian(c, b, _SthCostBasisPerCoinMedianMedian), 'sth_cost_basis_per_coin_median'],
+  sthCostBasisPerDollarMedian: [(c, b) => _CostBasisPerCoinMedian(c, b, _SthCostBasisPerDollarMedianMedian), 'sth_cost_basis_per_dollar_median'],
+  mobileCostBasisPerCoinMedian: [(c, b) => _CostBasisPerCoinMedian(c, b, _MobileCostBasisPerCoinMedianMedian), 'mobile_cost_basis_per_coin_median'],
+  mobileCostBasisPerDollarMedian: [(c, b) => _CostBasisPerCoinMedian(c, b, _MobileCostBasisPerDollarMedianMedian), 'mobile_cost_basis_per_dollar_median'],
+  sthRealizedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _SthRealizedPriceMedian), '*'],
+  sthCapitalizedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _SthCapitalizedPriceMedian), '*'],
+  utxosUnder6mOldRealizedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _UtxosUnder6mOldRealizedPriceMedian), '*'],
+  utxosUnder6mOldCapitalizedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _UtxosUnder6mOldCapitalizedPriceMedian), '*'],
+  vaultedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _VaultedPriceMedian), '*'],
+  trueMarketMean: [(c, b) => _AwakeRealizedPrice(c, b, _TrueMarketMeanMedian), '*'],
+  awakeRealizedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _AwakeRealizedPriceMedian), '*'],
+  mobileRealizedPrice: [(c, b) => _AwakeRealizedPrice(c, b, _MobileRealizedPriceMedian), '*'],
 });
 
 /**
@@ -3099,22 +3023,16 @@ const _Components = _s({
  *   components: Components,
  *   extremes: Extremes,
  *   full: Cycle,
- *   fullV2: Cycle,
  *   local: Cycle,
- *   localV2: Cycle,
  *   cycle: Cycle,
- *   cycleV2: Cycle,
  * }} RarityMeter
  */
 const _RarityMeter = _s({
-  components: [_Components, 'cost_basis_per'],
+  components: [_Components, 'pct99'],
   extremes: [_Extremes, '*'],
   full: [_Cycle, '*'],
-  fullV2: [_Cycle, '*_v2'],
   local: [_Cycle, 'local_*'],
-  localV2: [_Cycle, 'local_*_v2'],
   cycle: [_Cycle, 'cycle_*'],
-  cycleV2: [_Cycle, 'cycle_*_v2'],
 });
 
 /**

@@ -8,13 +8,8 @@ use brk_types::{Cents, Height, Sats, TxIndex};
 use crate::{TxInIndex, TxOutIndex, scalar::scalar};
 
 scalar! {
-    /// A signed model score.
-    int Score(i8)
-}
-
-scalar! {
-    /// A discrete rank.
-    int Rank(u8)
+    /// A signed model score; undefined (null) where the model has no calibration yet.
+    nullable int Score(i8)
 }
 
 scalar! {

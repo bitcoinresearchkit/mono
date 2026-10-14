@@ -74,7 +74,7 @@ impl BlockDecayPercentiles {
 
     pub fn quantiles<const N: usize>(&self, qs: &[f64; N], out: &mut [f64; N]) {
         if self.mass == 0.0 {
-            out.fill(0.0);
+            out.fill(f64::NAN);
             return;
         }
 

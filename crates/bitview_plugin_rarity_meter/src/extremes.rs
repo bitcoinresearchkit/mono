@@ -99,7 +99,7 @@ impl Extremes {
         realized_profit: &impl ReadableVec<Height, Dollars>,
         realized_loss: &impl ReadableVec<Height, Dollars>,
         peak_regret: &impl ReadableVec<Height, Dollars>,
-        seller_exhaustion: &impl ReadableVec<Height, Ratio>,
+        sell_side_risk: &impl ReadableVec<Height, Ratio>,
         exit: &Exit,
     ) -> Result<()> {
         self.supply_in_loss
@@ -110,11 +110,8 @@ impl Extremes {
             .compute_realized(indexer, realized_loss, exit)?;
         self.realized_peak_regret_24h
             .compute_realized(indexer, peak_regret, exit)?;
-        self.sell_side_risk_ratio_24h.compute_seller_exhaustion(
-            indexer,
-            seller_exhaustion,
-            exit,
-        )?;
+        self.sell_side_risk_ratio_24h
+            .compute_sell_side_risk(indexer, sell_side_risk, exit)?;
         Ok(())
     }
 }

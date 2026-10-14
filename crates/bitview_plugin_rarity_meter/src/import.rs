@@ -23,21 +23,8 @@ impl Vecs {
             )?,
             extremes: extremes::Extremes::import(&db, version, mappings)?,
             full: inner::RarityMeterInner::import(&db, "rarity_meter", version, mappings)?,
-            full_v2: inner::RarityMeterInner::import(&db, "rarity_meter_v2", version, mappings)?,
             local: inner::RarityMeterInner::import(&db, "local_rarity_meter", version, mappings)?,
-            local_v2: inner::RarityMeterInner::import(
-                &db,
-                "local_rarity_meter_v2",
-                version,
-                mappings,
-            )?,
             cycle: inner::RarityMeterInner::import(&db, "cycle_rarity_meter", version, mappings)?,
-            cycle_v2: inner::RarityMeterInner::import(
-                &db,
-                "cycle_rarity_meter_v2",
-                version,
-                mappings,
-            )?,
             db,
         };
         STORAGE.finalize_database(&this.db)?;
