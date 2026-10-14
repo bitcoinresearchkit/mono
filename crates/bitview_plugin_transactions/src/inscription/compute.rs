@@ -1,12 +1,11 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, Count, Count16, PartsPerMillion32};
-use bitview_transforms::Quotient;
+use bitview_primitives::{Boolean, Count, Count16};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, TxIndex};
-use vecdb::{AnyStoredVec, BinaryTransform, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
 use crate::FeesVecs;
@@ -35,8 +34,7 @@ impl Vecs {
             &mappings.height.tx_index_count,
             &*features.inscription.block,
             &features.inscription.flag,
-            &fees.fee.tx_index,
-            &fees.total,
+            &fees.fee.tx,
             exit,
         )
     }
@@ -50,25 +48,19 @@ impl Vecs {
         inscription_counts: &impl ReadableVec<Height, Count16>,
         inscriptions: &impl ReadableVec<TxIndex, Boolean>,
         fees: &impl ReadableVec<TxIndex, Sats>,
-        total_fees: &impl ReadableVec<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
         let version = first_tx.version()
             + tx_counts.version()
             + inscription_counts.version()
             + inscriptions.version()
-            + fees.version()
-            + total_fees.version();
+            + fees.version();
         let end_height = first_tx
             .len()
             .min(tx_counts.len())
-            .min(inscription_counts.len())
-            .min(total_fees.len());
+            .min(inscription_counts.len());
         let start_height = prepare_computed(
-            [
-                &mut self.fees.cumulative.sats.height as &mut dyn AnyStoredVec,
-                &mut self.fee_share.fixed.height,
-            ],
+            [&mut self.fees.cumulative.sats.height],
             version,
             starting_height.to_usize().min(end_height),
             exit,
@@ -87,7 +79,6 @@ impl Vecs {
             .unwrap_or_default();
         let mut block_start = first_tx.collect_one_at(start_height).unwrap().to_usize();
         let mut inscriptions = inscriptions.cursor();
-        let mut total_fees = total_fees.cursor();
         let mut fees = fees.cursor();
         let mut counts = tx_counts.cursor();
         let mut inscription_counts = inscription_counts.cursor();
@@ -100,7 +91,6 @@ impl Vecs {
             if block_end > end_tx {
                 break;
             }
-            let total = total_fees.get(height).unwrap();
             let mut inscribed = Sats::ZERO;
             // With no inscriptions, avoid reading transaction fees or flags.
             if *inscription_counts.next().unwrap() > 0 {
@@ -114,10 +104,6 @@ impl Vecs {
             }
             cumulative += inscribed;
             self.fees.cumulative.sats.height.push(cumulative);
-            self.fee_share
-                .fixed
-                .height
-                .push(Quotient::<PartsPerMillion32>::apply(inscribed, total));
             block_start = block_end;
 
             if (height + 1).is_multiple_of(WRITE_INTERVAL) {
@@ -130,7 +116,6 @@ impl Vecs {
     fn write_fees(&mut self, exit: &Exit) -> Result<()> {
         let _lock = exit.lock();
         self.fees.cumulative.sats.height.write()?;
-        self.fee_share.fixed.height.write()?;
         Ok(())
     }
 }

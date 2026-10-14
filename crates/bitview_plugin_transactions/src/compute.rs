@@ -36,7 +36,7 @@ impl ComputePlugin for Vecs {
             || {
                 join(
                     || self.versions.compute(indexer, exit),
-                    || self.size.compute(indexer, mappings, exit),
+                    || self.vsize.compute(indexer, mappings, exit),
                 )
             },
         );
@@ -50,7 +50,7 @@ impl ComputePlugin for Vecs {
         self.fees.compute(
             indexer,
             mappings,
-            &self.size,
+            &self.vsize.tx,
             &mut self.volume.cumulative.sats.height,
             exit,
         )?;

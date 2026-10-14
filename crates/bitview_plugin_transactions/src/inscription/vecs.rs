@@ -1,6 +1,8 @@
 use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{PerBlockCumulativeRolling, PercentPerBlock, ValuePerBlockCumulativeRolling};
+use bitview_vecs::{
+    LazyPercentCumulativeRolling, PerBlockCumulativeRolling, ValuePerBlockCumulativeRolling,
+};
 use vecdb::{Rw, StorageMode};
 
 use bitview_plugin_indexer::FlagView;
@@ -18,9 +20,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// contributes once, regardless of its number of inscriptions. Fees of
     /// separate commit transactions without a detected envelope are excluded.
     pub fees: ValuePerBlockCumulativeRolling<M>,
-    /// Fees of transactions containing a detected inscription divided by all
-    /// transaction fees in the represented block. Undefined (null) when the block has
-    /// no fees. Time-period indexes take the share from the period's final block.
-    #[traversable(wrap = "fees", rename = "chain_share")]
-    pub fee_share: PercentPerBlock<PartsPerMillion32, M>,
+    /// These fees divided by all transaction fees in the chain over the same
+    /// cumulative or trailing window.
+    #[traversable(wrap = "fees")]
+    pub chain_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }

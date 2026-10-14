@@ -112,25 +112,13 @@ impl ExactOrderStats {
         true
     }
 
-    /// Extract a percentile (0.0-1.0) using linear interpolation.
-    #[inline]
-    pub(crate) fn percentile(&self, p: f64) -> f64 {
-        let len = self.len();
-        if len == 0 {
-            return 0.0;
-        }
-        if len == 1 {
-            return self.kth(0);
-        }
-        let rank = p * (len - 1) as f64;
-        let lo = rank.floor() as usize;
-        let hi = rank.ceil() as usize;
-        if lo == hi {
-            self.kth(lo)
-        } else {
-            let frac = rank - lo as f64;
-            self.kth(lo) * (1.0 - frac) + self.kth(hi) * frac
-        }
+    /// Percentiles (0.0-1.0, ascending) at the lower nearest rank,
+    /// `sorted[max(0, floor(n * p) - 1)]`, in one pass. The set must not be empty.
+    pub(crate) fn lower_nearest_ranks<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
+        let ranks = ps.map(|p| ((self.len as f64 * p) as usize).saturating_sub(1));
+        let mut out = [0.0; N];
+        self.values_at(&ranks, &mut out);
+        out
     }
 
     /// Extract multiple percentiles in a single pass through the sorted blocks.

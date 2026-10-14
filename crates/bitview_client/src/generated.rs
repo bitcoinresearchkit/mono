@@ -1692,14 +1692,14 @@ pub mod tree {
         _200w: Ema13d = "*_200w",
         _4y: Ema13d = "*_4y",
     } }
-    shape! { RangeMax at "series().market.range.max" {
+    shape! { Max at "series().market.range.max" {
         _1w: SeriesPattern1<Option<Dollars>> = "*_1w",
         _1m: SeriesPattern1<Option<Dollars>> = "*_1m",
         _1y: SeriesPattern1<Option<Dollars>> = "*_1y",
     } }
     shape! { Range at "series().market.range" {
-        min: RangeMax = "*_min",
-        max: RangeMax = "*_max",
+        min: Max = "*_min",
+        max: Max = "*_max",
         true_range: SeriesPattern1<Option<Dollars>> = "*_true_range",
     } }
     shape! { Returns at "series().market.returns" {
@@ -1756,32 +1756,15 @@ pub mod tree {
         price: HashratePrice = "*_price",
         value: HashratePrice = "*_value",
     } }
-    shape! { EffectiveFeeRateMax<A> at "series().transactions.fees.effective_fee_rate.max" {
-        block: SeriesPattern1<A> = "*",
-        _6b: SeriesPattern1<A> = "*_6b",
-    } }
-    shape! { SizeWeight at "series().transactions.size.weight" {
-        min: EffectiveFeeRateMax<Weight> = "*_min",
-        max: EffectiveFeeRateMax<Weight> = "*_max",
-        pct10: EffectiveFeeRateMax<Weight> = "*_pct10",
-        pct25: EffectiveFeeRateMax<Weight> = "*_pct25",
-        median: EffectiveFeeRateMax<Weight> = "*_median",
-        pct75: EffectiveFeeRateMax<Weight> = "*_pct75",
-        pct90: EffectiveFeeRateMax<Weight> = "*_pct90",
-    } }
-    shape! { EffectiveFeeRate<A> at "series().transactions.fees.effective_fee_rate" {
-        tx_index: SeriesPattern20<A> = "*",
-        min: EffectiveFeeRateMax<A> = "*_min",
-        max: EffectiveFeeRateMax<A> = "*_max",
-        pct10: EffectiveFeeRateMax<A> = "*_pct10",
-        pct25: EffectiveFeeRateMax<A> = "*_pct25",
-        median: EffectiveFeeRateMax<A> = "*_median",
-        pct75: EffectiveFeeRateMax<A> = "*_pct75",
-        pct90: EffectiveFeeRateMax<A> = "*_pct90",
-    } }
-    shape! { TransactionsSize at "series().transactions.size" {
-        vsize: EffectiveFeeRate<VSize> = "*_vsize",
-        weight: SizeWeight = "*_weight",
+    shape! { Vsize<A> at "series().transactions.vsize" {
+        tx: SeriesPattern20<A> = "*",
+        min: SeriesPattern1<A> = "*_min",
+        max: SeriesPattern1<A> = "*_max",
+        pct10: SeriesPattern1<A> = "*_pct10",
+        pct25: SeriesPattern1<A> = "*_pct25",
+        median: SeriesPattern1<A> = "*_median",
+        pct75: SeriesPattern1<A> = "*_pct75",
+        pct90: SeriesPattern1<A> = "*_pct90",
     } }
     shape! { AvgBalance at "series().addresses.avg_balance" {
         btc: SeriesPattern1<Option<Bitcoin>> = "*",
@@ -1873,12 +1856,6 @@ pub mod tree {
         btc: SeriesPattern19<Option<Bitcoin>> = "*",
         usd: SeriesPattern19<Option<Dollars>> = "*_usd",
     } }
-    shape! { InscriptionFees at "series().transactions.inscription.fees" {
-        block: Block = "*_fees",
-        cumulative: AvgBalance = "*_fees_cumulative",
-        sum: Sum = "*_fees_sum",
-        chain_share: SeriesPattern1<Option<Percent>> = "*_fee_chain_share",
-    } }
     shape! { OpReturnValue at "series().outputs.op_return_value" {
         block: Block = "*",
         cumulative: AvgBalance = "*_cumulative",
@@ -1903,12 +1880,6 @@ pub mod tree {
         _1w: SeriesPattern1<Option<Percent>> = "*_1w",
         _1m: SeriesPattern1<Option<Percent>> = "*_1m",
         _1y: SeriesPattern1<Option<Percent>> = "*_1y",
-    } }
-    shape! { OpReturnFees at "series().op_return.fees" {
-        block: Block = "*_fees",
-        cumulative: AvgBalance = "*_fees_cumulative",
-        sum: Sum = "*_fees_sum",
-        chain_share: ChainShare = "*_fee_chain_share",
     } }
     shape! { RewardsFees at "series().mining.rewards.fees" {
         block: Block = "*",
@@ -1939,6 +1910,12 @@ pub mod tree {
     shape! { Mining at "series().mining" {
         rewards: MiningRewards = "*",
         hashrate: MiningHashrate = "hash",
+    } }
+    shape! { OpReturnFees at "series().op_return.fees" {
+        block: Block = "*_fees",
+        cumulative: AvgBalance = "*_fees_cumulative",
+        sum: Sum = "*_fees_sum",
+        chain_share: ChainShare = "*_fee_chain_share",
     } }
     shape! { BlocksHalving at "series().blocks.halving" {
         epoch: SeriesPattern1<Halving> = "*_epoch",
@@ -2223,26 +2200,23 @@ pub mod tree {
         sum: InputsPerSecond<Bytes> = "*_sum",
         chain_share: SeriesPattern1<Option<Percent>> = "*_chain_share",
     } }
-    shape! { TransactionsFeaturesExplicitlyRbf at "series().transactions.features.explicitly_rbf" {
+    shape! { Nonstandard at "series().transactions.nonstandard" {
         flag: SeriesPattern20<Boolean> = "is_*",
         block: SeriesPattern19<Count> = "*_tx_count",
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: InputsPerSecond<Count> = "*_tx_count_sum",
     } }
-    shape! { Policy at "series().transactions.policy" {
-        nonstandard: TransactionsFeaturesExplicitlyRbf = "*",
-    } }
     shape! { Patterns at "series().transactions.patterns" {
-        coinjoin: TransactionsFeaturesExplicitlyRbf = "*",
-        consolidation: TransactionsFeaturesExplicitlyRbf = "consolidation",
-        batch_payout: TransactionsFeaturesExplicitlyRbf = "batch_payout",
+        coinjoin: Nonstandard = "*",
+        consolidation: Nonstandard = "consolidation",
+        batch_payout: Nonstandard = "batch_payout",
     } }
     shape! { TransactionsFees at "series().transactions.fees" {
-        fee: EffectiveFeeRate<Sats> = "tx_*",
+        fee: Vsize<Sats> = "tx_*",
         fee_rate: SeriesPattern20<Option<FeeRate>> = "*_rate",
-        effective_fee_rate: EffectiveFeeRate<Option<FeeRate>> = "effective_*_rate",
-        cpfp_parent: TransactionsFeaturesExplicitlyRbf = "cpfp_parent",
-        cpfp_child: TransactionsFeaturesExplicitlyRbf = "cpfp_child",
+        effective_fee_rate: Vsize<Option<FeeRate>> = "effective_*_rate",
+        cpfp_parent: Nonstandard = "cpfp_parent",
+        cpfp_child: Nonstandard = "cpfp_child",
     } }
     shape! { Annex at "series().transactions.features.annex" {
         flag: SeriesPattern20<Boolean> = "has_*",
@@ -2250,7 +2224,7 @@ pub mod tree {
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: InputsPerSecond<Count> = "*_tx_count_sum",
     } }
-    shape! { BlocksSize<A, B> at "series().blocks.size" {
+    shape! { Size<A, B> at "series().blocks.size" {
         block: SeriesPattern19<A> = "*",
         cumulative: SeriesPattern1<A> = "*_cumulative",
         sum: InputsPerSecond<A> = "*_sum",
@@ -2619,7 +2593,7 @@ pub mod tree {
     shape! { Inscription at "series().transactions.inscription" {
         flag: SeriesPattern20<Boolean> = "has_*",
         count: CoinblocksDestroyed<Count> = "*_tx_count",
-        fees: InscriptionFees = "*",
+        fees: OpReturnFees = "*",
     } }
     shape! { TypesEmpty at "series().inputs.types.empty" {
         count: CoinblocksDestroyed<Count> = "*_count",
@@ -2642,7 +2616,7 @@ pub mod tree {
     } }
     shape! { Outputs at "series().outputs" {
         spent: Spent = "spending_txin_index",
-        count: BlocksSize<Count, Option<CountFract>> = "*_count",
+        count: Size<Count, Option<CountFract>> = "*_count",
         per_second: InputsPerSecond<Option<PerSecond>> = "outputs_per_second",
         spendable_count: CoinblocksDestroyed<Count> = "spendable_*_count",
         types: OutputsTypes = "*",
@@ -2661,16 +2635,15 @@ pub mod tree {
         empty: TypesEmpty = "empty_*",
     } }
     shape! { Inputs at "series().inputs" {
-        count: BlocksSize<Count, Option<CountFract>> = "*_count",
+        count: Size<Count, Option<CountFract>> = "*_count",
         per_second: InputsPerSecond<Option<PerSecond>> = "inputs_per_second",
         types: InputsTypes = "*",
     } }
     shape! { Blocks at "series().blocks" {
         count: CoinblocksDestroyed<Count> = "*_count",
         interval: Interval<Seconds, Option<SecondsFract>> = "*_interval",
-        vsize: BlocksSize<VSize, Option<VSizeFract>> = "*_vsize",
-        size: BlocksSize<Bytes, Option<BytesFract>> = "*_size",
-        weight: BlocksSize<Weight, Option<WeightFract>> = "*_weight",
+        size: Size<Bytes, Option<BytesFract>> = "*_size",
+        weight: Size<Weight, Option<WeightFract>> = "*_weight",
         fullness: SeriesPattern19<Option<Percent>> = "*_fullness",
         difficulty: BlocksDifficulty = "difficulty",
         halving: BlocksHalving = "halving",
@@ -2944,7 +2917,7 @@ pub mod tree {
         v3: A = "v3_*",
         other: A = "other_version_*",
     } }
-    shape! { IndexerTransactionsFeaturesExplicitlyRbf at "series().indexer.transactions.features.explicitly_rbf" {
+    shape! { ExplicitlyRbf at "series().indexer.transactions.features.explicitly_rbf" {
         flag: SeriesPattern20<Boolean> = "is_*",
         block: SeriesPattern19<Count> = "*_tx_count",
     } }
@@ -2972,19 +2945,19 @@ pub mod tree {
         sighash_single: Annex = "*_single",
         sighash_default: Annex = "*_default",
         sighash_anyone_can_pay: Annex = "*_anyone_can_pay",
-        explicitly_rbf: TransactionsFeaturesExplicitlyRbf = "explicitly_rbf",
+        explicitly_rbf: Nonstandard = "explicitly_rbf",
         dust_output: Annex = "dust_output",
         one_input: OneInput = "one_input_tx_count",
         one_output: OneInput = "one_output_tx_count",
     } }
     shape! { Transactions at "series().transactions" {
-        count: BlocksSize<Count, Option<CountFract>> = "*_count",
+        count: Size<Count, Option<CountFract>> = "*_count",
         features: TransactionsFeatures = "sighash",
-        size: TransactionsSize = "*",
+        vsize: Vsize<VSize> = "*_vsize",
         fees: TransactionsFees = "fee",
         inscription: Inscription = "inscription",
         patterns: Patterns = "coinjoin",
-        policy: Policy = "nonstandard",
+        nonstandard: Nonstandard = "nonstandard",
         sigop_cost: CoinblocksDestroyed<SigOps> = "block_sigop_cost",
         versions: Versions<CoinblocksDestroyed<Count>> = "*_count",
         volume: OpReturnValue = "*_volume",
@@ -3011,7 +2984,7 @@ pub mod tree {
         sighash_single: FeaturesEmpty = "*_single",
         sighash_default: FeaturesEmpty = "*_default",
         sighash_anyone_can_pay: FeaturesEmpty = "*_anyone_can_pay",
-        explicitly_rbf: IndexerTransactionsFeaturesExplicitlyRbf = "explicitly_rbf",
+        explicitly_rbf: ExplicitlyRbf = "explicitly_rbf",
         dust_output: FeaturesEmpty = "dust_output",
         one_input: OneInput = "one_input_tx_count",
         one_output: OneInput = "one_output_tx_count",
@@ -3033,6 +3006,7 @@ pub mod tree {
         blockhash: SeriesPattern19<BlockHash> = "blockhash",
         coinbase_tag: SeriesPattern19<CoinbaseTag> = "coinbase_tag",
         timestamp: SeriesPattern19<Timestamp> = "timestamp",
+        median_time: SeriesPattern19<Timestamp> = "median_time",
         size: SeriesPattern19<Bytes> = "block_size",
         weight: SeriesPattern19<Weight> = "block_weight",
         segwit_tx_count: SeriesPattern19<Count> = "*_tx_count",

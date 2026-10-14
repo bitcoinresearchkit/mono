@@ -65,7 +65,7 @@ impl Query {
         let indexer = self.indexer();
         let plugins = self.plugins();
         let mut weight = indexer.vecs().transactions.weight.cursor();
-        let mut fee = plugins.transactions.fees.fee.tx_index.cursor();
+        let mut fee = plugins.transactions.fees.fee.tx.cursor();
         let txid = indexer.vecs().transactions.txid.reader();
 
         members
@@ -88,7 +88,7 @@ impl Query {
         let indexer = self.indexer();
         let plugins = self.plugins();
         let mut weight = indexer.vecs().transactions.weight.cursor();
-        let mut fee = plugins.transactions.fees.fee.tx_index.cursor();
+        let mut fee = plugins.transactions.fees.fee.tx.cursor();
         let txid = indexer.vecs().transactions.txid.reader();
 
         indexes

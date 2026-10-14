@@ -34,7 +34,7 @@ impl ComputePlugin for Vecs {
             + raw.kind.version()
             + raw.post_op_return_bytes.version()
             + txs.weight.version()
-            + fees.fee.tx_index.version();
+            + fees.fee.tx.version();
 
         {
             let _lock = exit.lock();

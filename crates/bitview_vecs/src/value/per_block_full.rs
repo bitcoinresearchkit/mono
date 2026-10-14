@@ -44,10 +44,6 @@ impl ValuePerBlockFull {
         )
     }
 
-    pub fn cumulative_sats_source(&self) -> &(impl ReadableCloneableVec<Height, Sats> + use<>) {
-        self.cumulative.sats.resolutions.height_source()
-    }
-
     pub fn import(
         db: &Database,
         name: &str,

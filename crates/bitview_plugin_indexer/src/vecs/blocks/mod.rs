@@ -32,10 +32,9 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// period. Block-header timestamps are not guaranteed to increase between
     /// consecutive heights.
     pub timestamp: M::Stored<PcoVec<Height, Timestamp, Budgeted>>,
-    /// Median of this block's timestamp and up to ten predecessors, choosing
-    /// the upper middle for early even-length windows. Compressed on disk;
-    /// response builders read bounded ranges without caching the full history.
-    #[traversable(hidden)]
+    /// Median time past: the median of this block's header timestamp and up to
+    /// ten predecessors (the upper middle for the first blocks' even-length
+    /// windows), which consensus requires each next block's timestamp to exceed.
     pub median_time: M::Stored<PcoVec<Height, Timestamp>>,
     /// Serialized block size in bytes, including witness data: its 80-byte header,
     /// transaction-count CompactSize, and every serialized transaction. Value for the represented

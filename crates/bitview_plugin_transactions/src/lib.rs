@@ -12,8 +12,8 @@ mod inscription;
 mod patterns;
 mod policy;
 mod sigops;
-mod size;
 mod versions;
+mod vsize;
 
 pub use dependencies::Dependencies;
 pub use fees::Vecs as FeesVecs;
@@ -31,8 +31,8 @@ use inscription::Vecs as InscriptionVecs;
 use patterns::Vecs as PatternsVecs;
 use policy::Vecs as PolicyVecs;
 use sigops::Vecs as SigopsVecs;
-use size::Vecs as UtxosVecs;
 use versions::Vecs as VersionsVecs;
+use vsize::Vecs as VSizeVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("transactions"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
@@ -44,17 +44,15 @@ pub struct Vecs<M: StorageMode = Rw> {
 
     pub count: CountVecs<M>,
     features: FeaturesVecs<M>,
-    size: UtxosVecs<M>,
+    /// Transaction virtual size in vbytes: BIP-141 weight divided by four, rounded up. The
+    /// statistics count each of the block's transactions equally, coinbase included, at
+    /// mempool.space's ranks (min the first, max the last, percentile `p` at
+    /// `sorted[max(0, floor(n * p) - 1)]`); time-period indexes take the period's final block.
+    vsize: VSizeVecs<M>,
     pub fees: FeesVecs<M>,
     inscription: InscriptionVecs<M>,
     patterns: PatternsVecs<M>,
-    /// BRK's transaction-local approximation of default Bitcoin Core relay
-    /// standardness at the represented block height. It checks version,
-    /// size and weight, scripts and witnesses, signature-operation limits,
-    /// dust, and `OP_RETURN` policy. It does not model node adoption, fee
-    /// floors, mempool or package topology, conflicts or replacement, or
-    /// node-specific settings. Modeled rules change after height 863,500 and at
-    /// heights 905,000 and 921,000; coinbase is classified nonstandard.
+    #[traversable(flatten)]
     policy: PolicyVecs<M>,
     sigop_cost: SigopsVecs<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit

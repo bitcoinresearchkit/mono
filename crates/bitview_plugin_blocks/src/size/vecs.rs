@@ -1,27 +1,12 @@
 use bitview_primitives::Bytes32;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyPerBlockRolling;
-use brk_types::{Height, VSize, Weight32};
-use vecdb::{LazyVec, Rw, StorageMode};
+use vecdb::{Rw, StorageMode};
 
 use crate::block_rolling::BlockRolling;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Virtual size in vbytes: block weight in weight units divided by four
-    /// and rounded up. Cumulative values divide the cumulative weight and
-    /// rolling sums and averages are taken from them, so they can differ from
-    /// summed per-block values by less than one vbyte per block.
-    pub(super) vsize: VirtualSize,
     /// Serialized block size in bytes, including witness data: its 80-byte header,
     /// transaction-count CompactSize, and every serialized transaction.
     pub size: BlockRolling<Bytes32, M>,
-}
-
-#[derive(Clone, Traversable)]
-pub(super) struct VirtualSize {
-    /// Value for the represented block.
-    pub(super) block: LazyVec<Height, VSize, Height, Weight32>,
-    #[traversable(flatten)]
-    pub(super) rolling: LazyPerBlockRolling<VSize, Weight32>,
 }

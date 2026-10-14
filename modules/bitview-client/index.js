@@ -1550,11 +1550,6 @@ coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 
  * @typedef {number} VSize
  */
 /**
- * A mean virtual size in vbytes.
- *
- * @typedef {number} VSizeFract
- */
-/**
  * @typedef {Object} ValidateAddressParam
  * @property {string} address - Bitcoin address to validate (can be any string)
  */
@@ -3712,9 +3707,9 @@ const _MarketSma = _s({
  *   _1w: SeriesPattern1<?Dollars>,
  *   _1m: SeriesPattern1<?Dollars>,
  *   _1y: SeriesPattern1<?Dollars>,
- * }} RangeMax
+ * }} Max
  */
-const _RangeMax = _s({
+const _Max = _s({
   _1w: [_i1, '*_1w'],
   _1m: [_i1, '*_1m'],
   _1y: [_i1, '*_1y'],
@@ -3722,14 +3717,14 @@ const _RangeMax = _s({
 
 /**
  * @typedef {{
- *   min: RangeMax,
- *   max: RangeMax,
+ *   min: Max,
+ *   max: Max,
  *   trueRange: SeriesPattern1<?Dollars>,
  * }} Range
  */
 const _Range = _s({
-  min: [_RangeMax, '*_min'],
-  max: [_RangeMax, '*_max'],
+  min: [_Max, '*_min'],
+  max: [_Max, '*_max'],
   trueRange: [_i1, '*_true_range'],
 });
 
@@ -3868,69 +3863,25 @@ const _MiningHashrate = _s({
 /**
  * @template A
  * @typedef {{
- *   block: SeriesPattern1<A>,
- *   _6b: SeriesPattern1<A>,
- * }} EffectiveFeeRateMax
+ *   tx: SeriesPattern20<A>,
+ *   min: SeriesPattern1<A>,
+ *   max: SeriesPattern1<A>,
+ *   pct10: SeriesPattern1<A>,
+ *   pct25: SeriesPattern1<A>,
+ *   median: SeriesPattern1<A>,
+ *   pct75: SeriesPattern1<A>,
+ *   pct90: SeriesPattern1<A>,
+ * }} Vsize
  */
-const _EffectiveFeeRateMax = _s({
-  block: [_i1, '*'],
-  _6b: [_i1, '*_6b'],
-});
-
-/**
- * @typedef {{
- *   min: EffectiveFeeRateMax<Weight>,
- *   max: EffectiveFeeRateMax<Weight>,
- *   pct10: EffectiveFeeRateMax<Weight>,
- *   pct25: EffectiveFeeRateMax<Weight>,
- *   median: EffectiveFeeRateMax<Weight>,
- *   pct75: EffectiveFeeRateMax<Weight>,
- *   pct90: EffectiveFeeRateMax<Weight>,
- * }} SizeWeight
- */
-const _SizeWeight = _s({
-  min: [_EffectiveFeeRateMax, '*_min'],
-  max: [_EffectiveFeeRateMax, '*_max'],
-  pct10: [_EffectiveFeeRateMax, '*_pct10'],
-  pct25: [_EffectiveFeeRateMax, '*_pct25'],
-  median: [_EffectiveFeeRateMax, '*_median'],
-  pct75: [_EffectiveFeeRateMax, '*_pct75'],
-  pct90: [_EffectiveFeeRateMax, '*_pct90'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   txIndex: SeriesPattern20<A>,
- *   min: EffectiveFeeRateMax<A>,
- *   max: EffectiveFeeRateMax<A>,
- *   pct10: EffectiveFeeRateMax<A>,
- *   pct25: EffectiveFeeRateMax<A>,
- *   median: EffectiveFeeRateMax<A>,
- *   pct75: EffectiveFeeRateMax<A>,
- *   pct90: EffectiveFeeRateMax<A>,
- * }} EffectiveFeeRate
- */
-const _EffectiveFeeRate = _s({
-  txIndex: [_i20, '*'],
-  min: [_EffectiveFeeRateMax, '*_min'],
-  max: [_EffectiveFeeRateMax, '*_max'],
-  pct10: [_EffectiveFeeRateMax, '*_pct10'],
-  pct25: [_EffectiveFeeRateMax, '*_pct25'],
-  median: [_EffectiveFeeRateMax, '*_median'],
-  pct75: [_EffectiveFeeRateMax, '*_pct75'],
-  pct90: [_EffectiveFeeRateMax, '*_pct90'],
-});
-
-/**
- * @typedef {{
- *   vsize: EffectiveFeeRate<VSize>,
- *   weight: SizeWeight,
- * }} TransactionsSize
- */
-const _TransactionsSize = _s({
-  vsize: [_EffectiveFeeRate, '*_vsize'],
-  weight: [_SizeWeight, '*_weight'],
+const _Vsize = _s({
+  tx: [_i20, '*'],
+  min: [_i1, '*_min'],
+  max: [_i1, '*_max'],
+  pct10: [_i1, '*_pct10'],
+  pct25: [_i1, '*_pct25'],
+  median: [_i1, '*_median'],
+  pct75: [_i1, '*_pct75'],
+  pct90: [_i1, '*_pct90'],
 });
 
 /**
@@ -4163,21 +4114,6 @@ const _Block = _s({
  *   block: Block,
  *   cumulative: AvgBalance,
  *   sum: Sum,
- *   chainShare: SeriesPattern1<?Percent>,
- * }} InscriptionFees
- */
-const _InscriptionFees = _s({
-  block: [_Block, '*_fees'],
-  cumulative: [_AvgBalance, '*_fees_cumulative'],
-  sum: [_Sum, '*_fees_sum'],
-  chainShare: [_i1, '*_fee_chain_share'],
-});
-
-/**
- * @typedef {{
- *   block: Block,
- *   cumulative: AvgBalance,
- *   sum: Sum,
  * }} OpReturnValue
  */
 const _OpReturnValue = _s({
@@ -4236,21 +4172,6 @@ const _ChainShare = _s({
   _1w: [_i1, '*_1w'],
   _1m: [_i1, '*_1m'],
   _1y: [_i1, '*_1y'],
-});
-
-/**
- * @typedef {{
- *   block: Block,
- *   cumulative: AvgBalance,
- *   sum: Sum,
- *   chainShare: ChainShare,
- * }} OpReturnFees
- */
-const _OpReturnFees = _s({
-  block: [_Block, '*_fees'],
-  cumulative: [_AvgBalance, '*_fees_cumulative'],
-  sum: [_Sum, '*_fees_sum'],
-  chainShare: [_ChainShare, '*_fee_chain_share'],
 });
 
 /**
@@ -4323,6 +4244,21 @@ const _MiningRewards = _s({
 const _Mining = _s({
   rewards: [_MiningRewards, '*'],
   hashrate: [_MiningHashrate, 'hash'],
+});
+
+/**
+ * @typedef {{
+ *   block: Block,
+ *   cumulative: AvgBalance,
+ *   sum: Sum,
+ *   chainShare: ChainShare,
+ * }} OpReturnFees
+ */
+const _OpReturnFees = _s({
+  block: [_Block, '*_fees'],
+  cumulative: [_AvgBalance, '*_fees_cumulative'],
+  sum: [_Sum, '*_fees_sum'],
+  chainShare: [_ChainShare, '*_fee_chain_share'],
 });
 
 /**
@@ -4960,9 +4896,9 @@ const _DataBytes = _s({
  *   block: SeriesPattern19<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
- * }} TransactionsFeaturesExplicitlyRbf
+ * }} Nonstandard
  */
-const _TransactionsFeaturesExplicitlyRbf = _s({
+const _Nonstandard = _s({
   flag: [_i20, 'is_*'],
   block: [_i19, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
@@ -4971,41 +4907,32 @@ const _TransactionsFeaturesExplicitlyRbf = _s({
 
 /**
  * @typedef {{
- *   nonstandard: TransactionsFeaturesExplicitlyRbf,
- * }} Policy
- */
-const _Policy = _s({
-  nonstandard: [_TransactionsFeaturesExplicitlyRbf, '*'],
-});
-
-/**
- * @typedef {{
- *   coinjoin: TransactionsFeaturesExplicitlyRbf,
- *   consolidation: TransactionsFeaturesExplicitlyRbf,
- *   batchPayout: TransactionsFeaturesExplicitlyRbf,
+ *   coinjoin: Nonstandard,
+ *   consolidation: Nonstandard,
+ *   batchPayout: Nonstandard,
  * }} Patterns
  */
 const _Patterns = _s({
-  coinjoin: [_TransactionsFeaturesExplicitlyRbf, '*'],
-  consolidation: [_TransactionsFeaturesExplicitlyRbf, 'consolidation'],
-  batchPayout: [_TransactionsFeaturesExplicitlyRbf, 'batch_payout'],
+  coinjoin: [_Nonstandard, '*'],
+  consolidation: [_Nonstandard, 'consolidation'],
+  batchPayout: [_Nonstandard, 'batch_payout'],
 });
 
 /**
  * @typedef {{
- *   fee: EffectiveFeeRate<Sats>,
+ *   fee: Vsize<Sats>,
  *   feeRate: SeriesPattern20<?FeeRate>,
- *   effectiveFeeRate: EffectiveFeeRate<?FeeRate>,
- *   cpfpParent: TransactionsFeaturesExplicitlyRbf,
- *   cpfpChild: TransactionsFeaturesExplicitlyRbf,
+ *   effectiveFeeRate: Vsize<?FeeRate>,
+ *   cpfpParent: Nonstandard,
+ *   cpfpChild: Nonstandard,
  * }} TransactionsFees
  */
 const _TransactionsFees = _s({
-  fee: [_EffectiveFeeRate, 'tx_*'],
+  fee: [_Vsize, 'tx_*'],
   feeRate: [_i20, '*_rate'],
-  effectiveFeeRate: [_EffectiveFeeRate, 'effective_*_rate'],
-  cpfpParent: [_TransactionsFeaturesExplicitlyRbf, 'cpfp_parent'],
-  cpfpChild: [_TransactionsFeaturesExplicitlyRbf, 'cpfp_child'],
+  effectiveFeeRate: [_Vsize, 'effective_*_rate'],
+  cpfpParent: [_Nonstandard, 'cpfp_parent'],
+  cpfpChild: [_Nonstandard, 'cpfp_child'],
 });
 
 /**
@@ -5037,9 +4964,9 @@ const _Annex = _s({
  *   median: InputsPerSecond<A>,
  *   pct75: InputsPerSecond<A>,
  *   pct90: InputsPerSecond<A>,
- * }} BlocksSize
+ * }} Size
  */
-const _BlocksSize = _s({
+const _Size = _s({
   block: [_i19, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_InputsPerSecond, '*_sum'],
@@ -5901,13 +5828,13 @@ const _OpReturn = _s({
  * @typedef {{
  *   flag: SeriesPattern20<Boolean>,
  *   count: CoinblocksDestroyed<Count>,
- *   fees: InscriptionFees,
+ *   fees: OpReturnFees,
  * }} Inscription
  */
 const _Inscription = _s({
   flag: [_i20, 'has_*'],
   count: [_CoinblocksDestroyed, '*_tx_count'],
-  fees: [_InscriptionFees, '*'],
+  fees: [_OpReturnFees, '*'],
 });
 
 /**
@@ -5957,7 +5884,7 @@ const _OutputsTypes = _s({
 /**
  * @typedef {{
  *   spent: Spent,
- *   count: BlocksSize<Count, ?CountFract>,
+ *   count: Size<Count, ?CountFract>,
  *   perSecond: InputsPerSecond<?PerSecond>,
  *   spendableCount: CoinblocksDestroyed<Count>,
  *   types: OutputsTypes,
@@ -5966,7 +5893,7 @@ const _OutputsTypes = _s({
  */
 const _Outputs = _s({
   spent: [_Spent, 'spending_txin_index'],
-  count: [_BlocksSize, '*_count'],
+  count: [_Size, '*_count'],
   perSecond: [_InputsPerSecond, 'outputs_per_second'],
   spendableCount: [_CoinblocksDestroyed, 'spendable_*_count'],
   types: [_OutputsTypes, '*'],
@@ -6002,13 +5929,13 @@ const _InputsTypes = _s({
 
 /**
  * @typedef {{
- *   count: BlocksSize<Count, ?CountFract>,
+ *   count: Size<Count, ?CountFract>,
  *   perSecond: InputsPerSecond<?PerSecond>,
  *   types: InputsTypes,
  * }} Inputs
  */
 const _Inputs = _s({
-  count: [_BlocksSize, '*_count'],
+  count: [_Size, '*_count'],
   perSecond: [_InputsPerSecond, 'inputs_per_second'],
   types: [_InputsTypes, '*'],
 });
@@ -6017,9 +5944,8 @@ const _Inputs = _s({
  * @typedef {{
  *   count: CoinblocksDestroyed<Count>,
  *   interval: Interval<Seconds, ?SecondsFract>,
- *   vsize: BlocksSize<VSize, ?VSizeFract>,
- *   size: BlocksSize<Bytes, ?BytesFract>,
- *   weight: BlocksSize<Weight, ?WeightFract>,
+ *   size: Size<Bytes, ?BytesFract>,
+ *   weight: Size<Weight, ?WeightFract>,
  *   fullness: SeriesPattern19<?Percent>,
  *   difficulty: BlocksDifficulty,
  *   halving: BlocksHalving,
@@ -6028,9 +5954,8 @@ const _Inputs = _s({
 const _Blocks = _s({
   count: [_CoinblocksDestroyed, '*_count'],
   interval: [_Interval, '*_interval'],
-  vsize: [_BlocksSize, '*_vsize'],
-  size: [_BlocksSize, '*_size'],
-  weight: [_BlocksSize, '*_weight'],
+  size: [_Size, '*_size'],
+  weight: [_Size, '*_weight'],
   fullness: [_i19, '*_fullness'],
   difficulty: [_BlocksDifficulty, 'difficulty'],
   halving: [_BlocksHalving, 'halving'],
@@ -6742,9 +6667,9 @@ const _Versions = (c, b, f0) => _n(c, b, {
  * @typedef {{
  *   flag: SeriesPattern20<Boolean>,
  *   block: SeriesPattern19<Count>,
- * }} IndexerTransactionsFeaturesExplicitlyRbf
+ * }} ExplicitlyRbf
  */
-const _IndexerTransactionsFeaturesExplicitlyRbf = _s({
+const _ExplicitlyRbf = _s({
   flag: [_i20, 'is_*'],
   block: [_i19, '*_tx_count'],
 });
@@ -6781,7 +6706,7 @@ const _FeaturesEmpty = _s({
  *   sighashSingle: Annex,
  *   sighashDefault: Annex,
  *   sighashAnyoneCanPay: Annex,
- *   explicitlyRbf: TransactionsFeaturesExplicitlyRbf,
+ *   explicitlyRbf: Nonstandard,
  *   dustOutput: Annex,
  *   oneInput: OneInput,
  *   oneOutput: OneInput,
@@ -6807,7 +6732,7 @@ const _TransactionsFeatures = _s({
   sighashSingle: [_Annex, '*_single'],
   sighashDefault: [_Annex, '*_default'],
   sighashAnyoneCanPay: [_Annex, '*_anyone_can_pay'],
-  explicitlyRbf: [_TransactionsFeaturesExplicitlyRbf, 'explicitly_rbf'],
+  explicitlyRbf: [_Nonstandard, 'explicitly_rbf'],
   dustOutput: [_Annex, 'dust_output'],
   oneInput: [_OneInput, 'one_input_tx_count'],
   oneOutput: [_OneInput, 'one_output_tx_count'],
@@ -6815,13 +6740,13 @@ const _TransactionsFeatures = _s({
 
 /**
  * @typedef {{
- *   count: BlocksSize<Count, ?CountFract>,
+ *   count: Size<Count, ?CountFract>,
  *   features: TransactionsFeatures,
- *   size: TransactionsSize,
+ *   vsize: Vsize<VSize>,
  *   fees: TransactionsFees,
  *   inscription: Inscription,
  *   patterns: Patterns,
- *   policy: Policy,
+ *   nonstandard: Nonstandard,
  *   sigopCost: CoinblocksDestroyed<SigOps>,
  *   versions: Versions<CoinblocksDestroyed<Count>>,
  *   volume: OpReturnValue,
@@ -6829,13 +6754,13 @@ const _TransactionsFeatures = _s({
  * }} Transactions
  */
 const _Transactions = _s({
-  count: [_BlocksSize, '*_count'],
+  count: [_Size, '*_count'],
   features: [_TransactionsFeatures, 'sighash'],
-  size: [_TransactionsSize, '*'],
+  vsize: [_Vsize, '*_vsize'],
   fees: [_TransactionsFees, 'fee'],
   inscription: [_Inscription, 'inscription'],
   patterns: [_Patterns, 'coinjoin'],
-  policy: [_Policy, 'nonstandard'],
+  nonstandard: [_Nonstandard, 'nonstandard'],
   sigopCost: [_CoinblocksDestroyed, 'block_sigop_cost'],
   versions: [(c, b) => _Versions(c, b, _CoinblocksDestroyed), '*_count'],
   volume: [_OpReturnValue, '*_volume'],
@@ -6864,7 +6789,7 @@ const _Transactions = _s({
  *   sighashSingle: FeaturesEmpty,
  *   sighashDefault: FeaturesEmpty,
  *   sighashAnyoneCanPay: FeaturesEmpty,
- *   explicitlyRbf: IndexerTransactionsFeaturesExplicitlyRbf,
+ *   explicitlyRbf: ExplicitlyRbf,
  *   dustOutput: FeaturesEmpty,
  *   oneInput: OneInput,
  *   oneOutput: OneInput,
@@ -6891,7 +6816,7 @@ const _IndexerTransactionsFeatures = _s({
   sighashSingle: [_FeaturesEmpty, '*_single'],
   sighashDefault: [_FeaturesEmpty, '*_default'],
   sighashAnyoneCanPay: [_FeaturesEmpty, '*_anyone_can_pay'],
-  explicitlyRbf: [_IndexerTransactionsFeaturesExplicitlyRbf, 'explicitly_rbf'],
+  explicitlyRbf: [_ExplicitlyRbf, 'explicitly_rbf'],
   dustOutput: [_FeaturesEmpty, 'dust_output'],
   oneInput: [_OneInput, 'one_input_tx_count'],
   oneOutput: [_OneInput, 'one_output_tx_count'],
@@ -6931,6 +6856,7 @@ const _IndexerTransactions = _s({
  *   blockhash: SeriesPattern19<BlockHash>,
  *   coinbaseTag: SeriesPattern19<CoinbaseTag>,
  *   timestamp: SeriesPattern19<Timestamp>,
+ *   medianTime: SeriesPattern19<Timestamp>,
  *   size: SeriesPattern19<Bytes>,
  *   weight: SeriesPattern19<Weight>,
  *   segwitTxCount: SeriesPattern19<Count>,
@@ -6942,6 +6868,7 @@ const _IndexerBlocks = _s({
   blockhash: [_i19, 'blockhash'],
   coinbaseTag: [_i19, 'coinbase_tag'],
   timestamp: [_i19, 'timestamp'],
+  medianTime: [_i19, 'median_time'],
   size: [_i19, 'block_size'],
   weight: [_i19, 'block_weight'],
   segwitTxCount: [_i19, '*_tx_count'],

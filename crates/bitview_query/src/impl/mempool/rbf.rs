@@ -131,7 +131,7 @@ impl IndexerRead<'_> {
                     .transactions
                     .fees
                     .effective_fee_rate
-                    .tx_index
+                    .tx
                     .collect_one(index)
                     .data()?,
             ),

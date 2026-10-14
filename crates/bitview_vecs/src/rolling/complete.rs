@@ -25,7 +25,7 @@ where
     rolling: RollingTotals<T::Sum>,
     #[traversable(flatten)]
     /// Statistics in the quantity's wide type, like its sums.
-    pub(crate) distribution: RollingDistribution<T::Sum, M>,
+    distribution: RollingDistribution<T::Sum, M>,
 }
 
 impl<T> RollingComplete<T>

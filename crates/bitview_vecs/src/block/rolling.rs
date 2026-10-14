@@ -20,9 +20,9 @@ where
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    pub(crate) cumulative: PerBlock<T::Sum, M>,
+    cumulative: PerBlock<T::Sum, M>,
     #[traversable(flatten)]
-    pub(crate) rolling: RollingComplete<T, M>,
+    rolling: RollingComplete<T, M>,
 }
 
 impl<T> PerBlockRolling<T>

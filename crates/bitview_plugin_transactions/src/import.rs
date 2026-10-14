@@ -7,7 +7,7 @@ use brk_error::Result;
 use brk_types::Version;
 
 use super::{
-    STORAGE, Vecs, count, features, fees, inscription, patterns, policy, sigops, size, versions,
+    STORAGE, Vecs, count, features, fees, inscription, patterns, policy, sigops, versions, vsize,
 };
 
 impl Vecs {
@@ -22,10 +22,16 @@ impl Vecs {
 
         let count = count::Vecs::import(&db, version, mappings, window_starts)?;
         let features = features::Vecs::import(&db, version, indexer, mappings, window_starts)?;
-        let size = size::Vecs::import(&db, version, indexer, mappings)?;
+        let vsize = vsize::Vecs::import(&db, version, indexer, mappings)?;
         let fees = fees::Vecs::import(&db, version, mappings, window_starts)?;
-        let inscription =
-            inscription::Vecs::import(&db, version, indexer, mappings, window_starts)?;
+        let inscription = inscription::Vecs::import(
+            &db,
+            version,
+            indexer,
+            mappings,
+            window_starts,
+            &fees.total_cumulative,
+        )?;
         let patterns = patterns::Vecs::import(&db, version, mappings, window_starts)?;
         let policy = policy::Vecs::import(&db, version, mappings, window_starts)?;
         let sigops = sigops::Vecs::import(&db, version, mappings, window_starts)?;
@@ -44,7 +50,7 @@ impl Vecs {
             db,
             count,
             features,
-            size,
+            vsize,
             fees,
             inscription,
             patterns,

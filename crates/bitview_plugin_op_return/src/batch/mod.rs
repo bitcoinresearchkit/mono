@@ -62,7 +62,7 @@ impl Batch {
                     .weight
                     .read_sorted_at(&carrier_tx_positions)
             },
-            || fee_vecs.fee.tx_index.read_sorted_at(&carrier_tx_positions),
+            || fee_vecs.fee.tx.read_sorted_at(&carrier_tx_positions),
         );
 
         Self {

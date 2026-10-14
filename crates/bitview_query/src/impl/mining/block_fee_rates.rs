@@ -24,13 +24,13 @@ impl Query {
         let read = |vec| -> Result<Vec<FeeRate>> {
             Ok(bw.read(vec)?.into_iter().map(mempool_fee_rate).collect())
         };
-        let min = read(&frd.min.block.height)?;
-        let pct10 = read(&frd.pct10.block.height)?;
-        let pct25 = read(&frd.pct25.block.height)?;
-        let median = read(&frd.median.block.height)?;
-        let pct75 = read(&frd.pct75.block.height)?;
-        let pct90 = read(&frd.pct90.block.height)?;
-        let max = read(&frd.max.block.height)?;
+        let min = read(&frd.min.height)?;
+        let pct10 = read(&frd.pct10.height)?;
+        let pct25 = read(&frd.pct25.height)?;
+        let median = read(&frd.median.height)?;
+        let pct75 = read(&frd.pct75.height)?;
+        let pct90 = read(&frd.pct90.height)?;
+        let max = read(&frd.max.height)?;
         drop(pin);
 
         Ok(bw

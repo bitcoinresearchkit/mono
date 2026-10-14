@@ -131,14 +131,14 @@ has to be deleted by hand.
   `inscription_tx_count` (were `tx_v1`, `tx_other_version`, `tx_count_annex`, `tx_count_dust_output`,
   `coinjoin_count`, `nonstandard_count`, `cpfp_parent_count`, `tx_count_inscription`), and features sit at
   `transactions.features.<feature>` (were under `features.count`). The inscription fee share is
-  `transactions.inscription.fees.chain_share`, id `inscription_fee_chain_share` (was `fee_share`; per block only)
+  `transactions.inscription.fees.chain_share.{cumulative, 24h, 1w, 1m, 1y}` like OP_RETURN's, ids
+  `inscription_fee_chain_share[_<window>]` (was `fee_share`, per block)
 - Blocks: difficulty is `blocks.difficulty.block` (was `.value`); `blocks.count` holds `block`, `cumulative` and the
   window sums directly (were under `total`) and the constant `blocks.count.target.<window>` series are gone;
   `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
-- Block size, weight and virtual size: `blocks.size.block` (id `block_size`) and `blocks.weight.block` (`block_weight`)
-  sit beside their cumulative and rolling statistics (the per-block values were only the indexer's); virtual size is
-  `blocks.vsize`, ids `block_vsize`, `block_vsize_cumulative`, `block_vsize_median_24h`, ... (were `blocks.vbytes`,
-  `block_vbytes*`). The indexer's own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was
+- Block size and weight: `blocks.size.block` (id `block_size`) and `blocks.weight.block` (`block_weight`) sit beside
+  their cumulative and rolling statistics (the per-block values were only the indexer's); blocks are measured in weight
+  and transactions in vsize, so block virtual size is gone (`blocks.vbytes`, `block_vbytes*`). The indexer's own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was
   `indexer.blocks.size.block` with id `total_size`), `indexer.blocks.weight` (was `.weight.block`),
   `indexer.blocks.timestamp` (was `.time.timestamp`), and `segwit_tx_count` (was `segwit_txs`)
 - These per-transaction series take the `tx_` stem: `tx_size` at `indexer.transactions.size` (was `total_size`, the same id as
@@ -146,10 +146,11 @@ has to be deleted by hand.
   `raw_locktime`), `tx_version` at `.version` (was `.tx_version`) and `tx_fee` (was `fee`). The block sum of sigop cost
   is `transactions.sigop_cost.{block, cumulative, sum}`, ids `block_sigop_cost`, `block_sigop_cost_cumulative`,
   `block_sigop_cost_sum_<W>` (were `transactions.sigops.total`, `total_sigop_cost*`)
-- Per-transaction distributions put the statistic first, like the rolling ones: `transactions.size.vsize.median.{block,
-  _6b}` (were `vsize.block.median` and `vsize._6b.median`), ids `tx_vsize_median` and `tx_vsize_median_6b` (was
-  `tx_vsize_6b_median`); the same for `min`, `max` and the percentiles, and for weight, fees (`tx_fee_median`,
-  `tx_fee_median_6b`; were `fee_median`, `fee_6b_median`) and the effective fee rate
+- Per-transaction values sit beside their per-block statistics: `transactions.vsize.{tx, min, max, pct10, pct25,
+  median, pct75, pct90}` (were `transactions.size.vsize.{tx_index, block.median, ...}`), ids `tx_vsize` and
+  `tx_vsize_median`, ...; likewise `transactions.fees.fee` (`tx_fee_median`, was `fee_median`) and
+  `transactions.fees.effective_fee_rate`. The six-block statistics (`tx_vsize_6b_median`, `fee_6b_median`, ...) and
+  the transaction weight statistics (`tx_weight_*`; vsize stays) are gone
 - The indexer's per-block transaction counts take the `<kind>_tx_count` template: `explicitly_rbf_tx_count`,
   `one_input_tx_count`, `one_output_tx_count`, `fake_pubkey_tx_count`, and per output type `p2pkh_tx_count`, ...,
   `empty_tx_count` (transactions that create or spend that type, beside `outputs`' `p2pkh_output_tx_count` and
@@ -164,8 +165,8 @@ has to be deleted by hand.
   value as it resolves the input (the unspent-output store carries the value), so `transactions` no longer depends on
   `inputs`. The indexer reindexes (version 42)
 - Address balance bands' address count sits at `funded` like the root's and types' (was `address_count`; ids
-  unchanged); the per-transaction vsize distributions (`tx_vsize_median`, ...) have every index like their weight and
-  fee siblings; prices are `price.{open, high, low, close}` (were under `price.split`)
+  unchanged); the per-transaction vsize statistics (`tx_vsize_median`, ...) have every index like their fee
+  siblings; prices are `price.{open, high, low, close}` (were under `price.split`)
 - Gone, as duplicates or one division of published series: the average UTXO amount (`avg_utxo_amount*`, `<type>_avg_utxo_amount*`: supply over UTXO count)
 - Descriptions: per-block values no longer claim time-period indexes they don't have; the holders' realized,
   unrealized, activity and output series say what they measure; undefined values are described as null; absolute
@@ -173,7 +174,7 @@ has to be deleted by hand.
 - Transaction features, patterns, policy and CPFP roles are member-first: each is one node holding its
   per-transaction `flag` beside its per-block count, `transactions.features.p2tr.{flag, block, cumulative, sum}` (the
   flags and most counts were the indexer's only), `transactions.patterns.coinjoin.{flag, block, cumulative, sum}` (were
-  `patterns.is_coinjoin` and `patterns.count.coinjoin`), likewise `transactions.policy.nonstandard` and
+  `patterns.is_coinjoin` and `patterns.count.coinjoin`), likewise `transactions.nonstandard` and
   `transactions.fees.cpfp_parent`/`cpfp_child`; `transactions.inscription.flag` and `op_return.flag` (`has_op_return`).
   SegWit, single-input and single-output transactions have counts only (`transactions.features.segwit`, `one_input`,
   `one_output`). The indexer's columns take the same shape: `indexer.transactions.features.<feature>.{flag, block}`
@@ -471,9 +472,13 @@ has to be deleted by hand.
   REST types use the wide ones (`Transaction.weight` and `.total_sigop_cost`, CPFP entries, block info and weight
   entries; JSON unchanged), and the methods (`MAX_BLOCK`, `from_sizes`, `fullness`, `adjust_vsize`) moved to them
 - `bitview_traversable::Compact<V, T>`: a vec stored in a compact type and published as a wider one under its id
-- `bitview_vecs::TxDerivedDistribution` is statistic-first (`DistributionStats<TxWindows<PerBlock<T>>>`, each statistic
-  with `block` and `_6b`); `PerBlockDistribution` and `LazyDistribution` are removed. Readers of
-  `fees.fee.distribution.block.median` read `fees.fee.distribution.median.block`
+- `bitview_vecs::TxDistribution` (was `TxDerivedDistribution`) is one per-block series per statistic
+  (`DistributionStats<PerBlock<T>>`), computed by `compute` (counted) or `compute_weighted` (vsize-weighted fee rates),
+  and `PerTxDistribution` names its per-transaction vec `tx` (was `tx_index`); `PerBlockDistribution`,
+  `LazyDistribution`, `LazyTxDerivedDistribution`, `LazyPerTxDistributionTransformed`, `LazyPerBlockRolling`,
+  `LazyRollingComplete` and `LazyRollingDistribution` are removed. Readers of `fees.fee.distribution.block.median`
+  read `fees.fee.distribution.median`. `brk_types::get_weighted_percentiles` takes integer percents and returns the
+  first value whose cumulative vsize reaches each (Bitcoin Core's rank rule; was a rounded target)
 - `Cents::round_to_dollar(i32)` and `CentsCompact::round_to_dollar(i32)` are `round_to_significant(u32)`: significant
   digits of the amount in cents (were whole dollars, then digits); `bitview_urpd::COST_BASIS_PRICE_DIGITS` is a `u32`
   (4, was 5). `bitview_distribution::state::cost_basis::PRICE_INDEX_VERSION` is the price grid's version for a price
@@ -606,9 +611,12 @@ has to be deleted by hand.
 - Entry cohorts are part of the default plugins again: outputs created at a price at or below the previous block's
   all-chain capitalized price (`veteran_*`, discount) or above it (`rookie_*`, premium), served and in the generated
   clients. Computing them from block 0 takes about 50 s at 970,536 blocks on a 16 GB Mac mini
-- Each age band serves its realized price again (`utxos_<band>_old_realized_price`, USD, at
-  `age.ranges.<band>.cost_basis.per_coin.realized_price`): the band's exact creation-price product over its supply, like
-  the aggregated cohorts' realized price. Stored per band, so the age plugin replays from block 0 once
+- Each age band, epoch and class serves its realized price again (`utxos_<band>_old_realized_price`,
+  `epoch_0_realized_price`, `class_2009_realized_price`, USD, at `age.<family>.<cohort>.cost_basis.per_coin.realized_price`):
+  the cohort's exact creation-price product over its supply, like the aggregated cohorts' realized price. Stored per
+  cohort, so the age plugin replays from block 0 once
+- Median time past, `indexer.blocks.median_time` (id `median_time`, height index): the median of each block's header
+  timestamp and up to ten predecessors, which the next block's timestamp must exceed
 - `capital_density` beside `supply_density` in holders, Cointime and Coinflow: the share of a cohort's invested
   capital (satoshis times creation price) with a creation price within 5% of spot, split at spot. Cointime shows
   `coinblocks_destroyed` and each age range's `coindays_created` beside their siblings (the age plugin's series, same
@@ -685,8 +693,17 @@ has to be deleted by hand.
   SMAs): every 1,024th row rebuilds the window's sum from its values, the rows after continue from it, and a resume
   replays from the last such row. A resume rebuilt the sum where it started (before that, from rounded stored
   outputs), so the last digits depended on update history
-- Block weight totals and statistics are exact (they were derived from vbytes × 4, off by up to 3 WU per block);
-  block vsize is weight / 4 rounded up, like Bitcoin Core (was rounded down)
+- Block weight totals and statistics are exact (they were derived from vbytes × 4, off by up to 3 WU per block)
+- Fee statistics follow mempool.space and Bitcoin Core. `tx_fee_*` count every non-coinbase transaction, zero fees
+  included (were left out), at mempool.space's ranks: min the first, max the last, percentile `p` at
+  `sorted[max(0, floor(n·p) − 1)]`. Effective fee rate percentiles weight by vsize with Core's `getblockstats` rank rule
+  (the first rate whose cumulative vsize reaches `p`), zero rates included; min is the lower of the 1st percentile and
+  the lowest rate among the transactions overlapping the block's last 2% of vsize, max the higher of the 99th
+  percentile and the highest among those overlapping its first 2% (mempool.space's heuristic; were the plain
+  extremes, which a single outlier set)
+- Per-transaction and rolling-window statistics use one unweighted rank, the lower nearest rank
+  `sorted[max(0, floor(n·p) − 1)]`: transaction vsize statistics (were the rounded nearest rank) and every
+  rolling-window percentile and median (were linearly interpolated), the VOCDD median behind Reserve Risk included
 - True range is exact cents
 - The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
   blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply change, which lagged a halving by up to a year (that

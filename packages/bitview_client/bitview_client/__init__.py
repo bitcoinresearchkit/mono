@@ -285,8 +285,6 @@ UnknownOutputIndex = TypeIndex
 UrpdAggregation = Literal["raw", "lin200", "lin500", "lin1000", "log10", "log50", "log100", "log200", "log500", "log1000", "log2000"]
 # Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.
 UrpdWeight = Literal["raw", "cointime", "coinflow"]
-# A mean virtual size in vbytes.
-VSizeFract = float
 # Version tracking for data schema and computed values.
 #
 # Used to detect when stored data needs to be recomputed due to changes
@@ -3651,15 +3649,15 @@ class MarketSma(_Node):
     _4y: Ema13d = _at(Ema13d, '*_4y')
 
 
-class RangeMax(_Node):
+class Max(_Node):
     _1w: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_1w')
     _1m: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_1m')
     _1y: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_1y')
 
 
 class Range(_Node):
-    min: RangeMax = _at(RangeMax, '*_min')
-    max: RangeMax = _at(RangeMax, '*_max')
+    min: Max = _at(Max, '*_min')
+    max: Max = _at(Max, '*_max')
     true_range: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_true_range')
 
 
@@ -3725,35 +3723,15 @@ class MiningHashrate(_Node):
     value: HashratePrice = _at(HashratePrice, '*_value')
 
 
-class EffectiveFeeRateMax(_Node, Generic[A]):
-    block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
-    _6b: SeriesPattern1[A] = _at(SeriesPattern1, '*_6b')
-
-
-class SizeWeight(_Node):
-    min: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_min')
-    max: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_max')
-    pct10: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct10')
-    pct25: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct25')
-    median: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_median')
-    pct75: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct75')
-    pct90: EffectiveFeeRateMax[Weight] = _at(EffectiveFeeRateMax, '*_pct90')
-
-
-class EffectiveFeeRate(_Node, Generic[A]):
-    tx_index: SeriesPattern20[A] = _at(SeriesPattern20, '*')
-    min: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_min')
-    max: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_max')
-    pct10: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_pct10')
-    pct25: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_pct25')
-    median: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_median')
-    pct75: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_pct75')
-    pct90: EffectiveFeeRateMax[A] = _at(EffectiveFeeRateMax, '*_pct90')
-
-
-class TransactionsSize(_Node):
-    vsize: EffectiveFeeRate[VSize] = _at(EffectiveFeeRate, '*_vsize')
-    weight: SizeWeight = _at(SizeWeight, '*_weight')
+class Vsize(_Node, Generic[A]):
+    tx: SeriesPattern20[A] = _at(SeriesPattern20, '*')
+    min: SeriesPattern1[A] = _at(SeriesPattern1, '*_min')
+    max: SeriesPattern1[A] = _at(SeriesPattern1, '*_max')
+    pct10: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct10')
+    pct25: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct25')
+    median: SeriesPattern1[A] = _at(SeriesPattern1, '*_median')
+    pct75: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct75')
+    pct90: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct90')
 
 
 class AvgBalance(_Node):
@@ -3861,13 +3839,6 @@ class Block(_Node):
     usd: SeriesPattern19[Optional[Dollars]] = _at(SeriesPattern19, '*_usd')
 
 
-class InscriptionFees(_Node):
-    block: Block = _at(Block, '*_fees')
-    cumulative: AvgBalance = _at(AvgBalance, '*_fees_cumulative')
-    sum: Sum = _at(Sum, '*_fees_sum')
-    chain_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_fee_chain_share')
-
-
 class OpReturnValue(_Node):
     block: Block = _at(Block, '*')
     cumulative: AvgBalance = _at(AvgBalance, '*_cumulative')
@@ -3896,13 +3867,6 @@ class ChainShare(_Node):
     _1w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1w')
     _1m: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1m')
     _1y: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1y')
-
-
-class OpReturnFees(_Node):
-    block: Block = _at(Block, '*_fees')
-    cumulative: AvgBalance = _at(AvgBalance, '*_fees_cumulative')
-    sum: Sum = _at(Sum, '*_fees_sum')
-    chain_share: ChainShare = _at(ChainShare, '*_fee_chain_share')
 
 
 class RewardsFees(_Node):
@@ -3937,6 +3901,13 @@ class MiningRewards(_Node):
 class Mining(_Node):
     rewards: MiningRewards = _at(MiningRewards, '*')
     hashrate: MiningHashrate = _at(MiningHashrate, 'hash')
+
+
+class OpReturnFees(_Node):
+    block: Block = _at(Block, '*_fees')
+    cumulative: AvgBalance = _at(AvgBalance, '*_fees_cumulative')
+    sum: Sum = _at(Sum, '*_fees_sum')
+    chain_share: ChainShare = _at(ChainShare, '*_fee_chain_share')
 
 
 class BlocksHalving(_Node):
@@ -4242,29 +4213,25 @@ class DataBytes(_Node):
     chain_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_chain_share')
 
 
-class TransactionsFeaturesExplicitlyRbf(_Node):
+class Nonstandard(_Node):
     flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'is_*')
     block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
 
 
-class Policy(_Node):
-    nonstandard: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, '*')
-
-
 class Patterns(_Node):
-    coinjoin: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, '*')
-    consolidation: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'consolidation')
-    batch_payout: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'batch_payout')
+    coinjoin: Nonstandard = _at(Nonstandard, '*')
+    consolidation: Nonstandard = _at(Nonstandard, 'consolidation')
+    batch_payout: Nonstandard = _at(Nonstandard, 'batch_payout')
 
 
 class TransactionsFees(_Node):
-    fee: EffectiveFeeRate[Sats] = _at(EffectiveFeeRate, 'tx_*')
+    fee: Vsize[Sats] = _at(Vsize, 'tx_*')
     fee_rate: SeriesPattern20[Optional[FeeRate]] = _at(SeriesPattern20, '*_rate')
-    effective_fee_rate: EffectiveFeeRate[Optional[FeeRate]] = _at(EffectiveFeeRate, 'effective_*_rate')
-    cpfp_parent: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'cpfp_parent')
-    cpfp_child: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'cpfp_child')
+    effective_fee_rate: Vsize[Optional[FeeRate]] = _at(Vsize, 'effective_*_rate')
+    cpfp_parent: Nonstandard = _at(Nonstandard, 'cpfp_parent')
+    cpfp_child: Nonstandard = _at(Nonstandard, 'cpfp_child')
 
 
 class Annex(_Node):
@@ -4274,7 +4241,7 @@ class Annex(_Node):
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
 
 
-class BlocksSize(_Node, Generic[A, B]):
+class Size(_Node, Generic[A, B]):
     block: SeriesPattern19[A] = _at(SeriesPattern19, '*')
     cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
     sum: InputsPerSecond[A] = _at(InputsPerSecond, '*_sum')
@@ -4686,7 +4653,7 @@ class OpReturn(_Node):
 class Inscription(_Node):
     flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
     count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_tx_count')
-    fees: InscriptionFees = _at(InscriptionFees, '*')
+    fees: OpReturnFees = _at(OpReturnFees, '*')
 
 
 class TypesEmpty(_Node):
@@ -4712,7 +4679,7 @@ class OutputsTypes(_Node):
 
 class Outputs(_Node):
     spent: Spent = _at(Spent, 'spending_txin_index')
-    count: BlocksSize[Count, Optional[CountFract]] = _at(BlocksSize, '*_count')
+    count: Size[Count, Optional[CountFract]] = _at(Size, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'outputs_per_second')
     spendable_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'spendable_*_count')
     types: OutputsTypes = _at(OutputsTypes, '*')
@@ -4733,7 +4700,7 @@ class InputsTypes(_Node):
 
 
 class Inputs(_Node):
-    count: BlocksSize[Count, Optional[CountFract]] = _at(BlocksSize, '*_count')
+    count: Size[Count, Optional[CountFract]] = _at(Size, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'inputs_per_second')
     types: InputsTypes = _at(InputsTypes, '*')
 
@@ -4741,9 +4708,8 @@ class Inputs(_Node):
 class Blocks(_Node):
     count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, '*_count')
     interval: Interval[Seconds, Optional[SecondsFract]] = _at(Interval, '*_interval')
-    vsize: BlocksSize[VSize, Optional[VSizeFract]] = _at(BlocksSize, '*_vsize')
-    size: BlocksSize[Bytes, Optional[BytesFract]] = _at(BlocksSize, '*_size')
-    weight: BlocksSize[Weight, Optional[WeightFract]] = _at(BlocksSize, '*_weight')
+    size: Size[Bytes, Optional[BytesFract]] = _at(Size, '*_size')
+    weight: Size[Weight, Optional[WeightFract]] = _at(Size, '*_weight')
     fullness: SeriesPattern19[Optional[Percent]] = _at(SeriesPattern19, '*_fullness')
     difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
@@ -5072,7 +5038,7 @@ class Versions(_Node, Generic[A]):
     other: A = _at(0, 'other_version_*')
 
 
-class IndexerTransactionsFeaturesExplicitlyRbf(_Node):
+class ExplicitlyRbf(_Node):
     flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'is_*')
     block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
 
@@ -5102,20 +5068,20 @@ class TransactionsFeatures(_Node):
     sighash_single: Annex = _at(Annex, '*_single')
     sighash_default: Annex = _at(Annex, '*_default')
     sighash_anyone_can_pay: Annex = _at(Annex, '*_anyone_can_pay')
-    explicitly_rbf: TransactionsFeaturesExplicitlyRbf = _at(TransactionsFeaturesExplicitlyRbf, 'explicitly_rbf')
+    explicitly_rbf: Nonstandard = _at(Nonstandard, 'explicitly_rbf')
     dust_output: Annex = _at(Annex, 'dust_output')
     one_input: OneInput = _at(OneInput, 'one_input_tx_count')
     one_output: OneInput = _at(OneInput, 'one_output_tx_count')
 
 
 class Transactions(_Node):
-    count: BlocksSize[Count, Optional[CountFract]] = _at(BlocksSize, '*_count')
+    count: Size[Count, Optional[CountFract]] = _at(Size, '*_count')
     features: TransactionsFeatures = _at(TransactionsFeatures, 'sighash')
-    size: TransactionsSize = _at(TransactionsSize, '*')
+    vsize: Vsize[VSize] = _at(Vsize, '*_vsize')
     fees: TransactionsFees = _at(TransactionsFees, 'fee')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'coinjoin')
-    policy: Policy = _at(Policy, 'nonstandard')
+    nonstandard: Nonstandard = _at(Nonstandard, 'nonstandard')
     sigop_cost: CoinblocksDestroyed[SigOps] = _at(CoinblocksDestroyed, 'block_sigop_cost')
     versions: Versions[CoinblocksDestroyed[Count]] = _at((Versions, CoinblocksDestroyed), '*_count')
     volume: OpReturnValue = _at(OpReturnValue, '*_volume')
@@ -5143,7 +5109,7 @@ class IndexerTransactionsFeatures(_Node):
     sighash_single: FeaturesEmpty = _at(FeaturesEmpty, '*_single')
     sighash_default: FeaturesEmpty = _at(FeaturesEmpty, '*_default')
     sighash_anyone_can_pay: FeaturesEmpty = _at(FeaturesEmpty, '*_anyone_can_pay')
-    explicitly_rbf: IndexerTransactionsFeaturesExplicitlyRbf = _at(IndexerTransactionsFeaturesExplicitlyRbf, 'explicitly_rbf')
+    explicitly_rbf: ExplicitlyRbf = _at(ExplicitlyRbf, 'explicitly_rbf')
     dust_output: FeaturesEmpty = _at(FeaturesEmpty, 'dust_output')
     one_input: OneInput = _at(OneInput, 'one_input_tx_count')
     one_output: OneInput = _at(OneInput, 'one_output_tx_count')
@@ -5167,6 +5133,7 @@ class IndexerBlocks(_Node):
     blockhash: SeriesPattern19[BlockHash] = _at(SeriesPattern19, 'blockhash')
     coinbase_tag: SeriesPattern19[CoinbaseTag] = _at(SeriesPattern19, 'coinbase_tag')
     timestamp: SeriesPattern19[Timestamp] = _at(SeriesPattern19, 'timestamp')
+    median_time: SeriesPattern19[Timestamp] = _at(SeriesPattern19, 'median_time')
     size: SeriesPattern19[Bytes] = _at(SeriesPattern19, 'block_size')
     weight: SeriesPattern19[Weight] = _at(SeriesPattern19, 'block_weight')
     segwit_tx_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')

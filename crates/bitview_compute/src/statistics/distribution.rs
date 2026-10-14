@@ -3,7 +3,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use vecdb::{
     AnyStoredVec, AnyVec, CachePolicy, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex,
-    VecValue, WritableVec,
+    VecValue, Version, WritableVec,
 };
 
 use super::window::SlidingWindowSorted;
@@ -38,7 +38,7 @@ where
         pct75: p75_out,
         pct90: p90_out,
     } = outputs;
-    let version = window_starts.version() + values.version();
+    let version = window_starts.version() + values.version() + Version::ONE;
 
     {
         let _lock = exit.lock();
@@ -141,7 +141,7 @@ where
         } else {
             min_out.push(T::from(window.min()));
             max_out.push(T::from(window.max()));
-            let [p10, p25, p50, p75, p90] = window.percentiles(&[0.10, 0.25, 0.50, 0.75, 0.90]);
+            let [p10, p25, p50, p75, p90] = window.percentiles([0.10, 0.25, 0.50, 0.75, 0.90]);
             p10_out.push(T::from(p10));
             p25_out.push(T::from(p25));
             median_out.push(T::from(p50));

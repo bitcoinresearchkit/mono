@@ -104,13 +104,9 @@ impl DefaultPlugins {
                     })
                 })?;
 
-                let mining = mining_handle.join().unwrap()?;
+                let transactions = transactions_handle.join().unwrap()?;
                 let block_size = blocks.size.size.cumulative_source();
-                let chain_fees = mining
-                    .rewards
-                    .fees
-                    .cumulative_sats_source()
-                    .read_only_boxed_clone();
+                let chain_fees = transactions.fees.total_cumulative.read_only_boxed_clone();
                 let op_return_handle = {
                     let indexer = &indexer;
                     let mappings = &mappings;
@@ -128,6 +124,7 @@ impl DefaultPlugins {
                         })
                     })
                 }?;
+                let mining = mining_handle.join().unwrap()?;
                 // Pool hash rates read mining's network estimates; the import itself is light.
                 let pools = timed(Phase::Import, POOLS_ID, || -> Result<_> {
                     let rate = &mining.hashrate.rate;
@@ -146,7 +143,6 @@ impl DefaultPlugins {
                 })?;
                 let inputs = inputs_handle.join().unwrap()?;
                 let outputs = outputs_handle.join().unwrap()?;
-                let transactions = transactions_handle.join().unwrap()?;
                 let op_return = op_return_handle.join().unwrap()?;
 
                 Ok((inputs, outputs, mining, transactions, pools, op_return))

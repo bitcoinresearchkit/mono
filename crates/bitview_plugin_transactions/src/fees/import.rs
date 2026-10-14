@@ -37,6 +37,7 @@ impl Vecs {
 
         Ok(Vecs {
             total: EagerVec::import(db, "fee_total", v)?,
+            total_cumulative: EagerVec::import(db, "fee_total_cumulative", v)?,
             coinbase_value: EagerVec::import(db, "coinbase_value", v)?,
             fee: PerTxDistribution::import(db, "tx_fee", v, mappings)?,
             fee_rate: EagerVec::import(db, "fee_rate", v)?,

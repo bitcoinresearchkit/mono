@@ -1,9 +1,5 @@
-mod derived_distribution;
 mod distribution;
-mod lazy_derived_distribution;
-mod lazy_distribution_transformed;
+mod per_tx;
 
-pub use derived_distribution::{TxDerivedDistribution, TxWindows};
-pub use distribution::PerTxDistribution;
-pub use lazy_derived_distribution::LazyTxDerivedDistribution;
-pub use lazy_distribution_transformed::LazyPerTxDistributionTransformed;
+pub use distribution::TxDistribution;
+pub use per_tx::PerTxDistribution;

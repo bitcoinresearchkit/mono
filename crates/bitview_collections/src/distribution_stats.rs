@@ -26,20 +26,16 @@ impl<A> DistributionStats<A> {
     const SUFFIXES: [&'static str; 7] =
         ["min", "max", "pct10", "pct25", "median", "pct75", "pct90"];
 
-    /// Project each statistic using its canonical catalog suffix.
-    pub fn map_with_suffix<B>(
-        &self,
-        mut f: impl FnMut(&'static str, &A) -> B,
-    ) -> DistributionStats<B> {
-        DistributionStats {
-            min: f(Self::SUFFIXES[0], &self.min),
-            max: f(Self::SUFFIXES[1], &self.max),
-            pct10: f(Self::SUFFIXES[2], &self.pct10),
-            pct25: f(Self::SUFFIXES[3], &self.pct25),
-            median: f(Self::SUFFIXES[4], &self.median),
-            pct75: f(Self::SUFFIXES[5], &self.pct75),
-            pct90: f(Self::SUFFIXES[6], &self.pct90),
-        }
+    pub fn as_mut_array(&mut self) -> [&mut A; 7] {
+        [
+            &mut self.min,
+            &mut self.max,
+            &mut self.pct10,
+            &mut self.pct25,
+            &mut self.median,
+            &mut self.pct75,
+            &mut self.pct90,
+        ]
     }
 
     pub fn try_from_fn<E>(mut f: impl FnMut(&str) -> StdResult<A, E>) -> StdResult<Self, E> {

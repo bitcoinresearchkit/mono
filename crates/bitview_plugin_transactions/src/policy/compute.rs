@@ -23,7 +23,7 @@ impl Vecs {
         let features = &indexer.vecs().transactions.features;
         let version = features.is_unconditionally_nonstandard.version()
             + features.dust_output.flag.version()
-            + fees.fee.tx_index.version()
+            + fees.fee.tx.version()
             + indexer.vecs().transactions.first_tx_index.version()
             + mappings.height.tx_index_count.version();
         {
@@ -36,7 +36,7 @@ impl Vecs {
                 .validate_computed_version_or_reset(version)?;
         }
         let starting_lengths = indexer.safe_lengths();
-        let target_tx = fees.fee.tx_index.len();
+        let target_tx = fees.fee.tx.len();
         let target_height = mappings.height.tx_index_count.len();
         let tx_len = self
             .nonstandard
@@ -72,7 +72,7 @@ impl Vecs {
             .dust_output
             .flag
             .range_cursor_at(start_tx, target_tx);
-        let mut fee = fees.fee.tx_index.cursor();
+        let mut fee = fees.fee.tx.cursor();
         let mut tx_count = mappings.height.tx_index_count.cursor();
         tx_count.advance(start_height);
 

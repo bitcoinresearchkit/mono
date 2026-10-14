@@ -68,14 +68,9 @@ impl SlidingWindowSorted {
         }
     }
 
-    /// Extract a percentile (0.0-1.0) using linear interpolation.
-    #[inline]
-    pub fn percentile(&self, p: f64) -> f64 {
-        self.sorted.percentile(p)
-    }
-
-    /// Extract multiple percentiles in a single pass through the sorted blocks.
-    pub fn percentiles(&self, ps: &[f64; 5]) -> [f64; 5] {
-        self.sorted.percentiles(ps)
+    /// Percentiles (0.0-1.0, ascending) at the lower nearest rank,
+    /// `sorted[max(0, floor(n * p) - 1)]`. The window must not be empty.
+    pub fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
+        self.sorted.lower_nearest_ranks(ps)
     }
 }

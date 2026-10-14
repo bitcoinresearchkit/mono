@@ -10,12 +10,12 @@ use bitview_primitives::{Boolean, Count, Lengths};
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Sats, TxIndex};
+use brk_types::{Height, Sats, TxIndex, VSize};
 use rayon::{join, prelude::*};
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, VecIndex, WritableVec};
 
-use super::{super::size, Vecs};
+use super::Vecs;
 use block::Block;
 use sources::Sources;
 
@@ -26,7 +26,7 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         mappings: &MappingsVecs,
-        size_vecs: &size::Vecs,
+        vsizes: &impl ReadableVec<TxIndex, VSize>,
         transfer_volume: &mut CachedSeries<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
@@ -40,26 +40,30 @@ impl Vecs {
             transfer_volume,
             exit,
         )?;
+        self.total_cumulative
+            .compute_cumulative(starting_lengths.height, &self.total, exit)?;
 
-        let vsize_source = &size_vecs.vsize.tx_index;
+        let first_tx_index = &indexer.vecs().transactions.first_tx_index;
+        let (fee, effective_fee_rate) = (&mut self.fee, &mut self.effective_fee_rate);
         let (r1, r2) = join(
             || {
-                self.fee.derive_from_with_skip(
+                fee.distribution.compute(
                     mappings,
                     &starting_lengths,
-                    &indexer.vecs().transactions.first_tx_index,
-                    exit,
+                    first_tx_index,
+                    &fee.tx,
                     1,
+                    exit,
                 )
             },
             || {
-                self.effective_fee_rate.derive_from_with_skip_weighted(
+                effective_fee_rate.distribution.compute_weighted(
                     mappings,
                     &starting_lengths,
-                    &indexer.vecs().transactions.first_tx_index,
-                    vsize_source,
+                    first_tx_index,
+                    &effective_fee_rate.tx,
+                    vsizes,
                     exit,
-                    1,
                 )
             },
         );
@@ -98,7 +102,7 @@ impl Vecs {
         {
             let _lock = exit.lock();
             self.fee
-                .tx_index
+                .tx
                 .validate_computed_version_or_reset(monetary_version)?;
             self.coinbase_value
                 .validate_computed_version_or_reset(monetary_version)?;
@@ -108,7 +112,7 @@ impl Vecs {
             self.fee_rate
                 .validate_computed_version_or_reset(rate_version)?;
             self.effective_fee_rate
-                .tx_index
+                .tx
                 .validate_computed_version_or_reset(cpfp_version)?;
             for target in self.cpfp_flags_mut() {
                 target.validate_computed_version_or_reset(cpfp_version)?;
@@ -127,18 +131,13 @@ impl Vecs {
             .min(raw.block_outputs.len());
         let resume = |tx_len| tx_heights.resume_height(tx_len, target, max_height);
         let limit = starting_lengths.height.to_usize().min(max_height);
-        let monetary_start = resume(
-            self.fee
-                .tx_index
-                .len()
-                .min(starting_lengths.tx_index.to_usize()),
-        )
-        .min(self.coinbase_value.len())
-        .min(transfer_volume.len())
-        .min(limit);
+        let monetary_start = resume(self.fee.tx.len().min(starting_lengths.tx_index.to_usize()))
+            .min(self.coinbase_value.len())
+            .min(transfer_volume.len())
+            .min(limit);
         let rate_start = resume(self.fee_rate.len()).min(limit);
         let cpfp_start = resume(
-            self.effective_fee_rate.tx_index.len().min(
+            self.effective_fee_rate.tx.len().min(
                 self.cpfp_flags_mut()
                     .map(|v| v.len())
                     .min()
@@ -161,14 +160,12 @@ impl Vecs {
         };
         {
             let _lock = exit.lock();
-            self.fee
-                .tx_index
-                .truncate_if_needed_at(to_tx(monetary_start))?;
+            self.fee.tx.truncate_if_needed_at(to_tx(monetary_start))?;
             self.coinbase_value.truncate_if_needed_at(monetary_start)?;
             transfer_volume.truncate_if_needed_at(monetary_start)?;
             self.fee_rate.truncate_if_needed_at(to_tx(rate_start))?;
             self.effective_fee_rate
-                .tx_index
+                .tx
                 .truncate_if_needed_at(to_tx(cpfp_start))?;
             for target in self.cpfp_flags_mut() {
                 target.truncate_if_needed_at(to_tx(cpfp_start))?;
@@ -188,7 +185,7 @@ impl Vecs {
             |totals, range| {
                 let starts = first_tx.collect_range_at(range.start, range.end);
                 let counts = tx_counts.collect_range_at(range.start, range.end);
-                let mut fees = self.fee.tx_index.cursor();
+                let mut fees = self.fee.tx.cursor();
                 for (&start, count) in starts.iter().zip(counts) {
                     let mut total = Sats::ZERO;
                     fees.try_for_each_range_at(
@@ -287,11 +284,9 @@ impl Vecs {
                         values::sum(&output_starts, output_end, &mut block.output_values),
                     );
                 } else {
-                    self.fee.tx_index.collect_range_into_at(
-                        first_tx,
-                        first_tx + n,
-                        &mut block.fees,
-                    );
+                    self.fee
+                        .tx
+                        .collect_range_into_at(first_tx, first_tx + n, &mut block.fees);
                 }
                 outpoints.collect_into(input_end - block.input_begin, &mut block.outpoints);
 
@@ -327,13 +322,13 @@ impl Vecs {
                     parent_count += u64::from(is_parent);
                     child_count += u64::from(is_child);
                     if height + offset >= monetary_start {
-                        self.fee.tx_index.push(fee);
+                        self.fee.tx.push(fee);
                     }
                     if height + offset >= rate_start {
                         self.fee_rate.push(fee_rate);
                     }
                     if height + offset >= cpfp_start {
-                        self.effective_fee_rate.tx_index.push(effective);
+                        self.effective_fee_rate.tx.push(effective);
                         self.cpfp_parent.flag.push(Boolean::from(is_parent));
                         self.cpfp_child.flag.push(Boolean::from(is_child));
                     }
@@ -379,10 +374,10 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let _lock = exit.lock();
-        self.fee.tx_index.write()?;
+        self.fee.tx.write()?;
         self.total.write()?;
         self.fee_rate.write()?;
-        self.effective_fee_rate.tx_index.write()?;
+        self.effective_fee_rate.tx.write()?;
         for target in self.cpfp_flags_mut() {
             target.write()?;
         }

@@ -25,7 +25,7 @@ impl Vecs {
         let count = count::block_count(version, indexer, mappings, &window_starts);
         let interval = IntervalVecs::import(&db, version, mappings, &window_starts)?;
         let weight = WeightVecs::import(&db, version, indexer, mappings, &window_starts)?;
-        let size = SizeVecs::import(&db, version, indexer, mappings, &window_starts, &weight)?;
+        let size = SizeVecs::import(&db, version, indexer, mappings, &window_starts)?;
         let difficulty = DifficultyVecs::new(version, indexer, mappings);
         let halving = HalvingVecs::new(version, mappings);
 

@@ -1,10 +1,13 @@
 use bitview_collections::Windows;
 use bitview_plugin_indexer::Indexer;
+use bitview_primitives::PartsPerMillion32;
+use bitview_transforms::Quotient;
 use bitview_vecs::{
-    IndexSources, PerBlockCumulativeRolling, PercentPerBlock, ValuePerBlockCumulativeRolling,
+    IndexSources, LazyPercentCumulativeRolling, PerBlockCumulativeRolling,
+    ValuePerBlockCumulativeRolling,
 };
 use brk_error::Result;
-use brk_types::{Height, Version};
+use brk_types::{Height, Sats, Version};
 use vecdb::{Database, ReadableCloneableVec};
 
 use super::Vecs;
@@ -16,8 +19,28 @@ impl Vecs {
         indexer: &Indexer,
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
+        chain_fees: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
+        let fees = ValuePerBlockCumulativeRolling::import(
+            db,
+            "inscription_fees",
+            version + Version::ONE,
+            indexes,
+            window_starts,
+        )?;
+        let chain_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
+            Sats,
+            Sats,
+            Quotient<PartsPerMillion32>,
+        >(
+            "inscription_fee_chain_share",
+            version,
+            fees.cumulative.sats.resolutions.height_source(),
+            chain_fees,
+            window_starts,
+            indexes,
+        );
         Ok(Vecs {
             flag: indexer.vecs().transactions.features.inscription.flag_view(),
             count: PerBlockCumulativeRolling::import(
@@ -27,20 +50,8 @@ impl Vecs {
                 indexes,
                 window_starts,
             )?,
-            fees: ValuePerBlockCumulativeRolling::import(
-                db,
-                "inscription_fees",
-                version + Version::ONE,
-                indexes,
-                window_starts,
-            )?,
-            // Version one: undefined (null) for blocks without fees (was zero).
-            fee_share: PercentPerBlock::import(
-                db,
-                "inscription_fee_chain_share",
-                version + Version::ONE,
-                indexes,
-            )?,
+            fees,
+            chain_share,
         })
     }
 }

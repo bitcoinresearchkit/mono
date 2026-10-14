@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use brk_exit::Exit;
 use vecdb::{
-    AnyVec, CachePolicy, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue,
+    AnyVec, CachePolicy, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, Version,
     WritableVec,
 };
 
@@ -38,7 +38,7 @@ where
         f64: From<A>,
     {
         self.compute_init(
-            window_starts.version() + values.version(),
+            window_starts.version() + values.version() + Version::ONE,
             max_from,
             exit,
             |this| {
@@ -80,7 +80,7 @@ where
                     let start_usize = start.to_usize();
                     window.advance(v, start_usize, &partial_values, range_start);
 
-                    let median = window.percentile(0.50);
+                    let [median] = window.percentiles([0.50]);
                     this.push(T::from(median));
 
                     if this.batch_limit_reached() {
