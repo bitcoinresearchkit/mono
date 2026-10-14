@@ -209,9 +209,11 @@ pub fn has_nonstandard_taproot_witness(witness: &input::WitnessFacts<'_>) -> boo
         return false;
     }
 
-    witness.leaf_version.is_none()
-        || witness.leaf_version == Some(LeafVersion::TapScript)
-            && witness.max_argument_bytes > MAX_WITNESS_STACK_ITEM_BYTES
+    // Core's policy discourages upgradable (future) leaf versions.
+    match witness.leaf_version {
+        Some(LeafVersion::TapScript) => witness.max_argument_bytes > MAX_WITNESS_STACK_ITEM_BYTES,
+        _ => true,
+    }
 }
 
 pub fn has_nonstandard_version(version: i32, height: u32) -> bool {

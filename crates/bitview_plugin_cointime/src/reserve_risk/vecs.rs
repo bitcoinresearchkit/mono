@@ -1,3 +1,4 @@
+use bitview_compute::{Retained, SortedWindow};
 use bitview_primitives::Float64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock, PerBlockCumulativeRolling};
@@ -29,4 +30,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// input, not a published series.
     #[traversable(hidden)]
     pub vocdd_median_1m: M::Stored<EagerVec<PcoVec<Height, Float64>>>,
+    pub(crate) vocdd_median_1m_window: M::WriteOnly<Retained<SortedWindow>>,
 }

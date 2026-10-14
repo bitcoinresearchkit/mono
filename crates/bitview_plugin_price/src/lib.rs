@@ -2,6 +2,7 @@
 
 mod compute;
 mod dependencies;
+mod endpoint;
 mod has;
 mod import;
 mod ohlc;

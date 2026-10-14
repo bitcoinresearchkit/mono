@@ -1,4 +1,9 @@
-use bitcoin::{Script, TxIn, TxOut, constants::WITNESS_SCALE_FACTOR};
+use bitcoin::{
+    Script, TxIn, TxOut,
+    constants::WITNESS_SCALE_FACTOR,
+    opcodes::all::{OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY},
+    script::Instruction,
+};
 use brk_types::{OutputType, SigOps32};
 
 use crate::processor::txout::ProcessedOutput;
@@ -70,7 +75,7 @@ impl Accumulator {
                 {
                     self.witness = self
                         .witness
-                        .saturating_add(Script::from_bytes(last).count_sigops());
+                        .saturating_add(SigOpCount::of(Script::from_bytes(last)).accurate);
                 }
             }
             OutputType::P2WPKH => self.witness = self.witness.saturating_add(1),
@@ -78,7 +83,7 @@ impl Accumulator {
                 if let Some(last) = facts.witness.last {
                     self.witness = self
                         .witness
-                        .saturating_add(Script::from_bytes(last).count_sigops());
+                        .saturating_add(SigOpCount::of(Script::from_bytes(last)).accurate);
                 }
             }
             OutputType::P2TR => {}
@@ -89,7 +94,7 @@ impl Accumulator {
     pub fn scan_coinbase_input(&mut self, input: &TxIn) {
         self.legacy = self
             .legacy
-            .saturating_add(input.script_sig.count_sigops_legacy());
+            .saturating_add(SigOpCount::of(&input.script_sig).legacy);
     }
 
     pub fn scan_output(&mut self, txout: &TxOut, output: &ProcessedOutput) {
@@ -112,19 +117,14 @@ impl Accumulator {
 }
 
 /// Legacy sigop count of a script_pubkey, dispatched on `OutputType`.
-/// Every variant except `OpReturn` and `Unknown` has a canonical shape
-/// recognised by `OutputType::from`'s exact byte-pattern matchers, so
-/// the legacy sigop count is fixed: P2PKH and P2PK both end in a
-/// single OP_CHECKSIG (1), P2MS contains one OP_CHECKMULTISIG counted
-/// as 20 in legacy mode, and P2SH/P2WPKH/P2WSH/P2TR/P2A/Empty contain
-/// no CHECKSIG-class opcodes outside their pushdata. `OpReturn`
-/// payloads can include 0xac/0xae bytes outside a push, and `Unknown`
-/// can be anything, so both fall back to a real script walk.
+/// P2PKH and P2PK end in a single OP_CHECKSIG (1); P2SH/P2WPKH/P2WSH/P2TR/P2A/Empty contain no
+/// CHECKSIG-class opcodes outside their pushdata. The P2MS classifier also accepts extra signature
+/// opcodes before its CHECKMULTISIG, `OpReturn` payloads can hold 0xac/0xae outside a push, and
+/// `Unknown` can be anything, so those are counted (an OP_RETURN's at classification).
 #[inline]
 pub fn legacy_sigops_for_output(output: &ProcessedOutput, script_pubkey: &Script) -> usize {
     match output.output_type {
         OutputType::P2PKH | OutputType::P2PK33 | OutputType::P2PK65 => 1,
-        OutputType::P2MS => 20,
         OutputType::P2SH
         | OutputType::P2WPKH
         | OutputType::P2WSH
@@ -132,6 +132,53 @@ pub fn legacy_sigops_for_output(output: &ProcessedOutput, script_pubkey: &Script
         | OutputType::P2A
         | OutputType::Empty => 0,
         OutputType::OpReturn => output.op_return_legacy_sigops(),
-        OutputType::Unknown => script_pubkey.count_sigops_legacy(),
+        OutputType::P2MS | OutputType::Unknown => SigOpCount::of(script_pubkey).legacy,
+    }
+}
+
+/// Bitcoin Core's `CScript::GetSigOpCount`, both modes in one walk: legacy counts every
+/// CHECKMULTISIG as 20, accurate as the `OP_n` right before it (20 without one). Every instruction
+/// sets that preceding opcode, signature opcodes included (rust-bitcoin's accurate count keeps a
+/// stale `OP_n` across them). A malformed push ends the walk, as in Core.
+#[derive(Default)]
+pub struct SigOpCount {
+    pub legacy: usize,
+    pub accurate: usize,
+    pushnum: Option<usize>,
+}
+
+impl SigOpCount {
+    const MAX_PUBKEYS_PER_MULTISIG: usize = 20;
+
+    pub fn of(script: &Script) -> Self {
+        let mut count = Self::default();
+        for instruction in script.instructions() {
+            let Ok(instruction) = instruction else {
+                break;
+            };
+            count.step(instruction);
+        }
+        count
+    }
+
+    #[inline]
+    pub fn step(&mut self, instruction: Instruction<'_>) {
+        let Instruction::Op(opcode) = instruction else {
+            self.pushnum = None;
+            return;
+        };
+        match opcode {
+            OP_CHECKSIG | OP_CHECKSIGVERIFY => {
+                self.legacy += 1;
+                self.accurate += 1;
+            }
+            OP_CHECKMULTISIG | OP_CHECKMULTISIGVERIFY => {
+                self.legacy += Self::MAX_PUBKEYS_PER_MULTISIG;
+                self.accurate += self.pushnum.unwrap_or(Self::MAX_PUBKEYS_PER_MULTISIG);
+            }
+            _ => {}
+        }
+        let opcode = opcode.to_u8();
+        self.pushnum = (0x51..=0x60).contains(&opcode).then(|| usize::from(opcode - 0x50));
     }
 }

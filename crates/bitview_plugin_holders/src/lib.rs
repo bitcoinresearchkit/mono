@@ -12,7 +12,6 @@ mod has;
 mod import;
 mod live;
 mod metrics;
-mod outputs;
 mod part;
 mod realized;
 mod sources;

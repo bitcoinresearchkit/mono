@@ -63,10 +63,12 @@ Two strategies, picked per call:
 * **forward** — one reader thread walks blk files in order from a
   bisection lower bound and ships canonical hits to a pool of parser
   threads (a third of the cores, at most four), which decode bodies
-  and emit them in order.
-* **tail** — single-threaded reverse scan of the newest blk files,
-  used when the requested range sits within ~8 files of the chain
-  tip. Avoids the forward pipeline's bisection + 21-file backoff
+  and emit them in order. Blocks found past a gap in the sequence are
+  parsed ahead up to a byte budget; beyond it only their positions are
+  kept and re-read once the gap closes.
+* **tail** — single-threaded reverse header scan of the newest blk
+  files, then in-order body reads, used when the requested range sits
+  within ~8 files of the chain tip. Avoids the forward pipeline's bisection + 21-file backoff
   (~2.7 GB of reads) for tip-clustered catchups.
 
 ```text

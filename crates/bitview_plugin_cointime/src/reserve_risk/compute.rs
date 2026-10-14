@@ -58,6 +58,7 @@ impl Vecs {
             starting_height,
             &blocks.lookback._1m,
             &self.vocdd.sum._24h.height,
+            &mut self.vocdd_median_1m_window,
             exit,
         )?;
 

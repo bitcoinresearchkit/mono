@@ -11,8 +11,6 @@ use brk_rpc::Client;
 use brk_types::{BlkPosition, BlockHash, Height};
 use canonical::CanonicalRange;
 use reader_inner::ReaderInner;
-use rlimit::{Resource, getrlimit, setrlimit};
-use tracing::warn;
 use xor_index::XORIndex;
 
 mod bisect;
@@ -38,8 +36,6 @@ pub use xor_bytes::*;
 /// single "out of bounds" signal isn't enough to declare failure.
 const OUT_OF_ORDER_FILE_BACKOFF: usize = 21;
 
-const TARGET_NOFILE: u64 = 15_000;
-
 /// Bitcoin Core blk-file reader. Cheap to clone (`Arc`-backed) and
 /// thread-safe.
 #[derive(Debug, Clone)]
@@ -47,25 +43,7 @@ pub struct Reader(Arc<ReaderInner>);
 
 impl Reader {
     pub fn new(blocks_dir: PathBuf, client: &Client) -> Self {
-        Self::raise_fd_limit();
-        Self::new_without_rlimit(blocks_dir, client)
-    }
-
-    pub fn new_without_rlimit(blocks_dir: PathBuf, client: &Client) -> Self {
         Self(Arc::new(ReaderInner::new(blocks_dir, client)))
-    }
-
-    /// Raises only the soft limit, clamped to the current hard limit:
-    /// raising the hard limit requires `CAP_SYS_RESOURCE` and would
-    /// fail on containers and unprivileged macOS processes.
-    fn raise_fd_limit() {
-        let (soft, hard) = getrlimit(Resource::NOFILE).unwrap_or((0, 0));
-        let new_soft = soft.max(TARGET_NOFILE).min(hard);
-        if new_soft > soft
-            && let Err(e) = setrlimit(Resource::NOFILE, new_soft, hard)
-        {
-            warn!("failed to raise NOFILE rlimit: {e}");
-        }
     }
 
     #[inline]
@@ -95,8 +73,12 @@ impl Reader {
     /// genesis when `None`) up to the current chain tip.
     pub fn after(&self, hash: Option<BlockHash>) -> Result<BlockReceiver> {
         let tip = self.0.client.get_last_height()?;
-        let canonical = CanonicalRange::walk(&self.0.client, hash.as_ref(), tip)?;
-        pipeline::spawn(self.0.clone(), canonical)
+        match CanonicalRange::walk(&self.0.client, hash.as_ref(), tip)? {
+            Some(canonical) => pipeline::spawn(self.0.clone(), canonical),
+            None => Ok(pipeline::failed(Error::Internal(
+                "anchor is no longer on the best chain",
+            ))),
+        }
     }
 
     /// Inclusive height range `start..=end` in canonical order.

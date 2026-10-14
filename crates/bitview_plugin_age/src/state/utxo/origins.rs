@@ -101,14 +101,12 @@ impl UTXOStates {
         price: Cents,
     ) {
         let snapshot = CostBasisSnapshot::from_utxo(price, &supply);
-        self.age_range
-            .under_1h
-            .receive_utxo_snapshot(&supply, &snapshot);
+        self.age_range.under_1h.increment_snapshot(&snapshot);
         if let Some(v) = self.epoch.mut_vec_from_height(height) {
-            v.receive_utxo_snapshot(&supply, &snapshot);
+            v.increment_snapshot(&snapshot);
         }
         if let Some(v) = self.class.mut_vec_from_timestamp(timestamp) {
-            v.receive_utxo_snapshot(&supply, &snapshot);
+            v.increment_snapshot(&snapshot);
         }
     }
 }

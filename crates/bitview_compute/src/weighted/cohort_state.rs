@@ -2,7 +2,7 @@ use bitview_primitives::{BoundedRatio, Ratio64};
 use brk_types::{Cents, Sats};
 use vecdb::unlikely;
 
-use super::{WeightedCapitalizedPrice, WeightedCohortContribution, WeightedRatio, defined_weight};
+use super::{WeightedCapitalizedPrice, WeightedRatio, defined_weight};
 
 #[derive(Clone, Copy, Default)]
 pub struct WeightedCohortState {
@@ -32,29 +32,19 @@ impl WeightedCohortState {
         loss_supply: Sats,
         total_cap: Cents,
         weight: BoundedRatio,
-    ) -> WeightedCohortContribution {
+    ) {
         let (weighted_supply, complement_supply) = Self::split_supply(total_supply, weight);
         let weight = Ratio64::from(f64::from(weight));
-        let contribution = WeightedCohortContribution {
-            weighted_supply,
-            complement_supply,
-            weighted_cap: if total_supply.is_zero() {
-                Cents::ZERO
-            } else {
-                weight * total_cap
-            },
-        };
-
-        self.weighted_supply += contribution.weighted_supply;
-        self.complement_supply += contribution.complement_supply;
-        self.weighted_cap += contribution.weighted_cap;
+        self.weighted_supply += weighted_supply;
+        self.complement_supply += complement_supply;
+        if !total_supply.is_zero() {
+            self.weighted_cap += weight * total_cap;
+        }
         self.supply_in_loss.add(
             loss_supply.as_u128() as f64,
             total_supply.as_u128() as f64,
             f64::from(weight),
         );
-
-        contribution
     }
 
     #[inline]

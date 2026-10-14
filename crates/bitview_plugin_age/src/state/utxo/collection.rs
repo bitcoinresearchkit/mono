@@ -1,6 +1,5 @@
 use bitview_cohort::{Age, AgeRange, ByEpoch, Class};
 use bitview_primitives::CostBasisSnapshot;
-use brk_error::Result;
 use brk_types::Height;
 use rayon::scope as RayonScope;
 use statedb::Amount;
@@ -28,27 +27,11 @@ impl UTXOStates {
         }
     }
 
-    pub fn reset(&mut self) -> Result<()> {
-        for state in self.age_range.iter_mut() {
-            state.reset();
-            state.init_cost_basis();
-        }
-        for state in self.epoch.iter_mut() {
-            state.reset();
-            state.init_cost_basis();
-        }
-        for state in self.class.iter_mut() {
-            state.reset();
-            state.init_cost_basis();
-        }
-        self.transient = UTXOTransientState::default();
-        Ok(())
-    }
-
-    pub fn restore_origins(&mut self, amounts: &[Amount], ctx: &ComputeContext<'_>) -> Result<()> {
-        self.reset()?;
+    /// Restores freshly constructed states from the origin balances. Restoring moves no
+    /// block activity, so the states stay ready for the next block.
+    pub fn restore_origins(&mut self, amounts: &[Amount], ctx: &ComputeContext<'_>) {
         let Some(last) = amounts.len().checked_sub(1) else {
-            return Ok(());
+            return;
         };
         let timestamp = ctx.height_to_timestamp[last];
         for (h, &amount) in amounts.iter().enumerate() {
@@ -75,8 +58,6 @@ impl UTXOStates {
                 scope.spawn(move |_| state.finish_restore());
             }
         });
-        self.reset_block();
-        Ok(())
     }
 
     pub fn apply_pending(&mut self) {

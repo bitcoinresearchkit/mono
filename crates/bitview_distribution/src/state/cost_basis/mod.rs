@@ -10,11 +10,12 @@ mod data;
 mod unrealized;
 pub use core_realized_state::CoreRealizedState;
 pub use data::CostBasisData;
-pub use unrealized::UnrealizedState;
+pub(crate) use unrealized::UnrealizedState;
 
 mod percentile_result;
 mod price_index;
 mod price_totals;
+pub use bitview_urpd::DensityBand;
 pub use percentile_result::PercentileResult;
 pub use price_index::{BucketedPrice, GridCut, PRICE_INDEX_VERSION, PriceIndex};
 pub use price_totals::PriceTotals;

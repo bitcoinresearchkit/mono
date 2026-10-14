@@ -51,13 +51,15 @@ impl Vecs {
         )?;
 
         let hash_rate = &self.rate.block.height;
-        for (sma, window) in [
-            (&mut self.rate.sma._1w.height, lookback.start_vec(7)),
-            (&mut self.rate.sma._1m.height, lookback.start_vec(30)),
-            (&mut self.rate.sma._2m.height, lookback.start_vec(60)),
-            (&mut self.rate.sma._1y.height, lookback.start_vec(365)),
+        let sma = &mut self.rate.sma;
+        let [week, month, two_months, year] = &mut sma.windows;
+        for (sma, window, retained) in [
+            (&mut sma._1w.height, lookback.start_vec(7), week),
+            (&mut sma._1m.height, lookback.start_vec(30), month),
+            (&mut sma._2m.height, lookback.start_vec(60), two_months),
+            (&mut sma._1y.height, lookback.start_vec(365), year),
         ] {
-            sma.compute_rolling_average(starting_height, window, hash_rate, exit)?;
+            sma.compute_rolling_average(starting_height, window, hash_rate, retained, exit)?;
         }
 
         self.rate.ath.height.compute_all_time_high(

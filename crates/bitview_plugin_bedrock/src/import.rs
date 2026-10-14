@@ -14,7 +14,7 @@ impl ModeVecs {
         version: Version,
         mappings: &IndexSources,
     ) -> Result<Self> {
-        let version = version + Version::new(3);
+        let version = version + Version::new(4);
         let supply_in_loss_share_threshold_stored = Percentiles::try_from_fn(|id| {
             import_cached(
                 db,

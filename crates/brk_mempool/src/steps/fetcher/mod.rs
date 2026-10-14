@@ -65,34 +65,31 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
     new_txs.reserve(gbt_synth_set.len());
 
     // Consume `block_template` by value: GBT-only txs move their
-    // body and depends into the synthesis path (no clones), and
-    // the GBT ordering is captured as a `Vec<Txid>` for the
-    // Rebuilder, which is the only downstream consumer and only
-    // reads txids.
+    // depends into the synthesis path and decode their body there (known
+    // bodies stay undecoded), and the GBT ordering is captured as a
+    // `Vec<Txid>` for the Rebuilder, which only reads txids.
     //
     // GBT carries no per-tx arrival timestamp. `now` is correct to
     // within ~1 cycle for a tx that just entered Core's mempool
     // (the only kind that triggers synthesis: not in our pool yet
     // means it just appeared this cycle).
     let now = Timestamp::now();
-    let block_template_txids: Vec<Txid> = block_template
-        .into_iter()
-        .map(|g| {
-            let txid = g.txid;
-            if gbt_synth_set.contains(&txid) {
-                new_entries.push(MempoolEntryInfo {
-                    txid,
-                    vsize: VSize::from(g.weight),
-                    weight: g.weight,
-                    fee: g.fee,
-                    first_seen: now,
-                    depends: g.depends,
-                });
-                new_txs.insert(txid, g.tx);
-            }
-            txid
-        })
-        .collect();
+    let mut block_template_txids: Vec<Txid> = Vec::with_capacity(block_template.len());
+    for g in block_template {
+        let txid = g.txid;
+        if gbt_synth_set.contains(&txid) {
+            new_txs.insert(txid, g.decode()?);
+            new_entries.push(MempoolEntryInfo {
+                txid,
+                vsize: VSize::from(g.weight),
+                weight: g.weight,
+                fee: g.fee,
+                first_seen: now,
+                depends: g.depends,
+            });
+        }
+        block_template_txids.push(txid);
+    }
 
     // Keep GBT-only bodies for the exact template projection, but do not
     // call their union a coherent address view: a removed GBT transaction

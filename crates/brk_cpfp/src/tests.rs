@@ -1,23 +1,25 @@
-use brk_types::{CpfpClusterTxIndex, FeeRate, Sats, VSize};
+use brk_types::{CpfpClusterChunk, CpfpClusterTxIndex, FeeRate, Sats, VSize};
 
-use crate::{ChunkInput, linearize};
+use crate::Cluster;
 
-fn input(fee: u64, parents: &[CpfpClusterTxIndex]) -> ChunkInput<'_> {
-    ChunkInput {
-        fee: Sats::new(fee),
-        vsize: VSize::from(10u64),
-        parents,
+fn linearize(items: &[(u64, &[u32])]) -> Vec<CpfpClusterChunk> {
+    let mut cluster = Cluster::default();
+    for &(fee, parents) in items {
+        cluster.push(
+            Sats::new(fee),
+            VSize::from(10u64),
+            parents.iter().map(|&parent| CpfpClusterTxIndex::from(parent)),
+        );
     }
+    cluster.chunks()
 }
 
 #[test]
 fn chunk_feerates_never_increase() {
-    let p = [CpfpClusterTxIndex::from(1u32)];
     // `a` alone pays 0.7; `p` pays nothing, but with both its children the three pay 0.867.
     // Either child with `p` pays 0.65, so a chunk grown one ancestor set at a time stops
     // after `a` and leaves a later, richer chunk: the order must merge them.
-    let items = [input(7, &[]), input(0, &[]), input(13, &p), input(13, &p)];
-    let chunks = linearize(&items);
+    let chunks = linearize(&[(7, &[]), (0, &[]), (13, &[1]), (13, &[1])]);
     assert_eq!(chunks.len(), 1);
     assert_eq!(
         chunks[0].txs,
@@ -29,8 +31,7 @@ fn chunk_feerates_never_increase() {
     );
 
     // Independent transactions keep their own chunks, richest first.
-    let items = [input(5, &[]), input(10, &[])];
-    let chunks = linearize(&items);
+    let chunks = linearize(&[(5, &[]), (10, &[])]);
     let txs: Vec<_> = chunks.iter().map(|chunk| chunk.txs.clone()).collect();
     assert_eq!(
         txs,

@@ -1,5 +1,5 @@
+use crate::{families::CumulativeFiat, metrics::RealizedBlockData};
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_distribution::{families::CumulativeFiat, metrics::RealizedBlockData};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
@@ -8,7 +8,7 @@ use brk_types::{Cents, CentsSigned, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 #[derive(Traversable)]
-pub struct RealizedVecs<M: StorageMode = Rw> {
+pub struct CreationRealized<M: StorageMode = Rw> {
     /// Profit realized by the cohort's outputs: spending value minus
     /// creation-date value, counted only for profitable spends.
     pub profit: CumulativeFiat<Cents, M>,
@@ -23,8 +23,8 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
     pub value_destroyed: CumulativeFiat<Cents, M>,
 }
 
-impl RealizedVecs {
-    pub fn import(
+impl CreationRealized {
+    pub(super) fn import(
         db: &Database,
         cohort: CohortId,
         version: Version,
@@ -66,14 +66,14 @@ impl RealizedVecs {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, values: &RealizedBlockData) {
+    pub(super) fn push(&mut self, values: &RealizedBlockData) {
         self.profit.push_block(values.profit);
         self.loss.push_block(values.loss);
         self.net_pnl.push_block(values.net_pnl);
         self.value_destroyed.push_block(values.value_destroyed);
     }
 
-    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 4] {
+    pub(super) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 4] {
         [
             self.profit.stored_mut(),
             self.loss.stored_mut(),

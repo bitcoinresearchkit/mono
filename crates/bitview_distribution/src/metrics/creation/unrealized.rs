@@ -1,5 +1,5 @@
+use crate::families::Fiat;
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_distribution::families::Fiat;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -9,7 +9,7 @@ use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 use crate::state::UnrealizedState;
 
 #[derive(Traversable)]
-pub struct UnrealizedVecs<M: StorageMode = Rw> {
+pub struct CreationUnrealized<M: StorageMode = Rw> {
     /// Unrealized profit of the cohort's unspent outputs: market value at the
     /// represented block minus creation-date value, summed where spot is above
     /// creation price.
@@ -20,11 +20,11 @@ pub struct UnrealizedVecs<M: StorageMode = Rw> {
     pub loss: Fiat<Cents, M>,
     /// Net unrealized profit and loss of the cohort: unrealized profit minus
     /// unrealized loss.
-    pub net_pnl: Fiat<CentsSigned, M>,
+    net_pnl: Fiat<CentsSigned, M>,
 }
 
-impl UnrealizedVecs {
-    pub fn import(
+impl CreationUnrealized {
+    pub(super) fn import(
         db: &Database,
         cohort: CohortId,
         version: Version,
@@ -49,7 +49,7 @@ impl UnrealizedVecs {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, state: &UnrealizedState) {
+    pub(super) fn push(&mut self, state: &UnrealizedState) {
         self.profit.push(state.unrealized_profit);
         self.loss.push(state.unrealized_loss);
         self.net_pnl.push(CentsSigned::new(
@@ -57,7 +57,7 @@ impl UnrealizedVecs {
         ));
     }
 
-    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
+    pub(super) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
         [
             self.profit.stored_mut(),
             self.loss.stored_mut(),

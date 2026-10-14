@@ -43,6 +43,7 @@ impl Vecs {
                 window_starts,
             )?,
             vocdd_median_1m: EagerVec::import(db, "vocdd_median_1m", v1)?,
+            vocdd_median_1m_window: Default::default(),
         })
     }
 }

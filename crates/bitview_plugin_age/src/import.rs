@@ -1,7 +1,7 @@
 use std::thread;
 
 use bitview_cohort::{AgeRange, ByEpoch, Class};
-use bitview_distribution::metrics::ShareTotals;
+use bitview_distribution::metrics::{CreationCohort, ShareTotals};
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
@@ -10,7 +10,7 @@ use brk_error::Result;
 use brk_types::{Height, Sats, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
-use crate::{CohortVecs, RangeVecs, STORAGE, Vecs};
+use crate::{RangeVecs, STORAGE, Vecs};
 
 const IMPORT_STACK_SIZE: usize = 8 * 1024 * 1024;
 
@@ -31,7 +31,8 @@ impl Vecs {
             supply: all_supply,
             capital: &capital,
         };
-        let cohort = |id| CohortVecs::import(&db, id, version, mappings, windows, &spot, totals);
+        let cohort =
+            |id| CreationCohort::import(&db, id, version, mappings, windows, &spot, totals);
         // Age ranges and the other families import independently.
         let (ranges, (epochs, classes)) = thread::scope(|scope| -> Result<_> {
             let others = thread::Builder::new()

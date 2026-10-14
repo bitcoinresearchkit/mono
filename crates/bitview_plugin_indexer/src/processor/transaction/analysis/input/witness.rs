@@ -80,32 +80,37 @@ pub fn analyze_taproot<'a>(witness: &'a Witness, flags: &mut TxFeatureFlags) -> 
     }
 
     let stack_items = len - usize::from(has_annex);
-    let argument_count = if stack_items == 1 {
+    let is_key_path = stack_items == 1;
+    // A script path's control block comes first: only a tapscript leaf has signatures or
+    // inscriptions to look for, a future leaf version's bytes mean nothing yet.
+    let leaf_version = stack_items
+        .checked_sub(1)
+        .filter(|_| !is_key_path)
+        .and_then(|control_index| witness.nth(control_index))
+        .filter(|control| control.len() >= TAPROOT_CONTROL_BASE_SIZE)
+        .and_then(|control| LeafVersion::from_consensus(control[0] & TAPROOT_LEAF_MASK).ok());
+    let is_tapscript = leaf_version == Some(LeafVersion::TapScript);
+    let argument_count = if is_key_path {
         1
     } else {
         stack_items.saturating_sub(2)
     };
-    let script_index = (stack_items >= 2).then(|| stack_items - 2);
-    let control_index = (stack_items >= 2).then(|| stack_items - 1);
-    let is_key_path = stack_items == 1;
-    let mut leaf_version = None;
     let mut max_argument_bytes = 0;
 
-    for (index, item) in witness.iter().enumerate() {
-        if index < argument_count {
-            if is_key_path {
-                features::record_validated_taproot_sighash(item, flags);
-            } else {
-                features::scan_taproot_signature(item, flags);
-            }
-            max_argument_bytes = max_argument_bytes.max(item.len());
-        } else if Some(index) == script_index {
-            if has_inscription_envelope(Script::from_bytes(item)) {
-                flags.insert(TxFeatureFlags::INSCRIPTION);
-            }
-        } else if Some(index) == control_index && item.len() >= TAPROOT_CONTROL_BASE_SIZE {
-            leaf_version = LeafVersion::from_consensus(item[0] & TAPROOT_LEAF_MASK).ok();
+    for item in witness.iter().take(argument_count) {
+        if is_key_path {
+            features::record_validated_taproot_sighash(item, flags);
+        } else if is_tapscript {
+            features::scan_taproot_signature(item, flags);
         }
+        max_argument_bytes = max_argument_bytes.max(item.len());
+    }
+
+    if is_tapscript
+        && let Some(script) = witness.nth(stack_items - 2)
+        && has_inscription_envelope(Script::from_bytes(script))
+    {
+        flags.insert(TxFeatureFlags::INSCRIPTION);
     }
 
     WitnessFacts {

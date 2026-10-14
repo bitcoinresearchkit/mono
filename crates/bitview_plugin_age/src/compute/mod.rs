@@ -106,7 +106,7 @@ impl ComputePlugin for Vecs {
             price_range_max: &max,
         };
         if !reuse {
-            states.restore_origins(origins.amounts(), &ctx)?;
+            states.restore_origins(origins.amounts(), &ctx);
         }
         let mut cursor = history.cursor(&mut origins)?;
         let mut from = start;

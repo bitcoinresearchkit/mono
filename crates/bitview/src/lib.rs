@@ -13,11 +13,12 @@ use brk_logger::init;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
+use rlimit::{Resource, getrlimit, setrlimit};
 use tokio::{
     runtime::{Builder, Runtime},
     task::JoinHandle,
 };
-use tracing::info;
+use tracing::{info, warn};
 use vecdb::{Budgeted, ReadOnlyClone};
 
 mod bootstrap;
@@ -56,11 +57,27 @@ where
     let config = Config::import()?;
 
     init(Some(&config.server.logs_path()))?;
+    raise_fd_limit();
 
     let exit = Exit::new();
     exit.set_ctrlc_handler();
 
     run_with(config, exit, import)
+}
+
+/// Raises the process's open-file soft limit for the daemon's stores and block
+/// files. Only the soft limit, clamped to the hard limit: raising the hard limit
+/// requires `CAP_SYS_RESOURCE` and would fail on containers and unprivileged
+/// macOS processes.
+pub fn raise_fd_limit() {
+    const TARGET_NOFILE: u64 = 15_000;
+    let (soft, hard) = getrlimit(Resource::NOFILE).unwrap_or((0, 0));
+    let new_soft = soft.max(TARGET_NOFILE).min(hard);
+    if new_soft > soft
+        && let Err(e) = setrlimit(Resource::NOFILE, new_soft, hard)
+    {
+        warn!("failed to raise NOFILE rlimit: {e}");
+    }
 }
 
 /// Runs one process-lifetime plugin composition with resolved settings and a

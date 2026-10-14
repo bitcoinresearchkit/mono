@@ -6,7 +6,7 @@ use bitview_primitives::{BoundedRatio, CoinDays};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Height, Sats, Version};
-use vecdb::{AnyStoredVec, AnyVec, CheckedSub, ReadableVec, WritableVec};
+use vecdb::ReadableVec;
 
 use super::{RangeVecs, Vecs};
 
@@ -115,29 +115,22 @@ impl Vecs {
                 wakefulness_source: wakefulness,
                 ..
             } = id.select_mut(&mut self.ranges);
-            let consumed = &coindays_consumed.cumulative.height;
-            let source_end = created.len().min(consumed.len());
-            let mut start = prepare_computed(
-                [&mut *wakefulness],
-                created.version() + consumed.version(),
-                usize::from(starting_height).min(source_end),
-                exit,
-            )?;
-            while start < source_end {
-                let end = wakefulness.batch_end(source_end);
-                let mut consumed = consumed.collect_range_at(start, end).into_iter();
-                created.fold_range_at(start, end, (), |(), created| {
-                    let consumed = consumed.next().unwrap();
+            wakefulness.compute_transform2(
+                starting_height,
+                *created,
+                &coindays_consumed.cumulative.height,
+                |(height, created, consumed, ..)| {
                     debug_assert!(
-                        created.checked_sub(consumed).is_some(),
+                        consumed <= created,
                         "coin days consumed exceed those created"
                     );
-                    wakefulness.push(BoundedRatio::from(f64::from(consumed) / f64::from(created)));
-                });
-                let _lock = exit.lock();
-                wakefulness.write()?;
-                start = end;
-            }
+                    (
+                        height,
+                        BoundedRatio::from(f64::from(consumed) / f64::from(created)),
+                    )
+                },
+                exit,
+            )?;
         }
         Ok(())
     }

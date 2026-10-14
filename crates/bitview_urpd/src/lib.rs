@@ -1,4 +1,5 @@
 //! URPD reconstruction and derived metrics from the canonical UTXO set history.
+mod density_band;
 mod metrics;
 mod projected_bucket;
 mod projection;
@@ -12,6 +13,7 @@ pub const COMPUTE_VERSION: Version = Version::TWO;
 /// cents under $100, steps of at most 0.1% above, so at most 0.05% off). Five digits made the
 /// models' full recompute 3.3x slower: early blocks each got their own price slot.
 pub const COST_BASIS_PRICE_DIGITS: u32 = 4;
+pub use density_band::DensityBand;
 pub use metrics::{CostBasisVecs, compute_cost_basis};
 pub use projected_bucket::ProjectedBucket;
 

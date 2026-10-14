@@ -4,15 +4,17 @@ Ancestor-set linearization and chunking of child-pays-for-parent transaction clu
 
 ## What it provides
 
-- `linearize` orders a topologically ordered dependency component by best remaining ancestor set, then chunks that
-  order so chunk feerates never increase (a group paying more than the chunk before it merges into it), keeping input
-  order inside each chunk. Parents must come before their children (it panics otherwise).
-- `ChunkInput` is one member's `(fee, vsize)` and its parent edges.
+- `Cluster` is a topologically ordered dependency component: callers `push` each member's `(fee, vsize)` and its
+  parents as local indices of earlier members (a debug build checks that order), then read the graph back for wire
+  DTOs. `linearize` orders it by best remaining ancestor set, then chunks that order so chunk feerates never
+  increase (a group paying more than the chunk before it merges into it), passing each chunk's members (ascending)
+  and feerate to a callback; `chunks` collects them into `CpfpClusterChunk`s. One `Cluster` reused across
+  components keeps all its buffers, ancestor bitsets included (one flat buffer).
 - `find_seed_chunk` finds the chunk (and feerate) that holds a given transaction.
 
-The same linearization serves live mempool clusters (`brk_mempool`), confirmed clusters (`bitview_query`) and block
-fee statistics (`bitview_plugin_transactions`). It returns `CpfpClusterChunk`s; callers assemble the cluster DTOs
-(`CpfpCluster`, `CpfpInfo`, ...), which live in `brk_types`.
+The same graph and linearization serve live mempool clusters (`brk_mempool`), confirmed clusters (`bitview_query`)
+and block fee statistics (`bitview_plugin_transactions`); each caller supplies its own member order and local-index
+lookup. Callers assemble the cluster DTOs (`CpfpCluster`, `CpfpInfo`, ...), which live in `brk_types`.
 
 ## Built on
 

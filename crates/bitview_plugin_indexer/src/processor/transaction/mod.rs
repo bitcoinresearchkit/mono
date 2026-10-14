@@ -4,7 +4,7 @@ use brk_store::Store;
 use brk_types::{Height, TxIndex, Txid, TxidPrefix};
 use rayon::{join, prelude::*};
 use tracing::error;
-use vecdb::{AnyVec, WritableVec, likely, unlikely};
+use vecdb::{WritableVec, likely, unlikely};
 
 use self::analysis::TransactionAnalysis;
 use super::{
@@ -13,7 +13,8 @@ use super::{
     txout::{self, BlockAddresses, ProcessedOutput},
 };
 use crate::{
-    TransactionCounts, TxMetadataVecs, constants::DUPLICATE_TXIDS, stores::TransactionStoresMut,
+    TransactionCounts, TxMetadataVecs, constants::overwritten_tx_index,
+    stores::TransactionStoresMut,
 };
 
 pub mod analysis;
@@ -23,7 +24,7 @@ pub use computed::ComputedTx;
 
 impl<'a> BlockProcessor<'a> {
     pub fn compute_txids(&self) -> Result<Vec<ComputedTx<'a>>> {
-        let will_check_collisions = self.check_collisions;
+        let check_collisions = self.check_collisions;
         let base_tx_index = self.lengths.tx_index;
 
         let mut txs = self
@@ -36,28 +37,13 @@ impl<'a> BlockProcessor<'a> {
                 let txid = Txid::from(btc_txid);
                 let tx_index = base_tx_index + TxIndex::from(index);
 
-                let insert_txid_prefix = if likely(!will_check_collisions) {
-                    true
-                } else {
-                    let txid_prefix = TxidPrefix::from(&txid);
-                    let prev_tx_index = self.stores.tx_index(&txid_prefix)?;
+                if unlikely(check_collisions)
+                    && let Some(prev_tx_index) = self.stores.tx_index(&TxidPrefix::from(&txid))?
+                {
+                    self.validate_txid_collision(tx_index, prev_tx_index)?;
+                }
 
-                    if let Some(prev_tx_index) = prev_tx_index {
-                        self.validate_txid_collision(tx_index, prev_tx_index)?;
-                        false
-                    } else {
-                        true
-                    }
-                };
-
-                Ok(ComputedTx::new(
-                    tx_index,
-                    tx,
-                    txid,
-                    insert_txid_prefix,
-                    base_size,
-                    total_size,
-                ))
+                Ok(ComputedTx::new(tx_index, tx, txid, base_size, total_size))
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -65,34 +51,18 @@ impl<'a> BlockProcessor<'a> {
         Ok(txs)
     }
 
-    pub fn validate_txid_collision(&self, tx_index: TxIndex, prev_tx_index: TxIndex) -> Result<()> {
-        if tx_index == prev_tx_index {
+    /// A txid prefix already stored is the same transaction or the original of a BIP30 duplicate.
+    fn validate_txid_collision(&self, tx_index: TxIndex, prev_tx_index: TxIndex) -> Result<()> {
+        if tx_index == prev_tx_index || overwritten_tx_index(tx_index) == Some(prev_tx_index) {
             return Ok(());
         }
-
-        let len = self.vecs.transactions.txid.len();
-        let prev_txid = self
-            .vecs
-            .transactions
-            .txid
-            .get_append_only(prev_tx_index, &self.readers.txid)
-            .ok_or(Error::Internal("Missing txid for tx_index"))
-            .inspect_err(|_| {
-                error!(?tx_index, len, "Missing txid for tx_index");
-            })?;
-
-        if unlikely(!DUPLICATE_TXIDS.contains(&prev_txid)) {
-            error!(
-                height = ?self.height,
-                ?tx_index,
-                ?prev_txid,
-                ?prev_tx_index,
-                "Unexpected TXID collision"
-            );
-            return Err(Error::Internal("Unexpected TXID collision"));
-        }
-
-        Ok(())
+        error!(
+            height = ?self.height,
+            ?tx_index,
+            ?prev_tx_index,
+            "Unexpected TXID collision"
+        );
+        Err(Error::Internal("Unexpected TXID collision"))
     }
 
     /// Analyzes transactions, then finalizes outputs/inputs in parallel with metadata storage.
@@ -100,11 +70,12 @@ impl<'a> BlockProcessor<'a> {
     pub fn analyze_and_finalize_transactions(
         &mut self,
         txs: Vec<ComputedTx>,
-        mut txouts: Vec<ProcessedOutput>,
+        txouts: &mut [ProcessedOutput],
         txins: &[InputSource],
         addresses: &mut BlockAddresses,
+        analyses: &mut Vec<TransactionAnalysis>,
     ) {
-        let transaction_analyses = self.analyze_transactions(&txs, txins, &txouts);
+        self.analyze_transactions(&txs, txins, txouts, analyses);
         let lengths = &mut *self.lengths;
         let base_tx_index = lengths.tx_index;
         let base_txin_index = lengths.txin_index;
@@ -146,7 +117,7 @@ impl<'a> BlockProcessor<'a> {
                     addr_unspent_outpoints,
                     utxos,
                     utxo_values,
-                    &mut txouts,
+                    txouts,
                     addresses,
                 );
                 txin::finalize_inputs(
@@ -160,14 +131,14 @@ impl<'a> BlockProcessor<'a> {
                     utxos,
                     utxo_values,
                     txins,
-                    &txouts,
+                    txouts,
                 );
             },
             || {
                 store_tx_metadata(
                     height,
                     txs,
-                    transaction_analyses,
+                    analyses,
                     txid_prefixes,
                     &mut tx_metadata,
                 )
@@ -179,14 +150,15 @@ impl<'a> BlockProcessor<'a> {
 pub fn store_tx_metadata(
     height: Height,
     txs: &[ComputedTx],
-    transaction_analyses: Vec<TransactionAnalysis>,
+    analyses: &[TransactionAnalysis],
     store: &mut Store<TxidPrefix, TxIndex>,
     md: &mut TxMetadataVecs<'_>,
 ) {
-    debug_assert_eq!(txs.len(), transaction_analyses.len());
+    debug_assert_eq!(txs.len(), analyses.len());
     let mut counts = TransactionCounts::default();
-    for (ct, analysis) in txs.iter().zip(transaction_analyses) {
-        if likely(ct.insert_txid_prefix) {
+    for (ct, analysis) in txs.iter().zip(analyses) {
+        // A BIP30 duplicate keeps the shared txid on its original, in every build.
+        if likely(overwritten_tx_index(ct.tx_index).is_none()) {
             store.insert(ct.txid_prefix(), ct.tx_index);
         }
         let tx_version = TxVersion::from(ct.tx.version);

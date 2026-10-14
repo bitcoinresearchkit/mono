@@ -15,6 +15,6 @@ impl<M: StorageMode> Vecs<M> {
 
     /// All-supply mobile in-loss share at full precision, for models calibrating on it.
     pub fn all_mobile_supply_in_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
-        &self.aggregate.sources.mobile_supply_in_loss_share.all
+        &self.aggregate.sources.weighted_supply_in_loss_share.all
     }
 }

@@ -1,9 +1,9 @@
-use brk_cpfp::{ChunkInput, find_seed_chunk, linearize};
+use brk_cpfp::{Cluster, find_seed_chunk};
 use brk_types::{
     CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, FeeRate,
-    Height, Sats, SigOps, TxIndex, Txid, VSize, Weight,
+    Height, SigOps, TxIndex, Txid, VSize, Weight,
 };
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use smallvec::SmallVec;
 use vecdb::{ReadableVec, VecIndex};
 
@@ -12,18 +12,11 @@ use bitview_primitives::Lengths;
 use crate::{OptionData, Query, ResolvedConfirmedTx, Result};
 
 struct WalkResult {
-    members: Vec<(TxIndex, SmallVec<[CpfpClusterTxIndex; 2]>)>,
+    /// Each `graph` member's txid and weight, by local index.
+    members: Vec<(Txid, Weight)>,
     seed_local: CpfpClusterTxIndex,
     ancestors: Vec<TxIndex>,
     descendants: Vec<TxIndex>,
-}
-
-struct Member {
-    txid: Txid,
-    fee: Sats,
-    weight: Weight,
-    vsize: VSize,
-    parents: SmallVec<[CpfpClusterTxIndex; 2]>,
 }
 
 impl Query {
@@ -34,9 +27,9 @@ impl Query {
         let read = self.read_indexer()?;
         let (_, seed, height) = read.revalidate_confirmed_tx(transaction)?;
         let safe = read.pin().lengths();
+        let mut graph = Cluster::default();
         // Count views end at their source's visible length, bounded by the read's pin.
-        let walk = self.walk_same_block_cluster(seed, height, safe)?;
-        let members = self.resolve_members(&walk.members)?;
+        let walk = self.walk_same_block_cluster(seed, height, safe, &mut graph)?;
         let ancestors = self.resolve_entries(&walk.ancestors)?;
         let descendants = self.resolve_entries(&walk.descendants)?;
         let sigops = self
@@ -50,38 +43,13 @@ impl Query {
         drop(read);
 
         Ok(build_cpfp_info(
-            &members,
+            &mut graph,
+            &walk.members,
             walk.seed_local,
             ancestors,
             descendants,
             sigops,
         ))
-    }
-
-    fn resolve_members(
-        &self,
-        members: &[(TxIndex, SmallVec<[CpfpClusterTxIndex; 2]>)],
-    ) -> Result<Vec<Member>> {
-        let indexer = self.indexer();
-        let plugins = self.plugins();
-        let mut weight = indexer.vecs().transactions.weight.cursor();
-        let mut fee = plugins.transactions.fees.fee.tx.cursor();
-        let txid = indexer.vecs().transactions.txid.reader();
-
-        members
-            .iter()
-            .map(|(index, parents)| {
-                let position = index.to_usize();
-                let weight = Weight::from(weight.get(position).data()?);
-                Ok(Member {
-                    txid: txid.get(*index),
-                    fee: fee.get(position).data()?,
-                    weight,
-                    vsize: VSize::from(weight),
-                    parents: parents.clone(),
-                })
-            })
-            .collect()
     }
 
     fn resolve_entries(&self, indexes: &[TxIndex]) -> Result<Vec<CpfpEntry>> {
@@ -109,6 +77,7 @@ impl Query {
         seed: TxIndex,
         height: Height,
         safe: Lengths,
+        graph: &mut Cluster,
     ) -> Result<WalkResult> {
         let indexer = self.indexer();
         let plugins = self.plugins();
@@ -176,22 +145,29 @@ impl Query {
         let ancestors = walk_direction(seed, &mut parents_of, CPFP_CHAIN_LIMIT)?;
         let descendants = walk_direction(seed, &mut children_of, CPFP_CHAIN_LIMIT)?;
 
-        let local_of: FxHashMap<TxIndex, CpfpClusterTxIndex> = component
-            .iter()
-            .enumerate()
-            .map(|(local, &tx)| (tx, CpfpClusterTxIndex::from(local as u32)))
-            .collect();
-        let seed_local = local_of[&seed];
-        let members = component
-            .into_iter()
-            .map(|tx| {
-                let parents = parents_of(tx)?
-                    .iter()
-                    .filter_map(|parent| local_of.get(parent).copied())
-                    .collect();
-                Ok((tx, parents))
-            })
-            .collect::<Result<_>>()?;
+        // Same-block parents precede their children, so the sorted component is topological
+        // and a member's local index is its sorted position.
+        let seed_local = CpfpClusterTxIndex::from(component.partition_point(|&tx| tx < seed) as u32);
+        let mut weight = indexer.vecs().transactions.weight.cursor();
+        let mut fee = plugins.transactions.fees.fee.tx.cursor();
+        let txid = indexer.vecs().transactions.txid.reader();
+        graph.clear();
+        let mut members = Vec::with_capacity(component.len());
+        for &tx in &component {
+            let position = tx.to_usize();
+            let tx_weight = Weight::from(weight.get(position).data()?);
+            graph.push(
+                fee.get(position).data()?,
+                VSize::from(tx_weight),
+                parents_of(tx)?.iter().filter_map(|parent| {
+                    component
+                        .binary_search(parent)
+                        .ok()
+                        .map(|local| CpfpClusterTxIndex::from(local as u32))
+                }),
+            );
+            members.push((txid.get(tx), tx_weight));
+        }
 
         Ok(WalkResult {
             members,
@@ -252,15 +228,16 @@ fn walk_direction(
 }
 
 fn build_cpfp_info(
-    members: &[Member],
+    graph: &mut Cluster,
+    members: &[(Txid, Weight)],
     seed_local: CpfpClusterTxIndex,
     ancestors: Vec<CpfpEntry>,
     descendants: Vec<CpfpEntry>,
     sigops: SigOps,
 ) -> CpfpInfo {
     let seed_position = u32::from(seed_local) as usize;
-    let seed = &members[seed_position];
-    let raw_rate = FeeRate::from((seed.fee, seed.vsize));
+    let (fee, vsize) = (graph.fee(seed_position), graph.vsize(seed_position));
+    let raw_rate = FeeRate::from((fee, vsize));
     let best_descendant = descendants
         .iter()
         .max_by_key(|entry| FeeRate::from((entry.fee, entry.weight)))
@@ -269,23 +246,16 @@ fn build_cpfp_info(
     let (cluster, effective_fee_per_vsize) = if members.len() == 1 {
         (None, raw_rate)
     } else {
-        let inputs: Vec<ChunkInput<'_>> = members
-            .iter()
-            .map(|member| ChunkInput {
-                fee: member.fee,
-                vsize: member.vsize,
-                parents: member.parents.as_slice(),
-            })
-            .collect();
-        let chunks = linearize(&inputs);
+        let chunks = graph.chunks();
         let (chunk_index, rate) = find_seed_chunk(&chunks, seed_local, raw_rate);
         let txs = members
             .iter()
-            .map(|member| CpfpClusterTx {
-                txid: member.txid,
-                weight: member.weight,
-                fee: member.fee,
-                parents: member.parents.iter().copied().collect(),
+            .enumerate()
+            .map(|(local, &(txid, weight))| CpfpClusterTx {
+                txid,
+                weight,
+                fee: graph.fee(local),
+                parents: graph.parents(local).to_vec(),
             })
             .collect();
         (
@@ -304,9 +274,9 @@ fn build_cpfp_info(
         descendants,
         effective_fee_per_vsize,
         sigops,
-        fee: seed.fee,
-        vsize: seed.vsize,
-        adjusted_vsize: sigops.adjust_vsize(seed.vsize),
+        fee,
+        vsize,
+        adjusted_vsize: sigops.adjust_vsize(vsize),
         cluster,
     }
 }

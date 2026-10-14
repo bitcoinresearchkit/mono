@@ -1,8 +1,19 @@
+//! The metric bundle of a creation cohort, whose coins are classified once, when created: by
+//! age, halving epoch, creation year or entry price. The owning plugin classifies and replays.
+
+mod activity;
+mod capital;
+mod realized;
+mod supply;
+mod unrealized;
+
+pub use activity::CreationActivity;
+pub use capital::CreationCapital;
+pub use realized::CreationRealized;
+pub use supply::CreationSupply;
+pub use unrealized::CreationUnrealized;
+
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_distribution::{
-    metrics::{CohortCostBasis, ShareTotals},
-    state::RealizedOps,
-};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
@@ -10,26 +21,23 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 
-use super::{
-    activity::ActivityVecs, capital::CapitalVecs, outputs::OutputsVecs, realized::RealizedVecs,
-    supply::SupplyVecs, unrealized::UnrealizedVecs,
-};
-use crate::state::UTXOCohortState;
+use super::{CohortCostBasis, ShareTotals, StoredOutputs};
+use crate::state::{MappedUTXOCohortState, RealizedOps};
 
-/// One creation cohort: an age range, a halving epoch or a creation year.
+/// One creation cohort's series.
 #[derive(Traversable)]
-pub struct CohortVecs<M: StorageMode = Rw> {
-    pub supply: SupplyVecs<M>,
-    pub capital: CapitalVecs<M>,
-    pub outputs: OutputsVecs<M>,
-    pub activity: ActivityVecs<M>,
-    pub realized: RealizedVecs<M>,
-    pub unrealized: UnrealizedVecs<M>,
+pub struct CreationCohort<M: StorageMode = Rw> {
+    pub supply: CreationSupply<M>,
+    pub capital: CreationCapital<M>,
+    pub outputs: StoredOutputs<M>,
+    pub activity: CreationActivity<M>,
+    pub realized: CreationRealized<M>,
+    pub unrealized: CreationUnrealized<M>,
     cost_basis: CohortCostBasis<M>,
 }
 
-impl CohortVecs {
-    pub(crate) fn import(
+impl CreationCohort {
+    pub fn import(
         db: &Database,
         cohort: CohortId,
         version: Version,
@@ -38,8 +46,9 @@ impl CohortVecs {
         spot_price: &ReadableBoxedVec<Height, Cents>,
         totals: ShareTotals<'_>,
     ) -> Result<Self> {
+        let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         Ok(Self {
-            supply: SupplyVecs::import(
+            supply: CreationSupply::import(
                 db,
                 cohort,
                 version,
@@ -48,7 +57,7 @@ impl CohortVecs {
                 spot_price,
                 totals.supply,
             )?,
-            capital: CapitalVecs::import(
+            capital: CreationCapital::import(
                 db,
                 cohort,
                 version,
@@ -56,31 +65,26 @@ impl CohortVecs {
                 window_starts,
                 totals.capital,
             )?,
-            outputs: OutputsVecs::import(db, cohort, version, mappings, window_starts)?,
-            activity: ActivityVecs::import(db, cohort, version, mappings, window_starts)?,
-            realized: RealizedVecs::import(db, cohort, version, mappings, window_starts)?,
-            unrealized: UnrealizedVecs::import(db, cohort, version, mappings)?,
-            cost_basis: CohortCostBasis::import(
-                db,
-                |metric| CohortContext::Utxo.metric_name(cohort, metric),
-                version,
-                mappings,
-            )?,
+            outputs: StoredOutputs::import(db, name, version, mappings, window_starts)?,
+            activity: CreationActivity::import(db, cohort, version, mappings, window_starts)?,
+            realized: CreationRealized::import(db, cohort, version, mappings, window_starts)?,
+            unrealized: CreationUnrealized::import(db, cohort, version, mappings)?,
+            cost_basis: CohortCostBasis::import(db, name, version, mappings)?,
         })
     }
 
     /// Writes the block's values, with the cohort's profitability at `price`; returns its
     /// capital.
     #[inline(always)]
-    pub(crate) fn push<R: RealizedOps>(
+    pub fn push<R: RealizedOps>(
         &mut self,
-        state: &mut UTXOCohortState<R>,
+        state: &mut MappedUTXOCohortState<R>,
         price: Cents,
     ) -> Cents {
         let profitability = state.compute_unrealized_state(price);
         let realized = state.realized_block_data();
         self.supply.push(state.supply_value(), &profitability);
-        self.capital.push(realized.cap, &profitability, price);
+        self.capital.push(realized.cap, &profitability);
         self.unrealized.push(&profitability);
         self.outputs.push(state.output_counts());
         self.activity
@@ -90,7 +94,7 @@ impl CohortVecs {
         realized.cap
     }
 
-    pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.supply
             .stored_vecs_mut()
             .into_iter()

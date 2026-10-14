@@ -1,5 +1,4 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_distribution::{families::Supply, metrics::CohortSupply};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
@@ -9,14 +8,14 @@ use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 
 use derive_more::{Deref, DerefMut};
 
-use crate::state::UnrealizedState;
+use crate::{families::Supply, metrics::CohortSupply, state::UnrealizedState};
 
 #[derive(Deref, DerefMut, Traversable)]
-pub struct SupplyVecs<M: StorageMode = Rw> {
+pub struct CreationSupply<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub base: CohortSupply<M>,
+    base: CohortSupply<M>,
     /// Unspent supply in profit: the cohort's outputs whose creation price is
     /// less than or equal to the represented block's spot price.
     pub in_profit: Supply<M>,
@@ -25,8 +24,8 @@ pub struct SupplyVecs<M: StorageMode = Rw> {
     pub in_loss: Supply<M>,
 }
 
-impl SupplyVecs {
-    pub fn import(
+impl CreationSupply {
+    pub(super) fn import(
         db: &Database,
         cohort: CohortId,
         version: Version,
@@ -58,13 +57,13 @@ impl SupplyVecs {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, total: Sats, profitability: &UnrealizedState) {
+    pub(super) fn push(&mut self, total: Sats, profitability: &UnrealizedState) {
         self.base.total.push(total);
         self.in_profit.push(profitability.supply_in_profit);
         self.in_loss.push(profitability.supply_in_loss);
     }
 
-    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
+    pub(super) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
         [
             self.base.total.stored_mut(),
             self.in_profit.stored_mut(),

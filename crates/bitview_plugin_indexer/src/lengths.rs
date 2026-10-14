@@ -39,42 +39,11 @@ impl IndexerLengths for Lengths {
         vecs.op_return
             .first_index
             .debug_checked_push(height, self.op_return_index);
-        vecs.addrs
-            .p2a
-            .first_index
-            .debug_checked_push(height, self.p2a_addr_index);
         vecs.scripts
             .unknown
             .first_index
             .debug_checked_push(height, self.unknown_output_index);
-        vecs.addrs
-            .p2pk33
-            .first_index
-            .debug_checked_push(height, self.p2pk33_addr_index);
-        vecs.addrs
-            .p2pk65
-            .first_index
-            .debug_checked_push(height, self.p2pk65_addr_index);
-        vecs.addrs
-            .p2pkh
-            .first_index
-            .debug_checked_push(height, self.p2pkh_addr_index);
-        vecs.addrs
-            .p2sh
-            .first_index
-            .debug_checked_push(height, self.p2sh_addr_index);
-        vecs.addrs
-            .p2tr
-            .first_index
-            .debug_checked_push(height, self.p2tr_addr_index);
-        vecs.addrs
-            .p2wpkh
-            .first_index
-            .debug_checked_push(height, self.p2wpkh_addr_index);
-        vecs.addrs
-            .p2wsh
-            .first_index
-            .debug_checked_push(height, self.p2wsh_addr_index);
+        push_addr_first_indexes(self, vecs);
     }
 
     /// Read current local lengths. `None` pre-genesis.
@@ -111,7 +80,7 @@ impl IndexerLengths for Lengths {
 }
 
 fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
-    Some(Lengths {
+    let mut lengths = Lengths {
         empty_output_index: next_index(
             &vecs.scripts.empty.first_index,
             &vecs.scripts.empty.to_tx_index,
@@ -128,34 +97,6 @@ fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
             &vecs.op_return.to_tx_index,
             height,
         )?,
-        p2pk33_addr_index: next_index(
-            &vecs.addrs.p2pk33.first_index,
-            &vecs.addrs.p2pk33.bytes,
-            height,
-        )?,
-        p2pk65_addr_index: next_index(
-            &vecs.addrs.p2pk65.first_index,
-            &vecs.addrs.p2pk65.bytes,
-            height,
-        )?,
-        p2pkh_addr_index: next_index(
-            &vecs.addrs.p2pkh.first_index,
-            &vecs.addrs.p2pkh.bytes,
-            height,
-        )?,
-        p2sh_addr_index: next_index(&vecs.addrs.p2sh.first_index, &vecs.addrs.p2sh.bytes, height)?,
-        p2tr_addr_index: next_index(&vecs.addrs.p2tr.first_index, &vecs.addrs.p2tr.bytes, height)?,
-        p2wpkh_addr_index: next_index(
-            &vecs.addrs.p2wpkh.first_index,
-            &vecs.addrs.p2wpkh.bytes,
-            height,
-        )?,
-        p2wsh_addr_index: next_index(
-            &vecs.addrs.p2wsh.first_index,
-            &vecs.addrs.p2wsh.bytes,
-            height,
-        )?,
-        p2a_addr_index: next_index(&vecs.addrs.p2a.first_index, &vecs.addrs.p2a.bytes, height)?,
         tx_index: next_index(
             &vecs.transactions.first_tx_index,
             &vecs.transactions.txid,
@@ -172,8 +113,33 @@ fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
             &vecs.scripts.unknown.to_tx_index,
             height,
         )?,
-    })
+        ..Lengths::default()
+    };
+    collect_addr_indexes(&mut lengths, vecs)?;
+    Some(lengths)
 }
+
+macro_rules! addr_lengths {
+    ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
+        fn push_addr_first_indexes(lengths: &Lengths, vecs: &mut Vecs) {
+            $(vecs.addrs
+                .$field
+                .first_index
+                .debug_checked_push(lengths.height, lengths.$length);)+
+        }
+
+        fn collect_addr_indexes(lengths: &mut Lengths, vecs: &Vecs) -> Option<()> {
+            $(lengths.$length = next_index(
+                &vecs.addrs.$field.first_index,
+                &vecs.addrs.$field.bytes,
+                lengths.height,
+            )?;)+
+            Some(())
+        }
+    };
+}
+
+bitview_primitives::with_address_storage_types!(addr_lengths);
 
 fn matching_height(vec_height: Height, store_height: Option<Height>) -> Option<Height> {
     let store_height = store_height?;

@@ -10,7 +10,7 @@ use super::{LossPercentileId, ModeResult, Percentiles, PriceBandId, PriceBands};
 #[derive(Deref, DerefMut, Traversable)]
 pub struct ModeVecs<M: StorageMode = Rw> {
     /// Historical supply-in-loss share that Bedrock treats as a stressed
-    /// condition for this mode. It is a linearly interpolated percentile of the
+    /// condition for this mode. It is a lower nearest-rank percentile of the
     /// mode's prior finite block loss shares. The represented block is excluded,
     /// and the value is unavailable until its loss share exists and at least
     /// 52,560 prior block observations are available. Stored as a bounded share and

@@ -17,7 +17,7 @@ pub struct Fiat<C: FiatType + PcoVecValue = Cents, M: StorageMode = Rw> {
 }
 
 impl<C: FiatType + PcoVecValue> Fiat<C> {
-    pub fn import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -29,11 +29,11 @@ impl<C: FiatType + PcoVecValue> Fiat<C> {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, value: C) {
+    pub(crate) fn push(&mut self, value: C) {
         self.stored.push(value);
     }
 
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         &mut self.stored
     }
 }

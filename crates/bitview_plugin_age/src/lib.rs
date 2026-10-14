@@ -10,9 +10,10 @@ mod state;
 pub use accounting_sources::AccountingSources;
 pub use dependencies::Dependencies;
 pub use has::HasAge;
-pub use metrics::{CohortVecs, RangeVecs};
+pub use metrics::RangeVecs;
 
 use bitview_cohort::{AgeRange, ByEpoch, Class};
+use bitview_distribution::metrics::CreationCohort;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::CoinBlocks;
 use bitview_traversable::Traversable;
@@ -38,8 +39,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     all_capital: CachedSeries<Height, Cents, M>,
     pub ranges: Box<AgeRange<RangeVecs<M>>>,
-    epochs: Box<ByEpoch<CohortVecs<M>>>,
-    classes: Box<Class<CohortVecs<M>>>,
+    epochs: Box<ByEpoch<CreationCohort<M>>>,
+    classes: Box<Class<CreationCohort<M>>>,
     /// Coinblocks destroyed by each block: each spent output's BTC value
     /// multiplied by the blocks it stayed unspent.
     pub coinblocks_destroyed: PerBlockCumulativeRolling<CoinBlocks, M>,

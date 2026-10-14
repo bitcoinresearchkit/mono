@@ -5,21 +5,20 @@ mod dependencies;
 mod has;
 mod import;
 mod live;
-mod metrics;
 
 pub use dependencies::Dependencies;
 pub use has::HasEntry;
 
 use bitview_cohort::ByEntry;
+use bitview_distribution::metrics::CreationCohort;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use live::LiveState;
-use metrics::CohortMetrics;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("entry"), Version::new(3));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("entry"), Version::new(4));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
@@ -28,7 +27,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     live: M::WriteOnly<Option<LiveState>>,
     #[traversable(flatten)]
-    cohorts: ByEntry<CohortMetrics<M>>,
+    cohorts: ByEntry<CreationCohort<M>>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

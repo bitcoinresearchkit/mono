@@ -58,7 +58,7 @@ impl<const N: usize> RealizedCaps<N> {
         } else {
             self.values.update_many(caps.enumerate())?;
         }
-        assert_eq!(self.values.len(), N, "incomplete realized-cap checkpoint");
+        debug_assert_eq!(self.values.len(), N, "incomplete realized-cap checkpoint");
         self.values
             .stamped_write_maybe_with_changes(stamp, with_changes)?;
         Ok(())

@@ -16,7 +16,7 @@ use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
-use block::Block;
+use block::{Block, Cluster};
 use sources::Sources;
 
 const COMPUTE_BATCH_HEIGHTS: usize = 64;
@@ -232,9 +232,8 @@ impl Vecs {
             .range_cursor_at(start_input, raw.outpoints.len());
         let mut input_value = input_values.range_cursor_at(start_input, input_values.len());
 
-        let mut blocks: Vec<Block> = (0..COMPUTE_BATCH_HEIGHTS)
-            .map(|_| Block::default())
-            .collect();
+        // Grows to the largest batch: an update of a few blocks fills a few.
+        let mut blocks: Vec<Block> = Vec::new();
         let mut first_tx = start_tx;
         let mut height = start_height;
         let mut last_progress = Instant::now();
@@ -247,6 +246,9 @@ impl Vecs {
                 let n = u64::from(tx_count.next().unwrap()) as usize;
                 if first_tx + n > available_target {
                     break;
+                }
+                if batch_len == blocks.len() {
+                    blocks.push(Block::default());
                 }
                 let block = &mut blocks[batch_len];
                 block.reset(first_tx);
@@ -300,11 +302,13 @@ impl Vecs {
             blocks[..batch_len]
                 .par_iter_mut()
                 .enumerate()
-                .for_each(|(offset, block)| {
+                // Cluster scratch per worker task, freed with the batch: a big
+                // component's buffers don't stay retained per block slot.
+                .for_each_init(Cluster::default, |cluster, (offset, block)| {
                     if height + offset >= monetary_start {
-                        block.compute();
+                        block.compute(cluster);
                     } else {
-                        block.compute_from_fees();
+                        block.compute_from_fees(cluster);
                     }
                 });
 

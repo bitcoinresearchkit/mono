@@ -1,10 +1,7 @@
 use bitview_cohort::SpendableType;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Count, PartsPerMillion32};
-use bitview_vecs::{
-    LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling, LazyWindowStartVec, import_cached,
-    ops::Quotient, shapes::Windows,
-};
+use bitview_primitives::Count;
+use bitview_vecs::{LazyWindowStartVec, count_and_share, import_cached, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{Database, LazyVec, ReadableCloneableVec};
@@ -45,40 +42,18 @@ impl Vecs {
         let version = version + Version::ONE;
         let types = SpendableType::from_fn(|kind| {
             let key = kind.key();
-            let count = LazyPerBlockCumulativeRolling::from_cumulative_source(
-                &format!("{key}_input_count"),
+            let (count, share) = count_and_share(
+                &format!("{key}_input"),
                 version,
                 kind.select(&count_stored),
-                window_starts,
-                mappings,
-            );
-            let share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
-                Count,
-                Count,
-                Quotient<PartsPerMillion32>,
-            >(
-                &format!("{key}_input_share"),
-                version,
-                &count.cumulative.height,
                 inputs,
                 window_starts,
                 mappings,
             );
-            let tx_count = LazyPerBlockCumulativeRolling::from_cumulative_source(
-                &format!("{key}_input_tx_count"),
+            let (tx_count, tx_share) = count_and_share(
+                &format!("{key}_input_tx"),
                 version,
                 kind.select(&tx_count_stored),
-                window_starts,
-                mappings,
-            );
-            let tx_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
-                Count,
-                Count,
-                Quotient<PartsPerMillion32>,
-            >(
-                &format!("{key}_input_tx_share"),
-                version,
-                &tx_count.cumulative.height,
                 &txs,
                 window_starts,
                 mappings,

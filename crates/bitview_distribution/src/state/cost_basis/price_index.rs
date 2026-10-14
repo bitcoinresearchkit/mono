@@ -2,14 +2,15 @@ use std::array;
 
 use bitview_compute::{FenwickNode, FenwickTree};
 use bitview_primitives::{CentsCompact, PERCENTILES, PERCENTILES_LEN};
-use bitview_urpd::{COMPUTE_VERSION, COST_BASIS_PRICE_DIGITS};
+use bitview_urpd::{COST_BASIS_PRICE_DIGITS, DensityBand};
 use brk_types::{Cents, Version};
 
 use super::{PercentileResult, PriceTotals};
 
-/// Changes with the price grid, shared with the URPD: a price index's owner adds it to the
-/// version of what it computes from the index.
-pub const PRICE_INDEX_VERSION: Version = COMPUTE_VERSION;
+/// Changes with the price grid, shared with the URPD (`bitview_urpd::COMPUTE_VERSION`, 2), and
+/// with the index's ceiling (+1 for $100,000,000): bump it with either. A price index's owner
+/// adds it to the version of what it computes from the index.
+pub const PRICE_INDEX_VERSION: Version = Version::new(3);
 
 /// A derived price index. Owners choose only the filters their queries require.
 #[derive(Clone)]
@@ -20,16 +21,17 @@ pub struct PriceIndex<const N: usize> {
 
 // Bucket mapping: `COST_BASIS_PRICE_DIGITS` significant digits of the price in cents, as
 // `Cents::round_to_significant` rounds. With 4 digits: exact cents under $100, then 9,000 buckets
-// per decade (10 cents, $1, $10, $100) up to $1,000,000; higher prices share the last bucket.
+// per decade (steps of 10 cents, $1, $10, $100, $1,000, $10,000) up to $100,000,000; higher prices
+// share the last bucket.
 const DIGITS: u32 = COST_BASIS_PRICE_DIGITS;
 /// Buckets under 10^DIGITS cents, one per cent.
 const EXACT: usize = 10usize.pow(DIGITS);
 /// Buckets in each decade above `EXACT`.
 const PER_DECADE: usize = 9 * 10usize.pow(DIGITS - 1);
-/// The decade of $1,000,000 (10^8 cents), the overflow bucket's price.
-const MAX_LOG10: u32 = 8;
+/// The decade of $100,000,000 (10^10 cents), the overflow bucket's price: decades of headroom.
+const MAX_LOG10: u32 = 10;
 
-/// Total number of buckets (46,001 with 4 digits).
+/// Total number of buckets (64,001 with 4 digits).
 const TREE_SIZE: usize = EXACT + (MAX_LOG10 - DIGITS) as usize * PER_DECADE + 1;
 
 #[inline]
@@ -152,16 +154,6 @@ impl<const N: usize> PriceIndex<N> {
         self.totals
     }
 
-    /// Totals strictly below the represented boundary bucket.
-    fn before(&self, price: Cents) -> PriceTotals<N> {
-        let bucket = cents_to_bucket(price);
-        if bucket == 0 {
-            PriceTotals::default()
-        } else {
-            self.tree.prefix_sum(bucket - 1)
-        }
-    }
-
     /// Totals of the buckets before `cut`.
     pub fn before_cut(&self, cut: GridCut) -> PriceTotals<N> {
         if cut.0 == 0 {
@@ -171,15 +163,13 @@ impl<const N: usize> PriceIndex<N> {
         }
     }
 
-    /// Totals within the inclusive +-5 percent density interval, split at `price`: the buckets
-    /// through the spot bucket (in profit), then the ones above it (in loss).
-    pub fn density_split(&self, price: Cents) -> (PriceTotals<N>, PriceTotals<N>) {
-        let spot = u64::from(price) as f64;
-        let low = self.before(Cents::from((spot * 0.95).round() as u64));
-        let mid = self.tree.prefix_sum(cents_to_bucket(price));
-        let high = self
-            .tree
-            .prefix_sum(cents_to_bucket(Cents::from((spot * 1.05).round() as u64)));
+    /// Totals within the URPD's density band, split at its spot: the buckets through the spot
+    /// bucket (in profit), then the ones above it (in loss).
+    pub fn density_split(&self, band: DensityBand) -> (PriceTotals<N>, PriceTotals<N>) {
+        let cut = |(numer, denom)| self.before_cut(GridCut::below(numer, denom));
+        let low = cut(band.first_inside());
+        let mid = self.before_cut(GridCut::through(band.spot()));
+        let high = cut(band.first_above());
         let between = |from: &PriceTotals<N>, to: &PriceTotals<N>| PriceTotals {
             sats: array::from_fn(|i| to.sats[i] - from.sats[i]),
             cap: array::from_fn(|i| to.cap[i] - from.cap[i]),

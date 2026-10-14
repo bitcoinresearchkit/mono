@@ -1,4 +1,4 @@
-/// Imports multiple items in parallel using thread::scope.
+/// Imports multiple items in parallel on the rayon pool (nested imports share its threads).
 /// Each expression must return `Result<T>`.
 ///
 /// # Example
@@ -11,9 +11,10 @@
 /// ```
 macro_rules! parallel_import {
     ($($name:ident = $expr:expr),+ $(,)?) => {{
-        std::thread::scope(|s| -> brk_error::Result<_> {
-            $(let $name = s.spawn(|| $expr);)+
-            Ok(($($name.join().unwrap()?,)+))
-        })?
+        $(let mut $name = None;)+
+        rayon::scope(|s| {
+            $(s.spawn(|_| $name = Some($expr));)+
+        });
+        ($($name.unwrap()?,)+)
     }};
 }

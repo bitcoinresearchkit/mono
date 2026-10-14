@@ -4,16 +4,20 @@ use std::{
     fs::File,
     io::{self, Read},
     ops::ControlFlow,
+    os::unix::fs::FileExt,
     path::Path,
+    collections::BTreeMap,
     sync::OnceLock,
     thread,
+    time::Duration,
 };
 
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
 use brk_types::{BlkMetadata, Height, ReadBlock};
 use crossbeam::channel::{Receiver, Sender, bounded};
-use parking_lot::Mutex;
+use parking_lot::{Condvar, Mutex};
+use rustc_hash::FxHashSet;
 use tracing::error;
 
 use crate::{
@@ -24,12 +28,116 @@ use crate::{
     scan::scan_bytes,
 };
 
+/// Raw bytes of blocks dispatched to the parsers and not yet emitted in order. A
+/// gap keeps the blocks past it decoded in the reorder buffer, so this bounds
+/// that buffer; blocks found beyond the budget keep only their position and are
+/// re-read once emissions free it. The block the reorder stage waits for always
+/// goes through. Headers-first sync leaves up to ~1.2 GiB (raw) past a gap; at
+/// this budget the re-reads leave read time unchanged.
+pub(super) const MAX_OUTSTANDING_BYTES: usize = 256 * 1024 * 1024;
+
 struct ScannedBlock {
-    metadata: BlkMetadata,
+    frame: Frame,
     bytes: Vec<u8>,
-    xor_state: XORIndex,
     canonical_offset: u32,
+}
+
+/// A canonical block's location and already-decoded header.
+struct Frame {
+    metadata: BlkMetadata,
+    len: usize,
     header: Header,
+}
+
+/// Reader-side ordering: every canonical offset below `next` is dispatched.
+struct Dispatch<'a> {
+    paths: &'a BlkIndexToBlkPath,
+    parser_send: &'a Sender<ScannedBlock>,
+    reorder: &'a Mutex<ReorderState>,
+    emitted: &'a Condvar,
+    stop: &'a OnceLock<Stop>,
+    next: u32,
+    /// Offsets past `next` already dispatched.
+    dispatched: FxHashSet<u32>,
+    /// Offsets found while the budget was spent, lowest first.
+    deferred: BTreeMap<u32, Frame>,
+}
+
+impl Dispatch<'_> {
+    /// `Ok(false)` once the parsers hung up.
+    fn offer(&mut self, canonical_offset: u32, frame: Frame, bytes: &[u8]) -> Result<bool> {
+        if canonical_offset < self.next
+            || self.dispatched.contains(&canonical_offset)
+            || self.deferred.contains_key(&canonical_offset)
+        {
+            return Ok(true);
+        }
+        if self.deferred.is_empty() && self.admit(canonical_offset, frame.len, false) {
+            return Ok(self.send(canonical_offset, frame, bytes.to_vec()));
+        }
+        self.deferred.insert(canonical_offset, frame);
+        self.drain(false)
+    }
+
+    /// Dispatches the deferred blocks, lowest first, while the budget allows; `wait`s for
+    /// emissions to free it (until stopped) instead of returning. `Ok(false)` once the parsers
+    /// hung up.
+    fn drain(&mut self, wait: bool) -> Result<bool> {
+        while let Some((&offset, frame)) = self.deferred.first_key_value() {
+            // An offset below never turned up: emission can't reach this one, and the
+            // pipeline reports the missing block when it finishes.
+            if wait && self.next < offset {
+                return Ok(true);
+            }
+            if !self.admit(offset, frame.len, wait) {
+                return Ok(true);
+            }
+            let frame = self.deferred.remove(&offset).expect("the first deferred block");
+            let bytes = self.reread(&frame)?;
+            if !self.send(offset, frame, bytes) {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    fn admit(&self, offset: u32, len: usize, wait: bool) -> bool {
+        let mut reorder = self.reorder.lock();
+        while !reorder.admit(offset, len) {
+            if !wait || self.stop.get().is_some() {
+                return false;
+            }
+            self.emitted.wait_for(&mut reorder, Duration::from_millis(10));
+        }
+        true
+    }
+
+    fn reread(&self, frame: &Frame) -> Result<Vec<u8>> {
+        let position = frame.metadata.position();
+        let path = self
+            .paths
+            .get(&position.blk_index())
+            .ok_or(Error::Internal(
+                "forward pipeline: deferred block's file vanished",
+            ))?;
+        let mut bytes = vec![0u8; frame.len];
+        File::open(path)?.read_exact_at(&mut bytes, u64::from(position.offset()))?;
+        Ok(bytes)
+    }
+
+    fn send(&mut self, canonical_offset: u32, frame: Frame, bytes: Vec<u8>) -> bool {
+        self.dispatched.insert(canonical_offset);
+        while self.dispatched.remove(&self.next) {
+            self.next += 1;
+        }
+        self.parser_send
+            .send(ScannedBlock {
+                frame,
+                bytes,
+                canonical_offset,
+            })
+            .is_ok()
+    }
 }
 
 enum Stop {
@@ -53,12 +161,15 @@ pub fn pipeline_forward(
 ) -> Result<()> {
     let (parser_send, parser_recv) = bounded::<ScannedBlock>(CHANNEL_CAPACITY);
     let reorder = Mutex::new(ReorderState::new(send.clone()));
+    let emitted = Condvar::new();
     let stop: OnceLock<Stop> = OnceLock::new();
 
     thread::scope(|scope| {
         for _ in 0..parser_threads() {
             let parser_recv = parser_recv.clone();
-            scope.spawn(|| parser_loop(parser_recv, &reorder, &stop, canonical, xor_bytes));
+            scope.spawn(|| {
+                parser_loop(parser_recv, &reorder, &emitted, &stop, canonical, xor_bytes)
+            });
         }
         drop(parser_recv);
 
@@ -67,8 +178,16 @@ pub fn pipeline_forward(
             first_blk_index,
             xor_bytes,
             canonical,
-            &parser_send,
-            &stop,
+            Dispatch {
+                paths,
+                parser_send: &parser_send,
+                reorder: &reorder,
+                emitted: &emitted,
+                stop: &stop,
+                next: 0,
+                dispatched: FxHashSet::default(),
+                deferred: BTreeMap::new(),
+            },
         );
         drop(parser_send);
         read_result
@@ -83,22 +202,25 @@ pub fn pipeline_forward(
 fn parser_loop(
     parser_recv: Receiver<ScannedBlock>,
     reorder: &Mutex<ReorderState>,
+    emitted: &Condvar,
     stop: &OnceLock<Stop>,
     canonical: &CanonicalRange,
     xor_bytes: XORBytes,
 ) {
     for ScannedBlock {
-        metadata,
+        frame: Frame {
+            metadata, header, ..
+        },
         bytes,
-        xor_state,
         canonical_offset,
-        header,
     } in parser_recv
     {
         if stop.get().is_some() {
             continue;
         }
         let height = Height::from(*canonical.start + canonical_offset);
+        let len = bytes.len();
+        let xor_state = XORIndex::at_offset(metadata.position().offset() as usize);
         let block =
             match parse_canonical_body(bytes, metadata, xor_state, xor_bytes, height, header) {
                 Ok(block) => block,
@@ -110,9 +232,10 @@ fn parser_loop(
             };
         let pipeline_finished = {
             let mut state = reorder.lock();
-            !state.try_emit(canonical_offset, block)
+            !state.try_emit(canonical_offset, block, len)
                 || state.next_offset as usize >= canonical.len()
         };
+        emitted.notify_one();
         if pipeline_finished {
             let _ = stop.set(Stop::Done);
         }
@@ -124,9 +247,9 @@ fn read_and_dispatch(
     first_blk_index: u16,
     xor_bytes: XORBytes,
     canonical: &CanonicalRange,
-    parser_send: &Sender<ScannedBlock>,
-    stop: &OnceLock<Stop>,
+    mut dispatch: Dispatch<'_>,
 ) -> Result<()> {
+    let stop = dispatch.stop;
     for (&blk_index, blk_path) in paths.range(first_blk_index..) {
         if stop.get().is_some() {
             return Ok(());
@@ -152,20 +275,28 @@ fn read_and_dispatch(
                     )));
                     return ControlFlow::Break(());
                 }
-                let scanned = ScannedBlock {
-                    metadata,
-                    bytes: block_bytes.to_vec(),
+                debug_assert_eq!(
                     xor_state,
-                    canonical_offset,
+                    XORIndex::at_offset(metadata.position().offset() as usize)
+                );
+                let frame = Frame {
+                    metadata,
+                    len: block_bytes.len(),
                     header,
                 };
-                if parser_send.send(scanned).is_err() {
-                    ControlFlow::Break(())
-                } else {
-                    ControlFlow::Continue(())
+                match dispatch.offer(canonical_offset, frame, block_bytes) {
+                    Ok(true) => ControlFlow::Continue(()),
+                    Ok(false) => ControlFlow::Break(()),
+                    Err(e) => {
+                        let _ = stop.set(Stop::Failed(e));
+                        ControlFlow::Break(())
+                    }
                 }
             },
         );
+    }
+    if stop.get().is_none() {
+        dispatch.drain(true)?;
     }
     Ok(())
 }

@@ -71,11 +71,9 @@ impl Vecs {
         let config = Config::for_height(committed);
         let ref_bin = f64::from(self.oracle_bin.collect_one_at(committed - 1).data()?);
         let warmup = config.window_size.min(committed - START_HEIGHT_SLOW);
-        let mut warmed = Ok(());
         let mut oracle = Oracle::from_checkpoint(ref_bin, config, |o| {
-            warmed = feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None);
-        });
-        warmed?;
+            feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None)
+        })?;
 
         let num_new = total_heights - committed;
         info!("Computing {num_new} oracle prices ({warmup} warmup blocks)...");

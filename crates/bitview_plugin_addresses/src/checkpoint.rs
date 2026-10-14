@@ -1,5 +1,5 @@
 use bitview_cohort::AddressType;
-use bitview_distribution::replay::validate_outputs;
+use bitview_distribution::replay::{LiveState, Replay, validate_outputs};
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_types::{Height, Version};
@@ -13,23 +13,15 @@ use crate::{
     state::{AddrStates, MinimalRealizedState, RealizedOps},
 };
 
-impl Vecs {
-    /// Every height-indexed vec the block loop writes.
-    pub(crate) fn loop_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        loop_vecs(&mut self.all, &mut self.types, &mut self.balances)
+impl Replay for Vecs {
+    type State = AddrStates;
+
+    fn live(&mut self) -> &mut Option<LiveState<AddrStates>> {
+        &mut self.live
     }
 
-    /// Restart the metrics from the first block.
-    pub(crate) fn reset_metrics(&mut self) -> Result<()> {
-        self.loop_vecs_mut()
-            .into_iter()
-            .try_for_each(|v| v.any_truncate_if_needed_at(0))?;
-        Ok(())
-    }
-
-    /// `None` after a version change, else the height every height-indexed
-    /// output reaches; address state resumes by stamp instead.
-    pub(crate) fn validate_state(&mut self, version: Version) -> Result<Option<usize>> {
+    /// Address state resumes by stamp; the other outputs by length.
+    fn validate(&mut self, version: Version) -> Result<Option<usize>> {
         let caps_changed = self.caps.validate(version)?;
         let stable = self.state.stable();
         let mut written = stable.write();
@@ -44,6 +36,47 @@ impl Vecs {
         drop(written);
         let outputs = validate_outputs(self.loop_vecs_mut().into_par_iter(), version)?;
         Ok(outputs.filter(|_| !caps_changed && !state_changed))
+    }
+
+    fn checkpoint_len(&self) -> usize {
+        usize::from(self.state.min_stamped_len()).min(self.caps.end())
+    }
+
+    fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize> {
+        let stable = self.state.stable();
+        let mut written = stable.write();
+        self.roll_back_to(start, indexer, &mut written)
+    }
+
+    fn restore(&self, addrs: &mut AddrStates, height: Height) -> Option<()> {
+        addrs.restore(&self.balances, height)?;
+        let caps = self.caps.load()?;
+        for (state, cap) in addrs
+            .amount_range
+            .iter_mut()
+            .map(|s| &mut s.inner.realized)
+            .zip(caps)
+        {
+            *state = MinimalRealizedState::from_cap(cap);
+        }
+        Some(())
+    }
+
+    /// Restarts the address state, the caps and the metrics from the first block.
+    fn reset(&mut self) -> Result<()> {
+        self.state.reset()?;
+        self.caps.reset()?;
+        self.loop_vecs_mut()
+            .into_iter()
+            .try_for_each(|v| v.any_truncate_if_needed_at(0))?;
+        Ok(())
+    }
+}
+
+impl Vecs {
+    /// Every height-indexed vec the block loop writes.
+    pub(crate) fn loop_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+        loop_vecs(&mut self.all, &mut self.types, &mut self.balances)
     }
 
     /// Drops the address state an update that failed before publishing left staged.
@@ -86,19 +119,6 @@ impl Vecs {
         }
         self.write_state(landing, false, written)?;
         Ok(recovered)
-    }
-
-    pub(crate) fn restore_caps(&self, addrs: &mut AddrStates) -> Option<()> {
-        let caps = self.caps.load()?;
-        for (state, cap) in addrs
-            .amount_range
-            .iter_mut()
-            .map(|s| &mut s.inner.realized)
-            .zip(caps)
-        {
-            *state = MinimalRealizedState::from_cap(cap);
-        }
-        Some(())
     }
 
     pub(crate) fn save_caps(

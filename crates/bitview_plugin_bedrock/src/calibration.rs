@@ -53,8 +53,8 @@ impl Calibration {
     pub fn thresholds(&self, current: &Modes<Option<f64>>) -> Thresholds {
         Thresholds::from_fn(|mode| {
             let history = self.histories.select(mode);
-            (current.select(mode).is_some() && history.len() >= MINIMUM_BLOCKS).then(|| {
-                let [pct95, pct98, pct99, pct99_5, pct99_9] = history.percentiles(&PERCENTILES);
+            (current.select(mode).is_some() && history.count() >= MINIMUM_BLOCKS).then(|| {
+                let [pct95, pct98, pct99, pct99_5, pct99_9] = history.percentiles(PERCENTILES);
                 Percentiles {
                     pct95,
                     pct98,

@@ -1,9 +1,48 @@
 use bitview_compute::{FixedRatio, NumericValue};
+use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{BinaryTransform, ReadableCloneableVec, UnaryTransform};
 
-use crate::{IndexSources, LazyPercentPerBlock, LazyPercentRollingWindows, shapes::Windows};
+use crate::{
+    IndexSources, LazyPerBlockCumulativeRolling, LazyPercentPerBlock, LazyPercentRollingWindows,
+    ops::Quotient, shapes::Windows,
+};
+
+/// A count from its running total, `{name}_count`, and its share of `total`'s running total
+/// over the same windows, `{name}_share`.
+pub fn count_and_share(
+    name: &str,
+    version: Version,
+    cumulative: &(impl ReadableCloneableVec<Height, Count> + ?Sized),
+    total: &impl ReadableCloneableVec<Height, Count>,
+    window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
+    indexes: &IndexSources,
+) -> (
+    LazyPerBlockCumulativeRolling<Count>,
+    LazyPercentCumulativeRolling<PartsPerMillion32>,
+) {
+    let count = LazyPerBlockCumulativeRolling::from_cumulative_source(
+        &format!("{name}_count"),
+        version,
+        cumulative,
+        window_starts,
+        indexes,
+    );
+    let share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
+        Count,
+        Count,
+        Quotient<PartsPerMillion32>,
+    >(
+        &format!("{name}_share"),
+        version,
+        &count.cumulative.height,
+        total,
+        window_starts,
+        indexes,
+    );
+    (count, share)
+}
 
 /// Lazy percent views of a cumulative and its rolling windows — no stored vecs.
 ///

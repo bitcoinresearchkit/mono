@@ -1,76 +1,72 @@
+use std::collections::VecDeque;
+
+use vecdb::{ReadableVec, VecIndex, VecValue};
+
 use super::order::ExactOrderStats;
 
-/// Sorted sliding window for rolling distribution/median computations.
-///
-/// Uses sqrt-decomposition for O(sqrt(n)) insert/remove/kth instead of
-/// O(n) memmoves with a flat sorted Vec.
-pub struct SlidingWindowSorted {
+/// A rolling window's values in row order and sorted: the state of the rolling distribution
+/// and median kernels. Its statistics depend on the window's values alone, so a continued
+/// window and a rebuilt one agree exactly.
+pub struct SortedWindow {
+    /// The window's values, the first at row `start`.
+    values: VecDeque<f64>,
+    start: usize,
     sorted: ExactOrderStats,
-    prev_start: usize,
 }
 
-impl SlidingWindowSorted {
-    pub fn with_capacity(cap: usize) -> Self {
+impl SortedWindow {
+    /// Rebuilds the window of the row before `next` from history.
+    pub(crate) fn read<I, A>(
+        next: usize,
+        window_starts: &impl ReadableVec<I, I>,
+        source: &impl ReadableVec<I, A>,
+    ) -> Self
+    where
+        I: VecIndex,
+        A: VecValue,
+        f64: From<A>,
+    {
+        let start = next.checked_sub(1).map_or(0, |last| {
+            window_starts.collect_one_at(last).unwrap().to_usize()
+        });
+        let mut values = VecDeque::with_capacity(next - start);
+        source.for_each_range_at(start, next, |value| values.push_back(f64::from(value)));
+        let sorted = ExactOrderStats::from_unsorted(values.iter().copied().collect());
         Self {
-            sorted: ExactOrderStats::new(cap),
-            prev_start: 0,
+            values,
+            start,
+            sorted,
         }
     }
 
-    /// Reconstruct state from historical data (the elements in [range_start..skip]).
-    /// Uses O(n log n) sort + O(n) block construction instead of O(n√n) individual inserts.
-    pub fn reconstruct(&mut self, partial_values: &[f64], range_start: usize, skip: usize) {
-        self.prev_start = range_start;
-        let slice = &partial_values[..skip - range_start];
-        if slice.is_empty() {
-            return;
-        }
-        self.sorted = ExactOrderStats::from_unsorted(slice.to_vec());
-    }
-
-    /// Add a new value and remove all expired values up to `new_start`.
-    pub fn advance(
-        &mut self,
-        value: f64,
-        new_start: usize,
-        partial_values: &[f64],
-        range_start: usize,
-    ) {
+    /// Enters row `index`'s value and drops the rows before its window `start`.
+    #[inline]
+    pub(crate) fn push(&mut self, index: usize, value: f64, start: usize) {
+        debug_assert_eq!(index, self.start + self.values.len(), "rows enter in order");
+        debug_assert!(start <= index, "a window holds its own row");
+        self.values.push_back(value);
         self.sorted.insert(value);
-
-        while self.prev_start < new_start {
-            let old = partial_values[self.prev_start - range_start];
-            self.sorted.remove(old);
-            self.prev_start += 1;
+        while self.start < start {
+            let expired = self.values.pop_front().unwrap();
+            let removed = self.sorted.remove(expired);
+            debug_assert!(removed);
+            self.start += 1;
         }
     }
 
     #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.sorted.is_empty()
+    pub(crate) fn min(&self) -> f64 {
+        self.sorted.first()
     }
 
     #[inline]
-    pub fn min(&self) -> f64 {
-        if self.sorted.is_empty() {
-            0.0
-        } else {
-            self.sorted.first()
-        }
+    pub(crate) fn max(&self) -> f64 {
+        self.sorted.last()
     }
 
+    /// Percentiles (0.0-1.0, ascending) at the lower nearest rank.
     #[inline]
-    pub fn max(&self) -> f64 {
-        if self.sorted.is_empty() {
-            0.0
-        } else {
-            self.sorted.last()
-        }
-    }
-
-    /// Percentiles (0.0-1.0, ascending) at the lower nearest rank,
-    /// `sorted[max(0, floor(n * p) - 1)]`. The window must not be empty.
-    pub fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
-        self.sorted.lower_nearest_ranks(ps)
+    pub(crate) fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
+        self.sorted.percentiles(ps)
     }
 }

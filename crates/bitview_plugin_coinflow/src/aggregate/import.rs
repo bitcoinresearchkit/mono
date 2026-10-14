@@ -1,15 +1,13 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
+use bitview_distribution::WeightedCohortSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_urpd::CostBasisVecs;
-use bitview_vecs::{
-    CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock, import_cached,
-    ops::FixedToPercent,
-};
+use bitview_vecs::{LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock, ops::FixedToPercent};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, PcoVecValue, ReadableBoxedVec};
+use vecdb::{Database, ReadableBoxedVec};
 
-use super::{CohortVecs, ImmobileVecs, MobileVecs, Sources, Vecs};
+use super::{CohortVecs, ImmobileVecs, MobileVecs, Vecs};
 
 impl Vecs {
     pub(crate) fn import(
@@ -18,7 +16,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let sources = Sources::import(db, version)?;
+        let sources = WeightedCohortSources::import(db, "mobile", "immobile", version)?;
         let cohorts = AgeAggregate::try_from_fn(|id| {
             CohortVecs::new(db, id, version, &sources, mappings, spot_price)
         })?;
@@ -26,41 +24,12 @@ impl Vecs {
     }
 }
 
-impl Sources {
-    fn import(db: &Database, version: Version) -> Result<Self> {
-        Ok(Self {
-            mobile_supply: import_aggregate(db, "mobile_supply_sats", version)?,
-            immobile_supply: import_aggregate(db, "immobile_supply_sats", version)?,
-            mobile_realized_cap: import_aggregate(db, "mobile_realized_cap_cents", version)?,
-            mobile_realized_price: import_aggregate(db, "mobile_realized_price_cents", version)?,
-            mobile_capitalized_price: import_aggregate(
-                db,
-                "mobile_capitalized_price_cents",
-                version,
-            )?,
-            mobile_supply_in_loss_share: import_aggregate(
-                db,
-                "mobile_supply_in_loss_share_bounded",
-                version,
-            )?,
-        })
-    }
-}
-
-fn import_aggregate<T: PcoVecValue>(
-    db: &Database,
-    metric: &str,
-    version: Version,
-) -> Result<AgeAggregate<CachedSeries<Height, T>>> {
-    AgeAggregate::try_from_fn(|id| import_cached(db, &id.metric_name(metric), version))
-}
-
 impl CohortVecs {
     fn new(
         db: &Database,
         id: AgeAggregateId,
         version: Version,
-        sources: &Sources,
+        sources: &WeightedCohortSources,
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
@@ -70,26 +39,26 @@ impl CohortVecs {
                 supply: LazySpotValuePerBlock::from_sats_source(
                     &name("mobile_supply"),
                     version,
-                    id.select(&sources.mobile_supply),
+                    id.select(&sources.weighted_supply),
                     mappings,
                     spot_price,
                 ),
                 supply_in_loss_share: LazyPerBlock::from_height_source::<FixedToPercent>(
                     &name("mobile_supply_in_loss_share"),
                     version,
-                    id.select(&sources.mobile_supply_in_loss_share),
+                    id.select(&sources.weighted_supply_in_loss_share),
                     mappings,
                 ),
                 capital: LazyFiatPerBlock::from_cents_source(
                     &name("mobile_capital"),
                     version,
-                    id.select(&sources.mobile_realized_cap),
+                    id.select(&sources.weighted_realized_cap),
                     mappings,
                 ),
                 realized_cap: LazyFiatPerBlock::from_cents_source(
                     &name("mobile_realized_cap"),
                     version,
-                    id.select(&sources.mobile_realized_cap),
+                    id.select(&sources.weighted_realized_cap),
                     mappings,
                 ),
                 cost_basis: CostBasisVecs::import(
@@ -97,15 +66,15 @@ impl CohortVecs {
                     &name("mobile"),
                     version,
                     mappings,
-                    id.select(&sources.mobile_realized_price),
-                    id.select(&sources.mobile_capitalized_price),
+                    id.select(&sources.weighted_realized_price),
+                    id.select(&sources.weighted_capitalized_price),
                 )?,
             },
             immobile: ImmobileVecs {
                 supply: LazySpotValuePerBlock::from_sats_source(
                     &name("immobile_supply"),
                     version,
-                    id.select(&sources.immobile_supply),
+                    id.select(&sources.complement_supply),
                     mappings,
                     spot_price,
                 ),

@@ -1,4 +1,5 @@
 use bitview_cohort::AgeAggregateId;
+use bitview_distribution::metrics::OutputViews;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyWindowStartVec, shapes::Windows};
@@ -13,7 +14,6 @@ use crate::{
     columns::Columns,
     cost_basis::{CostBasis, CostBasisVecs},
     data::Data,
-    outputs::Outputs,
     realized::Realized,
     supply::Supply,
     unrealized::Unrealized,
@@ -25,7 +25,7 @@ use crate::{
 pub struct Metrics<M: StorageMode = Rw> {
     pub supply: Supply<M>,
     pub capital: Capital<M>,
-    outputs: Outputs,
+    outputs: OutputViews,
     pub activity: Activity<M>,
     pub realized: Realized<M>,
     unrealized: Unrealized,
@@ -49,7 +49,15 @@ impl Metrics {
         Ok(Self {
             supply: Supply::import(db, id, v, c, mappings, windows, spot)?,
             capital: Capital::import(db, id, v, c, mappings, windows)?,
-            outputs: Outputs::new(id, v, c, mappings, windows),
+            outputs: OutputViews::new(
+                |metric| id.metric_name(metric),
+                v,
+                v,
+                &c.count,
+                &c.spent_count,
+                mappings,
+                windows,
+            ),
             activity: Activity::import(db, id, v, c, mappings, windows)?,
             realized: Realized::import(db, id, v, c, mappings, windows)?,
             unrealized: Unrealized::new(id, v, c, mappings),

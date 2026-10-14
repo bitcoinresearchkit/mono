@@ -2,11 +2,13 @@ use bitview_cohort::AgeAggregate;
 use bitview_traversable::Traversable;
 use vecdb::{Rw, StorageMode};
 
-use super::{CohortVecs, Sources};
+use bitview_distribution::WeightedCohortSources;
+
+use super::CohortVecs;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     pub cohorts: AgeAggregate<CohortVecs<M>>,
     #[traversable(hidden)]
-    pub sources: Sources<M>,
+    pub sources: WeightedCohortSources<M>,
 }

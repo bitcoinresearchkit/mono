@@ -8,7 +8,7 @@ use arc_swap::ArcSwap;
 use bitview_primitives::Lengths;
 use brk_types::BlockHash;
 
-use crate::SafeLengths;
+use crate::{SafeLengths, stores::AddrUnspentViews};
 
 /// What readers see: the indexed lengths every plugin has computed to, the tip block they end
 /// with, and how many publications came before. Rows below these lengths only change in a
@@ -17,6 +17,9 @@ pub(crate) struct Published {
     pub(crate) lengths: Lengths,
     pub(crate) revision: u64,
     pub(crate) tip: BlockHash,
+    /// The address-unspent stores as of `lengths`: `None` while the stores hold rows past a
+    /// lowered publication, which spends there may have deleted.
+    pub(crate) unspent: Option<AddrUnspentViews>,
     /// Shared by every publication since the last rollback: a rollback waits until no reader
     /// holds one of the publications before it.
     era: Arc<()>,
@@ -37,6 +40,7 @@ impl State {
                 lengths: Lengths::default(),
                 revision: 0,
                 tip: BlockHash::default(),
+                unspent: None,
                 era: Arc::default(),
             }),
             lowering: Mutex::default(),
@@ -51,7 +55,9 @@ impl State {
         SafeLengths::new(self.published.load_full())
     }
 
-    pub fn finish_update(&self, next: Lengths, tip: BlockHash) {
+    /// Publishes `next`, ending with block `tip`, with the address-unspent stores as of `next`
+    /// (`None` when the stores hold more).
+    pub fn finish_update(&self, next: Lengths, tip: BlockHash, unspent: Option<AddrUnspentViews>) {
         let current = self.published.load_full();
         debug_assert!(
             {
@@ -65,6 +71,7 @@ impl State {
             lengths: next,
             revision: current.revision + 1,
             tip,
+            unspent,
             era: Arc::clone(&current.era),
         }));
     }
@@ -89,6 +96,7 @@ impl State {
             lengths: lowered,
             revision,
             tip,
+            unspent: None,
             era: Arc::default(),
         }));
         // New readers pin the lowered prefix; the earlier ones finish their reads.

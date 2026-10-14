@@ -1,11 +1,10 @@
-use bitcoin::{
-    Script,
-    opcodes::all::{OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY},
-    script::Instruction,
-};
+use bitcoin::{Script, script::Instruction};
 use brk_types::OutputType;
 
-use super::{super::features, ScriptSigFacts};
+use super::{
+    super::{features, sigops::SigOpCount},
+    ScriptSigFacts,
+};
 use crate::TxFeatureFlags;
 
 pub fn analyze<'a>(
@@ -25,14 +24,12 @@ pub fn analyze<'a>(
         };
     }
 
-    let mut accurate_sigops = 0;
     let mut first_push = None;
     let mut last_push = None;
-    let mut legacy_sigops = 0;
     let mut only_push_bytes = true;
     let mut push_count = 0;
     let mut push_only = true;
-    let mut pushnum = None;
+    let mut sigops = SigOpCount::default();
     let validated_shape = scan_signatures
         && matches!(
             output_type,
@@ -41,33 +38,23 @@ pub fn analyze<'a>(
 
     for instruction in script.instructions() {
         match instruction {
-            Ok(Instruction::PushBytes(bytes)) => {
+            Ok(instruction @ Instruction::PushBytes(bytes)) => {
                 let bytes = bytes.as_bytes();
                 first_push.get_or_insert(bytes);
                 last_push = Some(bytes);
                 push_count += 1;
-                pushnum = None;
+                sigops.step(instruction);
                 if scan_signatures && !validated_shape {
                     features::scan_ecdsa_signature(bytes, flags);
                 }
             }
-            Ok(Instruction::Op(opcode)) => {
+            Ok(instruction @ Instruction::Op(opcode)) => {
                 only_push_bytes = false;
                 last_push = None;
                 if opcode.to_u8() > 0x60 {
                     push_only = false;
                 }
-                match opcode {
-                    OP_CHECKSIG | OP_CHECKSIGVERIFY => {
-                        accurate_sigops += 1;
-                        legacy_sigops += 1;
-                    }
-                    OP_CHECKMULTISIG | OP_CHECKMULTISIGVERIFY => {
-                        accurate_sigops += pushnum.unwrap_or(20);
-                        legacy_sigops += 20;
-                    }
-                    _ => pushnum = decode_pushnum(opcode.to_u8()),
-                }
+                sigops.step(instruction);
             }
             Err(_) => {
                 only_push_bytes = false;
@@ -93,9 +80,9 @@ pub fn analyze<'a>(
     }
 
     ScriptSigFacts {
-        accurate_sigops,
+        accurate_sigops: sigops.accurate,
         last_push,
-        legacy_sigops,
+        legacy_sigops: sigops.legacy,
         push_only,
     }
 }
@@ -135,11 +122,4 @@ pub fn scan_ecdsa_signatures(script: &Script, flags: &mut TxFeatureFlags) {
             features::scan_ecdsa_signature(bytes.as_bytes(), flags);
         }
     }
-}
-
-#[inline]
-pub fn decode_pushnum(opcode: u8) -> Option<usize> {
-    (0x51..=0x60)
-        .contains(&opcode)
-        .then(|| usize::from(opcode - 0x50))
 }

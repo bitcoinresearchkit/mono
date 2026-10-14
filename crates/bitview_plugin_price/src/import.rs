@@ -2,7 +2,7 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::{Database, EagerVec, ImportableVec};
+use vecdb::{Database, EagerVec, ImportableVec, ReadableCloneableVec};
 
 use crate::{STORAGE, SpotPrice, Vecs, ohlc::OhlcPrice, split::SplitPrice};
 
@@ -17,7 +17,13 @@ impl Vecs {
     fn import_inner(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         let spot = SpotPrice::import(db, "price", version, mappings)?;
         let ohlc = OhlcPrice::from_spot("price_ohlc", version, mappings, &spot);
-        let split = SplitPrice::new("price", version, &ohlc);
+        let split = SplitPrice::new(
+            "price",
+            version,
+            mappings,
+            &spot.cents.height.read_only_boxed_clone(),
+            &ohlc,
+        );
         let sats_per_dollar = spot.sats_per_dollar("sats_per_dollar", version);
         let oracle_bin = EagerVec::import(db, "oracle_bin", version)?;
 

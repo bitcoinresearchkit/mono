@@ -42,12 +42,13 @@ impl CostBasisVecs {
                 PercentilesVecs::import(db, &id.metric_name(metric), version, mappings)
             })
         };
+        // Exact rational band edges.
         let densities = |metric: &str| {
             AgeAggregate::try_from_fn(|id| {
                 DensityVecs::import(
                     db,
                     &id.metric_name(metric),
-                    aggregate_version + Version::ONE,
+                    aggregate_version + Version::TWO,
                     mappings,
                 )
             })
@@ -87,13 +88,13 @@ impl CostBasisVecs {
             self.supply_density
                 .iter_mut()
                 .chain(self.capital_density.iter_mut())
-                .flat_map(|density| density.iter_any_stored_mut()),
+                .flat_map(|density| density.stored_vecs_mut()),
         );
         vecs.extend(
             self.per_coin
                 .iter_mut()
                 .chain(self.per_dollar.iter_mut())
-                .flat_map(|percentiles| percentiles.iter_any_stored_mut()),
+                .flat_map(|percentiles| percentiles.stored_vecs_mut()),
         );
         vecs
     }

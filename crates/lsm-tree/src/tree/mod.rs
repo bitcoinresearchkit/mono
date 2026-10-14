@@ -23,6 +23,33 @@ use crate::{
 pub mod ingest;
 pub mod inner;
 
+/// A tree's table layout pinned for reads: later ingestions and compactions stay invisible to
+/// it, and the tables it reads stay on disk while it lives.
+#[derive(Clone)]
+pub struct ReadView(Arc<Version>);
+
+impl ReadView {
+    /// Iterates over a range of the pinned records using the specified owned record bytes.
+    /// Record widths are checked while decoding.
+    #[must_use]
+    pub fn range_as<K: RecordBytes, V: RecordBytes, B: AsRef<[u8]>, R: RangeBounds<B>>(
+        &self,
+        range: R,
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V, B, R> {
+        Tree::range_from::<K, V>(&self.0, Tree::owned_bounds(&range))
+            .map(|item| item.map(|value| (value.key.user_key, value.value)))
+    }
+
+    /// Iterates over the pinned records matching `prefix`.
+    #[must_use]
+    pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
+        &self,
+        prefix: &[u8],
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
+        self.range_as::<K, V, _, _>(range::prefix_to_range(prefix))
+    }
+}
+
 /// A table-only log-structured merge tree.
 #[derive(Clone)]
 pub struct Tree(Arc<Inner>);
@@ -114,11 +141,13 @@ impl Tree {
         &self,
         range: R,
     ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V, B, R> {
-        let bounds = Self::owned_bounds(&range);
-        let version = self.versions.load();
+        self.read_view().range_as(range)
+    }
 
-        Self::range_from::<K, V>(&version, bounds)
-            .map(|item| item.map(|value| (value.key.user_key, value.value)))
+    /// Pins the current table layout for later reads.
+    #[must_use]
+    pub fn read_view(&self) -> ReadView {
+        ReadView(self.versions.load())
     }
 
     /// Iterates over the latest key-value pairs matching `prefix`.
@@ -136,7 +165,7 @@ impl Tree {
         &self,
         prefix: &[u8],
     ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
-        self.range_as::<K, V, _, _>(range::prefix_to_range(prefix))
+        self.read_view().prefix_as(prefix)
     }
 
     /// Returns the number of disjoint level-zero runs.

@@ -30,16 +30,19 @@ impl BlockProcessor<'_> {
         policy::tracks_executed_legacy_sigops(self.height)
     }
 
+    /// Analyzes each transaction into `analyses`, cleared first.
     pub fn analyze_transactions(
         &self,
         txs: &[ComputedTx<'_>],
         txins: &[InputSource],
         txouts: &[ProcessedOutput],
-    ) -> Vec<TransactionAnalysis> {
+        analyses: &mut Vec<TransactionAnalysis>,
+    ) {
         let block_first_tx_index = self.lengths.tx_index;
         let track_executed_legacy = self.tracks_executed_legacy_sigops();
 
-        txs.par_iter()
+        analyses.clear();
+        analyses.par_extend(txs.par_iter()
             .map(|tx| {
                 let tx_inputs = tx.inputs(txins);
                 let tx_outputs = tx.outputs(txouts);
@@ -81,8 +84,7 @@ impl BlockProcessor<'_> {
                     total_sigop_cost: sigops.total,
                     features: flags,
                 }
-            })
-            .collect()
+            }));
     }
 }
 

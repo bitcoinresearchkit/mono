@@ -1,9 +1,11 @@
-use bitcoin::Transaction;
+use bitcoin::{Transaction, consensus::encode};
+use brk_error::Result;
 use brk_types::{Sats, Txid, Weight};
 
-/// One transaction from `getblocktemplate`. Carries the full decoded
-/// body and stats so block 0 can be projected without a follow-up
-/// `getmempoolentry`/`getrawtransaction` per tx.
+/// One transaction from `getblocktemplate`: Core's stats plus the still
+/// encoded body, so block 0 can be projected without a follow-up
+/// `getmempoolentry`/`getrawtransaction` per tx, and a poll decodes only the
+/// bodies its caller doesn't already hold.
 #[derive(Debug, Clone)]
 pub struct BlockTemplateTx {
     pub txid: Txid,
@@ -12,5 +14,12 @@ pub struct BlockTemplateTx {
     /// Parent txids also in this template, resolved from Core's
     /// wire-level one-based indices.
     pub depends: Vec<Txid>,
-    pub tx: Transaction,
+    /// Consensus-encoded body as Core's hex.
+    pub(crate) data: String,
+}
+
+impl BlockTemplateTx {
+    pub fn decode(&self) -> Result<Transaction> {
+        Ok(encode::deserialize_hex(&self.data)?)
+    }
 }

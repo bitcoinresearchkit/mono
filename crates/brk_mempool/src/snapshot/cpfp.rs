@@ -6,7 +6,7 @@
 //! - cluster: connected component over `parents ∪ children`,
 //!   linearized for wire shape and seed chunk feerate.
 
-use brk_cpfp::find_seed_chunk;
+use brk_cpfp::{Cluster, find_seed_chunk};
 use brk_error::Result;
 use brk_types::{
     BlockHash, CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry,
@@ -111,8 +111,22 @@ impl Snapshot {
             return (None, seed_per_tx_rate);
         }
 
-        let (members, chunks) = cluster::linearize(txs, &component);
-        let cluster_txs = Self::wire_cluster_members(txs, &members);
+        let mut graph = Cluster::default();
+        let members = cluster::load(txs, &component, &mut graph);
+        let chunks = graph.chunks();
+        let cluster_txs = members
+            .iter()
+            .enumerate()
+            .map(|(local, &idx)| {
+                let t = &txs[idx.as_usize()];
+                CpfpClusterTx {
+                    txid: t.txid,
+                    weight: t.weight,
+                    fee: t.fee,
+                    parents: graph.parents(local).to_vec(),
+                }
+            })
+            .collect();
         let seed_local = CpfpClusterTxIndex::from(
             members
                 .iter()
@@ -129,27 +143,5 @@ impl Snapshot {
             }),
             seed_chunk_rate,
         )
-    }
-
-    /// Materialize wire-shape `CpfpClusterTx`s for every topo-ordered
-    /// member with parent edges remapped to local indices.
-    fn wire_cluster_members(txs: &[SnapTx], members: &[TxIndex]) -> Vec<CpfpClusterTx> {
-        let local_of = cluster::local_index(members);
-        members
-            .iter()
-            .map(|&idx| {
-                let t = &txs[idx.as_usize()];
-                CpfpClusterTx {
-                    txid: t.txid,
-                    weight: t.weight,
-                    fee: t.fee,
-                    parents: t
-                        .parents
-                        .iter()
-                        .filter_map(|p| local_of.get(p).copied())
-                        .collect(),
-                }
-            })
-            .collect()
     }
 }

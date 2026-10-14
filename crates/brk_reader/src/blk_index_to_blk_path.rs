@@ -23,9 +23,9 @@ impl BlkIndexToBlkPath {
         let mut map = BTreeMap::new();
 
         for entry in fs::read_dir(blocks_dir)? {
-            let path = entry?.path();
-
-            let Some(file_name) = path.file_name().and_then(|n| n.to_str()) else {
+            let entry = entry?;
+            let file_name = entry.file_name();
+            let Some(file_name) = file_name.to_str() else {
                 continue;
             };
             let Some(index_str) = file_name
@@ -39,7 +39,11 @@ impl BlkIndexToBlkPath {
                 .parse::<u16>()
                 .map_err(|_| Error::Parse(format!("Malformed blk file name: {file_name}")))?;
 
-            if !path.is_file() {
+            let path = entry.path();
+            // The entry's own type needs no extra metadata call; only a
+            // symlink is followed to its target.
+            let file_type = entry.file_type()?;
+            if !(file_type.is_file() || file_type.is_symlink() && path.is_file()) {
                 return Err(Error::Parse(format!(
                     "blk entry is not a regular file: {}",
                     path.display()

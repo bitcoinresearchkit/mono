@@ -4,7 +4,7 @@ use std::fs;
 use super::PendingStoresCheckpoint;
 
 #[must_use = "publish this checkpoint after every related database is complete"]
-pub struct PersistedStoresCheckpoint(pub PendingStoresCheckpoint);
+pub struct PersistedStoresCheckpoint(pub(super) PendingStoresCheckpoint);
 
 impl PersistedStoresCheckpoint {
     pub fn publish(self) -> Result<()> {

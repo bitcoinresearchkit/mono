@@ -1,11 +1,11 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_compute::prepare_computed;
-use bitview_distribution::state::cost_basis::{PRICE_INDEX_VERSION, age_index};
+use bitview_distribution::state::cost_basis::{DensityBand, PRICE_INDEX_VERSION, age_index};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Version};
+use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadableCloneableVec, Stamp};
 
 use crate::{
@@ -33,8 +33,7 @@ impl ComputePlugin for Vecs {
             + version.0
             + version.1
             + version.3
-            + Version::from(version.2.0 as u32)
-            + Version::from(version.2.1 as u32);
+            + age_index::history_version(deps.history);
         let end = deps
             .history
             .len()
@@ -76,7 +75,8 @@ impl ComputePlugin for Vecs {
                 let unrealized =
                     AgeAggregate::from_fn(|id| UnrealizedData::new(spot, id.select(row)));
                 let total = live.index.totals();
-                let (profit, loss) = live.index.density_split(spot);
+                // Without a positive spot there is no band, as in the URPD densities.
+                let split = DensityBand::new(spot).map(|band| live.index.density_split(band));
                 let mut percentiles = live
                     .index
                     .percentiles::<{ AgeAggregateId::ALL.len() }>(|q, n| {
@@ -85,11 +85,10 @@ impl ComputePlugin for Vecs {
                     .into_iter();
                 self.cost_basis.push(AgeAggregate::from_fn(|id| {
                     let (sats, cap) = age_index::selected(id, &total);
-                    let (profit_sats, profit_cap) = age_index::selected(id, &profit);
-                    let (loss_sats, loss_cap) = age_index::selected(id, &loss);
                     let positive = |value: i128| value.max(0) as u128;
-                    // Without a positive spot there is no band, as in the URPD densities.
-                    let (supply_density, capital_density) = if spot > Cents::ZERO {
+                    let (supply_density, capital_density) = if let Some((profit, loss)) = &split {
+                        let (profit_sats, profit_cap) = age_index::selected(id, profit);
+                        let (loss_sats, loss_cap) = age_index::selected(id, loss);
                         (
                             Density::from_sums(
                                 positive(sats.into()),

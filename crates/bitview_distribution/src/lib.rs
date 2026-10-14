@@ -9,3 +9,6 @@ pub use realized_caps::RealizedCaps;
 
 mod all_chain_sources;
 pub use all_chain_sources::AllChainSources;
+
+mod weighted_cohort_sources;
+pub use weighted_cohort_sources::WeightedCohortSources;

@@ -1,4 +1,4 @@
-use bitview_primitives::{CoinDays, Count, SupplyState};
+use bitview_primitives::{CoinDays, Count};
 use brk_types::{Bitcoin, CentsSigned, Sats};
 use derive_more::{Deref, DerefMut};
 
@@ -14,15 +14,6 @@ pub struct UTXOCohortState<R: RealizedOps, C: CostBasisOps>(pub CohortState<R, C
 impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
     pub fn new(cost_basis: C) -> Self {
         Self(CohortState::new(cost_basis))
-    }
-
-    /// Reset state for fresh start.
-    pub fn reset(&mut self) {
-        self.0.supply = SupplyState::default();
-        self.0.sent = Sats::ZERO;
-        self.0.spent_utxo_count = 0;
-        self.0.satdays_destroyed = Sats::ZERO;
-        self.0.realized = R::default();
     }
 
     #[inline(always)]
@@ -44,7 +35,7 @@ impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
     }
 
     #[inline(always)]
-    pub fn coindays_destroyed(&self) -> CoinDays {
+    pub(crate) fn coindays_destroyed(&self) -> CoinDays {
         CoinDays::new(f64::from(Bitcoin::from(self.satdays_destroyed)))
     }
 

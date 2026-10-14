@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use bitview_primitives::Lengths;
-use brk_types::BlockHash;
+use bitview_primitives::{Lengths, TypeIndex};
+use brk_types::{BlockHash, OutputType, TxIndex, Vout};
 
 use crate::state::Published;
 
@@ -30,5 +30,20 @@ impl SafeLengths {
     /// The last published block's hash (the default hash while nothing is published).
     pub fn tip(&self) -> BlockHash {
         self.0.tip
+    }
+
+    /// The unspent outputs of an address as of these lengths, ordered by transaction index then
+    /// vout. `None` while a lowered publication leaves them unavailable (until the next one):
+    /// report it as temporarily unavailable. Panics for a non-address `addr_type`.
+    pub fn addr_unspent_outpoints(
+        &self,
+        addr_type: OutputType,
+        addr_index: TypeIndex,
+    ) -> Option<impl DoubleEndedIterator<Item = (TxIndex, Vout)>> {
+        let view = self.0.unspent.as_ref()?.get_unwrap(addr_type);
+        Some(
+            view.prefix(addr_index)
+                .map(|(key, _)| (key.tx_index(), key.vout())),
+        )
     }
 }

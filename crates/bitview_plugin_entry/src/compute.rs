@@ -1,12 +1,12 @@
 use bitview_cohort::{Age, ByEntry, EntryPrice};
-use bitview_compute::prepare_computed;
+use bitview_compute::{WRITE_INTERVAL, prepare_computed, save_stamped};
+use bitview_distribution::state::cost_basis::age_index;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use brk_error::{Error, Result};
-use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, Version};
+use brk_types::{Cents, Sats, Version};
 use statedb::Amount;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Stamp};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
 
 use crate::{
     Dependencies, Vecs,
@@ -43,8 +43,7 @@ impl ComputePlugin for Vecs {
             + version.0
             + version.1
             + version.2
-            + Version::from(version.3.0 as u32)
-            + Version::from(version.3.1 as u32);
+            + age_index::history_version(deps.history);
         let end = deps
             .history
             .len()
@@ -147,8 +146,16 @@ impl ComputePlugin for Vecs {
                 target.push(state, price);
                 state.reset_single_iteration_values();
             }
-            if (h + 1) % 10_000 == 0 || h + 1 == end {
-                self.save(h + 1, context.exit())?;
+            if (h + 1).is_multiple_of(WRITE_INTERVAL) || h + 1 == end {
+                save_stamped(
+                    &self.db,
+                    self.cohorts
+                        .iter_mut()
+                        .flat_map(|cohort| cohort.stored_vecs_mut()),
+                    h + 1,
+                    true,
+                    context.exit(),
+                )?;
             }
         }
         self.live = Some(live);
@@ -162,15 +169,5 @@ impl Vecs {
             .iter_mut()
             .flat_map(|cohort| cohort.stored_vecs_mut())
             .collect()
-    }
-
-    fn save(&mut self, end: usize, exit: &Exit) -> Result<()> {
-        let _lock = exit.lock();
-        let stamp = Stamp::from(Height::from(end - 1));
-        for vec in self.state_vecs_mut() {
-            vec.any_stamped_write_maybe_with_changes(stamp, true)?;
-        }
-        self.db.flush();
-        Ok(())
     }
 }

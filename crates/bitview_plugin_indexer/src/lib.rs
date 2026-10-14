@@ -71,7 +71,16 @@ pub struct Indexer<M: StorageMode = Rw> {
     stores: Stores,
     buffers: M::WriteOnly<BlockBuffers>,
     floor: M::WriteOnly<RollbackFloor>,
+    /// The resume point [`Indexer::reorg`] resolved, which the update's index run consumes.
+    resume: M::WriteOnly<Option<ResumePoint>>,
     state: Arc<State>,
+}
+
+/// Where the node's active chain leaves this index: the lengths to resume at and the hash of the
+/// block before them.
+struct ResumePoint {
+    lengths: Lengths,
+    prev_hash: Option<BlockHash>,
 }
 
 enum ImportValidation {
@@ -265,6 +274,7 @@ impl Indexer {
                 stores,
                 buffers: BlockBuffers::default(),
                 floor: RollbackFloor::load(&plugin_path)?,
+                resume: None,
                 state: Arc::new(State::new()),
             })
         };
@@ -291,6 +301,7 @@ impl Indexer {
             Err(err) => return Err(err),
         };
 
+        indexer.drop_uncommitted_rows()?;
         match indexer.validate_import(&plugin_path)? {
             ImportValidation::Valid(lengths) => {
                 // Dependents' rows beside an empty (deleted or reset) indexer can't be vouched for;
@@ -305,9 +316,11 @@ impl Indexer {
                     }
                     _ => lengths,
                 };
+                // The stores hold `lengths`: a lower floor leaves their views unavailable.
+                let unspent = (published == lengths).then(|| indexer.stores.addr_unspent_views());
                 indexer
                     .state
-                    .finish_update(published, indexer.tip_of(&published));
+                    .finish_update(published, indexer.tip_of(&published), unspent);
                 Ok(indexer)
             }
             ImportValidation::Reset(reason) if can_retry => {
@@ -323,6 +336,30 @@ impl Indexer {
             }
             ImportValidation::Reset(reason) => Err(Error::Internal(reason)),
         }
+    }
+
+    /// A quit while the last stores commit waited leaves the vectors ahead of the stores'
+    /// checkpoint: roll them back to it, with the rollback floor, so dependents recompute too.
+    fn drop_uncommitted_rows(&mut self) -> Result<()> {
+        let Some(store_height) = self.stores.next_height()? else {
+            return Ok(());
+        };
+        if store_height >= self.vecs.next_height() || !self.vecs.checkpoints_match() {
+            return Ok(());
+        }
+        let (Some(lengths), Some(completed_height)) = (
+            Lengths::at(store_height, &self.vecs),
+            store_height.decremented(),
+        ) else {
+            return Ok(());
+        };
+        warn!(
+            "Indexer vectors at {} ahead of the stores at {store_height}: rolling them back",
+            self.vecs.next_height()
+        );
+        self.floor.lower_to(store_height)?;
+        self.vecs.rollback_if_needed(&lengths)?;
+        self.vecs.flush(completed_height)
     }
 
     fn validate_import(&self, plugin_path: &Path) -> Result<ImportValidation> {
@@ -380,9 +417,7 @@ impl Indexer {
         Ok(ImportValidation::Valid(local_lengths))
     }
 
-    /// Where the node's active chain leaves this index: the lengths to resume at and the hash of
-    /// the block before them.
-    fn resume_point(&self) -> Result<(Lengths, Option<BlockHash>)> {
+    fn resume_point(&self) -> Result<ResumePoint> {
         let client = self.reader.client();
         self.vecs.sync_bg_tasks()?;
 
@@ -398,11 +433,17 @@ impl Indexer {
         // A node behind our tip (restarting, reindexing) would look like a reorg to its height.
         client.wait_for_synced_node()?;
         let Some(hash) = last_blockhash else {
-            return Ok((Lengths::default(), None));
+            return Ok(ResumePoint {
+                lengths: Lengths::default(),
+                prev_hash: None,
+            });
         };
         let (height, hash) = client.get_closest_valid_height(hash)?;
         match Lengths::resume_at(height.incremented(), &self.vecs, &self.stores)? {
-            Some(starting_lengths) => Ok((starting_lengths, Some(hash))),
+            Some(lengths) => Ok(ResumePoint {
+                lengths,
+                prev_hash: Some(hash),
+            }),
             None => Err(Error::Internal(
                 "Indexer became inconsistent after import; drop and re-import it",
             )),
@@ -410,9 +451,12 @@ impl Indexer {
     }
 
     /// The lengths a reorg rolls back to: some only when the node's active chain orphaned blocks
-    /// this index holds.
-    pub fn reorg(&self) -> Result<Option<Lengths>> {
-        let (starting_lengths, _) = self.resume_point()?;
+    /// this index holds. The update's index run resumes from the same point, without resolving
+    /// it again.
+    pub fn reorg(&mut self) -> Result<Option<Lengths>> {
+        let resume = self.resume_point()?;
+        let starting_lengths = resume.lengths;
+        self.resume = Some(resume);
         Ok((starting_lengths.height < self.vecs.next_height()).then_some(starting_lengths))
     }
 
@@ -451,7 +495,13 @@ impl Indexer {
 
         debug!("Starting indexing...");
 
-        let (starting_lengths, prev_hash) = self.resume_point()?;
+        let ResumePoint {
+            lengths: starting_lengths,
+            prev_hash,
+        } = match self.resume.take() {
+            Some(resume) => resume,
+            None => self.resume_point()?,
+        };
         debug!("Starting lengths set.");
 
         let lock = exit.lock();
@@ -550,19 +600,26 @@ impl Indexer {
             let txs = processor.compute_txids()?;
             processor.push_block_size_and_weight(&txs);
 
+            let BlockBuffers {
+                inputs,
+                addresses,
+                outputs,
+                analyses,
+                ..
+            } = &mut *buffers;
             let (txins_result, txouts_result) = join_reads(
                 &txs,
-                || buffers.inputs.resolve(&processor, &txs),
-                || processor.process_outputs(&mut buffers.addresses),
+                || inputs.resolve(&processor, &txs),
+                || processor.process_outputs(addresses, outputs),
             );
             let txins = txins_result?;
-            let txouts = txouts_result?;
+            txouts_result?;
 
             let tx_count = block.txdata.len();
             let input_count = txins.len();
-            let output_count = txouts.len();
+            let output_count = outputs.len();
 
-            processor.analyze_and_finalize_transactions(txs, txouts, txins, &mut buffers.addresses);
+            processor.analyze_and_finalize_transactions(txs, outputs, txins, addresses, analyses);
 
             processor
                 .lengths
@@ -591,14 +648,20 @@ impl Indexer {
             return Ok(());
         };
 
-        let lock = exit.lock();
-        let deferred_commit = self.stores.take_deferred_commit(completed_height)?;
-        self.vecs.stamped_write(completed_height)?;
+        let deferred_commit = {
+            let _lock = exit.lock();
+            let deferred_commit = self.stores.take_deferred_commit(completed_height);
+            self.vecs.stamped_write(completed_height)?;
+            deferred_commit
+        };
 
+        // The stores commit waits for the dependents' compute (or the commit's sync) unlocked: a
+        // quit meanwhile keeps the stores at their last checkpoint and import drops the vectors'
+        // newer rows.
+        let exit = exit.clone();
         self.vecs.run_bg(move |db| {
-            let _lock = lock;
-
             db.bg_sleep(Duration::from_secs(3));
+            let _lock = exit.lock();
 
             info!("Saving indexer data...");
             let total_i = Instant::now();
@@ -646,7 +709,10 @@ impl Indexer {
     /// Publishes `lengths` from [`Self::prepare_commit`] as the pipeline-wide safe-lengths
     /// snapshot. A `complete` update (every plugin computed) also clears the rollback floor.
     pub fn publish(&mut self, lengths: Lengths, complete: bool) -> Result<()> {
-        self.state.finish_update(lengths, self.tip_of(&lengths));
+        // `prepare_commit` waited for the stores' ingestion: they hold exactly `lengths`.
+        let unspent = self.stores.addr_unspent_views();
+        self.state
+            .finish_update(lengths, self.tip_of(&lengths), Some(unspent));
         if complete {
             self.floor.clear()?;
         }
@@ -664,6 +730,7 @@ impl ReadOnlyClone for Indexer {
             stores: self.stores.clone(),
             buffers: (),
             floor: (),
+            resume: (),
             state: self.state.clone(),
         }
     }

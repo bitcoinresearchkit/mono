@@ -37,7 +37,7 @@ impl Price<PerBlock<Cents>> {
 }
 
 impl Price<LazyPerBlock<Cents, Cents>> {
-    pub fn from_lazy_cents_source<F, S>(
+    pub(crate) fn from_lazy_cents_source<F, S>(
         name: &str,
         version: Version,
         source: &LazyPerBlock<Cents, S>,

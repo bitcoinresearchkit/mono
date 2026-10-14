@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use bitview_primitives::{RarityPercentileId, RarityPercentileId::*};
 use bitview_traversable::Traversable;
 
@@ -45,27 +47,8 @@ pub struct RarityPercentiles<T> {
 
 impl<T> RarityPercentiles<T> {
     pub fn from_fn(mut f: impl FnMut(RarityPercentileId) -> T) -> Self {
-        Self {
-            pct0_1: f(Pct0_1),
-            pct0_5: f(Pct0_5),
-            pct1: f(Pct1),
-            pct2: f(Pct2),
-            pct5: f(Pct5),
-            pct10: f(Pct10),
-            pct20: f(Pct20),
-            pct30: f(Pct30),
-            pct40: f(Pct40),
-            median: f(Median),
-            pct60: f(Pct60),
-            pct70: f(Pct70),
-            pct80: f(Pct80),
-            pct90: f(Pct90),
-            pct95: f(Pct95),
-            pct98: f(Pct98),
-            pct99: f(Pct99),
-            pct99_5: f(Pct99_5),
-            pct99_9: f(Pct99_9),
-        }
+        let Ok(this) = Self::try_from_fn(|id| Ok::<_, Infallible>(f(id)));
+        this
     }
 
     pub fn get(&self, id: RarityPercentileId) -> &T {

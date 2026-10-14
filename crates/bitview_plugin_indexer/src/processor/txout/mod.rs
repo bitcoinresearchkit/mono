@@ -15,7 +15,10 @@ use brk_store::Store;
 use brk_types::{AddressBytes, OutPoint, OutputType, Sats, SigOps32, TxIndex, Unit, Vout};
 use vecdb::{BytesVec, WritableVec, likely};
 
-use super::{BlockProcessor, transaction::ComputedTx};
+use super::{
+    BlockProcessor,
+    transaction::{ComputedTx, analysis::sigops::SigOpCount},
+};
 use crate::{
     AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs,
     constants::overwritten_tx_index,
@@ -26,10 +29,14 @@ use crate::{
 const MAX_SCRIPT_SIZE: usize = 10_000;
 
 impl<'a> BlockProcessor<'a> {
-    pub fn process_outputs(&self, addresses: &mut BlockAddresses) -> Result<Vec<ProcessedOutput>> {
-        let total_outputs: usize = self.block.txdata.iter().map(|tx| tx.output.len()).sum();
+    /// Classifies the block's outputs into `outputs`, cleared first.
+    pub fn process_outputs(
+        &self,
+        addresses: &mut BlockAddresses,
+        outputs: &mut Vec<ProcessedOutput>,
+    ) -> Result<()> {
+        outputs.clear();
         // Start address lookups without a temporary pointer list or another parallel barrier.
-        let mut outputs = Vec::with_capacity(total_outputs);
         outputs.extend(
             self.block
                 .txdata
@@ -64,9 +71,7 @@ impl<'a> BlockProcessor<'a> {
                 }),
         );
 
-        addresses.resolve(self, &outputs)?;
-
-        Ok(outputs)
+        addresses.resolve(self, outputs)
     }
 }
 
@@ -77,7 +82,7 @@ pub fn executed_legacy_sigops_for_output(
     SigOps32::from(
         match output_type {
             OutputType::P2PKH | OutputType::P2PK33 | OutputType::P2PK65 => 1,
-            OutputType::P2MS | OutputType::Unknown => script_pubkey.count_sigops(),
+            OutputType::P2MS | OutputType::Unknown => SigOpCount::of(script_pubkey).accurate,
             _ => 0,
         }
         .saturating_mul(WITNESS_SCALE_FACTOR),

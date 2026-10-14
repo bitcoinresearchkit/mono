@@ -144,6 +144,6 @@ impl Vecs {
     fn primary_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.age_ranges
             .stored_vecs_mut()
-            .chain(self.aggregate.sources.vecs_mut())
+            .chain(self.aggregate.sources.stored_vecs_mut())
     }
 }

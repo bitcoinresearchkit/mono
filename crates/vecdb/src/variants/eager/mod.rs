@@ -1,4 +1,4 @@
-use crate::{AnyVec, StoredVec, traits::writable::MAX_CACHE_SIZE};
+use crate::{StoredVec, traits::writable::MAX_CACHE_SIZE};
 
 pub mod any_stored_vec;
 pub mod any_vec;
@@ -34,15 +34,8 @@ impl<V> EagerVec<V>
 where
     V: StoredVec,
 {
-    /// Max end index for one batch, capped at `max_end`.
-    /// Ensures `pushed_len * SIZE_OF_T >= MAX_CACHE_SIZE` so `batch_limit_reached()` fires.
-    #[inline]
-    pub fn batch_end(&self, max_end: usize) -> usize {
-        self.len()
-            .saturating_add(self.batch_capacity())
-            .min(max_end)
-    }
-
+    /// Values per batch: enough that `pushed_len * SIZE_OF_T >= MAX_CACHE_SIZE`, so
+    /// `batch_limit_reached()` fires.
     #[inline]
     fn batch_capacity(&self) -> usize {
         let size = size_of::<V::T>().max(1);

@@ -28,31 +28,33 @@ impl AllChainSources {
     }
 
     /// Derive from shared inputs. The caller owns the ordinary source's cache.
-    pub fn with_supply<S, T>(
+    pub fn with_supply<S, T, F>(
         &self,
         name: &str,
         version: Version,
         source: &impl ReadableCloneableVec<Height, S>,
-        compute: impl Fn(Height, S, Sats) -> T + Send + Sync + 'static,
-    ) -> LazyIndexedVec<Height, S, Sats, T>
+        compute: F,
+    ) -> LazyIndexedVec<Height, S, Sats, T, F>
     where
         S: VecValue,
         T: VecValue,
+        F: Fn(Height, S, Sats) -> T + Clone + Send + Sync + 'static,
     {
         LazyIndexedVec::new(name, version, source, &self.supply, compute)
     }
 
     /// Derive from shared inputs without caching another full-height result.
-    pub fn with_market_cap<S, T>(
+    pub fn with_market_cap<S, T, F>(
         &self,
         name: &str,
         version: Version,
         source: &impl ReadableCloneableVec<Height, S>,
-        compute: impl Fn(Height, S, Cents) -> T + Send + Sync + 'static,
-    ) -> LazyIndexedVec<Height, S, Cents, T>
+        compute: F,
+    ) -> LazyIndexedVec<Height, S, Cents, T, F>
     where
         S: VecValue,
         T: VecValue,
+        F: Fn(Height, S, Cents) -> T + Clone + Send + Sync + 'static,
     {
         LazyIndexedVec::new(name, version, source, &self.market_cap, compute)
     }

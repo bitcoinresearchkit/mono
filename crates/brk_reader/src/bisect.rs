@@ -40,7 +40,7 @@ pub fn first_block_height(client: &Client, blk_path: &Path, xor_bytes: XORBytes)
     xor_i.bytes(&mut buf[magic_end..header_end], xor_bytes);
 
     let header = Header::consensus_decode_from_finite_reader(&mut &buf[magic_end + 4..header_end])?;
-    let height = client.get_block_info(&header.block_hash())?.height as u32;
+    let height = client.get_block_header_info(&header.block_hash())?.height as u32;
 
     Ok(Height::new(height))
 }

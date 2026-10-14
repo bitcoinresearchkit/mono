@@ -1,12 +1,8 @@
-use bitcoin::{
-    Script,
-    opcodes::all::{
-        OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY, OP_PUSHNUM_13,
-    },
-    script::Instruction,
-};
+use bitcoin::{Script, opcodes::all::OP_PUSHNUM_13, script::Instruction};
 use bitview_primitives::{Bytes32, OpReturnKind};
 use brk_types::SigOps32;
+
+use crate::processor::transaction::analysis::sigops::SigOpCount;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Facts {
@@ -18,7 +14,7 @@ pub struct Facts {
 pub fn analyze(script: &Script) -> Facts {
     let data = &script.as_bytes()[1..];
     let (kind, legacy_sigops) = if data.first().copied() == Some(OP_PUSHNUM_13.to_u8()) {
-        (OpReturnKind::Runes, script[1..].count_sigops_legacy())
+        (OpReturnKind::Runes, SigOpCount::of(&script[1..]).legacy)
     } else {
         let (prefix, legacy_sigops) = scan(script);
         (classify(data, prefix), legacy_sigops)
@@ -82,25 +78,22 @@ fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
 
 fn scan(script: &Script) -> (Option<&[u8]>, usize) {
     let mut first_push = None;
-    let mut legacy_sigops = 0;
+    let mut sigops = SigOpCount::default();
 
     for instruction in script.instructions().skip(1) {
-        match instruction {
-            Ok(Instruction::PushBytes(bytes)) => {
-                if first_push.is_none() && !bytes.is_empty() {
-                    first_push = Some(bytes.as_bytes());
-                }
-            }
-            Ok(Instruction::Op(opcode)) => match opcode {
-                OP_CHECKSIG | OP_CHECKSIGVERIFY => legacy_sigops += 1,
-                OP_CHECKMULTISIG | OP_CHECKMULTISIGVERIFY => legacy_sigops += 20,
-                _ => {}
-            },
-            Err(_) => break,
+        let Ok(instruction) = instruction else {
+            break;
+        };
+        if let Instruction::PushBytes(bytes) = instruction
+            && first_push.is_none()
+            && !bytes.is_empty()
+        {
+            first_push = Some(bytes.as_bytes());
         }
+        sigops.step(instruction);
     }
 
-    (first_push, legacy_sigops)
+    (first_push, sigops.legacy)
 }
 
 fn is_memo(prefix: &[u8]) -> bool {

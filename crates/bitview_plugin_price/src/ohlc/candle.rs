@@ -9,6 +9,9 @@ use vecdb::{
     VecIndex, short_type_name,
 };
 
+/// Prices read at once for a group of adjacent candles.
+const BATCH_PRICES: usize = 1 << 16;
+
 /// OHLC candles derived directly from spot prices and period boundaries.
 #[derive(Clone)]
 pub(super) struct LazyOhlcVec<I: VecIndex> {
@@ -47,23 +50,35 @@ impl<I: VecIndex> LazyOhlcVec<I> {
         }
         let first_heights = &mapping.as_slice()[from..to.saturating_add(1).min(mapping.len())];
         let price_len = self.prices.visible_len();
-        let price_from = first_heights[0].to_usize().min(price_len).saturating_sub(1);
-        let price_to = first_heights
-            .get(to - from)
-            .map_or(price_len, |height| height.to_usize().min(price_len));
-        // Batch adjacent candles so shared physical pages are decoded once.
-        // Include the preceding close for a leading empty period.
-        let prices = self.prices.collect_range_dyn(price_from, price_to);
-        for index in 0..to - from {
-            let first = first_heights[index].to_usize().min(price_len);
-            let end = first_heights
+        let first = |index: usize| first_heights[index].to_usize().min(price_len);
+        let end = |index: usize| {
+            first_heights
                 .get(index + 1)
-                .map_or(price_len, |height| height.to_usize().min(price_len));
-            each(Self::candle_from_prices(
-                first - price_from,
-                end - price_from,
-                &prices,
-            ))?;
+                .map_or(price_len, |height| height.to_usize().min(price_len))
+        };
+        // Adjacent candles share one price read, so shared physical pages are decoded once,
+        // in groups of about `BATCH_PRICES` (at least one candle) so the buffer stays bounded.
+        // Each read includes the preceding close for a leading empty period.
+        let count = to - from;
+        let mut prices = Vec::new();
+        let mut index = 0;
+        while index < count {
+            let price_from = first(index).saturating_sub(1);
+            let mut group_end = index + 1;
+            while group_end < count && end(group_end) - price_from <= BATCH_PRICES {
+                group_end += 1;
+            }
+            prices.clear();
+            self.prices
+                .read_into_at(price_from, end(group_end - 1), &mut prices);
+            for index in index..group_end {
+                each(Self::candle_from_prices(
+                    first(index) - price_from,
+                    end(index) - price_from,
+                    &prices,
+                ))?;
+            }
+            index = group_end;
         }
 
         Ok(())
@@ -150,18 +165,11 @@ impl<I: VecIndex> ReadableVec<I, OHLCCents> for LazyOhlcVec<I> {
         Some(self.candle(first, end))
     }
 
+    /// Each run of adjacent requested candles shares one read; gaps are skipped.
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<OHLCCents>) {
-        let mapping = self.first_heights.read();
-        let boundaries = mapping.as_slice();
-        let indices = &indices[..indices.partition_point(|&index| index < boundaries.len())];
-        let price_len = self.prices.visible_len();
         out.reserve(indices.len());
-        for &index in indices {
-            let first = boundaries[index].to_usize().min(price_len);
-            let end = boundaries
-                .get(index + 1)
-                .map_or(price_len, |height| height.to_usize().min(price_len));
-            out.push(self.candle(first, end));
+        for run in indices.chunk_by(|a, b| b == &(a + 1)) {
+            self.for_each_candle(run[0], run[run.len() - 1] + 1, |candle| out.push(candle));
         }
     }
 }

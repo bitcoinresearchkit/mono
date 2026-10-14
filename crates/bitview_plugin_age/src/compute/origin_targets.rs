@@ -1,16 +1,17 @@
 use bitview_cohort::{AgeRange, ByEpoch, Class};
+use bitview_distribution::metrics::CreationCohort;
 use bitview_primitives::CoinBlocks;
 use bitview_vecs::{CachedSeries, PerBlockCumulativeRolling};
 use brk_types::{Cents, Height};
 use vecdb::WritableVec;
 
-use crate::{CohortVecs, RangeVecs, state::UTXOStates};
+use crate::{RangeVecs, state::UTXOStates};
 
 /// The replay loop can write origin metrics but cannot access address state.
 pub struct OriginTargets<'a> {
     pub ranges: &'a mut AgeRange<RangeVecs>,
-    pub epochs: &'a mut ByEpoch<CohortVecs>,
-    pub classes: &'a mut Class<CohortVecs>,
+    pub epochs: &'a mut ByEpoch<CreationCohort>,
+    pub classes: &'a mut Class<CreationCohort>,
     pub coinblocks_destroyed: &'a mut PerBlockCumulativeRolling<CoinBlocks>,
     pub all_capital: &'a mut CachedSeries<Height, Cents>,
 }

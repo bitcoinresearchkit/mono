@@ -1,16 +1,16 @@
 use std::{array, iter};
 
 use bitview_cohort::{AgeAggregate, AgeAggregateId, AgeRange};
-use bitview_compute::{collect_cohort_weights, prepare_computed};
+use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
 use bitview_primitives::{CostBasisByPercentile, Ratio64};
 use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, Version};
-use vecdb::{AnyStoredVec, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use super::{
-    CostBasisVecs, WRITE_INTERVAL_BLOCKS,
+    CostBasisVecs,
     metric_buckets::{CohortBlock, MetricBuckets},
 };
 use crate::{COMPUTE_VERSION, Replay, ReplayInputs};
@@ -30,27 +30,21 @@ pub fn compute_cost_basis(
     supplies: &AgeRange<&(impl ReadableVec<Height, Sats> + Sync)>,
     exit: &Exit,
 ) -> Result<()> {
-    let spot = inputs.prices;
-    let version = Version::combine_all(
-        iter::once(version + COMPUTE_VERSION)
-            .chain(iter::once(spot.version()))
-            .chain(weights.iter().map(|v| v.version()))
-            .chain(supplies.iter().map(|v| v.version())),
-    );
-    let end = iter::once(spot.len())
-        .chain(weights.iter().map(|v| v.len()))
-        .chain(supplies.iter().map(|v| v.len()))
-        .min()
-        .unwrap_or_default();
-    let start = prepare_computed(
+    let rows = Inputs::new(
+        version + COMPUTE_VERSION,
+        iter::once(inputs.prices as &dyn AnyVec)
+            .chain(weights.iter().map(|v| *v as &dyn AnyVec))
+            .chain(supplies.iter().map(|v| *v as &dyn AnyVec)),
+    )
+    .prepare(
         stored_vecs_mut(&mut cohorts).collect::<Vec<_>>(),
-        version,
-        recompute_from.min(end),
+        recompute_from,
         exit,
     )?;
+    let end = rows.end;
     let age_ranges: [_; COHORTS] = array::from_fn(|i| AgeAggregateId::ALL[i].age_range_ids());
     replay.map(
-        start..end,
+        rows,
         inputs,
         || Worker {
             supplies: AgeRange::from_fn(|age| age.select(supplies).cursor()),
@@ -77,13 +71,9 @@ pub fn compute_cost_basis(
         },
         |height, block| {
             push_block(&mut cohorts, block.as_ref());
-            if (usize::from(height) + 1).is_multiple_of(WRITE_INTERVAL_BLOCKS)
-                || usize::from(height) + 1 == end
-            {
-                let _lock = exit.lock();
-                for vec in stored_vecs_mut(&mut cohorts) {
-                    vec.write()?;
-                }
+            let next = usize::from(height) + 1;
+            if next.is_multiple_of(WRITE_INTERVAL) || next == end {
+                write_locked(stored_vecs_mut(&mut cohorts), exit)?;
             }
             Ok(())
         },

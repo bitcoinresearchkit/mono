@@ -7,7 +7,7 @@ use brk_error::{Error, Result};
 use brk_types::{BlockHash, FeeRate, Height, MempoolEntryInfo, Txid};
 use corepc_jsonrpc::error::Error as JsonRpcError;
 use corepc_types::{
-    v17::{GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockVerboseOne},
+    v17::{GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate},
     v24::GetMempoolInfo,
     v28::GetBlockchainInfo,
 };
@@ -65,14 +65,6 @@ impl Client {
     pub fn get_last_height(&self) -> Result<Height> {
         self.get_block_count().map(Height::from)
     }
-    pub fn get_block_info<'a, H>(&self, hash: &'a H) -> Result<GetBlockVerboseOne>
-    where
-        &'a H: Into<&'a BitcoinBlockHash>,
-    {
-        let hash: &BitcoinBlockHash = hash.into();
-        self.0.call_with_retry("getblock", &(hash, 1u8))
-    }
-
     pub fn get_block_header_info<'a, H>(&self, hash: &'a H) -> Result<GetBlockHeaderVerbose>
     where
         &'a H: Into<&'a BitcoinBlockHash>,
@@ -125,14 +117,10 @@ impl Client {
                 let txid: &BitcoinTxid = t.into();
                 (txid, false)
             });
-            let results: Vec<Result<Box<RawValue>>> =
-                self.0.call_batch_per_item("getrawtransaction", args)?;
+            let results = self.0.call_batch_raw("getrawtransaction", args)?;
 
             for (txid, res) in chunk.iter().zip(results) {
-                match res.and_then(|raw| {
-                    let hex: &str = from_str(raw.get())?;
-                    Ok(encode::deserialize_hex(hex)?)
-                }) {
+                match res.and_then(|raw| Self::decode_raw_tx(&raw)) {
                     Ok(tx) => {
                         out.insert(*txid, tx);
                     }
@@ -227,10 +215,7 @@ impl Client {
                     }
                 }
 
-                match raw_res.and_then(|raw| {
-                    let hex: &str = from_str(raw.get())?;
-                    Ok(encode::deserialize_hex(hex)?)
-                }) {
+                match raw_res.and_then(|raw| Self::decode_raw_tx(&raw)) {
                     Ok(tx) => {
                         txs.insert(*txid, tx);
                     }
@@ -287,6 +272,12 @@ impl Client {
         }
 
         Ok(())
+    }
+
+    /// A `getrawtransaction` (non-verbose) result: the JSON string of the tx hex.
+    fn decode_raw_tx(raw: &RawValue) -> Result<Transaction> {
+        let hex: &str = from_str(raw.get())?;
+        Ok(encode::deserialize_hex(hex)?)
     }
 
     fn template_tip_height(next_height: i64) -> Result<Height> {

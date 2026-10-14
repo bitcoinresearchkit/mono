@@ -1,6 +1,6 @@
 use std::{sync::Arc, thread};
 
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_rpc::Client;
 use brk_types::Height;
 use crossbeam::channel::bounded;
@@ -22,8 +22,21 @@ pub const CHANNEL_CAPACITY: usize = 50;
 const TAIL_DISTANCE_FILES: usize = 8;
 
 enum Strategy {
-    Tail,
-    Forward { first_blk_index: u16 },
+    /// First-block heights of the newest files, newest first, as probed
+    /// while picking (`None`: the probe failed); the tail walk reuses them.
+    Tail {
+        probed: Vec<Option<Height>>,
+    },
+    Forward {
+        first_blk_index: u16,
+    },
+}
+
+/// A stream that reports `error` as its only item.
+pub fn failed(error: Error) -> BlockReceiver {
+    let (send, recv) = bounded(1);
+    let _ = send.send(Err(error));
+    block_receiver::new(recv)
 }
 
 pub fn spawn(reader: Arc<ReaderInner>, canonical: CanonicalRange) -> Result<BlockReceiver> {
@@ -39,9 +52,14 @@ pub fn spawn(reader: Arc<ReaderInner>, canonical: CanonicalRange) -> Result<Bloc
 
     thread::spawn(move || {
         let result = match strategy {
-            Strategy::Tail => {
-                tail::pipeline_tail(&reader.client, &paths, xor_bytes, &canonical, &send)
-            }
+            Strategy::Tail { probed } => tail::pipeline_tail(
+                &reader.client,
+                &paths,
+                &probed,
+                xor_bytes,
+                &canonical,
+                &send,
+            ),
             Strategy::Forward { first_blk_index } => {
                 forward::pipeline_forward(&paths, first_blk_index, xor_bytes, &canonical, &send)
             }
@@ -60,17 +78,15 @@ fn pick_strategy(
     xor_bytes: XORBytes,
     canonical_start: Height,
 ) -> Strategy {
-    if canonical_start != Height::ZERO
-        && paths
-            .iter()
-            .rev()
-            .take(TAIL_DISTANCE_FILES)
-            .any(|(_, path)| {
-                bisect::first_block_height(client, path, xor_bytes)
-                    .is_ok_and(|h| h <= canonical_start)
-            })
-    {
-        return Strategy::Tail;
+    if canonical_start != Height::ZERO {
+        let mut probed = Vec::with_capacity(TAIL_DISTANCE_FILES);
+        for (_, path) in paths.iter().rev().take(TAIL_DISTANCE_FILES) {
+            let height = bisect::first_block_height(client, path, xor_bytes).ok();
+            probed.push(height);
+            if height.is_some_and(|h| h <= canonical_start) {
+                return Strategy::Tail { probed };
+            }
+        }
     }
     Strategy::Forward {
         first_blk_index: bisect::find_start_blk_index(client, canonical_start, paths, xor_bytes),

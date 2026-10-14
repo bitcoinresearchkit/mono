@@ -94,7 +94,7 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
     let tmp = temporary.path();
 
     let client = Client::new("http://127.0.0.1:1", Auth::None)?;
-    let reader = Reader::new_without_rlimit(tmp.join("blocks"), &client);
+    let reader = Reader::new(tmp.join("blocks"), &client);
     let exit = Exit::new();
     let context = ImportContext::new(tmp, &exit);
     let plugins = DefaultPlugins::import(context, &reader)?;

@@ -11,3 +11,11 @@ the same decoder.
 
 Keep unrelated upstream code unchanged so future upstream comparisons and
 updates remain mechanical.
+
+A second patch makes the encoder's page dissection sound
+(`chunk_latent_compressor.rs`): the four per-page buffers (`ans_vals`,
+`ans_bits`, `offsets`, `offset_bits`) are filled through their spare capacity
+as `MaybeUninit` and get their length only once every element is written,
+instead of `set_len` before initialization. The ANS buffers stay empty when the
+latent variable needs no ANS (they were left uninitialized and never read).
+Output bytes are unchanged.

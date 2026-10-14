@@ -1,5 +1,5 @@
+use crate::families::{CumulativeCount, CumulativeValue};
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_distribution::families::{CumulativeCount, CumulativeValue};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::CoinDays;
 use bitview_traversable::Traversable;
@@ -9,7 +9,7 @@ use brk_types::{Cents, Sats, Version};
 use vecdb::{AnyStoredVec, BinaryTransform, Database, Rw, StorageMode};
 
 #[derive(Traversable)]
-pub struct ActivityVecs<M: StorageMode = Rw> {
+pub struct CreationActivity<M: StorageMode = Rw> {
     /// Value of outputs spent in each block. BTC representations use the spent
     /// output value; USD representations value it at the spending block's spot
     /// price.
@@ -19,8 +19,8 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
     pub coindays_destroyed: CumulativeCount<CoinDays, M>,
 }
 
-impl ActivityVecs {
-    pub fn import(
+impl CreationActivity {
+    pub(super) fn import(
         db: &Database,
         cohort: CohortId,
         version: Version,
@@ -48,13 +48,13 @@ impl ActivityVecs {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, volume: Sats, cdd: CoinDays, price: Cents) {
+    pub(super) fn push(&mut self, volume: Sats, cdd: CoinDays, price: Cents) {
         self.transfer_volume
             .push_block(volume, SatsToCents::apply(volume, price));
         self.coindays_destroyed.push_block(cdd);
     }
 
-    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+    pub(super) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.transfer_volume
             .stored_vecs_mut()
             .into_iter()

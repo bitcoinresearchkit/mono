@@ -12,7 +12,7 @@ pub(super) struct TxInReaders<'a, const WITH_INDEXES: bool> {
     input_values: Cursor<'a, TxInIndex, Sats, PcoVec<TxInIndex, Sats>>,
     references: Cursor<'a, TxInIndex, TxOutIndex, PcoVec<TxInIndex, TxOutIndex>>,
     output_types: Cursor<'a, TxInIndex, OutputType, PcoVec<TxInIndex, OutputType>>,
-    type_indexes: Cursor<'a, TxInIndex, TypeIndex, PcoVec<TxInIndex, TypeIndex>>,
+    type_indexes: Option<Cursor<'a, TxInIndex, TypeIndex, PcoVec<TxInIndex, TypeIndex>>>,
     output_heights: &'a HeightMap<TxOutIndex>,
 }
 
@@ -23,7 +23,7 @@ impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
             input_values: inputs.value.cursor(),
             references: inputs.txout_index.cursor(),
             output_types: inputs.output_type.cursor(),
-            type_indexes: inputs.type_index.cursor(),
+            type_indexes: WITH_INDEXES.then(|| inputs.type_index.cursor()),
             output_heights,
         }
     }
@@ -43,9 +43,8 @@ impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
             .collect_range_into_at(first_txin_index, end, values);
         self.output_types
             .collect_range_into_at(first_txin_index, end, output_types);
-        if WITH_INDEXES {
-            self.type_indexes
-                .collect_range_into_at(first_txin_index, end, type_indexes);
+        if let Some(cursor) = &mut self.type_indexes {
+            cursor.collect_range_into_at(first_txin_index, end, type_indexes);
         }
 
         prev_heights.clear();

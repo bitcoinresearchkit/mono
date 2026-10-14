@@ -1,4 +1,4 @@
-use std::{iter::once, sync::Arc};
+use std::{convert::Infallible, iter::once, marker::PhantomData, sync::Arc};
 
 use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
@@ -10,34 +10,13 @@ use vecdb::{
 
 use vecdb::SparseRead;
 
-trait LookbackTransform<S, T>: Send + Sync {
-    fn apply(&self, current: S, previous: Option<S>) -> T;
-    fn append(&self, current: &[S], previous: Option<&[S]>, out: &mut Vec<T>);
-}
-
-impl<S: VecValue, T, F: Fn(S, Option<S>) -> T + Send + Sync> LookbackTransform<S, T> for F {
-    fn apply(&self, current: S, previous: Option<S>) -> T {
-        self(current, previous)
-    }
-    fn append(&self, current: &[S], previous: Option<&[S]>, out: &mut Vec<T>) {
-        match previous {
-            Some(previous) => out.extend(
-                current
-                    .iter()
-                    .cloned()
-                    .zip(previous.iter().cloned())
-                    .map(|(current, previous)| self(current, Some(previous))),
-            ),
-            None => out.extend(current.iter().cloned().map(|current| self(current, None))),
-        }
-    }
-}
+use super::batches::batches;
 
 /// Lazily combines values a fixed number of positions apart from one source.
 ///
 /// Current and previous ranges are read separately, so a large lookback does
 /// not force reading the gap between them.
-pub struct LazyLookbackVec<I, S, T>
+pub struct LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
     S: VecValue,
@@ -47,64 +26,73 @@ where
     base_version: Version,
     source: ReadableBoxedVec<I, S>,
     lookback: usize,
-    compute: Arc<dyn LookbackTransform<S, T>>,
+    compute: F,
+    _marker: PhantomData<T>,
 }
 
-impl<I, S, T> LazyLookbackVec<I, S, T>
+impl<I, S, T, F> LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
     S: VecValue,
     T: VecValue,
+    F: Fn(S, Option<S>) -> T + Clone + Send + Sync + 'static,
 {
     pub fn new(
         name: &str,
         version: Version,
         source: &(impl ReadableCloneableVec<I, S> + ?Sized),
         lookback: usize,
-        compute: impl Fn(S, Option<S>) -> T + Send + Sync + 'static,
+        compute: F,
     ) -> Self {
         Self {
             name: Arc::from(name),
             base_version: version,
             source: source.read_only_boxed_clone(),
             lookback,
-            compute: Arc::new(compute),
+            compute,
+            _marker: PhantomData,
         }
     }
-}
 
-impl<I, S, T> LazyLookbackVec<I, S, T>
-where
-    I: VecIndex,
-    S: VecValue,
-    T: VecValue,
-{
-    fn try_fold_lookback<B, E>(
+    /// Visits `[from, to)` source chunk by source chunk with the values `lookback` positions
+    /// earlier (`None` before the first), one bounded batch at a time. Each batch's historical
+    /// read completes before current chunks are borrowed: a source may hold a non-reentrant
+    /// publication lock during its callback.
+    fn try_for_each_input<E>(
         &self,
         from: usize,
         to: usize,
-        init: B,
-        mut fold: impl FnMut(B, T) -> Result<B, E>,
-    ) -> Result<B, E> {
-        let mut accumulator = init;
-        let to = to.min(self.len());
-        if from >= to {
-            return Ok(accumulator);
+        mut each: impl FnMut(usize, &[S], Option<&[S]>) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let mut previous = Vec::new();
+        for (at, end) in batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
+            let previous_from = at.saturating_sub(self.lookback);
+            previous.clear();
+            self.source.read_into_at(
+                previous_from,
+                end.saturating_sub(self.lookback),
+                &mut previous,
+            );
+            let mut result = Ok(());
+            self.source.for_each_chunk_at(at, end, &mut |at, current| {
+                if result.is_err() {
+                    return;
+                }
+                let prefix = self.lookback.saturating_sub(at).min(current.len());
+                if prefix > 0 {
+                    result = each(at, &current[..prefix], None);
+                }
+                let current = &current[prefix..];
+                if result.is_err() || current.is_empty() {
+                    return;
+                }
+                let at = at + prefix;
+                let offset = at - self.lookback - previous_from;
+                result = each(at, current, Some(&previous[offset..offset + current.len()]));
+            });
+            result?;
         }
-
-        let previous_from = from.saturating_sub(self.lookback);
-        let previous_to = to.saturating_sub(self.lookback);
-        let previous = self.source.collect_range_dyn(previous_from, previous_to);
-        let current = self.source.collect_range_dyn(from, to);
-
-        for (offset, current) in current.into_iter().enumerate() {
-            let index = from + offset;
-            let previous = index
-                .checked_sub(self.lookback)
-                .map(|index| previous[index - previous_from].clone());
-            accumulator = fold(accumulator, self.compute.apply(current, previous))?;
-        }
-        Ok(accumulator)
+        Ok(())
     }
 
     fn for_each_input(
@@ -113,36 +101,32 @@ where
         to: usize,
         mut each: impl FnMut(usize, &[S], Option<&[S]>),
     ) {
-        let to = to.min(self.len());
-        if from >= to {
-            return;
-        }
-        let previous_from = from.saturating_sub(self.lookback);
-        let previous_to = to.saturating_sub(self.lookback);
-        // Finish the historical read before borrowing current chunks: a source
-        // may hold a non-reentrant publication lock during its callback.
-        let previous = self.source.collect_range_dyn(previous_from, previous_to);
-        self.source.for_each_chunk_at(from, to, &mut |at, current| {
-            let prefix = self.lookback.saturating_sub(at).min(current.len());
-            if prefix > 0 {
-                each(at, &current[..prefix], None);
-            }
-            let current = &current[prefix..];
-            if current.is_empty() {
-                return;
-            }
-            let at = at + prefix;
-            let offset = at - self.lookback - previous_from;
-            each(at, current, Some(&previous[offset..offset + current.len()]));
+        let Ok(()) = self.try_for_each_input(from, to, |at, current, previous| {
+            each(at, current, previous);
+            Ok::<_, Infallible>(())
         });
+    }
+
+    fn values<'a>(
+        &'a self,
+        current: &'a [S],
+        previous: Option<&'a [S]>,
+    ) -> impl Iterator<Item = T> + 'a {
+        current.iter().enumerate().map(move |(offset, current)| {
+            (self.compute)(
+                current.clone(),
+                previous.map(|previous| previous[offset].clone()),
+            )
+        })
     }
 }
 
-impl<I, S, T> Clone for LazyLookbackVec<I, S, T>
+impl<I, S, T, F> Clone for LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
     S: VecValue,
     T: VecValue,
+    F: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -150,16 +134,18 @@ where
             base_version: self.base_version,
             source: self.source.clone(),
             lookback: self.lookback,
-            compute: Arc::clone(&self.compute),
+            compute: self.compute.clone(),
+            _marker: PhantomData,
         }
     }
 }
 
-impl<I, S, T> AnyVec for LazyLookbackVec<I, S, T>
+impl<I, S, T, F> AnyVec for LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
     S: VecValue,
     T: VecValue,
+    F: Fn(S, Option<S>) -> T + Clone + Send + Sync + 'static,
 {
     fn version(&self) -> Version {
         self.base_version + self.source.version()
@@ -186,21 +172,23 @@ where
     }
 }
 
-impl<I, S, T> TypedVec for LazyLookbackVec<I, S, T>
+impl<I, S, T, F> TypedVec for LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
     S: VecValue,
     T: VecValue,
+    F: Fn(S, Option<S>) -> T + Clone + Send + Sync + 'static,
 {
     type I = I;
     type T = T;
 }
 
-impl<I, S, T> ReadableVec<I, T> for LazyLookbackVec<I, S, T>
+impl<I, S, T, F> ReadableVec<I, T> for LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
     S: VecValue,
     T: VecValue,
+    F: Fn(S, Option<S>) -> T + Clone + Send + Sync + 'static,
 {
     fn cursor_chunk_size(&self) -> usize {
         self.source.cursor_chunk_size()
@@ -209,7 +197,7 @@ where
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<T>) {
         buf.reserve(to.min(self.len()).saturating_sub(from));
         self.for_each_input(from, to, |_, current, previous| {
-            self.compute.append(current, previous, buf);
+            buf.extend(self.values(current, previous));
         });
     }
 
@@ -221,40 +209,47 @@ where
                 let offset = chunk * chunk_size;
                 let previous = previous.map(|values| &values[offset..offset + current.len()]);
                 output.clear();
-                self.compute.append(current, previous, &mut output);
+                output.extend(self.values(current, previous));
                 f(at + offset, &output);
             }
         });
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
-        self.for_each_chunk_at(from, to, &mut |_, values| {
-            values.iter().cloned().for_each(&mut *f);
+        self.for_each_input(from, to, |_, current, previous| {
+            self.values(current, previous).for_each(&mut *f);
         });
     }
 
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(
+    fn fold_range_at<B, G: FnMut(B, T) -> B>(
         &self,
         from: usize,
         to: usize,
         init: B,
-        mut f: F,
+        mut fold: G,
     ) -> B {
-        let mut acc = Some(init);
-        self.for_each_chunk_at(from, to, &mut |_, values| {
-            acc = Some(values.iter().cloned().fold(acc.take().unwrap(), &mut f));
+        let Ok(accumulator) = self.try_fold_range_at(from, to, init, |accumulator, value| {
+            Ok::<_, Infallible>(fold(accumulator, value))
         });
-        acc.unwrap()
+        accumulator
     }
 
-    fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
+    fn try_fold_range_at<B, E, G: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,
         to: usize,
         init: B,
-        f: F,
+        mut fold: G,
     ) -> Result<B, E> {
-        self.try_fold_lookback(from, to, init, f)
+        let mut accumulator = Some(init);
+        self.try_for_each_input(from, to, |_, current, previous| {
+            accumulator = Some(
+                self.values(current, previous)
+                    .try_fold(accumulator.take().unwrap(), &mut fold)?,
+            );
+            Ok(())
+        })?;
+        Ok(accumulator.unwrap())
     }
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
@@ -262,7 +257,7 @@ where
         let previous = index
             .checked_sub(self.lookback)
             .and_then(|index| self.source.collect_one_at(index));
-        Some(self.compute.apply(current, previous))
+        Some((self.compute)(current, previous))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
@@ -286,16 +281,17 @@ where
         for output in 0..indices.len() {
             let current = source.current(output);
             let previous = source.previous(output);
-            out.push(self.compute.apply(current, previous));
+            out.push((self.compute)(current, previous));
         }
     }
 }
 
-impl<I, S, T> Traversable for LazyLookbackVec<I, S, T>
+impl<I, S, T, F> Traversable for LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
     S: VecValue,
     T: VecValue + Formattable + Serialize + JsonSchema,
+    F: Fn(S, Option<S>) -> T + Clone + Send + Sync + 'static,
 {
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         once(self as &dyn AnyExportableVec)

@@ -1,11 +1,10 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_distribution::{
-    families::{CountWithDeltas, CumulativeCount, CumulativeFiat, CumulativeValue},
-    metrics::{CohortCapital, CohortCostBasis, CohortSupply, ShareTotals},
+    families::{CumulativeFiat, CumulativeValue},
+    metrics::{CohortCapital, CohortCostBasis, CohortSupply, ShareTotals, StoredOutputs},
     state::{MinimalRealizedState, UTXOCohortState},
 };
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, ops::SatsToCents, shapes::Windows};
 use brk_error::Result;
@@ -19,18 +18,10 @@ type State = UTXOCohortState<MinimalRealizedState, ()>;
 pub struct CohortVecs<M: StorageMode = Rw> {
     pub supply: CohortSupply<M>,
     pub capital: CohortCapital<M>,
-    pub outputs: OutputsVecs<M>,
+    pub outputs: StoredOutputs<M>,
     pub activity: ActivityVecs<M>,
     pub realized: RealizedVecs<M>,
     pub cost_basis: CohortCostBasis<M>,
-}
-
-#[derive(Traversable)]
-pub struct OutputsVecs<M: StorageMode = Rw> {
-    /// Number of transaction outputs that are unspent at the represented block.
-    pub unspent_count: CountWithDeltas<M>,
-    /// Number of the cohort's outputs spent in each block.
-    pub spent_count: CumulativeCount<Count, M>,
 }
 
 #[derive(Traversable)]
@@ -74,22 +65,7 @@ impl CohortVecs {
                 totals.supply,
             )?,
             capital: CohortCapital::import(db, name, version, mappings, windows, totals.capital)?,
-            outputs: OutputsVecs {
-                unspent_count: CountWithDeltas::import(
-                    db,
-                    &name("utxo_count"),
-                    version,
-                    mappings,
-                    windows,
-                )?,
-                spent_count: CumulativeCount::import(
-                    db,
-                    &name("spent_utxo_count"),
-                    version + Version::ONE,
-                    mappings,
-                    windows,
-                )?,
-            },
+            outputs: StoredOutputs::import(db, name, version, mappings, windows)?,
             activity: ActivityVecs {
                 transfer_volume: CumulativeValue::import(
                     db,
@@ -122,9 +98,7 @@ impl CohortVecs {
     #[inline(always)]
     pub fn push(&mut self, state: &State, price: Cents) {
         self.supply.total.push(state.supply_value());
-        let (unspent, spent) = state.output_counts();
-        self.outputs.unspent_count.push(unspent);
-        self.outputs.spent_count.push_block(spent);
+        self.outputs.push(state.output_counts());
         let sent = state.transfer_volume();
         self.activity
             .transfer_volume
@@ -138,10 +112,11 @@ impl CohortVecs {
 
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         let [sats, cents] = self.activity.transfer_volume.stored_vecs_mut();
+        let [unspent_count, spent_count] = self.outputs.stored_vecs_mut();
         [
             self.supply.total.stored_mut(),
-            self.outputs.unspent_count.stored_mut(),
-            self.outputs.spent_count.stored_mut(),
+            unspent_count,
+            spent_count,
             sats,
             cents,
             self.capital.stored_mut(),

@@ -1,5 +1,4 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_distribution::{families::Fiat, metrics::CohortCapital};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
@@ -8,14 +7,14 @@ use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, Rw, StorageMode};
 
-use crate::state::UnrealizedState;
+use crate::{families::Fiat, metrics::CohortCapital, state::UnrealizedState};
 
 #[derive(Deref, DerefMut, Traversable)]
-pub struct CapitalVecs<M: StorageMode = Rw> {
+pub struct CreationCapital<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub base: CohortCapital<M>,
+    base: CohortCapital<M>,
     /// Capital in profit: creation-date USD value of the cohort's outputs whose creation price is
     /// at or below the represented block's spot price.
     pub in_profit: Fiat<Cents, M>,
@@ -24,8 +23,8 @@ pub struct CapitalVecs<M: StorageMode = Rw> {
     pub in_loss: Fiat<Cents, M>,
 }
 
-impl CapitalVecs {
-    pub fn import(
+impl CreationCapital {
+    pub(super) fn import(
         db: &Database,
         cohort: CohortId,
         version: Version,
@@ -34,22 +33,23 @@ impl CapitalVecs {
         all_capital: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
+        // Split before rounding: each side's exact creation value, floored once.
+        let split_version = version + Version::ONE;
         Ok(Self {
             base: CohortCapital::import(db, name, version, mappings, window_starts, all_capital)?,
-            in_profit: Fiat::import(db, &name("capital_in_profit"), version, mappings)?,
-            in_loss: Fiat::import(db, &name("capital_in_loss"), version, mappings)?,
+            in_profit: Fiat::import(db, &name("capital_in_profit"), split_version, mappings)?,
+            in_loss: Fiat::import(db, &name("capital_in_loss"), split_version, mappings)?,
         })
     }
 
     #[inline(always)]
-    pub fn push(&mut self, total: Cents, profitability: &UnrealizedState, price: Cents) {
-        let (in_profit, in_loss) = profitability.capital_split(price);
+    pub(super) fn push(&mut self, total: Cents, profitability: &UnrealizedState) {
         self.base.push(total);
-        self.in_profit.push(in_profit);
-        self.in_loss.push(in_loss);
+        self.in_profit.push(profitability.capital_in_profit);
+        self.in_loss.push(profitability.capital_in_loss);
     }
 
-    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
+    pub(super) fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 3] {
         [
             self.base.stored_mut(),
             self.in_profit.stored_mut(),

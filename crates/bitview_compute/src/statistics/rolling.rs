@@ -1,7 +1,12 @@
-use std::ops::{AddAssign, SubAssign};
+use std::{
+    collections::VecDeque,
+    ops::{AddAssign, SubAssign},
+};
 
 use brk_exit::Exit;
 use vecdb::{EagerVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version, WritableVec};
+
+use super::Retained;
 
 /// Rolling, expanding and all-time statistics computed into an [`EagerVec`].
 pub trait ComputeRollingStats {
@@ -26,12 +31,13 @@ pub trait ComputeRollingStats {
     /// undefined value counts as zero. Every 1,024th row rebuilds its window's f64 sum from the
     /// values and the rows after continue from it, so a row's value depends on its position
     /// alone: a resumed run matches an uninterrupted one bit for bit, and rounding never builds
-    /// up past one stride.
+    /// up past one stride. The `retained` window continues the previous update when current.
     fn compute_rolling_average<A>(
         &mut self,
         max_from: Self::I,
         window_starts: &impl ReadableVec<Self::I, Self::I>,
         values: &impl ReadableVec<Self::I, A>,
+        retained: &mut Retained<AverageWindow>,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -80,6 +86,65 @@ pub trait ComputeRollingStats {
 
 /// Rows at multiples of this rebuild their window's sum from its values.
 const ANCHOR_STRIDE: usize = 1024;
+
+/// A rolling average's window values in row order and their running f64 sum: the state of
+/// [`ComputeRollingStats::compute_rolling_average`].
+pub struct AverageWindow {
+    /// The window's values, the first at row `start`.
+    values: VecDeque<f64>,
+    start: usize,
+    sum: f64,
+}
+
+impl AverageWindow {
+    /// The values of the window of row `anchor` before `anchor` itself, from history. The
+    /// sum is left to the anchor row, which rebuilds it.
+    fn read<I, A>(
+        anchor: usize,
+        window_starts: &impl ReadableVec<I, I>,
+        source: &impl ReadableVec<I, A>,
+    ) -> Self
+    where
+        I: VecIndex,
+        A: VecValue,
+        f64: From<A>,
+    {
+        debug_assert!(anchor.is_multiple_of(ANCHOR_STRIDE));
+        let start = window_starts.collect_one_at(anchor).unwrap().to_usize();
+        let mut values = VecDeque::with_capacity(anchor - start);
+        source.for_each_range_at(start, anchor, |value| values.push_back(f64::from(value)));
+        Self {
+            values,
+            start,
+            sum: 0.0,
+        }
+    }
+
+    /// Enters row `index`'s value, drops the rows before its window `start`, and returns the
+    /// window's mean. A row at a multiple of [`ANCHOR_STRIDE`] rebuilds the sum from its
+    /// window's values; the rows after add the entering value and remove the leaving ones.
+    #[inline]
+    fn push(&mut self, index: usize, value: f64, start: usize) -> f64 {
+        debug_assert_eq!(index, self.start + self.values.len(), "rows enter in order");
+        debug_assert!(self.start <= start, "window starts never move back");
+        self.values.push_back(value);
+        if index.is_multiple_of(ANCHOR_STRIDE) {
+            self.values.drain(..start - self.start);
+            self.start = start;
+            self.sum = self
+                .values
+                .iter()
+                .fold(0.0, |sum, &value| sum + defined(value));
+        } else {
+            self.sum += defined(value);
+            while self.start < start {
+                self.sum -= defined(self.values.pop_front().unwrap());
+                self.start += 1;
+            }
+        }
+        self.sum / (index - start + 1) as f64
+    }
+}
 
 impl<V> ComputeRollingStats for EagerVec<V>
 where
@@ -151,6 +216,7 @@ where
         max_from: V::I,
         window_starts: &impl ReadableVec<V::I, V::I>,
         values: &impl ReadableVec<V::I, A>,
+        retained: &mut Retained<AverageWindow>,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -158,49 +224,30 @@ where
         f64: From<A> + From<V::T>,
         V::T: From<f64> + Default,
     {
-        // Leaving values are read through one cursor across batches, so each compressed page is
-        // decompressed once; only a replay from an anchor behind it starts a new one.
-        let mut leaving = values.cursor();
-
+        let version = Version::new(4) + window_starts.version() + values.version();
         self.compute_to(
             max_from,
             window_starts.len().min(values.len()),
-            Version::new(4) + window_starts.version() + values.version(),
+            version,
             |this, range| {
                 let (skip, end) = (range.start, range.end);
-
-                let anchor = skip - skip % ANCHOR_STRIDE;
-                let starts_batch = window_starts.collect_range_at(anchor, end);
-                let values_batch = values.collect_range_at(anchor, end);
-                let mut sum = 0.0;
-                let mut prev_start = 0;
-
-                for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
-                    let i = anchor + j;
-                    let start = start.to_usize();
-                    debug_assert!(prev_start <= start, "window starts never move back");
-                    if i.is_multiple_of(ANCHOR_STRIDE) {
-                        sum = values.fold_range_at(start, i + 1, 0.0, |sum, value| {
-                            sum + defined(f64::from(value))
-                        });
-                        if leaving.position() > start {
-                            leaving = values.cursor();
-                        }
-                        leaving.advance(start - leaving.position());
-                    } else {
-                        sum += defined(f64::from(value));
-                        if prev_start < start {
-                            leaving.for_each(start - prev_start, |value: A| {
-                                sum -= defined(f64::from(value));
-                            });
-                        }
+                // Without a current window, replay from the anchor at or before `skip`.
+                let (mut window, from) = match retained.take(skip, version) {
+                    Some(window) => (window, skip),
+                    None => {
+                        let anchor = skip - skip % ANCHOR_STRIDE;
+                        (AverageWindow::read(anchor, window_starts, values), anchor)
                     }
-                    prev_start = start;
-                    if i >= skip {
-                        this.push(V::T::from(sum / (i - start + 1) as f64));
+                };
+                let starts = window_starts.collect_range_at(from, end);
+                let entering = values.collect_range_at(from, end);
+                for (index, (start, value)) in (from..end).zip(starts.into_iter().zip(entering)) {
+                    let average = window.push(index, f64::from(value), start.to_usize());
+                    if index >= skip {
+                        this.push(V::T::from(average));
                     }
                 }
-
+                retained.keep(end, version, window);
                 Ok(())
             },
             exit,
@@ -292,12 +339,6 @@ where
     }
 }
 
-/// Rolling window statistics kept as f64 sums of the window's values (`add`, `remove`), written
-/// by `output` from the sums and the window's count. A row at a multiple of [`ANCHOR_STRIDE`]
-/// rebuilds the sums from its window; the rows after continue from it, adding the entering value
-/// and removing the leaving ones. A row's value thus depends on its position alone: a run
-/// resuming anywhere replays from the anchor at or before it, matching an uninterrupted run bit
-/// for bit, and rounding never builds up past one stride.
 fn compute_all_time_extreme<V: StoredVec, A, F>(
     vec: &mut EagerVec<V>,
     max_from: V::I,

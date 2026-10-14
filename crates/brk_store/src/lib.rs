@@ -1,10 +1,12 @@
 #![doc = include_str!("../README.md")]
 
-use std::{cmp::Ordering, fs, hash::Hash, ops::Range, path::Path};
+use std::{cmp::Ordering, fs, hash::Hash, marker::PhantomData, ops::Range, path::Path};
 
 use brk_error::Result;
 use brk_types::{StoreValue, Version};
-use fjall::{Database, FORMAT_VERSION, Keyspace, KeyspaceCreateOptions, RecordBytes, config::*};
+use fjall::{
+    Database, FORMAT_VERSION, Keyspace, KeyspaceCreateOptions, ReadView, RecordBytes, config::*,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 mod any;
@@ -155,13 +157,18 @@ where
         }))
     }
 
-    #[inline]
-    pub fn prefix<P: StoreValue>(&self, prefix: P) -> impl DoubleEndedIterator<Item = (K, V)> + '_ {
-        let prefix = prefix.to_store_bytes();
-        self.keyspace
-            .prefix_as::<K::Bytes, V::Bytes>(prefix.as_ref())
-            .map(|result| result.unwrap())
-            .map(|(k, v)| (K::from_store_bytes(k), V::from_store_bytes(v)))
+    /// Pins the ingested records for later reads. Call it with nothing pending: the view holds
+    /// only ingested records.
+    pub fn view(&self) -> StoreView<K, V> {
+        debug_assert!(self.pending.is_empty(), "a store view excludes pending writes");
+        self.ingested()
+    }
+
+    fn ingested(&self) -> StoreView<K, V> {
+        StoreView {
+            view: self.keyspace.read_view(),
+            records: PhantomData,
+        }
     }
 
     #[inline]
@@ -257,6 +264,41 @@ where
 
         ingestion.finish()?;
         Ok(())
+    }
+}
+
+/// A store's ingested records pinned at one moment: later writes and ingestions stay invisible
+/// to it, and the tables it reads stay on disk while it lives.
+pub struct StoreView<K, V> {
+    view: ReadView,
+    records: PhantomData<fn() -> (K, V)>,
+}
+
+impl<K, V> Clone for StoreView<K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            view: self.view.clone(),
+            records: PhantomData,
+        }
+    }
+}
+
+impl<K, V> StoreView<K, V>
+where
+    K: StoreValue,
+    V: StoreValue,
+    K::Bytes: RecordBytes,
+    V::Bytes: RecordBytes,
+{
+    #[inline]
+    pub fn prefix<P: StoreValue>(
+        &self,
+        prefix: P,
+    ) -> impl DoubleEndedIterator<Item = (K, V)> + use<K, V, P> {
+        self.view
+            .prefix_as::<K::Bytes, V::Bytes>(prefix.to_store_bytes().as_ref())
+            .map(|result| result.unwrap())
+            .map(|(k, v)| (K::from_store_bytes(k), V::from_store_bytes(v)))
     }
 }
 

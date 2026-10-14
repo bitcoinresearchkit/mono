@@ -55,4 +55,19 @@ where
         let target = S1I::max_from(I::from(index), source.visible_len());
         source.collect_one_at(target)
     }
+
+    /// One sorted source read for all requested epochs instead of a point read each.
+    fn read_sorted_into<MI: VecIndex, S: ReadableVec<S1I, O> + ?Sized>(
+        source: &S,
+        _mapping: &RangeMap<S1I, MI>,
+        indices: &[usize],
+        out: &mut Vec<O>,
+    ) {
+        let source_len = source.visible_len();
+        let targets: Vec<usize> = indices
+            .iter()
+            .map(|&index| S1I::max_from(I::from(index), source_len))
+            .collect();
+        source.read_sorted_into_at(&targets, out);
+    }
 }

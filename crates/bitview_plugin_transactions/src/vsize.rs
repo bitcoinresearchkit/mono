@@ -1,7 +1,7 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::ops::WeightToVSize;
+use bitview_vecs::ops::Convert;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{TxIndex, VSize, Version, Weight32};
@@ -24,7 +24,7 @@ impl Vecs {
         mappings: &MappingsVecs,
     ) -> Result<Self> {
         Ok(Self {
-            tx: LazyVec::transformed::<WeightToVSize>(
+            tx: LazyVec::transformed::<Convert>(
                 "tx_vsize",
                 version,
                 indexer.vecs().transactions.weight.read_only_boxed_clone(),

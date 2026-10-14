@@ -22,6 +22,7 @@ impl Vecs {
                     _1m: PerBlock::import(db, "hashrate_sma_1m", version, mappings)?,
                     _2m: PerBlock::import(db, "hashrate_sma_2m", version, mappings)?,
                     _1y: PerBlock::import(db, "hashrate_sma_1y", version, mappings)?,
+                    windows: Default::default(),
                 },
                 ath: PerBlock::import(db, "hashrate_ath", version, mappings)?,
                 drawdown: PercentPerBlock::import(db, "hashrate_drawdown", version, mappings)?,

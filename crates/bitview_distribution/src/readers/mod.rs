@@ -137,11 +137,23 @@ impl<'a, const WITH_INDEXES: bool> Columns<'a, WITH_INDEXES> {
 
     /// Runs `process` on the batches in order, until it breaks, while a reader
     /// thread fills the next batch's columns, so reads stay off the processing path.
+    /// A single batch (an ordinary 1-3 block update) has nothing to overlap: it is read
+    /// and processed in place.
     pub fn for_each_batch(
         &mut self,
         bounds: &BlockBounds,
         mut process: impl FnMut(&Batch<'_>, &BatchColumns) -> Result<ControlFlow<()>>,
     ) -> Result<()> {
+        if bounds.blocks.len() <= BATCH_BLOCKS {
+            let mut columns = BatchColumns::default();
+            for batch in bounds.batches() {
+                self.collect(&batch, &mut columns)?;
+                if process(&batch, &columns)?.is_break() {
+                    break;
+                }
+            }
+            return Ok(());
+        }
         thread::scope(|scope| {
             let (filled_tx, filled_rx) = mpsc::sync_channel(1);
             let (free_tx, free_rx) = mpsc::channel();

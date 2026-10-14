@@ -1,3 +1,4 @@
+use bitview_compute::{ExtremaWindow, Retained};
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyFiatPerBlock;
 use brk_types::Cents;
@@ -17,4 +18,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// previous blocks' spot prices. The genesis block is zero; this is not an
     /// open-high-low-close price range.
     pub true_range: LazyFiatPerBlock<Cents>,
+    /// The kept 1w, 1m and 1y extrema windows.
+    pub(super) extrema: M::WriteOnly<[Retained<ExtremaWindow<Cents>>; 3]>,
 }

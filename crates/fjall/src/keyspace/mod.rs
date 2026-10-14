@@ -24,6 +24,24 @@ pub mod options;
 
 pub use ingestion::Ingestion;
 
+/// A keyspace's table layout pinned for reads: later ingestions and compactions stay invisible
+/// to it, and the tables it reads stay on disk while it lives.
+#[derive(Clone)]
+pub struct ReadView(lsm_tree::ReadView);
+
+impl ReadView {
+    /// Iterates over the pinned records matching `prefix`, using the specified owned record bytes.
+    #[must_use]
+    pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
+        &self,
+        prefix: &[u8],
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
+        self.0
+            .prefix_as(prefix)
+            .map(|item| item.map_err(Into::into))
+    }
+}
+
 /// A named, table-only LSM keyspace.
 #[derive(Clone)]
 pub struct Keyspace {
@@ -113,6 +131,12 @@ impl Keyspace {
             .tree
             .prefix_as(prefix)
             .map(|item| item.map_err(Into::into))
+    }
+
+    /// Pins the keyspace's current table layout for later reads.
+    #[must_use]
+    pub fn read_view(&self) -> ReadView {
+        ReadView(self.inner.tree.read_view())
     }
 
     /// Iterates over all latest key-value pairs.

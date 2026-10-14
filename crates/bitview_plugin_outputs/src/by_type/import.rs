@@ -1,10 +1,6 @@
 use bitview_cohort::ByType;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Count, PartsPerMillion32};
-use bitview_vecs::{
-    LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling, LazyWindowStartVec, import_cached,
-    ops::Quotient, shapes::Windows,
-};
+use bitview_vecs::{LazyWindowStartVec, count_and_share, import_cached, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -37,40 +33,18 @@ impl Vecs {
         let txs = mappings.transaction_count_source();
         let types = ByType::from_fn(|kind| {
             let key = kind.key();
-            let count = LazyPerBlockCumulativeRolling::from_cumulative_source(
-                &format!("{key}_output_count"),
+            let (count, share) = count_and_share(
+                &format!("{key}_output"),
                 version,
                 kind.select(&count_stored),
-                window_starts,
-                mappings,
-            );
-            let share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
-                Count,
-                Count,
-                Quotient<PartsPerMillion32>,
-            >(
-                &format!("{key}_output_share"),
-                version,
-                &count.cumulative.height,
                 &outputs,
                 window_starts,
                 mappings,
             );
-            let tx_count = LazyPerBlockCumulativeRolling::from_cumulative_source(
-                &format!("{key}_output_tx_count"),
+            let (tx_count, tx_share) = count_and_share(
+                &format!("{key}_output_tx"),
                 version,
                 kind.select(&tx_count_stored),
-                window_starts,
-                mappings,
-            );
-            let tx_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
-                Count,
-                Count,
-                Quotient<PartsPerMillion32>,
-            >(
-                &format!("{key}_output_tx_share"),
-                version,
-                &tx_count.cumulative.height,
                 &txs,
                 window_starts,
                 mappings,

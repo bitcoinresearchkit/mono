@@ -8,7 +8,10 @@ use corepc_jsonrpc::{
 };
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use serde_json::value::{RawValue, to_raw_value};
+use serde_json::{
+    from_str,
+    value::{RawValue, to_raw_value},
+};
 use tracing::{debug, info, warn};
 
 use super::rpc_call::RpcCall;
@@ -137,33 +140,35 @@ impl ClientInner {
         .into())
     }
 
-    fn send_batch<P>(
+    /// One batch round-trip, responses in request order. No retry: callers decide batch sizing
+    /// and failure semantics.
+    fn send_batch<'a>(
         &self,
-        method: &str,
-        batch_args: impl IntoIterator<Item = P>,
-    ) -> Result<Vec<Option<Response>>>
-    where
-        P: Serialize,
-    {
-        let params: Vec<Box<RawValue>> = batch_args
-            .into_iter()
-            .map(|args| to_raw_value(&args).map_err(Error::from))
-            .collect::<Result<Vec<_>>>()?;
-
+        label: &str,
+        calls: impl IntoIterator<Item = (&'a str, &'a RawValue)>,
+    ) -> Result<Vec<Option<Response>>> {
         let client = &self.client.read().0;
-        let requests: Vec<Request> = params
-            .iter()
-            .map(|params| client.build_request(method, Some(params)))
+        let requests: Vec<Request> = calls
+            .into_iter()
+            .map(|(method, params)| client.build_request(method, Some(params)))
             .collect();
-
         client.send_batch(&requests).map_err(|error| {
             refusal(&error)
-                .unwrap_or_else(|| Error::Parse(format!("batch {method} failed: {error}")))
+                .unwrap_or_else(|| Error::Parse(format!("batch {label} failed: {error}")))
         })
     }
 
+    fn serialize_args<P: Serialize>(
+        batch_args: impl IntoIterator<Item = P>,
+    ) -> Result<Vec<Box<RawValue>>> {
+        batch_args
+            .into_iter()
+            .map(|args| to_raw_value(&args).map_err(Error::from))
+            .collect()
+    }
+
     /// Send a batch of calls sharing `method`, one set of args per request.
-    /// No retry: the caller decides batch sizing and failure semantics.
+    /// Any failed item fails the whole batch.
     pub fn call_batch<T, P>(
         &self,
         method: &str,
@@ -173,37 +178,32 @@ impl ClientInner {
         T: for<'de> Deserialize<'de>,
         P: Serialize,
     {
-        self.send_batch(method, batch_args)?
+        let params = Self::serialize_args(batch_args)?;
+        self.send_batch(method, params.iter().map(|p| (method, &**p)))?
             .into_iter()
-            .map(|resp| {
-                let resp = resp.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
-                resp.result::<T>()
+            .map(|response| {
+                raw_result(response)
+                    .and_then(|raw| Ok(from_str(raw.get())?))
                     .map_err(|e| Error::Parse(format!("batch {method} result: {e}")))
             })
             .collect()
     }
 
-    /// Like `call_batch` but reports per-request success/failure independently,
-    /// so one bad item doesn't nuke an otherwise-healthy chunk. Per-item
-    /// failures preserve the underlying `JsonRpcError` so the caller can
-    /// pattern-match on the RPC error code. The outer `Result` still fails
-    /// if the HTTP round-trip itself fails.
-    pub fn call_batch_per_item<T, P>(
+    /// Like `call_batch` but reports each item's raw result independently, so
+    /// one bad item doesn't nuke an otherwise-healthy chunk. Per-item failures
+    /// preserve the underlying `JsonRpcError` so the caller can pattern-match
+    /// on the RPC error code. The outer `Result` still fails if the HTTP
+    /// round-trip itself fails.
+    pub fn call_batch_raw<P: Serialize>(
         &self,
         method: &str,
         batch_args: impl IntoIterator<Item = P>,
-    ) -> Result<Vec<Result<T>>>
-    where
-        T: for<'de> Deserialize<'de>,
-        P: Serialize,
-    {
+    ) -> Result<Vec<Result<Box<RawValue>>>> {
+        let params = Self::serialize_args(batch_args)?;
         Ok(self
-            .send_batch(method, batch_args)?
+            .send_batch(method, params.iter().map(|p| (method, &**p)))?
             .into_iter()
-            .map(|resp| {
-                let resp = resp.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
-                resp.result::<T>().map_err(Error::from)
-            })
+            .map(raw_result)
             .collect())
     }
 
@@ -212,23 +212,24 @@ impl ClientInner {
     /// caller using its own `T`. Outer `Result` fails on transport errors;
     /// inner `Result`s fail on per-item RPC errors.
     pub fn call_mixed_batch(&self, calls: &[RpcCall]) -> Result<Vec<Result<Box<RawValue>>>> {
-        let client = &self.client.read().0;
-        let requests: Vec<Request> = calls
-            .iter()
-            .map(|call| client.build_request(call.method, Some(&call.params)))
-            .collect();
-
-        let responses = client.send_batch(&requests).map_err(|e| {
-            refusal(&e).unwrap_or_else(|| Error::Parse(format!("mixed batch failed: {e}")))
-        })?;
-
-        Ok(responses
+        Ok(self
+            .send_batch(
+                "mixed",
+                calls.iter().map(|call| (call.method, &*call.params)),
+            )?
             .into_iter()
-            .map(|resp| {
-                let resp = resp.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
-                resp.result::<Box<RawValue>>().map_err(Error::from)
-            })
+            .map(raw_result)
             .collect())
+    }
+}
+
+/// Moves one batch item's result out of its response, instead of re-parsing
+/// and copying the raw JSON through `Response::result`.
+fn raw_result(response: Option<Response>) -> Result<Box<RawValue>> {
+    let response = response.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
+    match response.error {
+        Some(error) => Err(JsonRpcError::Rpc(error).into()),
+        None => Ok(response.result.unwrap_or_else(|| RawValue::NULL.to_owned())),
     }
 }
 

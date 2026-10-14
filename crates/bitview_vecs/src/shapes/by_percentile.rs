@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use bitview_primitives::PercentileId;
 use bitview_traversable::Traversable;
 
@@ -120,26 +122,7 @@ impl<T> ByPercentile<T> {
     }
 
     pub(crate) fn from_fn(mut f: impl FnMut(PercentileId) -> T) -> Self {
-        Self {
-            pct5: f(PercentileId::Pct5),
-            pct10: f(PercentileId::Pct10),
-            pct15: f(PercentileId::Pct15),
-            pct20: f(PercentileId::Pct20),
-            pct25: f(PercentileId::Pct25),
-            pct30: f(PercentileId::Pct30),
-            pct35: f(PercentileId::Pct35),
-            pct40: f(PercentileId::Pct40),
-            pct45: f(PercentileId::Pct45),
-            median: f(PercentileId::Median),
-            pct55: f(PercentileId::Pct55),
-            pct60: f(PercentileId::Pct60),
-            pct65: f(PercentileId::Pct65),
-            pct70: f(PercentileId::Pct70),
-            pct75: f(PercentileId::Pct75),
-            pct80: f(PercentileId::Pct80),
-            pct85: f(PercentileId::Pct85),
-            pct90: f(PercentileId::Pct90),
-            pct95: f(PercentileId::Pct95),
-        }
+        let Ok(this) = Self::try_from_fn(|id| Ok::<_, Infallible>(f(id)));
+        this
     }
 }

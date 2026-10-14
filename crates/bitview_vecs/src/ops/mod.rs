@@ -6,7 +6,7 @@ mod currency;
 mod ratio;
 
 pub(crate) use arithmetic::CountPerSecond;
-pub use arithmetic::{BlocksToDays, DifficultyToHashrate, OneMinusPpm, WeightToVSize};
+pub use arithmetic::{BlocksToDays, DifficultyToHashrate, OneMinusPpm};
 pub use convert::Convert;
 pub(crate) use currency::{AvgCentsToUsd, AvgSatsToBtc};
 pub use currency::{CentsUnsignedToSats, SatsToCents};

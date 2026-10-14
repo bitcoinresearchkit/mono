@@ -1,12 +1,18 @@
 use brk_types::BlockHash;
 
-use super::{txin::InputResolver, txout::BlockAddresses};
+use super::{
+    transaction::analysis::TransactionAnalysis,
+    txin::InputResolver,
+    txout::{BlockAddresses, ProcessedOutput},
+};
 
 /// Reusable buffers cleared and refilled each block to avoid allocation churn.
 #[derive(Default)]
 pub struct BlockBuffers {
     pub inputs: InputResolver,
     pub addresses: BlockAddresses,
+    pub outputs: Vec<ProcessedOutput>,
+    pub analyses: Vec<TransactionAnalysis>,
     tip: Option<BlockHash>,
 }
 

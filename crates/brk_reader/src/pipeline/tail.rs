@@ -1,5 +1,6 @@
 use std::{fs::File, os::unix::fs::FileExt};
 
+use bitcoin::block::Header;
 use brk_error::{Error, Result};
 use brk_rpc::Client;
 use brk_types::{BlkMetadata, BlkPosition, BlockHash, Height, ReadBlock};
@@ -12,20 +13,37 @@ use crate::{
     scan::frames,
 };
 
+/// A canonical block located by its header: bodies are read only once every
+/// slot is found, in canonical order, so at most one decoded block is held.
+struct Found {
+    file: usize,
+    blk_index: u16,
+    offset: usize,
+    len: usize,
+    header: Header,
+}
+
+/// `probed`: first-block heights of the newest files, newest first, already
+/// known from picking this strategy.
 pub fn pipeline_tail(
     client: &Client,
     paths: &BlkIndexToBlkPath,
+    probed: &[Option<Height>],
     xor_bytes: XORBytes,
     canonical: &CanonicalRange,
     send: &Sender<Result<ReadBlock>>,
 ) -> Result<()> {
-    let mut slots: Vec<Option<ReadBlock>> = (0..canonical.len()).map(|_| None).collect();
+    let mut slots: Vec<Option<Found>> = (0..canonical.len()).map(|_| None).collect();
+    let mut files: Vec<File> = Vec::new();
     let mut remaining = canonical.len();
     let mut below_floor_streak: usize = 0;
 
-    'files: for (&blk_index, path) in paths.iter().rev() {
+    'files: for (i, (&blk_index, path)) in paths.iter().rev().enumerate() {
         if let Some(missing_idx) = slots.iter().position(Option::is_none)
-            && let Ok(first_height) = bisect::first_block_height(client, path, xor_bytes)
+            && let Some(first_height) = match probed.get(i) {
+                Some(&height) => height,
+                None => bisect::first_block_height(client, path, xor_bytes).ok(),
+            }
         {
             let lowest_missing = Height::from(*canonical.start + missing_idx as u32);
             if first_height < lowest_missing {
@@ -48,10 +66,12 @@ pub fn pipeline_tail(
             }
             let mut header_bytes = [0u8; HEADER_LEN];
             file.read_exact_at(&mut header_bytes, offset as u64)?;
-            let xor_state = XORIndex::at_offset(offset);
-            let Some((slot, header)) =
-                peek_canonical(&header_bytes, xor_state, xor_bytes, canonical)
-            else {
+            let Some((slot, header)) = peek_canonical(
+                &header_bytes,
+                XORIndex::at_offset(offset),
+                xor_bytes,
+                canonical,
+            ) else {
                 continue;
             };
             if slots[slot as usize].is_some() {
@@ -62,23 +82,20 @@ pub fn pipeline_tail(
                     "tail pipeline: canonical batch stitched across a reorg",
                 ));
             }
-            let mut block_bytes = vec![0u8; len];
-            file.read_exact_at(&mut block_bytes, offset as u64)?;
-            let metadata = BlkMetadata::new(BlkPosition::new(blk_index, offset as u32));
-            let height = Height::from(*canonical.start + slot);
-            slots[slot as usize] = Some(parse_canonical_body(
-                block_bytes,
-                metadata,
-                xor_state,
-                xor_bytes,
-                height,
+            slots[slot as usize] = Some(Found {
+                file: files.len(),
+                blk_index,
+                offset,
+                len,
                 header,
-            )?);
+            });
             remaining -= 1;
             if remaining == 0 {
+                files.push(file);
                 break 'files;
             }
         }
+        files.push(file);
     }
 
     if remaining > 0 {
@@ -87,8 +104,17 @@ pub fn pipeline_tail(
         ));
     }
 
-    for slot in slots {
-        let block = slot.expect("tail pipeline left a slot empty after `remaining == 0`");
+    for (slot, found) in slots.into_iter().flatten().enumerate() {
+        let mut block_bytes = vec![0u8; found.len];
+        files[found.file].read_exact_at(&mut block_bytes, found.offset as u64)?;
+        let block = parse_canonical_body(
+            block_bytes,
+            BlkMetadata::new(BlkPosition::new(found.blk_index, found.offset as u32)),
+            XORIndex::at_offset(found.offset),
+            xor_bytes,
+            Height::from(*canonical.start + slot as u32),
+            found.header,
+        )?;
         if send.send(Ok(block)).is_err() {
             return Ok(());
         }

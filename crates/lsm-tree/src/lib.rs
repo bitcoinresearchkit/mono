@@ -121,7 +121,7 @@ pub use {
     descriptor_table::DescriptorTable,
     error::{Error, Result},
     slice::Slice,
-    tree::{Tree, ingest::Ingestion},
+    tree::{ReadView, Tree, ingest::Ingestion},
 };
 
 use seqno::SequenceNumberCounter;

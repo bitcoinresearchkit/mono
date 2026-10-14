@@ -1,9 +1,8 @@
 use std::{path::Path, result::Result as StdResult};
 
-use bitview_primitives::AddrHash;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Height, OutputType, Version};
+use brk_types::{Height, Version};
 use rayon::prelude::*;
 use tracing::debug;
 use vecdb::{AnyStoredVec, AnyVec, Database, RawDBError, Rw, Stamp, StorageMode};
@@ -93,18 +92,7 @@ impl Vecs {
         self.outputs
             .truncate(starting_lengths.height, starting_lengths.txout_index, stamp)?;
 
-        self.addrs.truncate(
-            starting_lengths.height,
-            starting_lengths.p2pk65_addr_index,
-            starting_lengths.p2pk33_addr_index,
-            starting_lengths.p2pkh_addr_index,
-            starting_lengths.p2sh_addr_index,
-            starting_lengths.p2wpkh_addr_index,
-            starting_lengths.p2wsh_addr_index,
-            starting_lengths.p2tr_addr_index,
-            starting_lengths.p2a_addr_index,
-            stamp,
-        )?;
+        self.addrs.truncate(starting_lengths, stamp)?;
 
         self.scripts.truncate(
             starting_lengths.height,
@@ -143,14 +131,6 @@ impl Vecs {
 
     pub fn run_bg(&self, f: impl FnOnce(&Database) -> StdResult<(), RawDBError> + Send + 'static) {
         self.db.run_bg(f);
-    }
-
-    pub fn iter_addr_hashes_from(
-        &self,
-        addr_type: OutputType,
-        height: Height,
-    ) -> Result<Box<dyn Iterator<Item = AddrHash> + '_>> {
-        self.addrs.iter_hashes_from(addr_type, height)
     }
 
     pub fn next_height(&self) -> Height {

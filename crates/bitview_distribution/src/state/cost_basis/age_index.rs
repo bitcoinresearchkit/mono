@@ -3,7 +3,7 @@ use bitview_cohort::{
 };
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
-use brk_types::{Cents, Height, Timestamp};
+use brk_types::{Cents, Height, Timestamp, Version};
 use statedb::{Cursor, Reader, State};
 use vecdb::ReadableVec;
 
@@ -80,6 +80,14 @@ impl<V: PartialEq> AgeIndexLive<V> {
         }
         Ok((live, spot.split_off(start - price_start)))
     }
+}
+
+/// The history's spends and creations versions as one `Version`, folding in each u64's high half
+/// instead of truncating it.
+pub fn history_version(history: &Reader<'_>) -> Version {
+    let (spends, creations) = history.versions();
+    let fold = |version: u64| Version::new(version as u32) + Version::new((version >> 32) as u32);
+    fold(spends) + fold(creations)
 }
 
 fn filters(current: Timestamp, origin: Timestamp) -> [bool; 4] {

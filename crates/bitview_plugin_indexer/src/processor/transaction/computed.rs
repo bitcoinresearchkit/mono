@@ -5,7 +5,6 @@ pub struct ComputedTx<'a> {
     pub tx_index: TxIndex,
     pub tx: &'a Transaction,
     pub txid: Txid,
-    pub insert_txid_prefix: bool,
     pub base_size: u32,
     pub total_size: u32,
     pub input_offset: usize,
@@ -17,7 +16,6 @@ impl ComputedTx<'_> {
         tx_index: TxIndex,
         tx: &Transaction,
         txid: Txid,
-        insert_txid_prefix: bool,
         base_size: u32,
         total_size: u32,
     ) -> ComputedTx<'_> {
@@ -25,7 +23,6 @@ impl ComputedTx<'_> {
             tx_index,
             tx,
             txid,
-            insert_txid_prefix,
             base_size,
             total_size,
             input_offset: 0,

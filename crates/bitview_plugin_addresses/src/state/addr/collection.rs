@@ -8,13 +8,15 @@ pub struct AddrStates {
     pub amount_range: AmountRange<AddrCohortState>,
 }
 
-impl AddrStates {
-    pub fn new() -> Self {
+impl Default for AddrStates {
+    fn default() -> Self {
         Self {
             amount_range: AmountRange::new(|_| AddrCohortState::new()),
         }
     }
+}
 
+impl AddrStates {
     /// The bands' states at the end of the block before `height`.
     pub fn restore(&mut self, balances: &Balances, height: Height) -> Option<()> {
         let previous_height = height.decremented()?;

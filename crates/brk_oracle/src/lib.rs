@@ -18,6 +18,8 @@
 //! 2020 crash, while the output cap helps the thin pre-2020 mix for longer and
 //! still prevents modern fan-out clusters from dominating one EMA slot.
 
+use std::convert::Infallible;
+
 use brk_types::{Cents, Dollars};
 
 mod config;
@@ -67,16 +69,21 @@ impl Oracle {
     }
 
     /// Create an oracle restored from a known price. `fill` should call
-    /// `process_histogram` for the warmup blocks. During warmup the ring
-    /// fills without recomputing EMA or searching, then we recompute once
-    /// at the end so the first non-warmup call has a primed EMA.
-    pub fn from_checkpoint(ref_bin: f64, config: Config, fill: impl FnOnce(&mut Self)) -> Self {
+    /// `process_histogram` for the warmup blocks; its error aborts the
+    /// restore. During warmup the ring fills without recomputing EMA or
+    /// searching, then we recompute once at the end so the first non-warmup
+    /// call has a primed EMA.
+    pub fn from_checkpoint<E>(
+        ref_bin: f64,
+        config: Config,
+        fill: impl FnOnce(&mut Self) -> Result<(), E>,
+    ) -> Result<Self, E> {
         let mut oracle = Self::new(ref_bin, config);
         oracle.warmup = true;
-        fill(&mut oracle);
+        fill(&mut oracle)?;
         oracle.warmup = false;
         oracle.window.recompute();
-        oracle
+        Ok(oracle)
     }
 
     pub fn process_histogram(&mut self, hist: &HistogramRaw) -> f64 {
@@ -101,11 +108,13 @@ impl Oracle {
     /// same state. `ref_bin` carries over.
     pub fn reconfigure(&mut self, config: Config) {
         let kept = self.window.recent(config.window_size);
-        *self = Self::from_checkpoint(self.ref_bin, config, |o| {
+        let Ok(oracle) = Self::from_checkpoint(self.ref_bin, config, |o| {
             kept.iter().for_each(|h| {
                 o.process_histogram(h);
             });
+            Ok::<_, Infallible>(())
         });
+        *self = oracle;
     }
 
     /// The current weighted EMA over the window, one value per log-scale bin.

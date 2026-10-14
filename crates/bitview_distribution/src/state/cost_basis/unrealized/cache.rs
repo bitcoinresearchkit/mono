@@ -24,7 +24,7 @@ impl CachedUnrealizedState {
     }
 
     pub fn current_state(&self) -> UnrealizedState {
-        self.state.to_output()
+        self.state.to_output(self.at_price)
     }
 
     pub fn get_at_price(
@@ -40,7 +40,9 @@ impl CachedUnrealizedState {
         if let Some(output) = &self.cached_output {
             return output.clone();
         }
-        self.cached_output.insert(self.state.to_output()).clone()
+        self.cached_output
+            .insert(self.state.to_output(self.at_price))
+            .clone()
     }
 
     pub fn on_receive(&mut self, price: Cents, sats: Sats) {

@@ -1,5 +1,8 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_distribution::{families::CumulativeValue, metrics::ShareTotals};
+use bitview_distribution::{
+    families::CumulativeValue,
+    metrics::{CreationCohort, ShareTotals},
+};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CentsSquaredSats, CoinDays};
 use bitview_traversable::Traversable;
@@ -16,7 +19,6 @@ use vecdb::{
 
 use derive_more::{Deref, DerefMut};
 
-use super::CohortVecs;
 use crate::state::{RealizedState, UTXOCohortState};
 
 const MATURED_VERSION: Version = Version::new(5);
@@ -27,7 +29,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    cohort: CohortVecs<M>,
+    cohort: CreationCohort<M>,
     /// Amount of unspent bitcoin that ages out of the range during the
     /// represented block interval.
     #[traversable(wrap = "supply", rename = "matured")]
@@ -128,7 +130,7 @@ impl RangeVecs {
             peak_regret: import_raw(db, cohort, "peak_regret_raw", version)?,
         };
         Ok(Self {
-            cohort: CohortVecs::import(
+            cohort: CreationCohort::import(
                 db,
                 cohort,
                 version,

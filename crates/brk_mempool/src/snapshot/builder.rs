@@ -3,6 +3,7 @@
 
 use std::mem;
 
+use brk_cpfp::Cluster;
 use brk_types::TxidPrefix;
 use derive_more::{Deref, DerefMut};
 use rustc_hash::{FxBuildHasher, FxHashMap};
@@ -68,6 +69,7 @@ impl Snapshot {
     fn refresh_chunk_rates(snap_txs: &mut [SnapTx]) {
         let n = snap_txs.len();
         let mut visited = vec![false; n];
+        let mut graph = Cluster::default();
         for seed in 0..n {
             if visited[seed] {
                 continue;
@@ -84,13 +86,13 @@ impl Snapshot {
             if component.len() <= 1 {
                 continue;
             }
-            let (members, chunks) = cluster::linearize(snap_txs, &component);
-            for chunk in &chunks {
-                for &local in &chunk.txs {
+            let members = cluster::load(snap_txs, &component, &mut graph);
+            graph.linearize(|txs, feerate| {
+                for &local in txs {
                     let m = members[u32::from(local) as usize];
-                    snap_txs[m.as_usize()].chunk_rate = chunk.feerate;
+                    snap_txs[m.as_usize()].chunk_rate = feerate;
                 }
-            }
+            });
         }
     }
 }

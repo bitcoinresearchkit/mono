@@ -28,10 +28,6 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         }
     }
 
-    pub fn init_cost_basis(&mut self) {
-        self.cost_basis.init();
-    }
-
     pub fn apply_pending(&mut self) {
         self.cost_basis.apply_pending();
     }
@@ -67,20 +63,14 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         }
     }
 
+    /// One received output. Several cohorts receiving the same output share one snapshot's
+    /// products through [`Self::increment_snapshot`] instead.
     pub fn receive_utxo(&mut self, supply: &SupplyState, price: Cents) {
-        self.receive_utxo_snapshot(supply, &CostBasisSnapshot::from_utxo(price, supply));
-    }
-
-    /// Like receive_utxo but takes a pre-computed snapshot to avoid redundant multiplication
-    /// when the same supply/price is used across multiple cohorts.
-    pub fn receive_utxo_snapshot(&mut self, supply: &SupplyState, snapshot: &CostBasisSnapshot) {
         self.supply += supply;
 
         if supply.value > Sats::ZERO {
-            self.realized.receive(snapshot.realized_price, supply.value);
-
-            self.cost_basis
-                .increment(snapshot.realized_price, supply.value);
+            self.realized.receive(price, supply.value);
+            self.cost_basis.increment(price, supply.value);
         }
     }
 

@@ -146,12 +146,9 @@ impl Query {
         let start = end
             .saturating_sub(config.window_size)
             .max(START_HEIGHT_SLOW.min(end));
-        let mut warmed = Ok(());
-        let oracle = Oracle::from_checkpoint(seed_bin, config, |o| {
-            warmed = feed_blocks_for_warmup(o, self.indexer(), start..end, Some(safe));
-        });
-        warmed?;
-        Ok(oracle)
+        Ok(Oracle::from_checkpoint(seed_bin, config, |o| {
+            feed_blocks_for_warmup(o, self.indexer(), start..end, Some(safe))
+        })?)
     }
 
     /// Seed bin for an oracle warm-up: the oracle's exact reference bin at `height`.

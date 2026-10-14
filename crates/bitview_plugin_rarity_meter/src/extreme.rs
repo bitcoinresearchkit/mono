@@ -1,6 +1,8 @@
 use std::{collections::VecDeque, iter::repeat_n};
 
-use bitview_compute::{ExactOrderStats, FenwickTree, NumericValue, prepare_computed};
+use bitview_compute::{
+    ExactOrderStats, FenwickTree, NumericValue, lower_nearest_rank, prepare_computed,
+};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
@@ -94,7 +96,7 @@ where
         version: Version,
         mappings: &IndexSources,
     ) -> Result<Self> {
-        let version = version + Version::ONE;
+        let version = version + Version::TWO;
         let thresholds = ThresholdVecs {
             tail0_1: PerBlock::import(db, &format!("{name}_threshold_tail0_1"), version, mappings)?,
             tail0_05: PerBlock::import(
@@ -472,7 +474,8 @@ impl LiveHistory {
 
 trait HistoryStats {
     fn len(&self) -> usize;
-    fn quantile(&self, percentile: f64) -> f64;
+    /// Percentiles (ascending) at the lower nearest rank, in one lookup.
+    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3];
     fn tail(&self, value: f64, upper: bool) -> f64;
 }
 
@@ -481,10 +484,11 @@ impl HistoryStats for CoordinateHistory<'_> {
         self.len
     }
 
-    fn quantile(&self, percentile: f64) -> f64 {
-        let target = ((self.len - 1) as f64 * percentile).floor();
-        let index = self.tree.kth([target], &|count: &f64| *count);
-        self.coordinates[index[0]]
+    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3] {
+        let targets = ps.map(|p| lower_nearest_rank(self.len, p) as f64);
+        self.tree
+            .kth(targets, &|count: &f64| *count)
+            .map(|bucket| self.coordinates[bucket])
     }
 
     fn tail(&self, value: f64, upper: bool) -> f64 {
@@ -506,21 +510,20 @@ impl HistoryStats for CoordinateHistory<'_> {
 
 impl HistoryStats for LiveHistory {
     fn len(&self) -> usize {
-        self.stats.len()
+        self.stats.count()
     }
 
-    fn quantile(&self, percentile: f64) -> f64 {
-        let index = ((self.stats.len() - 1) as f64 * percentile).floor() as usize;
-        self.stats.kth(index)
+    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3] {
+        self.stats.percentiles(ps)
     }
 
     fn tail(&self, value: f64, upper: bool) -> f64 {
         let count = if upper {
-            self.stats.len() - self.stats.count_lt(value)
+            self.stats.count() - self.stats.count_lt(value)
         } else {
             self.stats.count_le(value)
         };
-        (count as f64 + 1.0) / (self.stats.len() as f64 + 1.0)
+        (count as f64 + 1.0) / (self.stats.count() as f64 + 1.0)
     }
 }
 
@@ -548,14 +551,23 @@ impl EventState {
     }
 
     fn new(value: f64, history: &impl HistoryStats, config: Config) -> Self {
-        let percentile = |tail: f64| {
-            if config.upper_tail { 1.0 - tail } else { tail }
-        };
-        let boundary = |tail: f64| history.quantile(percentile(tail));
-        let thresholds = EventThresholds {
-            pct0_1: boundary(TAILS[2]),
-            pct0_05: boundary(TAILS[1]),
-            pct0_025: boundary(TAILS[0]),
+        // Lookups take ascending percentiles: the rarest tail comes last in the upper tail.
+        let [rarest, rarer, rare] = TAILS;
+        let thresholds = if config.upper_tail {
+            let [pct0_1, pct0_05, pct0_025] =
+                history.percentiles([1.0 - rare, 1.0 - rarer, 1.0 - rarest]);
+            EventThresholds {
+                pct0_1,
+                pct0_05,
+                pct0_025,
+            }
+        } else {
+            let [pct0_025, pct0_05, pct0_1] = history.percentiles([rarest, rarer, rare]);
+            EventThresholds {
+                pct0_1,
+                pct0_05,
+                pct0_025,
+            }
         };
         Self {
             thresholds,

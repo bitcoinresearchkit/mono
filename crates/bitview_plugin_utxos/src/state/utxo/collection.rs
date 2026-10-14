@@ -10,14 +10,16 @@ pub struct UTXOStates {
     pub amount_range: AmountRange<UTXOCohortState<MinimalRealizedState, ()>>,
     pub type_: SpendableType<UTXOCohortState<MinimalRealizedState, ()>>,
 }
-impl UTXOStates {
-    pub fn new() -> Self {
+impl Default for UTXOStates {
+    fn default() -> Self {
         Self {
             amount_range: AmountRange::new(|_| UTXOCohortState::new(())),
             type_: SpendableType::new(|_| UTXOCohortState::new(())),
         }
     }
+}
 
+impl UTXOStates {
     pub fn restore(&mut self, metrics: &CohortMetrics, height: Height) -> Option<()> {
         let previous = height.decremented()?;
         for (state, cohort) in self

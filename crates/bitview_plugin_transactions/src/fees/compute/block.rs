@@ -1,5 +1,5 @@
 use bitview_primitives::TxInIndex;
-use brk_cpfp::{ChunkInput, linearize};
+use brk_cpfp::Cluster as Graph;
 use brk_types::{CpfpClusterTxIndex, FeeRate, OutPoint, Sats, VSize};
 use smallvec::SmallVec;
 use vecdb::{VecIndex, unlikely};
@@ -18,7 +18,6 @@ pub struct Block {
     pub vsizes: Vec<VSize>,
     pub txin_starts: Vec<TxInIndex>,
     pub outpoints: Vec<OutPoint>,
-    cluster: Cluster,
 }
 
 impl Block {
@@ -35,7 +34,8 @@ impl Block {
         self.outpoints.clear();
     }
 
-    pub fn compute(&mut self) {
+    /// `cluster`: scratch reused across blocks, one per worker.
+    pub fn compute(&mut self, cluster: &mut Cluster) {
         debug_assert_eq!(self.input_values.len(), self.output_values.len());
         debug_assert_eq!(self.input_values.len(), self.vsizes.len());
         debug_assert_eq!(self.input_values.len(), self.txin_starts.len());
@@ -58,11 +58,11 @@ impl Block {
             self.fees.push(fee);
             self.fee_rates.push(FeeRate::from((fee, vsize)));
         }
-        self.compute_cluster();
+        self.compute_cluster(cluster);
     }
 
     /// Repair rates/CPFP from valid fees without decoding monetary inputs again.
-    pub fn compute_from_fees(&mut self) {
+    pub fn compute_from_fees(&mut self, cluster: &mut Cluster) {
         self.fee_rates.clear();
         self.fee_rates.extend(
             self.fees
@@ -70,11 +70,11 @@ impl Block {
                 .zip(&self.vsizes)
                 .map(|(&fee, &size)| FeeRate::from((fee, size))),
         );
-        self.compute_cluster();
+        self.compute_cluster(cluster);
     }
 
-    fn compute_cluster(&mut self) {
-        self.cluster.compute(
+    fn compute_cluster(&mut self, cluster: &mut Cluster) {
+        cluster.compute(
             &self.txin_starts,
             &self.outpoints,
             self.input_begin,
@@ -88,12 +88,12 @@ impl Block {
 }
 
 #[derive(Default)]
-struct Cluster {
+pub struct Cluster {
     parents: Vec<SmallVec<[usize; 2]>>,
     roots: Vec<usize>,
     members: Vec<(usize, usize)>,
-    local_index: Vec<usize>,
-    local_parents: Vec<SmallVec<[CpfpClusterTxIndex; 2]>>,
+    local_index: Vec<u32>,
+    graph: Graph,
 }
 
 impl Cluster {
@@ -158,7 +158,7 @@ impl Cluster {
                 vsizes,
                 effective_fee_rates,
                 &mut self.local_index,
-                &mut self.local_parents,
+                &mut self.graph,
             );
             start = end;
         }
@@ -171,36 +171,29 @@ impl Cluster {
         fees: &[Sats],
         vsizes: &[VSize],
         rates: &mut [FeeRate],
-        local_index: &mut [usize],
-        local_parents: &mut Vec<SmallVec<[CpfpClusterTxIndex; 2]>>,
+        local_index: &mut [u32],
+        graph: &mut Graph,
     ) {
         for (local, &(_, tx)) in members.iter().enumerate() {
-            local_index[tx] = local;
+            local_index[tx] = local as u32;
         }
 
-        local_parents.clear();
-        local_parents.extend(members.iter().map(|&(_, tx)| {
-            parents[tx]
-                .iter()
-                .map(|&parent| CpfpClusterTxIndex::from(local_index[parent] as u32))
-                .collect()
-        }));
+        graph.clear();
+        for &(_, tx) in members {
+            graph.push(
+                fees[tx],
+                vsizes[tx],
+                parents[tx]
+                    .iter()
+                    .map(|&parent| CpfpClusterTxIndex::from(local_index[parent])),
+            );
+        }
 
-        let inputs: Vec<ChunkInput<'_>> = members
-            .iter()
-            .enumerate()
-            .map(|(local, &(_, tx))| ChunkInput {
-                fee: fees[tx],
-                vsize: vsizes[tx],
-                parents: local_parents[local].as_slice(),
-            })
-            .collect();
-
-        for chunk in linearize(&inputs) {
-            for local in chunk.txs {
-                rates[members[u32::from(local) as usize].1] = chunk.feerate;
+        graph.linearize(|txs, feerate| {
+            for &local in txs {
+                rates[members[u32::from(local) as usize].1] = feerate;
             }
-        }
+        });
     }
 
     fn union(roots: &mut [usize], left: usize, right: usize) {

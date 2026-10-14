@@ -27,7 +27,7 @@ impl<T> CumulativeCount<T>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T> + PcoVecValue + AddAssign + Default,
 {
-    pub fn import(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -47,11 +47,11 @@ where
     }
 
     #[inline(always)]
-    pub fn push_block(&mut self, value: T) {
+    pub(crate) fn push_block(&mut self, value: T) {
         self.stored.push_block(value);
     }
 
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.stored.stored_mut()
     }
 }

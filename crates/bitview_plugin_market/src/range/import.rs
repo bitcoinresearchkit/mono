@@ -43,6 +43,7 @@ impl Vecs {
                 &true_range_source,
                 mappings,
             ),
+            extrema: Default::default(),
         })
     }
 }

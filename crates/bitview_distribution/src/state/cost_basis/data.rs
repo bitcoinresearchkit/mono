@@ -6,7 +6,6 @@ use std::{
 use bitview_primitives::CentsCompact;
 use brk_types::{Cents, Sats};
 use rustc_hash::FxHashMap;
-use vecdb::unlikely;
 
 use super::{CostBasisOps, UnrealizedState, unrealized::CachedUnrealizedState};
 use crate::state::pending::PendingDelta;
@@ -44,14 +43,14 @@ impl CostBasisData {
     /// Bulk-build a compact, sorted price map from restored origin balances.
     pub(crate) fn finish_restore(&mut self) {
         let map = &mut self.map;
-        assert!(map.is_empty(), "bulk restore requires an empty price map");
+        debug_assert!(map.is_empty(), "bulk restore requires an empty price map");
         // Restore sees the entire history; its oversized table must not become
         // the per-block pending map, whose drain scans would retain that capacity.
         let mut entries: Vec<_> = mem::take(&mut self.pending)
             .into_iter()
             .filter_map(|(price, pending)| {
                 let sats = pending.inner();
-                assert!(sats >= 0, "restored origin balances cannot be negative");
+                debug_assert!(sats >= 0, "restored origin balances cannot be negative");
                 (sats != 0).then_some((price, Sats::new(sats as u64)))
             })
             .collect();
@@ -100,41 +99,27 @@ impl CostBasisOps for CostBasisData {
                         continue;
                     }
                     let decrement = Sats::new(delta.unsigned_abs());
-                    if unlikely(*e.get() < decrement) {
-                        panic!(
-                            "CostBasisData::apply_pending underflow!\n\
-                            Price: {}\n\
-                            Current: {}\n\
-                            Trying to decrement by: {}",
-                            cents.to_dollars(),
-                            e.get(),
-                            decrement
-                        );
-                    }
+                    debug_assert!(
+                        *e.get() >= decrement,
+                        "price map underflow at {}: {} - {decrement}",
+                        cents.to_dollars(),
+                        e.get()
+                    );
                     *e.get_mut() -= decrement;
                     if *e.get() == Sats::ZERO {
                         e.remove();
                     }
                 }
                 Entry::Vacant(e) => {
-                    if unlikely(delta < 0) {
-                        panic!(
-                            "CostBasisData::apply_pending underflow (new entry)!\n\
-                            Price: {}\n\
-                            Trying to decrement by: {}",
-                            cents.to_dollars(),
-                            delta.unsigned_abs()
-                        );
-                    }
+                    debug_assert!(
+                        delta > 0,
+                        "price map underflow at {}: 0 - {}",
+                        cents.to_dollars(),
+                        delta.unsigned_abs()
+                    );
                     e.insert(Sats::new(delta as u64));
                 }
             }
         }
-    }
-
-    fn init(&mut self) {
-        self.map.clear();
-        self.pending.clear();
-        self.cache = None;
     }
 }

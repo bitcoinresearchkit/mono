@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use bitview_compute::prepare_computed;
+use bitview_compute::{WRITE_INTERVAL, prepare_computed, write_locked};
 use bitview_primitives::Count;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
@@ -8,8 +8,6 @@ use brk_types::{Height, TxIndex, Version};
 use vecdb::{AnyStoredVec, ReadableVec, VecIndex, WritableVec};
 
 use crate::CachedSeries;
-
-const WRITE_INTERVAL: usize = 10_000;
 
 /// A member's position among the `N` counters, and its cumulative entry and transaction counts.
 type TypeCountTarget<'a> = (
@@ -46,15 +44,7 @@ where
     let end = first_tx_index.len();
     let mut targets: Vec<_> = targets.into_iter().collect();
     let skip = prepare_computed(
-        targets
-            .iter_mut()
-            .flat_map(|(_, entries, txs)| {
-                [
-                    &mut **entries as &mut dyn AnyStoredVec,
-                    &mut **txs as &mut dyn AnyStoredVec,
-                ]
-            })
-            .collect::<Vec<_>>(),
+        stored_vecs(&mut targets).collect::<Vec<_>>(),
         version,
         usize::from(max_from).min(end),
         exit,
@@ -70,14 +60,7 @@ where
     }
 
     let mut height = skip;
-    let write = |targets: &mut [TypeCountTarget<'_>]| -> Result<()> {
-        let _lock = exit.lock();
-        for (_, entries, txs) in targets {
-            entries.write()?;
-            txs.write()?;
-        }
-        Ok(())
-    };
+    let write = |targets: &mut [TypeCountTarget<'_>]| write_locked(stored_vecs(targets), exit);
     let first_transactions = first_tx_index.collect_range_at(skip, end);
     let first_tx = first_transactions
         .first()
@@ -108,6 +91,17 @@ where
         },
     )?;
     write(&mut targets)
+}
+
+fn stored_vecs<'a>(
+    targets: &'a mut [TypeCountTarget<'_>],
+) -> impl Iterator<Item = &'a mut dyn AnyStoredVec> {
+    targets.iter_mut().flat_map(|(_, entries, txs)| {
+        [
+            &mut **entries as &mut dyn AnyStoredVec,
+            &mut **txs as &mut dyn AnyStoredVec,
+        ]
+    })
 }
 
 /// Aggregated per-block counters produced by [`walk_blocks`].

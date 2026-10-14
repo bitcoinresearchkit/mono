@@ -2,7 +2,7 @@ use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::{Database, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
 use crate::{CachedSeries, IndexSources, LazyPercentPerBlock, import_cached};
 
@@ -99,5 +99,11 @@ impl DensityVecs {
         for (target, &value) in self.stored.iter_mut().zip(density.iter()) {
             target.push(value);
         }
+    }
+
+    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.stored
+            .iter_mut()
+            .map(|vec| vec as &mut dyn AnyStoredVec)
     }
 }

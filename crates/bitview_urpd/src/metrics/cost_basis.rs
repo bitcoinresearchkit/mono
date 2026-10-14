@@ -1,13 +1,13 @@
 use bitview_primitives::{CostBasisByPercentile, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    Density, DensityVecs, IndexSources, LazyPerBlock, PercentilesVecs, Price, PriceWithMvrv,
-    PriceWithRatio,
+    CostBasisMeans, CostBasisPerCoin, CostBasisPerDollar, Density, DensityVecs, IndexSources,
+    PercentilesVecs,
 };
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, Database, Ident, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 /// A weighted cohort's cost basis: its mean creation prices from raw cost-basis moments, its
 /// percentiles and densities from its URPD.
@@ -15,42 +15,19 @@ use vecdb::{AnyStoredVec, Database, Ident, ReadableCloneableVec, ReadableVec, Rw
 pub struct CostBasisVecs<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by the cohort's weighted satoshis.
-    pub per_coin: PerCoin<M>,
+    pub per_coin: CostBasisPerCoin<M>,
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by each output's weighted USD value at creation.
-    pub per_dollar: PerDollar<M>,
+    pub per_dollar: CostBasisPerDollar<M>,
     /// Share of the cohort's weighted supply with a creation price near spot.
     supply_density: DensityVecs<M>,
     /// Share of the cohort's weighted invested capital (satoshis times creation
     /// price) with a creation price near spot.
     capital_density: DensityVecs<M>,
-}
-
-#[derive(Traversable)]
-pub struct PerCoin<M: StorageMode = Rw> {
-    /// The weighted mean: weighted realized cap divided by weighted supply; undefined (null) when
-    /// the weighted supply is zero.
-    pub avg: PriceWithMvrv<M>,
-    /// Realized price: the weighted mean; undefined (null) when the weighted supply is zero.
-    pub realized_price: Price<LazyPerBlock<Cents>>,
-    /// From the URPD, creation prices rounded to four significant digits of the price in cents.
-    #[traversable(flatten)]
-    pub percentiles: PercentilesVecs<M>,
-    /// Median realized price: the weighted median, from the URPD.
-    pub median_realized_price: Price<LazyPerBlock<Cents>>,
-}
-
-#[derive(Traversable)]
-pub struct PerDollar<M: StorageMode = Rw> {
-    /// The weighted mean: sum(weight × creation price² × sats) / sum(weight × creation price ×
-    /// sats); undefined (null) when the weighted invested value is zero.
-    pub avg: PriceWithRatio<M>,
-    /// Capitalized price: the weighted mean; undefined (null) when the weighted invested value
-    /// is zero.
-    pub capitalized_price: Price<LazyPerBlock<Cents>>,
-    /// From the URPD, creation prices rounded to four significant digits of the price in cents.
-    #[traversable(flatten)]
-    pub percentiles: PercentilesVecs<M>,
+    #[traversable(hidden)]
+    per_coin_percentiles: PercentilesVecs<M>,
+    #[traversable(hidden)]
+    per_dollar_percentiles: PercentilesVecs<M>,
 }
 
 impl CostBasisVecs {
@@ -65,66 +42,39 @@ impl CostBasisVecs {
         realized_price: &impl ReadableCloneableVec<Height, Cents>,
         capitalized_price: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
-        let avg_version = version;
-        let version = version + Version::new(3);
-        let per_coin =
-            PercentilesVecs::import(db, &format!("{name}_cost_basis_per_coin"), version, indexes)?;
+        let metric = |metric: &str| format!("{name}_{metric}");
+        let urpd_version = version + Version::new(3);
+        // Exact rational band edges.
+        let density_version = urpd_version + Version::ONE;
+        let percentiles = |metric: &str| {
+            PercentilesVecs::import(db, &format!("{name}_{metric}"), urpd_version, indexes)
+        };
+        let density = |metric: &str| {
+            DensityVecs::import(db, &format!("{name}_{metric}"), density_version, indexes)
+        };
+        let per_coin_percentiles = percentiles("cost_basis_per_coin")?;
+        let per_dollar_percentiles = percentiles("cost_basis_per_dollar")?;
+        let CostBasisMeans {
+            per_coin,
+            per_dollar,
+        } = CostBasisMeans::import(
+            db,
+            metric,
+            version,
+            urpd_version,
+            realized_price,
+            capitalized_price,
+            &per_coin_percentiles,
+            &per_dollar_percentiles,
+            indexes,
+        )?;
         Ok(Self {
-            per_coin: PerCoin {
-                avg: PriceWithMvrv::import(
-                    db,
-                    &format!("{name}_cost_basis_per_coin_avg"),
-                    &format!("{name}_mvrv"),
-                    avg_version,
-                    realized_price,
-                    indexes,
-                )?,
-                realized_price: Price::from_height_source(
-                    &format!("{name}_realized_price"),
-                    avg_version,
-                    realized_price,
-                    indexes,
-                ),
-                median_realized_price: Price::from_lazy_cents_source::<Ident, Cents>(
-                    &format!("{name}_median_realized_price"),
-                    version,
-                    &per_coin.median.cents,
-                ),
-                percentiles: per_coin,
-            },
-            per_dollar: PerDollar {
-                avg: PriceWithRatio::import(
-                    db,
-                    &format!("{name}_cost_basis_per_dollar_avg"),
-                    avg_version,
-                    capitalized_price,
-                    indexes,
-                )?,
-                capitalized_price: Price::from_height_source(
-                    &format!("{name}_capitalized_price"),
-                    avg_version,
-                    capitalized_price,
-                    indexes,
-                ),
-                percentiles: PercentilesVecs::import(
-                    db,
-                    &format!("{name}_cost_basis_per_dollar"),
-                    version,
-                    indexes,
-                )?,
-            },
-            supply_density: DensityVecs::import(
-                db,
-                &format!("{name}_supply_density"),
-                version,
-                indexes,
-            )?,
-            capital_density: DensityVecs::import(
-                db,
-                &format!("{name}_capital_density"),
-                version,
-                indexes,
-            )?,
+            per_coin,
+            per_dollar,
+            supply_density: density("supply_density")?,
+            capital_density: density("capital_density")?,
+            per_coin_percentiles,
+            per_dollar_percentiles,
         })
     }
 
@@ -145,18 +95,17 @@ impl CostBasisVecs {
         supply_density: &Density<PartsPerMillion32>,
         capital_density: &Density<PartsPerMillion32>,
     ) {
-        self.per_coin.percentiles.push(&cost_basis.per_coin);
-        self.per_dollar.percentiles.push(&cost_basis.per_dollar);
+        self.per_coin_percentiles.push(&cost_basis.per_coin);
+        self.per_dollar_percentiles.push(&cost_basis.per_dollar);
         self.supply_density.push(supply_density);
         self.capital_density.push(capital_density);
     }
 
     pub(super) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.per_coin
-            .percentiles
-            .iter_any_stored_mut()
-            .chain(self.per_dollar.percentiles.iter_any_stored_mut())
-            .chain(self.supply_density.iter_any_stored_mut())
-            .chain(self.capital_density.iter_any_stored_mut())
+        self.per_coin_percentiles
+            .stored_vecs_mut()
+            .chain(self.per_dollar_percentiles.stored_vecs_mut())
+            .chain(self.supply_density.stored_vecs_mut())
+            .chain(self.capital_density.stored_vecs_mut())
     }
 }

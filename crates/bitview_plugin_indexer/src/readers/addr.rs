@@ -1,42 +1,48 @@
 use bitcoin::ScriptBuf;
-use bitview_primitives::{
-    P2AAddressIndex, P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex,
-    P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex, TypeIndex,
-};
-use brk_types::{
-    AddressBytes, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes,
-    P2WPKHBytes, P2WSHBytes,
-};
-use vecdb::BytesVecReader;
+use bitview_primitives::TypeIndex;
+use brk_types::{AddressBytes, OutputType};
+use vecdb::{BytesVecReader, Ro, Rw};
 
-pub struct AddrReaders {
-    pub p2pk65: BytesVecReader<P2PK65AddressIndex, P2PK65Bytes>,
-    pub p2pk33: BytesVecReader<P2PK33AddressIndex, P2PK33Bytes>,
-    pub p2pkh: BytesVecReader<P2PKHAddressIndex, P2PKHBytes>,
-    pub p2sh: BytesVecReader<P2SHAddressIndex, P2SHBytes>,
-    pub p2wpkh: BytesVecReader<P2WPKHAddressIndex, P2WPKHBytes>,
-    pub p2wsh: BytesVecReader<P2WSHAddressIndex, P2WSHBytes>,
-    pub p2tr: BytesVecReader<P2TRAddressIndex, P2TRBytes>,
-    pub p2a: BytesVecReader<P2AAddressIndex, P2ABytes>,
+use crate::AddrsVecs;
+
+macro_rules! addr_readers {
+    ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
+        pub struct AddrReaders {
+            $(pub $field: BytesVecReader<$index, $bytes>,)+
+        }
+
+        impl AddrReaders {
+            #[inline(always)]
+            pub fn get(&self, output_type: OutputType, type_index: TypeIndex) -> Option<AddressBytes> {
+                let index = usize::from(type_index);
+                match output_type {
+                    $(OutputType::$variant => self.$field.try_get_at(index).map(Into::into),)+
+                    _ => None,
+                }
+            }
+        }
+
+        impl AddrsVecs<Rw> {
+            pub fn addr_readers(&self) -> AddrReaders {
+                AddrReaders {
+                    $($field: self.$field.bytes.reader().into(),)+
+                }
+            }
+        }
+
+        impl AddrsVecs<Ro> {
+            pub fn addr_readers(&self) -> AddrReaders {
+                AddrReaders {
+                    $($field: self.$field.bytes.reader().into(),)+
+                }
+            }
+        }
+    };
 }
 
-impl AddrReaders {
-    #[inline(always)]
-    pub fn get(&self, output_type: OutputType, type_index: TypeIndex) -> Option<AddressBytes> {
-        let index = usize::from(type_index);
-        match output_type {
-            OutputType::P2PK65 => self.p2pk65.try_get_at(index).map(Into::into),
-            OutputType::P2PK33 => self.p2pk33.try_get_at(index).map(Into::into),
-            OutputType::P2PKH => self.p2pkh.try_get_at(index).map(Into::into),
-            OutputType::P2SH => self.p2sh.try_get_at(index).map(Into::into),
-            OutputType::P2WPKH => self.p2wpkh.try_get_at(index).map(Into::into),
-            OutputType::P2WSH => self.p2wsh.try_get_at(index).map(Into::into),
-            OutputType::P2TR => self.p2tr.try_get_at(index).map(Into::into),
-            OutputType::P2A => self.p2a.try_get_at(index).map(Into::into),
-            _ => None,
-        }
-    }
+bitview_primitives::with_address_storage_types!(addr_readers);
 
+impl AddrReaders {
     pub fn script_pubkey(&self, output_type: OutputType, type_index: TypeIndex) -> ScriptBuf {
         self.get(output_type, type_index)
             .map(|bytes| bytes.to_script_pubkey())

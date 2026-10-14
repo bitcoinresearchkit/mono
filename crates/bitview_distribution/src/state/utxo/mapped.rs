@@ -18,7 +18,7 @@ impl<R: RealizedOps> MappedUTXOCohortState<R> {
         self.cost_basis.finish_restore();
     }
 
-    pub fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
+    pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
         self.cost_basis.compute_unrealized_state(height_price)
     }
 }

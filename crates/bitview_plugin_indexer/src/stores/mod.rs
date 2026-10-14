@@ -5,7 +5,7 @@ use bitview_primitives::{
     Index40, TxOutIndex, TypeIndex,
 };
 use brk_error::{Error, OptionData, Result};
-use brk_store::{AnyStore, Kind, PendingIngest, Store, open_database};
+use brk_store::{AnyStore, Kind, PendingIngest, Store, StoreView, open_database};
 use brk_types::{Height, OutPoint, OutputType, Sats, TxIndex, TxidPrefix, Unit, Version, Vout};
 use fjall::Database;
 use rayon::{join, prelude::*};
@@ -14,17 +14,20 @@ use tracing::debug;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use super::Vecs;
-use crate::{Lengths, constants::DUPLICATE_TXID_PREFIXES};
+use crate::{Lengths, constants::overwritten_tx_index};
 use checkpoint::{
     DeferredStoresCommit, PendingStoresCheckpoint, PersistedStoresCheckpoint, StoresCheckpoint,
 };
 
-pub mod checkpoint;
-pub mod transaction;
+mod checkpoint;
+mod transaction;
 mod utxo;
 
-pub use transaction::TransactionStoresMut;
+pub(crate) use transaction::TransactionStoresMut;
 pub use utxo::{Utxo, UtxoKey};
+
+/// The eight address-unspent stores, pinned as ingested.
+pub(crate) type AddrUnspentViews = ByAddrType<StoreView<AddrIndexOutPoint, Unit>>;
 
 #[derive(Clone)]
 pub struct Stores {
@@ -80,17 +83,12 @@ impl Stores {
             .map(|(key, _)| key.tx_index()))
     }
 
-    pub fn addr_unspent_outpoints(
-        &self,
-        addr_type: OutputType,
-        addr_index: TypeIndex,
-    ) -> Result<impl DoubleEndedIterator<Item = (TxIndex, Vout)> + '_> {
-        Ok(self
-            .addr_type_to_addr_index_and_unspent_outpoint
-            .get(addr_type)
-            .data()?
-            .prefix(addr_index)
-            .map(|(key, _)| (key.tx_index(), key.vout())))
+    /// Pins the address-unspent stores as ingested: call it with nothing pending.
+    pub(crate) fn addr_unspent_views(&self) -> AddrUnspentViews {
+        ByAddrType::from_fn(|id| {
+            id.select(&self.addr_type_to_addr_index_and_unspent_outpoint)
+                .view()
+        })
     }
 
     #[inline]
@@ -122,7 +120,7 @@ impl Stores {
         }
     }
 
-    pub fn import(parent: &Path, version: Version) -> Result<Self> {
+    pub(crate) fn import(parent: &Path, version: Version) -> Result<Self> {
         let pathbuf = parent.join("stores");
         let path = pathbuf.as_path();
 
@@ -229,7 +227,7 @@ impl Stores {
         Ok(stores)
     }
 
-    pub fn next_height(&self) -> Result<Option<Height>> {
+    pub(crate) fn next_height(&self) -> Result<Option<Height>> {
         self.checkpoint.next_height()
     }
 
@@ -258,11 +256,11 @@ impl Stores {
         )
     }
 
-    pub fn begin_commit(&self, completed_height: Height) -> Result<PendingStoresCheckpoint> {
+    pub(crate) fn begin_commit(&self, completed_height: Height) -> Result<PendingStoresCheckpoint> {
         self.checkpoint.begin(completed_height)
     }
 
-    pub fn persist(
+    pub(crate) fn persist(
         &mut self,
         checkpoint: PendingStoresCheckpoint,
     ) -> Result<PersistedStoresCheckpoint> {
@@ -308,21 +306,19 @@ impl Stores {
         tasks
     }
 
-    pub fn take_deferred_commit(
-        &mut self,
-        completed_height: Height,
-    ) -> Result<DeferredStoresCommit> {
-        let checkpoint = self.checkpoint.begin(completed_height)?;
-        let ingests = self.take_pending_ingests();
-        Ok(DeferredStoresCommit::new(
+    /// Takes every store's pending writes into a commit that begins the checkpoint only when it
+    /// persists, so the stores keep their last checkpoint until then.
+    pub(crate) fn take_deferred_commit(&mut self, completed_height: Height) -> DeferredStoresCommit {
+        DeferredStoresCommit::new(
             self.db.clone(),
-            ingests,
-            checkpoint,
-        ))
+            self.take_pending_ingests(),
+            self.checkpoint.clone(),
+            completed_height,
+        )
     }
 
     /// Stages reverse-key entries below the lowered bound for persistence.
-    pub fn rollback_if_needed(&mut self, vecs: &Vecs, starting_lengths: &Lengths) -> Result<()> {
+    pub(crate) fn rollback_if_needed(&mut self, vecs: &Vecs, starting_lengths: &Lengths) -> Result<()> {
         if self.is_empty()? {
             return Ok(());
         }
@@ -331,7 +327,7 @@ impl Stores {
         debug_assert!(starting_lengths.tx_index != TxIndex::ZERO);
         debug_assert!(starting_lengths.txout_index != TxOutIndex::ZERO);
 
-        self.rollback_block_metadata(vecs, starting_lengths)?;
+        self.rollback_block_metadata(vecs, starting_lengths);
         self.rollback_txids(vecs, starting_lengths);
         self.rollback_outputs_and_inputs(vecs, starting_lengths)?;
 
@@ -357,7 +353,7 @@ impl Stores {
                 .try_fold(true, |acc, s| s.is_empty().map(|empty| acc && empty))?)
     }
 
-    fn rollback_block_metadata(&mut self, vecs: &Vecs, starting_lengths: &Lengths) -> Result<()> {
+    fn rollback_block_metadata(&mut self, vecs: &Vecs, starting_lengths: &Lengths) {
         vecs.blocks.blockhash.for_each_range_at(
             starting_lengths.height.to_usize(),
             vecs.blocks.blockhash.len(),
@@ -367,39 +363,25 @@ impl Stores {
             },
         );
 
-        for addr_type in OutputType::ADDR_TYPES {
-            for hash in vecs.iter_addr_hashes_from(addr_type, starting_lengths.height)? {
-                self.addr_type_to_addr_hash_to_addr_index
-                    .get_mut_unwrap(addr_type)
-                    .remove(hash);
-            }
+        for (addr_type, store) in self.addr_type_to_addr_hash_to_addr_index.iter_mut() {
+            vecs.addrs
+                .for_each_hash_from(addr_type, starting_lengths.height, |hash| {
+                    store.remove(hash)
+                });
         }
-
-        Ok(())
     }
 
     fn rollback_txids(&mut self, vecs: &Vecs, starting_lengths: &Lengths) {
         let start = starting_lengths.tx_index.to_usize();
         let end = vecs.transactions.txid.len();
-        let mut current_index = start;
-        vecs.transactions
-            .txid
-            .for_each_range_at(start, end, |txid| {
-                let tx_index = TxIndex::from(current_index);
-                let txid_prefix = TxidPrefix::from(&txid);
-
-                let is_known_dup =
-                    DUPLICATE_TXID_PREFIXES
-                        .iter()
-                        .any(|(dup_prefix, dup_tx_index)| {
-                            tx_index == *dup_tx_index && txid_prefix == *dup_prefix
-                        });
-
-                if !is_known_dup {
-                    self.txid_prefix_to_tx_index.remove(txid_prefix);
-                }
-                current_index += 1;
-            });
+        let mut tx_index = starting_lengths.tx_index;
+        vecs.transactions.txid.for_each_range_at(start, end, |txid| {
+            // A BIP30 duplicate's txid still maps to the original, which stays.
+            if overwritten_tx_index(tx_index).is_none() {
+                self.txid_prefix_to_tx_index.remove(TxidPrefix::from(&txid));
+            }
+            tx_index = tx_index.incremented();
+        });
     }
 
     fn rollback_outputs_and_inputs(
@@ -535,11 +517,11 @@ impl Stores {
         Ok(())
     }
 
-    pub fn insert_block_height(&mut self, prefix: BlockHashPrefix, height: Height) {
+    pub(crate) fn insert_block_height(&mut self, prefix: BlockHashPrefix, height: Height) {
         self.blockhash_prefix_to_height.insert(prefix, height);
     }
 
-    pub fn transaction_stores_mut(&mut self) -> TransactionStoresMut<'_> {
+    pub(crate) fn transaction_stores_mut(&mut self) -> TransactionStoresMut<'_> {
         TransactionStoresMut {
             addr_hashes: &mut self.addr_type_to_addr_hash_to_addr_index,
             addr_tx_indexes: &mut self.addr_type_to_addr_index_and_tx_index,

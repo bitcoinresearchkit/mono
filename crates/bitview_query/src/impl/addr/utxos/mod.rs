@@ -43,12 +43,11 @@ impl Query {
             Some((output_type, type_index)) => {
                 let height =
                     self.addr_last_activity_height_bounded(output_type, type_index, None, lengths)?;
-                let outpoints: Vec<(TxIndex, Vout)> = self
-                    .indexer()
-                    .stores()
-                    .addr_unspent_outpoints(output_type, type_index)?
-                    // Store keys order outpoints by transaction index, then vout.
-                    .take_while(|(tx_index, _)| *tx_index < lengths.tx_index)
+                // The unspent set as of the pin: unavailable while a lowered publication sits
+                // below what the stores hold.
+                let outpoints: Vec<(TxIndex, Vout)> = pin
+                    .addr_unspent_outpoints(output_type, type_index)
+                    .ok_or(Error::StateUpdating)?
                     // Pending spends may remove some: the cap applies after them.
                     .take(
                         max_utxos

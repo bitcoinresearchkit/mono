@@ -73,10 +73,3 @@ crate = "statedb"
 item = "state::State::is_empty"
 level = "allow"
 reason = "pairs with the public `len` (clippy::len_without_is_empty)"
-
-[[override]]
-lint = "hawk::unnecessary_public"
-crate = "bitview_compute"
-item = "statistics::order::ExactOrderStats::is_empty"
-level = "allow"
-reason = "pairs with the public `len` (clippy::len_without_is_empty)"
