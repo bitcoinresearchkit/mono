@@ -386,12 +386,12 @@ impl Query {
         let segwit_sizes = indexer
             .vecs()
             .blocks
-            .segwit_size
+            .segwit_tx_size
             .collect_range_at(begin, end);
         let segwit_weights = indexer
             .vecs()
             .blocks
-            .segwit_weight
+            .segwit_tx_weight
             .collect_range_at(begin, end);
 
         // Bulk read extras data

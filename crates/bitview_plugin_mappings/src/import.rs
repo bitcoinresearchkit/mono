@@ -31,13 +31,13 @@ impl Vecs {
         let chain_counts = ChainCounts::new(version, indexer);
         let monotonic_source = monotonic.read_only_boxed_clone();
         let epoch_source = IndexVec::new(
-            "epoch",
+            "difficulty_epoch",
             Version::ZERO,
             monotonic.read_only_boxed_clone(),
             Epoch::from,
         );
         let halving_source = IndexVec::new(
-            "halving",
+            "halving_epoch",
             Version::ZERO,
             monotonic_source.clone(),
             Halving::from,
@@ -47,71 +47,72 @@ impl Vecs {
         // Fixed-duration buckets are cheaper to read with timestamp arithmetic;
         // calendar conversions below use the shared resident reverse lookups.
         let minute10_source =
-            HeightVecs::from_timestamps("minute10", monotonic_source.clone(), |_, t| {
+            HeightVecs::from_timestamps("block_minute10", monotonic_source.clone(), |_, t| {
                 Minute10::from_timestamp(t)
             });
         let minute30_source =
-            HeightVecs::from_timestamps("minute30", monotonic_source.clone(), |_, t| {
+            HeightVecs::from_timestamps("block_minute30", monotonic_source.clone(), |_, t| {
                 Minute30::from_timestamp(t)
             });
         let hour1_source =
-            HeightVecs::from_timestamps("hour1", monotonic_source.clone(), |_, t| {
+            HeightVecs::from_timestamps("block_hour1", monotonic_source.clone(), |_, t| {
                 Hour1::from_timestamp(t)
             });
         let hour4_source =
-            HeightVecs::from_timestamps("hour4", monotonic_source.clone(), |_, t| {
+            HeightVecs::from_timestamps("block_hour4", monotonic_source.clone(), |_, t| {
                 Hour4::from_timestamp(t)
             });
         let hour12_source =
-            HeightVecs::from_timestamps("hour12", monotonic_source.clone(), |_, t| {
+            HeightVecs::from_timestamps("block_hour12", monotonic_source.clone(), |_, t| {
                 Hour12::from_timestamp(t)
             });
-        let day3_source = HeightVecs::from_timestamps("day3", monotonic_source.clone(), |_, t| {
-            Day3::from_timestamp(t)
-        });
+        let day3_source =
+            HeightVecs::from_timestamps("block_day3", monotonic_source.clone(), |_, t| {
+                Day3::from_timestamp(t)
+            });
         let minute10 = ResolutionVecs::new(&minute10_source);
         let minute30 = ResolutionVecs::new(&minute30_source);
         let hour1 = ResolutionVecs::new(&hour1_source);
         let hour4 = ResolutionVecs::new(&hour4_source);
         let hour12 = ResolutionVecs::new(&hour12_source);
         let day1 = DatedResolutionVecs::from_period_date(&HeightVecs::from_timestamps(
-            "day1",
+            "block_day1",
             monotonic_source.clone(),
             |_, t| HeightVecs::day1_from_timestamp(t),
         ));
         let day3 = DatedResolutionVecs::from_first_timestamp(&day3_source, &monotonic_source);
         let week1 = DatedResolutionVecs::from_first_timestamp(
-            &HeightVecs::from_timestamps("week1", monotonic_source.clone(), |_, t| {
+            &HeightVecs::from_timestamps("block_week1", monotonic_source.clone(), |_, t| {
                 HeightVecs::week1_from_timestamp(t)
             }),
             &monotonic_source,
         );
         let month1 = DatedResolutionVecs::from_first_timestamp(
-            &HeightVecs::from_timestamps("month1", monotonic_source.clone(), |_, t| {
+            &HeightVecs::from_timestamps("block_month1", monotonic_source.clone(), |_, t| {
                 HeightVecs::month1_from_timestamp(t)
             }),
             &monotonic_source,
         );
         let month3 = DatedResolutionVecs::from_first_timestamp(
-            &HeightVecs::from_timestamps("month3", monotonic_source.clone(), |_, t| {
+            &HeightVecs::from_timestamps("block_month3", monotonic_source.clone(), |_, t| {
                 HeightVecs::month3_from_timestamp(t)
             }),
             &monotonic_source,
         );
         let month6 = DatedResolutionVecs::from_first_timestamp(
-            &HeightVecs::from_timestamps("month6", monotonic_source.clone(), |_, t| {
+            &HeightVecs::from_timestamps("block_month6", monotonic_source.clone(), |_, t| {
                 HeightVecs::month6_from_timestamp(t)
             }),
             &monotonic_source,
         );
         let year1 = DatedResolutionVecs::from_first_timestamp(
-            &HeightVecs::from_timestamps("year1", monotonic_source.clone(), |_, t| {
+            &HeightVecs::from_timestamps("block_year1", monotonic_source.clone(), |_, t| {
                 HeightVecs::year1_from_timestamp(t)
             }),
             &monotonic_source,
         );
         let year10 = DatedResolutionVecs::from_first_timestamp(
-            &HeightVecs::from_timestamps("year10", monotonic_source.clone(), |_, t| {
+            &HeightVecs::from_timestamps("block_year10", monotonic_source.clone(), |_, t| {
                 HeightVecs::year10_from_timestamp(t)
             }),
             &monotonic_source,

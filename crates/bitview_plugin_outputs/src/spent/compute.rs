@@ -23,7 +23,7 @@ impl Vecs {
         {
             let _lock = exit.lock();
             bootstrap::reset_incomplete(self)?;
-            self.txin_index
+            self.spending_txin_index
                 .validate_computed_version_or_reset(dep_version)?;
         }
         let target_height = indexer.vecs().blocks.blockhash.len();
@@ -36,27 +36,27 @@ impl Vecs {
             let _lock = exit.lock();
             // Zero means uninitialized; every checkpoint counts completed blocks.
             let starting_stamp = Stamp::from(starting_lengths.height.incremented());
-            if self.txin_index.stamp() >= starting_stamp {
+            if self.spending_txin_index.stamp() >= starting_stamp {
                 // Spends are rewritten in place: readers first fall back to where the rollback
                 // lands (a stamp counts completed blocks).
-                if let Some(landing) = self.txin_index.rollback_landing(starting_stamp)?
+                if let Some(landing) = self.spending_txin_index.rollback_landing(starting_stamp)?
                     && landing < Stamp::from(starting_lengths.height)
                 {
                     indexer.lower_publication_to(Height::from(landing));
                 }
             }
-            if self.txin_index.stamp() >= starting_stamp
-                && self.txin_index.rollback_before(starting_stamp)? >= starting_stamp
+            if self.spending_txin_index.stamp() >= starting_stamp
+                && self.spending_txin_index.rollback_before(starting_stamp)? >= starting_stamp
             {
                 warn!("Could not roll back spent outputs; rebuilding");
-                self.txin_index.reset()?;
+                self.spending_txin_index.reset()?;
             }
             let min_txout_index = self
-                .txin_index
+                .spending_txin_index
                 .len()
                 .min(starting_lengths.txout_index.to_usize());
 
-            self.txin_index
+            self.spending_txin_index
                 .truncate_if_needed(TxOutIndex::from(min_txout_index))?;
 
             min_txout_index
@@ -108,7 +108,7 @@ impl Vecs {
         let mut batch_start_height = min_height;
         let bootstrap_height =
             Height::new(u32::from(target_height) / (HEIGHT_BATCH + 1) * (HEIGHT_BATCH + 1));
-        if self.txin_index.is_empty()
+        if self.spending_txin_index.is_empty()
             && first_txout_index_data[bootstrap_height.to_usize()].to_usize() > bootstrap::RANGE_LEN
         {
             // Preserve the same final checkpoint window as the block-batched path.
@@ -121,9 +121,9 @@ impl Vecs {
                 exit,
             )?;
             let _lock = exit.lock();
-            self.txin_index
+            self.spending_txin_index
                 .stamped_write_maybe_with_changes(Stamp::from(bootstrap_height), false)?;
-            self.txin_index.flush()?;
+            self.spending_txin_index.flush()?;
             batch_start_height = bootstrap_height;
         }
         while batch_start_height <= target_height {
@@ -137,8 +137,8 @@ impl Vecs {
             };
             // Keep the batch staged: fill_to may issue an unstamped write before
             // rollback data for a reorg truncation has been saved.
-            let len = self.txin_index.len();
-            self.txin_index.extend(repeat_n(
+            let len = self.spending_txin_index.len();
+            self.spending_txin_index.extend(repeat_n(
                 Index40::new(TxInIndex::UNSPENT),
                 batch_txout_index.saturating_sub(len),
             ));
@@ -154,8 +154,8 @@ impl Vecs {
 
             // Appended outputs are still in memory; only stored updates need sorting.
             let mut stored_updates = Vec::new();
-            let stored_len = self.txin_index.stored_len();
-            let pushed = self.txin_index.pushed_mut();
+            let stored_len = self.spending_txin_index.stored_len();
+            let pushed = self.spending_txin_index.pushed_mut();
             let mut j = txin_start;
             txin_index_to_txout_index
                 .try_for_each_range_at(txin_start, txin_end, |txout_index: TxOutIndex| {
@@ -173,23 +173,23 @@ impl Vecs {
                 })
                 .map_err(|index| VecError::IndexTooHigh {
                     index,
-                    len: self.txin_index.len(),
-                    name: self.txin_index.name().to_owned(),
+                    len: self.spending_txin_index.len(),
+                    name: self.spending_txin_index.name().to_owned(),
                 })?;
 
             stored_updates.sort_unstable_by_key(|(txout_index, _)| *txout_index);
             let _lock = exit.lock();
-            self.txin_index.update_many(stored_updates)?;
+            self.spending_txin_index.update_many(stored_updates)?;
 
             if batch_end_height < target_height {
                 let _lock = exit.lock();
                 // Catch-up batches advance the baseline without saving rollback
                 // history. Only the final update write records changes.
-                self.txin_index.stamped_write_maybe_with_changes(
+                self.spending_txin_index.stamped_write_maybe_with_changes(
                     Stamp::from(batch_end_height.incremented()),
                     false,
                 )?;
-                self.txin_index.flush()?;
+                self.spending_txin_index.flush()?;
                 info!(
                     "Indexing spent outputs: {:.0}%",
                     batch_end_height.to_usize() as f64 / target_height.to_usize() as f64 * 100.0
@@ -200,7 +200,7 @@ impl Vecs {
         }
 
         let lock = exit.lock();
-        if self.txin_index.stamp() < Stamp::from(target_height.incremented()) {
+        if self.spending_txin_index.stamp() < Stamp::from(target_height.incremented()) {
             checkpoint(self, target_height)?;
         }
 
@@ -210,8 +210,8 @@ impl Vecs {
 
 /// Save undo before changing stored outputs, then make the batch durable.
 fn checkpoint(vecs: &mut Vecs, height: Height) -> Result<()> {
-    vecs.txin_index
+    vecs.spending_txin_index
         .stamped_write_with_changes(Stamp::from(height.incremented()))?;
-    vecs.txin_index.flush()?;
+    vecs.spending_txin_index.flush()?;
     Ok(())
 }

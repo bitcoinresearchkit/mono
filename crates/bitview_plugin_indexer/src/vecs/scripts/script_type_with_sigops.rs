@@ -19,5 +19,5 @@ pub struct ScriptTypeWithSigOpsVecs<
     /// script using accurate multisig counting. Each `CHECKSIG` costs four;
     /// `CHECKMULTISIG` costs four times a preceding `OP_1` through `OP_16`, or
     /// 80 when no such key-count opcode precedes it.
-    pub legacy_sigops: Compact<BytesVec<I, SigOps32>, SigOps, M>,
+    pub legacy_sigop_cost: Compact<BytesVec<I, SigOps32>, SigOps, M>,
 }

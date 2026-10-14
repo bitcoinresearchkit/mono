@@ -35,6 +35,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
     #[traversable(skip)]
     pub creations: M::WriteOnly<Creations>,
+    #[traversable(flatten)]
     pub spent: SpentVecs<M>,
     pub count: CountVecs<M>,
     /// Transaction-output rate, including coinbase outputs.

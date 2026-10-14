@@ -593,11 +593,6 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {number} FeeRate
  */
 /**
- * A 32-bit floating-point value without a specific unit.
- *
- * @typedef {number} Float32
- */
-/**
  * A 64-bit floating-point value without a specific unit.
  *
  * @typedef {number} Float64
@@ -611,6 +606,16 @@ ancestors and no descendants (matches mempool.space).
  * Index of a halving epoch (210,000 blocks).
  *
  * @typedef {number} Halving
+ */
+/**
+ * US dollars per PH/s of hash rate per day.
+ *
+ * @typedef {number} HashPrice
+ */
+/**
+ * Satoshis per PH/s of hash rate per day.
+ *
+ * @typedef {number} HashValue
  */
 /**
  * Hashes per second.
@@ -3425,7 +3430,7 @@ const _Total = _s({
  * }} ExposedCount
  */
 const _ExposedCount = _s({
-  funded: [_i1, '*_exposed_address_count'],
+  funded: [_i1, '*_funded_exposed_address_count'],
   total: [_i1, '*_total_exposed_address_count'],
 });
 
@@ -3436,7 +3441,7 @@ const _ExposedCount = _s({
  * }} RespentCount
  */
 const _RespentCount = _s({
-  funded: [_i1, '*_respent_address_count'],
+  funded: [_i1, '*_funded_respent_address_count'],
   total: [_i1, '*_total_respent_address_count'],
 });
 
@@ -3471,7 +3476,7 @@ const _Exposed = _s({
  * }} ReusedCount
  */
 const _ReusedCount = _s({
-  funded: [_i1, '*_reused_address_count'],
+  funded: [_i1, '*_funded_reused_address_count'],
   total: [_i1, '*_total_reused_address_count'],
 });
 
@@ -3805,9 +3810,10 @@ const _UtxoSet2 = _s({
 });
 
 /**
+ * @template A
  * @typedef {{
- *   block: SeriesPattern1<?Float32>,
- *   atl: SeriesPattern1<?Float32>,
+ *   block: SeriesPattern1<A>,
+ *   atl: SeriesPattern1<A>,
  *   rebound: SeriesPattern1<?Percent>,
  * }} HashratePrice
  */
@@ -3850,8 +3856,8 @@ const _HashrateRate = _s({
 /**
  * @typedef {{
  *   rate: HashrateRate,
- *   price: HashratePrice,
- *   value: HashratePrice,
+ *   price: HashratePrice<?HashPrice>,
+ *   value: HashratePrice<?HashValue>,
  * }} MiningHashrate
  */
 const _MiningHashrate = _s({
@@ -4150,15 +4156,6 @@ const _TransferVolume = _s({
 
 /**
  * @typedef {{
- *   txinIndex: SeriesPattern24<TxInIndex>,
- * }} Spent
- */
-const _Spent = _s({
-  txinIndex: [_i24, '*'],
-});
-
-/**
- * @typedef {{
  *   cumulative: SeriesPattern1<?Percent>,
  *   _24h: SeriesPattern1<?Percent>,
  *   _1w: SeriesPattern1<?Percent>,
@@ -4167,7 +4164,7 @@ const _Spent = _s({
  * }} ChainShare
  */
 const _ChainShare = _s({
-  cumulative: [_i1, '*'],
+  cumulative: [_i1, '*_cumulative'],
   _24h: [_i1, '*_24h'],
   _1w: [_i1, '*_1w'],
   _1m: [_i1, '*_1m'],
@@ -4887,7 +4884,7 @@ const _DataBytes = _s({
   block: [_i19, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_InputsPerSecond, '*_sum'],
-  chainShare: [_i1, '*_chain_share'],
+  chainShare: [_i1, '*_chain_share_cumulative'],
 });
 
 /**
@@ -5026,16 +5023,14 @@ const _CoinblocksDestroyed = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Float64>,
- *   hodlBank: SeriesPattern19<?Float64>,
+ *   hodlBank: SeriesPattern1<?Float64>,
  *   vocdd: CoinblocksDestroyed<?Float64>,
- *   vocddMedian1m: SeriesPattern19<?Float64>,
  * }} ReserveRisk
  */
 const _ReserveRisk = _s({
-  block: [_i1, 'reserve_risk'],
-  hodlBank: [_i19, 'hodl_bank'],
-  vocdd: [_CoinblocksDestroyed, '*'],
-  vocddMedian1m: [_i19, '*_median_1m'],
+  block: [_i1, '*'],
+  hodlBank: [_i1, 'hodl_bank'],
+  vocdd: [_CoinblocksDestroyed, 'vocdd'],
 });
 
 /**
@@ -5229,7 +5224,7 @@ const _Reused = _s({
  * }} P2pk
  */
 const _P2pk = _s({
-  funded: [_Funded, '*_address_count'],
+  funded: [_Funded, '*_funded_address_count'],
   empty: [_i1, '*_empty_address_count'],
   total: [_i1, '*_total_address_count'],
   new: [_New, '*_new_address_count'],
@@ -5442,7 +5437,7 @@ const _Balances = (c, b, f0) => _n(c, b, {
  * }} Addresses
  */
 const _Addresses = _s({
-  funded: [_Funded, '*_count'],
+  funded: [_Funded, 'funded_*_count'],
   empty: [_i1, 'empty_*_count'],
   total: [_i1, 'total_*_count'],
   new: [_New, 'new_*_count'],
@@ -5698,7 +5693,7 @@ const _Cointime = _s({
   caps: [_Caps, 'cap'],
   prices: [_CointimePrices, 'vaulted'],
   adjusted: [_Adjusted, 'cointime_adjusted'],
-  reserveRisk: [_ReserveRisk, 'vocdd'],
+  reserveRisk: [_ReserveRisk, 'reserve_risk'],
 });
 
 /**
@@ -5883,7 +5878,7 @@ const _OutputsTypes = _s({
 
 /**
  * @typedef {{
- *   spent: Spent,
+ *   spendingTxinIndex: SeriesPattern24<TxInIndex>,
  *   count: Size<Count, ?CountFract>,
  *   perSecond: InputsPerSecond<?PerSecond>,
  *   spendableCount: CoinblocksDestroyed<Count>,
@@ -5892,7 +5887,7 @@ const _OutputsTypes = _s({
  * }} Outputs
  */
 const _Outputs = _s({
-  spent: [_Spent, 'spending_txin_index'],
+  spendingTxinIndex: [_i24, 'spending_txin_index'],
   count: [_Size, '*_count'],
   perSecond: [_InputsPerSecond, 'outputs_per_second'],
   spendableCount: [_CoinblocksDestroyed, 'spendable_*_count'],
@@ -5985,12 +5980,12 @@ const _Price = _s({
 /**
  * @typedef {{
  *   monotonic: SeriesPattern19<Timestamp>,
- *   resolutions: SeriesPattern2<Timestamp>,
+ *   periodStart: SeriesPattern2<Timestamp>,
  * }} MappingsTimestamp
  */
 const _MappingsTimestamp = _s({
   monotonic: [_i19, '*_monotonic'],
-  resolutions: [_i2, '*'],
+  periodStart: [_i2, '*'],
 });
 
 /**
@@ -6195,21 +6190,21 @@ const _MappingsEpoch = _s({
  * }} MappingsHeight
  */
 const _MappingsHeight = _s({
-  minute10: [_i19, '*'],
-  minute30: [_i19, 'minute30'],
-  hour1: [_i19, 'hour1'],
-  hour4: [_i19, 'hour4'],
-  hour12: [_i19, 'hour12'],
-  day1: [_i19, 'day1'],
-  day3: [_i19, 'day3'],
-  epoch: [_i19, 'epoch'],
-  halving: [_i19, 'halving'],
-  week1: [_i19, 'week1'],
-  month1: [_i19, 'month1'],
-  month3: [_i19, 'month3'],
-  month6: [_i19, 'month6'],
-  year1: [_i19, 'year1'],
-  year10: [_i19, 'year10'],
+  minute10: [_i19, '*_minute10'],
+  minute30: [_i19, '*_minute30'],
+  hour1: [_i19, '*_hour1'],
+  hour4: [_i19, '*_hour4'],
+  hour12: [_i19, '*_hour12'],
+  day1: [_i19, '*_day1'],
+  day3: [_i19, '*_day3'],
+  epoch: [_i19, 'difficulty_epoch'],
+  halving: [_i19, 'halving_epoch'],
+  week1: [_i19, '*_week1'],
+  month1: [_i19, '*_month1'],
+  month3: [_i19, '*_month3'],
+  month6: [_i19, '*_month6'],
+  year1: [_i19, '*_year1'],
+  year10: [_i19, '*_year10'],
 });
 
 /**
@@ -6403,7 +6398,7 @@ const _MappingsAddresses = _s({
 const _Mappings = _s({
   addresses: [_MappingsAddresses, 'address'],
   outputs: [_MappingsOutputs, 'index'],
-  height: [_MappingsHeight, 'minute10'],
+  height: [_MappingsHeight, 'block'],
   epoch: [_MappingsEpoch, 'first_height'],
   halving: [_MappingsHalving, 'first_height'],
   minute10: [_MappingsMinute10, 'first_height'],
@@ -6437,33 +6432,33 @@ const _IndexerOpReturn = _s({
   firstIndex: [_i19, 'first_*_index'],
   txIndex: [_i26, '*_tx_index'],
   protocol: [_i26, '*_protocol'],
-  postOpReturnBytes: [_i26, '*_post_op_return_bytes'],
+  postOpReturnBytes: [_i26, 'post_*_bytes'],
 });
 
 /**
  * @typedef {{
  *   firstIndex: SeriesPattern19<UnknownOutputIndex>,
  *   txIndex: SeriesPattern36<TxIndex>,
- *   legacySigops: SeriesPattern36<SigOps>,
+ *   legacySigopCost: SeriesPattern36<SigOps>,
  * }} ScriptsUnknown
  */
 const _ScriptsUnknown = _s({
   firstIndex: [_i19, 'first_*_output_index'],
   txIndex: [_i36, '*_output_tx_index'],
-  legacySigops: [_i36, '*_legacy_sigops'],
+  legacySigopCost: [_i36, '*_legacy_sigop_cost'],
 });
 
 /**
  * @typedef {{
  *   firstIndex: SeriesPattern19<P2MSOutputIndex>,
  *   txIndex: SeriesPattern28<TxIndex>,
- *   legacySigops: SeriesPattern28<SigOps>,
+ *   legacySigopCost: SeriesPattern28<SigOps>,
  * }} ScriptsP2ms
  */
 const _ScriptsP2ms = _s({
   firstIndex: [_i19, 'first_*_output_index'],
   txIndex: [_i28, '*_output_tx_index'],
-  legacySigops: [_i28, '*_legacy_sigops'],
+  legacySigopCost: [_i28, '*_legacy_sigop_cost'],
 });
 
 /**
@@ -6860,8 +6855,8 @@ const _IndexerTransactions = _s({
  *   size: SeriesPattern19<Bytes>,
  *   weight: SeriesPattern19<Weight>,
  *   segwitTxCount: SeriesPattern19<Count>,
- *   segwitSize: SeriesPattern19<Bytes>,
- *   segwitWeight: SeriesPattern19<Weight>,
+ *   segwitTxSize: SeriesPattern19<Bytes>,
+ *   segwitTxWeight: SeriesPattern19<Weight>,
  * }} IndexerBlocks
  */
 const _IndexerBlocks = _s({
@@ -6871,9 +6866,9 @@ const _IndexerBlocks = _s({
   medianTime: [_i19, 'median_time'],
   size: [_i19, 'block_size'],
   weight: [_i19, 'block_weight'],
-  segwitTxCount: [_i19, '*_tx_count'],
-  segwitSize: [_i19, '*_size'],
-  segwitWeight: [_i19, '*_weight'],
+  segwitTxCount: [_i19, '*_count'],
+  segwitTxSize: [_i19, '*_size'],
+  segwitTxWeight: [_i19, '*_weight'],
 });
 
 /**
@@ -6888,12 +6883,12 @@ const _IndexerBlocks = _s({
  * }} Indexer
  */
 const _Indexer = _s({
-  blocks: [_IndexerBlocks, 'segwit'],
-  transactions: [_IndexerTransactions, 'tx'],
+  blocks: [_IndexerBlocks, 'segwit_*'],
+  transactions: [_IndexerTransactions, '*'],
   inputs: [_IndexerInputs, 'index'],
-  outputs: [_IndexerOutputs, '*'],
+  outputs: [_IndexerOutputs, 'output'],
   addresses: [_IndexerAddresses, 'p2pk65'],
-  scripts: [_Scripts, 'empty_*'],
+  scripts: [_Scripts, 'empty_output'],
   opReturn: [_IndexerOpReturn, 'op_return'],
 });
 
@@ -6925,7 +6920,7 @@ const _Indexer = _s({
  * }} SeriesTree
  */
 const _SeriesTree = _s({
-  indexer: [_Indexer, 'output'],
+  indexer: [_Indexer, 'tx'],
   mappings: [_Mappings, 'date'],
   price: [_Price, 'price'],
   blocks: [_Blocks, 'block'],

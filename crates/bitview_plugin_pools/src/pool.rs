@@ -126,7 +126,7 @@ impl PoolVecs {
         let share_name = name("share");
         let share = Share {
             cumulative: LazyPercentPerBlock::from_height_source(
-                &share_name,
+                &format!("{share_name}_cumulative"),
                 version,
                 &LazyVec::init(
                     &format!("{share_name}_ppm_source"),

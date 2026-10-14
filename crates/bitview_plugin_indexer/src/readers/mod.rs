@@ -24,8 +24,8 @@ impl Readers {
         Self {
             txid: vecs.transactions.txid.reader(),
             scripts: ScriptReaders {
-                p2ms_legacy_sigops: vecs.scripts.p2ms.legacy_sigops.reader(),
-                unknown_legacy_sigops: vecs.scripts.unknown.legacy_sigops.reader(),
+                p2ms_legacy_sigop_cost: vecs.scripts.p2ms.legacy_sigop_cost.reader(),
+                unknown_legacy_sigop_cost: vecs.scripts.unknown.legacy_sigop_cost.reader(),
             },
             addrs: vecs.addrs.addr_readers(),
         }

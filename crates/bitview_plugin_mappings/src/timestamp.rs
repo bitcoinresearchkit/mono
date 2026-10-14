@@ -33,10 +33,13 @@ pub struct Timestamps<M: StorageMode = Rw> {
     /// the maximum of the represented raw block-header timestamp and the preceding
     /// monotonic timestamp.
     pub monotonic: M::Stored<EagerVec<PcoVec<Height, Timestamp, Budgeted>>>,
+    /// Unix timestamp in seconds: at a height, the block's header time (not guaranteed to
+    /// increase between heights); at a calendar period, its UTC start; at a halving or
+    /// difficulty epoch, its first block's header time.
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub resolutions: PerResolution<
+    pub period_start: PerResolution<
         IndexVec<Minute10, Timestamp, RangeMapVec<Minute10, Height>>,
         IndexVec<Minute30, Timestamp, RangeMapVec<Minute30, Height>>,
         IndexVec<Hour1, Timestamp, RangeMapVec<Hour1, Height>>,
@@ -92,7 +95,7 @@ impl Timestamps {
 
         Self {
             monotonic,
-            resolutions: PerResolution {
+            period_start: PerResolution {
                 minute10: period!(minute10),
                 minute30: period!(minute30),
                 hour1: period!(hour1),

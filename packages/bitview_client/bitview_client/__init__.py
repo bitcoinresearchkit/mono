@@ -164,12 +164,14 @@ ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsuppor
 ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
 # Exchange rates (USD base, on-chain only — no fiat pairs available)
 ExchangeRates = dict
-# A 32-bit floating-point value without a specific unit.
-Float32 = float
 # A 64-bit floating-point value without a specific unit.
 Float64 = float
 # Index of a halving epoch (210,000 blocks).
 Halving = int
+# US dollars per PH/s of hash rate per day.
+HashPrice = float
+# Satoshis per PH/s of hash rate per day.
+HashValue = float
 # Hashes per second.
 Hashrate = float
 # Hex-encoded string. Transparent wrapper over `String`: serializes
@@ -3516,12 +3518,12 @@ class Total(_Node):
 
 
 class ExposedCount(_Node):
-    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_exposed_address_count')
+    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_funded_exposed_address_count')
     total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_exposed_address_count')
 
 
 class RespentCount(_Node):
-    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_respent_address_count')
+    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_funded_respent_address_count')
     total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_respent_address_count')
 
 
@@ -3537,7 +3539,7 @@ class Exposed(_Node):
 
 
 class ReusedCount(_Node):
-    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_reused_address_count')
+    funded: SeriesPattern1[Count] = _at(SeriesPattern1, '*_funded_reused_address_count')
     total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_reused_address_count')
 
 
@@ -3697,9 +3699,9 @@ class UtxoSet2(_Node):
     count: SeriesPattern1[Count] = _at(SeriesPattern1, 'utxo_count')
 
 
-class HashratePrice(_Node):
-    block: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*')
-    atl: SeriesPattern1[Optional[Float32]] = _at(SeriesPattern1, '*_atl')
+class HashratePrice(_Node, Generic[A]):
+    block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
+    atl: SeriesPattern1[A] = _at(SeriesPattern1, '*_atl')
     rebound: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_rebound')
 
 
@@ -3719,8 +3721,8 @@ class HashrateRate(_Node):
 
 class MiningHashrate(_Node):
     rate: HashrateRate = _at(HashrateRate, 'hashrate')
-    price: HashratePrice = _at(HashratePrice, '*_price')
-    value: HashratePrice = _at(HashratePrice, '*_value')
+    price: HashratePrice[Optional[HashPrice]] = _at(HashratePrice, '*_price')
+    value: HashratePrice[Optional[HashValue]] = _at(HashratePrice, '*_value')
 
 
 class Vsize(_Node, Generic[A]):
@@ -3857,12 +3859,8 @@ class TransferVolume(_Node):
     in_loss: OpReturnValue = _at(OpReturnValue, '*_in_loss')
 
 
-class Spent(_Node):
-    txin_index: SeriesPattern24[TxInIndex] = _at(SeriesPattern24, '*')
-
-
 class ChainShare(_Node):
-    cumulative: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*')
+    cumulative: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_cumulative')
     _24h: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_24h')
     _1w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1w')
     _1m: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1m')
@@ -4210,7 +4208,7 @@ class DataBytes(_Node):
     block: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*')
     cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_cumulative')
     sum: InputsPerSecond[Bytes] = _at(InputsPerSecond, '*_sum')
-    chain_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_chain_share')
+    chain_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_chain_share_cumulative')
 
 
 class Nonstandard(_Node):
@@ -4275,10 +4273,9 @@ class CoinblocksDestroyed(_Node, Generic[A]):
 
 
 class ReserveRisk(_Node):
-    block: SeriesPattern1[Optional[Float64]] = _at(SeriesPattern1, 'reserve_risk')
-    hodl_bank: SeriesPattern19[Optional[Float64]] = _at(SeriesPattern19, 'hodl_bank')
-    vocdd: CoinblocksDestroyed[Optional[Float64]] = _at(CoinblocksDestroyed, '*')
-    vocdd_median_1m: SeriesPattern19[Optional[Float64]] = _at(SeriesPattern19, '*_median_1m')
+    block: SeriesPattern1[Optional[Float64]] = _at(SeriesPattern1, '*')
+    hodl_bank: SeriesPattern1[Optional[Float64]] = _at(SeriesPattern1, 'hodl_bank')
+    vocdd: CoinblocksDestroyed[Optional[Float64]] = _at(CoinblocksDestroyed, 'vocdd')
 
 
 class Value(_Node):
@@ -4364,7 +4361,7 @@ class Reused(_Node):
 
 
 class P2pk(_Node):
-    funded: Funded[Count, CountSigned] = _at(Funded, '*_address_count')
+    funded: Funded[Count, CountSigned] = _at(Funded, '*_funded_address_count')
     empty: SeriesPattern1[Count] = _at(SeriesPattern1, '*_empty_address_count')
     total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_address_count')
     new: New = _at(New, '*_new_address_count')
@@ -4462,7 +4459,7 @@ class Balances(_Node, Generic[A]):
 
 
 class Addresses(_Node):
-    funded: Funded[Count, CountSigned] = _at(Funded, '*_count')
+    funded: Funded[Count, CountSigned] = _at(Funded, 'funded_*_count')
     empty: SeriesPattern1[Count] = _at(SeriesPattern1, 'empty_*_count')
     total: SeriesPattern1[Count] = _at(SeriesPattern1, 'total_*_count')
     new: New = _at(New, 'new_*_count')
@@ -4588,7 +4585,7 @@ class Cointime(_Node):
     caps: Caps = _at(Caps, 'cap')
     prices: CointimePrices = _at(CointimePrices, 'vaulted')
     adjusted: Adjusted = _at(Adjusted, 'cointime_adjusted')
-    reserve_risk: ReserveRisk = _at(ReserveRisk, 'vocdd')
+    reserve_risk: ReserveRisk = _at(ReserveRisk, 'reserve_risk')
 
 
 class Age(_Node):
@@ -4678,7 +4675,7 @@ class OutputsTypes(_Node):
 
 
 class Outputs(_Node):
-    spent: Spent = _at(Spent, 'spending_txin_index')
+    spending_txin_index: SeriesPattern24[TxInIndex] = _at(SeriesPattern24, 'spending_txin_index')
     count: Size[Count, Optional[CountFract]] = _at(Size, '*_count')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, 'outputs_per_second')
     spendable_count: CoinblocksDestroyed[Count] = _at(CoinblocksDestroyed, 'spendable_*_count')
@@ -4727,7 +4724,7 @@ class Price(_Node):
 
 class MappingsTimestamp(_Node):
     monotonic: SeriesPattern19[Timestamp] = _at(SeriesPattern19, '*_monotonic')
-    resolutions: SeriesPattern2[Timestamp] = _at(SeriesPattern2, '*')
+    period_start: SeriesPattern2[Timestamp] = _at(SeriesPattern2, '*')
 
 
 class TxoutIndex(_Node):
@@ -4813,21 +4810,21 @@ class MappingsEpoch(_Node):
 
 
 class MappingsHeight(_Node):
-    minute10: SeriesPattern19[Minute10] = _at(SeriesPattern19, '*')
-    minute30: SeriesPattern19[Minute30] = _at(SeriesPattern19, 'minute30')
-    hour1: SeriesPattern19[Hour1] = _at(SeriesPattern19, 'hour1')
-    hour4: SeriesPattern19[Hour4] = _at(SeriesPattern19, 'hour4')
-    hour12: SeriesPattern19[Hour12] = _at(SeriesPattern19, 'hour12')
-    day1: SeriesPattern19[Day1] = _at(SeriesPattern19, 'day1')
-    day3: SeriesPattern19[Day3] = _at(SeriesPattern19, 'day3')
-    epoch: SeriesPattern19[Epoch] = _at(SeriesPattern19, 'epoch')
-    halving: SeriesPattern19[Halving] = _at(SeriesPattern19, 'halving')
-    week1: SeriesPattern19[Week1] = _at(SeriesPattern19, 'week1')
-    month1: SeriesPattern19[Month1] = _at(SeriesPattern19, 'month1')
-    month3: SeriesPattern19[Month3] = _at(SeriesPattern19, 'month3')
-    month6: SeriesPattern19[Month6] = _at(SeriesPattern19, 'month6')
-    year1: SeriesPattern19[Year1] = _at(SeriesPattern19, 'year1')
-    year10: SeriesPattern19[Year10] = _at(SeriesPattern19, 'year10')
+    minute10: SeriesPattern19[Minute10] = _at(SeriesPattern19, '*_minute10')
+    minute30: SeriesPattern19[Minute30] = _at(SeriesPattern19, '*_minute30')
+    hour1: SeriesPattern19[Hour1] = _at(SeriesPattern19, '*_hour1')
+    hour4: SeriesPattern19[Hour4] = _at(SeriesPattern19, '*_hour4')
+    hour12: SeriesPattern19[Hour12] = _at(SeriesPattern19, '*_hour12')
+    day1: SeriesPattern19[Day1] = _at(SeriesPattern19, '*_day1')
+    day3: SeriesPattern19[Day3] = _at(SeriesPattern19, '*_day3')
+    epoch: SeriesPattern19[Epoch] = _at(SeriesPattern19, 'difficulty_epoch')
+    halving: SeriesPattern19[Halving] = _at(SeriesPattern19, 'halving_epoch')
+    week1: SeriesPattern19[Week1] = _at(SeriesPattern19, '*_week1')
+    month1: SeriesPattern19[Month1] = _at(SeriesPattern19, '*_month1')
+    month3: SeriesPattern19[Month3] = _at(SeriesPattern19, '*_month3')
+    month6: SeriesPattern19[Month6] = _at(SeriesPattern19, '*_month6')
+    year1: SeriesPattern19[Year1] = _at(SeriesPattern19, '*_year1')
+    year10: SeriesPattern19[Year10] = _at(SeriesPattern19, '*_year10')
 
 
 class OutputsOpReturn(_Node):
@@ -4907,7 +4904,7 @@ class MappingsAddresses(_Node):
 class Mappings(_Node):
     addresses: MappingsAddresses = _at(MappingsAddresses, 'address')
     outputs: MappingsOutputs = _at(MappingsOutputs, 'index')
-    height: MappingsHeight = _at(MappingsHeight, 'minute10')
+    height: MappingsHeight = _at(MappingsHeight, 'block')
     epoch: MappingsEpoch = _at(MappingsEpoch, 'first_height')
     halving: MappingsHalving = _at(MappingsHalving, 'first_height')
     minute10: MappingsMinute10 = _at(MappingsMinute10, 'first_height')
@@ -4933,19 +4930,19 @@ class IndexerOpReturn(_Node):
     first_index: SeriesPattern19[OpReturnIndex] = _at(SeriesPattern19, 'first_*_index')
     tx_index: SeriesPattern26[TxIndex] = _at(SeriesPattern26, '*_tx_index')
     protocol: SeriesPattern26[OpReturnKind] = _at(SeriesPattern26, '*_protocol')
-    post_op_return_bytes: SeriesPattern26[Bytes] = _at(SeriesPattern26, '*_post_op_return_bytes')
+    post_op_return_bytes: SeriesPattern26[Bytes] = _at(SeriesPattern26, 'post_*_bytes')
 
 
 class ScriptsUnknown(_Node):
     first_index: SeriesPattern19[UnknownOutputIndex] = _at(SeriesPattern19, 'first_*_output_index')
     tx_index: SeriesPattern36[TxIndex] = _at(SeriesPattern36, '*_output_tx_index')
-    legacy_sigops: SeriesPattern36[SigOps] = _at(SeriesPattern36, '*_legacy_sigops')
+    legacy_sigop_cost: SeriesPattern36[SigOps] = _at(SeriesPattern36, '*_legacy_sigop_cost')
 
 
 class ScriptsP2ms(_Node):
     first_index: SeriesPattern19[P2MSOutputIndex] = _at(SeriesPattern19, 'first_*_output_index')
     tx_index: SeriesPattern28[TxIndex] = _at(SeriesPattern28, '*_output_tx_index')
-    legacy_sigops: SeriesPattern28[SigOps] = _at(SeriesPattern28, '*_legacy_sigops')
+    legacy_sigop_cost: SeriesPattern28[SigOps] = _at(SeriesPattern28, '*_legacy_sigop_cost')
 
 
 class ScriptsEmpty(_Node):
@@ -5136,23 +5133,23 @@ class IndexerBlocks(_Node):
     median_time: SeriesPattern19[Timestamp] = _at(SeriesPattern19, 'median_time')
     size: SeriesPattern19[Bytes] = _at(SeriesPattern19, 'block_size')
     weight: SeriesPattern19[Weight] = _at(SeriesPattern19, 'block_weight')
-    segwit_tx_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
-    segwit_size: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*_size')
-    segwit_weight: SeriesPattern19[Weight] = _at(SeriesPattern19, '*_weight')
+    segwit_tx_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_count')
+    segwit_tx_size: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*_size')
+    segwit_tx_weight: SeriesPattern19[Weight] = _at(SeriesPattern19, '*_weight')
 
 
 class Indexer(_Node):
-    blocks: IndexerBlocks = _at(IndexerBlocks, 'segwit')
-    transactions: IndexerTransactions = _at(IndexerTransactions, 'tx')
+    blocks: IndexerBlocks = _at(IndexerBlocks, 'segwit_*')
+    transactions: IndexerTransactions = _at(IndexerTransactions, '*')
     inputs: IndexerInputs = _at(IndexerInputs, 'index')
-    outputs: IndexerOutputs = _at(IndexerOutputs, '*')
+    outputs: IndexerOutputs = _at(IndexerOutputs, 'output')
     addresses: IndexerAddresses = _at(IndexerAddresses, 'p2pk65')
-    scripts: Scripts = _at(Scripts, 'empty_*')
+    scripts: Scripts = _at(Scripts, 'empty_output')
     op_return: IndexerOpReturn = _at(IndexerOpReturn, 'op_return')
 
 
 class SeriesTree(_Node):
-    indexer: Indexer = _at(Indexer, 'output')
+    indexer: Indexer = _at(Indexer, 'tx')
     mappings: Mappings = _at(Mappings, 'date')
     price: Price = _at(Price, 'price')
     blocks: Blocks = _at(Blocks, 'block')

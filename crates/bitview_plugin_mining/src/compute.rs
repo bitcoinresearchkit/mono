@@ -31,7 +31,6 @@ impl ComputePlugin for Vecs {
 
         self.hashrate.compute(
             indexer,
-            &blocks.count,
             &blocks.lookback,
             &blocks.difficulty,
             &self.rewards.coinbase.sum._24h.sats.height,

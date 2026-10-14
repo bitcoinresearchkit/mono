@@ -57,7 +57,7 @@ impl Total {
         let data_bytes = import!("data_bytes")?;
         let chain_share =
             LazyPercentPerBlock::from_ratio::<Bytes, Bytes, Quotient<PartsPerMillion32>>(
-                &format!("{prefix}_data_bytes_chain_share"),
+                &format!("{prefix}_data_bytes_chain_share_cumulative"),
                 version,
                 &data_bytes.cumulative.height.read_only_clone(),
                 block_size,

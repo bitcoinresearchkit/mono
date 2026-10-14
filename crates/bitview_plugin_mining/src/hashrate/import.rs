@@ -11,12 +11,12 @@ use super::{
 
 impl Vecs {
     pub(crate) fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
-        let v5 = Version::new(5);
+        let v6 = Version::new(6);
         let v8 = Version::new(8);
 
         Ok(Vecs {
             rate: RateVecs {
-                block: PerBlock::import(db, "hashrate", version + v5, mappings)?,
+                block: PerBlock::import(db, "hashrate", version + v6, mappings)?,
                 sma: HashRateSmaVecs {
                     _1w: PerBlock::import(db, "hashrate_sma_1w", version, mappings)?,
                     _1m: PerBlock::import(db, "hashrate_sma_1m", version, mappings)?,

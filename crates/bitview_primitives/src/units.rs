@@ -53,6 +53,16 @@ scalar! {
 }
 
 scalar! {
+    /// US dollars per PH/s of hash rate per day.
+    float HashPrice(f32)
+}
+
+scalar! {
+    /// Satoshis per PH/s of hash rate per day.
+    float HashValue(f32)
+}
+
+scalar! {
     /// A fraction per day.
     float PerDay(f64)
 }

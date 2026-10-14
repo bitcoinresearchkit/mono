@@ -1,7 +1,9 @@
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Float64;
-use bitview_vecs::{LazyIndexedVec, LazyPerBlock, LazyWindowStartVec, PerBlockCumulativeRolling};
+use bitview_vecs::{
+    LazyIndexedVec, LazyPerBlock, LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling,
+};
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
 use vecdb::{Database, EagerVec, Ident, ImportableVec, ReadableBoxedVec};
@@ -17,11 +19,11 @@ impl Vecs {
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let v1 = version + Version::TWO;
-        let hodl_bank = EagerVec::import(db, "hodl_bank", v1 + Version::ONE)?;
+        let hodl_bank = PerBlock::import(db, "hodl_bank", v1 + Version::ONE, mappings)?;
         let value_source = LazyIndexedVec::new(
             "reserve_risk_source",
             v1,
-            &hodl_bank,
+            &hodl_bank.height,
             spot_price,
             |_, hodl_bank: Float64, spot| Float64::new(f64::from(Dollars::from(spot)) / *hodl_bank),
         );

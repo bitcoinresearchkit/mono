@@ -31,7 +31,10 @@ impl Vecs {
                 .with_saved_stamped_changes(10),
         )?;
         Ok(Vecs {
-            txin_index: Compact::named_with::<PublishedSpend>(txin_index, "spending_txin_index"),
+            spending_txin_index: Compact::named_with::<PublishedSpend>(
+                txin_index,
+                "spending_txin_index",
+            ),
         })
     }
 }

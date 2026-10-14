@@ -28,9 +28,9 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// Public through the blocks plugin (`blocks.difficulty.block`, every index).
     #[traversable(hidden)]
     pub difficulty: M::Stored<PcoVec<Height, Difficulty, Budgeted>>,
-    /// Unix timestamp in seconds associated with the indexed block or time
-    /// period. Block-header timestamps are not guaranteed to increase between
-    /// consecutive heights.
+    /// Unix timestamp in seconds: at a height, the block's header time (not guaranteed to
+    /// increase between heights); at a calendar period, its UTC start; at a halving or
+    /// difficulty epoch, its first block's header time.
     pub timestamp: M::Stored<PcoVec<Height, Timestamp, Budgeted>>,
     /// Median time past: the median of this block's header timestamp and up to
     /// ten predecessors (the upper middle for the first blocks' even-length
@@ -50,10 +50,10 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     pub segwit_tx_count: BlockCount<M>,
     /// Combined total serialized size in bytes of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
-    pub segwit_size: Compact<PcoVec<Height, Bytes32>, Bytes, M>,
+    pub segwit_tx_size: Compact<PcoVec<Height, Bytes32>, Bytes, M>,
     /// Combined BIP-141 weight in weight units of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
-    pub segwit_weight: Compact<PcoVec<Height, Weight32>, Weight, M>,
+    pub segwit_tx_weight: Compact<PcoVec<Height, Weight32>, Weight, M>,
 }
 
 impl BlocksVecs {
@@ -68,8 +68,8 @@ impl BlocksVecs {
             weight,
             position,
             segwit_tx_count,
-            segwit_size,
-            segwit_weight,
+            segwit_tx_size,
+            segwit_tx_weight,
         ) = parallel_import! {
             blockhash = BytesVec::import(db, "blockhash", version),
             coinbase_tag = BytesVec::import(db, "coinbase_tag", version),
@@ -80,8 +80,8 @@ impl BlocksVecs {
             weight = PcoVec::import(db, "block_weight", version).map(Compact::new),
             position = PcoVec::import(db, "block_position", version),
             segwit_tx_count = block_count(db, "segwit_tx_count", version),
-            segwit_size = PcoVec::import(db, "segwit_size", version).map(Compact::new),
-            segwit_weight = PcoVec::import(db, "segwit_weight", version).map(Compact::new),
+            segwit_tx_size = PcoVec::import(db, "segwit_tx_size", version).map(Compact::new),
+            segwit_tx_weight = PcoVec::import(db, "segwit_tx_weight", version).map(Compact::new),
         };
         let mut this = Self {
             blockhash,
@@ -93,8 +93,8 @@ impl BlocksVecs {
             weight,
             position,
             segwit_tx_count,
-            segwit_size,
-            segwit_weight,
+            segwit_tx_size,
+            segwit_tx_weight,
         };
         // Upgrade old databases from the authoritative timestamp column. A
         // mismatched checkpoint can contain another branch: rebuild, not append.
@@ -124,9 +124,9 @@ impl BlocksVecs {
         self.position.truncate_if_needed_with_stamp(height, stamp)?;
         self.segwit_tx_count
             .truncate_if_needed_with_stamp(height, stamp)?;
-        self.segwit_size
+        self.segwit_tx_size
             .truncate_if_needed_with_stamp(height, stamp)?;
-        self.segwit_weight
+        self.segwit_tx_weight
             .truncate_if_needed_with_stamp(height, stamp)?;
         Ok(())
     }
@@ -142,8 +142,8 @@ impl BlocksVecs {
             &mut *self.weight,
             &mut self.position,
             &mut *self.segwit_tx_count,
-            &mut *self.segwit_size,
-            &mut *self.segwit_weight,
+            &mut *self.segwit_tx_size,
+            &mut *self.segwit_tx_weight,
         ]
         .into_par_iter()
     }
@@ -159,8 +159,8 @@ impl BlocksVecs {
             &*self.weight,
             &self.position,
             &*self.segwit_tx_count,
-            &*self.segwit_size,
-            &*self.segwit_weight,
+            &*self.segwit_tx_size,
+            &*self.segwit_tx_weight,
         ]
         .into_iter()
     }

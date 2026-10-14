@@ -29,7 +29,7 @@ pub struct ImportContext<'a> {
 }
 
 /// One address type's series, or every type's together (the root). A type's ids start with
-/// its key (`p2pk_address_count`); the root's start with the metric.
+/// its key (`p2pk_funded_address_count`); the root's start with the metric.
 #[derive(Traversable)]
 pub struct AddressVecs<M: StorageMode = Rw> {
     /// Addresses that hold at least one unspent output at the represented block.
@@ -194,7 +194,7 @@ impl AddressVecs {
         )?;
         let funded = CountWithDeltas::import(
             ctx.db,
-            &name("address_count"),
+            &name("funded_address_count"),
             count_version,
             ctx.mappings,
             ctx.windows,
@@ -553,7 +553,7 @@ impl FundedTotal {
         Ok(Self {
             funded: StoredCount::import(
                 ctx,
-                &format!("{prefix}{predicate}_address_count"),
+                &format!("{prefix}funded_{predicate}_address_count"),
                 version,
             )?,
             total: StoredCount::import(

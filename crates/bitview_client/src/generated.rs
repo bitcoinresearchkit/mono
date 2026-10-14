@@ -1575,11 +1575,11 @@ pub mod tree {
         usd: SeriesPattern1<Option<Dollars>> = "market_cap",
     } }
     shape! { ExposedCount at "series().addresses.exposed.count" {
-        funded: SeriesPattern1<Count> = "*_exposed_address_count",
+        funded: SeriesPattern1<Count> = "*_funded_exposed_address_count",
         total: SeriesPattern1<Count> = "*_total_exposed_address_count",
     } }
     shape! { RespentCount at "series().addresses.respent.count" {
-        funded: SeriesPattern1<Count> = "*_respent_address_count",
+        funded: SeriesPattern1<Count> = "*_funded_respent_address_count",
         total: SeriesPattern1<Count> = "*_total_respent_address_count",
     } }
     shape! { ExposedSupply at "series().addresses.exposed.supply" {
@@ -1592,7 +1592,7 @@ pub mod tree {
         supply: ExposedSupply = "*_exposed_address_supply",
     } }
     shape! { ReusedCount at "series().addresses.reused.count" {
-        funded: SeriesPattern1<Count> = "*_reused_address_count",
+        funded: SeriesPattern1<Count> = "*_funded_reused_address_count",
         total: SeriesPattern1<Count> = "*_total_reused_address_count",
     } }
     shape! { RookieCostBasisPerCoin at "series().entry.rookie.cost_basis.per_coin" {
@@ -1734,9 +1734,9 @@ pub mod tree {
         supply: SeriesPattern1<Option<Bitcoin>> = "*",
         count: SeriesPattern1<Count> = "utxo_count",
     } }
-    shape! { HashratePrice at "series().mining.hashrate.price" {
-        block: SeriesPattern1<Option<Float32>> = "*",
-        atl: SeriesPattern1<Option<Float32>> = "*_atl",
+    shape! { HashratePrice<A> at "series().mining.hashrate.price" {
+        block: SeriesPattern1<A> = "*",
+        atl: SeriesPattern1<A> = "*_atl",
         rebound: SeriesPattern1<Option<Percent>> = "*_rebound",
     } }
     shape! { RateSma at "series().mining.hashrate.rate.sma" {
@@ -1753,8 +1753,8 @@ pub mod tree {
     } }
     shape! { MiningHashrate at "series().mining.hashrate" {
         rate: HashrateRate = "hashrate",
-        price: HashratePrice = "*_price",
-        value: HashratePrice = "*_value",
+        price: HashratePrice<Option<HashPrice>> = "*_price",
+        value: HashratePrice<Option<HashValue>> = "*_value",
     } }
     shape! { Vsize<A> at "series().transactions.vsize" {
         tx: SeriesPattern20<A> = "*",
@@ -1871,11 +1871,8 @@ pub mod tree {
         in_profit: OpReturnValue = "*_in_profit",
         in_loss: OpReturnValue = "*_in_loss",
     } }
-    shape! { Spent at "series().outputs.spent" {
-        txin_index: SeriesPattern24<TxInIndex> = "*",
-    } }
     shape! { ChainShare at "series().op_return.fees.chain_share" {
-        cumulative: SeriesPattern1<Option<Percent>> = "*",
+        cumulative: SeriesPattern1<Option<Percent>> = "*_cumulative",
         _24h: SeriesPattern1<Option<Percent>> = "*_24h",
         _1w: SeriesPattern1<Option<Percent>> = "*_1w",
         _1m: SeriesPattern1<Option<Percent>> = "*_1m",
@@ -2198,7 +2195,7 @@ pub mod tree {
         block: SeriesPattern19<Bytes> = "*",
         cumulative: SeriesPattern1<Bytes> = "*_cumulative",
         sum: InputsPerSecond<Bytes> = "*_sum",
-        chain_share: SeriesPattern1<Option<Percent>> = "*_chain_share",
+        chain_share: SeriesPattern1<Option<Percent>> = "*_chain_share_cumulative",
     } }
     shape! { Nonstandard at "series().transactions.nonstandard" {
         flag: SeriesPattern20<Boolean> = "is_*",
@@ -2254,10 +2251,9 @@ pub mod tree {
         sum: InputsPerSecond<A> = "*_sum",
     } }
     shape! { ReserveRisk at "series().cointime.reserve_risk" {
-        block: SeriesPattern1<Option<Float64>> = "reserve_risk",
-        hodl_bank: SeriesPattern19<Option<Float64>> = "hodl_bank",
-        vocdd: CoinblocksDestroyed<Option<Float64>> = "*",
-        vocdd_median_1m: SeriesPattern19<Option<Float64>> = "*_median_1m",
+        block: SeriesPattern1<Option<Float64>> = "*",
+        hodl_bank: SeriesPattern1<Option<Float64>> = "hodl_bank",
+        vocdd: CoinblocksDestroyed<Option<Float64>> = "vocdd",
     } }
     shape! { Value at "series().cointime.value" {
         destroyed: CoinblocksDestroyed<Option<Float64>> = "*_destroyed",
@@ -2331,7 +2327,7 @@ pub mod tree {
         events: ReusedEvents = "*",
     } }
     shape! { P2pk at "series().addresses.types.p2pk" {
-        funded: Funded<Count, CountSigned> = "*_address_count",
+        funded: Funded<Count, CountSigned> = "*_funded_address_count",
         empty: SeriesPattern1<Count> = "*_empty_address_count",
         total: SeriesPattern1<Count> = "*_total_address_count",
         new: New = "*_new_address_count",
@@ -2418,7 +2414,7 @@ pub mod tree {
         over_100k_btc: A = "*_over_100k_btc",
     } }
     shape! { Addresses at "series().addresses" {
-        funded: Funded<Count, CountSigned> = "*_count",
+        funded: Funded<Count, CountSigned> = "funded_*_count",
         empty: SeriesPattern1<Count> = "empty_*_count",
         total: SeriesPattern1<Count> = "total_*_count",
         new: New = "new_*_count",
@@ -2534,7 +2530,7 @@ pub mod tree {
         caps: Caps = "cap",
         prices: CointimePrices = "vaulted",
         adjusted: Adjusted = "cointime_adjusted",
-        reserve_risk: ReserveRisk = "vocdd",
+        reserve_risk: ReserveRisk = "reserve_risk",
     } }
     shape! { Age at "series().age" {
         ranges: Ranges<Ranges10yTo12y> = "*",
@@ -2615,7 +2611,7 @@ pub mod tree {
         op_return: TypesEmpty = "op_return_*",
     } }
     shape! { Outputs at "series().outputs" {
-        spent: Spent = "spending_txin_index",
+        spending_txin_index: SeriesPattern24<TxInIndex> = "spending_txin_index",
         count: Size<Count, Option<CountFract>> = "*_count",
         per_second: InputsPerSecond<Option<PerSecond>> = "outputs_per_second",
         spendable_count: CoinblocksDestroyed<Count> = "spendable_*_count",
@@ -2659,7 +2655,7 @@ pub mod tree {
     } }
     shape! { MappingsTimestamp at "series().mappings.timestamp" {
         monotonic: SeriesPattern19<Timestamp> = "*_monotonic",
-        resolutions: SeriesPattern2<Timestamp> = "*",
+        period_start: SeriesPattern2<Timestamp> = "*",
     } }
     shape! { TxoutIndex at "series().mappings.txout_index" {
         identity: SeriesPattern23<TxOutIndex> = "*",
@@ -2726,21 +2722,21 @@ pub mod tree {
         first_height: SeriesPattern18<Height> = "*",
     } }
     shape! { MappingsHeight at "series().mappings.height" {
-        minute10: SeriesPattern19<Minute10> = "*",
-        minute30: SeriesPattern19<Minute30> = "minute30",
-        hour1: SeriesPattern19<Hour1> = "hour1",
-        hour4: SeriesPattern19<Hour4> = "hour4",
-        hour12: SeriesPattern19<Hour12> = "hour12",
-        day1: SeriesPattern19<Day1> = "day1",
-        day3: SeriesPattern19<Day3> = "day3",
-        epoch: SeriesPattern19<Epoch> = "epoch",
-        halving: SeriesPattern19<Halving> = "halving",
-        week1: SeriesPattern19<Week1> = "week1",
-        month1: SeriesPattern19<Month1> = "month1",
-        month3: SeriesPattern19<Month3> = "month3",
-        month6: SeriesPattern19<Month6> = "month6",
-        year1: SeriesPattern19<Year1> = "year1",
-        year10: SeriesPattern19<Year10> = "year10",
+        minute10: SeriesPattern19<Minute10> = "*_minute10",
+        minute30: SeriesPattern19<Minute30> = "*_minute30",
+        hour1: SeriesPattern19<Hour1> = "*_hour1",
+        hour4: SeriesPattern19<Hour4> = "*_hour4",
+        hour12: SeriesPattern19<Hour12> = "*_hour12",
+        day1: SeriesPattern19<Day1> = "*_day1",
+        day3: SeriesPattern19<Day3> = "*_day3",
+        epoch: SeriesPattern19<Epoch> = "difficulty_epoch",
+        halving: SeriesPattern19<Halving> = "halving_epoch",
+        week1: SeriesPattern19<Week1> = "*_week1",
+        month1: SeriesPattern19<Month1> = "*_month1",
+        month3: SeriesPattern19<Month3> = "*_month3",
+        month6: SeriesPattern19<Month6> = "*_month6",
+        year1: SeriesPattern19<Year1> = "*_year1",
+        year10: SeriesPattern19<Year10> = "*_year10",
     } }
     shape! { OutputsOpReturn at "series().mappings.outputs.op_return" {
         identity: SeriesPattern26<OpReturnIndex> = "*",
@@ -2805,7 +2801,7 @@ pub mod tree {
     shape! { Mappings at "series().mappings" {
         addresses: MappingsAddresses = "address",
         outputs: MappingsOutputs = "index",
-        height: MappingsHeight = "minute10",
+        height: MappingsHeight = "block",
         epoch: MappingsEpoch = "first_height",
         halving: MappingsHalving = "first_height",
         minute10: MappingsMinute10 = "first_height",
@@ -2830,17 +2826,17 @@ pub mod tree {
         first_index: SeriesPattern19<OpReturnIndex> = "first_*_index",
         tx_index: SeriesPattern26<TxIndex> = "*_tx_index",
         protocol: SeriesPattern26<OpReturnKind> = "*_protocol",
-        post_op_return_bytes: SeriesPattern26<Bytes> = "*_post_op_return_bytes",
+        post_op_return_bytes: SeriesPattern26<Bytes> = "post_*_bytes",
     } }
     shape! { ScriptsUnknown at "series().indexer.scripts.unknown" {
         first_index: SeriesPattern19<UnknownOutputIndex> = "first_*_output_index",
         tx_index: SeriesPattern36<TxIndex> = "*_output_tx_index",
-        legacy_sigops: SeriesPattern36<SigOps> = "*_legacy_sigops",
+        legacy_sigop_cost: SeriesPattern36<SigOps> = "*_legacy_sigop_cost",
     } }
     shape! { ScriptsP2ms at "series().indexer.scripts.p2ms" {
         first_index: SeriesPattern19<P2MSOutputIndex> = "first_*_output_index",
         tx_index: SeriesPattern28<TxIndex> = "*_output_tx_index",
-        legacy_sigops: SeriesPattern28<SigOps> = "*_legacy_sigops",
+        legacy_sigop_cost: SeriesPattern28<SigOps> = "*_legacy_sigop_cost",
     } }
     shape! { ScriptsEmpty at "series().indexer.scripts.empty" {
         first_index: SeriesPattern19<EmptyOutputIndex> = "first_*_index",
@@ -3009,21 +3005,21 @@ pub mod tree {
         median_time: SeriesPattern19<Timestamp> = "median_time",
         size: SeriesPattern19<Bytes> = "block_size",
         weight: SeriesPattern19<Weight> = "block_weight",
-        segwit_tx_count: SeriesPattern19<Count> = "*_tx_count",
-        segwit_size: SeriesPattern19<Bytes> = "*_size",
-        segwit_weight: SeriesPattern19<Weight> = "*_weight",
+        segwit_tx_count: SeriesPattern19<Count> = "*_count",
+        segwit_tx_size: SeriesPattern19<Bytes> = "*_size",
+        segwit_tx_weight: SeriesPattern19<Weight> = "*_weight",
     } }
     shape! { Indexer at "series().indexer" {
-        blocks: IndexerBlocks = "segwit",
-        transactions: IndexerTransactions = "tx",
+        blocks: IndexerBlocks = "segwit_*",
+        transactions: IndexerTransactions = "*",
         inputs: IndexerInputs = "index",
-        outputs: IndexerOutputs = "*",
+        outputs: IndexerOutputs = "output",
         addresses: IndexerAddresses = "p2pk65",
-        scripts: Scripts = "empty_*",
+        scripts: Scripts = "empty_output",
         op_return: IndexerOpReturn = "op_return",
     } }
     shape! { SeriesTree at "series()" {
-        indexer: Indexer = "output",
+        indexer: Indexer = "tx",
         mappings: Mappings = "date",
         price: Price = "price",
         blocks: Blocks = "block",

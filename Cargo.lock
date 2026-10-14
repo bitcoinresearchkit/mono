@@ -922,6 +922,7 @@ dependencies = [
  "brk_exit",
  "brk_types",
  "rayon",
+ "schemars",
  "vecdb",
 ]
 

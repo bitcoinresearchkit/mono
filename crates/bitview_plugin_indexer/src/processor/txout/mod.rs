@@ -161,7 +161,7 @@ pub fn finalize_outputs(
                         scripts.p2ms.to_tx_index.debug_checked_push(index, tx_index);
                         scripts
                             .p2ms
-                            .legacy_sigops
+                            .legacy_sigop_cost
                             .debug_checked_push(index, legacy_sigops);
                         lengths.p2ms_output_index.copy_then_increment()
                     }
@@ -180,7 +180,7 @@ pub fn finalize_outputs(
                             .debug_checked_push(index, tx_index);
                         scripts
                             .unknown
-                            .legacy_sigops
+                            .legacy_sigop_cost
                             .debug_checked_push(index, legacy_sigops);
                         lengths.unknown_output_index.copy_then_increment()
                     }

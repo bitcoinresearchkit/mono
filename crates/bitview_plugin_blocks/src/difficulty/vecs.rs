@@ -24,8 +24,7 @@ pub struct Vecs {
     /// Positive values mean difficulty increased and negative values mean it
     /// decreased. Unavailable for the first 2,016 blocks.
     pub(crate) adjustment: LazyPercentPerBlock<PartsPerMillionSigned32>,
-    /// Zero-based difficulty epoch number, equal to block height divided by
-    /// 2,016 and rounded down.
+    /// Zero-based difficulty epoch: block height divided by 2,016, rounded down.
     pub(crate) epoch: LazyPerBlock<Epoch>,
     /// Number of blocks from the represented height to the first block of the
     /// next difficulty epoch: 2,016 minus height modulo 2,016.

@@ -8,5 +8,5 @@ pub type Spends = MutableVec<BytesVec<TxOutIndex, Index40<TxInIndex>>>;
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     /// The transaction input that spends the output; null while the output is unspent.
-    pub txin_index: Compact<Spends, Option<TxInIndex>, M>,
+    pub spending_txin_index: Compact<Spends, Option<TxInIndex>, M>,
 }

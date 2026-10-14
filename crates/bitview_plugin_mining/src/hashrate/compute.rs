@@ -1,30 +1,25 @@
 use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::{DifficultyVecs, LookbackVecs};
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{Count, Float32, Hashrate, PartsPerMillionSigned32};
+use bitview_primitives::{HashPrice, HashValue, Hashrate, PartsPerMillionSigned32};
 use bitview_transforms::RelativeChange;
-use bitview_vecs::LazyPerBlockCumulativeRolling;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Dollars, Height, Sats, TARGET_BLOCKS_PER_DAY_F64};
-use vecdb::ReadableVec;
+use vecdb::{AnyVec, LazyVec, ReadableCloneableVec, ReadableVec};
 
 use super::Vecs;
 
-#[inline]
-fn estimated_network_hash_rate(block_count_24h: f64, difficulty_hash_rate: f64) -> f64 {
-    (block_count_24h / TARGET_BLOCKS_PER_DAY_F64) * difficulty_hash_rate
-}
-
 const ONE_PETA_HASH: f64 = 1_000_000_000_000_000.0;
 
+/// Daily reward per PH/s; NaN without hash rate.
 #[inline]
-fn reward_per_phs(reward_24h: f64, hash_rate: f64) -> Float32 {
+fn reward_per_phs(reward_24h: f64, hash_rate: f64) -> f64 {
     let hash_rate_phs = hash_rate / ONE_PETA_HASH;
     if hash_rate_phs == 0.0 {
-        Float32::NAN
+        f64::NAN
     } else {
-        Float32::from(reward_24h / hash_rate_phs)
+        reward_24h / hash_rate_phs
     }
 }
 
@@ -33,7 +28,6 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        block_count: &LazyPerBlockCumulativeRolling<Count>,
         lookback: &LookbackVecs,
         difficulty_vecs: &DifficultyVecs,
         coinbase_sats_24h_sum: &impl ReadableVec<Height, Sats>,
@@ -42,19 +36,17 @@ impl Vecs {
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
 
-        self.rate.block.height.compute_transform2(
+        // Each block's share of a day's work at the ten-minute target, summed over 24 hours.
+        let daily_share = LazyVec::init(
+            "difficulty_hashrate_daily_share",
+            difficulty_vecs.hashrate.height.version(),
+            difficulty_vecs.hashrate.height.read_only_boxed_clone(),
+            |_, hashrate: Hashrate| Hashrate::from(f64::from(hashrate) / TARGET_BLOCKS_PER_DAY_F64),
+        );
+        self.rate.block.height.compute_rolling_sum(
             starting_height,
-            &block_count.sum._24h.height,
-            &difficulty_vecs.hashrate.height,
-            |(i, block_count_sum, difficulty_as_hash, ..)| {
-                (
-                    i,
-                    Hashrate::from(estimated_network_hash_rate(
-                        f64::from(block_count_sum),
-                        f64::from(difficulty_as_hash),
-                    )),
-                )
-            },
+            lookback.start_vec(1),
+            &daily_share,
             exit,
         )?;
 
@@ -88,7 +80,7 @@ impl Vecs {
             |(i, coinbase_sum, hashrate, ..)| {
                 (
                     i,
-                    reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)),
+                    HashPrice::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate))),
                 )
             },
             exit,
@@ -101,22 +93,28 @@ impl Vecs {
             |(i, coinbase_sum, hashrate, ..)| {
                 (
                     i,
-                    reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)),
+                    HashValue::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate))),
                 )
             },
             exit,
         )?;
 
-        for (min_vec, src_vec) in [
-            (&mut self.price.atl.height, &self.price.block.height),
-            (&mut self.value.atl.height, &self.value.block.height),
-        ] {
-            min_vec.compute_all_time_low(starting_height, src_vec, exit, true)?;
-        }
+        self.price.atl.height.compute_all_time_low(
+            starting_height,
+            &self.price.block.height,
+            exit,
+            true,
+        )?;
+        self.value.atl.height.compute_all_time_low(
+            starting_height,
+            &self.value.block.height,
+            exit,
+            true,
+        )?;
 
         self.price
             .rebound
-            .compute_binary::<Float32, Float32, RelativeChange<PartsPerMillionSigned32>>(
+            .compute_binary::<HashPrice, HashPrice, RelativeChange<PartsPerMillionSigned32>>(
                 starting_height,
                 &self.price.block.height,
                 &self.price.atl.height,
@@ -125,7 +123,7 @@ impl Vecs {
 
         self.value
             .rebound
-            .compute_binary::<Float32, Float32, RelativeChange<PartsPerMillionSigned32>>(
+            .compute_binary::<HashValue, HashValue, RelativeChange<PartsPerMillionSigned32>>(
                 starting_height,
                 &self.value.block.height,
                 &self.value.atl.height,

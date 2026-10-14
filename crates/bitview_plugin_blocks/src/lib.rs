@@ -39,7 +39,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Number of indexed blocks. The per-block value is one, the cumulative
     /// count is height plus one because genesis is included, and rolling sums
     /// count the blocks in each supported trailing window.
-    pub count: LazyPerBlockCumulativeRolling<Count>,
+    count: LazyPerBlockCumulativeRolling<Count>,
     // First block height inside each trailing duration (from the running maximum of
     // block-header timestamps): window starts for other plugins, not a public series.
     #[traversable(hidden)]

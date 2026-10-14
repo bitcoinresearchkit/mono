@@ -31,7 +31,7 @@ impl OpReturnVecs {
             to_tx_index = PcoVec::import(db, "op_return_tx_index", version),
             kind = PcoVec::import(db, "op_return_protocol", version),
             post_op_return_bytes =
-                PcoVec::import(db, "op_return_post_op_return_bytes", version).map(Compact::new),
+                PcoVec::import(db, "post_op_return_bytes", version).map(Compact::new),
         };
         Ok(Self {
             first_index,

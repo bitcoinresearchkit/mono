@@ -18,8 +18,9 @@ const RECORD_LEN: usize = size_of::<u64>();
 
 pub(super) fn reset_incomplete(vecs: &mut Vecs) -> Result<()> {
     // A partial output range is not a block-level resume point.
-    if vecs.txin_index.stamp() == Stamp::default() && !vecs.txin_index.is_empty() {
-        vecs.txin_index.reset()?;
+    if vecs.spending_txin_index.stamp() == Stamp::default() && !vecs.spending_txin_index.is_empty()
+    {
+        vecs.spending_txin_index.reset()?;
     }
     Ok(())
 }
@@ -50,12 +51,12 @@ fn build_ranges(
     // including when rebuilding an existing index after a reset.
     {
         let _lock = exit.lock();
-        vecs.txin_index.flush()?;
+        vecs.spending_txin_index.flush()?;
     }
     let range_bits = range_bits(input_end, max_range_len);
     let range_len = 1_usize << range_bits;
     let mask = range_len as u64 - 1;
-    let path = vecs.txin_index.db_path();
+    let path = vecs.spending_txin_index.db_path();
     let mut ranges = (0..output_end.div_ceil(range_len))
         .map(|_| tempfile_in(&path).map(|file| BufWriter::with_capacity(1 << 20, file)))
         .collect::<IoResult<Vec<_>>>()?;
@@ -86,9 +87,9 @@ fn build_ranges(
         file.rewind()?;
         let mut remaining = file.metadata()?.len() as usize;
         let len = range_len.min(output_end - range * range_len);
-        vecs.txin_index
+        vecs.spending_txin_index
             .extend(repeat_n(Index40::new(TxInIndex::UNSPENT), len));
-        let values = vecs.txin_index.pushed_mut();
+        let values = vecs.spending_txin_index.pushed_mut();
 
         // Records retain input order, including last-write-wins for duplicates.
         while remaining > 0 {
@@ -103,7 +104,7 @@ fn build_ranges(
         }
 
         let _lock = exit.lock();
-        vecs.txin_index.flush()?;
+        vecs.spending_txin_index.flush()?;
         info!(
             "Building spent outputs: {:.0}%",
             (range * range_len + len) as f64 / output_end as f64 * 100.0

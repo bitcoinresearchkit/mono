@@ -88,7 +88,7 @@ impl Query {
         bound: Lengths,
     ) -> Result<Vec<TxOutspend>> {
         let indexer = self.indexer();
-        let txin_index_reader = self.plugins().outputs.spent.txin_index.reader();
+        let txin_index_reader = self.plugins().outputs.spent.spending_txin_index.reader();
         let txid_reader = indexer.vecs().transactions.txid.reader();
 
         let tx_heights = self.plugins().mappings.tx_heights.read();

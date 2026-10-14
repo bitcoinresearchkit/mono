@@ -44,7 +44,7 @@ has to be deleted by hand.
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (none is left):
   `Boolean`, `Score`, `Rank`, `Count`/`CountSigned`, `Bytes`, `VSize`, `Weight`, `SigOps`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
   `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days and blocks, `Days`,
-  `Hashrate`, `Difficulty`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
+  `Hashrate`, `Difficulty`, `HashPrice`, `HashValue`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
 - Every series has its quantity's type: per-block values and their statistics are `Count`, `Bytes`, `Weight` and
   `SigOps` like their sums (the indexer's narrow storage forms `Count16`, `Bytes32`, `Weight32`, `SigOps32` and the
   5-byte indexes stay internal, published through views), so block size and weight, transaction, input and output
@@ -73,7 +73,9 @@ has to be deleted by hand.
   `ppm` stays internal. The Cointime and Coinflow in-loss shares and the Bedrock loss thresholds (which drop their
   `_ratio` suffix) are in percent (were decimals); sell-side risk is a ratio (was percent: same ids, 100 times
   smaller), and the rarity meter's seller-exhaustion thresholds follow sell-side risk into a ratio (were percent). A
-  share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`. A node left with one unit is
+  share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`, id `*_cumulative`
+  (`p2tr_output_share_cumulative`, `foundry_usa_share_cumulative`, `op_return_fee_chain_share_cumulative`; were the
+  bare id), and so do the OP_RETURN data-byte chain shares (`op_return_data_bytes_chain_share_cumulative`). A node left with one unit is
   the series itself: `price.spot`, `price.close`, `price.ohlc`, realized caps and prices (were their `.usd`
   child), shares (were `.percent`), BTC changes over a window (were `.btc`). Prices in sats per USD (`*_price_sats` and
   every other price's `_sats`) are gone; `sats_per_dollar` replaces `price_sats`. About 18,300 fewer series. One
@@ -118,7 +120,7 @@ has to be deleted by hand.
 - The `capital_sentiment` plugin is gone: its phases, score and long/short strategy are an opinionated reading of
   spot against the published all, short- and long-term capitalized prices and the 1-year SMA
 - Mining: hash price and hash value are per PH/s only, as `mining.hashrate.{price, value}.{block, atl, rebound}` (were
-  per TH/s and PH/s with `*_min`); `fees.share`/`subsidy.share` (were `dominance`); output volume leaves the tree (the
+  per TH/s and PH/s with `*_min`), typed `HashPrice` (USD) and `HashValue` (sats) per PH/s per day (were `Float32`); `fees.share`/`subsidy.share` (were `dominance`); output volume leaves the tree (the
   transaction volume minus fees, not a reward; the block endpoints still report it); unclaimed rewards gain window
   sums; the network hash-rate ids say `hashrate` like every other one
   (`hashrate`, `hashrate_sma_1w`, `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
@@ -132,7 +134,7 @@ has to be deleted by hand.
   `coinjoin_count`, `nonstandard_count`, `cpfp_parent_count`, `tx_count_inscription`), and features sit at
   `transactions.features.<feature>` (were under `features.count`). The inscription fee share is
   `transactions.inscription.fees.chain_share.{cumulative, 24h, 1w, 1m, 1y}` like OP_RETURN's, ids
-  `inscription_fee_chain_share[_<window>]` (was `fee_share`, per block)
+  `inscription_fee_chain_share_cumulative` and `inscription_fee_chain_share_<window>` (was `fee_share`, per block)
 - Blocks: difficulty is `blocks.difficulty.block` (was `.value`); `blocks.count` holds `block`, `cumulative` and the
   window sums directly (were under `total`) and the constant `blocks.count.target.<window>` series are gone;
   `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
@@ -140,7 +142,10 @@ has to be deleted by hand.
   their cumulative and rolling statistics (the per-block values were only the indexer's); blocks are measured in weight
   and transactions in vsize, so block virtual size is gone (`blocks.vbytes`, `block_vbytes*`). The indexer's own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was
   `indexer.blocks.size.block` with id `total_size`), `indexer.blocks.weight` (was `.weight.block`),
-  `indexer.blocks.timestamp` (was `.time.timestamp`), and `segwit_tx_count` (was `segwit_txs`)
+  `indexer.blocks.timestamp` (was `.time.timestamp`), and `segwit_tx_count` (was `segwit_txs`) beside
+  `segwit_tx_size` and `segwit_tx_weight` (were `segwit_size`, `segwit_weight`); `p2ms_legacy_sigop_cost` and
+  `unknown_legacy_sigop_cost` at `indexer.scripts.{p2ms,unknown}.legacy_sigop_cost` (BIP-141 cost; were
+  `legacy_sigops`), and `post_op_return_bytes` (was `op_return_post_op_return_bytes`)
 - These per-transaction series take the `tx_` stem: `tx_size` at `indexer.transactions.size` (was `total_size`, the same id as
   the block size), `tx_sigop_cost` at `.sigop_cost` (was `total_sigop_cost`), `tx_locktime` at `.locktime` (was
   `raw_locktime`), `tx_version` at `.version` (was `.tx_version`) and `tx_fee` (was `fee`). The block sum of sigop cost
@@ -157,7 +162,8 @@ has to be deleted by hand.
   `inputs`' `p2pkh_input_tx_count`; were `tx_count_<kind>`). The OP_RETURN protocol per output is
   `indexer.op_return.protocol`, id `op_return_protocol` (was `kind`)
 - Ids that were index names say what they map: `spent_txout_index` (an input's spent output, was `txout_index`),
-  `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input, was `txin_index`),
+  `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input at
+  `outputs.spending_txin_index`, was `txin_index` at `outputs.spent.txin_index`),
   `empty_output_tx_index`, `p2ms_output_tx_index`, `unknown_output_tx_index` and `op_return_tx_index` (were `tx_index`,
   at `.tx_index`, was `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both
   `value`)
@@ -188,7 +194,10 @@ has to be deleted by hand.
   windowed series is described as "Value for the represented block." (some had no per-block wording)
 - Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
   `mappings.addr.<type>.{identity, addr}`, ids `<type>_addr`); the P2MS, empty, unknown and OP_RETURN output indexes
-  at `mappings.outputs.<type>.identity`
+  at `mappings.outputs.<type>.identity`. A block's period ids say what they map: `block_day1`, `block_week1`, ...
+  (were the index names `day1`, ...) and `difficulty_epoch`, `halving_epoch` (shared with `blocks`; were `epoch`,
+  `halving`); each period's start time sits at `mappings.timestamp.period_start` (id `timestamp`, was
+  `.resolutions`)
 - Supply: `supply.burned` is a flow with window sums, ids `burned`, `burned_cumulative`, `burned_sum_<window>` (were
   `unspendable_supply`, `unspendable_supply_cumulative`), and `outputs.op_return_value` gains window sums
 - Transaction, input and output counts have one shape: `transactions.count`, `inputs.count` and `outputs.count` hold
@@ -198,8 +207,8 @@ has to be deleted by hand.
   `output_count`). Input counts exclude coinbase inputs, like Bitcoin Core's `getblockstats` (were one more per
   block). Rates are `inputs_per_second` and `outputs_per_second` (were `_per_sec`)
 - Input and output types are member-first: `outputs.types.<type>.{count, share, tx_count, tx_share}` and the same
-  under `inputs.types` (were `by_type.<metric>.<type>`), with ids `p2tr_output_count`, `p2tr_output_share`,
-  `p2tr_output_tx_count`, `p2tr_output_tx_share` and `p2tr_input_*` (were `tx_count_with_p2tr_output`,
+  under `inputs.types` (were `by_type.<metric>.<type>`), with ids `p2tr_output_count`, `p2tr_output_share_cumulative`,
+  `p2tr_output_tx_count`, `p2tr_output_tx_share_cumulative` and `p2tr_input_*` (were `tx_count_with_p2tr_output`,
   `p2tr_prevout_count`, `tx_share_with_p2tr_prevout`, ...); `empty` and `unknown` drop `_outputs` in these ids. Input
   shares divide by non-coinbase inputs (were all inputs, coinbase included), as does the reused-address input share.
   The `all` members (`output_count_bis`, `input_count_bis`, `tx_count_bis`, `non_coinbase_tx_count`) are gone.
@@ -226,10 +235,12 @@ has to be deleted by hand.
   `total`, `new`, `activity`, `avg_balance`, `reused`, `respent` and `exposed`, reuse events under `events.{outputs,
   inputs, active}.{count, share}` (were `events.output_to_reused_addr_count`, ...); a band holds `address_count`,
   `supply`, `capital`, `outputs.unspent_count`, `activity.transfer_volume` and `realized.{profit, loss}`
-- Address ids spell `address` out and say what they count: `address_count`, `empty_address_count`,
-  `total_address_count`, `new_address_count`, `sending_address_count` (was `sending_addrs`), ...,
-  `avg_address_balance` (was `avg_addr_amount`), `reused_address_supply`, `output_to_reused_address_count`, ...; the
-  funded count's window change is `address_count_delta_24h` (was `addr_count_24h`); balance bands' ids start with
+- Address ids spell `address` out and say what they count: `funded_address_count` (was `addr_count`),
+  `empty_address_count`, `total_address_count`, `new_address_count`, `sending_address_count` (was `sending_addrs`),
+  ..., `avg_address_balance` (was `avg_addr_amount`), `funded_reused_address_count` beside
+  `total_reused_address_count` (likewise respent and exposed), `reused_address_supply`,
+  `output_to_reused_address_count`, ...; the funded count's window change is `funded_address_count_delta_24h` (was
+  `addr_count_24h`); balance bands' ids start with
   `balance_` (`balance_1btc_to_10btc_supply`; were `addrs_`); `address_state`, `funded_address_data` and
   `extended_empty_address_data` (were `addr_state`, ...)
 - Each address type divides by its own: reused, respent and exposed supply shares and the average balance use the
@@ -249,9 +260,10 @@ has to be deleted by hand.
 - OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
   `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). A
   member's shares are `data_bytes.chain_share` and `fees.chain_share` (of the chain's block bytes and fees; ids
-  `op_return_runes_data_bytes_chain_share`, `op_return_runes_fee_chain_share`; were `chain_share` and `fee_share` beside
-  `data_bytes` and `fees`); the totals' shares sit under their quantity too (`op_return_data_bytes_chain_share`,
-  `op_return_fee_chain_share`; were `op_return_chain_share`, `op_return_fee_share`). Fees are BTC and USD (were sats).
+  `op_return_runes_data_bytes_chain_share_cumulative`, `op_return_runes_fee_chain_share_cumulative`; were
+  `chain_share` and `fee_share` beside `data_bytes` and `fees`); the totals' shares sit under their quantity too
+  (`op_return_data_bytes_chain_share_cumulative`, `op_return_fee_chain_share_cumulative`; were
+  `op_return_chain_share`, `op_return_fee_share`). Fees are BTC and USD (were sats).
   The totals gain `output_count` (id `op_return_output_count`, shared with outputs). Policy ids drop `policy_`
   (`op_return_oversized_tx_count`, was `op_return_policy_oversized_tx_count`)
 - Pools have one shape, every pool alike, at `pools.<slug>` (were `pools.major.<slug>` for 22 pools with rewards and
@@ -269,7 +281,9 @@ has to be deleted by hand.
   ranges are `cointime.age_ranges.<range>.{coindays_created, coindays_consumed, wakefulness, awake_to_dormant,
   awake.supply, dormant.supply}` and `coinflow.age_ranges.<range>.{spending_rate, spending_exposure,
   mobility, mobile.supply, immobile.supply}`. `cointime.cap` is `cointime.caps`; VOCDD sits in
-  `cointime.reserve_risk.vocdd` beside its median (was `cointime.value.vocdd`) and Reserve Risk itself is
+  `cointime.reserve_risk.vocdd` (was `cointime.value.vocdd`; its 30-day median is Reserve Risk's internal input,
+  no longer published), the HODL bank at `cointime.reserve_risk.hodl_bank` has every index (was height only), and
+  Reserve Risk itself is
   `cointime.reserve_risk.block` (was `.value`); `hodled_or_lost_supply` sits at `cointime.supply.hodled_or_lost`, beside
   the vaulted supply it names (was `supply.hodled_or_lost`). They were `cointime.awake`, `cointime.<cohort>.awake`,
   `cointime.urpd.<cohort>`, `coinflow.supply`, `coinflow.price`, ... and metric-first under `age_range`
@@ -367,7 +381,7 @@ has to be deleted by hand.
 - `active_reused_address_share` and `active_respent_address_share` take the shape of the other address-event shares: a
   share in percent, all time and per window, computed from the per-block counts
   summed over the window. They were a stored per-block percentage with rolling averages of it, where a near-empty
-  block weighed as much as a full one: the bare name now holds the all-time share (was the block's), windows are
+  block weighed as much as a full one: the all-time share is `*_cumulative` (the bare name was the block's), windows are
   `_24h`, `_1w`, ... (were `_average_24h`, ...), and the per-block value is gone
 - OHLC values are typed as the `[open, high, low, close]` arrays the server sends (were typed as objects), and
   `/data` as any value (was typed as booleans)
@@ -694,6 +708,9 @@ has to be deleted by hand.
   replays from the last such row. A resume rebuilt the sum where it started (before that, from rounded stored
   outputs), so the last digits depended on update history
 - Block weight totals and statistics are exact (they were derived from vbytes × 4, off by up to 3 WU per block)
+- The network hash rate sums each block's difficulty-implied hash rate over the trailing 24 hours and divides by
+  144: a window spanning a difficulty adjustment weighs each block by its own difficulty (it multiplied the block
+  count by the represented block's difficulty only, off by up to the adjustment's size for a day after each one)
 - Fee statistics follow mempool.space and Bitcoin Core. `tx_fee_*` count every non-coinbase transaction, zero fees
   included (were left out), at mempool.space's ranks: min the first, max the last, percentile `p` at
   `sorted[max(0, floor(n·p) − 1)]`. Effective fee rate percentiles weight by vsize with Core's `getblockstats` rank rule
@@ -722,8 +739,8 @@ has to be deleted by hand.
 - Reserve Risk is time-weighted, like Glassnode's daily definition: the HODL bank accrues each block's opportunity
   cost times the time since the previous block in days, on monotonic timestamps (it added a full price per block,
   leaving Reserve Risk orders of magnitude below Glassnode's 0.0025 to 0.02). Its benchmark is the median over the last
-  30 days of blocks of the trailing 24-hour VOCDD (was the median over a year of each block's own VOCDD;
-  `vocdd_median_1m`, was `vocdd_median_1y`)
+  30 days of blocks of the trailing 24-hour VOCDD, an internal input (was the published `vocdd_median_1y`, the median
+  over a year of each block's own VOCDD)
 - The year10 `timestamp` series were wrong (2019/2029)
 - Cointime's consumed coin days resume within their sources' length
 - Every replayed distribution output (age, addresses, UTXOs) carries its dependency versions (price, timestamps,

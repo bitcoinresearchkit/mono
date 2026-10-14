@@ -31,8 +31,8 @@ impl ScriptsVecs {
             empty_output_index_to_tx_index,
             p2ms_output_index_to_tx_index,
             unknown_output_index_to_tx_index,
-            p2ms_legacy_sigops,
-            unknown_legacy_sigops,
+            p2ms_legacy_sigop_cost,
+            unknown_legacy_sigop_cost,
         ) = parallel_import! {
             first_empty_output_index = PcoVec::import(db, "first_empty_output_index", version),
             first_p2ms_output_index = PcoVec::import(db, "first_p2ms_output_index", version),
@@ -40,9 +40,9 @@ impl ScriptsVecs {
             empty_output_index_to_tx_index = PcoVec::import(db, "empty_output_tx_index", version),
             p2ms_output_index_to_tx_index = PcoVec::import(db, "p2ms_output_tx_index", version),
             unknown_output_index_to_tx_index = PcoVec::import(db, "unknown_output_tx_index", version),
-            p2ms_legacy_sigops = BytesVec::import(db, "p2ms_legacy_sigops", version).map(Compact::new),
-            unknown_legacy_sigops =
-                BytesVec::import(db, "unknown_legacy_sigops", version).map(Compact::new),
+            p2ms_legacy_sigop_cost = BytesVec::import(db, "p2ms_legacy_sigop_cost", version).map(Compact::new),
+            unknown_legacy_sigop_cost =
+                BytesVec::import(db, "unknown_legacy_sigop_cost", version).map(Compact::new),
         };
         Ok(Self {
             empty: ScriptTypeVecs {
@@ -52,12 +52,12 @@ impl ScriptsVecs {
             p2ms: ScriptTypeWithSigOpsVecs {
                 first_index: first_p2ms_output_index,
                 to_tx_index: p2ms_output_index_to_tx_index,
-                legacy_sigops: p2ms_legacy_sigops,
+                legacy_sigop_cost: p2ms_legacy_sigop_cost,
             },
             unknown: ScriptTypeWithSigOpsVecs {
                 first_index: first_unknown_output_index,
                 to_tx_index: unknown_output_index_to_tx_index,
-                legacy_sigops: unknown_legacy_sigops,
+                legacy_sigop_cost: unknown_legacy_sigop_cost,
             },
         })
     }
@@ -86,13 +86,13 @@ impl ScriptsVecs {
             .to_tx_index
             .truncate_if_needed_with_stamp(p2ms_output_index, stamp)?;
         self.p2ms
-            .legacy_sigops
+            .legacy_sigop_cost
             .truncate_if_needed_with_stamp(p2ms_output_index, stamp)?;
         self.unknown
             .to_tx_index
             .truncate_if_needed_with_stamp(unknown_output_index, stamp)?;
         self.unknown
-            .legacy_sigops
+            .legacy_sigop_cost
             .truncate_if_needed_with_stamp(unknown_output_index, stamp)?;
         Ok(())
     }
@@ -104,9 +104,9 @@ impl ScriptsVecs {
             &mut self.unknown.first_index,
             &mut self.empty.to_tx_index,
             &mut self.p2ms.to_tx_index,
-            &mut *self.p2ms.legacy_sigops,
+            &mut *self.p2ms.legacy_sigop_cost,
             &mut self.unknown.to_tx_index,
-            &mut *self.unknown.legacy_sigops,
+            &mut *self.unknown.legacy_sigop_cost,
         ]
         .into_par_iter()
     }
@@ -118,9 +118,9 @@ impl ScriptsVecs {
             &self.unknown.first_index,
             &self.empty.to_tx_index,
             &self.p2ms.to_tx_index,
-            &*self.p2ms.legacy_sigops,
+            &*self.p2ms.legacy_sigop_cost,
             &self.unknown.to_tx_index,
-            &*self.unknown.legacy_sigops,
+            &*self.unknown.legacy_sigop_cost,
         ]
         .into_iter()
     }
@@ -135,12 +135,12 @@ impl ScriptsVecs {
             OutputType::P2PK65 | OutputType::P2PK33 | OutputType::P2PKH => Some(SigOps32::new(4)),
             OutputType::P2MS => self
                 .p2ms
-                .legacy_sigops
-                .get_append_only(type_index.into(), &readers.p2ms_legacy_sigops),
+                .legacy_sigop_cost
+                .get_append_only(type_index.into(), &readers.p2ms_legacy_sigop_cost),
             OutputType::Unknown => self
                 .unknown
-                .legacy_sigops
-                .get_append_only(type_index.into(), &readers.unknown_legacy_sigops),
+                .legacy_sigop_cost
+                .get_append_only(type_index.into(), &readers.unknown_legacy_sigop_cost),
             _ => Some(SigOps32::ZERO),
         }
     }

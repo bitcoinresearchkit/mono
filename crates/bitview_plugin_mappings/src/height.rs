@@ -32,11 +32,10 @@ pub struct Vecs {
     /// Zero-based three-day UTC period containing the block's monotonic
     /// timestamp, with period 1 beginning on 2009-01-03.
     pub day3: LazyVec<Height, Day3, Height, Timestamp>,
-    /// Zero-based Bitcoin difficulty-adjustment epoch: block height divided by
-    /// 2,016 using integer division.
+    /// Zero-based difficulty epoch: block height divided by 2,016, rounded down.
     pub epoch: IndexVec<Height, Epoch, ReadableBoxedVec<Height, Timestamp>>,
-    /// Zero-based Bitcoin subsidy-halving epoch: block height divided by 210,000
-    /// using integer division.
+    /// Zero-based halving epoch (block-subsidy era): block height divided by 210,000, rounded
+    /// down; epoch zero begins at genesis.
     pub halving: IndexVec<Height, Halving, ReadableBoxedVec<Height, Timestamp>>,
     /// Zero-based ISO week containing the block's monotonic timestamp, counted
     /// from ISO week 1 of 2009.

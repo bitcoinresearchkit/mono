@@ -9,7 +9,8 @@ use crate::{IndexSources, LazyPercentPerBlock, LazyPercentRollingWindows};
 /// Lazy percent views of a cumulative and its rolling windows — no stored vecs.
 ///
 /// Cumulative and rolling window fields are both flattened to the same tree
-/// level, so consumers see `{ cumulative, 24h, 1w, 1m, 1y }`.
+/// level, so consumers see `{ cumulative, 24h, 1w, 1m, 1y }`, ids `{name}_cumulative` and
+/// `{name}_{window}`.
 #[derive(Clone, Traversable)]
 pub struct LazyPercentCumulativeRolling<B: FixedRatio> {
     /// Numerator and denominator accumulated from the first block through the
@@ -39,7 +40,7 @@ impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
         F: BinaryTransform<S, D, B> + Send + Sync + 'static,
     {
         let cumulative = LazyPercentPerBlock::from_ratio::<S, D, F>(
-            name,
+            &format!("{name}_cumulative"),
             version,
             numerator,
             denominator,
@@ -75,7 +76,7 @@ impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
         F: BinaryTransform<S, D, B> + Send + Sync + 'static,
     {
         let cumulative = LazyPercentPerBlock::from_ratio_with_numerator::<S, D, F>(
-            name,
+            &format!("{name}_cumulative"),
             version,
             numerator,
             denominator,
@@ -100,8 +101,11 @@ impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
         version: Version,
         source: &Self,
     ) -> Self {
-        let cumulative =
-            LazyPercentPerBlock::from_lazy_percent::<F>(name, version, &source.cumulative);
+        let cumulative = LazyPercentPerBlock::from_lazy_percent::<F>(
+            &format!("{name}_cumulative"),
+            version,
+            &source.cumulative,
+        );
         let rolling =
             LazyPercentRollingWindows::from_lazy_rolling::<F>(name, version, &source.rolling);
         Self {

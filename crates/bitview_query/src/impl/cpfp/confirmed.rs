@@ -126,7 +126,7 @@ impl Query {
         let mut outpoint = indexer.vecs().inputs.outpoint.cursor();
         let first_txout = indexer.vecs().transactions.first_txout_index.reader();
         let mut output_count = plugins.mappings.tx_index.output_count.cursor();
-        let spent = plugins.outputs.spent.txin_index.reader();
+        let spent = plugins.outputs.spent.spending_txin_index.reader();
         let mut spending_tx = indexer.vecs().inputs.tx_index.cursor();
 
         let mut parents_of = |tx: TxIndex| -> Result<SmallVec<[TxIndex; 2]>> {
