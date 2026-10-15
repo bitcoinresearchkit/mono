@@ -56,6 +56,11 @@ impl<I: VecIndex, T: VecValue> AnyVec for RangeMapVec<I, T> {
         self.mapping.load().len()
     }
 
+    /// The map only grows, but for a rollback rewriting it under the publication.
+    fn is_mutable(&self) -> bool {
+        false
+    }
+
     vecdb::any_vec_type_methods!(I, T);
 }
 

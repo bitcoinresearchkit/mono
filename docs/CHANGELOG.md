@@ -531,6 +531,8 @@ has to be deleted by hand.
   publication; a plugin rewriting rows below the published lengths (a rollback landing below its start, a
   truncation, a reset) goes through `Indexer::rewrite_from` (replaces `lower_publication_to`). Plugins keeping undo
   write each update's last ten blocks as one protected step (`bitview_compute::undo_chunks`)
+- `ComputePluginSet::write_published` is required: after `commit`, it writes what the publication served from memory
+  (the address state). Compositions delegate it to the default composition, like `commit`
 
 #### Rust APIs
 
@@ -694,6 +696,9 @@ has to be deleted by hand.
   `wrap` are gone), and fields can no longer be `Option`s. `bitview_catalog::TreeNode::for_each_leaf` visits a
   subtree's leaves in order
 
+- VecDB: `AnyVec::is_mutable` is required (no `false` default): views forward their sources', so a series reading
+  rows that can be rewritten is never cached as final
+
 #### Configuration
 
 - RPC credentials resolve like bitcoin-cli: `rpcuser` + `rpcpassword` when a password is set, else the cookie file
@@ -768,6 +773,9 @@ has to be deleted by hand.
 - Added `ReadBounds::enter` (a scope guard, `ReadScope`; scopes stack per thread, the newest applies, and each may
   drop in any order) and `visible_len`; `Compact::named_with` publishes a stored
   vector through a custom transform
+- Added `ImportOptions::with_unread_updates` (unsafe): a mutable vector whose owner serves its updated values until
+  written keeps its readers reading while the updates are written (`Region::write_indexed_unread`, shared region
+  access). Point reads borrow only their value (`Region::with_read_range`)
 
 #### `bitview_website`
 
@@ -913,6 +921,15 @@ has to be deleted by hand.
   `"24h"`; were `uSD`, `avgFee0`, `_24h`)
 
 #### API and node I/O
+
+- A series range counted from the end (`start=-100`, `end=-10`), left open, or past the rows (a future date
+  included) is tied to the tip: under `--cdn` such URLs got the year-long tier while naming other rows every block
+- Every ETag starts with the release, so a release changing a response's format never validates an older body. The
+  website answers `304` to weakened or listed tags (a CDN weakening them got full bodies). The MCP pages revalidate
+  after a second under a content ETag (were five minutes without one) and the logo's URL carries the release, so its
+  year-long cache never outlives it
+- `/api/address/{address}` no longer answers 503 while a block's address state is written: the update publishes the
+  changed addresses from memory and writes them after (readers wait at most 10 ms for the publication's lock)
 
 - A block's average fee rate (`extras.avgFeeRate`) is its fees over the fee-paying transactions' weight, like
   Bitcoin Core's `getblockstats` that mempool.space serves (kept to the milli-sat/vB where Core floors to whole
@@ -1118,6 +1135,10 @@ has to be deleted by hand.
   Transactions, Holders and Cointime run independent parts in parallel; Outputs' undo uses the known unspent values
 - Input spends stream per block instead of being staged (up to 384 MiB), the age plugin's peak-price table is compact
   (about 72 MiB less at 1,000,000 heights), and the daemon runs the mempool driver only when a consumer is enabled
+- A block publishes before its address state is written: the commit no longer writes ~20k scattered pages under the
+  readers' lock (125-400 ms), so new blocks are served 55-60% sooner; live one-block updates on a 16 GB Mac mini take
+  a median 81 ms (were 575 ms). The indexer's deferred store ingestion runs on its own threads, so plugins no longer
+  wait behind it for the shared thread pool
 
 #### `brk_reader`
 

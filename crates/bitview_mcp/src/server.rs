@@ -113,7 +113,7 @@ impl BrkMcp {
                 Implementation::new("bitview_mcp", env!("CARGO_PKG_VERSION"))
                     .with_title(&self.state.display_name)
                     .with_icons(vec![
-                        Icon::new(format!("{}logo.png", self.state.public_url))
+                        Icon::new(format!("{}{}", self.state.public_url, logo::PATH))
                             .with_mime_type("image/png")
                             .with_sizes(vec!["512x512".to_owned()]),
                     ])

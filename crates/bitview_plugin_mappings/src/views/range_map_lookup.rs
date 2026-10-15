@@ -63,6 +63,10 @@ impl<I: VecIndex, T: VecIndex + VecValue> AnyVec for RangeMapLookupVec<I, T> {
         self.source.len()
     }
 
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable()
+    }
+
     fn visible_len(&self) -> usize {
         self.source.visible_len()
     }

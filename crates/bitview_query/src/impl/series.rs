@@ -226,8 +226,11 @@ impl Query {
 
         let resolve_bound =
             |ri: RangeIndex| -> Result<i64> { self.range_index_to_i64(ri, index, &read) };
+        // A bound the URL pins whatever the chain's length: not counted from the end, nor past
+        // the rows (a date after the last block included).
+        let pinned = |bound: i64| usize::try_from(bound).is_ok_and(|bound| bound <= total);
 
-        let start = match params.start() {
+        let (start, start_pinned) = match params.start() {
             Some(ri) => {
                 let start = resolve_bound(ri)?;
                 // A start past a lowered publication targets rows being rewritten, not missing;
@@ -235,17 +238,24 @@ impl Query {
                 if let Ok(start) = usize::try_from(start) {
                     check_bound(read.pin(), start, total)?;
                 }
-                i64_to_usize(start, total)
+                (i64_to_usize(start, total), pinned(start))
             }
-            None => 0,
+            None => (0, true),
         };
 
-        let end = match params.end() {
-            Some(ri) => i64_to_usize(resolve_bound(ri)?, total),
-            None => params
-                .limit()
-                .map(|l| start.saturating_add(*l).min(total))
-                .unwrap_or(total),
+        let (end, end_pinned) = match params.end() {
+            Some(ri) => {
+                let end = resolve_bound(ri)?;
+                (i64_to_usize(end, total), pinned(end))
+            }
+            None => match params.limit() {
+                Some(limit) => {
+                    let end = start.saturating_add(*limit);
+                    (end.min(total), start_pinned && end <= total)
+                }
+                // Through the latest row.
+                None => (total, false),
+            },
         };
 
         let end = end.max(start);
@@ -257,7 +267,11 @@ impl Query {
             });
         }
 
-        let anchor = self.series_anchor(&read, index, end, total);
+        let anchor = if start_pinned && end_pinned {
+            self.series_anchor(&read, index, end, total)
+        } else {
+            read.tip_anchor()
+        };
 
         Ok(ResolvedQuery {
             read,
@@ -270,10 +284,11 @@ impl Query {
         })
     }
 
-    /// What rows `..end` are tied to. Rows wholly below the first height a six-block reorg
-    /// replaces are historical: anchored to the last block they depend on, which appends never
-    /// change and any deeper reorg replacing those rows does. Anything else, and any series
-    /// rewriting existing rows, is tied to the published tip.
+    /// What rows `..end` of a range its URL pins are tied to. Rows wholly below the first height
+    /// a six-block reorg replaces are historical: anchored to the last block they depend on,
+    /// which appends never change and any deeper reorg replacing those rows does. Anything
+    /// else, and any series rewriting existing rows, is tied to the published tip, as is a
+    /// range the chain's length decides (see [`Query::resolve`]).
     fn series_anchor(
         &self,
         read: &SeriesRead,
@@ -282,7 +297,7 @@ impl Query {
         total: usize,
     ) -> SeriesAnchor {
         let pin = read.pin();
-        let tip = SeriesAnchor::Tip(BlockHashPrefix::from(&pin.tip()));
+        let tip = read.tip_anchor();
         let Some(last) = pin.lengths().last_height() else {
             return tip;
         };

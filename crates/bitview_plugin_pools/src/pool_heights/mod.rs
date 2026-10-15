@@ -313,6 +313,11 @@ impl<T: VecValue + From<u64>> AnyVec for PoolCumulativeVec<T> {
         self.len_of(&self.pool_heights.0.load())
     }
 
+    /// Each block's pool is fixed once mined: rows only change by a rollback.
+    fn is_mutable(&self) -> bool {
+        false
+    }
+
     vecdb::any_vec_type_methods!(Height, T);
 }
 

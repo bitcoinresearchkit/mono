@@ -37,6 +37,10 @@ impl<I: VecIndex, T: VecValue, S: TypedVec<I = I>> AnyVec for IndexVec<I, T, S> 
     fn len(&self) -> usize {
         self.source.len()
     }
+    /// Values derive from the index alone.
+    fn is_mutable(&self) -> bool {
+        false
+    }
     fn visible_len(&self) -> usize {
         self.source.visible_len()
     }

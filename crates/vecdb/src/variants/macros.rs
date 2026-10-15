@@ -93,6 +93,11 @@ macro_rules! impl_vec_wrapper {
             }
 
             #[inline]
+            fn is_mutable(&self) -> bool {
+                self.0.is_mutable()
+            }
+
+            #[inline]
             fn index_type_to_string(&self) -> &'static str {
                 self.0.index_type_to_string()
             }

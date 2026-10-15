@@ -18,6 +18,12 @@ where
         self.base.name()
     }
 
+    /// Append-only: rows below its length never change (a `MutableVec` wrapping it says otherwise).
+    #[inline]
+    fn is_mutable(&self) -> bool {
+        false
+    }
+
     #[inline]
     fn len(&self) -> usize {
         self.base.len()

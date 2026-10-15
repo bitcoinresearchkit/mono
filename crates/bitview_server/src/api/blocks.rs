@@ -16,6 +16,7 @@ use serde_json::to_vec;
 
 use crate::{
     AppState, CacheParams, Error,
+    etag::Etag,
     extended::{ResponseExtended, TransformResponseExtended},
     params::{
         BlockHashParam, BlockHashStartIndex, BlockHashTxIndex, Empty, HeightParam, TimestampParam,
@@ -78,9 +79,9 @@ fn block_params(snapshot: &ResolvedBlocks, schema: &str) -> QueryResult<CachePar
         .ok_or(QueryError::Internal("Missing resolved block hash"))?;
     // Availability is best-chain-only, even at historical heights. A reorg can
     // remove the resource, so depth alone cannot justify immutable freshness.
-    Ok(CacheParams::revalidate(
-        format!("block-{schema}-{height}-{hash}").into(),
-    ))
+    Ok(CacheParams::revalidate(format!(
+        "block-{schema}-{height}-{hash}"
+    )))
 }
 
 // A hint only: at most one candidate is checked against the full canonical hash.
@@ -94,7 +95,7 @@ fn block_height_hint(headers: &HeaderMap, schema: &str) -> Option<Height> {
         .find_map(|tag| {
             let tag = tag.trim();
             let tag = tag.strip_prefix("W/").unwrap_or(tag);
-            let token = tag.strip_prefix('"')?.strip_suffix('"')?;
+            let token = Etag::unprefixed(tag.strip_prefix('"')?.strip_suffix('"')?)?;
             let suffix = token
                 .strip_prefix("block-")?
                 .strip_prefix(schema)?
@@ -131,7 +132,7 @@ impl AppState {
             };
             // The owned value is the whole representation. In particular, a
             // same-height reorg changes the hash endpoint but not the height.
-            let params = CacheParams::revalidate(format!("block-tip-v2-{value}").into());
+            let params = CacheParams::revalidate(format!("block-tip-v2-{value}"));
             if params.matches_etag(&headers) {
                 return Ok(ResponseExtended::new_not_modified(&params));
             }
@@ -207,8 +208,7 @@ impl AppState {
     ) -> Result<Response, Error> {
         self.read_block_response(move |q| {
             let block = q.resolve_block_by_timestamp(timestamp)?;
-            let params =
-                CacheParams::revalidate(format!("block-timestamp-v2-{}", block.hash()).into());
+            let params = CacheParams::revalidate(format!("block-timestamp-v2-{}", block.hash()));
             if params.matches_etag(&headers) {
                 return Ok(ResponseExtended::new_not_modified(&params));
             }
@@ -226,7 +226,7 @@ impl AppState {
         // retained snapshot or body cache is needed after resolution.
         let respond = move |hash: BlockHash| {
             let body = hash.to_string();
-            let params = CacheParams::revalidate(format!("block-height-v2-{body}").into());
+            let params = CacheParams::revalidate(format!("block-height-v2-{body}"));
             if params.matches_etag(&headers) {
                 return Ok(ResponseExtended::new_not_modified(&params));
             }

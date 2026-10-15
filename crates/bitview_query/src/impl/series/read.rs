@@ -1,6 +1,8 @@
 use bitview_plugin_indexer::SafeLengths;
+use bitview_primitives::BlockHashPrefix;
 use vecdb::{AnyExportableVec, BoundedVec, ReadBounds};
 
+use super::SeriesAnchor;
 use crate::{Error, Query, Result, vecs::SeriesEntry};
 
 /// Selected series and their published read protection.
@@ -45,6 +47,11 @@ impl SeriesRead {
 
     pub(super) fn is_mutable(&self) -> bool {
         self.is_mutable
+    }
+
+    /// Tied to the published tip: changed by every block.
+    pub(super) fn tip_anchor(&self) -> SeriesAnchor {
+        SeriesAnchor::Tip(BlockHashPrefix::from(&self.pin.tip()))
     }
 
     pub(super) fn bind<'a>(&'a self, vec: &'a dyn AnyExportableVec) -> Result<BoundedVec<'a>> {

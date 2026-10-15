@@ -236,6 +236,10 @@ impl AnyVec for LazyWindowStartVec {
         self.timestamps.len()
     }
 
+    fn is_mutable(&self) -> bool {
+        self.timestamps.is_mutable()
+    }
+
     vecdb::any_vec_type_methods!(Height, Height);
 }
 

@@ -17,7 +17,7 @@ impl PreparedJson {
 
     pub fn from_bytes(bytes: Bytes) -> Self {
         let hash = RepresentationId::content_hash(&bytes);
-        let params = CacheParams::revalidate(format!("c{hash:x}").into());
+        let params = CacheParams::revalidate(format!("c{hash:x}"));
         Self { bytes, params }
     }
 

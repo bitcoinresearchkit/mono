@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use axum::http::{HeaderMap, header};
+use axum::http::{HeaderMap, HeaderValue, header};
 
 pub trait HeaderMapExtended {
     fn has_etag(&self, etag: &str) -> bool;
@@ -12,8 +12,19 @@ pub trait HeaderMapExtended {
 }
 
 impl HeaderMapExtended for HeaderMap {
+    /// Weak comparison over every listed tag: a CDN may weaken or list them.
     fn has_etag(&self, etag: &str) -> bool {
-        self.get(header::IF_NONE_MATCH).is_some_and(|v| v == etag)
+        let etag = etag.strip_prefix("W/").unwrap_or(etag);
+        self.get_all(header::IF_NONE_MATCH)
+            .iter()
+            .filter_map(|value| value.to_str().ok())
+            .any(|value| {
+                value.trim() == "*"
+                    || value.split(',').any(|tag| {
+                        let tag = tag.trim();
+                        tag.strip_prefix("W/").unwrap_or(tag) == etag
+                    })
+            })
     }
 
     fn insert_etag(&mut self, etag: &str) {
@@ -23,7 +34,7 @@ impl HeaderMapExtended for HeaderMap {
     fn insert_cache_control_must_revalidate(&mut self) {
         self.insert(
             header::CACHE_CONTROL,
-            "public, max-age=1, must-revalidate".parse().unwrap(),
+            HeaderValue::from_static("public, max-age=1, must-revalidate"),
         );
     }
 

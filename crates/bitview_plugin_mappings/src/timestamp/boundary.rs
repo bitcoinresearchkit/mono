@@ -52,6 +52,10 @@ impl<I: VecIndex> AnyVec for BoundaryTimestampVec<I> {
         self.timestamps.len().div_ceil(self.blocks_per_period)
     }
 
+    fn is_mutable(&self) -> bool {
+        self.timestamps.is_mutable()
+    }
+
     vecdb::any_vec_type_methods!(I, Timestamp);
 }
 

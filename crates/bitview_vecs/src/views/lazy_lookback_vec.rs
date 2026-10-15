@@ -138,6 +138,10 @@ where
         self.source.len()
     }
 
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable()
+    }
+
     vecdb::any_vec_type_methods!(I, T);
 }
 

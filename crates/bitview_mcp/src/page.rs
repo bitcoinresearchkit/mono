@@ -1,8 +1,14 @@
-use std::future;
+use std::{
+    future,
+    hash::{DefaultHasher, Hash, Hasher},
+};
 
 use axum::{
     body::Bytes,
-    http::{HeaderValue, header::CACHE_CONTROL},
+    http::{
+        HeaderMap, HeaderValue, StatusCode,
+        header::{CACHE_CONTROL, ETAG, IF_NONE_MATCH},
+    },
     response::{Html, IntoResponse, Response},
     routing::{MethodRouter, get},
 };
@@ -31,6 +37,7 @@ impl Pages {
                 ("PUBLIC_URL", &escape_html(public_url)),
                 ("API_URL", &escape_html(api_url)),
                 ("DISPLAY_NAME", &escape_html(display_name)),
+                ("LOGO_PATH", &escape_html(crate::logo::PATH)),
             ]))
         };
         Self {
@@ -60,15 +67,36 @@ impl Pages {
     }
 }
 
+/// Serves a rendered page under a content ETag: a second of reuse, then a cheap `304`.
 pub fn route(html: Bytes) -> MethodRouter {
-    get(move || future::ready(response(html.clone())))
+    let mut hasher = DefaultHasher::new();
+    html.hash(&mut hasher);
+    let etag = HeaderValue::try_from(format!("\"{:x}\"", hasher.finish()))
+        .expect("a hex ETag is a valid header value");
+    get(move |headers: HeaderMap| future::ready(response(html.clone(), &etag, &headers)))
 }
 
-fn response(html: Bytes) -> Response {
-    let mut response = Html(html).into_response();
+fn response(html: Bytes, etag: &HeaderValue, request: &HeaderMap) -> Response {
+    let not_modified = request
+        .get_all(IF_NONE_MATCH)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .any(|value| {
+            value.trim() == "*"
+                || value.split(',').any(|tag| {
+                    let tag = tag.trim();
+                    tag.strip_prefix("W/").unwrap_or(tag).as_bytes() == etag.as_bytes()
+                })
+        });
+    let mut response = if not_modified {
+        StatusCode::NOT_MODIFIED.into_response()
+    } else {
+        Html(html).into_response()
+    };
+    response.headers_mut().insert(ETAG, etag.clone());
     response.headers_mut().insert(
         CACHE_CONTROL,
-        HeaderValue::from_static("public, max-age=300"),
+        HeaderValue::from_static("public, max-age=1, must-revalidate"),
     );
     response.headers_mut().insert(
         "content-security-policy",

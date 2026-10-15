@@ -159,6 +159,10 @@ where
             .min(self.window_starts.len())
     }
 
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable() || self.operand.is_mutable() || self.window_starts.is_mutable()
+    }
+
     vecdb::any_vec_type_methods!(Height, T);
 }
 

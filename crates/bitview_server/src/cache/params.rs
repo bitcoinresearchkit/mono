@@ -7,7 +7,7 @@ use bitview_query::SeriesAnchor;
 use brk_types::Version;
 
 use super::mode::CdnCacheMode;
-use crate::{VERSION, etag::Etag, extended::HeaderMapExtended};
+use crate::{etag::Etag, extended::HeaderMapExtended};
 
 // Browser-facing: always revalidate via ETag. `no-cache` means "cache it but
 // check before use" (not "don't cache"); ETag makes the check cheap.
@@ -54,8 +54,9 @@ impl CacheParams {
         }
     }
 
-    /// Live response with an exact, versioned representation tag.
-    pub fn live(tag: String) -> Self {
+    /// Live response with an exact, versioned representation tag: browsers revalidate, the CDN
+    /// reuses it for a second without stale reuse.
+    pub fn live(tag: impl Into<Etag>) -> Self {
         Self {
             etag: tag.into(),
             cache_control: CC,
@@ -68,8 +69,8 @@ impl CacheParams {
         Self::live(format!("l{hash:x}"))
     }
 
-    /// Immutable data identified by hash in the URL (blocks by hash, confirmed tx data):
-    /// `i{version}`. Permanent, only bumped when the response format changes.
+    /// Data fixed for the release (the empty search): `i{version}`, bumped when the response
+    /// format changes.
     pub fn immutable(version: Version, cdn_cache_mode: CdnCacheMode) -> Self {
         Self {
             etag: format!("i{version}").into(),
@@ -85,16 +86,17 @@ impl CacheParams {
         Self::live(format!("a{version}-{:x}", *prefix))
     }
 
-    /// Deploy-tied response (validate-address, OpenAPI spec, scalar bundle): `d{VERSION}`.
-    /// Browser and CDN freshness are capped at one second without stale reuse.
+    /// Deploy-tied response (validate-address, OpenAPI spec, scalar bundle): `d`, the release
+    /// every tag starts with telling releases apart.
     pub fn deploy() -> Self {
-        Self::revalidate(format!("d{VERSION}").into())
+        Self::revalidate("d".to_string())
     }
 
-    /// Short freshness for a mutable URL with an already-resolved validator.
-    pub fn revalidate(etag: Etag) -> Self {
+    /// A response a second's reuse cannot mislead (block by hash, tip, catalogs, deploy-tied):
+    /// browsers and the CDN reuse it for a second, then revalidate, without stale reuse.
+    pub fn revalidate(tag: impl Into<Etag>) -> Self {
         Self {
-            etag,
+            etag: tag.into(),
             cache_control: CC_REVALIDATE,
             cdn_cache_control: CC_REVALIDATE,
         }

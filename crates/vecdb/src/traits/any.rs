@@ -18,11 +18,9 @@ pub trait AnyVec: Send + Sync {
     fn version(&self) -> Version;
     fn name(&self) -> &str;
     fn len(&self) -> usize;
-    /// Whether existing values can be replaced while this vector is updated.
-    #[inline]
-    fn is_mutable(&self) -> bool {
-        false
-    }
+    /// Whether existing values can be replaced while this vector is updated. Required: a view
+    /// over a mutable source must say so, or its rows would be served as final (HTTP caching).
+    fn is_mutable(&self) -> bool;
     /// Length visible inside the current published read snapshot.
     #[inline]
     fn visible_len(&self) -> usize {

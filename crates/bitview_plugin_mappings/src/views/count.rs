@@ -117,6 +117,10 @@ where
         self.first_indexes.len()
     }
 
+    fn is_mutable(&self) -> bool {
+        self.first_indexes.is_mutable()
+    }
+
     vecdb::any_vec_type_methods!(I, Count);
 }
 

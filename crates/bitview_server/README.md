@@ -55,24 +55,27 @@ Validators are selected with their source data before conditional matching:
 
 - **Live**: exact, versioned representation tag
 - **LiveHash**: mutable data, etag = a representation-specific content hash
-- **Immutable**: deeply-confirmed data, etag = format version
+- **Immutable**: data fixed for the release (the empty search), etag = format version
 - **ActivityBound**: mutable state anchored to its latest relevant block
-- **Deploy**: build-version tag for version-bound responses
+- **Deploy**: the release prefix alone, for responses only a release changes
 
 Catalogs, pool metadata and specifications use content-based validators, not
 the package version alone. Dynamic transaction, block and mempool reads validate
 current availability before returning 304; a matching tag is not permission to
 serve an unpublished or displaced result.
 
-Series responses use a separate range-aware scheme: ranges wholly below the
+Series responses use a separate range-aware scheme: ranges the URL pins (no
+bound counted from the end, left open or past the rows) wholly below the
 six-block reorg window are keyed by schema version, bounds and the hash of the
 last block they cover (stable across appends, changed by any reorg replacing
-them), while ranges reaching the window are keyed by the current tip hash.
+them), while other ranges are keyed by the current tip hash.
 
-Most data responses use `Cache-Control: public, no-cache, must-revalidate` for
-browsers. Exact live and deployment-bound responses allow one second of browser
-freshness. The separate `CDN-Cache-Control` live tier allows one second of edge
-freshness, then requires revalidation; neither policy allows stale-on-error reuse.
+Every ETag starts with the release, so a release changing a response's format
+never validates an older body. Most data responses use
+`Cache-Control: public, no-cache, must-revalidate` for browsers. Exact live and
+deployment-bound responses allow one second of browser freshness. The separate
+`CDN-Cache-Control` live tier allows one second of edge freshness, then requires
+revalidation; neither policy allows stale-on-error reuse.
 `CdnCacheMode::Live` applies that same edge policy to stable responses.
 `Aggressive` instead caches the stable tier for up to a year as `immutable` and
 requires an operator purge on deploy. Mutable and deployment-bound URLs retain
