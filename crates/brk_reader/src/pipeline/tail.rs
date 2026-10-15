@@ -9,7 +9,7 @@ use crate::{
     BlkIndexToBlkPath, OUT_OF_ORDER_FILE_BACKOFF, ReaderInner, XORIndex, bisect,
     canonical::CanonicalRange,
     parse::{HEADER_LEN, parse_canonical_body, peek_canonical},
-    reader_inner::AppendPosition,
+    reader_inner::{AppendPosition, FileId},
     scan::frames,
 };
 
@@ -107,9 +107,17 @@ pub fn find_appended(
     if canonical.anchor() != Some(&position.hash) {
         return Ok(None);
     }
+    // Both the pathname and the cached descriptor must still name the file the position was
+    // found in; otherwise the fallback's path refresh drops the stale descriptor.
+    if reader.blk_path_id(position.blk_index) != Some(position.file) {
+        return Ok(None);
+    }
     let Ok(file) = reader.open_blk(position.blk_index) else {
         return Ok(None);
     };
+    if file.metadata().ok().map(|metadata| FileId::from(&metadata)) != Some(position.file) {
+        return Ok(None);
+    }
     let mut slots = Slots::new(canonical);
     for frame in frames(&file, reader.xor_bytes, position.end)? {
         if slots.offer(reader, &file, position.blk_index, frame)? {
@@ -187,17 +195,20 @@ pub fn emit(
             Height::from(*canonical.start + slot as u32),
             found.header,
         )?;
-        last = Some(AppendPosition {
-            hash: *block.hash(),
-            blk_index: found.blk_index,
-            end: found.offset + found.len,
-        });
+        last = Some((*block.hash(), found));
         if send.send(Ok(block)).is_err() {
             return Ok(());
         }
     }
-    if let Some(last) = last {
-        reader.retain_append_position(last);
+    if let Some((hash, found)) = last
+        && let Ok(metadata) = found.file.metadata()
+    {
+        reader.retain_append_position(AppendPosition {
+            hash,
+            blk_index: found.blk_index,
+            end: found.offset + found.len,
+            file: FileId::from(&metadata),
+        });
     }
     Ok(())
 }
