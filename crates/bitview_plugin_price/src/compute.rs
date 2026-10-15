@@ -8,7 +8,7 @@ use brk_oracle::{
     Config, Oracle, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
     pre_oracle_prices_from,
 };
-use brk_types::Cents;
+use brk_types::{Cents, Height};
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
@@ -47,14 +47,17 @@ impl Vecs {
             exit,
         )?;
         // The slow regime's shape profile is not stored, so resuming inside that regime
-        // replays it from its start.
+        // replays it from its start, once readers have left the rows it rewrites.
         if (START_HEIGHT_SLOW + 1..START_HEIGHT_FAST).contains(&committed) {
-            let _lock = exit.lock();
-            self.spot
-                .cents
-                .height
-                .truncate_if_needed_at(START_HEIGHT_SLOW)?;
-            self.oracle_bin.truncate_if_needed_at(START_HEIGHT_SLOW)?;
+            indexer.rewrite_from(Height::from(START_HEIGHT_SLOW), || {
+                let _lock = exit.lock();
+                self.spot
+                    .cents
+                    .height
+                    .truncate_if_needed_at(START_HEIGHT_SLOW)?;
+                self.oracle_bin.truncate_if_needed_at(START_HEIGHT_SLOW)?;
+                Ok(())
+            })?;
         }
 
         let seed_len = total_heights.min(START_HEIGHT_SLOW);

@@ -83,9 +83,10 @@ pub struct NewAddressCount {
 
 #[derive(Traversable)]
 pub struct ActivityVecs<M: StorageMode = Rw> {
-    /// Distinct previously seen addresses that received bitcoin in the
-    /// represented block while holding no unspent balance immediately before
-    /// that receive was applied.
+    /// Distinct previously funded addresses that received bitcoin in the
+    /// represented block while holding no unspent outputs immediately before
+    /// that receive was applied (an address holding only zero-value outputs
+    /// is not reactivated).
     pub reactivated: PerBlockCumulativeAverage<Count, M>,
     /// Distinct addresses that sent bitcoin in the represented block.
     pub sending: PerBlockCumulativeAverage<Count, M>,

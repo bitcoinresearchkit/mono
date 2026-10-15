@@ -83,9 +83,12 @@ where
         self.stored_len
     }
 
+    /// `stored_len` was read before the region's shared access was taken: it is bounded by the
+    /// bytes the reader now holds, so a truncation in between never leaves rows past them.
     fn from_region(region: &Region, stored_len: usize) -> Self {
         let reader = region.create_reader();
         let slice = reader.read_from(HEADER_OFFSET);
+        let stored_len = stored_len.min(slice.len() / Self::SIZE_OF_T);
         let ptr = slice.as_ptr();
 
         Self {

@@ -231,7 +231,7 @@ impl FileDecompressor {
   /// dtype, allowing them to know which type `<T>` to use here. There is no
   /// analagous file compressor method because the user always knows the dtype
   /// during compression.
-  pub(crate) fn simple_decompress<T: Number>(&self, mut src: &[u8]) -> PcoResult<Vec<T>> {
+  pub fn simple_decompress<T: Number>(&self, mut src: &[u8]) -> PcoResult<Vec<T>> {
     // `n_hint` is untrusted and unrelated to how much data is actually
     // present, so we only follow it up to a cap.
     let max_prealloc = self.max_prealloc_bytes / mem::size_of::<T>();

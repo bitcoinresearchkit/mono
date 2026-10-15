@@ -18,7 +18,6 @@ use crate::{
         UrpdWeightQuery,
     },
     request_state::RequestState,
-    urpd_input,
 };
 
 pub async fn serve_cohorts(state: AppState, headers: HeaderMap) -> Response {
@@ -41,7 +40,7 @@ async fn serve_urpd(
             headers,
             "application/json",
             move |q| {
-                let input = match point {
+                let resolved = match point {
                     Some(HeightOrDate::Date(date)) => {
                         q.resolve_urpd_at(&cohort, date, query.aggregation, query.weight)?
                     }
@@ -50,10 +49,11 @@ async fn serve_urpd(
                     }
                     None => q.resolve_urpd_latest(&cohort, query.aggregation, query.weight)?,
                 };
-                let params = CacheParams::live(format!("urpd2-{}", urpd_input::identity(&input)?));
-                Ok((input, params))
+                // The selection alone identifies the body: a match answers 304 unreconstructed.
+                let params = CacheParams::live(format!("urpd3-{}", resolved.representation()));
+                Ok((resolved, params))
             },
-            |_, input| Ok(to_vec(&input.build()?)?.into()),
+            |q, resolved| Ok(to_vec(&q.urpd_resolved(resolved)?)?.into()),
         )
         .await?)
 }

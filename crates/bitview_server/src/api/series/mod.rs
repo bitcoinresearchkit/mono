@@ -317,7 +317,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .series_tag()
                     .summary("List available indexes")
                     .description(
-                        "Returns all available indexes with their accepted query aliases. Use any alias when querying series."
+                        "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only."
                     )
                     .json_response::<Vec<IndexInfo>>()
                     .not_modified(),

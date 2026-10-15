@@ -11,7 +11,7 @@ use serde_json::to_writer;
 use crate::state::TxEntry;
 
 /// Live transaction body and its mempool entry, kept together so one
-/// prefix lookup returns everything readers need.
+/// key lookup returns everything readers need.
 #[derive(Clone)]
 pub struct TxRecord {
     pub tx: Arc<Transaction>,

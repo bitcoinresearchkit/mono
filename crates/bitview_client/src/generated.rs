@@ -13,7 +13,7 @@ use crate::{
     Node, Result, SeriesEndpoint, SeriesValue,
     address::validate_address_payload_for_type,
     address_hash_prefix, address_payload_hash_prefix,
-    client_base::{parse_text, query_pair},
+    client_base::{parse_text, path_segment, query_pair},
 };
 pub use bitview_catalog::*;
 pub use bitview_cohort::*;
@@ -2280,7 +2280,7 @@ impl BitviewClient {
 
     /// Health check
     ///
-    /// Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index waits until the request deadline, then returns 504. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
+    /// Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
     ///
     /// Endpoint: `GET /health`
     pub fn get_health(&self) -> Result<Health> {
@@ -2334,7 +2334,7 @@ impl BitviewClient {
 
     /// List available indexes
     ///
-    /// Returns all available indexes with their accepted query aliases. Use any alias when querying series.
+    /// Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
     ///
     /// Endpoint: `GET /api/series/indexes`
     pub fn get_indexes(&self) -> Result<Vec<IndexInfo>> {
@@ -2389,7 +2389,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/series/{series}`
     pub fn get_series_info(&self, series: SeriesName) -> Result<SeriesInfo> {
-        self.base.get_json(&format!("/api/series/{series}"))
+        self.base
+            .get_json(&format!("/api/series/{}", path_segment(series)))
     }
 
     /// Get series data
@@ -2424,7 +2425,12 @@ impl BitviewClient {
         } else {
             format!("?{}", query.join("&"))
         };
-        let path = format!("/api/series/{series}/{}{}", index.name(), query_str);
+        let path = format!(
+            "/api/series/{}/{}{}",
+            path_segment(series),
+            index.name(),
+            query_str
+        );
         if format == Some(Format::CSV) {
             self.base.get_text(&path).map(FormatResponse::Csv)
         } else {
@@ -2464,7 +2470,12 @@ impl BitviewClient {
         } else {
             format!("?{}", query.join("&"))
         };
-        let path = format!("/api/series/{series}/{}/data{}", index.name(), query_str);
+        let path = format!(
+            "/api/series/{}/{}/data{}",
+            path_segment(series),
+            index.name(),
+            query_str
+        );
         if format == Some(Format::CSV) {
             self.base.get_text(&path).map(FormatResponse::Csv)
         } else {
@@ -2478,8 +2489,11 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/series/{series}/{index}/latest`
     pub fn get_series_latest(&self, series: SeriesName, index: Index) -> Result<serde_json::Value> {
-        self.base
-            .get_json(&format!("/api/series/{series}/{}/latest", index.name()))
+        self.base.get_json(&format!(
+            "/api/series/{}/{}/latest",
+            path_segment(series),
+            index.name()
+        ))
     }
 
     /// Get series data length
@@ -2488,8 +2502,11 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/series/{series}/{index}/len`
     pub fn get_series_len(&self, series: SeriesName, index: Index) -> Result<i64> {
-        self.base
-            .get_json(&format!("/api/series/{series}/{}/len", index.name()))
+        self.base.get_json(&format!(
+            "/api/series/{}/{}/len",
+            path_segment(series),
+            index.name()
+        ))
     }
 
     /// Get series version
@@ -2498,8 +2515,11 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/series/{series}/{index}/version`
     pub fn get_series_version(&self, series: SeriesName, index: Index) -> Result<u32> {
-        self.base
-            .get_json(&format!("/api/series/{series}/{}/version", index.name()))
+        self.base.get_json(&format!(
+            "/api/series/{}/{}/version",
+            path_segment(series),
+            index.name()
+        ))
     }
 
     /// Bulk series data
@@ -2518,7 +2538,7 @@ impl BitviewClient {
     ) -> Result<FormatResponse<Vec<SeriesData>>> {
         let mut query = Vec::new();
         query.push(query_pair("series", series));
-        query.push(query_pair("index", index));
+        query.push(query_pair("index", index.name()));
         if let Some(v) = start {
             query.push(query_pair("start", v));
         }
@@ -2568,7 +2588,7 @@ impl BitviewClient {
         } else {
             format!("?{}", query.join("&"))
         };
-        let path = format!("/api/urpd/{cohort}/dates{}", query_str);
+        let path = format!("/api/urpd/{}/dates{}", path_segment(cohort), query_str);
         self.base.get_json(&path)
     }
 
@@ -2595,7 +2615,7 @@ impl BitviewClient {
         } else {
             format!("?{}", query.join("&"))
         };
-        let path = format!("/api/urpd/{cohort}{}", query_str);
+        let path = format!("/api/urpd/{}{}", path_segment(cohort), query_str);
         self.base.get_json(&path)
     }
 
@@ -2623,7 +2643,12 @@ impl BitviewClient {
         } else {
             format!("?{}", query.join("&"))
         };
-        let path = format!("/api/urpd/{cohort}/{point}{}", query_str);
+        let path = format!(
+            "/api/urpd/{}/{}{}",
+            path_segment(cohort),
+            path_segment(point),
+            query_str
+        );
         self.base.get_json(&path)
     }
 
@@ -2681,8 +2706,11 @@ impl BitviewClient {
         address_type: OutputType,
         prefix: &str,
     ) -> Result<AddressHashPrefixMatches> {
-        self.base
-            .get_json(&format!("/api/address/hash-prefix/{address_type}/{prefix}"))
+        self.base.get_json(&format!(
+            "/api/address/hash-prefix/{}/{}",
+            path_segment(address_type),
+            path_segment(prefix)
+        ))
     }
 
     /// Address information
@@ -2693,7 +2721,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/address/{address}`
     pub fn get_address(&self, address: Address) -> Result<AddressStats> {
-        self.base.get_json(&format!("/api/address/{address}"))
+        self.base
+            .get_json(&format!("/api/address/{}", path_segment(address)))
     }
 
     /// Address transactions
@@ -2704,7 +2733,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/address/{address}/txs`
     pub fn get_address_txs(&self, address: Address) -> Result<Vec<Transaction>> {
-        self.base.get_json(&format!("/api/address/{address}/txs"))
+        self.base
+            .get_json(&format!("/api/address/{}/txs", path_segment(address)))
     }
 
     /// Address confirmed transactions
@@ -2716,7 +2746,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/address/{address}/txs/chain`
     pub fn get_address_confirmed_txs(&self, address: Address) -> Result<Vec<Transaction>> {
         self.base
-            .get_json(&format!("/api/address/{address}/txs/chain"))
+            .get_json(&format!("/api/address/{}/txs/chain", path_segment(address)))
     }
 
     /// Address confirmed transactions (paginated)
@@ -2731,8 +2761,11 @@ impl BitviewClient {
         address: Address,
         after_txid: Txid,
     ) -> Result<Vec<Transaction>> {
-        self.base
-            .get_json(&format!("/api/address/{address}/txs/chain/{after_txid}"))
+        self.base.get_json(&format!(
+            "/api/address/{}/txs/chain/{}",
+            path_segment(address),
+            path_segment(after_txid)
+        ))
     }
 
     /// Address mempool transactions
@@ -2743,8 +2776,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/address/{address}/txs/mempool`
     pub fn get_address_mempool_txs(&self, address: Address) -> Result<Vec<Transaction>> {
-        self.base
-            .get_json(&format!("/api/address/{address}/txs/mempool"))
+        self.base.get_json(&format!(
+            "/api/address/{}/txs/mempool",
+            path_segment(address)
+        ))
     }
 
     /// Address UTXOs
@@ -2755,7 +2790,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/address/{address}/utxo`
     pub fn get_address_utxos(&self, address: Address) -> Result<Vec<Utxo>> {
-        self.base.get_json(&format!("/api/address/{address}/utxo"))
+        self.base
+            .get_json(&format!("/api/address/{}/utxo", path_segment(address)))
     }
 
     /// Validate address
@@ -2766,8 +2802,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/validate-address/{address}`
     pub fn validate_address(&self, address: &str) -> Result<AddressValidation> {
-        self.base
-            .get_json(&format!("/api/v1/validate-address/{address}"))
+        self.base.get_json(&format!(
+            "/api/v1/validate-address/{}",
+            path_segment(address)
+        ))
     }
 
     /// Block information
@@ -2778,7 +2816,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/block/{hash}`
     pub fn get_block(&self, hash: BlockHash) -> Result<BlockInfo> {
-        self.base.get_json(&format!("/api/block/{hash}"))
+        self.base
+            .get_json(&format!("/api/block/{}", path_segment(hash)))
     }
 
     /// Block (v1)
@@ -2789,7 +2828,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/block/{hash}`
     pub fn get_block_v1(&self, hash: BlockHash) -> Result<BlockInfoV1> {
-        self.base.get_json(&format!("/api/v1/block/{hash}"))
+        self.base
+            .get_json(&format!("/api/v1/block/{}", path_segment(hash)))
     }
 
     /// Block header
@@ -2801,7 +2841,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/block/{hash}/header`
     pub fn get_block_header(&self, hash: BlockHash) -> Result<Hex> {
         self.base
-            .get_text(&format!("/api/block/{hash}/header"))
+            .get_text(&format!("/api/block/{}/header", path_segment(hash)))
             .and_then(parse_text)
     }
 
@@ -2814,7 +2854,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/block-height/{height}`
     pub fn get_block_by_height(&self, height: Height) -> Result<BlockHash> {
         self.base
-            .get_text(&format!("/api/block-height/{height}"))
+            .get_text(&format!("/api/block-height/{}", path_segment(height)))
             .and_then(parse_text)
     }
 
@@ -2826,8 +2866,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/blocks/timestamp/{timestamp}`
     pub fn get_block_by_timestamp(&self, timestamp: Timestamp) -> Result<BlockTimestamp> {
-        self.base
-            .get_json(&format!("/api/v1/mining/blocks/timestamp/{timestamp}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/timestamp/{}",
+            path_segment(timestamp)
+        ))
     }
 
     /// Raw block
@@ -2838,7 +2880,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/block/{hash}/raw`
     pub fn get_block_raw(&self, hash: BlockHash) -> Result<Vec<u8>> {
-        self.base.get_bytes(&format!("/api/block/{hash}/raw"))
+        self.base
+            .get_bytes(&format!("/api/block/{}/raw", path_segment(hash)))
     }
 
     /// Block status
@@ -2849,7 +2892,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/block/{hash}/status`
     pub fn get_block_status(&self, hash: BlockHash) -> Result<BlockStatus> {
-        self.base.get_json(&format!("/api/block/{hash}/status"))
+        self.base
+            .get_json(&format!("/api/block/{}/status", path_segment(hash)))
     }
 
     /// Block tip height
@@ -2885,7 +2929,11 @@ impl BitviewClient {
     /// Endpoint: `GET /api/block/{hash}/txid/{index}`
     pub fn get_block_txid(&self, hash: BlockHash, index: BlockTxIndex) -> Result<Txid> {
         self.base
-            .get_text(&format!("/api/block/{hash}/txid/{index}"))
+            .get_text(&format!(
+                "/api/block/{}/txid/{}",
+                path_segment(hash),
+                path_segment(index)
+            ))
             .and_then(parse_text)
     }
 
@@ -2897,7 +2945,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/block/{hash}/txids`
     pub fn get_block_txids(&self, hash: BlockHash) -> Result<Vec<Txid>> {
-        self.base.get_json(&format!("/api/block/{hash}/txids"))
+        self.base
+            .get_json(&format!("/api/block/{}/txids", path_segment(hash)))
     }
 
     /// Block transactions
@@ -2908,7 +2957,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/block/{hash}/txs`
     pub fn get_block_txs(&self, hash: BlockHash) -> Result<Vec<Transaction>> {
-        self.base.get_json(&format!("/api/block/{hash}/txs"))
+        self.base
+            .get_json(&format!("/api/block/{}/txs", path_segment(hash)))
     }
 
     /// Block transactions (paginated)
@@ -2923,8 +2973,11 @@ impl BitviewClient {
         hash: BlockHash,
         start_index: BlockTxIndex,
     ) -> Result<Vec<Transaction>> {
-        self.base
-            .get_json(&format!("/api/block/{hash}/txs/{start_index}"))
+        self.base.get_json(&format!(
+            "/api/block/{}/txs/{}",
+            path_segment(hash),
+            path_segment(start_index)
+        ))
     }
 
     /// Recent blocks
@@ -2946,7 +2999,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/blocks/{height}`
     pub fn get_blocks_from_height(&self, height: Height) -> Result<Vec<BlockInfo>> {
-        self.base.get_json(&format!("/api/blocks/{height}"))
+        self.base
+            .get_json(&format!("/api/blocks/{}", path_segment(height)))
     }
 
     /// Recent blocks with extras
@@ -2968,7 +3022,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/blocks/{height}`
     pub fn get_blocks_v1_from_height(&self, height: Height) -> Result<Vec<BlockInfoV1>> {
-        self.base.get_json(&format!("/api/v1/blocks/{height}"))
+        self.base
+            .get_json(&format!("/api/v1/blocks/{}", path_segment(height)))
     }
 
     /// List all mining pools
@@ -2990,8 +3045,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/pools/{time_period}`
     pub fn get_pool_stats(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
-        self.base
-            .get_json(&format!("/api/v1/mining/pools/{time_period}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/pools/{}",
+            path_segment(time_period)
+        ))
     }
 
     /// Mining pool details
@@ -3002,7 +3059,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/pool/{slug}`
     pub fn get_pool(&self, slug: PoolSlug) -> Result<PoolDetail> {
-        self.base.get_json(&format!("/api/v1/mining/pool/{slug}"))
+        self.base
+            .get_json(&format!("/api/v1/mining/pool/{}", path_segment(slug)))
     }
 
     /// All pools hashrate (all time)
@@ -3028,8 +3086,10 @@ impl BitviewClient {
         &self,
         time_period: TimePeriod,
     ) -> Result<Vec<PoolHashrateEntry>> {
-        self.base
-            .get_json(&format!("/api/v1/mining/hashrate/pools/{time_period}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/hashrate/pools/{}",
+            path_segment(time_period)
+        ))
     }
 
     /// Mining pool hashrate
@@ -3040,8 +3100,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/pool/{slug}/hashrate`
     pub fn get_pool_hashrate(&self, slug: PoolSlug) -> Result<Vec<PoolHashrateEntry>> {
-        self.base
-            .get_json(&format!("/api/v1/mining/pool/{slug}/hashrate"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/pool/{}/hashrate",
+            path_segment(slug)
+        ))
     }
 
     /// Mining pool blocks
@@ -3052,8 +3114,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`
     pub fn get_pool_blocks(&self, slug: PoolSlug) -> Result<Vec<BlockInfoV1>> {
-        self.base
-            .get_json(&format!("/api/v1/mining/pool/{slug}/blocks"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/pool/{}/blocks",
+            path_segment(slug)
+        ))
     }
 
     /// Mining pool blocks from height
@@ -3064,8 +3128,11 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/pool/{slug}/blocks/{height}`
     pub fn get_pool_blocks_from(&self, slug: PoolSlug, height: Height) -> Result<Vec<BlockInfoV1>> {
-        self.base
-            .get_json(&format!("/api/v1/mining/pool/{slug}/blocks/{height}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/pool/{}/blocks/{}",
+            path_segment(slug),
+            path_segment(height)
+        ))
     }
 
     /// Network hashrate (all time)
@@ -3087,8 +3154,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/hashrate/{time_period}`
     pub fn get_hashrate_by_period(&self, time_period: TimePeriod) -> Result<HashrateSummary> {
-        self.base
-            .get_json(&format!("/api/v1/mining/hashrate/{time_period}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/hashrate/{}",
+            path_segment(time_period)
+        ))
     }
 
     /// Difficulty adjustments (all time)
@@ -3115,7 +3184,8 @@ impl BitviewClient {
         time_period: TimePeriod,
     ) -> Result<Vec<DifficultyAdjustmentEntry>> {
         self.base.get_json(&format!(
-            "/api/v1/mining/difficulty-adjustments/{time_period}"
+            "/api/v1/mining/difficulty-adjustments/{}",
+            path_segment(time_period)
         ))
     }
 
@@ -3127,8 +3197,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/reward-stats/{block_count}`
     pub fn get_reward_stats(&self, block_count: i64) -> Result<RewardStats> {
-        self.base
-            .get_json(&format!("/api/v1/mining/reward-stats/{block_count}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/reward-stats/{}",
+            path_segment(block_count)
+        ))
     }
 
     /// Block fees
@@ -3139,8 +3211,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/blocks/fees/{time_period}`
     pub fn get_block_fees(&self, time_period: TimePeriod) -> Result<Vec<BlockFeesEntry>> {
-        self.base
-            .get_json(&format!("/api/v1/mining/blocks/fees/{time_period}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/fees/{}",
+            path_segment(time_period)
+        ))
     }
 
     /// Block rewards
@@ -3151,8 +3225,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/blocks/rewards/{time_period}`
     pub fn get_block_rewards(&self, time_period: TimePeriod) -> Result<Vec<BlockRewardsEntry>> {
-        self.base
-            .get_json(&format!("/api/v1/mining/blocks/rewards/{time_period}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/rewards/{}",
+            path_segment(time_period)
+        ))
     }
 
     /// Block fee rates
@@ -3163,8 +3239,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`
     pub fn get_block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
-        self.base
-            .get_json(&format!("/api/v1/mining/blocks/fee-rates/{time_period}"))
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/fee-rates/{}",
+            path_segment(time_period)
+        ))
     }
 
     /// Block sizes and weights
@@ -3176,7 +3254,8 @@ impl BitviewClient {
     /// Endpoint: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`
     pub fn get_block_sizes_weights(&self, time_period: TimePeriod) -> Result<BlockSizesWeights> {
         self.base.get_json(&format!(
-            "/api/v1/mining/blocks/sizes-weights/{time_period}"
+            "/api/v1/mining/blocks/sizes-weights/{}",
+            path_segment(time_period)
         ))
     }
 
@@ -3293,8 +3372,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`
     pub fn get_block_template_diff(&self, hash: NextBlockHash) -> Result<BlockTemplateDiff> {
-        self.base
-            .get_json(&format!("/api/v1/mempool/block-template/diff/{hash}"))
+        self.base.get_json(&format!(
+            "/api/v1/mempool/block-template/diff/{}",
+            path_segment(hash)
+        ))
     }
 
     /// Live BTC/USD price
@@ -3313,7 +3394,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/tx-index/{index}`
     pub fn get_tx_by_index(&self, index: TxIndex) -> Result<Txid> {
         self.base
-            .get_text(&format!("/api/tx-index/{index}"))
+            .get_text(&format!("/api/tx-index/{}", path_segment(index)))
             .and_then(parse_text)
     }
 
@@ -3325,7 +3406,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/cpfp/{txid}`
     pub fn get_cpfp(&self, txid: Txid) -> Result<CpfpInfo> {
-        self.base.get_json(&format!("/api/v1/cpfp/{txid}"))
+        self.base
+            .get_json(&format!("/api/v1/cpfp/{}", path_segment(txid)))
     }
 
     /// RBF replacement history
@@ -3336,7 +3418,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/v1/tx/{txid}/rbf`
     pub fn get_tx_rbf(&self, txid: Txid) -> Result<RbfResponse> {
-        self.base.get_json(&format!("/api/v1/tx/{txid}/rbf"))
+        self.base
+            .get_json(&format!("/api/v1/tx/{}/rbf", path_segment(txid)))
     }
 
     /// Transaction information
@@ -3347,7 +3430,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/tx/{txid}`
     pub fn get_tx(&self, txid: Txid) -> Result<Transaction> {
-        self.base.get_json(&format!("/api/tx/{txid}"))
+        self.base
+            .get_json(&format!("/api/tx/{}", path_segment(txid)))
     }
 
     /// Transaction hex
@@ -3359,7 +3443,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/tx/{txid}/hex`
     pub fn get_tx_hex(&self, txid: Txid) -> Result<Hex> {
         self.base
-            .get_text(&format!("/api/tx/{txid}/hex"))
+            .get_text(&format!("/api/tx/{}/hex", path_segment(txid)))
             .and_then(parse_text)
     }
 
@@ -3372,7 +3456,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/tx/{txid}/merkleblock-proof`
     pub fn get_tx_merkleblock_proof(&self, txid: Txid) -> Result<Hex> {
         self.base
-            .get_text(&format!("/api/tx/{txid}/merkleblock-proof"))
+            .get_text(&format!("/api/tx/{}/merkleblock-proof", path_segment(txid)))
             .and_then(parse_text)
     }
 
@@ -3384,7 +3468,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/tx/{txid}/merkle-proof`
     pub fn get_tx_merkle_proof(&self, txid: Txid) -> Result<MerkleProof> {
-        self.base.get_json(&format!("/api/tx/{txid}/merkle-proof"))
+        self.base
+            .get_json(&format!("/api/tx/{}/merkle-proof", path_segment(txid)))
     }
 
     /// Output spend status
@@ -3395,8 +3480,11 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/tx/{txid}/outspend/{vout}`
     pub fn get_tx_outspend(&self, txid: Txid, vout: Vout) -> Result<TxOutspend> {
-        self.base
-            .get_json(&format!("/api/tx/{txid}/outspend/{vout}"))
+        self.base.get_json(&format!(
+            "/api/tx/{}/outspend/{}",
+            path_segment(txid),
+            path_segment(vout)
+        ))
     }
 
     /// All output spend statuses
@@ -3407,7 +3495,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/tx/{txid}/outspends`
     pub fn get_tx_outspends(&self, txid: Txid) -> Result<Vec<TxOutspend>> {
-        self.base.get_json(&format!("/api/tx/{txid}/outspends"))
+        self.base
+            .get_json(&format!("/api/tx/{}/outspends", path_segment(txid)))
     }
 
     /// Transaction raw
@@ -3418,7 +3507,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/tx/{txid}/raw`
     pub fn get_tx_raw(&self, txid: Txid) -> Result<Vec<u8>> {
-        self.base.get_bytes(&format!("/api/tx/{txid}/raw"))
+        self.base
+            .get_bytes(&format!("/api/tx/{}/raw", path_segment(txid)))
     }
 
     /// Transaction status
@@ -3429,7 +3519,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/tx/{txid}/status`
     pub fn get_tx_status(&self, txid: Txid) -> Result<TxStatus> {
-        self.base.get_json(&format!("/api/tx/{txid}/status"))
+        self.base
+            .get_json(&format!("/api/tx/{}/status", path_segment(txid)))
     }
 
     /// Transaction first-seen times
@@ -3481,7 +3572,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/utxo-set/{point}`
     pub fn get_utxo_set(&self, point: &str) -> Result<UtxoSet> {
-        self.base.get_json(&format!("/api/utxo-set/{point}"))
+        self.base
+            .get_json(&format!("/api/utxo-set/{}", path_segment(point)))
     }
 
     /// UTXO set changes of a block or date
@@ -3490,7 +3582,8 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/utxo-set/{point}/diff`
     pub fn get_utxo_set_diff(&self, point: &str) -> Result<UtxoSetDiff> {
-        self.base.get_json(&format!("/api/utxo-set/{point}/diff"))
+        self.base
+            .get_json(&format!("/api/utxo-set/{}/diff", path_segment(point)))
     }
 
     /// Live BTC/USD price
@@ -3518,8 +3611,10 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/oracle/histogram/payments/{point}`
     pub fn get_oracle_histogram_payments(&self, point: &str) -> Result<Vec<i64>> {
-        self.base
-            .get_json(&format!("/api/oracle/histogram/payments/{point}"))
+        self.base.get_json(&format!(
+            "/api/oracle/histogram/payments/{}",
+            path_segment(point)
+        ))
     }
 
     /// Live output value histogram
@@ -3538,22 +3633,24 @@ impl BitviewClient {
     ///
     /// Endpoint: `GET /api/oracle/histogram/outputs/{point}`
     pub fn get_oracle_histogram_outputs(&self, point: &str) -> Result<Vec<i64>> {
-        self.base
-            .get_json(&format!("/api/oracle/histogram/outputs/{point}"))
+        self.base.get_json(&format!(
+            "/api/oracle/histogram/outputs/{}",
+            path_segment(point)
+        ))
     }
 
     /// OpenAPI specification
     ///
-    /// Full OpenAPI 3.1 specification for this API.
+    /// Full OpenAPI 3.1 specification for this API. Build tools from this document.
     ///
     /// Endpoint: `GET /openapi.json`
-    pub fn get_openapi(&self) -> Result<String> {
-        self.base.get_text(&format!("/openapi.json"))
+    pub fn get_openapi(&self) -> Result<serde_json::Value> {
+        self.base.get_json(&format!("/openapi.json"))
     }
 
-    /// Compact OpenAPI specification
+    /// Compact API summary
     ///
-    /// Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.
+    /// Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.
     ///
     /// Endpoint: `GET /api.json`
     pub fn get_api(&self) -> Result<serde_json::Value> {

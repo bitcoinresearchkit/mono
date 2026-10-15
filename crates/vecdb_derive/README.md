@@ -51,6 +51,7 @@ implements those traits for `u8` through `u64`, `i8` through `i64`, `f32`, and
 
 Both derives accept only tuple structs with exactly one field. Generic wrappers
 are supported, and the generated implementation adds the required trait bounds
-to the inner field. The wrapper must remain layout-compatible with its inner
-type when used by pco; VecDB enforces the size and alignment assumptions at
-compile time.
+to the inner field. The wrapper must have its inner type's size (no
+`#[repr(align)]` that widens it): a stored wrapper that does not fails to
+compile. Native-layout copies and pco's transparent path additionally require
+matching alignment and fall back to per-value conversion otherwise.

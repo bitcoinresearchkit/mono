@@ -28,7 +28,7 @@ use components::Components;
 use extremes::Extremes;
 use inner::RarityMeterInner;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("rarity_meter"), Version::new(18));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("rarity_meter"), Version::new(19));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable, Plugin)]

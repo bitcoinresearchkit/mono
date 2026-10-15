@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, Tuple, TYPE_CHECKING
 from http.client import HTTPSConnection, HTTPConnection
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
 from datetime import date, datetime, timedelta, timezone
 import json
 import re
@@ -181,7 +181,7 @@ Month1 = int
 Minute30 = int
 # Index of a 10-minute period.
 Minute10 = int
-# Maximum number of results to return. Defaults to 100 if not specified.
+# Maximum number of results to return; each parameter states what omitting it means.
 Limit = int
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year),
 # block-based (height, tx_index), and address/output type indexes.
@@ -333,8 +333,8 @@ class UrpdQuery(TypedDict, total=False):
 
 # Query parameter for transaction-times endpoint.
 #
-# Extracted manually because `serde_urlencoded` (and serde derive in general)
-# doesn't support repeated keys like `txId[]=a&txId[]=b`. The schema is still
+# Extracted from the decoded query pairs because a serde struct can't collect
+# repeated keys like `txId[]=a&txId[]=b`. The schema is still
 # declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
 # generated client SDKs see `txids: List[Txid]`.
 TxidsParam = TypedDict("TxidsParam", {"txId[]": List[Txid]})
@@ -518,7 +518,7 @@ class PoolStats(TypedDict):
         link: Pool website URL
         blockCount: Number of blocks mined in the time period
         rank: Pool ranking by block count (1 = most blocks)
-        emptyBlocks: Number of empty blocks mined
+        emptyBlocks: Number of empty (coinbase-only) blocks mined in the time period
         slug: URL-friendly pool identifier
         share: Pool's share of total blocks (0.0 - 1.0)
         poolUniqueId: Unique pool identifier
@@ -687,7 +687,7 @@ class SearchQuery(_SearchQueryRequired, total=False):
     """
     Attributes:
         q: Search query string
-        limit: Maximum number of results
+        limit: Maximum number of results, 100 when omitted
     """
     limit: Limit
 
@@ -746,7 +746,7 @@ class IndexInfo(TypedDict):
 
     Attributes:
         index: The canonical index name
-        aliases: All Accepted query aliases
+        aliases: Every name REST queries accept for it; MCP tools take the canonical `index` only
     """
     index: Index
     aliases: List[str]
@@ -894,14 +894,14 @@ class DifficultyAdjustment(TypedDict):
         difficultyChange: Estimated difficulty change at next retarget (%)
         estimatedRetargetDate: Estimated timestamp of next retarget (milliseconds)
         remainingBlocks: Blocks remaining until retarget
-        remainingTime: Estimated time until retarget (milliseconds)
+        remainingTime: Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
         previousRetarget: Previous difficulty adjustment (%)
         previousTime: Timestamp of most recent retarget (seconds)
         nextRetargetHeight: Height of next retarget
         timeAvg: Average block time in current epoch (milliseconds)
-        adjustedTimeAvg: Time-adjusted average (milliseconds)
-        timeOffset: Time offset from expected schedule (seconds)
-        expectedBlocks: Expected blocks based on wall clock time since epoch start
+        adjustedTimeAvg: Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503 blocks, where it spans the last 503 blocks, those before the retarget scaled by it
+        timeOffset: Testnet's offset for its 20-minute minimum-difficulty rule (milliseconds): always 0 on mainnet, as mempool.space
+        expectedBlocks: Blocks expected at the 10-minute target between the epoch's first block and the tip block
     """
     progressPercent: float
     difficultyChange: float
@@ -921,9 +921,9 @@ class BlockWeightEntry(TypedDict):
     A single block weight data point.
 
     Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgWeight: Rolling 24h median block weight (weight units)
+        avgHeight: Average block height in this bucket
+        timestamp: Average block timestamp in this bucket
+        avgWeight: Mean block weight in this bucket, rounded half up (weight units)
     """
     avgHeight: Height
     timestamp: Timestamp
@@ -934,9 +934,9 @@ class BlockSizeEntry(TypedDict):
     A single block size data point.
 
     Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgSize: Rolling 24h median block size (bytes)
+        avgHeight: Average block height in this bucket
+        timestamp: Average block timestamp in this bucket
+        avgSize: Mean block size in this bucket, rounded half up (bytes)
     """
     avgHeight: Height
     timestamp: Timestamp
@@ -964,9 +964,9 @@ class SeriesSelection(_SeriesSelectionRequired, total=False):
     Attributes:
         series: Requested series
         index: Index to query
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-        limit: Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+        limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
         format: Format of the output
     """
     start: Union[RangeIndex, None]
@@ -979,9 +979,9 @@ class DataRangeFormat(TypedDict, total=False):
     Range parameters with output format for API query parameters.
 
     Attributes:
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-        limit: Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+        limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
         format: Format of the output
     """
     start: Union[RangeIndex, None]
@@ -1242,7 +1242,7 @@ class BlockExtras(_BlockExtrasRequired, total=False):
         utxoSetChange: UTXO set change (total outputs - total inputs, includes unspendable like OP_RETURN). Note: intentionally differs from utxo_set_size diff which excludes unspendable outputs. Matches mempool.space/bitcoin-cli behavior.
         utxoSetSize: Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
         totalInputAmt: Total input amount in satoshis
-        virtualSize: Virtual size in vbytes
+        virtualSize: Virtual size in vbytes: weight / 4, unrounded
         firstSeen: Timestamp when the block was first seen (always null, not yet supported)
         orphans: Orphaned blocks (always empty)
         price: USD price at block height
@@ -1272,7 +1272,7 @@ class AddressChainStats(_AddressChainStatsRequired, total=False):
         spent_txo_count: Total number of transaction outputs spent from this address
         spent_txo_sum: Total amount in satoshis spent from this address
         tx_count: Total number of confirmed transactions involving this address
-        type_index: Index of this address within its type on the blockchain, null for an address seen only in the mempool
+        type_index: Index of this address within its type on the blockchain, null for an address without confirmed activity
         realized_price: Realized price (average cost basis) in USD
     """
     type_index: Union[TypeIndex, None]
@@ -1873,6 +1873,11 @@ def _response_error(status: int, data: bytes) -> BitviewError:
     )
 
 
+def _segment(value: Any) -> str:
+    """A path segment, percent-encoded so `/`, `?` or `#` in a value stay inside it."""
+    return quote(str(value), safe='')
+
+
 class BitviewClientBase:
     """Base HTTP client for making requests."""
 
@@ -2171,7 +2176,6 @@ class SeriesData(Generic[T]):
     type: str
     start: int
     end: int
-    stamp: str
     data: List[T]
 
     @property
@@ -5857,7 +5861,7 @@ class BitviewClient(BitviewClientBase):
     def get_health(self) -> Health:
         """Health check.
 
-        Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index waits until the request deadline, then returns 504. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
+        Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
 
         Endpoint: `GET /health`"""
         return self.get_json('/health')
@@ -5905,7 +5909,7 @@ class BitviewClient(BitviewClientBase):
     def get_indexes(self) -> List[IndexInfo]:
         """List available indexes.
 
-        Returns all available indexes with their accepted query aliases. Use any alias when querying series.
+        Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
 
         Endpoint: `GET /api/series/indexes`"""
         return self.get_json('/api/series/indexes')
@@ -5942,7 +5946,7 @@ class BitviewClient(BitviewClientBase):
         Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
 
         Endpoint: `GET /api/series/{series}`"""
-        return self.get_json(f'/api/series/{series}')
+        return self.get_json(f'/api/series/{_segment(series)}')
 
     def get_series(self, series: SeriesName, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[AnySeriesData, str]:
         """Get series data.
@@ -5956,7 +5960,7 @@ class BitviewClient(BitviewClientBase):
         if limit is not None: params.append(('limit', limit))
         if format is not None: params.append(('format', format))
         query = urlencode(params)
-        path = f'/api/series/{series}/{index}{"?" + query if query else ""}'
+        path = f'/api/series/{_segment(series)}/{_segment(index)}{"?" + query if query else ""}'
         if format == 'csv':
             return self.get_text(path)
         return _series_data(self.get_json(path))
@@ -5973,7 +5977,7 @@ class BitviewClient(BitviewClientBase):
         if limit is not None: params.append(('limit', limit))
         if format is not None: params.append(('format', format))
         query = urlencode(params)
-        path = f'/api/series/{series}/{index}/data{"?" + query if query else ""}'
+        path = f'/api/series/{_segment(series)}/{_segment(index)}/data{"?" + query if query else ""}'
         if format == 'csv':
             return self.get_text(path)
         return self.get_json(path)
@@ -5984,7 +5988,7 @@ class BitviewClient(BitviewClientBase):
         Returns the single most recent value for a series, unwrapped (not inside a SeriesData object).
 
         Endpoint: `GET /api/series/{series}/{index}/latest`"""
-        return self.get_json(f'/api/series/{series}/{index}/latest')
+        return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/latest')
 
     def get_series_len(self, series: SeriesName, index: Index) -> int:
         """Get series data length.
@@ -5992,7 +5996,7 @@ class BitviewClient(BitviewClientBase):
         Returns the total number of data points for a series at the given index.
 
         Endpoint: `GET /api/series/{series}/{index}/len`"""
-        return self.get_json(f'/api/series/{series}/{index}/len')
+        return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/len')
 
     def get_series_version(self, series: SeriesName, index: Index) -> Version:
         """Get series version.
@@ -6000,7 +6004,7 @@ class BitviewClient(BitviewClientBase):
         Returns the vector's schema/computation version, not its length or latest update. Appends and reorgs do not by themselves change this version.
 
         Endpoint: `GET /api/series/{series}/{index}/version`"""
-        return self.get_json(f'/api/series/{series}/{index}/version')
+        return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/version')
 
     def get_series_bulk(self, series: SeriesList, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[AnySeriesData], str]:
         """Bulk series data.
@@ -6038,7 +6042,7 @@ class BitviewClient(BitviewClientBase):
         params: List[Tuple[str, Any]] = []
         if weight is not None: params.append(('weight', weight))
         query = urlencode(params)
-        path = f'/api/urpd/{cohort}/dates{"?" + query if query else ""}'
+        path = f'/api/urpd/{_segment(cohort)}/dates{"?" + query if query else ""}'
         return self.get_json(path)
 
     def get_urpd(self, cohort: Cohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
@@ -6051,7 +6055,7 @@ class BitviewClient(BitviewClientBase):
         if agg is not None: params.append(('agg', agg))
         if weight is not None: params.append(('weight', weight))
         query = urlencode(params)
-        path = f'/api/urpd/{cohort}{"?" + query if query else ""}'
+        path = f'/api/urpd/{_segment(cohort)}{"?" + query if query else ""}'
         return self.get_json(path)
 
     def get_urpd_at(self, cohort: Cohort, point: str, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
@@ -6064,7 +6068,7 @@ class BitviewClient(BitviewClientBase):
         if agg is not None: params.append(('agg', agg))
         if weight is not None: params.append(('weight', weight))
         query = urlencode(params)
-        path = f'/api/urpd/{cohort}/{point}{"?" + query if query else ""}'
+        path = f'/api/urpd/{_segment(cohort)}/{_segment(point)}{"?" + query if query else ""}'
         return self.get_json(path)
 
     def get_difficulty_adjustment(self) -> DifficultyAdjustment:
@@ -6107,7 +6111,7 @@ class BitviewClient(BitviewClientBase):
         Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
 
         Endpoint: `GET /api/address/hash-prefix/{address_type}/{prefix}`"""
-        return self.get_json(f'/api/address/hash-prefix/{address_type}/{prefix}')
+        return self.get_json(f'/api/address/hash-prefix/{_segment(address_type)}/{_segment(prefix)}')
 
     def get_address(self, address: Address) -> AddressStats:
         """Address information.
@@ -6117,7 +6121,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
 
         Endpoint: `GET /api/address/{address}`"""
-        return self.get_json(f'/api/address/{address}')
+        return self.get_json(f'/api/address/{_segment(address)}')
 
     def get_address_txs(self, address: Address) -> List[Transaction]:
         """Address transactions.
@@ -6127,7 +6131,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
 
         Endpoint: `GET /api/address/{address}/txs`"""
-        return self.get_json(f'/api/address/{address}/txs')
+        return self.get_json(f'/api/address/{_segment(address)}/txs')
 
     def get_address_confirmed_txs(self, address: Address) -> List[Transaction]:
         """Address confirmed transactions.
@@ -6137,7 +6141,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
         Endpoint: `GET /api/address/{address}/txs/chain`"""
-        return self.get_json(f'/api/address/{address}/txs/chain')
+        return self.get_json(f'/api/address/{_segment(address)}/txs/chain')
 
     def get_address_confirmed_txs_after(self, address: Address, after_txid: Txid) -> List[Transaction]:
         """Address confirmed transactions (paginated).
@@ -6147,7 +6151,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
         Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`"""
-        return self.get_json(f'/api/address/{address}/txs/chain/{after_txid}')
+        return self.get_json(f'/api/address/{_segment(address)}/txs/chain/{_segment(after_txid)}')
 
     def get_address_mempool_txs(self, address: Address) -> List[Transaction]:
         """Address mempool transactions.
@@ -6157,7 +6161,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
 
         Endpoint: `GET /api/address/{address}/txs/mempool`"""
-        return self.get_json(f'/api/address/{address}/txs/mempool')
+        return self.get_json(f'/api/address/{_segment(address)}/txs/mempool')
 
     def get_address_utxos(self, address: Address) -> List[Utxo]:
         """Address UTXOs.
@@ -6167,7 +6171,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
 
         Endpoint: `GET /api/address/{address}/utxo`"""
-        return self.get_json(f'/api/address/{address}/utxo')
+        return self.get_json(f'/api/address/{_segment(address)}/utxo')
 
     def validate_address(self, address: str) -> AddressValidation:
         """Validate address.
@@ -6177,7 +6181,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
 
         Endpoint: `GET /api/v1/validate-address/{address}`"""
-        return self.get_json(f'/api/v1/validate-address/{address}')
+        return self.get_json(f'/api/v1/validate-address/{_segment(address)}')
 
     def get_block(self, hash: BlockHash) -> BlockInfo:
         """Block information.
@@ -6187,7 +6191,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
 
         Endpoint: `GET /api/block/{hash}`"""
-        return self.get_json(f'/api/block/{hash}')
+        return self.get_json(f'/api/block/{_segment(hash)}')
 
     def get_block_v1(self, hash: BlockHash) -> BlockInfoV1:
         """Block (v1).
@@ -6197,7 +6201,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-v1)*
 
         Endpoint: `GET /api/v1/block/{hash}`"""
-        return self.get_json(f'/api/v1/block/{hash}')
+        return self.get_json(f'/api/v1/block/{_segment(hash)}')
 
     def get_block_header(self, hash: BlockHash) -> Hex:
         """Block header.
@@ -6207,7 +6211,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-header)*
 
         Endpoint: `GET /api/block/{hash}/header`"""
-        return self.get_text(f'/api/block/{hash}/header')
+        return self.get_text(f'/api/block/{_segment(hash)}/header')
 
     def get_block_by_height(self, height: Height) -> BlockHash:
         """Block hash by height.
@@ -6217,7 +6221,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
 
         Endpoint: `GET /api/block-height/{height}`"""
-        return self.get_text(f'/api/block-height/{height}')
+        return self.get_text(f'/api/block-height/{_segment(height)}')
 
     def get_block_by_timestamp(self, timestamp: Timestamp) -> BlockTimestamp:
         """Block by timestamp.
@@ -6227,7 +6231,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-timestamp)*
 
         Endpoint: `GET /api/v1/mining/blocks/timestamp/{timestamp}`"""
-        return self.get_json(f'/api/v1/mining/blocks/timestamp/{timestamp}')
+        return self.get_json(f'/api/v1/mining/blocks/timestamp/{_segment(timestamp)}')
 
     def get_block_raw(self, hash: BlockHash) -> bytes:
         """Raw block.
@@ -6237,7 +6241,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-raw)*
 
         Endpoint: `GET /api/block/{hash}/raw`"""
-        return self.get(f'/api/block/{hash}/raw')
+        return self.get(f'/api/block/{_segment(hash)}/raw')
 
     def get_block_status(self, hash: BlockHash) -> BlockStatus:
         """Block status.
@@ -6247,7 +6251,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*
 
         Endpoint: `GET /api/block/{hash}/status`"""
-        return self.get_json(f'/api/block/{hash}/status')
+        return self.get_json(f'/api/block/{_segment(hash)}/status')
 
     def get_block_tip_height(self) -> Height:
         """Block tip height.
@@ -6277,7 +6281,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-id)*
 
         Endpoint: `GET /api/block/{hash}/txid/{index}`"""
-        return self.get_text(f'/api/block/{hash}/txid/{index}')
+        return self.get_text(f'/api/block/{_segment(hash)}/txid/{_segment(index)}')
 
     def get_block_txids(self, hash: BlockHash) -> List[Txid]:
         """Block transaction IDs.
@@ -6287,7 +6291,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*
 
         Endpoint: `GET /api/block/{hash}/txids`"""
-        return self.get_json(f'/api/block/{hash}/txids')
+        return self.get_json(f'/api/block/{_segment(hash)}/txids')
 
     def get_block_txs(self, hash: BlockHash) -> List[Transaction]:
         """Block transactions.
@@ -6297,7 +6301,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 
         Endpoint: `GET /api/block/{hash}/txs`"""
-        return self.get_json(f'/api/block/{hash}/txs')
+        return self.get_json(f'/api/block/{_segment(hash)}/txs')
 
     def get_block_txs_from_index(self, hash: BlockHash, start_index: BlockTxIndex) -> List[Transaction]:
         """Block transactions (paginated).
@@ -6307,7 +6311,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 
         Endpoint: `GET /api/block/{hash}/txs/{start_index}`"""
-        return self.get_json(f'/api/block/{hash}/txs/{start_index}')
+        return self.get_json(f'/api/block/{_segment(hash)}/txs/{_segment(start_index)}')
 
     def get_blocks(self) -> List[BlockInfo]:
         """Recent blocks.
@@ -6327,7 +6331,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
 
         Endpoint: `GET /api/blocks/{height}`"""
-        return self.get_json(f'/api/blocks/{height}')
+        return self.get_json(f'/api/blocks/{_segment(height)}')
 
     def get_blocks_v1(self) -> List[BlockInfoV1]:
         """Recent blocks with extras.
@@ -6347,7 +6351,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
 
         Endpoint: `GET /api/v1/blocks/{height}`"""
-        return self.get_json(f'/api/v1/blocks/{height}')
+        return self.get_json(f'/api/v1/blocks/{_segment(height)}')
 
     def get_pools(self) -> List[PoolInfo]:
         """List all mining pools.
@@ -6367,7 +6371,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
 
         Endpoint: `GET /api/v1/mining/pools/{time_period}`"""
-        return self.get_json(f'/api/v1/mining/pools/{time_period}')
+        return self.get_json(f'/api/v1/mining/pools/{_segment(time_period)}')
 
     def get_pool(self, slug: PoolSlug) -> PoolDetail:
         """Mining pool details.
@@ -6377,7 +6381,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*
 
         Endpoint: `GET /api/v1/mining/pool/{slug}`"""
-        return self.get_json(f'/api/v1/mining/pool/{slug}')
+        return self.get_json(f'/api/v1/mining/pool/{_segment(slug)}')
 
     def get_pools_hashrate(self) -> List[PoolHashrateEntry]:
         """All pools hashrate (all time).
@@ -6397,7 +6401,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
         Endpoint: `GET /api/v1/mining/hashrate/pools/{time_period}`"""
-        return self.get_json(f'/api/v1/mining/hashrate/pools/{time_period}')
+        return self.get_json(f'/api/v1/mining/hashrate/pools/{_segment(time_period)}')
 
     def get_pool_hashrate(self, slug: PoolSlug) -> List[PoolHashrateEntry]:
         """Mining pool hashrate.
@@ -6407,7 +6411,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrate)*
 
         Endpoint: `GET /api/v1/mining/pool/{slug}/hashrate`"""
-        return self.get_json(f'/api/v1/mining/pool/{slug}/hashrate')
+        return self.get_json(f'/api/v1/mining/pool/{_segment(slug)}/hashrate')
 
     def get_pool_blocks(self, slug: PoolSlug) -> List[BlockInfoV1]:
         """Mining pool blocks.
@@ -6417,7 +6421,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
 
         Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`"""
-        return self.get_json(f'/api/v1/mining/pool/{slug}/blocks')
+        return self.get_json(f'/api/v1/mining/pool/{_segment(slug)}/blocks')
 
     def get_pool_blocks_from(self, slug: PoolSlug, height: Height) -> List[BlockInfoV1]:
         """Mining pool blocks from height.
@@ -6427,7 +6431,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
 
         Endpoint: `GET /api/v1/mining/pool/{slug}/blocks/{height}`"""
-        return self.get_json(f'/api/v1/mining/pool/{slug}/blocks/{height}')
+        return self.get_json(f'/api/v1/mining/pool/{_segment(slug)}/blocks/{_segment(height)}')
 
     def get_hashrate(self) -> HashrateSummary:
         """Network hashrate (all time).
@@ -6447,7 +6451,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
 
         Endpoint: `GET /api/v1/mining/hashrate/{time_period}`"""
-        return self.get_json(f'/api/v1/mining/hashrate/{time_period}')
+        return self.get_json(f'/api/v1/mining/hashrate/{_segment(time_period)}')
 
     def get_difficulty_adjustments(self) -> List[DifficultyAdjustmentEntry]:
         """Difficulty adjustments (all time).
@@ -6467,7 +6471,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
 
         Endpoint: `GET /api/v1/mining/difficulty-adjustments/{time_period}`"""
-        return self.get_json(f'/api/v1/mining/difficulty-adjustments/{time_period}')
+        return self.get_json(f'/api/v1/mining/difficulty-adjustments/{_segment(time_period)}')
 
     def get_reward_stats(self, block_count: int) -> RewardStats:
         """Mining reward statistics.
@@ -6477,7 +6481,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-reward-stats)*
 
         Endpoint: `GET /api/v1/mining/reward-stats/{block_count}`"""
-        return self.get_json(f'/api/v1/mining/reward-stats/{block_count}')
+        return self.get_json(f'/api/v1/mining/reward-stats/{_segment(block_count)}')
 
     def get_block_fees(self, time_period: TimePeriod) -> List[BlockFeesEntry]:
         """Block fees.
@@ -6487,7 +6491,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*
 
         Endpoint: `GET /api/v1/mining/blocks/fees/{time_period}`"""
-        return self.get_json(f'/api/v1/mining/blocks/fees/{time_period}')
+        return self.get_json(f'/api/v1/mining/blocks/fees/{_segment(time_period)}')
 
     def get_block_rewards(self, time_period: TimePeriod) -> List[BlockRewardsEntry]:
         """Block rewards.
@@ -6497,7 +6501,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*
 
         Endpoint: `GET /api/v1/mining/blocks/rewards/{time_period}`"""
-        return self.get_json(f'/api/v1/mining/blocks/rewards/{time_period}')
+        return self.get_json(f'/api/v1/mining/blocks/rewards/{_segment(time_period)}')
 
     def get_block_fee_rates(self, time_period: TimePeriod) -> List[BlockFeeRatesEntry]:
         """Block fee rates.
@@ -6507,7 +6511,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
 
         Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`"""
-        return self.get_json(f'/api/v1/mining/blocks/fee-rates/{time_period}')
+        return self.get_json(f'/api/v1/mining/blocks/fee-rates/{_segment(time_period)}')
 
     def get_block_sizes_weights(self, time_period: TimePeriod) -> BlockSizesWeights:
         """Block sizes and weights.
@@ -6517,7 +6521,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*
 
         Endpoint: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`"""
-        return self.get_json(f'/api/v1/mining/blocks/sizes-weights/{time_period}')
+        return self.get_json(f'/api/v1/mining/blocks/sizes-weights/{_segment(time_period)}')
 
     def get_mempool_blocks(self) -> List[MempoolBlock]:
         """Projected mempool blocks.
@@ -6621,7 +6625,7 @@ class BitviewClient(BitviewClientBase):
         Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
 
         Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`"""
-        return self.get_json(f'/api/v1/mempool/block-template/diff/{hash}')
+        return self.get_json(f'/api/v1/mempool/block-template/diff/{_segment(hash)}')
 
     def get_live_price(self) -> Dollars:
         """Live BTC/USD price.
@@ -6637,7 +6641,7 @@ class BitviewClient(BitviewClientBase):
         Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
 
         Endpoint: `GET /api/tx-index/{index}`"""
-        return self.get_text(f'/api/tx-index/{index}')
+        return self.get_text(f'/api/tx-index/{_segment(index)}')
 
     def get_cpfp(self, txid: Txid) -> CpfpInfo:
         """CPFP info.
@@ -6647,7 +6651,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
 
         Endpoint: `GET /api/v1/cpfp/{txid}`"""
-        return self.get_json(f'/api/v1/cpfp/{txid}')
+        return self.get_json(f'/api/v1/cpfp/{_segment(txid)}')
 
     def get_tx_rbf(self, txid: Txid) -> RbfResponse:
         """RBF replacement history.
@@ -6657,7 +6661,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*
 
         Endpoint: `GET /api/v1/tx/{txid}/rbf`"""
-        return self.get_json(f'/api/v1/tx/{txid}/rbf')
+        return self.get_json(f'/api/v1/tx/{_segment(txid)}/rbf')
 
     def get_tx(self, txid: Txid) -> Transaction:
         """Transaction information.
@@ -6667,7 +6671,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
 
         Endpoint: `GET /api/tx/{txid}`"""
-        return self.get_json(f'/api/tx/{txid}')
+        return self.get_json(f'/api/tx/{_segment(txid)}')
 
     def get_tx_hex(self, txid: Txid) -> Hex:
         """Transaction hex.
@@ -6677,7 +6681,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*
 
         Endpoint: `GET /api/tx/{txid}/hex`"""
-        return self.get_text(f'/api/tx/{txid}/hex')
+        return self.get_text(f'/api/tx/{_segment(txid)}/hex')
 
     def get_tx_merkleblock_proof(self, txid: Txid) -> Hex:
         """Transaction merkleblock proof.
@@ -6687,7 +6691,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkleblock-proof)*
 
         Endpoint: `GET /api/tx/{txid}/merkleblock-proof`"""
-        return self.get_text(f'/api/tx/{txid}/merkleblock-proof')
+        return self.get_text(f'/api/tx/{_segment(txid)}/merkleblock-proof')
 
     def get_tx_merkle_proof(self, txid: Txid) -> MerkleProof:
         """Transaction merkle proof.
@@ -6697,7 +6701,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
 
         Endpoint: `GET /api/tx/{txid}/merkle-proof`"""
-        return self.get_json(f'/api/tx/{txid}/merkle-proof')
+        return self.get_json(f'/api/tx/{_segment(txid)}/merkle-proof')
 
     def get_tx_outspend(self, txid: Txid, vout: Vout) -> TxOutspend:
         """Output spend status.
@@ -6707,7 +6711,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
 
         Endpoint: `GET /api/tx/{txid}/outspend/{vout}`"""
-        return self.get_json(f'/api/tx/{txid}/outspend/{vout}')
+        return self.get_json(f'/api/tx/{_segment(txid)}/outspend/{_segment(vout)}')
 
     def get_tx_outspends(self, txid: Txid) -> List[TxOutspend]:
         """All output spend statuses.
@@ -6717,7 +6721,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*
 
         Endpoint: `GET /api/tx/{txid}/outspends`"""
-        return self.get_json(f'/api/tx/{txid}/outspends')
+        return self.get_json(f'/api/tx/{_segment(txid)}/outspends')
 
     def get_tx_raw(self, txid: Txid) -> bytes:
         """Transaction raw.
@@ -6727,7 +6731,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-raw)*
 
         Endpoint: `GET /api/tx/{txid}/raw`"""
-        return self.get(f'/api/tx/{txid}/raw')
+        return self.get(f'/api/tx/{_segment(txid)}/raw')
 
     def get_tx_status(self, txid: Txid) -> TxStatus:
         """Transaction status.
@@ -6737,7 +6741,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*
 
         Endpoint: `GET /api/tx/{txid}/status`"""
-        return self.get_json(f'/api/tx/{txid}/status')
+        return self.get_json(f'/api/tx/{_segment(txid)}/status')
 
     def get_transaction_times(self, txId: List[Txid]) -> List[int]:
         """Transaction first-seen times.
@@ -6777,7 +6781,7 @@ class BitviewClient(BitviewClientBase):
         The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
 
         Endpoint: `GET /api/utxo-set/{point}`"""
-        return self.get_json(f'/api/utxo-set/{point}')
+        return self.get_json(f'/api/utxo-set/{_segment(point)}')
 
     def get_utxo_set_diff(self, point: str) -> UtxoSetDiff:
         """UTXO set changes of a block or date.
@@ -6785,7 +6789,7 @@ class BitviewClient(BitviewClientBase):
         What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
 
         Endpoint: `GET /api/utxo-set/{point}/diff`"""
-        return self.get_json(f'/api/utxo-set/{point}/diff')
+        return self.get_json(f'/api/utxo-set/{_segment(point)}/diff')
 
     def get_oracle_price(self) -> Dollars:
         """Live BTC/USD price.
@@ -6809,7 +6813,7 @@ class BitviewClient(BitviewClientBase):
         Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
 
         Endpoint: `GET /api/oracle/histogram/payments/{point}`"""
-        return self.get_json(f'/api/oracle/histogram/payments/{point}')
+        return self.get_json(f'/api/oracle/histogram/payments/{_segment(point)}')
 
     def get_oracle_histogram_outputs_live(self) -> List[int]:
         """Live output value histogram.
@@ -6825,20 +6829,20 @@ class BitviewClient(BitviewClientBase):
         Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
 
         Endpoint: `GET /api/oracle/histogram/outputs/{point}`"""
-        return self.get_json(f'/api/oracle/histogram/outputs/{point}')
+        return self.get_json(f'/api/oracle/histogram/outputs/{_segment(point)}')
 
-    def get_openapi(self) -> str:
+    def get_openapi(self) -> Any:
         """OpenAPI specification.
 
-        Full OpenAPI 3.1 specification for this API.
+        Full OpenAPI 3.1 specification for this API. Build tools from this document.
 
         Endpoint: `GET /openapi.json`"""
-        return self.get_text('/openapi.json')
+        return self.get_json('/openapi.json')
 
     def get_api(self) -> Any:
-        """Compact OpenAPI specification.
+        """Compact API summary.
 
-        Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.
+        Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.
 
         Endpoint: `GET /api.json`"""
         return self.get_json('/api.json')

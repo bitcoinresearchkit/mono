@@ -4,23 +4,22 @@
 use std::mem;
 
 use brk_cpfp::Cluster;
-use brk_types::TxidPrefix;
 use derive_more::{Deref, DerefMut};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 
 use super::{SnapTx, Snapshot, TxIndex, cluster};
-use crate::{state::TxEntry, stores::TxStore};
+use crate::{key::TxKey, state::TxEntry, stores::TxStore};
 
 #[derive(Default, Deref, DerefMut)]
-pub struct PrefixIndex(FxHashMap<TxidPrefix, TxIndex>);
+pub struct KeyIndex(FxHashMap<TxKey, TxIndex>);
 
 impl Snapshot {
-    pub(crate) fn build_txs(txs: &TxStore) -> (Vec<SnapTx>, PrefixIndex) {
+    pub(crate) fn build_txs(txs: &TxStore) -> (Vec<SnapTx>, KeyIndex) {
         let n = txs.len();
-        let mut prefix_to_idx = PrefixIndex(FxHashMap::with_capacity_and_hasher(n, FxBuildHasher));
-        for (i, (prefix, _)) in txs.records().enumerate() {
-            prefix_to_idx.insert(*prefix, TxIndex::from(i));
+        let mut key_to_idx = KeyIndex(FxHashMap::with_capacity_and_hasher(n, FxBuildHasher));
+        for (i, (key, _)) in txs.records().enumerate() {
+            key_to_idx.insert(*key, TxIndex::from(i));
         }
         let mut snap_txs: Vec<SnapTx> = txs
             .records()
@@ -31,7 +30,7 @@ impl Snapshot {
         for (i, (_, record)) in txs.records().enumerate() {
             let mut parents: SmallVec<[TxIndex; 2]> = SmallVec::new();
             for input in &record.tx.input {
-                if let Some(&parent) = prefix_to_idx.get(&TxidPrefix::from(&input.txid))
+                if let Some(&parent) = key_to_idx.get(&TxKey::from(&input.txid))
                     && snap_txs[parent.as_usize()].txid == input.txid
                     && !parents.contains(&parent)
                 {
@@ -43,7 +42,7 @@ impl Snapshot {
 
         Self::mirror_children(&mut snap_txs);
         Self::refresh_chunk_rates(&mut snap_txs);
-        (snap_txs, prefix_to_idx)
+        (snap_txs, key_to_idx)
     }
 
     fn live_tx(e: &TxEntry) -> SnapTx {

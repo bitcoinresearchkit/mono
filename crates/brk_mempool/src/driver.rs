@@ -97,15 +97,22 @@ impl Mempool {
             new_entries,
             new_txs,
             block_template_txids,
-            address_view_complete,
+            template_only,
         } = fetcher::fetch(&self.client, &self.state)?;
         if rpc.tip_hash != tip_before {
             return Err(Error::StateUpdating);
         }
-        let pulled = preparer::prepare(&rpc.live_txids, new_entries, new_txs, &self.state);
+        let pulled = preparer::prepare(
+            &rpc.live_txids,
+            &template_only,
+            new_entries,
+            new_txs,
+            &self.state,
+        );
         // A panic after this point requires restoring private indexes before reuse.
         self.needs_recovery = true;
         applier::apply(&mut self.state, &self.rebuilder.snapshot(), pulled);
+        self.state.template_only = template_only;
         prevouts::fill(&mut self.state, resolver);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
         self.rebuilder
@@ -115,7 +122,7 @@ impl Mempool {
             if gate().is_none_or(|published| published == rpc.tip_hash) {
                 self.publish_observation(
                     rpc.tip_hash,
-                    address_view_complete && self.state.contains_all(&rpc.live_txids),
+                    self.state.template_only.is_empty() && self.state.contains_all(&rpc.live_txids),
                 );
             }
         }

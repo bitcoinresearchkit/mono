@@ -134,14 +134,14 @@ where
                 unbuffered_bytes: 0,
             }
         } else {
+            // The source bounds the range by the bytes its lock holds.
+            let source = RawIoSource::new_from_parts(region, stored_len, from, to);
             Self {
-                owner: Owner::Io {
-                    source: RawIoSource::new_from_parts(region, stored_len, from, to),
-                },
+                unbuffered_bytes: source.remaining_file_bytes(),
+                owner: Owner::Io { source },
                 window: NonNull::dangling().as_ptr(),
                 window_position: 0,
                 window_len: 0,
-                unbuffered_bytes: bytes,
             }
         }
     }

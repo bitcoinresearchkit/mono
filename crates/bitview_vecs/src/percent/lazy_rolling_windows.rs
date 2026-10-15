@@ -53,6 +53,8 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
         T: NumericValue + JsonSchema,
     {
         let cumulative_source = cumulative.read_only_boxed_clone();
+        // The window's sum is subtracted exactly before converting.
+        let version = version + Version::ONE;
 
         Self(window_starts.map_with_suffix(|suffix, window_start| {
             let full_name = format!("{name}_{suffix}");

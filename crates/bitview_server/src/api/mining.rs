@@ -123,7 +123,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/hashrate/pools",
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                    state.respond_json_content(&headers, |q| q.pools_hashrate(None)).await
+                    state.respond_json_content_admitted(headers, |q| q.pools_hashrate(None)).await
                 },
                 |op| {
                     op.id("get_pools_hashrate")
@@ -140,7 +140,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                     let time_period = Some(path.time_period);
-                    state.respond_json_content(&headers, move |q| q.pools_hashrate(time_period)).await
+                    state.respond_json_content_admitted(headers, move |q| q.pools_hashrate(time_period)).await
                 },
                 |op| {
                     op.id("get_pools_hashrate_by_period")

@@ -10,7 +10,7 @@ use super::{
     Block,
     encoder::{Encodable, Encoder},
 };
-use crate::Result;
+use crate::{Error, Result};
 
 pub const TRAILER_START_MARKER: u8 = 255;
 
@@ -67,14 +67,66 @@ impl<'a> Trailer<'a> {
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        let start = self.trailer_offset();
+        #[expect(
+            clippy::indexing_slicing,
+            reason = "loaded blocks are validated to hold a trailer"
+        )]
+        &self.block.data[self.trailer_offset()..]
+    }
 
-        // SAFETY: We know that a block always has a trailer, so the
-        // `block_size - TRAILER_SIZE` cannot go out of bounds
-        #[expect(unsafe_code, reason = "see safety")]
-        unsafe {
-            self.block.data.get_unchecked(start..)
+    /// Checks the trailer and binary index of a data, index or meta block read
+    /// from disk: decoders then trust its restart pointers.
+    ///
+    /// Layout: \[items\] \[marker\] \[binary index\] \[trailer\]
+    pub fn validate(data: &[u8]) -> Result<()> {
+        let trailer_offset = data
+            .len()
+            .checked_sub(TRAILER_SIZE)
+            .ok_or(Error::InvalidTrailer)?;
+        #[expect(clippy::indexing_slicing, reason = "trailer_offset <= data.len()")]
+        let mut reader = &data[trailer_offset..];
+        let restart_interval = reader.read_u8()?;
+        let step_size = reader.read_u8()?;
+        let len = reader.read_u32::<LittleEndian>()? as usize;
+        let index_offset = reader.read_u32::<LittleEndian>()? as usize;
+
+        let valid_layout = restart_interval > 0
+            && (step_size == 2 || step_size == 4)
+            && index_offset > 0
+            && len
+                .checked_mul(usize::from(step_size))
+                .and_then(|size| size.checked_add(index_offset))
+                == Some(trailer_offset)
+            && data.get(index_offset - 1) == Some(&TRAILER_START_MARKER);
+        if !valid_layout {
+            return Err(Error::InvalidTrailer);
         }
+
+        // Restart heads must start inside the item region (before the marker).
+        let items_end = index_offset - 1;
+        #[expect(
+            clippy::indexing_slicing,
+            reason = "the index spans index_offset..trailer_offset"
+        )]
+        let index = &data[index_offset..trailer_offset];
+        let in_bounds = if step_size == 2 {
+            index
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .all(|ptr| usize::from(u16::from_le_bytes(*ptr)) < items_end)
+        } else {
+            index
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .all(|ptr| (u32::from_le_bytes(*ptr) as usize) < items_end)
+        };
+        if !in_bounds {
+            return Err(Error::InvalidTrailer);
+        }
+
+        Ok(())
     }
 
     pub fn write<S: Default, T: Encodable<S>>(mut encoder: Encoder<'_, S, T>) -> Result<()> {

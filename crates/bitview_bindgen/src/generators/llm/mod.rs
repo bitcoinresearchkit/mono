@@ -85,11 +85,11 @@ fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&En
 - Authentication: None\n\
 - Browser access: Permissive CORS\n\
 - [Full plain-text reference]({BASE_URL}/llms-full.txt)\n\
-- [Compact OpenAPI]({BASE_URL}/api.json)\n\
+- [Compact API summary]({BASE_URL}/api.json)\n\
 - [Full OpenAPI]({BASE_URL}/openapi.json)\n\
 - [Series catalog]({BASE_URL}/api/series)\n\
 - [Interactive documentation]({BASE_URL}/api)\n\n\
-Use the compact OpenAPI document for tool construction. Use `llms-full.txt` only when a complete readable reference is needed.\n\n\
+Build tools from the full OpenAPI document; the compact summary is a smaller custom (non-OpenAPI) overview. Use `llms-full.txt` only when a complete readable reference is needed.\n\n\
 ## Series workflow\n\n\
 Never invent a series identifier.\n\n\
 1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.\n\

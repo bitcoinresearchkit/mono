@@ -213,7 +213,6 @@ function _wrapSeriesData(raw) {
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {number} start - Start index (inclusive)
  * @property {number} end - End index (exclusive)
- * @property {string} stamp - ISO 8601 timestamp of when the response was generated
  * @property {T[]} data - The series data (`null` where a value is missing or undefined)
  * @property {boolean} isDateBased - Whether this series uses a date-based index
  * @property {() => number[]} indexes - Get index numbers
@@ -538,6 +537,8 @@ class BitviewClientBase {
 
     // L1 miss: race browserCache (stale snapshot) vs network (fresh).
     let networkSettled = false;
+    // What this request's stale snapshot delivered, if anything.
+    let shown = /** @type {{ value: T } | null} */ (null);
     const stale = onValue && browserCache
       ? browserCache.match(url).then(async (res) => {
           if (!res || networkSettled || signal?.aborted) return;
@@ -546,6 +547,7 @@ class BitviewClientBase {
           const value = await parse(res);
           if (networkSettled || signal?.aborted) return;
           if (useMemCache) this._memSet(key, res.headers.get('ETag'), value);
+          shown = { value };
           onValue(value);
         }).catch(() => {})
       : null;
@@ -560,10 +562,12 @@ class BitviewClientBase {
     }
     networkSettled = true;
     const netEtag = res.headers.get('ETag');
-    // Stale won and populated memCache with matching ETag → reuse, skip parse + second onValue.
+    // memCache already holds this ETag (our stale snapshot or a concurrent request) → reuse, skip
+    // the parse; deliver it unless this request already showed that very value.
     const populated = useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(key)) : undefined;
     if (populated && netEtag && netEtag === populated.etag) {
       await res.body?.cancel();
+      if (onValue && shown?.value !== populated.value) onValue(populated.value);
       return populated.value;
     }
     return fresh(res);

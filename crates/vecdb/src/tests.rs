@@ -848,12 +848,12 @@ mod overflow {
     use std::fs;
 
     use crate::{
-        AnyStoredVec, Bytes, Database, Error, ImportOptions, ImportableVec, OverflowVec,
+        AnyStoredVec, AnyVec, Bytes, Database, Error, ImportOptions, ImportableVec, OverflowVec,
         OverflowVecValue, ReadableVec, Result, Stamp, Version, WritableVec,
     };
     use tempfile::tempdir;
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     struct TestValue(u64);
 
     // SAFETY: not native layout.
@@ -918,6 +918,46 @@ mod overflow {
             vec.collect(),
             vec![TestValue(1), TestValue(1_000), TestValue(2)]
         );
+        // Restored rows past the stored length are pushed again, in both halves.
+        assert_eq!(vec.pushed(), [TestValue(1_000), TestValue(2)]);
+        // Cancelling unsaved changes returns to the unwritten rollback, not to the disk.
+        vec.push(TestValue(5_000));
+        vec.reset_unsaved();
+        assert_eq!(vec.pushed(), [TestValue(1_000), TestValue(2)]);
+        assert_eq!(
+            vec.collect(),
+            vec![TestValue(1), TestValue(1_000), TestValue(2)]
+        );
+        vec.update_many(vec![(1, TestValue(3_000))])?;
+        assert_eq!(
+            vec.collect(),
+            vec![TestValue(1), TestValue(3_000), TestValue(2)]
+        );
+        Ok(())
+    }
+
+    /// A rollback restoring a deleted row past the stored length never reads its sidecar value.
+    #[test]
+    fn rollback_restores_deleted_row_without_its_sidecar_value() -> Result<()> {
+        let _serial = crate::tests::serial();
+        let temp = tempdir()?;
+        let db = Database::open(temp.path())?;
+        let options = ImportOptions::new(&db, "holes", Version::ONE).with_saved_stamped_changes(5);
+        let mut vec = OverflowVec::<usize, TestValue>::import_with(options)?;
+        vec.push(TestValue(1_000));
+        vec.stamped_write_with_changes(Stamp::from(1))?;
+        vec.delete_many([0]);
+        vec.stamped_write_with_changes(Stamp::from(2))?;
+        vec.truncate_if_needed_at(0)?;
+        vec.stamped_write_with_changes(Stamp::from(3))?;
+        assert_eq!(vec.len(), 0);
+        vec.rollback()?;
+        assert_eq!(vec.stamp(), Stamp::from(2));
+        assert_eq!(vec.len(), 1);
+        assert_eq!(vec.pushed().len(), 1);
+        vec.stamped_write_with_changes(Stamp::from(3))?;
+        assert_eq!(vec.len(), 1);
+        assert_eq!(vec.collect_one_at(0), None);
         Ok(())
     }
 

@@ -1,9 +1,10 @@
-use brk_types::TxidPrefix;
-
 use super::{TxAddition, TxRemoval};
+use crate::key::TxKey;
 
 pub struct TxsPulled {
     pub live_len: usize,
     pub added: Vec<TxAddition>,
-    pub removed: Vec<(TxidPrefix, TxRemoval)>,
+    /// Pooled txs that turned listed: they re-assert their outpoints.
+    pub promoted: Vec<TxKey>,
+    pub removed: Vec<(TxKey, TxRemoval)>,
 }

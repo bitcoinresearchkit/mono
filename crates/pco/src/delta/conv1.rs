@@ -423,10 +423,17 @@ pub fn choose_config<L: Latent>(order: usize, latents: &[L]) -> Option<DeltaConv
 pub fn encode_in_place<L: Latent>(config: &DeltaConv1Config, latents: &mut [L]) -> Vec<L> {
   let bias = config.bias::<L::Conv>();
   let weights = config.weights::<L::Conv>();
-  let initial_state = latents[..weights.len()].to_vec();
+  let order = weights.len();
+  // A page may be shorter than the order: pad the state with zeros (as
+  // consecutive deltas do); such a page has no residuals to encode.
+  let mut initial_state = vec![L::ZERO; order];
+  let n_state = order.min(latents.len());
+  initial_state[..n_state].copy_from_slice(&latents[..n_state]);
+  if latents.len() <= order {
+    return initial_state;
+  }
   // Like all delta encode in place functions, we fill the first few (order
   // in this case) latents with junk and properly delta encode the rest.
-  let order = weights.len();
   let mut predictions = vec![L::ZERO; ENCODE_BATCH_SIZE + order];
   let mut start = 0;
   while start < latents.len() {

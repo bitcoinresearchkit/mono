@@ -58,9 +58,7 @@ impl Query {
         buf.extend_from_slice(integer.format(start).as_bytes());
         buf.extend_from_slice(b",\"end\":");
         buf.extend_from_slice(integer.format(end).as_bytes());
-        buf.extend_from_slice(b",\"stamp\":\"");
-        buf.extend_from_slice(Timestamp::now().to_iso8601().as_bytes());
-        buf.extend_from_slice(b"\",\"data\":");
+        buf.extend_from_slice(b",\"data\":");
         vec.write_json(Some(start), Some(end), buf)?;
         buf.push(b'}');
 
@@ -112,6 +110,8 @@ impl Query {
         let to = Some(end as i64);
         let num_rows = columns[0].range_count(from, to);
         csv.reserve(num_rows * num_cols * CSV_CELL_BYTES);
+        // One scope for every cell: each writer's own scope joins it instead of registering.
+        let _scope = columns[0].bounds().enter();
 
         let mut writers: Vec<_> = columns
             .iter()
@@ -532,7 +532,8 @@ impl Query {
             return Ok(idx as i64);
         }
         let days = CivilDate::constant(1970, 1, 1).until(calendar)?.get_days();
-        let seconds = u32::try_from(i64::from(days) * 86_400)
+        // A date before 1970 lies before every index's first row, like 1970 itself.
+        let seconds = u32::try_from((i64::from(days) * 86_400).max(0))
             .map_err(|_| Error::InvalidParam(format!("date out of timestamp range: {date}")))?;
         self.timestamp_to_i64(Timestamp::new(seconds), index, read)
     }
@@ -545,6 +546,12 @@ impl Query {
             Index::Height => usize::from,
             Index::Epoch => |height| usize::from(Epoch::from(height)),
             Index::Halving => |height| usize::from(Halving::from(height)),
+            // Before the index's first period: its first row, as a height bound before genesis.
+            _ if index.is_date_based()
+                && index.index_to_timestamp(0).is_some_and(|first| ts < first) =>
+            {
+                return Ok(0);
+            }
             _ if index.is_date_based() => {
                 return Err(Error::InvalidParam(format!(
                     "date/timestamp out of range for index '{index}'"

@@ -1,11 +1,13 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PriceRatio, Ratio};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, LazySmaVec, PriceWithRatio};
+use bitview_vecs::{LazyPerBlock, PriceWithRatio};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, Ident, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+
+use crate::priced::PricedSmaVec;
 
 #[derive(Traversable)]
 pub struct SmaVecs<M: StorageMode = Rw> {
@@ -41,7 +43,8 @@ pub struct SmaVecs<M: StorageMode = Rw> {
     pub _4y: PriceWithRatio<M>,
     /// Mayer Multiple: Bitcoin spot price divided by its 200-day simple moving
     /// average, the name analysts use for that ratio, computed from cent-precision prices:
-    /// null while the average rounds to zero (2010), approximate while prices are a few cents.
+    /// null before the first exchange price (block 74,641), approximate while prices are a few
+    /// cents.
     #[traversable(wrap = "200d", rename = "mayer_multiple")]
     pub mayer_multiple: LazyPerBlock<Ratio, Ratio>,
 }
@@ -63,7 +66,7 @@ impl SmaVecs {
                     db,
                     concat!("price_sma_", $name),
                     version,
-                    &LazySmaVec::new(
+                    &PricedSmaVec::new(
                         concat!("price_sma_", $name, "_cents_source"),
                         version,
                         prefix_sum.read_only_boxed_clone(),

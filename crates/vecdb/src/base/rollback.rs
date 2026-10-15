@@ -112,11 +112,19 @@ where
         self.previous_stored_len = stored_len;
         *self.pushed.current_mut() = pushed;
         self.pushed.save();
+        self.unwritten_rollback = true;
     }
 
     /// Caller must check `saved_stamped_changes > 0` before calling.
     pub fn save_change_file(&self, stamp: Stamp, data: &[u8]) -> Result<()> {
         debug_assert!(self.saved_stamped_changes > 0);
+        // A record at the current stamp would replace that stamp's own undo with a self-link.
+        debug_assert!(
+            stamp > self.header.stamp(),
+            "{}: undo record at stamp {stamp:?} does not follow the vec's stamp {:?}",
+            self.name,
+            self.header.stamp()
+        );
         let path = self.changes_path();
         let mut cached = self.change_stamps.lock();
         // Taken while files change: after an error the next call lists the directory again.

@@ -57,7 +57,7 @@ impl TxRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
                     Ok(state.respond_read(headers, "application/json", move |q| {
                         let source = q.resolve_cpfp(&param.txid)?;
-                        let params = CacheParams::representation(Version::ONE, source.identity());
+                        let params = CacheParams::representation(Version::TWO, source.identity());
                         Ok((source, params))
                     }, |q, source| q.cpfp_json_resolved(source).map(Bytes::from)).await)
                 },
@@ -74,8 +74,8 @@ impl TxRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/tx/{txid}/rbf",
             get_with(
-                async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    Ok(state.respond_json_bound(&headers, Version::ONE, move |q| q.tx_rbf_json_resolved(q.resolve_rbf(&param.txid)?)).await)
+                async |headers: HeaderMap, Path(TxidParam { txid }): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
+                    Ok(state.respond_json_bound(headers, Version::ONE, move |q| q.tx_rbf_json_resolved(q.resolve_rbf(&txid)?)).await)
                 },
                 |op| op
                     .id("get_tx_rbf")
@@ -186,13 +186,13 @@ impl TxRoutes for ApiRouter<AppState> {
             get_with(
                 async |
                     headers: HeaderMap,
-                    Path(path): Path<TxidVout>,
+                    Path(TxidVout { txid, vout }): Path<TxidVout>,
                     _: Empty,
                     RequestState(state): RequestState
                 | {
                     state
-                        .respond_json_bound(&headers, Version::ONE, move |q| {
-                            q.outspend_json(&path.txid, path.vout)
+                        .respond_json_bound(headers, Version::ONE, move |q| {
+                            q.outspend_json(&txid, vout)
                         })
                         .await
                 },
@@ -213,13 +213,13 @@ impl TxRoutes for ApiRouter<AppState> {
             get_with(
                 async |
                     headers: HeaderMap,
-                    Path(param): Path<TxidParam>,
+                    Path(TxidParam { txid }): Path<TxidParam>,
                     _: Empty,
                     RequestState(state): RequestState
                 | {
                     state
-                        .respond_json_bound(&headers, Version::ONE, move |q| {
-                            q.outspends_json(&param.txid)
+                        .respond_json_bound(headers, Version::ONE, move |q| {
+                            q.outspends_json(&txid)
                         })
                         .await
                 },

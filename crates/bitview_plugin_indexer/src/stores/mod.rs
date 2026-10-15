@@ -59,7 +59,7 @@ impl Stores {
         &self,
         addr_type: OutputType,
         range: Range<AddrHash>,
-    ) -> Result<impl DoubleEndedIterator<Item = (AddrHash, TypeIndex)> + '_> {
+    ) -> Result<impl DoubleEndedIterator<Item = Result<(AddrHash, TypeIndex)>> + '_> {
         Ok(self
             .addr_type_to_addr_hash_to_addr_index
             .get(addr_type)
@@ -72,7 +72,7 @@ impl Stores {
         addr_type: OutputType,
         addr_index: TypeIndex,
         before: TxIndex,
-    ) -> Result<impl DoubleEndedIterator<Item = TxIndex> + '_> {
+    ) -> Result<impl DoubleEndedIterator<Item = Result<TxIndex>> + '_> {
         let min = AddrIndexTxIndex::min_for_addr(addr_index);
         let cursor = AddrIndexTxIndex::from((addr_index, before));
         Ok(self
@@ -80,7 +80,7 @@ impl Stores {
             .get(addr_type)
             .data()?
             .range(min..cursor)
-            .map(|(key, _)| key.tx_index()))
+            .map(|record| record.map(|(key, _)| key.tx_index())))
     }
 
     /// Pins the address-unspent stores as ingested: call it with nothing pending.

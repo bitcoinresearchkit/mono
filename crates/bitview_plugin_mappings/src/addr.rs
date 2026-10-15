@@ -38,7 +38,7 @@ pub struct Vecs {
     pub p2a: AddressVecs<P2AAddressIndex, P2ABytes>,
 }
 
-/// Output types without an address: each index and the transaction that created it.
+/// Output types without an address: each type-specific output index, as an identity series.
 #[derive(Clone, Traversable)]
 pub struct OutputVecs {
     /// Bare multisig outputs recognized by Bitcoin script parsing.

@@ -50,6 +50,18 @@ impl FromStr for BlockHash {
     }
 }
 
+// The reference casts between `BlockHash` and `bitcoin::BlockHash` rely on this.
+// `bitcoin::BlockHash` wraps `sha256d::Hash` (`repr(transparent)` over `[u8; 32]`) with the
+// default representation, which guarantees no layout by itself; but at 32 bytes and alignment 1
+// its one 32-byte field can only sit at offset 0 with no padding. Both types then are 32 bytes
+// valid for every bit pattern.
+const _: () = assert!(
+    size_of::<BlockHash>() == 32
+        && size_of::<BitcoinBlockHash>() == 32
+        && align_of::<BlockHash>() == 1
+        && align_of::<BitcoinBlockHash>() == 1
+);
+
 impl From<BitcoinBlockHash> for BlockHash {
     #[inline]
     fn from(value: BitcoinBlockHash) -> Self {
@@ -60,6 +72,7 @@ impl From<BitcoinBlockHash> for BlockHash {
 impl From<&BitcoinBlockHash> for &BlockHash {
     #[inline]
     fn from(value: &BitcoinBlockHash) -> Self {
+        // SAFETY: same layout (see the layout assertion).
         unsafe { mem::transmute(value) }
     }
 }
@@ -74,6 +87,7 @@ impl From<BlockHash> for BitcoinBlockHash {
 impl From<&BlockHash> for &BitcoinBlockHash {
     #[inline]
     fn from(value: &BlockHash) -> Self {
+        // SAFETY: same layout (see the layout assertion).
         unsafe { mem::transmute(value) }
     }
 }

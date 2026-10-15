@@ -7,7 +7,7 @@ use bitview_primitives::{
     AddressState, ByAddrType, DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex,
     FundedAddressData, FundedAddressIndex, TypeIndex,
 };
-use bitview_traversable::Traversable;
+use bitview_traversable::{IndexMap, Traversable, TreeNode};
 use brk_error::{Error, OptionData, Result};
 use brk_types::{Height, OutputType, Version};
 use parking_lot::{RwLock, RwLockReadGuard};
@@ -15,8 +15,9 @@ use rayon::{join, prelude::*};
 use rustc_hash::FxHashMap;
 use tracing::info;
 use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec,
-    OverflowVec, OverflowVecValue, ReadableVec, Rw, Stamp, StorageMode, VecIndex, WritableVec,
+    AnyExportableVec, AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec,
+    MutableVec, OverflowVec, OverflowVecValue, ReadOnlyClone, ReadableVec, Ro, Rw, Stamp,
+    StorageMode, VecIndex, WritableVec,
 };
 
 use super::SourcedAddrData;
@@ -38,21 +39,21 @@ macro_rules! addr_state_vecs {
         ///
         /// Each address type has one four-byte primary vector. Funded addresses and
         /// empty addresses whose lifetime totals do not fit inline point into the two
-        /// shared sidecars.
-        #[derive(Traversable)]
+        /// shared sidecars. Readers outside the crate go through [`AddrStateRead`]: the vectors
+        /// are rewritten in place without excluding direct reads (`with_unread_updates`).
         pub struct AddrStateVecs<M: StorageMode = Rw> {
             $(
                 /// Each address's state, one four-byte record per address index: a funded
                 /// address's slot in `funded`, an empty address's slot in `extended_empty`,
                 /// or an empty address's lifetime totals inline.
-                pub $field: M::Stored<MutableVec<BytesVec<$index, AddressState>>>,
+                pub(crate) $field: M::Stored<MutableVec<BytesVec<$index, AddressState>>>,
             )+
             /// Funded addresses' data (received, sent, capital and transaction and output
             /// counts), by the slot their state points to.
-            pub funded: M::Stored<OverflowVec<FundedAddressIndex, FundedAddressData>>,
+            pub(crate) funded: M::Stored<OverflowVec<FundedAddressIndex, FundedAddressData>>,
             /// Empty addresses' lifetime totals that do not fit inline in their state, by
             /// the slot their state points to.
-            pub extended_empty:
+            pub(crate) extended_empty:
                 M::Stored<OverflowVec<ExtendedEmptyAddressIndex, EmptyAddressData>>,
             /// The length these vectors read through and the addresses the publication changed,
             /// locked while they change (publication, rollback, reset) so a reader's state and
@@ -60,8 +61,20 @@ macro_rules! addr_state_vecs {
             /// rest; an update publishes its changed addresses with its lengths and writes them
             /// after, so a reader taking this lock before its pin reads that publication's state
             /// whenever the length is the pin's.
-            #[traversable(skip)]
             stable: Arc<RwLock<Stable>>,
+        }
+
+        impl ReadOnlyClone for AddrStateVecs {
+            type ReadOnly = AddrStateVecs<Ro>;
+
+            fn read_only_clone(&self) -> Self::ReadOnly {
+                AddrStateVecs {
+                    $($field: self.$field.read_only_clone(),)+
+                    funded: self.funded.read_only_clone(),
+                    extended_empty: self.extended_empty.read_only_clone(),
+                    stable: Arc::clone(&self.stable),
+                }
+            }
         }
 
         impl AddrStateVecs {
@@ -69,10 +82,11 @@ macro_rules! addr_state_vecs {
                 let options = |name, version| {
                     let options = ImportOptions::new(db, name, version)
                         .with_saved_stamped_changes(SAVED_CHECKPOINTS);
-                    // SAFETY: readers (`addr_data`) hold `stable` and read one value at a time.
-                    // Every write excludes them through `stable` but the one after an update's
-                    // publication, which rewrites only changed addresses' values, served from
-                    // `stable` instead. Compute-side readers end before any write.
+                    // SAFETY: readers outside the crate (`AddrStateRead`) hold `stable` and read
+                    // one value at a time. Every write excludes them through `stable` but the one
+                    // after an update's publication, which rewrites only changed addresses'
+                    // values, served from `stable` instead. Compute-side readers end before any
+                    // write.
                     unsafe { options.with_unread_updates() }
                 };
                 let vecs = Self {
@@ -170,11 +184,8 @@ macro_rules! addr_state_vecs {
         }
 
         impl<M: StorageMode> AddrStateVecs<M> {
-            pub fn get_once(
-                &self,
-                addr_type: OutputType,
-                type_index: TypeIndex,
-            ) -> Result<AddressState> {
+            /// An address's primary record, as last written: callers hold `stable`.
+            fn primary(&self, addr_type: OutputType, type_index: TypeIndex) -> Result<AddressState> {
                 match addr_type {
                     $(OutputType::$variant => self.$field.collect_one(type_index.into()),)+
                     _ => None,
@@ -289,38 +300,68 @@ impl AddrStateVecs {
     }
 }
 
+/// Internal storage, served through [`AddrStateRead`]: no series, and no traversal reaches its
+/// vectors (exports read them without the state's lock).
+impl<M: StorageMode> Traversable for AddrStateVecs<M> {
+    fn to_tree_node(&self) -> TreeNode {
+        TreeNode::branch(IndexMap::new())
+    }
+
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::empty()
+    }
+}
+
 impl<M: StorageMode> AddrStateVecs<M> {
     /// Keeps the state and its sidecars from changing while a reader pairs them; holds the
     /// length they read through. Waits out a publication (a few milliseconds), not a write
     /// under the lock (a catch-up's or a rollback's): `None` then.
-    pub fn try_read_stable(&self) -> Option<RwLockReadGuard<'_, Stable>> {
-        self.stable.try_read_for(STABLE_READ_WAIT)
+    pub fn read(&self) -> Option<AddrStateRead<'_, M>> {
+        Some(AddrStateRead {
+            vecs: self,
+            stable: self.stable.try_read_for(STABLE_READ_WAIT)?,
+        })
     }
 
     /// The lock a save holds over these vectors, with the length they read through.
-    pub fn stable(&self) -> Arc<RwLock<Stable>> {
+    pub(crate) fn stable(&self) -> Arc<RwLock<Stable>> {
         Arc::clone(&self.stable)
     }
+}
 
-    /// An address's data and whether it is funded, in the publication `stable` (this state's
-    /// lock, held) belongs to.
+/// The address state under its read lock: the state and its sidecars stay as one save left
+/// them while it lives.
+pub struct AddrStateRead<'a, M: StorageMode> {
+    vecs: &'a AddrStateVecs<M>,
+    stable: RwLockReadGuard<'a, Stable>,
+}
+
+impl<M: StorageMode> AddrStateRead<'_, M> {
+    /// The length the state reads through: none while a rollback's restored values or a failed
+    /// write are not written.
+    pub fn written(&self) -> Option<Height> {
+        self.stable.written
+    }
+
+    /// An address's data and whether it is funded, in the publication this read belongs to.
     pub fn addr_data(
         &self,
-        stable: &Stable,
         addr_type: OutputType,
         type_index: TypeIndex,
     ) -> Result<(FundedAddressData, bool)> {
-        if let Some(changed) = stable
+        if let Some(changed) = self
+            .stable
             .changed
             .as_ref()
             .and_then(|changed| changed.get(addr_type, type_index))
         {
             return Ok(changed.clone());
         }
-        Ok(match self.get_once(addr_type, type_index)?.decode() {
-            DecodedAddrState::Funded(index) => (self.funded.collect_one(index).data()?, true),
+        let vecs = self.vecs;
+        Ok(match vecs.primary(addr_type, type_index)?.decode() {
+            DecodedAddrState::Funded(index) => (vecs.funded.collect_one(index).data()?, true),
             DecodedAddrState::ExtendedEmpty(index) => {
-                (self.extended_empty.collect_one(index).data()?.into(), false)
+                (vecs.extended_empty.collect_one(index).data()?.into(), false)
             }
             DecodedAddrState::Empty(data) => (data.into(), false),
         })

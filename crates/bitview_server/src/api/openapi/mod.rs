@@ -45,7 +45,7 @@ pub fn create_openapi() -> OpenApi {
 - **[Mempool.space](https://mempool.space/docs/api/rest) compatible**: Blocks, transactions, addresses, mining, fees, and mempool endpoints match the mempool.space REST API
 - **Series**: Thousands of on-chain time-series across multiple indexes (date, block height, etc.)
 - **Multiple formats**: JSON and CSV output
-- **LLM-optimized**: [`/llms.txt`](/llms.txt) for discovery, [`/api.json`](/api.json) compact OpenAPI spec for tool use (full spec at [`/openapi.json`](/openapi.json))
+- **LLM-optimized**: [`/llms.txt`](/llms.txt) for discovery, [`/api.json`](/api.json) a compact custom summary of this spec for reading (not OpenAPI); build tools from [`/openapi.json`](/openapi.json)
 - **MCP**: Stateless, read-only access to these operations at [mcp.bitview.space](https://mcp.bitview.space/), with no authentication required
 
 ### Quick start
@@ -230,8 +230,9 @@ All errors return structured JSON with a consistent format:
                 "UTXO Realized Price Distribution. For each (cohort, block) pair, supply is \
                 grouped by the price at which each UTXO was last moved. Distributions are \
                 reconstructed from the UTXO set's history on demand.\n\n\
-                Each bucket carries `supply` (BTC), `realized_cap` (USD, = `price_floor * supply`), \
-                and `unrealized_pnl` (USD, = `(close - price_floor) * supply`, can be negative).\n\n\
+                Each bucket carries `supply` (BTC), `realized_cap` (USD, the sum of each coin's \
+                creation price times its supply, so not `price_floor * supply` once aggregated), \
+                and `unrealized_pnl` (USD, = `close * supply - realized_cap`, can be negative).\n\n\
                 Aggregate with the `agg` query parameter (alias `bucket`):\n\
                 - `raw`: one bucket per rounded price (default).\n\
                 - `lin200` / `lin500` / `lin1000`: linear buckets, $200 / $500 / $1000 wide.\n\

@@ -7,6 +7,7 @@ use brk_exit::Exit;
 use vecdb::ComputeVec;
 
 use super::Vecs;
+use crate::priced::priced_starts;
 
 impl Vecs {
     pub(crate) fn compute(
@@ -25,7 +26,7 @@ impl Vecs {
         for (days, state) in self.ema_stored.iter_mut() {
             state.compute_rolling_ema(
                 starting_lengths.height,
-                lookback.start_vec(days),
+                &priced_starts(lookback.start_vec(days)),
                 close,
                 exit,
             )?;

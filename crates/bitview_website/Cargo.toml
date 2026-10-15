@@ -10,10 +10,11 @@ include = ["src/**/*", "website/**/*", "Cargo.toml", "README.md"]
 
 [dependencies]
 axum = { workspace = true }
+http-body = { workspace = true }
 include_dir = { workspace = true }
 importmap = { workspace = true, features = ["embedded"] }
 serde = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 
 [dev-dependencies]

@@ -3,7 +3,8 @@
 Price-defined UTXO cohorts, part of `bitview_default`.
 Creation-block spot price at or below the previous block's all-chain capitalized
 price selects veteran (bought at a discount); a higher price selects rookie
-(bought at a premium). A zero anchor selects veteran. Membership stays fixed for the output's lifetime.
+(bought at a premium). An undefined anchor (the genesis block, or no priced capital
+yet) selects veteran. Membership stays fixed for the output's lifetime.
 
 Run after Holders, supplying its completed all-chain capitalized-price series plus
 the published UTXO set, block prices and monotonic timestamps. The plugin consumes

@@ -263,6 +263,7 @@ impl Index {
     pub fn index_to_date(&self, i: usize) -> Option<Date> {
         match self {
             Self::Day1 => Some(Date::from(Day1::from(i))),
+            Self::Day3 => Some(Date::from(Day3::from(i).to_timestamp())),
             Self::Week1 => Some(Date::from(Week1::from(i))),
             Self::Month1 => Some(Date::from(Month1::from(i))),
             Self::Year1 => Some(Date::from(Year1::from(i))),

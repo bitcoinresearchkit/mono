@@ -7,7 +7,7 @@ use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, import_cached, ops::SatsToCents};
 use brk_error::Result;
-use brk_types::{Cents, Height, Sats, Version};
+use brk_types::{Cents, CentsSats, Height, Sats, Version};
 use vecdb::{
     BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
     WritableVec,
@@ -174,7 +174,11 @@ impl Balances {
         ctx: &ImportContext<'_>,
         address_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let capital = import_cached(ctx.db, "address_capital_cents", ctx.version + Version::TWO)?;
+        let capital = import_cached(
+            ctx.db,
+            "address_capital_cents",
+            ctx.version + Version::new(3),
+        )?;
         let address_capital = capital.read_only_boxed_clone();
         let totals = ShareTotals {
             supply: address_supply,
@@ -186,14 +190,15 @@ impl Balances {
         })
     }
 
-    /// Writes each band's values and the capital they hold together.
+    /// Writes each band's values and the capital they hold together, summed exactly and
+    /// converted to cents once.
     #[inline(always)]
     pub fn push(&mut self, states: &AmountRange<AddrCohortState>, price: Cents) {
-        let mut capital = Cents::ZERO;
+        let mut capital = CentsSats::ZERO;
         for (band, state) in self.bands.iter_mut().zip(states.iter()) {
             band.push(state, price);
-            capital += state.inner.realized.cap();
+            capital += state.inner.realized.cap_raw();
         }
-        self.capital.push(capital);
+        self.capital.push(capital.to_cents());
     }
 }

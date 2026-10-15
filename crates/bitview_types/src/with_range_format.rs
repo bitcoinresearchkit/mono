@@ -13,15 +13,15 @@ macro_rules! with_range_format {
         $(#[$attr])*
         pub struct $name {
             $($body)*
-            /// Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
+            /// Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
             #[serde(default, alias = "s", alias = "from", alias = "f")]
             start: Option<$crate::RangeIndex>,
 
-            /// Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
+            /// Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
             #[serde(default, alias = "e", alias = "to", alias = "t")]
             end: Option<$crate::RangeIndex>,
 
-            /// Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+            /// Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
             #[serde(
                 default,
                 alias = "l",

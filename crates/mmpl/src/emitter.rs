@@ -6,7 +6,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_mempool::{RbfNode, ReadOnlyState};
 use brk_rpc::Client;
 use brk_types::{BlockHash, FeeRate, NextBlockHash, RecommendedFees, Sats, Txid, VSize};
@@ -74,8 +74,14 @@ impl Emitter {
         }
         let mut removed = 0;
         for txid in self.prev_txids.difference(&txids) {
-            let rbf = state.rbf_for_tx(txid, &tip)?;
-            let reason = match rbf.root.as_ref().and_then(|root| replacer_of(root, txid)) {
+            let replacer = match state.rbf_for_tx(txid, &tip) {
+                Ok(rbf) => rbf.root.as_ref().and_then(|root| replacer_of(root, txid)),
+                // A history past the RBF traversal bounds stays unclassified: retrying the
+                // cycle would hit it again until it ages out, stalling the stream.
+                Err(Error::Internal(_)) => None,
+                Err(e) => return Err(e),
+            };
+            let reason = match replacer {
                 Some(by) => LeaveReason::Replaced { by },
                 None => LeaveReason::Vanished,
             };

@@ -113,7 +113,7 @@ pub struct BlockExtras {
     #[serde(rename = "totalInputAmt")]
     pub total_input_amt: Sats,
 
-    /// Virtual size in vbytes
+    /// Virtual size in vbytes: weight / 4, unrounded
     #[serde(rename = "virtualSize")]
     #[schemars(example = 998000.25)]
     pub virtual_size: f64,

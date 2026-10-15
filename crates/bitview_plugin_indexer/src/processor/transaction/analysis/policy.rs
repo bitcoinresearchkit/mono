@@ -9,7 +9,9 @@ use crate::{TxFeatureFlags, processor::txout::ProcessedOutput};
 
 // Deterministic policy snapshots, not consensus activation heights.
 const LAST_V2_POLICY_HEIGHT: u32 = 863_500;
-const FIRST_V29_POLICY_HEIGHT: u32 = 892_500;
+/// First height under the v29 policy snapshot, which relays one ephemeral dust output in a
+/// zero-fee transaction.
+pub const FIRST_V29_POLICY_HEIGHT: u32 = 892_500;
 const FIRST_V30_POLICY_HEIGHT: u32 = 921_000;
 // rust-bitcoin 0.32 still exposes Core's previous 82-byte policy value.
 const MIN_STANDARD_TX_NONWITNESS_SIZE: u32 = 65;

@@ -406,10 +406,8 @@ impl ComputePluginSet for DefaultPlugins {
         let lengths = self.indexer.prepare_commit()?;
         // Address state changes in place: it is published with the lengths, under the lock its
         // readers take before they pin, so they read the state of the publication they pin.
-        let stable = self.addresses.state.stable();
-        let mut stable = stable.write();
-        self.addresses.publish_state(&mut stable)?;
-        self.indexer.publish(lengths, complete)
+        self.addresses
+            .publish_state_with(|| self.indexer.publish(lengths, complete))
     }
 
     fn write_published(&mut self) -> Result<()> {

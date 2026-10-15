@@ -349,6 +349,11 @@ struct Resolution<'a> {
     value_type_conflicts: Vec<&'a str>,
 }
 
+/// A vec's value type as collisions compare it: its short name and whether it serves `null`.
+fn value_type(vec: &dyn AnyExportableVec) -> (&'static str, bool) {
+    (vec.value_type_to_string(), vec.nullable())
+}
+
 struct Registration<'a> {
     db: &'a str,
     vec: &'a dyn AnyExportableVec,
@@ -367,7 +372,8 @@ impl<'a> Builder<'a> {
     /// resolutions). Two plugins at the same index collide: a later plugin is judged against the
     /// plugins already accepted for that id, in composition order. With the same value type at
     /// every colliding index, its other indexes are added and the colliding ones stay with the
-    /// earlier plugin; with another type, it loses the id entirely.
+    /// earlier plugin; with another type, it loses the id entirely. Nullability is part of the
+    /// type: short names erase `Option`, and a kept copy's catalog entry must say what is served.
     fn resolve(&mut self) -> Resolution<'a> {
         let registrations = std::mem::take(&mut self.registrations);
         let mut seen = FxHashSet::default();
@@ -394,7 +400,7 @@ impl<'a> Builder<'a> {
         names.sort_unstable();
         for name in names {
             let positions = &by_name[name];
-            let mut served: FxHashMap<Index, &'static str> = FxHashMap::default();
+            let mut served: FxHashMap<Index, (&'static str, bool)> = FxHashMap::default();
             let mut served_by = None;
             let mut others = BTreeMap::new();
             let mut start = 0;
@@ -409,9 +415,9 @@ impl<'a> Builder<'a> {
                 let mut matches = true;
                 for &position in own {
                     let registration = &registrations[position];
-                    if let Some(value_type) = served.get(&registration.index) {
+                    if let Some(&served_type) = served.get(&registration.index) {
                         collides = true;
-                        matches &= *value_type == registration.vec.value_type_to_string();
+                        matches &= served_type == value_type(registration.vec);
                     }
                 }
                 if collides {
@@ -424,7 +430,7 @@ impl<'a> Builder<'a> {
                         if let std::collections::hash_map::Entry::Vacant(entry) =
                             served.entry(registration.index)
                         {
-                            entry.insert(registration.vec.value_type_to_string());
+                            entry.insert(value_type(registration.vec));
                             accepted[position] = true;
                         }
                     }

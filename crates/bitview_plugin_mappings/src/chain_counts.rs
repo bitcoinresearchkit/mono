@@ -1,7 +1,6 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{Count, TxInIndex, TxOutIndex};
+use bitview_primitives::{TxInIndex, TxOutIndex};
 use brk_types::{Height, TxIndex, Version};
-use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
 use crate::LazyCumulativeIndexVec;
 
@@ -47,9 +46,5 @@ impl ChainCounts {
 
     pub fn output_source(&self) -> LazyCumulativeIndexVec<Height, TxOutIndex> {
         self.output.clone()
-    }
-
-    pub fn output(&self) -> ReadableBoxedVec<Height, Count> {
-        self.output.read_only_boxed_clone()
     }
 }

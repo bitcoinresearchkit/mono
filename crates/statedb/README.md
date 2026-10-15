@@ -30,9 +30,9 @@ state after block 700,000. Every history starts at genesis.
   a reader racing a rewind errors instead of applying another chain's rows. Same-block spends follow creation, and
   zero-sat outputs retain their counts.
 - Snapshot opening reads identity only. Restores pick snapshots by indexed height
-  before opening any, and readers validate tip identity once. Latest restoration reads the latest full
-  page directly, without diff replay. Ordinary latest pages read straight into the
-  `Amount` array using safe zerocopy traits; there is no intermediate byte buffer.
+  before opening any, and readers validate tip identity once. Latest restoration reads the tip's
+  pages directly, without diff replay: in page-file order, in bounded spans across small runs of
+  stale slots (one span buffer through safe zerocopy traits), copying each page into place.
 - Warm writers retain their state. Producer versions, prefix and block hashes
   decide whether it can be reused; failed updates discard it. No-op advances and
   commits do not rewrite files.
@@ -62,15 +62,22 @@ write invalidates that writer until reopen.
 
 Periodic full states use `snapshots/data` plus `snapshots/pages`, like a paged
 vector with variable-size pages; the compact page index stores exclusive heights
-and offsets and is replaced by rename. Periodic snapshots are permanent; the
-nonperiodic latest one is the `snapshots/tip` file, replaced by rename, and the
-one it replaced stays as `snapshots/prev`. Rewinds discard descendants. A
-periodic snapshot also serves as latest when the update ends on that boundary.
-Tip snapshots are raw for fast reads and writes; periodic pages compress dense
-sats and count columns separately with PCO. The default interval is 5,000 blocks.
-An older layout's latest page inside `data` is dropped on open.
+and offsets and is replaced by rename. Periodic snapshots are permanent (rewinds
+discard descendants) and compress dense sats and count columns separately with
+PCO. The default interval is 5,000 blocks. An older layout's latest page inside
+`data` is dropped on open.
 
-Periodic pages are published as they finish, followed by the final latest page.
+Every update publishes its final state as the tip, raw for fast reads and writes:
+`snapshots/tip` is a page directory, replaced by rename, into the page file
+`snapshots/tips.<generation>` of immutable slots of 256 creation heights (4 KiB).
+A tip appends only the pages its update changed and points the rest at the
+previous tip's slots; once the page file would exceed four times the live pages,
+the next tip starts a fresh generation. The tip it replaced stays as
+`snapshots/prev` for readers of the previous publication, and page files neither
+uses are removed. Tips of an older format are dropped on open and rebuilt by the
+next update; restores use the periodic snapshots meanwhile.
+
+Periodic snapshots are published as they finish, followed by the tip.
 If a block or callback fails before another write, the last completed checkpoint
 remains readable and can be reopened. Failures during file modification invalidate
 the snapshot writer.
@@ -86,11 +93,13 @@ remain validated.
 | Producer index | Exclusive payload end u64: 8 bytes per block |
 | Commit | `ORIGIN03`, version, start height (always 0), record count, data end: 40 bytes |
 | Snapshot page index | `STAPAGE4`, one latest-retention byte, then height u32 and exclusive payload end u64 per page |
-| Snapshot page | `STATER04` for raw or `STATEP04` for PCO; exclusive height, block hash, two producer versions, compressed sats length; payload |
+| Periodic snapshot | `STATEP04`, exclusive height, block hash, two producer versions, compressed sats length; payload |
+| Tip directory | `STATEV05`, exclusive height, block hash, two producer versions, page file generation; then a slot u32 per 256 heights |
+| Tip page file | Slots of 256 raw `{ sats: u64, count: u64 }` amounts (a final page may be shorter) |
 
-Snapshot headers occupy 72 bytes. Raw payloads contain `{ sats: u64, count: u64 }`
-for each creation height. Compressed payloads contain two dense u64 streams using
-PCO level 3, Classic mode, and no delta transform. Creation height is implicit.
+Snapshot and tip headers occupy 72 bytes. Periodic payloads contain two dense u64
+streams using PCO level 3, Classic mode, and no delta transform. Creation height
+is implicit.
 Spend counts are bounded by u32 per origin per block; state and aggregate counts
 remain u64.
 

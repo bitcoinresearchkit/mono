@@ -142,30 +142,14 @@ macro_rules! impl_float_ord_format {
         impl vecdb::Formattable for $t {
             const UNDEFINED: bool = true;
 
-            /// Non-finite: an empty CSV cell.
             #[inline(always)]
             fn write_to(&self, buf: &mut Vec<u8>) {
-                if self.0.is_finite() {
-                    buf.extend_from_slice(
-                        $crate::__private::ryu::Buffer::new()
-                            .format_finite(self.0)
-                            .as_bytes(),
-                    );
-                }
+                vecdb::Formattable::write_to(&self.0, buf)
             }
 
-            /// One finiteness check on the hot path.
             #[inline(always)]
             fn fmt_json(&self, buf: &mut Vec<u8>) {
-                if self.0.is_finite() {
-                    buf.extend_from_slice(
-                        $crate::__private::ryu::Buffer::new()
-                            .format_finite(self.0)
-                            .as_bytes(),
-                    );
-                } else {
-                    buf.extend_from_slice(b"null");
-                }
+                vecdb::Formattable::fmt_json(&self.0, buf)
             }
         }
     };

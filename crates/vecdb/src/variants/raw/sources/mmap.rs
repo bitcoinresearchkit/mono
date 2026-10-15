@@ -38,11 +38,13 @@ where
         Self::new_from_parts(vec.region(), vec.stored_len(), from, to)
     }
 
+    /// The range is bounded by `stored_len` and by the bytes the reader holds, so a length read
+    /// before a truncation (or a wrong one) never reaches past them.
     pub fn new_from_parts(region: &Region, stored_len: usize, from: usize, to: usize) -> Self {
         let reader = region.create_reader();
-        let from = from.min(stored_len);
-        let to = to.min(stored_len);
         let slice = reader.read_from(HEADER_OFFSET);
+        let to = to.min(stored_len).min(slice.len() / Self::SIZE_OF_T);
+        let from = from.min(to);
         let ptr = slice.as_ptr();
 
         Self {

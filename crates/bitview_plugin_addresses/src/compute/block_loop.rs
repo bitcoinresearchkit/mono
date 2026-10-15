@@ -304,6 +304,7 @@ pub fn process_chunk(
         stamp: Stamp::from(last_height),
         with_changes: tail,
         changed: finished.then(Changed::new),
+        published: false,
     });
     cache.flush_into(&mut vecs.state, unpublished.changed.as_mut())?;
     // Every write of the tail keeps its changes, so a reorg can roll back across early flushes.
@@ -330,11 +331,11 @@ fn process_shard(
     lost: &[Lost],
     processed: &mut [(CohortLog, Option<MemberState>)],
 ) {
-    let lost = lost
-        .iter()
-        .filter(|lost| output_type == OutputType::P2PK65 && addrs.contains_key(&lost.type_index))
-        .copied()
-        .collect::<Vec<_>>();
+    let lost = if output_type == OutputType::P2PK65 {
+        lost
+    } else {
+        &[]
+    };
     let mut lookup = AddrTypeLookup::new(addrs);
     let mut transfers = TransferAddressCache::default();
     for (height, ((block, &price), processed)) in
@@ -368,7 +369,12 @@ fn process_shard(
             member.as_mut(),
             &mut transfers,
         );
+        // The duplicate coinbase pays the overwritten output's address in this block, so by now
+        // the address is in this shard's map exactly when the shard owns it.
         for lost in lost.iter().filter(|lost| lost.height == height) {
+            if !lookup.contains(lost.type_index) {
+                continue;
+            }
             process_lost(
                 lost.type_index,
                 lost.value,

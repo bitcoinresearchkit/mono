@@ -12,15 +12,15 @@ use std::{hash::Hasher, sync::Arc};
 
 pub use block_stats::BlockStats;
 use brk_error::{Error as QueryError, Result};
-use brk_types::{
-    FeeRate, MempoolBlock, NextBlockHash, RecommendedFees, Transaction, Txid, TxidPrefix,
-};
-use builder::PrefixIndex;
+use brk_types::{FeeRate, MempoolBlock, NextBlockHash, RecommendedFees, Transaction, Txid};
+use builder::KeyIndex;
 pub use rebuilder::Rebuilder;
 use rustc_hash::FxHasher;
 use serde_json::to_vec;
 pub use snap_tx::SnapTx;
 pub use tx_index::TxIndex;
+
+use crate::key::TxKey;
 
 #[derive(Default)]
 pub struct Snapshot {
@@ -36,7 +36,7 @@ pub struct Snapshot {
     min_fee: FeeRate,
     /// Content identity of the published template statistics and complete bodies.
     pub next_block_hash: NextBlockHash,
-    prefix_to_idx: PrefixIndex,
+    key_to_idx: KeyIndex,
     template_transactions: Arc<[Arc<Transaction>]>,
     content_revision: u64,
     template_missing: bool,
@@ -48,7 +48,7 @@ impl Snapshot {
     fn build(
         txs: Vec<SnapTx>,
         blocks: Vec<Vec<TxIndex>>,
-        prefix_to_idx: PrefixIndex,
+        key_to_idx: KeyIndex,
         min_fee: FeeRate,
     ) -> Self {
         let block_stats = BlockStats::for_blocks(&blocks, &txs);
@@ -60,7 +60,7 @@ impl Snapshot {
             fees,
             min_fee,
             next_block_hash: NextBlockHash::ZERO,
-            prefix_to_idx,
+            key_to_idx,
             template_transactions: Arc::from([]),
             content_revision: 0,
             template_missing: false,
@@ -94,12 +94,12 @@ impl Snapshot {
         self.txs.get(idx.as_usize())
     }
 
-    fn idx_of(&self, prefix: &TxidPrefix) -> Option<TxIndex> {
-        self.prefix_to_idx.get(prefix).copied()
+    fn idx_of(&self, key: &TxKey) -> Option<TxIndex> {
+        self.key_to_idx.get(key).copied()
     }
 
     fn idx_of_txid(&self, txid: &Txid) -> Option<TxIndex> {
-        let index = self.idx_of(&TxidPrefix::from(txid))?;
+        let index = self.idx_of(&TxKey::from(txid))?;
         (self.tx(index)?.txid == *txid).then_some(index)
     }
 

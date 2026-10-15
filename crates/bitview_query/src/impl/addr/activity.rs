@@ -24,6 +24,7 @@ impl Query {
         let last_tx_index = stores
             .addr_tx_indexes_before(output_type, type_index, before)?
             .next_back()
+            .transpose()?
             .ok_or(Error::UnknownAddress)?;
         self.confirmed_status_height_bounded(last_tx_index, safe)
     }

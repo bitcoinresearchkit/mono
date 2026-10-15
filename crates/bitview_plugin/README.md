@@ -35,7 +35,11 @@ runnable default composition lives in
 
 `PluginSet` is a statically composed collection of plugins; `ComputePluginSet`
 adds its typed compute schedule (`compute`, `bootstrap_compute` returning a
-`BootstrapAction`) and `commit`. With the `derive` feature, a plugin derives
+`BootstrapAction`), `commit`, which publishes the computed state, and
+`write_published`, which persists what the publication served from memory: the
+runner calls it after publication, under the exit guard, before the next update.
+A composition extending `DefaultPlugins` delegates `commit` and `write_published`
+to it. With the `derive` feature, a plugin derives
 `Plugin` from its storage (`#[plugin(storage = STORAGE)]`), and `PluginSet` can be
 derived from composition fields: `#[plugin_set(flatten)]` for a nested
 composition, `#[plugin_set(skip)]` for non-plugin state, and

@@ -72,7 +72,7 @@ The markers get replaced with:
 </head>
 ```
 
-Stylesheets are kept only if their `<link rel="stylesheet">` is already between the markers, in the same order (cascade). Running the transform again is idempotent: already hashed hrefs are matched to their files and get the current hash.
+Stylesheets are kept only if their `<link rel="stylesheet">` is already between the markers, in the same order (cascade), with all their attributes (`media`, `crossorigin`...): only the href of a scanned file changes, to its hashed URL; external and unscanned stylesheets stay as written. Tags spanning lines are rewritten on one line. Everything else between the markers (the import map, module preloads, other links) is regenerated; comments are dropped, so a commented-out stylesheet stays out. Running the transform again is idempotent: already hashed hrefs are matched to their files and get the current hash.
 
 Your source files stay unchanged. The browser:
 1. Sees modulepreload → fetches all modules in parallel
@@ -88,7 +88,7 @@ Request:  /scripts/main.a1b2c3d4.js
 Serve:    /scripts/main.js
 ```
 
-The hash is always 8 hex characters before the extension. Set `Cache-Control: immutable, max-age=31536000` for hashed URLs—the content will never change for that hash.
+The hash is always 8 hex characters before the extension. Mark a hashed URL immutable (`Cache-Control: public, max-age=31536000, immutable`) only when the requested hash matches the content you serve (`ImportMap::names_hash(path, &ImportMap::hash(&contents))`). After a deploy changes `main.js`, a request for its previous hashed URL still strips to `main.js` and gets the new bytes: answer it with a revalidating policy (an ETag and `no-cache` or a short `max-age`), or a year-long cache would keep the new content under the old hash.
 
 ## Details
 

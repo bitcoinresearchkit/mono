@@ -38,9 +38,15 @@ where
     }
 
     fn reset_unsaved(&mut self) {
+        if self.vec.unwritten_rollback() {
+            // Back to what the rollback restored (saved as the undo baseline).
+            self.holes.restore();
+            self.updated.restore();
+        } else {
+            *self.holes.current_mut() = Arc::clone(&self.published_holes.read());
+            self.updated.current_mut().clear();
+        }
         self.vec.reset_unsaved();
-        *self.holes.current_mut() = Arc::clone(&self.published_holes.read());
-        self.updated.current_mut().clear();
     }
 
     #[inline]

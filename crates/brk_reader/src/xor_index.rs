@@ -31,6 +31,7 @@ impl XORIndex {
     /// LLVM); only the head/tail straddling alignment are scalar.
     pub fn bytes<'a>(&mut self, bytes: &'a mut [u8], xor_bytes: XORBytes) -> &'a mut [u8] {
         if xor_bytes.is_identity() {
+            self.add_assign(bytes.len());
             return bytes;
         }
         let xb = *xor_bytes;

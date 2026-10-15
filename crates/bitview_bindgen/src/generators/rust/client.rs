@@ -16,7 +16,7 @@ use crate::{
     BitviewClientBase, BitviewClientOptions, BitviewError, DateSeriesEndpoint, FormatResponse, Node,
     Result, SeriesEndpoint, SeriesValue, address::validate_address_payload_for_type,
     address_hash_prefix, address_payload_hash_prefix,
-    client_base::{parse_text, query_pair},
+    client_base::{parse_text, path_segment, query_pair},
 };
 use std::sync::{Arc, OnceLock};
 

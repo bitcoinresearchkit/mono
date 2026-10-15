@@ -68,13 +68,13 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
     /// ```
     pub fn range<R: RangeBounds<usize>>(mut self, range: R) -> Self {
         self.start = match range.start_bound() {
-            Bound::Included(&n) => Some(n as i64),
-            Bound::Excluded(&n) => Some(n as i64 + 1),
+            Bound::Included(&n) => Some(signed(n)),
+            Bound::Excluded(&n) => Some(signed(n).saturating_add(1)),
             Bound::Unbounded => None,
         };
         self.end = match range.end_bound() {
-            Bound::Included(&n) => Some(n as i64 + 1),
-            Bound::Excluded(&n) => Some(n as i64),
+            Bound::Included(&n) => Some(signed(n).saturating_add(1)),
+            Bound::Excluded(&n) => Some(signed(n)),
             Bound::Unbounded => None,
         };
         self.limit = None;
@@ -85,7 +85,9 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
     pub fn take(mut self, n: usize) -> Self {
         match self.end {
             // The server gives `end` precedence over `limit`: narrow the end instead.
-            Some(end) => self.end = Some(end.min(self.start.unwrap_or(0) + n as i64)),
+            Some(end) => {
+                self.end = Some(end.min(self.start.unwrap_or(0).saturating_add(signed(n))))
+            }
             None => self.limit = Some(n),
         }
         self
@@ -96,7 +98,7 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
         (self.start, self.end) = if n == 0 {
             (None, Some(0))
         } else {
-            (Some(-(n as i64)), None)
+            (Some(-signed(n)), None)
         };
         self.limit = None;
         self
@@ -104,7 +106,7 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
 
     /// Skip the first n items. Chain with `take(n)` for a count.
     pub fn skip(mut self, n: usize) -> Self {
-        self.start = Some(n as i64);
+        self.start = Some(signed(n));
         self
     }
 
@@ -156,6 +158,11 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
             format!("{path}?{}", params.join("&"))
         }
     }
+}
+
+/// A count or position as a query value; past `i64::MAX` it saturates (the range ends there).
+fn signed(n: usize) -> i64 {
+    i64::try_from(n).unwrap_or(i64::MAX)
 }
 
 fn required_date_index(position: Option<usize>) -> Result<usize> {

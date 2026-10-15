@@ -529,10 +529,10 @@ export function createChart({ parent, bitview, fitContent }) {
       const state = {
         hasData: false,
         lastTime: -Infinity,
-        /** @type {string | null} */
-        lastStamp: null,
-        /** @type {string | null} */
-        lastTimeStamp: null,
+        /** @type {AnySeriesData["data"] | null} */
+        lastValuesData: null,
+        /** @type {number[] | null} */
+        lastTimeData: null,
         /** @type {number | null} */
         lastVersion: null,
         /** @type {number | null} */
@@ -544,23 +544,26 @@ export function createChart({ parent, bitview, fitContent }) {
         reset() {
           this.hasData = false;
           this.lastTime = -Infinity;
-          this.lastStamp = null;
-          this.lastTimeStamp = null;
+          this.lastValuesData = null;
+          this.lastTimeData = null;
           this.lastVersion = null;
           this.lastTimeVersion = null;
         },
         /**
-         * @param {string | null} valuesStamp
-         * @param {string} timeStamp
-         * @param {number | null} valuesVersion
-         * @param {number} timeVersion
+         * Each parsed response has a new `data` array, while every delivery of a cached one
+         * (rewrapped by the client) shares it, so its identity tells a new response from one
+         * already processed.
+         * @param {AnySeriesData} values
+         * @param {SeriesData<number>} timeData
          */
-        shouldProcess(valuesStamp, timeStamp, valuesVersion, timeVersion) {
+        shouldProcess(values, timeData) {
           if (
-            valuesStamp === this.lastStamp &&
-            timeStamp === this.lastTimeStamp
+            values.data === this.lastValuesData &&
+            timeData.data === this.lastTimeData
           )
             return false;
+          const valuesVersion = values.version;
+          const timeVersion = timeData.version;
           // Version change means data was recomputed, needs full reload
           if (
             valuesVersion !== this.lastVersion ||
@@ -569,8 +572,8 @@ export function createChart({ parent, bitview, fitContent }) {
             this.hasData = false;
             this.lastTime = -Infinity;
           }
-          this.lastStamp = valuesStamp;
-          this.lastTimeStamp = timeStamp;
+          this.lastValuesData = values.data;
+          this.lastTimeData = timeData.data;
           this.lastVersion = valuesVersion;
           this.lastTimeVersion = timeVersion;
           return true;
@@ -759,31 +762,20 @@ export function createChart({ parent, bitview, fitContent }) {
         async function fetchAndProcess() {
           /** @type {SeriesData<number> | null} */
           let timeData = null;
-          /** @type {(number | boolean | null | [number, number, number, number])[] | null} */
-          let valuesData = null;
-          /** @type {string | null} */
-          let valuesStamp = null;
-          /** @type {number | null} */
-          let valuesVersion = null;
+          /** @type {AnySeriesData | null} */
+          let values = null;
 
           function tryProcess() {
             if (seriesGeneration !== generation) return;
-            if (!timeData || !valuesData) return;
-            if (
-              !state.shouldProcess(
-                valuesStamp,
-                timeData.stamp,
-                valuesVersion,
-                timeData.version,
-              )
-            )
-              return;
-            if (timeData.data.length && valuesData.length) {
-              processData(timeData.data, valuesData);
+            if (!timeData || !values) return;
+            if (!state.shouldProcess(values, timeData)) return;
+            if (timeData.data.length && values.data.length) {
+              processData(timeData.data, values.data);
             }
           }
 
-          // Register for shared time data
+          // Register for shared time data, replacing the previous fetch's callback
+          if (state.onTime) time.callbacks.delete(state.onTime);
           state.onTime = (result) => {
             timeData = result;
             tryProcess();
@@ -793,16 +785,12 @@ export function createChart({ parent, bitview, fitContent }) {
 
           const cachedValues = cache.get(valuesEndpoint.path);
           if (cachedValues) {
-            valuesData = cachedValues.data;
-            valuesStamp = cachedValues.stamp;
-            valuesVersion = cachedValues.version;
+            values = cachedValues;
             tryProcess();
           }
           await valuesEndpoint.slice(-MAX_SIZE).fetch((result) => {
             cache.set(valuesEndpoint.path, result);
-            valuesData = result.data;
-            valuesStamp = result.stamp;
-            valuesVersion = result.version;
+            values = result;
             tryProcess();
           });
         }

@@ -1,6 +1,6 @@
 use bitcoin::{Amount, Txid as BitcoinTxid, Weight as BitcoinWeight};
 use brk_error::{Error, Result};
-use brk_types::{Sats, Txid, Weight};
+use brk_types::{Sats, SigOps, Txid, Weight};
 use corepc_types::v17::BlockTemplateTransaction;
 use rustc_hash::FxHashMap;
 
@@ -35,10 +35,12 @@ impl ClientInner {
                 .parse::<BitcoinTxid>()
                 .map_err(|e| Error::Parse(format!("gbt txid: {e}")))?;
             let fee = u64::try_from(raw.fee).map_err(|_| invalid("negative fee"))?;
+            let sigops = u64::try_from(raw.sigops).map_err(|_| invalid("negative sigops"))?;
             result.push(BlockTemplateTx {
                 txid: Txid::from(txid),
                 fee: Sats::from(fee),
                 weight: Weight::from(raw.weight),
+                sigops: SigOps::new(sigops),
                 data: raw.data,
             });
         }

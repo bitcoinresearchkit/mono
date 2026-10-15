@@ -12,39 +12,30 @@ impl Query {
         // The mempool first (it never leads the chain), then the address state, published with the
         // lengths under this lock, then the pin: all of one publication.
         let mempool = self.mempool();
-        let stable = self
+        let state = self
             .plugins()
             .addresses
-            .state
-            .try_read_stable()
+            .read_state()
             .ok_or(Error::StateUpdating)?;
         let pin = self.pin_safe_lengths()?;
         // Only a rollback, a failed write or a long catch-up leaves it at another length.
-        if stable.written != Some(pin.lengths().height) {
+        if state.written() != Some(pin.lengths().height) {
             return Err(Error::StateUpdating);
         }
         let chain_stats = self
             .find_addr_bytes(&bytes, &pin)?
             .map(|(output_type, type_index)| {
-                let (addr_data, is_funded) =
-                    self.plugins()
-                        .addresses
-                        .state
-                        .addr_data(&stable, output_type, type_index)?;
+                let (addr_data, is_funded) = state.addr_data(output_type, type_index)?;
                 addr_chain_stats(type_index, &addr_data, is_funded)
             })
             .transpose()?;
-        drop(stable);
+        drop(state);
         let mempool_stats = mempool
             .map(|m| anchored(m.addr_stats(&bytes, &pin.tip())))
             .transpose()?
             .unwrap_or_default();
-        let chain_stats = match chain_stats {
-            Some(stats) => stats,
-            // Seen only in the mempool.
-            None if mempool_stats.tx_count > 0 => AddressChainStats::default(),
-            None => return Err(Error::UnknownAddress),
-        };
+        // Never confirmed: zeroed stats, as Esplora answers.
+        let chain_stats = chain_stats.unwrap_or_default();
         let balance = pending_balance(
             chain_stats.balance,
             mempool_stats.funded_txo_sum,

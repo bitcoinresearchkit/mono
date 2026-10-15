@@ -34,7 +34,7 @@ use percentiles::{LossPercentileId, Percentiles};
 use price_band_id::PriceBandId;
 use price_bands::PriceBands;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(17));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(18));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable, Plugin)]

@@ -10,8 +10,9 @@ The overlapping all/STH/LTH and four/six-month filters, cost-basis percentiles,
 density and aggregate-relative metrics belong to Holders.
 Age publishes exact disjoint raw capital products so consumers can combine
 bands before rounding weighted prices. These intermediate products stay out of
-the public catalogue. Age exposes total realized cap and each cohort's realized
-price (its exact raw product over its supply, stored), with no cap change/growth,
+the public catalogue. Age exposes total realized cap, each cohort's realized
+price (its exact raw product over its supply, stored) and every band's and
+cohort's capital change (`capital.delta.absolute` and `capital.delta.rate`), with no
 realized-price ratios, SOPR, MVRV, NUPL or presentation-only loss/supply aliases.
 
 Age owns no address state and stores no URPD files. Block-based URPD models and

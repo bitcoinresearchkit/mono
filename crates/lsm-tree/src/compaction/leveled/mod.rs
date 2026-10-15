@@ -47,15 +47,34 @@ fn pick_minimal_compaction(
 
     // NOTE: Look for merges
     if let Some(next_run) = &next_run {
+        // Cap at 50x tables per compaction for now. Window sizes are not
+        // monotonic in position, so skip each oversized window, and stop at the
+        // first length where none fits: every longer window contains a shorter
+        // one.
+        let cap = 50 * table_base_size;
+        // prefix[i] = size of the first i tables; a window of n tables is the
+        // difference across n + 1 consecutive entries.
+        let prefix = std::iter::once(0)
+            .chain(next_run.iter().scan(0, |total, table| {
+                *total += table.file_size();
+                Some(*total)
+            }))
+            .collect::<Vec<u64>>();
+        let fits = move |sizes: &[u64]| {
+            sizes
+                .first()
+                .zip(sizes.last())
+                .is_some_and(|(lo, hi)| hi - lo <= cap)
+        };
+
         (1..=next_run.len())
-            .flat_map(|n| next_run.windows(n))
-            .take_while(|window| {
-                // Cap at 50x tables per compaction for now
-                //
-                // At this point, all compactions are too large anyway
-                // so we can escape early
-                let next_level_size = window.iter().map(Table::file_size).sum::<u64>();
-                next_level_size <= (50 * table_base_size)
+            .take_while(|&n| prefix.windows(n + 1).any(fits))
+            .flat_map(|n| {
+                next_run
+                    .windows(n)
+                    .zip(prefix.windows(n + 1))
+                    .filter(move |(_, sizes)| fits(sizes))
+                    .map(|(window, _)| window)
             })
             .filter_map(|window| {
                 if hidden_set.is_blocked(window.iter().map(Table::id)) {

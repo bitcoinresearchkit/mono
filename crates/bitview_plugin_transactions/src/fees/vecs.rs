@@ -16,7 +16,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `sorted[max(0, floor(n * p) - 1)]`; zero for a block without them.
     /// Time-period indexes take the period's final block.
     pub fee: PerTxDistribution<Sats, M>,
-    /// Canonical block fee total, accumulated in the monetary pass.
+    /// Canonical block fee total: the sum of the block's transaction fees.
     #[traversable(hidden)]
     pub total: M::Stored<PcoVec<Height, Sats>>,
     /// Fees of every block through this one: the denominator of fee chain shares.

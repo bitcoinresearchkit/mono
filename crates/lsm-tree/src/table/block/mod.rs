@@ -176,7 +176,7 @@ impl Block {
             }
         });
 
-        Ok(Self { header, data })
+        Self::validated(header, data)
     }
 
     /// Reads a block from a file.
@@ -219,6 +219,15 @@ impl Block {
             }
         };
 
-        Ok(Self { header, data: buf })
+        Self::validated(header, buf)
+    }
+
+    /// Blocks with items (all but filters) get their trailer checked once, on
+    /// load, so decoders never slice by corrupt restart pointers.
+    fn validated(header: Header, data: Slice) -> Result<Self> {
+        if header.block_type != BlockType::Filter {
+            Trailer::validate(&data)?;
+        }
+        Ok(Self { header, data })
     }
 }

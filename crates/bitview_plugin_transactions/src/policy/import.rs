@@ -19,7 +19,7 @@ impl Vecs {
                 db,
                 "is_nonstandard",
                 "nonstandard_tx_count",
-                version,
+                version + Version::ONE,
                 mappings,
                 window_starts,
             )?,

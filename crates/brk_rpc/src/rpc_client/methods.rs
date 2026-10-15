@@ -68,11 +68,12 @@ impl Client {
         self.0.call_with_retry("getblockheader", &(hash,))
     }
     /// Get every canonical block hash for the inclusive height range
-    /// `start..=end` in a single JSON-RPC batch request. Returns hashes
-    /// in canonical order (`start`, `start+1`, …, `end`). Use this
-    /// whenever resolving more than ~2 heights — one HTTP round-trip
-    /// beats N sequential `get_block_hash` calls once the per-call
-    /// overhead dominates.
+    /// `start..=end`, in sequential JSON-RPC batches of `BATCH_CHUNK` (2,000)
+    /// requests, one round trip each. Returns hashes in canonical order
+    /// (`start`, `start+1`, …, `end`). Use this whenever resolving more than
+    /// ~2 heights: one round trip per batch beats N sequential
+    /// `get_block_hash` calls. A failed batch returns its error at once:
+    /// batches are not retried like single calls.
     pub fn get_block_hashes_range<H1, H2>(&self, start: H1, end: H2) -> Result<Vec<BlockHash>>
     where
         H1: Into<u64>,

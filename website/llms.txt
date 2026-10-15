@@ -9,12 +9,12 @@
 - Authentication: None
 - Browser access: Permissive CORS
 - [Full plain-text reference](https://bitview.space/llms-full.txt)
-- [Compact OpenAPI](https://bitview.space/api.json)
+- [Compact API summary](https://bitview.space/api.json)
 - [Full OpenAPI](https://bitview.space/openapi.json)
 - [Series catalog](https://bitview.space/api/series)
 - [Interactive documentation](https://bitview.space/api)
 
-Use the compact OpenAPI document for tool construction. Use `llms-full.txt` only when a complete readable reference is needed.
+Build tools from the full OpenAPI document; the compact summary is a smaller custom (non-OpenAPI) overview. Use `llms-full.txt` only when a complete readable reference is needed.
 
 ## Series workflow
 

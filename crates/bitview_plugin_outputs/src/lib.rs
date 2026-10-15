@@ -40,7 +40,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Transaction-output rate, including coinbase outputs.
     per_second: LazyPerSecondWindows,
     /// Number of transaction outputs excluding `OP_RETURN` outputs, which are
-    /// provably unspendable.
+    /// provably unspendable. It still counts the other outputs that can never be
+    /// spent: the genesis coinbase output and the two earlier coinbase outputs the
+    /// BIP30 duplicate coinbases overwrote.
     spendable_count: LazyPerBlockCumulativeRolling<Count>,
     /// Transaction outputs by locking-script type, including coinbase outputs
     /// and coinbase transactions.

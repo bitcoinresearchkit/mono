@@ -26,11 +26,12 @@ use vecdb::{Bytes, Formattable};
 /// Bitcoin consensus limits coinbase scriptSig to 2-100 bytes.
 #[derive(Debug, Deref, Clone)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[repr(transparent)]
 pub struct CoinbaseTag(#[cfg_attr(feature = "schemars", schemars(with = "String"))] [u8; 101]);
 
 #[cfg(feature = "storage")]
-// SAFETY: a single `[u8; 101]` field, so its bytes are its in-memory bytes, valid for every bit
-// pattern.
+// SAFETY: `repr(transparent)` over `[u8; 101]`, so its bytes are its in-memory bytes, valid for
+// every bit pattern.
 unsafe impl Bytes for CoinbaseTag {
     type Array = [u8; 101];
     const IS_NATIVE_LAYOUT: bool = true;

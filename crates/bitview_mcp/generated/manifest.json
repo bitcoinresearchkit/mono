@@ -6659,7 +6659,7 @@
       "tool": {
         "name": "get_indexes",
         "title": "List available indexes",
-        "description": "Returns all available indexes with their accepted query aliases. Use any alias when querying series.\n\nREST operation: `GET /api/series/indexes`.",
+        "description": "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.\n\nREST operation: `GET /api/series/indexes`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -10684,15 +10684,15 @@
             },
             "start": {
               "$ref": "#/$defs/RangeIndex",
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`"
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`"
             },
             "end": {
               "$ref": "#/$defs/RangeIndex",
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`"
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`"
             },
             "limit": {
               "$ref": "#/$defs/Limit",
-              "description": "Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`"
+              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`"
             },
             "format": {
               "$ref": "#/$defs/Format",
@@ -10755,7 +10755,7 @@
               ]
             },
             "Limit": {
-              "description": "Maximum number of results to return. Defaults to 100 if not specified.",
+              "description": "Maximum number of results to return; each parameter states what omitting it means.",
               "type": "integer",
               "format": "uint",
               "minimum": 0,
@@ -10858,7 +10858,6 @@
                 "index",
                 "start",
                 "end",
-                "stamp",
                 "data"
               ],
               "type": "object",
@@ -10887,9 +10886,6 @@
                   "minimum": 0,
                   "type": "integer",
                   "format": "uint"
-                },
-                "stamp": {
-                  "type": "string"
                 },
                 "data": {
                   "items": true,
@@ -10955,15 +10951,15 @@
             },
             "start": {
               "$ref": "#/$defs/RangeIndex",
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`"
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`"
             },
             "end": {
               "$ref": "#/$defs/RangeIndex",
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`"
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`"
             },
             "limit": {
               "$ref": "#/$defs/Limit",
-              "description": "Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`"
+              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`"
             },
             "format": {
               "$ref": "#/$defs/Format",
@@ -11026,7 +11022,7 @@
               ]
             },
             "Limit": {
-              "description": "Maximum number of results to return. Defaults to 100 if not specified.",
+              "description": "Maximum number of results to return; each parameter states what omitting it means.",
               "type": "integer",
               "format": "uint",
               "minimum": 0,
@@ -11133,7 +11129,6 @@
                 "index",
                 "start",
                 "end",
-                "stamp",
                 "data"
               ],
               "type": "object",
@@ -11162,9 +11157,6 @@
                   "minimum": 0,
                   "type": "integer",
                   "format": "uint"
-                },
-                "stamp": {
-                  "type": "string"
                 },
                 "data": {
                   "items": true,
@@ -13997,7 +13989,7 @@
             },
             "limit": {
               "$ref": "#/$defs/Limit",
-              "description": "Maximum number of results"
+              "description": "Maximum number of results, 100 when omitted"
             }
           },
           "additionalProperties": false,
@@ -14007,7 +13999,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Limit": {
-              "description": "Maximum number of results to return. Defaults to 100 if not specified.",
+              "description": "Maximum number of results to return; each parameter states what omitting it means.",
               "type": "integer",
               "format": "uint",
               "minimum": 0,

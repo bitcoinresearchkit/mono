@@ -9,14 +9,17 @@ use crate::{Error, OptionData, Query, Result};
 
 /// Target block time in seconds (10 minutes)
 const TARGET_BLOCK_TIME: u64 = 600;
+/// The early-epoch projection window, in blocks (mempool.space's quarter epoch).
+const QUARTER_EPOCH: u32 = 503;
 
 impl Query {
-    /// Live difficulty-adjustment snapshot for the current epoch. Bundles
-    /// progress through the 2016-block window, the projected next-retarget
-    /// percentage from observed pace, an estimated wall-clock retarget time,
-    /// remaining blocks/time, the previous retarget percentage (current epoch
-    /// vs previous epoch first-block difficulty), and the time offset from a
-    /// 600s/block schedule. Output time fields are in milliseconds.
+    /// Live difficulty-adjustment snapshot for the current epoch, as mempool.space computes it
+    /// on mainnet but measured to the tip block's time instead of the wall clock (cacheable per
+    /// block). Bundles progress through the 2016-block window, the projected next-retarget
+    /// percentage from the observed pace, the projection pace (`adjustedTimeAvg`), remaining
+    /// blocks and time at that pace, an estimated wall-clock retarget time, and the previous
+    /// retarget percentage (current vs previous epoch first-block difficulty). Output time
+    /// fields are in milliseconds.
     pub fn difficulty_adjustment(&self) -> Result<DifficultyAdjustment> {
         let pin = self.pin_safe_lengths()?;
         let indexer = self.indexer();
@@ -59,39 +62,6 @@ impl Query {
             TARGET_BLOCK_TIME * 1000
         };
 
-        // Per-block time needed over remaining blocks to land the epoch at
-        // BLOCKS_PER_EPOCH * TARGET_BLOCK_TIME (the convergence path that
-        // client UIs render as adjustedTimeAvg).
-        let target_total = BLOCKS_PER_EPOCH as u64 * TARGET_BLOCK_TIME;
-        let adjusted_time_avg = if remaining_blocks > 0 {
-            target_total.saturating_sub(elapsed_time) / remaining_blocks as u64
-        } else {
-            TARGET_BLOCK_TIME
-        };
-
-        // At the observed pace: the required one above says nothing about when the epoch ends.
-        // Multiplied before dividing: a pace under a millisecond per block still projects time.
-        let remaining_time_ms = if observed {
-            elapsed_time * 1000 * remaining_blocks as u64 / blocks_into_epoch as u64
-        } else {
-            remaining_blocks as u64 * time_avg_ms
-        };
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(u64::from(*current_timestamp));
-        let estimated_retarget_date_ms = now * 1000 + remaining_time_ms;
-
-        let expected_time = blocks_into_epoch as u64 * TARGET_BLOCK_TIME;
-        // A retarget changes difficulty by at most a factor of four either way.
-        let difficulty_change = if elapsed_time > 0 && blocks_into_epoch > 0 {
-            (((expected_time as f64 / elapsed_time as f64) - 1.0) * 100.0).clamp(-75.0, 300.0)
-        } else {
-            0.0
-        };
-
-        let time_offset = expected_time as i64 - elapsed_time as i64;
-
         let previous_retarget = if epoch_start_u32 > 0 {
             let prev_epoch_start = Height::from(epoch_start_u32 - BLOCKS_PER_EPOCH);
             let prev_difficulty = indexer
@@ -116,6 +86,44 @@ impl Query {
             0.0
         };
 
+        // mempool.space's projection pace: early in an epoch, the last quarter epoch's blocks,
+        // those before the retarget scaled by it; otherwise the observed pace. As a span (ms)
+        // over a block count: multiplied before dividing, a pace under a millisecond per block
+        // still projects time.
+        let (span_ms, span_blocks) = if epoch_start_u32 > 0 && blocks_into_epoch < QUARTER_EPOCH {
+            let quarter_start = indexer
+                .vecs()
+                .blocks
+                .timestamp
+                .collect_one(Height::from(current_height_u32 - QUARTER_EPOCH))
+                .data()?;
+            let before_retarget = (*epoch_start_timestamp).saturating_sub(*quarter_start);
+            let scaled = f64::from(before_retarget) * (1.0 + previous_retarget / 100.0);
+            (
+                ((elapsed_time as f64 + scaled) * 1000.0) as u64,
+                u64::from(QUARTER_EPOCH),
+            )
+        } else if observed {
+            (elapsed_time * 1000, u64::from(blocks_into_epoch))
+        } else {
+            (TARGET_BLOCK_TIME * 1000, 1)
+        };
+        let adjusted_time_avg_ms = span_ms / span_blocks;
+        let remaining_time_ms = span_ms * u64::from(remaining_blocks) / span_blocks;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(u64::from(*current_timestamp));
+        let estimated_retarget_date_ms = now * 1000 + remaining_time_ms;
+
+        let expected_time = blocks_into_epoch as u64 * TARGET_BLOCK_TIME;
+        // A retarget changes difficulty by at most a factor of four either way.
+        let difficulty_change = if elapsed_time > 0 && blocks_into_epoch > 0 {
+            (((expected_time as f64 / elapsed_time as f64) - 1.0) * 100.0).clamp(-75.0, 300.0)
+        } else {
+            0.0
+        };
+
         let expected_blocks = elapsed_time as f64 / TARGET_BLOCK_TIME as f64;
 
         Ok(DifficultyAdjustment {
@@ -128,8 +136,9 @@ impl Query {
             previous_time: epoch_start_timestamp,
             next_retarget_height: Height::from(next_retarget_height),
             time_avg: time_avg_ms,
-            adjusted_time_avg: adjusted_time_avg * 1000,
-            time_offset,
+            adjusted_time_avg: adjusted_time_avg_ms,
+            // mempool.space offsets testnet's 20-minute rule only.
+            time_offset: 0,
             expected_blocks,
         })
     }

@@ -29,7 +29,7 @@ const BLOCK_TXS_PAGE_SIZE: u32 = 25;
 const BASE_BLOCK_SCHEMA: &str = "v3";
 const HEADER_SCHEMA: &str = "header-v2";
 const RAW_SCHEMA: &str = "raw-v2";
-pub const V1_BLOCK_SCHEMA: &str = "v1-4";
+pub const V1_BLOCK_SCHEMA: &str = "v1-5";
 
 fn recent_blocks_params(tip: Option<BlockHash>) -> CacheParams {
     let tag = match tip {
@@ -119,17 +119,13 @@ impl AppState {
     async fn respond_block_tip(&self, headers: HeaderMap, hash: bool) -> Result<Response, Error> {
         self.read_block_response(move |q| {
             let snapshot = q.resolve_blocks(None, 1)?;
+            // An empty index has no tip yet.
             let value = if hash {
-                snapshot
-                    .anchor()
-                    .ok_or(QueryError::Internal("Missing chain tip"))?
-                    .to_string()
+                snapshot.anchor().map(|hash| hash.to_string())
             } else {
-                snapshot
-                    .last_height()
-                    .ok_or(QueryError::Internal("Missing chain tip"))?
-                    .to_string()
-            };
+                snapshot.last_height().map(|height| height.to_string())
+            }
+            .ok_or(QueryError::StateUpdating)?;
             // The owned value is the whole representation. In particular, a
             // same-height reorg changes the hash endpoint but not the height.
             let params = CacheParams::revalidate(format!("block-tip-v2-{value}"));

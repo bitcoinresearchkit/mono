@@ -11,4 +11,4 @@ pub use state::{
     AddrMetricsState, AddrReceivePreState, AddrReceiveStatus, AddrSendPreState,
     BlockActivityCounts, ExposedState, MemberState, ReuseState,
 };
-pub use state_vecs::{AddrStateVecs, Changed, Stable};
+pub use state_vecs::{AddrStateRead, AddrStateVecs, Changed, Stable};

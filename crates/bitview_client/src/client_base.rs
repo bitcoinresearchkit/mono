@@ -147,16 +147,27 @@ pub(crate) fn parse_text<T: DeserializeOwned>(text: String) -> Result<T> {
     })
 }
 
-/// `name=value`, the value percent-encoded (RFC 3986 unreserved characters pass through).
+/// `name=value`, the value percent-encoded.
 pub(crate) fn query_pair(name: &str, value: impl Display) -> String {
-    let value = value.to_string();
     let mut pair = format!("{name}=");
-    for byte in value.bytes() {
+    percent_encode(&mut pair, value);
+    pair
+}
+
+/// A path segment, percent-encoded so `/`, `?` or `#` in a value stay inside it.
+pub(crate) fn path_segment(value: impl Display) -> String {
+    let mut segment = String::new();
+    percent_encode(&mut segment, value);
+    segment
+}
+
+/// Appends `value` percent-encoded: RFC 3986 unreserved characters pass through.
+fn percent_encode(out: &mut String, value: impl Display) {
+    for byte in value.to_string().bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-            pair.push(char::from(byte));
+            out.push(char::from(byte));
         } else {
-            write!(pair, "%{byte:02X}").unwrap();
+            write!(out, "%{byte:02X}").unwrap();
         }
     }
-    pair
 }

@@ -532,7 +532,6 @@ impl Query {
                 let reward = coinbase_sats[i];
                 let total_inputs = *input_counts[i];
                 let total_outputs = *output_counts[i];
-                let vsize = weight.to_vbytes_ceil();
                 let total_fees_u64 = u64::from(total_fees);
                 // Bitcoin Core's average fee rate (`getblockstats`): fees over the fee-paying
                 // transactions' weight, without the header, the transaction count and the coinbase.
@@ -632,7 +631,8 @@ impl Query {
                     utxo_set_change: total_outputs as i64 - total_inputs as i64,
                     utxo_set_size: *utxo_set_sizes[i],
                     total_input_amt,
-                    virtual_size: vsize as f64,
+                    // Unrounded, as mempool.space reports it.
+                    virtual_size: u64::from(weight) as f64 / 4.0,
                     price: prices[i],
                     orphans: vec![],
                     first_seen: None,

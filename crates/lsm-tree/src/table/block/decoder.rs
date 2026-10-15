@@ -161,10 +161,10 @@ impl<'a, Item: Decodable<Parsed>, Parsed: ParsedItem<Item>> Decoder<'a, Item, Pa
         let bytes = &self.block.data;
 
         #[expect(
-            unsafe_code,
-            reason = "pos is always retrieved from the binary index which we consider to be trustworthy"
+            clippy::indexing_slicing,
+            reason = "restart pointers are validated when the block is loaded"
         )]
-        let mut cursor = Cursor::new(unsafe { bytes.get_unchecked(pos..) });
+        let mut cursor = Cursor::new(&bytes[pos..]);
 
         #[expect(
             clippy::expect_used,
@@ -297,10 +297,10 @@ impl<'a, Item: Decodable<Parsed>, Parsed: ParsedItem<Item>> Decoder<'a, Item, Pa
             let offset = self.hi_scanner.offset;
 
             #[expect(
-                unsafe_code,
-                reason = "cursor is advanced by read_ operations which check for EOF, and the cursor starts at 0 - the slice is never empty"
+                clippy::indexing_slicing,
+                reason = "a corrupt record extent panics instead of reading out of bounds"
             )]
-            let mut reader = Cursor::new(unsafe { self.block.data.get_unchecked(offset..) });
+            let mut reader = Cursor::new(&self.block.data[offset..]);
 
             #[expect(
                 clippy::cast_possible_truncation,
@@ -326,10 +326,10 @@ impl<'a, Item: Decodable<Parsed>, Parsed: ParsedItem<Item>> Decoder<'a, Item, Pa
             let offset = self.hi_scanner.offset;
 
             #[expect(
-                unsafe_code,
-                reason = "cursor is advanced by read_ operations which check for EOF, and the cursor starts at 0 - the slice is never empty"
+                clippy::indexing_slicing,
+                reason = "a corrupt record extent panics instead of reading out of bounds"
             )]
-            let mut reader = Cursor::new(unsafe { self.block.data.get_unchecked(offset..) });
+            let mut reader = Cursor::new(&self.block.data[offset..]);
 
             #[expect(clippy::expect_used, reason = "base key offset is expected to exist")]
             #[expect(
@@ -367,10 +367,10 @@ impl<'a, Item: Decodable<Parsed>, Parsed: ParsedItem<Item>> Decoder<'a, Item, Pa
         let is_restart = self.hi_scanner.stack.is_empty();
 
         #[expect(
-            unsafe_code,
-            reason = "cursor is advanced by read_ operations which check for EOF, and the cursor starts at 0 - the slice is never empty"
+            clippy::indexing_slicing,
+            reason = "a corrupt record extent panics instead of reading out of bounds"
         )]
-        let mut reader = Cursor::new(unsafe { self.block.data.get_unchecked(offset..) });
+        let mut reader = Cursor::new(&self.block.data[offset..]);
 
         Self::parse_current_item(
             &mut reader,
@@ -396,11 +396,10 @@ impl<Item: Decodable<Parsed>, Parsed: ParsedItem<Item>> Iterator for Decoder<'_,
         let is_restart: bool = self.lo_scanner.remaining_in_interval == 0;
 
         #[expect(
-            unsafe_code,
-            reason = "cursor is advanced by read_ operations which check for EOF, and the cursor starts at 0 - the slice is never empty"
+            clippy::indexing_slicing,
+            reason = "a corrupt record extent panics instead of reading out of bounds"
         )]
-        let mut reader =
-            Cursor::new(unsafe { self.block.data.get_unchecked(self.lo_scanner.offset..) });
+        let mut reader = Cursor::new(&self.block.data[self.lo_scanner.offset..]);
 
         #[expect(
             clippy::cast_possible_truncation,

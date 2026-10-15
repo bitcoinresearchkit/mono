@@ -6,13 +6,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockWeightEntry {
-    /// Average block height in this window
+    /// Average block height in this bucket
     #[schemars(example = 890621)]
     pub avg_height: Height,
-    /// Unix timestamp at the window midpoint
+    /// Average block timestamp in this bucket
     #[schemars(example = 1743631892)]
     pub timestamp: Timestamp,
-    /// Rolling 24h median block weight (weight units)
+    /// Mean block weight in this bucket, rounded half up (weight units)
     #[schemars(example = 3990000)]
     pub avg_weight: Weight,
 }

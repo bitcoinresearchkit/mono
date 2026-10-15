@@ -1,4 +1,4 @@
-use bitview_compute::FixedRatio;
+use bitview_compute::{FixedRatio, NumericValue};
 use bitview_primitives::Percent;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
@@ -19,7 +19,7 @@ where
 
 impl<S, B> LazyDeltaPercentFromHeight<S, B>
 where
-    S: VecValue + Into<f64>,
+    S: NumericValue,
     B: FixedRatio + From<f64>,
 {
     pub(crate) fn from_source(

@@ -9,7 +9,7 @@ use brk_types::Height;
 use vecdb::{ReadableVec, VecIndex};
 
 use super::start_height;
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, ReadPin, Result};
 
 /// Weekly samples, each sharing out the 7 days since the previous one.
 const SAMPLE_DAYS: usize = 7;
@@ -28,7 +28,8 @@ impl Query {
     /// block count over the window via `cumulative(end) - cumulative(start - 1)`
     /// (tip-cumulative minus pre-window-cumulative), sorts pools by count
     /// descending, assigns ranks, and emits the per-pool share. Also bundles
-    /// current / 3d / 1w network hashrate snapshots. Returns zeros early
+    /// current / 3d / 1w network hashrate snapshots, and each pool's empty
+    /// (coinbase-only) blocks over the window. Returns zeros early
     /// when no blocks have been indexed. The window start uses the
     /// timestamp-based lookback vecs (`_24h`, `_3d`, ...) rather than
     /// block-count math; `TimePeriod::All` walks from genesis.
@@ -75,6 +76,7 @@ impl Query {
             }
         }
 
+        let empty_blocks = self.empty_blocks_by_pool(start, &pin)?;
         let last_estimated_hashrate = self.hashrate_at(current_height)?;
         let last_estimated_hashrate3d = self.trailing_hashrate(current_height, 3)?;
         let last_estimated_hashrate1w = self.trailing_hashrate(current_height, 7)?;
@@ -93,7 +95,8 @@ impl Query {
                 } else {
                     0.0
                 };
-                PoolStats::new(pool, block_count, (idx + 1) as u32, share)
+                let empty_blocks = empty_blocks[pool.slug() as usize];
+                PoolStats::new(pool, block_count, empty_blocks, (idx + 1) as u32, share)
             })
             .collect();
 
@@ -104,6 +107,34 @@ impl Query {
             last_estimated_hashrate3d,
             last_estimated_hashrate1w,
         })
+    }
+
+    /// Each pool's coinbase-only blocks from `start` through the pin's tip, by slug: one
+    /// sequential pass over the window's first-transaction boundaries and pools.
+    fn empty_blocks_by_pool(&self, start: usize, pin: &ReadPin) -> Result<[u64; 256]> {
+        let lengths = pin.lengths();
+        let end = lengths.height.to_usize();
+        let first_tx_index = &self.indexer().vecs().transactions.first_tx_index;
+        let mut slugs = self
+            .plugins()
+            .pools
+            .pool
+            .collect_range_at(start, end)
+            .into_iter();
+        let mut empty = [0u64; 256];
+        let mut tally = |tx_count: usize| {
+            let slug = slugs.next().expect("a pool per block");
+            if tx_count == 1 {
+                empty[slug as usize] += 1;
+            }
+        };
+        let first = first_tx_index.collect_one_at(start).data()?;
+        let last = first_tx_index.fold_range_at(start + 1, end, first, |previous, first| {
+            tally(usize::from(first) - usize::from(previous));
+            first
+        });
+        tally(usize::from(lengths.tx_index) - usize::from(last));
+        Ok(empty)
     }
 
     /// All supported pools as `PoolInfo`. Static list, no indexer reads, can't fail.

@@ -54,12 +54,11 @@ impl Query {
                             .saturating_add(pending.spent.len())
                             .saturating_add(1),
                     )
-                    .collect();
+                    .collect::<brk_error::Result<_>>()?;
                 (outpoints, self.block_hash_by_height(height, &pin)?)
             }
-            // Seen only in the mempool.
-            None if !pending.created.is_empty() || !pending.spent.is_empty() => (Vec::new(), tip),
-            None => return Err(Error::UnknownAddress),
+            // Never confirmed: its pending outputs only, as Esplora answers.
+            None => (Vec::new(), tip),
         };
         if outpoints.len() + pending.created.len() > max_utxos + pending.spent.len() {
             return Err(Error::TooManyUtxos { max: max_utxos });

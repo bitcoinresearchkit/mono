@@ -249,11 +249,12 @@ fn sanitize_ident(name: &str) -> String {
     name.replace(['[', ']'], "")
 }
 
+/// The path as a template literal, each parameter percent-encoded as one segment.
 fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
     let mut result = path.to_string();
     for param in path_params {
         let placeholder = format!("{{{}}}", param.name);
-        let interpolation = format!("${{{}}}", param.name);
+        let interpolation = format!("${{encodeURIComponent({})}}", param.name);
         result = result.replace(&placeholder, &interpolation);
     }
     result

@@ -34,13 +34,15 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Remaining satoshis after each block.
     #[traversable(hidden)]
     pub supply: M::Stored<CachedSeries<Height, Sats>>,
-    /// Value of all unspent transaction outputs after the represented block, as Bitcoin Core's
-    /// `gettxoutsetinfo` `total_amount` (provably unspendable outputs left out). Reported in BTC;
-    /// one BTC equals 100,000,000 satoshis.
+    /// Value of all unspent transaction outputs after the represented block, close to Bitcoin
+    /// Core's `gettxoutsetinfo` `total_amount`: `OP_RETURN` outputs are left out, but outputs with
+    /// scripts over 10,000 bytes, which Core also leaves out as unspendable, are counted.
+    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
     #[traversable(rename = "supply")]
     circulating_supply: LazyPerBlock<Bitcoin, Sats>,
-    /// Remaining UTXO count after each block, including zero-value outputs, as Bitcoin Core's
-    /// `gettxoutsetinfo` `txouts` (provably unspendable outputs left out).
+    /// Remaining UTXO count after each block, including zero-value outputs, close to Bitcoin
+    /// Core's `gettxoutsetinfo` `txouts`: `OP_RETURN` outputs are left out, but outputs with
+    /// scripts over 10,000 bytes, which Core also leaves out as unspendable, are counted.
     pub count: PerBlock<Count, M>,
 }
 

@@ -19,3 +19,18 @@ as `MaybeUninit` and get their length only once every element is written,
 instead of `set_len` before initialization. The ANS buffers stay empty when the
 latent variable needs no ANS (they were left uninitialized and never read).
 Output bytes are unchanged.
+
+Upstream fixes kept small and local:
+
+- `mode/dict.rs`: dictionary indices are validated and joined over the batch
+  only (`[..dst.len()]`), not the stale tail of the 256-entry scratch, which
+  made valid short dictionary pages fail as corrupt.
+- `delta/conv1.rs`: a page shorter than the conv1 order pads its delta state
+  with zeros (as consecutive deltas do) instead of panicking.
+- `describers.rs`: float types describe `Dict` mode chunks (they panicked).
+- `standalone/decompressor.rs`: `FileDecompressor::simple_decompress` is public
+  so `with_max_prealloc` reaches a public entry point.
+- `chunk_latent_decompressor.rs`: a latent variable with one bin and no offset
+  bits (a constant page) requests no padded body reader, so its batches skip
+  the 9 KiB zeroed end-of-input buffer (constant pages decode about 30%
+  faster).

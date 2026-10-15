@@ -80,9 +80,6 @@ mod openapi;
 mod topological;
 mod types;
 
-#[cfg(test)]
-mod tests;
-
 pub use client_paths::*;
 pub(crate) use generators::*;
 pub use openapi::*;

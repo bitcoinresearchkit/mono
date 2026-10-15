@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use brk_types::{FeeRate, Txid, TxidPrefix};
+use brk_types::{FeeRate, Txid};
 
-use crate::State;
+use crate::{State, key::TxKey};
 
 use super::{Snapshot, TxIndex, partition};
 
@@ -36,7 +36,7 @@ impl Rebuilder {
     }
 
     fn build_snapshot(state: &State, gbt_txids: &[Txid], min_fee: FeeRate) -> Snapshot {
-        let (txs, prefix_to_idx) = Snapshot::build_txs(&state.txs);
+        let (txs, key_to_idx) = Snapshot::build_txs(&state.txs);
         let (bodies, digests): (Vec<_>, Vec<_>) = gbt_txids
             .iter()
             .filter_map(|txid| state.txs.record(txid))
@@ -46,8 +46,8 @@ impl Rebuilder {
         let block0: Vec<TxIndex> = gbt_txids
             .iter()
             .filter_map(|txid| {
-                prefix_to_idx
-                    .get(&TxidPrefix::from(txid))
+                key_to_idx
+                    .get(&TxKey::from(txid))
                     .copied()
                     .filter(|index| txs[index.as_usize()].txid == *txid)
             })
@@ -63,7 +63,7 @@ impl Rebuilder {
         blocks.extend(rest);
 
         let missing = bodies.len() != gbt_txids.len();
-        let mut snapshot = Snapshot::build(txs, blocks, prefix_to_idx, min_fee);
+        let mut snapshot = Snapshot::build(txs, blocks, key_to_idx, min_fee);
         snapshot.set_template(bodies, &digests, state.txs.content_revision(), missing);
         snapshot
     }

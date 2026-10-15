@@ -61,8 +61,7 @@ mod response_time;
 #[cfg(feature = "series")]
 mod series_bodies;
 mod state;
-#[cfg(feature = "urpd")]
-mod urpd_input;
+mod unacceptable_encoding;
 
 pub use api::ApiRoutes;
 
@@ -197,17 +196,17 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
     let state = AppState::new(query.clone(), shared);
 
     let website_router = WebsiteRouter(state.website.clone());
-    let mut router = ApiRouter::new()
-        .add_api_routes()
-        .layer(from_fn(request_deadline::apply));
+    let mut router = ApiRouter::new().add_api_routes();
     if !state.website.is_enabled() {
         router = router.route("/", get(Redirect::temporary("/api")));
     }
     let router = router
         .with_state(state)
         .merge(website_router)
+        .layer(from_fn(request_deadline::apply))
         .layer(from_fn(json_error::respond))
         .layer(compression_layer())
+        .layer(from_fn(unacceptable_encoding::reject))
         .layer(CorsLayer::permissive())
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
             let msg = panic

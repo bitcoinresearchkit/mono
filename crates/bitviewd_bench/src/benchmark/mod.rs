@@ -19,6 +19,7 @@ use disk::DiskMonitor;
 use parking_lot::Mutex;
 use process::ProcessMonitor;
 use trace::TraceMonitor;
+use tracing::Level;
 
 mod disk;
 mod metadata;
@@ -76,6 +77,12 @@ impl Benchmark {
         chain_height: Height,
         cache_budget: usize,
     ) -> Result<Self> {
+        // The recordings are log events: a filter dropping them would leave the report empty.
+        if !tracing::enabled!(target: "bitview::plugin_timing", Level::INFO) {
+            return Err(Error::Internal(
+                "LOG/RUST_LOG filters out the INFO events the benchmark records",
+            ));
+        }
         let reports = data_path.join("benches");
         fs::create_dir_all(&reports)?;
         let lock = File::create(reports.join(".lock"))?;
@@ -226,6 +233,13 @@ impl Benchmark {
             .finish(elapsed.as_millis(), &self.0.path.join("disk_breakdown.csv"));
         let recorded = monitor_result
             .and(trace_result.map_err(Error::from))
+            .and_then(|timings| match (outcome, timings) {
+                // A finished bootstrap logs plugin timings: none means they were lost.
+                (Outcome::Complete, 0) => {
+                    Err(Error::Internal("Benchmark recorded no plugin timings"))
+                }
+                _ => Ok(()),
+            })
             .and(disk_result.map_err(Error::from));
         // The status comes last: a run that lost recordings is not complete.
         let outcome = match outcome {

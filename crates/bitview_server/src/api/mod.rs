@@ -113,7 +113,9 @@ impl ApiRoutes for ApiRouter<AppState> {
                             .server_tag()
                             .mcp_ignore()
                             .summary("OpenAPI specification")
-                            .description("Full OpenAPI 3.1 specification for this API.")
+                            .description("Full OpenAPI 3.1 specification for this API. Build tools from this document.")
+                            .json_response::<Value>()
+                            .not_modified()
                     },
                 ),
             )
@@ -127,13 +129,14 @@ impl ApiRoutes for ApiRouter<AppState> {
                         op.id("get_api")
                             .server_tag()
                             .mcp_ignore()
-                            .summary("Compact OpenAPI specification")
+                            .summary("Compact API summary")
                             .description(
-                                "Compact OpenAPI specification optimized for LLM consumption. \
-                                 Removes redundant fields while preserving essential API information. \
-                                 The full specification is available at `GET /openapi.json`.",
+                                "Compact custom summary of the OpenAPI specification for LLM reading: \
+                                 types instead of schemas, `returns` instead of responses, no examples \
+                                 or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.",
                             )
                             .json_response::<Value>()
+                            .not_modified()
                     },
                 ),
             )

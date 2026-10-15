@@ -17,6 +17,6 @@ pub(super) struct Inner {
     pub(super) worker: Sender<WorkerMessage>,
     /// Whether a compaction request is queued and not yet picked up by a worker.
     pub(super) compaction_queued: AtomicBool,
-    /// Keeps the database lock alive while handles exist.
-    pub(super) _lock: LockedFileGuard,
+    /// Keeps the database lock alive while handles exist. Declared after `tree` so it drops last.
+    pub(super) lock: LockedFileGuard,
 }

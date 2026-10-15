@@ -17,7 +17,7 @@ and `bitview_distribution`.
   the numeric bounds they need. Generic adapters (`Ident`, `Convert`, `MapOption`,
   `ReverseOperands`) belong to vecdb.
 - `views`: lazy readers over one source and aligned metadata (`LazyIndexedVec`,
-  `LazyLookbackVec`, `LazyPreviousDeltaVec`, `LazyRollingRatioVec`, `LazySmaVec`).
+  `LazyLookbackVec`, `LazyPreviousDeltaVec`, `LazyRollingRatioVec`).
   Each read works through bounded input batches and retains no result.
 - `sources`: index readers (`IndexSources`, `RangeMapVec`), window starts
   (`LazyWindowStartVec`), cached stored series (`CachedSeries`) and running totals

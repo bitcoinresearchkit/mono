@@ -7,7 +7,7 @@ use brk_types::{Height, Version};
 use vecdb::ReadableCloneableVec;
 
 /// Outputs excluding the provably unspendable `OP_RETURN` ones: every output count minus
-/// theirs.
+/// theirs. The genesis and BIP30-overwritten coinbase outputs stay counted.
 pub fn spendable_output_count(
     version: Version,
     op_return_count: &impl ReadableCloneableVec<Height, Count>,
@@ -18,7 +18,7 @@ pub fn spendable_output_count(
         "spendable_output_count_cumulative",
         version,
         op_return_count,
-        &mappings.output_count(),
+        &mappings.output_count_source(),
         |_, op_return, total| total - op_return,
     );
     LazyPerBlockCumulativeRolling::from_cumulative_source(

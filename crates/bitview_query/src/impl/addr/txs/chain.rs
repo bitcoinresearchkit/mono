@@ -1,8 +1,7 @@
-use crate::{ReadPin, check_bound};
 use bitview_primitives::TypeIndex;
 use brk_types::{Address, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
-use crate::{Error, Query, Result};
+use crate::{Error, Query, ReadPin, Result, check_bound, r#impl::addr::parse_addr};
 
 /// A confirmed address transaction page resolved against one best-chain view.
 #[derive(Debug)]
@@ -21,16 +20,26 @@ impl ResolvedAddrChainTxs {
 }
 
 impl Query {
-    /// Resolve an address page once before body loading.
+    /// Resolve an address page once before body loading. A never-confirmed address has an
+    /// empty page, anchored at the tip.
     pub fn resolve_addr_chain_txs(
         &self,
         addr: &Address,
         after_txid: Option<Txid>,
         limit: usize,
     ) -> Result<ResolvedAddrChainTxs> {
+        let bytes = parse_addr(addr)?;
         let pin = self.pin_safe_lengths()?;
-        let (output_type, type_index) = self.resolve_addr(addr, &pin)?;
-        self.resolve_addr_chain_txs_for(output_type, type_index, after_txid, limit, &pin)
+        match self.find_addr_bytes(&bytes, &pin)? {
+            Some((output_type, type_index)) => {
+                self.resolve_addr_chain_txs_for(output_type, type_index, after_txid, limit, &pin)
+            }
+            None => Ok(ResolvedAddrChainTxs {
+                txindices: Vec::new(),
+                anchor_height: None,
+                activity_anchor: pin.tip(),
+            }),
+        }
     }
 
     /// Load a previously resolved page after confirming its chain anchor survived.
@@ -67,7 +76,7 @@ impl Query {
             .addr_tx_indexes_before(output_type, type_index, before)?
             .rev()
             .take(limit)
-            .collect())
+            .collect::<brk_error::Result<_>>()?)
     }
 
     pub(crate) fn resolve_addr_chain_txs_for(

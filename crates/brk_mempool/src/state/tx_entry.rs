@@ -1,4 +1,6 @@
-use brk_types::{FeeRate, MempoolEntryInfo, Sats, Timestamp, Txid, TxidPrefix, VSize, Weight};
+use brk_types::{FeeRate, MempoolEntryInfo, Sats, Timestamp, Txid, VSize, Weight};
+
+use crate::key::TxKey;
 
 /// Per-tx facts needed for projection. Chunk rates live on the snapshot
 /// (linearized fresh each cycle), not here.
@@ -34,7 +36,7 @@ impl TxEntry {
     }
 
     #[inline]
-    pub fn txid_prefix(&self) -> TxidPrefix {
-        TxidPrefix::from(&self.txid)
+    pub fn key(&self) -> TxKey {
+        TxKey::from(&self.txid)
     }
 }

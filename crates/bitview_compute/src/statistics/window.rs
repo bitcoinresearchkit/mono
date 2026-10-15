@@ -64,7 +64,7 @@ impl SortedWindow {
         self.sorted.last()
     }
 
-    /// Percentiles (0.0-1.0, ascending) at the lower nearest rank.
+    /// Percentiles (0.0-1.0, ascending) at the nearest rank.
     #[inline]
     pub(crate) fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
         self.sorted.percentiles(ps)

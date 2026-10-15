@@ -21,6 +21,9 @@ pub struct ReadWriteBaseVec<I, T> {
     pub saved_stamped_changes: u16,
     /// See [`crate::ImportOptions::with_unread_updates`].
     pub unread_updates: bool,
+    /// A rollback's state is not written yet: unsaved changes cancel back to it
+    /// (`previous_stored_len` and the previous pushed values), not to the disk.
+    pub unwritten_rollback: bool,
     /// Sorted stamps of the change files, once listed: `None` until then or after an error.
     pub(super) change_stamps: Mutex<Option<Vec<Stamp>>>,
 }
@@ -81,6 +84,7 @@ where
             previous_stored_len: 0,
             saved_stamped_changes: options.saved_stamped_changes,
             unread_updates: options.unread_updates,
+            unwritten_rollback: false,
             change_stamps: Mutex::default(),
         })
     }
@@ -110,10 +114,8 @@ where
     #[inline]
     pub fn recycle_pushed(&mut self, mut written: Vec<T>) {
         debug_assert!(self.pushed().is_empty());
-        if written.capacity() * size_of::<T>() <= RETAINED_PUSHED_BYTES {
-            written.clear();
-            *self.pushed.current_mut() = written;
-        }
+        clear_pushed(&mut written);
+        *self.pushed.current_mut() = written;
     }
 
     #[inline]
@@ -231,14 +233,34 @@ where
         self.pushed.clear();
         self.read_only.stored_len.set(0);
         self.previous_stored_len = 0;
+        self.unwritten_rollback = false;
         self.read_only.header.update_stamp(Stamp::default());
         self.forget_change_files();
         remove_changes_with::<I>(&self.db(), &self.name)
     }
 
-    pub fn reset_unsaved_base(&mut self) {
+    /// Drops unsaved changes: back to an unwritten rollback's state, else to the `written_len`
+    /// rows on disk.
+    pub fn reset_unsaved_base(&mut self, written_len: usize) {
         self.header.assert_writable();
-        self.pushed.current_mut().clear();
+        if self.unwritten_rollback {
+            self.pushed.restore();
+            self.read_only.stored_len.set(self.previous_stored_len);
+        } else {
+            self.pushed.current_mut().clear();
+            self.read_only.stored_len.set(written_len);
+        }
+    }
+}
+
+/// Empties a written-out pushed buffer: a small per-update allocation is kept for the next
+/// update, a bulk one is freed.
+#[inline]
+pub(crate) fn clear_pushed<T>(pushed: &mut Vec<T>) {
+    if pushed.capacity() * size_of::<T>() <= RETAINED_PUSHED_BYTES {
+        pushed.clear();
+    } else {
+        *pushed = Vec::new();
     }
 }
 

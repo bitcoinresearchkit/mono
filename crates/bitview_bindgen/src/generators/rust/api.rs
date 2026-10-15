@@ -128,15 +128,15 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
     )
     .unwrap();
 
-    let (path, index_arg) = build_path_template(endpoint);
+    let (path, path_args) = build_path_template(endpoint);
     if endpoint.query_params.is_empty() {
         writeln!(
             output,
-            "        self.base.{fetch_method}(&format!(\"{path}\"{index_arg}){body_arg}){decode}"
+            "        self.base.{fetch_method}(&format!(\"{path}\"{path_args}){body_arg}){decode}"
         )
         .unwrap();
     } else {
-        write_query_assembly(output, endpoint, &path, index_arg);
+        write_query_assembly(output, endpoint, &path, &path_args);
         if endpoint.supports_csv && !post {
             writeln!(
                 output,
@@ -214,30 +214,32 @@ fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
     .unwrap();
 }
 
-fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, index_arg: &str) {
+fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, path_args: &str) {
     writeln!(output, "        let mut query = Vec::new();").unwrap();
     for param in &endpoint.query_params {
         let ident = sanitize_ident(&param.name);
-        let is_array = param.param_type.ends_with("[]");
-        if is_array {
+        let name = &param.name;
+        let element = param.param_type.strip_suffix("[]");
+        // `Index` displays its variant (`TxIndex`); the server parses its name (`tx_index`).
+        let value = |v: &str| match element.unwrap_or(&param.param_type) {
+            "Index" => format!("{v}.name()"),
+            _ => v.to_string(),
+        };
+        if element.is_some() {
+            let v = value("v");
             writeln!(
                 output,
-                "        for v in {} {{ query.push(query_pair(\"{}\", v)); }}",
-                ident, param.name
+                "        for v in {ident} {{ query.push(query_pair(\"{name}\", {v})); }}"
             )
             .unwrap();
         } else if param.required {
-            writeln!(
-                output,
-                "        query.push(query_pair(\"{}\", {}));",
-                param.name, ident
-            )
-            .unwrap();
+            let v = value(&ident);
+            writeln!(output, "        query.push(query_pair(\"{name}\", {v}));").unwrap();
         } else {
+            let v = value("v");
             writeln!(
                 output,
-                "        if let Some(v) = {} {{ query.push(query_pair(\"{}\", v)); }}",
-                ident, param.name
+                "        if let Some(v) = {ident} {{ query.push(query_pair(\"{name}\", {v})); }}"
             )
             .unwrap();
         }
@@ -246,7 +248,7 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, in
     writeln!(
         output,
         "        let path = format!(\"{}{{}}\"{}, query_str);",
-        path, index_arg
+        path, path_args
     )
     .unwrap();
 }
@@ -291,15 +293,30 @@ fn param_type_to_rust(param_type: &str) -> String {
     }
 }
 
-/// Build path template and extra format args for Index params.
-fn build_path_template(endpoint: &Endpoint) -> (String, &'static str) {
-    let has_index_param = endpoint
-        .path_params
-        .iter()
-        .any(|p| p.name == "index" && p.param_type == "Index");
-    if has_index_param {
-        (endpoint.path.replace("{index}", "{}"), ", index.name()")
-    } else {
-        (endpoint.path.clone(), "")
+/// The path as a format template (`{}` per path parameter) and its format args, in path order:
+/// `Index` by name, every other value percent-encoded as one segment.
+fn build_path_template(endpoint: &Endpoint) -> (String, String) {
+    let mut template = String::new();
+    let mut args = String::new();
+    let mut rest = endpoint.path.as_str();
+    while let Some(open) = rest.find('{') {
+        let close = open + rest[open..].find('}').expect("unclosed path parameter");
+        let name = &rest[open + 1..close];
+        let param = endpoint
+            .path_params
+            .iter()
+            .find(|param| param.name == name)
+            .expect("undeclared path parameter");
+        let ident = sanitize_ident(name);
+        if param.param_type == "Index" {
+            write!(args, ", {ident}.name()").unwrap();
+        } else {
+            write!(args, ", path_segment({ident})").unwrap();
+        }
+        template.push_str(&rest[..open]);
+        template.push_str("{}");
+        rest = &rest[close + 1..];
     }
+    template.push_str(rest);
+    (template, args)
 }

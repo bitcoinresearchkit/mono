@@ -69,7 +69,7 @@ A single block has too few outputs for a clean signal. The oracle keeps a ring b
   weight(age) = α × (1 − α)^age         default α = 2/7 (~6-block span)
 ```
 
-The EMA is recomputed from the ring buffer each block. This makes the oracle deterministic: since only the last 12 histograms matter, any oracle started from a known price converges to the exact same state after 12 blocks, regardless of prior history. This is what makes checkpointing and restoring possible.
+The EMA is recomputed from the ring buffer each block, so it depends only on the last 12 histograms. That makes restoring possible: `Oracle::from_checkpoint` takes the exact stored reference bin and replays the window's histograms, and reaches the state of an oracle that ran throughout. The reference bin itself does carry history (each search starts from it), so a restore needs that exact bin, not just a nearby price. The slow cold-start regime also adapts its shape-anchoring profile over its whole run, so a restore inside that regime replays it from height 340,000.
 
 ### 4. Score with a 19-point stencil
 
@@ -122,24 +122,24 @@ Parabolic interpolation between the best bin and its two neighbors refines the e
 
 The oracle consumes one pre-built histogram per block via `process_histogram(&hist)`, a `[u32; 2400]` bin-count array, and returns the updated reference bin.
 
-The caller filters as it builds the histogram, applying the [step 1](#1-filter-outputs) rules. `PaymentFilter::for_height(height).histogram(txs)` builds a fresh block histogram from non-coinbase transaction outputs. Incremental live callers use `PaymentFilter::MODERN.for_each_bin(outputs, emit)`, which applies the modern fan-out cap without requiring a height. `PaymentFilter::eligible_bin(sats, output_type)` returns an individual output's bin index, or `None` if filtered. The transaction-level rules include the OP_RETURN drop, the >100 transaction-output fan-out cap below height 630,000, and the >250 cap from height 630,000 onward.
+The caller filters as it builds the histogram, applying the [step 1](#1-filter-outputs) rules. `PaymentFilter::for_height(height).histogram(txs)` builds a fresh block histogram from non-coinbase transaction outputs. Incremental live callers use `PaymentFilter::MODERN.for_each_bin(outputs, emit)`, which applies the modern fan-out cap without requiring a height. The transaction-level rules include the OP_RETURN drop, the >100 transaction-output fan-out cap below height 630,000, and the >250 cap from height 630,000 onward.
 
 The initial seed must be close to the real price at the starting height. The crate includes typed pre-oracle helpers for exchange prices at heights 0..340,000.
 
 ## Configuration
 
-All parameters via `Config` with sensible defaults:
+`Config::for_height` returns the configuration for any height; only `window_size` is public. Its parameters:
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
 | `alpha` | 2/7 | EMA decay rate (~6-block span) |
 | `window_size` | 12 | Ring buffer depth in blocks |
 | `search_below` / `search_above` | 12 / 11 | Search window around previous estimate (bins) |
-| `shape_weight` | 0 | Shape-anchoring restoring-force weight. 0 disables it. `Config::slow()` sets 8 for the cold-start |
+| `shape_weight` | 0 | Shape-anchoring restoring-force weight. 0 disables it. The slow cold-start sets 8 |
 
 The output-filtering rules (1,000-sat dust floor, excluded P2TR, round-BTC exclusion) are not `Config` parameters: they are constants in the `filter` module so the indexer, per-request reconstruction, and mempool all bin identically. See [Input](#input).
 
-Between heights 340,000 and 508,000 the oracle runs a slower cold-start configuration (`Config::slow()`: `alpha` = 0.10, ~19-block span, `window_size` = 40, `shape_weight` = 8). In the thin pre-2018 output mix the fast default octave-locks onto the round-dollar half-price pattern, so the slow EMA and the shape-anchoring restoring force resist that drift. At 508,000 `Oracle::reconfigure` switches to the defaults above (`shape_weight` back to 0), and `Config::for_height` returns the right one for any height.
+Between heights 340,000 and 508,000 the oracle runs a slower cold-start configuration (`alpha` = 0.10, ~19-block span, `window_size` = 40, `shape_weight` = 8). In the thin pre-2018 output mix the fast default octave-locks onto the round-dollar half-price pattern, so the slow EMA and the shape-anchoring restoring force resist that drift. At 508,000 `Oracle::reconfigure` switches to the defaults above (`shape_weight` back to 0), and `Config::for_height` returns the right one for any height.
 
 ## Features
 

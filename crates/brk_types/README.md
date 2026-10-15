@@ -18,7 +18,7 @@ linearization lives in `brk_cpfp`.
 |----------|----------|
 | Block metadata | `Height`, `BlockHash`, `BlkPosition`, `ReadBlock`, `Timestamp` |
 | Transactions | `Txid`, `TxIndex`, `TxIn`, `TxOut`, `VSize`, `Weight`, `RawLockTime` |
-| Addresses | `Addr`, `AddrBytes`, `OutputType`, `P2PKHBytes` |
+| Addresses | `Address`, `AddressBytes`, `OutputType`, `P2PKHBytes` |
 | Values | `Sats`, `Bitcoin`, `Dollars`, `Cents`, `FeeRate` |
 | Mempool | `MempoolInfo`, `MempoolBlock`, `BlockTemplate`, `RecommendedFees`, `CpfpInfo` |
 
@@ -60,10 +60,10 @@ cargo tree -p bitview_catalog
 ## Example
 
 ```rust,ignore
-use brk_types::{Height, Sats};
+use brk_types::Height;
 
 let height = Height::new(840_000);
-let reward = Sats::FIFTY_BTC / 16;
+let reward = height.subsidy();
 let blocks_left = height.left_before_next_halving();
 ```
 

@@ -1,10 +1,14 @@
 use std::mem;
 
-/// The 0-based rank of percentile `p` (0.0-1.0) among `len` sorted values: the lower nearest
-/// rank `max(0, floor(len * p) - 1)`, the one percentile convention of every series.
+/// The 0-based rank of percentile `p` (0.0-1.0) among `len` sorted values: the nearest rank
+/// `max(0, ceil(len * p) - 1)`, the smallest value with at least `p` of the values at or below
+/// it, as the cost-basis percentiles take it. `p` counts in whole parts per million, so a
+/// product that lands on an integer stays exact.
 #[inline]
-pub fn lower_nearest_rank(len: usize, p: f64) -> usize {
-    ((len as f64 * p) as usize).saturating_sub(1)
+pub fn nearest_rank(len: usize, p: f64) -> usize {
+    const PPM: u64 = 1_000_000;
+    let ppm = (p * PPM as f64).round() as u64;
+    ((len as u64 * ppm).div_ceil(PPM) as usize).saturating_sub(1)
 }
 
 /// Exact order-statistics multiset backed by sqrt-decomposed sorted blocks.
@@ -116,10 +120,10 @@ impl ExactOrderStats {
         true
     }
 
-    /// Percentiles (0.0-1.0, ascending) at the lower nearest rank ([`lower_nearest_rank`]),
+    /// Percentiles (0.0-1.0, ascending) at the nearest rank ([`nearest_rank`]),
     /// resolved in one pass. The set must not be empty.
     pub fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
-        let ranks = ps.map(|p| lower_nearest_rank(self.len, p));
+        let ranks = ps.map(|p| nearest_rank(self.len, p));
         let mut out = [0.0; N];
         self.values_at(&ranks, &mut out);
         out

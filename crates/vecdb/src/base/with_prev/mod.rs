@@ -49,6 +49,15 @@ impl<T> WithPrev<T> {
         self.previous.clone_from(&self.current);
     }
 
+    /// Copies previous into current.
+    #[inline]
+    pub(crate) fn restore(&mut self)
+    where
+        T: Clone,
+    {
+        self.current.clone_from(&self.previous);
+    }
+
     #[inline]
     pub(crate) fn take_current(&mut self) -> T
     where

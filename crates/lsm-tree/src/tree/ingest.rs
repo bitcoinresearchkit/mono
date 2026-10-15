@@ -10,6 +10,9 @@ use crate::{
 const ENCODING_LEVEL: usize = 1;
 
 /// A strictly sorted direct-to-table ingestion.
+///
+/// A tree takes one ingestion at a time: concurrent ones could publish out of
+/// sequence-number order, and reads would disagree on which value is newest.
 pub struct Ingestion<'a, K = Slice, V = Slice> {
     tree: &'a Tree,
     writer: MultiWriter<K, V>,

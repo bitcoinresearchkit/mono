@@ -36,3 +36,38 @@ pub fn lock(path: &Path) -> Result<LockedFileGuard> {
 
     Ok(Arc::new(file))
 }
+
+/// An iterator holding the database lock until the tables it reads are released.
+pub struct LockedIter<I> {
+    // Declared first so it drops first: its tables release before the lock.
+    iter: I,
+    _lock: LockedFileGuard,
+}
+
+impl<I> LockedIter<I> {
+    /// Ties `iter` to the database lock.
+    pub fn new(iter: I, lock: &LockedFileGuard) -> Self {
+        Self {
+            iter,
+            _lock: lock.clone(),
+        }
+    }
+}
+
+impl<I: Iterator> Iterator for LockedIter<I> {
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+impl<I: DoubleEndedIterator> DoubleEndedIterator for LockedIter<I> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.iter.next_back()
+    }
+}

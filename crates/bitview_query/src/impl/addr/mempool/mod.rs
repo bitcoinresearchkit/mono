@@ -2,10 +2,7 @@ use brk_mempool::PublishedTx;
 use brk_types::{Address, BlockHash};
 use serde::Serializer;
 
-use crate::{
-    Error, Query, RepresentationId, Result,
-    r#impl::{addr::parse_addr, mempool::anchored},
-};
+use crate::{Error, Query, RepresentationId, Result, r#impl::addr::parse_addr};
 
 /// One address's mempool page, captured from one publication.
 pub struct ResolvedAddrMempoolTxs(Vec<PublishedTx>);
@@ -43,7 +40,8 @@ pub(crate) fn page_identity(anchor: Option<BlockHash>, txs: &[PublishedTx]) -> R
 
 impl Query {
     /// Capture shared transaction bodies only when mempool and indexed chain
-    /// refer to the same completed publication.
+    /// refer to the same completed publication: no confirmed part answers meanwhile, so the
+    /// page is unavailable (`StateUpdating`), not empty.
     pub fn resolve_addr_mempool_txs(
         &self,
         addr: &Address,
@@ -52,10 +50,10 @@ impl Query {
         let bytes = parse_addr(addr)?;
         let mempool = self.mempool().ok_or(Error::MempoolNotAvailable)?;
         let pin = self.pin_safe_lengths()?;
-        Ok(ResolvedAddrMempoolTxs(anchored(mempool.addr_txs(
+        Ok(ResolvedAddrMempoolTxs(mempool.addr_txs(
             &bytes,
             limit,
             &pin.tip(),
-        ))?))
+        )?))
     }
 }

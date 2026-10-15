@@ -58,7 +58,7 @@ fn derive_wrapper(input: TokenStream, pco: bool) -> TokenStream {
 
                 #[inline(always)]
                 fn to_number(self) -> Self::NumberType {
-                    self.0.to_number()
+                    <#inner_type as ::vecdb::Pco>::to_number(self.0)
                 }
 
                 #[inline(always)]
@@ -71,20 +71,26 @@ fn derive_wrapper(input: TokenStream, pco: bool) -> TokenStream {
 
     quote! {
         // SAFETY: native layout only when the inner value has it and this one-field wrapper
-        // matches its size and alignment, so it is the same byte image.
+        // matches its size (asserted) and alignment, so it is the same byte image.
         unsafe impl #impl_generics ::vecdb::Bytes for #struct_name #ty_generics #where_clause {
             type Array = <#inner_type as ::vecdb::Bytes>::Array;
-            const IS_NATIVE_LAYOUT: bool =
+            // Every vector read and write evaluates this, so the size assertion fails the build
+            // for any stored wrapper whose rows would be wider than its serialized bytes.
+            const IS_NATIVE_LAYOUT: bool = {
+                ::core::assert!(
+                    ::core::mem::size_of::<Self>() == ::core::mem::size_of::<#inner_type>(),
+                    "a derived Bytes wrapper must have the size of its inner value",
+                );
                 <#inner_type as ::vecdb::Bytes>::IS_NATIVE_LAYOUT
-                && ::core::mem::size_of::<Self>() == ::core::mem::size_of::<#inner_type>()
-                && ::core::mem::align_of::<Self>() == ::core::mem::align_of::<#inner_type>();
+                    && ::core::mem::align_of::<Self>() == ::core::mem::align_of::<#inner_type>()
+            };
 
             fn to_bytes(&self) -> Self::Array {
-                self.0.to_bytes()
+                <#inner_type as ::vecdb::Bytes>::to_bytes(&self.0)
             }
 
             fn from_bytes(bytes: &[u8]) -> ::vecdb::Result<Self> {
-                Ok(Self(<#inner_type>::from_bytes(bytes)?))
+                Ok(Self(<#inner_type as ::vecdb::Bytes>::from_bytes(bytes)?))
             }
         }
 

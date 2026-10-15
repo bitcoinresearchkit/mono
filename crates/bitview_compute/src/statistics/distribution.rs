@@ -28,7 +28,7 @@ where
     A: VecValue + Copy,
     f64: From<A>,
 {
-    let version = window_starts.version() + values.version() + Version::ONE;
+    let version = window_starts.version() + values.version() + Version::TWO;
     let end = window_starts.len().min(values.len());
     let skip = prepare_computed(
         outputs.as_mut_array().map(|output| &mut **output),

@@ -24,6 +24,11 @@ def _response_error(status: int, data: bytes) -> BitviewError:
     )
 
 
+def _segment(value: Any) -> str:
+    """A path segment, percent-encoded so `/`, `?` or `#` in a value stay inside it."""
+    return quote(str(value), safe='')
+
+
 class BitviewClientBase:
     """Base HTTP client for making requests."""
 
@@ -322,7 +327,6 @@ class SeriesData(Generic[T]):
     type: str
     start: int
     end: int
-    stamp: str
     data: List[T]
 
     @property

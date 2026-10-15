@@ -15,8 +15,8 @@ use crate::{TxRemoval, stores::tx_store::TxRecord};
 
 const RETENTION: Duration = Duration::from_hours(1);
 
-/// Recently-dropped txs retained for reappearance detection (Puller can revive
-/// them without RPC) and post-mine analytics (RBF/replacement chains, etc.).
+/// Recently-dropped txs retained for reappearance (a returning tx keeps its
+/// first sighting) and post-mine analytics (RBF/replacement chains, etc.).
 #[derive(Clone, Default)]
 pub struct TxGraveyard {
     revision: u64,
@@ -136,12 +136,12 @@ impl TxGraveyard {
         }
     }
 
-    /// Remove and return the tombstone, e.g. when the tx comes back to life.
-    pub fn exhume(&mut self, txid: &Txid) -> Option<TxTombstone> {
-        let tombstone = self.tombstones.remove(txid)?;
-        self.revision = self.revision.wrapping_add(1);
-        self.remove_predecessor(txid, &tombstone);
-        Some(tombstone)
+    /// Drop the tombstone of a tx that came back to life.
+    pub fn exhume(&mut self, txid: &Txid) {
+        if let Some(tombstone) = self.tombstones.remove(txid) {
+            self.revision = self.revision.wrapping_add(1);
+            self.remove_predecessor(txid, &tombstone);
+        }
     }
 
     /// Drop tombstones older than RETENTION. O(k) in the number of evictions.

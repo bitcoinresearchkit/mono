@@ -47,7 +47,8 @@ pub trait ComputeRollingStats {
 
     /// Compute rolling EMA with variable window starts.
     /// For each index `i`, computes an exponential moving average with
-    /// `α = 2/(span+1)` where `span = i - window_starts[i] + 1`.
+    /// `α = 2/(span+1)` where `span = i - window_starts[i] + 1`. A one-row window seeds the
+    /// average with its value; a window starting after its row is empty: NaN.
     fn compute_rolling_ema<A>(
         &mut self,
         max_from: Self::I,
@@ -71,13 +72,14 @@ pub trait ComputeRollingStats {
         Self::T: From<A> + Ord + Default,
         A: VecValue;
 
-    /// Computes the all time low of a source.
+    /// Computes the all time low of a source's values above the default: zero and undefined
+    /// values (which sort below it) are skipped, and the low stays at the first value until one
+    /// above the default arrives.
     fn compute_all_time_low<A>(
         &mut self,
         max_from: Self::I,
         source: &impl ReadableVec<Self::I, A>,
         exit: &Exit,
-        exclude_default: bool,
     ) -> Result<()>
     where
         Self::T: From<A> + Ord + Default,
@@ -271,7 +273,7 @@ where
         self.compute_to(
             max_from,
             window_starts.len().min(values.len()),
-            Version::new(3) + window_starts.version() + values.version(),
+            Version::new(4) + window_starts.version() + values.version(),
             |this, range| {
                 let (skip, end) = (range.start, range.end);
 
@@ -284,12 +286,17 @@ where
                 let starts_batch = window_starts.collect_range_at(skip, end);
                 let values_batch = values.collect_range_at(skip, end);
 
-                for (j, (start, value)) in starts_batch.into_iter().zip(values_batch).enumerate() {
-                    let i = skip + j;
-                    let span = (i - start.to_usize() + 1) as f64;
-                    let alpha = 2.0 / (span + 1.0);
+                for (i, (start, value)) in (skip..).zip(starts_batch.into_iter().zip(values_batch))
+                {
                     let value = f64::from(value);
-                    prev = alpha * value + (1.0 - alpha) * prev;
+                    prev = match (i + 1).saturating_sub(start.to_usize()) {
+                        0 => f64::NAN,
+                        1 => value,
+                        span => {
+                            let alpha = 2.0 / (span as f64 + 1.0);
+                            alpha * value + (1.0 - alpha) * prev
+                        }
+                    };
                     let out = V::T::from(prev);
                     debug_assert!(
                         f64::from(out.clone()) == prev || prev.is_nan(),
@@ -314,7 +321,7 @@ where
         V::T: From<A> + Ord + Default,
         A: VecValue,
     {
-        compute_all_time_extreme(self, max_from, source, exit, |prev, v| prev.max(v), false)
+        compute_all_time_extreme(self, max_from, source, exit, |prev, v| prev.max(v))
     }
 
     fn compute_all_time_low<A>(
@@ -322,20 +329,21 @@ where
         max_from: V::I,
         source: &impl ReadableVec<V::I, A>,
         exit: &Exit,
-        exclude_default: bool,
     ) -> Result<()>
     where
         V::T: From<A> + Ord + Default,
         A: VecValue,
     {
-        compute_all_time_extreme(
-            self,
-            max_from,
-            source,
-            exit,
-            |prev, v| prev.min(v),
-            exclude_default,
-        )
+        compute_all_time_extreme(self, max_from, source, exit, |prev, v| {
+            let undefined = V::T::default();
+            if v <= undefined {
+                prev
+            } else if prev <= undefined {
+                v
+            } else {
+                prev.min(v)
+            }
+        })
     }
 }
 
@@ -345,12 +353,11 @@ fn compute_all_time_extreme<V: StoredVec, A, F>(
     source: &impl ReadableVec<V::I, A>,
     exit: &Exit,
     compare: F,
-    exclude_default: bool,
 ) -> Result<()>
 where
     V::T: From<A> + Ord + Default,
     A: VecValue,
-    F: Fn(V::T, V::T) -> V::T + Copy,
+    F: Fn(V::T, V::T) -> V::T,
 {
     let mut prev = None;
     vec.compute_transform(
@@ -366,19 +373,8 @@ where
                     v.clone()
                 });
             }
-            let extreme = compare(prev.as_ref().unwrap().clone(), v.clone());
-
-            let next = if !exclude_default || extreme != V::T::default() {
-                extreme
-            } else {
-                // Keep the non-default value for future comparisons
-                if v != V::T::default() {
-                    v
-                } else {
-                    prev.as_ref().unwrap().clone()
-                }
-            };
-            prev.replace(next.clone());
+            let next = compare(prev.take().unwrap(), v);
+            prev = Some(next.clone());
             (i, next)
         },
         exit,

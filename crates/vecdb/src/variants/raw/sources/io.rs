@@ -57,7 +57,7 @@ where
     }
 
     #[inline(always)]
-    fn remaining_file_bytes(&self) -> usize {
+    pub(crate) fn remaining_file_bytes(&self) -> usize {
         self.end_offset - self.file_offset
     }
 
@@ -88,10 +88,13 @@ where
         let access = region.read_lock();
         let region_meta = region.meta();
         let region_start = region_meta.start();
+        // Bounded by the bytes the lock now holds: `stored_len` may predate a truncation.
+        let to = to
+            .min(stored_len)
+            .min((region_meta.byte_len() - HEADER_OFFSET) / Self::SIZE_OF_T);
         drop(region_meta);
         let start_offset = region_start + HEADER_OFFSET;
-        let from = from.min(stored_len);
-        let to = to.min(stored_len);
+        let from = from.min(to);
 
         let from_offset = start_offset + from * Self::SIZE_OF_T;
         let end_offset = start_offset + to * Self::SIZE_OF_T;

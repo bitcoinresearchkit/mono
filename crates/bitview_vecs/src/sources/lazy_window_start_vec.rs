@@ -58,6 +58,8 @@ impl LazyWindowStartVec {
         days: u64,
         timestamps: &(impl ReadableCloneableVec<Height, Timestamp> + ?Sized),
     ) -> Self {
+        // A window holds at least its own height: its start is never past it.
+        debug_assert!(days > 0, "{name}: a window spans at least one day");
         Self {
             name: Arc::from(name),
             version,
@@ -178,7 +180,6 @@ impl LazyWindowStartVec {
     }
 
     /// Window start for `values[index - lo]` searched over `[0, index]`.
-    /// May return `index + 1` when the window is empty (zero duration).
     fn prefix_start(&self, lo: usize, values: &[Timestamp], index: usize) -> usize {
         let current = values[index - lo];
         lo + values[..=index - lo].partition_point(|&older| self.is_expired(current, older))

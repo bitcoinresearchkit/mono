@@ -31,8 +31,8 @@ pub struct AddressChainStats {
     #[schemars(example = 10)]
     pub tx_count: u32,
 
-    /// Index of this address within its type on the blockchain, null for an address seen only in
-    /// the mempool
+    /// Index of this address within its type on the blockchain, null for an address without
+    /// confirmed activity
     #[schemars(example = TypeIndex::new(0))]
     pub type_index: Option<TypeIndex>,
 

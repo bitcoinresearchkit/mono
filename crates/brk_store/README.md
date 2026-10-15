@@ -9,8 +9,7 @@ Persist and query Bitcoin index data (address→outputs, txid→height, etc.) wi
 ## Key Features
 
 - **Workload-optimized configs**: `Kind::Random` (bloom filters, pinned blocks), `Kind::Recent` (point-read optimized), and `Kind::Vec` (append-heavy)
-- **Write batching**: Accumulate puts/deletes in memory, then move them into an owned ingestion batch
-- **Tiered caching**: Optional bounded in-memory batches before hitting disk
+- **Write batching**: The caller decides the batch: puts/deletes accumulate in memory (unbounded) until it takes them as an owned ingestion, whose successful completion persists and publishes them
 - **Fixed-width records**: Key and value types define their encoded arrays for ingestion, reads, and background compaction; `Unit` uses zero bytes
 - **Version management**: Automatic schema-version validation when opening a store
 

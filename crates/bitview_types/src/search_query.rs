@@ -8,7 +8,7 @@ use crate::{Limit, SeriesName};
 pub struct SearchQuery {
     /// Search query string
     pub q: SeriesName,
-    /// Maximum number of results
+    /// Maximum number of results, 100 when omitted
     #[serde(default)]
     pub limit: Limit,
 }

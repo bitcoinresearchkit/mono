@@ -30,8 +30,15 @@ publishes it and calls `chain.published()`.
 `tick` drives one cycle manually, published at the node's tip; it resolves confirmed prevouts
 with `getrawtransaction`, so Bitcoin Core must have `txindex=1`.
 
-A failed or incomplete poll publishes nothing: readers keep the last completed publication. A
-panic mid-cycle restores the private state from that publication before the next one.
+A failed poll, one whose tip moved mid-poll, or one not at the chain's published tip publishes
+nothing: readers keep the last publication. Otherwise membership and projection advance
+independently. The projection (`fees`, `block_stats`, `block_template_source`,
+`resolve_block_template_diff`) advances with every poll whose whole template is loaded.
+Membership (every other read, CPFP and RBF included, and `tip()`) advances only when the poll's
+view is complete: the template holds no transactions absent from the raw listing and every
+listed transaction is loaded (the per-cycle fetch cap can defer some). One loaded publication
+can therefore pair a newer projection with older membership. A panic mid-cycle restores the
+private state from the last publication before the next one.
 
 ## Read API
 

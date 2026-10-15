@@ -22,8 +22,6 @@ pub struct SeriesData<T = Value> {
     pub start: usize,
     /// End index (exclusive) of the returned range
     pub end: usize,
-    /// ISO 8601 timestamp of when the response was generated
-    pub stamp: String,
     /// The series data. A value is `null` where it is missing (a period without blocks) or
     /// undefined (e.g. NaN, a ratio over zero); CSV leaves such a cell empty.
     pub data: Vec<T>,

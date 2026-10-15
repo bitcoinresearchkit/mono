@@ -1,5 +1,4 @@
 use std::{
-    f64,
     hash::{Hash, Hasher},
     ops::{Div, Mul},
 };
@@ -173,6 +172,8 @@ impl From<Dollars> for u128 {
     }
 }
 
+/// An undefined `self` stays undefined; subtracting an undefined `rhs` subtracts zero (running
+/// sums stay alive).
 impl CheckedSub for Dollars {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         if self.is_nan() {
@@ -182,16 +183,6 @@ impl CheckedSub for Dollars {
                 .checked_sub(CentsSigned::from(rhs))
                 .map(Dollars::from)
         }
-    }
-}
-
-impl CheckedSub<usize> for Dollars {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
-        Some(Dollars::from(
-            CentsSigned::from(self)
-                .checked_sub(CentsSigned::from(rhs))
-                .unwrap(),
-        ))
     }
 }
 

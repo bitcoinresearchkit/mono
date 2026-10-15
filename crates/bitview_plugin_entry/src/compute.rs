@@ -21,8 +21,10 @@ fn supply(amount: Amount) -> SupplyState {
     }
 }
 
+/// Veteran at or below the previous block's capitalized price, and while it is undefined (no
+/// priced capital yet).
 fn classify(price: Cents, previous: Cents) -> EntryPrice {
-    EntryPrice::from_is_discount(previous == Cents::ZERO || price <= previous)
+    EntryPrice::from_is_discount(previous.is_nan() || price <= previous)
 }
 
 impl ComputePlugin for Vecs {
@@ -93,7 +95,7 @@ impl ComputePlugin for Vecs {
             classify(
                 live.prices[h],
                 h.checked_sub(1)
-                    .map_or(Cents::ZERO, |p| anchors[p - anchor_start]),
+                    .map_or(Cents::NAN, |p| anchors[p - anchor_start]),
             )
         }));
         if !reuse {

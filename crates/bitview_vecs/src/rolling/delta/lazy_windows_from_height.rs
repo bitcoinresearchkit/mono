@@ -24,7 +24,7 @@ where
 
 impl<S, C, B> LazyRollingDeltasFromHeight<S, C, B>
 where
-    S: VecValue + Into<f64>,
+    S: NumericValue,
     C: NumericValue + JsonSchema + From<f64>,
     B: FixedRatio + From<f64>,
 {
@@ -35,6 +35,7 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
         indexes: &IndexSources,
     ) -> Self {
+        let version = version + super::VERSION;
         let (absolute, rate) = window_starts
             .map_with_suffix(|suffix, window_start| {
                 let name = format!("{name}_{suffix}");

@@ -156,66 +156,170 @@ impl ImportMap {
         }
     }
 
-    /// Transform HTML content between `<!-- IMPORTMAP -->` and `<!-- /IMPORTMAP -->` markers.
+    /// Transform HTML content between `<!-- IMPORTMAP -->` and `<!-- /IMPORTMAP -->` markers:
+    /// its stylesheet links stay, in order and with their attributes, the hrefs of scanned files
+    /// hashed; the import map and module preloads are regenerated after them.
     pub fn transform_html(&self, html: &str) -> Option<String> {
-        if self.0.is_empty() {
-            return Self::replace_between_markers(html, "");
-        }
+        let start = html.find(Self::MARKER_OPEN)? + Self::MARKER_OPEN.len();
+        let end = html[start..].find(Self::MARKER_CLOSE)? + start;
 
-        // Partition by file type
-        let mut css = BTreeMap::new();
-        let mut js = BTreeMap::new();
-        for (url, hashed) in &self.0 {
-            match Path::new(url).extension().and_then(|e| e.to_str()) {
-                Some("css") => {
-                    css.insert(url.as_str(), hashed);
-                }
-                Some("js" | "mjs") => {
-                    js.insert(url, hashed);
-                }
-                _ => {}
-            }
-        }
-
-        // Only include CSS already in HTML (preserves order for cascade correctness).
-        // Hrefs may already be hashed (re-transforming output): match them by their original URL.
         let mut content = String::new();
-        for url in Self::extract_href_values(html, "stylesheet") {
-            let hashed = css.remove(url).or_else(|| {
-                let original = Self::strip_hash(Path::new(url))?;
-                css.remove(original.to_str()?)
-            });
-            if let Some(hashed) = hashed {
-                writeln!(content, r#"<link rel="stylesheet" href="{hashed}">"#).unwrap();
+        for tag in Self::link_tags(&html[start..end]) {
+            if let Some(tag) = self.stylesheet_link(tag) {
+                writeln!(content, "{tag}").unwrap();
             }
         }
 
-        let json = to_string_pretty(&SerdeJsonJson!({ "imports": js })).ok()?;
-        write!(content, "<script type=\"importmap\">\n{json}\n</script>").unwrap();
-        for url in js.values() {
-            write!(content, "\n<link rel=\"modulepreload\" href=\"{url}\">").unwrap();
+        let js: BTreeMap<&str, &str> = self
+            .0
+            .iter()
+            .filter(|(url, _)| {
+                matches!(
+                    Path::new(url).extension().and_then(|e| e.to_str()),
+                    Some("js" | "mjs")
+                )
+            })
+            .map(|(url, hashed)| (url.as_str(), hashed.as_str()))
+            .collect();
+        if !js.is_empty() {
+            let json = to_string_pretty(&SerdeJsonJson!({ "imports": js })).ok()?;
+            write!(content, "<script type=\"importmap\">\n{json}\n</script>").unwrap();
+            for url in js.values() {
+                write!(content, "\n<link rel=\"modulepreload\" href=\"{url}\">").unwrap();
+            }
         }
 
         Self::replace_between_markers(html, &content)
     }
 
-    /// Extract href values from link tags with the given rel attribute.
-    fn extract_href_values<'a>(html: &'a str, rel: &str) -> impl Iterator<Item = &'a str> {
-        let start = html.find(Self::MARKER_OPEN).unwrap_or(0);
-        let end = html.find(Self::MARKER_CLOSE).unwrap_or(html.len());
+    /// Each `<link ...>` tag (any case, may span lines) outside HTML comments.
+    fn link_tags(html: &str) -> impl Iterator<Item = &str> {
+        let mut rest = html;
+        std::iter::from_fn(move || {
+            loop {
+                let tag = &rest[rest.find('<')?..];
+                if let Some(comment) = tag.strip_prefix("<!--") {
+                    rest = comment.find("-->").map_or("", |end| &comment[end + 3..]);
+                    continue;
+                }
+                let is_link = tag
+                    .get(1..5)
+                    .is_some_and(|name| name.eq_ignore_ascii_case("link"))
+                    && tag[5..]
+                        .starts_with(|c: char| c.is_ascii_whitespace() || c == '/' || c == '>');
+                if !is_link {
+                    rest = &tag[1..];
+                    continue;
+                }
+                let len = Self::outside_quotes(tag)
+                    .find(|&(_, c)| c == '>')
+                    .map_or(tag.len(), |(i, _)| i + 1);
+                rest = &tag[len..];
+                return Some(&tag[..len]);
+            }
+        })
+    }
 
-        let double_quoted = format!(r#"rel="{rel}""#);
-        let single_quoted = format!(r#"rel='{rel}'"#);
-        html.get(start..end)
-            .unwrap_or("")
-            .lines()
-            .filter(move |line| line.contains(&double_quoted) || line.contains(&single_quoted))
-            .filter_map(|line| {
-                let href_start = line.find("href=\"").or_else(|| line.find("href='"))? + 6;
-                let quote = line.as_bytes().get(href_start - 1).copied()? as char;
-                let href_end = line[href_start..].find(quote)?;
-                Some(&line[href_start..href_start + href_end])
+    /// A stylesheet link on one line, its href hashed when it names a scanned file (hashed
+    /// already or not); `None` for other links, which are regenerated.
+    fn stylesheet_link(&self, tag: &str) -> Option<String> {
+        let mut tag = Self::one_line(tag);
+        let mut rel = None;
+        let mut href = None;
+        let attributes = tag["<link".len()..]
+            .trim_end_matches('>')
+            .trim_end_matches('/');
+        let mut quote = None;
+        for attribute in attributes.split(|c| {
+            match quote {
+                Some(q) if c == q => quote = None,
+                None if c == '"' || c == '\'' => quote = Some(c),
+                _ => {}
+            }
+            c == ' ' && quote.is_none()
+        }) {
+            let (name, value) = attribute.split_once('=').unwrap_or((attribute, ""));
+            if name.eq_ignore_ascii_case("rel") {
+                rel = Some(Self::unquote(value));
+            } else if name.eq_ignore_ascii_case("href") {
+                let offset = attribute.as_ptr() as usize - tag.as_ptr() as usize;
+                href = Some((offset..offset + attribute.len(), Self::unquote(value)));
+            }
+        }
+        if !rel?
+            .split_ascii_whitespace()
+            .any(|rel| rel.eq_ignore_ascii_case("stylesheet"))
+        {
+            return None;
+        }
+        if let Some((range, url)) = href
+            && let Some(hashed) = self.get(url).or_else(|| {
+                let original = Self::strip_hash(Path::new(url))?;
+                self.get(original.to_str()?)
             })
+        {
+            tag.replace_range(range, &format!("href=\"{hashed}\""));
+        }
+        Some(tag)
+    }
+
+    /// Whitespace outside quoted values collapsed to one space, and dropped around `=` and
+    /// before `>`.
+    fn one_line(tag: &str) -> String {
+        let mut out = String::with_capacity(tag.len());
+        let mut quote = None;
+        let mut space = false;
+        for c in tag.chars() {
+            match quote {
+                Some(q) => {
+                    if c == q {
+                        quote = None;
+                    }
+                }
+                None if c.is_whitespace() => {
+                    space = true;
+                    continue;
+                }
+                None => {
+                    if space && c != '=' && c != '>' && !out.ends_with('=') {
+                        out.push(' ');
+                    }
+                    if c == '"' || c == '\'' {
+                        quote = Some(c);
+                    }
+                }
+            }
+            space = false;
+            out.push(c);
+        }
+        out
+    }
+
+    /// Characters with their byte offsets, skipping quoted values.
+    fn outside_quotes(s: &str) -> impl Iterator<Item = (usize, char)> {
+        let mut quote = None;
+        s.char_indices().filter(move |&(_, c)| match quote {
+            Some(q) => {
+                if c == q {
+                    quote = None;
+                }
+                false
+            }
+            None => {
+                if c == '"' || c == '\'' {
+                    quote = Some(c);
+                }
+                quote.is_none()
+            }
+        })
+    }
+
+    fn unquote(value: &str) -> &str {
+        value
+            .strip_prefix('"')
+            .and_then(|v| v.strip_suffix('"'))
+            .or_else(|| value.strip_prefix('\'').and_then(|v| v.strip_suffix('\'')))
+            .unwrap_or(value)
     }
 
     fn replace_between_markers(html: &str, content: &str) -> Option<String> {

@@ -32,6 +32,10 @@ impl RawBodyPermit {
     /// stays bounded either way.
     const RETAINED_FROM: usize = 256 * 1024;
 
+    pub fn retains(len: usize) -> bool {
+        len >= Self::RETAINED_FROM
+    }
+
     pub fn try_acquire(budget: &Arc<Semaphore>) -> Option<Self> {
         budget.clone().try_acquire_owned().ok().map(|permit| Self {
             _permit: Arc::new(permit),
@@ -63,7 +67,7 @@ impl RawBodyPermit {
         bytes: Bytes,
         content_headers: impl FnOnce(&mut HeaderMap),
     ) -> Response {
-        if bytes.len() < Self::RETAINED_FROM {
+        if !Self::retains(bytes.len()) {
             return AppState::assemble_response(params, bytes, content_headers);
         }
         let response = AppState::assemble_response(params, self.bytes(bytes), content_headers);
@@ -76,7 +80,7 @@ impl RawBodyPermit {
             .body()
             .size_hint()
             .exact()
-            .is_some_and(|len| len < Self::RETAINED_FROM as u64);
+            .is_some_and(|len| !Self::retains(len as usize));
         if !small {
             response.extensions_mut().insert(self);
         }

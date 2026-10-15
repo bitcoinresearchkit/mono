@@ -16,13 +16,16 @@ pub struct Carrier {
     oversized_data_bytes: Bytes,
     vsize: VSize,
     fees: Sats,
+    /// Coinbase transactions are never relayed: the relay-policy shapes skip them.
+    coinbase: bool,
 }
 
 impl Carrier {
-    pub fn new(vsize: VSize, fees: Sats) -> Self {
+    pub fn new(vsize: VSize, fees: Sats, coinbase: bool) -> Self {
         Self {
             vsize,
             fees,
+            coinbase,
             ..Self::default()
         }
     }
@@ -53,6 +56,10 @@ impl Carrier {
             let kind_index = kinds.trailing_zeros() as usize;
             self.add_to(&mut by_kind[kind_index]);
             kinds &= kinds - 1;
+        }
+
+        if self.coinbase {
+            return;
         }
 
         if self.oversized_output_count > 0 {

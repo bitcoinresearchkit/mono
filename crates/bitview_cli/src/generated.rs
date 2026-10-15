@@ -101,8 +101,8 @@ pub static COMMANDS: &[Command] = &[
         name: "get-api",
         method: "GET",
         path: "/api.json",
-        summary: "Compact OpenAPI specification",
-        description: "Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.",
+        summary: "Compact API summary",
+        description: "Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -509,7 +509,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/health",
         summary: "Health check",
-        description: "Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index waits until the request deadline, then returns 504. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.",
+        description: "Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -534,7 +534,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/indexes",
         summary: "List available indexes",
-        description: "Returns all available indexes with their accepted query aliases. Use any alias when querying series.",
+        description: "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -618,7 +618,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/openapi.json",
         summary: "OpenAPI specification",
-        description: "Full OpenAPI 3.1 specification for this API.",
+        description: "Full OpenAPI 3.1 specification for this API. Build tools from this document.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -862,9 +862,9 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Aggregation index") },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: Some("Format of the output") },
         ],
         request_body: None,
@@ -880,9 +880,9 @@ pub static COMMANDS: &[Command] = &[
         query_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesList", repeatable: false, description: Some("Requested series") },
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Index to query") },
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: Some("Format of the output") },
         ],
         request_body: None,
@@ -910,9 +910,9 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Aggregation index") },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: Some("Format of the output") },
         ],
         request_body: None,
@@ -1283,7 +1283,7 @@ pub static COMMANDS: &[Command] = &[
         ],
         query_parameters: &[
             Parameter { api_name: "q", name: "q", required: true, value_name: "SeriesName", repeatable: false, description: Some("Search query string") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of results") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of results, 100 when omitted") },
         ],
         request_body: None,
     },

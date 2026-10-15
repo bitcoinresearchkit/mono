@@ -3,12 +3,14 @@
 use std::hash::{Hash, Hasher};
 
 use brk_error::Result;
-use brk_types::{
-    BlockHash, MempoolRecentTx, OutpointPrefix, TxOutspend, TxStatus, Txid, TxidPrefix, Vin, Vout,
-};
+use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::{FxHashSet, FxHasher};
 
-use crate::{PublishedTx, ReadOnlyState, state::Pool};
+use crate::{
+    PublishedTx, ReadOnlyState,
+    key::{OutpointKey, TxKey},
+    state::Pool,
+};
 
 fn transaction_times_hash(times: &[u64]) -> u64 {
     let mut hasher = FxHasher::default();
@@ -57,7 +59,7 @@ impl ReadOnlyState {
     }
 
     /// Current mempool spend status for an output whose parent may be
-    /// confirmed. The spender's full input list is checked to rule out prefix
+    /// confirmed. The spender's full input list is checked to rule out key
     /// collisions.
     pub fn outspend(&self, txid: &Txid, vout: Vout, tip: &BlockHash) -> Result<TxOutspend> {
         let state = self.pool()?;
@@ -120,20 +122,20 @@ impl ReadOnlyState {
     /// Resolve a spender's inputs once for the whole parent, retaining exact
     /// outpoint validation and never replacing a confirmed spend.
     fn overlay_outspends(state: &Pool, txid: &Txid, outspends: &mut [TxOutspend]) {
-        let parent = TxidPrefix::from(txid);
+        let parent = TxKey::from(txid);
         let mut scanned = FxHashSet::default();
         for index in 0..outspends.len() {
             if outspends[index].spent {
                 continue;
             }
-            let key = OutpointPrefix::new(parent, Vout::from(index));
-            let Some(prefix) = state.outpoint_spends.get(&key) else {
+            let outpoint = OutpointKey::new(parent, Vout::from(index));
+            let Some(spender_key) = state.outpoint_spends.get(&outpoint) else {
                 continue;
             };
-            if !scanned.insert(prefix) {
+            if !scanned.insert(spender_key) {
                 continue;
             }
-            let Some(spender) = state.txs.record_by_prefix(&prefix) else {
+            let Some(spender) = state.txs.record_by_key(&spender_key) else {
                 continue;
             };
             for (vin, input) in spender.tx.input.iter().enumerate() {
@@ -146,8 +148,8 @@ impl ReadOnlyState {
                 if !outspend.spent
                     && state
                         .outpoint_spends
-                        .get(&OutpointPrefix::new(parent, input.vout))
-                        == Some(prefix)
+                        .get(&OutpointKey::new(parent, input.vout))
+                        == Some(spender_key)
                 {
                     *outspend = TxOutspend {
                         spent: true,
@@ -161,17 +163,8 @@ impl ReadOnlyState {
     }
 
     fn lookup_spender_for(state: &Pool, txid: &Txid, vout: Vout) -> Option<(Txid, Vin)> {
-        let key = OutpointPrefix::new(TxidPrefix::from(txid), vout);
-        let spender = state
-            .outpoint_spends
-            .get(&key)
-            .and_then(|prefix| state.txs.record_by_prefix(&prefix))?;
-        let vin_pos = spender
-            .tx
-            .input
-            .iter()
-            .position(|input| input.txid == *txid && input.vout == vout)?;
-        Some((spender.entry.txid, Vin::from(vin_pos)))
+        let (spender, vin) = state.outpoint_spends.spender(&state.txs, txid, vout)?;
+        Some((spender.entry.txid, vin))
     }
 
     /// Order-sensitive validator for the current txid array.

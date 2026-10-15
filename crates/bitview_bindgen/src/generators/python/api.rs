@@ -317,13 +317,14 @@ fn build_method_params(endpoint: &Endpoint) -> String {
     params
 }
 
+/// The path as an f-string body, each parameter percent-encoded as one segment.
 fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
     let mut result = path.to_string();
     for param in path_params {
         let placeholder = format!("{{{}}}", param.name);
         // Use escaped name for Python variable interpolation in f-string
         let safe_name = escape_python_keyword(&param.name);
-        let interpolation = format!("{{{}}}", safe_name);
+        let interpolation = format!("{{_segment({})}}", safe_name);
         result = result.replace(&placeholder, &interpolation);
     }
     result

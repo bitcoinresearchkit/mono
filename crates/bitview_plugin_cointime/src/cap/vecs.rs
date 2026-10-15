@@ -8,7 +8,7 @@ use vecdb::{Rw, StorageMode};
 pub struct Vecs<M: StorageMode = Rw> {
     /// Thermo capitalization: cumulative USD value, at each issuance block's
     /// spot price, of the derived subsidy component equal to coinbase output
-    /// value minus transaction fees. It estimates the historical value assigned
+    /// value minus transaction fees, floored at zero. It estimates the historical value assigned
     /// to miners through issuance, rather than valuing subsidies at current spot.
     pub thermo: LazyFiatPerBlock<Cents>,
     /// Investor capitalization: realized capitalization minus thermo

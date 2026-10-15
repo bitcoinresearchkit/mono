@@ -15,6 +15,7 @@ use brk_rpc::Client;
 mod api;
 mod chain_waker;
 mod driver;
+mod key;
 mod read_only;
 mod snapshot;
 mod state;

@@ -12,7 +12,8 @@ use vecdb::SparseRead;
 /// Lazily combines values a fixed number of positions apart from one source.
 ///
 /// Current and previous ranges are read separately, so a large lookback does
-/// not force reading the gap between them.
+/// not force reading the gap between them. The source is dense: every index below its length
+/// holds a value (checked in dev builds).
 #[derive(Clone)]
 pub struct LazyLookbackVec<I, S, T, F>
 where
@@ -71,8 +72,16 @@ where
                 end.saturating_sub(self.lookback),
                 &mut previous,
             );
+            debug_assert_eq!(
+                previous.len(),
+                end.saturating_sub(self.lookback) - previous_from,
+                "LazyLookbackVec sources are dense"
+            );
             let mut result = Ok(());
+            let mut next = at;
             self.source.for_each_chunk_at(at, end, &mut |at, current| {
+                debug_assert_eq!(at, next, "LazyLookbackVec sources are dense");
+                next = at + current.len();
                 if result.is_err() {
                     return;
                 }
@@ -89,6 +98,7 @@ where
                 result = each(at, current, Some(&previous[offset..offset + current.len()]));
             });
             result?;
+            debug_assert_eq!(next, end, "LazyLookbackVec sources are dense");
         }
         Ok(())
     }

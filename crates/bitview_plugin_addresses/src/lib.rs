@@ -10,6 +10,7 @@ mod has;
 mod import;
 mod state;
 
+pub use addr::AddrStateRead;
 pub use dependencies::Dependencies;
 pub use has::HasAddresses;
 
@@ -51,7 +52,16 @@ pub struct Vecs<M: StorageMode = Rw> {
     capital: CapitalViews,
     types: Box<AddressType<AddressVecs<M>>>,
     balances: Box<Balances<M>>,
-    /// Persistent per-address state: internal slots, served through `/api/address` instead.
+    /// Persistent per-address state: internal slots, read through [`Vecs::read_state`].
     #[traversable(hidden)]
-    pub state: AddrStateVecs<M>,
+    state: AddrStateVecs<M>,
+}
+
+impl<M: StorageMode> Vecs<M> {
+    /// The address state of the latest publication, under its lock: take it before pinning the
+    /// lengths, and compare [`AddrStateRead::written`] with the pin's height. `None` while a
+    /// catch-up's or a rollback's write holds the lock.
+    pub fn read_state(&self) -> Option<AddrStateRead<'_, M>> {
+        self.state.read()
+    }
 }

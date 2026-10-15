@@ -13,7 +13,6 @@ const MAX_RECORD: usize = 128 * 1024 * 1024;
 /// A single writer; readers borrow the published prefix. Unpublished tails are discarded on reopen.
 pub(crate) struct Journal {
     path: PathBuf,
-    _lock: Option<File>,
     read_end: u64,
     data: BufWriter<File>,
     index_file: File,
@@ -21,6 +20,8 @@ pub(crate) struct Journal {
     committed: usize,
     poisoned: bool,
     pub version: u64,
+    /// Declared last: fields drop in order, so the writer lock outlives `data`'s final flush.
+    _lock: Option<File>,
 }
 impl Journal {
     pub fn open(path: &Path) -> Result<Self> {

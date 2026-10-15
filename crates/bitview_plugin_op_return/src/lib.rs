@@ -16,7 +16,7 @@ use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use breakdown::{BucketVecs, KindBreakdownVecs, PolicyBreakdownVecs};
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("op_return"), Version::new(9));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("op_return"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable, Plugin)]
@@ -35,7 +35,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// fees are counted once for every protocol present in a transaction, so
     /// those metrics can overlap across protocols.
     protocols: KindBreakdownVecs<M>,
-    /// Metrics by pre-v30 `OP_RETURN` relay-policy shape. `oversized` and
+    /// Metrics by the size and count limits of the pre-v30 `OP_RETURN` relay
+    /// policy, over non-coinbase transactions. These categories check output
+    /// count and data size only, not full relay standardness (a non-push-only
+    /// `OP_RETURN` script still lands in `pre_v30_standard`). `oversized` and
     /// `multiple` can overlap, and both are subsets of `pre_v30_nonstandard`;
     /// `pre_v30_standard` is the complementary category.
     policies: PolicyBreakdownVecs<M>,

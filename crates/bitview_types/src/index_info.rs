@@ -10,7 +10,7 @@ pub struct IndexInfo {
     /// The canonical index name
     pub index: Index,
 
-    /// All Accepted query aliases
+    /// Every name REST queries accept for it; MCP tools take the canonical `index` only
     #[schemars(example = vec!["d", "date", "day1"])]
     pub aliases: Vec<Cow<'static, str>>,
 }

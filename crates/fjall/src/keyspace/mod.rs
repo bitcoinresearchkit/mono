@@ -14,7 +14,7 @@ use crate::{
     Result,
     db_config::Config,
     file::KEYSPACES_FOLDER,
-    locked_file::LockedFileGuard,
+    locked_file::{LockedFileGuard, LockedIter},
     worker_pool::{WorkerMessage, WorkerPool},
 };
 
@@ -26,8 +26,15 @@ pub use ingestion::Ingestion;
 
 /// A keyspace's table layout pinned for reads: later ingestions and compactions stay invisible
 /// to it, and the tables it reads stay on disk while it lives.
+///
+/// Views and their iterators hold the database lock, so no reopen can treat the tables they pin
+/// as orphans.
 #[derive(Clone)]
-pub struct ReadView(lsm_tree::ReadView);
+pub struct ReadView {
+    // Declared first so it drops first: its tables release before the lock.
+    view: lsm_tree::ReadView,
+    lock: LockedFileGuard,
+}
 
 impl ReadView {
     /// Iterates over the pinned records matching `prefix`, using the specified owned record bytes.
@@ -36,8 +43,7 @@ impl ReadView {
         &self,
         prefix: &[u8],
     ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
-        self.0
-            .prefix_as(prefix)
+        LockedIter::new(self.view.prefix_as(prefix), &self.lock)
             .map(|item| item.map_err(Into::into))
     }
 }
@@ -69,7 +75,7 @@ impl Keyspace {
                 compaction,
                 worker: worker_pool.sender(),
                 compaction_queued: AtomicBool::new(false),
-                _lock: lock,
+                lock,
             }),
         };
 
@@ -91,7 +97,7 @@ impl Keyspace {
         &self.inner.name
     }
 
-    /// Starts ingestion with the specified record representation.
+    /// Starts ingestion with the specified record representation. One at a time per keyspace.
     ///
     /// # Errors
     /// Returns an error if an output table cannot be created.
@@ -115,16 +121,17 @@ impl Keyspace {
         &self,
         range: R,
     ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V, B, R> {
-        self.inner
-            .tree
-            .range_as(range)
+        LockedIter::new(self.inner.tree.range_as(range), &self.inner.lock)
             .map(|item| item.map_err(Into::into))
     }
 
     /// Pins the keyspace's current table layout for later reads.
     #[must_use]
     pub fn read_view(&self) -> ReadView {
-        ReadView(self.inner.tree.read_view())
+        ReadView {
+            view: self.inner.tree.read_view(),
+            lock: self.inner.lock.clone(),
+        }
     }
 
     /// Iterates over all latest key-value pairs.

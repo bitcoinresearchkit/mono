@@ -23,27 +23,27 @@ static EMBEDDED_WEBSITE: Dir = include_dir!("$CARGO_MANIFEST_DIR/website");
 /// Cached embedded index.html with importmap injected.
 static INDEX_HTML: OnceLock<(Bytes, String)> = OnceLock::new();
 
-/// Embedded files' ETags by path, hashed once on first use.
-static EMBEDDED_ETAGS: OnceLock<HashMap<&'static Path, String>> = OnceLock::new();
+/// Embedded files' content hashes by path, computed once on first use.
+static EMBEDDED_HASHES: OnceLock<HashMap<&'static Path, String>> = OnceLock::new();
 
-/// A file to serve. Embedded content carries its ETag (release only), computed once.
+/// A file to serve. Embedded content carries its hash (release only), computed once.
 pub(crate) struct File {
     pub(crate) contents: Bytes,
-    pub(crate) etag: Option<&'static str>,
+    pub(crate) hash: Option<&'static str>,
 }
 
 impl File {
     fn fresh(contents: Vec<u8>) -> Self {
         Self {
             contents: contents.into(),
-            etag: None,
+            hash: None,
         }
     }
 
     fn embedded(file: &'static EmbeddedFile<'static>) -> Self {
         Self {
             contents: Bytes::from_static(file.contents()),
-            etag: (!cfg!(debug_assertions)).then(|| embedded_etag(file)),
+            hash: (!cfg!(debug_assertions)).then(|| embedded_hash(file)),
         }
     }
 }
@@ -132,19 +132,19 @@ impl Website {
             return Ok(File::embedded(file));
         }
 
-        let (html, etag) = INDEX_HTML.get_or_init(|| {
+        let (html, hash) = INDEX_HTML.get_or_init(|| {
             let html = StdStr::from_utf8(file.contents()).expect("index.html must be valid UTF-8");
             let importmap = ImportMap::scan_embedded(&EMBEDDED_WEBSITE, "");
             let html = importmap
                 .transform_html(html)
                 .unwrap_or_else(|| html.to_string());
-            let etag = content_etag(html.as_bytes());
-            (html.into(), etag)
+            let hash = ImportMap::hash(html.as_bytes());
+            (html.into(), hash)
         });
 
         Ok(File {
             contents: html.clone(),
-            etag: Some(etag),
+            hash: Some(hash),
         })
     }
 
@@ -204,26 +204,21 @@ impl Website {
     }
 }
 
-/// The quoted importmap content hash, so a hashed URL's name can be checked against it.
-pub(crate) fn content_etag(content: &[u8]) -> String {
-    format!("\"{}\"", ImportMap::hash(content))
-}
-
-fn embedded_etag(file: &EmbeddedFile<'static>) -> &'static str {
-    fn collect(dir: &'static Dir<'static>, etags: &mut HashMap<&'static Path, String>) {
+fn embedded_hash(file: &EmbeddedFile<'static>) -> &'static str {
+    fn collect(dir: &'static Dir<'static>, hashes: &mut HashMap<&'static Path, String>) {
         for file in dir.files() {
-            etags.insert(file.path(), content_etag(file.contents()));
+            hashes.insert(file.path(), ImportMap::hash(file.contents()));
         }
         for dir in dir.dirs() {
-            collect(dir, etags);
+            collect(dir, hashes);
         }
     }
-    let etags = EMBEDDED_ETAGS.get_or_init(|| {
-        let mut etags = HashMap::new();
-        collect(&EMBEDDED_WEBSITE, &mut etags);
-        etags
+    let hashes = EMBEDDED_HASHES.get_or_init(|| {
+        let mut hashes = HashMap::new();
+        collect(&EMBEDDED_WEBSITE, &mut hashes);
+        hashes
     });
-    &etags[file.path()]
+    &hashes[file.path()]
 }
 
 /// A file, its unhashed name, or a folder's own index.html (standalone page).

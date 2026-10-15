@@ -41,7 +41,11 @@ pub(crate) fn generate_python_client(
         "from http.client import HTTPSConnection, HTTPConnection"
     )
     .unwrap();
-    writeln!(output, "from urllib.parse import urlencode, urlparse").unwrap();
+    writeln!(
+        output,
+        "from urllib.parse import quote, urlencode, urlparse"
+    )
+    .unwrap();
     writeln!(
         output,
         "from datetime import date, datetime, timedelta, timezone"

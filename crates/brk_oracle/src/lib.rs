@@ -33,7 +33,7 @@ pub use config::{Config, START_HEIGHT_FAST, START_HEIGHT_SLOW};
 pub use filter::PaymentFilter;
 use scale::NUM_BINS;
 pub use scale::{bin_to_cents, cents_to_bin, sats_to_bin};
-pub use seed::pre_oracle_prices_from;
+pub use seed::{FIRST_PRICE_HEIGHT, pre_oracle_prices_from};
 
 use stencil::Stencil;
 use window::EmaWindow;

@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, iter::repeat_n};
 
 use bitview_compute::{
-    ExactOrderStats, FenwickTree, NumericValue, WRITE_INTERVAL, lower_nearest_rank,
-    prepare_computed, write_locked,
+    ExactOrderStats, FenwickTree, NumericValue, WRITE_INTERVAL, nearest_rank, prepare_computed,
+    write_locked,
 };
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::PartsPerMillion32;
@@ -464,7 +464,7 @@ impl LiveHistory {
 
 trait HistoryStats {
     fn len(&self) -> usize;
-    /// Percentiles (ascending) at the lower nearest rank, in one lookup.
+    /// Percentiles (ascending) at the nearest rank, in one lookup.
     fn percentiles(&self, ps: [f64; 3]) -> [f64; 3];
     fn tail(&self, value: f64, upper: bool) -> f64;
 }
@@ -475,7 +475,7 @@ impl HistoryStats for CoordinateHistory<'_> {
     }
 
     fn percentiles(&self, ps: [f64; 3]) -> [f64; 3] {
-        let targets = ps.map(|p| lower_nearest_rank(self.len, p) as f64);
+        let targets = ps.map(|p| nearest_rank(self.len, p) as f64);
         self.tree
             .kth(targets, &|count: &f64| *count)
             .map(|bucket| self.coordinates[bucket])

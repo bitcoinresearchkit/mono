@@ -6,7 +6,7 @@ use brk_types::{Address, Transaction};
 
 use super::ResolvedAddrChainTxs;
 use crate::{
-    Error, Query, RepresentationId, Result,
+    Query, RepresentationId, Result,
     r#impl::{
         addr::{mempool::page_identity, parse_addr},
         mempool::anchored,
@@ -50,9 +50,6 @@ impl Query {
             .map(|mempool| anchored(mempool.addr_txs(&addr, mempool_limit, &tip)))
             .transpose()?
             .unwrap_or_default();
-        if chain_addr.is_none() && mempool.is_empty() {
-            return Err(Error::UnknownAddress);
-        }
         let chain_limit = total_target.saturating_sub(mempool.len()).max(chain_floor);
         let chain = chain_addr
             .map(|(output_type, type_index)| {

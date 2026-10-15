@@ -125,9 +125,9 @@ curl -s "https://bitview.space/api/address/<address>/utxo"
 
 #### GET `/api.json`
 
-Compact OpenAPI specification
+Compact API summary
 
-Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.
+Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.
 
 Returns: JSON `*`
 
@@ -460,7 +460,7 @@ curl -s "https://bitview.space/api/v1/fullrbf/replacements"
 
 Health check
 
-Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index waits until the request deadline, then returns 504. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
+Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
 
 Returns: JSON `Health`
 
@@ -841,9 +841,9 @@ curl -s "https://bitview.space/api/v1/mining/reward-stats/<block_count>"
 
 OpenAPI specification
 
-Full OpenAPI 3.1 specification for this API.
+Full OpenAPI 3.1 specification for this API. Build tools from this document.
 
-Returns: text
+Returns: JSON `*`
 
 ```bash
 curl -s "https://bitview.space/openapi.json"
@@ -968,9 +968,9 @@ Fetch multiple series in a single request. Supports filtering by index and date 
 Parameters:
 - `series` (query, SeriesList, required): Requested series
 - `index` (query, Index, required): Index to query
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
 - `format` (query, Format, optional): Format of the output
 
 Returns: JSON `SeriesData[]`
@@ -995,7 +995,7 @@ curl -s "https://bitview.space/api/series/count"
 
 List available indexes
 
-Returns all available indexes with their accepted query aliases. Use any alias when querying series.
+Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
 
 Returns: JSON `IndexInfo[]`
 
@@ -1027,7 +1027,7 @@ Search series by name or descriptive terms. Results prioritize whole query words
 
 Parameters:
 - `q` (query, SeriesName, required): Search query string
-- `limit` (query, Limit, optional): Maximum number of results
+- `limit` (query, Limit, optional): Maximum number of results, 100 when omitted
 
 Returns: JSON `string[]`
 
@@ -1059,9 +1059,9 @@ Fetch data for a specific series at the given index. Use query parameters to fil
 Parameters:
 - `series` (path, SeriesName, required): Series name
 - `index` (path, Index, required): Aggregation index
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
 - `format` (query, Format, optional): Format of the output
 
 Returns: JSON `SeriesData`
@@ -1079,9 +1079,9 @@ Returns just the data array without the SeriesData wrapper. Supports the same ra
 Parameters:
 - `series` (path, SeriesName, required): Series name
 - `index` (path, Index, required): Aggregation index
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
 - `format` (query, Format, optional): Format of the output
 
 Returns: JSON `*[]`
@@ -1504,7 +1504,7 @@ curl -s "https://bitview.space/version"
 - `spent_txo_count`: `integer` (required) — Total number of transaction outputs spent from this address
 - `spent_txo_sum`: `Sats` (required) — Total amount in satoshis spent from this address
 - `tx_count`: `integer` (required) — Total number of confirmed transactions involving this address
-- `type_index`: `TypeIndex | null` — Index of this address within its type on the blockchain, null for an address seen only in the mempool
+- `type_index`: `TypeIndex | null` — Index of this address within its type on the blockchain, null for an address without confirmed activity
 - `realized_price`: `Dollars` (required) — Realized price (average cost basis) in USD
 
 ### `AddressHashPrefixMatches`
@@ -1574,7 +1574,7 @@ curl -s "https://bitview.space/version"
 - `utxoSetChange`: `integer` (required) — UTXO set change (total outputs - total inputs, includes unspendable like OP_RETURN). Note: intentionally differs from utxo_set_size diff which excludes unspendable outputs. Matches mempool.space/bitcoin-cli behavior.
 - `utxoSetSize`: `integer` (required) — Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
 - `totalInputAmt`: `Sats` (required) — Total input amount in satoshis
-- `virtualSize`: `number` (required) — Virtual size in vbytes
+- `virtualSize`: `number` (required) — Virtual size in vbytes: weight / 4, unrounded
 - `firstSeen`: `integer | null` — Timestamp when the block was first seen (always null, not yet supported)
 - `orphans`: `string[]` (required) — Orphaned blocks (always empty)
 - `price`: `Dollars` (required) — USD price at block height
@@ -1653,9 +1653,9 @@ curl -s "https://bitview.space/version"
 
 ### `BlockSizeEntry`
 
-- `avgHeight`: `Height` (required) — Average block height in this window
-- `timestamp`: `Timestamp` (required) — Unix timestamp at the window midpoint
-- `avgSize`: `integer` (required) — Rolling 24h median block size (bytes)
+- `avgHeight`: `Height` (required) — Average block height in this bucket
+- `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
+- `avgSize`: `integer` (required) — Mean block size in this bucket, rounded half up (bytes)
 
 ### `BlockSizesWeights`
 
@@ -1697,9 +1697,9 @@ curl -s "https://bitview.space/version"
 
 ### `BlockWeightEntry`
 
-- `avgHeight`: `Height` (required) — Average block height in this window
-- `timestamp`: `Timestamp` (required) — Unix timestamp at the window midpoint
-- `avgWeight`: `Weight` (required) — Rolling 24h median block weight (weight units)
+- `avgHeight`: `Height` (required) — Average block height in this bucket
+- `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
+- `avgWeight`: `Weight` (required) — Mean block weight in this bucket, rounded half up (weight units)
 
 ### `Cohort`
 
@@ -1763,14 +1763,14 @@ curl -s "https://bitview.space/version"
 - `difficultyChange`: `number` (required) — Estimated difficulty change at next retarget (%)
 - `estimatedRetargetDate`: `integer` (required) — Estimated timestamp of next retarget (milliseconds)
 - `remainingBlocks`: `integer` (required) — Blocks remaining until retarget
-- `remainingTime`: `integer` (required) — Estimated time until retarget (milliseconds)
+- `remainingTime`: `integer` (required) — Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
 - `previousRetarget`: `number` (required) — Previous difficulty adjustment (%)
 - `previousTime`: `Timestamp` (required) — Timestamp of most recent retarget (seconds)
 - `nextRetargetHeight`: `Height` (required) — Height of next retarget
 - `timeAvg`: `integer` (required) — Average block time in current epoch (milliseconds)
-- `adjustedTimeAvg`: `integer` (required) — Time-adjusted average (milliseconds)
-- `timeOffset`: `integer` (required) — Time offset from expected schedule (seconds)
-- `expectedBlocks`: `number` (required) — Expected blocks based on wall clock time since epoch start
+- `adjustedTimeAvg`: `integer` (required) — Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503 blocks, where it spans the last 503 blocks, those before the retarget scaled by it
+- `timeOffset`: `integer` (required) — Testnet's offset for its 20-minute minimum-difficulty rule (milliseconds): always 0 on mainnet, as mempool.space
+- `expectedBlocks`: `number` (required) — Blocks expected at the 10-minute target between the epoch's first block and the tip block
 
 ### `DifficultyAdjustmentEntry`
 
@@ -1859,7 +1859,7 @@ curl -s "https://bitview.space/version"
 ### `IndexInfo`
 
 - `index`: `Index` (required) — The canonical index name
-- `aliases`: `string[]` (required) — All Accepted query aliases
+- `aliases`: `string[]` (required) — Every name REST queries accept for it; MCP tools take the canonical `index` only
 
 ### `Limit`
 
@@ -1970,7 +1970,7 @@ curl -s "https://bitview.space/version"
 - `link`: `string` (required) — Pool website URL
 - `blockCount`: `integer` (required) — Number of blocks mined in the time period
 - `rank`: `integer` (required) — Pool ranking by block count (1 = most blocks)
-- `emptyBlocks`: `integer` (required) — Number of empty blocks mined
+- `emptyBlocks`: `integer` (required) — Number of empty (coinbase-only) blocks mined in the time period
 - `slug`: `PoolSlug` (required) — URL-friendly pool identifier
 - `share`: `number` (required) — Pool's share of total blocks (0.0 - 1.0)
 - `poolUniqueId`: `integer` (required) — Unique pool identifier
@@ -2059,7 +2059,6 @@ curl -s "https://bitview.space/version"
 - `type`: `string` — Value type (e.g. "Ratio", "Sats", "Cents")
 - `start`: `integer` (required) — Start index (inclusive) of the returned range
 - `end`: `integer` (required) — End index (exclusive) of the returned range
-- `stamp`: `string` (required) — ISO 8601 timestamp of when the response was generated
 - `data`: `value[]` (required) — The series data. A value is `null` where it is missing (a period without blocks) or undefined (e.g. NaN, a ratio over zero); CSV leaves such a cell empty.
 
 ### `SeriesInfo`

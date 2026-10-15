@@ -16,7 +16,9 @@ pub fn analyze<'a>(
 ) -> WitnessFacts<'a> {
     match output_type {
         OutputType::P2TR => analyze_taproot(witness, flags),
-        OutputType::P2WPKH => analyze_p2wpkh(witness, flags),
+        // The only valid P2WPKH witness since SegWit activation; before it, a v0 program could
+        // be spent without one (none on mainnet, as unguarded full syncs never panicked here).
+        OutputType::P2WPKH if witness.len() == 2 => analyze_p2wpkh(witness, flags),
         _ => analyze_ecdsa(witness, flags),
     }
 }

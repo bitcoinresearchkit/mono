@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+use bitview_plugin_indexer::SafeLengths;
 use bitview_plugin_price::{feed_blocks_for_warmup, feed_blocks_with};
 use bitview_primitives::Lengths;
 use bitview_primitives::{Day1, TxOutIndex};
@@ -38,26 +39,30 @@ impl Query {
     /// Smoothed payment output histogram for a calendar `day`: the bin-by-bin average of
     /// every confirmed block's per-block EMA. The first block in each EMA config
     /// segment is reconstructed exactly, then later blocks in the segment are walked
-    /// sequentially. Averaging keeps the result an intensive per-block rate rather
-    /// than letting a busy day dominate.
+    /// sequentially. Blocks before the oracle's first one count as zeros, as their height
+    /// reads do. Averaging keeps the result an intensive per-block rate rather than letting
+    /// a busy day dominate.
     pub fn confirmed_payment_histogram_day(&self, day: Day1) -> Result<HistogramEmaCompact> {
         let pin = self.pin_safe_lengths()?;
         let safe = pin.lengths();
-        let range = self.day_block_range(day, &safe)?;
-        let segments = Config::segments_for_range(range)
+        let range = self.day_block_range(day, &pin)?;
+        let count = range.len();
+        let fed = range.start.max(START_HEIGHT_SLOW)..range.end;
+        let segments = Config::segments_for_range(fed)
             .map(|segment| self.seed_bin_at(segment.start).map(|seed| (segment, seed)))
             .collect::<Result<Vec<_>>>()?;
         Ok(self
-            .average_payment_histogram_range(segments, &safe)?
+            .average_payment_histogram_range(segments, count, &safe)?
             .to_compact())
     }
 
+    /// The segments' per-block EMAs averaged bin by bin over `count` blocks.
     fn average_payment_histogram_range(
         &self,
         segments: Vec<(Range<usize>, f64)>,
+        count: usize,
         safe: &Lengths,
     ) -> Result<HistogramEma> {
-        let count: usize = segments.iter().map(|(range, _)| range.len()).sum();
         let mut acc = HistogramEma::zeros();
 
         for (segment, seed) in segments {
@@ -104,9 +109,8 @@ impl Query {
     /// just the sum across its confirmed blocks.
     pub fn confirmed_output_histogram_day(&self, day: Day1) -> Result<HistogramRaw> {
         let pin = self.pin_safe_lengths()?;
-        let safe = pin.lengths();
-        let range = self.day_block_range(day, &safe)?;
-        self.output_histogram_for_blocks(range, &safe)
+        let range = self.day_block_range(day, &pin)?;
+        self.output_histogram_for_blocks(range, &pin.lengths())
     }
 
     /// The live tip oracle: the committed base, with the published pool's
@@ -188,10 +192,10 @@ impl Query {
 
     /// The confirmed block heights `[first, end)` of calendar `day`, clamped to
     /// the same histogram-available bound as `check_histogram_height`. 404 when
-    /// the day has no committed blocks in range.
-    fn day_block_range(&self, day: Day1, safe: &Lengths) -> Result<Range<usize>> {
+    /// the day has no committed blocks in range; 503 while a lowered publication hides them.
+    fn day_block_range(&self, day: Day1, pin: &SafeLengths) -> Result<Range<usize>> {
         let first_height = &self.plugins().mappings.day1.first_height;
-        let bound = self.histogram_bound(safe);
+        let bound = self.histogram_bound(&pin.lengths());
         let start = first_height
             .collect_one(day)
             .map_or(usize::MAX, |h| h.to_usize());
@@ -200,6 +204,7 @@ impl Query {
             .map_or(bound, |h| h.to_usize())
             .min(bound);
         if start >= end {
+            check_bound(pin, start, bound)?;
             return Err(Error::NotFound(format!(
                 "oracle histogram unavailable for day {day}"
             )));

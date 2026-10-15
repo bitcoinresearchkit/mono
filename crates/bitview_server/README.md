@@ -5,11 +5,11 @@ HTTP API server for Bitcoin on-chain analytics.
 ## Features
 
 - **OpenAPI spec**: Auto-generated docs at `/api` with full spec at `/openapi.json`
-- **LLM-optimized**: Compact spec at `/api.json` for AI tools
+- **LLM-optimized**: Compact custom summary at `/api.json` for reading (not OpenAPI; build tools from `/openapi.json`)
 - **MCP-ready**: The same OpenAPI operations are available through the official
   stateless, read-only endpoint at [mcp.bitview.space](https://mcp.bitview.space/)
 - **HTTP caching**: ETag revalidation with separate browser and CDN policies
-- **Compression**: Brotli, gzip, zstd; small responses skip compression
+- **Compression**: Brotli, gzip, zstd; small responses skip compression. A request refusing every encoding (identity included) gets 406 before any handler runs
 - **Static files**: Optional web interface hosting
 
 Route-family features (`chain`, `series`, `urpd`, and `price`, which `chain` and
@@ -39,7 +39,7 @@ server.serve().await?;
 |------|-------------|
 | `/api` | Interactive API documentation |
 | `/openapi.json` | Full OpenAPI specification |
-| `/api.json` | Compact OpenAPI for LLMs |
+| `/api.json` | Compact API summary for LLMs (custom format, not OpenAPI) |
 | `/api/address/{address}` | Address stats, transactions, UTXOs |
 | `/api/block/{hash}` | Block info, transactions, status |
 | `/api/block-height/{height}` | Block by height |
@@ -58,6 +58,7 @@ Validators are selected with their source data before conditional matching:
 - **Immutable**: data fixed for the release (the empty search), etag = format version
 - **ActivityBound**: mutable state anchored to its latest relevant block
 - **Deploy**: the release prefix alone, for responses only a release changes
+- **Revalidate**: exact tags a second's reuse cannot mislead (blocks by hash, the tip, catalogs)
 
 Catalogs, pool metadata and specifications use content-based validators, not
 the package version alone. Dynamic transaction, block and mempool reads validate
@@ -67,13 +68,19 @@ serve an unpublished or displaced result.
 Series responses use a separate range-aware scheme: ranges the URL pins (no
 bound counted from the end, left open or past the rows) wholly below the
 six-block reorg window are keyed by schema version, bounds and the hash of the
-last block they cover (stable across appends, changed by any reorg replacing
-them), while other ranges are keyed by the current tip hash.
+last block they depend on (stable across appends, changed by any reorg replacing
+them). That is the last block they cover, or for calendar indexes the first
+block of the following period, whose timestamp ends the range's last period.
+Other ranges, and every range of a series that rewrites existing rows, are keyed
+by the current tip hash.
 
 Every ETag starts with the release, so a release changing a response's format
-never validates an older body. Most data responses use
-`Cache-Control: public, no-cache, must-revalidate` for browsers. Exact live and
-deployment-bound responses allow one second of browser freshness. The separate
+never validates an older body. Live responses (exact tags, content hashes,
+activity anchors, tip-keyed series) use
+`Cache-Control: public, no-cache, must-revalidate` for browsers. Responses a
+second's reuse cannot mislead (blocks by hash, the tip, catalogs, specifications
+and other deployment-bound responses) allow one second of browser and edge
+freshness (`max-age=1, must-revalidate`). The separate
 `CDN-Cache-Control` live tier allows one second of edge freshness, then requires
 revalidation; neither policy allows stale-on-error reuse.
 `CdnCacheMode::Live` applies that same edge policy to stable responses.

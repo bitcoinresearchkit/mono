@@ -14,7 +14,7 @@ use tempfile::tempdir;
 use crate::{Database, Error, KeyspaceCreateOptions, Result};
 
 #[test]
-fn lock_outlives_the_database_handle_and_wins_over_an_invalid_marker() -> Result<()> {
+fn lock_outlives_every_handle_and_wins_over_an_invalid_marker() -> Result<()> {
     let folder = tempdir()?;
 
     let database = Database::builder(&folder).open()?;
@@ -25,7 +25,21 @@ fn lock_outlives_the_database_handle_and_wins_over_an_invalid_marker() -> Result
         Database::builder(&folder).open(),
         Err(Error::Locked)
     ));
+    // So do read views and returned iterators, which pin tables.
+    let view = keyspace.read_view();
+    let iter = keyspace.range_as::<[u8; 1], [u8; 1], &[u8], _>(..);
     drop(keyspace);
+    assert!(matches!(
+        Database::builder(&folder).open(),
+        Err(Error::Locked)
+    ));
+    let prefix = view.prefix_as::<[u8; 1], [u8; 1]>(&[]);
+    drop((view, iter));
+    assert!(matches!(
+        Database::builder(&folder).open(),
+        Err(Error::Locked)
+    ));
+    drop(prefix);
 
     // The lock file stays behind and is reacquired.
     let database = Database::builder(&folder).open()?;

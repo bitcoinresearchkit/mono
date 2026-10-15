@@ -25,7 +25,8 @@ impl Query {
         let max_hash = AddrHash::new(u64::MAX);
 
         let upper = prefix.upper.unwrap_or(max_hash);
-        for (_, type_index) in stores.addr_hash_range(addr_type, prefix.lower..upper)? {
+        for record in stores.addr_hash_range(addr_type, prefix.lower..upper)? {
+            let (_, type_index) = record?;
             if type_index >= safe_type_index {
                 continue;
             }

@@ -22,7 +22,7 @@ pub struct DifficultyAdjustment {
     #[schemars(example = 1121)]
     pub remaining_blocks: u32,
 
-    /// Estimated time until retarget (milliseconds)
+    /// Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
     #[schemars(example = 665977000_u64)]
     pub remaining_time: u64,
 
@@ -42,15 +42,17 @@ pub struct DifficultyAdjustment {
     #[schemars(example = 580000_u64)]
     pub time_avg: u64,
 
-    /// Time-adjusted average (milliseconds)
+    /// Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503
+    /// blocks, where it spans the last 503 blocks, those before the retarget scaled by it
     #[schemars(example = 580000_u64)]
     pub adjusted_time_avg: u64,
 
-    /// Time offset from expected schedule (seconds)
+    /// Testnet's offset for its 20-minute minimum-difficulty rule (milliseconds): always 0 on
+    /// mainnet, as mempool.space
     #[schemars(example = 0)]
     pub time_offset: i64,
 
-    /// Expected blocks based on wall clock time since epoch start
+    /// Blocks expected at the 10-minute target between the epoch's first block and the tip block
     #[schemars(example = 1827.21)]
     pub expected_blocks: f64,
 }

@@ -6,6 +6,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 
 use super::Vecs;
+use crate::priced::priced_starts;
 
 impl Vecs {
     pub(crate) fn compute(
@@ -23,19 +24,19 @@ impl Vecs {
             (
                 &mut self.min._1w.cents.height,
                 &mut self.max._1w.cents.height,
-                lookback.start_vec(7),
+                priced_starts(lookback.start_vec(7)),
                 week,
             ),
             (
                 &mut self.min._1m.cents.height,
                 &mut self.max._1m.cents.height,
-                lookback.start_vec(30),
+                priced_starts(lookback.start_vec(30)),
                 month,
             ),
             (
                 &mut self.min._1y.cents.height,
                 &mut self.max._1y.cents.height,
-                lookback.start_vec(365),
+                priced_starts(lookback.start_vec(365)),
                 year,
             ),
         ] {
@@ -43,7 +44,7 @@ impl Vecs {
                 min_vec,
                 max_vec,
                 starting_height,
-                starts,
+                &starts,
                 price,
                 retained,
                 exit,

@@ -17,7 +17,7 @@ use crate::{
 ///
 /// Set `with_changes=true` near chain tip to enable rollback support. With `publish_state`, the
 /// address state (rewritten in place, its changes marked by the caller) stays staged for
-/// [`Vecs::publish_state`] to publish with the update's lengths; without, it is written now.
+/// [`Vecs::publish_state_with`] to publish with the update's lengths; without, it is written now.
 pub fn write(
     vecs: &mut Vecs,
     addr_states: &mut AddrStates,
@@ -53,16 +53,29 @@ pub(crate) struct UnpublishedState {
     pub with_changes: bool,
     /// The changed addresses an update publishes from memory, until it does.
     pub changed: Option<Changed>,
+    /// Its changed addresses are published: only the vectors' write remains.
+    pub published: bool,
 }
 
 impl Vecs {
-    /// Publishes the address state the last update staged. The caller holds the state's write
-    /// lock (`state.stable()`) through this and the publication of the lengths, so a reader
-    /// taking the read lock before its pin sees both or neither. An update that kept its changed
-    /// addresses publishes them, read before the vectors, and leaves the vectors to
-    /// [`Self::write_published_state`] once its lengths are out; any other staged state is
-    /// written now.
-    pub fn publish_state(&mut self, stable: &mut Stable) -> Result<()> {
+    /// Publishes the address state the last update staged with `publish_lengths`, the
+    /// publication of the update's lengths, under the state's write lock: a reader taking the
+    /// read lock before its pin sees both or neither.
+    pub fn publish_state_with<T>(
+        &mut self,
+        publish_lengths: impl FnOnce() -> Result<T>,
+    ) -> Result<T> {
+        let stable = self.state.stable();
+        let mut stable = stable.write();
+        self.publish_state(&mut stable)?;
+        publish_lengths()
+    }
+
+    /// Publishes the address state the last update staged; the caller holds the state's write
+    /// lock. An update that kept its changed addresses publishes them, read before the vectors,
+    /// and leaves the vectors to [`Self::write_published_state`] once its lengths are out; any
+    /// other staged state is written now.
+    fn publish_state(&mut self, stable: &mut Stable) -> Result<()> {
         let Some(unpublished) = self.unpublished_state.as_mut() else {
             return Ok(());
         };
@@ -70,6 +83,7 @@ impl Vecs {
         if let Some(changed) = unpublished.changed.take() {
             stable.written = Some(Height::from(stamp).incremented());
             stable.changed = Some(changed);
+            unpublished.published = true;
             return Ok(());
         }
         self.write_state(stamp, with_changes, stable)?;
@@ -80,20 +94,27 @@ impl Vecs {
     /// Writes the address state [`Self::publish_state`] published from memory. Readers keep its
     /// changed addresses until the next write under the lock, so it needs no lock: no reader
     /// reads the rows it rewrites. On failure they keep reading them; the update loop stops.
+    /// State not yet published stays staged: readers may read the rows its write rewrites.
     pub fn write_published_state(&mut self) -> Result<()> {
-        if let Some(&UnpublishedState {
-            stamp,
-            with_changes,
-            ..
-        }) = self.unpublished_state.as_ref()
-        {
-            let i = Instant::now();
-            // The compaction this update scheduled runs first: a header write waiting on it would
-            // keep the state's readers out meanwhile.
-            self.db.sync_bg_tasks()?;
-            self.write_state_vecs(stamp, with_changes)?;
-            self.unpublished_state = None;
-            info!("Wrote address state in {:.2?}", i.elapsed());
+        match self.unpublished_state.as_ref() {
+            Some(&UnpublishedState {
+                stamp,
+                with_changes,
+                published: true,
+                ..
+            }) => {
+                let i = Instant::now();
+                // The compaction this update scheduled runs first: a header write waiting on it
+                // would keep the state's readers out meanwhile.
+                self.db.sync_bg_tasks()?;
+                self.write_state_vecs(stamp, with_changes)?;
+                self.unpublished_state = None;
+                info!("Wrote address state in {:.2?}", i.elapsed());
+            }
+            staged => debug_assert!(
+                staged.is_none(),
+                "address state written before its publication"
+            ),
         }
         Ok(())
     }

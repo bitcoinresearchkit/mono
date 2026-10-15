@@ -8,7 +8,7 @@ use brk_types::{
 };
 use rustc_hash::FxHashSet;
 
-use crate::{PublishedTx, ReadOnlyState};
+use crate::{PublishedTx, ReadOnlyState, key::TxKey};
 
 /// An address's pending UTXO changes in one completed publication.
 #[derive(Default)]
@@ -46,7 +46,7 @@ impl ReadOnlyState {
             let Some(record) = state.txs.record(txid) else {
                 continue;
             };
-            pending.token ^= *TxidPrefix::from(txid);
+            pending.token ^= *TxKey::from(txid);
             let tx = &record.tx;
             for txin in &tx.input {
                 if txin.prevout.as_ref().is_some_and(pays) {
@@ -88,13 +88,17 @@ impl ReadOnlyState {
             return Ok(Vec::new());
         }
         // Retain only the requested page. The smallest timestamp is at the
-        // heap root; prefix breaks equal-time ties deterministically.
+        // heap root; the txid prefix breaks equal-time ties deterministically.
         let mut newest = BinaryHeap::with_capacity(limit.min(entry.txids.len()));
         for txid in &entry.txids {
             let Some(record) = state.txs.record(txid) else {
                 continue;
             };
-            let candidate = Reverse((record.entry.first_seen, TxidPrefix::from(txid)));
+            let candidate = Reverse((
+                record.entry.first_seen,
+                TxidPrefix::from(txid),
+                TxKey::from(txid),
+            ));
             if newest.len() < limit {
                 newest.push(candidate);
             } else if let Some(mut oldest) = newest.peek_mut()
@@ -106,7 +110,7 @@ impl ReadOnlyState {
         let transactions = newest
             .into_sorted_vec()
             .into_iter()
-            .filter_map(|Reverse((_, prefix))| state.txs.record_by_prefix(&prefix))
+            .filter_map(|Reverse((_, _, key))| state.txs.record_by_key(&key))
             .map(PublishedTx::live)
             .collect();
         Ok(transactions)

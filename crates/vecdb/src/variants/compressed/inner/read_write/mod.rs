@@ -80,6 +80,7 @@ where
 
     #[inline]
     fn import_strict_with(mut options: ImportOptions, format: Format) -> CrateResult<Self> {
+        const { assert!(Self::PER_PAGE > 0, "compressed values must fit in one page") };
         options.version = options.version + VERSION;
         let db = options.db;
         let name = options.name;
@@ -108,11 +109,6 @@ where
             _strategy: PhantomData,
         };
 
-        if Self::PER_PAGE == 0 {
-            return Err(Error::InvalidArgument(
-                "compressed values must fit in one page",
-            ));
-        }
         if this.pages.read_recursive().last().is_some_and(|page| {
             page.is_raw() && !(page.bytes as usize).is_multiple_of(Self::SIZE_OF_T)
         }) {

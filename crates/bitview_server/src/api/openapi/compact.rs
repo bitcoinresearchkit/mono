@@ -214,6 +214,12 @@ fn simple_type(schema: Value) -> Option<Value> {
             path.rsplit('/').next().unwrap_or("any").to_owned(),
         ));
     }
+    // A described reference is wrapped as `allOf: [{ $ref }]`.
+    if let Some(Value::Array(mut all_of)) = obj.remove("allOf")
+        && all_of.len() == 1
+    {
+        return simple_type(all_of.pop().unwrap());
+    }
     obj.remove("type")
 }
 

@@ -27,7 +27,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                     state
-                        .respond_json_bound(&headers, Version::ONE, |q| q.mempool_info_json())
+                        .respond_json_bound(headers, Version::ONE, |q| q.mempool_info_json())
                         .await
                 },
                 |op| {
@@ -79,7 +79,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                     state
-                        .respond_json_bound(&headers, Version::ONE, |q| q.mempool_recent_json())
+                        .respond_json_bound(headers, Version::ONE, |q| q.mempool_recent_json())
                         .await
                 },
                 |op| {
@@ -97,7 +97,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                     state
-                        .respond_json_bound(&headers, Version::ONE, |q| {
+                        .respond_json_bound(headers, Version::ONE, |q| {
                             q.recent_replacements_json(false)
                         })
                         .await
@@ -117,7 +117,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                     state
-                        .respond_json_bound(&headers, Version::ONE, |q| {
+                        .respond_json_bound(headers, Version::ONE, |q| {
                             q.recent_replacements_json(true)
                         })
                         .await

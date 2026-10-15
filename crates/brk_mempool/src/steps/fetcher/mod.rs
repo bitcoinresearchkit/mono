@@ -23,8 +23,9 @@ const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 /// template), entries only: their bodies are decoded from the template, and
 /// their entries carry Core's arrival time and sigop-adjusted vsize. One that
 /// left between the two batches is still materialized from the template, so
-/// block 0 always reflects Core's exact selection; only then are its arrival
-/// time (`now`) and vsize (weight-derived) estimated.
+/// block 0 always reflects Core's exact selection; only then is its arrival
+/// time (`now`) estimated (its policy vsize follows from the template's weight
+/// and sigops).
 ///
 /// Confirmed prevouts are resolved post-apply by the caller-supplied
 /// resolver passed to `Mempool::tick_with`, so the in-crate path no
@@ -35,7 +36,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
     // The same private pool decides the fetch list and template synthesis,
     // so they agree on what's already known. The template's txids, trimmed
     // below to those the raw listing lacks.
-    let mut missing_from_listing: FxHashSet<Txid> = block_template.iter().map(|g| g.txid).collect();
+    let mut template_only: FxHashSet<Txid> = block_template.iter().map(|g| g.txid).collect();
     let template_new: FxHashSet<Txid> = block_template
         .iter()
         .map(|g| g.txid)
@@ -49,7 +50,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
     let new_txids: Vec<Txid> = state
         .live_txids
         .iter()
-        .filter(|t| !mempool.txs.contains(t) && !missing_from_listing.contains(t))
+        .filter(|t| !mempool.txs.contains(t) && !template_only.contains(t))
         .take(MAX_TX_FETCHES_PER_CYCLE)
         .copied()
         .collect();
@@ -67,6 +68,16 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
         .filter(|txid| template_new.contains(txid))
         .collect();
 
+    // Template entries lead (fetched in request order, synthesized ones after
+    // them), listing entries follow: a removal spent by both a stale template
+    // tx and its listed replacer names the replacer.
+    let listed_entries = new_entries.split_off(fetched.len());
+    debug_assert!(
+        new_entries
+            .iter()
+            .all(|entry| fetched.contains(&entry.txid))
+    );
+
     // Consume `block_template` by value: the template's order is captured as a
     // `Vec<Txid>` for the Rebuilder, which only reads txids, and new bodies are
     // decoded from the template (known bodies stay undecoded).
@@ -79,7 +90,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
             if !fetched.contains(&txid) {
                 new_entries.push(MempoolEntryInfo {
                     txid,
-                    vsize: VSize::from(g.weight),
+                    vsize: g.sigops.adjust_vsize(VSize::from(g.weight)),
                     weight: g.weight,
                     fee: g.fee,
                     first_seen: now,
@@ -88,6 +99,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
         }
         block_template_txids.push(txid);
     }
+    new_entries.extend(listed_entries);
 
     // Keep GBT-only bodies for the exact template projection, but do not
     // call their union a coherent address view: a removed GBT transaction
@@ -95,13 +107,12 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
     // Reuse the block-sized GBT set instead of allocating a second full
     // mempool set beside the one Preparer needs.
     for txid in &state.live_txids {
-        missing_from_listing.remove(txid);
+        template_only.remove(txid);
     }
-    let address_view_complete = missing_from_listing.is_empty();
     state.live_txids.extend(
         block_template_txids
             .iter()
-            .filter(|txid| missing_from_listing.contains(*txid))
+            .filter(|txid| template_only.contains(*txid))
             .copied(),
     );
 
@@ -110,6 +121,6 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
         new_entries,
         new_txs,
         block_template_txids,
-        address_view_complete,
+        template_only,
     })
 }

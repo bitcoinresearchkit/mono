@@ -29,7 +29,7 @@ pub struct PoolStats {
     #[schemars(example = 1)]
     pub rank: u32,
 
-    /// Number of empty blocks mined
+    /// Number of empty (coinbase-only) blocks mined in the time period
     #[serde(rename = "emptyBlocks")]
     #[schemars(example = 0)]
     pub empty_blocks: u64,
@@ -49,14 +49,20 @@ pub struct PoolStats {
 
 impl PoolStats {
     /// Create a new PoolStats from a Pool reference
-    pub fn new(pool: &'static Pool, block_count: u64, rank: u32, share: f64) -> Self {
+    pub fn new(
+        pool: &'static Pool,
+        block_count: u64,
+        empty_blocks: u64,
+        rank: u32,
+        share: f64,
+    ) -> Self {
         Self {
             pool_id: pool.mempool_id(),
             name: Cow::Borrowed(pool.name),
             link: Cow::Borrowed(pool.link()),
             block_count,
             rank,
-            empty_blocks: 0,
+            empty_blocks,
             slug: pool.slug(),
             share,
             pool_unique_id: pool.mempool_unique_id(),

@@ -1,16 +1,23 @@
 use bitcoin::Amount;
-use bitview_primitives::CentsCompact;
-use bitview_types::{Urpd, UrpdBucket};
-use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Dollars, Sats};
+use bitview_primitives::{CentsCompact, Date};
+use bitview_types::{Cohort, Urpd, UrpdAggregation, UrpdBucket, UrpdWeight};
+use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Dollars, Height, Sats};
 
-use super::ResolvedUrpd;
 use crate::{Error, Result};
 
-impl ResolvedUrpd {
-    pub fn entries(&self) -> &[(CentsCompact, Sats)] {
-        &self.entries
-    }
+/// A reconstructed distribution: sorted unique prices with their supply, and what the response
+/// echoes.
+pub(super) struct UrpdEntries {
+    pub(super) cohort: Cohort,
+    pub(super) height: Height,
+    pub(super) date: Date,
+    pub(super) weight: UrpdWeight,
+    pub(super) aggregation: UrpdAggregation,
+    pub(super) close: Cents,
+    pub(super) entries: Box<[(CentsCompact, Sats)]>,
+}
 
+impl UrpdEntries {
     /// Aggregates the validated entries into response buckets in one pass: they arrive unique and
     /// sorted from their source map, so nothing is rehashed or re-sorted.
     pub fn build(self) -> Result<Urpd> {
@@ -60,7 +67,7 @@ impl ResolvedUrpd {
         })
     }
 
-    pub fn validate(&self) -> Result<()> {
+    fn validate(&self) -> Result<()> {
         if self.close.is_nan() {
             return Err(Error::Internal("Invalid URPD close price"));
         }

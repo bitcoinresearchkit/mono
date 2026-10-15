@@ -37,14 +37,25 @@ impl Txid {
     /// Coinbase transaction "txid" - all zeros (used for coinbase inputs)
     pub const COINBASE: Self = Self([0u8; 32]);
 
-    /// Reinterpret a slice of `Txid`s as a slice of `bitcoin::Txid`s.
-    /// Both are `#[repr(C)]` newtypes over `[u8; 32]` with identical
-    /// layout, so this is a zero-cost view (no allocation, no copy).
+    /// Reinterpret a slice of `Txid`s as a slice of `bitcoin::Txid`s: a zero-cost view (no
+    /// allocation, no copy).
     #[inline]
     pub fn as_bitcoin_slice(slice: &[Txid]) -> &[BitcoinTxid] {
+        // SAFETY: same layout and stride (see the layout assertion).
         unsafe { &*(slice as *const [Txid] as *const [BitcoinTxid]) }
     }
 }
+
+// The reference casts between `Txid` and `bitcoin::Txid` rely on this. `bitcoin::Txid` wraps
+// `sha256d::Hash` (`repr(transparent)` over `[u8; 32]`) with the default representation, which
+// guarantees no layout by itself; but at 32 bytes and alignment 1 its one 32-byte field can only
+// sit at offset 0 with no padding. Both types then are 32 bytes valid for every bit pattern.
+const _: () = assert!(
+    size_of::<Txid>() == 32
+        && size_of::<BitcoinTxid>() == 32
+        && align_of::<Txid>() == 1
+        && align_of::<BitcoinTxid>() == 1
+);
 
 impl From<BitcoinTxid> for Txid {
     #[inline]
@@ -56,6 +67,7 @@ impl From<BitcoinTxid> for Txid {
 impl From<&BitcoinTxid> for &Txid {
     #[inline]
     fn from(value: &BitcoinTxid) -> Self {
+        // SAFETY: same layout (see the layout assertion).
         unsafe { mem::transmute(value) }
     }
 }
@@ -77,6 +89,7 @@ impl From<&Txid> for BitcoinTxid {
 impl From<&Txid> for &BitcoinTxid {
     #[inline]
     fn from(value: &Txid) -> Self {
+        // SAFETY: same layout (see the layout assertion).
         unsafe { mem::transmute(value) }
     }
 }

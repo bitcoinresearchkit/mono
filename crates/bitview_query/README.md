@@ -72,8 +72,10 @@ thread's reads, lazy calendar and count views included, while it lives. Pinning 
 an update never waits for readers: it appends past the pin and publishes by
 swapping the pin's source; only a rollback waits for the pins taken before it.
 Data rewritten in place is read consistently with the pin: the spend index masks
-spends past it, address state is written with the publication under a short
-lock its readers take before pinning, and UTXO set snapshots are replaced by
+spends past it, an update publishes its changed addresses from memory with its
+lengths, under a short lock address readers take before pinning, and writes them
+to the address state afterward (a catch-up's or rollback's write holds that lock,
+and address reads answer 503 meanwhile), and UTXO set snapshots are replaced by
 rename. The mempool publishes only at the published tip and is loaded before the
 pin, so it is at the pin's tip, behind it, or (mid-reorg) on the branch being
 replaced: a lookup the chain answers first reads it as is (it only adds what is

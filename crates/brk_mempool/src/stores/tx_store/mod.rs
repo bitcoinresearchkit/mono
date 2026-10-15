@@ -4,10 +4,10 @@ use std::{
     sync::Arc,
 };
 
-use brk_types::{MempoolRecentTx, Transaction, TxOut, Txid, TxidPrefix, Vin};
+use brk_types::{MempoolRecentTx, Transaction, TxOut, Txid, Vin};
 use rustc_hash::{FxHashSet, FxHasher};
 
-use crate::state::TxEntry;
+use crate::{key::TxKey, state::TxEntry};
 
 mod read_only;
 pub mod tx_record;
@@ -22,7 +22,7 @@ const RECENT_CAP: usize = 10;
 #[derive(Default)]
 pub struct TxStore {
     read_only: ReadOnlyTxStore,
-    unresolved: FxHashSet<TxidPrefix>,
+    unresolved: FxHashSet<TxKey>,
 }
 
 impl Deref for TxStore {
@@ -37,13 +37,13 @@ impl TxStore {
     pub fn from_read_only(read_only: ReadOnlyTxStore) -> Self {
         let unresolved = read_only
             .records()
-            .filter_map(|(prefix, record)| {
+            .filter_map(|(key, record)| {
                 record
                     .tx
                     .input
                     .iter()
                     .any(|input| input.prevout.is_none())
-                    .then_some(*prefix)
+                    .then_some(*key)
             })
             .collect();
         Self {
@@ -69,20 +69,20 @@ impl TxStore {
 
     pub fn insert(&mut self, tx: impl Into<Arc<Transaction>>, entry: TxEntry) {
         let tx = tx.into();
-        let prefix = entry.txid_prefix();
+        let key = entry.key();
         debug_assert!(
-            !self.read_only.records.contains_key(&prefix),
-            "TxidPrefix collision: {prefix:?} already mapped. Birthday-rare on SHA-256d."
+            !self.read_only.records.contains_key(&key),
+            "TxKey collision: {key:?} already mapped. Birthday-rare on a keyed 64-bit hash."
         );
         let position = self.read_only.records.len();
         let txid = entry.txid;
         self.sample_recent(&entry.txid, &tx);
         if tx.input.iter().any(|i| i.prevout.is_none()) {
-            self.unresolved.insert(prefix);
+            self.unresolved.insert(key);
         }
         let record = TxRecord::new(tx, entry);
         self.read_only.histograms.add(&record);
-        self.read_only.records.insert(prefix, record);
+        self.read_only.records.insert(key, record);
         self.read_only.txids_hash ^= Self::txid_position_hash(&txid, position);
         self.bump_content_revision();
     }
@@ -94,26 +94,26 @@ impl TxStore {
         self.read_only.recent.truncate(RECENT_CAP);
     }
 
-    /// Remove by prefix and return the full record if present. `recent`
+    /// Remove by key and return the full record if present. `recent`
     /// is untouched: it's an "added" window, not a live-set mirror.
-    pub fn remove_by_prefix(&mut self, prefix: &TxidPrefix) -> Option<TxRecord> {
+    pub fn remove_by_key(&mut self, key: &TxKey) -> Option<TxRecord> {
         let last_position = self.read_only.records.len().checked_sub(1)?;
         let last_txid = self.read_only.records.last()?.1.entry.txid;
-        let (position, _, record) = self.read_only.records.swap_remove_full(prefix)?;
+        let (position, _, record) = self.read_only.records.swap_remove_full(key)?;
         self.read_only.txids_hash ^= Self::txid_position_hash(&record.entry.txid, position);
         if position != last_position {
             self.read_only.txids_hash ^= Self::txid_position_hash(&last_txid, last_position);
             self.read_only.txids_hash ^= Self::txid_position_hash(&last_txid, position);
         }
-        self.unresolved.remove(prefix);
+        self.unresolved.remove(key);
         self.read_only.histograms.remove(&record);
         self.bump_content_revision();
         Some(record)
     }
 
-    /// Set of prefixes with at least one unfilled prevout. Used by the
+    /// Set of keys with at least one unfilled prevout. Used by the
     /// prevout filler as a cheap "is there any work?" gate.
-    pub fn unresolved(&self) -> &FxHashSet<TxidPrefix> {
+    pub fn unresolved(&self) -> &FxHashSet<TxKey> {
         &self.unresolved
     }
 
@@ -124,8 +124,8 @@ impl TxStore {
     /// components depend on prevouts). `entry.vsize` is Core's value from
     /// `MempoolEntryInfo` and is not recomputed here - the sigops shift
     /// belongs to the `Transaction`, not the entry.
-    pub fn apply_fills(&mut self, prefix: &TxidPrefix, fills: Vec<(Vin, TxOut)>) -> Vec<TxOut> {
-        let Some(record) = self.read_only.records.get_mut(prefix) else {
+    pub fn apply_fills(&mut self, key: &TxKey, fills: Vec<(Vin, TxOut)>) -> Vec<TxOut> {
+        let Some(record) = self.read_only.records.get_mut(key) else {
             return Vec::new();
         };
         if !fills.iter().any(|(vin, _)| {
@@ -142,7 +142,7 @@ impl TxStore {
         tx.refresh_sigops();
         record.digest = TxRecord::digest_of(tx);
         if record.tx.input.iter().all(|i| i.prevout.is_some()) {
-            self.unresolved.remove(prefix);
+            self.unresolved.remove(key);
         }
         self.bump_content_revision();
         applied

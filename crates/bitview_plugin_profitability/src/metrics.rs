@@ -27,11 +27,13 @@ pub struct Metrics<M: StorageMode = Rw> {
     supply_stored: Bands<Sats, M>,
     #[traversable(hidden)]
     capital_stored: Bands<Cents, M>,
-    /// Each filter's supply and capital, the denominators of its bands' shares.
+    /// Each band's share of its filter's capital, from the exact capitals: whole cents would
+    /// distort the proportions of capitals worth a few cents.
+    #[traversable(hidden)]
+    capital_share_stored: Bands<PartsPerMillion32, M>,
+    /// Each filter's supply, the denominator of its bands' supply shares.
     #[traversable(hidden)]
     supply_total: Totals<Sats, M>,
-    #[traversable(hidden)]
-    capital_total: Totals<Cents, M>,
 }
 
 /// One band of one age filter: the subset of the cohort node that a band carries.
@@ -71,7 +73,7 @@ struct BandSources<'a> {
     supply: &'a CachedSeries<Height, Sats>,
     capital: &'a CachedSeries<Height, Cents>,
     supply_total: &'a CachedSeries<Height, Sats>,
-    capital_total: &'a CachedSeries<Height, Cents>,
+    capital_share: &'a CachedSeries<Height, PartsPerMillion32>,
 }
 
 impl Band {
@@ -105,11 +107,10 @@ impl Band {
             capital: BandCapital {
                 total: fiat("capital"),
                 realized_cap: fiat("realized_cap"),
-                share: LazyPercentPerBlock::from_ratio::<Cents, Cents, Quotient<PartsPerMillion32>>(
+                share: LazyPercentPerBlock::from_height_source(
                     &name("capital_share"),
                     version,
-                    sources.capital,
-                    sources.capital_total,
+                    sources.capital_share,
                     mappings,
                 ),
             },
@@ -127,7 +128,7 @@ impl Metrics {
         let supply_stored = Self::import_bands(db, "supply_sats", version)?;
         let capital_stored = Self::import_bands(db, "realized_cap_cents", version)?;
         let supply_total = Self::import_totals(db, "profitability_supply_sats", version)?;
-        let capital_total = Self::import_totals(db, "profitability_capital_cents", version)?;
+        let capital_share_stored = Self::import_bands(db, "capital_share_ppm", version)?;
         let terms = Terms::from_fn(|term| {
             ProfitabilityRange::from_fn(|band| {
                 let band_name = band.select(ProfitabilityRange::names()).id;
@@ -138,7 +139,7 @@ impl Metrics {
                         supply: band.select(supply_stored.select(term)),
                         capital: band.select(capital_stored.select(term)),
                         supply_total: supply_total.select(term),
-                        capital_total: capital_total.select(term),
+                        capital_share: band.select(capital_share_stored.select(term)),
                     },
                     mappings,
                     spot,
@@ -149,8 +150,8 @@ impl Metrics {
             terms,
             supply_stored,
             capital_stored,
+            capital_share_stored,
             supply_total,
-            capital_total,
         }))
     }
 
@@ -187,13 +188,15 @@ impl Metrics {
                     .push(*term.select(&bucket.supply));
                 band.select_mut(self.capital_stored.select_mut(term))
                     .push(*term.select(&bucket.cap));
+                band.select_mut(self.capital_share_stored.select_mut(term))
+                    .push(PartsPerMillion32::from(
+                        term.select(&bucket.cap_raw).inner() as f64
+                            / term.select(&totals.cap_raw).inner() as f64,
+                    ));
             }
             self.supply_total
                 .select_mut(term)
                 .push(*term.select(&totals.supply));
-            self.capital_total
-                .select_mut(term)
-                .push(*term.select(&totals.cap));
         }
     }
 }

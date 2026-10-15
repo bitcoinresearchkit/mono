@@ -148,6 +148,7 @@ impl Query {
         sorted.sort_unstable();
         let seed_local = CpfpClusterTxIndex::from(sorted.partition_point(|&tx| tx < seed) as u32);
         let mut weight = indexer.vecs().transactions.weight.cursor();
+        let mut sigops = indexer.vecs().transactions.total_sigop_cost.cursor();
         let mut fee = plugins.transactions.fees.fee.tx.cursor();
         let txid = indexer.vecs().transactions.txid.reader();
         graph.clear();
@@ -155,9 +156,11 @@ impl Query {
         for &tx in &sorted {
             let position = tx.to_usize();
             let tx_weight = Weight::from(weight.get(position).data()?);
+            let tx_sigops = SigOps::from(sigops.get(position).data()?);
+            // Rates over the policy-adjusted size, as the mempool's.
             graph.push(
                 fee.get(position).data()?,
-                VSize::from(tx_weight),
+                tx_sigops.adjust_vsize(VSize::from(tx_weight)),
                 component[&tx].parents.iter().map(|parent| {
                     let local = sorted.binary_search(parent);
                     debug_assert!(local.is_ok(), "a member's parent is in its component");
@@ -236,8 +239,9 @@ fn build_cpfp_info(
     sigops: SigOps,
 ) -> CpfpInfo {
     let seed_position = u32::from(seed_local) as usize;
-    let (fee, vsize) = (graph.fee(seed_position), graph.vsize(seed_position));
-    let raw_rate = FeeRate::from((fee, vsize));
+    let fee = graph.fee(seed_position);
+    let vsize = VSize::from(members[seed_position].1);
+    let raw_rate = FeeRate::from((fee, graph.vsize(seed_position)));
     let best_descendant = descendants
         .iter()
         .max_by_key(|entry| FeeRate::from((entry.fee, entry.weight)))

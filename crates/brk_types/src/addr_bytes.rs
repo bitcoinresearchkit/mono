@@ -1,8 +1,10 @@
 use std::str::FromStr;
 
-use bitcoin::{Address, Network, PublicKey, ScriptBuf, opcodes, script::Builder};
+use bitcoin::{Address, Network, ScriptBuf, opcodes, script::Builder};
 use brk_error::Error;
 use derive_more::From;
+
+use crate::bytes::parse_hex;
 
 use super::{
     OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes, P2WPKHBytes,
@@ -125,7 +127,8 @@ impl TryFrom<(&ScriptBuf, OutputType)> for AddressBytes {
 }
 
 impl AddressBytes {
-    /// Parse an address string to a ScriptBuf
+    /// Parse an address string to a ScriptBuf. A P2PK "address" is its 33- or 65-byte key field
+    /// in hex, as the index keeps it: P2PK-shaped, not necessarily a valid public key.
     pub fn addr_to_script(addr: &str) -> Result<ScriptBuf, Error> {
         if let Ok(addr) = Address::from_str(addr) {
             if !addr.is_valid_for_network(Network::Bitcoin) {
@@ -133,10 +136,8 @@ impl AddressBytes {
             }
             let addr = addr.assume_checked();
             Ok(addr.script_pubkey())
-        } else if let Ok(pubkey) = PublicKey::from_str(addr) {
-            Ok(ScriptBuf::new_p2pk(&pubkey))
         } else {
-            Err(Error::InvalidAddress)
+            p2pk_script(addr).ok_or(Error::InvalidAddress)
         }
     }
 }
@@ -149,4 +150,19 @@ impl FromStr for AddressBytes {
         let output_type = OutputType::from(&script);
         Self::try_from((&script, output_type))
     }
+}
+
+/// `PUSH<len> <key field> OP_CHECKSIG` for a 33- or 65-byte key field in hex.
+fn p2pk_script(hex: &str) -> Option<ScriptBuf> {
+    let key = match hex.len() {
+        66 => parse_hex::<33>(hex)?.to_vec(),
+        130 => parse_hex::<65>(hex)?.to_vec(),
+        _ => return None,
+    };
+    // Push opcodes 1-75 are their byte counts.
+    let mut script = Vec::with_capacity(key.len() + 2);
+    script.push(key.len() as u8);
+    script.extend_from_slice(&key);
+    script.push(opcodes::all::OP_CHECKSIG.to_u8());
+    Some(ScriptBuf::from_bytes(script))
 }

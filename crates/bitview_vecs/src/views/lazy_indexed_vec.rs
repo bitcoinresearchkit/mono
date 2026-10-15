@@ -9,6 +9,9 @@ use vecdb::{
 
 /// Lazily transforms one metric source with aligned index metadata.
 /// Bounded metadata reads preserve its owner's cold-cache admission policy.
+///
+/// Both sources are dense: every index below their length holds a value (checked in dev
+/// builds), so values pair by position.
 #[derive(Clone)]
 pub struct LazyIndexedVec<I, S, M, T, F>
 where
@@ -64,14 +67,22 @@ where
             metadata.clear();
             self.metadata.read_into_at(at, end, &mut metadata);
             let mut result = Ok(());
+            let mut next = at;
             self.source
                 .for_each_chunk_at(at, at + metadata.len(), &mut |chunk_at, values| {
+                    debug_assert_eq!(chunk_at, next, "LazyIndexedVec sources are dense");
+                    next = chunk_at + values.len();
                     if result.is_ok() {
                         let offset = chunk_at - at;
                         result = each(chunk_at, values, &metadata[offset..offset + values.len()]);
                     }
                 });
             result?;
+            debug_assert_eq!(
+                next,
+                at + metadata.len(),
+                "LazyIndexedVec sources are dense"
+            );
             if metadata.len() < end - at {
                 break;
             }
@@ -223,6 +234,10 @@ where
         let indices = &indices[..indices.partition_point(|&index| index < len)];
         let source = self.source.read_sorted_at(indices);
         let metadata = self.metadata.read_sorted_at(indices);
+        debug_assert!(
+            source.len() == indices.len() && metadata.len() == indices.len(),
+            "LazyIndexedVec sources are dense"
+        );
 
         out.reserve(source.len());
         for ((&index, value), metadata) in indices.iter().zip(source).zip(metadata) {

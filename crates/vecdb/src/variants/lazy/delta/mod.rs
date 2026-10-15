@@ -16,15 +16,36 @@ pub use op::DeltaOp;
 pub use rate::DeltaRate;
 pub use sub::DeltaSub;
 
-use crate::{AnyVec, ReadableBoxedVec, VecIndex, VecValue, Version, read_batches};
+use crate::{AnyVec, CheckedSub, ReadableBoxedVec, VecIndex, VecValue, Version, read_batches};
+
+/// `current - ago` as `f64`, subtracted exactly first: cumulative integers can exceed `f64`'s
+/// 53 bits, where converting both operands first loses the difference. A difference past `S`'s
+/// range (signed extremes) is subtracted in `f64` instead.
+#[inline(always)]
+fn exact_diff<S: CheckedSub + PartialOrd + Clone + Into<f64>>(current: S, ago: S) -> f64 {
+    let (high, low, sign) = if current >= ago {
+        (current, ago, 1.0)
+    } else {
+        (ago, current, -1.0)
+    };
+    let diff = high
+        .clone()
+        .checked_sub(low.clone())
+        .map_or_else(|| high.into() - low.into(), Into::into);
+    sign * diff
+}
 
 /// Lazily computed vector that combines a source value with a lookback value.
 ///
-/// For each index `h` with `start = window_starts[h]`:
-/// - `INCLUSIVE` ops (cumulative source): reads `source[h]` and `source[start - 1]`,
-///   count = `h - start + 1`. Used for rolling sums/averages from prefix sums.
-/// - Non-inclusive ops (raw source): reads `source[h]` and `source[start]`,
-///   count = `h - start`. Used for point-to-point deltas (change, rate).
+/// For each index `h` with `start = window_starts[h]` (the window's first index):
+/// - Window ops ([`DeltaSub`], [`DeltaAvg`], [`DeltaChange`], [`DeltaRate`]): read `source[h]`
+///   and the value before the window, `source[start - 1]` (the default for a window from 0),
+///   count = `h - start + 1`: rolling sums/averages from prefix sums, and changes that equal
+///   the sum of the flows in the window.
+/// - Point ops ([`DeltaOp`]'s defaults): read `source[h]` and `source[start]`,
+///   count = `h - start`.
+///
+/// Sources are dense: every index below their length holds a value (checked in dev builds).
 ///
 /// Nothing is stored on disk — values are computed on-the-fly during iteration.
 pub struct LazyDeltaVec<I: VecIndex, S: VecValue, T, Op> {
@@ -75,6 +96,7 @@ where
         for (at, end) in read_batches(from, to, self.source.cursor_chunk_size()) {
             starts.clear();
             self.window_starts.read_into_at(at, end, &mut starts);
+            debug_assert_eq!(starts.len(), end - at, "LazyDeltaVec sources are dense");
             // Window starts need not be monotonic: bound every historical index.
             let bounds = starts
                 .iter()
@@ -89,16 +111,26 @@ where
                 Some((low, high)) if high.saturating_add(1) >= at => {
                     let read_from = low.min(at);
                     self.source.read_into_at(read_from, end, &mut values);
+                    debug_assert_eq!(
+                        values.len(),
+                        end - read_from,
+                        "LazyDeltaVec sources are dense"
+                    );
                     visit(at, &values[at - read_from..], &starts, read_from, &values)?;
                 }
                 Some((low, high)) => {
                     previous.clear();
                     self.source.read_into_at(low, high + 1, &mut previous);
                     self.source.read_into_at(at, end, &mut values);
+                    debug_assert!(
+                        previous.len() == high + 1 - low && values.len() == end - at,
+                        "LazyDeltaVec sources are dense"
+                    );
                     visit(at, &values, &starts, low, &previous)?;
                 }
                 None => {
                     self.source.read_into_at(at, end, &mut values);
+                    debug_assert_eq!(values.len(), end - at, "LazyDeltaVec sources are dense");
                     visit(at, &values, &starts, 0, &[])?;
                 }
             }

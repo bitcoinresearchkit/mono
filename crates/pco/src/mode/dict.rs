@@ -74,7 +74,8 @@ pub fn join_latents<T: Number>(
   dst: &mut [MaybeUninit<T>],
 ) -> PcoResult<()> {
   let dict = dict.downcast_ref::<T::L>().unwrap();
-  let idxs = primary.downcast::<u32>().unwrap();
+  // The scratch holds a full batch; only the first `dst.len()` belong to it.
+  let idxs = &primary.downcast::<u32>().unwrap()[..dst.len()];
   if idxs.iter().any(|idx| *idx >= dict.len() as u32) {
     // in some cases it is possible to prove the indices are in range from
     // looking at the bins ahead of time, but just keeping this simple for now

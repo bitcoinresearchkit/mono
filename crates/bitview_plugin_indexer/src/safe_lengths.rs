@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bitview_primitives::{Lengths, TypeIndex};
+use brk_error::Result;
 use brk_types::{BlockHash, OutputType, TxIndex, Vout};
 
 use crate::state::Published;
@@ -45,11 +46,11 @@ impl SafeLengths {
         &self,
         addr_type: OutputType,
         addr_index: TypeIndex,
-    ) -> Option<impl DoubleEndedIterator<Item = (TxIndex, Vout)>> {
+    ) -> Option<impl DoubleEndedIterator<Item = Result<(TxIndex, Vout)>>> {
         let view = self.0.unspent.as_ref()?.get_unwrap(addr_type);
         Some(
             view.prefix(addr_index)
-                .map(|(key, _)| (key.tx_index(), key.vout())),
+                .map(|record| record.map(|(key, _)| (key.tx_index(), key.vout()))),
         )
     }
 }

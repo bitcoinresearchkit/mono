@@ -1,16 +1,16 @@
 use brk_oracle::HistogramRaw;
-use brk_types::{MempoolRecentTx, Transaction, Txid, TxidPrefix};
+use brk_types::{MempoolRecentTx, Transaction, Txid};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
-use crate::{state::TxEntry, stores::LiveHistograms};
+use crate::{key::TxKey, state::TxEntry, stores::LiveHistograms};
 
 use super::TxRecord;
 
 /// Query data shared by the working store and each completed publication.
 #[derive(Clone, Default)]
 pub struct ReadOnlyTxStore {
-    pub(super) records: IndexMap<TxidPrefix, TxRecord, FxBuildHasher>,
+    pub(super) records: IndexMap<TxKey, TxRecord, FxBuildHasher>,
     pub(super) txids_hash: u64,
     pub(super) content_revision: u64,
     pub(super) recent: Vec<MempoolRecentTx>,
@@ -35,19 +35,19 @@ impl ReadOnlyTxStore {
     }
 
     pub fn record(&self, txid: &Txid) -> Option<&TxRecord> {
-        let record = self.records.get(&TxidPrefix::from(txid))?;
+        let record = self.records.get(&TxKey::from(txid))?;
         (record.entry.txid == *txid).then_some(record)
     }
 
     /// Tx + entry in one map probe. Used by the RBF builder and the
     /// snapshot builder which need both per visited tx.
-    pub fn record_by_prefix(&self, prefix: &TxidPrefix) -> Option<&TxRecord> {
-        self.records.get(prefix)
+    pub fn record_by_key(&self, key: &TxKey) -> Option<&TxRecord> {
+        self.records.get(key)
     }
 
-    /// `(prefix, record)` pairs in dense storage order. Used by the
+    /// `(key, record)` pairs in dense storage order. Used by the
     /// snapshot builder to assign a compact `TxIndex` to each live tx.
-    pub fn records(&self) -> impl Iterator<Item = (&TxidPrefix, &TxRecord)> {
+    pub fn records(&self) -> impl Iterator<Item = (&TxKey, &TxRecord)> {
         self.records.iter()
     }
 

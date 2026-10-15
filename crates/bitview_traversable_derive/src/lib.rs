@@ -1,7 +1,7 @@
 use std::iter;
 
 use proc_macro::TokenStream;
-use proc_macro2::{Group, Span, TokenStream as ProcMacro2TokenStream, TokenTree};
+use proc_macro2::{Group, Spacing, Span, TokenStream as ProcMacro2TokenStream, TokenTree};
 use quote::quote;
 use syn::{
     Attribute, Data, DeriveInput, Error, Expr, ExprLit, Field, Fields, GenericArgument,
@@ -284,8 +284,9 @@ fn substitute_mode(
     for (i, tree) in trees.iter().enumerate() {
         match tree {
             TokenTree::Ident(ident) if ident == mode => {
-                let projects =
-                    matches!(trees.get(i + 1), Some(TokenTree::Punct(p)) if p.as_char() == ':');
+                // `M::..` (a joint `:`), not the `M: ..` of a bound.
+                let projects = matches!(trees.get(i + 1), Some(TokenTree::Punct(p))
+                    if p.as_char() == ':' && p.spacing() == Spacing::Joint);
                 out.extend(if projects {
                     quote! { <#to as bitview_traversable::StorageMode> }
                 } else {
@@ -304,16 +305,42 @@ fn substitute_mode(
     out
 }
 
-/// Find the generic type parameter bounded by `StorageMode`, if any.
+/// Whether `tokens` name `ident` anywhere, nested groups included.
+fn tokens_contain_ident(tokens: &ProcMacro2TokenStream, ident: &Ident) -> bool {
+    tokens.clone().into_iter().any(|tree| match tree {
+        TokenTree::Ident(i) => i == *ident,
+        TokenTree::Group(group) => tokens_contain_ident(&group.stream(), ident),
+        _ => false,
+    })
+}
+
+fn is_maybe_bound(bound: &syn::TypeParamBound) -> bool {
+    matches!(bound, syn::TypeParamBound::Trait(t) if t.maybe.is_some())
+}
+
+fn is_storage_mode_bound(bound: &syn::TypeParamBound) -> bool {
+    matches!(bound, syn::TypeParamBound::Trait(t)
+        if t.path.segments.last().is_some_and(|s| s.ident == "StorageMode"))
+}
+
+/// Find the generic type parameter bounded by `StorageMode` (inline or in the where clause).
 fn find_storage_mode_param(generics: &Generics) -> Option<&Ident> {
-    generics.type_params().find_map(|p| {
-        p.bounds
+    let is_mode = |bounds: &Punctuated<syn::TypeParamBound, Token![+]>| {
+        bounds.iter().any(is_storage_mode_bound)
+    };
+    let inline = generics.type_params().find(|p| is_mode(&p.bounds));
+    inline.map(|p| &p.ident).or_else(|| {
+        generics
+            .where_clause
             .iter()
-            .any(|b| {
-                matches!(b, syn::TypeParamBound::Trait(t)
-                    if t.path.segments.last().is_some_and(|s| s.ident == "StorageMode"))
+            .flat_map(|w| &w.predicates)
+            .find_map(|pred| match pred {
+                WherePredicate::Type(pt) if is_mode(&pt.bounds) => match &pt.bounded_ty {
+                    Type::Path(tp) => tp.path.get_ident(),
+                    _ => None,
+                },
+                _ => None,
             })
-            .then_some(&p.ident)
     })
 }
 
@@ -363,7 +390,7 @@ fn gen_traversable(
             },
         );
         return quote! {
-            impl #impl_generics Traversable for #name #ty_generics #where_clause {
+            impl #impl_generics bitview_traversable::Traversable for #name #ty_generics #where_clause {
                 fn to_tree_node(&self) -> bitview_traversable::TreeNode {
                     self.0.to_tree_node()
                 }
@@ -409,7 +436,7 @@ fn gen_traversable(
     let description_impl = generate_description_impl(&visible);
 
     quote! {
-        impl #impl_generics Traversable for #name #ty_generics #where_clause {
+        impl #impl_generics bitview_traversable::Traversable for #name #ty_generics #where_clause {
             fn to_tree_node(&self) -> bitview_traversable::TreeNode {
                 { #to_tree_node_body }
             }
@@ -789,7 +816,27 @@ fn gen_read_only_clone_storage_mode(
         })
         .collect::<Vec<_>>();
 
-    // The impl keeps every other param, its bounds and the struct's predicates.
+    // The impl keeps every other param, its bounds and the struct's predicates, with the mode
+    // param they name now `Rw`; `ReadOnly` instantiates the struct with `Ro`, so those naming
+    // the mode param also hold with `Ro`.
+    let rw = quote! { bitview_traversable::Rw };
+    let ro = quote! { bitview_traversable::Ro };
+    let mut mode_predicates: Vec<WherePredicate> = Vec::new();
+    // The mode param's own inline bounds besides `StorageMode` hold for both modes (`?Sized`
+    // relaxes a param and means nothing on a concrete type).
+    let mode_bounds: Vec<_> = generics
+        .type_params()
+        .filter(|p| p.ident == *mode_param)
+        .flat_map(|p| &p.bounds)
+        .filter(|b| !is_storage_mode_bound(b) && !is_maybe_bound(b))
+        .collect();
+    if !mode_bounds.is_empty() {
+        let bounds = quote! { #(#mode_bounds)+* };
+        for mode in [&rw, &ro] {
+            let bounds = substitute_mode(bounds.clone(), mode_param, mode);
+            mode_predicates.push(parse_quote! { #mode: #bounds });
+        }
+    }
     let mut impl_generics = generics.clone();
     impl_generics.params = generics
         .params
@@ -797,10 +844,50 @@ fn gen_read_only_clone_storage_mode(
         .filter(|p| !matches!(p, GenericParam::Type(tp) if tp.ident == *mode_param))
         .cloned()
         .collect();
+    for param in impl_generics.type_params_mut() {
+        let ident = &param.ident;
+        let bounds = &param.bounds;
+        let bounds = quote! { #bounds };
+        if tokens_contain_ident(&bounds, mode_param) {
+            let bounds = substitute_mode(bounds.clone(), mode_param, &ro);
+            mode_predicates.push(parse_quote! { #ident: #bounds });
+        }
+        let bounds = substitute_mode(bounds, mode_param, &rw);
+        param.bounds = parse_quote! { #bounds };
+    }
+    if let Some(where_clause) = &mut impl_generics.where_clause {
+        // `?Sized` on the mode param relaxes a param and means nothing once it is concrete.
+        where_clause.predicates = std::mem::take(&mut where_clause.predicates)
+            .into_iter()
+            .filter_map(|mut predicate| {
+                if let WherePredicate::Type(pt) = &mut predicate
+                    && matches!(&pt.bounded_ty, Type::Path(tp) if tp.path.is_ident(mode_param))
+                {
+                    pt.bounds = std::mem::take(&mut pt.bounds)
+                        .into_iter()
+                        .filter(|b| !is_maybe_bound(b))
+                        .collect();
+                    if pt.bounds.is_empty() {
+                        return None;
+                    }
+                }
+                Some(predicate)
+            })
+            .collect();
+        for predicate in &mut where_clause.predicates {
+            let tokens = quote! { #predicate };
+            if tokens_contain_ident(&tokens, mode_param) {
+                let tokens = substitute_mode(tokens.clone(), mode_param, &ro);
+                mode_predicates.push(parse_quote! { #tokens });
+            }
+            let tokens = substitute_mode(tokens, mode_param, &rw);
+            *predicate = parse_quote! { #tokens };
+        }
+    }
     impl_generics
         .make_where_clause()
         .predicates
-        .extend(field_bounds);
+        .extend(mode_predicates.into_iter().chain(field_bounds));
     let (impl_generics, _, where_clause) = impl_generics.split_for_impl();
 
     let body = gen_roc_body(name, fields, |ty| type_contains_ident(ty, mode_param));

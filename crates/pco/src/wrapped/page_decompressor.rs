@@ -6,7 +6,7 @@ use better_io::BetterBufRead;
 
 use crate::bit_reader::BitReaderBuilder;
 use crate::chunk_latent_decompressor::DynChunkLatentDecompressor;
-use crate::constants::{FULL_BATCH_N, MAX_BATCH_LATENT_VAR_SIZE, OVERSHOOT_PADDING};
+use crate::constants::{FULL_BATCH_N, OVERSHOOT_PADDING};
 use crate::data_types::number_priv::NumberPriv;
 use crate::data_types::Number;
 use crate::dyn_slices::{DynLatentSlice, DynNumberSliceMut};
@@ -95,7 +95,7 @@ fn read_primary_or_secondary<'a, R: BetterBufRead>(
   dyn_cld: &'a mut DynChunkLatentDecompressor,
   dyn_pld: &'a mut DynPageLatentDecompressor,
 ) -> PcoResult<DynLatentSlice<'a>> {
-  reader_builder.with_reader(MAX_BATCH_LATENT_VAR_SIZE, |reader| unsafe {
+  reader_builder.with_reader(dyn_cld.batch_read_size(), |reader| unsafe {
     match_latent_enum!(
       dyn_pld,
       DynPageLatentDecompressor<L>(pld) => {
@@ -128,9 +128,10 @@ impl<R: BetterBufRead> PageDecompressorState<R> {
         n_remaining.saturating_sub(cd.n_latents_per_delta_state()),
         batch_n,
       );
+      let read_size = cd.per_latent_var.delta.as_ref().unwrap().batch_read_size();
       self
         .reader_builder
-        .with_reader(MAX_BATCH_LATENT_VAR_SIZE, |reader| unsafe {
+        .with_reader(read_size, |reader| unsafe {
           match_latent_enum!(
             dyn_pld,
             DynPageLatentDecompressor<L>(pld) => {

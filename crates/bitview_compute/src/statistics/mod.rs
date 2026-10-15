@@ -13,7 +13,7 @@ pub use distribution_stats::DistributionStats;
 pub use extrema::{ExtremaWindow, compute_rolling_extrema_from_starts};
 pub use fenwick::{FenwickNode, FenwickTree};
 pub use median::ComputeRollingMedianFromStarts;
-pub use order::{ExactOrderStats, lower_nearest_rank};
+pub use order::{ExactOrderStats, nearest_rank};
 pub use retained::Retained;
 pub use rolling::{AverageWindow, ComputeRollingStats};
 pub use window::SortedWindow;

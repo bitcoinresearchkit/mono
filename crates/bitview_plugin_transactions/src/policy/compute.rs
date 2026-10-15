@@ -1,5 +1,5 @@
 use bitview_compute::{WRITE_INTERVAL, write_locked};
-use bitview_plugin_indexer::Indexer;
+use bitview_plugin_indexer::{FIRST_V29_POLICY_HEIGHT, Indexer};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Boolean, Count};
 use brk_error::Result;
@@ -9,8 +9,6 @@ use vecdb::{AnyVec, ReadableVec, WritableVec};
 
 use super::Vecs;
 use crate::{fees, resume::prepare_blocks};
-
-const FIRST_EPHEMERAL_DUST_HEIGHT: usize = 905_000;
 
 impl Vecs {
     pub(crate) fn compute(
@@ -82,5 +80,5 @@ impl Vecs {
 }
 
 fn dust_is_nonstandard(height: usize, fee: impl FnOnce() -> Sats) -> bool {
-    height < FIRST_EPHEMERAL_DUST_HEIGHT || fee() != Sats::ZERO
+    height < FIRST_V29_POLICY_HEIGHT as usize || fee() != Sats::ZERO
 }

@@ -5,6 +5,7 @@ use axum::http::{HeaderMap, HeaderValue, header};
 pub trait HeaderMapExtended {
     fn has_etag(&self, etag: &str) -> bool;
     fn insert_etag(&mut self, etag: &str);
+    fn insert_vary_accept_encoding(&mut self);
     fn insert_cache_control_must_revalidate(&mut self);
     fn insert_cache_control_immutable(&mut self);
     fn insert_content_type(&mut self, path: &Path);
@@ -29,6 +30,10 @@ impl HeaderMapExtended for HeaderMap {
 
     fn insert_etag(&mut self, etag: &str) {
         self.insert(header::ETAG, etag.parse().unwrap());
+    }
+
+    fn insert_vary_accept_encoding(&mut self) {
+        self.insert(header::VARY, HeaderValue::from_static("accept-encoding"));
     }
 
     fn insert_cache_control_must_revalidate(&mut self) {

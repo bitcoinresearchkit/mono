@@ -14,6 +14,8 @@ use carrier::Carrier;
 
 pub struct Batch {
     block_offsets: Vec<usize>,
+    /// Each block's coinbase transaction.
+    coinbase_tx_indexes: Vec<TxIndex>,
     tx_indexes: Vec<TxIndex>,
     kinds: Vec<OpReturnKind>,
     post_op_return_bytes: Vec<Bytes32>,
@@ -64,6 +66,10 @@ impl Batch {
         );
 
         Self {
+            coinbase_tx_indexes: vecs
+                .transactions
+                .first_tx_index
+                .collect_range_at(heights.start, heights.end),
             block_offsets: first_indexes
                 .into_iter()
                 .map(|index| index.to_usize() - source_start)
@@ -79,6 +85,7 @@ impl Batch {
     pub fn push_into(self, target: &mut Vecs) {
         let Self {
             block_offsets,
+            coinbase_tx_indexes,
             tx_indexes,
             kinds,
             post_op_return_bytes,
@@ -88,10 +95,11 @@ impl Batch {
         debug_assert_eq!(tx_indexes.len(), kinds.len());
         debug_assert_eq!(tx_indexes.len(), post_op_return_bytes.len());
         debug_assert_eq!(weights.len(), fees.len());
+        debug_assert_eq!(block_offsets.len(), coinbase_tx_indexes.len() + 1);
 
         let mut carrier_index = 0;
 
-        for offsets in block_offsets.windows(2) {
+        for (offsets, &coinbase_tx_index) in block_offsets.windows(2).zip(&coinbase_tx_indexes) {
             let mut total = BlockMetrics::default();
             let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
             let mut policy = Policy::default();
@@ -107,8 +115,11 @@ impl Batch {
                 if current_tx != Some(tx_index) {
                     carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
                     current_tx = Some(tx_index);
-                    carrier =
-                        Carrier::new(VSize::from(weights[carrier_index]), fees[carrier_index]);
+                    carrier = Carrier::new(
+                        VSize::from(weights[carrier_index]),
+                        fees[carrier_index],
+                        tx_index == coinbase_tx_index,
+                    );
                     carrier_index += 1;
                 }
 

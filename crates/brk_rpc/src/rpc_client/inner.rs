@@ -31,6 +31,11 @@ pub struct ClientInner {
 
 impl ClientInner {
     pub fn new(url: &str, auth: Auth) -> Result<Self> {
+        // The transport also takes `https` (or no scheme) but always speaks plain TCP: it would
+        // send the credentials unencrypted.
+        if !url.starts_with("http://") {
+            return Err(Error::Internal("node RPC requires an HTTP URL"));
+        }
         let (client, cookie) = Self::create_client(url, &auth)?;
         Ok(Self {
             url: url.to_string(),

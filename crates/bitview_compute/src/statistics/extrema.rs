@@ -32,7 +32,7 @@ impl<A: Copy + Ord> ExtremaWindow<A> {
             upper: VecDeque::new(),
         };
         if let Some(last) = next.checked_sub(1) {
-            let mut index = starts.collect_one_at(last).unwrap().to_usize();
+            let mut index = starts.collect_one_at(last).unwrap().to_usize().min(next);
             source.for_each_range_at(index, next, |value| {
                 window.enter(index, value);
                 index += 1;
@@ -62,7 +62,7 @@ impl<A: Copy + Ord> ExtremaWindow<A> {
 }
 
 /// Compute a rolling minimum and maximum with one source read, continuing the `retained`
-/// window when it is current.
+/// window when it is current. A window starting after its row is empty: NaN.
 pub fn compute_rolling_extrema_from_starts<V, A>(
     min: &mut V,
     max: &mut V,
@@ -75,7 +75,7 @@ pub fn compute_rolling_extrema_from_starts<V, A>(
 where
     V: StoredVec,
     A: VecValue + Copy + Ord,
-    V::T: From<A>,
+    V::T: From<A> + From<f64>,
 {
     let version = starts.version() + source.version();
     let end = starts.len().min(source.len());
@@ -98,7 +98,13 @@ where
         starts.collect_range_into_at(from, to, &mut boundaries);
         source.collect_range_into_at(from, to, &mut values);
         for (index, (start, &value)) in (from..).zip(boundaries.iter().zip(&values)) {
-            let (lower, upper) = window.push(index, value, start.to_usize());
+            let start = start.to_usize();
+            if start > index {
+                min.push(V::T::from(f64::NAN));
+                max.push(V::T::from(f64::NAN));
+                continue;
+            }
+            let (lower, upper) = window.push(index, value, start);
             min.push(V::T::from(lower));
             max.push(V::T::from(upper));
         }

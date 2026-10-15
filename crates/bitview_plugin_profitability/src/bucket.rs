@@ -6,6 +6,8 @@ use brk_types::{Cents, CentsSats, Sats};
 pub(crate) struct Bucket {
     pub(crate) supply: AgeAggregate<Sats>,
     pub(crate) cap: AgeAggregate<Cents>,
+    /// The exact capital, for shares that stay proportional at a few cents.
+    pub(crate) cap_raw: AgeAggregate<CentsSats>,
 }
 
 impl Bucket {
@@ -26,11 +28,13 @@ impl Bucket {
             (
                 Sats::new((after_sats - before_sats) as u64),
                 Cents::new(cents(after_cap) - cents(before_cap)),
+                CentsSats::new((after_cap - before_cap) as u128),
             )
         });
         Self {
             supply: AgeAggregate::from_fn(|id| id.select(&values).0),
             cap: AgeAggregate::from_fn(|id| id.select(&values).1),
+            cap_raw: AgeAggregate::from_fn(|id| id.select(&values).2),
         }
     }
 }

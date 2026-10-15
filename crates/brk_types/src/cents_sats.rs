@@ -77,8 +77,7 @@ impl CentsSats {
         if sats.is_zero() {
             return Cents::NAN;
         }
-        let result = self.0 / sats.as_u128();
-        Cents::new(result.min(u32::MAX as u128) as u64)
+        Cents::from(self.0 / sats.as_u128())
     }
 }
 

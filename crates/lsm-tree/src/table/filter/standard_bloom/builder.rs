@@ -75,12 +75,14 @@ impl Builder {
         assert!(bpk > 0.0);
         assert!(n > 0);
 
+        // NOTE: Round up so a fractional bpk never yields zero bits
         #[expect(
             clippy::cast_possible_truncation,
+            clippy::cast_precision_loss,
             clippy::cast_sign_loss,
-            reason = "bpk tends to be in the range of 0-50, so easily fits into usize"
+            reason = "n * bpk is a positive bit count far below usize::MAX"
         )]
-        let m = n * (bpk as usize);
+        let m = (n as f64 * f64::from(bpk)).ceil() as usize;
 
         #[expect(
             clippy::cast_possible_truncation,
@@ -90,13 +92,7 @@ impl Builder {
         let k = ((bpk * LN_2) as usize).max(1);
 
         // NOTE: Round up so we don't get too little bits
-        #[expect(
-            clippy::cast_possible_truncation,
-            clippy::cast_sign_loss,
-            clippy::cast_precision_loss,
-            reason = "m already fits, and because we divide, it should definitely fit into usize"
-        )]
-        let bytes = (m as f32 / 8.0).ceil() as usize;
+        let bytes = m.div_ceil(8);
 
         Self {
             inner: BitArrayBuilder::with_capacity(bytes),

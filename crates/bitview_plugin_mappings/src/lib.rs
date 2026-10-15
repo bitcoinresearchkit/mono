@@ -25,13 +25,13 @@ use std::ops::Deref;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{
-    Count, Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
-    Month6, TxInIndex, TxOutIndex, Week1, Year1, Year10,
+    Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
+    TxInIndex, TxOutIndex, Week1, Year1, Year10,
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::IndexSources;
 use brk_types::{Height, OutPoint, OutputType, TxIndex, Version};
-use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 use addr::{OutputVecs, Vecs as AddressesVecs};
 use chain_counts::ChainCounts;
@@ -104,10 +104,6 @@ impl Vecs {
 
     pub fn input_count_source(&self) -> LazyCumulativeIndexVec<Height, TxInIndex> {
         self.chain_counts.input_source()
-    }
-
-    pub fn output_count(&self) -> ReadableBoxedVec<Height, Count> {
-        self.chain_counts.output()
     }
 
     pub fn output_count_source(&self) -> LazyCumulativeIndexVec<Height, TxOutIndex> {

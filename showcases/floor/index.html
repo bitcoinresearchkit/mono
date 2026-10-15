@@ -189,7 +189,7 @@
     const axisUsd=v=>{if(!Number.isFinite(v))return"—";const abs=Math.abs(v);if(abs>=1e6)return`$${Number((v/1e6).toFixed(abs>=1e7?0:1))}m`;if(abs>=1e3)return`$${Number((v/1e3).toFixed(abs>=1e4?0:1))}k`;return`$${Number(v.toFixed(abs>=100?0:1))}`};
     const pct=v=>Number.isFinite(v)?`${v.toFixed(1)}%`:"—";
     const at=(s,i)=>{const v=s.data[i-s.start];return Number.isFinite(v)?v:null};
-    const derived=(price,data)=>({start:price.start,end:price.start+data.length,stamp:price.stamp,type:"Dollars",data});
+    const derived=(price,data)=>({start:price.start,end:price.start+data.length,type:"Dollars",data});
     const percentDerived=source=>({...source,type:"Percent",data:source.data.map(value=>Number.isFinite(value)?value*100:null)});
     function computeMissing(price,market,realized,supply,investor,destroyed){let sum=0,count=0;const averages=new Map;for(let i=market.start;i<market.end;i++){const cap=at(market,i);if(cap>0){sum+=cap;count++}if(count)averages.set(i,sum/count)}const out={investor:[],balanced:[],delta:[],cvdd:[]};for(let o=0;o<price.data.length;o++){const i=price.start+o,s=at(supply,i),ic=at(investor,i),rc=at(realized,i),avg=averages.get(i),block=at(destroyed,i),days=Math.max(1,i-2),dayValue=block===null?null:block/144;out.investor.push(s&&ic!==null?ic/s:null);out.delta.push(s&&rc!==null&&avg!==undefined?(rc-avg)/s:null);out.cvdd.push(dayValue===null?null:dayValue/(days*6000000));out.balanced.push(s&&rc!==null&&dayValue!==null?rc/s-dayValue/(days*s):null)}return{investor_price:derived(price,out.investor),balanced_price:derived(price,out.balanced),delta_price:derived(price,out.delta),cvdd_price:derived(price,out.cvdd)}}
     function maxDerived(price,...sources){return derived(price,price.data.map((_,offset)=>{const index=price.start+offset,values=sources.map(source=>at(source,index)).filter(Number.isFinite);return values.length?Math.max(...values):null}))}
@@ -273,7 +273,7 @@
         series.first_extreme=maxDerived(series.price_close,series.rarity_meter_pct01,series.bedrock_first_extreme);
         state.series=series;state.urpd=Object.fromEntries(urpds.map(u=>[urpdKey(u.cohort,u.weight),u]));
         hydrate();
-        status.querySelector("span").textContent=`Live Bitview data · ${new Date(series.price_close.stamp).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`;
+        status.querySelector("span").textContent=`Live Bitview data · ${series.price_close.dates().at(-1).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`;
       }catch(error){status.classList.add("error");status.querySelector("span").innerHTML=`Bitview data unavailable · <button type="button">retry</button>`;status.querySelector("button").onclick=loadData;/** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(".chart-loading")).forEach(e=>e.textContent="Bitview data unavailable");}
     }
     function hydrate(){

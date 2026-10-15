@@ -16,6 +16,10 @@ impl<'a> AddrTypeLookup<'a> {
         Self { addrs }
     }
 
+    pub fn contains(&self, type_index: TypeIndex) -> bool {
+        self.addrs.contains_key(&type_index)
+    }
+
     pub fn update_tx_counts(
         &mut self,
         outputs: &FxHashMap<TypeIndex, Received>,

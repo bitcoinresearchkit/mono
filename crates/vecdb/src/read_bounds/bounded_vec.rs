@@ -31,6 +31,12 @@ impl<'a> BoundedVec<'a> {
         self.source.name()
     }
 
+    /// The bounds every operation installs: entering them once around many operations makes
+    /// theirs join that scope.
+    pub fn bounds(&self) -> &'a ReadBounds {
+        self.bounds
+    }
+
     pub fn version(&self) -> Version {
         self.source.version()
     }

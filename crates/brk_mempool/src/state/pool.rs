@@ -2,7 +2,7 @@ use std::{hash::Hasher, sync::Arc};
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolInfo, Timestamp, Txid};
-use rustc_hash::FxHasher;
+use rustc_hash::{FxHashSet, FxHasher};
 use serde_json::to_vec;
 
 use crate::{
@@ -35,22 +35,23 @@ impl Pool {
     ) -> Self {
         debug_assert_eq!(graph.content_revision(), state.txs.content_revision());
         // A new projection or chain tip does not change membership containers.
-        let (txs, addrs, outpoint_spends, info_json) = match previous
+        let (txs, addrs, info_json) = match previous
             .filter(|pool| pool.txs.content_revision() == state.txs.content_revision())
         {
-            Some(pool) => (
-                pool.txs.clone(),
-                pool.addrs.clone(),
-                pool.outpoint_spends.clone(),
-                pool.info_json.clone(),
-            ),
+            Some(pool) => (pool.txs.clone(), pool.addrs.clone(), pool.info_json.clone()),
             None => (
                 Arc::new(state.txs.read_only_clone()),
                 Arc::new(state.addrs.clone()),
-                Arc::new(state.outpoint_spends.clone()),
                 Self::info_json(&state.info),
             ),
         };
+        // Spend ownership can change alone (a stale template tx turning listed).
+        let outpoint_spends = previous
+            .filter(|pool| pool.outpoint_spends.revision() == state.outpoint_spends.revision())
+            .map_or_else(
+                || Arc::new(state.outpoint_spends.clone()),
+                |pool| pool.outpoint_spends.clone(),
+            );
         let graveyard = previous
             .filter(|pool| pool.graveyard.revision() == state.graveyard.revision())
             .map_or_else(
@@ -80,6 +81,7 @@ impl Pool {
     pub fn matches(&self, state: &State, tip: &BlockHash, graph: &Arc<Snapshot>) -> bool {
         self.tip == *tip
             && self.txs.content_revision() == state.txs.content_revision()
+            && self.outpoint_spends.revision() == state.outpoint_spends.revision()
             && self.graveyard.revision() == state.graveyard.revision()
             && Arc::ptr_eq(&self.graph, graph)
     }
@@ -118,6 +120,7 @@ impl Pool {
             addrs: self.addrs.as_ref().clone(),
             outpoint_spends: self.outpoint_spends.as_ref().clone(),
             graveyard: self.graveyard.as_ref().clone(),
+            template_only: FxHashSet::default(),
         }
     }
 }

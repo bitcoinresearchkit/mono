@@ -17,11 +17,11 @@ use serde::Serialize;
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
-#[cfg(feature = "chain")]
-use crate::prepared_json::PreparedJson;
 #[cfg(feature = "series")]
 use crate::series_bodies::SeriesBodies;
 use crate::{CacheParams, CdnCacheMode, Error, Website, extended::ResponseExtended};
+#[cfg(feature = "chain")]
+use crate::{prepared_json::PreparedJson, raw_body::RawBodyPermit};
 
 /// One request's state: its query (carrying the request deadline) over the server's shared state.
 #[derive(Clone, Deref)]
@@ -242,26 +242,68 @@ impl AppState {
 
     /// JSON response whose representation identity is produced with its bytes.
     #[cfg(feature = "chain")]
-    pub async fn respond_json_bound<F>(
+    pub async fn respond_json_bound(
         &self,
-        headers: &HeaderMap,
+        headers: HeaderMap,
         version: Version,
-        f: F,
-    ) -> Response<Body>
-    where
-        F: FnOnce(&Query) -> Result<(Vec<u8>, RepresentationId)> + Send + 'static,
-    {
-        let outcome = self.read_admitted(f).await;
-
-        match outcome {
-            Ok((bytes, identity)) => self.respond_immediate(
-                headers,
+        f: impl FnOnce(&Query) -> Result<(Vec<u8>, RepresentationId)> + Clone + Send + 'static,
+    ) -> Response<Body> {
+        self.respond_json_built(headers, move |q| {
+            let (bytes, identity) = f(q)?;
+            Ok((
+                Bytes::from(bytes),
                 CacheParams::representation(version, identity),
-                "application/json",
-                || Bytes::from(bytes),
-            ),
-            Err(error) => Error::from(error).into_response(),
+            ))
+        })
+        .await
+    }
+
+    /// [`Self::respond_json_content`] for values that can reach megabytes.
+    #[cfg(feature = "chain")]
+    pub async fn respond_json_content_admitted<T: Serialize>(
+        &self,
+        headers: HeaderMap,
+        f: impl FnOnce(&Query) -> Result<T> + Clone + Send + 'static,
+    ) -> Response<Body> {
+        self.respond_json_built(headers, move |q| {
+            let bytes = Bytes::from(to_vec(&f(q)?)?);
+            let params = CacheParams::live_hash(RepresentationId::content_hash(&bytes));
+            Ok((bytes, params))
+        })
+        .await
+    }
+
+    /// JSON whose validator comes with its bytes. Building is bounded by query admission; a
+    /// large body then takes a `chain_bodies` permit that it keeps until sent, building again
+    /// once one is free.
+    #[cfg(feature = "chain")]
+    async fn respond_json_built(
+        &self,
+        headers: HeaderMap,
+        f: impl FnOnce(&Query) -> Result<(Bytes, CacheParams)> + Clone + Send + 'static,
+    ) -> Response<Body> {
+        fn json(headers: &mut HeaderMap) {
+            headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json"),
+            );
         }
+        let budget = self.chain_bodies.clone();
+        self.read_body(&self.sync_query, &self.chain_bodies, move |q, permit| {
+            let (bytes, params) = f(q)?;
+            if params.matches_etag(&headers) {
+                return Ok(Some(ResponseExtended::new_not_modified(&params)));
+            }
+            if !RawBodyPermit::retains(bytes.len()) {
+                return Ok(Some(Self::assemble_response(params, bytes, json)));
+            }
+            let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&budget)) else {
+                return Ok(None);
+            };
+            Ok(Some(permit.response(params, bytes, json)))
+        })
+        .await
+        .unwrap_or_else(|error| Error::from(error).into_response())
     }
 
     /// JSON response whose validator is derived from the exact serialized value.

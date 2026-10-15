@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, ops::Range};
 
 use super::{CompressionStrategy, Page};
-use crate::{Result, VecValue};
+use crate::{Error, Result, VecValue};
 
 pub struct PageDecoder<T, S>
 where
@@ -52,10 +52,18 @@ where
         dst: &mut Vec<T>,
     ) -> Result<()> {
         if page.is_raw() {
-            S::bytes_to_values_into(body, expected_len, dst)
+            S::bytes_to_values_into(body, expected_len, dst)?;
         } else {
-            S::decompress_page_into(self.decoder(page, header)?, body, expected_len, dst)
+            S::decompress_page_into(self.decoder(page, header)?, body, expected_len, dst)?;
         }
+        // Cursors read decoded pages unchecked: a strategy's length is checked once here.
+        if dst.len() != expected_len {
+            return Err(Error::DecompressionMismatch {
+                expected_len,
+                actual_len: dst.len(),
+            });
+        }
+        Ok(())
     }
 
     /// Appends values `range` of one page: a raw page converts only those bytes; a compressed

@@ -15,7 +15,7 @@ pub const START_HEIGHT_FAST: usize = 508_000;
 pub struct Config {
     /// EMA decay: 2/(N+1) where N is span in blocks. 2/7 = 6-block span.
     pub(crate) alpha: f64,
-    /// Ring buffer depth. 12 blocks for deterministic convergence at any start height.
+    /// Ring buffer depth: the EMA depends on these last blocks only (12 by default).
     pub window_size: usize,
     /// Search window bins below/above previous estimate. Asymmetric for log-scale.
     pub(crate) search_below: usize,

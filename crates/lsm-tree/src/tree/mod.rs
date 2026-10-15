@@ -24,6 +24,9 @@ pub mod inner;
 
 /// A tree's table layout pinned for reads: later ingestions and compactions stay invisible to
 /// it, and the tables it reads stay on disk while it lives.
+///
+/// Drop views before reopening the tree: recovery deletes the tables only they pin as orphans
+/// and may reuse their ids.
 #[derive(Clone)]
 pub struct ReadView(Arc<Version>);
 

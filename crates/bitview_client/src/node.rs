@@ -39,8 +39,6 @@ impl<T> SeriesValue for Option<T> {
 /// A series-tree node or leaf, built from its series name or base.
 pub trait Node: Sized + Send + Sync + 'static {
     fn build(client: Arc<BitviewClientBase>, name: String) -> Self;
-    #[cfg(test)]
-    fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn AnySeriesPattern));
 }
 
 /// A series-tree child, built on first access from its parent's client and base and its own name
@@ -109,10 +107,6 @@ macro_rules! shape {
                 let base: ::std::sync::Arc<str> = base.into();
                 Self { $($field: $crate::LazyNode::new(&client, &base, $template),)* }
             }
-            #[cfg(test)]
-            fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn $crate::AnySeriesPattern)) {
-                $($crate::Node::visit(&*self.$field, &format!("{path}{}{}", if path.is_empty() { "" } else { "." }, stringify!($field)), f);)*
-            }
         }
     };
 }
@@ -158,10 +152,6 @@ macro_rules! accessor {
         impl<T: Send + Sync + 'static> $crate::Node for $name<T> {
             fn build(client: ::std::sync::Arc<$crate::BitviewClientBase>, name: String) -> Self {
                 Self::new(client, name)
-            }
-            #[cfg(test)]
-            fn visit(&self, path: &str, f: &mut dyn FnMut(&str, &dyn $crate::AnySeriesPattern)) {
-                f(path, self)
             }
         }
     };

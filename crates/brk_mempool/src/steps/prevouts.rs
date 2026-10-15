@@ -13,11 +13,12 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use brk_rpc::Client;
-use brk_types::{TxOut, Txid, TxidPrefix, Vin, Vout};
+use brk_types::{TxOut, Txid, Vin, Vout};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::warn;
 
 use crate::{
+    key::TxKey,
     state::State,
     stores::{TxGraveyard, TxStore},
 };
@@ -37,8 +38,8 @@ where
     }
 
     for (txid, fills) in in_mempool.into_iter().chain(external) {
-        let prefix = TxidPrefix::from(&txid);
-        for prevout in state.txs.apply_fills(&prefix, fills) {
+        let key = TxKey::from(&txid);
+        for prevout in state.txs.apply_fills(&key, fills) {
             state.addrs.add_input(&txid, &prevout);
         }
     }
@@ -96,8 +97,8 @@ fn gather(
 ) {
     let mut filled: Vec<(Txid, Vec<(Vin, TxOut)>)> = Vec::new();
     let mut holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)> = Vec::new();
-    for prefix in txs.unresolved() {
-        let Some(record) = txs.record_by_prefix(prefix) else {
+    for key in txs.unresolved() {
+        let Some(record) = txs.record_by_key(key) else {
             continue;
         };
         let mut tx_fills: Vec<(Vin, TxOut)> = Vec::new();

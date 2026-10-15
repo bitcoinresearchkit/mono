@@ -51,6 +51,7 @@ mod vecs;
 
 pub use constants::overwritten_output;
 pub use has::HasIndexer;
+pub use processor::transaction::analysis::policy::FIRST_V29_POLICY_HEIGHT;
 
 pub use safe_lengths::SafeLengths;
 pub use stores::UtxoKey;

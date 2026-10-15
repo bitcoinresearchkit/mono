@@ -1,12 +1,15 @@
-use super::DeltaOp;
+use crate::CheckedSub;
 
-/// Rolling average from cumulative: `(cum[h] - cum[start - 1]) / (h - start + 1)`
+use super::{DeltaOp, exact_diff};
+
+/// Rolling average from cumulative: `(cum[h] - cum[start - 1]) / (h - start + 1)`, subtracted
+/// exactly before converting.
 #[derive(Clone, Copy)]
 pub struct DeltaAvg;
 
 impl<S, T> DeltaOp<S, T> for DeltaAvg
 where
-    S: Into<f64> + Default,
+    S: CheckedSub + PartialOrd + Clone + Into<f64> + Default,
     T: From<f64>,
 {
     #[inline]
@@ -29,7 +32,7 @@ where
         if count == 0 {
             T::from(0.0)
         } else {
-            T::from((current.into() - ago.into()) / count as f64)
+            T::from(exact_diff(current, ago) / count as f64)
         }
     }
 }

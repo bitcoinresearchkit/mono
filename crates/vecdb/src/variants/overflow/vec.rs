@@ -8,7 +8,7 @@ use crate::{
     AnyStoredVec, AnyVec, BytesVec, BytesVecReader, Error, Header, ImportOptions, ImportableVec,
     MutableVec, OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
     ReadableCloneableVec, ReadableVec, Result, SharedLen, Stamp, StoredVec, TypedVec, VecIndex,
-    Version, WritableVec,
+    Version, WritableVec, base::clear_pushed,
 };
 
 const VERSION: Version = Version::ONE;
@@ -269,9 +269,38 @@ where
         let guard = self.header().begin_write()?;
         let overflow = self.overflow.write()?;
         let compact = self.compact.write()?;
-        self.pushed.clear();
-        self.visible_len.set(self.compact.stored_len());
+        self.written();
         guard.finish(Ok(compact || overflow))
+    }
+
+    /// After both halves wrote: nothing is pushed, readers see the stored length.
+    fn written(&mut self) {
+        clear_pushed(&mut self.pushed);
+        self.visible_len.set(self.compact.stored_len());
+    }
+
+    /// After both halves rolled back or dropped their unsaved changes: the pushed values follow
+    /// the compact half's (a rollback may restore rows past its stored length), readers see the
+    /// stored length.
+    fn restore_pushed(&mut self) {
+        let stored_len = self.compact.stored_len();
+        let holes = self.compact.holes();
+        let pushed = self
+            .compact
+            .pushed()
+            .iter()
+            .enumerate()
+            .map(|(offset, &compact)| {
+                // A hole's pointer may name a deleted sidecar entry: its value is never read.
+                if holes.contains(&(stored_len + offset)) {
+                    T::default()
+                } else {
+                    self.decode_current(compact)
+                }
+            })
+            .collect();
+        self.pushed = pushed;
+        self.visible_len.set(stored_len);
     }
 }
 
@@ -381,6 +410,25 @@ where
         self.stamped_write_with_changes(stamp)
     }
 
+    fn any_stamped_write_maybe_with_changes(
+        &mut self,
+        stamp: Stamp,
+        with_changes: bool,
+    ) -> Result<()> {
+        if with_changes {
+            return self.stamped_write_with_changes(stamp);
+        }
+        // Advance the baseline without collecting old values this checkpoint discards.
+        self.any_remove_changes_above(self.stamp())?;
+        let write_guard = self.header().begin_write()?;
+        let gate = Arc::clone(&self.gate);
+        let _guard = (!self.unread_updates).then(|| gate.write());
+        self.overflow.write_saved_changes(stamp)?;
+        self.compact.write_saved_changes(stamp)?;
+        self.written();
+        write_guard.finish(Ok(()))
+    }
+
     fn any_save_rollback_state(&mut self) {
         self.save_rollback_state();
     }
@@ -454,7 +502,7 @@ where
         let _guard = gate.write();
         self.overflow.reset()?;
         self.compact.reset()?;
-        self.pushed.clear();
+        self.pushed = Vec::new();
         self.visible_len.set(0);
         write_guard.finish(Ok(()))
     }
@@ -465,8 +513,7 @@ where
         let _guard = gate.write();
         self.overflow.reset_unsaved();
         self.compact.reset_unsaved();
-        self.pushed.clear();
-        self.visible_len.set(self.compact.stored_len());
+        self.restore_pushed();
     }
 
     fn is_dirty(&self) -> bool {
@@ -482,8 +529,7 @@ where
         self.compact.save_changes(stamp)?;
         self.overflow.write_saved_changes(stamp)?;
         self.compact.write_saved_changes(stamp)?;
-        self.pushed.clear();
-        self.visible_len.set(self.compact.stored_len());
+        self.written();
         write_guard.finish(Ok(()))
     }
 
@@ -493,8 +539,7 @@ where
         let _guard = gate.write();
         self.overflow.rollback()?;
         self.compact.rollback()?;
-        self.pushed.clear();
-        self.visible_len.set(self.compact.stored_len());
+        self.restore_pushed();
         write_guard.finish(Ok(()))
     }
 

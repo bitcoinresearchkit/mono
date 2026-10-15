@@ -137,8 +137,8 @@ where
     }
 
     /// Takes buffered puts/dels and returns a closure that ingests them into the keyspace.
-    /// The store is left with empty buffers, ready for the next batch. The caller must
-    /// persist the database after ingestion before treating the data as persisted.
+    /// The store is left with empty buffers, ready for the next batch. A successful ingestion
+    /// persists and publishes the records: it writes immutable tables and its manifest.
     pub fn take_pending_ingest(&mut self) -> Option<PendingIngest>
     where
         K: Send + 'static,
@@ -174,17 +174,20 @@ where
         }
     }
 
+    /// The ingested records in `range`, storage errors as `Err` items.
     #[inline]
     pub fn range<B: StoreValue>(
         &self,
         range: Range<B>,
-    ) -> impl DoubleEndedIterator<Item = (K, V)> + '_ {
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + '_ {
         let start = range.start.to_store_bytes();
         let end = range.end.to_store_bytes();
         self.keyspace
             .range_as::<K::Bytes, V::Bytes, _, _>(start..end)
-            .map(|result| result.unwrap())
-            .map(|(k, v)| (K::from_store_bytes(k), V::from_store_bytes(v)))
+            .map(|result| {
+                let (k, v) = result?;
+                Ok((K::from_store_bytes(k), V::from_store_bytes(v)))
+            })
     }
 
     fn ingest_owned(keyspace: &Keyspace, pending: Pending<K, V>) -> Result<()> {
@@ -293,15 +296,18 @@ where
     K::Bytes: RecordBytes,
     V::Bytes: RecordBytes,
 {
+    /// The pinned records under `prefix`, storage errors as `Err` items.
     #[inline]
     pub fn prefix<P: StoreValue>(
         &self,
         prefix: P,
-    ) -> impl DoubleEndedIterator<Item = (K, V)> + use<K, V, P> {
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + use<K, V, P> {
         self.view
             .prefix_as::<K::Bytes, V::Bytes>(prefix.to_store_bytes().as_ref())
-            .map(|result| result.unwrap())
-            .map(|(k, v)| (K::from_store_bytes(k), V::from_store_bytes(v)))
+            .map(|result| {
+                let (k, v) = result?;
+                Ok((K::from_store_bytes(k), V::from_store_bytes(v)))
+            })
     }
 }
 

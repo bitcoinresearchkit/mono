@@ -1,5 +1,5 @@
 use crate::ans::{self, Spec};
-use crate::constants::Bitlen;
+use crate::constants::{Bitlen, MAX_BATCH_LATENT_VAR_SIZE};
 use crate::data_types::Latent;
 use crate::dyn_slices::DynLatentSlice;
 use crate::errors::PcoResult;
@@ -100,6 +100,21 @@ impl DynChunkLatentDecompressor {
       }
     );
     Ok(res)
+  }
+
+  /// Body bytes a batch read may touch. A single bin without offset bits
+  /// (e.g. a constant page) reads nothing, so it needs no padded reader.
+  pub fn batch_read_size(&self) -> usize {
+    match_latent_enum!(
+      self,
+      DynChunkLatentDecompressor<L>(inner) => {
+        if inner.n_bins <= 1 && inner.bytes_per_offset == 0 {
+          0
+        } else {
+          MAX_BATCH_LATENT_VAR_SIZE
+        }
+      }
+    )
   }
 
   pub fn latents<'a>(&'a mut self) -> DynLatentSlice<'a> {

@@ -33,6 +33,8 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
         indexes: &IndexSources,
     ) -> Self {
+        // The window's sum is subtracted exactly before converting.
+        let version = version + Version::ONE;
         Self(window_starts.map_with_suffix(|suffix, window_start| {
             LazyRollingAvgFromHeight::from_source(
                 &format!("{name}_{suffix}"),

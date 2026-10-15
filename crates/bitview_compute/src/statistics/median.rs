@@ -40,7 +40,7 @@ where
         A: VecValue + Copy,
         f64: From<A>,
     {
-        let version = window_starts.version() + values.version() + Version::ONE;
+        let version = window_starts.version() + values.version() + Version::TWO;
         self.compute_to(
             max_from,
             window_starts.len().min(values.len()),

@@ -10,6 +10,8 @@ mod oracle_feed;
 mod split;
 mod spot;
 
+/// First height with a nonzero spot price; earlier heights are zero.
+pub use brk_oracle::FIRST_PRICE_HEIGHT;
 pub use dependencies::Dependencies;
 pub use has::HasPrice;
 pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
@@ -51,7 +53,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// 340,000 use baked historical exchange prices; later heights use an on-chain oracle
     /// that estimates price from round-USD transaction-output patterns. This is
     /// a model-derived block price, not a contemporaneous exchange ticker. Zero
-    /// before the first exchange price (block 74,641, July 2010), and so are USD
+    /// before the first exchange price (block 74,641, August 2010), and so are USD
     /// values derived from it. At time-period indexes, the value is taken at the
     /// period's final block; null when the period has no block.
     pub spot: SpotPrice<M>,

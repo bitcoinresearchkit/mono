@@ -1,21 +1,10 @@
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{AddrHash, TypeIndex};
-use brk_types::{Address, AddressBytes, OutputType};
+use brk_types::{AddressBytes, OutputType};
 
-use super::parse_addr;
-use crate::{Error, Query, Result, check_bound};
+use crate::{Query, Result, check_bound};
 
 impl Query {
-    pub(crate) fn resolve_addr(
-        &self,
-        addr: &Address,
-        pin: &SafeLengths,
-    ) -> Result<(OutputType, TypeIndex)> {
-        let bytes = parse_addr(addr)?;
-        self.find_addr_bytes(&bytes, pin)?
-            .ok_or(Error::UnknownAddress)
-    }
-
     /// The address's type and index, if the publication `pin` has it.
     pub(crate) fn find_addr_bytes(
         &self,

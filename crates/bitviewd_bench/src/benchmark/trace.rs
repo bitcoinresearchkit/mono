@@ -19,6 +19,7 @@ pub struct TraceMonitor(Mutex<State>);
 struct State {
     started_at: Option<Instant>,
     timings: BufWriter<File>,
+    timing_rows: usize,
     progress: BufWriter<File>,
     error: Option<io::Error>,
 }
@@ -41,6 +42,7 @@ impl TraceMonitor {
         Ok(Self(Mutex::new(State {
             started_at: None,
             timings,
+            timing_rows: 0,
             progress,
             error: None,
         })))
@@ -65,6 +67,7 @@ impl TraceMonitor {
         {
             let duration_ms = duration_ns as f64 / 1_000_000.0;
             let start_ms = (end_ms - duration_ms).max(0.0);
+            state.timing_rows += 1;
             writeln!(
                 state.timings,
                 "{phase},{plugin},{start_ms:.3},{duration_ms:.3}"
@@ -87,14 +90,15 @@ impl TraceMonitor {
         }
     }
 
-    pub fn finish(&self) -> io::Result<()> {
+    /// Flushes the recordings and returns how many plugin timings they hold.
+    pub fn finish(&self) -> io::Result<usize> {
         let mut state = self.0.lock();
         state.started_at = None;
         state.timings.flush()?;
         state.progress.flush()?;
         match state.error.take() {
             Some(error) => Err(error),
-            None => Ok(()),
+            None => Ok(state.timing_rows),
         }
     }
 }

@@ -2,6 +2,10 @@ use brk_types::Cents;
 
 use crate::config::START_HEIGHT_SLOW;
 
+/// First height with a nonzero baked price (block 74,641, August 2010): the tape is zero before
+/// the first exchange price.
+pub const FIRST_PRICE_HEIGHT: usize = 74_641;
+
 /// Pre-oracle dollar prices, one per line, heights 0..START_HEIGHT_SLOW.
 const PRICES: &str = include_str!("prices.txt");
 

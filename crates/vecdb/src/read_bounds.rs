@@ -16,8 +16,8 @@ pub use bounded_writer::BoundedWriter;
 type Bounds = Arc<BTreeMap<&'static str, usize>>;
 
 thread_local! {
-    /// This thread's live scopes, newest last: the newest applies.
-    static SCOPES: RefCell<Vec<(u64, Bounds)>> = const { RefCell::new(Vec::new()) };
+    /// This thread's live scopes, newest last, each with its number of guards: the newest applies.
+    static SCOPES: RefCell<Vec<(u64, Bounds, usize)>> = const { RefCell::new(Vec::new()) };
     static NEXT_SCOPE: Cell<u64> = const { Cell::new(0) };
 }
 
@@ -55,10 +55,22 @@ impl ReadBounds {
         f()
     }
 
-    /// Bounds this thread's reads until the returned guard drops.
+    /// Bounds this thread's reads until the returned guard drops. Entering the bounds that
+    /// already apply joins their scope (no registration): a writer's scope per value inside
+    /// one around the whole serialization costs a check.
     pub fn enter(&self) -> ReadScope {
-        let id = NEXT_SCOPE.replace(NEXT_SCOPE.get() + 1);
-        SCOPES.with(|scopes| scopes.borrow_mut().push((id, Arc::clone(&self.0))));
+        let id = SCOPES.with(|scopes| {
+            let mut scopes = scopes.borrow_mut();
+            if let Some((id, bounds, guards)) = scopes.last_mut()
+                && Arc::ptr_eq(bounds, &self.0)
+            {
+                *guards += 1;
+                return *id;
+            }
+            let id = NEXT_SCOPE.replace(NEXT_SCOPE.get() + 1);
+            scopes.push((id, Arc::clone(&self.0), 1));
+            id
+        });
         ReadScope {
             id,
             _thread: PhantomData,
@@ -70,8 +82,11 @@ impl Drop for ReadScope {
     fn drop(&mut self) {
         SCOPES.with(|scopes| {
             let mut scopes = scopes.borrow_mut();
-            if let Some(at) = scopes.iter().rposition(|(id, _)| *id == self.id) {
-                scopes.remove(at);
+            if let Some(at) = scopes.iter().rposition(|(id, ..)| *id == self.id) {
+                scopes[at].2 -= 1;
+                if scopes[at].2 == 0 {
+                    scopes.remove(at);
+                }
             }
         });
     }
@@ -83,7 +98,7 @@ pub fn visible_len(index: &str, len: usize) -> usize {
         scopes
             .borrow()
             .last()
-            .and_then(|(_, bounds)| bounds.get(index))
+            .and_then(|(_, bounds, _)| bounds.get(index))
             .copied()
             .map_or(len, |bound| len.min(bound))
     })

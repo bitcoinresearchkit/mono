@@ -79,14 +79,28 @@ impl_formattable_int!(
     u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize
 );
 
+/// A non-finite float is undefined: JSON `null`, an empty CSV cell.
 macro_rules! impl_formattable_float {
     ($($t:ty),*) => {
         $(
             impl Formattable for $t {
+                const UNDEFINED: bool = true;
+
                 #[inline(always)]
                 fn write_to(&self, buf: &mut Vec<u8>) {
-                    let mut b = ryu::Buffer::new();
-                    buf.extend_from_slice(b.format(*self).as_bytes());
+                    if self.is_finite() {
+                        buf.extend_from_slice(ryu::Buffer::new().format_finite(*self).as_bytes());
+                    }
+                }
+
+                /// One finiteness check on the hot path.
+                #[inline(always)]
+                fn fmt_json(&self, buf: &mut Vec<u8>) {
+                    if self.is_finite() {
+                        buf.extend_from_slice(ryu::Buffer::new().format_finite(*self).as_bytes());
+                    } else {
+                        buf.extend_from_slice(b"null");
+                    }
                 }
             }
         )*

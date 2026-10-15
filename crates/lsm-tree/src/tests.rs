@@ -89,10 +89,11 @@ fn block_codec_roundtrips_and_rejects_corrupt_lengths() -> Result<()> {
     let mut scratch = Lz4Scratch::default();
     for len in [1_usize, 18, 4_096, 70_000, 100] {
         let data: Vec<u8> = (0..len).map(|i| (i % 251) as u8 ^ (i / 7) as u8).collect();
+        // Filter blocks carry raw bytes; item blocks must hold a valid trailer.
         let mut plain = Vec::new();
-        Block::write_into(&mut plain, &data, BlockType::Data)?;
+        Block::write_into(&mut plain, &data, BlockType::Filter)?;
         let mut lz4 = Vec::new();
-        Block::write_lz4_into(&mut lz4, &data, BlockType::Data, &mut scratch)?;
+        Block::write_lz4_into(&mut lz4, &data, BlockType::Filter, &mut scratch)?;
         assert_eq!(
             &*Block::from_reader(&mut &plain[..], CompressionType::None)?.data,
             &data[..]
@@ -129,6 +130,28 @@ fn block_codec_roundtrips_and_rejects_corrupt_lengths() -> Result<()> {
             Block::from_reader(&mut &bytes[..], compression),
             Err(Error::InvalidHeader("Block length"))
         ));
+    }
+
+    // A restart pointer past the items (u16 index, 22-byte trailer) is rejected on load.
+    let mut data = Vec::new();
+    DataBlock::encode_into(
+        &mut data,
+        &[InternalValue::from_components(
+            *b"key",
+            *b"value",
+            0,
+            ValueType::Value,
+        )],
+        1,
+    )?;
+    for (pointer, valid) in [(0_u16, true), (u16::MAX, false)] {
+        let at = data.len() - 24;
+        data[at..at + 2].copy_from_slice(&pointer.to_le_bytes());
+        let mut bytes = Vec::new();
+        Block::write_into(&mut bytes, &data, BlockType::Data)?;
+        let block = Block::from_reader(&mut &bytes[..], CompressionType::None);
+        assert_eq!(block.is_ok(), valid);
+        assert!(valid || matches!(block, Err(Error::InvalidTrailer)));
     }
     Ok(())
 }

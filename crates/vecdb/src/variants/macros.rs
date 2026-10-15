@@ -399,6 +399,11 @@ macro_rules! impl_mutable_raw_vec {
                 }
 
                 #[inline]
+                fn unwritten_rollback(&self) -> bool {
+                    self.0.base().unwritten_rollback
+                }
+
+                #[inline]
                 fn pushed_mut(&mut self) -> &mut Vec<T> {
                     self.0.mut_pushed()
                 }
@@ -487,16 +492,21 @@ macro_rules! impl_read_write_writable {
                 guard.finish(result)
             }
 
+            /// Drops pushed values and a pending truncation: back to the written state, or to an
+            /// unwritten rollback's.
             fn reset_unsaved(&mut self) {
                 self.with_cache_update(0, |this| {
-                    this.base.reset_unsaved_base();
+                    let written_len = $crate::AnyStoredVec::real_stored_len(this);
+                    this.base.reset_unsaved_base(written_len);
                     Ok(())
                 })
                 .expect("resetting unsaved state cannot fail");
             }
 
             fn is_dirty(&self) -> bool {
-                !self.base.pushed().is_empty()
+                self.base.unwritten_rollback
+                    || !self.base.pushed().is_empty()
+                    || self.base.stored_len() != $crate::AnyStoredVec::real_stored_len(self)
             }
 
             fn stamped_write_with_changes(&mut self, stamp: $crate::Stamp) -> $crate::Result<()> {

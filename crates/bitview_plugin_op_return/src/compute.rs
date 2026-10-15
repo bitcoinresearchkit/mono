@@ -28,6 +28,7 @@ impl ComputePlugin for Vecs {
             + raw.to_tx_index.version()
             + raw.kind.version()
             + raw.post_op_return_bytes.version()
+            + txs.first_tx_index.version()
             + txs.weight.version()
             + fees.fee.tx.version();
 

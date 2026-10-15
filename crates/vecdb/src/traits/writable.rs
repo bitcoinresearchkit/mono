@@ -72,7 +72,12 @@ where
             // A change file opens with the stamp its rollback restores.
             let mut previous = [0; size_of::<u64>()];
             File::open(path)?.read_exact(&mut previous)?;
-            current = Stamp::from_bytes(&previous)?;
+            let previous = Stamp::from_bytes(&previous)?;
+            // A link that does not go down (a record saved at its own stamp) ends the chain.
+            if previous >= current {
+                return Ok(None);
+            }
+            current = previous;
         }
         Ok(Some(current))
     }

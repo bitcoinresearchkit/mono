@@ -83,9 +83,10 @@ canonical chain ──► Reader thread ──► Parser pool ──► Receiver
                      ships hits
 ```
 
-1. **`CanonicalRange`** asks bitcoind once, up front, for the canonical
-   block hash at every height in the target window — one batched
-   JSON-RPC call, no per-block RPC chatter.
+1. **`CanonicalRange`** asks bitcoind up front for the canonical
+   block hash at every height in the target window, in sequential
+   JSON-RPC batches of 2,000 heights (one round trip each), no per-block
+   RPC chatter. A failed batch fails the read: batches are not retried.
 2. **Reader thread** walks blk files, scans each for block magic, and
    for every block found hashes its 80-byte header and looks the hash
    up in the canonical map. Orphans short-circuit before the block

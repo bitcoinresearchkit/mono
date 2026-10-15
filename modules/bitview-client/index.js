@@ -27,8 +27,8 @@
  * @property {number} spentTxoCount - Total number of transaction outputs spent from this address
  * @property {Sats} spentTxoSum - Total amount in satoshis spent from this address
  * @property {number} txCount - Total number of confirmed transactions involving this address
- * @property {(TypeIndex|null)=} typeIndex - Index of this address within its type on the blockchain, null for an address seen only in
-the mempool
+ * @property {(TypeIndex|null)=} typeIndex - Index of this address within its type on the blockchain, null for an address without
+confirmed activity
  * @property {Dollars} realizedPrice - Realized price (average cost basis) in USD
  */
 /**
@@ -129,7 +129,7 @@ Note: intentionally differs from utxo_set_size diff which excludes unspendable o
 Matches mempool.space/bitcoin-cli behavior.
  * @property {number} utxoSetSize - Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
  * @property {Sats} totalInputAmt - Total input amount in satoshis
- * @property {number} virtualSize - Virtual size in vbytes
+ * @property {number} virtualSize - Virtual size in vbytes: weight / 4, unrounded
  * @property {?number=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
  * @property {string[]} orphans - Orphaned blocks (always empty)
  * @property {Dollars} price - USD price at block height
@@ -244,9 +244,9 @@ Matches mempool.space/bitcoin-cli behavior.
  * A single block size data point.
  *
  * @typedef {Object} BlockSizeEntry
- * @property {Height} avgHeight - Average block height in this window
- * @property {Timestamp} timestamp - Unix timestamp at the window midpoint
- * @property {number} avgSize - Rolling 24h median block size (bytes)
+ * @property {Height} avgHeight - Average block height in this bucket
+ * @property {Timestamp} timestamp - Average block timestamp in this bucket
+ * @property {number} avgSize - Mean block size in this bucket, rounded half up (bytes)
  */
 /**
  * Combined block sizes and weights response.
@@ -329,9 +329,9 @@ prior template's transactions or a full transaction body.
  * A single block weight data point.
  *
  * @typedef {Object} BlockWeightEntry
- * @property {Height} avgHeight - Average block height in this window
- * @property {Timestamp} timestamp - Unix timestamp at the window midpoint
- * @property {Weight} avgWeight - Rolling 24h median block weight (weight units)
+ * @property {Height} avgHeight - Average block height in this bucket
+ * @property {Timestamp} timestamp - Average block timestamp in this bucket
+ * @property {Weight} avgWeight - Mean block weight in this bucket, rounded half up (weight units)
  */
 /**
  * Yes or no.
@@ -460,9 +460,9 @@ ancestors and no descendants (matches mempool.space).
  * Range parameters with output format for API query parameters.
  *
  * @typedef {Object} DataRangeFormat
- * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
- * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
- * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+ * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+ * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+ * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
  * @property {Format=} format - Format of the output
  */
 /**
@@ -508,14 +508,16 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} difficultyChange - Estimated difficulty change at next retarget (%)
  * @property {number} estimatedRetargetDate - Estimated timestamp of next retarget (milliseconds)
  * @property {number} remainingBlocks - Blocks remaining until retarget
- * @property {number} remainingTime - Estimated time until retarget (milliseconds)
+ * @property {number} remainingTime - Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
  * @property {number} previousRetarget - Previous difficulty adjustment (%)
  * @property {Timestamp} previousTime - Timestamp of most recent retarget (seconds)
  * @property {Height} nextRetargetHeight - Height of next retarget
  * @property {number} timeAvg - Average block time in current epoch (milliseconds)
- * @property {number} adjustedTimeAvg - Time-adjusted average (milliseconds)
- * @property {number} timeOffset - Time offset from expected schedule (seconds)
- * @property {number} expectedBlocks - Expected blocks based on wall clock time since epoch start
+ * @property {number} adjustedTimeAvg - Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503
+blocks, where it spans the last 503 blocks, those before the retarget scaled by it
+ * @property {number} timeOffset - Testnet's offset for its 20-minute minimum-difficulty rule (milliseconds): always 0 on
+mainnet, as mempool.space
+ * @property {number} expectedBlocks - Blocks expected at the 10-minute target between the epoch's first block and the tip block
  */
 /**
  * A single difficulty adjustment entry.
@@ -733,10 +735,10 @@ ancestors and no descendants (matches mempool.space).
  *
  * @typedef {Object} IndexInfo
  * @property {Index} index - The canonical index name
- * @property {string[]} aliases - All Accepted query aliases
+ * @property {string[]} aliases - Every name REST queries accept for it; MCP tools take the canonical `index` only
  */
 /**
- * Maximum number of results to return. Defaults to 100 if not specified.
+ * Maximum number of results to return; each parameter states what omitting it means.
  *
  * @typedef {number} Limit
  */
@@ -1057,7 +1059,7 @@ ancestors and no descendants (matches mempool.space).
  * @property {string} link - Pool website URL
  * @property {number} blockCount - Number of blocks mined in the time period
  * @property {number} rank - Pool ranking by block count (1 = most blocks)
- * @property {number} emptyBlocks - Number of empty blocks mined
+ * @property {number} emptyBlocks - Number of empty (coinbase-only) blocks mined in the time period
  * @property {PoolSlug} slug - URL-friendly pool identifier
  * @property {number} share - Pool's share of total blocks (0.0 - 1.0)
  * @property {number} poolUniqueId - Unique pool identifier
@@ -1178,7 +1180,7 @@ on serialization otherwise.
 /**
  * @typedef {Object} SearchQuery
  * @property {SeriesName} q - Search query string
- * @property {Limit=} limit - Maximum number of results
+ * @property {Limit=} limit - Maximum number of results, 100 when omitted
  */
 /**
  * A duration in seconds (at most about 136 years).
@@ -1250,9 +1252,9 @@ undefined one (e.g. NaN).
  * @typedef {Object} SeriesSelection
  * @property {SeriesList} series - Requested series
  * @property {Index} index - Index to query
- * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
- * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
- * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+ * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+ * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+ * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
  * @property {Format=} format - Format of the output
  */
 /**
@@ -1414,8 +1416,8 @@ undefined one (e.g. NaN).
 /**
  * Query parameter for transaction-times endpoint.
  *
- * Extracted manually because `serde_urlencoded` (and serde derive in general)
- * doesn't support repeated keys like `txId[]=a&txId[]=b`. The schema is still
+ * Extracted from the decoded query pairs because a serde struct can't collect
+ * repeated keys like `txId[]=a&txId[]=b`. The schema is still
  * declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
  * generated client SDKs see `txids: List[Txid]`.
  *
@@ -1834,7 +1836,6 @@ function _wrapSeriesData(raw) {
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {number} start - Start index (inclusive)
  * @property {number} end - End index (exclusive)
- * @property {string} stamp - ISO 8601 timestamp of when the response was generated
  * @property {T[]} data - The series data (`null` where a value is missing or undefined)
  * @property {boolean} isDateBased - Whether this series uses a date-based index
  * @property {() => number[]} indexes - Get index numbers
@@ -2159,6 +2160,8 @@ class BitviewClientBase {
 
     // L1 miss: race browserCache (stale snapshot) vs network (fresh).
     let networkSettled = false;
+    // What this request's stale snapshot delivered, if anything.
+    let shown = /** @type {{ value: T } | null} */ (null);
     const stale = onValue && browserCache
       ? browserCache.match(url).then(async (res) => {
           if (!res || networkSettled || signal?.aborted) return;
@@ -2167,6 +2170,7 @@ class BitviewClientBase {
           const value = await parse(res);
           if (networkSettled || signal?.aborted) return;
           if (useMemCache) this._memSet(key, res.headers.get('ETag'), value);
+          shown = { value };
           onValue(value);
         }).catch(() => {})
       : null;
@@ -2181,10 +2185,12 @@ class BitviewClientBase {
     }
     networkSettled = true;
     const netEtag = res.headers.get('ETag');
-    // Stale won and populated memCache with matching ETag → reuse, skip parse + second onValue.
+    // memCache already holds this ETag (our stale snapshot or a concurrent request) → reuse, skip
+    // the parse; deliver it unless this request already showed that very value.
     const populated = useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(key)) : undefined;
     if (populated && netEtag && netEtag === populated.etag) {
       await res.body?.cancel();
+      if (onValue && shown?.value !== populated.value) onValue(populated.value);
       return populated.value;
     }
     return fresh(res);
@@ -7677,7 +7683,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Health check
    *
-   * Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index waits until the request deadline, then returns 504. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
+   * Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
    *
    * Endpoint: `GET /health`
    * @param {{ signal?: AbortSignal, onValue?: (value: Health) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -7761,7 +7767,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * List available indexes
    *
-   * Returns all available indexes with their accepted query aliases. Use any alias when querying series.
+   * Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
    *
    * Endpoint: `GET /api/series/indexes`
    * @param {{ signal?: AbortSignal, onValue?: (value: IndexInfo[]) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -7801,7 +7807,7 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/series/search`
    *
    * @param {SeriesName} q - Search query string
-   * @param {Limit=} [limit] - Maximum number of results
+   * @param {Limit=} [limit] - Maximum number of results, 100 when omitted
    * @param {{ signal?: AbortSignal, onValue?: (value: string[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<string[]>}
    */
@@ -7826,7 +7832,7 @@ class BitviewClient extends BitviewClientBase {
    * @returns {Promise<SeriesInfo>}
    */
   async getSeriesInfo(series, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/series/${series}`;
+    const path = `/api/series/${encodeURIComponent(series)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -7839,9 +7845,9 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series - Series name
    * @param {Index} index - Aggregation index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
    * @param {Format=} [format] - Format of the output
    * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AnySeriesData | string>}
@@ -7853,7 +7859,7 @@ class BitviewClient extends BitviewClientBase {
     if (limit !== undefined) params.set('limit', String(limit));
     if (format !== undefined) params.set('format', String(format));
     const query = params.toString();
-    const path = `/api/series/${series}/${index}${query ? '?' + query : ''}`;
+    const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
     return _wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }));
   }
@@ -7867,9 +7873,9 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series - Series name
    * @param {Index} index - Aggregation index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
    * @param {Format=} [format] - Format of the output
    * @param {{ signal?: AbortSignal, onValue?: (value: *[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<*[] | string>}
@@ -7881,7 +7887,7 @@ class BitviewClient extends BitviewClientBase {
     if (limit !== undefined) params.set('limit', String(limit));
     if (format !== undefined) params.set('format', String(format));
     const query = params.toString();
-    const path = `/api/series/${series}/${index}/data${query ? '?' + query : ''}`;
+    const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/data${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
@@ -7899,7 +7905,7 @@ class BitviewClient extends BitviewClientBase {
    * @returns {Promise<*>}
    */
   async getSeriesLatest(series, index, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/series/${series}/${index}/latest`;
+    const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/latest`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -7916,7 +7922,7 @@ class BitviewClient extends BitviewClientBase {
    * @returns {Promise<number>}
    */
   async getSeriesLen(series, index, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/series/${series}/${index}/len`;
+    const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/len`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -7933,7 +7939,7 @@ class BitviewClient extends BitviewClientBase {
    * @returns {Promise<Version>}
    */
   async getSeriesVersion(series, index, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/series/${series}/${index}/version`;
+    const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/version`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -7946,9 +7952,9 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesList} series - Requested series
    * @param {Index} index - Index to query
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
+   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
+   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
    * @param {Format=} [format] - Format of the output
    * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AnySeriesData[] | string>}
@@ -7997,7 +8003,7 @@ class BitviewClient extends BitviewClientBase {
     const params = new URLSearchParams();
     if (weight !== undefined) params.set('weight', String(weight));
     const query = params.toString();
-    const path = `/api/urpd/${cohort}/dates${query ? '?' + query : ''}`;
+    const path = `/api/urpd/${encodeURIComponent(cohort)}/dates${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8019,7 +8025,7 @@ class BitviewClient extends BitviewClientBase {
     if (agg !== undefined) params.set('agg', String(agg));
     if (weight !== undefined) params.set('weight', String(weight));
     const query = params.toString();
-    const path = `/api/urpd/${cohort}${query ? '?' + query : ''}`;
+    const path = `/api/urpd/${encodeURIComponent(cohort)}${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8042,7 +8048,7 @@ class BitviewClient extends BitviewClientBase {
     if (agg !== undefined) params.set('agg', String(agg));
     if (weight !== undefined) params.set('weight', String(weight));
     const query = params.toString();
-    const path = `/api/urpd/${cohort}/${point}${query ? '?' + query : ''}`;
+    const path = `/api/urpd/${encodeURIComponent(cohort)}/${encodeURIComponent(point)}${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8113,7 +8119,7 @@ address payload bytes.
    * @returns {Promise<AddressHashPrefixMatches>}
    */
   async getAddressHashPrefixMatches(address_type, prefix, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/hash-prefix/${address_type}/${prefix}`;
+    const path = `/api/address/hash-prefix/${encodeURIComponent(address_type)}/${encodeURIComponent(prefix)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8131,7 +8137,7 @@ address payload bytes.
    * @returns {Promise<AddressStats>}
    */
   async getAddress(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${address}`;
+    const path = `/api/address/${encodeURIComponent(address)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8149,7 +8155,7 @@ address payload bytes.
    * @returns {Promise<Transaction[]>}
    */
   async getAddressTxs(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${address}/txs`;
+    const path = `/api/address/${encodeURIComponent(address)}/txs`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8167,7 +8173,7 @@ address payload bytes.
    * @returns {Promise<Transaction[]>}
    */
   async getAddressConfirmedTxs(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${address}/txs/chain`;
+    const path = `/api/address/${encodeURIComponent(address)}/txs/chain`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8186,7 +8192,7 @@ address payload bytes.
    * @returns {Promise<Transaction[]>}
    */
   async getAddressConfirmedTxsAfter(address, after_txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${address}/txs/chain/${after_txid}`;
+    const path = `/api/address/${encodeURIComponent(address)}/txs/chain/${encodeURIComponent(after_txid)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8204,7 +8210,7 @@ address payload bytes.
    * @returns {Promise<Transaction[]>}
    */
   async getAddressMempoolTxs(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${address}/txs/mempool`;
+    const path = `/api/address/${encodeURIComponent(address)}/txs/mempool`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8222,7 +8228,7 @@ address payload bytes.
    * @returns {Promise<Utxo[]>}
    */
   async getAddressUtxos(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${address}/utxo`;
+    const path = `/api/address/${encodeURIComponent(address)}/utxo`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8240,7 +8246,7 @@ address payload bytes.
    * @returns {Promise<AddressValidation>}
    */
   async validateAddress(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/validate-address/${address}`;
+    const path = `/api/v1/validate-address/${encodeURIComponent(address)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8258,7 +8264,7 @@ address payload bytes.
    * @returns {Promise<BlockInfo>}
    */
   async getBlock(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block/${hash}`;
+    const path = `/api/block/${encodeURIComponent(hash)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8276,7 +8282,7 @@ address payload bytes.
    * @returns {Promise<BlockInfoV1>}
    */
   async getBlockV1(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/block/${hash}`;
+    const path = `/api/v1/block/${encodeURIComponent(hash)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8294,7 +8300,7 @@ address payload bytes.
    * @returns {Promise<Hex>}
    */
   async getBlockHeader(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block/${hash}/header`;
+    const path = `/api/block/${encodeURIComponent(hash)}/header`;
     return this.getText(path, { signal, onValue, cache, memCache });
   }
 
@@ -8312,7 +8318,7 @@ address payload bytes.
    * @returns {Promise<BlockHash>}
    */
   async getBlockByHeight(height, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block-height/${height}`;
+    const path = `/api/block-height/${encodeURIComponent(height)}`;
     return this.getText(path, { signal, onValue, cache, memCache });
   }
 
@@ -8330,7 +8336,7 @@ address payload bytes.
    * @returns {Promise<BlockTimestamp>}
    */
   async getBlockByTimestamp(timestamp, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/blocks/timestamp/${timestamp}`;
+    const path = `/api/v1/mining/blocks/timestamp/${encodeURIComponent(timestamp)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8348,7 +8354,7 @@ address payload bytes.
    * @returns {Promise<Uint8Array>}
    */
   async getBlockRaw(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block/${hash}/raw`;
+    const path = `/api/block/${encodeURIComponent(hash)}/raw`;
     return this.getBytes(path, { signal, onValue, cache, memCache });
   }
 
@@ -8366,7 +8372,7 @@ address payload bytes.
    * @returns {Promise<BlockStatus>}
    */
   async getBlockStatus(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block/${hash}/status`;
+    const path = `/api/block/${encodeURIComponent(hash)}/status`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8417,7 +8423,7 @@ address payload bytes.
    * @returns {Promise<Txid>}
    */
   async getBlockTxid(hash, index, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block/${hash}/txid/${index}`;
+    const path = `/api/block/${encodeURIComponent(hash)}/txid/${encodeURIComponent(index)}`;
     return this.getText(path, { signal, onValue, cache, memCache });
   }
 
@@ -8435,7 +8441,7 @@ address payload bytes.
    * @returns {Promise<Txid[]>}
    */
   async getBlockTxids(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block/${hash}/txids`;
+    const path = `/api/block/${encodeURIComponent(hash)}/txids`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8453,7 +8459,7 @@ address payload bytes.
    * @returns {Promise<Transaction[]>}
    */
   async getBlockTxs(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block/${hash}/txs`;
+    const path = `/api/block/${encodeURIComponent(hash)}/txs`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8472,7 +8478,7 @@ address payload bytes.
    * @returns {Promise<Transaction[]>}
    */
   async getBlockTxsFromIndex(hash, start_index, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/block/${hash}/txs/${start_index}`;
+    const path = `/api/block/${encodeURIComponent(hash)}/txs/${encodeURIComponent(start_index)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8506,7 +8512,7 @@ address payload bytes.
    * @returns {Promise<BlockInfo[]>}
    */
   async getBlocksFromHeight(height, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/blocks/${height}`;
+    const path = `/api/blocks/${encodeURIComponent(height)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8540,7 +8546,7 @@ address payload bytes.
    * @returns {Promise<BlockInfoV1[]>}
    */
   async getBlocksV1FromHeight(height, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/blocks/${height}`;
+    const path = `/api/v1/blocks/${encodeURIComponent(height)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8574,7 +8580,7 @@ address payload bytes.
    * @returns {Promise<PoolsSummary>}
    */
   async getPoolStats(time_period, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/pools/${time_period}`;
+    const path = `/api/v1/mining/pools/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8592,7 +8598,7 @@ address payload bytes.
    * @returns {Promise<PoolDetail>}
    */
   async getPool(slug, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/pool/${slug}`;
+    const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8626,7 +8632,7 @@ address payload bytes.
    * @returns {Promise<PoolHashrateEntry[]>}
    */
   async getPoolsHashrateByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/hashrate/pools/${time_period}`;
+    const path = `/api/v1/mining/hashrate/pools/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8644,7 +8650,7 @@ address payload bytes.
    * @returns {Promise<PoolHashrateEntry[]>}
    */
   async getPoolHashrate(slug, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/pool/${slug}/hashrate`;
+    const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/hashrate`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8662,7 +8668,7 @@ address payload bytes.
    * @returns {Promise<BlockInfoV1[]>}
    */
   async getPoolBlocks(slug, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/pool/${slug}/blocks`;
+    const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/blocks`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8681,7 +8687,7 @@ address payload bytes.
    * @returns {Promise<BlockInfoV1[]>}
    */
   async getPoolBlocksFrom(slug, height, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/pool/${slug}/blocks/${height}`;
+    const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/blocks/${encodeURIComponent(height)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8715,7 +8721,7 @@ address payload bytes.
    * @returns {Promise<HashrateSummary>}
    */
   async getHashrateByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/hashrate/${time_period}`;
+    const path = `/api/v1/mining/hashrate/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8749,7 +8755,7 @@ address payload bytes.
    * @returns {Promise<DifficultyAdjustmentEntry[]>}
    */
   async getDifficultyAdjustmentsByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/difficulty-adjustments/${time_period}`;
+    const path = `/api/v1/mining/difficulty-adjustments/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8767,7 +8773,7 @@ address payload bytes.
    * @returns {Promise<RewardStats>}
    */
   async getRewardStats(block_count, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/reward-stats/${block_count}`;
+    const path = `/api/v1/mining/reward-stats/${encodeURIComponent(block_count)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8785,7 +8791,7 @@ address payload bytes.
    * @returns {Promise<BlockFeesEntry[]>}
    */
   async getBlockFees(time_period, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/blocks/fees/${time_period}`;
+    const path = `/api/v1/mining/blocks/fees/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8803,7 +8809,7 @@ address payload bytes.
    * @returns {Promise<BlockRewardsEntry[]>}
    */
   async getBlockRewards(time_period, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/blocks/rewards/${time_period}`;
+    const path = `/api/v1/mining/blocks/rewards/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8821,7 +8827,7 @@ address payload bytes.
    * @returns {Promise<BlockFeeRatesEntry[]>}
    */
   async getBlockFeeRates(time_period, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/blocks/fee-rates/${time_period}`;
+    const path = `/api/v1/mining/blocks/fee-rates/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -8839,7 +8845,7 @@ address payload bytes.
    * @returns {Promise<BlockSizesWeights>}
    */
   async getBlockSizesWeights(time_period, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mining/blocks/sizes-weights/${time_period}`;
+    const path = `/api/v1/mining/blocks/sizes-weights/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9011,7 +9017,7 @@ address payload bytes.
    * @returns {Promise<BlockTemplateDiff>}
    */
   async getBlockTemplateDiff(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mempool/block-template/diff/${hash}`;
+    const path = `/api/v1/mempool/block-template/diff/${encodeURIComponent(hash)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9041,7 +9047,7 @@ address payload bytes.
    * @returns {Promise<Txid>}
    */
   async getTxByIndex(index, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx-index/${index}`;
+    const path = `/api/tx-index/${encodeURIComponent(index)}`;
     return this.getText(path, { signal, onValue, cache, memCache });
   }
 
@@ -9059,7 +9065,7 @@ address payload bytes.
    * @returns {Promise<CpfpInfo>}
    */
   async getCpfp(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/cpfp/${txid}`;
+    const path = `/api/v1/cpfp/${encodeURIComponent(txid)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9077,7 +9083,7 @@ address payload bytes.
    * @returns {Promise<RbfResponse>}
    */
   async getTxRbf(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/tx/${txid}/rbf`;
+    const path = `/api/v1/tx/${encodeURIComponent(txid)}/rbf`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9095,7 +9101,7 @@ address payload bytes.
    * @returns {Promise<Transaction>}
    */
   async getTx(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx/${txid}`;
+    const path = `/api/tx/${encodeURIComponent(txid)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9113,7 +9119,7 @@ address payload bytes.
    * @returns {Promise<Hex>}
    */
   async getTxHex(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx/${txid}/hex`;
+    const path = `/api/tx/${encodeURIComponent(txid)}/hex`;
     return this.getText(path, { signal, onValue, cache, memCache });
   }
 
@@ -9131,7 +9137,7 @@ address payload bytes.
    * @returns {Promise<Hex>}
    */
   async getTxMerkleblockProof(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx/${txid}/merkleblock-proof`;
+    const path = `/api/tx/${encodeURIComponent(txid)}/merkleblock-proof`;
     return this.getText(path, { signal, onValue, cache, memCache });
   }
 
@@ -9149,7 +9155,7 @@ address payload bytes.
    * @returns {Promise<MerkleProof>}
    */
   async getTxMerkleProof(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx/${txid}/merkle-proof`;
+    const path = `/api/tx/${encodeURIComponent(txid)}/merkle-proof`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9168,7 +9174,7 @@ address payload bytes.
    * @returns {Promise<TxOutspend>}
    */
   async getTxOutspend(txid, vout, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx/${txid}/outspend/${vout}`;
+    const path = `/api/tx/${encodeURIComponent(txid)}/outspend/${encodeURIComponent(vout)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9186,7 +9192,7 @@ address payload bytes.
    * @returns {Promise<TxOutspend[]>}
    */
   async getTxOutspends(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx/${txid}/outspends`;
+    const path = `/api/tx/${encodeURIComponent(txid)}/outspends`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9204,7 +9210,7 @@ address payload bytes.
    * @returns {Promise<Uint8Array>}
    */
   async getTxRaw(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx/${txid}/raw`;
+    const path = `/api/tx/${encodeURIComponent(txid)}/raw`;
     return this.getBytes(path, { signal, onValue, cache, memCache });
   }
 
@@ -9222,7 +9228,7 @@ address payload bytes.
    * @returns {Promise<TxStatus>}
    */
   async getTxStatus(txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/tx/${txid}/status`;
+    const path = `/api/tx/${encodeURIComponent(txid)}/status`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9292,7 +9298,7 @@ address payload bytes.
    * @returns {Promise<UtxoSet>}
    */
   async getUtxoSet(point, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/utxo-set/${point}`;
+    const path = `/api/utxo-set/${encodeURIComponent(point)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9309,7 +9315,7 @@ address payload bytes.
    * @returns {Promise<UtxoSetDiff>}
    */
   async getUtxoSetDiff(point, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/utxo-set/${point}/diff`;
+    const path = `/api/utxo-set/${encodeURIComponent(point)}/diff`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9354,7 +9360,7 @@ address payload bytes.
    * @returns {Promise<number[]>}
    */
   async getOracleHistogramPayments(point, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/payments/${point}`;
+    const path = `/api/oracle/histogram/payments/${encodeURIComponent(point)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9385,14 +9391,14 @@ address payload bytes.
    * @returns {Promise<number[]>}
    */
   async getOracleHistogramOutputs(point, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/outputs/${point}`;
+    const path = `/api/oracle/histogram/outputs/${encodeURIComponent(point)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
    * OpenAPI specification
    *
-   * Full OpenAPI 3.1 specification for this API.
+   * Full OpenAPI 3.1 specification for this API. Build tools from this document.
    *
    * Endpoint: `GET /openapi.json`
    * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -9400,13 +9406,13 @@ address payload bytes.
    */
   async getOpenapi({ signal, onValue, cache, memCache } = {}) {
     const path = `/openapi.json`;
-    return this.getText(path, { signal, onValue, cache, memCache });
+    return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
-   * Compact OpenAPI specification
+   * Compact API summary
    *
-   * Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.
+   * Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.
    *
    * Endpoint: `GET /api.json`
    * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
