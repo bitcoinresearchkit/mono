@@ -12,7 +12,7 @@ use jiff::Timestamp;
 
 use super::AppState;
 use crate::{
-    CacheStrategy, VERSION,
+    CacheParams, VERSION,
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
     params::Empty,
@@ -82,11 +82,11 @@ impl ServerRoutes for ApiRouter<AppState> {
                     let sync = state.read_admitted(move |q| q.sync_status(tip_height)).await?;
                     // computed_height and blocks_behind derive from these heights;
                     // last_indexed_at derives from the Unix timestamp.
-                    let strategy = CacheStrategy::Live(format!(
+                    let params = CacheParams::live(format!(
                         "sync1-{}-{}-{}",
                         sync.indexed_height, sync.tip_height, *sync.last_indexed_at_unix,
-                    ).into());
-                    Ok(state.respond_json_value(&headers, strategy, sync))
+                    ));
+                    Ok(state.respond_json_value(&headers, params, sync))
                 },
                 |op| {
                     op.id("get_sync_status")

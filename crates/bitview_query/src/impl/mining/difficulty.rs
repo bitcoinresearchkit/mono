@@ -24,24 +24,12 @@ impl Query {
         let current_height = pin.lengths().last_height().ok_or(Error::StateUpdating)?;
         let current_height_u32: u32 = current_height.into();
 
-        let current_epoch = plugins
-            .mappings
-            .height
-            .epoch
-            .collect_one(current_height)
-            .data()?;
-        let current_epoch_usize: usize = current_epoch.into();
-
-        let epoch_start_height = plugins
-            .mappings
-            .epoch
-            .first_height
-            .collect_one(current_epoch)
-            .data()?;
-        let epoch_start_u32: u32 = epoch_start_height.into();
+        let current_epoch = Epoch::from(current_height);
+        let blocks_into_epoch = current_height_u32 % BLOCKS_PER_EPOCH;
+        let epoch_start_u32 = current_height_u32 - blocks_into_epoch;
+        let epoch_start_height = Height::from(epoch_start_u32);
 
         let next_retarget_height = epoch_start_u32 + BLOCKS_PER_EPOCH;
-        let blocks_into_epoch = current_height_u32 - epoch_start_u32;
         let remaining_blocks = next_retarget_height - current_height_u32;
         let progress_percent = (blocks_into_epoch as f64 / BLOCKS_PER_EPOCH as f64) * 100.0;
 
@@ -104,15 +92,8 @@ impl Query {
 
         let time_offset = expected_time as i64 - elapsed_time as i64;
 
-        let previous_retarget = if current_epoch_usize > 0 {
-            let prev_epoch = Epoch::from(current_epoch_usize - 1);
-            let prev_epoch_start = plugins
-                .mappings
-                .epoch
-                .first_height
-                .collect_one(prev_epoch)
-                .data()?;
-
+        let previous_retarget = if epoch_start_u32 > 0 {
+            let prev_epoch_start = Height::from(epoch_start_u32 - BLOCKS_PER_EPOCH);
             let prev_difficulty = indexer
                 .vecs()
                 .blocks

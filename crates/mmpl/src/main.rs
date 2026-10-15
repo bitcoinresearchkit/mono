@@ -6,7 +6,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use args::Args;
 use brk_error::{Error, Result};
 use brk_mempool::Mempool;
 use emitter::Emitter;
@@ -34,8 +33,7 @@ fn run() -> Result<()> {
         usage::print();
         return Ok(());
     }
-    let args = Args::parse(raw)?;
-    let client = args.connect.client()?;
+    let client = args::parse(raw)?.client()?;
     let mut mempool = Mempool::new(&client);
     let published = mempool.read_only_clone();
 

@@ -97,108 +97,63 @@ impl BitviewClient {{
 
 /// Generate API methods from OpenAPI endpoints.
 fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
-    for endpoint in endpoints {
-        if !endpoint.should_generate() {
-            continue;
-        }
-        match endpoint.method.as_str() {
-            "GET" => generate_get_method(output, endpoint),
-            "POST" => generate_post_method(output, endpoint),
-            _ => continue,
-        }
+    for endpoint in endpoints
+        .iter()
+        .filter(|endpoint| endpoint.should_generate())
+    {
+        generate_method(output, endpoint);
     }
 }
 
-fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
-    let method_name = endpoint_to_method_name(endpoint);
-    let return_type = build_return_type(endpoint);
-    let (fetch_method, decode) = fetch("get", endpoint);
-
-    write_method_doc(output, endpoint);
-
-    let params = build_method_params(endpoint);
-    writeln!(
-        output,
-        "    pub fn {}(&self{}) -> Result<{}> {{",
-        method_name, params, return_type
-    )
-    .unwrap();
-
-    let (path, index_arg) = build_path_template(endpoint);
-
-    if endpoint.query_params.is_empty() {
-        writeln!(
-            output,
-            "        self.base.{}(&format!(\"{}\"{})){decode}",
-            fetch_method, path, index_arg
-        )
-        .unwrap();
-    } else {
-        write_query_assembly(output, endpoint, &path, index_arg);
-
-        if endpoint.supports_csv {
-            writeln!(output, "        if format == Some(Format::CSV) {{").unwrap();
-            writeln!(
-                output,
-                "            self.base.get_text(&path).map(FormatResponse::Csv)"
-            )
-            .unwrap();
-            writeln!(output, "        }} else {{").unwrap();
-            writeln!(
-                output,
-                "            self.base.{}(&path).map(FormatResponse::Json)",
-                fetch_method
-            )
-            .unwrap();
-            writeln!(output, "        }}").unwrap();
-        } else {
-            writeln!(output, "        self.base.{}(&path){decode}", fetch_method).unwrap();
-        }
-    }
-
-    writeln!(output, "    }}\n").unwrap();
-}
-
-fn generate_post_method(output: &mut String, endpoint: &Endpoint) {
-    let method_name = endpoint_to_method_name(endpoint);
-    let return_type = build_return_type(endpoint);
-    let (fetch_method, decode) = fetch("post", endpoint);
+fn generate_method(output: &mut String, endpoint: &Endpoint) {
+    let post = endpoint.method == "POST";
+    let (fetch_method, decode) = fetch(if post { "post" } else { "get" }, endpoint);
 
     write_method_doc(output, endpoint);
 
     let mut params = build_method_params(endpoint);
-    if endpoint.request_body.is_some() {
-        params.push_str(", body: &str");
-    }
+    let body_arg = match (post, endpoint.request_body.is_some()) {
+        (false, _) => "",
+        (true, true) => {
+            params.push_str(", body: &str");
+            ", body"
+        }
+        (true, false) => ", \"\"",
+    };
     writeln!(
         output,
-        "    pub fn {}(&self{}) -> Result<{}> {{",
-        method_name, params, return_type
+        "    pub fn {}(&self{params}) -> Result<{}> {{",
+        endpoint_to_method_name(endpoint),
+        build_return_type(endpoint)
     )
     .unwrap();
 
     let (path, index_arg) = build_path_template(endpoint);
-    let body_arg = if endpoint.request_body.is_some() {
-        "body"
-    } else {
-        "\"\""
-    };
-
     if endpoint.query_params.is_empty() {
         writeln!(
             output,
-            "        self.base.{}(&format!(\"{}\"{}), {}){}",
-            fetch_method, path, index_arg, body_arg, decode
+            "        self.base.{fetch_method}(&format!(\"{path}\"{index_arg}){body_arg}){decode}"
         )
         .unwrap();
     } else {
         write_query_assembly(output, endpoint, &path, index_arg);
-        writeln!(
-            output,
-            "        self.base.{}(&path, {}){}",
-            fetch_method, body_arg, decode
-        )
-        .unwrap();
+        if endpoint.supports_csv && !post {
+            writeln!(
+                output,
+                "        if format == Some(Format::CSV) {{
+            self.base.get_text(&path).map(FormatResponse::Csv)
+        }} else {{
+            self.base.{fetch_method}(&path).map(FormatResponse::Json)
+        }}"
+            )
+            .unwrap();
+        } else {
+            writeln!(
+                output,
+                "        self.base.{fetch_method}(&path{body_arg}){decode}"
+            )
+            .unwrap();
+        }
     }
 
     writeln!(output, "    }}\n").unwrap();
@@ -297,7 +252,7 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, in
 }
 
 fn endpoint_to_method_name(endpoint: &Endpoint) -> String {
-    to_snake_case(&endpoint.operation_name())
+    to_snake_case(&endpoint.operation_id)
 }
 
 fn build_method_params(endpoint: &Endpoint) -> String {

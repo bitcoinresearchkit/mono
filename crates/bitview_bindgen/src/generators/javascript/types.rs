@@ -30,17 +30,7 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
 
         let type_desc = schema.get("description").and_then(|d| d.as_str());
 
-        if is_primitive_alias(schema) {
-            if let Some(desc) = type_desc {
-                writeln!(output, "/**").unwrap();
-                write_description(output, desc, " * ", " *");
-                writeln!(output, " *").unwrap();
-                writeln!(output, " * @typedef {{{}}} {}", js_type, name).unwrap();
-                writeln!(output, " */").unwrap();
-            } else {
-                writeln!(output, "/** @typedef {{{}}} {} */", js_type, name).unwrap();
-            }
-        } else if let Some(props) = schema.get("properties").and_then(|p| p.as_object()) {
+        if let Some(props) = schema.get("properties").and_then(|p| p.as_object()) {
             let required = |prop_name: &str| {
                 schema
                     .get("required")
@@ -132,14 +122,6 @@ fn is_js_identifier(name: &str) -> bool {
         .next()
         .is_some_and(|c| c.is_ascii_alphabetic() || c == '_' || c == '$')
         && chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$')
-}
-
-fn is_primitive_alias(schema: &Value) -> bool {
-    schema.get("properties").is_none()
-        && schema.get("items").is_none()
-        && schema.get("anyOf").is_none()
-        && schema.get("oneOf").is_none()
-        && schema.get("enum").is_none()
 }
 
 fn json_type_to_js(ty: &str, schema: &Value, current_type: Option<&str>) -> String {

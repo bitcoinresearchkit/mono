@@ -1,14 +1,13 @@
-use std::ops::AddAssign;
-
 use bitview_primitives::FundedAddressData;
 use brk_types::{OutputType, Sats};
+use derive_more::AddAssign;
 
 use super::{AddrReceivePreState, AddrReceiveStatus, AddrSendPreState, delta::ShardDelta};
 
 /// One address type's running counters (the root sums them): funded and empty counts, the
 /// supply the addresses hold, the block's outputs, inputs and activity, and the reuse and
 /// exposure predicates.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, AddAssign)]
 pub struct MemberState {
     pub funded: u64,
     pub empty: u64,
@@ -23,7 +22,7 @@ pub struct MemberState {
 }
 
 /// Per-block activity counts, reset after every block.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, AddAssign)]
 pub struct BlockActivityCounts {
     pub reactivated: u32,
     pub sending: u32,
@@ -32,7 +31,7 @@ pub struct BlockActivityCounts {
 }
 
 /// Addresses meeting a reuse predicate: receive-based reuse or spend-based respending.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, AddAssign)]
 pub struct ReuseState {
     pub funded: u64,
     pub total: u64,
@@ -45,7 +44,7 @@ pub struct ReuseState {
 }
 
 /// Addresses whose public key or spending script is on-chain.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, AddAssign)]
 pub struct ExposedState {
     pub funded: u64,
     pub total: u64,
@@ -345,48 +344,6 @@ fn apply_supply_delta(slot: &mut Sats, before: Sats, after: Sats) {
         *slot += after - before;
     } else {
         *slot -= before - after;
-    }
-}
-
-impl AddAssign for MemberState {
-    fn add_assign(&mut self, rhs: Self) {
-        self.funded += rhs.funded;
-        self.empty += rhs.empty;
-        self.supply += rhs.supply;
-        self.outputs += rhs.outputs;
-        self.inputs += rhs.inputs;
-        self.activity += rhs.activity;
-        self.reused += rhs.reused;
-        self.respent += rhs.respent;
-        self.exposed += rhs.exposed;
-    }
-}
-
-impl AddAssign for BlockActivityCounts {
-    fn add_assign(&mut self, rhs: Self) {
-        self.reactivated += rhs.reactivated;
-        self.sending += rhs.sending;
-        self.receiving += rhs.receiving;
-        self.bidirectional += rhs.bidirectional;
-    }
-}
-
-impl AddAssign for ReuseState {
-    fn add_assign(&mut self, rhs: Self) {
-        self.funded += rhs.funded;
-        self.total += rhs.total;
-        self.supply += rhs.supply;
-        self.output_events += rhs.output_events;
-        self.input_events += rhs.input_events;
-        self.active += rhs.active;
-    }
-}
-
-impl AddAssign for ExposedState {
-    fn add_assign(&mut self, rhs: Self) {
-        self.funded += rhs.funded;
-        self.total += rhs.total;
-        self.supply += rhs.supply;
     }
 }
 

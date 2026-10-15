@@ -30,7 +30,7 @@ impl BlockResult {
             by_mode: Modes::from_fn(|mode| ModeResult {
                 supply_in_loss_threshold: match thresholds.select(mode) {
                     Some(values) => Percentiles::from_fn(|percentile| {
-                        BoundedRatio::from(*percentile.select(values))
+                        BoundedRatio::from(*values.select(percentile))
                     }),
                     None => Percentiles::from_fn(|_| BoundedRatio::NAN),
                 },
@@ -82,7 +82,7 @@ impl BlockResult {
 
         let mut p95_floor = None;
         result.prices.floor = Percentiles::from_fn(|percentile| {
-            let threshold = f64::from(*percentile.select(thresholds));
+            let threshold = f64::from(*thresholds.select(percentile));
             if threshold.is_nan() {
                 return Cents::NAN;
             }
@@ -106,7 +106,7 @@ impl BlockResult {
             let total = denominator - before;
             let tail = &buckets[floor..];
             result.prices.cost_basis_above_floor = Levels::from_fn(|percentile| {
-                let target = total as f64 * *percentile.select(&LEVEL_PERCENTILES);
+                let target = total as f64 * *LEVEL_PERCENTILES.select(percentile);
                 let index = tail
                     .partition_point(|bucket| ((bucket.supplies[mode] - before) as f64) < target);
                 tail.get(index)

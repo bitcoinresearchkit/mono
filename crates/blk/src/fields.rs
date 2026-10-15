@@ -105,15 +105,7 @@ impl<'a> Ctx<'a> {
     }
 
     pub fn full(&self) -> Value {
-        let mut obj = Map::with_capacity(BLOCK_FIELDS.len());
-        for &name in BLOCK_FIELDS {
-            obj.insert(
-                name.into(),
-                self.block_field(name, None, &[])
-                    .expect("known block field"),
-            );
-        }
-        Value::Object(obj)
+        object(BLOCK_FIELDS, |name| self.block_field(name, None, &[]))
     }
 
     fn size_and_weight(&self) -> (usize, usize) {
@@ -179,14 +171,7 @@ impl<'a> Ctx<'a> {
 
     fn resolve_tx(&self, tx: &Tx, steps: &[Step]) -> Result<Value> {
         if steps.is_empty() {
-            let mut obj = Map::with_capacity(TX_FIELDS.len());
-            for &name in TX_FIELDS {
-                obj.insert(
-                    name.into(),
-                    self.tx_field(tx, name, None, &[]).expect("known tx field"),
-                );
-            }
-            return Ok(Value::Object(obj));
+            return Ok(object(TX_FIELDS, |name| self.tx_field(tx, name, None, &[])));
         }
         let (step, rest) = pop(steps)?;
         self.tx_field(tx, &step.name, step.index, rest)
@@ -223,15 +208,9 @@ impl<'a> Ctx<'a> {
 
     fn resolve_vout(&self, vout: &TxOut, steps: &[Step]) -> Result<Value> {
         if steps.is_empty() {
-            let mut obj = Map::with_capacity(VOUT_FIELDS.len());
-            for &name in VOUT_FIELDS {
-                obj.insert(
-                    name.into(),
-                    self.vout_field(vout, name, None, &[])
-                        .expect("known vout field"),
-                );
-            }
-            return Ok(Value::Object(obj));
+            return Ok(object(VOUT_FIELDS, |name| {
+                self.vout_field(vout, name, None, &[])
+            }));
         }
         let (step, rest) = pop(steps)?;
         self.vout_field(vout, &step.name, step.index, rest)
@@ -315,16 +294,20 @@ impl Deref for Tx<'_> {
     }
 }
 
+/// The whole object: every known field, in order.
+fn object(fields: &[&str], resolve: impl Fn(&str) -> Result<Value>) -> Value {
+    let mut obj = Map::with_capacity(fields.len());
+    for &name in fields {
+        obj.insert(name.into(), resolve(name).expect("known field"));
+    }
+    Value::Object(obj)
+}
+
 fn resolve_vin(vin: &TxIn, is_coinbase: bool, steps: &[Step]) -> Result<Value> {
     if steps.is_empty() {
-        let mut obj = Map::with_capacity(VIN_FIELDS.len());
-        for &name in VIN_FIELDS {
-            obj.insert(
-                name.into(),
-                vin_field(vin, is_coinbase, name, None, &[]).expect("known vin field"),
-            );
-        }
-        return Ok(Value::Object(obj));
+        return Ok(object(VIN_FIELDS, |name| {
+            vin_field(vin, is_coinbase, name, None, &[])
+        }));
     }
     let (step, rest) = pop(steps)?;
     vin_field(vin, is_coinbase, &step.name, step.index, rest)

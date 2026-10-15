@@ -269,18 +269,17 @@ where
     }
 
     fn push_state(&mut self, state: EventState) {
-        self.thresholds
-            .tail0_1
-            .height
-            .push(T::from(state.thresholds.pct0_1));
-        self.thresholds
-            .tail0_05
-            .height
-            .push(T::from(state.thresholds.pct0_05));
-        self.thresholds
-            .tail0_025
-            .height
-            .push(T::from(state.thresholds.pct0_025));
+        let ThresholdVecs {
+            tail0_1,
+            tail0_05,
+            tail0_025,
+        } = &mut self.thresholds;
+        for (vec, threshold) in [tail0_1, tail0_05, tail0_025]
+            .into_iter()
+            .zip(state.thresholds)
+        {
+            vec.height.push(T::from(threshold));
+        }
         self.tail_share
             .fixed
             .height
@@ -519,24 +518,15 @@ impl HistoryStats for LiveHistory {
 }
 
 struct EventState {
-    thresholds: EventThresholds,
+    /// The 0.1%, 0.05% and 0.025% tail thresholds, as the outputs take them.
+    thresholds: [f64; 3],
     tail: f64,
-}
-
-struct EventThresholds {
-    pct0_1: f64,
-    pct0_05: f64,
-    pct0_025: f64,
 }
 
 impl EventState {
     fn missing() -> Self {
         Self {
-            thresholds: EventThresholds {
-                pct0_1: f64::NAN,
-                pct0_05: f64::NAN,
-                pct0_025: f64::NAN,
-            },
+            thresholds: [f64::NAN; 3],
             tail: f64::NAN,
         }
     }
@@ -545,20 +535,11 @@ impl EventState {
         // Lookups take ascending percentiles: the rarest tail comes last in the upper tail.
         let [rarest, rarer, rare] = TAILS;
         let thresholds = if config.upper_tail {
-            let [pct0_1, pct0_05, pct0_025] =
-                history.percentiles([1.0 - rare, 1.0 - rarer, 1.0 - rarest]);
-            EventThresholds {
-                pct0_1,
-                pct0_05,
-                pct0_025,
-            }
+            history.percentiles([1.0 - rare, 1.0 - rarer, 1.0 - rarest])
         } else {
-            let [pct0_025, pct0_05, pct0_1] = history.percentiles([rarest, rarer, rare]);
-            EventThresholds {
-                pct0_1,
-                pct0_05,
-                pct0_025,
-            }
+            let mut thresholds = history.percentiles([rarest, rarer, rare]);
+            thresholds.reverse();
+            thresholds
         };
         Self {
             thresholds,

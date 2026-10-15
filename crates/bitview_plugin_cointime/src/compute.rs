@@ -30,44 +30,47 @@ impl Vecs {
         let velocity_usd = &velocity_usd.height;
         let exit = context.exit();
 
-        // Activity computes first (liveliness, vaultedness, etc.)
-        self.activity.compute(indexer, age, holders, exit)?;
-        self.age_ranges.compute(indexer, age, exit)?;
+        // Reserve risk reads only dependencies: it runs beside the whole chain below.
+        let (primary, reserve_risk) = join(
+            || -> Result<()> {
+                // Activity (liveliness, vaultedness, etc.) and the age ranges are independent.
+                let (activity, age_ranges) = join(
+                    || self.activity.compute(indexer, age, holders, exit),
+                    || self.age_ranges.compute(indexer, age, exit),
+                );
+                activity?;
+                age_ranges?;
 
-        // Age-range supply is lazy over the same cached inputs as aggregates.
-        // Adjusted and value compute independently.
-        let (r1, r2) = join(
-            || self.aggregate.compute(indexer, age, &self.age_ranges, exit),
-            || {
-                join(
+                // Age-range supply is lazy over the same cached inputs as aggregates.
+                // Adjusted and value compute independently.
+                let (aggregate, (adjusted, value)) = join(
+                    || self.aggregate.compute(indexer, age, &self.age_ranges, exit),
                     || {
-                        self.adjusted.compute(
-                            indexer,
-                            inflation_rate,
-                            velocity_btc,
-                            velocity_usd,
-                            &self.activity,
-                            exit,
+                        join(
+                            || {
+                                self.adjusted.compute(
+                                    indexer,
+                                    inflation_rate,
+                                    velocity_btc,
+                                    velocity_usd,
+                                    &self.activity,
+                                    exit,
+                                )
+                            },
+                            || {
+                                self.value
+                                    .compute(indexer, prices, age, &self.activity, exit)
+                            },
                         )
                     },
-                    || {
-                        self.value
-                            .compute(indexer, prices, age, &self.activity, exit)
-                    },
-                )
-            },
-        );
-        r1?;
-        r2.0?;
-        r2.1?;
+                );
+                aggregate?;
+                adjusted?;
+                value?;
 
-        // Cap depends on activity + value
-        self.caps
-            .compute(indexer, holders, &self.activity, &self.value, exit)?;
-
-        // Phase 4: pricing and reserve_risk are independent
-        let (r3, r4) = join(
-            || {
+                // Cap depends on activity + value, pricing on cap.
+                self.caps
+                    .compute(indexer, holders, &self.activity, &self.value, exit)?;
                 let from = indexer.compute_start().height;
                 self.prices.compute(
                     from,
@@ -85,8 +88,8 @@ impl Vecs {
                     .compute(indexer, mappings, prices, holders, exit)
             },
         );
-        r3?;
-        r4?;
+        primary?;
+        reserve_risk?;
 
         Ok(())
     }

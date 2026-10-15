@@ -1,12 +1,9 @@
-use std::{convert::Infallible, iter, sync::Arc};
+use std::{convert::Infallible, sync::Arc};
 
 use bitview_primitives::Count;
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
-use schemars::JsonSchema;
-use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, Cursor, Formattable, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version, short_type_name,
+    AnyVec, Cursor, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, SparseRead, TypedVec,
+    VecIndex, VecValue, Version,
 };
 
 use super::terminal_len::TerminalLen;
@@ -120,17 +117,7 @@ where
         self.first_indexes.len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<Count>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<Count>()
-    }
+    vecdb::any_vec_type_methods!(I, Count);
 }
 
 impl<I, S> TypedVec for LazyIndexCountVec<I, S>
@@ -253,17 +240,7 @@ where
     }
 }
 
-impl<I, S> Traversable for LazyIndexCountVec<I, S>
-where
+bitview_traversable::leaf!([I, S] LazyIndexCountVec<I, S> where
     I: VecIndex,
     S: VecValue + Copy + Into<u64>,
-    Count: Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);

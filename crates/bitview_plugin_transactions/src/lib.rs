@@ -1,7 +1,6 @@
 #![allow(clippy::type_complexity)]
 
 mod compute;
-mod count;
 mod dependencies;
 mod distribution;
 mod features;
@@ -22,12 +21,14 @@ pub use fees::Vecs as FeesVecs;
 pub use has::HasTransactions;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::Count16;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerSecondWindows, ValuePerBlockCumulativeRolling};
+use bitview_vecs::{
+    LazyPerSecondWindows, PerBlockFullFromCumulative, ValuePerBlockCumulativeRolling,
+};
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
-use count::Vecs as CountVecs;
 use features::Vecs as FeaturesVecs;
 use inscription::Vecs as InscriptionVecs;
 use patterns::Vecs as PatternsVecs;
@@ -45,7 +46,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    pub count: CountVecs<M>,
+    /// Number of transactions, including the coinbase transaction.
+    pub count: PerBlockFullFromCumulative<Count16, M>,
     features: FeaturesVecs<M>,
     /// Transaction virtual size in vbytes: BIP-141 weight divided by four, rounded up. The
     /// statistics count each of the block's transactions equally, coinbase included, at

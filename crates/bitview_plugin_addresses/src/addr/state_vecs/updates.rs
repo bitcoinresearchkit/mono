@@ -1,16 +1,18 @@
 use bitview_primitives::{
-    AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
+    AddressState, ByAddrType, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
     FundedAddressIndex, TypeIndex,
 };
 use brk_types::OutputType;
 use vecdb::likely;
 
-use crate::addr::{AddrTypeToTypeIndexMap, AddrTypeToVec, SourcedAddrData};
+use rustc_hash::FxHashMap;
+
+use crate::addr::SourcedAddrData;
 
 /// Cached addresses sorted into the writes each persistent vector needs.
 #[derive(Default)]
 pub struct AddrUpdates {
-    pub primaries: AddrTypeToVec<(TypeIndex, AddressState)>,
+    pub primaries: ByAddrType<Vec<(TypeIndex, AddressState)>>,
     pub funded_updates: Vec<(FundedAddressIndex, FundedAddressData)>,
     pub funded_pushes: SidecarPushes<FundedAddressData>,
     pub funded_deletes: Vec<FundedAddressIndex>,
@@ -44,7 +46,9 @@ impl<T> SidecarPushes<T> {
 }
 
 impl AddrUpdates {
-    pub fn stage(cache: &mut [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddressData>>]) -> Self {
+    pub fn stage(
+        cache: &mut [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>>],
+    ) -> Self {
         let mut updates = Self::default();
         for (addr_type, entries) in cache.iter_mut().flat_map(|shard| shard.iter_mut()) {
             for (type_index, source) in entries.drain() {

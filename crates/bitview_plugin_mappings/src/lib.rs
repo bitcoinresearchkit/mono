@@ -7,13 +7,12 @@ mod dependencies;
 mod has;
 mod height;
 mod height_lookup;
+mod identity;
 mod import;
 mod lookback;
 mod resolution;
 mod timestamp;
 mod tx_index;
-mod txin_index;
-mod txout_index;
 mod views;
 
 pub use dependencies::Dependencies;
@@ -31,18 +30,17 @@ use bitview_primitives::{
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::IndexSources;
-use brk_types::{Height, TxIndex, Version};
+use brk_types::{Height, OutPoint, OutputType, TxIndex, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 use addr::{OutputVecs, Vecs as AddressesVecs};
 use chain_counts::ChainCounts;
 use height::Vecs as HeightVecs;
 use height_lookup::HeightLookup;
+use identity::IdentityVecs;
 use resolution::{DatedResolutionVecs, ResolutionVecs};
 use timestamp::Timestamps;
 use tx_index::Vecs as TxIndexVecs;
-use txin_index::Vecs as TxInIndexVecs;
-use txout_index::Vecs as TxOutIndexVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mappings"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
@@ -78,8 +76,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     year1: DatedResolutionVecs<Year1, M>,
     year10: DatedResolutionVecs<Year10, M>,
     pub tx_index: TxIndexVecs,
-    txin_index: TxInIndexVecs,
-    txout_index: TxOutIndexVecs,
+    /// Global zero-based transaction-input index in canonical blockchain order. At `txin_index`,
+    /// returns the input index itself.
+    txin_index: IdentityVecs<TxInIndex, OutPoint>,
+    /// Global zero-based transaction-output index in canonical blockchain order. At
+    /// `txout_index`, returns the output index itself.
+    txout_index: IdentityVecs<TxOutIndex, OutputType>,
     pub timestamp: Timestamps<M>,
     // First block height inside each trailing duration (from the monotonic timestamps):
     // window starts for other plugins, not a public series.

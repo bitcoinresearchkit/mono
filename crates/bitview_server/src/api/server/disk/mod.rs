@@ -2,7 +2,7 @@ use axum::{http::HeaderMap, response::Response};
 use bitview_types::DiskUsage;
 use rayon::join;
 
-use crate::{CacheStrategy, Error, error::Result, params::Empty, request_state::RequestState};
+use crate::{CacheParams, Error, error::Result, params::Empty, request_state::RequestState};
 
 mod cancellation;
 mod walk;
@@ -36,14 +36,14 @@ pub async fn get(
         })
         .await?;
     Ok(
-        state.respond_json_immediate(&headers, strategy(brk_bytes, bitcoin_bytes), || {
+        state.respond_json_immediate(&headers, params(brk_bytes, bitcoin_bytes), || {
             DiskUsage::new(brk_bytes, bitcoin_bytes)
         }),
     )
 }
 
-fn strategy(brk_bytes: u64, bitcoin_bytes: u64) -> CacheStrategy {
+fn params(brk_bytes: u64, bitcoin_bytes: u64) -> CacheParams {
     // These totals determine every DiskUsage field. Bump the representation
     // version if its fields, derivations or formatting change.
-    CacheStrategy::Live(format!("disk1-{brk_bytes}-{bitcoin_bytes}").into())
+    CacheParams::live(format!("disk1-{brk_bytes}-{bitcoin_bytes}"))
 }

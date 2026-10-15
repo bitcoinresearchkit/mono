@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Bytes, Count, OpReturnKind, OpReturnPolicyId};
+use bitview_primitives::{Bytes, Count};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
@@ -96,7 +96,7 @@ impl BucketVecs {
 }
 
 macro_rules! impl_breakdown {
-    ($name:ident, $group:ident, $id:ident) => {
+    ($name:ident, $group:ident) => {
         pub type $name<M = Rw> = $group<BucketVecs<M>>;
 
         impl $name {
@@ -109,7 +109,7 @@ macro_rules! impl_breakdown {
                 chain_fees: &impl ReadableCloneableVec<Height, Sats>,
             ) -> Result<Self> {
                 let version = version + Version::ONE;
-                $group::try_new(|_, name| {
+                $group::try_new(|name| {
                     BucketVecs::import(
                         db,
                         &format!("op_return_{name}"),
@@ -122,9 +122,10 @@ macro_rules! impl_breakdown {
                 })
             }
 
-            pub fn push(&mut self, values: [BlockMetrics; $id::ALL.len()]) {
-                for (id, bucket) in $id::ALL.iter().zip(self.iter_mut()) {
-                    bucket.push(*id.get(&values));
+            /// One block's metrics per bucket, in field order.
+            pub fn push(&mut self, values: impl IntoIterator<Item = BlockMetrics>) {
+                for (bucket, value) in self.iter_mut().zip(values) {
+                    bucket.push(value);
                 }
             }
 
@@ -142,5 +143,5 @@ macro_rules! impl_breakdown {
         }
     };
 }
-impl_breakdown!(KindBreakdownVecs, ByKind, OpReturnKind);
-impl_breakdown!(PolicyBreakdownVecs, Policy, OpReturnPolicyId);
+impl_breakdown!(KindBreakdownVecs, ByKind);
+impl_breakdown!(PolicyBreakdownVecs, Policy);

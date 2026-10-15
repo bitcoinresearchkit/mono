@@ -14,8 +14,8 @@ pub mod rbf;
 pub mod tx;
 
 pub use addr::PendingUtxos;
-pub use published_tx::PublishedTx;
 pub use block_template::{BlockTemplateDiffJson, BlockTemplateJson, BlockTemplateSource};
+pub use published_tx::PublishedTx;
 pub use rbf::{RbfForTx, RbfNode};
 
 /// A validated historical template captured for one diff request.

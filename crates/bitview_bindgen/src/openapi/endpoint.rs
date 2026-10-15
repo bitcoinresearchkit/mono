@@ -8,8 +8,8 @@ pub struct Endpoint {
     pub(crate) method: String,
     /// Path template (e.g., "/blocks/{hash}")
     pub(crate) path: String,
-    /// Operation ID (e.g., "getBlockByHash")
-    pub(crate) operation_id: Option<String>,
+    /// Operation ID (e.g., "get_block"), naming every generated method, command and tool
+    pub(crate) operation_id: String,
     /// Short summary
     pub(crate) summary: Option<String>,
     /// Detailed description
@@ -52,35 +52,5 @@ impl Endpoint {
     /// Schema name attached to the response, if any.
     pub(crate) fn schema_name(&self) -> Option<&str> {
         self.response_kind.schema_name()
-    }
-
-    /// Returns the operation ID or generates one from the path.
-    /// The returned string uses the raw case from the spec (typically camelCase).
-    pub(crate) fn operation_name(&self) -> String {
-        if let Some(op_id) = &self.operation_id {
-            return op_id.clone();
-        }
-        let mut result = String::from("get");
-        let mut previous = String::new();
-
-        for segment in self.path.split('/').filter(|s| !s.is_empty()) {
-            if segment == "api" {
-                continue;
-            }
-            if let Some(param) = segment.strip_prefix('{').and_then(|s| s.strip_suffix('}')) {
-                if !previous.ends_with(param) {
-                    result.push_str("_by_");
-                    result.push_str(param);
-                }
-            } else {
-                previous = segment.replace('-', "_");
-                result.push('_');
-                result.push_str(&previous);
-            }
-        }
-        if result == "get" {
-            result.push('_');
-        }
-        result
     }
 }

@@ -23,7 +23,7 @@ use brk_types::Version;
 use serde_json::{Value, to_vec};
 
 use crate::{
-    AppState, CacheParams, CacheStrategy, CdnCacheMode, Error,
+    AppState, CacheParams, CdnCacheMode, Error,
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
     params::{Empty, SeriesParam},
@@ -43,14 +43,16 @@ pub fn serve_indexes(state: AppState, headers: HeaderMap) -> Response {
 }
 
 pub async fn serve_list(state: AppState, headers: HeaderMap, pagination: Pagination) -> Response {
-    state
-        .respond_with_params(
-            &headers,
-            state.series_bodies.list.clone(),
-            |headers| headers.insert_content_type_application_json(),
-            move |query| Ok(Bytes::from(to_vec(&query.series_list(pagination))?)),
-        )
-        .await
+    AppState::respond_with_future(&headers, state.series_bodies.list.clone(), async {
+        let bytes = state
+            .read_admitted(move |query| Ok(Bytes::from(to_vec(&query.series_list(pagination))?)))
+            .await?;
+        Ok((
+            bytes,
+            HeaderMapExtended::insert_content_type_application_json,
+        ))
+    })
+    .await
 }
 
 pub async fn serve_search(state: AppState, headers: HeaderMap, search: SearchQuery) -> Response {
@@ -69,9 +71,10 @@ pub async fn serve_search(state: AppState, headers: HeaderMap, search: SearchQue
                 Ok(Bytes::from(to_vec(&query.search_series(&search))?))
             })
             .await?;
-        Ok((bytes, |headers: &mut HeaderMap| {
-            headers.insert_content_type_application_json()
-        }))
+        Ok((
+            bytes,
+            HeaderMapExtended::insert_content_type_application_json,
+        ))
     })
     .await
 }
@@ -79,7 +82,7 @@ pub async fn serve_search(state: AppState, headers: HeaderMap, search: SearchQue
 const MAX_INPUT_BYTES: usize = 1024;
 
 fn empty_search(headers: &HeaderMap, cdn_cache_mode: CdnCacheMode) -> Response {
-    let params = CacheParams::resolve(&CacheStrategy::Immutable(Version::ONE), cdn_cache_mode);
+    let params = CacheParams::immutable(Version::ONE, cdn_cache_mode);
     Response::json_bytes(headers, &params, || Bytes::from_static(b"[]"))
 }
 
@@ -142,8 +145,8 @@ pub async fn serve_len(
         })
         .await?;
     // The JSON number depends only on length, not on the chain tip or deploy.
-    let strategy = CacheStrategy::Live(format!("len1-{length}").into());
-    Ok(state.respond_json_value(&headers, strategy, length))
+    let params = CacheParams::live(format!("len1-{length}"));
+    Ok(state.respond_json_value(&headers, params, length))
 }
 
 pub async fn serve_version(
@@ -154,8 +157,8 @@ pub async fn serve_version(
 ) -> Result<Response> {
     validate_name(&series)?;
     if let Some(version) = state.query.sync(|q| q.find_version(&series, index))? {
-        let strategy = CacheStrategy::Live(format!("sv1-{version}").into());
-        return Ok(state.respond_json_value(&headers, strategy, version));
+        let params = CacheParams::live(format!("sv1-{version}"));
+        return Ok(state.respond_json_value(&headers, params, version));
     }
     let error = state
         .read_with_admission(&state.series_bodies.search_query, move |q| {

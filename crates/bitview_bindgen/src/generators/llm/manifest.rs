@@ -101,23 +101,15 @@ fn render_tool_manifest(endpoints: &[Endpoint], schemas: &TypeSchemas) -> io::Re
     Ok(content)
 }
 
-fn operation_from_endpoint(
-    endpoint: &Endpoint,
+fn operation_from_endpoint<'a>(
+    endpoint: &'a Endpoint,
     schemas: &TypeSchemas,
-    names: &mut BTreeSet<String>,
+    names: &mut BTreeSet<&'a str>,
 ) -> io::Result<ManifestOperation> {
-    let name = endpoint.operation_id.clone().ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!(
-                "MCP generation requires a stable operationId for {} {}",
-                endpoint.method, endpoint.path
-            ),
-        )
-    })?;
-    validate_tool_name(&name)?;
-    validate_http(endpoint, &name)?;
-    if !names.insert(name.clone()) {
+    let name = &endpoint.operation_id;
+    validate_tool_name(name)?;
+    validate_http(endpoint, name)?;
+    if !names.insert(name) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             format!("duplicate MCP tool name: {name}"),
@@ -140,7 +132,7 @@ fn operation_from_endpoint(
 
     Ok(ManifestOperation {
         tool: ManifestTool {
-            name,
+            name: name.clone(),
             title: endpoint.summary.clone(),
             description: tool_description(endpoint),
             input_schema,
@@ -300,7 +292,54 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
         root.insert("required".to_string(), Value::Array(required));
     }
 
-    standalone_schema(Value::Object(root), schemas)
+    let schema = standalone_schema(Value::Object(root), schemas)?;
+    check_validated_keywords(&schema)?;
+    Ok(schema)
+}
+
+/// Validation keywords the MCP bridge's argument validator does not implement.
+const UNVALIDATED_KEYWORDS: [&str; 12] = [
+    "const",
+    "allOf",
+    "oneOf",
+    "not",
+    "minLength",
+    "maxLength",
+    "maximum",
+    "exclusiveMinimum",
+    "exclusiveMaximum",
+    "minItems",
+    "maxItems",
+    "uniqueItems",
+];
+
+/// Reject an input schema the MCP bridge would validate only partially.
+fn check_validated_keywords(schema: &Value) -> io::Result<()> {
+    let Some(object) = schema.as_object() else {
+        return Ok(());
+    };
+    if let Some(keyword) = UNVALIDATED_KEYWORDS
+        .iter()
+        .find(|&&key| object.contains_key(key))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("MCP argument validation does not implement `{keyword}`"),
+        ));
+    }
+    for (key, value) in object {
+        match (key.as_str(), value) {
+            ("properties" | "$defs", Value::Object(schemas)) => {
+                schemas.values().try_for_each(check_validated_keywords)?
+            }
+            ("anyOf", Value::Array(schemas)) => {
+                schemas.iter().try_for_each(check_validated_keywords)?
+            }
+            ("items" | "additionalProperties", schema) => check_validated_keywords(schema)?,
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 fn schema_from_type_name(name: &str) -> Value {

@@ -66,7 +66,7 @@ pub fn process_chunk(
     let _lock = exit.lock();
     write(vecs, states, last_height, tail)?;
     if !tail {
-        vecs.flush()?;
+        vecs.db.flush();
     }
     Ok(())
 }

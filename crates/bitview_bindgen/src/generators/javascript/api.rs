@@ -10,20 +10,17 @@ use crate::{
 
 /// Generate API methods for the BitviewClient class.
 pub fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
-    for endpoint in endpoints {
-        if !endpoint.should_generate() {
-            continue;
-        }
-        match endpoint.method.as_str() {
-            "GET" => generate_get_method(output, endpoint),
-            "POST" => generate_post_method(output, endpoint),
-            _ => continue,
-        }
+    for endpoint in endpoints
+        .iter()
+        .filter(|endpoint| endpoint.should_generate())
+    {
+        generate_method(output, endpoint);
     }
 }
 
-fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
-    let method_name = endpoint_to_method_name(endpoint);
+fn generate_method(output: &mut String, endpoint: &Endpoint) {
+    let post = endpoint.method == "POST";
+    let body = endpoint.request_body.as_ref().filter(|_| post);
     let return_type = build_return_type(endpoint);
 
     write_method_doc(output, endpoint);
@@ -49,40 +46,80 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
         )
         .unwrap();
     }
-    writeln!(
-        output,
-        "   * @param {{{{ signal?: AbortSignal, onValue?: (value: {}) => void, cache?: boolean, memCache?: boolean }}}} [options]",
-        return_type
-    )
-    .unwrap();
+    if let Some(body) = body {
+        let optional = if body.required { "" } else { "=" };
+        let ty = jsdoc_normalize(&body.body_type);
+        writeln!(output, "   * @param {{{ty}{optional}}} body - Request body").unwrap();
+    }
+    if post {
+        writeln!(
+            output,
+            "   * @param {{{{ signal?: AbortSignal }}}} [options]"
+        )
+        .unwrap();
+    } else {
+        writeln!(
+            output,
+            "   * @param {{{{ signal?: AbortSignal, onValue?: (value: {}) => void, cache?: boolean, memCache?: boolean }}}} [options]",
+            return_type
+        )
+        .unwrap();
+    }
     writeln!(output, "   * @returns {{Promise<{}>}}", return_type).unwrap();
     writeln!(output, "   */").unwrap();
 
-    let params = build_method_params(endpoint);
-    let params_with_opts = if params.is_empty() {
-        "{ signal, onValue, cache, memCache } = {}".to_string()
+    let mut params = build_method_params(endpoint);
+    if body.is_some() {
+        if !params.is_empty() {
+            params.push_str(", ");
+        }
+        params.push_str("body");
+    }
+    let options = if post {
+        "{ signal }"
     } else {
-        format!("{}, {{ signal, onValue, cache, memCache }} = {{}}", params)
+        "{ signal, onValue, cache, memCache }"
     };
-    writeln!(output, "  async {}({}) {{", method_name, params_with_opts).unwrap();
+    if params.is_empty() {
+        writeln!(
+            output,
+            "  async {}({options} = {{}}) {{",
+            endpoint_to_method_name(endpoint)
+        )
+        .unwrap();
+    } else {
+        writeln!(
+            output,
+            "  async {}({params}, {options} = {{}}) {{",
+            endpoint_to_method_name(endpoint)
+        )
+        .unwrap();
+    }
 
-    let path = build_path_template(&endpoint.path, &endpoint.path_params);
-
+    let (verb, args) = if post {
+        let body_arg = if body.is_some() { "body" } else { "''" };
+        ("post", format!("path, {body_arg}, {options}"))
+    } else {
+        ("get", format!("path, {options}"))
+    };
     // Series data gets the same helpers however it is fetched.
-    let fetch_call: String = if endpoint.returns_binary() {
-        "this.getBytes(path, { signal, onValue, cache, memCache })".to_string()
+    let fetch_call = if endpoint.returns_binary() {
+        format!("this.{verb}Bytes({args})")
     } else if endpoint.schema_name() == Some("SeriesData") {
         "_wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }))".to_string()
     } else if endpoint.schema_name() == Some("SeriesData[]") {
         "(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData)".to_string()
     } else if endpoint.returns_json() {
-        "this.getJson(path, { signal, onValue, cache, memCache })".to_string()
+        format!("this.{verb}Json({args})")
+    } else if endpoint.response_kind.text_is_numeric() && post {
+        format!("Number(await this.postText({args}))")
     } else if endpoint.response_kind.text_is_numeric() {
         "Number(await this.getText(path, { signal, cache, memCache, onValue: onValue ? (v) => onValue(Number(v)) : undefined }))".to_string()
     } else {
-        "this.getText(path, { signal, onValue, cache, memCache })".to_string()
+        format!("this.{verb}Text({args})")
     };
 
+    let path = build_path_template(&endpoint.path, &endpoint.path_params);
     write_path_assignment(output, endpoint, &path);
 
     if endpoint.supports_csv {
@@ -92,85 +129,6 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
         )
         .unwrap();
     }
-    writeln!(output, "    return {};", fetch_call).unwrap();
-    writeln!(output, "  }}\n").unwrap();
-}
-
-fn generate_post_method(output: &mut String, endpoint: &Endpoint) {
-    let method_name = endpoint_to_method_name(endpoint);
-    let return_type = build_return_type(endpoint);
-
-    write_method_doc(output, endpoint);
-    for param in &endpoint.path_params {
-        let desc = format_param_desc(param.description.as_deref());
-        let ty = jsdoc_normalize(&param.param_type);
-        writeln!(output, "   * @param {{{}}} {}{}", ty, param.name, desc).unwrap();
-    }
-    for param in &endpoint.query_params {
-        let optional = if param.required { "" } else { "=" };
-        let desc = format_param_desc(param.description.as_deref());
-        let ty = jsdoc_normalize(&param.param_type);
-        writeln!(
-            output,
-            "   * @param {{{}{}}} [{}]{}",
-            ty, optional, param.name, desc
-        )
-        .unwrap();
-    }
-    if let Some(body) = &endpoint.request_body {
-        let optional = if body.required { "" } else { "=" };
-        let ty = jsdoc_normalize(&body.body_type);
-        writeln!(
-            output,
-            "   * @param {{{}{}}} body - Request body",
-            ty, optional
-        )
-        .unwrap();
-    }
-    writeln!(
-        output,
-        "   * @param {{{{ signal?: AbortSignal }}}} [options]"
-    )
-    .unwrap();
-    writeln!(output, "   * @returns {{Promise<{}>}}", return_type).unwrap();
-    writeln!(output, "   */").unwrap();
-
-    let mut params = build_method_params(endpoint);
-    if endpoint.request_body.is_some() {
-        if !params.is_empty() {
-            params.push_str(", ");
-        }
-        params.push_str("body");
-    }
-    let params_with_opts = if params.is_empty() {
-        "{ signal } = {}".to_string()
-    } else {
-        format!("{}, {{ signal }} = {{}}", params)
-    };
-    writeln!(output, "  async {}({}) {{", method_name, params_with_opts).unwrap();
-
-    let path = build_path_template(&endpoint.path, &endpoint.path_params);
-    let body_arg = if endpoint.request_body.is_some() {
-        "body"
-    } else {
-        "''"
-    };
-
-    let fetch_call: String = if endpoint.returns_binary() {
-        format!("this.postBytes(path, {}, {{ signal }})", body_arg)
-    } else if endpoint.returns_json() {
-        format!("this.postJson(path, {}, {{ signal }})", body_arg)
-    } else if endpoint.response_kind.text_is_numeric() {
-        format!(
-            "Number(await this.postText(path, {}, {{ signal }}))",
-            body_arg
-        )
-    } else {
-        format!("this.postText(path, {}, {{ signal }})", body_arg)
-    };
-
-    write_path_assignment(output, endpoint, &path);
-
     writeln!(output, "    return {};", fetch_call).unwrap();
     writeln!(output, "  }}\n").unwrap();
 }
@@ -267,7 +225,7 @@ fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
 }
 
 fn endpoint_to_method_name(endpoint: &Endpoint) -> String {
-    to_camel_case(&endpoint.operation_name())
+    to_camel_case(&endpoint.operation_id)
 }
 
 fn build_method_params(endpoint: &Endpoint) -> String {

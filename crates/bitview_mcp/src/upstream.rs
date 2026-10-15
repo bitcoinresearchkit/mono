@@ -5,7 +5,6 @@ use ureq::{Agent, Body, http::Response};
 
 use crate::{
     manifest::{Operation, ParameterLocation},
-    prepared_request::PreparedRequest,
     upstream_response::UpstreamResponse,
 };
 
@@ -33,11 +32,8 @@ impl Upstream {
         }
     }
 
-    pub fn prepare(
-        &self,
-        operation: &Operation,
-        arguments: &Value,
-    ) -> Result<PreparedRequest, String> {
+    /// The encoded upstream URL, checked against the URL limit.
+    pub fn prepare(&self, operation: &Operation, arguments: &Value) -> Result<String, String> {
         let mut path = operation.http.path.clone();
         let mut query = String::new();
 
@@ -83,11 +79,10 @@ impl Upstream {
             ));
         }
 
-        Ok(PreparedRequest { url })
+        Ok(url)
     }
 
-    pub fn fetch(&self, request: PreparedRequest) -> Result<UpstreamResponse, String> {
-        let PreparedRequest { url } = request;
+    pub fn fetch(&self, url: String) -> Result<UpstreamResponse, String> {
         let response = self
             .agent
             .get(&url)

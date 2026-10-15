@@ -2,51 +2,27 @@ mod chart;
 mod data;
 mod format;
 
-use std::{
-    error::Error,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{error::Error, fs, path::Path};
 
 use chart::{Series, TimeAxis, Unit};
 use data::Run;
 
 type Result<T = ()> = std::result::Result<T, Box<dyn Error>>;
 
-pub struct Visualizer {
-    root: PathBuf,
-}
-
-impl Visualizer {
-    /// `root` is a Bitview data directory (or the workspace) holding `benches/<machine>/`.
-    pub fn new(root: impl AsRef<Path>) -> Self {
-        Self {
-            root: root.as_ref().to_path_buf(),
+/// One `dashboard.svg` per run, and per machine a `compare.svg` across its complete runs. `root`
+/// is a Bitview data directory (or the workspace) holding `benches/<machine>/`.
+pub fn generate(root: &Path) -> Result {
+    let dir = root.join("benches");
+    if !dir.exists() {
+        return Err(format!("{} does not exist", dir.display()).into());
+    }
+    for entry in fs::read_dir(&dir)? {
+        let machine = entry?.path();
+        if machine.is_dir() {
+            generate_machine(&machine)?;
         }
     }
-
-    pub fn from_cargo_env() -> Result<Self> {
-        let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(Path::parent)
-            .ok_or("Failed to find workspace root")?;
-        Ok(Self::new(workspace))
-    }
-
-    /// One `dashboard.svg` per run, and per machine a `compare.svg` across its complete runs.
-    pub fn generate(&self) -> Result {
-        let dir = self.root.join("benches");
-        if !dir.exists() {
-            return Err(format!("{} does not exist", dir.display()).into());
-        }
-        for entry in fs::read_dir(&dir)? {
-            let machine = entry?.path();
-            if machine.is_dir() {
-                generate_machine(&machine)?;
-            }
-        }
-        Ok(())
-    }
+    Ok(())
 }
 
 /// One machine's directory: a `dashboard.svg` per run and `compare.svg` across its complete runs.

@@ -2,13 +2,14 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{
-    LazyPerSecondWindows, LazyWindowStartVec, ValuePerBlockCumulativeRolling, shapes::Windows,
+    LazyPerSecondWindows, LazyWindowStartVec, PerBlockFullFromCumulative,
+    ValuePerBlockCumulativeRolling, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::Version;
 
 use super::{
-    STORAGE, Vecs, count, features, fees, inscription, patterns, policy, sigops, versions, vsize,
+    STORAGE, Vecs, features, fees, inscription, patterns, policy, sigops, versions, vsize,
 };
 
 impl Vecs {
@@ -21,7 +22,14 @@ impl Vecs {
         let db = STORAGE.open_database(context, 10_000_000)?;
         let version = STORAGE.schema_version();
 
-        let count = count::Vecs::import(&db, version, mappings, window_starts)?;
+        let count = PerBlockFullFromCumulative::import(
+            &db,
+            "tx_count",
+            version,
+            &mappings.transaction_count_source(),
+            mappings,
+            window_starts,
+        )?;
         let features = features::Vecs::import(&db, version, indexer, mappings, window_starts)?;
         let vsize = vsize::Vecs::import(&db, version, indexer, mappings)?;
         let fees = fees::Vecs::import(&db, version, mappings, window_starts)?;

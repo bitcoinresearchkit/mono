@@ -18,13 +18,11 @@ use brk_types::{Height, Timestamp};
 use disk::DiskMonitor;
 use parking_lot::Mutex;
 use process::ProcessMonitor;
-use run::RunMonitor;
 use trace::TraceMonitor;
 
 mod disk;
 mod metadata;
 mod process;
-mod run;
 mod trace;
 
 #[derive(Clone)]
@@ -57,7 +55,6 @@ struct Inner {
     /// Held for the run: a second benchmark on the data directory must not replace this report.
     _lock: File,
     disk: Arc<Mutex<DiskMonitor>>,
-    run: Mutex<RunMonitor>,
     trace: Arc<TraceMonitor>,
     stop: Arc<AtomicBool>,
     state: Mutex<State>,
@@ -122,7 +119,6 @@ impl Benchmark {
                 &reports,
                 &path.join("disk.csv"),
             )?)),
-            run: Mutex::new(RunMonitor::new(&path.join("run.csv"))?),
             trace,
             path,
             _lock: lock,
@@ -200,17 +196,11 @@ impl Benchmark {
 
     fn finish(&self, outcome: Outcome, measured: Option<Duration>) -> Result<()> {
         let ended_at = Instant::now();
-        let running = {
-            let mut state = self.0.state.lock();
-            match mem::replace(&mut *state, State::Finished) {
-                State::Running {
-                    started_at,
-                    monitors,
-                } => Some((started_at, monitors)),
-                State::Ready | State::Finished => None,
-            }
-        };
-        let Some((started_at, monitors)) = running else {
+        let State::Running {
+            started_at,
+            monitors,
+        } = mem::replace(&mut *self.0.state.lock(), State::Finished)
+        else {
             return Ok(());
         };
 
@@ -220,12 +210,11 @@ impl Benchmark {
         }
         let mut monitor_result = Ok(());
         for monitor in monitors {
-            let result = monitor
-                .join()
-                .unwrap_or(Err(Error::Internal("Benchmark monitor panicked")));
-            if monitor_result.is_ok() {
-                monitor_result = result;
-            }
+            monitor_result = monitor_result.and(
+                monitor
+                    .join()
+                    .unwrap_or(Err(Error::Internal("Benchmark monitor panicked"))),
+            );
         }
 
         let elapsed = measured.unwrap_or_else(|| ended_at.duration_since(started_at));
@@ -243,7 +232,14 @@ impl Benchmark {
             Outcome::Complete if recorded.is_err() => Outcome::Failed,
             outcome => outcome,
         };
-        self.0.run.lock().record(elapsed, outcome.as_str())?;
+        fs::write(
+            self.0.path.join("run.csv"),
+            format!(
+                "phase,start_ms,duration_ms,status\nbootstrap,0,{:.3},{}\n",
+                elapsed.as_secs_f64() * 1_000.0,
+                outcome.as_str()
+            ),
+        )?;
         recorded
     }
 }

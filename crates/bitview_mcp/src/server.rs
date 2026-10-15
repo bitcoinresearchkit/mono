@@ -94,14 +94,14 @@ pub fn router(
     Router::new()
         .route(
             "/",
-            page::route(pages.home()).merge(post_service(service).layer(
+            page::route(pages.home).merge(post_service(service).layer(
                 middleware::from_fn_with_state(Arc::new(Semaphore::new(MAX_CONCURRENCY)), admit),
             )),
         )
         .route("/logo.png", get(logo::get))
-        .route("/privacy", page::route(pages.privacy()))
-        .route("/terms", page::route(pages.terms()))
-        .route("/support", page::route(pages.support()))
+        .route("/privacy", page::route(pages.privacy))
+        .route("/terms", page::route(pages.terms))
+        .route("/support", page::route(pages.support))
         .layer(middleware::from_fn(gateway_guard))
 }
 
@@ -190,7 +190,7 @@ impl ServerHandler for BrkMcp {
             .validate_arguments(&arguments)
             .map_err(|error| McpError::invalid_params(error, None))?;
         let has_output_schema = operation.tool.output_schema.is_some();
-        let prepared = self
+        let url = self
             .state
             .upstream
             .prepare(operation, &arguments)
@@ -205,7 +205,7 @@ impl ServerHandler for BrkMcp {
         let upstream = self.state.upstream.clone();
         Ok(spawn_blocking(move || {
             let _permit = permit;
-            match upstream.fetch(prepared) {
+            match upstream.fetch(url) {
                 Ok(response) => {
                     log_cache_status(&name, &response);
                     render(response, has_output_schema)

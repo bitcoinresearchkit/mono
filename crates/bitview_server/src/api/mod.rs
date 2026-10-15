@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use aide::{
     axum::{ApiRouter, routing::get_with},
     transform::TransformOperation,
@@ -103,8 +105,8 @@ impl ApiRoutes for ApiRouter<AppState> {
             .api_route(
                 "/openapi.json",
                 get_with(
-                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<OpenApiJson>| {
-                        api.respond(&headers)
+                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<Arc<OpenApiBodies>>| {
+                        api.full.respond(&headers)
                     },
                     |op| {
                         op.id("get_openapi")
@@ -118,8 +120,8 @@ impl ApiRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api.json",
                 get_with(
-                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<ApiJson>| {
-                        api.respond(&headers)
+                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<Arc<OpenApiBodies>>| {
+                        api.compact.respond(&headers)
                     },
                     |op| {
                         op.id("get_api")

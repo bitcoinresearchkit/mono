@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use bitview_catalog::TreeNode;
 
-use crate::{Access, to_pascal_case};
+use crate::{Access, to_pascal_case, topological::topological};
 
 /// How a child's name derives from its parent's base. Names are `_`-separated token lists.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -513,33 +513,6 @@ impl Model {
             }
         }
     }
-}
-
-/// Orders `count` shapes so each comes after the shapes it contains (`edges` are `(child, parent)`
-/// pairs), and returns the shapes left out: those in a cycle and those above one.
-fn topological(
-    count: usize,
-    edges: impl IntoIterator<Item = (usize, usize)>,
-) -> (Vec<usize>, Vec<usize>) {
-    let mut dependents: Vec<BTreeSet<usize>> = vec![BTreeSet::new(); count];
-    let mut pending: Vec<BTreeSet<usize>> = vec![BTreeSet::new(); count];
-    for (child, parent) in edges {
-        dependents[child].insert(parent);
-        pending[parent].insert(child);
-    }
-    let mut ready: Vec<usize> = (0..count).filter(|&s| pending[s].is_empty()).collect();
-    let mut order = Vec::with_capacity(count);
-    while let Some(shape) = ready.pop() {
-        order.push(shape);
-        for &dependent in &dependents[shape] {
-            pending[dependent].remove(&shape);
-            if pending[dependent].is_empty() {
-                ready.push(dependent);
-            }
-        }
-    }
-    let stuck = (0..count).filter(|&s| !pending[s].is_empty()).collect();
-    (order, stuck)
 }
 
 fn flatten(

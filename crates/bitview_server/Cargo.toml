@@ -16,7 +16,6 @@ urpd = ["price", "bitview_query/urpd"]
 price = ["bitview_query/price"]
 
 [dependencies]
-arc-swap = { workspace = true }
 bitcoin = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 brk_rpc = { workspace = true, features = ["async"] }
@@ -32,7 +31,6 @@ brk_types = { workspace = true, features = ["storage"] }
 bitview_website = { workspace = true }
 derive_more = { workspace = true }
 jiff = { workspace = true }
-parking_lot = { workspace = true }
 rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true, features = ["rc"] }

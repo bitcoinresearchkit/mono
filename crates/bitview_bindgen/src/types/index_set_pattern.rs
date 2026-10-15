@@ -3,6 +3,8 @@ use std::collections::BTreeSet;
 use bitview_catalog::{SeriesLeafWithSchema, TreeNode};
 use bitview_primitives::Index;
 
+use crate::for_each_leaf;
+
 /// How clients reach a leaf: its indexes, and those whose values can be missing (an empty
 /// period), which clients type as nullable. A property of the series, never of its value type:
 /// undefined values (NaN, sentinels) are typed with the value type, so shapes stay shared.
@@ -16,7 +18,14 @@ pub(crate) struct Access {
 /// sentinel) written as `null`: clients type those nullable wherever they appear.
 pub(crate) fn value_types(tree: &TreeNode) -> ValueTypes {
     let mut types = ValueTypes::default();
-    collect_value_types(tree, &mut types);
+    for_each_leaf(tree, &mut |leaf| {
+        let kinds = if leaf.undefined {
+            &mut types.undefined
+        } else {
+            &mut types.defined
+        };
+        kinds.insert(leaf.kind().to_owned());
+    });
     types
 }
 
@@ -24,22 +33,6 @@ pub(crate) fn value_types(tree: &TreeNode) -> ValueTypes {
 pub(crate) struct ValueTypes {
     pub(crate) undefined: BTreeSet<String>,
     pub(crate) defined: BTreeSet<String>,
-}
-
-fn collect_value_types(node: &TreeNode, types: &mut ValueTypes) {
-    match node {
-        TreeNode::Leaf(leaf) if leaf.undefined => {
-            types.undefined.insert(leaf.kind().to_owned());
-        }
-        TreeNode::Leaf(leaf) => {
-            types.defined.insert(leaf.kind().to_owned());
-        }
-        TreeNode::Branch(children) => {
-            for child in children.values() {
-                collect_value_types(child, types);
-            }
-        }
-    }
 }
 
 impl Access {
@@ -76,7 +69,9 @@ pub(crate) fn accessor_of(accessors: &[IndexSetPattern], access: &Access) -> usi
 /// fewest missing indexes.
 pub(crate) fn detect_index_patterns(tree: &TreeNode) -> Vec<IndexSetPattern> {
     let mut accesses = BTreeSet::new();
-    collect_accesses(tree, &mut accesses);
+    for_each_leaf(tree, &mut |leaf| {
+        accesses.insert(Access::of(leaf));
+    });
 
     let mut sorted: Vec<Access> = accesses
         .into_iter()
@@ -100,17 +95,4 @@ pub(crate) fn detect_index_patterns(tree: &TreeNode) -> Vec<IndexSetPattern> {
             missing: access.missing,
         })
         .collect()
-}
-
-fn collect_accesses(node: &TreeNode, accesses: &mut BTreeSet<Access>) {
-    match node {
-        TreeNode::Leaf(leaf) => {
-            accesses.insert(Access::of(leaf));
-        }
-        TreeNode::Branch(children) => {
-            for child in children.values() {
-                collect_accesses(child, accesses);
-            }
-        }
-    }
 }

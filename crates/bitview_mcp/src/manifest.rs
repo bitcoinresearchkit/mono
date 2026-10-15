@@ -99,42 +99,18 @@ fn validate_schema(
         validate_schema(root, as_schema(target)?, value, depth + 1)?;
     }
 
-    if let Some(expected) = object.get("const")
-        && expected != value
-    {
-        return Err("value does not match const".to_string());
-    }
     if let Some(values) = object.get("enum").and_then(Value::as_array)
         && !values.contains(value)
     {
         return Err("value is not in the allowed enum".to_string());
     }
 
-    if let Some(schemas) = object.get("allOf").and_then(Value::as_array) {
-        for nested in schemas {
-            validate_schema(root, as_schema(nested)?, value, depth + 1)?;
-        }
-    }
     if let Some(schemas) = object.get("anyOf").and_then(Value::as_array)
         && !schemas
             .iter()
             .any(|nested| validate(root, nested, value, depth + 1))
     {
         return Err("value does not match any allowed schema".to_string());
-    }
-    if let Some(schemas) = object.get("oneOf").and_then(Value::as_array)
-        && schemas
-            .iter()
-            .filter(|nested| validate(root, nested, value, depth + 1))
-            .count()
-            != 1
-    {
-        return Err("value does not match exactly one allowed schema".to_string());
-    }
-    if let Some(nested) = object.get("not")
-        && validate(root, nested, value, depth + 1)
-    {
-        return Err("value matches a forbidden schema".to_string());
     }
 
     if let Some(expected) = object.get("type") {
@@ -152,11 +128,13 @@ fn validate_schema(
     }
 
     match value {
-        Value::String(value) => validate_string(object, value),
+        Value::String(value) if value.len() > MAX_PARAMETER_BYTES => Err(format!(
+            "string exceeds the {MAX_PARAMETER_BYTES}-byte parameter limit"
+        )),
         Value::Number(value) => validate_number(object, value),
         Value::Array(value) => validate_array(root, object, value, depth),
         Value::Object(value) => validate_object(root, object, value, depth),
-        Value::Null | Value::Bool(_) => Ok(()),
+        Value::Null | Value::Bool(_) | Value::String(_) => Ok(()),
     }
 }
 
@@ -177,26 +155,6 @@ fn matches_type(expected: &str, value: &Value) -> bool {
     }
 }
 
-fn validate_string(schema: &Map<String, Value>, value: &str) -> Result<(), String> {
-    let length = value.chars().count() as u64;
-    if value.len() > MAX_PARAMETER_BYTES {
-        return Err(format!(
-            "string exceeds the {MAX_PARAMETER_BYTES}-byte parameter limit"
-        ));
-    }
-    if let Some(minimum) = schema.get("minLength").and_then(Value::as_u64)
-        && length < minimum
-    {
-        return Err(format!("string is shorter than {minimum} characters"));
-    }
-    if let Some(maximum) = schema.get("maxLength").and_then(Value::as_u64)
-        && length > maximum
-    {
-        return Err(format!("string is longer than {maximum} characters"));
-    }
-    Ok(())
-}
-
 fn validate_number(schema: &Map<String, Value>, value: &Number) -> Result<(), String> {
     let value = value
         .as_f64()
@@ -209,21 +167,6 @@ fn validate_number(schema: &Map<String, Value>, value: &Number) -> Result<(), St
     {
         return Err(format!("number is less than {minimum}"));
     }
-    if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64)
-        && value > maximum
-    {
-        return Err(format!("number is greater than {maximum}"));
-    }
-    if let Some(minimum) = schema.get("exclusiveMinimum").and_then(Value::as_f64)
-        && value <= minimum
-    {
-        return Err(format!("number must be greater than {minimum}"));
-    }
-    if let Some(maximum) = schema.get("exclusiveMaximum").and_then(Value::as_f64)
-        && value >= maximum
-    {
-        return Err(format!("number must be less than {maximum}"));
-    }
     Ok(())
 }
 
@@ -233,27 +176,6 @@ fn validate_array(
     values: &[Value],
     depth: usize,
 ) -> Result<(), String> {
-    if let Some(minimum) = schema.get("minItems").and_then(Value::as_u64)
-        && values.len() < minimum as usize
-    {
-        return Err(format!("array has fewer than {minimum} items"));
-    }
-    if let Some(maximum) = schema.get("maxItems").and_then(Value::as_u64)
-        && values.len() > maximum as usize
-    {
-        return Err(format!("array has more than {maximum} items"));
-    }
-    if schema
-        .get("uniqueItems")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-    {
-        for (index, value) in values.iter().enumerate() {
-            if values[..index].contains(value) {
-                return Err("array items must be unique".to_string());
-            }
-        }
-    }
     if let Some(items) = schema.get("items") {
         for value in values {
             validate_schema(root, as_schema(items)?, value, depth + 1)?;

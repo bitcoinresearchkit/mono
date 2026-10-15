@@ -4,7 +4,6 @@ const SEL_W: usize = 5; // longest selector token: "tip-N"
 const LABEL_W: usize = 28; // longest label across OUTPUT/OPTIONS/EXAMPLES (= example cmd "blk 800000 tx.0.vout.0.value")
 const FLAG_W: usize = 15; // longest flag: "--rpccookiefile"
 const PH_W: usize = LABEL_W - FLAG_W - 1; // placeholder column width so flag+ph total = LABEL_W
-const GAP: usize = 4;
 
 pub fn print() {
     println!("{} - inspect a Bitcoin Core block", bold("blk"));
@@ -136,35 +135,17 @@ fn fields(lines: &[&str]) {
     }
 }
 
-fn pad(s: &str, width: usize) -> String {
-    " ".repeat(width.saturating_sub(s.len()))
-}
-
+// Plain text is padded before coloring, so escape codes never count toward a column width.
 fn sel(token: &str, desc: &str) {
-    println!(
-        "    {}{}{}{desc}",
-        dim(token),
-        pad(token, SEL_W),
-        " ".repeat(GAP),
-    );
+    println!("    {}    {desc}", dim(&format!("{token:SEL_W$}")));
 }
 
 fn out(label: &str, desc: &str) {
-    println!(
-        "    {label}{}{}{desc}",
-        pad(label, LABEL_W),
-        " ".repeat(GAP)
-    );
+    println!("    {label:LABEL_W$}    {desc}");
 }
 
 fn opt(flag: &str, ph: &str, desc: &str, default: Option<&str>) {
-    let head = format!(
-        "    {flag}{} {}{}{}",
-        pad(flag, FLAG_W),
-        dim(ph),
-        pad(ph, PH_W),
-        " ".repeat(GAP),
-    );
+    let head = format!("    {flag:FLAG_W$} {}    ", dim(&format!("{ph:PH_W$}")));
     match default {
         Some(d) => println!("{head}{desc} {}", dim(d)),
         None => println!("{head}{desc}"),
@@ -172,12 +153,7 @@ fn opt(flag: &str, ph: &str, desc: &str, default: Option<&str>) {
 }
 
 fn ex(cmd: &str, note: &str) {
-    println!(
-        "    {cmd}{}{}{}",
-        pad(cmd, LABEL_W),
-        " ".repeat(GAP),
-        dim(&format!("# {note}"))
-    );
+    println!("    {cmd:LABEL_W$}    {}", dim(&format!("# {note}")));
 }
 
 fn bold(s: &str) -> String {

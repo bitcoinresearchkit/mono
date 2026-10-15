@@ -12,12 +12,11 @@ use crate::{
     chain_counts::ChainCounts,
     height::Vecs as HeightVecs,
     height_lookup::HeightLookup,
+    identity::IdentityVecs,
     lookback::LookbackVecs,
     resolution::{DatedResolutionVecs, ResolutionVecs},
     timestamp::Timestamps,
     tx_index::Vecs as TxIndexVecs,
-    txin_index::Vecs as TxInIndexVecs,
-    txout_index::Vecs as TxOutIndexVecs,
 };
 
 impl Vecs {
@@ -141,27 +140,10 @@ impl Vecs {
             ),
         };
         let tx_index = TxIndexVecs::new(version, indexer);
-        let txin_index = TxInIndexVecs::new(version, indexer);
-        let txout_index = TxOutIndexVecs::new(version, indexer);
-
-        let timestamp = Timestamps::new(
-            version,
-            monotonic,
-            indexer.vecs().blocks.timestamp.read_only_boxed_clone(),
-            &minute10,
-            &minute30,
-            &hour1,
-            &hour4,
-            &hour12,
-            &day1,
-            &day3,
-            &week1,
-            &month1,
-            &month3,
-            &month6,
-            &year1,
-            &year10,
-        );
+        let txin_index = IdentityVecs::new("txin_index", version, &*indexer.vecs().inputs.outpoint);
+        // Any outputs column gives the length; `value` would mark this view mutable.
+        let txout_index =
+            IdentityVecs::new("txout_index", version, &indexer.vecs().outputs.output_type);
 
         let sources = IndexSources {
             first_height: PerResolution {
@@ -183,6 +165,12 @@ impl Vecs {
             },
             height_tx_index_count: height.tx_index_count.clone(),
         };
+        let timestamp = Timestamps::new(
+            version,
+            monotonic,
+            indexer.vecs().blocks.timestamp.read_only_boxed_clone(),
+            &sources,
+        );
 
         let this = Self {
             chain_counts,

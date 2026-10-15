@@ -5,6 +5,8 @@ use axum::{
     http::{HeaderMap, HeaderValue, Response, header},
     response::IntoResponse,
 };
+#[cfg(feature = "chain")]
+use bitview_query::PublicationCache;
 use bitview_query::{AsyncQuery, Error as QueryError, Query, RepresentationId, Result};
 use brk_rpc::AsyncClient;
 #[cfg(feature = "chain")]
@@ -15,14 +17,11 @@ use serde::Serialize;
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
+#[cfg(feature = "chain")]
+use crate::prepared_json::PreparedJson;
 #[cfg(feature = "series")]
 use crate::series_bodies::SeriesBodies;
-use crate::{CacheParams, CacheStrategy, CdnCacheMode, Error, Website, extended::ResponseExtended};
-#[cfg(feature = "chain")]
-use crate::{
-    historical_price_cache::HistoricalPriceCache, prepared_json::PreparedJson,
-    raw_body::RawBodyPermit,
-};
+use crate::{CacheParams, CdnCacheMode, Error, Website, extended::ResponseExtended};
 
 /// One request's state: its query (carrying the request deadline) over the server's shared state.
 #[derive(Clone, Deref)]
@@ -41,7 +40,8 @@ pub struct SharedState {
     #[cfg(feature = "chain")]
     pub historical_price_bodies: Arc<Semaphore>,
     #[cfg(feature = "chain")]
-    pub historical_price_cache: Arc<HistoricalPriceCache>,
+    /// The full-history representation, shared by requests for the same publication.
+    pub historical_price_cache: Arc<PublicationCache<(Bytes, RepresentationId)>>,
     #[cfg(feature = "chain")]
     pub mempool_txid_bodies: Arc<Semaphore>,
     /// Block templates, about 10 MB each.
@@ -94,9 +94,7 @@ impl AppState {
         }
     }
 
-    /// Selection, validator, and body belong to one read operation. The body holds a
-    /// transaction/block/address body permit from before it is built until its last frame is
-    /// sent; without a free one, selection runs again once one is.
+    /// [`Self::respond_admitted`] for transaction, block and address bodies.
     #[cfg(feature = "chain")]
     pub async fn respond_read<S: 'static>(
         &self,
@@ -105,20 +103,14 @@ impl AppState {
         select: impl FnOnce(&Query) -> Result<(S, CacheParams)> + Clone + Send + 'static,
         build: impl FnOnce(&Query, S) -> Result<Bytes> + Clone + Send + 'static,
     ) -> Response<Body> {
-        let bodies = self.chain_bodies.clone();
-        self.read_body(&self.sync_query, &self.chain_bodies, move |q, permit| {
-            let (source, params) = select(q)?;
-            if params.matches_etag(&headers) {
-                return Ok(Some(ResponseExtended::new_not_modified(&params)));
-            }
-            let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies)) else {
-                return Ok(None);
-            };
-            let bytes = build(q, source)?;
-            Ok(Some(permit.response(params, bytes, |h| {
-                h.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
-            })))
-        })
+        self.respond_admitted(
+            &self.sync_query,
+            &self.chain_bodies,
+            headers,
+            content_type,
+            select,
+            build,
+        )
         .await
         .unwrap_or_else(|error| Error::from(error).into_response())
     }
@@ -140,14 +132,6 @@ impl AppState {
         self.query.read_with_admission(Some(admission), f).await
     }
 
-    /// Keep blocking admission with the job, including after request cancellation.
-    pub async fn run_admitted<T: Send + 'static>(
-        &self,
-        f: impl FnOnce(&Query) -> Result<T> + Send + 'static,
-    ) -> Result<T> {
-        self.run_with_admission(&self.sync_query, f).await
-    }
-
     pub async fn run_with_admission<T: Send + 'static>(
         &self,
         admission: &Arc<Semaphore>,
@@ -166,18 +150,6 @@ impl AppState {
             .await
     }
 
-    #[cfg(feature = "chain")]
-    pub fn representation_strategy(version: Version, identity: RepresentationId) -> CacheStrategy {
-        match identity {
-            RepresentationId::Content(hash) => CacheStrategy::LiveHash(hash),
-            // Anchor identity and availability are distinct: a displaced
-            // confirmed transaction must be resolved again even at depth.
-            RepresentationId::Block(hash) => {
-                CacheStrategy::Live(format!("tx3-{version}-{hash}").into())
-            }
-        }
-    }
-
     pub fn assemble_response(
         params: CacheParams,
         bytes: Bytes,
@@ -188,25 +160,6 @@ impl AppState {
         apply_content_headers(headers);
         params.apply_to(headers);
         response
-    }
-
-    /// Shared response pipeline: ETag short-circuit, body computation on the
-    /// query thread, and header assembly. For representations whose cache
-    /// parameters are already known; mutable selections use `respond_read`.
-    pub async fn respond_with_params<F>(
-        &self,
-        headers: &HeaderMap,
-        params: CacheParams,
-        apply_content_headers: impl FnOnce(&mut HeaderMap),
-        f: F,
-    ) -> Response<Body>
-    where
-        F: FnOnce(&Query) -> Result<Bytes> + Send + 'static,
-    {
-        Self::respond_with_future(headers, params, async {
-            Ok((self.read_admitted(f).await?, apply_content_headers))
-        })
-        .await
     }
 
     /// Defer body work and content-header preparation until after revalidation.
@@ -230,11 +183,10 @@ impl AppState {
     fn respond_immediate(
         &self,
         headers: &HeaderMap,
-        strategy: CacheStrategy,
+        params: CacheParams,
         content_type: &'static str,
         bytes: impl FnOnce() -> Bytes,
     ) -> Response<Body> {
-        let params = CacheParams::resolve(&strategy, self.cdn_cache_mode);
         if params.matches_etag(headers) {
             return ResponseExtended::new_not_modified(&params);
         }
@@ -248,10 +200,10 @@ impl AppState {
     pub fn respond_json_immediate<T: Serialize>(
         &self,
         headers: &HeaderMap,
-        strategy: CacheStrategy,
+        params: CacheParams,
         value: impl FnOnce() -> T,
     ) -> Response<Body> {
-        self.respond_immediate(headers, strategy, "application/json", || {
+        self.respond_immediate(headers, params, "application/json", || {
             Bytes::from(to_vec(&value()).unwrap())
         })
     }
@@ -260,10 +212,10 @@ impl AppState {
     pub fn respond_json_value<T: Serialize>(
         &self,
         headers: &HeaderMap,
-        strategy: CacheStrategy,
+        params: CacheParams,
         value: T,
     ) -> Response<Body> {
-        self.respond_json_immediate(headers, strategy, || value)
+        self.respond_json_immediate(headers, params, || value)
     }
 
     /// Immediate text response for values already resolved during preflight.
@@ -271,10 +223,10 @@ impl AppState {
     pub fn respond_text_value(
         &self,
         headers: &HeaderMap,
-        strategy: CacheStrategy,
+        params: CacheParams,
         value: String,
     ) -> Response<Body> {
-        self.respond_immediate(headers, strategy, "text/plain", || Bytes::from(value))
+        self.respond_immediate(headers, params, "text/plain", || Bytes::from(value))
     }
 
     /// Immediate JSON response whose validator is derived from its exact bytes.
@@ -304,7 +256,7 @@ impl AppState {
         match outcome {
             Ok((bytes, identity)) => self.respond_immediate(
                 headers,
-                Self::representation_strategy(version, identity),
+                CacheParams::representation(version, identity),
                 "application/json",
                 || Bytes::from(bytes),
             ),
@@ -340,7 +292,7 @@ impl AppState {
         let hash = RepresentationId::content_hash(&bytes);
         self.respond_immediate(
             headers,
-            CacheStrategy::LiveHash(hash),
+            CacheParams::live_hash(hash),
             "application/json",
             || bytes,
         )

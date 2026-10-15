@@ -6,13 +6,13 @@ use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazyWindowStartVec, shapes::Windows,
+    LazyWindowStartVec, ValuePerBlockCumulativeRolling, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Height, Sats, Version};
 use vecdb::{Ident, LazyVec, ReadableCloneableVec};
 
-use crate::{STORAGE, Vecs, burned, velocity};
+use crate::{STORAGE, Vecs, velocity};
 
 impl Vecs {
     pub fn import(
@@ -33,7 +33,13 @@ impl Vecs {
             &supply_metrics.btc,
         );
 
-        let burned = burned::Vecs::import(&db, version, mappings, window_starts)?;
+        let burned = ValuePerBlockCumulativeRolling::import(
+            &db,
+            "burned",
+            version + Version::ONE,
+            mappings,
+            window_starts,
+        )?;
 
         // Scheduled annual issuance (the block's scheduled subsidy x 52,560 blocks) over the
         // supply; undefined only without supply (block 0: the genesis output is unspendable).
@@ -58,7 +64,7 @@ impl Vecs {
         );
 
         // Velocity
-        let velocity = velocity::Vecs::new(version, mappings, all_chain, transactions)?;
+        let velocity = velocity::Vecs::new(version, mappings, all_chain, transactions);
 
         let market_cap = LazyFiatPerBlock::from_cents_source(
             "market_cap",

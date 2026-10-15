@@ -2,21 +2,21 @@ use std::{sync::Arc, time::Instant};
 
 use bitview_primitives::{
     AddressState, ByAddrType, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
-    FundedAddressIndex, P2AAddressIndex, P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex,
-    P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex, TypeIndex,
+    FundedAddressIndex, TypeIndex,
 };
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_types::{Height, OutputType, Version};
 use parking_lot::{RwLock, RwLockReadGuard};
 use rayon::{join, prelude::*};
+use rustc_hash::FxHashMap;
 use tracing::info;
 use vecdb::{
     AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec,
     OverflowVec, OverflowVecValue, ReadableVec, Rw, Stamp, StorageMode, VecIndex, WritableVec,
 };
 
-use super::{AddrTypeToTypeIndexMap, AddrTypeToVec, SourcedAddrData};
+use super::SourcedAddrData;
 
 mod updates;
 
@@ -25,218 +25,165 @@ use updates::{AddrUpdates, SidecarPushes};
 use crate::SAVED_CHECKPOINTS;
 const FUNDED_DATA_VERSION: Version = Version::new(3);
 
-/// Persistent state for every address.
-///
-/// Each address type has one four-byte primary vector. Funded addresses and
-/// empty addresses whose lifetime totals do not fit inline point into the two
-/// shared sidecars.
-#[derive(Traversable)]
-pub struct AddrStateVecs<M: StorageMode = Rw> {
-    /// Each address's state, one four-byte record per address index: a funded
-    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-    /// or an empty address's lifetime totals inline.
-    pub p2a: M::Stored<MutableVec<BytesVec<P2AAddressIndex, AddressState>>>,
-    /// Each address's state, one four-byte record per address index: a funded
-    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-    /// or an empty address's lifetime totals inline.
-    pub p2pk33: M::Stored<MutableVec<BytesVec<P2PK33AddressIndex, AddressState>>>,
-    /// Each address's state, one four-byte record per address index: a funded
-    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-    /// or an empty address's lifetime totals inline.
-    pub p2pk65: M::Stored<MutableVec<BytesVec<P2PK65AddressIndex, AddressState>>>,
-    /// Each address's state, one four-byte record per address index: a funded
-    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-    /// or an empty address's lifetime totals inline.
-    pub p2pkh: M::Stored<MutableVec<BytesVec<P2PKHAddressIndex, AddressState>>>,
-    /// Each address's state, one four-byte record per address index: a funded
-    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-    /// or an empty address's lifetime totals inline.
-    pub p2sh: M::Stored<MutableVec<BytesVec<P2SHAddressIndex, AddressState>>>,
-    /// Each address's state, one four-byte record per address index: a funded
-    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-    /// or an empty address's lifetime totals inline.
-    pub p2tr: M::Stored<MutableVec<BytesVec<P2TRAddressIndex, AddressState>>>,
-    /// Each address's state, one four-byte record per address index: a funded
-    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-    /// or an empty address's lifetime totals inline.
-    pub p2wpkh: M::Stored<MutableVec<BytesVec<P2WPKHAddressIndex, AddressState>>>,
-    /// Each address's state, one four-byte record per address index: a funded
-    /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-    /// or an empty address's lifetime totals inline.
-    pub p2wsh: M::Stored<MutableVec<BytesVec<P2WSHAddressIndex, AddressState>>>,
-    /// Funded addresses' data (received, sent, capital and transaction and output counts), by
-    /// the slot their state points to.
-    pub funded: M::Stored<OverflowVec<FundedAddressIndex, FundedAddressData>>,
-    /// Empty addresses' lifetime totals that do not fit inline in their state, by
-    /// the slot their state points to.
-    pub extended_empty: M::Stored<OverflowVec<ExtendedEmptyAddressIndex, EmptyAddressData>>,
-    /// The length these vectors are written through on disk (none while a rollback's restored
-    /// values or a failed write are not), locked while they change (publication, rollback, reset)
-    /// so a reader's state and sidecar record come from one save. They change in place, unlike the
-    /// append-only rest; an update's final state is written with its publication, so a reader
-    /// taking this lock before its pin reads that publication's state whenever the length is the
-    /// pin's.
-    #[traversable(skip)]
-    stable: Arc<RwLock<Option<Height>>>,
+macro_rules! addr_state_vecs {
+    ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
+        /// Persistent state for every address.
+        ///
+        /// Each address type has one four-byte primary vector. Funded addresses and
+        /// empty addresses whose lifetime totals do not fit inline point into the two
+        /// shared sidecars.
+        #[derive(Traversable)]
+        pub struct AddrStateVecs<M: StorageMode = Rw> {
+            $(
+                /// Each address's state, one four-byte record per address index: a funded
+                /// address's slot in `funded`, an empty address's slot in `extended_empty`,
+                /// or an empty address's lifetime totals inline.
+                pub $field: M::Stored<MutableVec<BytesVec<$index, AddressState>>>,
+            )+
+            /// Funded addresses' data (received, sent, capital and transaction and output
+            /// counts), by the slot their state points to.
+            pub funded: M::Stored<OverflowVec<FundedAddressIndex, FundedAddressData>>,
+            /// Empty addresses' lifetime totals that do not fit inline in their state, by
+            /// the slot their state points to.
+            pub extended_empty:
+                M::Stored<OverflowVec<ExtendedEmptyAddressIndex, EmptyAddressData>>,
+            /// The length these vectors are written through on disk (none while a rollback's
+            /// restored values or a failed write are not), locked while they change
+            /// (publication, rollback, reset) so a reader's state and sidecar record come from
+            /// one save. They change in place, unlike the append-only rest; an update's final
+            /// state is written with its publication, so a reader taking this lock before its pin
+            /// reads that publication's state whenever the length is the pin's.
+            #[traversable(skip)]
+            stable: Arc<RwLock<Option<Height>>>,
+        }
+
+        impl AddrStateVecs {
+            pub fn import(db: &Database, version: Version) -> Result<Self> {
+                let options = |name, version| {
+                    ImportOptions::new(db, name, version)
+                        .with_saved_stamped_changes(SAVED_CHECKPOINTS)
+                };
+                let vecs = Self {
+                    $($field: MutableVec::import_with(options("address_state", version))?,)+
+                    funded: OverflowVec::import_with(options(
+                        "funded_address_data",
+                        version + FUNDED_DATA_VERSION,
+                    ))?,
+                    extended_empty: OverflowVec::import_with(options(
+                        "extended_empty_address_data",
+                        version,
+                    ))?,
+                    stable: Arc::default(),
+                };
+                *vecs.stable.write() = Some(vecs.min_stamped_len());
+                Ok(vecs)
+            }
+
+            fn stamped_lens(&self) -> impl Iterator<Item = Height> {
+                [$(self.$field.stamp(),)+ self.funded.stamp(), self.extended_empty.stamp()]
+                    .into_iter()
+                    .map(|stamp| Height::from(stamp).incremented())
+            }
+
+            /// The length [`Self::rollback_before`] restores for `stamp`, if every vector lands
+            /// there.
+            pub fn rollback_landing(&self, stamp: Stamp) -> Result<Option<Height>> {
+                let landings = [
+                    $(self.$field.rollback_landing(stamp)?,)+
+                    self.funded.rollback_landing(stamp)?,
+                    self.extended_empty.rollback_landing(stamp)?,
+                ];
+                Ok(landings[0]
+                    .filter(|landing| landings.iter().all(|other| *other == Some(*landing)))
+                    .map(|landing| Height::from(landing).incremented()))
+            }
+
+            /// Rolls back below `stamp`. The restored values sit in the write buffers until the
+            /// next write: callers hold the state's lock with its length unset.
+            pub fn rollback_before(&mut self, stamp: Stamp) -> Result<Vec<Stamp>> {
+                Ok(vec![
+                    $(self.$field.rollback_before(stamp)?,)+
+                    self.funded.rollback_before(stamp)?,
+                    self.extended_empty.rollback_before(stamp)?,
+                ])
+            }
+
+            /// Drops staged changes that were never written.
+            pub fn reset_unsaved(&mut self) {
+                $(self.$field.reset_unsaved();)+
+                self.funded.reset_unsaved();
+                self.extended_empty.reset_unsaved();
+            }
+
+            pub fn reset(&mut self) -> Result<()> {
+                let stable = Arc::clone(&self.stable);
+                let mut written = stable.write();
+                *written = Some(Height::ZERO);
+                $(self.$field.reset()?;)+
+                self.funded.reset()?;
+                self.extended_empty.reset()?;
+                Ok(())
+            }
+
+            pub fn par_iter_mut(
+                &mut self,
+            ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+                [
+                    $(&mut self.$field as &mut dyn AnyStoredVec,)+
+                    &mut self.funded as &mut dyn AnyStoredVec,
+                    &mut self.extended_empty as &mut dyn AnyStoredVec,
+                ]
+                .into_par_iter()
+            }
+
+            /// Each type's vector is its own: they update side by side on the pool.
+            fn update_primaries(
+                &mut self,
+                updates: ByAddrType<Vec<(TypeIndex, AddressState)>>,
+            ) -> Result<()> {
+                let ByAddrType { $($field),+ } = updates;
+                let mut results = ByAddrType::<Result<()>>::from_fn(|_| Ok(()));
+                rayon::scope(|scope| {
+                    $(
+                        let vec = &mut self.$field;
+                        let result = &mut results.$field;
+                        scope.spawn(move |_| *result = Self::update_primary(vec, $field));
+                    )+
+                });
+                results.into_iter().try_for_each(|(_, result)| result)
+            }
+        }
+
+        impl<M: StorageMode> AddrStateVecs<M> {
+            pub fn get_once(
+                &self,
+                addr_type: OutputType,
+                type_index: TypeIndex,
+            ) -> Result<AddressState> {
+                match addr_type {
+                    $(OutputType::$variant => self.$field.collect_one(type_index.into()),)+
+                    _ => None,
+                }
+                .ok_or_else(|| Error::UnsupportedType(addr_type.to_string()))
+            }
+        }
+    };
 }
 
+bitview_primitives::with_address_storage_types!(addr_state_vecs);
+
 impl AddrStateVecs {
-    pub fn import(db: &Database, version: Version) -> Result<Self> {
-        let primary = || {
-            ImportOptions::new(db, "address_state", version)
-                .with_saved_stamped_changes(SAVED_CHECKPOINTS)
-        };
-        let sidecar = |name, version| {
-            ImportOptions::new(db, name, version).with_saved_stamped_changes(SAVED_CHECKPOINTS)
-        };
-
-        let vecs = Self {
-            p2a: MutableVec::import_with(primary())?,
-            p2pk33: MutableVec::import_with(primary())?,
-            p2pk65: MutableVec::import_with(primary())?,
-            p2pkh: MutableVec::import_with(primary())?,
-            p2sh: MutableVec::import_with(primary())?,
-            p2tr: MutableVec::import_with(primary())?,
-            p2wpkh: MutableVec::import_with(primary())?,
-            p2wsh: MutableVec::import_with(primary())?,
-            funded: OverflowVec::import_with(sidecar(
-                "funded_address_data",
-                version + FUNDED_DATA_VERSION,
-            ))?,
-            extended_empty: OverflowVec::import_with(sidecar(
-                "extended_empty_address_data",
-                version,
-            ))?,
-            stable: Arc::default(),
-        };
-        *vecs.stable.write() = Some(vecs.min_stamped_len());
-        Ok(vecs)
-    }
-
     pub fn min_stamped_len(&self) -> Height {
-        [
-            self.p2a.stamp(),
-            self.p2pk33.stamp(),
-            self.p2pk65.stamp(),
-            self.p2pkh.stamp(),
-            self.p2sh.stamp(),
-            self.p2tr.stamp(),
-            self.p2wpkh.stamp(),
-            self.p2wsh.stamp(),
-            self.funded.stamp(),
-            self.extended_empty.stamp(),
-        ]
-        .into_iter()
-        .map(|stamp| Height::from(stamp).incremented())
-        .min()
-        .unwrap_or_default()
+        self.stamped_lens().min().unwrap_or_default()
     }
 
     pub fn max_stamped_len(&self) -> Height {
-        [
-            self.p2a.stamp(),
-            self.p2pk33.stamp(),
-            self.p2pk65.stamp(),
-            self.p2pkh.stamp(),
-            self.p2sh.stamp(),
-            self.p2tr.stamp(),
-            self.p2wpkh.stamp(),
-            self.p2wsh.stamp(),
-            self.funded.stamp(),
-            self.extended_empty.stamp(),
-        ]
-        .into_iter()
-        .map(|stamp| Height::from(stamp).incremented())
-        .max()
-        .unwrap_or_default()
-    }
-
-    /// The length [`Self::rollback_before`] restores for `stamp`, if every vector lands there.
-    pub fn rollback_landing(&self, stamp: Stamp) -> Result<Option<Height>> {
-        let landings = [
-            self.p2a.rollback_landing(stamp)?,
-            self.p2pk33.rollback_landing(stamp)?,
-            self.p2pk65.rollback_landing(stamp)?,
-            self.p2pkh.rollback_landing(stamp)?,
-            self.p2sh.rollback_landing(stamp)?,
-            self.p2tr.rollback_landing(stamp)?,
-            self.p2wpkh.rollback_landing(stamp)?,
-            self.p2wsh.rollback_landing(stamp)?,
-            self.funded.rollback_landing(stamp)?,
-            self.extended_empty.rollback_landing(stamp)?,
-        ];
-        Ok(landings[0]
-            .filter(|landing| landings.iter().all(|other| *other == Some(*landing)))
-            .map(|landing| Height::from(landing).incremented()))
-    }
-
-    /// Rolls back below `stamp`. The restored values sit in the write buffers until the next write:
-    /// callers hold the state's lock with its length unset.
-    pub fn rollback_before(&mut self, stamp: Stamp) -> Result<Vec<Stamp>> {
-        Ok(vec![
-            self.p2a.rollback_before(stamp)?,
-            self.p2pk33.rollback_before(stamp)?,
-            self.p2pk65.rollback_before(stamp)?,
-            self.p2pkh.rollback_before(stamp)?,
-            self.p2sh.rollback_before(stamp)?,
-            self.p2tr.rollback_before(stamp)?,
-            self.p2wpkh.rollback_before(stamp)?,
-            self.p2wsh.rollback_before(stamp)?,
-            self.funded.rollback_before(stamp)?,
-            self.extended_empty.rollback_before(stamp)?,
-        ])
-    }
-
-    /// Drops staged changes that were never written.
-    pub fn reset_unsaved(&mut self) {
-        self.p2a.reset_unsaved();
-        self.p2pk33.reset_unsaved();
-        self.p2pk65.reset_unsaved();
-        self.p2pkh.reset_unsaved();
-        self.p2sh.reset_unsaved();
-        self.p2tr.reset_unsaved();
-        self.p2wpkh.reset_unsaved();
-        self.p2wsh.reset_unsaved();
-        self.funded.reset_unsaved();
-        self.extended_empty.reset_unsaved();
-    }
-
-    pub fn reset(&mut self) -> Result<()> {
-        let stable = Arc::clone(&self.stable);
-        let mut written = stable.write();
-        *written = Some(Height::ZERO);
-        self.p2a.reset()?;
-        self.p2pk33.reset()?;
-        self.p2pk65.reset()?;
-        self.p2pkh.reset()?;
-        self.p2sh.reset()?;
-        self.p2tr.reset()?;
-        self.p2wpkh.reset()?;
-        self.p2wsh.reset()?;
-        self.funded.reset()?;
-        self.extended_empty.reset()?;
-        Ok(())
-    }
-
-    pub fn par_iter_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.p2a as &mut dyn AnyStoredVec,
-            &mut self.p2pk33 as &mut dyn AnyStoredVec,
-            &mut self.p2pk65 as &mut dyn AnyStoredVec,
-            &mut self.p2pkh as &mut dyn AnyStoredVec,
-            &mut self.p2sh as &mut dyn AnyStoredVec,
-            &mut self.p2tr as &mut dyn AnyStoredVec,
-            &mut self.p2wpkh as &mut dyn AnyStoredVec,
-            &mut self.p2wsh as &mut dyn AnyStoredVec,
-            &mut self.funded as &mut dyn AnyStoredVec,
-            &mut self.extended_empty as &mut dyn AnyStoredVec,
-        ]
-        .into_par_iter()
+        self.stamped_lens().max().unwrap_or_default()
     }
 
     pub fn apply_updates(
         &mut self,
-        cache: &mut [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddressData>>],
+        cache: &mut [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>>],
     ) -> Result<()> {
         info!("Updating address state...");
         let started = Instant::now();
@@ -282,7 +229,7 @@ impl AddrStateVecs {
     fn insert_sidecar<I, T>(
         sidecar: &mut OverflowVec<I, T>,
         pushes: SidecarPushes<T>,
-        primaries: &mut AddrTypeToVec<(TypeIndex, AddressState)>,
+        primaries: &mut ByAddrType<Vec<(TypeIndex, AddressState)>>,
         to_state: fn(I) -> AddressState,
     ) where
         I: VecIndex,
@@ -294,72 +241,6 @@ impl AddrStateVecs {
                 .get_mut_unwrap(addr_type)
                 .push((type_index, to_state(index)));
         }
-    }
-
-    fn update_primaries(
-        &mut self,
-        updates: AddrTypeToVec<(TypeIndex, AddressState)>,
-    ) -> Result<()> {
-        let ByAddrType {
-            p2a: u_p2a,
-            p2pk33: u_p2pk33,
-            p2pk65: u_p2pk65,
-            p2pkh: u_p2pkh,
-            p2sh: u_p2sh,
-            p2tr: u_p2tr,
-            p2wpkh: u_p2wpkh,
-            p2wsh: u_p2wsh,
-        } = updates.into_inner();
-        let Self {
-            p2a,
-            p2pk33,
-            p2pk65,
-            p2pkh,
-            p2sh,
-            p2tr,
-            p2wpkh,
-            p2wsh,
-            ..
-        } = self;
-
-        // Each type's vector is its own: they update side by side on the pool.
-        let (((p2a, p2pk33), (p2pk65, p2pkh)), ((p2sh, p2tr), (p2wpkh, p2wsh))) = join(
-            || {
-                join(
-                    || {
-                        join(
-                            || Self::update_primary(p2a, u_p2a),
-                            || Self::update_primary(p2pk33, u_p2pk33),
-                        )
-                    },
-                    || {
-                        join(
-                            || Self::update_primary(p2pk65, u_p2pk65),
-                            || Self::update_primary(p2pkh, u_p2pkh),
-                        )
-                    },
-                )
-            },
-            || {
-                join(
-                    || {
-                        join(
-                            || Self::update_primary(p2sh, u_p2sh),
-                            || Self::update_primary(p2tr, u_p2tr),
-                        )
-                    },
-                    || {
-                        join(
-                            || Self::update_primary(p2wpkh, u_p2wpkh),
-                            || Self::update_primary(p2wsh, u_p2wsh),
-                        )
-                    },
-                )
-            },
-        );
-        [p2a, p2pk33, p2pk65, p2pkh, p2sh, p2tr, p2wpkh, p2wsh]
-            .into_iter()
-            .collect()
     }
 
     fn update_primary<I: VecIndex>(
@@ -401,20 +282,5 @@ impl<M: StorageMode> AddrStateVecs<M> {
     /// The lock a save holds over these vectors, with the length they are written through.
     pub fn stable(&self) -> Arc<RwLock<Option<Height>>> {
         Arc::clone(&self.stable)
-    }
-
-    pub fn get_once(&self, addr_type: OutputType, type_index: TypeIndex) -> Result<AddressState> {
-        match addr_type {
-            OutputType::P2A => self.p2a.collect_one(type_index.into()),
-            OutputType::P2PK33 => self.p2pk33.collect_one(type_index.into()),
-            OutputType::P2PK65 => self.p2pk65.collect_one(type_index.into()),
-            OutputType::P2PKH => self.p2pkh.collect_one(type_index.into()),
-            OutputType::P2SH => self.p2sh.collect_one(type_index.into()),
-            OutputType::P2TR => self.p2tr.collect_one(type_index.into()),
-            OutputType::P2WPKH => self.p2wpkh.collect_one(type_index.into()),
-            OutputType::P2WSH => self.p2wsh.collect_one(type_index.into()),
-            _ => return Err(Error::UnsupportedType(addr_type.to_string())),
-        }
-        .ok_or_else(|| Error::UnsupportedType(addr_type.to_string()))
     }
 }

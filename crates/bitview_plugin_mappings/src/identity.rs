@@ -4,13 +4,13 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{Formattable, IndexVec, ReadableBoxedVec, ReadableCloneableVec, VecIndex, VecValue};
 
+/// An index series returning each index itself; its owning field describes the index.
 #[derive(Clone, Traversable)]
 pub struct IdentityVecs<I, S>
 where
     I: VecIndex + Formattable + Serialize + JsonSchema,
     S: VecValue,
 {
-    /// Zero-based type-specific output index assigned in canonical chain order.
     pub identity: IndexVec<I, I, ReadableBoxedVec<I, S>>,
 }
 

@@ -31,6 +31,13 @@ impl<T> PriceBands<T> {
         }
     }
 
+    pub fn select(&self, id: PriceBandId) -> &T {
+        match id {
+            PriceBandId::Floor(id) => self.floor.select(id),
+            PriceBandId::AboveFloor(id) => self.cost_basis_above_floor.select(id),
+        }
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.floor.iter().chain(self.cost_basis_above_floor.iter())
     }

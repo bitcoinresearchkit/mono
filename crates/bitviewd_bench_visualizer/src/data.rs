@@ -57,10 +57,7 @@ impl Csv {
         let Some(header) = lines.next() else {
             return Ok(None);
         };
-        let header = header
-            .split(',')
-            .map(str::to_owned)
-            .collect::<Vec<_>>();
+        let header = header.split(',').map(str::to_owned).collect::<Vec<_>>();
         let mut rows = lines
             .filter(|line| !line.is_empty())
             .map(|line| line.split(',').map(str::to_owned).collect::<Vec<_>>())

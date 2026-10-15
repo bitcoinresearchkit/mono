@@ -4,9 +4,7 @@ use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_transactions::FeesVecs;
-use bitview_primitives::{
-    Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind, OpReturnPolicyId,
-};
+use bitview_primitives::{Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind};
 use brk_types::{Sats, TxIndex, VSize, Weight32};
 use rayon::join;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
@@ -124,9 +122,7 @@ impl Batch {
             carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
             target.total.push(total);
             target.protocols.push(by_kind);
-            target
-                .policies
-                .push(OpReturnPolicyId::from_fn(|id| *policy.get(id)));
+            target.policies.push(policy);
         }
 
         debug_assert_eq!(carrier_index, weights.len());

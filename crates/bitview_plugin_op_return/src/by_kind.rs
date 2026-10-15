@@ -11,9 +11,19 @@ macro_rules! define_by_kind {
             ),+
         }
 
+        // Fields follow `OpReturnKind` order: values indexed by kind push in field order.
+        const _: () = {
+            let mut index = 0;
+            $(
+                assert!(OpReturnKind::$kind as usize == index);
+                index += 1;
+            )+
+            let _ = index;
+        };
+
         impl<T> ByKind<T> {
-            pub fn try_new<E>(mut create: impl FnMut(OpReturnKind, &'static str) -> Result<T, E>) -> Result<Self, E> {
-                Ok(Self { $($field: create(OpReturnKind::$kind, stringify!($field))?),+ })
+            pub fn try_new<E>(mut create: impl FnMut(&'static str) -> Result<T, E>) -> Result<Self, E> {
+                Ok(Self { $($field: create(stringify!($field))?),+ })
             }
 
             pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {

@@ -1,6 +1,4 @@
-use std::{env, error::Error};
-
-use bitviewd_bench_visualizer::Visualizer;
+use std::{env, error::Error, path::Path};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = env::args_os().skip(1);
@@ -8,9 +6,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     if args.next().is_some() {
         return Err("Usage: bitviewd_bench_visualizer [bitviewdir]".into());
     }
-    let visualizer = match root {
-        Some(root) => Visualizer::new(root),
-        None => Visualizer::from_cargo_env()?,
+    let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2);
+    let root = match &root {
+        Some(root) => Path::new(root),
+        None => workspace.ok_or("Failed to find workspace root")?,
     };
-    visualizer.generate()
+    bitviewd_bench_visualizer::generate(root)
 }

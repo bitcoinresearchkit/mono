@@ -5,7 +5,7 @@ use bitview_primitives::{
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPreviousDeltaVec;
 use brk_types::{Height, Timestamp, Version};
-use vecdb::{IndexVec, LazyVec, ReadableBoxedVec, ReadableVec, VecValue};
+use vecdb::{IndexVec, LazyVec, ReadableBoxedVec, VecValue};
 
 use crate::RangeMapLookupVec;
 
@@ -62,16 +62,6 @@ pub struct Vecs {
 }
 
 impl Vecs {
-    /// First day affected by a height recomputation, falling back to the last
-    /// indexed block when the starting height is just beyond the current tip.
-    pub fn recompute_day(&self, starting_height: Height) -> Option<Day1> {
-        self.day1.collect_one(starting_height).or_else(|| {
-            starting_height
-                .decremented()
-                .and_then(|height| self.day1.collect_one(height))
-        })
-    }
-
     pub(crate) fn from_timestamps<T: VecValue>(
         name: &str,
         timestamps: ReadableBoxedVec<Height, Timestamp>,

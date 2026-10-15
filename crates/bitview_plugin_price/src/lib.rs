@@ -19,7 +19,7 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Float64;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPerBlock;
-use brk_oracle::VERSION as ORACLE_VERSION;
+use brk_oracle::{Oracle, VERSION as ORACLE_VERSION};
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, EagerVec, PcoVec, Rw, StorageMode};
 
@@ -62,4 +62,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// cents), so an update resumes the oracle where the previous one left it.
     #[traversable(hidden)]
     pub oracle_bin: M::Stored<EagerVec<PcoVec<Height, Float64>>>,
+    /// The oracle after the last computed height (the length it continues at): the next update
+    /// resumes it instead of rebuilding it from the stored bin and its warmup blocks.
+    oracle: M::WriteOnly<Option<(usize, Oracle)>>,
 }

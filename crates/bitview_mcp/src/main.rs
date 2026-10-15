@@ -19,7 +19,6 @@ mod config;
 mod logo;
 mod manifest;
 mod page;
-mod prepared_request;
 mod server;
 mod upstream;
 mod upstream_response;

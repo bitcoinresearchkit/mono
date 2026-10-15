@@ -49,8 +49,7 @@ pub(crate) fn compute(
     let output_heights = mappings.output_heights.load_full();
     let mut values = vecs.inputs.value.range_cursor_at(begin, finish);
     let mut origins = txout_indexes.range_cursor_at(begin, finish);
-    let mut hashes = vecs.blocks.blockhash.cursor();
-    hashes.advance(start);
+    let mut hashes = vecs.blocks.blockhash.bounded_cursor_at(start, end);
     let mut spent: FxHashMap<u32, Amount> = FxHashMap::default();
     for (offset, pair) in boundaries.windows(2).enumerate() {
         // The first input belongs to the coinbase and has no previous output.

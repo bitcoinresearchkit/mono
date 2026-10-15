@@ -36,7 +36,11 @@ impl ComputePlugin for Vecs {
                 )
             },
             || {
-                count.compute(indexer, mappings, exit)?;
+                count.compute(
+                    indexer.compute_start().height,
+                    &mappings.lookback.window_starts(),
+                    exit,
+                )?;
                 types.compute(indexer, exit)
             },
         );

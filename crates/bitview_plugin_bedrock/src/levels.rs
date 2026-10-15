@@ -1,8 +1,4 @@
-use std::convert::Infallible;
-
 use bitview_traversable::Traversable;
-
-use super::LevelId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Traversable)]
 pub struct Levels<T> {
@@ -26,53 +22,14 @@ pub struct Levels<T> {
     pub pct90: T,
 }
 
-impl<T> Levels<T> {
-    pub fn try_from_fn<E>(mut create: impl FnMut(LevelId) -> Result<T, E>) -> Result<Self, E> {
-        Ok(Self {
-            pct10: create(LevelId::Pct10)?,
-            pct20: create(LevelId::Pct20)?,
-            pct30: create(LevelId::Pct30)?,
-            pct40: create(LevelId::Pct40)?,
-            median: create(LevelId::Median)?,
-            pct60: create(LevelId::Pct60)?,
-            pct70: create(LevelId::Pct70)?,
-            pct80: create(LevelId::Pct80)?,
-            pct90: create(LevelId::Pct90)?,
-        })
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
-        [
-            &self.pct10,
-            &self.pct20,
-            &self.pct30,
-            &self.pct40,
-            &self.median,
-            &self.pct60,
-            &self.pct70,
-            &self.pct80,
-            &self.pct90,
-        ]
-        .into_iter()
-    }
-
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
-        [
-            &mut self.pct10,
-            &mut self.pct20,
-            &mut self.pct30,
-            &mut self.pct40,
-            &mut self.median,
-            &mut self.pct60,
-            &mut self.pct70,
-            &mut self.pct80,
-            &mut self.pct90,
-        ]
-        .into_iter()
-    }
-
-    pub fn from_fn(mut create: impl FnMut(LevelId) -> T) -> Self {
-        let Ok(this) = Self::try_from_fn(|id| Ok::<_, Infallible>(create(id)));
-        this
-    }
-}
+collection!(LevelId for Levels {
+    Pct10 => pct10,
+    Pct20 => pct20,
+    Pct30 => pct30,
+    Pct40 => pct40,
+    Median => median,
+    Pct60 => pct60,
+    Pct70 => pct70,
+    Pct80 => pct80,
+    Pct90 => pct90,
+});

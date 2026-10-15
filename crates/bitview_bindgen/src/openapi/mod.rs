@@ -97,24 +97,36 @@ fn clean_for_oas3(value: &mut Value) {
     }
 }
 
-/// Extract all endpoints from OpenAPI spec
-pub(crate) fn extract_endpoints(spec: &Spec) -> Vec<Endpoint> {
+/// Extract all endpoints from OpenAPI spec. Every operation needs an `operationId`: it names the
+/// generated methods, commands and MCP tools.
+pub(crate) fn extract_endpoints(spec: &Spec) -> io::Result<Vec<Endpoint>> {
     let mut endpoints = Vec::new();
 
     let Some(paths) = &spec.paths else {
-        return endpoints;
+        return Ok(endpoints);
     };
 
     for (path, path_item) in paths {
         for (method, operation) in path_item.methods() {
-            endpoints.push(extract_endpoint(path, method.as_str(), operation, spec));
+            endpoints.push(extract_endpoint(path, method.as_str(), operation, spec)?);
         }
     }
 
-    endpoints
+    Ok(endpoints)
 }
 
-fn extract_endpoint(path: &str, method: &str, operation: &Operation, spec: &Spec) -> Endpoint {
+fn extract_endpoint(
+    path: &str,
+    method: &str,
+    operation: &Operation,
+    spec: &Spec,
+) -> io::Result<Endpoint> {
+    let operation_id = operation.operation_id.clone().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("{method} {path} has no operationId"),
+        )
+    })?;
     let path_params = extract_path_parameters(path, operation);
     let query_params = extract_parameters(operation, ParameterIn::Query);
 
@@ -123,10 +135,10 @@ fn extract_endpoint(path: &str, method: &str, operation: &Operation, spec: &Spec
     let request_body = extract_request_body(operation);
     let supports_csv = check_csv_support(operation);
 
-    Endpoint {
+    Ok(Endpoint {
         method: method.to_string(),
         path: path.to_string(),
-        operation_id: operation.operation_id.clone(),
+        operation_id,
         summary: operation.summary.clone(),
         description: operation.description.clone(),
         path_params,
@@ -137,7 +149,7 @@ fn extract_endpoint(path: &str, method: &str, operation: &Operation, spec: &Spec
         deprecated: operation.deprecated.unwrap_or(false),
         mcp_ignored: operation.extensions.get("mcp-ignore") == Some(&Value::Bool(true)),
         supports_csv,
-    }
+    })
 }
 
 /// Preserve the complete JSON response schema for MCP output schema

@@ -1,11 +1,13 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyPerSecondWindows, LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{
+    LazyPerSecondWindows, LazyWindowStartVec, PerBlockFullFromCumulative, shapes::Windows,
+};
 use brk_error::Result;
 use brk_types::Version;
 use statedb::Creations;
 
-use super::{STORAGE, Vecs, by_type, count, spent, value};
+use super::{STORAGE, Vecs, by_type, spent, value};
 
 impl Vecs {
     pub fn import(
@@ -17,7 +19,14 @@ impl Vecs {
         let version = STORAGE.schema_version();
 
         let spent = spent::Vecs::import(&db, version)?;
-        let count = count::Vecs::import(&db, version, mappings, window_starts)?;
+        let count = PerBlockFullFromCumulative::import(
+            &db,
+            "output_count",
+            version,
+            &mappings.output_count_source(),
+            mappings,
+            window_starts,
+        )?;
         let per_second =
             LazyPerSecondWindows::new("outputs_per_second", version, &count.rolling.sum);
         let types = by_type::Vecs::import(&db, version, mappings, window_starts)?;

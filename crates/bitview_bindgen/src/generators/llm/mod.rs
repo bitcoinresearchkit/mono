@@ -11,7 +11,7 @@ use oas3::Spec;
 use serde_json::Value;
 
 use super::write_if_changed;
-use crate::{Endpoint, ResponseKind, TypeSchemas};
+use crate::{Endpoint, ResponseKind, TypeSchemas, collect_schema_refs, for_each_leaf};
 
 mod manifest;
 
@@ -68,20 +68,10 @@ fn write_output(path: &Path, content: &str) -> io::Result<()> {
 
 /// Distinct series ids: a series reached through several typed paths counts once.
 fn count_metrics(node: &TreeNode) -> usize {
-    fn collect<'a>(node: &'a TreeNode, names: &mut BTreeSet<&'a str>) {
-        match node {
-            TreeNode::Leaf(leaf) => {
-                names.insert(leaf.name());
-            }
-            TreeNode::Branch(children) => {
-                for child in children.values() {
-                    collect(child, names);
-                }
-            }
-        }
-    }
     let mut names = BTreeSet::new();
-    collect(node, &mut names);
+    for_each_leaf(node, &mut |leaf| {
+        names.insert(leaf.name());
+    });
     names.len()
 }
 
@@ -333,13 +323,13 @@ fn referenced_schemas<'a>(
     let mut names = BTreeSet::new();
     for endpoint in endpoints {
         if let Some(schema) = &endpoint.json_response_schema {
-            collect_refs(schema, &mut names);
+            collect_schema_refs(schema, &mut names);
         }
         if let ResponseKind::Text(Some(text)) = &endpoint.response_kind {
             names.insert(text.name.as_str());
         }
         for parameter in endpoint.path_params.iter().chain(&endpoint.query_params) {
-            collect_refs(&parameter.schema, &mut names);
+            collect_schema_refs(&parameter.schema, &mut names);
             names.insert(parameter.param_type.trim_end_matches("[]"));
         }
         if let Some(body) = &endpoint.request_body {
@@ -354,7 +344,7 @@ fn referenced_schemas<'a>(
             continue;
         };
         let mut refs = BTreeSet::new();
-        collect_refs(schema, &mut refs);
+        collect_schema_refs(schema, &mut refs);
         for referenced in refs {
             if schemas.contains_key(referenced) && names.insert(referenced) {
                 pending.push(referenced);
@@ -362,27 +352,6 @@ fn referenced_schemas<'a>(
         }
     }
     names
-}
-
-fn collect_refs<'a>(value: &'a Value, refs: &mut BTreeSet<&'a str>) {
-    match value {
-        Value::Object(object) => {
-            if let Some(reference) = object.get("$ref").and_then(Value::as_str)
-                && let Some(name) = reference.rsplit('/').next()
-            {
-                refs.insert(name);
-            }
-            for child in object.values() {
-                collect_refs(child, refs);
-            }
-        }
-        Value::Array(values) => {
-            for child in values {
-                collect_refs(child, refs);
-            }
-        }
-        _ => {}
-    }
 }
 
 fn render_schema(output: &mut String, name: &str, schema: &Value) {

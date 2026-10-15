@@ -1,9 +1,8 @@
-use std::ops::AddAssign;
-
 use bitview_primitives::SupplyState;
 use brk_types::{Cents, CentsSats, Sats};
+use derive_more::AddAssign;
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, AddAssign)]
 pub struct SpendDelta {
     pub supply: SupplyState,
     pub previous: CentsSats,
@@ -31,13 +30,5 @@ impl SpendDelta {
                 CentsSats::ZERO
             },
         }
-    }
-}
-impl AddAssign<Self> for SpendDelta {
-    fn add_assign(&mut self, rhs: Self) {
-        self.supply += rhs.supply;
-        self.previous += rhs.previous;
-        self.profit += rhs.profit;
-        self.loss += rhs.loss;
     }
 }

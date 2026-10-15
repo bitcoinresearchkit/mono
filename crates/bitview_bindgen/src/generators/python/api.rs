@@ -280,7 +280,7 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
 }
 
 fn endpoint_to_method_name(endpoint: &Endpoint) -> String {
-    to_snake_case(&endpoint.operation_name())
+    to_snake_case(&endpoint.operation_id)
 }
 
 fn build_method_params(endpoint: &Endpoint) -> String {

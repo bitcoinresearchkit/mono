@@ -7,7 +7,7 @@ use brk_types::{Height, Version};
 use vecdb::{Database, LazyVec, ReadableCloneableVec};
 
 use super::{InputTypeVecs, Vecs};
-use crate::count::without_coinbase;
+use crate::import::without_coinbase;
 
 impl Vecs {
     pub(crate) fn import(

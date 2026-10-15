@@ -33,25 +33,6 @@ impl IndexerRead<'_> {
         self.query
     }
 
-    /// Validate the exact transaction against this view's pinned bounds.
-    fn validate_confirmed_position(&self, txid: &Txid, index: TxIndex) -> Result<Height> {
-        let query = self.query;
-        let safe = self.pin.lengths();
-        check_bound(&self.pin, index, safe.tx_index)?;
-        if index >= safe.tx_index
-            || query.indexer().vecs().transactions.txid.collect_one(index) != Some(*txid)
-        {
-            return Err(Error::UnknownTxid);
-        }
-
-        let height = query.confirmed_status_height_bounded(index, safe)?;
-        if height >= safe.height {
-            return Err(Error::UnknownTxid);
-        }
-
-        Ok(height)
-    }
-
     /// Read a confirmed block hash inside the pinned prefix.
     fn confirmed_block_hash(&self, height: Height) -> Result<BlockHash> {
         let query = self.query;
@@ -82,8 +63,12 @@ impl IndexerRead<'_> {
 
     /// Resolve the position without reading a block hash the caller may not need.
     pub(crate) fn resolve_confirmed_position(&self, txid: &Txid) -> Result<(TxIndex, Height)> {
-        let index = self.query.resolve_tx_index(txid)?;
-        let height = self.validate_confirmed_position(txid, index)?;
+        let index = self.query.resolve_tx_index_bounded(txid, &self.pin)?;
+        let safe = self.pin.lengths();
+        let height = self.query.confirmed_status_height_bounded(index, safe)?;
+        if height >= safe.height {
+            return Err(Error::UnknownTxid);
+        }
         Ok((index, height))
     }
 

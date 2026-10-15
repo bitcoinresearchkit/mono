@@ -2,7 +2,7 @@
 
 use std::{collections::btree_map::Entry, fs::create_dir_all, io, path::PathBuf};
 
-use bitview_catalog::TreeNode;
+use bitview_catalog::{SeriesLeafWithSchema, TreeNode};
 
 /// Output path configuration for each client.
 ///
@@ -77,6 +77,7 @@ mod generate;
 mod generators;
 mod model;
 mod openapi;
+mod topological;
 mod types;
 
 #[cfg(test)]
@@ -197,7 +198,7 @@ pub fn generate_clients(
 ) -> io::Result<()> {
     // Parse OpenAPI spec
     let spec = parse_openapi_json(openapi_json)?;
-    let endpoints = extract_endpoints(&spec);
+    let endpoints = extract_endpoints(&spec)?;
     let mut schemas = extract_schemas(openapi_json);
     collect_leaf_type_schemas(catalog, &mut schemas);
     let schema_values: Vec<_> = schemas.values().cloned().collect();
@@ -282,44 +283,49 @@ pub fn generate_clients(
 
 use serde_json::Value;
 
-/// Recursively collect leaf type schemas from the tree and add to schemas map.
-/// Only adds schemas that aren't already present (OpenAPI schemas take precedence).
-/// Collects definitions from schemars-generated schemas (for referenced types).
-fn collect_leaf_type_schemas(node: &TreeNode, schemas: &mut TypeSchemas) {
+/// Visit every leaf of the series tree, in tree order.
+pub(crate) fn for_each_leaf<'a>(node: &'a TreeNode, f: &mut impl FnMut(&'a SeriesLeafWithSchema)) {
     match node {
-        TreeNode::Leaf(leaf) => {
-            // Collect definitions from the schema (schemars puts type schemas here)
-            // This includes the inner types like `Bitcoin` from `Close<Bitcoin>`
-            collect_schema_definitions(&leaf.schema, schemas);
-
-            // Get the type name for this leaf
-            let type_name = extract_inner_type(leaf.kind());
-
-            if let Entry::Vacant(e) = schemas.entry(type_name) {
-                // Unwrap single-element allOf
-                let schema = unwrap_allof(&leaf.schema);
-
-                // Add the schema if it's usable:
-                // - Simple type (has "type")
-                // - Object type with properties (complex types like OHLCCents, EmptyAddressData)
-                // - Enum type (has "enum" or "oneOf")
-                // - Or a $ref to another type
-                let has_type = schema.get("type").is_some();
-                let has_properties = schema.get("properties").is_some();
-                let has_enum = schema.get("enum").is_some() || schema.get("oneOf").is_some();
-                let is_ref = schema.get("$ref").is_some();
-
-                if has_type || has_properties || has_enum || is_ref {
-                    e.insert(schema.clone());
-                }
-            }
-        }
+        TreeNode::Leaf(leaf) => f(leaf),
         TreeNode::Branch(children) => {
             for child in children.values() {
-                collect_leaf_type_schemas(child, schemas);
+                for_each_leaf(child, f);
             }
         }
     }
+}
+
+/// Collect leaf type schemas from the tree and add to schemas map.
+/// Only adds schemas that aren't already present (OpenAPI schemas take precedence).
+/// Collects definitions from schemars-generated schemas (for referenced types).
+fn collect_leaf_type_schemas(node: &TreeNode, schemas: &mut TypeSchemas) {
+    for_each_leaf(node, &mut |leaf| {
+        // Collect definitions from the schema (schemars puts type schemas here)
+        // This includes the inner types like `Bitcoin` from `Close<Bitcoin>`
+        collect_schema_definitions(&leaf.schema, schemas);
+
+        // Get the type name for this leaf
+        let type_name = extract_inner_type(leaf.kind());
+
+        if let Entry::Vacant(e) = schemas.entry(type_name) {
+            // Unwrap single-element allOf
+            let schema = unwrap_allof(&leaf.schema);
+
+            // Add the schema if it's usable:
+            // - Simple type (has "type")
+            // - Object type with properties (complex types like OHLCCents, EmptyAddressData)
+            // - Enum type (has "enum" or "oneOf")
+            // - Or a $ref to another type
+            let has_type = schema.get("type").is_some();
+            let has_properties = schema.get("properties").is_some();
+            let has_enum = schema.get("enum").is_some() || schema.get("oneOf").is_some();
+            let is_ref = schema.get("$ref").is_some();
+
+            if has_type || has_properties || has_enum || is_ref {
+                e.insert(schema.clone());
+            }
+        }
+    });
 }
 
 /// Collect type definitions from schemars-generated schema's definitions section.

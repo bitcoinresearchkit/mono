@@ -16,6 +16,18 @@ fn cell(value: &str) -> String {
         .replace(['\n', '\r'], " ")
 }
 
+/// Histogram buckets: inclusive upper bound in nanoseconds, and label. Slower requests are `>5s`.
+const BUCKETS: [(u64, &str); 8] = [
+    (1_000_000, "≤1ms"),
+    (5_000_000, "(1, 5]ms"),
+    (10_000_000, "(5, 10]ms"),
+    (50_000_000, "(10, 50]ms"),
+    (100_000_000, "(50, 100]ms"),
+    (500_000_000, "(100, 500]ms"),
+    (1_000_000_000, "(500, 1000]ms"),
+    (5_000_000_000, "(1, 5]s"),
+];
+
 pub fn render(analysis: &Analysis) -> Result<String> {
     let Analysis {
         ref files,
@@ -29,16 +41,6 @@ pub fn render(analysis: &Analysis) -> Result<String> {
         first,
         last,
     } = *analysis;
-    let bounds = [
-        1_000_000u64,
-        5_000_000,
-        10_000_000,
-        50_000_000,
-        100_000_000,
-        500_000_000,
-        1_000_000_000,
-        5_000_000_000,
-    ];
     // Error rates include every status for an endpoint.
     let mut endpoint_counts: BTreeMap<&str, (usize, usize)> = BTreeMap::new();
     for ((endpoint, status), group) in groups {
@@ -91,7 +93,7 @@ pub fn render(analysis: &Analysis) -> Result<String> {
         }
         let statuses: BTreeSet<_> = groups.keys().map(|(_, status)| *status).collect();
         for status in statuses {
-            let status_groups: Vec<_> = groups
+            let mut status_groups: Vec<_> = groups
                 .iter()
                 .filter(|((_, code), _)| *code == status)
                 .collect();
@@ -101,32 +103,20 @@ pub fn render(analysis: &Analysis) -> Result<String> {
                 "## HTTP {status}\n\n{status_count} captured requests ({:.2}% of all captured requests).\n",
                 100. * status_count as f64 / count as f64
             )?;
-            let mut ranked = status_groups.clone();
-            ranked.sort_by_key(|(key, g)| (Reverse(g.percentile(95)), *key));
-            table(&mut out, "Endpoints by P95", &ranked, 20, &endpoint_counts)?;
-            let mut histogram = [0usize; 9];
+            status_groups.sort_by_key(|(key, g)| (Reverse(g.percentile(95)), *key));
+            table(&mut out, &status_groups, &endpoint_counts)?;
+            let mut histogram = [0usize; BUCKETS.len() + 1];
             for (_, group) in &status_groups {
                 for nanos in &group.durations {
-                    histogram[bounds.iter().position(|b| nanos <= b).unwrap_or(8)] += 1;
+                    let bucket = BUCKETS.iter().position(|(bound, _)| nanos <= bound);
+                    histogram[bucket.unwrap_or(BUCKETS.len())] += 1;
                 }
             }
             out.push_str(
                 "### Duration histogram\n\n| Duration | Requests | Share |\n|---|---:|---:|\n",
             );
-            for (label, n) in [
-                "≤1ms",
-                "(1, 5]ms",
-                "(5, 10]ms",
-                "(10, 50]ms",
-                "(50, 100]ms",
-                "(100, 500]ms",
-                "(500, 1000]ms",
-                "(1, 5]s",
-                ">5s",
-            ]
-            .iter()
-            .zip(histogram)
-            {
+            let labels = BUCKETS.iter().map(|(_, label)| *label).chain([">5s"]);
+            for (label, n) in labels.zip(histogram) {
                 writeln!(
                     out,
                     "| {label} | {n} | {:.2}% |",
@@ -157,18 +147,17 @@ pub fn render(analysis: &Analysis) -> Result<String> {
 
 type Row<'a> = (&'a (String, u16), &'a Group);
 
+/// The 20 slowest endpoints of one status, by P95.
 fn table(
     out: &mut String,
-    title: &str,
     rows: &[Row<'_>],
-    top: usize,
     endpoint_counts: &BTreeMap<&str, (usize, usize)>,
 ) -> FmtResult {
     writeln!(
         out,
-        "### {title}\n\n| Endpoint | Requests | P50 ms | P95 ms | P99 ms | P99.9 ms | Avg ms | Max ms | Total s | Endpoint error % |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"
+        "### Endpoints by P95\n\n| Endpoint | Requests | P50 ms | P95 ms | P99 ms | P99.9 ms | Avg ms | Max ms | Total s | Endpoint error % |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"
     )?;
-    for ((endpoint, _), g) in rows.iter().take(top) {
+    for ((endpoint, _), g) in rows.iter().take(20) {
         let n = g.durations.len();
         let (requests, errors) = endpoint_counts[endpoint.as_str()];
         writeln!(
@@ -196,9 +185,6 @@ fn table(
             g.total as f64 / 1e9,
             100. * errors as f64 / requests as f64
         )?;
-    }
-    if rows.is_empty() {
-        out.push_str("\nNo endpoints recorded.\n");
     }
     out.push('\n');
     Ok(())

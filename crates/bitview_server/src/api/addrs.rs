@@ -7,7 +7,7 @@ use brk_types::{Address, Transaction, Txid, Version};
 use serde_json::to_vec;
 
 use crate::{
-    AppState, CacheParams, CacheStrategy, CdnCacheMode,
+    AppState, CacheParams,
     error::Result,
     extended::TransformResponseExtended,
     params::{
@@ -35,17 +35,16 @@ impl AppState {
         addr: Address,
         after_txid: Option<Txid>,
     ) -> Response {
-        let mode = self.cdn_cache_mode;
         self.respond_read(
             headers,
             "application/json",
             move |q| {
                 let source = q.resolve_addr_chain_txs(&addr, after_txid, CHAIN_PAGE)?;
-                let strategy = CacheStrategy::ActivityBound(
+                let params = CacheParams::activity_bound(
                     Version::ONE,
                     BlockHashPrefix::from(&source.activity_anchor()),
                 );
-                Ok((source, CacheParams::resolve(&strategy, mode)))
+                Ok((source, params))
             },
             |q, source| Ok(Bytes::from(to_vec(&q.addr_txs_chain_resolved(source)?)?)),
         )
@@ -216,7 +215,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 _: Empty,
                 RequestState(state): RequestState
             | {
-                state.respond_json_immediate(&headers, CacheStrategy::Deploy, move || {
+                state.respond_json_immediate(&headers, CacheParams::deploy(), move || {
                     AddressValidation::from_addr(&path.addr)
                 })
             }, |op| op
@@ -232,10 +231,7 @@ impl AddrRoutes for ApiRouter<AppState> {
 }
 
 fn live_params(identity: RepresentationId) -> CacheParams {
-    CacheParams::resolve(
-        &AppState::representation_strategy(Version::ONE, identity),
-        CdnCacheMode::Live,
-    )
+    CacheParams::representation(Version::ONE, identity)
 }
 
 async fn serve_txs(state: AppState, headers: HeaderMap, addr: Address) -> Result<Response> {
@@ -263,12 +259,8 @@ async fn serve_utxos(state: AppState, headers: HeaderMap, addr: Address) -> Resu
             "application/json",
             move |q| {
                 let resolved = q.resolve_addr_utxos(&addr, max_utxos)?;
-                let params = CacheParams::resolve(
-                    &CacheStrategy::Live(
-                        format!("addr-utxos-v3-{}", resolved.representation()).into(),
-                    ),
-                    CdnCacheMode::Live,
-                );
+                let params =
+                    CacheParams::live(format!("addr-utxos-v3-{}", resolved.representation()));
                 Ok((resolved, params))
             },
             move |q, resolved| {

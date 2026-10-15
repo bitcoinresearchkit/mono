@@ -9,11 +9,10 @@ use serde_json::to_vec;
 
 use super::AppState;
 use crate::{
-    CacheParams, CacheStrategy,
+    CacheParams,
     error::Result,
-    extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
+    extended::TransformResponseExtended,
     params::{Empty, HeightOrDate, HeightOrDateParam},
-    raw_body::RawBodyPermit,
     request_state::RequestState,
 };
 
@@ -28,35 +27,23 @@ impl AppState {
         point: Option<HeightOrDate>,
         build: fn(&Query, &UtxoSetPoint) -> QueryResult<T>,
     ) -> Result<Response> {
-        let bodies = self.utxo_set_bodies.clone();
-        let mode = self.cdn_cache_mode;
         Ok(self
-            .read_body(
+            .respond_admitted(
                 &self.utxo_set_query,
                 &self.utxo_set_bodies,
-                move |q, permit| {
+                headers,
+                "application/json",
+                move |q| {
                     let point = match point {
                         None => q.utxo_set_point_latest()?,
                         Some(HeightOrDate::Height(height)) => q.utxo_set_point_height(height)?,
                         Some(HeightOrDate::Date(date)) => q.utxo_set_point_date(date)?,
                     };
-                    let strategy =
-                        CacheStrategy::ActivityBound(VERSION, BlockHashPrefix::from(&point.hash));
-                    let params = CacheParams::resolve(&strategy, mode);
-                    if params.matches_etag(&headers) {
-                        return Ok(Some(Response::new_not_modified(&params)));
-                    }
-                    let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies))
-                    else {
-                        return Ok(None);
-                    };
-                    let bytes = to_vec(&build(q, &point)?)?.into();
-                    Ok(Some(permit.response(
-                        params,
-                        bytes,
-                        HeaderMapExtended::insert_content_type_application_json,
-                    )))
+                    let params =
+                        CacheParams::activity_bound(VERSION, BlockHashPrefix::from(&point.hash));
+                    Ok((point, params))
                 },
+                move |q, point| Ok(to_vec(&build(q, &point)?)?.into()),
             )
             .await?)
     }

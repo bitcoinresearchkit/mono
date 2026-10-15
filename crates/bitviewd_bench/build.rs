@@ -58,7 +58,10 @@ fn main() {
         ("COMMIT", git(&["rev-parse", "HEAD"])),
         ("DIRTY", dirty.to_string()),
         ("PROFILE", profile),
-        ("RUSTC", output(Command::new(env::var_os("RUSTC").unwrap()).arg("-V"))),
+        (
+            "RUSTC",
+            output(Command::new(env::var_os("RUSTC").unwrap()).arg("-V")),
+        ),
         (
             "RUSTFLAGS",
             env::var("CARGO_ENCODED_RUSTFLAGS")

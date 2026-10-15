@@ -1,10 +1,11 @@
 use std::collections::hash_map::Entry;
 
-use bitview_primitives::TypeIndex;
+use bitview_primitives::{ByAddrType, TypeIndex};
 use brk_types::{OutputType, Sats, TxIndex};
+use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrTypeToTypeIndexMap, SHARDS, shard_of},
+    addr::{SHARDS, shard_of},
     block::Received,
 };
 
@@ -14,13 +15,13 @@ pub fn process_outputs(
     values: &[Sats],
     types: &[OutputType],
     indexes: &[TypeIndex],
-) -> [AddrTypeToTypeIndexMap<Received>; SHARDS] {
+) -> [ByAddrType<FxHashMap<TypeIndex, Received>>; SHARDS] {
     let output_count = values.len();
     debug_assert_eq!(types.len(), output_count);
     debug_assert_eq!(indexes.len(), output_count);
 
     // Maps allocate on first insert: most shard/type pairs of a block stay empty.
-    let mut received: [AddrTypeToTypeIndexMap<Received>; SHARDS] = Default::default();
+    let mut received: [ByAddrType<FxHashMap<TypeIndex, Received>>; SHARDS] = Default::default();
 
     for ((&value, &output_type), &type_index) in values.iter().zip(types).zip(indexes) {
         let tx_index = txs.next().expect("incomplete output transaction ranges");
@@ -30,8 +31,7 @@ pub fn process_outputs(
         }
 
         match received[shard_of(type_index)]
-            .get_mut(output_type)
-            .unwrap()
+            .get_mut_unwrap(output_type)
             .entry(type_index)
         {
             Entry::Occupied(mut entry) => {

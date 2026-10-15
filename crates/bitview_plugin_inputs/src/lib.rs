@@ -1,19 +1,18 @@
 mod by_type;
 mod compute;
-mod count;
 mod dependencies;
 mod has;
 mod import;
 mod spends;
 
 pub use by_type::{InputTypeVecs, Vecs as TypesVecs};
-pub use count::Vecs as CountVecs;
 pub use dependencies::Dependencies;
 pub use has::HasInputs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::Count16;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyPerSecondWindows;
+use bitview_vecs::{LazyPerSecondWindows, PerBlockFullFromCumulative};
 use brk_types::Version;
 use statedb::Spends;
 use vecdb::{Database, Rw, StorageMode};
@@ -31,7 +30,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// consumers.
     pub spends: M::WriteOnly<Spends>,
 
-    pub count: CountVecs<M>,
+    /// Number of transaction inputs, excluding coinbase inputs.
+    pub count: PerBlockFullFromCumulative<Count16, M>,
     /// Transaction-input rate, excluding coinbase inputs.
     per_second: LazyPerSecondWindows,
     /// Transaction inputs by the locking-script type of the output they spend,

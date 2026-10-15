@@ -1,53 +1,11 @@
-use std::{mem, sync::Arc};
+use std::mem;
 
-use aide::openapi::OpenApi;
-use axum::{body::Bytes, http::HeaderMap, response::Response};
-use serde_json::{Map, Value, to_value, to_vec};
+use serde_json::{Map, Value, to_vec};
 
-use crate::prepared_json::PreparedJson;
-
-/// Compact OpenAPI spec optimized for LLM consumption, pre-serialized at startup with its
-/// content validator.
-#[derive(Clone)]
-pub struct ApiJson(Arc<PreparedJson>);
-
-impl ApiJson {
-    pub fn new(openapi: &OpenApi) -> Self {
-        Self(Arc::new(PreparedJson::from_bytes(Bytes::from(
-            compact_json(to_value(openapi).unwrap()),
-        ))))
-    }
-
-    pub fn respond(&self, headers: &HeaderMap) -> Response {
-        self.0.respond(headers)
-    }
-}
-
-/// Compacts an OpenAPI spec JSON to reduce size for LLM consumption.
-/// Removes redundant fields while preserving essential API information.
-///
-/// Transformations applied (in order):
-/// 1. Remove deprecated endpoints
-/// 2. Remove contact/license from info
-/// 3. Remove *Param schemas
-/// 4. Compact responses to "returns": "Type" (non-JSON: "Type (media/type)")
-/// 5. Remove per-endpoint tags and style
-/// 6. Simplify parameters to type, enum, default, bounds and items; remove their descriptions
-/// 7. Remove summary and operationId
-/// 8. Remove examples, replace $ref with type
-/// 9. Flatten single-item allOf
-/// 10. Flatten anyOf to type array
-/// 11. Remove format
-/// 12. Remove property descriptions
-/// 13. Simplify properties to direct types
-/// 14. Remove min/max constraints (parameters keep theirs)
-/// 15. Trim descriptions to first paragraph, strip mempool.space links
-/// 16. Remove required arrays from schemas
-/// 17. Remove redundant "type": "object" when properties exist
-/// 18. Flatten single-element type arrays
-/// 19. Replace large enums (>40 values) with string type
-fn compact_json(mut spec: Value) -> Vec<u8> {
-    // Step 1: Remove deprecated endpoints from paths
+/// Compacts an OpenAPI spec JSON for LLM consumption: drops deprecated endpoints, `*Param`
+/// schemas, examples, formats, constraints and secondary descriptions, and reduces schemas,
+/// responses and parameters to their types.
+pub(super) fn compact_json(mut spec: Value) -> Vec<u8> {
     if let Some(Value::Object(paths)) = spec.get_mut("paths") {
         paths.retain(|_, v| {
             if let Value::Object(path_obj) = v
@@ -59,13 +17,11 @@ fn compact_json(mut spec: Value) -> Vec<u8> {
         });
     }
 
-    // Step 2: Remove contact/license from info
     if let Some(Value::Object(info)) = spec.get_mut("info") {
         info.remove("contact");
         info.remove("license");
     }
 
-    // Step 3: Remove *Param schemas from components
     if let Some(Value::Object(components)) = spec.get_mut("components")
         && let Some(Value::Object(schemas)) = components.get_mut("schemas")
     {
@@ -79,41 +35,32 @@ fn compact_json(mut spec: Value) -> Vec<u8> {
 fn compact_value(value: &mut Value) {
     match value {
         Value::Object(obj) => {
-            // Step 2: Compact responses to "returns": "Type", dropping the error responses
+            // The success response as `"returns": "Type"`; error responses are dropped.
             if let Some(Value::Object(responses)) = obj.remove("responses")
                 && let Some(returns) = extract_return_type(&responses)
             {
                 obj.insert("returns".to_string(), Value::String(returns));
             }
 
-            // Step 3: Remove per-endpoint tags and style
-            // (only remove "tags" if it's an array, not if it's the top-level tags definition)
+            // Per-endpoint tag arrays only, not the top-level tag definitions.
             if let Some(Value::Array(_)) = obj.get("tags") {
-                // This is a per-endpoint tags array like ["Addresses"], remove it
                 obj.remove("tags");
             }
-            obj.remove("style");
-
-            // Step 4: Simplify parameters (complete here: the recursion below skips them)
+            // Complete here: the recursion below skips parameters.
             if let Some(Value::Array(params)) = obj.get_mut("parameters") {
                 for param in params {
                     simplify_parameter(param);
                 }
             }
 
-            // Step 7: Remove summary and operationId
-            obj.remove("summary");
-            obj.remove("operationId");
-
-            // Step 6: Remove examples, replace $ref with type
-            obj.remove("example");
-            obj.remove("examples");
+            for key in ["style", "summary", "operationId", "example", "examples"] {
+                obj.remove(key);
+            }
             if let Some(Value::String(ref_path)) = obj.remove("$ref") {
                 let type_name = ref_path.split('/').next_back().unwrap_or("any");
                 obj.insert("type".to_string(), Value::String(type_name.to_string()));
             }
 
-            // Step 7: Flatten single-item allOf
             if let Some(Value::Array(all_of)) = obj.remove("allOf")
                 && all_of.len() == 1
                 && let Some(Value::Object(inner)) = all_of.into_iter().next()
@@ -123,7 +70,6 @@ fn compact_value(value: &mut Value) {
                 }
             }
 
-            // Step 8: Flatten anyOf to type array
             if let Some(Value::Array(any_of)) = obj.remove("anyOf") {
                 let types = union_types(any_of);
                 if !types.is_empty() {
@@ -131,19 +77,16 @@ fn compact_value(value: &mut Value) {
                 }
             }
 
-            // Step 11: Remove format
-            obj.remove("format");
+            // After the allOf flattening, which may bring them back.
+            for key in ["format", "minimum", "maximum"] {
+                obj.remove(key);
+            }
 
-            // Step 14: Remove min/max constraints
-            obj.remove("minimum");
-            obj.remove("maximum");
-
-            // Step 16: Remove required arrays from schemas (but keep boolean required on params)
+            // Schema `required` arrays; parameters keep their boolean.
             if let Some(Value::Array(_)) = obj.get("required") {
                 obj.remove("required");
             }
 
-            // Step 17: Flatten single-element type arrays: ["object"] -> "object"
             if let Some(value) = obj.get_mut("type")
                 && let Value::Array(arr) = value
                 && arr.len() == 1
@@ -151,31 +94,27 @@ fn compact_value(value: &mut Value) {
                 *value = arr.pop().unwrap();
             }
 
-            // Step 18: Remove "type": "object" when properties exist (it's redundant)
             if obj.contains_key("properties")
                 && obj.get("type").and_then(Value::as_str) == Some("object")
             {
                 obj.remove("type");
             }
 
-            // Step 19: Replace large enums (>40 values) with just string type
+            // Large enums become their plain type.
             if let Some(Value::Array(enum_values)) = obj.get("enum")
                 && enum_values.len() > 40
             {
                 obj.remove("enum");
             }
 
-            // Step 15: Strip mempool.space links and keep only first paragraph of descriptions
             if let Some(Value::String(desc)) = obj.get_mut("description") {
                 *desc = trim_description(desc);
             }
 
-            // Step 12 & 13: Simplify properties (remove descriptions, simplify to direct types)
             if let Some(Value::Object(props)) = obj.get_mut("properties") {
                 simplify_properties(props);
             }
 
-            // Recurse into remaining values
             for (key, v) in obj.iter_mut() {
                 if key != "parameters" {
                     compact_value(v);
@@ -193,14 +132,12 @@ fn compact_value(value: &mut Value) {
 
 /// Trim description to first paragraph and strip mempool.space endpoint links.
 fn trim_description(desc: &str) -> String {
-    // First, strip mempool.space docs links (endpoint pattern with asterisks)
     let desc = if let Some(idx) = desc.find("*[Mempool.space docs]") {
         desc[..idx].trim()
     } else {
         desc
     };
 
-    // Keep only the first paragraph (up to \n\n)
     if let Some(idx) = desc.find("\n\n") {
         desc[..idx].trim().to_string()
     } else {

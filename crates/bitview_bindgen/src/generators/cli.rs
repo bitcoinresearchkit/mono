@@ -9,7 +9,7 @@ pub(crate) fn generate_cli(endpoints: &[Endpoint], output_path: &Path) -> io::Re
     let mut commands = endpoints
         .iter()
         .filter(|endpoint| !endpoint.deprecated)
-        .map(|endpoint| (to_kebab_case(&endpoint.operation_name()), endpoint))
+        .map(|endpoint| (to_kebab_case(&endpoint.operation_id), endpoint))
         .collect::<Vec<_>>();
     commands.sort_by(|(left, _), (right, _)| left.cmp(right));
 

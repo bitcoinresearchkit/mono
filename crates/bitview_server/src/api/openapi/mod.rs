@@ -11,14 +11,28 @@
 //
 
 mod compact;
-mod full;
 
 use aide::openapi::{Contact, Info, License, OpenApi, Tag};
-pub use compact::ApiJson;
-pub use full::OpenApiJson;
-use serde_json::Value;
+use axum::body::Bytes;
+use serde_json::{Value, to_value, to_vec};
 
-use crate::VERSION;
+use crate::{VERSION, prepared_json::PreparedJson};
+
+/// The full spec and its compact form for LLMs, pre-serialized at startup with their validators.
+pub struct OpenApiBodies {
+    pub full: PreparedJson,
+    pub compact: PreparedJson,
+}
+
+impl OpenApiBodies {
+    pub fn new(openapi: &OpenApi) -> Self {
+        let json = |bytes: Vec<u8>| PreparedJson::from_bytes(Bytes::from(bytes));
+        Self {
+            full: json(to_vec(openapi).unwrap()),
+            compact: json(compact::compact_json(to_value(openapi).unwrap())),
+        }
+    }
+}
 
 pub fn create_openapi() -> OpenApi {
     let info = Info {

@@ -46,12 +46,11 @@ pub(crate) fn compute_sats(
         start
     };
     if start < end {
-        let mut first_txout = first_txout.cursor();
-        first_txout.advance(start);
+        // Bounded reads: an update of a few blocks reads only their boundaries and values.
+        let mut first_txout = first_txout.bounded_cursor_at(start, end + 1);
         let mut output_index = first_txout.next().data()?.to_usize();
         let value_len = values.len();
-        let mut values = values.cursor();
-        values.advance(output_index);
+        let mut values = values.bounded_cursor_at(output_index, value_len);
         let mut output_types = output_types.range_cursor_at(output_index, value_len);
         let mut cumulative = target.collect_last().unwrap_or_default();
         for h in start..end {

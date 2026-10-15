@@ -10,7 +10,7 @@ use bitview_traversable::Traversable;
 use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
 use brk_error::Result;
 use log::info;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
+use vecdb::{AnyVec, ReadableVec};
 
 use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeId, Vecs};
 
@@ -54,7 +54,7 @@ impl ComputePlugin for Vecs {
         inputs.len = inputs.len.min(urpd.timestamps.len());
         let source_version = inputs.version;
         let range = inputs.prepare(
-            self.model_stored_vecs_mut().collect::<Vec<_>>(),
+            self.modes.iter_any_stored_mut().collect::<Vec<_>>(),
             usize::from(indexer.compute_start().height),
             context.exit(),
         )?;
@@ -82,9 +82,9 @@ impl ComputePlugin for Vecs {
         // Thresholds follow the stored loss shares alone, so one sequential pass fixes them
         // and the URPD evaluation can replay in parallel.
         let thresholds = {
-            let mut raw = raw_loss_share.cursor();
-            let mut cointime = cointime_loss_share.cursor();
-            let mut coinflow = coinflow_loss_share.cursor();
+            let mut raw = raw_loss_share.bounded_cursor_at(start, end);
+            let mut cointime = cointime_loss_share.bounded_cursor_at(start, end);
+            let mut coinflow = coinflow_loss_share.bounded_cursor_at(start, end);
             (start..end)
                 .map(|index| {
                     let shares = Calibration::loss_shares(
@@ -103,11 +103,21 @@ impl ComputePlugin for Vecs {
         replay.map(
             start..end,
             urpd,
-            || Worker {
-                supplies: AgeRange::from_fn(|age| age.select(&age_supplies).cursor()),
-                cointime: AgeRange::from_fn(|age| age.select(&cointime_wakefulness).cursor()),
-                coinflow: AgeRange::from_fn(|age| age.select(&coinflow_mobility).cursor()),
-                scratch: Vec::new(),
+            |blocks| {
+                let (from, to) = (blocks.start, blocks.end);
+                Worker {
+                    supplies: AgeRange::from_fn(|age| {
+                        age.select(&age_supplies).bounded_cursor_at(from, to)
+                    }),
+                    cointime: AgeRange::from_fn(|age| {
+                        age.select(&cointime_wakefulness)
+                            .bounded_cursor_at(from, to)
+                    }),
+                    coinflow: AgeRange::from_fn(|age| {
+                        age.select(&coinflow_mobility).bounded_cursor_at(from, to)
+                    }),
+                    scratch: Vec::new(),
+                }
             },
             |worker, height, _, source| {
                 let index = usize::from(height);
@@ -151,7 +161,7 @@ impl ComputePlugin for Vecs {
                     last_progress = Instant::now();
                 }
                 if end_block.is_multiple_of(WRITE_INTERVAL) || end_block == end {
-                    write_locked(self.model_stored_vecs_mut(), context.exit())?;
+                    write_locked(self.modes.iter_any_stored_mut(), context.exit())?;
                 }
                 Ok(())
             },
@@ -168,10 +178,4 @@ struct Worker<S, T, F> {
     cointime: AgeRange<T>,
     coinflow: AgeRange<F>,
     scratch: Vec<CumulativeBucket>,
-}
-
-impl Vecs {
-    fn model_stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.modes.iter_any_stored_mut()
-    }
 }

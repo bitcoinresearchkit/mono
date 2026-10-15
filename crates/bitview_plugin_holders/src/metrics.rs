@@ -17,7 +17,6 @@ use crate::{
     realized::Realized,
     supply::Supply,
     unrealized::Unrealized,
-    unrealized_data::UnrealizedData,
 };
 
 /// One complete metric layout, instantiated identically for every age filter.
@@ -69,8 +68,8 @@ impl Metrics {
     pub(crate) fn capital_cents(&self) -> &CachedSeries<Height, Cents> {
         &self.columns.cap
     }
-    pub(crate) fn push(&mut self, data: &Data, unrealized: &UnrealizedData) {
-        self.columns.push(data, unrealized);
+    pub(crate) fn push(&mut self, data: &Data, spot: Cents) {
+        self.columns.push(data, spot);
     }
     pub(crate) fn compute_rest(
         &mut self,
@@ -98,5 +97,14 @@ impl Metrics {
     /// The columns the block loop writes.
     pub(crate) fn state_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.columns.iter_any_stored_mut()
+    }
+    /// The outputs [`Self::compute_rest`] derives from the columns.
+    pub(crate) fn derived_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.supply
+            .iter_any_stored_mut()
+            .chain(self.capital.iter_any_stored_mut())
+            .chain(self.activity.iter_any_stored_mut())
+            .chain(self.realized.iter_any_stored_mut())
+            .chain(self.cost_basis.iter_any_stored_mut())
     }
 }

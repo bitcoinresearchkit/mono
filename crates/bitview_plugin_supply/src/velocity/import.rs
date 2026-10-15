@@ -3,7 +3,6 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::Ratio64;
 use bitview_vecs::{LazyIndexedVec, LazyPerBlock, ops::Quotient};
-use brk_error::Result;
 use brk_types::{Cents, Version};
 use vecdb::{BinaryTransform, Ident};
 
@@ -15,7 +14,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         all_chain: &AllChainSources,
         transactions: &TransactionsVecs,
-    ) -> Result<Self> {
+    ) -> Self {
         let volume = &transactions.volume.sum._1y;
         let btc_source = LazyIndexedVec::new(
             "velocity_btc_source",
@@ -32,7 +31,7 @@ impl Vecs {
             |_, volume: Cents, market_cap| Quotient::<Ratio64>::apply(volume, market_cap),
         );
 
-        Ok(Self {
+        Self {
             btc: LazyPerBlock::from_height_source::<Ident>(
                 "velocity_btc",
                 version,
@@ -45,6 +44,6 @@ impl Vecs {
                 &usd_source,
                 mappings,
             ),
-        })
+        }
     }
 }

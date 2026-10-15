@@ -69,11 +69,8 @@ pub fn render_api(plugins: &DefaultPlugins) -> Result<Vec<Snapshot>> {
         let indexes = path
             .indexes
             .iter()
-            .map(|index| {
-                serde_json::to_value(index)
-                    .map(|value| value.as_str().unwrap_or_default().to_owned())
-            })
-            .collect::<serde_json::Result<Vec<_>>>()?
+            .map(|index| index.name())
+            .collect::<Vec<_>>()
             .join(",");
         paths.push_str(&format!(
             "{}\t{}\t{}\t{}\t{indexes}\n",

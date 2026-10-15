@@ -7,11 +7,11 @@ use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
+use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, ReadableCloneableVec, Stamp};
 
 use crate::{
     Dependencies, Vecs, cost_basis::CostBasisBlockData, live::LiveState, sources::Sources,
-    unrealized_data::UnrealizedData,
 };
 
 impl ComputePlugin for Vecs {
@@ -51,8 +51,6 @@ impl ComputePlugin for Vecs {
                     &live.timestamps,
                     &mut live.crossings,
                 )?;
-                let unrealized =
-                    AgeAggregate::from_fn(|id| UnrealizedData::new(spot, id.select(row)));
                 let total = live.index.totals();
                 // Without a positive spot there is no band, as in the URPD densities.
                 let split = DensityBand::new(spot).map(|band| live.index.density_split(band));
@@ -94,24 +92,24 @@ impl ComputePlugin for Vecs {
                     )
                 }));
                 for id in AgeAggregateId::ALL {
-                    id.select_mut(&mut self.cohorts)
-                        .push(id.select(row), id.select(&unrealized));
+                    id.select_mut(&mut self.cohorts).push(id.select(row), spot);
                 }
             }
             self.save(chunk.end, false, exit)?;
+            // The update's last save flushes once everything is written.
+            if chunk.end < end {
+                self.db.flush();
+            }
         }
         drop(cursor);
         let all_capital = self.cohorts.all.capital_cents().read_only_boxed_clone();
-        for metrics in self.cohorts.iter_mut() {
-            metrics.compute_rest(
-                Height::from(start),
-                &self.all_supply,
-                &all_capital,
-                spot,
-                exit,
-            )?;
-        }
+        let all_supply = &self.all_supply;
+        // Each cohort derives the rest from its own columns.
+        self.cohorts.par_iter_mut().try_for_each(|metrics| {
+            metrics.compute_rest(Height::from(start), all_supply, &all_capital, spot, exit)
+        })?;
         self.save(end, true, exit)?;
+        self.db.flush();
         self.live = Some(live);
         Ok(())
     }
@@ -130,19 +128,32 @@ impl Vecs {
             .collect()
     }
 
-    /// Saves the block loop's outputs, or with `final_chunk` every output, stamped through `end`.
-    fn save(&mut self, end: usize, final_chunk: bool, exit: &Exit) -> Result<()> {
+    /// The outputs each cohort derives from the block loop's after it.
+    fn derived_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+        self.cohorts
+            .iter_mut()
+            .flat_map(|metrics| metrics.derived_vecs_mut())
+            .collect()
+    }
+
+    /// Saves the block loop's outputs, or with `derived` the outputs derived from them (the
+    /// loop saved its own), stamped through `end`.
+    fn save(&mut self, end: usize, derived: bool, exit: &Exit) -> Result<()> {
+        debug_assert_eq!(
+            self.iter_any_stored_mut().count(),
+            self.state_vecs_mut().len() + self.derived_vecs_mut().len(),
+            "every output is a state or a derived one"
+        );
         let _lock = exit.lock();
         let stamp = Stamp::from(Height::from(end - 1));
-        let vectors = if final_chunk {
-            self.iter_any_stored_mut().collect()
+        let vectors = if derived {
+            self.derived_vecs_mut()
         } else {
             self.state_vecs_mut()
         };
         for v in vectors {
-            v.any_stamped_write_maybe_with_changes(stamp, final_chunk)?;
+            v.any_stamped_write_maybe_with_changes(stamp, derived)?;
         }
-        self.db.flush();
         Ok(())
     }
 }

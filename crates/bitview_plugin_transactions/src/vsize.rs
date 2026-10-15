@@ -3,7 +3,6 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::ops::Convert;
 use brk_error::Result;
-use brk_exit::Exit;
 use brk_types::{TxIndex, VSize, Version, Weight32};
 use vecdb::{Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
 
@@ -12,8 +11,9 @@ use crate::distribution::TxDistribution;
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     pub tx: LazyVec<TxIndex, VSize, TxIndex, Weight32>,
+    // Filled by the fee pass, from the vsizes it reads.
     #[traversable(flatten)]
-    distribution: TxDistribution<VSize, M>,
+    pub(crate) distribution: TxDistribution<VSize, M>,
 }
 
 impl Vecs {
@@ -31,21 +31,5 @@ impl Vecs {
             ),
             distribution: TxDistribution::import(db, "tx_vsize", version, mappings)?,
         })
-    }
-
-    pub(crate) fn compute(
-        &mut self,
-        indexer: &Indexer,
-        mappings: &MappingsVecs,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.distribution.compute(
-            mappings,
-            &indexer.compute_start(),
-            &indexer.vecs().transactions.first_tx_index,
-            &self.tx,
-            0,
-            exit,
-        )
     }
 }

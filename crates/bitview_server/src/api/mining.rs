@@ -12,7 +12,7 @@ use serde_json::to_vec;
 
 use super::blocks;
 use crate::{
-    AppState, CacheParams, CacheStrategy, CdnCacheMode,
+    AppState, CacheParams,
     error::Result,
     extended::TransformResponseExtended,
     params::{BlockCountParam, Empty, PoolSlugAndHeightParam, PoolSlugParam, TimePeriodParam},
@@ -36,10 +36,10 @@ fn pool_blocks_params(
         engine.input(&u32::from(*height).to_le_bytes());
     }
     let identity = sha256::Hash::from_engine(engine);
-    CacheParams::resolve(
-        &CacheStrategy::Live(format!("pool-blocks-{}-{identity}", blocks::V1_BLOCK_SCHEMA).into()),
-        CdnCacheMode::Live,
-    )
+    CacheParams::live(format!(
+        "pool-blocks-{}-{identity}",
+        blocks::V1_BLOCK_SCHEMA
+    ))
 }
 
 async fn serve_pool_blocks(

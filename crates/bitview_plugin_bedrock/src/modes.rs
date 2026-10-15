@@ -1,6 +1,6 @@
 use bitview_traversable::Traversable;
 
-use super::ModeId;
+use super::Percentiles;
 
 #[derive(Traversable)]
 pub struct Modes<T> {
@@ -19,40 +19,17 @@ pub struct Modes<T> {
     pub mobile: T,
 }
 
-impl<T> Modes<T> {
-    pub fn from_fn(mut create: impl FnMut(ModeId) -> T) -> Self {
-        Self {
-            unweighted: create(ModeId::Unweighted),
-            awake: create(ModeId::Awake),
-            mobile: create(ModeId::Mobile),
-        }
+collection!(
+    /// A Bedrock mode: the unweighted distribution, or one weighted by wakefulness (Cointime) or
+    /// mobility (Coinflow).
+    ModeId for Modes {
+        Unweighted => unweighted,
+        Awake => awake,
+        Mobile => mobile,
     }
+);
 
-    pub fn try_from_fn<E>(mut create: impl FnMut(ModeId) -> Result<T, E>) -> Result<Self, E> {
-        Ok(Self {
-            unweighted: create(ModeId::Unweighted)?,
-            awake: create(ModeId::Awake)?,
-            mobile: create(ModeId::Mobile)?,
-        })
-    }
+pub const MODE_COUNT: usize = ModeId::ALL.len();
 
-    pub fn select_mut(&mut self, id: ModeId) -> &mut T {
-        match id {
-            ModeId::Unweighted => &mut self.unweighted,
-            ModeId::Awake => &mut self.awake,
-            ModeId::Mobile => &mut self.mobile,
-        }
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
-        [&self.unweighted, &self.awake, &self.mobile].into_iter()
-    }
-
-    pub fn select(&self, id: ModeId) -> &T {
-        match id {
-            ModeId::Unweighted => &self.unweighted,
-            ModeId::Awake => &self.awake,
-            ModeId::Mobile => &self.mobile,
-        }
-    }
-}
+/// Each mode's historical loss-share thresholds, when it has enough history.
+pub type Thresholds = Modes<Option<Percentiles<f64>>>;

@@ -6,9 +6,9 @@ use bitcoin::{
     hex::DisplayHex,
 };
 use bitview_plugin_indexer::SafeLengths;
-use brk_mempool::PublishedTx;
 use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::MerkleProof;
+use brk_mempool::PublishedTx;
 use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
 use vecdb::{ReadableVec, VecIndex};
 
@@ -51,27 +51,17 @@ impl Query {
     // ── Txid → TxIndex resolution (single source of truth) ─────────
 
     pub fn txid_by_index(&self, index: TxIndex) -> Result<Txid> {
-        self.txid_and_height_by_index(index).map(|(txid, _)| txid)
-    }
-
-    /// Resolve a transaction index to its txid and containing block height from
-    /// one guarded indexer/mappings snapshot.
-    fn txid_and_height_by_index(&self, index: TxIndex) -> Result<(Txid, Height)> {
-        let plugins = self.plugins();
         let pin = self.pin_safe_lengths()?;
         check_bound(&pin, index, pin.lengths().tx_index)?;
         if index >= pin.lengths().tx_index {
             return Err(Error::OutOfRange("Transaction index out of range".into()));
         }
-        let txid = self
-            .indexer()
+        self.indexer()
             .vecs()
             .transactions
             .txid
             .collect_one(index)
-            .ok_or_else(|| Error::OutOfRange("Transaction index out of range".into()))?;
-        let height = plugins.mappings.tx_heights.get_shared(index).data()?;
-        Ok((txid, height))
+            .ok_or_else(|| Error::OutOfRange("Transaction index out of range".into()))
     }
 
     // ── TxStatus construction (single source of truth) ─────────────

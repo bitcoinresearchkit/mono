@@ -80,17 +80,18 @@ impl Replay {
     /// Hands `compute`'s result for every block of `range` to `consume`, in block order.
     /// A range longer than a segment replays its segments in parallel, each from a restored
     /// state, a window of them at a time; a shorter one replays sequentially from the
-    /// retained state.
+    /// retained state. `worker` builds the scratch for the blocks it is given, so its cursors
+    /// can read just those.
     pub fn map<W, R: Send>(
         &mut self,
         range: Range<usize>,
         inputs: ReplayInputs<'_>,
-        worker: impl Fn() -> W + Sync,
+        worker: impl Fn(Range<usize>) -> W + Sync,
         compute: impl Fn(&mut W, Height, Cents, &OriginUrpd) -> Result<R> + Sync,
         mut consume: impl FnMut(Height, R) -> Result<()>,
     ) -> Result<()> {
         if range.len() <= SEGMENT_BLOCKS {
-            let mut worker = worker();
+            let mut worker = worker(range.clone());
             return self.for_each(range, inputs, |height, close, source| {
                 consume(height, compute(&mut worker, height, close, source)?)
             });
@@ -154,11 +155,11 @@ fn replay_segment<W, R>(
     history: &Reader<'_>,
     prices: &[Cents],
     timestamps: &[Timestamp],
-    worker: &impl Fn() -> W,
+    worker: &impl Fn(Range<usize>) -> W,
     compute: &impl Fn(&mut W, Height, Cents, &OriginUrpd) -> Result<R>,
 ) -> Result<(Vec<R>, Option<Position>)> {
     let (mut origins, mut source) = restore(history, prices, timestamps, segment.start)?;
-    let mut worker = worker();
+    let mut worker = worker(segment.clone());
     let mut results = Vec::with_capacity(segment.len());
     let mut cursor = history.cursor(&mut origins)?;
     for index in segment {

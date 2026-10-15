@@ -1,10 +1,9 @@
-use std::ops::AddAssign;
-
 use bitview_primitives::{CentsSquaredSats, CoinDays, Count};
 use brk_types::{Cents, CentsSats, CentsSigned, Sats};
+use derive_more::AddAssign;
 
 /// Additive accounting inputs from disjoint age bands at one height.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, AddAssign)]
 pub(crate) struct Data {
     pub supply: Sats,
     pub count: Count,
@@ -32,35 +31,4 @@ pub(crate) struct Data {
     pub capital_profit: Cents,
     pub capital_loss: Cents,
     pub peak_regret_raw: CentsSats,
-}
-
-impl AddAssign for Data {
-    fn add_assign(&mut self, rhs: Self) {
-        self.supply += rhs.supply;
-        self.count += rhs.count;
-        self.spent_count += rhs.spent_count;
-        self.volume_sats += rhs.volume_sats;
-        self.volume_cents += rhs.volume_cents;
-        self.volume_profit_sats += rhs.volume_profit_sats;
-        self.volume_profit_cents += rhs.volume_profit_cents;
-        self.volume_loss_sats += rhs.volume_loss_sats;
-        self.volume_loss_cents += rhs.volume_loss_cents;
-        self.adjusted_volume += rhs.adjusted_volume;
-        self.adjusted_value_destroyed += rhs.adjusted_value_destroyed;
-        self.cdd += rhs.cdd;
-        self.cap += rhs.cap;
-        self.cap_raw += rhs.cap_raw;
-        self.capitalized_cap_raw += rhs.capitalized_cap_raw;
-        self.profit += rhs.profit;
-        self.loss += rhs.loss;
-        self.net_pnl += rhs.net_pnl;
-        self.value_destroyed += rhs.value_destroyed;
-        self.unrealized_profit += rhs.unrealized_profit;
-        self.unrealized_loss += rhs.unrealized_loss;
-        self.supply_profit += rhs.supply_profit;
-        self.supply_loss += rhs.supply_loss;
-        self.capital_profit += rhs.capital_profit;
-        self.capital_loss += rhs.capital_loss;
-        self.peak_regret_raw += rhs.peak_regret_raw;
-    }
 }

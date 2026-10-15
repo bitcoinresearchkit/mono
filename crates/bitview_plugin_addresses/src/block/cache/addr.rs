@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrStateVecs, AddrTypeToTypeIndexMap, SHARDS, SourcedAddrData, shard_of},
+    addr::{AddrStateVecs, SHARDS, SourcedAddrData, shard_of},
     compute::AddrReaders,
 };
 
@@ -67,7 +67,7 @@ impl AddressKey {
 /// place: their UTXO count tells funded and empty apart at flush.
 #[derive(Default)]
 pub struct AddrCache {
-    shards: [AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddressData>>; SHARDS],
+    shards: [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>>; SHARDS],
     /// Reusable scratch space for the unique addresses touched by one batch.
     addresses: Vec<AddressKey>,
     /// Reusable scratch space for their loaded sources (`None`: already cached).
@@ -112,11 +112,9 @@ impl AddrCache {
 
         for (address, source) in self.addresses.iter().copied().zip(self.sources.drain(..)) {
             if let Some(source) = source {
-                self.shards[shard_of(address.type_index())].insert_for_type(
-                    address.addr_type(),
-                    address.type_index(),
-                    source,
-                );
+                self.shards[shard_of(address.type_index())]
+                    .get_mut_unwrap(address.addr_type())
+                    .insert(address.type_index(), source);
             }
         }
     }
@@ -145,11 +143,14 @@ impl AddrCache {
     /// Persist pending address states. Each table keeps room for as many addresses as it just
     /// held, so a type the chain moved away from stops holding its peak.
     pub fn flush_into(&mut self, state: &mut AddrStateVecs) -> Result<()> {
-        let lengths = self.shards.each_ref().map(|shard| shard.lengths());
+        let lengths = self
+            .shards
+            .each_ref()
+            .map(|shard| ByAddrType::from_fn(|id| id.select(shard).len()));
         state.apply_updates(&mut self.shards)?;
         for (shard, lengths) in self.shards.iter_mut().zip(lengths) {
-            for (addr_type, addrs) in shard.iter_mut() {
-                addrs.shrink_to(*lengths.get_unwrap(addr_type));
+            for (addrs, len) in shard.values_mut().zip(lengths.values()) {
+                addrs.shrink_to(*len);
             }
         }
         Ok(())

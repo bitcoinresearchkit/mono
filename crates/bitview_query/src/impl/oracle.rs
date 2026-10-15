@@ -128,11 +128,10 @@ impl Query {
             .checked_sub(1)
             .ok_or_else(|| Error::NotFound("oracle prices not yet computed".to_owned()))?;
         let seed_bin = self.seed_bin_at(last)?;
-        let revision = pin.revision();
         let mut oracle = self
             .0
             .live_oracle
-            .get_or_try_init(tip, revision, || self.warm_oracle(seed_bin, height, &safe))?;
+            .get_or_try_init(pin.revision(), || self.warm_oracle(seed_bin, height, &safe))?;
         if let Some(histogram) = live {
             oracle.process_histogram(&histogram);
         }

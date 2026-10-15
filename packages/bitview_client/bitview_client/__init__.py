@@ -19,55 +19,10 @@ T = TypeVar('T')
 
 # Type definitions
 
-# Bitcoin address string
-Address = str
-# Transaction ID (hash)
-Txid = str
-# US Dollar amount
-Dollars = float
-# Amount in satoshis (1 BTC = 100,000,000 sats)
-Sats = int
-# Index within its type (e.g., 0 for first P2WPKH address)
-TypeIndex = int
-# Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
-OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty", "unknown"]
-# Signed satoshis (i64) - for values that can be negative.
-# Used for changes, deltas, profit/loss calculations, etc.
-SatsSigned = int
-# Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
-Bitcoin = float
-# URL-friendly mining pool identifier
-PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "btccom", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd"]
-# Fee rate stored in milli-sat/vB and exposed as sat/vB.
-FeeRate = float
-# Weight in weight units (WU): non-witness bytes count four and witness bytes one. A block holds
-# at most 4,000,000 WU; sums over many blocks use the full 64 bits.
-Weight = int
-# Block height
-Height = int
-# UNIX timestamp in seconds
-Timestamp = int
-# Double-SHA256 block-header hash, serialized in Bitcoin's conventional
-# hexadecimal byte order.
-BlockHash = str
-# Position of a transaction within a single block (0 = coinbase).
-# Distinct from `TxIndex`, which is the chain-wide global tx index.
-BlockTxIndex = int
-# Content hash of the projected next block (block 0 of the mempool
-# snapshot), including its statistics and complete transaction bodies.
-# Opaque token, distinct from HTTP ETag formatting: pass back
-# to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
-# A decimal string, since JavaScript numbers can't hold every 64-bit value.
-NextBlockHash = str
-# Output type names used by Esplora and mempool.space.
-OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return", "v0_p2wpkh", "v0_p2wsh", "v1_p2tr", "anchor", "empty", "unknown"]
-# Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
-RawLockTime = int
-# BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
-# one. Sums over many transactions or blocks use the full 64 bits.
-SigOps = int
-# Index of the output being spent in the previous transaction (coinbase inputs: 4294967295)
-Vout = int
+# Index of a decade.
+Year10 = int
+# Index of a year.
+Year1 = int
 # Transaction witness: a stack of byte arrays, one per witness item.
 #
 # Wraps `bitcoin::Witness` (single-buffer layout with offsets, much
@@ -76,40 +31,230 @@ Vout = int
 # and matching brk's `script_sig: ScriptBuf` (bytes internally, hex
 # on the wire).
 Witness = List[str]
-# Chain-wide transaction index (0 = the genesis coinbase). For an
-# in-block position, use `BlockTxIndex` instead.
-TxIndex = int
+# A mean weight in weight units.
+WeightFract = float
+# Weight in weight units (WU): non-witness bytes count four and witness bytes one. A block holds
+# at most 4,000,000 WU; sums over many blocks use the full 64 bits.
+Weight = int
+# Index of a week.
+Week1 = int
+# Index of the output being spent in the previous transaction (coinbase inputs: 4294967295)
+Vout = int
+# Input index in the spending transaction
+Vin = int
+# Version tracking for data schema and computed values.
+#
+# Used to detect when stored data needs to be recomputed due to changes
+# in computation logic or source data versions. Supports validation
+# against persisted versions to ensure compatibility.
+Version = int
+# Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
+VSize = int
+# Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.
+UrpdWeight = Literal["raw", "cointime", "coinflow"]
+# Aggregation strategy for URPD buckets.
+# Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
+# log10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).
+UrpdAggregation = Literal["raw", "lin200", "lin500", "lin1000", "log10", "log50", "log100", "log200", "log500", "log1000", "log2000"]
+# Index within its type (e.g., 0 for first P2WPKH address)
+TypeIndex = int
+# Index of an output with an unrecognized script.
+UnknownOutputIndex = TypeIndex
+# Index of a P2WSH address.
+P2WSHAddressIndex = TypeIndex
+# Index of a P2WPKH address.
+P2WPKHAddressIndex = TypeIndex
+# Index of a P2TR (taproot) address.
+P2TRAddressIndex = TypeIndex
+# Index of a P2SH address.
+P2SHAddressIndex = TypeIndex
+# Index of a P2PKH address.
+P2PKHAddressIndex = TypeIndex
+# Index of a P2PK address with an uncompressed (65-byte) public key.
+P2PK65AddressIndex = TypeIndex
+# Index of a P2PK address with a compressed (33-byte) public key.
+P2PK33AddressIndex = TypeIndex
+# Index of a P2MS (bare multisig) output.
+P2MSOutputIndex = TypeIndex
+# Index of a P2A (pay-to-anchor) address.
+P2AAddressIndex = TypeIndex
+# Index of an OP_RETURN output.
+OpReturnIndex = TypeIndex
+# Index of an output with an empty script.
+EmptyOutputIndex = TypeIndex
+# Transaction ID (hash)
+Txid = str
 # Raw transaction version (i32) from Bitcoin protocol.
 # Unlike TxVersion (u8, indexed), this preserves non-standard values
 # used in coinbase txs for miner signaling/branding.
 TxVersionRaw = int
-# One slot of the new template in a `BlockTemplateDiff`.
+# Compact indexed transaction-version category. Values 1, 2, and 3 preserve
+# those exact signed 32-bit Bitcoin transaction versions; 255 represents every
+# other version.
+TxVersion = int
+# Index of a transaction output.
+TxOutIndex = int
+# Chain-wide transaction index (0 = the genesis coinbase). For an
+# in-block position, use `BlockTxIndex` instead.
+TxIndex = int
+# Index of a transaction input.
+TxInIndex = int
+# UNIX timestamp in seconds
+Timestamp = int
+# Time period for mining statistics.
 #
-# Untagged on the wire so JSON type disambiguates the variants:
-# - `Retained(idx)` serializes as a bare integer - index into the
-#   transactions of the prior template (which the client cached at
-#   `since`).
-# - `New(tx)` serializes as a transaction object - a body that was
-#   new or changed since the prior template and must replace this position.
+# Used to specify the lookback window for pool statistics, hashrate calculations,
+# and other time-based mining series.
+TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "all"]
+# BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
+# one. Sums over many transactions or blocks use the full 64 bits.
+SigOps = int
+# Series name
+SeriesName = str
+# Comma-separated list of series names
 #
-# Reconstruction is a single pass: for each entry, either copy
-# `prior[idx]` or append the inline body.
-BlockTemplateDiffEntry = Union[int, "Transaction"]
-# Yes or no.
-Boolean = bool
-# A size in bytes.
-Bytes = int
-# A mean size in bytes.
-BytesFract = float
-# URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
-#
-# Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
-# supported age filters and the published UTXO set.
-Cohort = str
-# Bitcoin multiplied by the blocks it was held.
-CoinBlocks = float
-# Bitcoin multiplied by the days it was held.
-CoinDays = float
+# Deserialization permits at most 32 normalized names and 2,048 decoded input
+# string bytes. For arrays, the byte budget is shared by their string values.
+SeriesList = str
+# A mean duration in seconds.
+SecondsFract = float
+# A duration in seconds (at most about 136 years).
+Seconds = int
+# A signed model score; undefined (null) where the model has no calibration yet.
+Score = int
+# Signed satoshis (i64) - for values that can be negative.
+# Used for changes, deltas, profit/loss calculations, etc.
+SatsSigned = int
+# Amount in satoshis (1 BTC = 100,000,000 sats)
+Sats = int
+# Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
+RawLockTime = int
+# A dimensionless ratio at double precision.
+Ratio64 = float
+# A dimensionless ratio: a quotient, share or multiple.
+Ratio = float
+# A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
+RangeIndex = Union[int, str, str]
+# URL-friendly mining pool identifier
+PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "btccom", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd"]
+# A percentage: a ratio times 100.
+Percent = float
+# Events per second.
+PerSecond = float
+# A fraction per day.
+PerDay = float
+# The 32-byte script hash of a P2WSH output.
+P2WSHBytes = str
+# The 20-byte public key hash of a P2WPKH output.
+P2WPKHBytes = str
+# The 32-byte output key of a P2TR output.
+P2TRBytes = str
+# The 20-byte script hash of a P2SH output.
+P2SHBytes = str
+# The 20-byte public key hash of a P2PKH output.
+P2PKHBytes = str
+# An uncompressed (65-byte) public key.
+P2PK65Bytes = str
+# A compressed (33-byte) public key.
+P2PK33Bytes = str
+# The 2-byte witness program of a P2A (pay-to-anchor) output.
+P2ABytes = str
+# Output type names used by Esplora and mempool.space.
+OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return", "v0_p2wpkh", "v0_p2wsh", "v1_p2tr", "anchor", "empty", "unknown"]
+# Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
+OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty", "unknown"]
+# Protocol or format detected in an OP_RETURN output.
+OpReturnKind = Literal["runes", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "open_timestamps", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "epobc", "bare_hash", "text", "empty", "unknown"]
+# Content hash of the projected next block (block 0 of the mempool
+# snapshot), including its statistics and complete transaction bodies.
+# Opaque token, distinct from HTTP ETag formatting: pass back
+# to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
+# A decimal string, since JavaScript numbers can't hold every 64-bit value.
+NextBlockHash = str
+# Index of a half-year (6 months).
+Month6 = int
+# Index of a quarter (3 months).
+Month3 = int
+# Index of a month.
+Month1 = int
+# Index of a 30-minute period.
+Minute30 = int
+# Index of a 10-minute period.
+Minute10 = int
+# Maximum number of results to return. Defaults to 100 if not specified.
+Limit = int
+# Aggregation dimension for querying series. Includes time-based (date, week, month, year),
+# block-based (height, tx_index), and address/output type indexes.
+Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_output_index"]
+# Hierarchical tree node for organizing series into categories
+TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
+# Index of a 4-hour period.
+Hour4 = int
+# Index of a 12-hour period.
+Hour12 = int
+# Index of an hour.
+Hour1 = int
+# Hex-encoded string. Transparent wrapper over `String`: serializes
+# as a plain JSON string and derefs to `str`, so anywhere `&str` or
+# `AsRef<[u8]>` is expected the `Hex` "just works".
+Hex = str
+# Block height
+Height = int
+# Hashes per second.
+Hashrate = float
+# Satoshis per PH/s of hash rate per day.
+HashValue = float
+# US dollars per PH/s of hash rate per day.
+HashPrice = float
+# Index of a halving epoch (210,000 blocks).
+Halving = int
+# Output format for API responses
+Format = Literal["json", "csv"]
+# A 64-bit floating-point value without a specific unit.
+Float64 = float
+# Fee rate stored in milli-sat/vB and exposed as sat/vB.
+FeeRate = float
+# Exchange rates (USD base, on-chain only — no fiat pairs available)
+ExchangeRates = dict
+# Error category, following the HTTP status: `invalid_request` (4xx other than 404),
+# `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
+# (other 5xx).
+ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
+# Machine-readable error code.
+ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_address", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
+# Index of a difficulty epoch (2,016 blocks).
+Epoch = int
+# US Dollar amount
+Dollars = float
+# Open, high, low and close prices in US dollars: [open, high, low, close].
+OHLCDollars = List[Dollars]
+# US dollars multiplied by days, per bitcoin: coin days valued at the spot price, per
+# bitcoin of supply.
+DollarDaysPerCoin = float
+# US dollars multiplied by blocks: coinblocks valued at the spot price.
+DollarBlocks = float
+# A single difficulty adjustment entry.
+# Serializes as array: [timestamp, height, difficulty, change_percent]
+DifficultyAdjustmentEntry = List[float]
+# Proof-of-work difficulty.
+Difficulty = float
+# A duration in days.
+Days = float
+# Index of a 3-day period.
+Day3 = int
+# Index of a day.
+Day1 = int
+# Calendar date in YYYY-MM-DD format.
+Date = str
+# Position of a transaction inside a `CpfpCluster.txs` array. Cluster-local,
+# has no meaning outside the enclosing cluster.
+CpfpClusterTxIndex = int
+# A change in a number of things.
+CountSigned = int
+# A mean number of things.
+CountFract = float
+# A number of things.
+Count = int
 # Up to the first 100 bytes of a coinbase transaction's first-input
 # `scriptSig`. Bytes are preserved for storage and exposed as a string by
 # mapping each byte to the same-valued Unicode code point. Pool attribution
@@ -122,238 +267,225 @@ CoinDays = float
 #
 # Bitcoin consensus limits coinbase scriptSig to 2-100 bytes.
 CoinbaseTag = str
-# A number of things.
-Count = int
-# A mean number of things.
-CountFract = float
-# A change in a number of things.
-CountSigned = int
-# Position of a transaction inside a `CpfpCluster.txs` array. Cluster-local,
-# has no meaning outside the enclosing cluster.
-CpfpClusterTxIndex = int
-# Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
-VSize = int
-# Output format for API responses
-Format = Literal["json", "csv"]
-# Maximum number of results to return. Defaults to 100 if not specified.
-Limit = int
-# A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
-RangeIndex = Union[int, str, str]
-# Calendar date in YYYY-MM-DD format.
-Date = str
-# Index of a day.
-Day1 = int
-# Index of a 3-day period.
-Day3 = int
-# A duration in days.
-Days = float
-# Proof-of-work difficulty.
-Difficulty = float
-# A single difficulty adjustment entry.
-# Serializes as array: [timestamp, height, difficulty, change_percent]
-DifficultyAdjustmentEntry = List[float]
-# US dollars multiplied by blocks: coinblocks valued at the spot price.
-DollarBlocks = float
-# US dollars multiplied by days, per bitcoin: coin days valued at the spot price, per
-# bitcoin of supply.
-DollarDaysPerCoin = float
-# Index of an output with an empty script.
-EmptyOutputIndex = TypeIndex
-# Index of a difficulty epoch (2,016 blocks).
-Epoch = int
-# Machine-readable error code.
-ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_address", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
-# Error category, following the HTTP status: `invalid_request` (4xx other than 404),
-# `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
-# (other 5xx).
-ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
-# Exchange rates (USD base, on-chain only — no fiat pairs available)
-ExchangeRates = dict
-# A 64-bit floating-point value without a specific unit.
-Float64 = float
-# Index of a halving epoch (210,000 blocks).
-Halving = int
-# US dollars per PH/s of hash rate per day.
-HashPrice = float
-# Satoshis per PH/s of hash rate per day.
-HashValue = float
-# Hashes per second.
-Hashrate = float
-# Hex-encoded string. Transparent wrapper over `String`: serializes
-# as a plain JSON string and derefs to `str`, so anywhere `&str` or
-# `AsRef<[u8]>` is expected the `Hex` "just works".
-Hex = str
-# Index of an hour.
-Hour1 = int
-# Index of a 12-hour period.
-Hour12 = int
-# Index of a 4-hour period.
-Hour4 = int
-# Aggregation dimension for querying series. Includes time-based (date, week, month, year),
-# block-based (height, tx_index), and address/output type indexes.
-Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_output_index"]
-# Index of a 10-minute period.
-Minute10 = int
-# Index of a 30-minute period.
-Minute30 = int
-# Index of a month.
-Month1 = int
-# Index of a quarter (3 months).
-Month3 = int
-# Index of a half-year (6 months).
-Month6 = int
-# Open, high, low and close prices in US dollars: [open, high, low, close].
-OHLCDollars = List[Dollars]
-# Index of an OP_RETURN output.
-OpReturnIndex = TypeIndex
-# Protocol or format detected in an OP_RETURN output.
-OpReturnKind = Literal["runes", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "open_timestamps", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "epobc", "bare_hash", "text", "empty", "unknown"]
-# Index of a P2A (pay-to-anchor) address.
-P2AAddressIndex = TypeIndex
-# The 2-byte witness program of a P2A (pay-to-anchor) output.
-P2ABytes = str
-# Index of a P2MS (bare multisig) output.
-P2MSOutputIndex = TypeIndex
-# Index of a P2PK address with a compressed (33-byte) public key.
-P2PK33AddressIndex = TypeIndex
-# A compressed (33-byte) public key.
-P2PK33Bytes = str
-# Index of a P2PK address with an uncompressed (65-byte) public key.
-P2PK65AddressIndex = TypeIndex
-# An uncompressed (65-byte) public key.
-P2PK65Bytes = str
-# Index of a P2PKH address.
-P2PKHAddressIndex = TypeIndex
-# The 20-byte public key hash of a P2PKH output.
-P2PKHBytes = str
-# Index of a P2SH address.
-P2SHAddressIndex = TypeIndex
-# The 20-byte script hash of a P2SH output.
-P2SHBytes = str
-# Index of a P2TR (taproot) address.
-P2TRAddressIndex = TypeIndex
-# The 32-byte output key of a P2TR output.
-P2TRBytes = str
-# Index of a P2WPKH address.
-P2WPKHAddressIndex = TypeIndex
-# The 20-byte public key hash of a P2WPKH output.
-P2WPKHBytes = str
-# Index of a P2WSH address.
-P2WSHAddressIndex = TypeIndex
-# The 32-byte script hash of a P2WSH output.
-P2WSHBytes = str
-# A fraction per day.
-PerDay = float
-# Events per second.
-PerSecond = float
-# A percentage: a ratio times 100.
-Percent = float
-# A dimensionless ratio: a quotient, share or multiple.
-Ratio = float
-# A dimensionless ratio at double precision.
-Ratio64 = float
-# A signed model score; undefined (null) where the model has no calibration yet.
-Score = int
-# Series name
-SeriesName = str
-# A duration in seconds (at most about 136 years).
-Seconds = int
-# A mean duration in seconds.
-SecondsFract = float
-# Comma-separated list of series names
+# Bitcoin multiplied by the days it was held.
+CoinDays = float
+# Bitcoin multiplied by the blocks it was held.
+CoinBlocks = float
+# URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
 #
-# Deserialization permits at most 32 normalized names and 2,048 decoded input
-# string bytes. For arrays, the byte budget is shared by their string values.
-SeriesList = str
-# Time period for mining statistics.
+# Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
+# supported age filters and the published UTXO set.
+Cohort = str
+# A mean size in bytes.
+BytesFract = float
+# A size in bytes.
+Bytes = int
+# Yes or no.
+Boolean = bool
+# Position of a transaction within a single block (0 = coinbase).
+# Distinct from `TxIndex`, which is the chain-wide global tx index.
+BlockTxIndex = int
+# Double-SHA256 block-header hash, serialized in Bitcoin's conventional
+# hexadecimal byte order.
+BlockHash = str
+# Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
+Bitcoin = float
+# Bitcoin address string
+Address = str
+# One slot of the new template in a `BlockTemplateDiff`.
 #
-# Used to specify the lookback window for pool statistics, hashrate calculations,
-# and other time-based mining series.
-TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "all"]
-# Hierarchical tree node for organizing series into categories
-TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
-# Index of a transaction input.
-TxInIndex = int
-# Index of a transaction output.
-TxOutIndex = int
-# Input index in the spending transaction
-Vin = int
-# Compact indexed transaction-version category. Values 1, 2, and 3 preserve
-# those exact signed 32-bit Bitcoin transaction versions; 255 represents every
-# other version.
-TxVersion = int
-# Index of an output with an unrecognized script.
-UnknownOutputIndex = TypeIndex
-# Aggregation strategy for URPD buckets.
-# Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
-# log10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).
-UrpdAggregation = Literal["raw", "lin200", "lin500", "lin1000", "log10", "log50", "log100", "log200", "log500", "log1000", "log2000"]
-# Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.
-UrpdWeight = Literal["raw", "cointime", "coinflow"]
-# Version tracking for data schema and computed values.
+# Untagged on the wire so JSON type disambiguates the variants:
+# - `Retained(idx)` serializes as a bare integer - index into the
+#   transactions of the prior template (which the client cached at
+#   `since`).
+# - `New(tx)` serializes as a transaction object - a body that was
+#   new or changed since the prior template and must replace this position.
 #
-# Used to detect when stored data needs to be recomputed due to changes
-# in computation logic or source data versions. Supports validation
-# against persisted versions to ensure compatibility.
-Version = int
-# Index of a week.
-Week1 = int
-# A mean weight in weight units.
-WeightFract = float
-# Index of a year.
-Year1 = int
-# Index of a decade.
-Year10 = int
-class AddressAfterTxidParam(TypedDict):
-    """
-    Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
-
-    Attributes:
-        after_txid: Last txid from the previous page (return transactions strictly older than this)
-    """
-    address: Address
-    after_txid: Txid
-
-class _AddressChainStatsRequired(TypedDict):
-    balance: Sats
-    funded_txo_count: int
-    funded_txo_sum: Sats
-    spent_txo_count: int
-    spent_txo_sum: Sats
-    tx_count: int
-    realized_price: Dollars
-
-class AddressChainStats(_AddressChainStatsRequired, total=False):
-    """
-    Address statistics on the blockchain (confirmed transactions only)
-    
-    Based on mempool.space's format with type_index extension.
-
-    Attributes:
-        balance: Current confirmed balance in satoshis
-        funded_txo_count: Total number of transaction outputs that funded this address
-        funded_txo_sum: Total amount in satoshis received by this address across all funded outputs
-        spent_txo_count: Total number of transaction outputs spent from this address
-        spent_txo_sum: Total amount in satoshis spent from this address
-        tx_count: Total number of confirmed transactions involving this address
-        type_index: Index of this address within its type on the blockchain, null for an address seen only in the mempool
-        realized_price: Realized price (average cost basis) in USD
-    """
-    type_index: Union[TypeIndex, None]
-
-class AddressHashPrefixMatches(TypedDict):
-    address_type: OutputType
-    prefix: str
-    truncated: bool
-    addresses: List[Address]
-
-class AddressHashPrefixParam(TypedDict):
+# Reconstruction is a single pass: for each entry, either copy
+# `prior[idx]` or append the inline body.
+BlockTemplateDiffEntry = Union[int, "Transaction"]
+class ValidateAddressParam(TypedDict):
     """
     Attributes:
-        prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
+        address: Bitcoin address to validate (can be any string)
     """
-    address_type: OutputType
-    prefix: str
+    address: str
+
+class UrpdWeightQuery(TypedDict, total=False):
+    """
+    Query parameters for URPD date discovery.
+
+    Attributes:
+        weight: Supply weighting. Default: raw (unweighted).
+    """
+    weight: UrpdWeight
+
+class UrpdQuery(TypedDict, total=False):
+    """
+    Query parameters for URPD endpoints.
+
+    Attributes:
+        agg: Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
+        weight: Supply weighting. Default: raw (unweighted).
+    """
+    agg: UrpdAggregation
+    weight: UrpdWeight
+
+# Query parameter for transaction-times endpoint.
+#
+# Extracted manually because `serde_urlencoded` (and serde derive in general)
+# doesn't support repeated keys like `txId[]=a&txId[]=b`. The schema is still
+# declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
+# generated client SDKs see `txids: List[Txid]`.
+TxidsParam = TypedDict("TxidsParam", {"txId[]": List[Txid]})
+
+class TxidVout(TypedDict):
+    """
+    Transaction output reference (txid + output index)
+
+    Attributes:
+        txid: Transaction ID
+        vout: Output index
+    """
+    txid: Txid
+    vout: Vout
+
+class TxidParam(TypedDict):
+    """
+    Transaction ID path parameter
+    """
+    txid: Txid
+
+class TxIndexParam(TypedDict):
+    """
+    Transaction index path parameter
+    """
+    index: TxIndex
+
+class OutPoint(TypedDict):
+    """
+    The output a transaction input spends: its transaction index and output position, written as
+    `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 4294967295}`).
+    """
+    tx_index: TxIndex
+    vout: Vout
+
+class TimestampParam(TypedDict):
+    """
+    UNIX timestamp path parameter
+    """
+    timestamp: Timestamp
+
+class PoolHashrateEntry(TypedDict):
+    """
+    A single pool hashrate data point.
+
+    Attributes:
+        timestamp: Unix timestamp
+        avgHashrate: Average hashrate (H/s)
+        share: Pool's share of total network hashrate (0.0 - 1.0)
+        poolName: Pool name
+    """
+    timestamp: Timestamp
+    avgHashrate: int
+    share: float
+    poolName: str
+
+class OptionalTimestampParam(TypedDict, total=False):
+    """
+    Optional UNIX timestamp query parameter
+    """
+    timestamp: Union[Timestamp, None]
+
+class HashrateEntry(TypedDict):
+    """
+    A single hashrate data point.
+
+    Attributes:
+        timestamp: Unix timestamp
+        avgHashrate: Average hashrate (H/s)
+    """
+    timestamp: Timestamp
+    avgHashrate: int
+
+class TimePeriodParam(TypedDict):
+    """
+    Time period path parameter (24h, 3d, 1w, 1m, 3m, 6m, 1y, 2y, 3y)
+    """
+    time_period: TimePeriod
+
+class SeriesParam(TypedDict):
+    series: SeriesName
+
+class SeriesCount(TypedDict):
+    """
+    Series count statistics
+
+    Attributes:
+        distinct: Number of unique series available (e.g., realized_price, market_cap)
+        total: Total number of series-index combinations across all timeframes
+        lazy: Number of lazy (computed on-the-fly) series-index combinations
+        stored: Number of eager (stored on disk) series-index combinations
+    """
+    distinct: int
+    total: int
+    lazy: int
+    stored: int
+
+class DetailedSeriesCount(TypedDict):
+    """
+    Detailed series count with per-database breakdown.
+
+    Attributes:
+        distinct: Number of unique series available (e.g., realized_price, market_cap)
+        total: Total number of series-index combinations across all timeframes
+        lazy: Number of lazy (computed on-the-fly) series-index combinations
+        stored: Number of eager (stored on disk) series-index combinations
+        by_db: Per-database breakdown of counts.
+    """
+    distinct: int
+    total: int
+    lazy: int
+    stored: int
+    by_db: dict[str, SeriesCount]
+
+class MempoolRecentTx(TypedDict):
+    """
+    Simplified mempool transaction for the `/api/mempool/recent` endpoint.
+
+    Attributes:
+        txid: Transaction ID
+        fee: Transaction fee (sats)
+        vsize: Virtual size (vbytes)
+        value: Total output value (sats)
+    """
+    txid: Txid
+    fee: Sats
+    vsize: VSize
+    value: Sats
+
+class MempoolInfo(TypedDict):
+    """
+    Mempool statistics with incrementally maintained fee histogram.
+
+    Attributes:
+        count: Number of transactions in the mempool
+        vsize: Total virtual size of all transactions in the mempool (vbytes)
+        total_fee: Total fees of all transactions in the mempool (satoshis)
+        fee_histogram: Fee histogram: `[[fee_rate, vsize], ...]` sorted by descending fee rate
+    """
+    count: int
+    vsize: VSize
+    total_fee: Sats
+    fee_histogram: List[List[float]]
+
+class CpfpEntry(TypedDict):
+    """
+    A transaction in a CPFP relationship.
+    """
+    txid: Txid
+    weight: Weight
+    fee: Sats
 
 class AddressMempoolStats(TypedDict):
     """
@@ -376,64 +508,87 @@ class AddressMempoolStats(TypedDict):
     spent_txo_sum: Sats
     tx_count: int
 
-class AddressParam(TypedDict):
+class PoolStats(TypedDict):
     """
-    Bitcoin address path parameter
-    """
-    address: Address
-
-class AddressStats(TypedDict):
-    """
-    Address information compatible with mempool.space API format.
+    Mining pool with block statistics for a time period
 
     Attributes:
-        address: Bitcoin address string
-        address_type: BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
-        chain_stats: Statistics for confirmed transactions on the blockchain
-        mempool_stats: Statistics for unconfirmed transactions in the mempool
-        balance: Total current balance in satoshis, including pending (unconfirmed) mempool changes
+        poolId: Unique pool identifier
+        name: Pool name
+        link: Pool website URL
+        blockCount: Number of blocks mined in the time period
+        rank: Pool ranking by block count (1 = most blocks)
+        emptyBlocks: Number of empty blocks mined
+        slug: URL-friendly pool identifier
+        share: Pool's share of total blocks (0.0 - 1.0)
+        poolUniqueId: Unique pool identifier
     """
-    address: Address
-    address_type: OutputType
-    chain_stats: AddressChainStats
-    mempool_stats: AddressMempoolStats
-    balance: Sats
+    poolId: int
+    name: str
+    link: str
+    blockCount: int
+    rank: int
+    emptyBlocks: int
+    slug: PoolSlug
+    share: float
+    poolUniqueId: int
 
-class _AddressValidationRequired(TypedDict):
-    isvalid: bool
-
-class AddressValidation(_AddressValidationRequired, total=False):
+class PoolsSummary(TypedDict):
     """
-    Address validation result
-
-    Attributes:
-        isvalid: Whether the address is valid
-        address: The validated address
-        scriptPubKey: The scriptPubKey in hex
-        isscript: Whether this is a script address (P2SH)
-        iswitness: Whether this is a witness address
-        witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
-        witness_program: Witness program in hex
-        error_locations: Error locations (empty array for most errors)
-        error: Error message for invalid addresses
-    """
-    address: Optional[str]
-    scriptPubKey: Optional[str]
-    isscript: Optional[bool]
-    iswitness: Optional[bool]
-    witness_version: Optional[int]
-    witness_program: Optional[str]
-    error_locations: Optional[List[int]]
-    error: Optional[str]
-
-class BlockCountParam(TypedDict):
-    """
-    Block count path parameter
+    Mining pools response for a time period
 
     Attributes:
-        block_count: Number of recent blocks to include
+        pools: List of pools sorted by block count descending
+        blockCount: Total blocks in the time period
+        lastEstimatedHashrate: Estimated network hashrate (H/s)
+        lastEstimatedHashrate3d: Estimated network hashrate over last 3 days (H/s)
+        lastEstimatedHashrate1w: Estimated network hashrate over last 1 week (H/s)
     """
-    block_count: int
+    pools: List[PoolStats]
+    blockCount: int
+    lastEstimatedHashrate: int
+    lastEstimatedHashrate3d: int
+    lastEstimatedHashrate1w: int
+
+class PoolSlugParam(TypedDict):
+    """
+    Mining pool slug path parameter
+    """
+    slug: PoolSlug
+
+class PoolInfo(TypedDict):
+    """
+    Basic pool information for listing all pools
+
+    Attributes:
+        name: Pool name
+        slug: URL-friendly pool identifier
+        unique_id: Unique numeric pool identifier
+    """
+    name: str
+    slug: PoolSlug
+    unique_id: int
+
+class PoolDetailInfo(TypedDict):
+    """
+    Pool information for detail view
+
+    Attributes:
+        id: Pool identifier
+        name: Pool name
+        link: Pool website URL
+        addresses: Known payout addresses
+        regexes: Coinbase tag patterns (regexes)
+        slug: URL-friendly pool identifier
+        unique_id: Unique pool identifier
+    """
+    id: int
+    name: str
+    link: str
+    addresses: List[str]
+    regexes: List[str]
+    slug: PoolSlug
+    unique_id: int
 
 class _BlockPoolRequired(TypedDict):
     id: int
@@ -453,6 +608,580 @@ class BlockPool(_BlockPoolRequired, total=False):
         minerNames: Miner name tags found in coinbase scriptsig
     """
     minerNames: Optional[List[str]]
+
+# Pool's share of total blocks for different time periods
+PoolBlockShares = TypedDict("PoolBlockShares", {"all": float, "24h": float, "1w": float})
+
+# Block counts for different time periods
+PoolBlockCounts = TypedDict("PoolBlockCounts", {"all": int, "24h": int, "1w": int})
+
+class _PoolDetailRequired(TypedDict):
+    pool: PoolDetailInfo
+    blockCount: PoolBlockCounts
+    blockShare: PoolBlockShares
+    estimatedHashrate: int
+    totalReward: Sats
+
+class PoolDetail(_PoolDetailRequired, total=False):
+    """
+    Detailed pool information with statistics across time periods
+
+    Attributes:
+        pool: Pool information
+        blockCount: Block counts for different time periods
+        blockShare: Pool's share of total blocks for different time periods
+        estimatedHashrate: Estimated hashrate based on blocks mined (H/s)
+        reportedHashrate: Self-reported hashrate (if available, H/s)
+        totalReward: Total reward earned by this pool: coinbase output value of every block it mined (sats)
+    """
+    reportedHashrate: Optional[int]
+
+class Pagination(TypedDict, total=False):
+    """
+    Pagination parameters for paginated API endpoints
+
+    Attributes:
+        page: Pagination index
+        per_page: Results per page (default: 1000, max: 1000)
+    """
+    page: Optional[int]
+    per_page: Optional[int]
+
+class PaginatedSeries(TypedDict):
+    """
+    A paginated list of available series names (1000 per page)
+
+    Attributes:
+        current_page: Current page number (0-indexed)
+        max_page: Maximum valid page index (0-indexed)
+        total_count: Total number of series
+        per_page: Results per page
+        has_more: Whether more pages are available after the current one
+        series: List of series names
+    """
+    current_page: int
+    max_page: int
+    total_count: int
+    per_page: int
+    has_more: bool
+    series: List[str]
+
+class AddressHashPrefixParam(TypedDict):
+    """
+    Attributes:
+        prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
+    """
+    address_type: OutputType
+    prefix: str
+
+class NextBlockHashParam(TypedDict):
+    """
+    Prior-template hash for `GET /api/v1/mempool/block-template/diff/{hash}`.
+    """
+    hash: NextBlockHash
+
+class _SearchQueryRequired(TypedDict):
+    q: SeriesName
+
+class SearchQuery(_SearchQueryRequired, total=False):
+    """
+    Attributes:
+        q: Search query string
+        limit: Maximum number of results
+    """
+    limit: Limit
+
+class SeriesNameWithIndex(TypedDict):
+    """
+    Attributes:
+        series: Series name
+        index: Aggregation index
+    """
+    series: SeriesName
+    index: Index
+
+class _SeriesLeafWithSchemaRequired(TypedDict):
+    name: str
+    kind: str
+    indexes: List[Index]
+    nullable: List[Index]
+    type: str
+
+class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
+    """
+    Series leaf with JSON Schema for client generation.
+
+    Attributes:
+        name: The series name/identifier.
+        kind: The Rust type (e.g., "Sats", "Ratio").
+        indexes: Available indexes for this series.
+        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
+        description: Human-readable metric definition, when documented.
+        type: JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
+    """
+    description: Optional[str]
+
+class _SeriesInfoRequired(TypedDict):
+    indexes: List[Index]
+    nullable: List[Index]
+    type: str
+
+class SeriesInfo(_SeriesInfoRequired, total=False):
+    """
+    Metadata about a series
+
+    Attributes:
+        description: Human-readable metric definition, when documented
+        indexes: Available indexes
+        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
+        type: Value type (e.g. "Ratio", "Sats", "Cents")
+        unit: What the value type measures, when documented (e.g. "A duration in days.")
+    """
+    description: Optional[str]
+    unit: Optional[str]
+
+class IndexInfo(TypedDict):
+    """
+    Information about an available index and its query aliases
+
+    Attributes:
+        index: The canonical index name
+        aliases: All Accepted query aliases
+    """
+    index: Index
+    aliases: List[str]
+
+class HeightOrDateParam(TypedDict):
+    """
+    Path parameter accepting either a block height (`840000`) or a calendar date
+    (`YYYY-MM-DD`). The handler resolves it and dispatches to the per-height or
+    per-day variant, choosing the matching cache strategy.
+
+    Attributes:
+        point: Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
+    """
+    point: str
+
+class SyncStatus(TypedDict):
+    """
+    Sync status of the indexer
+
+    Attributes:
+        indexed_height: Height of the last indexed block
+        computed_height: Height of the last computed block (series)
+        tip_height: Height of the chain tip (from Bitcoin node)
+        blocks_behind: Number of blocks behind the tip
+        last_indexed_at: Human-readable timestamp of the last indexed block (ISO 8601)
+        last_indexed_at_unix: Unix timestamp of the last indexed block
+    """
+    indexed_height: Height
+    computed_height: Height
+    tip_height: Height
+    blocks_behind: Height
+    last_indexed_at: str
+    last_indexed_at_unix: Timestamp
+
+class RewardStats(TypedDict):
+    """
+    Block reward statistics over a range of blocks
+
+    Attributes:
+        startBlock: First block in the range
+        endBlock: Last block in the range
+        totalReward: Total coinbase rewards (subsidy + fees) in sats
+        totalFee: Total transaction fees in sats
+        totalTx: Total number of transactions
+    """
+    startBlock: Height
+    endBlock: Height
+    totalReward: str
+    totalFee: str
+    totalTx: str
+
+class PoolSlugAndHeightParam(TypedDict):
+    """
+    Mining pool slug + block height path parameters
+    """
+    slug: PoolSlug
+    height: Height
+
+class MerkleProof(TypedDict):
+    """
+    Merkle inclusion proof for a transaction
+
+    Attributes:
+        block_height: Block height containing the transaction
+        merkle: Merkle proof path (hex-encoded hashes)
+        pos: Transaction position in the block (0-indexed)
+    """
+    block_height: Height
+    merkle: List[str]
+    pos: int
+
+class HeightParam(TypedDict):
+    """
+    Block height path parameter
+    """
+    height: Height
+
+class Health(TypedDict):
+    """
+    Server health status
+
+    Attributes:
+        status: Health status ("healthy")
+        service: Service name
+        version: Server version
+        timestamp: Current server time (ISO 8601)
+        started_at: Server start time (ISO 8601)
+        uptime_seconds: Uptime in seconds
+        indexed_height: Height of the last indexed block
+        computed_height: Height of the last computed block (series)
+        tip_height: Height of the chain tip (from Bitcoin node)
+        blocks_behind: Number of blocks behind the tip
+        last_indexed_at: Human-readable timestamp of the last indexed block (ISO 8601)
+        last_indexed_at_unix: Unix timestamp of the last indexed block
+    """
+    status: str
+    service: str
+    version: str
+    timestamp: str
+    started_at: str
+    uptime_seconds: int
+    indexed_height: Height
+    computed_height: Height
+    tip_height: Height
+    blocks_behind: Height
+    last_indexed_at: str
+    last_indexed_at_unix: Timestamp
+
+class DifficultyEntry(TypedDict):
+    """
+    A single difficulty data point in the hashrate summary.
+
+    Attributes:
+        time: Unix timestamp of the difficulty adjustment
+        height: Block height of the adjustment
+        difficulty: Difficulty value
+        adjustment: Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
+    """
+    time: Timestamp
+    height: Height
+    difficulty: float
+    adjustment: float
+
+class HashrateSummary(TypedDict):
+    """
+    Summary of network hashrate and difficulty data.
+
+    Attributes:
+        hashrates: Historical hashrate data points
+        difficulty: Historical difficulty adjustments
+        currentHashrate: Current network hashrate (H/s)
+        currentDifficulty: Current network difficulty
+    """
+    hashrates: List[HashrateEntry]
+    difficulty: List[DifficultyEntry]
+    currentHashrate: int
+    currentDifficulty: float
+
+class DifficultyAdjustment(TypedDict):
+    """
+    Difficulty adjustment information.
+
+    Attributes:
+        progressPercent: Progress through current difficulty epoch (0-100%)
+        difficultyChange: Estimated difficulty change at next retarget (%)
+        estimatedRetargetDate: Estimated timestamp of next retarget (milliseconds)
+        remainingBlocks: Blocks remaining until retarget
+        remainingTime: Estimated time until retarget (milliseconds)
+        previousRetarget: Previous difficulty adjustment (%)
+        previousTime: Timestamp of most recent retarget (seconds)
+        nextRetargetHeight: Height of next retarget
+        timeAvg: Average block time in current epoch (milliseconds)
+        adjustedTimeAvg: Time-adjusted average (milliseconds)
+        timeOffset: Time offset from expected schedule (seconds)
+        expectedBlocks: Expected blocks based on wall clock time since epoch start
+    """
+    progressPercent: float
+    difficultyChange: float
+    estimatedRetargetDate: int
+    remainingBlocks: int
+    remainingTime: int
+    previousRetarget: float
+    previousTime: Timestamp
+    nextRetargetHeight: Height
+    timeAvg: int
+    adjustedTimeAvg: int
+    timeOffset: int
+    expectedBlocks: float
+
+class BlockWeightEntry(TypedDict):
+    """
+    A single block weight data point.
+
+    Attributes:
+        avgHeight: Average block height in this window
+        timestamp: Unix timestamp at the window midpoint
+        avgWeight: Rolling 24h median block weight (weight units)
+    """
+    avgHeight: Height
+    timestamp: Timestamp
+    avgWeight: Weight
+
+class BlockSizeEntry(TypedDict):
+    """
+    A single block size data point.
+
+    Attributes:
+        avgHeight: Average block height in this window
+        timestamp: Unix timestamp at the window midpoint
+        avgSize: Rolling 24h median block size (bytes)
+    """
+    avgHeight: Height
+    timestamp: Timestamp
+    avgSize: int
+
+class BlockSizesWeights(TypedDict):
+    """
+    Combined block sizes and weights response.
+
+    Attributes:
+        sizes: Block size data points
+        weights: Block weight data points
+    """
+    sizes: List[BlockSizeEntry]
+    weights: List[BlockWeightEntry]
+
+class _SeriesSelectionRequired(TypedDict):
+    series: SeriesList
+    index: Index
+
+class SeriesSelection(_SeriesSelectionRequired, total=False):
+    """
+    Selection of series to query
+
+    Attributes:
+        series: Requested series
+        index: Index to query
+        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
+        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
+        limit: Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+        format: Format of the output
+    """
+    start: Union[RangeIndex, None]
+    end: Union[RangeIndex, None]
+    limit: Union[Limit, None]
+    format: Format
+
+class DataRangeFormat(TypedDict, total=False):
+    """
+    Range parameters with output format for API query parameters.
+
+    Attributes:
+        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
+        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
+        limit: Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+        format: Format of the output
+    """
+    start: Union[RangeIndex, None]
+    end: Union[RangeIndex, None]
+    limit: Union[Limit, None]
+    format: Format
+
+class RecommendedFees(TypedDict):
+    """
+    Recommended fee rates in sat/vB
+
+    Attributes:
+        fastestFee: Fee rate for fastest confirmation (next block)
+        halfHourFee: Fee rate for confirmation within ~30 minutes (3 blocks)
+        hourFee: Fee rate for confirmation within ~1 hour (6 blocks)
+        economyFee: Fee rate for economical confirmation
+        minimumFee: Minimum relay fee rate
+    """
+    fastestFee: FeeRate
+    halfHourFee: FeeRate
+    hourFee: FeeRate
+    economyFee: FeeRate
+    minimumFee: FeeRate
+
+class _RbfTxRequired(TypedDict):
+    txid: Txid
+    fee: Sats
+    vsize: VSize
+    value: Sats
+    rate: FeeRate
+    time: Timestamp
+    rbf: bool
+
+class RbfTx(_RbfTxRequired, total=False):
+    """
+    Transaction summary carried inside an RBF replacement node. Shape
+    matches mempool.space's `/api/v1/tx/:txid/rbf` and
+    `/api/v1/replacements` responses.
+
+    Attributes:
+        value: Sum of output amounts.
+        rbf: BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
+        fullRbf: Only populated on the root `tx` of an RBF response. `true` iff this tx displaced at least one non-signaling predecessor.
+    """
+    fullRbf: Optional[bool]
+
+class _ReplacementNodeRequired(TypedDict):
+    tx: RbfTx
+    time: Timestamp
+    fullRbf: bool
+    replaces: List["ReplacementNode"]
+
+class ReplacementNode(_ReplacementNodeRequired, total=False):
+    """
+    One node in an RBF replacement tree. The node's `tx` replaced each
+    entry in `replaces`, recursively.
+
+    Attributes:
+        time: First-seen timestamp, duplicated here to match mempool.space's on-the-wire shape.
+        fullRbf: Any predecessor in this subtree was non-signaling.
+        interval: Seconds between this node's `time` and the successor that replaced it. Omitted on the root of an RBF response.
+        mined: `Some(true)` iff this node's tx is currently confirmed. Absent on serialization otherwise.
+    """
+    interval: Optional[int]
+    mined: Optional[bool]
+
+class RbfResponse(TypedDict, total=False):
+    """
+    Response body for `GET /api/v1/tx/:txid/rbf`. Both fields are null
+    when the tx has no known RBF history within the mempool monitor's
+    graveyard retention window.
+    """
+    replacements: Union[ReplacementNode, None]
+    replaces: Optional[List[Txid]]
+
+class MempoolBlock(TypedDict):
+    """
+    Block info in a mempool.space like format for fee estimation.
+
+    Attributes:
+        blockSize: Total serialized block size in bytes (witness + non-witness).
+        blockVSize: Total block virtual size in vbytes
+        nTx: Number of transactions in the projected block
+        totalFees: Total fees in satoshis
+        medianFee: Median fee rate in sat/vB
+        feeRange: Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+    """
+    blockSize: int
+    blockVSize: float
+    nTx: int
+    totalFees: Sats
+    medianFee: FeeRate
+    feeRange: List[FeeRate]
+
+class BlockFeeRatesEntry(TypedDict):
+    """
+    A single block fee rates data point with percentiles.
+
+    Attributes:
+        avgHeight: Average block height in this window
+        timestamp: Unix timestamp at the window midpoint
+        avgFee_0: Minimum fee rate (sat/vB)
+        avgFee_10: 10th percentile fee rate (sat/vB)
+        avgFee_25: 25th percentile fee rate (sat/vB)
+        avgFee_50: Median fee rate (sat/vB)
+        avgFee_75: 75th percentile fee rate (sat/vB)
+        avgFee_90: 90th percentile fee rate (sat/vB)
+        avgFee_100: Maximum fee rate (sat/vB)
+    """
+    avgHeight: Height
+    timestamp: Timestamp
+    avgFee_0: FeeRate
+    avgFee_10: FeeRate
+    avgFee_25: FeeRate
+    avgFee_50: FeeRate
+    avgFee_75: FeeRate
+    avgFee_90: FeeRate
+    avgFee_100: FeeRate
+
+class ErrorDetail(TypedDict):
+    """
+    Attributes:
+        type: Error category, following the HTTP status
+        code: Machine-readable error code
+        message: Human-readable description
+        doc_url: Link to API documentation
+    """
+    type: ErrorType
+    code: ErrorCode
+    message: str
+    doc_url: str
+
+class ErrorBody(TypedDict):
+    """
+    The JSON body of every API error (`application/problem+json`).
+    """
+    error: ErrorDetail
+
+class Prices(TypedDict):
+    """
+    Current price response matching mempool.space /api/v1/prices format
+
+    Attributes:
+        time: Unix timestamp
+        USD: BTC/USD price
+    """
+    time: Timestamp
+    USD: Dollars
+
+class HistoricalPriceEntry(TypedDict):
+    """
+    A single price data point
+
+    Attributes:
+        time: Unix timestamp
+        USD: BTC/USD price
+    """
+    time: Timestamp
+    USD: Dollars
+
+class HistoricalPrice(TypedDict):
+    """
+    Historical price response
+
+    Attributes:
+        prices: Price data points
+        exchangeRates: Exchange rates (currently empty)
+    """
+    prices: List[HistoricalPriceEntry]
+    exchangeRates: ExchangeRates
+
+class BlockRewardsEntry(TypedDict):
+    """
+    A single block rewards data point.
+
+    Attributes:
+        avgHeight: Average block height in this window
+        timestamp: Unix timestamp at the window midpoint
+        avgRewards: Average coinbase reward per block (subsidy + fees, sats)
+        USD: BTC/USD price at this height
+    """
+    avgHeight: Height
+    timestamp: Timestamp
+    avgRewards: Sats
+    USD: Dollars
+
+class BlockFeesEntry(TypedDict):
+    """
+    A single block fees data point.
+
+    Attributes:
+        avgHeight: Average block height in this window
+        timestamp: Unix timestamp at the window midpoint
+        avgFees: Average fees per block in this window (sats)
+        USD: BTC/USD price at this height
+    """
+    avgHeight: Height
+    timestamp: Timestamp
+    avgFees: Sats
+    USD: Dollars
 
 class _BlockExtrasRequired(TypedDict):
     totalFees: Sats
@@ -521,106 +1250,201 @@ class BlockExtras(_BlockExtrasRequired, total=False):
     coinbaseAddress: Optional[str]
     firstSeen: Optional[int]
 
-class BlockFeeRatesEntry(TypedDict):
-    """
-    A single block fee rates data point with percentiles.
-
-    Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgFee_0: Minimum fee rate (sat/vB)
-        avgFee_10: 10th percentile fee rate (sat/vB)
-        avgFee_25: 25th percentile fee rate (sat/vB)
-        avgFee_50: Median fee rate (sat/vB)
-        avgFee_75: 75th percentile fee rate (sat/vB)
-        avgFee_90: 90th percentile fee rate (sat/vB)
-        avgFee_100: Maximum fee rate (sat/vB)
-    """
-    avgHeight: Height
-    timestamp: Timestamp
-    avgFee_0: FeeRate
-    avgFee_10: FeeRate
-    avgFee_25: FeeRate
-    avgFee_50: FeeRate
-    avgFee_75: FeeRate
-    avgFee_90: FeeRate
-    avgFee_100: FeeRate
-
-class BlockFeesEntry(TypedDict):
-    """
-    A single block fees data point.
-
-    Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgFees: Average fees per block in this window (sats)
-        USD: BTC/USD price at this height
-    """
-    avgHeight: Height
-    timestamp: Timestamp
-    avgFees: Sats
-    USD: Dollars
-
-class BlockHashParam(TypedDict):
-    """
-    Block hash path parameter
-    """
-    hash: BlockHash
-
-class BlockHashStartIndex(TypedDict):
-    """
-    Block hash + starting transaction index path parameters
-
-    Attributes:
-        hash: Bitcoin block hash
-        start_index: Starting transaction index within the block (0-based)
-    """
-    hash: BlockHash
-    start_index: BlockTxIndex
-
-class BlockHashTxIndex(TypedDict):
-    """
-    Block hash + transaction index path parameters
-
-    Attributes:
-        hash: Bitcoin block hash
-        index: Transaction index within the block (0-based)
-    """
-    hash: BlockHash
-    index: BlockTxIndex
-
-class BlockInfo(TypedDict):
-    """
-    Block information matching mempool.space /api/block/{hash}
-
-    Attributes:
-        id: Block hash
-        height: Block height
-        version: Block version
-        timestamp: Block timestamp (Unix time)
-        bits: Compact target (bits)
-        nonce: Nonce
-        difficulty: Block difficulty
-        merkle_root: Merkle root of the transaction tree
-        tx_count: Number of transactions
-        size: Block size in bytes
-        weight: Block weight in weight units
-        previousblockhash: Previous block hash
-        mediantime: Median time of the last 11 blocks
-    """
-    id: BlockHash
-    height: Height
-    version: int
-    timestamp: Timestamp
-    bits: int
-    nonce: int
-    difficulty: float
-    merkle_root: str
+class _AddressChainStatsRequired(TypedDict):
+    balance: Sats
+    funded_txo_count: int
+    funded_txo_sum: Sats
+    spent_txo_count: int
+    spent_txo_sum: Sats
     tx_count: int
-    size: int
+    realized_price: Dollars
+
+class AddressChainStats(_AddressChainStatsRequired, total=False):
+    """
+    Address statistics on the blockchain (confirmed transactions only)
+    
+    Based on mempool.space's format with type_index extension.
+
+    Attributes:
+        balance: Current confirmed balance in satoshis
+        funded_txo_count: Total number of transaction outputs that funded this address
+        funded_txo_sum: Total amount in satoshis received by this address across all funded outputs
+        spent_txo_count: Total number of transaction outputs spent from this address
+        spent_txo_sum: Total amount in satoshis spent from this address
+        tx_count: Total number of confirmed transactions involving this address
+        type_index: Index of this address within its type on the blockchain, null for an address seen only in the mempool
+        realized_price: Realized price (average cost basis) in USD
+    """
+    type_index: Union[TypeIndex, None]
+
+class DiskUsage(TypedDict):
+    """
+    Disk usage of the indexed data
+
+    Attributes:
+        brk: Human-readable brk data size (e.g., "48.8 GiB")
+        brk_bytes: brk data size in bytes
+        bitcoin: Human-readable Bitcoin blocks directory size
+        bitcoin_bytes: Bitcoin blocks directory size in bytes
+        ratio: Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.
+    """
+    brk: str
+    brk_bytes: int
+    bitcoin: str
+    bitcoin_bytes: int
+    ratio: float
+
+class CpfpClusterTx(TypedDict):
+    """
+    One entry in a `CpfpCluster.txs` array.
+
+    Attributes:
+        parents: In-cluster parents of this tx.
+    """
+    txid: Txid
     weight: Weight
-    previousblockhash: BlockHash
-    mediantime: Timestamp
+    fee: Sats
+    parents: List[CpfpClusterTxIndex]
+
+class CpfpClusterChunk(TypedDict):
+    """
+    One linearized chunk inside a `CpfpCluster`. `txs` is in topological order
+    (matches `CpfpCluster.txs` ordering); the chunk's `feerate` is the
+    per-chunk feerate and is the same for every tx in this chunk.
+    """
+    txs: List[CpfpClusterTxIndex]
+    feerate: FeeRate
+
+class CpfpCluster(TypedDict):
+    """
+    CPFP cluster: the connected component the seed belongs to, plus its
+    linearization.
+
+    Attributes:
+        txs: All txs in the cluster, in topological order (parents before children).
+        chunks: Chunks ordered by descending feerate.
+        chunkIndex: Index into `chunks` of the chunk containing the seed tx.
+    """
+    txs: List[CpfpClusterTx]
+    chunks: List[CpfpClusterChunk]
+    chunkIndex: int
+
+class _CpfpInfoRequired(TypedDict):
+    ancestors: List[CpfpEntry]
+    descendants: List[CpfpEntry]
+    effectiveFeePerVsize: FeeRate
+    sigops: SigOps
+    fee: Sats
+    vsize: VSize
+    adjustedVsize: VSize
+
+class CpfpInfo(_CpfpInfoRequired, total=False):
+    """
+    CPFP (Child Pays For Parent) information for a transaction.
+
+    Attributes:
+        ancestors: Ancestor transactions in the CPFP chain.
+        bestDescendant: Best (highest fee rate) descendant, if any.
+        descendants: Descendant transactions in the CPFP chain.
+        effectiveFeePerVsize: Effective fee rate considering CPFP relationships (sat/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
+        sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4).
+        fee: Transaction fee (sats).
+        vsize: Virtual size of the seed tx (vbytes).
+        adjustedVsize: Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
+        cluster: Cluster the seed belongs to: full tx list, linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
+    """
+    bestDescendant: Union[CpfpEntry, None]
+    cluster: Union[CpfpCluster, None]
+
+class UrpdParams(TypedDict):
+    """
+    A URPD cohort and exact block height or UTC calendar-day alias.
+    """
+    cohort: Cohort
+    point: str
+
+class UrpdCohortParam(TypedDict):
+    """
+    Path parameters for per-cohort URPD endpoints.
+    """
+    cohort: Cohort
+
+class _TxStatusRequired(TypedDict):
+    confirmed: bool
+
+class TxStatus(_TxStatusRequired, total=False):
+    """
+    Transaction confirmation status
+
+    Attributes:
+        confirmed: Whether the transaction is confirmed
+        block_height: Block height (only present if confirmed)
+        block_hash: Block hash (only present if confirmed)
+        block_time: Block timestamp (only present if confirmed)
+    """
+    block_height: Union[Height, None]
+    block_hash: Union[BlockHash, None]
+    block_time: Union[Timestamp, None]
+
+class Utxo(TypedDict):
+    """
+    Unspent transaction output
+
+    Attributes:
+        txid: Transaction ID of the UTXO
+        vout: Output index
+        status: Confirmation status
+        value: Output value in satoshis
+    """
+    txid: Txid
+    vout: Vout
+    status: TxStatus
+    value: Sats
+
+class _TxOutspendRequired(TypedDict):
+    spent: bool
+
+class TxOutspend(_TxOutspendRequired, total=False):
+    """
+    Status of an output indicating whether it has been spent
+
+    Attributes:
+        spent: Whether the output has been spent
+        txid: Transaction ID of the spending transaction (only present if spent)
+        vin: Input index in the spending transaction (only present if spent)
+        status: Status of the spending transaction (only present if spent)
+    """
+    txid: Union[Txid, None]
+    vin: Union[Vin, None]
+    status: Union[TxStatus, None]
+
+class BlockTimestamp(TypedDict):
+    """
+    Block information returned for timestamp queries
+
+    Attributes:
+        height: Block height
+        hash: Block hash
+        timestamp: Block timestamp in ISO 8601 format
+    """
+    height: Height
+    hash: BlockHash
+    timestamp: str
+
+class _BlockStatusRequired(TypedDict):
+    in_best_chain: bool
+
+class BlockStatus(_BlockStatusRequired, total=False):
+    """
+    Block status indicating whether block is in the best chain
+
+    Attributes:
+        in_best_chain: Whether this block is in the best chain
+        height: Block height (only if in best chain)
+        next_best: Hash of the next block in the best chain (null if tip)
+    """
+    height: Union[Height, None]
+    next_best: Union[BlockHash, None]
 
 class _BlockInfoV1Required(TypedDict):
     id: BlockHash
@@ -661,91 +1485,210 @@ class BlockInfoV1(_BlockInfoV1Required, total=False):
     """
     stale: bool
 
-class BlockRewardsEntry(TypedDict):
+class BlockInfo(TypedDict):
     """
-    A single block rewards data point.
+    Block information matching mempool.space /api/block/{hash}
 
     Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgRewards: Average coinbase reward per block (subsidy + fees, sats)
-        USD: BTC/USD price at this height
+        id: Block hash
+        height: Block height
+        version: Block version
+        timestamp: Block timestamp (Unix time)
+        bits: Compact target (bits)
+        nonce: Nonce
+        difficulty: Block difficulty
+        merkle_root: Merkle root of the transaction tree
+        tx_count: Number of transactions
+        size: Block size in bytes
+        weight: Block weight in weight units
+        previousblockhash: Previous block hash
+        mediantime: Median time of the last 11 blocks
     """
-    avgHeight: Height
+    id: BlockHash
+    height: Height
+    version: int
     timestamp: Timestamp
-    avgRewards: Sats
-    USD: Dollars
+    bits: int
+    nonce: int
+    difficulty: float
+    merkle_root: str
+    tx_count: int
+    size: int
+    weight: Weight
+    previousblockhash: BlockHash
+    mediantime: Timestamp
 
-class BlockSizeEntry(TypedDict):
+class BlockHashTxIndex(TypedDict):
     """
-    A single block size data point.
+    Block hash + transaction index path parameters
 
     Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgSize: Rolling 24h median block size (bytes)
+        hash: Bitcoin block hash
+        index: Transaction index within the block (0-based)
     """
-    avgHeight: Height
-    timestamp: Timestamp
-    avgSize: int
+    hash: BlockHash
+    index: BlockTxIndex
 
-class BlockWeightEntry(TypedDict):
+class BlockHashStartIndex(TypedDict):
     """
-    A single block weight data point.
+    Block hash + starting transaction index path parameters
 
     Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgWeight: Rolling 24h median block weight (weight units)
+        hash: Bitcoin block hash
+        start_index: Starting transaction index within the block (0-based)
     """
-    avgHeight: Height
-    timestamp: Timestamp
-    avgWeight: Weight
+    hash: BlockHash
+    start_index: BlockTxIndex
 
-class BlockSizesWeights(TypedDict):
+class BlockHashParam(TypedDict):
     """
-    Combined block sizes and weights response.
-
-    Attributes:
-        sizes: Block size data points
-        weights: Block weight data points
+    Block hash path parameter
     """
-    sizes: List[BlockSizeEntry]
-    weights: List[BlockWeightEntry]
+    hash: BlockHash
 
-class _BlockStatusRequired(TypedDict):
-    in_best_chain: bool
-
-class BlockStatus(_BlockStatusRequired, total=False):
+class BlockCountParam(TypedDict):
     """
-    Block status indicating whether block is in the best chain
+    Block count path parameter
 
     Attributes:
-        in_best_chain: Whether this block is in the best chain
-        height: Block height (only if in best chain)
-        next_best: Hash of the next block in the best chain (null if tip)
+        block_count: Number of recent blocks to include
     """
-    height: Union[Height, None]
-    next_best: Union[BlockHash, None]
+    block_count: int
 
-class MempoolBlock(TypedDict):
+class UtxoOrigins(TypedDict):
     """
-    Block info in a mempool.space like format for fee estimation.
+    Columnar unspent amounts indexed by creation height.
 
     Attributes:
-        blockSize: Total serialized block size in bytes (witness + non-witness).
-        blockVSize: Total block virtual size in vbytes
-        nTx: Number of transactions in the projected block
-        totalFees: Total fees in satoshis
-        medianFee: Median fee rate in sat/vB
-        feeRange: Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+        count: Number of unspent outputs per creation height.
+        supply: BTC held by the unspent outputs per creation height.
     """
-    blockSize: int
-    blockVSize: float
-    nTx: int
-    totalFees: Sats
-    medianFee: FeeRate
-    feeRange: List[FeeRate]
+    count: List[int]
+    supply: List[Bitcoin]
+
+class UtxoSet(TypedDict):
+    """
+    The UTXO set after a block, grouped by the height of the block that created each output.
+    
+    The set excludes `OP_RETURN` outputs and the genesis coinbase, which are unspendable, and the
+    coinbases of blocks 91812 and 91722 once duplicates at 91842 and 91880 overwrite them; it
+    includes zero-value outputs. The set after block `first - 1` plus a diff's `created` minus its
+    `spent` gives the set after block `last`; rounding each supply to 8 decimals keeps it exact.
+
+    Attributes:
+        height: Height of the represented block.
+        hash: Hash of the represented block.
+        date: UTC date of the represented block's monotonic timestamp (the running maximum of block times).
+        count: Number of unspent outputs.
+        supply: BTC held by the unspent outputs.
+        origins: Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
+    """
+    height: Height
+    hash: BlockHash
+    date: Date
+    count: int
+    supply: Bitcoin
+    origins: UtxoOrigins
+
+class UtxoChanges(TypedDict):
+    """
+    Columnar counts and supplies by creation height.
+
+    Attributes:
+        height: Creation height of each row.
+        count: Number of outputs in each row.
+        supply: BTC held by the outputs in each row.
+    """
+    height: List[Height]
+    count: List[int]
+    supply: List[Bitcoin]
+
+class UtxoSetDiff(TypedDict):
+    """
+    What blocks `first` through `last` changed in the UTXO set.
+
+    Attributes:
+        first: First block of the diff; it applies to the set after block `first - 1` (the empty set for block 0).
+        last: Last block of the diff, described by `hash` and `date`.
+        hash: Hash of block `last`.
+        date: UTC date of block `last`'s monotonic timestamp.
+        created: Outputs created, one row per block, including those spent again within the range (which `spent` lists too).
+        spent: Outputs removed, one row per creation height in ascending order: spent outputs, plus the coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
+    """
+    first: Height
+    last: Height
+    hash: BlockHash
+    date: Date
+    created: UtxoChanges
+    spent: UtxoChanges
+
+class UrpdBucket(TypedDict):
+    """
+    A single bucket in a URPD snapshot.
+
+    Attributes:
+        price_floor: The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its coins' creation prices round to (four significant digits of the price in cents).
+        supply: Supply held with a last-move price inside this bucket, in BTC.
+        realized_cap: Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
+        unrealized_pnl: Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.
+    """
+    price_floor: Dollars
+    supply: Bitcoin
+    realized_cap: Dollars
+    unrealized_pnl: Dollars
+
+class Urpd(TypedDict):
+    """
+    UTXO Realized Price Distribution for a cohort at a specific block.
+    
+    Supply is grouped by the price at the block in which each UTXO was last moved.
+    Each bucket exposes three values: supply in BTC, realized cap contribution
+    in USD (sum of `realized_price * supply` over the coins in the bucket), and
+    unrealized P&L in USD (`close * supply - realized_cap`, can be negative).
+
+    Attributes:
+        date: UTC date of the represented block.
+        height: Exact published block represented by this distribution.
+        weight: Weighting applied to the source supply.
+        aggregation: Aggregation strategy applied to the buckets.
+        close: Price at `height`, in USD. Anchor for `unrealized_pnl`.
+        total_supply: Sum of `supply` across all buckets, in BTC.
+    """
+    cohort: Cohort
+    date: Date
+    height: Height
+    weight: UrpdWeight
+    aggregation: UrpdAggregation
+    close: Dollars
+    total_supply: Bitcoin
+    buckets: List[UrpdBucket]
+
+class _AddressValidationRequired(TypedDict):
+    isvalid: bool
+
+class AddressValidation(_AddressValidationRequired, total=False):
+    """
+    Address validation result
+
+    Attributes:
+        isvalid: Whether the address is valid
+        address: The validated address
+        scriptPubKey: The scriptPubKey in hex
+        isscript: Whether this is a script address (P2SH)
+        iswitness: Whether this is a witness address
+        witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
+        witness_program: Witness program in hex
+        error_locations: Error locations (empty array for most errors)
+        error: Error message for invalid addresses
+    """
+    address: Optional[str]
+    scriptPubKey: Optional[str]
+    isscript: Optional[bool]
+    iswitness: Optional[bool]
+    witness_version: Optional[int]
+    witness_program: Optional[str]
+    error_locations: Optional[List[int]]
+    error: Optional[str]
 
 class _TxOutRequired(TypedDict):
     scriptpubkey: str
@@ -791,23 +1734,6 @@ class TxIn(_TxInRequired, total=False):
     inner_redeemscript_asm: str
     inner_witnessscript_asm: str
 
-class _TxStatusRequired(TypedDict):
-    confirmed: bool
-
-class TxStatus(_TxStatusRequired, total=False):
-    """
-    Transaction confirmation status
-
-    Attributes:
-        confirmed: Whether the transaction is confirmed
-        block_height: Block height (only present if confirmed)
-        block_hash: Block hash (only present if confirmed)
-        block_time: Block timestamp (only present if confirmed)
-    """
-    block_height: Union[Height, None]
-    block_hash: Union[BlockHash, None]
-    block_time: Union[Timestamp, None]
-
 class _TransactionRequired(TypedDict):
     txid: Txid
     version: TxVersionRaw
@@ -839,21 +1765,6 @@ class Transaction(_TransactionRequired, total=False):
     """
     index: Union[TxIndex, None]
 
-class BlockTemplate(TypedDict):
-    """
-    Projected next-block contents from Bitcoin Core's `getblocktemplate`
-    (block 0 of the snapshot). Returned by
-    `GET /api/v1/mempool/block-template`.
-
-    Attributes:
-        hash: Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
-        stats: Aggregate stats for this block (size, vsize, fee range, ...).
-        transactions: Full transaction bodies in `getblocktemplate` order.
-    """
-    hash: NextBlockHash
-    stats: MempoolBlock
-    transactions: List[Transaction]
-
 class BlockTemplateDiff(TypedDict):
     """
     Delta between the current `getblocktemplate` projection and a prior
@@ -881,970 +1792,59 @@ class BlockTemplateDiff(TypedDict):
     order: List[BlockTemplateDiffEntry]
     removed: List[Txid]
 
-class BlockTimestamp(TypedDict):
+class BlockTemplate(TypedDict):
     """
-    Block information returned for timestamp queries
+    Projected next-block contents from Bitcoin Core's `getblocktemplate`
+    (block 0 of the snapshot). Returned by
+    `GET /api/v1/mempool/block-template`.
 
     Attributes:
-        height: Block height
-        hash: Block hash
-        timestamp: Block timestamp in ISO 8601 format
-    """
-    height: Height
-    hash: BlockHash
-    timestamp: str
-
-class CpfpClusterChunk(TypedDict):
-    """
-    One linearized chunk inside a `CpfpCluster`. `txs` is in topological order
-    (matches `CpfpCluster.txs` ordering); the chunk's `feerate` is the
-    per-chunk feerate and is the same for every tx in this chunk.
-    """
-    txs: List[CpfpClusterTxIndex]
-    feerate: FeeRate
-
-class CpfpClusterTx(TypedDict):
-    """
-    One entry in a `CpfpCluster.txs` array.
-
-    Attributes:
-        parents: In-cluster parents of this tx.
-    """
-    txid: Txid
-    weight: Weight
-    fee: Sats
-    parents: List[CpfpClusterTxIndex]
-
-class CpfpCluster(TypedDict):
-    """
-    CPFP cluster: the connected component the seed belongs to, plus its
-    linearization.
-
-    Attributes:
-        txs: All txs in the cluster, in topological order (parents before children).
-        chunks: Chunks ordered by descending feerate.
-        chunkIndex: Index into `chunks` of the chunk containing the seed tx.
-    """
-    txs: List[CpfpClusterTx]
-    chunks: List[CpfpClusterChunk]
-    chunkIndex: int
-
-class CpfpEntry(TypedDict):
-    """
-    A transaction in a CPFP relationship.
-    """
-    txid: Txid
-    weight: Weight
-    fee: Sats
-
-class _CpfpInfoRequired(TypedDict):
-    ancestors: List[CpfpEntry]
-    descendants: List[CpfpEntry]
-    effectiveFeePerVsize: FeeRate
-    sigops: SigOps
-    fee: Sats
-    vsize: VSize
-    adjustedVsize: VSize
-
-class CpfpInfo(_CpfpInfoRequired, total=False):
-    """
-    CPFP (Child Pays For Parent) information for a transaction.
-
-    Attributes:
-        ancestors: Ancestor transactions in the CPFP chain.
-        bestDescendant: Best (highest fee rate) descendant, if any.
-        descendants: Descendant transactions in the CPFP chain.
-        effectiveFeePerVsize: Effective fee rate considering CPFP relationships (sat/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
-        sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4).
-        fee: Transaction fee (sats).
-        vsize: Virtual size of the seed tx (vbytes).
-        adjustedVsize: Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
-        cluster: Cluster the seed belongs to: full tx list, linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
-    """
-    bestDescendant: Union[CpfpEntry, None]
-    cluster: Union[CpfpCluster, None]
-
-class DataRangeFormat(TypedDict, total=False):
-    """
-    Range parameters with output format for API query parameters.
-
-    Attributes:
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-        limit: Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
-        format: Format of the output
-    """
-    start: Union[RangeIndex, None]
-    end: Union[RangeIndex, None]
-    limit: Union[Limit, None]
-    format: Format
-
-class SeriesCount(TypedDict):
-    """
-    Series count statistics
-
-    Attributes:
-        distinct: Number of unique series available (e.g., realized_price, market_cap)
-        total: Total number of series-index combinations across all timeframes
-        lazy: Number of lazy (computed on-the-fly) series-index combinations
-        stored: Number of eager (stored on disk) series-index combinations
-    """
-    distinct: int
-    total: int
-    lazy: int
-    stored: int
-
-class DetailedSeriesCount(TypedDict):
-    """
-    Detailed series count with per-database breakdown.
-
-    Attributes:
-        distinct: Number of unique series available (e.g., realized_price, market_cap)
-        total: Total number of series-index combinations across all timeframes
-        lazy: Number of lazy (computed on-the-fly) series-index combinations
-        stored: Number of eager (stored on disk) series-index combinations
-        by_db: Per-database breakdown of counts.
-    """
-    distinct: int
-    total: int
-    lazy: int
-    stored: int
-    by_db: dict[str, SeriesCount]
-
-class DifficultyAdjustment(TypedDict):
-    """
-    Difficulty adjustment information.
-
-    Attributes:
-        progressPercent: Progress through current difficulty epoch (0-100%)
-        difficultyChange: Estimated difficulty change at next retarget (%)
-        estimatedRetargetDate: Estimated timestamp of next retarget (milliseconds)
-        remainingBlocks: Blocks remaining until retarget
-        remainingTime: Estimated time until retarget (milliseconds)
-        previousRetarget: Previous difficulty adjustment (%)
-        previousTime: Timestamp of most recent retarget (seconds)
-        nextRetargetHeight: Height of next retarget
-        timeAvg: Average block time in current epoch (milliseconds)
-        adjustedTimeAvg: Time-adjusted average (milliseconds)
-        timeOffset: Time offset from expected schedule (seconds)
-        expectedBlocks: Expected blocks based on wall clock time since epoch start
-    """
-    progressPercent: float
-    difficultyChange: float
-    estimatedRetargetDate: int
-    remainingBlocks: int
-    remainingTime: int
-    previousRetarget: float
-    previousTime: Timestamp
-    nextRetargetHeight: Height
-    timeAvg: int
-    adjustedTimeAvg: int
-    timeOffset: int
-    expectedBlocks: float
-
-class DifficultyEntry(TypedDict):
-    """
-    A single difficulty data point in the hashrate summary.
-
-    Attributes:
-        time: Unix timestamp of the difficulty adjustment
-        height: Block height of the adjustment
-        difficulty: Difficulty value
-        adjustment: Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
-    """
-    time: Timestamp
-    height: Height
-    difficulty: float
-    adjustment: float
-
-class DiskUsage(TypedDict):
-    """
-    Disk usage of the indexed data
-
-    Attributes:
-        brk: Human-readable brk data size (e.g., "48.8 GiB")
-        brk_bytes: brk data size in bytes
-        bitcoin: Human-readable Bitcoin blocks directory size
-        bitcoin_bytes: Bitcoin blocks directory size in bytes
-        ratio: Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.
-    """
-    brk: str
-    brk_bytes: int
-    bitcoin: str
-    bitcoin_bytes: int
-    ratio: float
-
-class ErrorDetail(TypedDict):
-    """
-    Attributes:
-        type: Error category, following the HTTP status
-        code: Machine-readable error code
-        message: Human-readable description
-        doc_url: Link to API documentation
-    """
-    type: ErrorType
-    code: ErrorCode
-    message: str
-    doc_url: str
-
-class ErrorBody(TypedDict):
-    """
-    The JSON body of every API error (`application/problem+json`).
-    """
-    error: ErrorDetail
-
-class HashrateEntry(TypedDict):
-    """
-    A single hashrate data point.
-
-    Attributes:
-        timestamp: Unix timestamp
-        avgHashrate: Average hashrate (H/s)
-    """
-    timestamp: Timestamp
-    avgHashrate: int
-
-class HashrateSummary(TypedDict):
-    """
-    Summary of network hashrate and difficulty data.
-
-    Attributes:
-        hashrates: Historical hashrate data points
-        difficulty: Historical difficulty adjustments
-        currentHashrate: Current network hashrate (H/s)
-        currentDifficulty: Current network difficulty
-    """
-    hashrates: List[HashrateEntry]
-    difficulty: List[DifficultyEntry]
-    currentHashrate: int
-    currentDifficulty: float
-
-class Health(TypedDict):
-    """
-    Server health status
-
-    Attributes:
-        status: Health status ("healthy")
-        service: Service name
-        version: Server version
-        timestamp: Current server time (ISO 8601)
-        started_at: Server start time (ISO 8601)
-        uptime_seconds: Uptime in seconds
-        indexed_height: Height of the last indexed block
-        computed_height: Height of the last computed block (series)
-        tip_height: Height of the chain tip (from Bitcoin node)
-        blocks_behind: Number of blocks behind the tip
-        last_indexed_at: Human-readable timestamp of the last indexed block (ISO 8601)
-        last_indexed_at_unix: Unix timestamp of the last indexed block
-    """
-    status: str
-    service: str
-    version: str
-    timestamp: str
-    started_at: str
-    uptime_seconds: int
-    indexed_height: Height
-    computed_height: Height
-    tip_height: Height
-    blocks_behind: Height
-    last_indexed_at: str
-    last_indexed_at_unix: Timestamp
-
-class HeightOrDateParam(TypedDict):
-    """
-    Path parameter accepting either a block height (`840000`) or a calendar date
-    (`YYYY-MM-DD`). The handler resolves it and dispatches to the per-height or
-    per-day variant, choosing the matching cache strategy.
-
-    Attributes:
-        point: Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
-    """
-    point: str
-
-class HeightParam(TypedDict):
-    """
-    Block height path parameter
-    """
-    height: Height
-
-class HistoricalPriceEntry(TypedDict):
-    """
-    A single price data point
-
-    Attributes:
-        time: Unix timestamp
-        USD: BTC/USD price
-    """
-    time: Timestamp
-    USD: Dollars
-
-class HistoricalPrice(TypedDict):
-    """
-    Historical price response
-
-    Attributes:
-        prices: Price data points
-        exchangeRates: Exchange rates (currently empty)
-    """
-    prices: List[HistoricalPriceEntry]
-    exchangeRates: ExchangeRates
-
-class IndexInfo(TypedDict):
-    """
-    Information about an available index and its query aliases
-
-    Attributes:
-        index: The canonical index name
-        aliases: All Accepted query aliases
-    """
-    index: Index
-    aliases: List[str]
-
-class MempoolInfo(TypedDict):
-    """
-    Mempool statistics with incrementally maintained fee histogram.
-
-    Attributes:
-        count: Number of transactions in the mempool
-        vsize: Total virtual size of all transactions in the mempool (vbytes)
-        total_fee: Total fees of all transactions in the mempool (satoshis)
-        fee_histogram: Fee histogram: `[[fee_rate, vsize], ...]` sorted by descending fee rate
-    """
-    count: int
-    vsize: VSize
-    total_fee: Sats
-    fee_histogram: List[List[float]]
-
-class MempoolRecentTx(TypedDict):
-    """
-    Simplified mempool transaction for the `/api/mempool/recent` endpoint.
-
-    Attributes:
-        txid: Transaction ID
-        fee: Transaction fee (sats)
-        vsize: Virtual size (vbytes)
-        value: Total output value (sats)
-    """
-    txid: Txid
-    fee: Sats
-    vsize: VSize
-    value: Sats
-
-class MerkleProof(TypedDict):
-    """
-    Merkle inclusion proof for a transaction
-
-    Attributes:
-        block_height: Block height containing the transaction
-        merkle: Merkle proof path (hex-encoded hashes)
-        pos: Transaction position in the block (0-indexed)
-    """
-    block_height: Height
-    merkle: List[str]
-    pos: int
-
-class NextBlockHashParam(TypedDict):
-    """
-    Prior-template hash for `GET /api/v1/mempool/block-template/diff/{hash}`.
+        hash: Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
+        stats: Aggregate stats for this block (size, vsize, fee range, ...).
+        transactions: Full transaction bodies in `getblocktemplate` order.
     """
     hash: NextBlockHash
+    stats: MempoolBlock
+    transactions: List[Transaction]
 
-class OptionalTimestampParam(TypedDict, total=False):
+class AddressStats(TypedDict):
     """
-    Optional UNIX timestamp query parameter
-    """
-    timestamp: Union[Timestamp, None]
-
-class OutPoint(TypedDict):
-    """
-    The output a transaction input spends: its transaction index and output position, written as
-    `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 4294967295}`).
-    """
-    tx_index: TxIndex
-    vout: Vout
-
-class PaginatedSeries(TypedDict):
-    """
-    A paginated list of available series names (1000 per page)
+    Address information compatible with mempool.space API format.
 
     Attributes:
-        current_page: Current page number (0-indexed)
-        max_page: Maximum valid page index (0-indexed)
-        total_count: Total number of series
-        per_page: Results per page
-        has_more: Whether more pages are available after the current one
-        series: List of series names
+        address: Bitcoin address string
+        address_type: BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
+        chain_stats: Statistics for confirmed transactions on the blockchain
+        mempool_stats: Statistics for unconfirmed transactions in the mempool
+        balance: Total current balance in satoshis, including pending (unconfirmed) mempool changes
     """
-    current_page: int
-    max_page: int
-    total_count: int
-    per_page: int
-    has_more: bool
-    series: List[str]
+    address: Address
+    address_type: OutputType
+    chain_stats: AddressChainStats
+    mempool_stats: AddressMempoolStats
+    balance: Sats
 
-class Pagination(TypedDict, total=False):
+class AddressParam(TypedDict):
     """
-    Pagination parameters for paginated API endpoints
-
-    Attributes:
-        page: Pagination index
-        per_page: Results per page (default: 1000, max: 1000)
+    Bitcoin address path parameter
     """
-    page: Optional[int]
-    per_page: Optional[int]
+    address: Address
 
-# Block counts for different time periods
-PoolBlockCounts = TypedDict("PoolBlockCounts", {"all": int, "24h": int, "1w": int})
+class AddressHashPrefixMatches(TypedDict):
+    address_type: OutputType
+    prefix: str
+    truncated: bool
+    addresses: List[Address]
 
-# Pool's share of total blocks for different time periods
-PoolBlockShares = TypedDict("PoolBlockShares", {"all": float, "24h": float, "1w": float})
-
-class PoolDetailInfo(TypedDict):
+class AddressAfterTxidParam(TypedDict):
     """
-    Pool information for detail view
+    Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
 
     Attributes:
-        id: Pool identifier
-        name: Pool name
-        link: Pool website URL
-        addresses: Known payout addresses
-        regexes: Coinbase tag patterns (regexes)
-        slug: URL-friendly pool identifier
-        unique_id: Unique pool identifier
+        after_txid: Last txid from the previous page (return transactions strictly older than this)
     """
-    id: int
-    name: str
-    link: str
-    addresses: List[str]
-    regexes: List[str]
-    slug: PoolSlug
-    unique_id: int
-
-class _PoolDetailRequired(TypedDict):
-    pool: PoolDetailInfo
-    blockCount: PoolBlockCounts
-    blockShare: PoolBlockShares
-    estimatedHashrate: int
-    totalReward: Sats
-
-class PoolDetail(_PoolDetailRequired, total=False):
-    """
-    Detailed pool information with statistics across time periods
-
-    Attributes:
-        pool: Pool information
-        blockCount: Block counts for different time periods
-        blockShare: Pool's share of total blocks for different time periods
-        estimatedHashrate: Estimated hashrate based on blocks mined (H/s)
-        reportedHashrate: Self-reported hashrate (if available, H/s)
-        totalReward: Total reward earned by this pool: coinbase output value of every block it mined (sats)
-    """
-    reportedHashrate: Optional[int]
-
-class PoolHashrateEntry(TypedDict):
-    """
-    A single pool hashrate data point.
-
-    Attributes:
-        timestamp: Unix timestamp
-        avgHashrate: Average hashrate (H/s)
-        share: Pool's share of total network hashrate (0.0 - 1.0)
-        poolName: Pool name
-    """
-    timestamp: Timestamp
-    avgHashrate: int
-    share: float
-    poolName: str
-
-class PoolInfo(TypedDict):
-    """
-    Basic pool information for listing all pools
-
-    Attributes:
-        name: Pool name
-        slug: URL-friendly pool identifier
-        unique_id: Unique numeric pool identifier
-    """
-    name: str
-    slug: PoolSlug
-    unique_id: int
-
-class PoolSlugAndHeightParam(TypedDict):
-    """
-    Mining pool slug + block height path parameters
-    """
-    slug: PoolSlug
-    height: Height
-
-class PoolSlugParam(TypedDict):
-    """
-    Mining pool slug path parameter
-    """
-    slug: PoolSlug
-
-class PoolStats(TypedDict):
-    """
-    Mining pool with block statistics for a time period
-
-    Attributes:
-        poolId: Unique pool identifier
-        name: Pool name
-        link: Pool website URL
-        blockCount: Number of blocks mined in the time period
-        rank: Pool ranking by block count (1 = most blocks)
-        emptyBlocks: Number of empty blocks mined
-        slug: URL-friendly pool identifier
-        share: Pool's share of total blocks (0.0 - 1.0)
-        poolUniqueId: Unique pool identifier
-    """
-    poolId: int
-    name: str
-    link: str
-    blockCount: int
-    rank: int
-    emptyBlocks: int
-    slug: PoolSlug
-    share: float
-    poolUniqueId: int
-
-class PoolsSummary(TypedDict):
-    """
-    Mining pools response for a time period
-
-    Attributes:
-        pools: List of pools sorted by block count descending
-        blockCount: Total blocks in the time period
-        lastEstimatedHashrate: Estimated network hashrate (H/s)
-        lastEstimatedHashrate3d: Estimated network hashrate over last 3 days (H/s)
-        lastEstimatedHashrate1w: Estimated network hashrate over last 1 week (H/s)
-    """
-    pools: List[PoolStats]
-    blockCount: int
-    lastEstimatedHashrate: int
-    lastEstimatedHashrate3d: int
-    lastEstimatedHashrate1w: int
-
-class Prices(TypedDict):
-    """
-    Current price response matching mempool.space /api/v1/prices format
-
-    Attributes:
-        time: Unix timestamp
-        USD: BTC/USD price
-    """
-    time: Timestamp
-    USD: Dollars
-
-class _RbfTxRequired(TypedDict):
-    txid: Txid
-    fee: Sats
-    vsize: VSize
-    value: Sats
-    rate: FeeRate
-    time: Timestamp
-    rbf: bool
-
-class RbfTx(_RbfTxRequired, total=False):
-    """
-    Transaction summary carried inside an RBF replacement node. Shape
-    matches mempool.space's `/api/v1/tx/:txid/rbf` and
-    `/api/v1/replacements` responses.
-
-    Attributes:
-        value: Sum of output amounts.
-        rbf: BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
-        fullRbf: Only populated on the root `tx` of an RBF response. `true` iff this tx displaced at least one non-signaling predecessor.
-    """
-    fullRbf: Optional[bool]
-
-class _ReplacementNodeRequired(TypedDict):
-    tx: RbfTx
-    time: Timestamp
-    fullRbf: bool
-    replaces: List["ReplacementNode"]
-
-class ReplacementNode(_ReplacementNodeRequired, total=False):
-    """
-    One node in an RBF replacement tree. The node's `tx` replaced each
-    entry in `replaces`, recursively.
-
-    Attributes:
-        time: First-seen timestamp, duplicated here to match mempool.space's on-the-wire shape.
-        fullRbf: Any predecessor in this subtree was non-signaling.
-        interval: Seconds between this node's `time` and the successor that replaced it. Omitted on the root of an RBF response.
-        mined: `Some(true)` iff this node's tx is currently confirmed. Absent on serialization otherwise.
-    """
-    interval: Optional[int]
-    mined: Optional[bool]
-
-class RbfResponse(TypedDict, total=False):
-    """
-    Response body for `GET /api/v1/tx/:txid/rbf`. Both fields are null
-    when the tx has no known RBF history within the mempool monitor's
-    graveyard retention window.
-    """
-    replacements: Union[ReplacementNode, None]
-    replaces: Optional[List[Txid]]
-
-class RecommendedFees(TypedDict):
-    """
-    Recommended fee rates in sat/vB
-
-    Attributes:
-        fastestFee: Fee rate for fastest confirmation (next block)
-        halfHourFee: Fee rate for confirmation within ~30 minutes (3 blocks)
-        hourFee: Fee rate for confirmation within ~1 hour (6 blocks)
-        economyFee: Fee rate for economical confirmation
-        minimumFee: Minimum relay fee rate
-    """
-    fastestFee: FeeRate
-    halfHourFee: FeeRate
-    hourFee: FeeRate
-    economyFee: FeeRate
-    minimumFee: FeeRate
-
-class RewardStats(TypedDict):
-    """
-    Block reward statistics over a range of blocks
-
-    Attributes:
-        startBlock: First block in the range
-        endBlock: Last block in the range
-        totalReward: Total coinbase rewards (subsidy + fees) in sats
-        totalFee: Total transaction fees in sats
-        totalTx: Total number of transactions
-    """
-    startBlock: Height
-    endBlock: Height
-    totalReward: str
-    totalFee: str
-    totalTx: str
-
-class _SearchQueryRequired(TypedDict):
-    q: SeriesName
-
-class SearchQuery(_SearchQueryRequired, total=False):
-    """
-    Attributes:
-        q: Search query string
-        limit: Maximum number of results
-    """
-    limit: Limit
-
-class _SeriesInfoRequired(TypedDict):
-    indexes: List[Index]
-    nullable: List[Index]
-    type: str
-
-class SeriesInfo(_SeriesInfoRequired, total=False):
-    """
-    Metadata about a series
-
-    Attributes:
-        description: Human-readable metric definition, when documented
-        indexes: Available indexes
-        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
-        type: Value type (e.g. "Ratio", "Sats", "Cents")
-        unit: What the value type measures, when documented (e.g. "A duration in days.")
-    """
-    description: Optional[str]
-    unit: Optional[str]
-
-class _SeriesLeafWithSchemaRequired(TypedDict):
-    name: str
-    kind: str
-    indexes: List[Index]
-    nullable: List[Index]
-    type: str
-
-class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
-    """
-    Series leaf with JSON Schema for client generation.
-
-    Attributes:
-        name: The series name/identifier.
-        kind: The Rust type (e.g., "Sats", "Ratio").
-        indexes: Available indexes for this series.
-        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
-        description: Human-readable metric definition, when documented.
-        type: JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
-    """
-    description: Optional[str]
-
-class SeriesNameWithIndex(TypedDict):
-    """
-    Attributes:
-        series: Series name
-        index: Aggregation index
-    """
-    series: SeriesName
-    index: Index
-
-class SeriesParam(TypedDict):
-    series: SeriesName
-
-class _SeriesSelectionRequired(TypedDict):
-    series: SeriesList
-    index: Index
-
-class SeriesSelection(_SeriesSelectionRequired, total=False):
-    """
-    Selection of series to query
-
-    Attributes:
-        series: Requested series
-        index: Index to query
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
-        limit: Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
-        format: Format of the output
-    """
-    start: Union[RangeIndex, None]
-    end: Union[RangeIndex, None]
-    limit: Union[Limit, None]
-    format: Format
-
-class SyncStatus(TypedDict):
-    """
-    Sync status of the indexer
-
-    Attributes:
-        indexed_height: Height of the last indexed block
-        computed_height: Height of the last computed block (series)
-        tip_height: Height of the chain tip (from Bitcoin node)
-        blocks_behind: Number of blocks behind the tip
-        last_indexed_at: Human-readable timestamp of the last indexed block (ISO 8601)
-        last_indexed_at_unix: Unix timestamp of the last indexed block
-    """
-    indexed_height: Height
-    computed_height: Height
-    tip_height: Height
-    blocks_behind: Height
-    last_indexed_at: str
-    last_indexed_at_unix: Timestamp
-
-class TimePeriodParam(TypedDict):
-    """
-    Time period path parameter (24h, 3d, 1w, 1m, 3m, 6m, 1y, 2y, 3y)
-    """
-    time_period: TimePeriod
-
-class TimestampParam(TypedDict):
-    """
-    UNIX timestamp path parameter
-    """
-    timestamp: Timestamp
-
-class TxIndexParam(TypedDict):
-    """
-    Transaction index path parameter
-    """
-    index: TxIndex
-
-class _TxOutspendRequired(TypedDict):
-    spent: bool
-
-class TxOutspend(_TxOutspendRequired, total=False):
-    """
-    Status of an output indicating whether it has been spent
-
-    Attributes:
-        spent: Whether the output has been spent
-        txid: Transaction ID of the spending transaction (only present if spent)
-        vin: Input index in the spending transaction (only present if spent)
-        status: Status of the spending transaction (only present if spent)
-    """
-    txid: Union[Txid, None]
-    vin: Union[Vin, None]
-    status: Union[TxStatus, None]
-
-class TxidParam(TypedDict):
-    """
-    Transaction ID path parameter
-    """
-    txid: Txid
-
-class TxidVout(TypedDict):
-    """
-    Transaction output reference (txid + output index)
-
-    Attributes:
-        txid: Transaction ID
-        vout: Output index
-    """
-    txid: Txid
-    vout: Vout
-
-# Query parameter for transaction-times endpoint.
-#
-# Extracted manually because `serde_urlencoded` (and serde derive in general)
-# doesn't support repeated keys like `txId[]=a&txId[]=b`. The schema is still
-# declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
-# generated client SDKs see `txids: List[Txid]`.
-TxidsParam = TypedDict("TxidsParam", {"txId[]": List[Txid]})
-
-class UrpdBucket(TypedDict):
-    """
-    A single bucket in a URPD snapshot.
-
-    Attributes:
-        price_floor: The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its coins' creation prices round to (four significant digits of the price in cents).
-        supply: Supply held with a last-move price inside this bucket, in BTC.
-        realized_cap: Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
-        unrealized_pnl: Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.
-    """
-    price_floor: Dollars
-    supply: Bitcoin
-    realized_cap: Dollars
-    unrealized_pnl: Dollars
-
-class Urpd(TypedDict):
-    """
-    UTXO Realized Price Distribution for a cohort at a specific block.
-    
-    Supply is grouped by the price at the block in which each UTXO was last moved.
-    Each bucket exposes three values: supply in BTC, realized cap contribution
-    in USD (sum of `realized_price * supply` over the coins in the bucket), and
-    unrealized P&L in USD (`close * supply - realized_cap`, can be negative).
-
-    Attributes:
-        date: UTC date of the represented block.
-        height: Exact published block represented by this distribution.
-        weight: Weighting applied to the source supply.
-        aggregation: Aggregation strategy applied to the buckets.
-        close: Price at `height`, in USD. Anchor for `unrealized_pnl`.
-        total_supply: Sum of `supply` across all buckets, in BTC.
-    """
-    cohort: Cohort
-    date: Date
-    height: Height
-    weight: UrpdWeight
-    aggregation: UrpdAggregation
-    close: Dollars
-    total_supply: Bitcoin
-    buckets: List[UrpdBucket]
-
-class UrpdCohortParam(TypedDict):
-    """
-    Path parameters for per-cohort URPD endpoints.
-    """
-    cohort: Cohort
-
-class UrpdParams(TypedDict):
-    """
-    A URPD cohort and exact block height or UTC calendar-day alias.
-    """
-    cohort: Cohort
-    point: str
-
-class UrpdQuery(TypedDict, total=False):
-    """
-    Query parameters for URPD endpoints.
-
-    Attributes:
-        agg: Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
-        weight: Supply weighting. Default: raw (unweighted).
-    """
-    agg: UrpdAggregation
-    weight: UrpdWeight
-
-class UrpdWeightQuery(TypedDict, total=False):
-    """
-    Query parameters for URPD date discovery.
-
-    Attributes:
-        weight: Supply weighting. Default: raw (unweighted).
-    """
-    weight: UrpdWeight
-
-class Utxo(TypedDict):
-    """
-    Unspent transaction output
-
-    Attributes:
-        txid: Transaction ID of the UTXO
-        vout: Output index
-        status: Confirmation status
-        value: Output value in satoshis
-    """
-    txid: Txid
-    vout: Vout
-    status: TxStatus
-    value: Sats
-
-class UtxoChanges(TypedDict):
-    """
-    Columnar counts and supplies by creation height.
-
-    Attributes:
-        height: Creation height of each row.
-        count: Number of outputs in each row.
-        supply: BTC held by the outputs in each row.
-    """
-    height: List[Height]
-    count: List[int]
-    supply: List[Bitcoin]
-
-class UtxoOrigins(TypedDict):
-    """
-    Columnar unspent amounts indexed by creation height.
-
-    Attributes:
-        count: Number of unspent outputs per creation height.
-        supply: BTC held by the unspent outputs per creation height.
-    """
-    count: List[int]
-    supply: List[Bitcoin]
-
-class UtxoSet(TypedDict):
-    """
-    The UTXO set after a block, grouped by the height of the block that created each output.
-    
-    The set excludes `OP_RETURN` outputs and the genesis coinbase, which are unspendable, and the
-    coinbases of blocks 91812 and 91722 once duplicates at 91842 and 91880 overwrite them; it
-    includes zero-value outputs. The set after block `first - 1` plus a diff's `created` minus its
-    `spent` gives the set after block `last`; rounding each supply to 8 decimals keeps it exact.
-
-    Attributes:
-        height: Height of the represented block.
-        hash: Hash of the represented block.
-        date: UTC date of the represented block's monotonic timestamp (the running maximum of block times).
-        count: Number of unspent outputs.
-        supply: BTC held by the unspent outputs.
-        origins: Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
-    """
-    height: Height
-    hash: BlockHash
-    date: Date
-    count: int
-    supply: Bitcoin
-    origins: UtxoOrigins
-
-class UtxoSetDiff(TypedDict):
-    """
-    What blocks `first` through `last` changed in the UTXO set.
-
-    Attributes:
-        first: First block of the diff; it applies to the set after block `first - 1` (the empty set for block 0).
-        last: Last block of the diff, described by `hash` and `date`.
-        hash: Hash of block `last`.
-        date: UTC date of block `last`'s monotonic timestamp.
-        created: Outputs created, one row per block, including those spent again within the range (which `spent` lists too).
-        spent: Outputs removed, one row per creation height in ascending order: spent outputs, plus the coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
-    """
-    first: Height
-    last: Height
-    hash: BlockHash
-    date: Date
-    created: UtxoChanges
-    spent: UtxoChanges
-
-class ValidateAddressParam(TypedDict):
-    """
-    Attributes:
-        address: Bitcoin address to validate (can be any string)
-    """
-    address: str
+    address: Address
+    after_txid: Txid
 
 
 class BitviewError(Exception):

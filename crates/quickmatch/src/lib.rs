@@ -177,8 +177,7 @@ impl<'a> QuickMatch<'a> {
         query: &str,
         config: &QuickMatchConfig,
     ) -> Vec<(u32, u32)> {
-        let limit = config.limit().min(self.items.len());
-        let trigram_budget = TRIGRAM_BUDGET;
+        let limit = config.limit.min(self.items.len());
 
         if limit == 0 {
             return vec![];
@@ -213,10 +212,10 @@ impl<'a> QuickMatch<'a> {
                 .iter()
                 .filter_map(|&word| self.exact_index.get(word).map(Vec::as_slice))
                 .collect::<Vec<_>>();
-            if !config.union_fallback() && known_lists.len() != query_words.len() {
+            if !config.union_fallback && known_lists.len() != query_words.len() {
                 return Vec::new();
             }
-            let candidates = if config.union_fallback() {
+            let candidates = if config.union_fallback {
                 Self::union_lists(&known_lists)
             } else {
                 Self::intersect_lists(&known_lists).unwrap_or_default()
@@ -226,7 +225,7 @@ impl<'a> QuickMatch<'a> {
                 &query_words,
                 &sep,
                 limit,
-                if config.union_fallback() {
+                if config.union_fallback {
                     1
                 } else {
                     query_words.len()
@@ -240,7 +239,7 @@ impl<'a> QuickMatch<'a> {
         for &word in &query_words {
             if let Some(items) = self.word_index.get(word) {
                 known_lists.push(items)
-            } else if word.len() >= 3 && unknown_words.len() < trigram_budget {
+            } else if word.len() >= 3 && unknown_words.len() < TRIGRAM_BUDGET {
                 unknown_words.push(word)
             }
         }
@@ -252,10 +251,10 @@ impl<'a> QuickMatch<'a> {
 
         // A swapped pair often shares no trigrams ("prcie" → "price").
         // Probe indexed corrections before the broader trigram fallback.
-        if !disjoint && !unknown_words.is_empty() && trigram_budget > 0 {
+        if !disjoint && !unknown_words.is_empty() {
             let mut corrections: Vec<Vec<ItemId>> = vec![vec![]; unknown_words.len()];
-            let mut budget = trigram_budget;
-            for round in 0..trigram_budget {
+            let mut budget = TRIGRAM_BUDGET;
+            for round in 0..TRIGRAM_BUDGET {
                 for (i, word) in unknown_words.iter().enumerate() {
                     if budget == 0 {
                         break;
@@ -306,10 +305,9 @@ impl<'a> QuickMatch<'a> {
         }
 
         // Try typo matching for unknown words
-        if !disjoint && !unknown_words.is_empty() && trigram_budget > 0 {
+        if !disjoint && !unknown_words.is_empty() {
             let min_len = query.len().saturating_sub(3);
-            let (scores, hit_count) =
-                self.score_trigrams(&unknown_words, trigram_budget, pool.as_deref(), min_len);
+            let (scores, hit_count) = self.score_trigrams(&unknown_words, pool.as_deref(), min_len);
             let min_score = hit_count.div_ceil(2).max(MIN_SCORE);
             let results = self.rank::<false>(
                 scores.into_iter().filter(|(_, s)| *s >= min_score),
@@ -327,7 +325,7 @@ impl<'a> QuickMatch<'a> {
         // Rank known candidates (intersection, or union as fallback)
         let candidates = match pool {
             Some(pool) if !pool.is_empty() => pool,
-            _ if config.union_fallback() => Self::union_lists(&known_lists),
+            _ if config.union_fallback => Self::union_lists(&known_lists),
             _ => Vec::new(),
         };
         self.rank::<false>(
@@ -422,7 +420,6 @@ impl<'a> QuickMatch<'a> {
     fn score_trigrams(
         &self,
         unknown_words: &[&str],
-        trigram_budget: usize,
         pool: Option<&[ItemId]>,
         min_len: usize,
     ) -> (FxHashMap<ItemId, usize>, usize) {
@@ -435,11 +432,11 @@ impl<'a> QuickMatch<'a> {
         }
         let has_pool = pool.is_some();
 
-        let mut budget = trigram_budget;
+        let mut budget = TRIGRAM_BUDGET;
         let mut hit_count = 0;
         let mut visited: FxHashSet<[u8; 3]> = FxHashSet::default();
 
-        'outer: for round in 0..trigram_budget {
+        'outer: for round in 0..TRIGRAM_BUDGET {
             for word in unknown_words {
                 if budget == 0 {
                     break 'outer;

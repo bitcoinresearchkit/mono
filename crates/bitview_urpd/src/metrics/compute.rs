@@ -46,9 +46,15 @@ pub fn compute_cost_basis(
     replay.map(
         rows,
         inputs,
-        || Worker {
-            supplies: AgeRange::from_fn(|age| age.select(supplies).cursor()),
-            weights: AgeRange::from_fn(|age| age.select(weights).cursor()),
+        |blocks| Worker {
+            supplies: AgeRange::from_fn(|age| {
+                age.select(supplies)
+                    .bounded_cursor_at(blocks.start, blocks.end)
+            }),
+            weights: AgeRange::from_fn(|age| {
+                age.select(weights)
+                    .bounded_cursor_at(blocks.start, blocks.end)
+            }),
             buckets: MetricBuckets::default(),
         },
         |worker, height, close, source| {

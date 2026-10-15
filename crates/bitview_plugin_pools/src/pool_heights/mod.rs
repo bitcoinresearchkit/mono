@@ -5,10 +5,7 @@ use bitview_primitives::PoolSlug;
 use brk_types::Height;
 use rangeindex::Pages;
 use rustc_hash::FxHashMap;
-use vecdb::{
-    AnyVec, BytesVec, PrintableIndex, ReadOnlyClone, ReadableVec, TypedVec, VecIndex, VecValue,
-    Version, short_type_name,
-};
+use vecdb::{AnyVec, BytesVec, ReadOnlyClone, ReadableVec, TypedVec, VecIndex, VecValue, Version};
 
 /// Per-block reward values of one block: coinbase and fees, in sats and in cents at the
 /// block's spot price.
@@ -316,17 +313,7 @@ impl<T: VecValue + From<u64>> AnyVec for PoolCumulativeVec<T> {
         self.len_of(&self.pool_heights.0.load())
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        <Height as PrintableIndex>::to_string()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    vecdb::any_vec_type_methods!(Height, T);
 }
 
 impl<T: VecValue + From<u64>> TypedVec for PoolCumulativeVec<T> {
@@ -367,10 +354,9 @@ impl<T: VecValue + From<u64>> ReadableVec<Height, T> for PoolCumulativeVec<T> {
             let window = (index + 1)
                 .saturating_sub(next)
                 .min(heights.len() - position);
-            position = heights
-                .partition_point_in(position..position + window, |height| {
-                    height.to_usize() <= index
-                });
+            position = heights.partition_point_in(position..position + window, |height| {
+                height.to_usize() <= index
+            });
             next = next.max(index + 1);
             out.push(self.total(record, position));
         }

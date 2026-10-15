@@ -1,12 +1,15 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_primitives::{CoinDays, Count, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, CumulativeState, import_cached};
+use bitview_vecs::{
+    CachedSeries, CumulativeState, import_cached,
+    ops::{Quotient, SatsToCents},
+};
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Sats, Version};
-use vecdb::{AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyVec, BinaryTransform, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
-use crate::{data::Data, unrealized_data::UnrealizedData};
+use crate::data::Data;
 
 #[derive(Traversable)]
 pub(crate) struct Columns<M: StorageMode = Rw> {
@@ -166,7 +169,7 @@ impl Columns {
             peak: Default::default(),
         })
     }
-    pub fn push(&mut self, d: &Data, unrealized: &UnrealizedData) {
+    pub fn push(&mut self, d: &Data, spot: Cents) {
         let peak = self.peak.accumulate(
             self.peak_regret.len(),
             || self.peak_regret.collect_last(),
@@ -208,11 +211,15 @@ impl Columns {
         );
         self.gross_pnl.push(d.profit + d.loss);
         self.peak_regret.push(peak);
-        self.unrealized_net_pnl.push(unrealized.net_pnl);
-        self.nupl.push(unrealized.nupl);
+        let net_pnl =
+            CentsSigned::new(d.unrealized_profit.inner() as i64 - d.unrealized_loss.inner() as i64);
+        self.unrealized_net_pnl.push(net_pnl);
+        self.nupl
+            .push(Quotient::apply(net_pnl, SatsToCents::apply(d.supply, spot)));
         self.unrealized_gross_pnl
             .push(d.unrealized_profit + d.unrealized_loss);
-        self.cap_profit.push(unrealized.cap_in_profit);
-        self.cap_loss.push(unrealized.cap_in_loss);
+        // The bands' capitals, each rounded once from its exact sum.
+        self.cap_profit.push(d.capital_profit);
+        self.cap_loss.push(d.capital_loss);
     }
 }

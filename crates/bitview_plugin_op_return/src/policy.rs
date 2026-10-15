@@ -1,4 +1,3 @@
-use bitview_primitives::OpReturnPolicyId;
 use bitview_traversable::Traversable;
 
 #[derive(Clone, Copy, Default, Traversable)]
@@ -18,17 +17,12 @@ pub struct Policy<T> {
 }
 
 impl<T> Policy<T> {
-    pub fn try_new<E>(
-        mut create: impl FnMut(OpReturnPolicyId, &'static str) -> Result<T, E>,
-    ) -> Result<Self, E> {
+    pub fn try_new<E>(mut create: impl FnMut(&'static str) -> Result<T, E>) -> Result<Self, E> {
         Ok(Self {
-            pre_v30_standard: create(OpReturnPolicyId::PreV30Standard, "pre_v30_standard")?,
-            pre_v30_nonstandard: create(
-                OpReturnPolicyId::PreV30Nonstandard,
-                "pre_v30_nonstandard",
-            )?,
-            oversized: create(OpReturnPolicyId::Oversized, "oversized")?,
-            multiple: create(OpReturnPolicyId::Multiple, "multiple")?,
+            pre_v30_standard: create("pre_v30_standard")?,
+            pre_v30_nonstandard: create("pre_v30_nonstandard")?,
+            oversized: create("oversized")?,
+            multiple: create("multiple")?,
         })
     }
 
@@ -41,13 +35,20 @@ impl<T> Policy<T> {
         ]
         .into_iter()
     }
+}
 
-    pub fn get(&self, policy: OpReturnPolicyId) -> &T {
-        match policy {
-            OpReturnPolicyId::PreV30Standard => &self.pre_v30_standard,
-            OpReturnPolicyId::PreV30Nonstandard => &self.pre_v30_nonstandard,
-            OpReturnPolicyId::Oversized => &self.oversized,
-            OpReturnPolicyId::Multiple => &self.multiple,
-        }
+impl<T> IntoIterator for Policy<T> {
+    type Item = T;
+    type IntoIter = std::array::IntoIter<T, 4>;
+
+    /// The values in field order, as [`Self::iter_mut`].
+    fn into_iter(self) -> Self::IntoIter {
+        [
+            self.pre_v30_standard,
+            self.pre_v30_nonstandard,
+            self.oversized,
+            self.multiple,
+        ]
+        .into_iter()
     }
 }

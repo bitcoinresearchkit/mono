@@ -1,11 +1,7 @@
-use std::{iter, marker::PhantomData};
+use std::marker::PhantomData;
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use brk_types::{Height, Timestamp, Version};
-use vecdb::{
-    AnyExportableVec, AnyVec, PrintableIndex, ReadOnlyClone, ReadableBoxedVec, ReadableVec,
-    TypedVec, VecIndex, short_type_name,
-};
+use vecdb::{AnyVec, ReadOnlyClone, ReadableBoxedVec, ReadableVec, TypedVec, VecIndex};
 
 /// Timestamp of the first block in each fixed-size block period.
 #[derive(Clone)]
@@ -41,10 +37,6 @@ impl<I: VecIndex> BoundaryTimestampVec<I> {
         let indices = self.source_indices(from..to);
         self.timestamps.read_sorted_at(&indices)
     }
-
-    pub fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, Timestamp> {
-        ReadableBoxedVec::new(self.clone())
-    }
 }
 
 impl<I: VecIndex> AnyVec for BoundaryTimestampVec<I> {
@@ -60,17 +52,7 @@ impl<I: VecIndex> AnyVec for BoundaryTimestampVec<I> {
         self.timestamps.len().div_ceil(self.blocks_per_period)
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        <I as PrintableIndex>::to_string()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<Timestamp>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<Timestamp>()
-    }
+    vecdb::any_vec_type_methods!(I, Timestamp);
 }
 
 impl<I: VecIndex> TypedVec for BoundaryTimestampVec<I> {
@@ -128,12 +110,4 @@ impl<I: VecIndex> ReadOnlyClone for BoundaryTimestampVec<I> {
     }
 }
 
-impl<I: VecIndex> Traversable for BoundaryTimestampVec<I> {
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+bitview_traversable::leaf!([I: VecIndex] BoundaryTimestampVec<I>);

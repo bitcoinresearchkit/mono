@@ -10,14 +10,13 @@ use serde_json::to_vec;
 
 use super::AppState;
 use crate::{
-    CacheParams, CacheStrategy, CdnCacheMode,
+    CacheParams,
     error::Result,
-    extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
+    extended::TransformResponseExtended,
     params::{
         Empty, HeightOrDate, HeightOrDateParam, UrpdCohortParam, UrpdParams, UrpdQuery,
         UrpdWeightQuery,
     },
-    raw_body::RawBodyPermit,
     request_state::RequestState,
     urpd_input,
 };
@@ -35,38 +34,28 @@ async fn serve_urpd(
     point: Option<HeightOrDate>,
     query: UrpdQuery,
 ) -> Result<Response> {
-    let bodies = state.urpd_bodies.clone();
-    let response = state
-        .read_body(&state.urpd_query, &state.urpd_bodies, move |q, permit| {
-            let input = match point {
-                Some(HeightOrDate::Date(date)) => {
-                    q.resolve_urpd_at(&cohort, date, query.aggregation, query.weight)?
-                }
-                Some(HeightOrDate::Height(height)) => {
-                    q.resolve_urpd_height(&cohort, height, query.aggregation, query.weight)?
-                }
-                None => q.resolve_urpd_latest(&cohort, query.aggregation, query.weight)?,
-            };
-            let id = urpd_input::identity(&input)?;
-            let params = CacheParams::resolve(
-                &CacheStrategy::Live(format!("urpd2-{id}").into()),
-                CdnCacheMode::Live,
-            );
-            if params.matches_etag(&headers) {
-                return Ok(Some(Response::new_not_modified(&params)));
-            }
-            let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies)) else {
-                return Ok(None);
-            };
-            let bytes = to_vec(&input.build()?)?.into();
-            Ok(Some(permit.response(
-                params,
-                bytes,
-                HeaderMapExtended::insert_content_type_application_json,
-            )))
-        })
-        .await?;
-    Ok(response)
+    Ok(state
+        .respond_admitted(
+            &state.urpd_query,
+            &state.urpd_bodies,
+            headers,
+            "application/json",
+            move |q| {
+                let input = match point {
+                    Some(HeightOrDate::Date(date)) => {
+                        q.resolve_urpd_at(&cohort, date, query.aggregation, query.weight)?
+                    }
+                    Some(HeightOrDate::Height(height)) => {
+                        q.resolve_urpd_height(&cohort, height, query.aggregation, query.weight)?
+                    }
+                    None => q.resolve_urpd_latest(&cohort, query.aggregation, query.weight)?,
+                };
+                let params = CacheParams::live(format!("urpd2-{}", urpd_input::identity(&input)?));
+                Ok((input, params))
+            },
+            |_, input| Ok(to_vec(&input.build()?)?.into()),
+        )
+        .await?)
 }
 
 pub trait ApiUrpdRoutes {

@@ -1,5 +1,4 @@
 mod address;
-mod identity;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{
@@ -13,7 +12,8 @@ use brk_types::{
     TxIndex, Version,
 };
 
-use self::{address::AddressVecs, identity::IdentityVecs};
+use self::address::AddressVecs;
+use crate::identity::IdentityVecs;
 
 /// Address types: each address index and its textual address.
 #[derive(Clone, Traversable)]
@@ -42,12 +42,16 @@ pub struct Vecs {
 #[derive(Clone, Traversable)]
 pub struct OutputVecs {
     /// Bare multisig outputs recognized by Bitcoin script parsing.
+    /// Zero-based type-specific output index assigned in canonical chain order.
     pub p2ms: IdentityVecs<P2MSOutputIndex, TxIndex>,
     /// Outputs with an empty locking script.
+    /// Zero-based type-specific output index assigned in canonical chain order.
     pub empty: IdentityVecs<EmptyOutputIndex, TxIndex>,
     /// Outputs not matching another recognized locking-script type.
+    /// Zero-based type-specific output index assigned in canonical chain order.
     pub unknown: IdentityVecs<UnknownOutputIndex, TxIndex>,
     /// Outputs whose locking script begins with `OP_RETURN`.
+    /// Zero-based type-specific output index assigned in canonical chain order.
     pub op_return: IdentityVecs<OpReturnIndex, TxIndex>,
 }
 

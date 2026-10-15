@@ -18,7 +18,6 @@ use bitview_distribution::metrics::{CapitalViews, SupplyViews};
 use bitview_distribution::{RealizedCaps, replay::LiveState};
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, Rw, Stamp, StorageMode};
 
@@ -56,11 +55,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Persistent per-address state: internal slots, served through `/api/address` instead.
     #[traversable(hidden)]
     pub state: AddrStateVecs<M>,
-}
-
-impl Vecs {
-    fn flush(&self) -> Result<()> {
-        self.db.flush();
-        Ok(())
-    }
 }

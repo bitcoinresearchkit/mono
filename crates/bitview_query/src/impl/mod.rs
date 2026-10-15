@@ -25,9 +25,7 @@ pub mod utxo_set;
 pub use urpd::ResolvedUrpd;
 
 #[cfg(feature = "chain")]
-pub use addr::{
-    ResolvedAddrChainTxs, ResolvedAddrMempoolTxs, ResolvedAddrTxs, ResolvedAddrUtxos,
-};
+pub use addr::{ResolvedAddrChainTxs, ResolvedAddrMempoolTxs, ResolvedAddrTxs, ResolvedAddrUtxos};
 #[cfg(feature = "chain")]
 pub use block::{ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1};
 #[cfg(feature = "chain")]

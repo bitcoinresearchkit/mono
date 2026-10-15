@@ -1,63 +1,51 @@
 use bitview_primitives::{
     AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
-    FundedAddressIndex, P2AAddressIndex, P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex,
-    P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex, TypeIndex,
+    FundedAddressIndex, TypeIndex,
 };
 use brk_types::OutputType;
 use vecdb::{BytesVecReader, OverflowVecReader};
 
 use crate::addr::AddrStateVecs;
 
-/// Cached readers for address indexes and stateful address data.
-pub struct AddrReaders {
-    p2a: BytesVecReader<P2AAddressIndex, AddressState>,
-    p2pk33: BytesVecReader<P2PK33AddressIndex, AddressState>,
-    p2pk65: BytesVecReader<P2PK65AddressIndex, AddressState>,
-    p2pkh: BytesVecReader<P2PKHAddressIndex, AddressState>,
-    p2sh: BytesVecReader<P2SHAddressIndex, AddressState>,
-    p2tr: BytesVecReader<P2TRAddressIndex, AddressState>,
-    p2wpkh: BytesVecReader<P2WPKHAddressIndex, AddressState>,
-    p2wsh: BytesVecReader<P2WSHAddressIndex, AddressState>,
-    funded: OverflowVecReader<FundedAddressIndex, FundedAddressData>,
-    extended_empty: OverflowVecReader<ExtendedEmptyAddressIndex, EmptyAddressData>,
+macro_rules! addr_readers {
+    ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
+        /// Cached readers for address indexes and stateful address data.
+        pub struct AddrReaders {
+            $($field: BytesVecReader<$index, AddressState>,)+
+            funded: OverflowVecReader<FundedAddressIndex, FundedAddressData>,
+            extended_empty: OverflowVecReader<ExtendedEmptyAddressIndex, EmptyAddressData>,
+        }
+
+        impl AddrReaders {
+            pub fn new(state: &AddrStateVecs) -> Self {
+                Self {
+                    $($field: state.$field.reader(),)+
+                    funded: state.funded.reader(),
+                    extended_empty: state.extended_empty.reader(),
+                }
+            }
+
+            pub fn state(
+                &self,
+                vecs: &AddrStateVecs,
+                addr_type: OutputType,
+                type_index: TypeIndex,
+            ) -> AddressState {
+                let state = match addr_type {
+                    $(OutputType::$variant => {
+                        vecs.$field.get_with_reader(type_index.into(), &self.$field)
+                    })+
+                    _ => unreachable!("invalid address type: {addr_type:?}"),
+                };
+                state.unwrap()
+            }
+        }
+    };
 }
 
+bitview_primitives::with_address_storage_types!(addr_readers);
+
 impl AddrReaders {
-    pub fn new(state: &AddrStateVecs) -> Self {
-        Self {
-            p2a: state.p2a.reader(),
-            p2pk33: state.p2pk33.reader(),
-            p2pk65: state.p2pk65.reader(),
-            p2pkh: state.p2pkh.reader(),
-            p2sh: state.p2sh.reader(),
-            p2tr: state.p2tr.reader(),
-            p2wpkh: state.p2wpkh.reader(),
-            p2wsh: state.p2wsh.reader(),
-            funded: state.funded.reader(),
-            extended_empty: state.extended_empty.reader(),
-        }
-    }
-
-    pub fn state(
-        &self,
-        vecs: &AddrStateVecs,
-        addr_type: OutputType,
-        type_index: TypeIndex,
-    ) -> AddressState {
-        let state = match addr_type {
-            OutputType::P2A => vecs.p2a.get_with_reader(type_index.into(), &self.p2a),
-            OutputType::P2PK33 => vecs.p2pk33.get_with_reader(type_index.into(), &self.p2pk33),
-            OutputType::P2PK65 => vecs.p2pk65.get_with_reader(type_index.into(), &self.p2pk65),
-            OutputType::P2PKH => vecs.p2pkh.get_with_reader(type_index.into(), &self.p2pkh),
-            OutputType::P2SH => vecs.p2sh.get_with_reader(type_index.into(), &self.p2sh),
-            OutputType::P2TR => vecs.p2tr.get_with_reader(type_index.into(), &self.p2tr),
-            OutputType::P2WPKH => vecs.p2wpkh.get_with_reader(type_index.into(), &self.p2wpkh),
-            OutputType::P2WSH => vecs.p2wsh.get_with_reader(type_index.into(), &self.p2wsh),
-            _ => unreachable!("invalid address type: {addr_type:?}"),
-        };
-        state.unwrap()
-    }
-
     #[inline]
     pub fn funded_data(
         &self,

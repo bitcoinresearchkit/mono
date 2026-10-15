@@ -2,13 +2,10 @@ use bitview_primitives::TypeIndex;
 use brk_types::{OutputType, Sats};
 use rustc_hash::FxHashSet;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct Address(OutputType, TypeIndex);
-
 #[derive(Default)]
 pub struct Candidate {
     values: FxHashSet<Sats>,
-    addresses: FxHashSet<Address>,
+    addresses: FxHashSet<(OutputType, TypeIndex)>,
     remaining_values: usize,
 }
 
@@ -22,9 +19,7 @@ impl Candidate {
     /// Stop at the first rejection: more entries cannot undo address reuse or
     /// bring the distinct-value count back below the candidate's limit.
     pub fn add(&mut self, value: Sats, output_type: OutputType, type_index: TypeIndex) -> bool {
-        if has_script_address(output_type)
-            && !self.addresses.insert(Address(output_type, type_index))
-        {
+        if output_type.is_addr() && !self.addresses.insert((output_type, type_index)) {
             return false;
         }
         // Each zero counts separately, even when other values are repeated.
@@ -36,18 +31,4 @@ impl Candidate {
         }
         true
     }
-}
-
-fn has_script_address(output_type: OutputType) -> bool {
-    matches!(
-        output_type,
-        OutputType::P2PK65
-            | OutputType::P2PK33
-            | OutputType::P2PKH
-            | OutputType::P2SH
-            | OutputType::P2WPKH
-            | OutputType::P2WSH
-            | OutputType::P2TR
-            | OutputType::P2A
-    )
 }

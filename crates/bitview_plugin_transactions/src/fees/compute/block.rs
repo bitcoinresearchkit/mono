@@ -4,6 +4,8 @@ use brk_types::{CpfpClusterTxIndex, FeeRate, OutPoint, Sats, VSize};
 use smallvec::SmallVec;
 use vecdb::VecIndex;
 
+use crate::distribution::{Stats, counted, weighted};
+
 #[derive(Default)]
 pub struct Block {
     first_tx: usize,
@@ -18,6 +20,13 @@ pub struct Block {
     pub vsizes: Vec<VSize>,
     pub txin_starts: Vec<TxInIndex>,
     pub outpoints: Vec<OutPoint>,
+    /// Distribution statistics of the non-coinbase fees, the non-coinbase effective rates
+    /// weighted by vsize, and every transaction's vsize.
+    pub fee_stats: Stats<Sats>,
+    pub rate_stats: Stats<FeeRate>,
+    pub vsize_stats: Stats<VSize>,
+    sorted_fees: Vec<Sats>,
+    weighted_rates: Vec<(FeeRate, VSize)>,
 }
 
 impl Block {
@@ -69,6 +78,20 @@ impl Block {
             &self.fee_rates,
             &mut self.effective_fee_rates,
         );
+
+        self.sorted_fees.clear();
+        self.sorted_fees.extend_from_slice(&self.fees[1..]);
+        self.fee_stats = counted(&mut self.sorted_fees);
+        self.weighted_rates.clear();
+        self.weighted_rates.extend(
+            self.effective_fee_rates[1..]
+                .iter()
+                .copied()
+                .zip(self.vsizes[1..].iter().copied()),
+        );
+        self.rate_stats = weighted(&mut self.weighted_rates);
+        // Last use of the block-order vsizes: sorted in place.
+        self.vsize_stats = counted(&mut self.vsizes);
     }
 }
 

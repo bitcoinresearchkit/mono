@@ -1,6 +1,6 @@
-use bitview_primitives::{Difficulty, Epoch};
+use bitview_primitives::Epoch;
 use bitview_types::DifficultyAdjustmentEntry;
-use brk_types::{Height, Timestamp};
+use brk_types::Height;
 use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, Result, query_plugins::QueryPlugins};
@@ -19,44 +19,11 @@ pub fn iter_difficulty_epochs(
     start_height: usize,
     end_height: usize,
 ) -> Result<Vec<DifficultyAdjustmentEntry>> {
-    let start_epoch = plugins
-        .mappings
-        .height
-        .epoch
-        .collect_one(Height::from(start_height))
-        .ok_or(Error::Internal(
-            "iter_difficulty_epochs: start_height not in epoch index",
-        ))?;
-    let end_epoch = plugins
-        .mappings
-        .height
-        .epoch
-        .collect_one(Height::from(end_height))
-        .ok_or(Error::Internal(
-            "iter_difficulty_epochs: end_height not in epoch index",
-        ))?;
-
-    read_epoch_window(
-        start_height,
-        start_epoch.to_usize(),
-        end_epoch.to_usize(),
-        &plugins.mappings.epoch.first_height,
-        &plugins.mappings.timestamp.epoch,
-        &plugins.blocks.difficulty.block.epoch,
-    )
-}
-
-fn read_epoch_window(
-    start_height: usize,
-    start_epoch: usize,
-    end_epoch: usize,
-    heights: &impl ReadableVec<Epoch, Height>,
-    timestamps: &impl ReadableVec<Epoch, Timestamp>,
-    difficulties: &impl ReadableVec<Epoch, Difficulty>,
-) -> Result<Vec<DifficultyAdjustmentEntry>> {
-    let mut height_cursor = heights.cursor();
-    let mut timestamp_cursor = timestamps.cursor();
-    let mut difficulty_cursor = difficulties.cursor();
+    let start_epoch = Epoch::from(Height::from(start_height)).to_usize();
+    let end_epoch = Epoch::from(Height::from(end_height)).to_usize();
+    let mut height_cursor = plugins.mappings.epoch.first_height.cursor();
+    let mut timestamp_cursor = plugins.mappings.timestamp.epoch.cursor();
+    let mut difficulty_cursor = plugins.blocks.difficulty.block.epoch.cursor();
 
     let count = end_epoch
         .checked_sub(start_epoch)

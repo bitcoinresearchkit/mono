@@ -31,9 +31,9 @@ use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 mod r#async;
 mod error;
-#[cfg(feature = "price")]
-mod live_oracle;
 mod output;
+#[cfg(feature = "price")]
+mod publication_cache;
 mod query_plugin_set;
 mod query_plugins;
 mod representation_id;
@@ -51,14 +51,16 @@ pub use r#impl::ResolvedUrpd;
 pub use r#impl::price::ResolvedHistoricalPrice;
 #[cfg(feature = "chain")]
 pub use r#impl::{
-    BlockTemplateSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs, ResolvedAddrTxs, ResolvedAddrUtxos,
-    ResolvedBlockTemplateDiff, ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1,
-    ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks, ResolvedRawTransaction, ResolvedRbf,
-    ResolvedTransaction, UtxoSetPoint,
+    BlockTemplateSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs,
+    ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedBlockTemplateDiff, ResolvedBlockTimestamp,
+    ResolvedBlocks, ResolvedBlocksV1, ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks,
+    ResolvedRawTransaction, ResolvedRbf, ResolvedTransaction, UtxoSetPoint,
 };
 #[cfg(feature = "series")]
 pub use r#impl::{ResolvedQuery, SeriesAnchor, SeriesRead};
 pub use output::*;
+#[cfg(feature = "price")]
+pub use publication_cache::PublicationCache;
 pub use query_plugin_set::{
     QueryPluginSet, SupportsAddresses, SupportsAge, SupportsBlocks, SupportsCoinflow,
     SupportsCointime, SupportsInputs, SupportsMappings, SupportsMining, SupportsOutputs,
@@ -85,7 +87,7 @@ struct QueryInner<'a> {
     #[cfg(any(feature = "chain", feature = "price"))]
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "price")]
-    live_oracle: live_oracle::LiveOracle,
+    live_oracle: PublicationCache<brk_oracle::Oracle>,
     /// The read bounds of the newest publication a pin asked for: one per publication, not per read.
     #[cfg(any(feature = "series", feature = "price"))]
     bounds: ArcSwapOption<PublishedBounds>,

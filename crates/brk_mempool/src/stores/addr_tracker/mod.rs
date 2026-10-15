@@ -69,20 +69,10 @@ impl AddrTracker {
         txid: &Txid,
         update_stats: impl FnOnce(&mut AddressMempoolStats),
     ) {
-        match self.0.entry(bytes) {
-            MapEntry::Occupied(mut occupied) => {
-                let entry = Arc::make_mut(occupied.get_mut());
-                entry.txids.insert(*txid);
-                update_stats(&mut entry.stats);
-                entry.stats.update_tx_count(entry.txids.len() as u32);
-            }
-            MapEntry::Vacant(vacant) => {
-                let entry = Arc::make_mut(vacant.insert(Arc::default()));
-                entry.txids.insert(*txid);
-                update_stats(&mut entry.stats);
-                entry.stats.update_tx_count(entry.txids.len() as u32);
-            }
-        }
+        let entry = Arc::make_mut(self.0.entry(bytes).or_default());
+        entry.txids.insert(*txid);
+        update_stats(&mut entry.stats);
+        entry.stats.update_tx_count(entry.txids.len() as u32);
     }
 
     fn apply_remove(

@@ -2,9 +2,10 @@ use std::collections::hash_map::Entry;
 
 use bitview_primitives::{ByAddrType, TypeIndex};
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
+use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrTypeToTypeIndexMap, SHARDS, shard_of},
+    addr::{SHARDS, shard_of},
     block::TxIndexes,
 };
 
@@ -13,7 +14,7 @@ pub struct InputsResult {
     /// Address spends in input order with their creation prices, by shard and type.
     pub spends: [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS],
     /// Transaction indexes per address for tx_count tracking, by shard.
-    pub tx_index_vecs: [AddrTypeToTypeIndexMap<TxIndexes>; SHARDS],
+    pub tx_index_vecs: [ByAddrType<FxHashMap<TypeIndex, TxIndexes>>; SHARDS],
 }
 
 /// Process inputs (spent UTXOs) for a block.
@@ -39,7 +40,8 @@ pub fn process_inputs(
 
     // Vectors and maps allocate on first insert: most shard/type pairs of a block stay empty.
     let mut spends: [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS] = Default::default();
-    let mut tx_index_vecs: [AddrTypeToTypeIndexMap<TxIndexes>; SHARDS] = Default::default();
+    let mut tx_index_vecs: [ByAddrType<FxHashMap<TypeIndex, TxIndexes>>; SHARDS] =
+        Default::default();
 
     let mut processed = 0;
     for (local_idx, tx_index) in txs.enumerate() {

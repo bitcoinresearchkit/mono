@@ -176,7 +176,14 @@ impl Vecs {
 
             stored_updates.sort_unstable_by_key(|(txout_index, _)| *txout_index);
             let _lock = exit.lock();
-            self.spending_txin_index.update_many(stored_updates)?;
+            if with_changes {
+                // Each stored output an appended block spends was unspent: its undo record
+                // needs no read.
+                self.spending_txin_index
+                    .update_many_with_previous(stored_updates, Index40::new(TxInIndex::UNSPENT))?;
+            } else {
+                self.spending_txin_index.update_many(stored_updates)?;
+            }
             // The bulk advances the baseline without undo; the protected tail saves its undo
             // before changing stored outputs.
             self.spending_txin_index.stamped_write_maybe_with_changes(

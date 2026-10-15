@@ -69,12 +69,21 @@ impl Vecs {
         }
 
         let committed = self.spot.cents.height.len();
-        let config = Config::for_height(committed);
-        let ref_bin = f64::from(self.oracle_bin.collect_one_at(committed - 1).data()?);
-        let warmup = config.window_size.min(committed - START_HEIGHT_SLOW);
-        let mut oracle = Oracle::from_checkpoint(ref_bin, config, |o| {
-            feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None)
-        })?;
+        // The retained oracle continues exactly where the stored prices end; otherwise rebuild it
+        // from the last stored bin and its warmup blocks (the same state: the EMA is a fold of
+        // the window, newest first).
+        let (warmup, mut oracle) = match self.oracle.take() {
+            Some((next, oracle)) if next == committed => (0, oracle),
+            _ => {
+                let config = Config::for_height(committed);
+                let ref_bin = f64::from(self.oracle_bin.collect_one_at(committed - 1).data()?);
+                let warmup = config.window_size.min(committed - START_HEIGHT_SLOW);
+                let oracle = Oracle::from_checkpoint(ref_bin, config, |o| {
+                    feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None)
+                })?;
+                (warmup, oracle)
+            }
+        };
 
         let num_new = total_heights - committed;
         info!("Computing {num_new} oracle prices ({warmup} warmup blocks)...");
@@ -127,6 +136,7 @@ impl Vecs {
         }
 
         info!("Computed {num_new} oracle prices.");
+        self.oracle = Some((total_heights, oracle));
 
         Ok(())
     }

@@ -622,7 +622,6 @@ dependencies = [
  "bitview_vecs",
  "brk_error",
  "brk_types",
- "derive_more",
  "log",
  "vecdb",
 ]
@@ -739,6 +738,8 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
+ "derive_more",
+ "rayon",
  "statedb",
  "vecdb",
 ]
@@ -782,7 +783,6 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "rayon",
  "rustc-hash",
  "statedb",
@@ -888,7 +888,6 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "rayon",
  "statedb",
  "tempfile",
@@ -1001,7 +1000,6 @@ dependencies = [
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
- "brk_exit",
  "brk_types",
  "vecdb",
 ]
@@ -1064,6 +1062,7 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
+ "derive_more",
  "rayon",
  "tracing",
  "vecdb",
@@ -1141,7 +1140,6 @@ name = "bitview_server"
 version = "0.12.2"
 dependencies = [
  "aide",
- "arc-swap",
  "axum",
  "bitcoin",
  "bitview_catalog",
@@ -1156,7 +1154,6 @@ dependencies = [
  "derive_more",
  "http-body",
  "jiff",
- "parking_lot",
  "rayon",
  "schemars",
  "serde",

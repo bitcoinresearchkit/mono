@@ -1,10 +1,13 @@
-use std::ops::{ControlFlow, Range};
+use std::{
+    mem,
+    ops::{ControlFlow, Range},
+};
 
 use bitview_cohort::AddressTypeId;
 use bitview_distribution::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::{Indexer, overwritten_output};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{ByAddrType, FundedAddressData, TypeIndex};
+use bitview_primitives::{AddrTypeId, ByAddrType, FundedAddressData, TypeIndex};
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
@@ -35,6 +38,7 @@ struct Lost {
 }
 
 /// One address type's activity in one block, for one shard of its addresses.
+#[derive(Default)]
 struct TypeBlock {
     received: FxHashMap<TypeIndex, Received>,
     /// Spends in input order, with their creation prices.
@@ -119,55 +123,22 @@ pub fn process_chunk(
     } = workspace;
     let tx_count = indexer.vecs().transactions.txid.len();
 
-    // Pre-collect first address mappings per type for the block range
-    let first_p2a_vec = indexer
-        .vecs()
-        .addrs
-        .p2a
-        .first_index
-        .collect_range_at(start_usize, end_usize);
-    let first_p2pk33_vec = indexer
-        .vecs()
-        .addrs
-        .p2pk33
-        .first_index
-        .collect_range_at(start_usize, end_usize);
-    let first_p2pk65_vec = indexer
-        .vecs()
-        .addrs
-        .p2pk65
-        .first_index
-        .collect_range_at(start_usize, end_usize);
-    let first_p2pkh_vec = indexer
-        .vecs()
-        .addrs
-        .p2pkh
-        .first_index
-        .collect_range_at(start_usize, end_usize);
-    let first_p2sh_vec = indexer
-        .vecs()
-        .addrs
-        .p2sh
-        .first_index
-        .collect_range_at(start_usize, end_usize);
-    let first_p2tr_vec = indexer
-        .vecs()
-        .addrs
-        .p2tr
-        .first_index
-        .collect_range_at(start_usize, end_usize);
-    let first_p2wpkh_vec = indexer
-        .vecs()
-        .addrs
-        .p2wpkh
-        .first_index
-        .collect_range_at(start_usize, end_usize);
-    let first_p2wsh_vec = indexer
-        .vecs()
-        .addrs
-        .p2wsh
-        .first_index
-        .collect_range_at(start_usize, end_usize);
+    // Each type's first address index per block of the range, for telling new addresses apart.
+    let addrs = &indexer.vecs().addrs;
+    macro_rules! first_indexes {
+        ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
+            ByAddrType {
+                $($field: addrs
+                    .$field
+                    .first_index
+                    .collect_range_at(start_usize, end_usize)
+                    .into_iter()
+                    .map(|index| TypeIndex::from(index.to_usize()))
+                    .collect::<Vec<_>>(),)+
+            }
+        };
+    }
+    let first_indexes = bitview_primitives::with_address_storage_types!(first_indexes);
 
     // Load cold address state once for each batch of blocks.
     let bounds = BlockBounds::new(indexer, blocks);
@@ -185,16 +156,7 @@ pub fn process_chunk(
         } = columns;
 
         // Addresses created within this batch start at these per-type indexes.
-        let first_addr_indexes = ByAddrType {
-            p2a: TypeIndex::from(first_p2a_vec[offset].to_usize()),
-            p2pk33: TypeIndex::from(first_p2pk33_vec[offset].to_usize()),
-            p2pk65: TypeIndex::from(first_p2pk65_vec[offset].to_usize()),
-            p2pkh: TypeIndex::from(first_p2pkh_vec[offset].to_usize()),
-            p2sh: TypeIndex::from(first_p2sh_vec[offset].to_usize()),
-            p2tr: TypeIndex::from(first_p2tr_vec[offset].to_usize()),
-            p2wpkh: TypeIndex::from(first_p2wpkh_vec[offset].to_usize()),
-            p2wsh: TypeIndex::from(first_p2wsh_vec[offset].to_usize()),
-        };
+        let first_addr_indexes = ByAddrType::from_fn(|id| id.select(&first_indexes)[offset]);
 
         cache.load_addresses(
             output_types
@@ -243,24 +205,32 @@ pub fn process_chunk(
                 (received, inputs.spends, inputs.tx_index_vecs)
             })
             .collect::<Vec<_>>();
-        let mut by_shard: [ByAddrType<Vec<TypeBlock>>; SHARDS] = Default::default();
-        for (received, spends, sent_txs) in groups {
-            for (((by_type, received), spends), sent_txs) in
-                by_shard.iter_mut().zip(received).zip(spends).zip(sent_txs)
-            {
-                for (((output_type, received), (spends_type, spends)), (sent_type, sent_txs)) in
+        // Every shard of every type is a lane holding its blocks side by side, lanes in
+        // `shards_mut` order.
+        let block_count = batch.blocks.len();
+        let mut lanes = Vec::new();
+        lanes.resize_with(
+            SHARDS * AddrTypeId::ALL.len() * block_count,
+            TypeBlock::default,
+        );
+        for (offset, (received, spends, sent_txs)) in groups.into_iter().enumerate() {
+            let blocks = received.into_iter().zip(spends).zip(sent_txs).flat_map(
+                |((received, spends), sent_txs)| {
                     received
                         .into_iter()
                         .zip(spends.into_iter())
                         .zip(sent_txs.into_iter())
-                {
-                    debug_assert!(output_type == spends_type && output_type == sent_type);
-                    by_type.get_mut_unwrap(output_type).push(TypeBlock {
-                        received,
-                        spends,
-                        sent_txs,
-                    });
-                }
+                },
+            );
+            for (lane, (((output_type, received), (spends_type, spends)), (sent_type, sent_txs))) in
+                blocks.enumerate()
+            {
+                debug_assert!(output_type == spends_type && output_type == sent_type);
+                lanes[lane * block_count + offset] = TypeBlock {
+                    received,
+                    spends,
+                    sent_txs,
+                };
             }
         }
 
@@ -270,27 +240,29 @@ pub fn process_chunk(
         let mut base = addr_states.metrics.clone();
         base.reset_per_block();
         let base = &base;
-        let processed = cache
+        let mut processed = Vec::new();
+        processed.resize_with(lanes.len(), Default::default);
+        let ids = cache
             .shards_mut()
-            .zip(by_shard.into_iter().flat_map(ByAddrType::into_iter))
+            .zip(lanes.chunks_mut(block_count))
+            .zip(processed.chunks_mut(block_count))
             .collect::<Vec<_>>()
             .into_par_iter()
-            .map(|((output_type, addrs), (blocks_type, blocks))| {
-                debug_assert_eq!(output_type, blocks_type);
+            .map(|(((output_type, addrs), blocks), processed)| {
                 // P2A is not an address type: its addresses update only their own data.
                 let id = AddressTypeId::from_output_type(output_type);
                 let member = id.map(|id| *id.select(&base.0));
-                let first = batch.blocks.start;
-                let blocks = process_shard(
+                process_shard(
                     output_type,
                     addrs,
                     blocks,
-                    first,
+                    batch.blocks.start,
                     block_prices,
                     member,
                     &lost,
+                    processed,
                 );
-                (id, blocks)
+                id
             })
             .collect::<Vec<_>>();
 
@@ -303,7 +275,7 @@ pub fn process_chunk(
             }
             let metrics = &mut addr_states.metrics;
             metrics.clone_from(base);
-            for (id, blocks) in &processed {
+            for (id, blocks) in ids.iter().zip(processed.chunks(block_count)) {
                 if let (Some(id), (cohorts, Some(member))) = (*id, &blocks[offset]) {
                     cohorts.apply_to(&mut addr_states.amount_range);
                     metrics.add_member_delta(id, *member, base);
@@ -333,7 +305,7 @@ pub fn process_chunk(
     // Every write of the tail keeps its changes, so a reorg can roll back across early flushes.
     write(vecs, addr_states, last_height, tail, finished)?;
     if !finished {
-        vecs.flush()?;
+        vecs.db.flush();
     }
 
     Ok(next)
@@ -341,18 +313,19 @@ pub fn process_chunk(
 
 /// Apply one shard of an address type's blocks in order: per block its transaction counts,
 /// receives, then spends (the block-level convention the README states). `member` is the type's
-/// counters (none for P2A) the shard starts from. Returns each block's cohort changes and the
-/// member after it.
+/// counters (none for P2A) the shard starts from. Writes each block's cohort changes and the
+/// member after it to `processed`.
 #[allow(clippy::too_many_arguments)]
 fn process_shard(
     output_type: OutputType,
     addrs: &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>,
-    blocks: Vec<TypeBlock>,
+    blocks: &mut [TypeBlock],
     first_height: usize,
     prices: &[Cents],
     mut member: Option<MemberState>,
     lost: &[Lost],
-) -> Vec<(CohortLog, Option<MemberState>)> {
+    processed: &mut [(CohortLog, Option<MemberState>)],
+) {
     let lost = lost
         .iter()
         .filter(|lost| output_type == OutputType::P2PK65 && addrs.contains_key(&lost.type_index))
@@ -360,19 +333,14 @@ fn process_shard(
         .collect::<Vec<_>>();
     let mut lookup = AddrTypeLookup::new(addrs);
     let mut transfers = TransferAddressCache::default();
-    let mut processed = Vec::with_capacity(blocks.len());
-    for (
-        height,
-        (
-            TypeBlock {
-                received,
-                spends,
-                sent_txs,
-            },
-            &price,
-        ),
-    ) in (first_height..).zip(blocks.into_iter().zip(prices))
+    for (height, ((block, &price), processed)) in
+        (first_height..).zip(blocks.iter_mut().zip(prices).zip(processed))
     {
+        let TypeBlock {
+            received,
+            spends,
+            sent_txs,
+        } = mem::take(block);
         if let Some(member) = &mut member {
             member.reset_per_block();
         }
@@ -407,7 +375,6 @@ fn process_shard(
                 member.as_mut(),
             );
         }
-        processed.push((cohorts, member));
+        *processed = (cohorts, member);
     }
-    processed
 }

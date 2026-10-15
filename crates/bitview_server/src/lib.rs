@@ -36,7 +36,7 @@ use tower_layer::Layer;
 use tracing::info;
 
 use api::*;
-use cache::{CacheParams, CacheStrategy};
+use cache::CacheParams;
 use response_size_above::ResponseSizeAbove;
 use state::*;
 
@@ -48,8 +48,6 @@ mod config;
 mod error;
 mod etag;
 mod extended;
-#[cfg(feature = "chain")]
-mod historical_price_cache;
 mod json_error;
 mod params;
 mod port;
@@ -223,9 +221,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
 
     let (router, openapi) = finish_openapi(router);
 
-    let router = router
-        .layer(Extension(OpenApiJson::new(&openapi)))
-        .layer(Extension(ApiJson::new(&openapi)));
+    let router = router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi))));
 
     // NormalizePath must wrap the router (not be a layer) to run before route matching
     Ok(NormalizePathLayer::trim_trailing_slash().layer(router))

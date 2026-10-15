@@ -9,9 +9,9 @@ const DEFAULT_LIMIT: usize = 100;
 
 pub struct QuickMatchConfig {
     /// Maximum number of results to return (at least 1). Default: 100.
-    limit: usize,
+    pub(crate) limit: usize,
     /// Whether disjoint known query words fall back to their union. Default: true.
-    union_fallback: bool,
+    pub(crate) union_fallback: bool,
 }
 
 impl Default for QuickMatchConfig {
@@ -36,13 +36,5 @@ impl QuickMatchConfig {
     pub fn with_union_fallback(mut self, union_fallback: bool) -> Self {
         self.union_fallback = union_fallback;
         self
-    }
-
-    pub(crate) fn limit(&self) -> usize {
-        self.limit
-    }
-
-    pub(crate) fn union_fallback(&self) -> bool {
-        self.union_fallback
     }
 }

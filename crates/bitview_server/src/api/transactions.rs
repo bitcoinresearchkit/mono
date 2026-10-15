@@ -15,7 +15,7 @@ use tower_http::limit::RequestBodyLimitLayer;
 
 use super::broadcast;
 use crate::{
-    AppState, CacheParams, CacheStrategy,
+    AppState, CacheParams,
     error::Result,
     extended::TransformResponseExtended,
     params::{Empty, TxIndexParam, TxidParam, TxidVout, TxidsParam},
@@ -38,8 +38,8 @@ impl TxRoutes for ApiRouter<AppState> {
                        RequestState(state): RequestState|
                        -> Result<Response> {
                     let txid = state.read_admitted(move |q| q.txid_by_index(param.index)).await?;
-                    let strategy = CacheStrategy::Live(format!("tx-index3-{}-{txid}", Version::ONE).into());
-                    Ok(state.respond_text_value(&headers, strategy, txid.to_string()))
+                    let params = CacheParams::live(format!("tx-index3-{}-{txid}", Version::ONE));
+                    Ok(state.respond_text_value(&headers, params, txid.to_string()))
                 },
                 |op| op
                     .id("get_tx_by_index")
@@ -55,10 +55,9 @@ impl TxRoutes for ApiRouter<AppState> {
             "/api/v1/cpfp/{txid}",
             get_with(
                 async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    let mode = state.cdn_cache_mode;
                     Ok(state.respond_read(headers, "application/json", move |q| {
                         let source = q.resolve_cpfp(&param.txid)?;
-                        let params = CacheParams::resolve(&AppState::representation_strategy(Version::ONE, source.identity()), mode);
+                        let params = CacheParams::representation(Version::ONE, source.identity());
                         Ok((source, params))
                     }, |q, source| q.cpfp_json_resolved(source).map(Bytes::from)).await)
                 },
@@ -97,10 +96,9 @@ impl TxRoutes for ApiRouter<AppState> {
                     _: Empty,
                     RequestState(state): RequestState
                 | -> Result<Response> {
-                    let mode = state.cdn_cache_mode;
                     Ok(state.respond_read(headers, "application/json", move |q| {
                         let source = q.resolve_transaction(&param.txid)?;
-                        let params = CacheParams::resolve(&AppState::representation_strategy(Version::ONE, source.identity()), mode);
+                        let params = CacheParams::representation(Version::ONE, source.identity());
                         Ok((source, params))
                     }, |q, source| q.transaction_json_resolved(source).map(Bytes::from)).await)
                 },
@@ -125,10 +123,9 @@ impl TxRoutes for ApiRouter<AppState> {
                     _: Empty,
                     RequestState(state): RequestState
                 | -> Result<Response> {
-                    let mode = state.cdn_cache_mode;
                     Ok(state.respond_read(headers, "text/plain", move |q| {
                         let source = q.resolve_raw_transaction(&param.txid)?;
-                        let params = CacheParams::resolve(&AppState::representation_strategy(Version::ONE, source.identity()), mode);
+                        let params = CacheParams::representation(Version::ONE, source.identity());
                         Ok((source, params))
                     }, |q, source| q.transaction_hex_resolved(source).map(Bytes::from)).await)
                 },
@@ -148,10 +145,9 @@ impl TxRoutes for ApiRouter<AppState> {
             "/api/tx/{txid}/merkleblock-proof",
             get_with(
                 async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    let mode = state.cdn_cache_mode;
                     Ok(state.respond_read(headers, "text/plain", move |q| {
                         let tx = q.resolve_confirmed_tx(&param.txid)?;
-                        let params = CacheParams::resolve(&AppState::representation_strategy(Version::ONE, tx.identity()), mode);
+                        let params = CacheParams::representation(Version::ONE, tx.identity());
                         Ok((tx, params))
                     }, |q, tx| q.merkleblock_proof_resolved(tx).map(Bytes::from)).await)
                 },
@@ -169,10 +165,9 @@ impl TxRoutes for ApiRouter<AppState> {
             "/api/tx/{txid}/merkle-proof",
             get_with(
                 async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    let mode = state.cdn_cache_mode;
                     Ok(state.respond_read(headers, "application/json", move |q| {
                         let tx = q.resolve_confirmed_tx(&param.txid)?;
-                        let params = CacheParams::resolve(&AppState::representation_strategy(Version::ONE, tx.identity()), mode);
+                        let params = CacheParams::representation(Version::ONE, tx.identity());
                         Ok((tx, params))
                     }, |q, tx| Ok(to_vec(&q.merkle_proof_resolved(tx)?)?.into())).await)
                 },
@@ -244,10 +239,9 @@ impl TxRoutes for ApiRouter<AppState> {
             "/api/tx/{txid}/raw",
             get_with(
                 async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    let mode = state.cdn_cache_mode;
                     Ok(state.respond_read(headers, "application/octet-stream", move |q| {
                         let source = q.resolve_raw_transaction(&param.txid)?;
-                        let params = CacheParams::resolve(&AppState::representation_strategy(Version::ONE, source.identity()), mode);
+                        let params = CacheParams::representation(Version::ONE, source.identity());
                         Ok((source, params))
                     }, |q, source| q.transaction_raw_resolved(source).map(Bytes::from)).await)
                 },
@@ -273,11 +267,11 @@ impl TxRoutes for ApiRouter<AppState> {
                 | -> Result<Response> {
                     let txid = param.txid;
                     let status = state.read_admitted(move |q| q.transaction_status(&txid)).await?;
-                    let strategy = match status.block_hash {
-                        Some(hash) => CacheStrategy::Live(format!("tx-status3-{}-{hash}", Version::ONE).into()),
-                        None => CacheStrategy::LiveHash(*TxidPrefix::from(txid)),
+                    let params = match status.block_hash {
+                        Some(hash) => CacheParams::live(format!("tx-status3-{}-{hash}", Version::ONE)),
+                        None => CacheParams::live_hash(*TxidPrefix::from(txid)),
                     };
-                    Ok(state.respond_json_value(&headers, strategy, status))
+                    Ok(state.respond_json_value(&headers, params, status))
                 },
                 |op| op
                     .id("get_tx_status")
@@ -296,7 +290,7 @@ impl TxRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, params: TxidsParam, RequestState(state): RequestState| -> Result<Response> {
                     let (times, hash) = state.query.read(move |q| q.transaction_times_with_hash(&params.txids)).await?;
-                    Ok(state.respond_json_value(&headers, CacheStrategy::LiveHash(hash), times))
+                    Ok(state.respond_json_value(&headers, CacheParams::live_hash(hash), times))
                 },
                 |op| op
                     .id("get_transaction_times")

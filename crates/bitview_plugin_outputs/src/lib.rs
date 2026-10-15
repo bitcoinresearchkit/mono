@@ -1,6 +1,5 @@
 mod by_type;
 mod compute;
-mod count;
 mod dependencies;
 mod has;
 mod import;
@@ -12,14 +11,15 @@ pub use dependencies::Dependencies;
 pub use has::HasOutputs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::Count;
+use bitview_primitives::{Count, Count32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyPerSecondWindows};
+use bitview_vecs::{
+    LazyPerBlockCumulativeRolling, LazyPerSecondWindows, PerBlockFullFromCumulative,
+};
 use brk_types::Version;
 use statedb::Creations;
 use vecdb::{Database, Rw, StorageMode};
 
-use count::Vecs as CountVecs;
 use spent::Vecs as SpentVecs;
 use value::Vecs as ValueVecs;
 
@@ -35,7 +35,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub creations: M::WriteOnly<Creations>,
     #[traversable(flatten)]
     pub spent: SpentVecs<M>,
-    pub count: CountVecs<M>,
+    /// Number of transaction outputs, including coinbase outputs.
+    pub count: PerBlockFullFromCumulative<Count32, M>,
     /// Transaction-output rate, including coinbase outputs.
     per_second: LazyPerSecondWindows,
     /// Number of transaction outputs excluding `OP_RETURN` outputs, which are

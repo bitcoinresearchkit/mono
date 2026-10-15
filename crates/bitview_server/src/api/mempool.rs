@@ -8,7 +8,7 @@ use brk_types::{
 
 use super::{block_template, mempool_txids};
 use crate::{
-    AppState, CacheStrategy,
+    AppState, CacheParams,
     api::oracle::serve_live_price,
     error::Result,
     extended::TransformResponseExtended,
@@ -45,7 +45,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Result<Response> {
                     let hash = state.query.read(|q| q.mempool_hash()).await?;
-                    Ok(state.respond_json_value(&headers, CacheStrategy::LiveHash(hash.into()), hash))
+                    Ok(state.respond_json_value(&headers, CacheParams::live_hash(hash.into()), hash))
                 },
                 |op| {
                     op.id("get_mempool_hash")

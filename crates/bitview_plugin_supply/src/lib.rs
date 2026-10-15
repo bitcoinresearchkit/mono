@@ -1,4 +1,3 @@
-mod burned;
 mod compute;
 mod dependencies;
 mod import;
@@ -11,6 +10,7 @@ use bitview_primitives::PartsPerMillionSigned64;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
+    ValuePerBlockCumulativeRolling,
 };
 use brk_types::{Bitcoin, Cents, CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -30,7 +30,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Value made provably unspendable: the genesis subsidy, `OP_RETURN` output
     /// values, unclaimed block rewards and the two coinbase outputs that BIP30
     /// duplicates overwrote (blocks 91812 and 91722, at 91842 and 91880).
-    burned: burned::Vecs<M>,
+    burned: ValuePerBlockCumulativeRolling<M>,
     /// Scheduled annual issuance over the circulating supply: the represented
     /// block's scheduled subsidy times 52,560 blocks, divided by the supply. Null
     /// without supply (block 0, whose output is unspendable).

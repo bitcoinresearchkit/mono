@@ -88,7 +88,11 @@ fn topo_sort(
         let Some(t) = txs.get(idx.as_usize()) else {
             continue;
         };
-        indeg[i] = t.parents.iter().filter(|p| position.contains_key(p)).count() as u32;
+        indeg[i] = t
+            .parents
+            .iter()
+            .filter(|p| position.contains_key(p))
+            .count() as u32;
         for &c in t.children.iter() {
             if let Some(&ci) = position.get(&c) {
                 children[i].push(ci);

@@ -12,7 +12,7 @@ cargo run --release -p bitviewd_bench_visualizer -- /Volumes/External/bitview
 ```
 
 With no argument, it charts the workspace's `benches/` collection. The
-equivalent API call is `Visualizer::new(bitviewdir).generate()?`.
+equivalent API call is `bitviewd_bench_visualizer::generate(bitviewdir)?`.
 
 Each directory of `benches/` is a machine (`apple-m6-16gb-external-tb`), and every directory
 below it that holds a `memory.csv` is one of its runs (`<revision>/<run-id>/`,

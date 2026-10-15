@@ -15,7 +15,7 @@ use serde::Serialize;
 use serde_json::to_vec;
 
 use crate::{
-    AppState, CacheParams, CacheStrategy, CdnCacheMode, Error,
+    AppState, CacheParams, Error,
     extended::{ResponseExtended, TransformResponseExtended},
     params::{
         BlockHashParam, BlockHashStartIndex, BlockHashTxIndex, Empty, HeightParam, TimestampParam,
@@ -35,7 +35,7 @@ fn recent_blocks_params(tip: Option<BlockHash>) -> CacheParams {
         Some(hash) => format!("blocks2-{hash}"),
         None => "blocks2-empty".to_owned(),
     };
-    CacheParams::resolve(&CacheStrategy::Live(tag.into()), CdnCacheMode::Live)
+    CacheParams::live(tag)
 }
 
 // The namespace covers the row formulas and bundled pool catalog. Bump it when
@@ -56,7 +56,7 @@ pub fn blocks_v1_identity(anchor: Option<BlockHash>, prices: &[Dollars]) -> sha2
 fn blocks_v1_params(anchor: Option<BlockHash>, prices: &[Dollars]) -> CacheParams {
     let identity = blocks_v1_identity(anchor, prices);
     let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{identity}");
-    CacheParams::resolve(&CacheStrategy::Live(tag.into()), CdnCacheMode::Live)
+    CacheParams::live(tag)
 }
 
 fn block_v1_params(snapshot: &ResolvedBlocksV1) -> QueryResult<CacheParams> {
@@ -64,10 +64,9 @@ fn block_v1_params(snapshot: &ResolvedBlocksV1) -> QueryResult<CacheParams> {
         .last_height()
         .ok_or(QueryError::Internal("Missing resolved block"))?;
     let identity = blocks_v1_identity(snapshot.anchor(), snapshot.prices());
-    Ok(CacheParams::resolve(
-        &CacheStrategy::Live(format!("block-{V1_BLOCK_SCHEMA}-{height}-{identity}").into()),
-        CdnCacheMode::Live,
-    ))
+    Ok(CacheParams::live(format!(
+        "block-{V1_BLOCK_SCHEMA}-{height}-{identity}"
+    )))
 }
 
 fn block_params(snapshot: &ResolvedBlocks, schema: &str) -> QueryResult<CacheParams> {

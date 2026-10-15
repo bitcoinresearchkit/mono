@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use serde_json::Value;
 
 /// Unwrap allOf with a single element, returning the inner schema.
@@ -49,6 +51,30 @@ pub(crate) fn client_value_type(kind: &str, list: fn(&str) -> String) -> String 
 /// E.g., "#/definitions/MyType" -> "MyType", "#/$defs/Foo" -> "Foo"
 pub(crate) fn ref_to_type_name(ref_path: &str) -> Option<&str> {
     ref_path.rsplit('/').next()
+}
+
+/// Every type name a schema references through `$ref`, at any depth.
+pub(crate) fn collect_schema_refs<'a>(schema: &'a Value, refs: &mut BTreeSet<&'a str>) {
+    match schema {
+        Value::Object(map) => {
+            if let Some(type_name) = map
+                .get("$ref")
+                .and_then(Value::as_str)
+                .and_then(ref_to_type_name)
+            {
+                refs.insert(type_name);
+            }
+            for value in map.values() {
+                collect_schema_refs(value, refs);
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                collect_schema_refs(value, refs);
+            }
+        }
+        _ => {}
+    }
 }
 
 /// Extract the element type from a Rust fixed-array name such as `[Cents; 19]`.

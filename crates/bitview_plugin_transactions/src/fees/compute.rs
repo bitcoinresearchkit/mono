@@ -1,5 +1,4 @@
 mod block;
-mod sources;
 mod values;
 
 use std::time::{Duration, Instant};
@@ -8,18 +7,18 @@ use bitview_compute::write_locked;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Boolean, Count, Lengths};
+use bitview_traversable::Traversable;
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Sats, TxIndex, VSize};
-use rayon::{join, prelude::*};
+use brk_types::{Height, Sats, VSize};
+use rayon::prelude::*;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
-use crate::resume::prepare_blocks;
+use crate::{distribution::TxDistribution, resume::prepare_blocks};
 use block::{Block, Components};
-use sources::Sources;
 
 const COMPUTE_BATCH_HEIGHTS: usize = 64;
 /// Blocks between flushes, below the shared `WRITE_INTERVAL`: five per-transaction columns hold
@@ -27,63 +26,48 @@ const COMPUTE_BATCH_HEIGHTS: usize = 64;
 const FLUSH_BLOCKS: usize = 1_000;
 
 impl Vecs {
+    /// The fee pass, which also yields the per-block fee, effective fee rate and `vsize`
+    /// distributions from the values it holds, then the cumulative fee total.
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
         mappings: &MappingsVecs,
-        vsizes: &impl ReadableVec<TxIndex, VSize>,
+        vsize: &mut TxDistribution<VSize>,
         transfer_volume: &mut CachedSeries<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.compute_start();
-
         self.compute_fees(
-            Sources::from(indexer),
+            indexer,
             starting_lengths,
             mappings,
+            vsize,
             transfer_volume,
             exit,
         )?;
         self.total_cumulative
             .compute_cumulative(starting_lengths.height, &self.total, exit)?;
-
-        let first_tx_index = &indexer.vecs().transactions.first_tx_index;
-        let (fee, effective_fee_rate) = (&mut self.fee, &mut self.effective_fee_rate);
-        let (r1, r2) = join(
-            || {
-                fee.distribution.compute(
-                    mappings,
-                    &starting_lengths,
-                    first_tx_index,
-                    &fee.tx,
-                    1,
-                    exit,
-                )
-            },
-            || {
-                effective_fee_rate.distribution.compute_weighted(
-                    mappings,
-                    &starting_lengths,
-                    first_tx_index,
-                    &effective_fee_rate.tx,
-                    vsizes,
-                    exit,
-                )
-            },
-        );
-        r1?;
-        r2?;
-
         Ok(())
     }
 
     /// The fee pass's outputs, one restart group: per transaction, then per block.
     fn outputs_mut<'a>(
         &'a mut self,
+        vsize: &'a mut TxDistribution<VSize>,
         transfer_volume: &'a mut CachedSeries<Height, Sats>,
-    ) -> ([&'a mut dyn AnyStoredVec; 5], [&'a mut dyn AnyStoredVec; 5]) {
+    ) -> ([&'a mut dyn AnyStoredVec; 5], Vec<&'a mut dyn AnyStoredVec>) {
         let (parent_flag, parent_count) = self.cpfp_parent.stored_mut();
         let (child_flag, child_count) = self.cpfp_child.stored_mut();
+        let mut blocks: Vec<&mut dyn AnyStoredVec> = vec![
+            &mut self.coinbase_value,
+            transfer_volume,
+            &mut self.total,
+            parent_count,
+            child_count,
+        ];
+        blocks.extend(self.fee.distribution.iter_any_stored_mut());
+        blocks.extend(self.effective_fee_rate.distribution.iter_any_stored_mut());
+        blocks.extend(vsize.iter_any_stored_mut());
         (
             [
                 &mut self.fee.tx,
@@ -92,59 +76,53 @@ impl Vecs {
                 parent_flag,
                 child_flag,
             ],
-            [
-                &mut self.coinbase_value,
-                transfer_volume,
-                &mut self.total,
-                parent_count,
-                child_count,
-            ],
+            blocks,
         )
     }
 
     fn compute_fees(
         &mut self,
-        raw: Sources<'_>,
+        indexer: &Indexer,
         starting_lengths: Lengths,
         mappings: &MappingsVecs,
+        vsize: &mut TxDistribution<VSize>,
         transfer_volume: &mut CachedSeries<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
-        let Sources {
-            input_values,
-            output_values,
-            ..
-        } = raw;
+        let vecs = indexer.vecs();
+        let (txs, inputs, outputs) = (&vecs.transactions, &vecs.inputs, &vecs.outputs);
+        let (input_values, output_values, outpoints) =
+            (&inputs.value, &outputs.value, &inputs.outpoint);
         let tx_counts = &mappings.height.tx_index_count;
         let version = input_values.version()
             + output_values.version()
-            + raw.tx_outputs.version()
-            + raw.block_inputs.version()
-            + raw.block_outputs.version()
-            + raw.block_txs.version()
-            + raw.tx_inputs.version()
+            + txs.first_txout_index.version()
+            + inputs.first_txin_index.version()
+            + outputs.first_txout_index.version()
+            + txs.first_tx_index.version()
+            + txs.first_txin_index.version()
             + tx_counts.version()
-            + raw.weights.version()
-            + raw.outpoints.version();
-        let target = raw.tx_inputs.len().min(raw.tx_outputs.len());
-        let available_target = target.min(raw.weights.len());
-        let max_height = raw
-            .block_txs
+            + txs.weight.version()
+            + outpoints.version();
+        let target = txs.first_txin_index.len().min(txs.first_txout_index.len());
+        let available_target = target.min(txs.weight.len());
+        let max_height = txs
+            .first_tx_index
             .len()
             .min(tx_counts.len())
-            .min(raw.block_inputs.len())
-            .min(raw.block_outputs.len());
+            .min(inputs.first_txin_index.len())
+            .min(outputs.first_txout_index.len());
         let (heights, start_tx) = {
-            let (mut txs, mut blocks) = self.outputs_mut(transfer_volume);
+            let (mut txs_out, mut blocks_out) = self.outputs_mut(vsize, transfer_volume);
             prepare_blocks(
-                &mut txs,
-                &mut blocks,
+                &mut txs_out,
+                &mut blocks_out,
                 version,
                 starting_lengths,
                 target,
                 max_height,
                 mappings,
-                raw.block_txs,
+                &txs.first_tx_index,
                 exit,
             )?
         };
@@ -155,22 +133,23 @@ impl Vecs {
 
         let mut cumulative_volume = transfer_volume.collect_last().unwrap_or_default();
 
-        let mut tx_count = tx_counts.cursor();
-        let mut next_block_input = raw.block_inputs.cursor();
-        tx_count.advance(start_height);
-        next_block_input.advance(start_height);
+        // Bounded: an update of a few blocks reads only their counts and boundaries.
+        let mut tx_count = tx_counts.bounded_cursor_at(start_height, max_height);
+        let mut next_block_input = inputs
+            .first_txin_index
+            .bounded_cursor_at(start_height, max_height + 1);
         let start_input = next_block_input.next().unwrap().to_usize();
-        let mut next_block_output = raw.block_outputs.cursor();
-        next_block_output.advance(start_height + 1);
+        let mut next_block_output = outputs
+            .first_txout_index
+            .bounded_cursor_at(start_height + 1, max_height + 1);
         let mut output_starts = Vec::new();
 
         // Dependencies have written their vectors before this pass. Retain the
         // decoded pages across blocks instead of reopening each compressed range.
-        let mut weights = raw.weights.range_cursor_at(start_tx, available_target);
-        let mut txin_starts = raw.tx_inputs.range_cursor_at(start_tx, target);
-        let mut outpoints = raw
-            .outpoints
-            .range_cursor_at(start_input, raw.outpoints.len());
+        let mut weights = txs.weight.range_cursor_at(start_tx, available_target);
+        let mut txin_starts = txs.first_txin_index.range_cursor_at(start_tx, target);
+        let outpoint_len = outpoints.len();
+        let mut outpoints = outpoints.range_cursor_at(start_input, outpoint_len);
         let mut input_value = input_values.range_cursor_at(start_input, input_values.len());
 
         // Grows to the largest batch: an update of a few blocks fills a few.
@@ -200,18 +179,21 @@ impl Vecs {
                 block.input_begin = block.txin_starts[0].to_usize();
                 let input_end = next_block_input
                     .next()
-                    .map_or(raw.outpoints.len(), |index| index.to_usize());
+                    .map_or(outpoint_len, |index| index.to_usize());
                 let output_end = next_block_output
                     .next()
                     .map_or(output_values.len(), |index| index.to_usize());
-                if input_end > raw.outpoints.len()
+                if input_end > outpoint_len
                     || input_end > input_values.len()
                     || output_end > output_values.len()
                 {
                     break;
                 }
-                raw.tx_outputs
-                    .collect_range_into_at(first_tx, first_tx + n, &mut output_starts);
+                txs.first_txout_index.collect_range_into_at(
+                    first_tx,
+                    first_tx + n,
+                    &mut output_starts,
+                );
                 input_value.advance(block.input_begin.saturating_sub(input_value.position()));
                 input_value.for_each(
                     input_end - block.input_begin,
@@ -260,13 +242,16 @@ impl Vecs {
                 }
                 self.cpfp_parent.count.push_block(Count::from(parent_count));
                 self.cpfp_child.count.push_block(Count::from(child_count));
+                self.fee.distribution.push(block.fee_stats);
+                self.effective_fee_rate.distribution.push(block.rate_stats);
+                vsize.push(block.vsize_stats);
                 self.coinbase_value.push(block.output_values[0]);
                 self.total.push(block.total_fee);
                 cumulative_volume += block.transfer_volume;
                 transfer_volume.push(cumulative_volume);
 
                 if (height + offset + 1).is_multiple_of(FLUSH_BLOCKS) {
-                    self.write_fees(transfer_volume, exit)?;
+                    self.write_fees(vsize, transfer_volume, exit)?;
                 }
             }
 
@@ -286,15 +271,16 @@ impl Vecs {
             }
         }
 
-        self.write_fees(transfer_volume, exit)
+        self.write_fees(vsize, transfer_volume, exit)
     }
 
     fn write_fees(
         &mut self,
+        vsize: &mut TxDistribution<VSize>,
         transfer_volume: &mut CachedSeries<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
-        let (txs, blocks) = self.outputs_mut(transfer_volume);
+        let (txs, blocks) = self.outputs_mut(vsize, transfer_volume);
         write_locked(txs.into_iter().chain(blocks), exit)
     }
 }

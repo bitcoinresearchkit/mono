@@ -1,7 +1,5 @@
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
-use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
-use brk_exit::Exit;
 use rayon::join;
 use vecdb::AnyVec;
 
@@ -21,59 +19,49 @@ impl ComputePlugin for Vecs {
             mappings,
             price,
         } = dependencies;
-        self.compute_created(
-            indexer,
-            usize::from(indexer.compute_start().height),
-            indexer.vecs().outputs.first_txout_index.len(),
-            context.exit(),
-        )?;
         let Vecs {
-            value,
+            db,
+            creations,
+            spent,
             count,
             types,
-            spent,
+            value,
             ..
         } = self;
-
         let exit = context.exit();
-        count.compute(indexer, mappings, exit)?;
-        let (fiat, counts) = join(
-            || {
-                value.op_return_value.compute_cents(
-                    indexer.compute_start().height,
-                    &price.spot.cents.height,
-                    exit,
-                )
-            },
-            || types.compute(indexer, exit),
-        );
-        fiat?;
-        counts?;
-        spent.compute(indexer, exit)?;
-        Ok(())
-    }
-}
+        let start = indexer.compute_start().height;
 
-impl Vecs {
-    /// Price-independent output facts; requires neither Inputs nor transaction analysis.
-    fn compute_created(
-        &mut self,
-        indexer: &Indexer,
-        start: usize,
-        end: usize,
-        exit: &Exit,
-    ) -> Result<()> {
-        let outputs = &indexer.vecs().outputs;
-        value::compute_sats(
-            &mut self.value.op_return_value.cumulative.sats.height,
-            &mut self.creations,
-            start..end,
-            &outputs.first_txout_index,
-            (&outputs.output_type, &outputs.value),
-            &indexer.vecs().blocks.blockhash,
-            exit,
-        )?;
-        self.db.flush();
-        Ok(())
+        // The spend index reads only indexer columns: it runs beside everything else.
+        let (spent, created) = join(
+            || spent.compute(indexer, exit),
+            || -> Result<()> {
+                let outputs = &indexer.vecs().outputs;
+                // Price-independent output facts; require neither Inputs nor transaction
+                // analysis.
+                value::compute_sats(
+                    &mut value.op_return_value.cumulative.sats.height,
+                    creations,
+                    usize::from(start)..outputs.first_txout_index.len(),
+                    &outputs.first_txout_index,
+                    (&outputs.output_type, &outputs.value),
+                    &indexer.vecs().blocks.blockhash,
+                    exit,
+                )?;
+                db.flush();
+                count.compute(start, &mappings.lookback.window_starts(), exit)?;
+                let (fiat, counts) = join(
+                    || {
+                        value
+                            .op_return_value
+                            .compute_cents(start, &price.spot.cents.height, exit)
+                    },
+                    || types.compute(indexer, exit),
+                );
+                fiat?;
+                counts
+            },
+        );
+        spent?;
+        created
     }
 }
