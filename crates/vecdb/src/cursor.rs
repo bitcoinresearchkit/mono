@@ -98,8 +98,7 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
     /// chunk for the next call. Supports gaps and backward reads.
     pub fn collect_range_into_at(&mut self, from: usize, to: usize, out: &mut Vec<T>) {
         out.clear();
-        self.pos = from.min(self.len);
-        let count = to.min(self.len).saturating_sub(self.pos);
+        let count = self.seek_range(from, to);
         out.reserve(count);
         self.for_each(count, |value| out.push(value));
     }
@@ -113,8 +112,15 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
         to: usize,
         mut each: impl FnMut(T) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.pos = from.min(self.len);
-        self.try_fold(to.saturating_sub(from), (), |(), value| each(value))
+        let count = self.seek_range(from, to);
+        self.try_fold(count, (), |(), value| each(value))
+    }
+
+    /// Positions at the readable part of `[from, to)`, returning its length.
+    #[inline]
+    fn seek_range(&mut self, from: usize, to: usize) -> usize {
+        self.pos = from.max(self.start).min(self.len);
+        to.min(self.len).saturating_sub(self.pos)
     }
 
     /// Returns the next value and advances position, or `None` if exhausted.

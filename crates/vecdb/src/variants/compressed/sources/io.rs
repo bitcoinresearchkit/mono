@@ -90,7 +90,12 @@ where
             self.file.seek(SeekFrom::Start(absolute_offset)).unwrap();
         }
 
-        // Sized to the span read: a short read never zeroes a whole buffer.
+        if self.buffer.capacity() == 0 {
+            // Once, for the whole requested span: later refills start further on and never
+            // need more, so the buffer neither reallocates nor zeroes bytes it never reads.
+            let span = self.pages.get(max_page)?.end().checked_sub(start_offset)? as usize;
+            self.buffer.reserve_exact(span.min(BUFFER_SIZE));
+        }
         if self.buffer.len() < total_bytes {
             self.buffer.resize(total_bytes, 0);
         }

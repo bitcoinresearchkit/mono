@@ -13,6 +13,10 @@ pub(crate) const HEADER: usize = 72;
 /// Origins per tip page (4 KiB of amounts): a block rewrites only the pages it changed.
 pub(crate) const PAGE: usize = 256;
 pub(crate) const PAGE_BYTES: u64 = (PAGE * size_of::<Amount>()) as u64;
+/// Restores read tip pages in spans of at most this many slots, across gaps of at most
+/// `MAX_GAP` garbage slots.
+const MAX_SPAN: u32 = 1024;
+const MAX_GAP: u32 = 16;
 pub(crate) const MAX_RECORD: u64 = 2 * 1024 * 1024 * 1024;
 const MAX_LEN: usize = 100_000_000;
 
@@ -176,19 +180,35 @@ impl Snapshot {
         let amounts = match &self.body {
             Body::Paged { dir, pages } => {
                 let slots = read_slots(dir, self.len)?;
+                let page_len = |page: usize| PAGE.min(self.len - page * PAGE);
                 let mut amounts = vec![Amount::default(); self.len];
-                // Pages written together sit in consecutive slots: one read per run.
-                let mut page = 0;
-                while page < slots.len() {
-                    let run = slots[page..]
-                        .iter()
-                        .zip(slots[page]..)
-                        .take_while(|&(&slot, next)| slot == next)
-                        .count();
-                    let end = ((page + run) * PAGE).min(self.len);
-                    let offset = slots[page] as u64 * PAGE_BYTES;
-                    read_amounts(pages, offset, &mut amounts[page * PAGE..end])?;
-                    page += run;
+                // Scattered updates fragment the directory: read the pages in file order, in
+                // bounded spans across small runs of garbage slots, then put each in its place.
+                let mut order: Vec<usize> = (0..slots.len()).collect();
+                order.sort_unstable_by_key(|&page| slots[page]);
+                let mut span = Vec::new();
+                let mut i = 0;
+                while i < order.len() {
+                    let first = slots[order[i]];
+                    let mut j = i + 1;
+                    while j < order.len()
+                        && slots[order[j]] - slots[order[j - 1]] <= MAX_GAP
+                        && slots[order[j]] - first < MAX_SPAN
+                    {
+                        j += 1;
+                    }
+                    let last = order[j - 1];
+                    span.resize(
+                        (slots[last] - first) as usize * PAGE + page_len(last),
+                        Amount::default(),
+                    );
+                    read_amounts(pages, first as u64 * PAGE_BYTES, &mut span)?;
+                    for &page in &order[i..j] {
+                        let at = (slots[page] - first) as usize * PAGE;
+                        let n = page_len(page);
+                        amounts[page * PAGE..page * PAGE + n].copy_from_slice(&span[at..at + n]);
+                    }
+                    i = j;
                 }
                 amounts
             }
