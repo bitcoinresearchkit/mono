@@ -31,7 +31,7 @@ impl ServerRoutes for ApiRouter<AppState> {
             "/health",
             get_with(
                 async |_: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    let sync = state.read(|q| q.local_sync_status()).await?;
+                    let sync = state.query.read(|q| q.local_sync_status()).await?;
                     let uptime = state.started_instant.elapsed();
                     let timestamp = Timestamp::now().to_string();
                     let mut response = Json(Health {
@@ -56,8 +56,6 @@ impl ServerRoutes for ApiRouter<AppState> {
                         .summary("Health check")
                         .description("Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index waits until the request deadline, then returns 504. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.")
                         .json_response::<Health>()
-                        .bad_request()
-                        .server_errors()
                 },
             ),
         )
@@ -73,7 +71,6 @@ impl ServerRoutes for ApiRouter<AppState> {
                         .description("Returns the current version of the API server")
                         .json_response::<String>()
                         .not_modified()
-                        .bad_request()
                 },
             ),
         )
@@ -101,8 +98,6 @@ impl ServerRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<SyncStatus>()
                         .not_modified()
-                        .bad_request()
-                        .server_errors()
                 },
             ),
         )
@@ -120,9 +115,6 @@ impl ServerRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<DiskUsage>()
                         .not_modified()
-                        .bad_request()
-                        .server_error()
-                        .gateway_timeout()
                 },
             ),
         )

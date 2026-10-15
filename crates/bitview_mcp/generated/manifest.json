@@ -2934,7 +2934,7 @@
       "tool": {
         "name": "get_block_status",
         "title": "Block status",
-        "description": "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*\n\nREST operation: `GET /api/block/{hash}/status`.",
+        "description": "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*\n\nREST operation: `GET /api/block/{hash}/status`.",
         "inputSchema": {
           "type": "object",
           "properties": {

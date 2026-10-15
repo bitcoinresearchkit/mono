@@ -73,19 +73,6 @@ pub enum Index {
     UnknownOutputIndex,
 }
 
-/// How the trailing edge of an [`Index`] mutates over time. Drives the series
-/// cache: bucketed indexes have a small fixed volatile tail, entity indexes
-/// derive their stable count from a height→first-index mapping.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CacheClass {
-    /// Append-only with `margin` trailing entries volatile per ≥6-block reorg.
-    Bucket { margin: usize },
-    /// Append-only entity index (one number per tx / input / output / typed
-    /// addr). Stable count must be looked up via the indexer's
-    /// `first_X_index[tip - 6]` mapping.
-    Entity,
-}
-
 impl Index {
     pub const fn all() -> [Self; 31] {
         [
@@ -192,37 +179,6 @@ impl Index {
             Self::P2WPKHAddressIndex => P2WPKHAddressIndex::index_name(),
             Self::P2WSHAddressIndex => P2WSHAddressIndex::index_name(),
             Self::UnknownOutputIndex => UnknownOutputIndex::index_name(),
-        }
-    }
-
-    /// Classifies how the trailing edge of an index mutates, so the series cache
-    /// can pick the right stable-count strategy.
-    pub const fn cache_class(&self) -> CacheClass {
-        match self {
-            Self::Minute10 => CacheClass::Bucket { margin: 8 },
-            Self::Minute30 => CacheClass::Bucket { margin: 3 },
-            Self::Hour1 | Self::Hour4 | Self::Hour12 => CacheClass::Bucket { margin: 2 },
-            Self::Day1 | Self::Day3 | Self::Week1 => CacheClass::Bucket { margin: 2 },
-            Self::Month1 | Self::Month3 | Self::Month6 => CacheClass::Bucket { margin: 1 },
-            Self::Year1 | Self::Year10 | Self::Halving | Self::Epoch => {
-                CacheClass::Bucket { margin: 1 }
-            }
-            Self::Height => CacheClass::Bucket { margin: 6 },
-            Self::TxIndex
-            | Self::TxInIndex
-            | Self::TxOutIndex
-            | Self::EmptyOutputIndex
-            | Self::OpReturnIndex
-            | Self::P2AAddressIndex
-            | Self::P2MSOutputIndex
-            | Self::P2PK33AddressIndex
-            | Self::P2PK65AddressIndex
-            | Self::P2PKHAddressIndex
-            | Self::P2SHAddressIndex
-            | Self::P2TRAddressIndex
-            | Self::P2WPKHAddressIndex
-            | Self::P2WSHAddressIndex
-            | Self::UnknownOutputIndex => CacheClass::Entity,
         }
     }
 

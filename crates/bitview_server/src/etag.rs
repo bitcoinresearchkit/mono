@@ -49,7 +49,7 @@ impl Etag {
 
 impl From<String> for Etag {
     fn from(value: String) -> Self {
-        assert!(
+        debug_assert!(
             value
                 .bytes()
                 .all(|byte| byte == 0x21 || (0x23..=0x7e).contains(&byte) || byte >= 0x80),

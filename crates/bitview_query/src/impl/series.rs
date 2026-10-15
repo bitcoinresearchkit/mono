@@ -1,15 +1,14 @@
 use std::fmt::Write;
 
 use bitview_catalog::TreeNode;
-use bitview_primitives::{BlockHashPrefix, CacheClass, Date, Epoch, Halving, Index};
+use bitview_primitives::{BlockHashPrefix, Date, Epoch, Halving, Index, TxOutIndex};
 use bitview_types::{
     DetailedSeriesCount, Format, IndexInfo, Limit, PaginatedSeries, Pagination, RangeIndex,
     SearchQuery, SeriesInfo, SeriesName, SeriesSelection,
 };
-use brk_types::{Height, Timestamp, Version};
+use brk_types::{Height, Timestamp, TxIndex, Version};
 use itoa::Buffer;
 use jiff::civil::Date as CivilDate;
-use serde_json::{Value, from_slice, to_writer};
 use vecdb::{BoundedVec, ReadableVec, ValueWriter, i64_to_usize};
 
 use crate::{
@@ -159,21 +158,18 @@ impl Query {
         }
     }
 
-    /// Latest value in the canonical JSON representation.
+    /// Latest value, written as range responses write their values.
     pub fn latest_json(&self, series: &SeriesName, index: Index) -> Result<Vec<u8>> {
-        reserialize_json(self.read_latest_json(series, index)?)
-    }
-
-    fn read_latest_json(&self, series: &SeriesName, index: Index) -> Result<Vec<u8>> {
         let entry = self.get_entry(series, index)?;
         let read = SeriesRead::new(self, vec![entry])?;
         let vec = read.columns().next().unwrap();
-        let len = vec.visible_len();
-        if len == 0 {
+        let mut value = Vec::new();
+        if let Some(last) = vec.visible_len().checked_sub(1) {
+            vec.write_json_value_at(last, &mut value)?;
+        }
+        if value.is_empty() {
             return Err(Error::NoData);
         }
-        let mut value = Vec::new();
-        vec.write_json_value_at(len - 1, &mut value)?;
         Ok(value)
     }
 
@@ -220,15 +216,13 @@ impl Query {
     /// decide whether the representation body is needed before formatting.
     pub fn resolve(&self, params: SeriesSelection, max_weight: usize) -> Result<ResolvedQuery> {
         let read = self.search(&params)?;
-        let safe = read.safe_lengths();
         let index = params.index;
 
-        let total = read
-            .columns()
-            .map(|vec| vec.visible_len())
-            .min()
-            .unwrap_or(0);
-        let version: Version = read.columns().map(|v| v.version()).sum();
+        let (mut total, mut version) = (usize::MAX, Version::ZERO);
+        for vec in read.columns() {
+            total = total.min(vec.visible_len());
+            version = version + vec.version();
+        }
 
         let resolve_bound =
             |ri: RangeIndex| -> Result<i64> { self.range_index_to_i64(ri, index, &read) };
@@ -263,72 +257,142 @@ impl Query {
             });
         }
 
-        let last_height = safe.last_height();
-        let tip_height = last_height.unwrap_or_default();
-        let tip_hash = last_height
-            .and_then(|height| self.indexer().vecs().blocks.blockhash.collect_one(height))
-            .unwrap_or_default();
-        let hash_prefix = BlockHashPrefix::from(&tip_hash);
-        let stable_count =
-            (!read.is_mutable()).then(|| self.stable_count(params.index, total, tip_height));
+        let anchor = self.series_anchor(&read, index, end, total);
 
         Ok(ResolvedQuery {
             read,
             format: params.format(),
-            index: params.index,
+            index,
             version,
             start,
             end,
-            hash_prefix,
-            stable_count,
+            anchor,
         })
     }
 
-    /// Count of leading entries provably immutable across a 6-block reorg.
-    ///
-    /// - Bucketed indexes: `total - margin`.
-    /// - Entity indexes: `first_X_index[tip_height - 6]`, falling back to 0 if
-    ///   the tip is shallower than 6 blocks. Clamped to `total` so a query
-    ///   whose vecs are shorter than the entity-type's own count never marks
-    ///   its live tail as stable.
-    fn stable_count(&self, index: Index, total: usize, tip_height: Height) -> usize {
-        match index.cache_class() {
-            CacheClass::Bucket { margin } => total.saturating_sub(margin),
-            CacheClass::Entity => {
-                let h = Height::from((*tip_height).saturating_sub(6));
-                self.entity_index_at(index, h).unwrap_or(0).min(total)
+    /// What rows `..end` are tied to. Rows wholly below the first height a six-block reorg
+    /// replaces are historical: anchored to the last block they depend on, which appends never
+    /// change and any deeper reorg replacing those rows does. Anything else, and any series
+    /// rewriting existing rows, is tied to the published tip.
+    fn series_anchor(
+        &self,
+        read: &SeriesRead,
+        index: Index,
+        end: usize,
+        total: usize,
+    ) -> SeriesAnchor {
+        let pin = read.pin();
+        let tip = SeriesAnchor::Tip(BlockHashPrefix::from(&pin.tip()));
+        let Some(last) = pin.lengths().last_height() else {
+            return tip;
+        };
+        let cutoff = Height::from((*last).saturating_sub(5));
+        if read.is_mutable() || end > self.first_row_at(index, cutoff).unwrap_or(0).min(total) {
+            return tip;
+        }
+        let height = if index.is_date_based() {
+            // A period's extent and date also depend on the block after it (its monotonic
+            // timestamp ends the period; an empty period takes its date from it).
+            match self.period_first_height(index, end) {
+                Some(height) if height < cutoff => Some(height),
+                _ => return tip,
             }
+        } else {
+            end.checked_sub(1)
+                .and_then(|row| self.last_height_through(index, row, cutoff))
+        };
+        let hash = height
+            .and_then(|height| self.indexer().vecs().blocks.blockhash.collect_one(height))
+            .unwrap_or_default();
+        SeriesAnchor::Historical(BlockHashPrefix::from(&hash))
+    }
+
+    /// The row of `index` holding block `height`: its period, or its first entity.
+    fn first_row_at(&self, index: Index, height: Height) -> Option<usize> {
+        let v = self.indexer().vecs();
+        let row = match index {
+            Index::Height => usize::from(height),
+            Index::Epoch => usize::from(Epoch::from(height)),
+            Index::Halving => usize::from(Halving::from(height)),
+            _ if index.is_date_based() => index.timestamp_to_index(
+                self.plugins()
+                    .mappings
+                    .timestamp
+                    .monotonic
+                    .collect_one(height)?,
+            )?,
+            Index::TxIndex => v.transactions.first_tx_index.collect_one(height)?.into(),
+            Index::TxInIndex => v.inputs.first_txin_index.collect_one(height)?.into(),
+            Index::TxOutIndex => v.outputs.first_txout_index.collect_one(height)?.into(),
+            Index::EmptyOutputIndex => v.scripts.empty.first_index.collect_one(height)?.into(),
+            Index::OpReturnIndex => v.op_return.first_index.collect_one(height)?.into(),
+            Index::P2MSOutputIndex => v.scripts.p2ms.first_index.collect_one(height)?.into(),
+            Index::UnknownOutputIndex => v.scripts.unknown.first_index.collect_one(height)?.into(),
+            Index::P2AAddressIndex => v.addrs.p2a.first_index.collect_one(height)?.into(),
+            Index::P2PK33AddressIndex => v.addrs.p2pk33.first_index.collect_one(height)?.into(),
+            Index::P2PK65AddressIndex => v.addrs.p2pk65.first_index.collect_one(height)?.into(),
+            Index::P2PKHAddressIndex => v.addrs.p2pkh.first_index.collect_one(height)?.into(),
+            Index::P2SHAddressIndex => v.addrs.p2sh.first_index.collect_one(height)?.into(),
+            Index::P2TRAddressIndex => v.addrs.p2tr.first_index.collect_one(height)?.into(),
+            Index::P2WPKHAddressIndex => v.addrs.p2wpkh.first_index.collect_one(height)?.into(),
+            Index::P2WSHAddressIndex => v.addrs.p2wsh.first_index.collect_one(height)?.into(),
+            _ => unreachable!("{index:?} is neither block-mapped nor an entity"),
+        };
+        Some(row)
+    }
+
+    /// The first block of period `row` of a date-based, epoch or halving index (the next
+    /// period's when it holds none).
+    fn period_first_height(&self, index: Index, row: usize) -> Option<Height> {
+        let first_height = &self.plugins().mappings.first_height;
+        match index {
+            Index::Minute10 => first_height.minute10.collect_one_at(row),
+            Index::Minute30 => first_height.minute30.collect_one_at(row),
+            Index::Hour1 => first_height.hour1.collect_one_at(row),
+            Index::Hour4 => first_height.hour4.collect_one_at(row),
+            Index::Hour12 => first_height.hour12.collect_one_at(row),
+            Index::Day1 => first_height.day1.collect_one_at(row),
+            Index::Day3 => first_height.day3.collect_one_at(row),
+            Index::Week1 => first_height.week1.collect_one_at(row),
+            Index::Month1 => first_height.month1.collect_one_at(row),
+            Index::Month3 => first_height.month3.collect_one_at(row),
+            Index::Month6 => first_height.month6.collect_one_at(row),
+            Index::Year1 => first_height.year1.collect_one_at(row),
+            Index::Year10 => first_height.year10.collect_one_at(row),
+            Index::Halving => first_height.halving.collect_one_at(row),
+            Index::Epoch => first_height.epoch.collect_one_at(row),
+            _ => unreachable!("{index:?} has no periods"),
         }
     }
 
-    fn entity_index_at(&self, index: Index, h: Height) -> Option<usize> {
-        let v = self.indexer().vecs();
+    /// For a height, epoch, halving or entity index: the last block whose rows reach no further
+    /// than `row`, a row below `cutoff`'s first one; `None` when the rows through `row` hold no
+    /// block.
+    fn last_height_through(&self, index: Index, row: usize, cutoff: Height) -> Option<Height> {
+        let mappings = &self.plugins().mappings;
         match index {
-            Index::TxIndex => v
-                .transactions
-                .first_tx_index
-                .collect_one(h)
-                .map(usize::from),
-            Index::TxInIndex => v.inputs.first_txin_index.collect_one(h).map(usize::from),
-            Index::TxOutIndex => v.outputs.first_txout_index.collect_one(h).map(usize::from),
-            Index::EmptyOutputIndex => v.scripts.empty.first_index.collect_one(h).map(usize::from),
-            Index::OpReturnIndex => v.op_return.first_index.collect_one(h).map(usize::from),
-            Index::P2MSOutputIndex => v.scripts.p2ms.first_index.collect_one(h).map(usize::from),
-            Index::UnknownOutputIndex => v
-                .scripts
-                .unknown
-                .first_index
-                .collect_one(h)
-                .map(usize::from),
-            Index::P2AAddressIndex => v.addrs.p2a.first_index.collect_one(h).map(usize::from),
-            Index::P2PK33AddressIndex => v.addrs.p2pk33.first_index.collect_one(h).map(usize::from),
-            Index::P2PK65AddressIndex => v.addrs.p2pk65.first_index.collect_one(h).map(usize::from),
-            Index::P2PKHAddressIndex => v.addrs.p2pkh.first_index.collect_one(h).map(usize::from),
-            Index::P2SHAddressIndex => v.addrs.p2sh.first_index.collect_one(h).map(usize::from),
-            Index::P2TRAddressIndex => v.addrs.p2tr.first_index.collect_one(h).map(usize::from),
-            Index::P2WPKHAddressIndex => v.addrs.p2wpkh.first_index.collect_one(h).map(usize::from),
-            Index::P2WSHAddressIndex => v.addrs.p2wsh.first_index.collect_one(h).map(usize::from),
-            _ => unreachable!("entity_index_at called for non-Entity Index: {index:?}"),
+            Index::Height => Some(Height::from(row)),
+            // Their periods are fixed block counts: the block before the next one's first.
+            Index::Epoch | Index::Halving => {
+                self.period_first_height(index, row + 1)?.decremented()
+            }
+            // Every block has transactions and outputs: the block holding `row`.
+            Index::TxIndex => mappings.tx_heights.get_shared(TxIndex::from(row)),
+            Index::TxOutIndex => mappings.output_heights.get_shared(TxOutIndex::from(row)),
+            // Other entities: the block before the first one below the cutoff starting past
+            // `row`.
+            _ => {
+                let (mut low, mut high) = (0, usize::from(cutoff));
+                while low < high {
+                    let middle = low + (high - low) / 2;
+                    if self.first_row_at(index, Height::from(middle))? <= row {
+                        low = middle + 1;
+                    } else {
+                        high = middle;
+                    }
+                }
+                Height::from(low).decremented()
+            }
         }
     }
 
@@ -502,18 +566,18 @@ impl Query {
     }
 }
 
-// Preserve Value serialization and parse errors, but reuse the writer's buffer.
-fn reserialize_json(mut bytes: Vec<u8>) -> Result<Vec<u8>> {
-    let value: Value = from_slice(&bytes)?;
-    bytes.clear();
-    to_writer(&mut bytes, &value)?;
-    Ok(bytes)
+/// What a series representation is tied to (see [`Query::resolve`]).
+#[derive(Clone, Copy)]
+pub enum SeriesAnchor {
+    /// Every row lies below the six-block reorg window: the last block the rows cover.
+    Historical(BlockHashPrefix),
+    /// The rows reach the reorg window, or a series rewrites existing rows: the published tip.
+    Tip(BlockHashPrefix),
 }
 
 /// A resolved series query ready for formatting.
 /// Keeps selected plugins and the indexer's published bounds stable through
-/// formatting. `stable_count` is `None` when any selected series can mutate
-/// existing entries independently of its append/reorg window.
+/// formatting.
 ///
 /// Raw vectors are not exposed outside the protected read view, and a bounded
 /// column cannot outlive the query that owns its pin.
@@ -524,8 +588,7 @@ pub struct ResolvedQuery {
     pub version: Version,
     pub start: usize,
     pub end: usize,
-    pub hash_prefix: BlockHashPrefix,
-    pub stable_count: Option<usize>,
+    pub anchor: SeriesAnchor,
 }
 
 impl ResolvedQuery {

@@ -18,32 +18,25 @@ impl Query {
         let tip = pin.lengths().last_height().ok_or(Error::StateUpdating)?;
         let bw = BlockWindow::new(self, time_period, tip)?;
 
-        let block_sizes: Vec<Bytes> = bw
-            .read(&*blocks.total)?
-            .into_iter()
-            .map(Bytes::from)
-            .collect();
-        let block_weights: Vec<Weight> = bw
-            .read(&*blocks.weight)?
-            .into_iter()
-            .map(Weight::from)
-            .collect();
+        let sizes = bw.means_rounded(&*blocks.total, Bytes::from)?;
+        let weights = bw.means_rounded(&*blocks.weight, Weight::from)?;
         drop(pin);
 
         let (sizes, weights) = bw
             .buckets
             .iter()
-            .map(|b| {
+            .zip(sizes.into_iter().zip(weights))
+            .map(|(b, (size, weight))| {
                 (
                     BlockSizeEntry {
                         avg_height: b.avg_height,
                         timestamp: b.avg_timestamp,
-                        avg_size: u64::from(b.mean_rounded(&block_sizes)),
+                        avg_size: u64::from(size),
                     },
                     BlockWeightEntry {
                         avg_height: b.avg_height,
                         timestamp: b.avg_timestamp,
-                        avg_weight: b.mean_rounded(&block_weights),
+                        avg_weight: weight,
                     },
                 )
             })

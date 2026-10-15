@@ -14,7 +14,6 @@ use brk_rpc::Client;
 
 mod api;
 mod chain_waker;
-mod cycle;
 mod driver;
 mod read_only;
 mod snapshot;
@@ -22,13 +21,15 @@ mod state;
 mod steps;
 mod stores;
 
-pub use api::{BlockTemplateSource, PendingUtxos, RbfForTx, RbfNode, ResolvedBlockTemplateDiff};
+pub use api::{
+    BlockTemplateDiffJson, BlockTemplateJson, BlockTemplateSource, PendingUtxos, PublishedTx,
+    RbfForTx, RbfNode, ResolvedBlockTemplateDiff,
+};
 pub use chain_waker::ChainWaker;
-pub use cycle::{Cycle, TxAdded, TxRemoved};
 pub use read_only::ReadOnlyMempool;
-pub use snapshot::Snapshot;
+use snapshot::Snapshot;
 pub use state::ReadOnlyState;
-pub use steps::TxRemoval;
+use steps::TxRemoval;
 
 use snapshot::Rebuilder;
 use state::State;

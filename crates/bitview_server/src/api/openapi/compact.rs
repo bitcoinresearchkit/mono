@@ -1,21 +1,25 @@
-use std::mem;
+use std::{mem, sync::Arc};
 
 use aide::openapi::OpenApi;
-use axum::body::Bytes;
+use axum::{body::Bytes, http::HeaderMap, response::Response};
 use serde_json::{Map, Value, to_value, to_vec};
 
-/// Compact OpenAPI spec optimized for LLM consumption.
-/// Pre-serialized at startup, served as raw bytes per request.
+use crate::prepared_json::PreparedJson;
+
+/// Compact OpenAPI spec optimized for LLM consumption, pre-serialized at startup with its
+/// content validator.
 #[derive(Clone)]
-pub struct ApiJson(Bytes);
+pub struct ApiJson(Arc<PreparedJson>);
 
 impl ApiJson {
     pub fn new(openapi: &OpenApi) -> Self {
-        Self(Bytes::from(compact_json(to_value(openapi).unwrap())))
+        Self(Arc::new(PreparedJson::from_bytes(Bytes::from(
+            compact_json(to_value(openapi).unwrap()),
+        ))))
     }
 
-    pub fn bytes(&self) -> Bytes {
-        self.0.clone()
+    pub fn respond(&self, headers: &HeaderMap) -> Response {
+        self.0.respond(headers)
     }
 }
 
@@ -26,10 +30,9 @@ impl ApiJson {
 /// 1. Remove deprecated endpoints
 /// 2. Remove contact/license from info
 /// 3. Remove *Param schemas
-/// 3. Remove error responses (304, 400, 404, 500)
-/// 4. Compact responses to "returns": "Type"
+/// 4. Compact responses to "returns": "Type" (non-JSON: "Type (media/type)")
 /// 5. Remove per-endpoint tags and style
-/// 6. Simplify parameter schema to type, remove param descriptions
+/// 6. Simplify parameters to type, enum, default, bounds and items; remove their descriptions
 /// 7. Remove summary and operationId
 /// 8. Remove examples, replace $ref with type
 /// 9. Flatten single-item allOf
@@ -37,7 +40,7 @@ impl ApiJson {
 /// 11. Remove format
 /// 12. Remove property descriptions
 /// 13. Simplify properties to direct types
-/// 14. Remove min/max constraints
+/// 14. Remove min/max constraints (parameters keep theirs)
 /// 15. Trim descriptions to first paragraph, strip mempool.space links
 /// 16. Remove required arrays from schemas
 /// 17. Remove redundant "type": "object" when properties exist
@@ -76,14 +79,7 @@ fn compact_json(mut spec: Value) -> Vec<u8> {
 fn compact_value(value: &mut Value) {
     match value {
         Value::Object(obj) => {
-            // Step 1: Remove error responses
-            if let Some(Value::Object(responses)) = obj.get_mut("responses") {
-                for code in &["304", "400", "404", "500"] {
-                    responses.remove(*code);
-                }
-            }
-
-            // Step 2: Compact responses to "returns": "Type"
+            // Step 2: Compact responses to "returns": "Type", dropping the error responses
             if let Some(Value::Object(responses)) = obj.remove("responses")
                 && let Some(returns) = extract_return_type(&responses)
             {
@@ -98,7 +94,7 @@ fn compact_value(value: &mut Value) {
             }
             obj.remove("style");
 
-            // Step 4: Simplify parameters (schema to type, remove descriptions)
+            // Step 4: Simplify parameters (complete here: the recursion below skips them)
             if let Some(Value::Array(params)) = obj.get_mut("parameters") {
                 for param in params {
                     simplify_parameter(param);
@@ -180,8 +176,10 @@ fn compact_value(value: &mut Value) {
             }
 
             // Recurse into remaining values
-            for (_, v) in obj.iter_mut() {
-                compact_value(v);
+            for (key, v) in obj.iter_mut() {
+                if key != "parameters" {
+                    compact_value(v);
+                }
             }
         }
         Value::Array(arr) => {
@@ -210,12 +208,21 @@ fn trim_description(desc: &str) -> String {
     }
 }
 
+/// The successful response: its JSON type, or its type and media type when it is not JSON.
 fn extract_return_type(responses: &Map<String, Value>) -> Option<String> {
-    let resp_200 = responses.get("200")?;
-    let content = resp_200.get("content")?;
-    let json_content = content.get("application/json")?;
-    let schema = json_content.get("schema")?;
-    Some(schema_to_type_string(schema))
+    let content = responses.get("200")?.get("content")?.as_object()?;
+    if let Some(schema) = content
+        .get("application/json")
+        .and_then(|json| json.get("schema"))
+    {
+        return Some(schema_to_type_string(schema));
+    }
+    let (media_type, body) = content.iter().next()?;
+    let media_type = media_type.split(';').next().unwrap_or(media_type);
+    Some(match body.get("schema") {
+        Some(schema) => format!("{} ({media_type})", schema_to_type_string(schema)),
+        None => media_type.to_owned(),
+    })
 }
 
 fn schema_to_type_string(schema: &Value) -> String {
@@ -233,17 +240,32 @@ fn schema_to_type_string(schema: &Value) -> String {
     "any".to_string()
 }
 
+/// A parameter as its name, location, requirement and what a valid request needs from its
+/// schema: type, enum, default, bounds and array items.
 fn simplify_parameter(param: &mut Value) {
-    if let Value::Object(obj) = param {
-        // Remove description
-        obj.remove("description");
-
-        // Extract type from schema
-        if let Some(schema) = obj.remove("schema") {
-            let type_val = extract_type_from_schema(schema);
-            obj.insert("type".to_string(), type_val);
+    let Value::Object(obj) = param else {
+        return;
+    };
+    for key in ["description", "style", "example", "examples"] {
+        obj.remove(key);
+    }
+    let Some(Value::Object(mut schema)) = obj.remove("schema") else {
+        return;
+    };
+    for key in ["enum", "default", "minimum", "maximum"] {
+        if let Some(value) = schema.remove(key)
+            && !value.is_null()
+        {
+            obj.insert(key.to_owned(), value);
         }
     }
+    if let Some(items) = schema.remove("items") {
+        obj.insert("items".to_owned(), extract_type_from_schema(items));
+    }
+    obj.insert(
+        "type".to_owned(),
+        extract_type_from_schema(Value::Object(schema)),
+    );
 }
 
 fn simple_type(schema: Value) -> Option<Value> {

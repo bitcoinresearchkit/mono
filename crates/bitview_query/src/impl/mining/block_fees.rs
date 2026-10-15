@@ -1,5 +1,6 @@
+use std::convert::identity;
+
 use bitview_types::{BlockFeesEntry, TimePeriod};
-use brk_types::{Cents, Sats};
 
 use super::block_window::BlockWindow;
 use crate::{Query, Result};
@@ -14,18 +15,19 @@ impl Query {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin);
         let bw = BlockWindow::new(self, time_period, tip)?;
-        let fees: Vec<Sats> = bw.read(&self.plugins().mining.rewards.fees.block.sats)?;
-        let prices: Vec<Cents> = bw.read(&self.plugins().price.spot.cents.height)?;
+        let fees = bw.means_rounded(&self.plugins().mining.rewards.fees.block.sats, identity)?;
+        let prices = bw.mean_prices(&self.plugins().price.spot.cents.height)?;
         drop(pin);
 
         Ok(bw
             .buckets
             .iter()
-            .map(|b| BlockFeesEntry {
+            .zip(fees.into_iter().zip(prices))
+            .map(|(b, (sats, usd))| BlockFeesEntry {
                 avg_height: b.avg_height,
                 timestamp: b.avg_timestamp,
-                avg_fees: b.mean_rounded(&fees),
-                usd: b.mean_price(&prices),
+                avg_fees: sats,
+                usd,
             })
             .collect())
     }

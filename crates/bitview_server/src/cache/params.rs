@@ -1,5 +1,7 @@
 use axum::http::HeaderMap;
 use bitview_primitives::BlockHashPrefix;
+#[cfg(feature = "series")]
+use bitview_query::SeriesAnchor;
 use brk_types::Version;
 
 use super::{mode::CdnCacheMode, strategy::CacheStrategy};
@@ -90,37 +92,28 @@ impl CacheParams {
         }
     }
 
-    /// Series query: tail-bound gets LIVE, historical gets CACHED.
+    /// Series query: historical rows get CACHED, rows reaching the reorg window get LIVE.
     ///
-    /// `stable_count` is the count of leading entries provably immutable across
-    /// a 6-block reorg (per `Index::cache_class()` + `Query::stable_count`).
-    /// `None` (any series with mutable existing entries) forces the tail branch
-    /// for every range.
-    ///
-    /// Etag shapes:
-    /// - historical (`end <= stable_count`): `s{v}-h{start}-{end}`. Pure
-    ///   range, stable across appends and reorgs of the volatile tail.
-    /// - tail (`end > stable_count` or `stable_count.is_none()`):
-    ///   `s{v}-t{tip_hash:x}`. Invalidates per-block, reorg-safe.
-    ///
-    /// The `h`/`t` discriminator after `s{v}-` prevents collision with old
-    /// `s{v}-{number}` ETags from before the migration.
+    /// Etag shapes (see [`SeriesAnchor`]):
+    /// - historical: `s{v}-r{start}-{end}-{anchor:x}`, the anchor being the last block the rows
+    ///   cover: stable across appends, changed by any reorg replacing those rows.
+    /// - tip: `s{v}-t{tip_hash:x}`. Invalidates per block, reorg-safe.
+    #[cfg(feature = "series")]
     pub fn series(
         version: Version,
         start: usize,
         end: usize,
-        stable_count: Option<usize>,
-        hash: BlockHashPrefix,
+        anchor: SeriesAnchor,
         cdn_cache_mode: CdnCacheMode,
     ) -> Self {
         let v = u32::from(version);
-        match stable_count {
-            Some(s) if end <= s => Self {
-                etag: format!("s{v}-h{start}-{end}").into(),
+        match anchor {
+            SeriesAnchor::Historical(hash) => Self {
+                etag: format!("s{v}-r{start}-{end}-{:x}", *hash).into(),
                 cache_control: CC,
                 cdn_cache_control: Self::cdn_cache_control(cdn_cache_mode),
             },
-            _ => Self {
+            SeriesAnchor::Tip(hash) => Self {
                 etag: format!("s{v}-t{:x}", *hash).into(),
                 cache_control: CC,
                 cdn_cache_control: CDN_LIVE,

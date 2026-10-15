@@ -6242,7 +6242,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_status(self, hash: BlockHash) -> BlockStatus:
         """Block status.
 
-        Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block.
+        Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*
 

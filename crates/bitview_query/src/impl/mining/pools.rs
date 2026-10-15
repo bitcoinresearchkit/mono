@@ -11,20 +11,15 @@ use vecdb::{ReadableVec, VecIndex};
 use super::start_height;
 use crate::{Error, OptionData, Query, Result};
 
-/// 7-day lookback for share computation.
-const LOOKBACK_DAYS: usize = 7;
-/// Weekly sample interval (~604800s).
-const SAMPLE_WEEKLY: usize = 7;
+/// Weekly samples, each sharing out the 7 days since the previous one.
+const SAMPLE_DAYS: usize = 7;
 
-/// Pre-read shared data for hashrate computation, over `[load_day, end_day)`.
-struct HashrateSharedData {
-    /// First requested day.
-    start_day: usize,
-    /// `start_day` minus the lookback the first samples need.
-    load_day: usize,
-    end_day: usize,
+/// The network side of weekly pool-hashrate samples, shared by every pool.
+struct HashrateSamples {
+    /// Sample days, weekly back from the tip's day; the first only opens the second's window.
+    days: Vec<usize>,
     daily_hashrate: Vec<Option<Hashrate>>,
-    /// Each day's closing boundary: the first height after it (the tip's successor today).
+    /// Each sample day's closing boundary: the first height after it (the tip's successor today).
     day_ends: Vec<Height>,
 }
 
@@ -54,7 +49,6 @@ impl Query {
         }
 
         let start = start_height(self, time_period, tip)?.to_usize();
-        let lookback = &plugins.mappings.lookback;
 
         let pools = pools();
         let mut pool_data: Vec<(&'static Pool, u64)> = Vec::new();
@@ -82,10 +76,8 @@ impl Query {
         }
 
         let last_estimated_hashrate = self.hashrate_at(current_height)?;
-        let last_estimated_hashrate3d =
-            self.hashrate_at(lookback._3d.collect_one(current_height).data()?)?;
-        let last_estimated_hashrate1w =
-            self.hashrate_at(lookback._1w.collect_one(current_height).data()?)?;
+        let last_estimated_hashrate3d = self.trailing_hashrate(current_height, 3)?;
+        let last_estimated_hashrate1w = self.trailing_hashrate(current_height, 7)?;
         drop(pin);
 
         pool_data.sort_by_key(|p| Reverse(p.1));
@@ -198,10 +190,10 @@ impl Query {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin);
         let pool_name = pools().get(slug).name;
-        let shared = self.hashrate_shared_data(0, tip)?;
-        let pool_cum = self.pool_daily_cumulative(slug, shared.load_day, shared.end_day)?;
+        let samples = self.hashrate_samples(0, tip)?;
+        let pool_cum = self.pool_sampled_cumulative(slug, &samples.days)?;
         drop(pin);
-        Ok(Self::hashrate_entries(&shared, &pool_cum, pool_name).collect())
+        Ok(Self::hashrate_entries(&samples, &pool_cum, pool_name).collect())
     }
 
     /// Multi-pool weekly-sampled hashrate series over `time_period`. Walks
@@ -221,84 +213,72 @@ impl Query {
             None => 0,
         };
 
-        let shared = self.hashrate_shared_data(start_height, tip)?;
+        let samples = self.hashrate_samples(start_height, tip)?;
         let pools_list = pools();
         let mut entries = Vec::new();
 
         for pool in pools_list.iter() {
-            let pool_cum =
-                self.pool_daily_cumulative(pool.slug, shared.load_day, shared.end_day)?;
-            entries.extend(Self::hashrate_entries(&shared, &pool_cum, pool.name));
+            let pool_cum = self.pool_sampled_cumulative(pool.slug, &samples.days)?;
+            entries.extend(Self::hashrate_entries(&samples, &pool_cum, pool.name));
         }
 
         Ok(entries)
     }
 
-    /// Pre-loads the network-wide day1 series (network hashrate, per-day
-    /// closing heights) over `[load_day, end_day)`, where `load_day` is the
-    /// day index of `start_height` minus the share lookback and `end_day` is
-    /// the day index of the current tip plus one (exclusive). Reused across
-    /// pools so the network series is read only once per request.
-    fn hashrate_shared_data(&self, start_height: usize, tip: Height) -> Result<HashrateSharedData> {
+    /// The network side of the weekly samples from `start_height`'s day (and day 7, the first
+    /// with a full window) through the tip's day, anchored on the tip's day so every window
+    /// holds its latest day. Reused across pools so the network series is read once per request.
+    fn hashrate_samples(&self, start_height: usize, tip: Height) -> Result<HashrateSamples> {
         let plugins = self.plugins();
-        let current_height = tip;
-        let start_day = plugins
-            .mappings
-            .height
-            .day1
-            .collect_one_at(start_height)
-            .data()?
-            .to_usize();
-        let end_day = plugins
-            .mappings
-            .height
-            .day1
-            .collect_one(current_height)
-            .data()?
-            .to_usize()
-            + 1;
-        let load_day = start_day.saturating_sub(LOOKBACK_DAYS);
+        let day_of = &plugins.mappings.height.day1;
+        let start_day = day_of.collect_one_at(start_height).data()?.to_usize();
+        let last_day = day_of.collect_one(tip).data()?.to_usize();
+        let first = start_day.max(SAMPLE_DAYS);
+        let days: Vec<usize> = match last_day.checked_sub(first) {
+            Some(span) => (first + span % SAMPLE_DAYS - SAMPLE_DAYS..=last_day)
+                .step_by(SAMPLE_DAYS)
+                .collect(),
+            None => Vec::new(),
+        };
         let daily_hashrate = plugins
             .mining
             .hashrate
             .rate
             .block
             .day1
-            .collect_range_at(load_day, end_day);
-        let mut day_ends = plugins
-            .mappings
-            .day1
-            .first_height
-            .collect_range_at(load_day + 1, end_day);
-        day_ends.push(current_height.incremented());
-        let len = end_day
-            .checked_sub(load_day)
-            .ok_or(Error::Internal("Reversed pool hashrate window"))?;
-        if daily_hashrate.len() != len || day_ends.len() != len {
+            .read_sorted_at(&days);
+        let first_height = &plugins.mappings.day1.first_height;
+        let day_ends = days
+            .iter()
+            .map(|&day| {
+                if day == last_day {
+                    Ok(tip.incremented())
+                } else {
+                    first_height.collect_one_at(day + 1).data()
+                }
+            })
+            .collect::<Result<Vec<_>>>()?;
+        if daily_hashrate.len() != days.len() {
             return Err(Error::Internal("Incomplete pool hashrate window"));
         }
 
-        Ok(HashrateSharedData {
-            start_day,
-            load_day,
-            end_day,
+        Ok(HashrateSamples {
+            days,
             daily_hashrate,
             day_ends,
         })
     }
 
-    /// Reads the pool's daily-cumulative blocks-mined vec over the half-open
-    /// day range `[start_day, end_day)`. Errors `Internal` if the slug has no
-    /// series: both callers guarantee it is in the static pool list, so this
-    /// only fires on a list/plugin mismatch, never on user input.
-    fn pool_daily_cumulative(
+    /// The pool's cumulative blocks mined through each sample day. Errors `Internal` if the
+    /// slug has no series: both callers guarantee it is in the static pool list, so this only
+    /// fires on a list/plugin mismatch, never on user input.
+    fn pool_sampled_cumulative(
         &self,
         slug: PoolSlug,
-        start_day: usize,
-        end_day: usize,
+        days: &[usize],
     ) -> Result<Vec<Option<Count>>> {
-        let plugins = self.plugins();
-        let cumulative = &plugins
+        let values = self
+            .plugins()
             .pools
             .by_slug
             .get(&slug)
@@ -307,56 +287,43 @@ impl Query {
             ))?
             .blocks_mined
             .cumulative
-            .day1;
-        let values = cumulative.collect_range_at(start_day, end_day);
-        if end_day.checked_sub(start_day) != Some(values.len()) {
+            .day1
+            .read_sorted_at(days);
+        if values.len() != days.len() {
             return Err(Error::Internal("Incomplete pool cumulative window"));
         }
         Ok(values)
     }
 
-    /// Per-pool hashrate-share entries from pre-loaded daily cumulative blocks
-    /// plus the shared network series. Samples weekly back from the tip's day,
-    /// within the requested days; for each sample day `i` emits one entry with
-    ///   pool_blocks  = pool_cum[i] - pool_cum[i - LOOKBACK_DAYS]
-    ///   total_blocks = day_ends[i] - day_ends[i - LOOKBACK_DAYS]
+    /// Per-pool hashrate-share entries, one per sample day `days[k]` after the first:
+    ///   pool_blocks  = pool_cum[k] - pool_cum[k - 1]
+    ///   total_blocks = day_ends[k] - day_ends[k - 1]
     ///   share        = pool_blocks / total_blocks
-    ///   avg_hashrate = daily_hashrate[i] * share
+    ///   avg_hashrate = daily_hashrate[k] * share
     /// Both counts cover the same closing-day window. Skips samples where
     /// either cumulative value is `None`, where `pool_blocks == 0`, where
     /// `total_blocks == 0`, or where the network hashrate for that day is
-    /// unavailable. Source reads require complete matching windows before this
-    /// computation.
+    /// unavailable.
     fn hashrate_entries<'a>(
-        shared: &'a HashrateSharedData,
+        samples: &'a HashrateSamples,
         pool_cum: &'a [Option<Count>],
         pool_name: &'static str,
     ) -> impl Iterator<Item = PoolHashrateEntry> + 'a {
-        let total = pool_cum
-            .len()
-            .min(shared.day_ends.len())
-            .min(shared.daily_hashrate.len());
-        let first = (shared.start_day - shared.load_day).max(LOOKBACK_DAYS);
-        // Anchored on the tip's day so every window holds its latest day.
-        let first = total
-            .checked_sub(1)
-            .and_then(|last| last.checked_sub(first))
-            .map_or(total, |span| first + span % SAMPLE_WEEKLY);
-        (first..total).step_by(SAMPLE_WEEKLY).filter_map(move |i| {
-            let cum_now = pool_cum[i]?;
-            let cum_prev = pool_cum[i - LOOKBACK_DAYS]?;
-            let hr = shared.daily_hashrate[i]?;
+        (1..samples.days.len()).filter_map(move |k| {
+            let cum_now = pool_cum[k]?;
+            let cum_prev = pool_cum[k - 1]?;
+            let hr = samples.daily_hashrate[k]?;
             let pool_blocks = (*cum_now).saturating_sub(*cum_prev);
-            let total_blocks = shared.day_ends[i]
+            let total_blocks = samples.day_ends[k]
                 .to_usize()
-                .saturating_sub(shared.day_ends[i - LOOKBACK_DAYS].to_usize());
+                .saturating_sub(samples.day_ends[k - 1].to_usize());
             if pool_blocks == 0 || total_blocks == 0 {
                 return None;
             }
 
             let share = pool_blocks as f64 / total_blocks as f64;
             Some(PoolHashrateEntry {
-                timestamp: Day1::from(shared.load_day + i).to_timestamp(),
+                timestamp: Day1::from(samples.days[k]).to_timestamp(),
                 avg_hashrate: (f64::from(hr) * share) as u128,
                 share,
                 pool_name: Cow::Borrowed(pool_name),

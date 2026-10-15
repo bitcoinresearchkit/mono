@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{ReadPin, check_bound};
 use bitcoin::{
     MerkleBlock, Txid as BitcoinTxid,
@@ -8,12 +6,12 @@ use bitcoin::{
     hex::DisplayHex,
 };
 use bitview_plugin_indexer::SafeLengths;
+use brk_mempool::PublishedTx;
 use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::MerkleProof;
 use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
 use vecdb::{ReadableVec, VecIndex};
 
-use super::indexed_transaction;
 use crate::{Error, OptionData, Query, Result};
 
 pub(crate) mod body;
@@ -28,7 +26,7 @@ pub use info::ResolvedTransaction;
 pub use raw::ResolvedRawTransaction;
 
 enum TransactionSource {
-    Memory(Arc<Transaction>),
+    Memory(PublishedTx),
     Chain(ResolvedConfirmedTx),
 }
 
@@ -149,7 +147,11 @@ impl Query {
     }
 
     fn transaction_raw_by_index(&self, tx_index: TxIndex, pin: &ReadPin) -> Result<Vec<u8>> {
-        indexed_transaction::read_at(self, tx_index, pin.lengths()).map(|(bytes, _)| bytes)
+        debug_assert!(
+            tx_index < pin.lengths().tx_index,
+            "a resolved transaction is published"
+        );
+        Ok(self.indexer().read_tx(tx_index)?.0)
     }
 
     /// Build a merkleblock proof from a pre-resolved confirmed transaction.

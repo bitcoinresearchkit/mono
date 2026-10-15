@@ -35,27 +35,10 @@ impl ClientInner {
                 .parse::<BitcoinTxid>()
                 .map_err(|e| Error::Parse(format!("gbt txid: {e}")))?;
             let fee = u64::try_from(raw.fee).map_err(|_| invalid("negative fee"))?;
-            let mut depends = raw
-                .depends
-                .into_iter()
-                .map(|index| {
-                    index
-                        .checked_sub(1)
-                        .and_then(|index| usize::try_from(index).ok())
-                        .and_then(|index| result.get(index))
-                        .map(|parent| parent.txid)
-                        .ok_or_else(|| invalid("dependency index"))
-                })
-                .collect::<Result<Vec<_>>>()?;
-            // Ordered by txid bytes. Core emits one dependency index per input,
-            // so several inputs spending the same parent repeat its index.
-            depends.sort_unstable_by_key(|txid| **txid);
-            depends.dedup();
             result.push(BlockTemplateTx {
                 txid: Txid::from(txid),
                 fee: Sats::from(fee),
                 weight: Weight::from(raw.weight),
-                depends,
                 data: raw.data,
             });
         }

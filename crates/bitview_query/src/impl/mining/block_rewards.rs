@@ -1,5 +1,6 @@
+use std::convert::identity;
+
 use bitview_types::{BlockRewardsEntry, TimePeriod};
-use brk_types::{Cents, Sats};
 
 use super::block_window::BlockWindow;
 use crate::{Query, Result};
@@ -14,18 +15,20 @@ impl Query {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin);
         let bw = BlockWindow::new(self, time_period, tip)?;
-        let rewards: Vec<Sats> = bw.read(&self.plugins().mining.rewards.coinbase.block.sats)?;
-        let prices: Vec<Cents> = bw.read(&self.plugins().price.spot.cents.height)?;
+        let rewards =
+            bw.means_rounded(&self.plugins().mining.rewards.coinbase.block.sats, identity)?;
+        let prices = bw.mean_prices(&self.plugins().price.spot.cents.height)?;
         drop(pin);
 
         Ok(bw
             .buckets
             .iter()
-            .map(|b| BlockRewardsEntry {
+            .zip(rewards.into_iter().zip(prices))
+            .map(|(b, (sats, usd))| BlockRewardsEntry {
                 avg_height: b.avg_height,
                 timestamp: b.avg_timestamp,
-                avg_rewards: b.mean_rounded(&rewards),
-                usd: b.mean_price(&prices),
+                avg_rewards: sats,
+                usd,
             })
             .collect())
     }

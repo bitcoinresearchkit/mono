@@ -1,4 +1,4 @@
-use brk_types::{BlockHash, FeeRate, Height, Txid};
+use brk_types::{BlockHash, FeeRate, Txid};
 
 /// Mempool snapshot data that survives one fetch cycle.
 pub struct MempoolState {
@@ -6,6 +6,4 @@ pub struct MempoolState {
     pub min_fee: FeeRate,
     /// Chain tip's hash from the block template.
     pub tip_hash: BlockHash,
-    /// Chain tip's height from the block template.
-    pub tip_height: Height,
 }

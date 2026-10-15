@@ -37,7 +37,7 @@ pub fn prepare(
 ) -> TxsPulled {
     let live: FxHashSet<TxidPrefix> = live_txids.iter().map(TxidPrefix::from).collect();
     let added = classify_additions(new_entries, new_txs, &state.txs, &state.graveyard);
-    let removed = classify_removals(&live, &added, &state.txs);
+    let removed = classify_removals(&live, &added, &state.txs, &state.graveyard);
 
     TxsPulled {
         live_len: live.len(),
@@ -85,8 +85,9 @@ fn classify_removals(
     live: &FxHashSet<TxidPrefix>,
     added: &[TxAddition],
     known: &TxStore,
+    graveyard: &TxGraveyard,
 ) -> Vec<(TxidPrefix, TxRemoval)> {
-    let spent_by = build_spent_by(added);
+    let spent_by = build_spent_by(added, graveyard);
     known
         .records()
         .filter_map(|(prefix, record)| {
@@ -105,15 +106,20 @@ fn removal_reason(tx: &Transaction, spent_by: &FxHashMap<(Txid, Vout), Txid>) ->
         .map_or(TxRemoval::Vanished, |by| TxRemoval::Replaced { by })
 }
 
-/// Only `Fresh` additions carry tx input data. Revived txs were
-/// already in-pool, so they can't be new spenders of anything.
-fn build_spent_by(added: &[TxAddition]) -> FxHashMap<(Txid, Vout), Txid> {
+/// The outpoints this cycle's arrivals spend. A revived tx spends its inputs again too (it can
+/// replace what entered while it was gone); its body is still in its tomb.
+fn build_spent_by(added: &[TxAddition], graveyard: &TxGraveyard) -> FxHashMap<(Txid, Vout), Txid> {
     let mut spent_by: FxHashMap<(Txid, Vout), Txid> = FxHashMap::default();
     for addition in added {
-        if let TxAddition::Fresh { tx, .. } = addition {
-            for txin in &tx.input {
-                spent_by.insert((txin.txid, txin.vout), tx.txid);
-            }
+        let tx = match addition {
+            TxAddition::Fresh { tx, .. } => tx,
+            TxAddition::Revived { entry } => match graveyard.get(&entry.txid) {
+                Some(tomb) => tomb.tx.as_ref(),
+                None => continue,
+            },
+        };
+        for txin in &tx.input {
+            spent_by.insert((txin.txid, txin.vout), tx.txid);
         }
     }
     spent_by

@@ -2,19 +2,15 @@ use crate::RepresentationId;
 
 use super::ResolvedConfirmedTx;
 
-/// Frozen live bytes or a confirmed transaction to revalidate before loading.
-/// Public response wrappers keep raw, JSON, and CPFP bodies distinct.
-pub(crate) enum ResolvedTxBody {
-    Memory { bytes: Vec<u8>, hash: u64 },
+/// A live value with its content hash, or a confirmed transaction to revalidate before loading.
+/// Public response wrappers keep raw, JSON, and CPFP bodies distinct; a live value is encoded
+/// only once a response needs its bytes.
+pub(crate) enum ResolvedTxBody<T> {
+    Memory { value: T, hash: u64 },
     Chain(ResolvedConfirmedTx),
 }
 
-impl ResolvedTxBody {
-    pub fn memory(bytes: Vec<u8>) -> Self {
-        let hash = RepresentationId::content_hash(&bytes);
-        Self::Memory { bytes, hash }
-    }
-
+impl<T> ResolvedTxBody<T> {
     pub fn identity(&self) -> RepresentationId {
         match self {
             Self::Memory { hash, .. } => RepresentationId::Content(*hash),

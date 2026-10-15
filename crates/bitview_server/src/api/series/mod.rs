@@ -89,7 +89,7 @@ pub async fn serve_series_info(
     series: SeriesName,
 ) -> Result<Response> {
     validate_name(&series)?;
-    if let Some(info) = state.sync(|q| q.resolve_series_info(&series)) {
+    if let Some(info) = state.query.sync(|q| q.resolve_series_info(&series)) {
         return Ok(Response::json_bytes(
             &headers,
             &state.series_bodies.info,
@@ -153,7 +153,7 @@ pub async fn serve_version(
     index: Index,
 ) -> Result<Response> {
     validate_name(&series)?;
-    if let Some(version) = state.sync(|q| q.find_version(&series, index))? {
+    if let Some(version) = state.query.sync(|q| q.find_version(&series, index))? {
         let strategy = CacheStrategy::Live(format!("sv1-{version}").into());
         return Ok(state.respond_json_value(&headers, strategy, version));
     }
@@ -188,8 +188,7 @@ pub async fn serve(
                 resolved.version,
                 resolved.start,
                 resolved.end,
-                resolved.stable_count,
-                resolved.hash_prefix,
+                resolved.anchor,
                 cdn_cache_mode,
             );
             if cache_params.matches_etag(&headers) {
@@ -278,7 +277,6 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                         Series are grouped by categories and subcategories."
                     )
                     .json_response::<TreeNode>()
-                    .bad_request()
                     .not_modified(),
             ),
         )
@@ -298,7 +296,6 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .summary("Series count")
                     .description("Returns the number of series available per index type.")
                     .json_response::<DetailedSeriesCount>()
-                    .bad_request()
                     .not_modified(),
             ),
         )
@@ -320,7 +317,6 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                         "Returns all available indexes with their accepted query aliases. Use any alias when querying series."
                     )
                     .json_response::<Vec<IndexInfo>>()
-                    .bad_request()
                     .not_modified(),
             ),
         )
@@ -338,11 +334,8 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("list_series")
                     .series_tag()
                     .summary("Series list")
-                    .server_error()
-                    .gateway_timeout()
                     .description("Paginated flat list of all available series names. Use `page` query param for pagination.")
                     .json_response::<PaginatedSeries>()
-                    .bad_request()
                     .not_modified(),
             ),
         )
@@ -360,13 +353,9 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("search_series")
                     .series_tag()
                     .summary("Search series")
-                    .gateway_timeout()
                     .description(&format!("Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
                     .json_response::<Vec<&str>>()
-                    .bad_request()
-                    .not_modified()
-                    .gateway_timeout()
-                    .server_error(),
+                    .not_modified(),
             ),
         )
         .api_route(
@@ -384,14 +373,10 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("get_series_info")
                     .series_tag()
                     .summary("Get series info")
-                    .gateway_timeout()
                     .description(&format!("Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
                     .json_response::<SeriesInfo>()
-                    .bad_request()
-                    .gateway_timeout()
                     .not_modified()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -414,14 +399,12 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("get_series")
                     .series_tag()
                     .summary("Get series data")
-                    .server_errors()
                     .description(
                         "Fetch data for a specific series at the given index. \
                         Use query parameters to filter by date range and format (json/csv)."
                     )
                     .json_response::<SeriesData>()
                     .csv_response()
-                    .bad_request()
                     .not_modified()
                     .not_found(),
             ),
@@ -447,7 +430,6 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .series_tag()
                     .mcp_ignore()
                     .summary("Get raw series data")
-                    .server_errors()
                     .description(
                         "Returns just the data array without the SeriesData wrapper. \
                         Supports the same range and format parameters as \
@@ -455,7 +437,6 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     )
                     .json_response::<Vec<Value>>()
                     .csv_response()
-                    .bad_request()
                     .not_modified()
                     .not_found(),
             ),
@@ -473,12 +454,10 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("get_series_latest")
                     .series_tag()
                     .summary("Get latest series value")
-                    .server_errors()
                     .description(
                         "Returns the single most recent value for a series, unwrapped (not inside a SeriesData object)."
                     )
                     .json_response::<Value>()
-                    .bad_request()
                     .not_modified()
                     .not_found(),
             ),
@@ -496,10 +475,8 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("get_series_len")
                     .series_tag()
                     .summary("Get series data length")
-                    .server_errors()
                     .description("Returns the total number of data points for a series at the given index.")
                     .json_response::<usize>()
-                    .bad_request()
                     .not_modified()
                     .not_found(),
             ),
@@ -518,9 +495,6 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("get_series_version")
                     .series_tag()
                     .summary("Get series version")
-                    .server_error()
-                    .gateway_timeout()
-                    .bad_request()
                     .description("Returns the vector's schema/computation version, not its length or latest update. Appends and reorgs do not by themselves change this version.")
                     .json_response::<Version>()
                     .not_modified()
@@ -539,7 +513,6 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("get_series_bulk")
                     .series_tag()
                     .summary("Bulk series data")
-                    .server_errors()
                     .not_found()
                     .description(
                         "Fetch multiple series in a single request. Supports filtering by index and date range. \
@@ -547,7 +520,6 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     )
                     .json_response::<Vec<SeriesData>>()
                     .csv_response()
-                    .bad_request()
                     .not_modified(),
             ),
         )

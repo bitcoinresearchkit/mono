@@ -1,5 +1,5 @@
 use bitview_types::{DifficultyEntry, HashrateEntry, HashrateSummary, TimePeriod};
-use brk_types::Height;
+use brk_types::{Height, TARGET_BLOCKS_PER_DAY_F64};
 use vecdb::{ReadableOptionVec, ReadableVec, VecIndex};
 
 use super::{epochs::iter_difficulty_epochs, start_height};
@@ -111,5 +111,27 @@ impl Query {
             .day1
             .collect_one_flat(day)
             .data()? as u128)
+    }
+
+    /// Network hashrate over the `days` days ending at `height`: the work its blocks proved per
+    /// second of the window, as the one-day [`Self::hashrate_at`] measures it.
+    pub(crate) fn trailing_hashrate(&self, height: Height, days: usize) -> Result<u128> {
+        let plugins = self.plugins();
+        let start = plugins
+            .mappings
+            .lookback
+            .start_vec(days)
+            .collect_one(height)
+            .data()?;
+        let mut daily_work = 0.0;
+        plugins
+            .blocks
+            .difficulty
+            .hashrate
+            .height
+            .for_each_range_dyn(start, height.incremented(), &mut |hashrate| {
+                daily_work += f64::from(hashrate)
+            });
+        Ok((daily_work / (days as f64 * TARGET_BLOCKS_PER_DAY_F64)) as u128)
     }
 }

@@ -4,8 +4,6 @@ pub mod addr;
 pub mod block;
 #[cfg(feature = "chain")]
 pub mod cpfp;
-pub mod indexed_transaction;
-pub mod indexer;
 #[cfg(feature = "chain")]
 pub mod mempool;
 #[cfg(feature = "chain")]
@@ -27,17 +25,19 @@ pub mod utxo_set;
 pub use urpd::ResolvedUrpd;
 
 #[cfg(feature = "chain")]
-pub use addr::{ResolvedAddrChainTxs, ResolvedAddrTxs, ResolvedAddrUtxos};
+pub use addr::{
+    ResolvedAddrChainTxs, ResolvedAddrMempoolTxs, ResolvedAddrTxs, ResolvedAddrUtxos,
+};
 #[cfg(feature = "chain")]
 pub use block::{ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1};
 #[cfg(feature = "chain")]
 pub use cpfp::ResolvedCpfp;
 #[cfg(feature = "chain")]
-pub use mempool::{BlockTemplateSource, ResolvedBlockTemplateDiff, ResolvedRbf};
+pub use mempool::{BlockTemplateSource, MempoolTxids, ResolvedBlockTemplateDiff, ResolvedRbf};
 #[cfg(feature = "chain")]
 pub use mining::ResolvedPoolBlocks;
 #[cfg(feature = "series")]
-pub use series::{ResolvedQuery, SeriesRead};
+pub use series::{ResolvedQuery, SeriesAnchor, SeriesRead};
 #[cfg(feature = "chain")]
 pub use tx::{ResolvedConfirmedTx, ResolvedRawTransaction, ResolvedTransaction};
 #[cfg(feature = "chain")]

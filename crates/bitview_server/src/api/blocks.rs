@@ -299,7 +299,7 @@ impl AppState {
                 self.preflight(|q| q.try_resolve_block_snapshot(&hash, height))?
         {
             if let Some(index) = tx_index {
-                self.sync(|q| snapshot.validate_tx_index(q, index))?;
+                self.query.sync(|q| snapshot.validate_tx_index(q, index))?;
             }
             let params = block_params(&snapshot, schema)?;
             if params.matches_etag(&headers) {
@@ -307,18 +307,23 @@ impl AppState {
             }
         }
 
-        self.read_block_response(move |q| {
-            let snapshot = q.resolve_block_snapshot(&hash)?;
-            if let Some(index) = tx_index {
-                snapshot.validate_tx_index(q, index)?;
-            }
-            let params = block_params(&snapshot, schema)?;
-            if params.matches_etag(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
-            }
-            build(q, snapshot, params)
-        })
-        .await
+        let bodies = self.chain_bodies.clone();
+        Ok(self
+            .read_body(&self.sync_query, &self.chain_bodies, move |q, permit| {
+                let snapshot = q.resolve_block_snapshot(&hash)?;
+                if let Some(index) = tx_index {
+                    snapshot.validate_tx_index(q, index)?;
+                }
+                let params = block_params(&snapshot, schema)?;
+                if params.matches_etag(&headers) {
+                    return Ok(Some(ResponseExtended::new_not_modified(&params)));
+                }
+                let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies)) else {
+                    return Ok(None);
+                };
+                Ok(Some(permit.attach(build(q, snapshot, params)?)))
+            })
+            .await?)
     }
 
     pub async fn respond_block_v1(
@@ -440,9 +445,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             )
                             .json_response::<BlockInfo>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_errors()
                     },
                 ),
             )
@@ -463,9 +466,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .description("Returns block details with extras by hash.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-v1)*")
                             .json_response::<BlockInfoV1>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_errors()
                     },
                 ),
             )
@@ -486,9 +487,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .description("Returns the hex-encoded 80-byte block header.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-header)*")
                             .text_response::<Hex>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_errors()
                     },
                 ),
             )
@@ -509,9 +508,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             )
                             .text_response::<BlockHash>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_errors()
                     },
                 ),
             )
@@ -530,9 +527,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .description("Find the block with the greatest header timestamp at or before the given UNIX timestamp, choosing the earliest height on ties.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-timestamp)*")
                             .json_response::<BlockTimestamp>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_errors()
                     },
                 ),
             )
@@ -557,9 +552,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             )
                             .binary_response()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_errors()
                     },
                 ),
             )
@@ -579,13 +572,10 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .blocks_tag()
                             .summary("Block status")
                             .description(
-                                "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*",
+                                "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*",
                             )
                             .json_response::<BlockStatus>()
                             .not_modified()
-                            .bad_request()
-                            .not_found()
-                            .server_error()
                     },
                 ),
             )
@@ -602,7 +592,6 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .description("Returns the height of the last block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*")
                             .text_response::<Height>()
                             .not_modified()
-                            .server_error()
                     },
                 ),
             )
@@ -619,7 +608,6 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .description("Returns the hash of the last block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*")
                             .text_response::<BlockHash>()
                             .not_modified()
-                            .server_error()
                     },
                 ),
             )
@@ -647,9 +635,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             )
                             .text_response::<Txid>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_error()
                     },
                 ),
             )
@@ -675,9 +661,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             )
                             .json_response::<Vec<Txid>>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_error()
                     },
                 ),
             )
@@ -704,9 +688,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             ))
                             .json_response::<Vec<Transaction>>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_error()
                     },
                 ),
             )
@@ -732,9 +714,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                             ))
                             .json_response::<Vec<Transaction>>()
                             .not_modified()
-                            .bad_request()
                             .not_found()
-                            .server_error()
                     },
                 ),
             )
@@ -751,8 +731,6 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .description("Retrieve the last 10 blocks. Returns block metadata for each block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*")
                             .json_response::<Vec<BlockInfo>>()
                             .not_modified()
-                            .bad_request()
-                            .server_errors()
                     },
                 ),
             )
@@ -773,8 +751,6 @@ impl BlockRoutes for ApiRouter<AppState> {
                             )
                             .json_response::<Vec<BlockInfo>>()
                             .not_modified()
-                            .bad_request()
-                            .server_error()
                     },
                 ),
             )
@@ -791,8 +767,6 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .description("Retrieve the last 15 blocks with extended data including pool identification and fee statistics.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*")
                             .json_response::<Vec<BlockInfoV1>>()
                             .not_modified()
-                            .bad_request()
-                            .server_errors()
                     },
                 ),
             )
@@ -811,8 +785,6 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .description("Retrieve up to 15 blocks with extended data going backwards from the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*")
                             .json_response::<Vec<BlockInfoV1>>()
                             .not_modified()
-                            .bad_request()
-                            .server_errors()
                     },
                 ),
             )

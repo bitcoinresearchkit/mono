@@ -1,4 +1,4 @@
-use crate::{Creations, Cursor, History, Spends, State, snapshot::Snapshot, util::invalid};
+use crate::{Creations, Cursor, Diffs, History, Spends, State, snapshot::Snapshot, util::invalid};
 use std::io::Result;
 
 /// An immutable view of one published prefix. Its borrows prevent producer mutation.
@@ -45,5 +45,10 @@ impl Reader<'_> {
 
     pub fn cursor<'a>(&'a self, state: &'a mut State) -> Result<Cursor<'a>> {
         Cursor::new(state, self.end, self.spends, self.creations)
+    }
+
+    /// The changes of blocks `first..`, read without restoring the state before them.
+    pub fn diffs(&self, first: usize) -> Result<Diffs<'_>> {
+        Diffs::new(first, None, self.end, self.spends, self.creations)
     }
 }

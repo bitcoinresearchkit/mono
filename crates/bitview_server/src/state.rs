@@ -19,12 +19,21 @@ use tokio::sync::Semaphore;
 use crate::series_bodies::SeriesBodies;
 use crate::{CacheParams, CacheStrategy, CdnCacheMode, Error, Website, extended::ResponseExtended};
 #[cfg(feature = "chain")]
-use crate::{historical_price_cache::HistoricalPriceCache, prepared_json::PreparedJson};
+use crate::{
+    historical_price_cache::HistoricalPriceCache, prepared_json::PreparedJson,
+    raw_body::RawBodyPermit,
+};
 
+/// One request's state: its query (carrying the request deadline) over the server's shared state.
 #[derive(Clone, Deref)]
 pub struct AppState {
-    #[deref]
     pub query: AsyncQuery,
+    #[deref]
+    shared: Arc<SharedState>,
+}
+
+/// Immutable for the server's lifetime: cloned per request as one `Arc`.
+pub struct SharedState {
     pub sync_query: Arc<Semaphore>,
     pub disk_query: Arc<Semaphore>,
     #[cfg(feature = "chain")]
@@ -43,6 +52,9 @@ pub struct AppState {
     pub block_template_diff_bodies: Arc<Semaphore>,
     #[cfg(feature = "chain")]
     pub broadcast_requests: Arc<Semaphore>,
+    /// Transaction, block and address-history bodies.
+    #[cfg(feature = "chain")]
+    pub chain_bodies: Arc<Semaphore>,
     pub node: AsyncClient,
     #[cfg(feature = "series")]
     pub series_bodies: Arc<SeriesBodies>,
@@ -66,41 +78,49 @@ pub struct AppState {
 }
 
 impl AppState {
+    pub fn new(query: AsyncQuery, shared: SharedState) -> Self {
+        Self {
+            query,
+            shared: Arc::new(shared),
+        }
+    }
+
     /// A cheap optimistic read may defer to the admitted read path, but must
     /// never turn temporary publication loss into an HTTP error.
     pub fn preflight<T>(&self, f: impl FnOnce(&Query) -> Result<Option<T>>) -> Result<Option<T>> {
-        match self.sync(f) {
+        match self.query.sync(f) {
             Err(QueryError::StateUpdating) => Ok(None),
             result => result,
         }
     }
 
-    /// Selection, validator, and body belong to one retryable read operation.
-    /// Only request arguments are retained between attempts, never a stale
-    /// resolved token or a guard-bearing snapshot.
+    /// Selection, validator, and body belong to one read operation. The body holds a
+    /// transaction/block/address body permit from before it is built until its last frame is
+    /// sent; without a free one, selection runs again once one is.
+    #[cfg(feature = "chain")]
     pub async fn respond_read<S: 'static>(
         &self,
         headers: HeaderMap,
         content_type: &'static str,
-        select: impl FnOnce(&Query) -> Result<(S, CacheParams)> + Send + 'static,
-        build: impl FnOnce(&Query, S) -> Result<Bytes> + Send + 'static,
+        select: impl FnOnce(&Query) -> Result<(S, CacheParams)> + Clone + Send + 'static,
+        build: impl FnOnce(&Query, S) -> Result<Bytes> + Clone + Send + 'static,
     ) -> Response<Body> {
-        match self
-            .read_admitted(move |q| {
-                let (source, params) = select(q)?;
-                if params.matches_etag(&headers) {
-                    return Ok(ResponseExtended::new_not_modified(&params));
-                }
-                let bytes = build(q, source)?;
-                Ok(Self::assemble_response(params, bytes, |h| {
-                    h.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
-                }))
-            })
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => Error::from(error).into_response(),
-        }
+        let bodies = self.chain_bodies.clone();
+        self.read_body(&self.sync_query, &self.chain_bodies, move |q, permit| {
+            let (source, params) = select(q)?;
+            if params.matches_etag(&headers) {
+                return Ok(Some(ResponseExtended::new_not_modified(&params)));
+            }
+            let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies)) else {
+                return Ok(None);
+            };
+            let bytes = build(q, source)?;
+            Ok(Some(permit.response(params, bytes, |h| {
+                h.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
+            })))
+        })
+        .await
+        .unwrap_or_else(|error| Error::from(error).into_response())
     }
 
     pub async fn read_admitted<T: Send + 'static>(
@@ -138,11 +158,12 @@ impl AppState {
             .acquire_owned()
             .await
             .map_err(|_| QueryError::Internal("query admission closed"))?;
-        self.run(move |q| {
-            let _permit = permit;
-            f(q)
-        })
-        .await
+        self.query
+            .run(move |q| {
+                let _permit = permit;
+                f(q)
+            })
+            .await
     }
 
     #[cfg(feature = "chain")]

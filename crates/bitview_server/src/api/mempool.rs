@@ -37,7 +37,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         .description("Get current mempool statistics including transaction count, total vsize, total fees, and fee histogram.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*")
                         .json_response::<MempoolInfo>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -45,7 +44,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             "/api/mempool/hash",
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    let hash = state.read(|q| q.mempool_hash()).await?;
+                    let hash = state.query.read(|q| q.mempool_hash()).await?;
                     Ok(state.respond_json_value(&headers, CacheStrategy::LiveHash(hash.into()), hash))
                 },
                 |op| {
@@ -55,7 +54,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         .description("Returns an opaque content token for the published projected next block, including statistics and transaction bodies. This is not the HTTP ETag. An unchanged token means unchanged content, not necessarily a stalled sync loop.")
                         .json_response::<NextBlockHash>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -73,7 +71,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         .description("Get all transaction IDs currently in the mempool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-transaction-ids)*")
                         .json_response::<Vec<Txid>>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -92,7 +89,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         .description("Get the last 10 transactions to enter the mempool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*")
                         .json_response::<Vec<MempoolRecentTx>>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -113,7 +109,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         .description("Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the same shape as `tx_rbf().replacements`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*")
                         .json_response::<Vec<ReplacementNode>>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -134,7 +129,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         .description("Same response shape as `GET /api/v1/replacements`, but limited to trees where at least one predecessor was non-signaling (full-RBF).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-fullrbf-replacements)*")
                         .json_response::<Vec<ReplacementNode>>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -152,7 +146,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         .description("Bitcoin Core's `getblocktemplate` selection: full transaction bodies in GBT order with aggregate stats. The returned `hash` is an opaque content token; pass it to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas instead of refetching the whole template.")
                         .json_response::<BlockTemplate>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -174,7 +167,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         .json_response::<BlockTemplateDiff>()
                         .not_modified()
                         .not_found()
-                        .server_error()
                 },
             ),
         )
@@ -194,7 +186,6 @@ impl MempoolRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<Dollars>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )

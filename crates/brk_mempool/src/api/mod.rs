@@ -9,11 +9,13 @@ pub mod addr;
 pub mod block_template;
 pub mod fees;
 pub mod histogram;
+pub mod published_tx;
 pub mod rbf;
 pub mod tx;
 
 pub use addr::PendingUtxos;
-pub use block_template::BlockTemplateSource;
+pub use published_tx::PublishedTx;
+pub use block_template::{BlockTemplateDiffJson, BlockTemplateJson, BlockTemplateSource};
 pub use rbf::{RbfForTx, RbfNode};
 
 /// A validated historical template captured for one diff request.

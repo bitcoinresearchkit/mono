@@ -231,7 +231,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block/{hash}/status",
         summary: "Block status",
-        description: "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*",
+        description: "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
         ],

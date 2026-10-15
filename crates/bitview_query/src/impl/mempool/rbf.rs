@@ -17,15 +17,6 @@ pub struct ResolvedRbf {
     pin: SafeLengths,
 }
 
-impl ResolvedRbf {
-    /// Present when the final empty response was completely resolved in preflight.
-    pub fn identity(&self) -> Option<RepresentationId> {
-        self.source
-            .is_empty()
-            .then(|| serialize_json(&RbfResponse::EMPTY).1)
-    }
-}
-
 impl Query {
     /// Resolve the exact owned replacement tree from one mempool publication.
     pub fn resolve_rbf(&self, txid: &Txid) -> Result<ResolvedRbf> {

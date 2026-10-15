@@ -14,7 +14,6 @@ use tracing::error;
 
 use crate::{
     Mempool, State,
-    cycle::{Cycle, CycleDiff},
     steps::{Fetched, applier, fetcher, preparer, prevouts},
 };
 
@@ -54,23 +53,22 @@ impl Mempool {
     }
 
     /// One update published at the node's tip, for drivers without a chain to follow.
-    pub fn tick(&mut self) -> Result<Cycle> {
+    pub fn tick(&mut self) -> Result<()> {
         self.tick_with(prevouts::rpc_resolver(self.client.clone()), || None)
     }
 
     /// Resolve confirmed parents with `resolver`; mempool parents are filled
-    /// internally. Failed observations leave the public state intact. Applied
-    /// changes still appear in Cycle, even when a final observation fails.
-    fn tick_with<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<Cycle>
+    /// internally. Failed observations leave the public state intact.
+    fn tick_with<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<()>
     where
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
     {
         if self.needs_recovery {
             self.restore_published();
         }
-        let cycle = self.tick_once(resolver, gate)?;
+        self.tick_once(resolver, gate)?;
         self.needs_recovery = false;
-        Ok(cycle)
+        Ok(())
     }
 
     fn restore_published(&mut self) {
@@ -88,11 +86,10 @@ impl Mempool {
         self.needs_recovery = false;
     }
 
-    fn tick_once<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<Cycle>
+    fn tick_once<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<()>
     where
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
     {
-        let started = Instant::now();
         // RPC batches are not atomic. Bracket fetch and resolution with full tips.
         let tip_before = self.client.get_best_block_hash()?;
         let Fetched {
@@ -106,16 +103,10 @@ impl Mempool {
             return Err(Error::StateUpdating);
         }
         let pulled = preparer::prepare(&rpc.live_txids, new_entries, new_txs, &self.state);
-        let mut diff = CycleDiff::default();
         // A panic after this point requires restoring private indexes before reuse.
         self.needs_recovery = true;
-        applier::apply(
-            &mut self.state,
-            &self.rebuilder.snapshot(),
-            pulled,
-            &mut diff,
-        );
-        prevouts::fill(&mut self.state, &mut diff, resolver);
+        applier::apply(&mut self.state, &self.rebuilder.snapshot(), pulled);
+        prevouts::fill(&mut self.state, resolver);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
         self.rebuilder
             .tick(&self.state, &block_template_txids, rpc.min_fee);
@@ -128,23 +119,7 @@ impl Mempool {
                 );
             }
         }
-        let CycleDiff {
-            added,
-            removed,
-            addrs,
-        } = diff;
-        let (addr_enters, addr_leaves) = addrs.into_vecs();
-        Ok(Cycle {
-            added,
-            removed,
-            addr_enters,
-            addr_leaves,
-            tip_hash: rpc.tip_hash,
-            tip_height: rpc.tip_height,
-            info: self.state.info.clone(),
-            snapshot: self.rebuilder.snapshot(),
-            took: started.elapsed(),
-        })
+        Ok(())
     }
 
     fn publish_observation(&mut self, tip: BlockHash, membership_complete: bool) {

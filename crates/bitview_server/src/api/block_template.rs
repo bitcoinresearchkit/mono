@@ -71,7 +71,7 @@ async fn serve_json<S, T: Serialize>(
     build: impl Fn(S) -> brk_error::Result<T> + Clone + Send + 'static,
 ) -> Result<Response> {
     let check = select.clone();
-    let params = state.read(move |query| Ok(check(query)?.1)).await?;
+    let params = state.query.read(move |query| Ok(check(query)?.1)).await?;
     if params.matches_etag(&headers) {
         return Ok(Response::new_not_modified(&params));
     }

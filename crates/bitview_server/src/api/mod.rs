@@ -1,4 +1,7 @@
-use aide::axum::{ApiRouter, routing::get_with};
+use aide::{
+    axum::{ApiRouter, routing::get_with},
+    transform::TransformOperation,
+};
 use axum::{
     Extension,
     http::HeaderMap,
@@ -16,6 +19,7 @@ use crate::{
     Error,
     api::server::ServerRoutes,
     extended::{ResponseExtended, TransformResponseExtended},
+    params::Empty,
 };
 
 #[cfg(feature = "chain")]
@@ -99,10 +103,8 @@ impl ApiRoutes for ApiRouter<AppState> {
             .api_route(
                 "/openapi.json",
                 get_with(
-                    async |headers: HeaderMap,
-                           Extension(api): Extension<OpenApiJson>|
-                           -> Response {
-                        Response::static_json_bytes(&headers, api.bytes())
+                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<OpenApiJson>| {
+                        api.respond(&headers)
                     },
                     |op| {
                         op.id("get_openapi")
@@ -116,10 +118,8 @@ impl ApiRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api.json",
                 get_with(
-                    async |headers: HeaderMap,
-                           Extension(api): Extension<ApiJson>|
-                           -> Response {
-                        Response::static_json_bytes(&headers, api.bytes())
+                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<ApiJson>| {
+                        api.respond(&headers)
                     },
                     |op| {
                         op.id("get_api")
@@ -136,13 +136,12 @@ impl ApiRoutes for ApiRouter<AppState> {
                 ),
             )
             .route("/api", get(Html::from(include_str!("./scalar.html"))))
-            // Pre-compressed with: brotli -c -q 11 scalar.js > scalar.js.br
+            // Encoded per request as the client accepts, by the compression layer.
             .route("/scalar.js", get(|headers: HeaderMap| async move {
                 Response::static_bytes(
                     &headers,
-                    include_bytes!("./scalar.js.br").as_slice(),
+                    include_bytes!("./scalar.js").as_slice(),
                     "application/javascript",
-                    "br",
                 )
             }))
             .route(
@@ -155,5 +154,13 @@ impl ApiRoutes for ApiRouter<AppState> {
                     Error::not_found("Unknown API endpoint. See /api for documentation.")
                 }),
             )
+            // Documented once for every operation instead of per route.
+            .with_path_items(|mut item| {
+                let path = item.inner_mut();
+                for operation in [&mut path.get, &mut path.post].into_iter().flatten() {
+                    let _ = TransformOperation::new(operation).universal_errors();
+                }
+                item
+            })
     }
 }

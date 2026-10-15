@@ -10,7 +10,7 @@ async fn serve_recommended_fees(
     _: Empty,
     RequestState(state): RequestState,
 ) -> Result<Response> {
-    let fees = state.read(|q| q.recommended_fees()).await?;
+    let fees = state.query.read(|q| q.recommended_fees()).await?;
     Ok(state.respond_json_content_value(&headers, fees))
 }
 
@@ -27,7 +27,7 @@ impl FeesRoutes for ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response> {
-                    let blocks = state.read(|q| q.mempool_blocks()).await?;
+                    let blocks = state.query.read(|q| q.mempool_blocks()).await?;
                     Ok(state.respond_json_content_value(&headers, blocks))
                 },
                 |op| {
@@ -37,7 +37,6 @@ impl FeesRoutes for ApiRouter<AppState> {
                         .description("Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*")
                         .json_response::<Vec<MempoolBlock>>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -53,7 +52,6 @@ impl FeesRoutes for ApiRouter<AppState> {
                         .description("Recommended fee rates by confirmation target.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*")
                         .json_response::<RecommendedFees>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -68,7 +66,6 @@ impl FeesRoutes for ApiRouter<AppState> {
                         .description("Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*")
                         .json_response::<RecommendedFees>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )

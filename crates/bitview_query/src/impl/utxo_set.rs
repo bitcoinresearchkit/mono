@@ -63,41 +63,37 @@ impl Query {
         let view = self.plugins().utxo_set.view()?;
         let reader = view.reader(usize::from(pin.lengths().height))?;
         let end = self.utxo_set_published(point, reader.len(), &pin)?;
-        let state = reader.state_at(end)?;
+        let state = reader.state_at(end).map_err(updating)?;
         if state.hash() != *point.hash {
             return Err(Error::StateUpdating);
         }
         let amounts = state.amounts();
-        let sats: u64 = amounts.iter().map(|amount| amount.sats).sum();
-        let origins = UtxoOrigins {
-            count: amounts.iter().map(|amount| amount.count).collect(),
-            supply: amounts.iter().map(|amount| btc(amount.sats)).collect(),
-        };
+        let total = state.total();
         Ok(UtxoSet {
             height: point.last,
             hash: point.hash,
             date: point.date,
-            count: origins.count.iter().sum(),
-            supply: btc(sats),
-            origins,
+            count: total.count,
+            supply: btc(total.sats),
+            origins: UtxoOrigins {
+                count: amounts.iter().map(|amount| amount.count).collect(),
+                supply: amounts.iter().map(|amount| btc(amount.sats)).collect(),
+            },
         })
     }
 
-    /// What blocks `point.first` through `point.last` changed.
+    /// What blocks `point.first` through `point.last` changed, read from their journals alone.
     pub fn utxo_set_diff(&self, point: &UtxoSetPoint) -> Result<UtxoSetDiff> {
         let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
         let reader = view.reader(usize::from(pin.lengths().height))?;
         let end = self.utxo_set_published(point, reader.len(), &pin)?;
         let first = usize::from(point.first);
-        let mut state = reader.state_at(first)?;
-        let mut cursor = reader.cursor(&mut state)?;
+        let mut diffs = reader.diffs(first).map_err(updating)?;
         let mut created = UtxoChanges::default();
         let mut spent = BTreeMap::<u32, (u64, u64)>::new();
         for height in first..end {
-            let diff = cursor
-                .advance()?
-                .ok_or_else(|| Error::NotFound("Block is outside the published UTXO set".into()))?;
+            let diff = diffs.advance().map_err(updating)?.data()?;
             created.height.push(Height::from(height));
             created.count.push(diff.created.count);
             created.supply.push(btc(diff.created.sats));
@@ -107,7 +103,7 @@ impl Query {
                 *sats += amount.sats;
             }
         }
-        if cursor.state().hash() != *point.hash {
+        if diffs.hash() != Some(*point.hash) {
             return Err(Error::StateUpdating);
         }
         let mut removed = UtxoChanges::default();
@@ -167,5 +163,15 @@ impl Query {
             return Err(Error::StateUpdating);
         }
         Ok(end)
+    }
+}
+
+/// A rewind racing a replay hands it another chain's rows, which the journals reject as invalid
+/// data: the state is updating.
+fn updating(error: std::io::Error) -> Error {
+    if error.kind() == std::io::ErrorKind::InvalidData {
+        Error::StateUpdating
+    } else {
+        error.into()
     }
 }

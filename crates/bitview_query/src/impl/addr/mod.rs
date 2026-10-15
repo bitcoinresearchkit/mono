@@ -10,6 +10,7 @@ use brk_types::{AddressBytes, OutputType};
 
 use crate::{Error, Result};
 
+pub use mempool::ResolvedAddrMempoolTxs;
 pub use txs::{ResolvedAddrChainTxs, ResolvedAddrTxs};
 pub use utxos::ResolvedAddrUtxos;
 

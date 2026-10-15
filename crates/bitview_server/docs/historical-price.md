@@ -11,7 +11,3 @@ published data fails rather than yielding a partial result or validating a 304.
 Content identity is computed after reading the selected prices. Two response
 permits survive compression and final frame ownership; matching 304s do not
 consume this body budget.
-
-This corrects the former start-labeled, partial-tail behavior. Deployments that
-previously used Aggressive immutable caching must purge affected price URLs;
-new origin headers cannot revoke fresh CDN objects.

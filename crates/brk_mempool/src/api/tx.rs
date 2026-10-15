@@ -1,18 +1,14 @@
 //! Tx-keyed reads.
 
-use std::{
-    hash::{Hash, Hasher},
-    sync::Arc,
-};
+use std::hash::{Hash, Hasher};
 
 use brk_error::Result;
 use brk_types::{
-    BlockHash, MempoolRecentTx, OutpointPrefix, Transaction, TxOutspend, TxStatus, Txid,
-    TxidPrefix, Vin, Vout,
+    BlockHash, MempoolRecentTx, OutpointPrefix, TxOutspend, TxStatus, Txid, TxidPrefix, Vin, Vout,
 };
 use rustc_hash::{FxHashSet, FxHasher};
 
-use crate::{ReadOnlyState, state::Pool};
+use crate::{PublishedTx, ReadOnlyState, state::Pool};
 
 fn transaction_times_hash(times: &[u64]) -> u64 {
     let mut hasher = FxHasher::default();
@@ -29,19 +25,15 @@ impl ReadOnlyState {
 
     /// Capture an immutable live body or its recently vanished fallback from
     /// one completed publication. Replaced tombstones are excluded.
-    pub fn transaction(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<Arc<Transaction>>> {
+    pub fn transaction(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedTx>> {
         let state = self.pool()?;
         state.ensure_resolved_at(tip)?;
-        Ok(state
-            .txs
-            .record(txid)
-            .map(|record| record.tx.clone())
-            .or_else(|| {
-                state
-                    .graveyard
-                    .get_vanished(txid)
-                    .map(|tomb| tomb.tx.clone())
-            }))
+        Ok(state.txs.record(txid).map(PublishedTx::live).or_else(|| {
+            state
+                .graveyard
+                .get_vanished(txid)
+                .map(PublishedTx::vanished)
+        }))
     }
 
     /// Spend status for a live mempool transaction's output, or `None` when
@@ -188,11 +180,9 @@ impl ReadOnlyState {
         Ok(state.txs.txids_hash())
     }
 
-    /// Current txid array and its validator from one publication.
-    pub fn txids_with_hash(&self) -> Result<(Vec<Txid>, u64)> {
-        let state = self.pool()?;
-        let txids = state.txs.txids().copied().collect();
-        Ok((txids, state.txs.txids_hash()))
+    /// The txid array [`Self::txids_hash`] validates.
+    pub fn txids(&self) -> Result<impl Iterator<Item = &Txid>> {
+        Ok(self.pool()?.txs.txids())
     }
 
     /// Recently observed additions, including transactions that have since left.

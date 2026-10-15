@@ -3,7 +3,7 @@ use brk_types::{
     CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, FeeRate,
     Height, SigOps, TxIndex, Txid, VSize, Weight,
 };
-use rustc_hash::{FxBuildHasher, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use vecdb::{ReadableVec, VecIndex};
 
@@ -138,32 +138,30 @@ impl Query {
             Ok(children)
         };
 
-        let block_tx_count = block_end.to_usize() - block_first.to_usize();
-        let mut component =
-            walk_component(seed, &mut parents_of, &mut children_of, block_tx_count)?;
-        component.sort_unstable();
-        let ancestors = walk_direction(seed, &mut parents_of, CPFP_CHAIN_LIMIT)?;
-        let descendants = walk_direction(seed, &mut children_of, CPFP_CHAIN_LIMIT)?;
+        let component = walk_component(seed, &mut parents_of, &mut children_of)?;
+        let ancestors = walk_direction(seed, |tx| &component[&tx].parents);
+        let descendants = walk_direction(seed, |tx| &component[&tx].children);
 
         // Same-block parents precede their children, so the sorted component is topological
         // and a member's local index is its sorted position.
-        let seed_local = CpfpClusterTxIndex::from(component.partition_point(|&tx| tx < seed) as u32);
+        let mut sorted: Vec<TxIndex> = component.keys().copied().collect();
+        sorted.sort_unstable();
+        let seed_local = CpfpClusterTxIndex::from(sorted.partition_point(|&tx| tx < seed) as u32);
         let mut weight = indexer.vecs().transactions.weight.cursor();
         let mut fee = plugins.transactions.fees.fee.tx.cursor();
         let txid = indexer.vecs().transactions.txid.reader();
         graph.clear();
-        let mut members = Vec::with_capacity(component.len());
-        for &tx in &component {
+        let mut members = Vec::with_capacity(sorted.len());
+        for &tx in &sorted {
             let position = tx.to_usize();
             let tx_weight = Weight::from(weight.get(position).data()?);
             graph.push(
                 fee.get(position).data()?,
                 VSize::from(tx_weight),
-                parents_of(tx)?.iter().filter_map(|parent| {
-                    component
-                        .binary_search(parent)
-                        .ok()
-                        .map(|local| CpfpClusterTxIndex::from(local as u32))
+                component[&tx].parents.iter().map(|parent| {
+                    let local = sorted.binary_search(parent);
+                    debug_assert!(local.is_ok(), "a member's parent is in its component");
+                    CpfpClusterTxIndex::from(local.unwrap_or_default() as u32)
                 }),
             );
             members.push((txid.get(tx), tx_weight));
@@ -178,53 +176,55 @@ impl Query {
     }
 }
 
+/// A member's same-block neighbors.
+struct Edges {
+    parents: SmallVec<[TxIndex; 2]>,
+    children: SmallVec<[TxIndex; 2]>,
+}
+
+/// The seed's same-block dependency component, each member's edges read once.
 fn walk_component(
     seed: TxIndex,
     parents: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
     children: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
-    limit: usize,
-) -> Result<Vec<TxIndex>> {
-    let mut visited = FxHashSet::with_capacity_and_hasher(limit, FxBuildHasher);
-    visited.insert(seed);
-    let mut members = Vec::with_capacity(limit);
-    members.push(seed);
+) -> Result<FxHashMap<TxIndex, Edges>> {
+    let mut component = FxHashMap::default();
     let mut stack = vec![seed];
-
     while let Some(tx) = stack.pop() {
-        for neighbor in parents(tx)?.into_iter().chain(children(tx)?) {
-            if visited.insert(neighbor) {
-                if members.len() == limit {
-                    return Ok(members);
-                }
-                members.push(neighbor);
-                stack.push(neighbor);
-            }
+        if component.contains_key(&tx) {
+            continue;
         }
+        let edges = Edges {
+            parents: parents(tx)?,
+            children: children(tx)?,
+        };
+        stack.extend(edges.parents.iter().chain(&edges.children).copied());
+        component.insert(tx, edges);
     }
-    Ok(members)
+    Ok(component)
 }
 
-fn walk_direction(
+/// Up to [`CPFP_CHAIN_LIMIT`] transactions reachable from `seed` through `next`.
+fn walk_direction<'a>(
     seed: TxIndex,
-    next: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
-    limit: usize,
-) -> Result<Vec<TxIndex>> {
-    let mut visited = FxHashSet::with_capacity_and_hasher(limit + 1, FxBuildHasher);
+    next: impl Fn(TxIndex) -> &'a SmallVec<[TxIndex; 2]>,
+) -> Vec<TxIndex> {
+    let mut visited = FxHashSet::default();
     visited.insert(seed);
-    let mut members = Vec::with_capacity(limit);
-    let mut stack = next(seed)?.into_vec();
+    let mut members = Vec::new();
+    let mut stack = next(seed).to_vec();
 
     while let Some(tx) = stack.pop() {
         if !visited.insert(tx) {
             continue;
         }
         members.push(tx);
-        if members.len() == limit {
+        if members.len() == CPFP_CHAIN_LIMIT {
             break;
         }
-        stack.extend(next(tx)?);
+        stack.extend_from_slice(next(tx));
     }
-    Ok(members)
+    members
 }
 
 fn build_cpfp_info(

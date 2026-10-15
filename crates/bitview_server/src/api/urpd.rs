@@ -118,7 +118,6 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                         .json_response::<Vec<Date>>()
                         .not_modified()
                         .not_found()
-                        .server_error()
                 },
             ),
         )
@@ -147,7 +146,6 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                         .json_response::<Urpd>()
                         .not_modified()
                         .not_found()
-                        .server_error()
                 },
             ),
         )
@@ -175,7 +173,6 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                         .json_response::<Urpd>()
                         .not_modified()
                         .not_found()
-                        .server_error()
                 },
             ),
         )

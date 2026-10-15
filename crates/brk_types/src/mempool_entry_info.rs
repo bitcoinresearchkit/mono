@@ -8,6 +8,4 @@ pub struct MempoolEntryInfo {
     pub weight: Weight,
     pub fee: Sats,
     pub first_seen: Timestamp,
-    /// Parent txids in the mempool.
-    pub depends: Vec<Txid>,
 }

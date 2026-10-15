@@ -39,6 +39,7 @@ use vecs::{
     TxFeatureFlags, TxMetadataVecs, Vecs,
 };
 
+mod confirmed;
 mod constants;
 mod has;
 mod lengths;

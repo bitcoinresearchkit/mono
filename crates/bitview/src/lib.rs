@@ -1,15 +1,14 @@
 #![doc = include_str!("../README.md")]
 
-use std::{
-    path::PathBuf,
-    thread::{self, sleep},
-    time::Duration,
-};
+#[cfg(feature = "price")]
+use std::thread;
+use std::{path::PathBuf, thread::sleep, time::Duration};
 
-use bitview_query::{AsyncQuery, Query};
+use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig};
 use brk_exit::Exit;
 use brk_logger::init;
+#[cfg(feature = "price")]
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
@@ -112,20 +111,28 @@ where
         update_context,
     )?;
 
+    // Only the chain and price reads use the mempool: without them no driver runs.
+    #[cfg(feature = "price")]
     let mut mempool = Mempool::new(&client);
-
+    #[cfg(feature = "price")]
     let query = AsyncQuery::build(&plugins, Some(mempool.read_only_clone()));
+    #[cfg(not(feature = "price"))]
+    let query = AsyncQuery::build(&plugins, None);
 
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;
     let server_handle = runtime.spawn(server.serve());
 
-    let resolver = query.sync(|q| q.indexer_prevout_resolver());
-    let chain = query.sync(Query::clone);
-    let published = mempool.chain_waker();
-    thread::spawn(move || {
-        mempool.start_with(resolver, || chain.tip_blockhash());
-    });
+    #[cfg(feature = "price")]
+    let published = {
+        let resolver = query.sync(|q| q.indexer_prevout_resolver());
+        let chain = query.sync(bitview_query::Query::clone);
+        let published = mempool.chain_waker();
+        thread::spawn(move || {
+            mempool.start_with(resolver, || chain.tip_blockhash());
+        });
+        published
+    };
 
     info!("Waiting for new blocks...");
 
@@ -144,6 +151,7 @@ where
         info!("Chain tip changed; updating...");
 
         update(&mut plugins, update_context)?;
+        #[cfg(feature = "price")]
         published.published();
 
         if server_handle.is_finished() {

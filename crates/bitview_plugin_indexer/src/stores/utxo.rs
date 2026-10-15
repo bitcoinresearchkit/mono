@@ -12,7 +12,7 @@ impl UtxoKey {
     /// high bits into the prefix, so its key differs from the outputs sharing its low bits; every
     /// other key is the prefix and the vout.
     #[inline]
-    pub fn new(txid_prefix: TxidPrefix, vout: u32) -> Self {
+    pub(crate) fn new(txid_prefix: TxidPrefix, vout: u32) -> Self {
         let mut prefix = txid_prefix.to_store_bytes();
         if vout > u32::from(u16::MAX) {
             let high = u64::from(vout >> 16).wrapping_mul(0x9E37_79B9_7F4A_7C15);

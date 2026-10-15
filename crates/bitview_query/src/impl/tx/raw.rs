@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
 use bitcoin::hex::DisplayHex;
-use brk_types::Txid;
+use brk_types::{Transaction, Txid};
 
 use super::{TransactionSource, body::ResolvedTxBody};
 use crate::{Query, RepresentationId, Result};
 
 /// Raw transaction data resolved to one exact in-memory or indexed source.
 pub struct ResolvedRawTransaction {
-    source: ResolvedTxBody,
+    source: ResolvedTxBody<Arc<Transaction>>,
 }
 
 impl ResolvedRawTransaction {
@@ -19,9 +21,10 @@ impl Query {
     /// Resolve raw transaction data once before an async response handoff.
     pub fn resolve_raw_transaction(&self, txid: &Txid) -> Result<ResolvedRawTransaction> {
         let source = match self.resolve_transaction_source(txid)? {
-            TransactionSource::Memory(transaction) => {
-                ResolvedTxBody::memory(transaction.encode_bytes())
-            }
+            TransactionSource::Memory(transaction) => ResolvedTxBody::Memory {
+                value: transaction.tx,
+                hash: transaction.digest,
+            },
             TransactionSource::Chain(transaction) => ResolvedTxBody::Chain(transaction),
         };
         Ok(ResolvedRawTransaction { source })
@@ -30,7 +33,7 @@ impl Query {
     /// Read raw bytes without repeating the transaction-prefix lookup.
     pub fn transaction_raw_resolved(&self, transaction: ResolvedRawTransaction) -> Result<Vec<u8>> {
         match transaction.source {
-            ResolvedTxBody::Memory { bytes, .. } => Ok(bytes),
+            ResolvedTxBody::Memory { value: tx, .. } => Ok(tx.encode_bytes()),
             ResolvedTxBody::Chain(transaction) => {
                 let read = self.read_indexer()?;
                 let (_, index, _) = read.revalidate_confirmed_tx(transaction)?;

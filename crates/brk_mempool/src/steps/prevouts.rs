@@ -18,7 +18,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::warn;
 
 use crate::{
-    cycle::CycleDiff,
     state::State,
     stores::{TxGraveyard, TxStore},
 };
@@ -26,7 +25,7 @@ use crate::{
 /// Fill every unfilled prevout the cycle can resolve. Same-cycle
 /// in-mempool parents are filled directly. The remainder go through
 /// `resolver` in one batched call.
-pub fn fill<F>(state: &mut State, diff: &mut CycleDiff, resolver: F)
+pub fn fill<F>(state: &mut State, resolver: F)
 where
     F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
 {
@@ -40,7 +39,7 @@ where
     for (txid, fills) in in_mempool.into_iter().chain(external) {
         let prefix = TxidPrefix::from(&txid);
         for prevout in state.txs.apply_fills(&prefix, fills) {
-            state.addrs.add_input(&mut diff.addrs, &txid, &prevout);
+            state.addrs.add_input(&txid, &prevout);
         }
     }
 }

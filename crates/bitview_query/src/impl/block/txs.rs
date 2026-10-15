@@ -9,7 +9,7 @@ use brk_types::{
 use rustc_hash::FxHashMap;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, Result, r#impl::indexed_transaction};
+use crate::{Error, OptionData, Query, Result};
 
 impl Query {
     // === Helper methods ===
@@ -99,8 +99,6 @@ impl Query {
         order.sort_unstable_by_key(|&i| indices[i]);
 
         let indexer = self.indexer();
-        // BLK file reader, distinct from the vec cursors below.
-        let reader = self.reader();
 
         // ── Phase 1: Decode all transactions, collect outpoints ─────────
 
@@ -153,8 +151,7 @@ impl Query {
                 s
             };
 
-            let (_, decoded) =
-                indexed_transaction::read(reader, position, *total_size as usize, txid)?;
+            let (_, decoded) = indexer.read_tx_at(position, *total_size as usize, txid)?;
 
             total_inputs += decoded.input.len();
 
@@ -180,8 +177,9 @@ impl Query {
         let mut input_type_index_cursor = indexer.vecs().inputs.type_index.cursor();
         let mut input_value_cursor = indexer.vecs().inputs.value.cursor();
 
-        let mut prevout_input_data: FxHashMap<OutPoint, (OutputType, TypeIndex, Sats)> =
-            FxHashMap::with_capacity_and_hasher(total_inputs, Default::default());
+        // Distinct transactions spend distinct outpoints: one row per prevout, no map.
+        let mut prevouts: Vec<(OutPoint, OutputType, TypeIndex, Sats)> =
+            Vec::with_capacity(total_inputs);
 
         for dtx in &mut decoded_txs {
             let start = usize::from(dtx.first_txin_index);
@@ -193,7 +191,7 @@ impl Query {
                     let ot: OutputType = input_output_type_cursor.get(start + i).data()?;
                     let ti: TypeIndex = input_type_index_cursor.get(start + i).data()?;
                     let val: Sats = input_value_cursor.get(start + i).data()?;
-                    prevout_input_data.insert(op, (ot, ti, val));
+                    prevouts.push((op, ot, ti, val));
                 }
                 outpoints.push(op);
             }
@@ -206,21 +204,16 @@ impl Query {
 
         let addr_readers = indexer.vecs().addrs.addr_readers();
 
-        let mut sorted_prevouts: Vec<_> = prevout_input_data
-            .into_iter()
-            .map(|(outpoint, (output_type, type_index, value))| {
-                (outpoint, output_type, type_index, value)
-            })
-            .collect();
-        sorted_prevouts.sort_unstable_by_key(|&(_, ot, ti, _)| (ot, ti));
+        prevouts.sort_unstable_by_key(|&(_, ot, ti, _)| (ot, ti));
 
         let mut prevout_map: FxHashMap<OutPoint, TxOut> =
-            FxHashMap::with_capacity_and_hasher(sorted_prevouts.len(), Default::default());
+            FxHashMap::with_capacity_and_hasher(prevouts.len(), Default::default());
 
         // Non-address output indices are chronological within each script type.
         // Keep at most one decoded parent, reusing it for adjacent outputs.
         let mut raw_parent: Option<(TxIndex, BitcoinTransaction)> = None;
-        for (op, output_type, type_index, value) in sorted_prevouts {
+        let prevout_count = prevouts.len();
+        for (op, output_type, type_index, value) in prevouts {
             let script_pubkey = if let Some(addr) = addr_readers.get(output_type, type_index) {
                 addr.to_script_pubkey()
             } else if output_type == OutputType::Empty {
@@ -233,7 +226,7 @@ impl Query {
                     .as_ref()
                     .is_none_or(|(index, _)| *index != op.tx_index())
                 {
-                    let (_, parent) = indexed_transaction::read_at(self, op.tx_index(), safe)?;
+                    let (_, parent) = indexer.read_tx(op.tx_index())?;
                     raw_parent = Some((op.tx_index(), parent));
                 }
                 let output = raw_parent
@@ -253,6 +246,7 @@ impl Query {
             prevout_map.insert(op, TxOut::from((script_pubkey, value)));
         }
         drop(raw_parent);
+        debug_assert_eq!(prevout_map.len(), prevout_count, "an outpoint spent twice");
 
         // ── Phase 3: Assemble Transaction objects ───────────────────────
 
@@ -273,7 +267,7 @@ impl Query {
                         (Txid::COINBASE, Vout::MAX, None)
                     } else {
                         let prev_txid = Txid::from(txin.previous_output.txid);
-                        let prev_txout = prevout_map.get(&outpoint).data()?.clone();
+                        let prev_txout = prevout_map.remove(&outpoint).data()?;
                         (prev_txid, outpoint.vout(), Some(prev_txout))
                     };
 

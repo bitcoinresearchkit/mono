@@ -23,7 +23,8 @@ use brk_mempool::ReadOnlyMempool;
 use brk_mempool::ReadOnlyState;
 use brk_reader::Reader;
 use brk_rpc::Client;
-use brk_types::{BlockHash, Height};
+use brk_types::{BlockHash, Height, TxOut, Txid, Vout};
+use rustc_hash::FxHashMap;
 #[cfg(any(feature = "series", feature = "price"))]
 use vecdb::{ReadBounds, ReadScope};
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
@@ -50,13 +51,13 @@ pub use r#impl::ResolvedUrpd;
 pub use r#impl::price::ResolvedHistoricalPrice;
 #[cfg(feature = "chain")]
 pub use r#impl::{
-    BlockTemplateSource, ResolvedAddrChainTxs, ResolvedAddrTxs, ResolvedAddrUtxos,
+    BlockTemplateSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs, ResolvedAddrTxs, ResolvedAddrUtxos,
     ResolvedBlockTemplateDiff, ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1,
     ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks, ResolvedRawTransaction, ResolvedRbf,
     ResolvedTransaction, UtxoSetPoint,
 };
 #[cfg(feature = "series")]
-pub use r#impl::{ResolvedQuery, SeriesRead};
+pub use r#impl::{ResolvedQuery, SeriesAnchor, SeriesRead};
 pub use output::*;
 pub use query_plugin_set::{
     QueryPluginSet, SupportsAddresses, SupportsAge, SupportsBlocks, SupportsCoinflow,
@@ -321,6 +322,18 @@ impl Query {
         }
 
         bounds
+    }
+
+    /// Resolves the confirmed outputs mempool transactions spend, as published when called.
+    pub fn indexer_prevout_resolver(
+        &self,
+    ) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> + Send + Sync + use<> {
+        let query = self.clone();
+        // The reads check their own bounds: the pin alone, no calendar read bounds.
+        move |holes| {
+            let pin = query.indexer().pin();
+            query.indexer().prevouts(holes, pin.lengths())
+        }
     }
 
     /// Tip block hash at the pipeline-safe ceiling.

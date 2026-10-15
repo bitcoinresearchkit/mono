@@ -1418,6 +1418,7 @@ dependencies = [
  "derive_more",
  "indexmap",
  "rustc-hash",
+ "serde",
  "serde_json",
  "smallvec",
  "tracing",

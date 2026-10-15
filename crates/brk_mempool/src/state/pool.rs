@@ -1,7 +1,9 @@
-use std::sync::Arc;
+use std::{hash::Hasher, sync::Arc};
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolInfo, Timestamp, Txid};
+use rustc_hash::FxHasher;
+use serde_json::to_vec;
 
 use crate::{
     Snapshot,
@@ -19,6 +21,8 @@ pub(crate) struct Pool {
     pub outpoint_spends: Arc<OutpointSpends>,
     pub graveyard: Arc<TxGraveyard>,
     pub graph: Arc<Snapshot>,
+    /// `info` as JSON and its hash, built by the writer: readers only clone the `Arc`.
+    pub info_json: (Arc<[u8]>, u64),
     inputs_complete: bool,
 }
 
@@ -29,20 +33,22 @@ impl Pool {
         graph: Arc<Snapshot>,
         previous: Option<&Self>,
     ) -> Self {
-        assert_eq!(graph.content_revision(), state.txs.content_revision());
+        debug_assert_eq!(graph.content_revision(), state.txs.content_revision());
         // A new projection or chain tip does not change membership containers.
-        let (txs, addrs, outpoint_spends) = match previous
+        let (txs, addrs, outpoint_spends, info_json) = match previous
             .filter(|pool| pool.txs.content_revision() == state.txs.content_revision())
         {
             Some(pool) => (
                 pool.txs.clone(),
                 pool.addrs.clone(),
                 pool.outpoint_spends.clone(),
+                pool.info_json.clone(),
             ),
             None => (
                 Arc::new(state.txs.read_only_clone()),
                 Arc::new(state.addrs.clone()),
                 Arc::new(state.outpoint_spends.clone()),
+                Self::info_json(&state.info),
             ),
         };
         let graveyard = previous
@@ -59,8 +65,16 @@ impl Pool {
             outpoint_spends,
             graveyard,
             graph,
+            info_json,
             inputs_complete: state.txs.unresolved().is_empty(),
         }
+    }
+
+    fn info_json(info: &MempoolInfo) -> (Arc<[u8]>, u64) {
+        let bytes = to_vec(info).expect("mempool info serializes");
+        let mut hasher = FxHasher::default();
+        hasher.write(&bytes);
+        (bytes.into(), hasher.finish())
     }
 
     pub fn matches(&self, state: &State, tip: &BlockHash, graph: &Arc<Snapshot>) -> bool {

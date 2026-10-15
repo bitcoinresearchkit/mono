@@ -62,10 +62,13 @@ impl Query {
         // saturate the subtraction to avoid u32 underflow on a backwards-going
         // first block of an epoch.
         let elapsed_time = u64::from((*current_timestamp).saturating_sub(*epoch_start_timestamp));
-        let time_avg = if blocks_into_epoch > 0 {
-            elapsed_time / blocks_into_epoch as u64
+        // Observed pace; the target pace until the epoch shows some elapsed time (a
+        // backward-stepping timestamp leaves none).
+        let observed = blocks_into_epoch > 0 && elapsed_time > 0;
+        let time_avg_ms = if observed {
+            elapsed_time * 1000 / blocks_into_epoch as u64
         } else {
-            TARGET_BLOCK_TIME
+            TARGET_BLOCK_TIME * 1000
         };
 
         // Per-block time needed over remaining blocks to land the epoch at
@@ -78,16 +81,23 @@ impl Query {
             TARGET_BLOCK_TIME
         };
 
-        let remaining_time = remaining_blocks as u64 * adjusted_time_avg;
+        // At the observed pace: the required one above says nothing about when the epoch ends.
+        // Multiplied before dividing: a pace under a millisecond per block still projects time.
+        let remaining_time_ms = if observed {
+            elapsed_time * 1000 * remaining_blocks as u64 / blocks_into_epoch as u64
+        } else {
+            remaining_blocks as u64 * time_avg_ms
+        };
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(u64::from(*current_timestamp));
-        let estimated_retarget_date = now + remaining_time;
+        let estimated_retarget_date_ms = now * 1000 + remaining_time_ms;
 
         let expected_time = blocks_into_epoch as u64 * TARGET_BLOCK_TIME;
+        // A retarget changes difficulty by at most a factor of four either way.
         let difficulty_change = if elapsed_time > 0 && blocks_into_epoch > 0 {
-            ((expected_time as f64 / elapsed_time as f64) - 1.0) * 100.0
+            (((expected_time as f64 / elapsed_time as f64) - 1.0) * 100.0).clamp(-75.0, 300.0)
         } else {
             0.0
         };
@@ -130,13 +140,13 @@ impl Query {
         Ok(DifficultyAdjustment {
             progress_percent,
             difficulty_change,
-            estimated_retarget_date: estimated_retarget_date * 1000,
+            estimated_retarget_date: estimated_retarget_date_ms,
             remaining_blocks,
-            remaining_time: remaining_time * 1000,
+            remaining_time: remaining_time_ms,
             previous_retarget,
             previous_time: epoch_start_timestamp,
             next_retarget_height: Height::from(next_retarget_height),
-            time_avg: time_avg * 1000,
+            time_avg: time_avg_ms,
             adjusted_time_avg: adjusted_time_avg * 1000,
             time_offset,
             expected_blocks,

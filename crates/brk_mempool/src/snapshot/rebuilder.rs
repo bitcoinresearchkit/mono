@@ -37,10 +37,11 @@ impl Rebuilder {
 
     fn build_snapshot(state: &State, gbt_txids: &[Txid], min_fee: FeeRate) -> Snapshot {
         let (txs, prefix_to_idx) = Snapshot::build_txs(&state.txs);
-        let bodies: Vec<_> = gbt_txids
+        let (bodies, digests): (Vec<_>, Vec<_>) = gbt_txids
             .iter()
-            .filter_map(|txid| state.txs.record(txid).map(|record| record.tx.clone()))
-            .collect();
+            .filter_map(|txid| state.txs.record(txid))
+            .map(|record| (record.tx.clone(), record.digest))
+            .unzip();
 
         let block0: Vec<TxIndex> = gbt_txids
             .iter()
@@ -63,7 +64,7 @@ impl Rebuilder {
 
         let missing = bodies.len() != gbt_txids.len();
         let mut snapshot = Snapshot::build(txs, blocks, prefix_to_idx, min_fee);
-        snapshot.set_template(bodies, state.txs.content_revision(), missing);
+        snapshot.set_template(bodies, &digests, state.txs.content_revision(), missing);
         snapshot
     }
 

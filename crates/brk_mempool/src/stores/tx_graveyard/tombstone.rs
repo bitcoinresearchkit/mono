@@ -13,6 +13,8 @@ use crate::{TxRemoval, state::TxEntry};
 pub struct TxTombstone {
     pub tx: Arc<Transaction>,
     pub entry: TxEntry,
+    /// The body's [`crate::stores::tx_store::TxRecord::digest`].
+    pub digest: u64,
     pub chunk_rate: FeeRate,
     pub removal: TxRemoval,
     pub removed_at: Instant,

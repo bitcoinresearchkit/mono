@@ -1,14 +1,14 @@
 //! Address-keyed reads.
 
-use std::{cmp::Reverse, collections::BinaryHeap, sync::Arc};
+use std::{cmp::Reverse, collections::BinaryHeap};
 
 use brk_error::Result;
 use brk_types::{
-    AddressBytes, AddressMempoolStats, BlockHash, Sats, Transaction, TxOut, Txid, TxidPrefix, Vout,
+    AddressBytes, AddressMempoolStats, BlockHash, Sats, TxOut, Txid, TxidPrefix, Vout,
 };
 use rustc_hash::FxHashSet;
 
-use crate::ReadOnlyState;
+use crate::{PublishedTx, ReadOnlyState};
 
 /// An address's pending UTXO changes in one completed publication.
 #[derive(Default)]
@@ -78,7 +78,7 @@ impl ReadOnlyState {
         addr: &AddressBytes,
         limit: usize,
         tip: &BlockHash,
-    ) -> Result<Vec<Arc<Transaction>>> {
+    ) -> Result<Vec<PublishedTx>> {
         let state = self.pool()?;
         state.ensure_resolved_at(tip)?;
         let Some(entry) = state.addrs.get(addr) else {
@@ -107,7 +107,7 @@ impl ReadOnlyState {
             .into_sorted_vec()
             .into_iter()
             .filter_map(|Reverse((_, prefix))| state.txs.record_by_prefix(&prefix))
-            .map(|record| Arc::clone(&record.tx))
+            .map(PublishedTx::live)
             .collect();
         Ok(transactions)
     }

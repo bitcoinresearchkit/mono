@@ -1,6 +1,6 @@
 //! Pack live txs into projected blocks 1..N by descending `chunk_rate`.
-//! Block 0 is filled by the caller from `getblocktemplate`. Final block
-//! is a catch-all (no vsize cap).
+//! Block 0 is filled by the caller from `getblocktemplate`. The final block
+//! is a catch-all (no vsize cap); trailing empty blocks are not made.
 
 use brk_types::{FeeRate, VSize};
 
@@ -11,21 +11,20 @@ pub fn partition(
     excluded: &[u8],
     num_remaining_blocks: usize,
 ) -> Vec<Vec<TxIndex>> {
+    // Only blocks that hold transactions: fee tiers read a missing next block as the end of
+    // the mempool, as mempool.space does.
+    let mut blocks: Vec<Vec<TxIndex>> = Vec::new();
     if num_remaining_blocks == 0 {
-        return Vec::new();
+        return blocks;
     }
-    let sorted = sorted_candidates(txs, excluded);
-    let mut blocks: Vec<Vec<TxIndex>> = (0..num_remaining_blocks).map(|_| Vec::new()).collect();
     let mut block_vsize = VSize::default();
-    let mut current = 0;
-    let last = num_remaining_blocks - 1;
-    for (idx, vsize, _) in sorted {
+    for (idx, vsize, _) in sorted_candidates(txs, excluded) {
         let fits = vsize <= VSize::MAX_BLOCK.saturating_sub(block_vsize);
-        if !fits && current < last && !blocks[current].is_empty() {
-            current += 1;
+        if blocks.is_empty() || (!fits && blocks.len() < num_remaining_blocks) {
+            blocks.push(Vec::new());
             block_vsize = VSize::default();
         }
-        blocks[current].push(idx);
+        blocks.last_mut().unwrap().push(idx);
         block_vsize += vsize;
     }
     blocks

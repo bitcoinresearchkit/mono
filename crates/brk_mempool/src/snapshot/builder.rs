@@ -24,20 +24,29 @@ impl Snapshot {
         }
         let mut snap_txs: Vec<SnapTx> = txs
             .records()
-            .map(|(_, record)| Self::live_tx(&record.entry, &prefix_to_idx))
+            .map(|(_, record)| Self::live_tx(&record.entry))
             .collect();
+        // Parents from the bodies' inputs, as the pool stands now (a parent can leave or
+        // return after its child arrived), each checked by its full txid.
+        for (i, (_, record)) in txs.records().enumerate() {
+            let mut parents: SmallVec<[TxIndex; 2]> = SmallVec::new();
+            for input in &record.tx.input {
+                if let Some(&parent) = prefix_to_idx.get(&TxidPrefix::from(&input.txid))
+                    && snap_txs[parent.as_usize()].txid == input.txid
+                    && !parents.contains(&parent)
+                {
+                    parents.push(parent);
+                }
+            }
+            snap_txs[i].parents = parents;
+        }
 
         Self::mirror_children(&mut snap_txs);
         Self::refresh_chunk_rates(&mut snap_txs);
         (snap_txs, prefix_to_idx)
     }
 
-    fn live_tx(e: &TxEntry, prefix_to_idx: &PrefixIndex) -> SnapTx {
-        let parents: SmallVec<[TxIndex; 2]> = e
-            .depends
-            .iter()
-            .filter_map(|p| prefix_to_idx.get(p).copied())
-            .collect();
+    fn live_tx(e: &TxEntry) -> SnapTx {
         SnapTx {
             txid: e.txid,
             fee: e.fee,
@@ -45,7 +54,7 @@ impl Snapshot {
             weight: e.weight,
             size: e.size,
             chunk_rate: e.fee_rate(),
-            parents,
+            parents: SmallVec::new(),
             children: SmallVec::new(),
         }
     }

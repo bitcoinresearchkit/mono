@@ -53,11 +53,9 @@ server.serve().await?;
 
 Validators are selected with their source data before conditional matching:
 
-- **Tip**: chain-state, etag = tip hash prefix (invalidates per block + reorgs)
 - **Live**: exact, versioned representation tag
 - **LiveHash**: mutable data, etag = a representation-specific content hash
 - **Immutable**: deeply-confirmed data, etag = format version
-- **BlockBound**: immutable content tied to a specific block hash
 - **ActivityBound**: mutable state anchored to its latest relevant block
 - **Deploy**: build-version tag for version-bound responses
 
@@ -66,9 +64,10 @@ the package version alone. Dynamic transaction, block and mempool reads validate
 current availability before returning 304; a matching tag is not permission to
 serve an unpublished or displaced result.
 
-Series responses use a separate range-aware scheme: immutable historical
-ranges are keyed by schema version and bounds, while mutable tails are keyed by
-the current tip hash.
+Series responses use a separate range-aware scheme: ranges wholly below the
+six-block reorg window are keyed by schema version, bounds and the hash of the
+last block they cover (stable across appends, changed by any reorg replacing
+them), while ranges reaching the window are keyed by the current tip hash.
 
 Most data responses use `Cache-Control: public, no-cache, must-revalidate` for
 browsers. Exact live and deployment-bound responses allow one second of browser
@@ -95,7 +94,7 @@ and cannot undo a transaction already received by the node.
 
 ## Read availability
 
-Ordinary GET/HEAD reads share one five-second deadline across admission, reads,
+See [docs/read-availability.md](docs/read-availability.md). Ordinary GET/HEAD reads share one five-second deadline across admission, reads,
 and body preparation. Reads run on blocking workers against the last published
 state, without waiting for updates, and retain their admission until the worker
 finishes; response-capacity waits are asynchronous. A lookup the mempool must

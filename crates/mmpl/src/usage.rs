@@ -18,26 +18,20 @@ Options:
   --rpcpassword <pass>     RPC password (when set, used instead of the cookie)
   -h, --help               Show this help
 
-Events (one JSON object per line):
+Events (one JSON object per line), from each published pool against the previous one:
   Per-tx (one event per change):
     {"kind":"enter","t":..,"txid":..,"vsize":..,"fee":..,"rate":..,"first_seen":..}
-    {"kind":"leave","t":..,"txid":..,"reason":"vanished","rate":..}
-    {"kind":"leave","t":..,"txid":..,"reason":"replaced","by":..,"rate":..}
-
-  Per-address (0 <-> 1+ live mempool txs):
-    {"kind":"addr_enter","t":..,"addr":..}
-    {"kind":"addr_leave","t":..,"addr":..}
+    {"kind":"leave","t":..,"txid":..,"reason":"vanished"}
+    {"kind":"leave","t":..,"txid":..,"reason":"replaced","by":..}
 
   State changes (fires only when the value changed):
     {"kind":"tip","t":..,"hash":..,"height":..}        (new confirmed block)
-    {"kind":"block","t":..,"hash":..,"added":[txid..],"removed":[txid..]}
-                                                       (next-block template changed; first cycle
-                                                        emits the full template as `added`)
+    {"kind":"block","t":..,"hash":..,"count":..,"vsize":..,"fee":..}
+                                                       (next-block template changed)
     {"kind":"fees","t":..,"fastest":..,"half_hour":..,"hour":..,"economy":..,"minimum":..}
 
   Per-cycle heartbeat (always emitted):
-    {"kind":"cycle","t":..,"added":N,"removed":N,"addr_enters":N,"addr_leaves":N,
-                   "count":N,"vsize":N,"fee":N,"took_ms":N}
+    {"kind":"cycle","t":..,"added":N,"removed":N,"count":N,"vsize":N,"fee":N,"took_ms":N}
 
 Examples:
   mmpl | jq -c 'select(.kind=="enter" and .rate>=50)'

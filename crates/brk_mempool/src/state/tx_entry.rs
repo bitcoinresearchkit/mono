@@ -1,5 +1,4 @@
 use brk_types::{FeeRate, MempoolEntryInfo, Sats, Timestamp, Txid, TxidPrefix, VSize, Weight};
-use smallvec::SmallVec;
 
 /// Per-tx facts needed for projection. Chunk rates live on the snapshot
 /// (linearized fresh each cycle), not here.
@@ -11,7 +10,6 @@ pub struct TxEntry {
     pub weight: Weight,
     /// Serialized tx size in bytes (witness + non-witness).
     pub size: u64,
-    pub depends: SmallVec<[TxidPrefix; 2]>,
     pub first_seen: Timestamp,
     /// BIP-125 explicit signaling: any input has sequence < 0xfffffffe.
     pub rbf: bool,
@@ -25,7 +23,6 @@ impl TxEntry {
             vsize: info.vsize,
             weight: info.weight,
             size,
-            depends: info.depends.iter().map(TxidPrefix::from).collect(),
             first_seen: info.first_seen,
             rbf,
         }

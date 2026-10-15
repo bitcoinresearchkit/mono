@@ -34,7 +34,6 @@ impl GeneralRoutes for ApiRouter<AppState> {
                         .description("Get current difficulty adjustment progress and estimates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*")
                         .json_response::<DifficultyAdjustment>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -58,7 +57,6 @@ impl GeneralRoutes for ApiRouter<AppState> {
                         .description("Returns bitcoin latest price (on-chain derived, USD only).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*")
                         .json_response::<Prices>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -77,7 +75,6 @@ impl GeneralRoutes for ApiRouter<AppState> {
                         .description("Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*")
                         .json_response::<HistoricalPrice>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )

@@ -159,7 +159,6 @@ impl Client {
         let live_txids = TxidArrayParser::parse(txids_raw.get())?;
         let template: GetBlockTemplate = from_str(template_raw.get())?;
         let tip_hash = Self::parse_block_hash(&template.previous_block_hash, "previousblockhash")?;
-        let tip_height = Self::template_tip_height(template.height)?;
         let block_template = ClientInner::build_gbt(template.transactions)?;
         let info: GetMempoolInfo = from_str(info_raw.get())?;
         let min_fee = Self::build_min_fee(info.mempool_min_fee)?;
@@ -169,41 +168,45 @@ impl Client {
                 live_txids,
                 min_fee,
                 tip_hash,
-                tip_height,
             },
             block_template,
         ))
     }
 
-    /// Mixed batch of `getmempoolentry` + `getrawtransaction` for the
-    /// same txid set in one round-trip. Returns the entries vec and the
-    /// raw-tx map keyed by txid. Per-item -5 (NOT_FOUND — tx evicted
-    /// between the listing and this call) drops silently for either leg;
-    /// transport-level failures still propagate. Chunked at `BATCH_CHUNK`
-    /// txids per round-trip (2× that on the wire).
+    /// `getmempoolentry` for every txid of `entries_only` and `full`, plus `getrawtransaction`
+    /// for those of `full`, in mixed batches. Returns the entries and the raw-tx map keyed by
+    /// txid. Per-item -5 (NOT_FOUND — tx evicted between the listing and this call) drops
+    /// silently for either leg; transport-level failures still propagate. Chunked at
+    /// `BATCH_CHUNK` txids per round-trip.
     pub fn fetch_new_pool_data(
         &self,
-        txids: &[Txid],
+        entries_only: &[Txid],
+        full: &[Txid],
     ) -> Result<(Vec<MempoolEntryInfo>, FxHashMap<Txid, Transaction>)> {
-        let mut entries: Vec<MempoolEntryInfo> = Vec::with_capacity(txids.len());
+        let requests: Vec<(Txid, bool)> = entries_only
+            .iter()
+            .map(|txid| (*txid, false))
+            .chain(full.iter().map(|txid| (*txid, true)))
+            .collect();
+        let mut entries: Vec<MempoolEntryInfo> = Vec::with_capacity(requests.len());
         let mut txs: FxHashMap<Txid, Transaction> =
-            FxHashMap::with_capacity_and_hasher(txids.len(), Default::default());
+            FxHashMap::with_capacity_and_hasher(full.len(), Default::default());
 
-        for chunk in txids.chunks(BATCH_CHUNK) {
+        for chunk in requests.chunks(BATCH_CHUNK) {
             let mut calls = Vec::with_capacity(chunk.len() * 2);
-            for txid in chunk {
+            for (txid, body) in chunk {
                 let txid: &BitcoinTxid = txid.into();
                 let txid = txid.to_string();
                 calls.push(RpcCall::new("getmempoolentry", &(&txid,))?);
-                calls.push(RpcCall::new("getrawtransaction", &(&txid, false))?);
+                if *body {
+                    calls.push(RpcCall::new("getrawtransaction", &(&txid, false))?);
+                }
             }
 
             let results = self.0.call_mixed_batch(&calls)?;
             let mut iter = results.into_iter();
-            for txid in chunk {
+            for (txid, body) in chunk {
                 let entry_res = iter.next().ok_or(Error::Internal("missing entry"))?;
-                let raw_res = iter.next().ok_or(Error::Internal("missing raw"))?;
-
                 match entry_res.and_then(|raw| {
                     let entry: MempoolEntry = from_str(raw.get())?;
                     Ok(entry.into_info(*txid))
@@ -214,7 +217,10 @@ impl Client {
                         debug!(txid = %txid, error = %e, "getmempoolentry mixed batch: item failed")
                     }
                 }
-
+                if !body {
+                    continue;
+                }
+                let raw_res = iter.next().ok_or(Error::Internal("missing raw"))?;
                 match raw_res.and_then(|raw| Self::decode_raw_tx(&raw)) {
                     Ok(tx) => {
                         txs.insert(*txid, tx);
@@ -278,14 +284,6 @@ impl Client {
     fn decode_raw_tx(raw: &RawValue) -> Result<Transaction> {
         let hex: &str = from_str(raw.get())?;
         Ok(encode::deserialize_hex(hex)?)
-    }
-
-    fn template_tip_height(next_height: i64) -> Result<Height> {
-        next_height
-            .checked_sub(1)
-            .and_then(|tip| u32::try_from(tip).ok())
-            .map(Height::from)
-            .ok_or_else(|| Error::Parse(format!("gbt height out of range: {next_height}")))
     }
 
     fn parse_block_hash(s: &str, label: &str) -> Result<BlockHash> {

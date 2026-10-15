@@ -24,6 +24,7 @@ pub async fn get(
     let cancellation = Cancellation::default();
     let signal = cancellation.signal();
     let (brk_bytes, bitcoin_bytes) = state
+        .query
         .run(move |q| {
             // Keep admission until both blocking walks finish, including after cancellation.
             let _permit = permit;

@@ -30,7 +30,7 @@ pub struct Snapshot {
     /// Projected blocks. `blocks[0]` is Core's `getblocktemplate`
     /// (Bitcoin Core's actual selection). The rest are greedy-packed
     /// by descending chunk rate, with a final overflow block.
-    pub(crate) blocks: Vec<Vec<TxIndex>>,
+    blocks: Vec<Vec<TxIndex>>,
     pub(crate) block_stats: Vec<BlockStats>,
     pub fees: RecommendedFees,
     min_fee: FeeRate,
@@ -68,18 +68,22 @@ impl Snapshot {
     }
 
     /// Freeze selected bodies before publication. Hash the complete public
-    /// content, not only txids: prevout fills also change fee/sigop fields.
-    fn set_template(&mut self, bodies: Vec<Arc<Transaction>>, revision: u64, missing: bool) {
-        let stats = self
-            .block_stats
-            .first()
-            .map(MempoolBlock::from)
-            .unwrap_or_default();
-        let borrowed: Vec<&Transaction> = bodies.iter().map(Arc::as_ref).collect();
-        let bytes = to_vec(&(stats, borrowed)).expect("template fields serialize");
+    /// content, not only txids: prevout fills also change fee/sigop fields, which
+    /// each body's `digests` entry follows.
+    fn set_template(
+        &mut self,
+        bodies: Vec<Arc<Transaction>>,
+        digests: &[u64],
+        revision: u64,
+        missing: bool,
+    ) {
+        let stats = self.template_stats();
         let mut hasher = FxHasher::default();
-        hasher.write(b"template-v2");
-        hasher.write(&bytes);
+        hasher.write(b"template-v3");
+        hasher.write(&to_vec(&stats).expect("template stats serialize"));
+        for &digest in digests {
+            hasher.write_u64(digest);
+        }
         self.next_block_hash = NextBlockHash::new(hasher.finish());
         self.template_transactions = bodies.into();
         self.content_revision = revision;
@@ -115,6 +119,14 @@ impl Snapshot {
     pub(crate) fn chunk_rate_for(&self, txid: &Txid) -> Option<FeeRate> {
         let idx = self.idx_of_txid(txid)?;
         Some(self.txs[idx.as_usize()].chunk_rate)
+    }
+
+    /// Block zero's statistics, as published with its template.
+    pub(crate) fn template_stats(&self) -> MempoolBlock {
+        self.block_stats
+            .first()
+            .map(MempoolBlock::from)
+            .unwrap_or_default()
     }
 
     pub(crate) fn template_transactions(&self) -> &Arc<[Arc<Transaction>]> {

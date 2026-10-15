@@ -91,7 +91,6 @@ impl UtxoSetRoutes for ApiRouter<AppState> {
                         .json_response::<UtxoSet>()
                         .not_modified()
                         .not_found()
-                        .server_errors()
                 },
             ),
         )
@@ -122,9 +121,7 @@ impl UtxoSetRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<UtxoSet>()
                         .not_modified()
-                        .bad_request()
                         .not_found()
-                        .server_errors()
                 },
             ),
         )
@@ -155,9 +152,7 @@ impl UtxoSetRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<UtxoSetDiff>()
                         .not_modified()
-                        .bad_request()
                         .not_found()
-                        .server_errors()
                 },
             ),
         )

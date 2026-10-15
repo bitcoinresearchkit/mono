@@ -57,8 +57,6 @@ pub trait TransformResponseExtended<'t> {
     /// 200 with text/csv content type (adds CSV as alternative response format)
     #[cfg(feature = "series")]
     fn csv_response(self) -> Self;
-    /// 400
-    fn bad_request(self) -> Self;
     /// 404
     #[cfg(any(
         feature = "chain",
@@ -69,12 +67,10 @@ pub trait TransformResponseExtended<'t> {
     fn not_found(self) -> Self;
     /// 304
     fn not_modified(self) -> Self;
-    /// 500
-    fn server_error(self) -> Self;
-    /// 504
-    fn gateway_timeout(self) -> Self;
-    /// 500, 503, 504
-    fn server_errors(self) -> Self;
+    /// 400, 500, 503, 504: every operation can reject its parameters (path-only ones reject any
+    /// query string), fail internally, be briefly unavailable (an updating state, an overload)
+    /// and run past the request deadline.
+    fn universal_errors(self) -> Self;
 }
 
 impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
@@ -198,10 +194,6 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
         self
     }
 
-    fn bad_request(self) -> Self {
-        self.error_response::<400>("Invalid request parameters")
-    }
-
     #[cfg(any(
         feature = "chain",
         feature = "price",
@@ -218,17 +210,10 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
         })
     }
 
-    fn server_error(self) -> Self {
-        self.error_response::<500>("Internal server error")
-    }
-
-    fn gateway_timeout(self) -> Self {
-        self.error_response::<504>("Request deadline exceeded")
-    }
-
-    fn server_errors(self) -> Self {
-        self.server_error()
+    fn universal_errors(self) -> Self {
+        self.error_response::<400>("Invalid request parameters")
+            .error_response::<500>("Internal server error")
             .error_response::<503>("Service temporarily unavailable")
-            .gateway_timeout()
+            .error_response::<504>("Request deadline exceeded")
     }
 }

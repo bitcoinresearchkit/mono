@@ -80,7 +80,7 @@ impl TxStore {
         if tx.input.iter().any(|i| i.prevout.is_none()) {
             self.unresolved.insert(prefix);
         }
-        let record = TxRecord { tx, entry };
+        let record = TxRecord::new(tx, entry);
         self.read_only.histograms.add(&record);
         self.read_only.records.insert(prefix, record);
         self.read_only.txids_hash ^= Self::txid_position_hash(&txid, position);
@@ -140,6 +140,7 @@ impl TxStore {
         let tx = Arc::make_mut(&mut record.tx);
         let applied = Self::write_prevouts(tx, fills);
         tx.refresh_sigops();
+        record.digest = TxRecord::digest_of(tx);
         if record.tx.input.iter().all(|i| i.prevout.is_some()) {
             self.unresolved.remove(prefix);
         }

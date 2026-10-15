@@ -1,10 +1,9 @@
 use std::{
     collections::VecDeque,
-    sync::Arc,
     time::{Duration, Instant},
 };
 
-use brk_types::{FeeRate, Transaction, Txid};
+use brk_types::{FeeRate, Txid};
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
@@ -12,7 +11,7 @@ pub mod tombstone;
 
 pub use tombstone::TxTombstone;
 
-use crate::{TxRemoval, state::TxEntry};
+use crate::{TxRemoval, stores::tx_store::TxRecord};
 
 const RETENTION: Duration = Duration::from_hours(1);
 
@@ -94,18 +93,14 @@ impl TxGraveyard {
         })
     }
 
-    pub fn bury(
-        &mut self,
-        tx: impl Into<Arc<Transaction>>,
-        entry: TxEntry,
-        chunk_rate: FeeRate,
-        removal: TxRemoval,
-    ) {
+    pub fn bury(&mut self, record: TxRecord, chunk_rate: FeeRate, removal: TxRemoval) {
+        let TxRecord { tx, entry, digest } = record;
         let txid = entry.txid;
         let removed_at = Instant::now();
         let tombstone = TxTombstone {
-            tx: tx.into(),
+            tx,
             entry,
+            digest,
             chunk_rate,
             removal,
             removed_at,

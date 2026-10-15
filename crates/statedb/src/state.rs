@@ -33,7 +33,8 @@ impl State {
     pub fn hash(&self) -> [u8; 32] {
         self.hash
     }
-    pub(crate) fn total(&self) -> Amount {
+    /// Every origin's amounts summed.
+    pub fn total(&self) -> Amount {
         self.total
     }
     /// Applies one block of the validated producer chain: its rows were checked when produced.

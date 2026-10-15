@@ -1,16 +1,19 @@
 //! ReadOnlyState info + price-blending output histogram.
 
+use std::sync::Arc;
+
 use brk_error::Result;
 use brk_oracle::HistogramRaw;
-use brk_types::{BlockHash, MempoolInfo};
+use brk_types::BlockHash;
 
 use crate::ReadOnlyState;
 
 impl ReadOnlyState {
-    /// Last complete membership statistics. Live updates and unresolved inputs
-    /// do not hide this publication; only startup has no statistics yet.
-    pub fn info(&self) -> Result<MempoolInfo> {
-        Ok(self.pool()?.info.clone())
+    /// Last complete membership statistics as JSON, with a hash of those bytes, built once per
+    /// publication. Live updates and unresolved inputs do not hide this publication; only
+    /// startup has no statistics yet.
+    pub fn info_json(&self) -> Result<(Arc<[u8]>, u64)> {
+        Ok(self.pool()?.info_json.clone())
     }
 
     /// Snapshot of pre-bucketed round-dollar-eligible bins across all live

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    body::{Body, Bytes},
+    body::{Body, Bytes, HttpBody},
     http::HeaderMap,
     response::Response,
 };
@@ -27,6 +27,11 @@ impl RawBodyPermit {
     #[cfg(feature = "chain")]
     pub const CAPACITY: usize = 8;
 
+    /// Bodies at least this large keep their permit until sent; smaller ones release it once
+    /// built, so slow clients of small responses can't hold every permit. Build concurrency
+    /// stays bounded either way.
+    const RETAINED_FROM: usize = 256 * 1024;
+
     pub fn try_acquire(budget: &Arc<Semaphore>) -> Option<Self> {
         budget.clone().try_acquire_owned().ok().map(|permit| Self {
             _permit: Arc::new(permit),
@@ -51,15 +56,30 @@ impl RawBodyPermit {
         })
     }
 
-    /// Retain admission through both the raw bytes and any outer encoder.
+    /// Retain admission (when large) through both the raw bytes and any outer encoder.
     pub fn response(
         self,
         params: CacheParams,
         bytes: Bytes,
         content_headers: impl FnOnce(&mut HeaderMap),
     ) -> Response {
-        let mut response = AppState::assemble_response(params, self.bytes(bytes), content_headers);
-        response.extensions_mut().insert(self);
+        if bytes.len() < Self::RETAINED_FROM {
+            return AppState::assemble_response(params, bytes, content_headers);
+        }
+        let response = AppState::assemble_response(params, self.bytes(bytes), content_headers);
+        self.attach(response)
+    }
+
+    /// Retain admission (when large) through a built response's body and any outer encoder.
+    pub fn attach(self, mut response: Response) -> Response {
+        let small = response
+            .body()
+            .size_hint()
+            .exact()
+            .is_some_and(|len| len < Self::RETAINED_FROM as u64);
+        if !small {
+            response.extensions_mut().insert(self);
+        }
         response
     }
 

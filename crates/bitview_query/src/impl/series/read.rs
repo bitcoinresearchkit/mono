@@ -1,5 +1,4 @@
 use bitview_plugin_indexer::SafeLengths;
-use bitview_primitives::Lengths;
 use vecdb::{AnyExportableVec, BoundedVec, ReadBounds};
 
 use crate::{Error, Query, Result, vecs::SeriesEntry};
@@ -11,7 +10,6 @@ use crate::{Error, Query, Result, vecs::SeriesEntry};
 pub struct SeriesRead {
     vecs: Vec<&'static dyn AnyExportableVec>,
     bounds: ReadBounds,
-    safe: Lengths,
     is_mutable: bool,
     pin: SafeLengths,
 }
@@ -21,7 +19,6 @@ impl SeriesRead {
         // Every plugin's rows below the published lengths stay put while the pin is held: updates
         // append past them, and only a rollback (which waits for the pin) rewrites them.
         let pin = query.pin_safe_lengths()?;
-        let safe = pin.lengths();
         let bounds = pin.bounds().clone();
         let is_mutable = entries.iter().any(|entry| entry.is_mutable());
         let vecs = entries
@@ -36,14 +33,9 @@ impl SeriesRead {
         Ok(Self {
             vecs,
             bounds,
-            safe,
             is_mutable,
             pin: pin.into_inner(),
         })
-    }
-
-    pub(super) fn safe_lengths(&self) -> Lengths {
-        self.safe
     }
 
     /// The publication this read is pinned to.

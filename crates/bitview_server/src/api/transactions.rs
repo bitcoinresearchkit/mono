@@ -48,9 +48,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     .description("Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.")
                     .text_response::<Txid>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -71,22 +69,13 @@ impl TxRoutes for ApiRouter<AppState> {
                     .description("Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*")
                     .json_response::<CpfpInfo>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
             "/api/v1/tx/{txid}/rbf",
             get_with(
                 async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                    let rbf = state.read_admitted(move |q| q.resolve_rbf(&param.txid)).await?;
-                    let strategy = rbf.identity().map(|identity| AppState::representation_strategy(Version::ONE, identity));
-                    // Release the pin before queueing for the second read.
-                    drop(rbf);
-                    if let Some(strategy) = strategy {
-                        return Ok(state.respond_json_value(&headers, strategy, RbfResponse::EMPTY));
-                    }
                     Ok(state.respond_json_bound(&headers, Version::ONE, move |q| q.tx_rbf_json_resolved(q.resolve_rbf(&param.txid)?)).await)
                 },
                 |op| op
@@ -96,9 +85,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     .description("Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*")
                     .json_response::<RbfResponse>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -126,9 +113,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     )
                     .json_response::<Transaction>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -156,9 +141,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     )
                     .text_response::<Hex>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -179,9 +162,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     .description("Get the merkleblock proof for a transaction (BIP37 format, hex encoded).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkleblock-proof)*")
                     .text_response::<Hex>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -202,9 +183,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     .description("Get the merkle inclusion proof for a transaction.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*")
                     .json_response::<MerkleProof>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -231,9 +210,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     )
                     .json_response::<TxOutspend>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -260,9 +237,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     )
                     .json_response::<Vec<TxOutspend>>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -284,9 +259,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     .description("Returns a transaction as binary data.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-raw)*")
                     .binary_response()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
@@ -315,16 +288,14 @@ impl TxRoutes for ApiRouter<AppState> {
                     )
                     .json_response::<TxStatus>()
                     .not_modified()
-                    .bad_request()
-                    .not_found()
-                    .server_error(),
+                    .not_found(),
             ),
         )
         .api_route(
             "/api/v1/transaction-times",
             get_with(
                 async |headers: HeaderMap, params: TxidsParam, RequestState(state): RequestState| -> Result<Response> {
-                    let (times, hash) = state.read(move |q| q.transaction_times_with_hash(&params.txids)).await?;
+                    let (times, hash) = state.query.read(move |q| q.transaction_times_with_hash(&params.txids)).await?;
                     Ok(state.respond_json_value(&headers, CacheStrategy::LiveHash(hash), times))
                 },
                 |op| op
@@ -333,8 +304,7 @@ impl TxRoutes for ApiRouter<AppState> {
                     .summary("Transaction first-seen times")
                     .description("Returns timestamps when transactions were first seen in the mempool. Returns 0 for mined or unknown transactions.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*")
                     .json_response::<Vec<u64>>()
-                    .not_modified()
-                    .server_error(),
+                    .not_modified(),
             ),
         )
         .api_route(
@@ -348,9 +318,7 @@ impl TxRoutes for ApiRouter<AppState> {
                         .summary("Broadcast transaction")
                         .description("Submit a raw transaction as hexadecimal text (at most 8,000,000 request bytes, including whitespace). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*")
                         .text_response::<Txid>()
-                        .bad_request()
                         .error_response::<413>("Request body too large")
-                        .server_errors()
                 },
             )
             .layer((

@@ -42,7 +42,6 @@ impl OracleRoutes for ApiRouter<AppState> {
                     )
                     .json_response::<Dollars>()
                     .not_modified()
-                    .server_error()
             }),
         )
         .api_route(
@@ -66,7 +65,6 @@ impl OracleRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<HistogramEmaCompact>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -103,9 +101,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<HistogramEmaCompact>()
                         .not_modified()
-                        .bad_request()
                         .not_found()
-                        .server_error()
                 },
             ),
         )
@@ -129,7 +125,6 @@ impl OracleRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<HistogramRaw>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -166,9 +161,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<HistogramRaw>()
                         .not_modified()
-                        .bad_request()
                         .not_found()
-                        .server_error()
                 },
             ),
         )

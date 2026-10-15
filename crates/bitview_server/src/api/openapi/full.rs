@@ -1,17 +1,23 @@
+use std::sync::Arc;
+
 use aide::openapi::OpenApi;
-use axum::body::Bytes;
+use axum::{body::Bytes, http::HeaderMap, response::Response};
 use serde_json::to_vec;
 
-/// Full OpenAPI spec, pre-serialized at startup and served as raw bytes per request.
+use crate::prepared_json::PreparedJson;
+
+/// Full OpenAPI spec, pre-serialized at startup with its content validator.
 #[derive(Clone)]
-pub struct OpenApiJson(Bytes);
+pub struct OpenApiJson(Arc<PreparedJson>);
 
 impl OpenApiJson {
     pub fn new(openapi: &OpenApi) -> Self {
-        Self(Bytes::from(to_vec(openapi).unwrap()))
+        Self(Arc::new(PreparedJson::from_bytes(Bytes::from(
+            to_vec(openapi).unwrap(),
+        ))))
     }
 
-    pub fn bytes(&self) -> Bytes {
-        self.0.clone()
+    pub fn respond(&self, headers: &HeaderMap) -> Response {
+        self.0.respond(headers)
     }
 }

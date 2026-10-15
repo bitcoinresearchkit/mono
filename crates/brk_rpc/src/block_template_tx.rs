@@ -11,9 +11,6 @@ pub struct BlockTemplateTx {
     pub txid: Txid,
     pub fee: Sats,
     pub weight: Weight,
-    /// Parent txids also in this template, resolved from Core's
-    /// wire-level one-based indices.
-    pub depends: Vec<Txid>,
     /// Consensus-encoded body as Core's hex.
     pub(crate) data: String,
 }
