@@ -938,8 +938,9 @@ has to be deleted by hand.
   once: address stats answer as of the fork (or where the rollback lands below it) during the update (answered
   503). They answer 503 only after a failed
   write, during an update of more than 10 blocks, or after a reorg past the saved history
-- A reorg of up to ten blocks lands exactly: addresses (state and caps), UTXOs (caps) and the outputs' spend index
-  write the last ten blocks of every update, catch-ups included, as their undo step (they kept the last ten updates:
+- A reorg of up to ten blocks always lands at or before the fork: addresses (state and caps), UTXOs (caps) and the
+  outputs' spend index write the last ten blocks of every update, catch-ups included, as one undo step, so a landing
+  replays at most that tail (they kept the last ten updates:
   a 1-block reorg after a 25,000-block catch-up landed about 5,000 blocks back and recomputed from there). A deeper
   reorg rebuilds only the plugin whose undo cannot land, and a plugin lowering what readers see no longer makes
   other plugins recompute
@@ -1126,8 +1127,8 @@ has to be deleted by hand.
 - The forward pipeline keeps blk files out of the OS page cache (macOS reads them uncached, Linux drops them right
   after): each file is read once, and caching it evicted the data the indexer looks up. On macOS, indexing blocks
   600,000 to 650,000 takes 315 s instead of 331 s
-- The forward pipeline holds at most 256 MiB of decoded blocks: blocks found past a gap are parsed ahead up to that
-  budget, then only their positions are kept and re-read once the gap closes
+- The forward pipeline parses ahead across a gap within a 256 MiB budget of serialized block bytes (the next
+  required block always passes): past it, only positions are kept and re-read once the gap closes
 - An update right after the previous one reads only the frames appended since the last block it streamed (no
   directory scan or walk from the file's start), while the blk file is the same file (device and inode)
 
