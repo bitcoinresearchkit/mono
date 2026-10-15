@@ -3,6 +3,7 @@ mod readers;
 mod write;
 pub use block_loop::process_chunk;
 pub use readers::{AddrReaders, Workspace};
+pub(crate) use write::UnpublishedState;
 
 use bitview_compute::undo_chunks;
 use bitview_distribution::replay;

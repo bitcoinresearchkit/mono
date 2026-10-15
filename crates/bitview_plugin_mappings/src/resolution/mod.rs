@@ -7,7 +7,8 @@ use crate::RangeMapLookupVec;
 use brk_types::Height;
 use rangeindex::RangeMapWriter;
 use vecdb::{
-    AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex, VecValue,
+    AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex,
+    VecValue,
 };
 
 pub use self::dated::DatedResolutionVecs;

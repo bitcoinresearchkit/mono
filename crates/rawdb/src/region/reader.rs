@@ -47,7 +47,8 @@ impl Reader {
     pub fn read(&self, offset: usize, len: usize) -> &[u8] {
         assert!(len <= self.len() && offset <= self.len() - len);
         // SAFETY: allocation/import validate region bounds; the owned region lock keeps these bytes
-        // in place and unchanged, and the database keeps the mapping alive.
+        // in place and unchanged (unread writes never run while a reader lives), and the database
+        // keeps the mapping alive.
         unsafe { slice::from_raw_parts(self.base.add(offset), len) }
     }
 
@@ -67,7 +68,7 @@ impl Reader {
 }
 
 // SAFETY: the pointed-to bytes stay in place and unchanged while the reader holds its region's
-// shared access, and its database handle keeps the mapping alive; shared reads need nothing else.
+// shared access (unread writes never run while a reader lives), and its database handle keeps the mapping alive; shared reads need nothing else.
 unsafe impl Sync for Reader {}
 
 impl Drop for Reader {

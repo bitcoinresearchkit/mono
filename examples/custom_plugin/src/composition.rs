@@ -65,4 +65,8 @@ impl ComputePluginSet for Plugins {
     fn commit(&mut self, complete: bool) -> Result<()> {
         self.defaults.commit(complete)
     }
+
+    fn write_published(&mut self) -> Result<()> {
+        self.defaults.write_published()
+    }
 }

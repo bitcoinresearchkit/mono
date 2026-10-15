@@ -1,7 +1,10 @@
 use std::{
+    ffi::CString,
     fmt,
     fs::File,
     io::{self, BufWriter, Write},
+    mem::MaybeUninit,
+    os::unix::ffi::OsStrExt,
     path::Path,
     process::Command,
     thread,
@@ -65,6 +68,9 @@ pub fn write(
     writeln!(writer, "ram_bytes={}", ram_bytes())?;
     writeln!(writer, "storage={}", storage(data_path))?;
     writeln!(writer, "blocks_storage={}", storage(blocks_path))?;
+    // SSDs slow down as they fill: runs compare only at equal used space.
+    writeln!(writer, "data_volume={}", volume(data_path))?;
+    writeln!(writer, "blocks_volume={}", volume(blocks_path))?;
     writeln!(
         writer,
         "parallelism={}",
@@ -76,6 +82,24 @@ pub fn write(
     writeln!(writer, "data_path={}", data_path.display())?;
     writeln!(writer, "cache_budget={cache_budget}")?;
     writer.flush()
+}
+
+/// `used_bytes/total_bytes` of the volume holding `path`, empty when unavailable.
+fn volume(path: &Path) -> String {
+    let Ok(path) = CString::new(path.as_os_str().as_bytes()) else {
+        return String::new();
+    };
+    let mut stat = MaybeUninit::<libc::statvfs>::zeroed();
+    // SAFETY: `path` is NUL-terminated and `stat` is a writable `statvfs`.
+    if unsafe { libc::statvfs(path.as_ptr(), stat.as_mut_ptr()) } != 0 {
+        return String::new();
+    }
+    // SAFETY: `statvfs` succeeded, so it initialized `stat`.
+    let stat = unsafe { stat.assume_init() };
+    let block = stat.f_frsize;
+    let total = u64::from(stat.f_blocks) * block;
+    let used = total - u64::from(stat.f_bfree) * block;
+    format!("{used}/{total}")
 }
 
 fn command(program: &str, args: &[&str]) -> String {

@@ -26,7 +26,10 @@ where
     overflow: MutableVec<BytesVec<usize, T>>,
     pushed: Vec<T>,
     visible_len: SharedLen,
+    /// Excludes readers while the two halves change together, except while writing updates its
+    /// owner serves until written (see [`crate::ImportOptions::with_unread_updates`]).
     gate: Arc<RwLock<()>>,
+    unread_updates: bool,
 }
 
 impl<I, T> OverflowVec<I, T>
@@ -47,6 +50,7 @@ where
             ..options
         };
 
+        let unread_updates = options.unread_updates;
         let mut compact = MutableVec::<BytesVec<_, _>>::import_with(options)?;
         let mut overflow = MutableVec::<BytesVec<_, _>>::import_with(overflow_options)?;
 
@@ -64,6 +68,7 @@ where
             pushed: Vec::new(),
             visible_len: SharedLen::new(len),
             gate: Arc::new(RwLock::new(())),
+            unread_updates,
         })
     }
 
@@ -346,7 +351,7 @@ where
 
     fn write(&mut self) -> Result<bool> {
         let gate = Arc::clone(&self.gate);
-        let _guard = gate.write();
+        let _guard = (!self.unread_updates).then(|| gate.write());
         self.write_inner()
     }
 
@@ -471,7 +476,7 @@ where
     fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
         let write_guard = self.header().begin_write()?;
         let gate = Arc::clone(&self.gate);
-        let _guard = gate.write();
+        let _guard = (!self.unread_updates).then(|| gate.write());
         // Both undo records must exist before either half is overwritten.
         self.overflow.save_changes(stamp)?;
         self.compact.save_changes(stamp)?;

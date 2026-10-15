@@ -1,11 +1,14 @@
-use std::{sync::Arc, time::Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use bitview_primitives::{
-    AddressState, ByAddrType, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
-    FundedAddressIndex, TypeIndex,
+    AddressState, ByAddrType, DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex,
+    FundedAddressData, FundedAddressIndex, TypeIndex,
 };
 use bitview_traversable::Traversable;
-use brk_error::{Error, Result};
+use brk_error::{Error, OptionData, Result};
 use brk_types::{Height, OutputType, Version};
 use parking_lot::{RwLock, RwLockReadGuard};
 use rayon::{join, prelude::*};
@@ -18,12 +21,16 @@ use vecdb::{
 
 use super::SourcedAddrData;
 
+mod stable;
 mod updates;
 
+pub use stable::{Changed, Stable};
 use updates::{AddrUpdates, SidecarPushes};
 
 use crate::SAVED_CHECKPOINTS;
 const FUNDED_DATA_VERSION: Version = Version::new(3);
+/// Longest a reader waits for the state's lock: a publication holds it a few milliseconds.
+const STABLE_READ_WAIT: Duration = Duration::from_millis(10);
 
 macro_rules! addr_state_vecs {
     ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
@@ -47,21 +54,26 @@ macro_rules! addr_state_vecs {
             /// the slot their state points to.
             pub extended_empty:
                 M::Stored<OverflowVec<ExtendedEmptyAddressIndex, EmptyAddressData>>,
-            /// The length these vectors are written through on disk (none while a rollback's
-            /// restored values or a failed write are not), locked while they change
-            /// (publication, rollback, reset) so a reader's state and sidecar record come from
-            /// one save. They change in place, unlike the append-only rest; an update's final
-            /// state is written with its publication, so a reader taking this lock before its pin
-            /// reads that publication's state whenever the length is the pin's.
+            /// The length these vectors read through and the addresses the publication changed,
+            /// locked while they change (publication, rollback, reset) so a reader's state and
+            /// sidecar record come from one save. They change in place, unlike the append-only
+            /// rest; an update publishes its changed addresses with its lengths and writes them
+            /// after, so a reader taking this lock before its pin reads that publication's state
+            /// whenever the length is the pin's.
             #[traversable(skip)]
-            stable: Arc<RwLock<Option<Height>>>,
+            stable: Arc<RwLock<Stable>>,
         }
 
         impl AddrStateVecs {
             pub fn import(db: &Database, version: Version) -> Result<Self> {
                 let options = |name, version| {
-                    ImportOptions::new(db, name, version)
-                        .with_saved_stamped_changes(SAVED_CHECKPOINTS)
+                    let options = ImportOptions::new(db, name, version)
+                        .with_saved_stamped_changes(SAVED_CHECKPOINTS);
+                    // SAFETY: readers (`addr_data`) hold `stable` and read one value at a time.
+                    // Every write excludes them through `stable` but the one after an update's
+                    // publication, which rewrites only changed addresses' values, served from
+                    // `stable` instead. Compute-side readers end before any write.
+                    unsafe { options.with_unread_updates() }
                 };
                 let vecs = Self {
                     $($field: MutableVec::import_with(options("address_state", version))?,)+
@@ -75,7 +87,7 @@ macro_rules! addr_state_vecs {
                     ))?,
                     stable: Arc::default(),
                 };
-                *vecs.stable.write() = Some(vecs.min_stamped_len());
+                vecs.stable.write().written = Some(vecs.min_stamped_len());
                 Ok(vecs)
             }
 
@@ -117,8 +129,11 @@ macro_rules! addr_state_vecs {
 
             pub fn reset(&mut self) -> Result<()> {
                 let stable = Arc::clone(&self.stable);
-                let mut written = stable.write();
-                *written = Some(Height::ZERO);
+                let mut stable = stable.write();
+                *stable = Stable {
+                    written: Some(Height::ZERO),
+                    changed: None,
+                };
                 $(self.$field.reset()?;)+
                 self.funded.reset()?;
                 self.extended_empty.reset()?;
@@ -181,9 +196,11 @@ impl AddrStateVecs {
         self.stamped_lens().max().unwrap_or_default()
     }
 
+    /// Records each address's final data in `changed` too, when given.
     pub fn apply_updates(
         &mut self,
         cache: &mut [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>>],
+        changed: Option<&mut Changed>,
     ) -> Result<()> {
         info!("Updating address state...");
         let started = Instant::now();
@@ -195,7 +212,7 @@ impl AddrStateVecs {
             extended_updates,
             extended_pushes,
             extended_deletes,
-        } = AddrUpdates::stage(cache);
+        } = AddrUpdates::stage(cache, changed);
 
         self.funded.delete_many(funded_deletes);
         self.extended_empty.delete_many(extended_deletes);
@@ -274,13 +291,38 @@ impl AddrStateVecs {
 
 impl<M: StorageMode> AddrStateVecs<M> {
     /// Keeps the state and its sidecars from changing while a reader pairs them; holds the
-    /// length they are written through. `None` while a save holds them: readers never wait.
-    pub fn try_read_stable(&self) -> Option<RwLockReadGuard<'_, Option<Height>>> {
-        self.stable.try_read()
+    /// length they read through. Waits out a publication (a few milliseconds), not a write
+    /// under the lock (a catch-up's or a rollback's): `None` then.
+    pub fn try_read_stable(&self) -> Option<RwLockReadGuard<'_, Stable>> {
+        self.stable.try_read_for(STABLE_READ_WAIT)
     }
 
-    /// The lock a save holds over these vectors, with the length they are written through.
-    pub fn stable(&self) -> Arc<RwLock<Option<Height>>> {
+    /// The lock a save holds over these vectors, with the length they read through.
+    pub fn stable(&self) -> Arc<RwLock<Stable>> {
         Arc::clone(&self.stable)
+    }
+
+    /// An address's data and whether it is funded, in the publication `stable` (this state's
+    /// lock, held) belongs to.
+    pub fn addr_data(
+        &self,
+        stable: &Stable,
+        addr_type: OutputType,
+        type_index: TypeIndex,
+    ) -> Result<(FundedAddressData, bool)> {
+        if let Some(changed) = stable
+            .changed
+            .as_ref()
+            .and_then(|changed| changed.get(addr_type, type_index))
+        {
+            return Ok(changed.clone());
+        }
+        Ok(match self.get_once(addr_type, type_index)?.decode() {
+            DecodedAddrState::Funded(index) => (self.funded.collect_one(index).data()?, true),
+            DecodedAddrState::ExtendedEmpty(index) => {
+                (self.extended_empty.collect_one(index).data()?.into(), false)
+            }
+            DecodedAddrState::Empty(data) => (data.into(), false),
+        })
     }
 }

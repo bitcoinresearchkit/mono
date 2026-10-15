@@ -8,7 +8,9 @@ fn linearize(items: &[(u64, &[u32])]) -> Vec<CpfpClusterChunk> {
         cluster.push(
             Sats::new(fee),
             VSize::from(10u64),
-            parents.iter().map(|&parent| CpfpClusterTxIndex::from(parent)),
+            parents
+                .iter()
+                .map(|&parent| CpfpClusterTxIndex::from(parent)),
         );
     }
     cluster.chunks()

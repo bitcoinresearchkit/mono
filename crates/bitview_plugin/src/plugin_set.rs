@@ -43,4 +43,8 @@ pub trait ComputePluginSet: PluginSet {
     /// ([`BootstrapAction::Reimport`]). Compositions delegate it to the default composition: it
     /// is what advances the published lengths.
     fn commit(&mut self, complete: bool) -> Result<()>;
+
+    /// Writes what [`Self::commit`] published from memory, before the next update. Compositions
+    /// delegate it to the default composition.
+    fn write_published(&mut self) -> Result<()>;
 }

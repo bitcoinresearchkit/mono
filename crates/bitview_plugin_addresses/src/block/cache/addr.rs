@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrStateVecs, SHARDS, SourcedAddrData, shard_of},
+    addr::{AddrStateVecs, Changed, SHARDS, SourcedAddrData, shard_of},
     compute::AddrReaders,
 };
 
@@ -142,12 +142,17 @@ impl AddrCache {
 
     /// Persist pending address states. Each table keeps room for as many addresses as it just
     /// held, so a type the chain moved away from stops holding its peak.
-    pub fn flush_into(&mut self, state: &mut AddrStateVecs) -> Result<()> {
+    /// Records each address's final data in `changed` too, when given.
+    pub fn flush_into(
+        &mut self,
+        state: &mut AddrStateVecs,
+        changed: Option<&mut Changed>,
+    ) -> Result<()> {
         let lengths = self
             .shards
             .each_ref()
             .map(|shard| ByAddrType::from_fn(|id| id.select(shard).len()));
-        state.apply_updates(&mut self.shards)?;
+        state.apply_updates(&mut self.shards, changed)?;
         for (shard, lengths) in self.shards.iter_mut().zip(lengths) {
             for (addrs, len) in shard.values_mut().zip(lengths.values()) {
                 addrs.shrink_to(*len);

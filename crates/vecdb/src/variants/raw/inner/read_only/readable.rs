@@ -32,13 +32,12 @@ where
         if index >= len {
             return None;
         }
-        Some(
-            self.base
-                .region()
-                .with_read_bytes(HEADER_OFFSET, |bytes| unsafe {
-                    S::read_from_ptr(bytes.as_ptr(), index * size_of::<T>())
-                }),
-        )
+        // Borrows only this value: see `ImportOptions::with_unread_updates`.
+        Some(self.base.region().with_read_range(
+            HEADER_OFFSET + index * size_of::<T>(),
+            size_of::<T>(),
+            |bytes| unsafe { S::read_from_ptr(bytes.as_ptr(), 0) },
+        ))
     }
 
     fn read_cached_into_at(&self, from: usize, to: usize, out: &mut Vec<T>) -> bool {

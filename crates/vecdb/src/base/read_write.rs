@@ -19,6 +19,8 @@ pub struct ReadWriteBaseVec<I, T> {
     pub pushed: WithPrev<Vec<T>>,
     pub previous_stored_len: usize,
     pub saved_stamped_changes: u16,
+    /// See [`crate::ImportOptions::with_unread_updates`].
+    pub unread_updates: bool,
     /// Sorted stamps of the change files, once listed: `None` until then or after an error.
     pub(super) change_stamps: Mutex<Option<Vec<Stamp>>>,
 }
@@ -78,6 +80,7 @@ where
             pushed: WithPrev::default(),
             previous_stored_len: 0,
             saved_stamped_changes: options.saved_stamped_changes,
+            unread_updates: options.unread_updates,
             change_stamps: Mutex::default(),
         })
     }

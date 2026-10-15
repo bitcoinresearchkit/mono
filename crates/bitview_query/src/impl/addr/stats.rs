@@ -1,17 +1,16 @@
-use bitview_primitives::{DecodedAddrState, TypeIndex};
+use bitview_primitives::{FundedAddressData, TypeIndex};
 use bitview_types::{AddressChainStats, AddressStats};
 use brk_types::{Address, CheckedSub, Dollars, OutputType, Sats};
-use vecdb::ReadableVec;
 
 use super::parse_addr;
 use crate::r#impl::mempool::anchored;
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, Query, Result};
 
 impl Query {
     pub fn addr(&self, addr: Address) -> Result<AddressStats> {
         let bytes = parse_addr(&addr)?;
-        // The mempool first (it never leads the chain), then the address state, written with the
-        // published lengths under this lock, then the pin: all of one publication.
+        // The mempool first (it never leads the chain), then the address state, published with the
+        // lengths under this lock, then the pin: all of one publication.
         let mempool = self.mempool();
         let stable = self
             .plugins()
@@ -21,12 +20,19 @@ impl Query {
             .ok_or(Error::StateUpdating)?;
         let pin = self.pin_safe_lengths()?;
         // Only a rollback, a failed write or a long catch-up leaves it at another length.
-        if *stable != Some(pin.lengths().height) {
+        if stable.written != Some(pin.lengths().height) {
             return Err(Error::StateUpdating);
         }
         let chain_stats = self
             .find_addr_bytes(&bytes, &pin)?
-            .map(|(output_type, type_index)| self.addr_chain_stats(output_type, type_index))
+            .map(|(output_type, type_index)| {
+                let (addr_data, is_funded) =
+                    self.plugins()
+                        .addresses
+                        .state
+                        .addr_data(&stable, output_type, type_index)?;
+                addr_chain_stats(type_index, &addr_data, is_funded)
+            })
             .transpose()?;
         drop(stable);
         let mempool_stats = mempool
@@ -52,59 +58,39 @@ impl Query {
             balance,
         })
     }
+}
 
-    fn addr_chain_stats(
-        &self,
-        output_type: OutputType,
-        type_index: TypeIndex,
-    ) -> Result<AddressChainStats> {
-        let plugins = self.plugins();
-        let state = plugins.addresses.state.get_once(output_type, type_index)?;
+/// An address's confirmed stats from its data.
+fn addr_chain_stats(
+    type_index: TypeIndex,
+    addr_data: &FundedAddressData,
+    is_funded: bool,
+) -> Result<AddressChainStats> {
+    let balance = addr_data
+        .received
+        .checked_sub(addr_data.sent)
+        .ok_or(Error::Internal(
+            "Address sent amount exceeds confirmed receipts",
+        ))?;
+    let realized_price = if is_funded && !balance.is_zero() {
+        addr_data
+            .realized_cap_raw()
+            .realized_price(balance)
+            .to_dollars()
+    } else {
+        Dollars::default()
+    };
 
-        let (addr_data, is_funded) = match state.decode() {
-            DecodedAddrState::Funded(index) => {
-                let data = plugins.addresses.state.funded.collect_one(index).data()?;
-                (data, true)
-            }
-            DecodedAddrState::ExtendedEmpty(index) => {
-                let data = plugins
-                    .addresses
-                    .state
-                    .extended_empty
-                    .collect_one(index)
-                    .data()?
-                    .into();
-                (data, false)
-            }
-            DecodedAddrState::Empty(data) => (data.into(), false),
-        };
-
-        let balance = addr_data
-            .received
-            .checked_sub(addr_data.sent)
-            .ok_or(Error::Internal(
-                "Address sent amount exceeds confirmed receipts",
-            ))?;
-        let realized_price = if is_funded && !balance.is_zero() {
-            addr_data
-                .realized_cap_raw()
-                .realized_price(balance)
-                .to_dollars()
-        } else {
-            Dollars::default()
-        };
-
-        Ok(AddressChainStats {
-            balance,
-            type_index: Some(type_index),
-            funded_txo_count: addr_data.funded_txo_count,
-            funded_txo_sum: addr_data.received,
-            spent_txo_count: addr_data.spent_txo_count,
-            spent_txo_sum: addr_data.sent,
-            tx_count: addr_data.tx_count,
-            realized_price,
-        })
-    }
+    Ok(AddressChainStats {
+        balance,
+        type_index: Some(type_index),
+        funded_txo_count: addr_data.funded_txo_count,
+        funded_txo_sum: addr_data.received,
+        spent_txo_count: addr_data.spent_txo_count,
+        spent_txo_sum: addr_data.sent,
+        tx_count: addr_data.tx_count,
+        realized_price,
+    })
 }
 
 /// The confirmed balance with the mempool's pending receipts and spends.

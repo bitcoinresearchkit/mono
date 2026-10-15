@@ -46,7 +46,8 @@ struct Scratch {
 /// would overflow the chunk they start in, and values larger than a chunk are stored through the mapping
 /// (`store`) first; the rest go in disjoint chunks of whole pages, at most MAX_CHUNK each (see `write_chunk`).
 ///
-/// The caller holds the region's exclusive access and the database's shared mutation barrier.
+/// The caller holds the region's access (exclusive, or shared with the writer lock and no reader of
+/// `values`) and the database's shared mutation barrier.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn write<T: Sync>(
     data: &DataFile,

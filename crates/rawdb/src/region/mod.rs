@@ -63,6 +63,21 @@ impl Region {
         f(unsafe { slice::from_raw_parts(mmap.as_ptr().add(start + offset), len - offset) })
     }
 
+    /// Runs `f` on the `len` bytes at `offset`, borrowing nothing else: a value read this way
+    /// never overlaps [`Self::write_indexed_unread`]'s writes of other values.
+    pub fn with_read_range<R>(&self, offset: usize, len: usize, f: impl FnOnce(&[u8]) -> R) -> R {
+        let db = self.db();
+        let data = &db.inner.data;
+        let _access = self.read_lock();
+        // SAFETY: access keeps start and reservation stable; the length only grows under it.
+        let (start, region_len, _) = unsafe { self.0.bounds() };
+        assert!(len <= region_len && offset <= region_len - len);
+        let mmap = data.mapping();
+        // SAFETY: the range lies within the region, access prevents changes to these bytes (but
+        // for unread writes, which never write them), and the mapping never moves.
+        f(unsafe { slice::from_raw_parts(mmap.as_ptr().add(start + offset), len) })
+    }
+
     pub fn open_db_read_only_file(&self) -> Result<File> {
         self.db().open_read_only_file()
     }
@@ -211,6 +226,34 @@ impl Region {
         at: usize,
         write_fn: impl Fn(&T, &mut [u8]) + Sync,
     ) -> Result<()> {
+        self.write_indexed_with(values, value_len, at, write_fn, true)
+    }
+
+    /// [`Self::write_indexed`] while readers keep reading the region (the rest of the written pages
+    /// is rewritten with its own bytes).
+    ///
+    /// # Safety
+    /// Until it returns, nothing reads or borrows the written values: the region's readers borrow
+    /// only the values they read ([`Self::with_read_range`]), never the written ones, and hold no
+    /// [`Reader`] or wider slice.
+    pub unsafe fn write_indexed_unread<T: Sync>(
+        &self,
+        values: BTreeMap<usize, T>,
+        value_len: usize,
+        at: usize,
+        write_fn: impl Fn(&T, &mut [u8]) + Sync,
+    ) -> Result<()> {
+        self.write_indexed_with(values, value_len, at, write_fn, false)
+    }
+
+    fn write_indexed_with<T: Sync>(
+        &self,
+        values: BTreeMap<usize, T>,
+        value_len: usize,
+        at: usize,
+        write_fn: impl Fn(&T, &mut [u8]) + Sync,
+        exclude_readers: bool,
+    ) -> Result<()> {
         let Some((&last, _)) = values.last_key_value() else {
             return Ok(());
         };
@@ -221,14 +264,19 @@ impl Region {
             .expect("batch offset overflow");
         let db = self.db();
         let storage = &**db.inner;
-        let _access = self.0.access.write();
+        // Exclusive access keeps readers and other writers out; shared access with the writer lock,
+        // only other writers. Either keeps the region's bounds stable.
+        let _exclusive = exclude_readers.then(|| self.0.access.write());
+        let _shared =
+            (!exclude_readers).then(|| (self.0.access.read_recursive(), self.0.writer.lock()));
         let _writes = storage.writes.read();
         // SAFETY: access keeps bounds stable; the barrier keeps flushing and hole punching out.
         let (region_start, region_len, _reserved) = unsafe { self.0.bounds() };
         assert!(end <= region_len, "batch bounds exceed region");
         let base = region_start + at;
-        // SAFETY: at <= end <= region_len, so every value lies within this region; access excludes its
-        // readers and other writers, and the mapping never moves.
+        // SAFETY: at <= end <= region_len, so every value lies within this region; no reader reads
+        // these values (access excludes readers, or the caller vouches for them), and the mapping
+        // never moves.
         let store = |index: usize, value: &T| {
             let bytes = unsafe {
                 let ptr = storage

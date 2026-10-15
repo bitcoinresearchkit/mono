@@ -146,7 +146,11 @@ macro_rules! impl_float_ord_format {
             #[inline(always)]
             fn write_to(&self, buf: &mut Vec<u8>) {
                 if self.0.is_finite() {
-                    buf.extend_from_slice($crate::__private::ryu::Buffer::new().format_finite(self.0).as_bytes());
+                    buf.extend_from_slice(
+                        $crate::__private::ryu::Buffer::new()
+                            .format_finite(self.0)
+                            .as_bytes(),
+                    );
                 }
             }
 
@@ -154,7 +158,11 @@ macro_rules! impl_float_ord_format {
             #[inline(always)]
             fn fmt_json(&self, buf: &mut Vec<u8>) {
                 if self.0.is_finite() {
-                    buf.extend_from_slice($crate::__private::ryu::Buffer::new().format_finite(self.0).as_bytes());
+                    buf.extend_from_slice(
+                        $crate::__private::ryu::Buffer::new()
+                            .format_finite(self.0)
+                            .as_bytes(),
+                    );
                 } else {
                     buf.extend_from_slice(b"null");
                 }

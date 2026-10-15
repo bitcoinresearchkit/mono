@@ -4,7 +4,9 @@ use bitview_vecs::RangeMapVec;
 use brk_types::{Height, Timestamp};
 use derive_more::{Deref, DerefMut};
 use rangeindex::RangeMapWriter;
-use vecdb::{AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex};
+use vecdb::{
+    AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex,
+};
 
 use super::ResolutionVecs;
 

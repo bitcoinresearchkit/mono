@@ -19,12 +19,12 @@ use vecdb::{AnyVec, ReadableVec, Stamp, VecIndex, unlikely};
 use super::{AddrReaders, Workspace, readers::tx_indexes};
 use crate::{
     Vecs,
-    addr::{MemberState, SHARDS, SourcedAddrData},
+    addr::{Changed, MemberState, SHARDS, SourcedAddrData},
     block::{
         AddrTypeLookup, Received, TransferAddressCache, TxIndexes, process_inputs, process_lost,
         process_outputs, process_received, process_sent,
     },
-    compute::write::write,
+    compute::write::{UnpublishedState, write},
     state::{AddrStates, CohortLog},
 };
 
@@ -298,10 +298,14 @@ pub fn process_chunk(
     drop(vr);
     let last_height = Height::from(next - 1);
     let _lock = exit.lock();
-    // A failure before the state is written leaves its changed buffers for the next update to discard.
-    vecs.unpublished_state = Some((Stamp::from(last_height), tail));
-    cache.flush_into(&mut vecs.state)?;
     let finished = tail && next == end_usize;
+    // A failure before the state is written leaves its changed buffers for the next update to discard.
+    let unpublished = vecs.unpublished_state.insert(UnpublishedState {
+        stamp: Stamp::from(last_height),
+        with_changes: tail,
+        changed: finished.then(Changed::new),
+    });
+    cache.flush_into(&mut vecs.state, unpublished.changed.as_mut())?;
     // Every write of the tail keeps its changes, so a reorg can roll back across early flushes.
     write(vecs, addr_states, last_height, tail, finished)?;
     if !finished {

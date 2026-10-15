@@ -38,13 +38,13 @@ where
     // A pending shutdown must not wait behind back-to-back updates.
     context.exit().park_if_shutting_down();
     // Readers keep the last publication (lowered to the fork once a reorg rolls back) until `commit`
-    // swaps in this one; a failed update leaves it.
+    // swaps in this one; a failed compute leaves it. What the commit published from memory is
+    // written before the next update.
     let start = Instant::now();
     let (output, complete) = compute(plugins, context)?;
-    {
-        let _lock = context.exit().lock();
-        plugins.commit(complete)?;
-    }
+    let _lock = context.exit().lock();
+    plugins.commit(complete)?;
     info!("Update completed in {:.2?}", start.elapsed());
+    plugins.write_published()?;
     Ok(output)
 }

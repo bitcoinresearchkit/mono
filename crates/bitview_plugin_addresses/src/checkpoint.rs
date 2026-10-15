@@ -22,16 +22,17 @@ impl Replay for Vecs {
     fn validate(&mut self, version: Version) -> Result<Option<usize>> {
         let caps_changed = self.caps.validate(version)?;
         let stable = self.state.stable();
-        let mut written = stable.write();
+        let mut stable = stable.write();
         let state_changed = self
             .state
             .par_iter_mut()
             .map(|v| v.any_validate_computed_version_or_reset(version))
             .try_reduce(|| false, |a, b| Ok(a || b))?;
         if state_changed {
-            *written = None;
+            stable.written = None;
+            stable.changed = None;
         }
-        drop(written);
+        drop(stable);
         let outputs = validate_outputs(self.loop_vecs_mut(), version)?;
         Ok(outputs.filter(|_| !caps_changed && !state_changed))
     }
@@ -109,7 +110,7 @@ impl Vecs {
 
     /// Rolls the address state (rewritten in place) and the caps back below `start`, to the
     /// newest saved change under it, and writes the state. The publication is lowered to the
-    /// landing first; the state's lock (`written`, which readers take before they pin) is held
+    /// landing first; the state's lock (`stable`, which readers take before they pin) is held
     /// only for the rollback and the write, never while earlier pins drain: meanwhile readers
     /// find the state at another length than their pin and answer at once that it is updating.
     /// Returns where it lands: `start` when nothing lies past it, or 0 when the saved changes do
@@ -131,9 +132,10 @@ impl Vecs {
         };
         indexer.rewrite_from(landing, || {
             let stable = self.state.stable();
-            let mut written = stable.write();
+            let mut stable = stable.write();
             // The restored values sit in the write buffers until written.
-            *written = None;
+            stable.written = None;
+            stable.changed = None;
             let landing_stamp = Stamp::from(landing.decremented().unwrap_or_default());
             let mut stamps = self.state.rollback_before(stamp)?;
             stamps.push(self.caps.rollback_before(stamp)?);
@@ -141,7 +143,7 @@ impl Vecs {
                 stamps.iter().all(|s| *s == landing_stamp),
                 "rollback lands where its preflight did"
             );
-            self.write_state(landing_stamp, false, &mut written)
+            self.write_state(landing_stamp, false, &mut stable)
         })?;
         Ok(usize::from(landing))
     }

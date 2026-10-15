@@ -19,10 +19,11 @@ use bitview_distribution::{RealizedCaps, replay::LiveState};
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::Version;
-use vecdb::{Database, Rw, Stamp, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 use addr::{AddrStateVecs, AddressVecs};
 use balance::Balances;
+use compute::UnpublishedState;
 use state::AddrStates;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("addresses"), Version::new(49));
@@ -39,9 +40,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     live: M::WriteOnly<Option<LiveState<AddrStates>>>,
-    /// The stamp and rollback flag of address state changed in its buffers but not yet written (staged
-    /// for the update's publication, or left by a failed write).
-    unpublished_state: M::WriteOnly<Option<(Stamp, bool)>>,
+    unpublished_state: M::WriteOnly<Option<UnpublishedState>>,
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     #[traversable(flatten)]
     all: Box<AddressVecs<M>>,

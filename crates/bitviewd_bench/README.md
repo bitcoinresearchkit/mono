@@ -40,7 +40,7 @@ For example, `--bitviewdir /Volumes/External/bitview` writes reports beneath
 `/Volumes/External/bitview/benches/`:
 
 ```text
-metadata.txt        # build (revision, dirty, profile, rustc, flags, target), host (name, CPU, RAM, data and blocks storage), chain, paths, cache budget
+metadata.txt        # build (revision, dirty, profile, rustc, flags, target), host (name, CPU, RAM, data and blocks storage with used/total volume bytes), chain, paths, cache budget
 memory.csv          # footprint, peak, resident size and system swap, every 5 s
 io.csv              # cumulative bytes read and written and page-ins, every 5 s
 cpu.csv             # cumulative user and system CPU time, every 5 s

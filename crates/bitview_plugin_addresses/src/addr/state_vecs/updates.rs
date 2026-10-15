@@ -7,6 +7,7 @@ use vecdb::likely;
 
 use rustc_hash::FxHashMap;
 
+use super::Changed;
 use crate::addr::SourcedAddrData;
 
 /// Cached addresses sorted into the writes each persistent vector needs.
@@ -46,16 +47,25 @@ impl<T> SidecarPushes<T> {
 }
 
 impl AddrUpdates {
+    /// Records each address's final data in `changed` too, when given.
     pub fn stage(
         cache: &mut [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>>],
+        mut changed: Option<&mut Changed>,
     ) -> Self {
         let mut updates = Self::default();
         for (addr_type, entries) in cache.iter_mut().flat_map(|shard| shard.iter_mut()) {
             for (type_index, source) in entries.drain() {
                 if source.is_funded() {
+                    if let Some(changed) = changed.as_deref_mut() {
+                        changed.funded(addr_type, type_index, &source);
+                    }
                     updates.push_funded(addr_type, type_index, source);
                 } else {
-                    updates.push_empty(addr_type, type_index, source.into());
+                    let source = SourcedAddrData::<EmptyAddressData>::from(source);
+                    if let Some(changed) = changed.as_deref_mut() {
+                        changed.empty(addr_type, type_index, &source);
+                    }
+                    updates.push_empty(addr_type, type_index, source);
                 }
             }
         }

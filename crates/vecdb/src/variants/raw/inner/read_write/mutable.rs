@@ -17,10 +17,22 @@ where
     /// Overwrites stored values at their indexes.
     pub(crate) fn write_updates(&self, updated: BTreeMap<usize, T>) -> Result<()> {
         let guard = self.header().begin_write()?;
-        let result = self
-            .region()
-            .write_indexed(updated, Self::SIZE_OF_T, HEADER_OFFSET, S::write_to_slice)
-            .map_err(Into::into);
+        let region = self.region();
+        let result = if self.base.unread_updates {
+            // SAFETY: the importer vouched for its readers (`ImportOptions::with_unread_updates`),
+            // whose one-value reads borrow only that value.
+            unsafe {
+                region.write_indexed_unread(
+                    updated,
+                    Self::SIZE_OF_T,
+                    HEADER_OFFSET,
+                    S::write_to_slice,
+                )
+            }
+        } else {
+            region.write_indexed(updated, Self::SIZE_OF_T, HEADER_OFFSET, S::write_to_slice)
+        }
+        .map_err(Into::into);
         guard.finish(result)
     }
 

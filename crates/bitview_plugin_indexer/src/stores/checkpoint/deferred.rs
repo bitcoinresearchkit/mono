@@ -1,8 +1,9 @@
+use std::{panic::resume_unwind, thread};
+
 use brk_error::Result;
 use brk_store::PendingIngest;
 use brk_types::Height;
 use fjall::Database;
-use rayon::prelude::*;
 
 use super::{PersistedStoresCheckpoint, StoresCheckpoint};
 
@@ -36,9 +37,19 @@ impl DeferredStoresCommit {
             database,
             ingests,
         } = self;
-        let persisted = checkpoint
-            .begin(completed_height)?
-            .persist(|| ingests.into_par_iter().try_for_each(PendingIngest::run));
+        // Each ingestion blocks on file writes: OS threads keep them off the rayon pool, which
+        // the dependents computing beside them join on.
+        let persisted = checkpoint.begin(completed_height)?.persist(|| {
+            thread::scope(|scope| {
+                let ingests = ingests
+                    .into_iter()
+                    .map(|ingest| scope.spawn(move || ingest.run()))
+                    .collect::<Vec<_>>();
+                ingests.into_iter().try_for_each(|ingest| {
+                    ingest.join().unwrap_or_else(|panic| resume_unwind(panic))
+                })
+            })
+        });
         drop(database);
         persisted
     }
