@@ -1159,6 +1159,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tower",
  "tower-http",
  "tower-layer",
  "tracing",
@@ -1246,6 +1247,7 @@ version = "0.12.2"
 dependencies = [
  "axum",
  "brk_logger",
+ "http-body",
  "importmap",
  "include_dir",
  "serde",
