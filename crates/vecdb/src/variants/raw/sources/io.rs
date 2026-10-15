@@ -1,4 +1,5 @@
 use std::{
+    convert::Infallible,
     fs::File,
     io::{Error, ErrorKind, Read, Seek, SeekFrom},
     marker::PhantomData,
@@ -142,7 +143,10 @@ where
         let values = bytes / Self::SIZE_OF_T;
         output.reserve(values);
         if !S::IS_NATIVE_LAYOUT {
-            self.fold((), |(), value| output.push(value));
+            let Ok(()) = self.try_fold((), |(), value| {
+                output.push(value);
+                Ok::<_, Infallible>(())
+            });
             return;
         }
         let old_len = output.len();
@@ -174,28 +178,6 @@ where
         // SAFETY: the reads initialized `values` values: every bit pattern is a valid native-layout
         // value (`ValueStrategy` contract).
         unsafe { output.set_len(old_len + values) };
-    }
-
-    /// Fold all remaining elements — own implementation so LLVM can vectorize the inner loop.
-    #[inline(always)]
-    pub fn fold<B, F: FnMut(B, T) -> B>(mut self, init: B, mut f: F) -> B {
-        let mut accum = init;
-        loop {
-            let ptr = self.buffer.as_ptr();
-            let mut pos = self.buffer_pos;
-            let end = self.buffer_len;
-            while pos + Self::SIZE_OF_T <= end {
-                accum = f(accum, unsafe { S::read_from_ptr(ptr, pos) });
-                pos += Self::SIZE_OF_T;
-            }
-            self.buffer_pos = end;
-
-            if self.cant_read_file() {
-                break;
-            }
-            self.refill_buffer();
-        }
-        accum
     }
 
     /// Fallible fold with early exit on error.

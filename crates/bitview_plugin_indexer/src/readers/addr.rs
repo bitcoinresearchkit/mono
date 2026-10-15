@@ -25,7 +25,7 @@ macro_rules! addr_readers {
         impl AddrsVecs<Rw> {
             pub fn addr_readers(&self) -> AddrReaders {
                 AddrReaders {
-                    $($field: self.$field.bytes.reader().into(),)+
+                    $($field: self.$field.bytes.reader(),)+
                 }
             }
         }
@@ -33,7 +33,7 @@ macro_rules! addr_readers {
         impl AddrsVecs<Ro> {
             pub fn addr_readers(&self) -> AddrReaders {
                 AddrReaders {
-                    $($field: self.$field.bytes.reader().into(),)+
+                    $($field: self.$field.bytes.reader(),)+
                 }
             }
         }

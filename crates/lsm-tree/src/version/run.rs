@@ -72,32 +72,10 @@ impl<T: Ranged> Run<T> {
     /// Returns the sub slice of tables of tables in the run that have
     /// a key range fully contained in the input key range.
     pub fn get_contained<'a>(&'a self, key_range: &KeyRange) -> &'a [T] {
-        fn trim_slice<T, F>(s: &[T], pred: F) -> &[T]
-        where
-            F: Fn(&T) -> bool,
-        {
-            // find first index where pred holds
-            let start = s.iter().position(&pred).unwrap_or(s.len());
-
-            // find last index where pred holds
-            let end = s.iter().rposition(&pred).map_or(start, |i| i + 1);
-
-            #[expect(
-                clippy::expect_used,
-                reason = "start and end are derived from positions in the same slice"
-            )]
-            s.get(start..end).expect("should be in range")
-        }
-
-        let range = key_range.min()..=key_range.max();
-
-        let Some((lo, hi)) = self.range_overlap_indexes::<Slice, _>(&range) else {
-            return &[];
-        };
-
-        self.get(lo..=hi)
-            .map(|slice| trim_slice(slice, |x| key_range.contains_range(x.key_range())))
-            .unwrap_or_default()
+        // Disjoint and sorted: both bounds ascend across the run.
+        let lo = self.partition_point(|x| x.key_range().min() < key_range.min());
+        let hi = self.partition_point(|x| x.key_range().max() <= key_range.max());
+        self.get(lo..hi).unwrap_or_default()
     }
 
     /// Returns the indexes of the interval [min, max] of tables that overlap with a given range.

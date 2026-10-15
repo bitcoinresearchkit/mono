@@ -11,7 +11,6 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     Config, Error, InternalValue, RecordBytes, Result, Slice, Table,
-    compaction::worker::Worker,
     file::{CURRENT_VERSION_FILE, TABLES_FOLDER},
     merge::Merger,
     mvcc_stream::MvccStream,
@@ -188,7 +187,7 @@ impl Tree {
     /// # Errors
     /// Returns an error if records have a different width, or compaction fails.
     pub fn compact_as<K: RecordBytes, V: RecordBytes>(&self) -> Result<()> {
-        Worker::new(self).run::<K, V>()
+        self.run_compaction::<K, V>()
     }
 
     /// Returns the currently published table-layout generation.
@@ -302,10 +301,8 @@ impl Tree {
                     entry.path(),
                     global_seqno,
                     tree_id,
-                    config.cache.clone(),
-                    config.descriptor_table.clone(),
-                    config.filter_block_pinning_policy.at_level(level.into()),
-                    config.index_block_pinning_policy.at_level(level.into()),
+                    level.into(),
+                    config,
                 )?);
             } else {
                 orphaned.push(entry.path());

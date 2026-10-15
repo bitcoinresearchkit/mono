@@ -1,3 +1,5 @@
+use std::mem;
+
 use rawdb::{Database, Region};
 
 use super::Page;
@@ -81,6 +83,8 @@ pub struct Pages {
     len: usize,
     /// Index of the first changed metadata block.
     change_at: Option<usize>,
+    /// Whether the last page's record changed in place.
+    last_grown: bool,
 }
 
 impl Pages {
@@ -166,6 +170,7 @@ impl Pages {
             blocks,
             len,
             change_at: None,
+            last_grown: false,
         };
         if raw_page.is_some_and(|page| page + 1 != len)
             || this
@@ -187,8 +192,21 @@ impl Pages {
 
     pub fn flush(&mut self) -> Result<()> {
         let Some(change_at) = self.change_at else {
+            if mem::take(&mut self.last_grown) {
+                // The last record ends the region: rewrite just its eight bytes.
+                let page_index = self.len - 1;
+                let block = page_index / PAGES_PER_BLOCK;
+                let local = page_index % PAGES_PER_BLOCK;
+                let record = self.blocks[block].records[local];
+                let mut bytes = [0; RECORD_BYTES];
+                bytes[..4].copy_from_slice(&record.span.to_bytes());
+                bytes[4..].copy_from_slice(&record.body_and_flags.to_bytes());
+                let at = block * BLOCK_BYTES + BLOCK_BASE_BYTES + local * RECORD_BYTES;
+                self.region.write_at(&bytes, at)?;
+            }
             return Ok(());
         };
+        self.last_grown = false;
 
         let at = change_at * BLOCK_BYTES;
         let mut bytes =
@@ -317,6 +335,17 @@ impl Pages {
         self.blocks[block_index].records[local_index] = record;
         self.len += 1;
         self.set_changed_at(block_index);
+        Ok(())
+    }
+
+    /// Grows the last page, a raw one, to `body_bytes` after an append in place.
+    pub fn grow_last_raw(&mut self, page_index: usize, body_bytes: u32) -> Result<()> {
+        debug_assert_eq!(page_index + 1, self.len);
+        let record =
+            &mut self.blocks[page_index / PAGES_PER_BLOCK].records[page_index % PAGES_PER_BLOCK];
+        debug_assert!(record.is_raw() && body_bytes >= record.body());
+        *record = PageRecord::new(body_bytes, body_bytes, true, true)?;
+        self.last_grown = true;
         Ok(())
     }
 

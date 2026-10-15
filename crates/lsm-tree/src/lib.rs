@@ -72,7 +72,6 @@ mod tests;
 pub mod config;
 
 mod descriptor_table;
-mod file_accessor;
 
 mod double_ended_peekable;
 mod error;
@@ -97,7 +96,6 @@ mod table;
 
 mod seqno;
 mod slice;
-mod slice_windows;
 
 mod tree;
 

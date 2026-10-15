@@ -1,5 +1,5 @@
 use std::sync::{
-    Arc, Mutex,
+    Mutex,
     atomic::{AtomicU32, Ordering},
 };
 
@@ -20,11 +20,11 @@ pub struct Inner {
     /// Monotonic ingestion sequence number source.
     pub seqno: SequenceNumberCounter,
     /// Atomically published table layout.
-    pub versions: Arc<Set>,
+    pub versions: Set,
     /// Tables currently owned by background compactions.
-    pub compaction_state: Arc<Mutex<CompactionState>>,
+    pub compaction_state: Mutex<CompactionState>,
     /// Immutable tree configuration.
-    pub config: Arc<Config>,
+    pub config: Config,
 }
 
 impl Inner {
@@ -37,9 +37,9 @@ impl Inner {
             id: Self::next_tree_id(),
             table_id_counter: SequenceNumberCounter::default(),
             seqno: SequenceNumberCounter::default(),
-            versions: Arc::new(Set::new(version)),
-            compaction_state: Arc::new(Mutex::new(CompactionState::default())),
-            config: Arc::new(config),
+            versions: Set::new(version),
+            compaction_state: Mutex::new(CompactionState::default()),
+            config,
         })
     }
 
@@ -61,9 +61,9 @@ impl Inner {
             id: tree_id,
             table_id_counter: SequenceNumberCounter::new(next_table_id),
             seqno: SequenceNumberCounter::new(next_seqno),
-            versions: Arc::new(Set::new(version)),
-            compaction_state: Arc::new(Mutex::new(CompactionState::default())),
-            config: Arc::new(config),
+            versions: Set::new(version),
+            compaction_state: Mutex::new(CompactionState::default()),
+            config,
         }
     }
 

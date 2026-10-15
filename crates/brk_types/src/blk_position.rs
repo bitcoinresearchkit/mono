@@ -1,15 +1,11 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    ops::Add,
-};
+use std::ops::Add;
 
-use itoa::Buffer;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// Position within a .blk file, encoding file index and byte offset
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -38,19 +34,4 @@ impl Add<u32> for BlkPosition {
     }
 }
 
-impl Display for BlkPosition {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for BlkPosition {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(BlkPosition);

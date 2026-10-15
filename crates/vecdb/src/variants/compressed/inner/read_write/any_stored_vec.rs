@@ -29,8 +29,7 @@ where
         while page_offset < full_pages {
             let page_index = starting_page_index + page_offset;
             let block_remaining = PAGES_PER_BLOCK - page_index % PAGES_PER_BLOCK;
-            let chunk_pages = self
-                .pages_per_chunk
+            let chunk_pages = Self::PAGES_PER_CHUNK
                 .min(block_remaining)
                 .min(full_pages - page_offset);
             let from = page_offset * Self::PER_PAGE;
@@ -64,9 +63,9 @@ where
 
         let raw_from = full_pages * Self::PER_PAGE;
         if raw_from < values.len() {
-            let raw = S::values_to_bytes(&values[raw_from..]);
+            let raw = S::values_bytes(&values[raw_from..]);
             let raw_len = u32::try_from(raw.len()).map_err(|_| Error::Overflow)?;
-            bytes.extend(raw);
+            bytes.extend_from_slice(&raw);
             layouts.push((Some(0), raw_len, true));
         }
 
@@ -135,22 +134,24 @@ where
             && partial_len + pushed_len < Self::PER_PAGE
         {
             let taken = mem::take(self.base.mut_pushed());
-            let raw = S::values_to_bytes(&taken);
+            let raw = S::values_bytes(&taken);
             let append_at = page.end() as usize;
             let total_bytes = page
                 .bytes
                 .checked_add(u32::try_from(raw.len()).map_err(|_| Error::Overflow)?)
                 .ok_or(Error::Overflow)?;
-            return self.with_cache_update(stored_len, |this| {
+            let result = self.with_cache_update(stored_len, |this| {
                 this.publish(append_at, &raw, stored_len + pushed_len, |pages| {
-                    pages.truncate(starting_page_index);
-                    pages.push_raw(starting_page_index, total_bytes)
+                    pages.grow_last_raw(starting_page_index, total_bytes)
                 })?;
                 if let Some(cache) = C::cache(&this.cache) {
                     cache.extend_tail(stored_len, &taken);
                 }
                 Ok(true)
             });
+            drop(raw);
+            self.base.recycle_pushed(taken);
+            return result;
         }
 
         // Rebuild only the bounded chunk that contains the truncation point.

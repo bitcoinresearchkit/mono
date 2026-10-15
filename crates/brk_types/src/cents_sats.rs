@@ -1,9 +1,4 @@
-#[cfg(feature = "storage")]
-use itoa::Buffer;
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult},
-    ops::{Add, AddAssign, Sub, SubAssign},
-};
+use derive_more::{Add, AddAssign, From, Into, Sub, SubAssign};
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
@@ -15,11 +10,28 @@ use super::{Cents, Sats};
 use vecdb::Result;
 
 #[cfg(feature = "storage")]
-use vecdb::{Bytes, Formattable};
+use vecdb::Bytes;
 
 /// Cents × Sats (u128) - price in cents multiplied by amount in sats.
 /// Uses u128 because large amounts at any price can overflow u64.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    Add,
+    AddAssign,
+    Sub,
+    SubAssign,
+    From,
+    Into,
+)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct CentsSats(u128);
 
@@ -70,58 +82,7 @@ impl CentsSats {
     }
 }
 
-impl Add for CentsSats {
-    type Output = Self;
-    #[inline(always)]
-    fn add(self, rhs: Self) -> Self {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl AddAssign for CentsSats {
-    #[inline(always)]
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-    }
-}
-
-impl Sub for CentsSats {
-    type Output = Self;
-    #[inline(always)]
-    fn sub(self, rhs: Self) -> Self {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl SubAssign for CentsSats {
-    #[inline(always)]
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 -= rhs.0;
-    }
-}
-
-impl From<u128> for CentsSats {
-    #[inline(always)]
-    fn from(value: u128) -> Self {
-        Self(value)
-    }
-}
-
-impl From<CentsSats> for u128 {
-    #[inline(always)]
-    fn from(value: CentsSats) -> Self {
-        value.0
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for CentsSats {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(CentsSats);
 
 #[cfg(feature = "storage")]
 // SAFETY: not native layout.
@@ -134,11 +95,5 @@ unsafe impl Bytes for CentsSats {
 
     fn from_bytes(bytes: &[u8]) -> Result<Self> {
         Ok(Self(u128::from_bytes(bytes)?))
-    }
-}
-
-impl Display for CentsSats {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.0)
     }
 }

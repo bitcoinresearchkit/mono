@@ -3,14 +3,10 @@ use std::{
     ops::Add,
 };
 
-use brk_types::{CheckedSub, StoreValue};
+use brk_types::CheckedSub;
 use derive_more::{Deref, DerefMut};
-use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-#[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
 
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
@@ -110,48 +106,15 @@ impl Add<TypeIndex> for TypeIndex {
     }
 }
 
-impl StoreValue for TypeIndex {
-    type Bytes = [u8; 4];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0.to_be_bytes()
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(u32::from_be_bytes(bytes))
-    }
-}
+brk_types::impl_store_value!(TypeIndex, u32);
 
 impl CheckedSub<TypeIndex> for TypeIndex {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         self.0.checked_sub(rhs.0).map(Self)
     }
 }
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub<TypeIndex> for TypeIndex {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
 
-impl Display for TypeIndex {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for TypeIndex {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+brk_types::impl_int_format!(TypeIndex);
 
 /// A [`TypeIndex`] newtype for one script type's entities, with its `Index` name, aliases and
 /// initial vec capacity.
@@ -240,13 +203,6 @@ macro_rules! typed_index {
             }
         }
 
-        #[cfg(feature = "storage")]
-        impl VecdbCheckedSub for $name {
-            #[inline]
-            fn checked_sub(self, rhs: Self) -> Option<Self> {
-                CheckedSub::checked_sub(self, rhs)
-            }
-        }
 
         impl $name {
             pub(crate) fn index_name() -> &'static str {
@@ -261,9 +217,6 @@ macro_rules! typed_index {
         impl PrintableIndex for $name {
             fn to_string() -> &'static str {
                 Self::index_name()
-            }
-            fn to_possible_strings() -> &'static [&'static str] {
-                Self::index_aliases()
             }
         }
 

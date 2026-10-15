@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use zstd::{bulk::Decompressor, encode_all};
 
 use super::{super::inner::CompressionStrategy, value::ZstdVecValue};
-use crate::{EncodedChunk, Result};
+use crate::{EncodedChunk, Result, ValueStrategy};
 
 /// Zstd compression level (1-22). Level 3 provides a good balance
 /// between compression ratio and speed for most workloads.
@@ -47,8 +47,8 @@ where
     const MAX_UNCOMPRESSED_CHUNK_SIZE: usize = 8 * 1024;
 
     fn compress_chunk(values: &[T], _values_per_page: usize) -> Result<EncodedChunk> {
-        let bytes = Self::values_to_bytes(values);
-        EncodedChunk::single_page(encode_all(bytes.as_slice(), ZSTD_COMPRESSION_LEVEL)?)
+        let bytes = Self::values_bytes(values);
+        EncodedChunk::single_page(encode_all(&*bytes, ZSTD_COMPRESSION_LEVEL)?)
     }
 
     fn reset_decoder(_decoder: &mut Self::Decoder, _header: &[u8]) -> Result<()> {

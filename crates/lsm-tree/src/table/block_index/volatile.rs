@@ -4,62 +4,64 @@
 
 use super::KeyedBlockHandle;
 use crate::{
-    Cache, CompressionType, GlobalTableId, Result, Slice,
-    file_accessor::FileAccessor,
+    CompressionType, Result, Slice,
     table::{
         BlockHandle, IndexBlock,
         block::BlockType,
         block_index::{BlockIndexIter, iter::OwnedIndexBlockIter},
-        util::load_block,
+        util::BlockSource,
     },
 };
-use std::{path::PathBuf, sync::Arc};
 
 /// Index that translates item keys to data block handles
 ///
 /// The index is loaded on demand.
+#[derive(Clone)]
 pub struct VolatileBlockIndex {
-    pub table_id: GlobalTableId,
-    pub path: Arc<PathBuf>,
-    pub file_accessor: FileAccessor,
-    pub cache: Arc<Cache>,
+    pub source: BlockSource,
     pub handle: BlockHandle,
     pub compression: CompressionType,
 }
 
 impl VolatileBlockIndex {
+    pub fn load(&self) -> Result<IndexBlock> {
+        self.source
+            .load(&self.handle, BlockType::Index, self.compression)
+            .map(IndexBlock::new)
+    }
+
     pub fn iter(&self) -> Iter {
-        Iter::new(self)
+        Iter {
+            index: self.clone(),
+            inner: None,
+            lo: None,
+            hi: None,
+        }
     }
 }
 
 pub struct Iter {
+    index: VolatileBlockIndex,
     inner: Option<OwnedIndexBlockIter>,
-    table_id: GlobalTableId,
-    path: Arc<PathBuf>,
-    file_accessor: FileAccessor,
-    cache: Arc<Cache>,
-    handle: BlockHandle,
-    compression: CompressionType,
-
     lo: Option<(Slice, u64)>,
     hi: Option<(Slice, u64)>,
 }
 
 impl Iter {
-    fn new(index: &VolatileBlockIndex) -> Self {
-        Self {
-            inner: None,
-            table_id: index.table_id,
-            path: index.path.clone(),
-            file_accessor: index.file_accessor.clone(),
-            cache: index.cache.clone(),
-            handle: index.handle,
-            compression: index.compression,
-
-            lo: None,
-            hi: None,
+    /// The bounded index block iterator, loaded on first use; `None` if no handle is in bounds.
+    fn inner(&mut self) -> Option<Result<&mut OwnedIndexBlockIter>> {
+        if self.inner.is_none() {
+            let block = match self.index.load() {
+                Ok(block) => block,
+                Err(e) => return Some(Err(e)),
+            };
+            self.inner = Some(OwnedIndexBlockIter::bounded(
+                block,
+                self.lo.as_ref(),
+                self.hi.as_ref(),
+            )?);
         }
+        self.inner.as_mut().map(Ok)
     }
 }
 
@@ -79,76 +81,14 @@ impl Iterator for Iter {
     type Item = Result<KeyedBlockHandle>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(inner) = &mut self.inner {
-            inner.next().map(Ok)
-        } else {
-            let block = fail_iter!(load_block(
-                self.table_id,
-                &self.path,
-                &self.file_accessor,
-                &self.cache,
-                &self.handle,
-                BlockType::Index,
-                self.compression,
-            ));
-            let index_block = IndexBlock::new(block);
-
-            let mut iter = OwnedIndexBlockIter::new(index_block, IndexBlock::iter);
-
-            if let Some((lo_key, lo_seqno)) = &self.lo
-                && !iter.seek_lower(lo_key, *lo_seqno)
-            {
-                return None;
-            }
-            if let Some((hi_key, hi_seqno)) = &self.hi
-                && !iter.seek_upper(hi_key, *hi_seqno)
-            {
-                return None;
-            }
-
-            let next_item = iter.next().map(Ok);
-
-            self.inner = Some(iter);
-
-            next_item
-        }
+        self.inner()?.map(Iterator::next).transpose()
     }
 }
 
 impl DoubleEndedIterator for Iter {
     fn next_back(&mut self) -> Option<Self::Item> {
-        if let Some(inner) = &mut self.inner {
-            inner.next_back().map(Ok)
-        } else {
-            let block = fail_iter!(load_block(
-                self.table_id,
-                &self.path,
-                &self.file_accessor,
-                &self.cache,
-                &self.handle,
-                BlockType::Index,
-                self.compression,
-            ));
-            let index_block = IndexBlock::new(block);
-
-            let mut iter = OwnedIndexBlockIter::new(index_block, IndexBlock::iter);
-
-            if let Some((lo_key, lo_seqno)) = &self.lo
-                && !iter.seek_lower(lo_key, *lo_seqno)
-            {
-                return None;
-            }
-            if let Some((hi_key, hi_seqno)) = &self.hi
-                && !iter.seek_upper(hi_key, *hi_seqno)
-            {
-                return None;
-            }
-
-            let next_item = iter.next_back().map(Ok);
-
-            self.inner = Some(iter);
-
-            next_item
-        }
+        self.inner()?
+            .map(DoubleEndedIterator::next_back)
+            .transpose()
     }
 }

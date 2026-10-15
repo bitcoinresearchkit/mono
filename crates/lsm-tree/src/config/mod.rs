@@ -10,14 +10,65 @@ use std::{
 use crate::{Cache, DescriptorTable, Result, Tree, path::absolute_path};
 
 mod filter;
-mod partitioning;
-mod pinning;
-mod restart_interval;
 
 pub use filter::{BloomConstructionPolicy, FilterPolicy, FilterPolicyEntry};
-pub use partitioning::PartitioningPolicy;
-pub use pinning::PinningPolicy;
-pub use restart_interval::RestartIntervalPolicy;
+
+/// A per-level policy: levels deeper than configured use the last value.
+macro_rules! level_policy {
+    ($(#[$doc:meta])* $name:ident($value:ty), $what:literal) => {
+        $(#[$doc])*
+        #[derive(Debug, Clone)]
+        pub struct $name(Vec<$value>);
+
+        impl $name {
+            /// Uses the last configured value for deeper levels.
+            #[must_use]
+            #[expect(
+                clippy::indexing_slicing,
+                reason = "constructors reject empty policies; the index is clamped"
+            )]
+            pub(crate) fn at_level(&self, level: usize) -> $value {
+                self.0[level.min(self.0.len() - 1)]
+            }
+
+            /// Uses the same value in every level.
+            #[must_use]
+            pub fn all(value: $value) -> Self {
+                Self(vec![value])
+            }
+
+            /// Constructs a per-level policy.
+            ///
+            /// # Panics
+            ///
+            /// Panics if the policy is empty or contains more than 255 elements.
+            #[must_use]
+            pub fn new(policy: impl Into<Vec<$value>>) -> Self {
+                let policy = policy.into();
+                assert!(!policy.is_empty(), concat!($what, " policy may not be empty"));
+                assert!(policy.len() <= 255, concat!($what, " policy is too large"));
+                Self(policy)
+            }
+        }
+    };
+}
+pub(crate) use level_policy;
+
+level_policy!(
+    /// Whether to pin blocks, per level.
+    PinningPolicy(bool),
+    "pinning"
+);
+level_policy!(
+    /// Restart interval inside data blocks, per level.
+    RestartIntervalPolicy(u8),
+    "restart-interval"
+);
+level_policy!(
+    /// Whether to partition index and filter blocks, per level.
+    PartitioningPolicy(bool),
+    "partitioning"
+);
 
 /// Tree configuration builder
 pub struct Config {
@@ -31,7 +82,7 @@ pub struct Config {
 
     /// Descriptor table to use
     #[doc(hidden)]
-    pub(crate) descriptor_table: Option<Arc<DescriptorTable>>,
+    pub(crate) descriptor_table: Arc<DescriptorTable>,
 
     /// Restart interval inside data blocks
     pub(crate) data_block_restart_interval_policy: RestartIntervalPolicy,
@@ -61,7 +112,7 @@ impl Config {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         Self {
             path: absolute_path(path.as_ref()),
-            descriptor_table: Some(Arc::new(DescriptorTable::new(256))),
+            descriptor_table: Arc::new(DescriptorTable::new(256)),
             cache: Arc::new(Cache::with_capacity_bytes(16 * 1_024 * 1_024)),
             data_block_restart_interval_policy: RestartIntervalPolicy::all(16),
             index_block_pinning_policy: PinningPolicy::new([true, true, false]),
@@ -91,7 +142,7 @@ impl Config {
     ///
     /// Can be shared across trees.
     #[must_use]
-    pub fn use_descriptor_table(mut self, descriptor_table: Option<Arc<DescriptorTable>>) -> Self {
+    pub fn use_descriptor_table(mut self, descriptor_table: Arc<DescriptorTable>) -> Self {
         self.descriptor_table = descriptor_table;
         self
     }

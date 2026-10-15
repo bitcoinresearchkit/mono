@@ -1,4 +1,4 @@
-use brk_types::{BlockHash, StoreValue};
+use brk_types::BlockHash;
 use derive_more::Deref;
 
 /// First-8-bytes prefix of a block hash, packed as a `u64`. Both
@@ -24,19 +24,7 @@ impl From<&BlockHash> for BlockHashPrefix {
     }
 }
 
-impl StoreValue for BlockHashPrefix {
-    type Bytes = [u8; 8];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0.to_be_bytes()
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(u64::from_be_bytes(bytes))
-    }
-}
+brk_types::impl_store_value!(BlockHashPrefix, u64);
 
 impl From<u64> for BlockHashPrefix {
     #[inline]

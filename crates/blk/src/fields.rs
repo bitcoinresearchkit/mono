@@ -159,7 +159,7 @@ impl<'a> Ctx<'a> {
                 let (size, weight) = self.size_and_weight();
                 scalar(json!((weight - size) / 3))
             }
-            "subsidy" => scalar(json!(subsidy_sats(*b.height()))),
+            "subsidy" => scalar(json!(u64::from(b.height().subsidy()))),
             "header_hex" => scalar(json!(serialize_hex(&b.header))),
             "hex" => scalar(json!(serialize_hex(raw))),
             "coinbase" => scalar(json!(b.coinbase_tag().to_string())),
@@ -428,13 +428,4 @@ fn tx_is_rbf(tx: &Transaction) -> bool {
 
 fn tx_total_out(tx: &Transaction) -> u64 {
     tx.output.iter().map(|o| o.value.to_sat()).sum()
-}
-
-fn subsidy_sats(height: u32) -> u64 {
-    let halvings = height / 210_000;
-    if halvings >= 64 {
-        0
-    } else {
-        (50 * 100_000_000u64) >> halvings
-    }
 }

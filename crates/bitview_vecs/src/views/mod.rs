@@ -1,4 +1,3 @@
-mod batches;
 mod lazy_indexed_vec;
 mod lazy_lookback_vec;
 mod lazy_previous_delta_vec;

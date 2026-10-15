@@ -2,10 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::{
-    fs::File,
-    io::{BufWriter, Seek, Write},
-};
+use std::{fs::File, io::BufWriter};
 
 use log::trace;
 use sfa::Writer;
@@ -15,10 +12,10 @@ use crate::{
     InternalValue, RecordBytes, Result, Slice,
     config::BloomConstructionPolicy,
     table::{
-        Block, BlockHandle, BlockOffset, IndexBlock, KeyedBlockHandle,
+        Block, BlockHandle, BlockOffset, KeyedBlockHandle,
         block::{BlockType, Header as BlockHeader},
         filter::standard_bloom::Builder,
-        writer::META_PARTITION_SIZE,
+        writer::{META_PARTITION_SIZE, index::write_partitioned},
     },
 };
 
@@ -87,38 +84,6 @@ impl PartitionedFilterWriter {
 
         Ok(())
     }
-
-    fn write_top_level_index(
-        &mut self,
-        file_writer: &mut Writer<BufWriter<File>>,
-        index_base_offset: BlockOffset,
-    ) -> Result<()> {
-        file_writer.start("filter_tli")?;
-
-        for item in &mut self.tli_handles {
-            item.shift(index_base_offset);
-        }
-
-        let mut bytes = vec![];
-        IndexBlock::encode_into(&mut bytes, &self.tli_handles)?;
-
-        let header = Block::write_into(file_writer, &bytes, BlockType::Index)?;
-
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks never even approach u32 size"
-        )]
-        let bytes_written = BlockHeader::serialized_len() as u32 + header.data_length;
-
-        debug_assert!(bytes_written > 0, "Top level index should never be empty");
-
-        trace!(
-            "Written filter top level index, with {} pointers ({bytes_written} bytes) at {index_base_offset:#X?}",
-            self.tli_handles.len(),
-        );
-
-        Ok(())
-    }
 }
 
 impl<K: RecordBytes, V: RecordBytes> FilterWriter<K, V> for PartitionedFilterWriter {
@@ -156,14 +121,12 @@ impl<K: RecordBytes, V: RecordBytes> FilterWriter<K, V> for PartitionedFilterWri
             return Ok(());
         }
 
-        let index_base_offset = BlockOffset(file_writer.get_mut().stream_position()?);
-
-        file_writer.start("filter")?;
-        file_writer.write_all(&self.final_filter_buffer)?;
-        trace!("Concatted filter partitions onto blocks file");
-
-        self.write_top_level_index(file_writer, index_base_offset)?;
-
-        Ok(())
+        write_partitioned(
+            file_writer,
+            "filter",
+            &self.final_filter_buffer,
+            "filter_tli",
+            &mut self.tli_handles,
+        )
     }
 }

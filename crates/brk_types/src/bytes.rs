@@ -1,14 +1,3 @@
-mod u8x2;
-pub use u8x2::*;
-mod u8x20;
-pub use u8x20::*;
-mod u8x32;
-pub use u8x32::*;
-mod u8x33;
-pub use u8x33::*;
-mod u8x65;
-pub use u8x65::*;
-
 use std::fmt;
 
 const HEX: &[u8; 16] = b"0123456789abcdef";

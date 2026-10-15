@@ -25,19 +25,7 @@ impl UtxoKey {
     }
 }
 
-impl StoreValue for UtxoKey {
-    type Bytes = [u8; 10];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(bytes)
-    }
-}
+brk_types::impl_store_value!(UtxoKey, [u8; 10]);
 
 /// A large value's marker in the entry: its value is in the overflow store.
 const LARGE: u32 = u32::MAX;
@@ -104,16 +92,4 @@ impl Utxo {
     }
 }
 
-impl StoreValue for Utxo {
-    type Bytes = [u8; 18];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(bytes)
-    }
-}
+brk_types::impl_store_value!(Utxo, [u8; 18]);

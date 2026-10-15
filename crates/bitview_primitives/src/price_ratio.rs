@@ -12,9 +12,6 @@ use serde::{Deserialize, Serialize};
 use crate::{PartsPerMillion64, unlikely};
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
 /// A price divided by a reference price, in parts per million (1,000,000 represents 1).
@@ -90,13 +87,6 @@ impl CheckedSub for PriceRatio {
         } else {
             self.0.checked_sub(rhs.0).map(Self)
         }
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for PriceRatio {
-    #[inline]
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
     }
 }
 

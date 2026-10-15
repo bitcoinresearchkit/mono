@@ -1,4 +1,4 @@
-use crate::{BlockDiff, Creations, Diffs, Spends, State, util::invalid};
+use crate::{BlockDiff, Creations, Diffs, Spends, State};
 use std::io::Result;
 
 /// Sequential replay over one validated prefix, with bounded read windows.
@@ -9,21 +9,14 @@ pub struct Cursor<'a> {
 }
 
 impl<'a> Cursor<'a> {
+    /// `state` must continue the producers' chain: its blocks are not read back.
     pub(crate) fn new(
         state: &'a mut State,
         end: usize,
         spends: &'a Spends,
         creations: &'a Creations,
     ) -> Result<Self> {
-        let hash = if state.is_empty() {
-            None
-        } else {
-            let last = state.len() - 1;
-            if state.hash() != spends.hash(last)? || state.hash() != creations.hash(last)? {
-                return Err(invalid("replay state does not match producer chain"));
-            }
-            Some(state.hash())
-        };
+        let hash = (!state.is_empty()).then(|| state.hash());
         let diffs = Diffs::new(state.len(), hash, end, spends, creations)?;
         Ok(Self { state, diffs })
     }

@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf};
 
 use log::debug;
 
-use crate::{AnyStoredVec, Bytes, Error, Result, Stamp, VecIndex, VecValue, Version, unlikely};
+use crate::{AnyStoredVec, Bytes, Error, Result, Stamp, VecIndex, VecValue, Version};
 
 /// Maximum in-memory cache size before forcing a flush (1 GiB).
 /// Prevents unbounded memory growth when pushing many values without flushing.
@@ -11,7 +11,7 @@ pub const MAX_CACHE_SIZE: usize = 1024 * 1024 * 1024;
 /// Typed interface for stored vectors (push, truncate, rollback).
 ///
 /// Provides the core write operations for all stored vec types.
-/// For reading, use [`ReadableVec`] (`collect_range`, `fold_range`, etc.).
+/// For reading, use [`ReadableVec`] (`collect_range`, `fold_range_at`, etc.).
 /// Raw vecs (`BytesVec`, `ZeroCopyVec`) additionally provide
 /// `VecReader` for O(1) random access.
 ///
@@ -117,64 +117,15 @@ where
         self.pushed().len()
     }
 
-    /// Returns true if there are no pushed (uncommitted) values.
-    #[inline]
-    fn is_pushed_empty(&self) -> bool {
-        self.pushed_len() == 0
-    }
-
-    /// Returns true if the typed index is within bounds.
-    #[inline]
-    fn has(&self, index: I) -> bool {
-        self.has_at(index.to_usize())
-    }
-
-    /// Returns true if the usize index is within bounds.
-    #[inline]
-    fn has_at(&self, index: usize) -> bool {
-        index < self.len()
-    }
-
-    /// Pushes a value at the given index, erroring if index != current length.
-    /// Use this when you expect to always append in order.
-    #[inline]
-    fn checked_push(&mut self, index: I, value: T) -> Result<()> {
-        self.checked_push_at(index.to_usize(), value)
-    }
-
-    /// Pushes a value at the given usize index, erroring if index != current length.
-    /// Use this when you expect to always append in order.
-    #[inline]
-    fn checked_push_at(&mut self, index: usize, value: T) -> Result<()> {
-        let len = self.len();
-
-        if unlikely(index != len) {
-            return Err(Error::UnexpectedIndex {
-                expected: len,
-                got: index,
-                name: self.name().to_string(),
-            });
-        }
-
-        self.push(value);
-        Ok(())
-    }
-
     /// Pushes a value and checks its expected index in debug builds.
     #[inline]
-    fn debug_checked_push(&mut self, _index: I, value: T) {
-        #[cfg(debug_assertions)]
-        {
-            let index = _index.to_usize();
-            let len = self.len();
-            assert_eq!(
-                index,
-                len,
-                "unexpected index for {}: expected {len}, got {index}",
-                self.name(),
-            );
-        }
-
+    fn debug_checked_push(&mut self, index: I, value: T) {
+        debug_assert_eq!(
+            index.to_usize(),
+            self.len(),
+            "unexpected index for {}",
+            self.name(),
+        );
         self.push(value);
     }
 
@@ -245,17 +196,5 @@ where
         }
 
         Ok(())
-    }
-
-    /// Validates computed version and truncates to `max_from` in one call.
-    ///
-    /// Equivalent to:
-    /// ```ignore
-    /// vec.validate_computed_version_or_reset(dep_version)?;
-    /// vec.truncate_if_needed(max_from)?;
-    /// ```
-    fn validate_and_truncate(&mut self, dep_version: Version, max_from: I) -> Result<()> {
-        self.validate_computed_version_or_reset(dep_version)?;
-        self.truncate_if_needed(max_from)
     }
 }

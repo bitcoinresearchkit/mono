@@ -13,8 +13,8 @@ pub struct UTXOStates {
 impl Default for UTXOStates {
     fn default() -> Self {
         Self {
-            amount_range: AmountRange::new(|_| UTXOCohortState::new(())),
-            type_: SpendableType::new(|_| UTXOCohortState::new(())),
+            amount_range: AmountRange::from_fn(|_| UTXOCohortState::new(())),
+            type_: SpendableType::from_fn(|_| UTXOCohortState::new(())),
         }
     }
 }

@@ -16,7 +16,7 @@ pub struct AddrStates {
 impl Default for AddrStates {
     fn default() -> Self {
         Self {
-            amount_range: AmountRange::new(|_| AddrCohortState::new()),
+            amount_range: AmountRange::from_fn(|_| AddrCohortState::new()),
             metrics: AddrMetricsState::default(),
         }
     }

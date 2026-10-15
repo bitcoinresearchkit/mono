@@ -5,10 +5,8 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
     AnyExportableVec, AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, TypedVec, VecIndex, VecValue, Version, short_type_name,
+    ReadableVec, TypedVec, VecIndex, VecValue, Version, read_batches, short_type_name,
 };
-
-use super::batches::batches;
 
 /// Lazily transforms one metric source with aligned index metadata.
 /// Bounded metadata reads preserve its owner's cold-cache admission policy.
@@ -62,7 +60,7 @@ where
         mut each: impl FnMut(usize, &[S], &[M]) -> Result<(), E>,
     ) -> Result<(), E> {
         let mut metadata = Vec::new();
-        for (at, end) in batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
+        for (at, end) in read_batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
             metadata.clear();
             self.metadata.read_into_at(at, end, &mut metadata);
             let mut result = Ok(());

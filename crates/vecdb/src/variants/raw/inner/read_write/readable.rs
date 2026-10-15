@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::result::Result;
 
 use super::{super::RawStrategy, ReadWriteRawVec};
@@ -136,37 +135,6 @@ where
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
         self.fold_range_at(from, to, (), |(), v| f(v));
-    }
-
-    #[inline]
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, mut f: F) -> B
-    where
-        Self: Sized,
-    {
-        if C::cache(&self.cache).is_some() {
-            let Ok(acc) = self.try_fold_range_at(from, to, init, |acc, value| {
-                Ok::<_, Infallible>(f(acc, value))
-            });
-            return acc;
-        }
-        let len = self.base.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return init;
-        }
-
-        let stored_len = self.stored_len();
-
-        if to <= stored_len {
-            return self.fold_source(from, to, init, f);
-        }
-
-        let mut acc = init;
-        if from < stored_len {
-            acc = self.fold_source(from, stored_len, acc, &mut f);
-        }
-        self.base.fold_pushed(from, to, acc, f)
     }
 
     #[inline]

@@ -17,7 +17,7 @@
 /// - `TypedVec`
 /// - `AnyStoredVec`
 /// - `WritableVec`
-/// - `ReadableVec` (delegates `for_each_range_dyn` / `fold_range` to inner)
+/// - `ReadableVec` (delegates `for_each_range_dyn_at` / `fold_range_at` to inner)
 macro_rules! impl_vec_wrapper {
     ($wrapper:ident, $inner:ty, $value_trait:ident, $format:expr, $read_only:ty) => {
         impl_vec_wrapper!(
@@ -329,20 +329,6 @@ macro_rules! impl_vec_wrapper {
             }
 
             #[inline]
-            fn fold_range_at<B, F: FnMut(B, T) -> B>(
-                &self,
-                from: usize,
-                to: usize,
-                init: B,
-                f: F,
-            ) -> B
-            where
-                Self: Sized,
-            {
-                $crate::ReadableVec::<I, T>::fold_range_at(&self.0, from, to, init, f)
-            }
-
-            #[inline]
             fn try_fold_range_at<B, E, F: FnMut(B, T) -> ::std::result::Result<B, E>>(
                 &self,
                 from: usize,
@@ -368,7 +354,7 @@ macro_rules! impl_vec_wrapper {
     (@deref_mut no, $wrapper:ident, $inner:ty) => {};
 }
 macro_rules! impl_mutable_raw_vec {
-    ($vec:ident, $value:ident, $strategy:ident, $reader:ty) => {
+    ($vec:ident, $value:ident, $strategy:ident) => {
         const _: () = {
             use crate::variants::mutable::raw::MutableRawVec;
             use crate::*;
@@ -378,7 +364,7 @@ macro_rules! impl_mutable_raw_vec {
                 I: VecIndex,
                 T: $value,
             {
-                type Reader = $reader;
+                type Reader = VecReader<I, T, $strategy<T>>;
 
                 fn import_strict_with(options: ImportOptions) -> Result<Self> {
                     Ok(Self(ReadWriteRawVec::import_strict_with(
@@ -389,7 +375,7 @@ macro_rules! impl_mutable_raw_vec {
 
                 #[inline]
                 fn reader(&self) -> Self::Reader {
-                    self.0.reader().into()
+                    self.0.reader()
                 }
 
                 #[inline(always)]

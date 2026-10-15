@@ -1,5 +1,5 @@
 use crate::{
-    Format, ReadOnlyRawVec, VecIndex, VecValue,
+    Format, ReadOnlyRawVec, VecValue,
     cache::{CachePolicy, NoCache},
 };
 
@@ -43,13 +43,6 @@ pub struct ZeroCopyVec<I, T: VecValue, C: CachePolicy = NoCache>(
     ReadWriteRawVec<I, T, ZeroCopyStrategy<T>, C>,
 );
 
-impl<I, T, C: CachePolicy> ZeroCopyVec<I, T, C>
-where
-    I: VecIndex,
-    T: ZeroCopyVecValue,
-{
-}
-
 impl_vec_wrapper!(
     ZeroCopyVec,
     ReadWriteRawVec<I, T, ZeroCopyStrategy<T>, C>,
@@ -59,4 +52,4 @@ impl_vec_wrapper!(
     no_deref_mut
 );
 
-impl_mutable_raw_vec!(ZeroCopyVec, ZeroCopyVecValue, ZeroCopyStrategy, VecReader<I, T, ZeroCopyStrategy<T>>);
+impl_mutable_raw_vec!(ZeroCopyVec, ZeroCopyVecValue, ZeroCopyStrategy);

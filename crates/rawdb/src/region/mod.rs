@@ -174,7 +174,7 @@ impl Region {
         let mut meta = self.0.meta.write();
         meta.set_start(new_start);
         meta.set_reserved(capacity);
-        self.0.tail_needs_punch.store(true, Ordering::Relaxed);
+        self.mark_tail_punch(db);
         drop(meta);
         drop(layout);
         if !in_place {
@@ -277,7 +277,7 @@ impl Region {
         }
         if from != meta.byte_len() {
             meta.set_len(from);
-            self.0.tail_needs_punch.store(true, Ordering::Relaxed);
+            self.mark_tail_punch(&db);
             regions.update_bounds(self.index(), &meta);
         }
         Ok(())
@@ -372,7 +372,7 @@ impl Region {
         let meta = self.0.meta.read();
         meta.set_len(new_len);
         if new_len < len {
-            self.0.tail_needs_punch.store(true, Ordering::Relaxed);
+            self.mark_tail_punch(db);
         }
         regions.update_bounds(self.index(), &meta);
     }
@@ -387,7 +387,14 @@ impl Region {
         regions.check_removable(&self)?;
         layout.remove_region(&self);
         regions.remove(&self);
+        db.mark_reclaim_pending();
         Ok(())
+    }
+
+    /// Marks the space past this region's length for the next compaction.
+    pub(crate) fn mark_tail_punch(&self, db: &Database) {
+        self.0.tail_needs_punch.store(true, Ordering::Relaxed);
+        db.mark_reclaim_pending();
     }
 
     pub(crate) fn ptr_eq(&self, other: &Region) -> bool {

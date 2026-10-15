@@ -147,31 +147,77 @@ where
     /// Applies a batch of replacements. Sorted input lets `BTreeMap` build the
     /// mutation tree in linear time.
     pub fn update_many(&mut self, updates: impl IntoIterator<Item = (V::I, V::T)>) -> Result<()> {
+        let updates = self.checked_updates(updates)?;
+        self.apply_updates(updates);
+        Ok(())
+    }
+
+    /// [`Self::update_many`] for replacements whose stored values all equal `previous`: their
+    /// undo records take it instead of reading storage.
+    pub fn update_many_with_previous(
+        &mut self,
+        updates: impl IntoIterator<Item = (V::I, V::T)>,
+        previous: V::T,
+    ) -> Result<()>
+    where
+        V::T: PartialEq,
+    {
+        let updates = self.checked_updates(updates)?;
+        if self.saved_stamped_changes() > 0 {
+            let rollback_len = self.vec.rollback_len();
+            for &index in updates.keys().take_while(|&&index| index < rollback_len) {
+                // Pending updates and holes leave storage unknown: the write reads it.
+                if self.current_updated().contains_key(&index)
+                    || self.current_holes().contains(&index)
+                {
+                    continue;
+                }
+                debug_assert!(
+                    V::read_stored(&self.vec.reader(), index) == previous,
+                    "{}: stored value at {index} differs from the given previous value",
+                    self.vec.name()
+                );
+                self.updated
+                    .previous_mut()
+                    .entry(index)
+                    .or_insert_with(|| previous.clone());
+            }
+        }
+        self.apply_updates(updates);
+        Ok(())
+    }
+
+    fn checked_updates(
+        &self,
+        updates: impl IntoIterator<Item = (V::I, V::T)>,
+    ) -> Result<BTreeMap<usize, V::T>> {
         self.header().check_writable()?;
         let updates: BTreeMap<_, _> = updates
             .into_iter()
             .map(|(index, value)| (index.to_usize(), value))
             .collect();
-        let Some((&last, _)) = updates.last_key_value() else {
-            return Ok(());
-        };
-        let len = self.vec.len();
-        if last >= len {
+        if let Some((&last, _)) = updates.last_key_value()
+            && last >= self.vec.len()
+        {
             return Err(Error::IndexTooHigh {
                 index: last,
-                len,
+                len: self.vec.len(),
                 name: self.vec.name().to_string(),
             });
         }
+        Ok(updates)
+    }
 
-        if !self.current_holes().is_empty() {
+    fn apply_updates(&mut self, updates: BTreeMap<usize, V::T>) {
+        // Unshare the holes only when a replacement fills one.
+        let holes = self.current_holes();
+        if !holes.is_empty() && updates.keys().any(|index| holes.contains(index)) {
             let holes = self.mut_holes();
             for index in updates.keys() {
                 holes.remove(index);
             }
         }
         self.install_updates(updates);
-        Ok(())
     }
 
     /// Fills the lowest available indexes, then appends the remaining values.
@@ -266,7 +312,7 @@ where
         let guard = self.header().begin_write()?;
         self.write_inner(false)?;
         self.update_stamp(stamp);
-        self.write_inner(false)?;
+        self.write_header()?;
         if self.saved_stamped_changes() > 0 {
             self.vec.save_previous();
             self.holes.save();

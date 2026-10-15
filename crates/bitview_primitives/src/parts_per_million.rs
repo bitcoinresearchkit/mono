@@ -12,9 +12,6 @@ use serde::{Deserialize, Serialize};
 use crate::unlikely;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
 /// Declares a fixed-point parts-per-million type over `$repr` with `$nan` as its NaN sentinel,
@@ -160,12 +157,6 @@ macro_rules! parts_per_million {
             }
         }
 
-        #[cfg(feature = "storage")]
-        impl VecdbCheckedSub for $name {
-            fn checked_sub(self, rhs: Self) -> Option<Self> {
-                CheckedSub::checked_sub(self, rhs)
-            }
-        }
 
         impl Display for $name {
             fn fmt(&self, f: &mut Formatter<'_>) -> Result {

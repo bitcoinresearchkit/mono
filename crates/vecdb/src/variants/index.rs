@@ -66,10 +66,6 @@ impl<I: VecIndex, T: VecValue, S: TypedVec<I = I>> ReadableVec<I, T> for IndexVe
         self.values(from, to).for_each(f);
     }
 
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B {
-        self.values(from, to).fold(init, f)
-    }
-
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,

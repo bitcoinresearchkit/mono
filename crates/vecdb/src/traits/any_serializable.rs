@@ -1,8 +1,7 @@
-use super::AnyReadableVec;
-use crate::{Formattable, ReadableVec, Result, TypedVec, nullable};
+use crate::{AnyVec, Formattable, ReadableVec, Result, TypedVec, nullable};
 
 /// Type-erased trait for serializable vectors.
-pub trait AnySerializableVec: AnyReadableVec {
+pub trait AnySerializableVec: AnyVec {
     /// Whether JSON values can be `null`: missing or undefined (see [`Formattable`]).
     fn nullable(&self) -> bool;
 

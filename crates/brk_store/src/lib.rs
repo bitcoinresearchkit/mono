@@ -160,7 +160,10 @@ where
     /// Pins the ingested records for later reads. Call it with nothing pending: the view holds
     /// only ingested records.
     pub fn view(&self) -> StoreView<K, V> {
-        debug_assert!(self.pending.is_empty(), "a store view excludes pending writes");
+        debug_assert!(
+            self.pending.is_empty(),
+            "a store view excludes pending writes"
+        );
         self.ingested()
     }
 

@@ -23,17 +23,3 @@ impl fmt::Display for Format {
         }
     }
 }
-
-impl From<Option<String>> for Format {
-    #[inline]
-    fn from(value: Option<String>) -> Self {
-        if let Some(value) = value {
-            let value = value.to_lowercase();
-            let value = value.as_str();
-            if value == "csv" {
-                return Self::CSV;
-            }
-        }
-        Self::JSON
-    }
-}

@@ -1,3 +1,5 @@
+use std::{borrow::Cow, slice};
+
 use crate::Result;
 
 /// Value serialization strategy shared by all vec types (raw and compressed).
@@ -20,6 +22,23 @@ pub unsafe trait ValueStrategy<T>: Send + Sync + Clone {
 
     /// Serializes a value directly into a fixed-size slice.
     fn write_to_slice(value: &T, dst: &mut [u8]);
+
+    /// The stored bytes of `values`: borrowed for native layouts, else serialized.
+    #[inline]
+    fn values_bytes(values: &[T]) -> Cow<'_, [u8]> {
+        if Self::IS_NATIVE_LAYOUT {
+            // SAFETY: native-layout values are their own byte image (see `IS_NATIVE_LAYOUT`).
+            Cow::Borrowed(unsafe {
+                slice::from_raw_parts(values.as_ptr().cast(), size_of_val(values))
+            })
+        } else {
+            let mut bytes = Vec::with_capacity(size_of_val(values));
+            for value in values {
+                Self::write_to_vec(value, &mut bytes);
+            }
+            Cow::Owned(bytes)
+        }
+    }
 }
 
 /// Implements `ValueStrategy` for a Bytes-based strategy type.

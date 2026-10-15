@@ -11,7 +11,7 @@ use crate::{
     DatabaseBuilder, Error, Keyspace, KeyspaceCreateOptions, Result,
     db_config::Config,
     file::{DATABASE_FORMAT, KEYSPACES_FOLDER, LOCK_FILE, VERSION_MARKER},
-    locked_file::LockedFileGuard,
+    locked_file,
     worker_pool::WorkerPool,
 };
 
@@ -35,7 +35,7 @@ impl Database {
         fs::create_dir_all(&config.path)?;
 
         let marker_path = config.path.join(VERSION_MARKER);
-        let lock = LockedFileGuard::create_new(&config.path.join(LOCK_FILE))?;
+        let lock = locked_file::lock(&config.path.join(LOCK_FILE))?;
         if marker_path.try_exists()? {
             if fs::read(&marker_path)? != DATABASE_FORMAT {
                 return Err(Error::InvalidVersion);

@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use crate::{ReadableVec, unlikely};
 
 use super::{MutableRawVec, MutableVec};
@@ -11,16 +9,6 @@ where
     #[inline]
     fn has_mutations(&self) -> bool {
         !self.current_holes().is_empty() || !self.current_updated().is_empty()
-    }
-
-    fn fold_mutable<B, F>(&self, from: usize, to: usize, init: B, mut f: F) -> B
-    where
-        F: FnMut(B, V::T) -> B,
-    {
-        let Ok(acc) = self.try_fold_mutable(from, to, init, |acc, value| {
-            Ok::<_, Infallible>(f(acc, value))
-        });
-        acc
     }
 
     fn try_fold_mutable<B, E, F>(&self, from: usize, to: usize, init: B, mut f: F) -> Result<B, E>
@@ -96,7 +84,7 @@ where
             return;
         }
         buf.reserve(to - from);
-        self.fold_mutable(from, to, (), |(), value| buf.push(value));
+        self.fold_range_at(from, to, (), |(), value| buf.push(value));
     }
 
     #[inline]
@@ -151,25 +139,6 @@ where
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(V::T)) {
         self.fold_range_at(from, to, (), |(), value| f(value));
-    }
-
-    #[inline]
-    fn fold_range_at<B, F>(&self, from: usize, to: usize, init: B, f: F) -> B
-    where
-        Self: Sized,
-        F: FnMut(B, V::T) -> B,
-    {
-        let len = self.vec.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return init;
-        }
-        if self.has_mutations() {
-            self.fold_mutable(from, to, init, f)
-        } else {
-            self.vec.fold_range_at(from, to, init, f)
-        }
     }
 
     #[inline]

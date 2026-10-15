@@ -62,7 +62,7 @@ where
             write!(writer, "{ts} - {level_str} ")?;
         }
 
-        let mut visitor = FieldVisitor::<ANSI>::new();
+        let mut visitor = FieldVisitor::<ANSI>::default();
         event.record(&mut visitor);
         visitor.write_to(&mut writer)?;
         writeln!(writer)
@@ -87,6 +87,7 @@ const fn status_color(status: u64) -> AnsiColors {
     }
 }
 
+#[derive(Default)]
 struct FieldVisitor<const ANSI: bool> {
     message: String,
     fields: String,
@@ -97,17 +98,6 @@ struct FieldVisitor<const ANSI: bool> {
 }
 
 impl<const ANSI: bool> FieldVisitor<ANSI> {
-    fn new() -> Self {
-        Self {
-            message: String::new(),
-            fields: String::new(),
-            method: None,
-            status: None,
-            uri: None,
-            latency: None,
-        }
-    }
-
     /// Access events (with `status`) print `status [uri] [latency]`; others print
     /// `message — fields`, with method/uri/latency appended as plain fields.
     fn write_to(self, w: &mut impl Write) -> Result {

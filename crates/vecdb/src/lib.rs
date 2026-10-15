@@ -50,11 +50,11 @@ pub use sparse_read::SparseRead;
 pub use stamp::Stamp;
 
 pub use traits::{
-    AnyExportableVec, AnyReadableVec, AnySerializableVec, AnyStoredVec, AnyVec, AnyVecWithWriter,
-    Formattable, ImportableVec, PrintableIndex, READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableOptionVec, ReadableVec, Ro, Rw, StorageMode, StoredVec, TypedVec,
-    ValueStrategy, VecIndex, VecValue, WritableVec, escape_csv_cell, i64_to_usize, nullable,
-    short_type_name,
+    AnyExportableVec, AnySerializableVec, AnyStoredVec, AnyVec, AnyVecWithWriter, Formattable,
+    ImportableVec, PrintableIndex, READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec,
+    ReadableCloneableVec, ReadableVec, Ro, Rw, StorageMode, StoredVec, TypedVec, ValueStrategy,
+    VecIndex, VecValue, WritableVec, chunk_folds::read_batches, escape_csv_cell, i64_to_usize,
+    nullable, short_type_name,
 };
 
 pub use variants::{

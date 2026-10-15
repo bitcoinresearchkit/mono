@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, result::Result, slice};
+use std::{convert::Infallible, marker::PhantomData, result::Result, slice};
 
 use rawdb::{Reader, Region};
 
@@ -8,9 +8,9 @@ use crate::{AnyStoredVec, HEADER_OFFSET, READ_CHUNK_SIZE, VecIndex, VecValue, ca
 /// Read-only mmap-backed source over a raw (uncompressed) vector.
 ///
 /// Only sees **stored** (persisted) values — pushed but unflushed values
-/// are not visible. Created with a range and consumed by fold/try_fold/for_each.
+/// are not visible. Created with a range and consumed by try_fold/for_each.
 ///
-/// The data slice is computed once at construction time, so fold/for_each are
+/// The data slice is computed once at construction time, so try_fold/for_each are
 /// direct slice operations.
 pub struct RawMmapSource<I, T, S> {
     // SAFETY: `_reader` holds the region's shared access and its database
@@ -70,7 +70,10 @@ where
             output.extend_from_slice(values);
         } else {
             output.reserve(len);
-            self.fold((), |(), value| output.push(value));
+            let Ok(()) = self.try_fold((), |(), value| {
+                output.push(value);
+                Ok::<_, Infallible>(())
+            });
         }
     }
 
@@ -117,20 +120,6 @@ where
         // SAFETY: aligned native-layout values have T's stored representation. The bounded
         // range remains valid while this source owns the mmap reader.
         Some(unsafe { slice::from_raw_parts(values, self.end.saturating_sub(self.pos)) })
-    }
-
-    /// Fold all elements in the range — tight pointer loop.
-    #[inline(always)]
-    pub fn fold<B, F: FnMut(B, T) -> B>(self, init: B, mut f: F) -> B {
-        let ptr = self.data;
-        let mut byte_off = self.pos * Self::SIZE_OF_T;
-        let end_byte = self.end * Self::SIZE_OF_T;
-        let mut acc = init;
-        while byte_off < end_byte {
-            acc = f(acc, unsafe { S::read_from_ptr(ptr, byte_off) });
-            byte_off += Self::SIZE_OF_T;
-        }
-        acc
     }
 
     /// Fallible fold with early exit on error.

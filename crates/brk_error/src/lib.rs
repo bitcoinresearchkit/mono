@@ -1,10 +1,6 @@
 #![doc = include_str!("../README.md")]
 
 #[cfg(feature = "bitcoin")]
-use bitcoin::address::FromScriptError;
-#[cfg(feature = "bitcoin")]
-use bitcoin::block::Bip34Error;
-#[cfg(feature = "bitcoin")]
 use bitcoin::consensus::encode::Error as EncodeError;
 #[cfg(feature = "bitcoin")]
 use bitcoin::consensus::encode::FromHexError;
@@ -78,15 +74,7 @@ pub enum Error {
 
     #[cfg(feature = "bitcoin")]
     #[error(transparent)]
-    BitcoinBip34Error(#[from] Bip34Error),
-
-    #[cfg(feature = "bitcoin")]
-    #[error(transparent)]
     BitcoinHexError(#[from] FromHexError),
-
-    #[cfg(feature = "bitcoin")]
-    #[error(transparent)]
-    BitcoinFromScriptError(#[from] FromScriptError),
 
     #[cfg(feature = "bitcoin")]
     #[error(transparent)]

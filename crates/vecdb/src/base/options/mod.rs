@@ -17,8 +17,6 @@ pub struct ImportOptions<'a> {
     pub(crate) saved_stamped_changes: u16,
     /// Overrides the index type's initial value capacity when set.
     pub(crate) initial_capacity: Option<usize>,
-    /// Overrides the compression strategy's maximum uncompressed chunk size.
-    pub(crate) max_compression_chunk_size: Option<usize>,
 }
 
 impl<'a> ImportOptions<'a> {
@@ -29,7 +27,6 @@ impl<'a> ImportOptions<'a> {
             version,
             saved_stamped_changes: 0,
             initial_capacity: None,
-            max_compression_chunk_size: None,
         }
     }
 

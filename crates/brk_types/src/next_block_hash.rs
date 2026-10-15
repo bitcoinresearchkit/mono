@@ -1,3 +1,4 @@
+use derive_more::{From, Into};
 use std::fmt;
 
 #[cfg(feature = "schemars")]
@@ -9,7 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
 /// Opaque token, distinct from HTTP ETag formatting: pass back
 /// to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
 /// A decimal string, since JavaScript numbers can't hold every 64-bit value.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, From, Into)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "schemars", schemars(with = "String", example = &"9007199254740993"))]
 pub struct NextBlockHash(u64);
@@ -40,17 +41,5 @@ impl NextBlockHash {
 impl fmt::Display for NextBlockHash {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-impl From<u64> for NextBlockHash {
-    fn from(value: u64) -> Self {
-        Self(value)
-    }
-}
-
-impl From<NextBlockHash> for u64 {
-    fn from(value: NextBlockHash) -> Self {
-        value.0
     }
 }

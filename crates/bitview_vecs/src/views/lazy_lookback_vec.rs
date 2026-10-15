@@ -5,12 +5,10 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
     AnyExportableVec, AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, TypedVec, VecIndex, VecValue, Version, short_type_name,
+    ReadableVec, TypedVec, VecIndex, VecValue, Version, read_batches, short_type_name,
 };
 
 use vecdb::SparseRead;
-
-use super::batches::batches;
 
 /// Lazily combines values a fixed number of positions apart from one source.
 ///
@@ -65,7 +63,7 @@ where
         mut each: impl FnMut(usize, &[S], Option<&[S]>) -> Result<(), E>,
     ) -> Result<(), E> {
         let mut previous = Vec::new();
-        for (at, end) in batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
+        for (at, end) in read_batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
             let previous_from = at.saturating_sub(self.lookback);
             previous.clear();
             self.source.read_into_at(

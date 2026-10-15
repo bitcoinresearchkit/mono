@@ -2,7 +2,7 @@ use std::{fmt, str::FromStr};
 
 use bitcoin::{Address as BitcoinAddress, Network, ScriptBuf};
 use brk_error::Error;
-use derive_more::Deref;
+use derive_more::{Deref, From};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use crate::AddressBytes;
 use vecdb::Formattable;
 
 /// Bitcoin address string
-#[derive(Debug, Clone, Deref, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deref, Serialize, Deserialize, From)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
 #[cfg_attr(feature = "schemars", schemars(
@@ -23,13 +23,6 @@ use vecdb::Formattable;
     example = &"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
 ))]
 pub struct Address(String);
-
-impl From<String> for Address {
-    #[inline]
-    fn from(addr: String) -> Self {
-        Self(addr)
-    }
-}
 
 impl TryFrom<&ScriptBuf> for Address {
     type Error = Error;

@@ -1,4 +1,4 @@
-use std::{ops::AddAssign, result::Result};
+use std::{convert::Infallible, result::Result};
 
 use crate::{AnyVec, ReadableBoxedVec, VecIndex, VecValue, cursor::Cursor};
 
@@ -14,19 +14,19 @@ pub const READ_CHUNK_SIZE: usize = 4096;
 ///
 /// | Method | Use when |
 /// |--------|----------|
-/// | `for_each` / `for_each_range` | Processing every element, static dispatch |
-/// | `fold` / `fold_range` | Accumulating a result (SIMD-optimized on stored vecs) |
+/// | `for_each` / `for_each_range_at` | Processing every element, static dispatch |
+/// | `fold` / `fold_range_at` | Accumulating a result (SIMD-optimized on stored vecs) |
 /// | `collect` / `collect_range` | Materializing values into a `Vec<T>` |
-/// | `collect_one` / `collect_first` / `collect_last` | Materializing a single value |
+/// | `collect_one` / `collect_last` | Materializing a single value |
 /// | `for_each_range_dyn` | Trait-object contexts (`&dyn ReadableVec`) |
-/// | `try_fold_range` | Fold with early exit on error |
+/// | `try_fold_range_at` | Fold with early exit on error |
 /// | `read_into` / `cursor` | Sequential access with buffer reuse |
 ///
 /// # Typed vs `_at` methods
 ///
-/// Methods like `collect_one(I)`, `fold_range(I, I, …)` accept the typed index `I`.
-/// The `_at` variants (`collect_one_at(usize)`, `fold_range_at(usize, usize, …)`)
-/// accept raw `usize` and are what implementations override.
+/// Methods like `collect_one(I)` accept the typed index `I`. The `_at` variants
+/// (`collect_one_at(usize)`, `fold_range_at(usize, usize, …)`) accept raw `usize`
+/// and are what implementations override.
 ///
 /// # Point reads
 ///
@@ -41,13 +41,10 @@ pub const READ_CHUNK_SIZE: usize = 4096;
 ///
 /// # Performance
 ///
-/// Stored vecs override `fold_range_at` and `try_fold_range_at` to delegate to their
-/// internal source's optimized `fold()`, enabling SIMD auto-vectorization.
+/// Stored vecs implement `try_fold_range_at` with their internal source's tight
+/// loop, enabling SIMD auto-vectorization; `fold_range_at` reuses it.
 ///
-/// The default `fold_range_at` uses chunked `read_into_at` calls with a monomorphized
-/// inner loop — LLVM can auto-vectorize this without `&mut dyn FnMut` overhead.
-///
-/// For maximum throughput on stored vecs, prefer `fold_range` / `for_each_range`
+/// For maximum throughput on stored vecs, prefer `fold_range_at` / `for_each_range_at`
 /// with static dispatch (`&impl ReadableVec` or concrete type).
 pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
     /// Append a complete retained range without source reads or cache fills.
@@ -97,14 +94,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
     /// fallback to a slow buffered path.
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T));
 
-    /// Folds over `[from, to)` by raw index with an accumulator.
-    ///
-    /// Every implementor must provide an optimal path — there is intentionally
-    /// no default to prevent silent fallback to a slow buffered path.
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B
-    where
-        Self: Sized;
-
     /// Fallible fold over `[from, to)` by raw index with early exit on error.
     ///
     /// Every implementor must provide an optimal path — there is intentionally
@@ -118,6 +107,21 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
     ) -> Result<B, E>
     where
         Self: Sized;
+
+    /// Folds over `[from, to)` by raw index with an accumulator.
+    ///
+    /// Defaults to [`Self::try_fold_range_at`] with an error that cannot occur, which
+    /// compiles to the same loop. Override only for a cheaper infallible path.
+    #[inline]
+    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, mut f: F) -> B
+    where
+        Self: Sized,
+    {
+        let Ok(acc) = self.try_fold_range_at(from, to, init, |acc, value| {
+            Ok::<_, Infallible>(f(acc, value))
+        });
+        acc
+    }
 
     // ── Typed-index wrappers ───────────────────────────────────────────
 
@@ -137,43 +141,19 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         Cursor::new(self)
     }
 
+    /// A [`Self::cursor`] that reads only `[from, to)`, starting at `from`.
+    #[inline]
+    fn bounded_cursor_at(&self, from: usize, to: usize) -> Cursor<'_, I, T, Self>
+    where
+        Self: Sized,
+    {
+        Cursor::bounded(self, from, to)
+    }
+
     /// Iterates over `[from, to)` by typed index, calling `f` for each value (object-safe).
     #[inline]
     fn for_each_range_dyn(&self, from: I, to: I, f: &mut dyn FnMut(T)) {
         self.for_each_range_dyn_at(from.to_usize(), to.to_usize(), f)
-    }
-
-    /// Folds over `[from, to)` by typed index with an accumulator.
-    #[inline]
-    fn fold_range<B, F: FnMut(B, T) -> B>(&self, from: I, to: I, init: B, f: F) -> B
-    where
-        Self: Sized,
-    {
-        self.fold_range_at(from.to_usize(), to.to_usize(), init, f)
-    }
-
-    /// Fallible fold over `[from, to)` by typed index with early exit on error.
-    #[inline]
-    fn try_fold_range<B, E, F: FnMut(B, T) -> Result<B, E>>(
-        &self,
-        from: I,
-        to: I,
-        init: B,
-        f: F,
-    ) -> Result<B, E>
-    where
-        Self: Sized,
-    {
-        self.try_fold_range_at(from.to_usize(), to.to_usize(), init, f)
-    }
-
-    /// Calls `f` for each value in `[from, to)` by typed index. Requires `Sized`.
-    #[inline]
-    fn for_each_range<F: FnMut(T)>(&self, from: I, to: I, f: F)
-    where
-        Self: Sized,
-    {
-        self.for_each_range_at(from.to_usize(), to.to_usize(), f)
     }
 
     /// Collects values in `[from, to)` by typed index into a `Vec<T>`.
@@ -189,36 +169,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
     #[inline]
     fn collect_one(&self, index: I) -> Option<T> {
         self.collect_one_at(index.to_usize())
-    }
-
-    /// Returns the minimum value in `[from, to)` by typed index, or `None` if empty.
-    #[inline]
-    fn min(&self, from: I, to: I) -> Option<T>
-    where
-        Self: Sized,
-        T: PartialOrd,
-    {
-        self.min_at(from.to_usize(), to.to_usize())
-    }
-
-    /// Returns the maximum value in `[from, to)` by typed index, or `None` if empty.
-    #[inline]
-    fn max(&self, from: I, to: I) -> Option<T>
-    where
-        Self: Sized,
-        T: PartialOrd,
-    {
-        self.max_at(from.to_usize(), to.to_usize())
-    }
-
-    /// Returns the sum of values in `[from, to)` by typed index, or `None` if empty.
-    #[inline]
-    fn sum(&self, from: I, to: I) -> Option<T>
-    where
-        Self: Sized,
-        T: AddAssign + From<u8>,
-    {
-        self.sum_at(from.to_usize(), to.to_usize())
     }
 
     // ── Raw-index convenience (all have defaults) ──────────────────────
@@ -312,12 +262,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         result
     }
 
-    /// Collects the first value, or `None` if empty.
-    #[inline]
-    fn collect_first(&self) -> Option<T> {
-        self.collect_one_at(0)
-    }
-
     /// Collects the last value, or `None` if empty.
     #[inline]
     fn collect_last(&self) -> Option<T> {
@@ -327,36 +271,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         } else {
             None
         }
-    }
-
-    /// Collects values using signed indices. Negative indices count from the end
-    /// (Python-style): `-1` is the last element, `-2` is second-to-last, etc.
-    #[inline]
-    fn collect_signed_range(&self, from: Option<i64>, to: Option<i64>) -> Vec<T>
-    where
-        Self: Sized,
-    {
-        let from = from.map(|i| self.i64_to_usize(i)).unwrap_or(0);
-        let to = to
-            .map(|i| self.i64_to_usize(i))
-            .unwrap_or_else(|| self.len());
-        self.collect_range_at(from, to)
-    }
-
-    /// Collects values using signed indices (object-safe).
-    #[inline]
-    fn collect_signed_range_dyn(&self, from: Option<i64>, to: Option<i64>) -> Vec<T> {
-        let from = from.map(|i| self.i64_to_usize(i)).unwrap_or(0);
-        let to = to
-            .map(|i| self.i64_to_usize(i))
-            .unwrap_or_else(|| self.len());
-        self.collect_range_dyn(from, to)
-    }
-
-    /// Collects all values into a `Vec<T>` (object-safe).
-    #[inline]
-    fn collect_dyn(&self) -> Vec<T> {
-        self.collect_range_dyn(0, self.len())
     }
 
     // ── Sparse reads ──────────────────────────────────────────────
@@ -384,108 +298,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         let mut out = Vec::with_capacity(indices.len());
         self.read_sorted_into_at(indices, &mut out);
         out
-    }
-
-    /// Reads values at specific sorted typed indices, appending to `out`.
-    #[inline]
-    fn read_sorted_into(&self, indices: &[I], out: &mut Vec<T>) {
-        let raw: Vec<usize> = indices.iter().map(|i| i.to_usize()).collect();
-        self.read_sorted_into_at(&raw, out);
-    }
-
-    /// Reads values at specific sorted typed indices, returning a new `Vec`.
-    #[inline]
-    fn read_sorted(&self, indices: &[I]) -> Vec<T> {
-        let mut out = Vec::with_capacity(indices.len());
-        self.read_sorted_into(indices, &mut out);
-        out
-    }
-
-    // ── Aggregations ───────────────────────────────────────────────
-
-    /// Returns the minimum value in `[from, to)` by raw index, or `None` if empty.
-    #[inline]
-    fn min_at(&self, from: usize, to: usize) -> Option<T>
-    where
-        Self: Sized,
-        T: PartialOrd,
-    {
-        self.fold_range_at(from, to, None, |acc: Option<T>, v| match acc {
-            Some(cur) if cur <= v => Some(cur),
-            _ => Some(v),
-        })
-    }
-
-    /// Returns the minimum value in `[from, to)`, or `None` if empty (object-safe).
-    #[inline]
-    fn min_dyn(&self, from: usize, to: usize) -> Option<T>
-    where
-        T: PartialOrd,
-    {
-        let mut result: Option<T> = None;
-        self.for_each_range_dyn_at(from, to, &mut |v| match &result {
-            Some(cur) if *cur <= v => {}
-            _ => result = Some(v),
-        });
-        result
-    }
-
-    /// Returns the maximum value in `[from, to)` by raw index, or `None` if empty.
-    #[inline]
-    fn max_at(&self, from: usize, to: usize) -> Option<T>
-    where
-        Self: Sized,
-        T: PartialOrd,
-    {
-        self.fold_range_at(from, to, None, |acc: Option<T>, v| match acc {
-            Some(cur) if cur >= v => Some(cur),
-            _ => Some(v),
-        })
-    }
-
-    /// Returns the maximum value in `[from, to)`, or `None` if empty (object-safe).
-    #[inline]
-    fn max_dyn(&self, from: usize, to: usize) -> Option<T>
-    where
-        T: PartialOrd,
-    {
-        let mut result: Option<T> = None;
-        self.for_each_range_dyn_at(from, to, &mut |v| match &result {
-            Some(cur) if *cur >= v => {}
-            _ => result = Some(v),
-        });
-        result
-    }
-
-    /// Returns the sum of values in `[from, to)` by raw index, or `None` if empty.
-    #[inline]
-    fn sum_at(&self, from: usize, to: usize) -> Option<T>
-    where
-        Self: Sized,
-        T: AddAssign + From<u8>,
-    {
-        let mut has_values = false;
-        let result = self.fold_range_at(from, to, T::from(0), |mut acc, v| {
-            acc += v;
-            has_values = true;
-            acc
-        });
-        has_values.then_some(result)
-    }
-
-    /// Returns the sum of values in `[from, to)`, or `None` if empty (object-safe).
-    #[inline]
-    fn sum_dyn(&self, from: usize, to: usize) -> Option<T>
-    where
-        T: AddAssign + From<u8>,
-    {
-        let mut result = T::from(0);
-        let mut has_values = false;
-        self.for_each_range_dyn_at(from, to, &mut |v| {
-            result += v;
-            has_values = true;
-        });
-        has_values.then_some(result)
     }
 }
 

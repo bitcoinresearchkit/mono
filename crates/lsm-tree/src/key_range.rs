@@ -37,14 +37,6 @@ impl KeyRange {
         (self.min(), self.max())
     }
 
-    /// Returns `true` if the `other` is fully contained in this range.
-    #[must_use]
-    pub fn contains_range(&self, other: &Self) -> bool {
-        let (start1, end1) = self.as_tuple();
-        let (start2, end2) = other.as_tuple();
-        start1 <= start2 && end1 >= end2
-    }
-
     /// Returns `true` if the `other` overlaps at least partially with this range.
     #[must_use]
     pub fn overlaps_with_key_range(&self, other: &Self) -> bool {

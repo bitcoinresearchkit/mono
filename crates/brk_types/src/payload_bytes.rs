@@ -1,26 +1,18 @@
 //! The script payloads an address type indexes: fixed-size bytes, lowercase hex in JSON.
 
-use crate::{U8x2, U8x20, U8x32, U8x33, U8x65};
-
 macro_rules! payload_bytes {
-    ($(#[$meta:meta])* $name:ident($inner:ident, $len:literal)) => {
+    ($(#[$meta:meta])* $name:ident($len:literal)) => {
         $(#[$meta])*
         #[derive(Debug, Clone, ::derive_more::Deref, PartialEq, Eq, PartialOrd, Ord, Hash)]
         #[cfg_attr(feature = "schemars", derive(::schemars::JsonSchema))]
         #[cfg_attr(feature = "storage", derive(::vecdb::Bytes))]
-        pub struct $name(#[cfg_attr(feature = "schemars", schemars(with = "String"))] $inner);
+        pub struct $name(#[cfg_attr(feature = "schemars", schemars(with = "String"))] [u8; $len]);
 
+        /// Panics unless `value` holds exactly the payload's length.
         impl From<&[u8]> for $name {
             #[inline]
             fn from(value: &[u8]) -> Self {
-                Self($inner::from(value))
-            }
-        }
-
-        impl From<$inner> for $name {
-            #[inline]
-            fn from(value: $inner) -> Self {
-                Self(value)
+                Self(value.try_into().expect(concat!(stringify!($name), " takes ", stringify!($len), " bytes")))
             }
         }
 
@@ -41,7 +33,7 @@ macro_rules! payload_bytes {
             fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
                 let hex = <::std::borrow::Cow<'de, str>>::deserialize(deserializer)?;
                 crate::bytes::parse_hex::<$len>(&hex)
-                    .map(|bytes| Self::from(&bytes[..]))
+                    .map(Self)
                     .ok_or_else(|| {
                         <D::Error as ::serde::de::Error>::custom(concat!(
                             "expected ",
@@ -70,40 +62,40 @@ macro_rules! payload_bytes {
 
 payload_bytes! {
     /// The 2-byte witness program of a P2A (pay-to-anchor) output.
-    P2ABytes(U8x2, 2)
+    P2ABytes(2)
 }
 
 payload_bytes! {
     /// A compressed (33-byte) public key.
-    P2PK33Bytes(U8x33, 33)
+    P2PK33Bytes(33)
 }
 
 payload_bytes! {
     /// An uncompressed (65-byte) public key.
-    P2PK65Bytes(U8x65, 65)
+    P2PK65Bytes(65)
 }
 
 payload_bytes! {
     /// The 20-byte public key hash of a P2PKH output.
-    P2PKHBytes(U8x20, 20)
+    P2PKHBytes(20)
 }
 
 payload_bytes! {
     /// The 20-byte script hash of a P2SH output.
-    P2SHBytes(U8x20, 20)
+    P2SHBytes(20)
 }
 
 payload_bytes! {
     /// The 32-byte output key of a P2TR output.
-    P2TRBytes(U8x32, 32)
+    P2TRBytes(32)
 }
 
 payload_bytes! {
     /// The 20-byte public key hash of a P2WPKH output.
-    P2WPKHBytes(U8x20, 20)
+    P2WPKHBytes(20)
 }
 
 payload_bytes! {
     /// The 32-byte script hash of a P2WSH output.
-    P2WSHBytes(U8x32, 32)
+    P2WSHBytes(32)
 }

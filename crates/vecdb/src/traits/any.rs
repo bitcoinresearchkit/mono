@@ -1,4 +1,4 @@
-use crate::{Stamp, Version, read_bounds, vec_region_name};
+use crate::{Stamp, Version, read_bounds};
 
 /// Converts an i64 index to usize, supporting negative indexing.
 /// Negative indices count from the end.
@@ -34,11 +34,6 @@ pub trait AnyVec: Send + Sync {
     }
     /// Returns the string representation of the index type.
     fn index_type_to_string(&self) -> &'static str;
-    /// Returns the combined name of the vector.
-    #[inline]
-    fn region_name(&self) -> String {
-        vec_region_name(self.name(), self.index_type_to_string())
-    }
     /// Returns the list of region names used by this vector: none for views, which store
     /// nothing of their own.
     #[inline]

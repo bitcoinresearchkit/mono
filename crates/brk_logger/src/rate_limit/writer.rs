@@ -1,17 +1,15 @@
-use std::{
-    io::{self, Write},
-    sync::Arc,
-};
+use std::io::{self, Write};
+
 use tracing::Level;
 
 use super::{Inner, LEVEL_SUFFIX, level_index, today};
 
-pub struct FileWriter {
-    pub(super) inner: Arc<Inner>,
+pub struct FileWriter<'a> {
+    pub(super) inner: &'a Inner,
     pub(super) level: Option<Level>,
 }
 
-impl Write for FileWriter {
+impl Write for FileWriter<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let dir = &self.inner.dir;
 

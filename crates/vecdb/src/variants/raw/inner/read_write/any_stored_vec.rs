@@ -1,4 +1,4 @@
-use std::{mem, path::PathBuf, slice};
+use std::{mem, path::PathBuf};
 
 use rawdb::{Database, Region};
 
@@ -71,32 +71,15 @@ where
             let from = stored_len * Self::SIZE_OF_T + HEADER_OFFSET;
 
             if has_new_data {
-                // Take the pushed buffer to free its heap allocation after writing.
                 let taken = mem::take(this.base.mut_pushed());
-                if S::IS_NATIVE_LAYOUT {
-                    // Bulk write: memory layout matches serialized format, skip per-value
-                    // serialization entirely. Single memcpy from pushed buffer to mmap.
-                    // SAFETY: native-layout values are padding-free byte images
-                    // (`ValueStrategy` contract).
-                    let bytes = unsafe {
-                        slice::from_raw_parts(
-                            taken.as_ptr() as *const u8,
-                            taken.len() * Self::SIZE_OF_T,
-                        )
-                    };
-                    this.region().truncate_write(from, bytes)?;
-                } else {
-                    let mut bytes = Vec::with_capacity(pushed_len * Self::SIZE_OF_T);
-                    for v in &taken {
-                        S::write_to_vec(v, &mut bytes);
-                    }
-                    this.region().truncate_write(from, &bytes)?;
-                }
+                this.region()
+                    .truncate_write(from, &S::values_bytes(&taken))?;
                 this.base.write_header_if_needed()?;
                 this.base.update_stored_len(stored_len + pushed_len);
                 if let Some(cache) = C::cache(&this.cache) {
                     cache.extend_tail(stored_len, &taken);
                 }
+                this.base.recycle_pushed(taken);
             } else {
                 this.region().truncate(from)?;
                 this.base.write_header_if_needed()?;

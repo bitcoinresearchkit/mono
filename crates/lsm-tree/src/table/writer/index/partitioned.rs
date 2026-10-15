@@ -2,11 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::{
-    fs::File,
-    io::{BufWriter, Seek, Write},
-    mem::size_of,
-};
+use std::{fs::File, io::BufWriter, mem::size_of};
 
 use log::trace;
 use sfa::Writer;
@@ -17,7 +13,10 @@ use crate::{
         Block, BlockHandle, BlockOffset, IndexBlock,
         block::{BlockType, Header as BlockHeader},
         index_block::KeyedBlockHandle,
-        writer::{META_PARTITION_SIZE, index::BlockIndexWriter},
+        writer::{
+            META_PARTITION_SIZE,
+            index::{BlockIndexWriter, write_partitioned},
+        },
     },
 };
 
@@ -91,38 +90,6 @@ impl PartitionedIndexWriter {
 
         Ok(())
     }
-
-    fn write_top_level_index(
-        &mut self,
-        file_writer: &mut Writer<BufWriter<File>>,
-        index_base_offset: BlockOffset,
-    ) -> Result<()> {
-        file_writer.start("tli")?;
-
-        for item in &mut self.tli_handles {
-            item.shift(index_base_offset);
-        }
-
-        let mut bytes = vec![];
-        IndexBlock::encode_into(&mut bytes, &self.tli_handles)?;
-
-        let header = Block::write_into(file_writer, &bytes, BlockType::Index)?;
-
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks never even approach 4 GiB in size"
-        )]
-        let bytes_written = BlockHeader::serialized_len() as u32 + header.data_length;
-
-        debug_assert!(bytes_written > 0, "Top level index should never be empty");
-
-        trace!(
-            "Written top level index, with {} pointers ({bytes_written} bytes)",
-            self.tli_handles.len(),
-        );
-
-        Ok(())
-    }
 }
 
 impl BlockIndexWriter for PartitionedIndexWriter {
@@ -157,14 +124,12 @@ impl BlockIndexWriter for PartitionedIndexWriter {
             self.cut_index_block()?;
         }
 
-        let index_base_offset = BlockOffset(file_writer.get_mut().stream_position()?);
-
-        file_writer.start("index")?;
-        file_writer.write_all(&self.final_write_buffer)?;
-        trace!("Concatted index partitions onto blocks file");
-
-        self.write_top_level_index(file_writer, index_base_offset)?;
-
-        Ok(())
+        write_partitioned(
+            file_writer,
+            "index",
+            &self.final_write_buffer,
+            "tli",
+            &mut self.tli_handles,
+        )
     }
 }

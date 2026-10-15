@@ -4,7 +4,6 @@
 
 //! Contains compaction strategies
 
-mod flavour;
 pub mod leveled;
 pub mod state;
 pub mod stream;

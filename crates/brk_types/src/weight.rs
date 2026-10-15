@@ -1,11 +1,4 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    iter::Sum,
-    ops::{Add, AddAssign, Sub, SubAssign},
-};
-
-use derive_more::Deref;
-use itoa::Buffer;
+use derive_more::{Add, AddAssign, Deref, From, Into, Sub, SubAssign, Sum};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -15,12 +8,30 @@ use bitcoin::Weight as BitcoinWeight;
 use crate::{CheckedSub, VSize, Weight32};
 
 #[cfg(feature = "storage")]
-use vecdb::{CheckedSub as VecdbCheckedSub, Formattable, Pco};
+use vecdb::Pco;
 
 /// Weight in weight units (WU): non-witness bytes count four and witness bytes one. A block holds
 /// at most 4,000,000 WU; sums over many blocks use the full 64 bits.
 #[derive(
-    Debug, Default, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+    Debug,
+    Default,
+    Deref,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    Add,
+    AddAssign,
+    Sub,
+    SubAssign,
+    Sum,
+    From,
+    Into,
 )]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
@@ -104,20 +115,6 @@ impl From<Weight> for Weight32 {
     }
 }
 
-impl From<u64> for Weight {
-    #[inline]
-    fn from(value: u64) -> Self {
-        Self(value)
-    }
-}
-
-impl From<Weight> for u64 {
-    #[inline]
-    fn from(value: Weight) -> Self {
-        value.0
-    }
-}
-
 impl From<Weight32> for Weight {
     #[inline]
     fn from(value: Weight32) -> Self {
@@ -147,42 +144,6 @@ impl From<Weight> for f64 {
     }
 }
 
-impl Add for Weight {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl AddAssign for Weight {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-    }
-}
-
-impl Sub for Weight {
-    type Output = Self;
-    #[inline]
-    fn sub(self, rhs: Self) -> Self {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl SubAssign for Weight {
-    #[inline]
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 -= rhs.0;
-    }
-}
-
-impl Sum for Weight {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        Self(iter.map(|value| value.0).sum())
-    }
-}
-
 impl CheckedSub for Weight {
     #[inline]
     fn checked_sub(self, rhs: Self) -> Option<Self> {
@@ -190,24 +151,4 @@ impl CheckedSub for Weight {
     }
 }
 
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for Weight {
-    #[inline]
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        self.0.checked_sub(rhs.0).map(Self)
-    }
-}
-
-impl Display for Weight {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        f.write_str(Buffer::new().format(self.0))
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for Weight {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        buf.extend_from_slice(Buffer::new().format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(Weight);

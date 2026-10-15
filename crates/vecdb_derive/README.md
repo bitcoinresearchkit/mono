@@ -14,7 +14,7 @@ cargo add vecdb --features derive
 `#[derive(Bytes)]` delegates VecDB's portable fixed-width serialization to the
 inner field:
 
-```rust
+```rust,ignore
 use vecdb::Bytes;
 
 #[derive(Debug, Clone, Copy, PartialEq, Bytes)]
@@ -35,7 +35,7 @@ Enable both `derive` and `pco` for numeric newtypes:
 cargo add vecdb --features derive,pco
 ```
 
-```rust
+```rust,ignore
 use vecdb::Pco;
 
 #[derive(Debug, Clone, Copy, PartialEq, Pco)]

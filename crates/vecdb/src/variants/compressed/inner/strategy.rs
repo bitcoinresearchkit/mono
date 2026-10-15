@@ -40,29 +40,6 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
         Ok(())
     }
 
-    /// Serializes a slice of values to bytes.
-    #[inline]
-    fn values_to_bytes(values: &[T]) -> Vec<u8> {
-        let byte_len = size_of_val(values);
-        let mut bytes = Vec::with_capacity(byte_len);
-        if Self::IS_NATIVE_LAYOUT {
-            // SAFETY: native-layout values are their own byte image (`ValueStrategy` contract).
-            unsafe {
-                ptr::copy_nonoverlapping(
-                    values.as_ptr() as *const u8,
-                    bytes.as_mut_ptr(),
-                    byte_len,
-                );
-                bytes.set_len(byte_len);
-            }
-        } else {
-            for v in values {
-                Self::write_to_vec(v, &mut bytes);
-            }
-        }
-        bytes
-    }
-
     /// Deserializes bytes into an existing buffer, reusing its allocation.
     #[inline]
     fn bytes_to_values_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {

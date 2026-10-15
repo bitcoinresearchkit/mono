@@ -1,4 +1,5 @@
 use bitcoin::{Script, Witness as BitcoinWitness};
+use derive_more::{From, Into};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -10,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// hex strings - the format used by Bitcoin Core REST and mempool.space
 /// and matching brk's `script_sig: ScriptBuf` (bytes internally, hex
 /// on the wire).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, From, Into)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
 #[cfg_attr(feature = "schemars", schemars(with = "Vec<String>"))]
@@ -32,20 +33,6 @@ impl Witness {
     #[inline]
     pub(crate) fn taproot_leaf_script(&self) -> Option<&Script> {
         self.0.taproot_leaf_script().map(|leaf| leaf.script)
-    }
-}
-
-impl From<BitcoinWitness> for Witness {
-    #[inline]
-    fn from(w: BitcoinWitness) -> Self {
-        Self(w)
-    }
-}
-
-impl From<Witness> for BitcoinWitness {
-    #[inline]
-    fn from(w: Witness) -> Self {
-        w.0
     }
 }
 

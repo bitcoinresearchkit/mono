@@ -263,12 +263,4 @@ impl<T> AgeRange<T> {
     pub fn get_mut(&mut self, age: Age) -> &mut T {
         AgeRangeId::from(age).select_mut(self)
     }
-
-    pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|id| create(id.cohort()))
-    }
-
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
-        Self::try_from_fn(|id| create(id.cohort()))
-    }
 }

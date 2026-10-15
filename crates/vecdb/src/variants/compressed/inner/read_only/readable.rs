@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::result::Result;
 
 use super::{
@@ -153,27 +152,6 @@ where
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
         self.fold_range_at(from, to, (), |(), v| f(v));
-    }
-
-    #[inline]
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B
-    where
-        Self: Sized,
-    {
-        if C::cache(&self.cache).is_some() {
-            let mut f = f;
-            let Ok(acc) = self.try_fold_range_at(from, to, init, |acc, value| {
-                Ok::<_, Infallible>(f(acc, value))
-            });
-            return acc;
-        }
-        let len = self.base.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return init;
-        }
-        self.fold_source(from, to, len, init, f)
     }
 
     #[inline]

@@ -5,14 +5,15 @@
 use std::{
     cmp::Ordering::{self, Equal, Greater},
     mem::size_of,
-    path::Path,
+    path::PathBuf,
+    sync::Arc,
 };
 
 use log::trace;
 
 use super::{Block, BlockHandle, GlobalTableId};
 use crate::{
-    Cache, CompressionType, Error, KeyRange, Result, Table, file_accessor::FileAccessor,
+    Cache, CompressionType, DescriptorTable, Error, KeyRange, Result, Table,
     table::block::BlockType, version::run::Ranged,
 };
 
@@ -29,38 +30,40 @@ pub fn aggregate_run_key_range(tables: &[Table]) -> KeyRange {
 #[derive(Debug)]
 pub struct SliceIndexes(pub usize, pub usize);
 
-/// Loads a block from disk or block cache, if cached.
-///
-/// Also handles file descriptor opening and caching.
-#[warn(clippy::too_many_arguments)]
-pub fn load_block(
-    table_id: GlobalTableId,
-    path: &Path,
-    file_accessor: &FileAccessor,
-    cache: &Cache,
-    handle: &BlockHandle,
-    block_type: BlockType,
-    compression: CompressionType,
-) -> Result<Block> {
-    trace!("load {block_type:?} block {handle:?}");
+/// Where a table's blocks come from: the block cache, else the table file through the shared
+/// descriptor cache.
+#[derive(Clone)]
+pub struct BlockSource {
+    pub table_id: GlobalTableId,
+    pub path: Arc<PathBuf>,
+    pub descriptor_table: Arc<DescriptorTable>,
+    pub cache: Arc<Cache>,
+}
 
-    if let Some(block) = cache.get_block(table_id, handle.offset(), block_type) {
-        return Ok(block);
+impl BlockSource {
+    /// Loads a block, from the block cache if cached.
+    pub fn load(
+        &self,
+        handle: &BlockHandle,
+        block_type: BlockType,
+        compression: CompressionType,
+    ) -> Result<Block> {
+        trace!("load {block_type:?} block {handle:?}");
+        self.cache
+            .get_or_load(self.table_id, handle.offset(), block_type, || {
+                let fd = self
+                    .descriptor_table
+                    .access_or_open(self.table_id, &self.path)?;
+                let block = Block::from_file(&fd, *handle, compression)?;
+                if block.header.block_type != block_type {
+                    return Err(Error::InvalidTag((
+                        "BlockType",
+                        block.header.block_type.into(),
+                    )));
+                }
+                Ok(block)
+            })
     }
-
-    let fd = file_accessor.access_or_open(table_id, path)?;
-    let block = Block::from_file(&fd, *handle, compression)?;
-
-    if block.header.block_type != block_type {
-        return Err(Error::InvalidTag((
-            "BlockType",
-            block.header.block_type.into(),
-        )));
-    }
-
-    cache.insert_block(table_id, handle.offset(), block.clone());
-
-    Ok(block)
 }
 
 #[must_use]

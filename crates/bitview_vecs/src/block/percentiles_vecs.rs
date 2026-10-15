@@ -32,7 +32,7 @@ impl PercentilesVecs {
             Price::from_height_source(
                 &format!("{prefix}_{}", id.suffix()),
                 version,
-                stored.select(id),
+                stored.get(id),
                 indexes,
             )
         });

@@ -39,8 +39,8 @@ impl Vecs {
                 .stack_size(IMPORT_STACK_SIZE)
                 .spawn_scoped(scope, || -> Result<_> {
                     Ok((
-                        Box::new(ByEpoch::try_new(cohort)?),
-                        Box::new(Class::try_new(cohort)?),
+                        Box::new(ByEpoch::try_from_fn(|id| cohort(id.cohort()))?),
+                        Box::new(Class::try_from_fn(|id| cohort(id.cohort()))?),
                     ))
                 })?;
             let ranges = Box::new(AgeRange::try_from_fn(|id| {

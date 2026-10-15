@@ -120,22 +120,12 @@ impl Decodable<DataBlockParsedItem> for InternalValue {
         let val_len_i64 = val_len as i64;
         unwrap!(reader.seek_relative(val_len_i64));
 
-        Some(if is_value {
-            DataBlockParsedItem {
-                value_type,
-                seqno,
-                prefix: None,
-                key: SliceIndexes(key_start, key_start + key_len),
-                value: Some(SliceIndexes(val_offset, val_offset + val_len)),
-            }
-        } else {
-            DataBlockParsedItem {
-                value_type,
-                seqno,
-                prefix: None,
-                key: SliceIndexes(key_start, key_start + key_len),
-                value: None, // TODO: enum value/tombstone, so value is not Option for values
-            }
+        Some(DataBlockParsedItem {
+            value_type,
+            seqno,
+            prefix: None,
+            key: SliceIndexes(key_start, key_start + key_len),
+            value: is_value.then_some(SliceIndexes(val_offset, val_offset + val_len)),
         })
     }
 
@@ -195,28 +185,15 @@ impl Decodable<DataBlockParsedItem> for InternalValue {
         let val_len_i64 = val_len as i64;
         unwrap!(reader.seek_relative(val_len_i64));
 
-        Some(if is_value {
-            DataBlockParsedItem {
-                value_type,
-                seqno,
-                prefix: Some(SliceIndexes(
-                    base_key_offset,
-                    base_key_offset + shared_prefix_len,
-                )),
-                key: SliceIndexes(key_offset, key_offset + rest_key_len),
-                value: Some(SliceIndexes(val_offset, val_offset + val_len)),
-            }
-        } else {
-            DataBlockParsedItem {
-                value_type,
-                seqno,
-                prefix: Some(SliceIndexes(
-                    base_key_offset,
-                    base_key_offset + shared_prefix_len,
-                )),
-                key: SliceIndexes(key_offset, key_offset + rest_key_len),
-                value: None,
-            }
+        Some(DataBlockParsedItem {
+            value_type,
+            seqno,
+            prefix: Some(SliceIndexes(
+                base_key_offset,
+                base_key_offset + shared_prefix_len,
+            )),
+            key: SliceIndexes(key_offset, key_offset + rest_key_len),
+            value: is_value.then_some(SliceIndexes(val_offset, val_offset + val_len)),
         })
     }
 }

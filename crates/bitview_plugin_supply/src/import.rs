@@ -3,7 +3,7 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::{Halving, PartsPerMillionSigned64};
+use bitview_primitives::PartsPerMillionSigned64;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
     LazyWindowStartVec, shapes::Windows,
@@ -46,8 +46,7 @@ impl Vecs {
                 PartsPerMillionSigned64::from(if supply.is_zero() {
                     f64::NAN
                 } else {
-                    Halving::from(height).subsidy().as_u128() as f64 * 52_560.0
-                        / supply.as_u128() as f64
+                    height.subsidy().as_u128() as f64 * 52_560.0 / supply.as_u128() as f64
                 })
             },
         );

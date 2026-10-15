@@ -10,7 +10,7 @@ use crate::{
     Format, ImportOptions, ReadWriteBaseVec, Result as CrateResult, VecIndex, VecValue, Version,
     WritableVec,
     cache::{CachePolicy, NoCache},
-    likely, remove_vec_with, vec_region_name_with,
+    remove_vec_with, vec_region_name_with,
 };
 
 pub mod any_stored_vec;
@@ -32,7 +32,6 @@ pub struct ReadWriteCompressedVec<I, T: VecValue, S, C: CachePolicy = NoCache> {
     base: ReadWriteBaseVec<I, T>,
     pub(super) cache: C::State<T>,
     pages: Arc<RwLock<Pages>>,
-    pages_per_chunk: usize,
     _strategy: PhantomData<S>,
 }
 
@@ -85,12 +84,6 @@ where
         let db = options.db;
         let name = options.name;
         let initial_capacity = options.initial_capacity.unwrap_or(I::INITIAL_CAPACITY);
-        let compression_chunk_size = options
-            .max_compression_chunk_size
-            .unwrap_or(S::MAX_UNCOMPRESSED_CHUNK_SIZE)
-            .min(S::MAX_UNCOMPRESSED_CHUNK_SIZE);
-        let pages_per_chunk =
-            (compression_chunk_size / COMPRESSED_PAGE_SIZE).clamp(1, PAGES_PER_BLOCK);
 
         let cache = C::create()?;
         let base = ReadWriteBaseVec::import(options, format)?;
@@ -112,7 +105,6 @@ where
             base,
             cache,
             pages: Arc::new(RwLock::new(pages)),
-            pages_per_chunk,
             _strategy: PhantomData,
         };
 
@@ -155,6 +147,17 @@ where
     }
 
     pub const PER_PAGE: usize = COMPRESSED_PAGE_SIZE / size_of::<T>();
+    /// Pages compressed together: the strategy's chunk size, within one page block.
+    const PAGES_PER_CHUNK: usize = {
+        let pages = S::MAX_UNCOMPRESSED_CHUNK_SIZE / COMPRESSED_PAGE_SIZE;
+        if pages == 0 {
+            1
+        } else if pages > PAGES_PER_BLOCK {
+            PAGES_PER_BLOCK
+        } else {
+            pages
+        }
+    };
 
     #[inline(always)]
     pub fn index_to_page_index(index: usize) -> usize {
@@ -182,7 +185,7 @@ where
         let start_page = Self::index_to_page_index(from);
         let end_page = Self::index_to_page_index(to - 1);
         let mut decoder = PageDecoder::<T, S>::default();
-        let mut page_buf = Vec::with_capacity(Self::PER_PAGE);
+        let mut scratch = Vec::new();
         for page_idx in start_page..=end_page {
             let page_start = Self::page_index_to_index(page_idx);
             let page = pages
@@ -193,15 +196,15 @@ where
             let values_count = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
             let local_from = from.saturating_sub(page_start);
             let local_to = (to - page_start).min(values_count);
-
-            if !page.is_raw() && likely(local_from == 0) {
-                let before = buf.len();
-                decoder.decode_append(page, header, body, values_count, buf)?;
-                buf.truncate(before + local_to);
-            } else {
-                decoder.decode_into(page, header, body, values_count, &mut page_buf)?;
-                buf.extend_from_slice(&page_buf[local_from..local_to]);
-            }
+            decoder.decode_range_append(
+                page,
+                header,
+                body,
+                values_count,
+                local_from..local_to,
+                &mut scratch,
+                buf,
+            )?;
         }
         Ok(())
     }
@@ -310,15 +313,6 @@ where
         let mut values = Vec::with_capacity(to.saturating_sub(from));
         Self::read_stored_pages_into(&reader, &pages, from, to, &mut values)?;
         Ok(values)
-    }
-    #[inline(always)]
-    fn fold_source<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B {
-        let mmap = Self::prefers_mmap(self.region(), &self.pages, from, to);
-        if mmap {
-            CompressedMmapSource::new(self, from, to).fold(init, f)
-        } else {
-            CompressedIoSource::new(self, from, to).fold(init, f)
-        }
     }
     #[inline(always)]
     fn try_fold_source<B, E, F: FnMut(B, T) -> Result<B, E>>(

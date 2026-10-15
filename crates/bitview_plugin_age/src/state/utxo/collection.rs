@@ -20,9 +20,9 @@ pub struct UTXOStates {
 impl UTXOStates {
     pub fn new() -> Self {
         Self {
-            age_range: AgeRange::new(|_| UTXOCohortState::default()),
-            epoch: ByEpoch::new(|_| UTXOCohortState::default()),
-            class: Class::new(|_| UTXOCohortState::default()),
+            age_range: AgeRange::from_fn(|_| UTXOCohortState::default()),
+            epoch: ByEpoch::from_fn(|_| UTXOCohortState::default()),
+            class: Class::from_fn(|_| UTXOCohortState::default()),
             transient: UTXOTransientState::default(),
         }
     }

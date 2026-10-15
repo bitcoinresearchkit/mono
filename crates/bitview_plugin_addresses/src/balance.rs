@@ -181,7 +181,7 @@ impl Balances {
             capital: &address_capital,
         };
         Ok(Self {
-            bands: AmountRange::try_new(|cohort| BalanceVecs::import(ctx, cohort, totals))?,
+            bands: AmountRange::try_from_fn(|id| BalanceVecs::import(ctx, id.cohort(), totals))?,
             capital,
         })
     }

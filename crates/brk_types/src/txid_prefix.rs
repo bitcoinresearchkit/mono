@@ -1,7 +1,6 @@
 use derive_more::Deref;
 
 use super::Txid;
-use crate::StoreValue;
 
 /// First-8-bytes prefix of a txid, packed as a `u64`. Both `From<&Txid>`
 /// (via `from_le_bytes`) and `StoreValue` (via `from_be_bytes`,
@@ -26,16 +25,4 @@ impl From<&Txid> for TxidPrefix {
     }
 }
 
-impl StoreValue for TxidPrefix {
-    type Bytes = [u8; 8];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0.to_be_bytes()
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(u64::from_be_bytes(bytes))
-    }
-}
+crate::impl_store_value!(TxidPrefix, u64);

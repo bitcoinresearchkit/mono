@@ -1,6 +1,6 @@
 use bitview_types::{DifficultyEntry, HashrateEntry, HashrateSummary, TimePeriod};
 use brk_types::{Height, TARGET_BLOCKS_PER_DAY_F64};
-use vecdb::{ReadableOptionVec, ReadableVec, VecIndex};
+use vecdb::{ReadableVec, VecIndex};
 
 use super::{epochs::iter_difficulty_epochs, start_height};
 use crate::{Error, OptionData, Query, Result};
@@ -109,7 +109,8 @@ impl Query {
             .rate
             .block
             .day1
-            .collect_one_flat(day)
+            .collect_one(day)
+            .flatten()
             .data()? as u128)
     }
 

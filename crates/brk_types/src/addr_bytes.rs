@@ -2,13 +2,14 @@ use std::str::FromStr;
 
 use bitcoin::{Address, Network, PublicKey, ScriptBuf, opcodes, script::Builder};
 use brk_error::Error;
+use derive_more::From;
 
 use super::{
     OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes, P2WPKHBytes,
     P2WSHBytes,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From)]
 pub enum AddressBytes {
     P2PK65(P2PK65Bytes), // 65
     P2PK33(P2PK33Bytes), // 33
@@ -67,29 +68,29 @@ impl AddressBytes {
     pub fn to_script_pubkey(&self) -> ScriptBuf {
         match self {
             AddressBytes::P2PK65(b) => Builder::new()
-                .push_slice(***b)
+                .push_slice(**b)
                 .push_opcode(opcodes::all::OP_CHECKSIG)
                 .into_script(),
             AddressBytes::P2PK33(b) => Builder::new()
-                .push_slice(***b)
+                .push_slice(**b)
                 .push_opcode(opcodes::all::OP_CHECKSIG)
                 .into_script(),
             AddressBytes::P2PKH(b) => Builder::new()
                 .push_opcode(opcodes::all::OP_DUP)
                 .push_opcode(opcodes::all::OP_HASH160)
-                .push_slice(***b)
+                .push_slice(**b)
                 .push_opcode(opcodes::all::OP_EQUALVERIFY)
                 .push_opcode(opcodes::all::OP_CHECKSIG)
                 .into_script(),
             AddressBytes::P2SH(b) => Builder::new()
                 .push_opcode(opcodes::all::OP_HASH160)
-                .push_slice(***b)
+                .push_slice(**b)
                 .push_opcode(opcodes::all::OP_EQUAL)
                 .into_script(),
-            AddressBytes::P2WPKH(b) => Builder::new().push_int(0).push_slice(***b).into_script(),
-            AddressBytes::P2WSH(b) => Builder::new().push_int(0).push_slice(***b).into_script(),
-            AddressBytes::P2TR(b) => Builder::new().push_int(1).push_slice(***b).into_script(),
-            AddressBytes::P2A(b) => Builder::new().push_int(1).push_slice(***b).into_script(),
+            AddressBytes::P2WPKH(b) => Builder::new().push_int(0).push_slice(**b).into_script(),
+            AddressBytes::P2WSH(b) => Builder::new().push_int(0).push_slice(**b).into_script(),
+            AddressBytes::P2TR(b) => Builder::new().push_int(1).push_slice(**b).into_script(),
+            AddressBytes::P2A(b) => Builder::new().push_int(1).push_slice(**b).into_script(),
         }
     }
 }
@@ -120,62 +121,6 @@ impl TryFrom<(&ScriptBuf, OutputType)> for AddressBytes {
                 unreachable!()
             }
         })
-    }
-}
-
-impl From<P2PK65Bytes> for AddressBytes {
-    #[inline]
-    fn from(value: P2PK65Bytes) -> Self {
-        Self::P2PK65(value)
-    }
-}
-
-impl From<P2PK33Bytes> for AddressBytes {
-    #[inline]
-    fn from(value: P2PK33Bytes) -> Self {
-        Self::P2PK33(value)
-    }
-}
-
-impl From<P2PKHBytes> for AddressBytes {
-    #[inline]
-    fn from(value: P2PKHBytes) -> Self {
-        Self::P2PKH(value)
-    }
-}
-
-impl From<P2SHBytes> for AddressBytes {
-    #[inline]
-    fn from(value: P2SHBytes) -> Self {
-        Self::P2SH(value)
-    }
-}
-
-impl From<P2WPKHBytes> for AddressBytes {
-    #[inline]
-    fn from(value: P2WPKHBytes) -> Self {
-        Self::P2WPKH(value)
-    }
-}
-
-impl From<P2WSHBytes> for AddressBytes {
-    #[inline]
-    fn from(value: P2WSHBytes) -> Self {
-        Self::P2WSH(value)
-    }
-}
-
-impl From<P2TRBytes> for AddressBytes {
-    #[inline]
-    fn from(value: P2TRBytes) -> Self {
-        Self::P2TR(value)
-    }
-}
-
-impl From<P2ABytes> for AddressBytes {
-    #[inline]
-    fn from(value: P2ABytes) -> Self {
-        Self::P2A(value)
     }
 }
 

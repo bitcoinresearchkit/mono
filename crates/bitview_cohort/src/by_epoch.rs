@@ -46,14 +46,6 @@ define_cohort_id!(
 );
 
 impl<T> ByEpoch<T> {
-    pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|id| create(id.cohort()))
-    }
-
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
-        Self::try_from_fn(|id| create(id.cohort()))
-    }
-
     pub fn mut_vec_from_height(&mut self, height: Height) -> Option<&mut T> {
         let halving = usize::from(Halving::from(height));
         let id = EpochId::ALL.get(halving).copied();
@@ -63,7 +55,7 @@ impl<T> ByEpoch<T> {
 }
 
 impl EpochId {
-    pub(crate) const fn cohort(self) -> CohortId {
+    pub const fn cohort(self) -> CohortId {
         CohortId::Epoch(self)
     }
 }

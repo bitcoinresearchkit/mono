@@ -14,9 +14,6 @@ use super::{Sats, VSize, Weight};
 use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
 const MILLIS_PER_SAT_VBYTE: u64 = 1_000;
@@ -258,13 +255,6 @@ impl CheckedSub for FeeRate {
         } else {
             self.0.checked_sub(rhs.0).map(Self)
         }
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for FeeRate {
-    #[inline]
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
     }
 }
 

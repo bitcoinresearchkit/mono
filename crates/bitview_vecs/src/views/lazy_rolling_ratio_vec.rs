@@ -8,10 +8,8 @@ use serde::Serialize;
 use vecdb::{
     AnyExportableVec, AnyVec, BinaryTransform, CheckedSub, Formattable, PrintableIndex,
     ReadableBoxedVec, ReadableCloneableVec, ReadableVec, SparseRead, TypedVec, VecIndex, VecValue,
-    Version, short_type_name,
+    Version, read_batches, short_type_name,
 };
-
-use super::batches::batches;
 
 mod input;
 
@@ -80,7 +78,7 @@ where
     ) -> Result<(), E> {
         let mut starts = Vec::new();
         let (mut source, mut operand) = (RollingInput::default(), RollingInput::default());
-        for (at, end) in batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
+        for (at, end) in read_batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
             starts.clear();
             self.window_starts.read_into_at(at, end, &mut starts);
             let bounds = starts.iter().filter_map(Self::previous_index).fold(

@@ -14,42 +14,6 @@ where
     S: CompressionStrategy<T>,
 {
     #[inline(always)]
-    fn fold_source<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        len: usize,
-        init: B,
-        f: F,
-    ) -> B {
-        let mmap = ReadWriteCompressedVec::<I, T, S>::prefers_mmap(
-            self.base.region(),
-            &self.pages,
-            from,
-            to,
-        );
-        if mmap {
-            CompressedMmapSource::<I, T, S>::new_from_parts(
-                self.base.region(),
-                &self.pages,
-                len,
-                from,
-                to,
-            )
-            .fold(init, f)
-        } else {
-            CompressedIoSource::<I, T, S>::new_from_parts(
-                self.base.region(),
-                &self.pages,
-                len,
-                from,
-                to,
-            )
-            .fold(init, f)
-        }
-    }
-
-    #[inline(always)]
     fn try_fold_source<B, E, F: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,

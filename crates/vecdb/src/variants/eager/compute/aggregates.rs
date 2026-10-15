@@ -27,43 +27,15 @@ where
         usize: From<B>,
     {
         let mut cumulative = None;
-        self.compute_grouped_from_indexes(
-            max_from,
-            first_indexes,
-            indexes_count,
-            source,
-            |sum, value| sum + transform(value),
-            |this, sum| {
-                let cumulative =
-                    cumulative.get_or_insert_with(|| this.collect_last().unwrap_or_default());
-                // Empty groups preserve the total without an extra floating-point addition.
-                if let Some(sum) = sum {
-                    *cumulative += sum;
-                }
-                this.push(*cumulative);
-            },
-            exit,
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn compute_grouped_from_indexes<A, B, S>(
-        &mut self,
-        max_from: V::I,
-        first_indexes: &impl ReadableVec<V::I, A>,
-        indexes_count: &impl ReadableVec<V::I, B>,
-        source: &impl ReadableVec<A, S>,
-        mut reduce: impl FnMut(V::T, S) -> V::T,
-        mut emit: impl FnMut(&mut Self, Option<V::T>),
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        V::T: Default,
-        A: VecIndex + VecValue,
-        B: VecValue,
-        S: VecValue,
-        usize: From<B>,
-    {
+        let mut emit = |this: &mut Self, sum: Option<V::T>| {
+            let cumulative =
+                cumulative.get_or_insert_with(|| this.collect_last().unwrap_or_default());
+            // Empty groups preserve the total without an extra floating-point addition.
+            if let Some(sum) = sum {
+                *cumulative += sum;
+            }
+            this.push(*cumulative);
+        };
         self.compute_to(
             max_from,
             indexes_count.len().min(first_indexes.len()),
@@ -93,7 +65,7 @@ where
                     let mut remaining = counts_batch[group_idx];
 
                     source.fold_range_at(pos, pos + total_count, V::T::default(), |sum, value| {
-                        let sum = reduce(sum, value);
+                        let sum = sum + transform(value);
                         remaining -= 1;
                         if remaining == 0 {
                             emit(this, Some(sum));

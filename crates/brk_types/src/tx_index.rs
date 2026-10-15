@@ -3,8 +3,6 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::StoreValue;
-
 #[cfg(feature = "storage")]
 use vecdb::{Pco, PrintableIndex, VecIndex};
 
@@ -56,19 +54,7 @@ impl From<TxIndex> for u64 {
     }
 }
 
-impl StoreValue for TxIndex {
-    type Bytes = [u8; 4];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0.to_be_bytes()
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(u32::from_be_bytes(bytes))
-    }
-}
+crate::impl_store_value!(TxIndex, u32);
 
 impl TxIndex {
     pub fn index_name() -> &'static str {
@@ -82,9 +68,6 @@ impl TxIndex {
 impl PrintableIndex for TxIndex {
     fn to_string() -> &'static str {
         Self::index_name()
-    }
-    fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
     }
 }
 

@@ -2,7 +2,6 @@ use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::Halving;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{CheckedSub, Height, Sats};
@@ -17,7 +16,7 @@ fn claimed_subsidy(_: Height, coinbase: Sats, fees: Sats) -> Sats {
 
 /// Consensus caps the coinbase at the scheduled subsidy plus fees.
 fn unclaimed_rewards(height: Height, coinbase: Sats, fees: Sats) -> Sats {
-    Halving::from(height).subsidy() + fees - coinbase
+    height.subsidy() + fees - coinbase
 }
 
 impl Vecs {

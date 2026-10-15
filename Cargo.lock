@@ -382,6 +382,7 @@ name = "bitview_catalog"
 version = "0.12.2"
 dependencies = [
  "bitview_primitives",
+ "derive_more",
  "indexmap",
  "schemars",
  "serde",
@@ -1080,7 +1081,6 @@ dependencies = [
  "rapidhash",
  "rayon",
  "rustc-hash",
- "ryu",
  "schemars",
  "serde",
  "serde_json",

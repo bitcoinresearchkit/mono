@@ -80,10 +80,7 @@ where
         true
     }
 
-    #[inline]
-    fn index_type_to_string(&self) -> &'static str {
-        self.vec.index_type_to_string()
-    }
+    crate::any_vec_type_methods!(V::I, V::T);
 
     fn region_names(&self) -> Vec<String> {
         let mut names = self.vec.region_names();
@@ -94,16 +91,6 @@ where
             ));
         }
         names
-    }
-
-    #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        self.vec.value_type_to_size_of()
-    }
-
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        self.vec.value_type_to_string()
     }
 }
 
@@ -189,34 +176,6 @@ where
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(V::T)) {
         self.fold_range_at(from, to, (), |(), value| f(value));
-    }
-
-    fn fold_range_at<B, F>(&self, from: usize, to: usize, init: B, mut f: F) -> B
-    where
-        Self: Sized,
-        F: FnMut(B, V::T) -> B,
-    {
-        let len = self.vec.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return init;
-        }
-
-        let holes = self.holes.read_recursive();
-        if holes.is_empty() {
-            return self.vec.fold_range_at(from, to, init, f);
-        }
-
-        let mut start = from;
-        let mut acc = init;
-        for &hole in holes.range(from..to) {
-            if start < hole {
-                acc = self.vec.fold_range_at(start, hole, acc, &mut f);
-            }
-            start = hole + 1;
-        }
-        self.vec.fold_range_at(start, to, acc, f)
     }
 
     fn try_fold_range_at<B, E, F>(&self, from: usize, to: usize, init: B, mut f: F) -> Result<B, E>

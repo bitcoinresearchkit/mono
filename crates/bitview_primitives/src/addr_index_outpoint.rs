@@ -1,6 +1,6 @@
 use std::mem;
 
-use brk_types::{OutPoint, StoreValue, TxIndex, Vout};
+use brk_types::{OutPoint, TxIndex, Vout};
 use serde::Serialize;
 
 use crate::TypeIndex;
@@ -40,16 +40,4 @@ impl From<(TypeIndex, OutPoint)> for AddrIndexOutPoint {
     }
 }
 
-impl StoreValue for AddrIndexOutPoint {
-    type Bytes = [u8; 10];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(bytes)
-    }
-}
+brk_types::impl_store_value!(AddrIndexOutPoint, [u8; 10]);

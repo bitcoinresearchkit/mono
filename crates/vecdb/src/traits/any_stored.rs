@@ -52,12 +52,23 @@ pub trait AnyStoredVec: AnyVec {
         self.header().stamp()
     }
 
+    /// Persists a changed header, such as a new stamp, without touching data.
+    #[doc(hidden)]
+    fn write_header(&mut self) -> Result<()> {
+        if self.header().modified() {
+            let region = self.region().clone();
+            self.mut_header().write(&region)?;
+        }
+        Ok(())
+    }
+
+    /// Writes the data, then the header with its new stamp.
     #[inline]
     fn stamped_write(&mut self, stamp: Stamp) -> Result<()> {
         let guard = self.header().begin_write()?;
         self.write()?;
         self.update_stamp(stamp);
-        self.write()?;
+        self.write_header()?;
         guard.finish(Ok(()))
     }
 

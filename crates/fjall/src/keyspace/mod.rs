@@ -121,18 +121,6 @@ impl Keyspace {
             .map(|item| item.map_err(Into::into))
     }
 
-    /// Iterates over matching keys using the specified owned record bytes.
-    #[must_use]
-    pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
-        &self,
-        prefix: &[u8],
-    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
-        self.inner
-            .tree
-            .prefix_as(prefix)
-            .map(|item| item.map_err(Into::into))
-    }
-
     /// Pins the keyspace's current table layout for later reads.
     #[must_use]
     pub fn read_view(&self) -> ReadView {

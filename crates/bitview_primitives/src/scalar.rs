@@ -38,13 +38,7 @@ macro_rules! scalar {
             }
         }
 
-        #[cfg(feature = "storage")]
-        impl ::vecdb::Formattable for $name {
-            #[inline(always)]
-            fn write_to(&self, buf: &mut Vec<u8>) {
-                buf.extend_from_slice(::itoa::Buffer::new().format(self.0).as_bytes());
-            }
-        }
+        ::brk_types::impl_int_format!($name);
     };
 
     // An integer whose minimum is its undefined value, served as null.
@@ -76,6 +70,12 @@ macro_rules! scalar {
             #[inline]
             fn from(value: $name) -> Self {
                 if value == $name::NAN { f64::NAN } else { value.0 as f64 }
+            }
+        }
+
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                f.write_str(::itoa::Buffer::new().format(self.0))
             }
         }
 
@@ -161,14 +161,6 @@ macro_rules! scalar {
             }
         }
 
-        #[cfg(feature = "storage")]
-        impl ::vecdb::CheckedSub for $name {
-            #[inline]
-            fn checked_sub(self, rhs: Self) -> Option<Self> {
-                self.0.checked_sub(rhs.0).map(Self)
-            }
-        }
-
         impl ::std::ops::Add for $name {
             type Output = Self;
             #[inline]
@@ -196,12 +188,6 @@ macro_rules! scalar {
             #[inline]
             fn sub_assign(&mut self, rhs: Self) {
                 self.0 -= rhs.0;
-            }
-        }
-
-        impl ::std::fmt::Display for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                f.write_str(::itoa::Buffer::new().format(self.0))
             }
         }
 
@@ -294,14 +280,6 @@ macro_rules! scalar {
             }
         }
 
-        #[cfg(feature = "storage")]
-        impl ::vecdb::CheckedSub for $name {
-            #[inline]
-            fn checked_sub(self, rhs: Self) -> Option<Self> {
-                Some(Self(self.0 - rhs.0))
-            }
-        }
-
         impl ::std::ops::Add for $name {
             type Output = Self;
             #[inline]
@@ -346,64 +324,7 @@ macro_rules! scalar {
             }
         }
 
-        impl PartialEq for $name {
-            fn eq(&self, other: &Self) -> bool {
-                match (self.0.is_nan(), other.0.is_nan()) {
-                    (true, true) => true,
-                    (false, false) => self.0 == other.0,
-                    _ => false,
-                }
-            }
-        }
-
-        impl Eq for $name {}
-
-        impl PartialOrd for $name {
-            fn partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
-                Some(self.cmp(other))
-            }
-        }
-
-        /// NaN orders first.
-        impl Ord for $name {
-            fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
-                match (self.0.is_nan(), other.0.is_nan()) {
-                    (true, true) => ::std::cmp::Ordering::Equal,
-                    (true, false) => ::std::cmp::Ordering::Less,
-                    (false, true) => ::std::cmp::Ordering::Greater,
-                    (false, false) => self.0.partial_cmp(&other.0).unwrap(),
-                }
-            }
-        }
-
-        impl ::std::fmt::Display for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                f.write_str(::ryu::Buffer::new().format(self.0))
-            }
-        }
-
-        #[cfg(feature = "storage")]
-        impl ::vecdb::Formattable for $name {
-            const UNDEFINED: bool = true;
-
-            /// Non-finite: an empty CSV cell.
-            #[inline(always)]
-            fn write_to(&self, buf: &mut Vec<u8>) {
-                if self.0.is_finite() {
-                    buf.extend_from_slice(::ryu::Buffer::new().format_finite(self.0).as_bytes());
-                }
-            }
-
-            /// One finiteness check on the hot path.
-            #[inline(always)]
-            fn fmt_json(&self, buf: &mut Vec<u8>) {
-                if self.0.is_finite() {
-                    buf.extend_from_slice(::ryu::Buffer::new().format_finite(self.0).as_bytes());
-                } else {
-                    buf.extend_from_slice(b"null");
-                }
-            }
-        }
+        ::brk_types::impl_float_ord_format!($name);
     };
 }
 

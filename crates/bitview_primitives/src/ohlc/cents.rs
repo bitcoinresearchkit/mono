@@ -6,13 +6,9 @@ use std::{
 
 use brk_types::{Cents, Dollars};
 use schemars::{JsonSchema, Schema, SchemaGenerator};
-use serde::{
-    Deserialize, Deserializer, Serialize, Serializer,
-    de::{SeqAccess, Visitor},
-    ser::SerializeTuple,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, ser::SerializeTuple};
 
-use super::{Close, High, Low, OHLCDollars, Open};
+use super::OHLCDollars;
 
 #[cfg(feature = "storage")]
 use vecdb::Result as VecdbResult;
@@ -24,32 +20,21 @@ use vecdb::{Bytes, Formattable};
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
 pub struct OHLCCents {
-    pub open: Open<Cents>,
-    pub high: High<Cents>,
-    pub low: Low<Cents>,
-    pub close: Close<Cents>,
+    pub open: Cents,
+    pub high: Cents,
+    pub low: Cents,
+    pub close: Cents,
 }
 
-impl From<(Open<Cents>, High<Cents>, Low<Cents>, Close<Cents>)> for OHLCCents {
+/// A single price is a flat candle: every role takes it.
+impl From<Cents> for OHLCCents {
     #[inline]
-    fn from(value: (Open<Cents>, High<Cents>, Low<Cents>, Close<Cents>)) -> Self {
+    fn from(price: Cents) -> Self {
         Self {
-            open: value.0,
-            high: value.1,
-            low: value.2,
-            close: value.3,
-        }
-    }
-}
-
-impl From<Close<Cents>> for OHLCCents {
-    #[inline]
-    fn from(value: Close<Cents>) -> Self {
-        Self {
-            open: Open::from(value),
-            high: High::from(value),
-            low: Low::from(value),
-            close: value,
+            open: price,
+            high: price,
+            low: price,
+            close: price,
         }
     }
 }
@@ -68,49 +53,21 @@ impl Serialize for OHLCCents {
     }
 }
 
+/// From `[open, high, low, close]`.
 macro_rules! impl_ohlc_deserialize {
-    ($ohlc_type:ty, $inner_type:ty) => {
+    ($ohlc_type:ident, $inner_type:ty) => {
         impl<'de> Deserialize<'de> for $ohlc_type {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
                 D: Deserializer<'de>,
             {
-                struct OHLCVisitor;
-
-                impl<'de> Visitor<'de> for OHLCVisitor {
-                    type Value = $ohlc_type;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                        formatter.write_str("a tuple of 4 elements (open, high, low, close)")
-                    }
-
-                    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-                    where
-                        A: SeqAccess<'de>,
-                    {
-                        let open = seq
-                            .next_element::<$inner_type>()?
-                            .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
-                        let high = seq
-                            .next_element::<$inner_type>()?
-                            .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
-                        let low = seq
-                            .next_element::<$inner_type>()?
-                            .ok_or_else(|| serde::de::Error::invalid_length(2, &self))?;
-                        let close = seq
-                            .next_element::<$inner_type>()?
-                            .ok_or_else(|| serde::de::Error::invalid_length(3, &self))?;
-
-                        Ok(Self::Value::from((
-                            Open::new(open),
-                            High::new(high),
-                            Low::new(low),
-                            Close::new(close),
-                        )))
-                    }
-                }
-
-                deserializer.deserialize_tuple(4, OHLCVisitor)
+                let [open, high, low, close] = <[$inner_type; 4]>::deserialize(deserializer)?;
+                Ok($ohlc_type {
+                    open,
+                    high,
+                    low,
+                    close,
+                })
             }
         }
     };
@@ -167,13 +124,13 @@ impl Formattable for OHLCCents {
             "undefined OHLC price"
         );
         buf.push(b'[');
-        (*self.open).fmt_json(buf);
+        self.open.fmt_json(buf);
         buf.push(b',');
-        (*self.high).fmt_json(buf);
+        self.high.fmt_json(buf);
         buf.push(b',');
-        (*self.low).fmt_json(buf);
+        self.low.fmt_json(buf);
         buf.push(b',');
-        (*self.close).fmt_json(buf);
+        self.close.fmt_json(buf);
         buf.push(b']');
     }
 
@@ -200,10 +157,10 @@ unsafe impl Bytes for OHLCCents {
 
     fn from_bytes(bytes: &[u8]) -> VecdbResult<Self> {
         Ok(Self {
-            open: Open::<Cents>::from_bytes(&bytes[0..8])?,
-            high: High::<Cents>::from_bytes(&bytes[8..16])?,
-            low: Low::<Cents>::from_bytes(&bytes[16..24])?,
-            close: Close::<Cents>::from_bytes(&bytes[24..32])?,
+            open: Cents::from_bytes(&bytes[0..8])?,
+            high: Cents::from_bytes(&bytes[8..16])?,
+            low: Cents::from_bytes(&bytes[16..24])?,
+            close: Cents::from_bytes(&bytes[24..32])?,
         })
     }
 }

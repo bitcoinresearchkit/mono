@@ -17,7 +17,7 @@ macro_rules! ohlc_field {
         impl UnaryTransform<OHLCCents, Cents> for $name {
             #[inline(always)]
             fn apply(cents: OHLCCents) -> Cents {
-                *cents.$field
+                cents.$field
             }
         }
     )+};

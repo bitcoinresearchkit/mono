@@ -28,24 +28,6 @@ where
         self.base.stored_len()
     }
     #[inline(always)]
-    fn fold_source<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        len: usize,
-        init: B,
-        f: F,
-    ) -> B {
-        let offset = HEADER_OFFSET + from * size_of::<T>();
-        let bytes = (to - from) * size_of::<T>();
-        if self.base.region().prefers_mmap(offset, bytes) {
-            RawMmapSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
-                .fold(init, f)
-        } else {
-            RawIoSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to).fold(init, f)
-        }
-    }
-    #[inline(always)]
     fn try_fold_source<B, E, F: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,

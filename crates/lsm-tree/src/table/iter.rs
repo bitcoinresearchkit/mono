@@ -2,20 +2,17 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::{marker::PhantomData, path::PathBuf, sync::Arc};
+use std::marker::PhantomData;
 
 use super::{
-    DataBlock, GlobalTableId, Table, bound::Bound, data_block::DataBlock as DataBlockDataBlock,
+    DataBlock, Table, bound::Bound, data_block::DataBlock as DataBlockDataBlock,
     owned_data_block_iter::OwnedDataBlockIter,
 };
 use crate::{
-    Cache, CompressionType, InternalValue, RecordBytes, Result, Slice,
-    file_accessor::FileAccessor,
+    InternalValue, RecordBytes, Result, Slice,
     table::{
-        BlockHandle, KeyedBlockHandle,
-        block::BlockType,
+        KeyedBlockHandle,
         block_index::{BlockIndexIter, BlockIndexIterImpl},
-        util::load_block,
     },
 };
 
@@ -25,18 +22,10 @@ fn create_data_block_reader(block: DataBlock) -> OwnedDataBlockIter {
 
 pub struct Iter<K = Slice, V = Slice> {
     record: PhantomData<(K, V)>,
-    _table: Table,
-    table_id: GlobalTableId,
-    path: Arc<PathBuf>,
-
-    global_seqno: u64,
+    table: Table,
 
     #[expect(clippy::struct_field_names)]
     index_iter: BlockIndexIterImpl,
-
-    file_accessor: FileAccessor,
-    cache: Arc<Cache>,
-    compression: CompressionType,
 
     index_initialized: bool,
     lo_data_block: Option<OwnedDataBlockIter>,
@@ -47,25 +36,10 @@ pub struct Iter<K = Slice, V = Slice> {
 
 impl<K: RecordBytes, V: RecordBytes> Iter<K, V> {
     pub fn new(table: Table, index_iter: BlockIndexIterImpl) -> Self {
-        let table_id = table.global_id();
-        let global_seqno = table.global_seqno();
-        let path = table.path.clone();
-        let file_accessor = table.file_accessor.clone();
-        let cache = table.cache.clone();
-        let compression = table.metadata.data_block_compression;
-
         Self {
             record: PhantomData,
-            _table: table,
-            table_id,
-            path,
-
-            global_seqno,
-
+            table,
             index_iter,
-            file_accessor,
-            cache,
-            compression,
 
             index_initialized: false,
             lo_data_block: None,
@@ -109,16 +83,8 @@ impl<K: RecordBytes, V: RecordBytes> Iter<K, V> {
     }
 
     fn read_block(&self, handle: &KeyedBlockHandle) -> Result<OwnedDataBlockIter> {
-        let block = load_block(
-            self.table_id,
-            &self.path,
-            &self.file_accessor,
-            &self.cache,
-            &BlockHandle::new(handle.offset(), handle.size()),
-            BlockType::Data,
-            self.compression,
-        )?;
-        Ok(create_data_block_reader(DataBlock::new(block)))
+        let block = self.table.load_data_block(handle.as_ref())?;
+        Ok(create_data_block_reader(block))
     }
 
     /// Returns the upper bound if it can cut into the block ending at `handle`'s key.
@@ -131,7 +97,7 @@ impl<K: RecordBytes, V: RecordBytes> Iter<K, V> {
 
     fn rebase(&self, item: Result<InternalValue<K, V>>) -> Result<InternalValue<K, V>> {
         item.map(|mut value| {
-            value.key.seqno += self.global_seqno;
+            value.key.seqno += self.table.global_seqno();
             value
         })
     }

@@ -62,9 +62,6 @@ impl PrintableIndex for TxInIndex {
     fn to_string() -> &'static str {
         Self::index_name()
     }
-    fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
-    }
 }
 
 #[cfg(feature = "storage")]

@@ -11,7 +11,7 @@ use crate::{AnyStoredVec, Pages, VecIndex, VecValue, cache::CachePolicy, unlikel
 /// Read-only mmap-backed source over a compressed vector.
 ///
 /// Only sees **stored** (persisted) values. Pages are decoded lazily —
-/// only when fold/for_each reaches them. Consumed by fold/try_fold/for_each.
+/// only when fold/for_each reaches them. Consumed by try_fold/for_each.
 pub struct CompressedMmapSource<'a, I, T, S>
 where
     T: VecValue,
@@ -126,16 +126,6 @@ where
         while let Some((at, values)) = self.next_chunk() {
             f(at, values);
         }
-    }
-
-    /// Fold all remaining elements, one decoded page slice at a time so LLVM can vectorize.
-    #[inline(always)]
-    pub fn fold<B, F: FnMut(B, T) -> B>(mut self, init: B, mut f: F) -> B {
-        let mut accum = init;
-        while let Some((_, values)) = self.next_chunk() {
-            accum = values.iter().cloned().fold(accum, &mut f);
-        }
-        accum
     }
 
     /// Fallible fold with early exit on error.

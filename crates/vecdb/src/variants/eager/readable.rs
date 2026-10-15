@@ -42,14 +42,6 @@ where
     }
 
     #[inline]
-    fn fold_range_at<B, F: FnMut(B, V::T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B
-    where
-        Self: Sized,
-    {
-        self.0.fold_range_at(from, to, init, f)
-    }
-
-    #[inline]
     fn try_fold_range_at<B, E, F: FnMut(B, V::T) -> Result<B, E>>(
         &self,
         from: usize,

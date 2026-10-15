@@ -29,7 +29,7 @@ mod feerate;
 mod height;
 mod hints;
 mod histogram;
-mod integer_index;
+mod macros;
 mod mempool_block;
 mod mempool_entry_info;
 mod mempool_info;
@@ -78,7 +78,6 @@ pub use block_template::*;
 pub use block_template_diff::*;
 pub use block_template_diff_entry::*;
 pub use blockhash::*;
-pub use bytes::*;
 pub use cents::*;
 pub use cents_sats::*;
 pub use cents_signed::*;
@@ -127,3 +126,8 @@ pub use witness::*;
 
 #[cfg(test)]
 mod tests;
+
+#[doc(hidden)]
+pub mod __private {
+    pub use {itoa, ryu};
+}

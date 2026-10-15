@@ -1,9 +1,6 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
-};
+use derive_more::{Add, AddAssign, From, Into, Sub, SubAssign};
+use std::ops::{Div, Mul};
 
-use itoa::Buffer;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -12,14 +9,28 @@ use super::Dollars;
 use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// Signed cents (i64) - for values that can be negative.
 /// Used for profit/loss calculations, deltas, etc.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    Add,
+    AddAssign,
+    Sub,
+    SubAssign,
+    From,
+    Into,
+)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct CentsSigned(i64);
@@ -73,13 +84,6 @@ impl From<f64> for CentsSigned {
     }
 }
 
-impl From<i64> for CentsSigned {
-    #[inline]
-    fn from(value: i64) -> Self {
-        Self(value)
-    }
-}
-
 impl From<u64> for CentsSigned {
     #[inline]
     fn from(value: u64) -> Self {
@@ -102,48 +106,11 @@ impl From<usize> for CentsSigned {
     }
 }
 
-impl From<CentsSigned> for i64 {
-    #[inline]
-    fn from(value: CentsSigned) -> Self {
-        value.0
-    }
-}
-
 impl From<CentsSigned> for u64 {
     #[inline]
     fn from(value: CentsSigned) -> Self {
         debug_assert!(value.0 >= 0, "Cannot convert negative CentsSigned to u64");
         value.0 as u64
-    }
-}
-
-impl Add for CentsSigned {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl AddAssign for CentsSigned {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-    }
-}
-
-impl Sub for CentsSigned {
-    type Output = Self;
-    #[inline]
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl SubAssign for CentsSigned {
-    #[inline]
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 -= rhs.0;
     }
 }
 
@@ -218,26 +185,5 @@ impl CheckedSub for CentsSigned {
         self.checked_sub(rhs)
     }
 }
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for CentsSigned {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
 
-impl Display for CentsSigned {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for CentsSigned {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(CentsSigned);

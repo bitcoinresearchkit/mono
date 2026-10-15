@@ -1,6 +1,4 @@
-use crate::{
-    AnyReadableVec, Error, Formattable, ReadableVec, Result, TypedVec, ValueWriter, VecValue,
-};
+use crate::{AnyVec, Error, Formattable, ReadableVec, Result, TypedVec, ValueWriter, VecValue};
 
 use super::chunk_folds::chunk_end;
 
@@ -38,7 +36,7 @@ where
 }
 
 /// Type-erased trait for vecs that can produce a boxed value-by-value [`ValueWriter`].
-pub trait AnyVecWithWriter: AnyReadableVec {
+pub trait AnyVecWithWriter: AnyVec {
     /// Create a value writer that can be advanced value by value
     fn create_writer(&self, from: Option<i64>, to: Option<i64>) -> Box<dyn ValueWriter + '_>;
 }

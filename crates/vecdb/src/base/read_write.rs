@@ -1,9 +1,13 @@
 use std::{fs, marker::PhantomData, ops::Deref, path::PathBuf, result::Result, sync::Arc};
 
+use parking_lot::Mutex;
 use rawdb::Database;
 
 use super::{Format, HEADER_OFFSET, Header, ImportOptions, ReadOnlyBaseVec, SharedLen, WithPrev};
 use crate::{Error, Result as CrateResult, Stamp, VecIndex, VecValue};
+
+/// Largest pushed allocation kept across writes.
+const RETAINED_PUSHED_BYTES: usize = 128;
 
 /// Base storage vector with fields common to all stored vector implementations.
 ///
@@ -15,6 +19,8 @@ pub struct ReadWriteBaseVec<I, T> {
     pub pushed: WithPrev<Vec<T>>,
     pub previous_stored_len: usize,
     pub saved_stamped_changes: u16,
+    /// Sorted stamps of the change files, once listed: `None` until then or after an error.
+    pub(super) change_stamps: Mutex<Option<Vec<Stamp>>>,
 }
 
 impl<I, T> Deref for ReadWriteBaseVec<I, T> {
@@ -72,6 +78,7 @@ where
             pushed: WithPrev::default(),
             previous_stored_len: 0,
             saved_stamped_changes: options.saved_stamped_changes,
+            change_stamps: Mutex::default(),
         })
     }
 
@@ -93,6 +100,17 @@ where
             "vector cannot continue after a failed write"
         );
         self.pushed.current_mut()
+    }
+
+    /// Returns the written-out pushed buffer: small per-update buffers keep their allocation
+    /// for the next update, bulk ones are freed.
+    #[inline]
+    pub fn recycle_pushed(&mut self, mut written: Vec<T>) {
+        debug_assert!(self.pushed().is_empty());
+        if written.capacity() * size_of::<T>() <= RETAINED_PUSHED_BYTES {
+            written.clear();
+            *self.pushed.current_mut() = written;
+        }
     }
 
     #[inline]
@@ -166,32 +184,6 @@ where
         Ok(())
     }
 
-    /// Tight pointer loop for LLVM vectorization.
-    #[inline]
-    pub fn fold_pushed<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut f: F,
-    ) -> B {
-        let stored_len = self.stored_len();
-        let start = from.max(stored_len);
-        if start >= to {
-            return init;
-        }
-        let pushed = self.pushed();
-        let slice_from = start - stored_len;
-        let slice_to = (to - stored_len).min(pushed.len());
-        let mut acc = init;
-        let mut i = slice_from;
-        while i < slice_to {
-            acc = f(acc, pushed[i].clone());
-            i += 1;
-        }
-        acc
-    }
-
     #[inline]
     pub fn try_fold_pushed<B, E, F: FnMut(B, T) -> Result<B, E>>(
         &self,
@@ -237,6 +229,7 @@ where
         self.read_only.stored_len.set(0);
         self.previous_stored_len = 0;
         self.read_only.header.update_stamp(Stamp::default());
+        self.forget_change_files();
         remove_changes_with::<I>(&self.db(), &self.name)
     }
 

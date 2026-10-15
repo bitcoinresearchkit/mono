@@ -9,7 +9,6 @@ use rustc_hash::FxHashSet;
 use super::{Choice, Input as CompactionInput};
 use crate::{
     compaction::state::{CompactionState, hidden_set::HiddenSet},
-    slice_windows::{GrowingWindowsExt, ShrinkingWindowsExt},
     table::{Table, util::aggregate_run_key_range},
     version::{Level, Run, Version},
 };
@@ -19,34 +18,37 @@ fn pick_minimal_compaction(
     curr_run: &Run<Table>,
     next_run: Option<&Run<Table>>,
     hidden_set: &HiddenSet,
-    _overshoot: u64,
     table_base_size: u64,
 ) -> Option<(FxHashSet<u32>, bool)> {
     // NOTE: Find largest trivial move (if it exists)
-    if let Some(window) = curr_run.shrinking_windows().find(|window| {
-        if hidden_set.is_blocked(window.iter().map(Table::id)) {
-            // IMPORTANT: Compaction is blocked because of other
-            // on-going compaction
-            return false;
-        }
+    let largest_first = (1..=curr_run.len()).rev();
+    if let Some(window) = largest_first
+        .flat_map(|n| curr_run.windows(n))
+        .find(|window| {
+            if hidden_set.is_blocked(window.iter().map(Table::id)) {
+                // IMPORTANT: Compaction is blocked because of other
+                // on-going compaction
+                return false;
+            }
 
-        let Some(next_run) = &next_run else {
-            // No run in next level, so we can trivially move
-            return true;
-        };
+            let Some(next_run) = &next_run else {
+                // No run in next level, so we can trivially move
+                return true;
+            };
 
-        let key_range = aggregate_run_key_range(window);
+            let key_range = aggregate_run_key_range(window);
 
-        next_run.get_overlapping(&key_range).is_empty()
-    }) {
+            next_run.get_overlapping(&key_range).is_empty()
+        })
+    {
         let ids = window.iter().map(Table::id).collect();
         return Some((ids, true));
     }
 
     // NOTE: Look for merges
     if let Some(next_run) = &next_run {
-        next_run
-            .growing_windows()
+        (1..=next_run.len())
+            .flat_map(|n| next_run.windows(n))
             .take_while(|window| {
                 // Cap at 50x tables per compaction for now
                 //
@@ -73,12 +75,6 @@ fn pick_minimal_compaction(
                     return None;
                 }
 
-                // TODO: toggling this statement can deadlock compactions because if there are only larger-than-overshoot
-                //  compactions, they would not be chosen
-                // if curr_level_size < overshoot {
-                //     return None;
-                // }
-
                 if hidden_set.is_blocked(curr_level_pull_in.iter().map(Table::id)) {
                     // IMPORTANT: Compaction is blocked because of other
                     // on-going compaction
@@ -87,16 +83,15 @@ fn pick_minimal_compaction(
 
                 let next_level_size = window.iter().map(Table::file_size).sum::<u64>();
 
-                let compaction_bytes = curr_level_size + next_level_size;
-
-                #[expect(clippy::cast_precision_loss)]
-                let write_amp = (next_level_size as f32) / (curr_level_size as f32);
-
-                Some((window, curr_level_pull_in, write_amp, compaction_bytes))
+                Some((
+                    window,
+                    curr_level_pull_in,
+                    curr_level_size + next_level_size,
+                ))
             })
             // Find the compaction with the smallest write set
-            .min_by_key(|(_, _, _waf, bytes)| *bytes)
-            .map(|(window, curr_level_pull_in, _, _)| {
+            .min_by_key(|(_, _, bytes)| *bytes)
+            .map(|(window, curr_level_pull_in, _)| {
                 let mut ids: FxHashSet<_> = window.iter().map(Table::id).collect();
                 ids.extend(curr_level_pull_in.iter().map(Table::id));
                 (ids, false)
@@ -267,7 +262,7 @@ impl Strategy {
         }
 
         // Scoring
-        let mut scores = [(/* score */ 0.0, /* overshoot */ 0u64); 7];
+        let mut scores = [0.0; 7];
 
         {
             // Score first level
@@ -279,7 +274,7 @@ impl Strategy {
                     reason = "precision loss is acceptable for scoring calculations"
                 )]
                 let ratio = (first_level.table_count() as f64) / f64::from(Self::L0_THRESHOLD);
-                scores[0] = (ratio, 0);
+                scores[0] = ratio;
             }
 
             // Score L1+
@@ -311,29 +306,25 @@ impl Strategy {
                         reason = "precision loss is acceptable for scoring calculations"
                     )]
                     let score = level_size as f64 / target_size as f64;
-                    scores[idx] = (score, level_size - target_size);
+                    scores[idx] = score;
 
                     // NOTE: Force a trivial move
                     if version.level(idx + 1).is_some_and(Level::is_empty) {
-                        scores[idx] = (99.99, 999);
+                        scores[idx] = 99.99;
                     }
                 }
             }
 
             // NOTE: Never score Lmax
-            {
-                scores[6] = (0.0, 0);
-            }
+            scores[6] = 0.0;
         }
 
         // Choose compaction
         #[expect(clippy::expect_used, reason = "highest score is expected to exist")]
-        let (level_idx_with_highest_score, (score, overshoot_bytes)) = scores
+        let (level_idx_with_highest_score, score) = scores
             .into_iter()
             .enumerate()
-            .max_by(|(_, (score_a, _)), (_, (score_b, _))| {
-                score_a.partial_cmp(score_b).unwrap_or(Ordering::Equal)
-            })
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
             .expect("should have highest score somewhere");
 
         if score < 1.0 {
@@ -413,7 +404,6 @@ impl Strategy {
             level.first_run().expect("should have exactly one run"),
             next_level.first_run().map(Deref::deref),
             state.hidden_set(),
-            overshoot_bytes,
             Self::TARGET_SIZE,
         ) else {
             return Choice::DoNothing;

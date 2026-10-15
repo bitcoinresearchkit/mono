@@ -11,9 +11,6 @@ use serde::{Deserialize, Serialize};
 use crate::TypeIndex;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
 #[derive(
@@ -70,18 +67,9 @@ impl CheckedSub<FundedAddressIndex> for FundedAddressIndex {
     }
 }
 #[cfg(feature = "storage")]
-impl VecdbCheckedSub<FundedAddressIndex> for FundedAddressIndex {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
-#[cfg(feature = "storage")]
 impl PrintableIndex for FundedAddressIndex {
     fn to_string() -> &'static str {
         "funded_address_index"
-    }
-    fn to_possible_strings() -> &'static [&'static str] {
-        &["fundedaddr", "funded_address_index"]
     }
 }
 

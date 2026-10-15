@@ -3,8 +3,7 @@ use std::{
     fs::{self, File},
     io::{ErrorKind, Write},
     mem,
-    ops::Bound,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use super::{ChangeCursor, ChangeData, ReadWriteBaseVec, changes_path_with};
@@ -119,28 +118,35 @@ where
     pub fn save_change_file(&self, stamp: Stamp, data: &[u8]) -> Result<()> {
         debug_assert!(self.saved_stamped_changes > 0);
         let path = self.changes_path();
-        if !path.exists() {
-            fs::create_dir_all(&path)?;
-        }
+        let mut cached = self.change_stamps.lock();
+        // Taken while files change: after an error the next call lists the directory again.
+        let mut stamps = match cached.take() {
+            Some(stamps) => stamps,
+            None => {
+                fs::create_dir_all(&path)?;
+                list_change_stamps(&path)?
+            }
+        };
 
         // Never truncate an existing undo record until its replacement is
         // complete. Ignore this non-numeric staging name when listing stamps.
         let pending = path.join("pending");
         File::create(&pending)?.write_all(data)?;
-        fs::rename(&pending, path.join(u64::from(stamp).to_string()))?;
-
-        // Prune only after the new undo record is in place.
-        let files = self.find_rollback_files()?;
-        let older = files.range(..stamp).count();
-        let excess = older.saturating_sub(self.saved_stamped_changes as usize - 1);
-        for (&saved, file) in files
-            .range(..stamp)
-            .take(excess)
-            .chain(files.range(stamp..).skip(1))
-        {
-            debug_assert_ne!(saved, stamp);
-            fs::remove_file(file)?;
+        fs::rename(&pending, change_file(&path, stamp))?;
+        if let Err(at) = stamps.binary_search(&stamp) {
+            stamps.insert(at, stamp);
         }
+
+        // Prune only after the new undo record is in place: keep `stamp` and the newest
+        // `saved_stamped_changes - 1` older records.
+        let at = stamps.partition_point(|&saved| saved < stamp);
+        let excess = at.saturating_sub(self.saved_stamped_changes as usize - 1);
+        for &saved in stamps[..excess].iter().chain(&stamps[at + 1..]) {
+            fs::remove_file(change_file(&path, saved))?;
+        }
+        stamps.truncate(at + 1);
+        stamps.drain(..excess);
+        *cached = Some(stamps);
         Ok(())
     }
 
@@ -151,14 +157,27 @@ where
         if self.saved_stamped_changes == 0 {
             return Ok(());
         }
-        for file in self
-            .find_rollback_files()?
-            .range((Bound::Excluded(stamp), Bound::Unbounded))
-            .map(|(_, file)| file)
-        {
-            fs::remove_file(file)?;
+        let path = self.changes_path();
+        let mut cached = self.change_stamps.lock();
+        let mut stamps = match cached.take() {
+            Some(stamps) => stamps,
+            None => match list_existing(&path)? {
+                Some(stamps) => stamps,
+                None => return Ok(()),
+            },
+        };
+        let at = stamps.partition_point(|&saved| saved <= stamp);
+        for &saved in &stamps[at..] {
+            fs::remove_file(change_file(&path, saved))?;
         }
+        stamps.truncate(at);
+        *cached = Some(stamps);
         Ok(())
+    }
+
+    /// Forgets the retained change-file inventory: the directory was removed.
+    pub(crate) fn forget_change_files(&self) {
+        *self.change_stamps.lock() = None;
     }
 
     pub fn save_prev(&mut self) {
@@ -172,25 +191,49 @@ where
     }
 
     pub fn read_current_change_file(&self) -> Result<Vec<u8>> {
-        let path = self
-            .changes_path()
-            .join(u64::from(self.header.stamp()).to_string());
-        Ok(fs::read(path)?)
+        Ok(fs::read(change_file(
+            &self.changes_path(),
+            self.header.stamp(),
+        ))?)
     }
 
     /// The change files by stamp: none when the vec never wrote one (no changes directory).
     pub fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
-        let entries = match fs::read_dir(self.changes_path()) {
-            Ok(entries) => entries,
-            Err(err) if err.kind() == ErrorKind::NotFound => return Ok(BTreeMap::new()),
-            Err(err) => return Err(err.into()),
-        };
-        Ok(entries
-            .filter_map(|entry| {
-                let path = entry.ok()?.path();
-                let stamp = Stamp::from(path.file_name()?.to_str()?.parse::<u64>().ok()?);
-                Some((stamp, path))
-            })
+        let path = self.changes_path();
+        let mut cached = self.change_stamps.lock();
+        if cached.is_none() {
+            *cached = list_existing(&path)?;
+        }
+        Ok(cached
+            .iter()
+            .flatten()
+            .map(|&stamp| (stamp, change_file(&path, stamp)))
             .collect())
     }
+}
+
+fn change_file(path: &Path, stamp: Stamp) -> PathBuf {
+    path.join(u64::from(stamp).to_string())
+}
+
+/// The sorted change-file stamps, or `None` without a changes directory.
+fn list_existing(path: &Path) -> Result<Option<Vec<Stamp>>> {
+    match list_change_stamps(path) {
+        Ok(stamps) => Ok(Some(stamps)),
+        Err(Error::IO(err)) if err.kind() == ErrorKind::NotFound => Ok(None),
+        Err(err) => Err(err),
+    }
+}
+
+fn list_change_stamps(path: &Path) -> Result<Vec<Stamp>> {
+    let mut stamps = fs::read_dir(path)?
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            Some(Stamp::from(
+                path.file_name()?.to_str()?.parse::<u64>().ok()?,
+            ))
+        })
+        .collect::<Vec<_>>();
+    stamps.sort_unstable();
+    Ok(stamps)
 }

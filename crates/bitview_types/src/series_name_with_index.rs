@@ -12,24 +12,3 @@ pub struct SeriesNameWithIndex {
     /// Aggregation index
     pub index: Index,
 }
-
-impl SeriesNameWithIndex {
-    fn new(series: impl Into<SeriesName>, index: Index) -> Self {
-        Self {
-            series: series.into(),
-            index,
-        }
-    }
-}
-
-impl From<(SeriesName, Index)> for SeriesNameWithIndex {
-    fn from((series, index): (SeriesName, Index)) -> Self {
-        Self::new(series, index)
-    }
-}
-
-impl From<(&str, Index)> for SeriesNameWithIndex {
-    fn from((series, index): (&str, Index)) -> Self {
-        Self::new(series, index)
-    }
-}

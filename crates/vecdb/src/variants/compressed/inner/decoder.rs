@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Range};
 
 use super::{CompressionStrategy, Page};
 use crate::{Result, VecValue};
@@ -58,18 +58,36 @@ where
         }
     }
 
-    pub fn decode_append(
+    /// Appends values `range` of one page: a raw page converts only those bytes; a compressed
+    /// page decodes in place when the range starts it, else through `scratch`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn decode_range_append(
         &mut self,
         page: Page,
         header: &[u8],
         body: &[u8],
-        expected_len: usize,
+        values_count: usize,
+        range: Range<usize>,
+        scratch: &mut Vec<T>,
         dst: &mut Vec<T>,
     ) -> Result<()> {
         if page.is_raw() {
-            S::bytes_to_values_append(body, expected_len, dst)
-        } else {
-            S::decompress_page_append(self.decoder(page, header)?, body, expected_len, dst)
+            let size = size_of::<T>();
+            return S::bytes_to_values_append(
+                &body[range.start * size..range.end * size],
+                range.len(),
+                dst,
+            );
         }
+        let decoder = self.decoder(page, header)?;
+        if range.start == 0 {
+            let before = dst.len();
+            S::decompress_page_append(decoder, body, values_count, dst)?;
+            dst.truncate(before + range.end);
+        } else {
+            S::decompress_page_into(decoder, body, values_count, scratch)?;
+            dst.extend_from_slice(&scratch[range]);
+        }
+        Ok(())
     }
 }

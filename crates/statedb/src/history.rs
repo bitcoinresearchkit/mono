@@ -1,5 +1,7 @@
 use crate::{
-    Amount, Creations, Cursor, Reader, Spends, State, snapshot::Snapshot, snapshots::Snapshots,
+    Amount, Creations, Cursor, Reader, Spends, State,
+    snapshot::{PAGE, Snapshot},
+    snapshots::Snapshots,
     util::invalid,
 };
 use std::{fs, io::Result, path::Path};
@@ -61,6 +63,7 @@ impl History {
             creations,
             end,
             tips,
+            checked: Default::default(),
         })
     }
     /// A reader through `ceiling` blocks (or the producers' end), reading nothing past them: a
@@ -79,6 +82,7 @@ impl History {
             creations,
             end,
             tips,
+            checked: Default::default(),
         })
     }
     /// The tip snapshots the producers carry within `limit`, newest first: a rewind in progress
@@ -100,12 +104,8 @@ impl History {
         }
         Ok(tips)
     }
-    fn matches(snapshot: &Snapshot, spends: &Spends, created: &Creations) -> Result<bool> {
-        if snapshot.len == 0 {
-            return Ok(true);
-        }
-        let h = snapshot.len - 1;
-        Ok(spends.hash(h)? == snapshot.hash() && created.hash(h)? == snapshot.hash())
+    fn matches(snapshot: &Snapshot, spends: &Spends, creations: &Creations) -> Result<bool> {
+        continues(snapshot.len, snapshot.hash(), spends, creations)
     }
     /// `tips` are the validated tips of `tips_within`, newest first.
     pub(crate) fn restore(
@@ -138,7 +138,7 @@ impl History {
             .or(newest)
             .map_or(Ok(State::default()), Snapshot::state)?;
         if state.len() < end {
-            Self::replay(&mut state, end, spends, created, |_, _| Ok(()))?;
+            Self::replay(&mut state, end, spends, created, |_| {}, |_, _| Ok(()))?;
         }
         Ok(state)
     }
@@ -155,67 +155,79 @@ impl History {
             return Err(invalid("invalid origin range"));
         }
         let versions = (spends.version(), created.version());
-        let cached = live.filter(|(state, old)| *old == versions && state.len() == start);
-        let cached = cached.and_then(|(mut state, _)| {
-            Cursor::new(&mut state, end, spends, created)
-                .is_ok()
-                .then_some(state)
+        let warm = live.filter(|(state, old)| {
+            *old == versions
+                && state.len() == start
+                && continues(start, state.hash(), spends, created).is_ok_and(|ok| ok)
         });
-        let warm = cached.is_some();
-        let latest = if warm {
-            None
-        } else {
-            self.snapshots.latest(versions)?
-        };
-        let mut state = if let Some(state) = cached {
-            state
-        } else {
-            let tips = self.tips_within(spends, created, start)?;
-            self.restore(start, spends, created, &tips)?
+        let (mut state, warm) = match warm {
+            Some((state, _)) => (state, true),
+            None => {
+                let tips = self.tips_within(spends, created, start)?;
+                (self.restore(start, spends, created, &tips)?, false)
+            }
         };
         if start == end
             && (warm
-                || latest
-                    .as_ref()
+                || self
+                    .snapshots
+                    .latest(versions)?
                     .is_some_and(|s| s.len == end && s.hash() == state.hash()))
         {
             self.live = Some((state, versions));
             return Ok(());
         }
-        let mut from = start;
-        let mut saved = start;
-        while from < end {
-            let to = (((from / self.interval) + 1) * self.interval).min(end);
-            Self::replay(&mut state, to, spends, created, &mut visit)?;
-            if to.is_multiple_of(self.interval) {
-                self.snapshots.begin(saved, true)?;
-                self.snapshots.push(&state, versions, true)?;
-                self.snapshots.finish()?;
-                saved = to;
+        let from = (start, state.hash());
+        self.snapshots.truncate(start)?;
+        // Pages of the tip that differ from the state at `start`: grown ones and spent ones.
+        let mut changed = vec![false; end.div_ceil(PAGE)];
+        changed[start / PAGE..].fill(true);
+        let mut height = start;
+        loop {
+            if height > 0 && height.is_multiple_of(self.interval) {
+                self.snapshots.retain(&state, versions)?;
             }
-            from = to;
+            if height == end {
+                break;
+            }
+            height = ((height / self.interval + 1) * self.interval).min(end);
+            Self::replay(
+                &mut state,
+                height,
+                spends,
+                created,
+                |origin| changed[origin as usize / PAGE] = true,
+                &mut visit,
+            )?;
         }
-        if start == end || !end.is_multiple_of(self.interval) {
-            self.snapshots.begin(saved, start < end)?;
-            self.snapshots
-                .push(&state, versions, end.is_multiple_of(self.interval))?;
-            self.snapshots.finish()?;
-        }
+        self.snapshots.publish(&state, versions, from, &changed)?;
         self.live = Some((state, versions));
         Ok(())
     }
+    /// Replays `state`, which continues the producer chain, through `end`.
     fn replay(
         state: &mut State,
         end: usize,
         spends: &Spends,
         created: &Creations,
+        mut removed: impl FnMut(u32),
         mut visit: impl FnMut(usize, Amount) -> Result<()>,
     ) -> Result<()> {
         let mut cursor = Cursor::new(state, end, spends, created)?;
-        while cursor.advance()?.is_some() {
+        while let Some(diff) = cursor.advance()? {
+            diff.removed().for_each(|(origin, _)| removed(origin));
             let state = cursor.state();
             visit(state.len() - 1, state.total())?;
         }
         Ok(())
     }
+}
+/// Whether the state of `len` blocks ending in `hash` is a prefix of both producers' chain.
+pub(crate) fn continues(
+    len: usize,
+    hash: [u8; 32],
+    spends: &Spends,
+    creations: &Creations,
+) -> Result<bool> {
+    Ok(len == 0 || spends.hash(len - 1)? == hash && creations.hash(len - 1)? == hash)
 }

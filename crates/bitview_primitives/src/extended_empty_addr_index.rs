@@ -11,9 +11,6 @@ use serde::{Deserialize, Serialize};
 use crate::TypeIndex;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
 /// Index into the sidecar for empty-address data that does not fit inline.
@@ -77,21 +74,11 @@ impl CheckedSub for ExtendedEmptyAddressIndex {
         CheckedSub::checked_sub(self.0, rhs.0).map(Self)
     }
 }
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for ExtendedEmptyAddressIndex {
-    #[inline(always)]
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
 
 #[cfg(feature = "storage")]
 impl PrintableIndex for ExtendedEmptyAddressIndex {
     fn to_string() -> &'static str {
         "extended_empty_address_index"
-    }
-    fn to_possible_strings() -> &'static [&'static str] {
-        &["extendedemptyaddr", "extended_empty_address_index"]
     }
 }
 

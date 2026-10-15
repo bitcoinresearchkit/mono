@@ -81,54 +81,16 @@ pub enum OutputTypeNormalized {
 impl OutputType {
     pub const COUNT: usize = Self::Unknown as usize + 1;
 
-    pub const ADDR_TYPES: [Self; 8] = [
-        Self::P2PK65,
-        Self::P2PK33,
-        Self::P2PKH,
-        Self::P2SH,
-        Self::P2WPKH,
-        Self::P2WSH,
-        Self::P2TR,
-        Self::P2A,
-    ];
-
     #[cfg(feature = "storage")]
     fn is_valid(value: u8) -> bool {
         value <= Self::Unknown as u8
     }
 
-    fn is_spendable(&self) -> bool {
-        match self {
-            Self::P2PK65 => true,
-            Self::P2PK33 => true,
-            Self::P2PKH => true,
-            Self::P2MS => true,
-            Self::P2SH => true,
-            Self::OpReturn => false,
-            Self::P2WPKH => true,
-            Self::P2WSH => true,
-            Self::P2TR => true,
-            Self::P2A => true,
-            Self::Empty => true,
-            Self::Unknown => true,
-        }
-    }
-
     pub fn is_addr(&self) -> bool {
-        match self {
-            Self::P2PK65 => true,
-            Self::P2PK33 => true,
-            Self::P2PKH => true,
-            Self::P2MS => false,
-            Self::P2SH => true,
-            Self::OpReturn => false,
-            Self::P2WPKH => true,
-            Self::P2WSH => true,
-            Self::P2TR => true,
-            Self::P2A => true,
-            Self::Empty => false,
-            Self::Unknown => false,
-        }
+        !matches!(
+            self,
+            Self::P2MS | Self::OpReturn | Self::Empty | Self::Unknown
+        )
     }
 
     pub fn is_not_addr(&self) -> bool {
@@ -136,7 +98,7 @@ impl OutputType {
     }
 
     pub fn is_unspendable(&self) -> bool {
-        !self.is_spendable()
+        matches!(self, Self::OpReturn)
     }
 
     pub(crate) const fn normalized(self) -> OutputTypeNormalized {

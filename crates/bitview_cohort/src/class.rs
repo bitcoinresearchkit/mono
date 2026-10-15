@@ -98,14 +98,6 @@ define_cohort_id!(
 );
 
 impl<T> Class<T> {
-    pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|id| create(id.cohort()))
-    }
-
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
-        Self::try_from_fn(|id| create(id.cohort()))
-    }
-
     pub fn mut_vec_from_timestamp(&mut self, timestamp: Timestamp) -> Option<&mut T> {
         let year = u16::from(Year::from(timestamp));
         let id = year
@@ -118,7 +110,7 @@ impl<T> Class<T> {
 }
 
 impl ClassId {
-    pub(crate) const fn cohort(self) -> CohortId {
+    pub const fn cohort(self) -> CohortId {
         CohortId::Class(self)
     }
 }

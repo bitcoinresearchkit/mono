@@ -8,7 +8,7 @@ use crate::{
     AnyStoredVec, AnyVec, BytesVec, BytesVecReader, Error, Header, ImportOptions, ImportableVec,
     MutableVec, OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
     ReadableCloneableVec, ReadableVec, Result, SharedLen, Stamp, StoredVec, TypedVec, VecIndex,
-    Version, WritableVec, short_type_name,
+    Version, WritableVec,
 };
 
 const VERSION: Version = Version::ONE;
@@ -124,20 +124,22 @@ where
         Self::encode_with_overflow(&mut self.overflow, value)
     }
 
-    fn replace_compact(&mut self, old: T::Compact, value: &T) -> Result<T::Compact> {
+    /// The new compact value replacing `old`, or `None` when `old` still points at the
+    /// (updated) overflow record and needs no rewrite.
+    fn replace_compact(&mut self, old: T::Compact, value: &T) -> Result<Option<T::Compact>> {
         Ok(match (T::overflow_index(old), value.to_compact()) {
             (Some(overflow_index), None) => {
                 self.overflow.update_at(overflow_index, value.clone())?;
-                old
+                None
             }
             (Some(overflow_index), Some(compact)) => {
                 self.overflow.delete_at(overflow_index);
-                compact
+                Some(compact)
             }
-            (None, Some(compact)) => compact,
+            (None, Some(compact)) => Some(compact),
             (None, None) => {
                 let overflow_index = Self::store_overflow(&mut self.overflow, value.clone());
-                T::from_overflow_index(overflow_index)
+                Some(T::from_overflow_index(overflow_index))
             }
         })
     }
@@ -204,7 +206,7 @@ where
         for (index, value) in values {
             let index_at = index.to_usize();
             let compact = if self.compact.holes().contains(&index_at) {
-                self.encode(&value)
+                Some(self.encode(&value))
             } else {
                 let old = reader
                     .compact(&self.compact, index)
@@ -212,7 +214,9 @@ where
                 self.replace_compact(old, &value)?
             };
 
-            compact_updates.push((index, compact));
+            if let Some(compact) = compact {
+                compact_updates.push((index, compact));
+            }
             if index_at >= stored_len {
                 self.pushed[index_at - stored_len] = value;
             }
@@ -297,17 +301,7 @@ where
         true
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    crate::any_vec_type_methods!(I, T);
 
     fn region_names(&self) -> Vec<String> {
         let mut names = self.compact.region_names();
@@ -371,6 +365,11 @@ where
     fn update_stamp(&mut self, stamp: Stamp) {
         self.overflow.update_stamp(stamp);
         self.compact.update_stamp(stamp);
+    }
+
+    fn write_header(&mut self) -> Result<()> {
+        self.overflow.write_header()?;
+        self.compact.write_header()
     }
 
     fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
@@ -590,24 +589,6 @@ where
                     &overflow,
                 ))
             });
-    }
-
-    #[inline]
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut f: F,
-    ) -> B {
-        let overflow_vec = &self.overflow;
-        let overflow = overflow_vec.reader();
-        self.compact.fold_range_at(from, to, init, |acc, compact| {
-            f(
-                acc,
-                Self::decode_with_overflow_reader(compact, overflow_vec, &overflow),
-            )
-        })
     }
 
     #[inline]

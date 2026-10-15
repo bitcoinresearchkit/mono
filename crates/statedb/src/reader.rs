@@ -1,5 +1,8 @@
-use crate::{Creations, Cursor, Diffs, History, Spends, State, snapshot::Snapshot, util::invalid};
-use std::io::Result;
+use crate::{
+    Creations, Cursor, Diffs, History, Spends, State, history::continues, snapshot::Snapshot,
+    util::invalid,
+};
+use std::{io::Result, sync::Mutex};
 
 /// An immutable view of one published prefix. Its borrows prevent producer mutation.
 pub struct Reader<'a> {
@@ -9,6 +12,8 @@ pub struct Reader<'a> {
     pub(crate) end: usize,
     /// Tip snapshots the producers carry, newest first.
     pub(crate) tips: Vec<Snapshot>,
+    /// The last prefix found to match (length, hash): consumers resuming from one height share it.
+    pub(crate) checked: Mutex<Option<(usize, [u8; 32])>>,
 }
 
 impl Reader<'_> {
@@ -18,13 +23,19 @@ impl Reader<'_> {
 
     /// Checks the prefix identity before reusing resident analytical state.
     pub fn matches(&self, state: &State) -> Result<bool> {
-        let len = state.len();
-        if len > self.end {
+        let prefix = (state.len(), state.hash());
+        if prefix.0 > self.end {
             return Ok(false);
         }
-        Ok(len == 0
-            || (state.hash() == self.spends.hash(len - 1)?
-                && state.hash() == self.creations.hash(len - 1)?))
+        let mut checked = self.checked.lock().unwrap();
+        if *checked == Some(prefix) {
+            return Ok(true);
+        }
+        let matches = continues(prefix.0, prefix.1, self.spends, self.creations)?;
+        if matches {
+            *checked = Some(prefix);
+        }
+        Ok(matches)
     }
 
     pub fn len(&self) -> usize {
@@ -44,6 +55,9 @@ impl Reader<'_> {
     }
 
     pub fn cursor<'a>(&'a self, state: &'a mut State) -> Result<Cursor<'a>> {
+        if !self.matches(state)? {
+            return Err(invalid("replay state does not match producer chain"));
+        }
         Cursor::new(state, self.end, self.spends, self.creations)
     }
 

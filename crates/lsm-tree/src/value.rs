@@ -51,16 +51,6 @@ impl InternalValue {
         Self::new(key, value)
     }
 
-    /// Creates a new tombstone.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the key length is empty or greater than 2^16.
-    pub fn new_tombstone<K: Into<Slice>>(key: K, seqno: u64) -> Self {
-        let key = InternalKey::new(key, seqno, ValueType::Tombstone);
-        Self::new(key, vec![])
-    }
-
     /// Creates a new weak tombstone.
     ///
     /// # Panics

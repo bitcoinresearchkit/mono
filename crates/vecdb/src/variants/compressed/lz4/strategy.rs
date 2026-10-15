@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 
 use super::{super::inner::CompressionStrategy, value::LZ4VecValue};
-use crate::{EncodedChunk, Result};
+use crate::{EncodedChunk, Result, ValueStrategy};
 
 /// LZ4 compression strategy for fast compression/decompression.
 #[derive(Debug, Clone, Copy)]
@@ -20,7 +20,7 @@ where
     const MAX_UNCOMPRESSED_CHUNK_SIZE: usize = 8 * 1024;
 
     fn compress_chunk(values: &[T], _values_per_page: usize) -> Result<EncodedChunk> {
-        EncodedChunk::single_page(compress_prepend_size(&Self::values_to_bytes(values)))
+        EncodedChunk::single_page(compress_prepend_size(&Self::values_bytes(values)))
     }
 
     fn reset_decoder(_decoder: &mut Self::Decoder, _header: &[u8]) -> Result<()> {

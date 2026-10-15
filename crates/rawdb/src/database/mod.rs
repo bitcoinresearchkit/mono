@@ -14,7 +14,10 @@ use std::{
     fmt,
     fs::{self, File},
     path::Path,
-    sync::{Arc, atomic::Ordering},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     time::{Duration, Instant},
 };
 
@@ -51,6 +54,8 @@ impl Database {
                 regions: RwLock::new(regions),
                 data,
                 tasks: BackgroundTasks::default(),
+                // The file past the layout and its gaps may hold data from before opening.
+                reclaim_pending: AtomicBool::new(true),
             });
             let background = Arc::new(DatabaseOwner {
                 storage: storage.clone(),
@@ -121,7 +126,7 @@ impl Database {
         let region = regions.create(self, Arc::from(id), start)?;
         if hole.is_some() {
             layout.consume_hole(start, PAGE_SIZE);
-            region.0.tail_needs_punch.store(true, Ordering::Relaxed);
+            region.mark_tail_punch(self);
         }
         layout.insert_region(start, &region);
         region.0.mark_accessed();
@@ -189,12 +194,27 @@ impl Database {
         self.inner.tasks.sleep(dur);
     }
 
+    /// Whether [`Self::compact`] has space to reclaim: false once it ran and nothing was freed
+    /// since, so callers can skip scheduling it.
+    pub fn needs_compaction(&self) -> bool {
+        self.inner.reclaim_pending.load(Ordering::Relaxed)
+    }
+
+    /// Marks freed space for the next compaction. Callers hold the mutation barrier.
+    pub(crate) fn mark_reclaim_pending(&self) {
+        self.inner.reclaim_pending.store(true, Ordering::Relaxed);
+    }
+
     /// Flushes, then punches holes to reclaim disk space.
     pub fn compact(&self) -> Result<()> {
         let _writes = self.inner.writes.write();
         let i = Instant::now();
         self.flush_inner(&_writes);
         let r = self.punch_holes(&_writes);
+        // A failed punch keeps its marks: the next compaction retries.
+        self.inner
+            .reclaim_pending
+            .store(r.is_err(), Ordering::Relaxed);
         debug!("{}: compact in {:?}", self, i.elapsed());
         r
     }

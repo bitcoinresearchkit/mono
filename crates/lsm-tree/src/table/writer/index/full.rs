@@ -10,10 +10,8 @@ use sfa::Writer;
 use crate::{
     Result,
     table::{
-        Block, IndexBlock,
-        block::{BlockType, Header as BlockHeader},
         index_block::KeyedBlockHandle,
-        writer::index::BlockIndexWriter,
+        writer::index::{BlockIndexWriter, write_top_level_index},
     },
 };
 
@@ -43,26 +41,6 @@ impl BlockIndexWriter for FullIndexWriter {
     }
 
     fn finish(self: Box<Self>, file_writer: &mut Writer<BufWriter<File>>) -> Result<()> {
-        file_writer.start("tli")?;
-
-        let mut bytes = vec![];
-        IndexBlock::encode_into(&mut bytes, &self.block_handles)?;
-
-        let header = Block::write_into(file_writer, &bytes, BlockType::Index)?;
-
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks never even approach u32 size"
-        )]
-        let bytes_written = BlockHeader::serialized_len() as u32 + header.data_length;
-
-        debug_assert!(bytes_written > 0, "Block index should never be empty");
-
-        trace!(
-            "Written top level index, with {} pointers ({bytes_written}B)",
-            self.block_handles.len(),
-        );
-
-        Ok(())
+        write_top_level_index(file_writer, "tli", &self.block_handles)
     }
 }

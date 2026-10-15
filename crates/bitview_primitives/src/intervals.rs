@@ -1,20 +1,13 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    ops::Add,
-};
+use std::ops::Add;
 
 use brk_types::{CheckedSub, Timestamp};
-use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::INDEX_EPOCH;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
+use vecdb::{Pco, PrintableIndex, VecIndex};
 
 /// A fixed-length period index counted from [`INDEX_EPOCH`], with its `Index` name and aliases.
 macro_rules! fixed_interval {
@@ -77,39 +70,18 @@ macro_rules! fixed_interval {
             }
         }
 
-        #[cfg(feature = "storage")]
-        impl VecdbCheckedSub for $name {
-            fn checked_sub(self, rhs: Self) -> Option<Self> {
-                CheckedSub::checked_sub(self, rhs)
-            }
-        }
 
         #[cfg(feature = "storage")]
         impl PrintableIndex for $name {
             fn to_string() -> &'static str {
                 Self::index_name()
             }
-            fn to_possible_strings() -> &'static [&'static str] {
-                Self::index_aliases()
-            }
         }
 
         #[cfg(feature = "storage")]
         impl VecIndex for $name {}
 
-        impl Display for $name {
-            fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-                f.write_str(Buffer::new().format(self.0))
-            }
-        }
-
-        #[cfg(feature = "storage")]
-        impl Formattable for $name {
-            #[inline(always)]
-            fn write_to(&self, buf: &mut Vec<u8>) {
-                buf.extend_from_slice(Buffer::new().format(self.0).as_bytes());
-            }
-        }
+        brk_types::impl_int_format!($name);
     };
 }
 

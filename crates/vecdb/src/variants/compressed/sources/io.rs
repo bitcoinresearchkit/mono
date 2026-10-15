@@ -13,14 +13,12 @@ use rawdb::Region;
 use super::super::inner::{
     COMPRESSED_PAGE_SIZE, CompressionStrategy, Page, PageDecoder, ReadWriteCompressedVec,
 };
-use crate::{
-    AnyStoredVec, BUFFER_SIZE, Pages, VecIndex, VecValue, cache::CachePolicy, likely, unlikely,
-};
+use crate::{AnyStoredVec, BUFFER_SIZE, Pages, VecIndex, VecValue, cache::CachePolicy, unlikely};
 
 /// Buffered file I/O source for reading stored compressed data.
 ///
 /// Uses dedicated file handle for sequential reads (better OS readahead than mmap).
-/// Only sees stored (persisted) values. Consumed by fold/try_fold/for_each.
+/// Only sees stored (persisted) values. Consumed by try_fold/for_each.
 pub struct CompressedIoSource<'a, I, T, S>
 where
     T: VecValue,
@@ -92,6 +90,10 @@ where
             self.file.seek(SeekFrom::Start(absolute_offset)).unwrap();
         }
 
+        // Sized to the span read: a short read never zeroes a whole buffer.
+        if self.buffer.len() < total_bytes {
+            self.buffer.resize(total_bytes, 0);
+        }
         self.file
             .read_exact(&mut self.buffer[..total_bytes])
             .unwrap();
@@ -174,10 +176,10 @@ where
             file,
             file_position: 0,
             region_start,
-            buffer: vec![0; BUFFER_SIZE],
+            buffer: Vec::new(),
             buffer_len: 0,
             buffer_start_offset: 0,
-            decoded_values: Vec::with_capacity(Self::PER_PAGE),
+            decoded_values: Vec::new(),
             decoder: PageDecoder::default(),
             decoded_page_index: Self::NO_PAGE,
             pages,
@@ -196,7 +198,7 @@ where
         output.reserve(self.end_index - self.index);
         let start_page = self.index / Self::PER_PAGE;
         let end_page = (self.end_index - 1) / Self::PER_PAGE;
-        let mut page_buf = mem::take(&mut self.decoded_values);
+        let mut scratch = mem::take(&mut self.decoded_values);
 
         for page_index in start_page..=end_page {
             let page_start = page_index * Self::PER_PAGE;
@@ -212,19 +214,17 @@ where
             let values_count = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
             let local_from = self.index.saturating_sub(page_start);
             let local_to = (self.end_index - page_start).min(values_count);
-
-            if !page.is_raw() && likely(local_from == 0) {
-                let before = output.len();
-                self.decoder
-                    .decode_append(page, header, body, values_count, output)
-                    .expect("decompression failed in read_into_at");
-                output.truncate(before + local_to);
-            } else {
-                self.decoder
-                    .decode_into(page, header, body, values_count, &mut page_buf)
-                    .expect("page decode failed in read_into_at");
-                output.extend_from_slice(&page_buf[local_from..local_to]);
-            }
+            self.decoder
+                .decode_range_append(
+                    page,
+                    header,
+                    body,
+                    values_count,
+                    local_from..local_to,
+                    &mut scratch,
+                    output,
+                )
+                .expect("page decode failed in read_into_at");
         }
     }
 
@@ -252,16 +252,6 @@ where
         while let Some((at, values)) = self.next_chunk() {
             f(at, values);
         }
-    }
-
-    /// Fold all remaining elements, one decoded page slice at a time so LLVM can vectorize.
-    #[inline(always)]
-    pub fn fold<B, F: FnMut(B, T) -> B>(mut self, init: B, mut f: F) -> B {
-        let mut accum = init;
-        while let Some((_, values)) = self.next_chunk() {
-            accum = values.iter().cloned().fold(accum, &mut f);
-        }
-        accum
     }
 
     /// Fallible fold with early exit on error.

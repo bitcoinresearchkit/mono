@@ -1,13 +1,6 @@
-#[cfg(feature = "storage")]
-use itoa::Buffer;
-use std::fmt::{Display, Formatter, Result};
-
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-#[cfg(feature = "storage")]
-use vecdb::Formattable;
 
 /// Index of the output being spent in the previous transaction (coinbase inputs: 4294967295)
 #[derive(
@@ -73,17 +66,4 @@ impl From<Vout> for usize {
     }
 }
 
-impl Display for Vout {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        self.0.fmt(f)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for Vout {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(Vout);

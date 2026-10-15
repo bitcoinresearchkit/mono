@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::Weak};
+use std::{
+    path::PathBuf,
+    sync::{Weak, atomic::AtomicBool},
+};
 
 use parking_lot::RwLock;
 
@@ -18,4 +21,7 @@ pub(crate) struct DatabaseInner {
     pub(crate) regions: RwLock<Regions>,
     pub(crate) data: DataFile,
     pub(crate) tasks: BackgroundTasks,
+    /// Whether space may await punching: set by every change that frees space (under the
+    /// mutation barrier), cleared by compaction (which holds it exclusively).
+    pub(crate) reclaim_pending: AtomicBool,
 }

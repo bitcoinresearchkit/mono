@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use brk_types::Dollars;
 use serde::{Serialize, Serializer, ser::SerializeTuple};
 
-use super::{Close, High, Low, OHLCCents, Open};
+use super::OHLCCents;
 
 #[cfg(feature = "storage")]
 use vecdb::Result as VecdbResult;
@@ -15,10 +15,10 @@ use vecdb::{Bytes, Formattable};
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct OHLCDollars {
-    pub open: Open<Dollars>,
-    high: High<Dollars>,
-    low: Low<Dollars>,
-    close: Close<Dollars>,
+    pub open: Dollars,
+    pub high: Dollars,
+    pub low: Dollars,
+    pub close: Dollars,
 }
 
 impl Serialize for OHLCDollars {
@@ -35,30 +35,6 @@ impl Serialize for OHLCDollars {
     }
 }
 
-impl From<(Open<Dollars>, High<Dollars>, Low<Dollars>, Close<Dollars>)> for OHLCDollars {
-    #[inline]
-    fn from(value: (Open<Dollars>, High<Dollars>, Low<Dollars>, Close<Dollars>)) -> Self {
-        Self {
-            open: value.0,
-            high: value.1,
-            low: value.2,
-            close: value.3,
-        }
-    }
-}
-
-impl From<Close<Dollars>> for OHLCDollars {
-    #[inline]
-    fn from(value: Close<Dollars>) -> Self {
-        Self {
-            open: Open::from(value),
-            high: High::from(value),
-            low: Low::from(value),
-            close: value,
-        }
-    }
-}
-
 impl From<OHLCCents> for OHLCDollars {
     #[inline]
     fn from(value: OHLCCents) -> Self {
@@ -70,10 +46,10 @@ impl From<&OHLCCents> for OHLCDollars {
     #[inline]
     fn from(value: &OHLCCents) -> Self {
         Self {
-            open: value.open.into(),
-            high: value.high.into(),
-            low: value.low.into(),
-            close: value.close.into(),
+            open: Dollars::from(value.open),
+            high: Dollars::from(value.high),
+            low: Dollars::from(value.low),
+            close: Dollars::from(value.close),
         }
     }
 }
@@ -98,13 +74,13 @@ impl Formattable for OHLCDollars {
             "undefined OHLC price"
         );
         buf.push(b'[');
-        (*self.open).fmt_json(buf);
+        self.open.fmt_json(buf);
         buf.push(b',');
-        (*self.high).fmt_json(buf);
+        self.high.fmt_json(buf);
         buf.push(b',');
-        (*self.low).fmt_json(buf);
+        self.low.fmt_json(buf);
         buf.push(b',');
-        (*self.close).fmt_json(buf);
+        self.close.fmt_json(buf);
         buf.push(b']');
     }
 
@@ -131,10 +107,10 @@ unsafe impl Bytes for OHLCDollars {
 
     fn from_bytes(bytes: &[u8]) -> VecdbResult<Self> {
         Ok(Self {
-            open: Open::<Dollars>::from_bytes(&bytes[0..8])?,
-            high: High::<Dollars>::from_bytes(&bytes[8..16])?,
-            low: Low::<Dollars>::from_bytes(&bytes[16..24])?,
-            close: Close::<Dollars>::from_bytes(&bytes[24..32])?,
+            open: Dollars::from_bytes(&bytes[0..8])?,
+            high: Dollars::from_bytes(&bytes[8..16])?,
+            low: Dollars::from_bytes(&bytes[16..24])?,
+            close: Dollars::from_bytes(&bytes[24..32])?,
         })
     }
 }

@@ -65,13 +65,6 @@ impl CheckedSub<usize> for SatsFract {
     }
 }
 
-#[cfg(feature = "storage")]
-impl vecdb::CheckedSub<usize> for SatsFract {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
-
 impl Div<Dollars> for SatsFract {
     type Output = Self;
     fn div(self, rhs: Dollars) -> Self::Output {

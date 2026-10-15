@@ -106,14 +106,6 @@ define_cohort_id!(
 );
 
 impl<T> AmountRange<T> {
-    pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|id| create(id.cohort()))
-    }
-
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
-        Self::try_from_fn(|id| create(id.cohort()))
-    }
-
     #[inline(always)]
     pub fn get_mut(&mut self, value: Sats) -> &mut T {
         AmountRangeId::from(value).select_mut(self)

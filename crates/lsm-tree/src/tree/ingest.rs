@@ -44,10 +44,16 @@ impl<'a, K: RecordBytes, V: RecordBytes> Ingestion<'a, K, V> {
                 .at_level(ENCODING_LEVEL),
         );
 
-        if config.index_block_partitioning_policy.get(ENCODING_LEVEL) {
+        if config
+            .index_block_partitioning_policy
+            .at_level(ENCODING_LEVEL)
+        {
             writer = writer.use_partitioned_index();
         }
-        if config.filter_block_partitioning_policy.get(ENCODING_LEVEL) {
+        if config
+            .filter_block_partitioning_policy
+            .at_level(ENCODING_LEVEL)
+        {
             writer = writer.use_partitioned_filter();
         }
 
@@ -123,10 +129,8 @@ impl<'a, K: RecordBytes, V: RecordBytes> Ingestion<'a, K, V> {
                     folder.join(table_id.to_string()),
                     global_seqno,
                     self.tree.id,
-                    self.tree.config.cache.clone(),
-                    self.tree.config.descriptor_table.clone(),
-                    self.tree.config.filter_block_pinning_policy.at_level(0),
-                    self.tree.config.index_block_pinning_policy.at_level(0),
+                    0,
+                    &self.tree.config,
                 )
             })
             .collect::<Result<Vec<_>>>()?;

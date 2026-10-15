@@ -14,6 +14,9 @@ use crate::{ReadableVec, VecIndex, VecValue};
 /// The source must be dense: buffer offsets are positions, so a source with holes
 /// (a `MutableVec` with removed values) reads through its own sorted or point reads.
 ///
+/// A bounded cursor ([`Self::bounded`]) reads only inside its range: refills never
+/// copy values before its start or past its end, so a short update reads just what it uses.
+///
 /// # Example
 /// ```ignore
 /// let mut c = vec.cursor();
@@ -34,6 +37,8 @@ pub struct Cursor<
     /// Current absolute position in the source vec (used by sequential methods).
     pos: usize,
     chunk_size: usize,
+    /// Readable range: `start..len`.
+    start: usize,
     len: usize,
     _phantom: PhantomData<I>,
 }
@@ -42,14 +47,22 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
     /// Creates a new cursor with the source's preferred chunk size.
     #[inline]
     pub fn new(source: &'a V) -> Self {
-        let len = source.len();
+        Self::bounded(source, 0, usize::MAX)
+    }
+
+    /// Creates a cursor that reads only `[from, to)`, starting at `from`.
+    #[inline]
+    pub(crate) fn bounded(source: &'a V, from: usize, to: usize) -> Self {
+        let len = to.min(source.len());
+        let start = from.min(len);
         let chunk_size = source.cursor_chunk_size().max(1);
         Self {
             source,
-            buf: Vec::with_capacity(chunk_size.min(len)),
-            buf_start: 0,
-            pos: 0,
+            buf: Vec::with_capacity(chunk_size.min(len - start)),
+            buf_start: start,
+            pos: start,
             chunk_size,
+            start,
             len,
             _phantom: PhantomData,
         }
@@ -176,7 +189,7 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
     /// Returns the local index within `buf`, or `None` if out of bounds.
     #[inline]
     fn ensure_buffered_at(&mut self, at: usize) -> Option<usize> {
-        if at >= self.len {
+        if at >= self.len || at < self.start {
             return None;
         }
 
@@ -189,6 +202,7 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
         self.buf.clear();
         let aligned = (at / self.chunk_size) * self.chunk_size;
         let end = (aligned + self.chunk_size).min(self.len);
+        let aligned = aligned.max(self.start);
         self.buf_start = aligned;
         self.source.read_into_at(aligned, end, &mut self.buf);
 

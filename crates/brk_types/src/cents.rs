@@ -14,9 +14,6 @@ use super::{CentsSats, Dollars, Sats};
 use crate::{CheckedSub, unlikely};
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
 /// An amount in US cents (100 cents = 1 USD).
@@ -329,12 +326,6 @@ impl Div<u64> for Cents {
 impl CheckedSub for Cents {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         Cents::checked_sub(self, rhs)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for Cents {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
     }
 }
 

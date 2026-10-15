@@ -28,11 +28,11 @@ impl CohortMetrics {
         spot: &ReadableBoxedVec<Height, Cents>,
         totals: ShareTotals<'_>,
     ) -> Result<Self> {
-        let amounts = Box::new(AmountRange::try_new(|cohort| {
-            CohortVecs::import(db, cohort, version, mappings, windows, spot, totals)
+        let amounts = Box::new(AmountRange::try_from_fn(|id| {
+            CohortVecs::import(db, id.cohort(), version, mappings, windows, spot, totals)
         })?);
-        let types = Box::new(SpendableType::try_new(|cohort| {
-            CohortVecs::import(db, cohort, version, mappings, windows, spot, totals)
+        let types = Box::new(SpendableType::try_from_fn(|id| {
+            CohortVecs::import(db, id.cohort(), version, mappings, windows, spot, totals)
         })?);
         Ok(Self { amounts, types })
     }

@@ -103,14 +103,6 @@ define_cohort_id!(SpendableTypeId for SpendableType {
 });
 
 impl<T> SpendableType<T> {
-    pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|kind| create(kind.cohort()))
-    }
-
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
-        Self::try_from_fn(|kind| create(kind.cohort()))
-    }
-
     pub fn map_with_id<U>(&self, mut map: impl FnMut(CohortId, &T) -> U) -> SpendableType<U> {
         SpendableType::from_fn(|kind| map(kind.cohort(), kind.select(self)))
     }

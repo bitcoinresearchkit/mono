@@ -397,20 +397,8 @@ impl ByteView {
     }
 
     unsafe fn data_ptr_mut(&mut self) -> *mut u8 {
-        const HEADER_SIZE: usize = mem::size_of::<HeapAllocationHeader>();
-
-        debug_assert!(!self.is_inline());
-
-        // SAFETY: The non-inline representation is active, and its allocation
-        // contains the header followed by the allocation's data bytes.
-        unsafe {
-            self.trailer
-                .long
-                .heap
-                .add(HEADER_SIZE)
-                .add(self.trailer.long.offset as usize)
-                .cast_mut()
-        }
+        // SAFETY: as for `data_ptr`; the heap pointer was allocated mutable.
+        unsafe { self.data_ptr().cast_mut() }
     }
 
     fn get_heap_region(&self) -> &HeapAllocationHeader {
@@ -492,31 +480,12 @@ impl ByteView {
             unreachable!("a ByteView offset always fits in u32");
         };
 
-        // Target and destination slices are inlined
-        // so we just need to memcpy the struct, and replace
-        // the inline slice with the requested range
+        // Short children are inlined copies
         if new_len <= INLINE_SIZE {
-            let mut child = Self {
-                trailer: Trailer {
-                    short: ManuallyDrop::new(ShortRepr {
-                        len,
-                        data: [0; INLINE_SIZE],
-                    }),
-                },
-            };
-
             let Some(slice) = self.get(begin..end) else {
                 unreachable!("range was validated above");
             };
-            debug_assert_eq!(slice.len(), new_len);
-
-            let data_ptr = unsafe { &mut (*child.trailer.short).data };
-
-            unsafe {
-                ptr::copy_nonoverlapping(slice.as_ptr(), data_ptr.as_mut_ptr(), new_len);
-            }
-
-            child
+            Self::new(slice)
         } else {
             // IMPORTANT: Increase ref count
             self.increment_ref_count();

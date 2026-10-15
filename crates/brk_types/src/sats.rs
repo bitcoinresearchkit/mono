@@ -1,28 +1,37 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    iter::Sum,
-    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
-};
+use std::ops::{Div, Mul, SubAssign};
 
 use bitcoin::Amount;
-use derive_more::Deref;
-use itoa::Buffer;
+use derive_more::{Add, AddAssign, Deref, From, Into, Sub, Sum};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{Bitcoin, Cents, Dollars, Height};
-use crate::{CheckedSub, StoreValue};
+use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
-use vecdb::{Formattable, OverflowVecValue, Pco, SaturatingAdd, Version};
+use vecdb::{OverflowVecValue, Pco, SaturatingAdd, Version};
 
 /// Amount in satoshis (1 BTC = 100,000,000 sats)
 #[derive(
-    Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Deref, Default, Serialize, Deserialize, Hash,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Clone,
+    Copy,
+    Deref,
+    Default,
+    Serialize,
+    Deserialize,
+    Hash,
+    Add,
+    AddAssign,
+    Sub,
+    Sum,
+    From,
+    Into,
 )]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
@@ -63,19 +72,7 @@ impl OverflowVecValue for Sats {
     }
 }
 
-impl StoreValue for Sats {
-    type Bytes = [u8; 8];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0.to_be_bytes()
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(u64::from_be_bytes(bytes))
-    }
-}
+crate::impl_store_value!(Sats, u64);
 
 #[allow(clippy::inconsistent_digit_grouping)]
 impl Sats {
@@ -121,47 +118,15 @@ impl Sats {
     }
 }
 
-impl Add for Sats {
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl Sub for Sats {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl AddAssign for Sats {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
 impl CheckedSub for Sats {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         self.0.checked_sub(rhs.0).map(Self::from)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for Sats {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
     }
 }
 
 impl CheckedSub<usize> for Sats {
     fn checked_sub(self, rhs: usize) -> Option<Self> {
         self.0.checked_sub(rhs as u64).map(Self::from)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub<usize> for Sats {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
     }
 }
 
@@ -222,13 +187,6 @@ impl Mul<f64> for Sats {
     }
 }
 
-impl Sum for Sats {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let sats: u64 = iter.map(|sats| sats.0).sum();
-        Self::from(sats)
-    }
-}
-
 impl Div<Dollars> for Sats {
     type Output = Self;
     #[allow(
@@ -255,13 +213,6 @@ impl From<u8> for Sats {
     #[inline]
     fn from(value: u8) -> Self {
         Self(value as u64)
-    }
-}
-
-impl From<u64> for Sats {
-    #[inline]
-    fn from(value: u64) -> Self {
-        Self(value)
     }
 }
 
@@ -320,13 +271,6 @@ impl From<Bitcoin> for Sats {
     }
 }
 
-impl From<Sats> for u64 {
-    #[inline]
-    fn from(value: Sats) -> Self {
-        value.0
-    }
-}
-
 impl From<u128> for Sats {
     #[inline]
     fn from(value: u128) -> Self {
@@ -351,19 +295,4 @@ impl Mul<Sats> for usize {
     }
 }
 
-impl Display for Sats {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for Sats {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(Sats);

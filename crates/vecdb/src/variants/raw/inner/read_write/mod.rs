@@ -127,7 +127,7 @@ where
     }
 
     #[inline]
-    pub(crate) fn reader(&self) -> VecReader<I, T, S> {
+    pub fn reader(&self) -> VecReader<I, T, S> {
         VecReader::from_read_write(self)
     }
 
@@ -201,16 +201,6 @@ where
         Ok((from..to)
             .map(|index| self.unchecked_read_at(index, &reader))
             .collect())
-    }
-    #[inline(always)]
-    fn fold_source<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B {
-        let offset = HEADER_OFFSET + from * Self::SIZE_OF_T;
-        let bytes = (to - from) * Self::SIZE_OF_T;
-        if self.region().prefers_mmap(offset, bytes) {
-            RawMmapSource::new(self, from, to).fold(init, f)
-        } else {
-            RawIoSource::new(self, from, to).fold(init, f)
-        }
     }
     #[inline(always)]
     fn try_fold_source<B, E, F: FnMut(B, T) -> Result<B, E>>(

@@ -1,11 +1,6 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    iter::Sum,
-    ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
-};
+use std::ops::Mul;
 
-use derive_more::Deref;
-use itoa::Buffer;
+use derive_more::{Add, AddAssign, Deref, From, Into, Neg, Sub, SubAssign, Sum};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -14,15 +9,31 @@ use super::{Bitcoin, Sats};
 use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// Signed satoshis (i64) - for values that can be negative.
 /// Used for changes, deltas, profit/loss calculations, etc.
 #[derive(
-    Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy, Deref, Default, Serialize, Deserialize,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Clone,
+    Copy,
+    Deref,
+    Default,
+    Serialize,
+    Deserialize,
+    Add,
+    AddAssign,
+    Sub,
+    SubAssign,
+    Neg,
+    Sum,
+    From,
+    Into,
 )]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
@@ -40,48 +51,9 @@ impl SatsSigned {
     }
 }
 
-impl Add for SatsSigned {
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl Sub for SatsSigned {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl AddAssign for SatsSigned {
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-    }
-}
-
-impl SubAssign for SatsSigned {
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 -= rhs.0;
-    }
-}
-
-impl Neg for SatsSigned {
-    type Output = Self;
-    fn neg(self) -> Self::Output {
-        Self(-self.0)
-    }
-}
-
 impl CheckedSub for SatsSigned {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         self.0.checked_sub(rhs.0).map(Self)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for SatsSigned {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
     }
 }
 
@@ -96,27 +68,6 @@ impl Mul<usize> for SatsSigned {
     type Output = Self;
     fn mul(self, rhs: usize) -> Self::Output {
         Self(self.0.checked_mul(rhs as i64).expect("SatsSigned overflow"))
-    }
-}
-
-impl Sum for SatsSigned {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let sats: i64 = iter.map(|s| s.0).sum();
-        Self(sats)
-    }
-}
-
-impl From<i64> for SatsSigned {
-    #[inline]
-    fn from(value: i64) -> Self {
-        Self(value)
-    }
-}
-
-impl From<SatsSigned> for i64 {
-    #[inline]
-    fn from(value: SatsSigned) -> Self {
-        value.0
     }
 }
 
@@ -176,19 +127,4 @@ impl From<SatsSigned> for Bitcoin {
     }
 }
 
-impl Display for SatsSigned {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for SatsSigned {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(SatsSigned);

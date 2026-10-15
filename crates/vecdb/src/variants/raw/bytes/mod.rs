@@ -1,6 +1,6 @@
 use super::ReadWriteRawVec;
 use crate::{
-    Format, ReadOnlyRawVec, VecIndex, VecValue,
+    Format, ReadOnlyRawVec, VecValue,
     cache::{CachePolicy, NoCache},
 };
 
@@ -39,16 +39,6 @@ pub struct BytesVec<I, T: VecValue, C: CachePolicy = NoCache>(
     ReadWriteRawVec<I, T, BytesStrategy<T>, C>,
 );
 
-impl<I, T, C: CachePolicy> BytesVec<I, T, C>
-where
-    I: VecIndex,
-    T: BytesVecValue,
-{
-    pub fn reader(&self) -> BytesVecReader<I, T> {
-        BytesVecReader::new(self.0.reader())
-    }
-}
-
 impl_vec_wrapper!(
     BytesVec,
     ReadWriteRawVec<I, T, BytesStrategy<T>, C>,
@@ -58,4 +48,4 @@ impl_vec_wrapper!(
     no_deref_mut
 );
 
-impl_mutable_raw_vec!(BytesVec, BytesVecValue, BytesStrategy, BytesVecReader<I, T>);
+impl_mutable_raw_vec!(BytesVec, BytesVecValue, BytesStrategy);

@@ -1,11 +1,6 @@
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult},
-    ops::{Add, AddAssign, Div, Sub, SubAssign},
-};
+use std::ops::{Add, AddAssign, Div, Sub, SubAssign};
 
 use brk_types::{Cents, CentsSats};
-#[cfg(feature = "storage")]
-use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use vecdb::Result;
 
 #[cfg(feature = "storage")]
-use vecdb::{Bytes, Formattable};
+use vecdb::Bytes;
 
 /// Raw cents squared (u128) - stores cents² × sats without division.
 /// Used for precise accumulation of capitalized cap values: Σ(price² × sats).
@@ -114,14 +109,7 @@ impl From<usize> for CentsSquaredSats {
     }
 }
 
-#[cfg(feature = "storage")]
-impl Formattable for CentsSquaredSats {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+brk_types::impl_int_format!(CentsSquaredSats);
 
 #[cfg(feature = "storage")]
 // SAFETY: not native layout.
@@ -134,11 +122,5 @@ unsafe impl Bytes for CentsSquaredSats {
 
     fn from_bytes(bytes: &[u8]) -> Result<Self> {
         Ok(Self(u128::from_bytes(bytes)?))
-    }
-}
-
-impl Display for CentsSquaredSats {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.0)
     }
 }

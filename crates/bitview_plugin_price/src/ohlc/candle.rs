@@ -1,6 +1,6 @@
 use std::{convert::Infallible, iter, sync::Arc};
 
-use bitview_primitives::{Close, High, Low, OHLCCents};
+use bitview_primitives::OHLCCents;
 use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use brk_types::{Cents, Height, Version};
 use rangeindex::SharedRangeMap;
@@ -108,13 +108,13 @@ impl<I: VecIndex> LazyOhlcVec<I> {
                 .and_then(|height| prices.get(height))
                 .copied()
                 .unwrap_or_default();
-            return OHLCCents::from(Close::new(close));
+            return OHLCCents::from(close);
         }
-        let mut candle = OHLCCents::from(Close::new(prices[first]));
+        let mut candle = OHLCCents::from(prices[first]);
         for &price in &prices[first + 1..end] {
-            candle.high = candle.high.max(High::new(price));
-            candle.low = candle.low.min(Low::new(price));
-            candle.close = Close::new(price);
+            candle.high = candle.high.max(price);
+            candle.low = candle.low.min(price);
+            candle.close = price;
         }
         candle
     }

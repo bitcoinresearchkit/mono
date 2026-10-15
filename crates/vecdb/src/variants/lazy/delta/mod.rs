@@ -16,13 +16,7 @@ pub use op::DeltaOp;
 pub use rate::DeltaRate;
 pub use sub::DeltaSub;
 
-use crate::{
-    AnyVec, READ_CHUNK_SIZE, ReadableBoxedVec, VecIndex, VecValue, Version,
-    traits::chunk_folds::chunk_end,
-};
-
-/// Values per bulk-read batch.
-const BATCH_SIZE: usize = 16 * READ_CHUNK_SIZE;
+use crate::{AnyVec, ReadableBoxedVec, VecIndex, VecValue, Version, read_batches};
 
 /// Lazily computed vector that combines a source value with a lookback value.
 ///
@@ -64,7 +58,7 @@ where
         }
     }
 
-    /// Visits `[from, to)` in batches of about `BATCH_SIZE` values, each with its current
+    /// Visits `[from, to)` in [`read_batches`], each with its current
     /// values, window starts and the historical values they reach (read from `previous_from`).
     /// Overlapping current and historical ranges are read once; the gap between disjoint ones
     /// never is. Each batch's reads complete before `visit` runs: sources may hold
@@ -76,14 +70,9 @@ where
         mut visit: impl FnMut(usize, &[S], &[I], usize, &[S]) -> Result<(), E>,
     ) -> Result<(), E> {
         let to = to.min(self.len());
-        // Whole source chunks, enough that historical pages shared by adjacent batches are
-        // rarely read twice.
-        let chunk_size = self.source.cursor_chunk_size().max(1);
-        let batch_size = chunk_size * (BATCH_SIZE / chunk_size).max(1);
         let (mut starts, mut values, mut previous) = (Vec::new(), Vec::new(), Vec::new());
-        let mut at = from;
-        while at < to {
-            let end = chunk_end(at, batch_size, to);
+        // Batches large enough that historical pages shared by adjacent ones are rarely read twice.
+        for (at, end) in read_batches(from, to, self.source.cursor_chunk_size()) {
             starts.clear();
             self.window_starts.read_into_at(at, end, &mut starts);
             // Window starts need not be monotonic: bound every historical index.
@@ -113,7 +102,6 @@ where
                     visit(at, &values, &starts, 0, &[])?;
                 }
             }
-            at = end;
         }
         Ok(())
     }

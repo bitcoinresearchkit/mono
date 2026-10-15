@@ -26,10 +26,7 @@ where
         true
     }
 
-    #[inline]
-    fn index_type_to_string(&self) -> &'static str {
-        self.vec.index_type_to_string()
-    }
+    crate::any_vec_type_methods!(V::I, V::T);
 
     #[inline]
     fn region_names(&self) -> Vec<String> {
@@ -38,15 +35,5 @@ where
             names.push(self.holes_region_name());
         }
         names
-    }
-
-    #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        self.vec.value_type_to_size_of()
-    }
-
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        self.vec.value_type_to_string()
     }
 }
