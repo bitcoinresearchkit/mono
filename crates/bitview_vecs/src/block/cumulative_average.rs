@@ -5,7 +5,8 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue, WritableVec,
+    AnyVec, ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
+    WritableVec,
 };
 
 use crate::{

@@ -4,11 +4,11 @@ use std::{
 };
 
 use brk_exit::Exit;
-use vecdb::{EagerVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version, WritableVec};
+use vecdb::{ComputeVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version};
 
 use super::Retained;
 
-/// Rolling, expanding and all-time statistics computed into an [`EagerVec`].
+/// Rolling, expanding and all-time statistics computed into a stored vec.
 pub trait ComputeRollingStats {
     type I: VecIndex;
     type T: VecValue;
@@ -146,7 +146,7 @@ impl AverageWindow {
     }
 }
 
-impl<V> ComputeRollingStats for EagerVec<V>
+impl<V> ComputeRollingStats for V
 where
     V: StoredVec,
 {
@@ -340,7 +340,7 @@ where
 }
 
 fn compute_all_time_extreme<V: StoredVec, A, F>(
-    vec: &mut EagerVec<V>,
+    vec: &mut V,
     max_from: V::I,
     source: &impl ReadableVec<V::I, A>,
     exit: &Exit,

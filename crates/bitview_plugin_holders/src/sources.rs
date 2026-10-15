@@ -5,61 +5,63 @@ use brk_error::{Error, Result};
 use brk_types::Height;
 use vecdb::{AnyVec, ReadableVec, VecValue};
 
-/// Calls `$column!(field, source)` for every source column of the age range `$r`, in read
-/// order: the [`Data`] field it fills and the vector it reads.
-macro_rules! for_each_column {
-    ($r:ident, $column:ident) => {
-        $column!(supply, &$r.supply.total.stored);
-        $column!(count, &$r.outputs.unspent_count.stored);
-        $column!(
-            spent_count,
-            $r.outputs.spent_count.stored.cumulative_source()
-        );
-        $column!(
-            volume_sats,
-            $r.activity.transfer_volume.sats.cumulative_source()
-        );
-        $column!(
-            volume_cents,
-            $r.activity.transfer_volume.cents.cumulative_source()
-        );
-        $column!(
-            volume_profit_sats,
-            $r.transfer_volume_in_profit.sats.cumulative_source()
-        );
-        $column!(
-            volume_profit_cents,
-            $r.transfer_volume_in_profit.cents.cumulative_source()
-        );
-        $column!(
-            volume_loss_sats,
-            $r.transfer_volume_in_loss.sats.cumulative_source()
-        );
-        $column!(
-            volume_loss_cents,
-            $r.transfer_volume_in_loss.cents.cumulative_source()
-        );
-        $column!(
-            cdd,
-            $r.activity.coindays_destroyed.stored.cumulative_source()
-        );
-        $column!(cap, &$r.capital.stored);
-        $column!(cap_raw, &$r.raw.cap);
-        $column!(capitalized_cap_raw, &$r.raw.capitalized_cap);
-        $column!(profit, $r.realized.profit.stored.cumulative_source());
-        $column!(loss, $r.realized.loss.stored.cumulative_source());
-        $column!(net_pnl, $r.realized.net_pnl.stored.cumulative_source());
-        $column!(
-            value_destroyed,
-            $r.realized.value_destroyed.stored.cumulative_source()
-        );
-        $column!(unrealized_profit, &$r.unrealized.profit.stored);
-        $column!(unrealized_loss, &$r.unrealized.loss.stored);
-        $column!(supply_profit, &$r.supply.in_profit.stored);
-        $column!(supply_loss, &$r.supply.in_loss.stored);
-        $column!(capital_profit, &$r.capital.in_profit.stored);
-        $column!(capital_loss, &$r.capital.in_loss.stored);
-        $column!(peak_regret_raw, &$r.raw.peak_regret);
+/// Calls `$columns!` once with every source column of the age range `$r` as `(field, source)`,
+/// in read order: the [`Data`] field it fills and the vector it reads.
+macro_rules! with_columns {
+    ($r:ident, $columns:ident) => {
+        $columns!(
+            (supply, &$r.supply.total.stored),
+            (count, &$r.outputs.unspent_count.stored),
+            (
+                spent_count,
+                $r.outputs.spent_count.stored.cumulative_source()
+            ),
+            (
+                volume_sats,
+                $r.activity.transfer_volume.sats.cumulative_source()
+            ),
+            (
+                volume_cents,
+                $r.activity.transfer_volume.cents.cumulative_source()
+            ),
+            (
+                volume_profit_sats,
+                $r.transfer_volume_in_profit.sats.cumulative_source()
+            ),
+            (
+                volume_profit_cents,
+                $r.transfer_volume_in_profit.cents.cumulative_source()
+            ),
+            (
+                volume_loss_sats,
+                $r.transfer_volume_in_loss.sats.cumulative_source()
+            ),
+            (
+                volume_loss_cents,
+                $r.transfer_volume_in_loss.cents.cumulative_source()
+            ),
+            (
+                cdd,
+                $r.activity.coindays_destroyed.stored.cumulative_source()
+            ),
+            (cap, &$r.capital.stored),
+            (cap_raw, &$r.raw.cap),
+            (capitalized_cap_raw, &$r.raw.capitalized_cap),
+            (profit, $r.realized.profit.stored.cumulative_source()),
+            (loss, $r.realized.loss.stored.cumulative_source()),
+            (net_pnl, $r.realized.net_pnl.stored.cumulative_source()),
+            (
+                value_destroyed,
+                $r.realized.value_destroyed.stored.cumulative_source()
+            ),
+            (unrealized_profit, &$r.unrealized.profit.stored),
+            (unrealized_loss, &$r.unrealized.loss.stored),
+            (supply_profit, &$r.supply.in_profit.stored),
+            (supply_loss, &$r.supply.in_loss.stored),
+            (capital_profit, &$r.capital.in_profit.stored),
+            (capital_loss, &$r.capital.in_loss.stored),
+            (peak_regret_raw, &$r.raw.peak_regret),
+        )
     };
 }
 
@@ -75,28 +77,26 @@ impl<'a> Sources<'a> {
     pub fn vectors(&self) -> impl Iterator<Item = &dyn AnyVec> {
         AgeRangeId::ALL.iter().flat_map(move |id| {
             let r = id.select(&self.age.ranges);
-            let mut vectors = Vec::new();
-            macro_rules! push {
-                ($field:ident, $source:expr) => {
-                    vectors.push($source as &dyn AnyVec)
+            macro_rules! array {
+                ($(($field:ident, $source:expr)),* $(,)?) => {
+                    [$($source as &dyn AnyVec),*]
                 };
             }
-            for_each_column!(r, push);
-            vectors
+            with_columns!(r, array)
         })
     }
     pub fn collect(&self, start: usize, end: usize) -> Result<Vec<AgeAggregate<Data>>> {
         let mut result = vec![AgeAggregate::<Data>::default(); end - start];
         let mut band = vec![Data::default(); end - start];
         macro_rules! read_into {
-            ($field:ident, $source:expr) => {
-                read($source, start, &mut band, |row, value| row.$field = value)?
+            ($(($field:ident, $source:expr)),* $(,)?) => {
+                $(read($source, start, &mut band, |row, value| row.$field = value)?;)*
             };
         }
         for &id in AgeRangeId::ALL {
             let r = id.select(&self.age.ranges);
             band.fill(Data::default());
-            for_each_column!(r, read_into);
+            with_columns!(r, read_into);
             if id != AgeRangeId::Under1H {
                 for row in &mut band {
                     row.adjusted_volume = row.volume_cents;

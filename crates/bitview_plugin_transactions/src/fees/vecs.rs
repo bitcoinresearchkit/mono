@@ -1,6 +1,6 @@
 use bitview_traversable::Traversable;
 use brk_types::{FeeRate, Height, Sats, TxIndex};
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{PcoVec, Rw, StorageMode};
 
 use crate::{distribution::PerTxDistribution, flagged::Classified};
 
@@ -8,7 +8,7 @@ use crate::{distribution::PerTxDistribution, flagged::Classified};
 pub struct Vecs<M: StorageMode = Rw> {
     /// Coinbase output sum retained from the fee pass for mining rewards.
     #[traversable(hidden)]
-    pub coinbase_value: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
+    pub coinbase_value: M::Stored<PcoVec<Height, Sats>>,
     /// Transaction fee in satoshis: input value minus output value; coinbase is
     /// zero. The statistics count each of the block's non-coinbase transactions
     /// equally, zero fees included, as mempool.space's fee percentiles: sorted,
@@ -18,14 +18,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub fee: PerTxDistribution<Sats, M>,
     /// Canonical block fee total, accumulated in the monetary pass.
     #[traversable(hidden)]
-    pub total: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
+    pub total: M::Stored<PcoVec<Height, Sats>>,
     /// Fees of every block through this one: the denominator of fee chain shares.
     #[traversable(hidden)]
-    pub total_cumulative: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
+    pub total_cumulative: M::Stored<PcoVec<Height, Sats>>,
     /// Raw transaction fee rate in sat/vB: fee divided by virtual size and
     /// rounded upward to the nearest 0.001 sat/vB. Coinbase and zero-fee
     /// transactions are zero.
-    pub(crate) fee_rate: M::Stored<EagerVec<PcoVec<TxIndex, FeeRate>>>,
+    pub(crate) fee_rate: M::Stored<PcoVec<TxIndex, FeeRate>>,
     /// Effective transaction fee rate in sat/vB after linearizing each same-block
     /// dependency component by ancestor set and chunking it so chunk feerates never
     /// increase. Every transaction in a chunk receives

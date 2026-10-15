@@ -29,6 +29,18 @@ impl TreeNode {
         }
     }
 
+    /// Visit every leaf of this subtree, in tree order.
+    pub fn for_each_leaf<'a>(&'a self, f: &mut impl FnMut(&'a SeriesLeafWithSchema)) {
+        match self {
+            Self::Branch(children) => {
+                for child in children.values() {
+                    child.for_each_leaf(f);
+                }
+            }
+            Self::Leaf(leaf) => f(leaf),
+        }
+    }
+
     /// Attach interned descriptions to every matching series leaf.
     pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, Arc<str>>) {
         match self {
@@ -71,58 +83,36 @@ impl TreeNode {
     /// Collect one shared description per documented series.
     pub fn descriptions(&self) -> BTreeMap<&str, Arc<str>> {
         let mut descriptions = BTreeMap::new();
-        self.collect_descriptions(&mut descriptions);
+        self.for_each_leaf(&mut |leaf| {
+            let Some(description) = &leaf.leaf.description else {
+                return;
+            };
+            let existing = descriptions.insert(leaf.name(), description.clone());
+            debug_assert!(
+                existing.is_none_or(|existing| existing == *description),
+                "Conflicting descriptions for series {}",
+                leaf.name()
+            );
+        });
         descriptions
-    }
-
-    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Arc<str>>) {
-        match self {
-            Self::Branch(children) => {
-                for child in children.values() {
-                    child.collect_descriptions(descriptions);
-                }
-            }
-            Self::Leaf(leaf) => {
-                let Some(description) = &leaf.leaf.description else {
-                    return;
-                };
-                let existing = descriptions.insert(leaf.name(), description.clone());
-                debug_assert!(
-                    existing.is_none_or(|existing| existing == *description),
-                    "Conflicting descriptions for series {}",
-                    leaf.name()
-                );
-            }
-        }
     }
 
     /// Collect each value type's unit: the description of its schema.
     pub fn units(&self) -> BTreeMap<&str, Arc<str>> {
-        let mut units = BTreeMap::new();
-        self.collect_units(&mut units);
-        units
-    }
-
-    fn collect_units<'a>(&'a self, units: &mut BTreeMap<&'a str, Arc<str>>) {
-        match self {
-            Self::Branch(children) => {
-                for child in children.values() {
-                    child.collect_units(units);
+        let mut units = BTreeMap::<_, Arc<str>>::new();
+        self.for_each_leaf(&mut |leaf| match units.get(leaf.kind()) {
+            Some(existing) => debug_assert!(
+                Self::unit(leaf).is_none_or(|unit| existing.as_ref() == unit),
+                "two value types share the name {}",
+                leaf.kind()
+            ),
+            None => {
+                if let Some(unit) = Self::unit(leaf) {
+                    units.insert(leaf.kind(), Arc::from(unit));
                 }
             }
-            Self::Leaf(leaf) => match units.get(leaf.kind()) {
-                Some(existing) => debug_assert!(
-                    Self::unit(leaf).is_none_or(|unit| existing.as_ref() == unit),
-                    "two value types share the name {}",
-                    leaf.kind()
-                ),
-                None => {
-                    if let Some(unit) = Self::unit(leaf) {
-                        units.insert(leaf.kind(), Arc::from(unit));
-                    }
-                }
-            },
-        }
+        });
+        units
     }
 
     /// A leaf's unit: the first paragraph of its value type's schema description, unwrapped

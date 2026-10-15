@@ -11,7 +11,7 @@ use oas3::Spec;
 use serde_json::Value;
 
 use super::write_if_changed;
-use crate::{Endpoint, ResponseKind, TypeSchemas, collect_schema_refs, for_each_leaf};
+use crate::{Endpoint, ResponseKind, TypeSchemas, collect_schema_refs};
 
 mod manifest;
 
@@ -69,7 +69,7 @@ fn write_output(path: &Path, content: &str) -> io::Result<()> {
 /// Distinct series ids: a series reached through several typed paths counts once.
 fn count_metrics(node: &TreeNode) -> usize {
     let mut names = BTreeSet::new();
-    for_each_leaf(node, &mut |leaf| {
+    node.for_each_leaf(&mut |leaf| {
         names.insert(leaf.name());
     });
     names.len()

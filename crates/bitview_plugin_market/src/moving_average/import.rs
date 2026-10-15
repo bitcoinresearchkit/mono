@@ -1,9 +1,9 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::CentsFract;
-use bitview_vecs::{PriceWithRatio, import_cached, ops::Convert};
+use bitview_vecs::{PriceWithRatio, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, LazyVec, ReadableCloneableVec};
+use vecdb::{Convert, Database, LazyVec, ReadableCloneableVec};
 
 use super::{Vecs, ema_vecs::EmaVecs, sma::SmaVecs};
 

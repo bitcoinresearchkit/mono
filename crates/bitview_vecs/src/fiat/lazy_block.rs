@@ -1,7 +1,7 @@
 use brk_types::{Dollars, Height, Version};
-use vecdb::{LazyVec, ReadableCloneableVec};
+use vecdb::{Convert, LazyVec, ReadableCloneableVec};
 
-use crate::{Fiat, FiatType, LazyPerBlock, LazyPreviousDeltaVec, ops::Convert};
+use crate::{Fiat, FiatType, LazyPerBlock, LazyPreviousDeltaVec};
 
 /// Per-block fiat data derived from stored cumulative cents.
 pub type LazyFiatBlock<C> =

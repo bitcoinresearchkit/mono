@@ -1,12 +1,9 @@
 use bitview_compute::WeightedCohortState;
 use bitview_primitives::BoundedRatio;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
-use vecdb::{BinaryTransform, Ident, ReadableCloneableVec, UnaryTransform};
+use vecdb::{BinaryTransform, Convert, Ident, ReadableCloneableVec, UnaryTransform};
 
-use crate::{
-    IndexSources, LazyIndexedVec, LazyPerBlock, SpotValue,
-    ops::{Convert, SatsToCents},
-};
+use crate::{IndexSources, LazyIndexedVec, LazyPerBlock, SpotValue, ops::SatsToCents};
 
 /// Fully lazy point-in-time value backed by one sats source; USD is sats at the spot price.
 pub type LazySpotValuePerBlock =

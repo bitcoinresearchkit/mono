@@ -3,6 +3,7 @@ use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{CentsSigned, Dollars};
+use vecdb::ComputeVec;
 
 use super::{
     super::{activity, value},

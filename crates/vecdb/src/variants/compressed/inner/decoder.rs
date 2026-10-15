@@ -72,12 +72,7 @@ where
         dst: &mut Vec<T>,
     ) -> Result<()> {
         if page.is_raw() {
-            let size = size_of::<T>();
-            return S::bytes_to_values_append(
-                &body[range.start * size..range.end * size],
-                range.len(),
-                dst,
-            );
+            return Self::raw_range_append(body, range, dst);
         }
         let decoder = self.decoder(page, header)?;
         if range.start == 0 {
@@ -89,5 +84,15 @@ where
             dst.extend_from_slice(&scratch[range]);
         }
         Ok(())
+    }
+
+    /// Appends values `range` of a raw page, converting only those bytes.
+    pub fn raw_range_append(body: &[u8], range: Range<usize>, dst: &mut Vec<T>) -> Result<()> {
+        let size = size_of::<T>();
+        S::bytes_to_values_append(
+            &body[range.start * size..range.end * size],
+            range.len(),
+            dst,
+        )
     }
 }

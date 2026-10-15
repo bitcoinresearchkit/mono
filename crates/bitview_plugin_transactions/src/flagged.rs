@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
 use brk_types::{TxIndex, Version};
-use vecdb::{AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
 
 /// A kind of transaction: its per-transaction flag beside its per-block count.
 #[derive(Clone, Traversable)]
@@ -23,7 +23,7 @@ pub struct Block<V> {
 
 /// A kind of transaction this plugin classifies: its stored flag beside its windowed count.
 pub(crate) type Classified<M> = Flagged<
-    <M as StorageMode>::Stored<EagerVec<PcoVec<TxIndex, Boolean>>>,
+    <M as StorageMode>::Stored<PcoVec<TxIndex, Boolean>>,
     PerBlockCumulativeRolling<Count, M>,
 >;
 
@@ -37,7 +37,7 @@ impl Classified<Rw> {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
-            flag: EagerVec::import(db, flag, version)?,
+            flag: PcoVec::import(db, flag, version)?,
             count: PerBlockCumulativeRolling::import(db, count, version, indexes, window_starts)?,
         })
     }

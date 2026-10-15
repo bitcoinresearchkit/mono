@@ -1,8 +1,8 @@
 use bitview_primitives::OHLCCents;
 use bitview_traversable::Traversable;
-use bitview_vecs::{IndexSources, LazyIndexes, Price, ops::Convert};
+use bitview_vecs::{IndexSources, LazyIndexes, Price};
 use brk_types::{Cents, Dollars, Height, Version};
-use vecdb::{ReadableBoxedVec, UnaryTransform};
+use vecdb::{Convert, ReadableBoxedVec, UnaryTransform};
 
 use crate::{
     endpoint::{EndpointCents, endpoint_price},

@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use vecdb::{
-    AnyExportableVec, AnyStoredVec, LazyVec, ReadOnlyClone, ReadableCloneableVec, Ro, Rw,
+    AnyExportableVec, AnyStoredVec, Convert, LazyVec, ReadOnlyClone, ReadableCloneableVec, Ro, Rw,
     StorageMode, StoredVec, UnaryTransform, Version,
 };
 
@@ -23,7 +23,7 @@ where
 {
     pub fn new(stored: V) -> Self {
         let name = stored.name().to_string();
-        Self::named_with::<Widen>(stored, &name)
+        Self::named_with::<Convert>(stored, &name)
     }
 }
 
@@ -95,15 +95,5 @@ impl<V: StoredVec + 'static, T: Clone> ReadOnlyClone for Compact<V, T> {
             stored: self.stored.read_only_clone(),
             view: self.view.clone(),
         }
-    }
-}
-
-/// A lossless widening through `Into`, compiled into the view's read loop.
-struct Widen;
-
-impl<A: Into<B>, B> UnaryTransform<A, B> for Widen {
-    #[inline(always)]
-    fn apply(value: A) -> B {
-        value.into()
     }
 }

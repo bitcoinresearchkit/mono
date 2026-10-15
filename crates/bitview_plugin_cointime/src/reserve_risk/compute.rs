@@ -7,7 +7,7 @@ use bitview_primitives::{CoinDays, DollarDaysPerCoin, Float64};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Dollars, Timestamp};
-use vecdb::ReadableVec;
+use vecdb::{ComputeVec, ReadableVec};
 
 use super::Vecs;
 

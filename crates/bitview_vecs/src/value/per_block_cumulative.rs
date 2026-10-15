@@ -3,7 +3,8 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{
-    AnyVec, BinaryTransform, Database, ReadableVec, Rw, StorageMode, VecValue, WritableVec,
+    AnyVec, BinaryTransform, ComputeVec, Database, ReadableVec, Rw, StorageMode, VecValue,
+    WritableVec,
 };
 
 use crate::{CumulativeState, IndexSources, LazyValueBlock, ValuePerBlock, ops::SatsToCents};

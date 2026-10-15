@@ -110,13 +110,29 @@ where
         }
         let page_index = self.pos / Self::PER_PAGE;
         let page_start = page_index * Self::PER_PAGE;
-        self.ensure_page_decoded(page_index)?;
         let from = self.pos - page_start;
+        let at = self.pos;
+        let page = self.pages.get(page_index)?;
+        if page.is_raw() {
+            // The raw tail page converts only the requested values, not the whole page.
+            let to =
+                (self.end - page_start).min(page.values_count(Self::PER_PAGE, Self::SIZE_OF_T));
+            if from >= to {
+                return None;
+            }
+            let body = self.reader.read(page.start as usize, page.bytes as usize);
+            self.page_buf.clear();
+            self.page_buf_idx = Self::NO_PAGE;
+            PageDecoder::<T, S>::raw_range_append(body, from..to, &mut self.page_buf)
+                .expect("raw page conversion failed");
+            self.pos = page_start + to;
+            return Some((at, &self.page_buf));
+        }
+        self.ensure_page_decoded(page_index)?;
         let to = (self.end - page_start).min(self.page_buf.len());
         if from >= to {
             return None;
         }
-        let at = self.pos;
         self.pos = page_start + to;
         Some((at, &self.page_buf[from..to]))
     }

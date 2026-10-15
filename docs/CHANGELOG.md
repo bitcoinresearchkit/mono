@@ -12,7 +12,7 @@ A workspace-wide refactor: one job per crate, typed series values, a typed error
 composition model, and many correctness fixes.
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
-size), so every stored vector resets; the indexer reindexes (indexer version 42) and every plugin recomputes. Nothing
+size), so every stored vector resets; the indexer reindexes (indexer version 43) and every plugin recomputes. Nothing
 has to be deleted by hand.
 
 ### Breaking Changes
@@ -403,6 +403,24 @@ has to be deleted by hand.
 - A range by a date or time before its index's first date (2009-01-01; day3's 2008-12-31, week1's 2008-12-29) answers
   400 "out of range" at every index, as in the clients (minute, hour and day3 ranges started at 0, the others said
   "not supported")
+- Ten pools take their API slug in their tree key and series ids like every other pool: `pools.1thash`, `1thash_*`,
+  and likewise `175btc`, `50btc`, `21inc`, `8baochi`, `1hash`, `58coin`, `7pool`, `1m1x` and `solopoolcom` (were
+  `onethash`, `pool175btc`, `pool50btc`, `twentyoneinc`, `eightbaochi`, `onehash`, `fiftyeightcoin`, `sevenpool`,
+  `onem1x` and `solopool`)
+- Cointime's value flows (`cointime.value.{destroyed, created, stored}`) are typed `DollarBlocks` and VOCDD
+  `DollarDaysPerCoin` (were `Float64`); JSON unchanged
+- A coinbase input's `vout` is 4294967295, as in Bitcoin Core and Esplora (was 65535): `Vout` is a 32-bit index
+  (its schema was capped at 65535)
+- `GET /api/block/{hash}/status` answers `in_best_chain: false` for a hash outside the published best chain, orphaned
+  or unknown, like Esplora (an unknown hash answered 404)
+- `GET /api/v1/difficulty-adjustment` projects `remainingTime` and `estimatedRetargetDate` at the epoch's observed
+  pace (was the pace needed to reach the target), and `difficultyChange` stays within a retarget's -75% to +300%
+- A series range wholly below the six-block reorg window has an ETag keyed by the hash of the last block it covers:
+  appends keep it, a reorg replacing those blocks changes it (was keyed by version and bounds alone, so a reorg
+  could revalidate stale rows). The OpenAPI document's ETags are content hashes, other ETags change shape (caches
+  revalidate once after the upgrade), and every operation documents its 400, 500, 503 and 504 answers
+- While a rebuild or a rollback below the published tip rewrites a plugin's rows, series requests reaching those
+  rows answer 503 `state_updating` (were clamped or empty)
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
@@ -423,6 +441,12 @@ has to be deleted by hand.
 - JS and Python date selectors use UTC with the server's day1/week1/year10 mapping (they used local time and put day1
   0 on 2009-01-03), and dates before an index's first date throw, as the Rust client and the server reject them
   (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29)
+- One selection builder per client: a single item is a one-item range (JS `SingleItemBuilder` and
+  `DateSingleItemBuilder`, Python `SingleItemBuilder` and `DateSingleItemBuilder` are gone). In Rust the selection
+  methods return the `SeriesEndpoint` itself (`SingleItemBuilder`, `RangeBuilder` and `SkippedBuilder` are gone;
+  `DateSeriesEndpoint` is an alias), `fetch` borrows it, and `take(n)` after a bounded range narrows its end. Tree
+  children are `LazyNode<T>` values built on first access (were `LazyLock` aliases with boxed initializers); JS
+  thenables are typed as `PromiseLike`
 
 #### Crates and features
 
@@ -430,7 +454,7 @@ has to be deleted by hand.
   `holders` (`distribution_aggregated`), `utxos` (`distribution_utxos`), `entry` (`distribution_entry`), `addresses`
   (`distribution_addresses`), `profitability` (`distribution_profitability`); the shared library is
   `bitview_distribution` (was `bitview_plugin_distribution_common`). `Has*`/`Supports*` traits and composition
-  accessors follow (`HasHolders`, `.holders()`, ...). Their storage directories are renamed (bitviewd deletes the old
+  accessors follow (`HasAge`, `.age()`, ...). Their storage directories are renamed (bitviewd deletes the old
   ones and recomputes; moving `plugins/distribution_<x>` to `plugins/<x>` skips that), and `/api/series/count`'s
   `by_db` keys follow. Every plugin's series live under its own root, ids unchanged: `cohorts.*` splits into `age.*`
   and `utxos.*`, `addrs.*` is `addresses.*`, `distribution_aggregated.cohorts.<c>` is `holders.<c>`,
@@ -446,8 +470,9 @@ has to be deleted by hand.
   epoch indexes, `Date`, per-type address and output indexes, `TypeIndex`, `AddrHash`, `Index`, the scalar value
   types, basis points and parts per million, `CentsCompact`, `SatsFract`, OHLC, address and supply state, cost-basis
   types, pools, OP_RETURN kinds, percentile ids, `INDEX_EPOCH`); REST response DTOs and query-protocol types to
-  `bitview_types` (with `ErrorBody`, `ErrorType`, `ErrorCode`); CPFP linearization (`linearize`, `ChunkInput`,
-  `find_seed_chunk`) to the new `brk_cpfp` crate; `Age` and `Term` to `bitview_cohort`; `Port` to `bitview_server`.
+  `bitview_types` (with `ErrorBody`, `ErrorType`, `ErrorCode`); CPFP linearization (`Cluster`, whose methods replace
+  `linearize` and `ChunkInput`, and `find_seed_chunk`) to the new `brk_cpfp` crate; `Age` and `Term` to
+  `bitview_cohort`; `Port` to `bitview_server`.
   `brk_types` keeps the Bitcoin primitives, and the Rust client re-exports `bitview_primitives`
 - Made `bitview` the only daemon library: `bitview::run(import)` is the entry point (was `bitviewd::run`).
   `bitview::Config` is now the file and argument configuration (was `bitviewd::Config`); the former `bitview::Config`
@@ -482,7 +507,8 @@ has to be deleted by hand.
 - `ComputePluginSet::commit(complete)` is required (a composition that left it out never published new data);
   `complete` is false after a bootstrap `Reimport`
 - `#[plugin_set(has = ...)]` derives capability impls. Removed the unused `HasSupply`, `HasConstants`,
-  `HasOpReturn`, `HasRarityMeter`, `HasMarket`, `HasDistributionUtxos` and `HasBedrock` (with `bitview_query`'s `SupportsBedrock`);
+  `HasOpReturn`, `HasRarityMeter`, `HasMarket`, `HasDistributionUtxos`, `HasBedrock` (with `bitview_query`'s
+  `SupportsBedrock`), `HasHolders`, `HasEntry` and `HasProfitability`;
   `Indexer::indexed_height` is gone; `Lengths` comes only from `bitview_primitives`
 - The pipeline-wide `Publication` gate is gone (`bitview_plugin::Publication`, `ComputePluginSet::publication`,
   `Query::reads_under`): readers pin the indexer's published state instead (`Indexer::pin`, which never waits;
@@ -498,6 +524,13 @@ has to be deleted by hand.
   spanning plugins by index must be described alike. The server logs each collision at startup,
   `bitview_query::Vecs::shared_series` lists them, and `PluginData::collect_descriptions` collects a plugin's
   descriptions
+- A plugin derives `Plugin` from its storage (`#[derive(Plugin)]` with `#[plugin(storage = STORAGE)]`, under
+  `bitview_plugin`'s `derive` feature), and `compute_items!(Dependencies, db)` declares its `ComputePlugin`
+  dependencies type and database
+- Plugins recompute from `Indexer::compute_start`, the update's resume point fixed for the whole update, not from the
+  publication; a plugin rewriting rows below the published lengths (a rollback landing below its start, a
+  truncation, a reset) goes through `Indexer::rewrite_from` (replaces `lower_publication_to`). Plugins keeping undo
+  write each update's last ten blocks as one protected step (`bitview_compute::undo_chunks`)
 
 #### Rust APIs
 
@@ -544,13 +577,13 @@ has to be deleted by hand.
   `VersionCannotBeZero` are gone. `compute_sum_from_indexes` and `compute_transform2_batched` are removed, and
   `AnyStoredVec::any_validate_computed_version_or_reset` returns whether the computed version changed
 - Rolling statistics (`compute_rolling_sum/average/ema`, `compute_all_time_high/low`) moved from `EagerVec` to the
-  `bitview_compute::ComputeRollingStats` extension trait (`EagerVec::compute_init` replaces `repeat_until_complete`
-  and is public for such extensions); `compute_rolling_sd`, `compute_rolling_rma`, `compute_expanding_sd` and
-  `compute_sma` are removed
-- `bitview_transforms`: `Convert` replaces `SatsToBitcoin`, `SatsSignedToBitcoin`, `CentsUnsignedToDollars`,
-  `CentsSignedToDollars` and `OhlcCentsToDollars`; `Quotient<P>` the `Ratio{Cents,Sats,Count,Bytes,CentsSignedCents}`
-  transforms; `RelativeChange<P>` `RatioDiff{Cents,Dollars}`. `bitview_vecs`: `Percent*` types hold the fixed-point
-  storage and a percent view (no ratio view), `Ratio*` types the storage and a ratio view; both name the storage `fixed`
+  `bitview_compute::ComputeRollingStats` extension trait (`ComputeVec::compute_to` replaces `repeat_until_complete`
+  for such extensions); `compute_rolling_sd`, `compute_rolling_rma`, `compute_expanding_sd` and `compute_sma` are
+  removed
+- `vecdb::Convert` (was `bitview_transforms::Convert`, then `bitview_vecs::ops::Convert`) replaces `SatsToBitcoin`,
+  `SatsSignedToBitcoin`, `CentsUnsignedToDollars`, `CentsSignedToDollars` and `OhlcCentsToDollars`; `Quotient<P>`
+  the `Ratio{Cents,Sats,Count,Bytes,CentsSignedCents}` transforms; `RelativeChange<P>` `RatioDiff{Cents,Dollars}`.
+  `bitview_vecs`: `Percent*` types hold the fixed-point storage and a percent view (no ratio view), `Ratio*` types the storage and a ratio view; both name the storage `fixed`
   (was `ppm`), and `RatioPerBlock::import` takes the full name (`import_ppm` is gone). `RatioRollingWindows` and
   `LazyRatioRollingWindows` are new. `LazySpotValuePerBlock` is a `SpotValue` (BTC, sats
   and USD, no cents); `LazyValuePerBlock` (use `LazySpotValuePerBlock::identity`), `LazyValue`,
@@ -638,6 +671,28 @@ has to be deleted by hand.
 - RawDB `Database::flush` returns nothing (was `Result<usize>`; it no longer syncs the device).
   `Region::write_indexed` takes `T: Sync` and an `Fn + Sync` writer, returns a `Result`, writes in no particular
   order, and its writer must not access the database; VecDB's `write_updates` returns a `Result`
+- VecDB: `EagerVec` is gone. Every stored vector computes in place through the `ComputeVec` extension trait
+  (`compute_to`, `compute_transform`/`2`/`3`, `compute_binary`, `compute_subtract`, `compute_cumulative*`):
+  `EagerVec<PcoVec<I, T>>` is `PcoVec<I, T>` with `use vecdb::ComputeVec`, with the same stored bytes, names and
+  versions. `BytesVecReader` is an alias of `VecReader`; `Bytes` and `ValueStrategy` are `unsafe` traits (an
+  implementation promises its byte layout). Removed unused helpers: `min`, `max` and `sum` (with their `_at` and
+  `_dyn` forms), `collect_first`, `collect_dyn`, `collect_or_default`, `collect_signed_range`, `collect_one_flat` (use
+  `collect_one(..).flatten()`), `try_fold_range`, `for_each_range`, `fold_range`, `is_pushed_empty`, `has`, `has_at`,
+  `checked_push`, `checked_push_at`, `validate_and_truncate`, `AnyReadableVec` and `ReadableOptionVec`. New:
+  `read_batches`, `bounded_cursor_at` and `MutableVec::update_many_with_previous`
+- `brk_types`: `Vout` is a `u32` (`Vout::MAX` is the coinbase vout; `to_be_bytes` and `From<Vout> for u16` are gone);
+  `CheckedSub` is vecdb's, re-exported; the `U8x2`...`U8x65` arrays are gone (payload types wrap `[u8; N]`, and
+  `From<&[u8]>` panics on another length); `CoinbaseTag::as_str` is `as_bytes`, `chars` and `Display`, and a tag
+  deserializes from the text it serializes to; `Bitcoin * Bitcoin` and `Dollars * Dollars` are gone. `bitview_types`:
+  response DTO fields are public, `RangeIndex::Timestamp` displays as ISO 8601 (was Unix seconds, which reads back
+  as an index) and `RewardStats` deserializes its decimal strings. `bitview_primitives`: OHLC fields are plain values
+  (`Open`, `High`, `Low` and `Close` are gone), `ByAddrType` and `AddrTypeId` moved here from `bitview_cohort`, and
+  `FundedAddressData::send` is infallible
+- `bitview_compute` holds the update toolkit plugins share: `Inputs`, `write_chunks`, `undo_chunks`, `write_locked`,
+  `save_stamped` and `Retained<S>`, the writer-only window state rolling statistics continue between updates;
+  `LazyWindowVec` is gone. `#[derive(Traversable)]` keeps one struct attribute, `merge` (`transparent`, `hidden` and
+  `wrap` are gone), and fields can no longer be `Option`s. `bitview_catalog::TreeNode::for_each_leaf` visits a
+  subtree's leaves in order
 
 #### Configuration
 
@@ -645,6 +700,7 @@ has to be deleted by hand.
   (an existing cookie used to win over explicit credentials). A relative `rpccookiefile` resolves inside
   `bitcoindir`. In Docker, `BTC_RPC_USER` and `BTC_RPC_PASSWORD` default to empty, so the cookie in
   `BITCOIN_DATA_DIR` is used (`bitcoin`/`bitcoin` used to be sent)
+- `bitview_mcp --api` must be an absolute HTTP(S) origin (a bare host was tried over HTTPS, then HTTP)
 
 ### New Features
 
@@ -688,12 +744,23 @@ has to be deleted by hand.
   page-in rates, data-directory size, time per plugin, size per component, with the bootstrap cycles shaded) and a
   `compare.svg` per machine across its complete runs. It reads old recordings by column name. The previous charts
   covered only the first seconds of each run and skipped nested runs
-- Benchmarks are filed by hardware and code: `bitviewd_bench` writes `<bitviewdir>/benches/<machine>/<revision>/`,
-  the layout of the workspace's `benches/` (was `benches/bitviewd/run-<ms>/`, renamed by hand). The machine comes
-  from the CPU, the RAM and the data directory's storage (`apple-m6-16gb-external-tb`; `internal`, `external-tb`
-  for Thunderbolt or USB4, `external-usb`), recorded with the drive model for the data and blocks directories; the
-  revision is the tag at HEAD or the short commit (`-dirty` with local
-  changes); a rerun of a revision on a machine replaces it, and one benchmark runs per data directory at a time
+- Benchmarks are filed by hardware and code: `bitviewd_bench` writes
+  `<bitviewdir>/benches/<machine>/<revision>/<run-id>/`, the layout of the workspace's `benches/` (was
+  `benches/bitviewd/run-<ms>/`, renamed by hand). The machine comes from the CPU, the RAM and the data directory's
+  storage (`apple-m6-16gb-external-tb`; `internal`, `external-tb` for Thunderbolt or USB4, `external-usb`), recorded
+  with the drive model for the data and blocks directories; the revision is the tag at HEAD or the short commit
+  (`-dirty` when the sources have local changes), captured at compile time with the compiler, profile and flags; the
+  run id is its UTC start (`20261014T153012Z`), so repeated runs sit side by side. One benchmark runs per data
+  directory at a time
+
+#### `bitview-cli` and `bitview_mcp`
+
+- `bitview-cli` streams responses instead of buffering them: `--pretty` re-indents JSON as it arrives, copying every
+  token as sent (integers beyond 64 bits stay exact), other bodies pass through, a closed pipe (`| head`) ends
+  quietly and error bodies are cut at 64 KiB
+- `bitview_mcp` answers 503 with `Retry-After: 1` when every request slot stays busy (was a tool error), holds a
+  slot until a response's last byte is sent, and passes upstream JSON through as text content, so integers beyond
+  64 bits stay exact
 
 #### `vecdb` and `rawdb`
 
@@ -721,7 +788,7 @@ has to be deleted by hand.
   kept them empty); Rarity Meter's components that read them; and the URPD API's buckets. Most of the change is before
   2013; today's percentiles move by up to $5 under $100,000 and up to $50 above. The ±5% density band's edges round to
   the nearest cent (were truncated). Five digits made those plugins' recompute 3.3 times slower; four make it 11%
-  faster than whole dollars, with a 46,001-bucket price index (was 190,001)
+  faster than whole dollars, with a 46,001-bucket price index (was 190,001; 64,001 since its ceiling rose, below)
 - Block-to-pool attribution follows mempool's current `pools-v2.json` (a new Foundry USA payout address)
 - The average address balance is the exact mean (was floored to whole sats: 3 sats over two addresses read 1) and
   undefined (null) while no address is funded (was 0), computed on read
@@ -750,7 +817,9 @@ has to be deleted by hand.
   extremes, which a single outlier set)
 - Per-transaction and rolling-window statistics use one unweighted rank, the lower nearest rank
   `sorted[max(0, floor(n·p) − 1)]`: transaction vsize statistics (were the rounded nearest rank) and every
-  rolling-window percentile and median (were linearly interpolated), the VOCDD median behind Reserve Risk included
+  rolling-window percentile and median (were linearly interpolated), the VOCDD median behind Reserve Risk included,
+  Bedrock's loss thresholds (were linearly interpolated) and the rarity meter's extreme thresholds (were
+  `sorted[floor((n − 1)·p)]`)
 - True range is exact cents
 - The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
   blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply
@@ -820,6 +889,14 @@ has to be deleted by hand.
 - CPFP chunks come from an ancestor-set linearization chunked so feerates never increase: a later, richer chunk joins
   the one before it (two chunks could come out at 0.7 then 0.867 sat/vB). Effective fee rates, their statistics and
   the CPFP parent and child counts recompute
+- Sigop costs follow Bitcoin Core's `GetSigOpCount`: a `CHECKMULTISIG` counts as the `OP_n` right before it, or 20
+  after any other opcode, a signature opcode included (an earlier `OP_n` was carried across it). A Taproot
+  script-path spend's leaf version comes from its control block, so only a tapscript leaf is searched for signatures
+  and inscriptions. The indexer reindexes (version 43)
+- The cost-basis price index reaches $100,000,000 (was $1,000,000, above which every creation price shared the top
+  bucket): 64,001 buckets. Cost-basis statistics recompute
+- `market.ath.max_days_between` counts each interval between all-time highs in full at the high that ends it (it
+  read the elapsed time after the new high reset it, missing the interval's last block)
 
 #### Clients
 
@@ -855,12 +932,22 @@ has to be deleted by hand.
   to answer
 - An address's stats are written with the publication they belong to: a transaction in the block being processed
   counted twice (confirmed and pending), and a failed update left the stats ahead of the published chain
-- During a reorg within the plugins' saved rollback history (10 updates), a plugin about to rewrite published rows in
+- During a reorg within the plugins' saved rollback history (10 blocks), a plugin about to rewrite published rows in
   place (spends, address state) first lowers what readers see to where its rollback lands: spends published below the fork could read as unspent, and address stats as of an
   older block, mid-reorg. A reorg rolls the address state back with the indexer, before indexing, and writes it at
   once: address stats answer as of the fork (or where the rollback lands below it) during the update (answered
   503). They answer 503 only after a failed
   write, during an update of more than 10 blocks, or after a reorg past the saved history
+- A reorg of up to ten blocks lands exactly: addresses (state and caps), UTXOs (caps) and the outputs' spend index
+  write the last ten blocks of every update, catch-ups included, as their undo step (they kept the last ten updates:
+  a 1-block reorg after a 25,000-block catch-up landed about 5,000 blocks back and recomputed from there). A deeper
+  reorg rebuilds only the plugin whose undo cannot land, and a plugin lowering what readers see no longer makes
+  other plugins recompute
+- An address's unspent outputs read the indexer's address stores as of the published lengths, so a listing never
+  shows a later block's spends
+- Height lookups, calendar maps and pool snapshots are immutable paged snapshots (an update copies only its tail
+  pages), so reads never wait for compute on them; while one request rebuilds the live price window or the
+  historical price cache, the others answer 503 `state_updating` (they waited on its lock)
 - The UTXO set and URPD endpoints read a snapshot that is never rewritten under them: during an update they could fail
   or silently reconstruct a state from the next block's snapshot payload
 - `spending_txin_index` reads unspent for a spend in a block not published yet (CPFP clusters left those out too, or
@@ -874,7 +961,9 @@ has to be deleted by hand.
   block publishes), the address endpoints answer from confirmed data alone (stats answered 503)
 - A compressed vector publishes a write's bytes, page layout and length together: a read during a write could decode
   the new bytes with the old layout (block size and weight are compressed and served while the indexer appends)
-- A shutdown signal no longer waits behind back-to-back updates: no new update starts once it is pending
+- A shutdown signal no longer waits behind back-to-back updates: no new update starts once it is pending, and it
+  no longer waits for the indexer's deferred store commit (vectors written ahead of an interrupted commit roll back
+  on import)
 - Reading the newest blocks finds them by hopping from frame to frame from each blk file's start, and reads a body
   only for a needed canonical header. It scanned 8 MB chunks backward from arbitrary offsets, where magic bytes
   inside a transaction could pass for a frame: with an unobfuscated blk file (a datadir created before Core 28, or run
@@ -887,7 +976,11 @@ has to be deleted by hand.
   and 91722): the indexer drops them from their address when the duplicate lands
 - Pool hashrate histories (`/api/v1/mining/hashrate/pools/{time_period}`, `/api/v1/mining/pool/{slug}/hashrate`):
   `24h` and `3d` return the latest day instead of nothing, a share's block counts cover the same seven days (the
-  network count lagged a day), and samples are weekly back from today
+  network count lagged a day), and samples are weekly back from today, each sharing out the seven days since the
+  previous one
+- A transaction returning to the mempool records what it replaced while it was gone (those showed as vanished);
+  projected mempool blocks no longer end with empty blocks, and template transactions carry Core's entry data
+  (sigop-adjusted vsize, fees) beside their bodies from `getblocktemplate`
 - A date or timestamp past the last block ends the series: as `start` it selects nothing (was the last block), as
   `end` it keeps the last block (was left out), for the height, epoch and halving indexes
 - The website caches only content-hashed files as immutable; fixed names (the search index, workers, fonts) revalidate
@@ -912,9 +1005,8 @@ has to be deleted by hand.
 - A transaction with more than 65,536 outputs (consensus-valid but non-standard: only a miner can include one, and
   none has come close, the most is 13,107) no longer crashes the indexer on every instance: such an output keeps
   its own UTXO entry (its vout's high bits are mixed into the key's txid prefix; every other key is unchanged) and
-  its confirmed spends resolve normally. Its vout shows wrapped in the API (the transaction's outspends answer an
-  error), its address's UTXO list can miss or misattribute it, and a mempool spend of it resolves the output at
-  the wrapped index; a dev build stops on it
+  its confirmed spends resolve normally, its vout shows in full and its transaction's outspends answer. Its
+  address's UTXO list can miss or misattribute it (a dev build stops there)
 - A VecDB rollback skips the change files an earlier rollback left above its landing (kept until a write at their
   stamp replaces them): after a reorg whose replacement came in one multi-block update, a later deeper reorg failed
   every update with a stamp mismatch
@@ -1013,6 +1105,18 @@ has to be deleted by hand.
   unchanged
 - The age bands' exact `u128` inputs (cap, capitalized cap, peak regret, capitalized cap in profit and in loss), read
   only in height ranges, are stored zstd-compressed: 486 MB instead of 1,786 MB at 970,536 blocks
+- Updates of a few blocks keep what they used to rebuild. Rolling windows keep their state between updates (sorted
+  windows for medians and distributions, minimum and maximum deques, averages; about 10 MB, identical to a rebuild)
+  instead of re-reading and sorting up to a year of values per window; lookback window starts, cumulative type counts,
+  OP_RETURN fee totals and the price oracle (about 134 KiB, no 12-block warm-up) carry over too. The UTXO-set tip
+  appends only its changed pages (a one-block advance takes 0.7 ms instead of 4.7 ms at 971,000 heights), replay
+  prefix checks are read once, and vector appends patch the last page in place
+- Each plugin starts as soon as its own dependencies finish (Price beside Mappings; Mining, Pools, Supply,
+  Profitability and Coinflow as their inputs complete; Bedrock and Rarity together), clean databases skip deferred
+  compaction, and the indexer starts its store ingestion right after its vector write (no 3-second tail). Outputs,
+  Transactions, Holders and Cointime run independent parts in parallel; Outputs' undo uses the known unspent values
+- Input spends stream per block instead of being staged (up to 384 MiB), the age plugin's peak-price table is compact
+  (about 72 MiB less at 1,000,000 heights), and the daemon runs the mempool driver only when a consumer is enabled
 
 #### `brk_reader`
 
@@ -1022,6 +1126,10 @@ has to be deleted by hand.
 - The forward pipeline keeps blk files out of the OS page cache (macOS reads them uncached, Linux drops them right
   after): each file is read once, and caching it evicted the data the indexer looks up. On macOS, indexing blocks
   600,000 to 650,000 takes 315 s instead of 331 s
+- The forward pipeline holds at most 256 MiB of decoded blocks: blocks found past a gap are parsed ahead up to that
+  budget, then only their positions are kept and re-read once the gap closes
+- An update right after the previous one reads only the frames appended since the last block it streamed (no
+  directory scan or walk from the file's start), while the blk file is the same file (device and inode)
 
 #### `quickmatch-js`
 
@@ -1048,9 +1156,10 @@ has to be deleted by hand.
   (`with_read_bytes` takes an offset). Read guards on data an
   update changes (compressed page tables, pool heights, overflow and hole sets) are recursive, so a read nested in
   another read of the same vector cannot deadlock behind a waiting writer
-- statedb keeps the latest snapshot in `snapshots/tip` (and the one it replaced in `snapshots/prev`), both replaced
-  by rename, and replaces `snapshots/pages` by rename; an older layout's latest page inside `data` is dropped on open
-  and rewritten by the next update
+- statedb keeps the latest snapshot as `snapshots/tip` (and the one it replaced as `snapshots/prev`), a small
+  directory replaced by rename that points into an append-only page file (`snapshots/tips.<generation>`): an update
+  appends only the pages it changed, and a page file that grows past four times its live pages starts a new
+  generation. A tip of an older layout is rebuilt by the next update (restores use the retained snapshots meanwhile)
 
 ## [v0.12.2](https://github.com/bitcoinresearchkit/brk/releases/tag/v0.12.2) - 2026-09-01
 

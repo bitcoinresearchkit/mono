@@ -7,9 +7,9 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, Ident, ReadableCloneableVec, UnaryTransform};
+use vecdb::{Convert, Database, Ident, ReadableCloneableVec, UnaryTransform};
 
-use crate::{IndexSources, LazyPerBlock, PerBlock, ops::Convert};
+use crate::{IndexSources, LazyPerBlock, PerBlock};
 
 /// Generic price metric: the series is the USD price, cents its exact storage.
 #[derive(Clone, Traversable)]

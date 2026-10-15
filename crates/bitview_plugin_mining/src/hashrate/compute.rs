@@ -7,7 +7,7 @@ use bitview_vecs::ops::RelativeChange;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Dollars, Height, Sats, TARGET_BLOCKS_PER_DAY_F64};
-use vecdb::{AnyVec, LazyVec, ReadableCloneableVec, ReadableVec};
+use vecdb::{AnyVec, ComputeVec, LazyVec, ReadableCloneableVec, ReadableVec};
 
 use super::Vecs;
 

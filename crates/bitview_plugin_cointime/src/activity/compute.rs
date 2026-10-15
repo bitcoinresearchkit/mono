@@ -5,6 +5,7 @@ use bitview_primitives::{BoundedRatio, CoinBlocks};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Bitcoin;
+use vecdb::ComputeVec;
 
 use super::Vecs;
 

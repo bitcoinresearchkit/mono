@@ -1,8 +1,8 @@
 use bitview_compute::NumericValue;
 use brk_types::{Dollars, Height, Version};
-use vecdb::{Ident, ReadableCloneableVec};
+use vecdb::{Convert, Ident, ReadableCloneableVec};
 
-use crate::{Fiat, FiatType, IndexSources, LazyPerBlock, ops::Convert};
+use crate::{Fiat, FiatType, IndexSources, LazyPerBlock};
 
 /// Lazy fiat: both cents and usd are lazy views of a stored source.
 /// Zero extra stored vecs.

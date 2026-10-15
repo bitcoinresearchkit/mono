@@ -3,10 +3,10 @@ mod resolutions;
 
 use bitview_primitives::{OHLCCents, OHLCDollars};
 use bitview_traversable::Traversable;
-use bitview_vecs::{IndexSources, LazyIndexes, Price, ops::Convert};
+use bitview_vecs::{IndexSources, LazyIndexes, Price};
 use brk_types::Version;
 use derive_more::Deref;
-use vecdb::ReadableCloneableVec;
+use vecdb::{Convert, ReadableCloneableVec};
 
 use crate::spot::SpotPrice;
 use resolutions::LazyOhlcCentsVecs;

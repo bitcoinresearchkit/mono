@@ -1,10 +1,12 @@
 use bitview_vecs::{
-    AggFold, IndexSources, LazyAggVec, LazyIndexes, Price, ops::Convert, shapes::PerResolution,
+    AggFold, IndexSources, LazyAggVec, LazyIndexes, Price, shapes::PerResolution,
     with_resolution_fields,
 };
 use brk_types::{Cents, Dollars, Height, Version};
 use rangeindex::{Pages, RangeMap};
-use vecdb::{AnyVec, LazyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, VecIndex};
+use vecdb::{
+    AnyVec, Convert, LazyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, VecIndex,
+};
 
 const COMPUTE_VERSION: Version = Version::ONE;
 

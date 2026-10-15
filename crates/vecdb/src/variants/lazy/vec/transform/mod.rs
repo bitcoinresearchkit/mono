@@ -1,6 +1,8 @@
+mod convert;
 pub mod ident;
 mod map_option;
 
+pub use convert::Convert;
 pub use ident::Ident;
 pub use map_option::MapOption;
 

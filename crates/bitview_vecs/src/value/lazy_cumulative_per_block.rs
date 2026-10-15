@@ -1,7 +1,7 @@
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
-use vecdb::{Ident, ReadableCloneableVec};
+use vecdb::{Convert, Ident, ReadableCloneableVec};
 
-use crate::{IndexSources, LazyPerBlock, Value, ops::Convert};
+use crate::{IndexSources, LazyPerBlock, Value};
 
 pub type LazyCumulativeValuePerBlock = Value<
     LazyPerBlock<Sats>,

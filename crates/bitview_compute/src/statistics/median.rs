@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use brk_exit::Exit;
 use vecdb::{
-    CachePolicy, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, Version,
+    CachePolicy, ComputeVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, Version,
     WritableVec,
 };
 
@@ -23,7 +23,7 @@ pub trait ComputeRollingMedianFromStarts<I: VecIndex, T> {
         f64: From<A>;
 }
 
-impl<I, T, P: CachePolicy> ComputeRollingMedianFromStarts<I, T> for EagerVec<PcoVec<I, T, P>>
+impl<I, T, P: CachePolicy> ComputeRollingMedianFromStarts<I, T> for PcoVec<I, T, P>
 where
     I: VecIndex,
     T: PcoVecValue + From<f64>,

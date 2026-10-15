@@ -14,7 +14,7 @@ use brk_exit::Exit;
 use brk_types::{Height, Sats, VSize};
 use rayon::prelude::*;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ComputeVec, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
 use crate::{distribution::TxDistribution, resume::prepare_blocks};

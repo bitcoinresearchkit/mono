@@ -14,7 +14,7 @@ and `bitview_distribution`.
   cache policy.
 - `ops` (public): stateless, element-wise value transforms (currency conversion,
   ratios, arithmetic) implementing vecdb's unary, binary or delta interfaces with only
-  the numeric bounds they need. Generic adapters (`Ident`, `MapOption`,
+  the numeric bounds they need. Generic adapters (`Ident`, `Convert`, `MapOption`,
   `ReverseOperands`) belong to vecdb.
 - `views`: lazy readers over one source and aligned metadata (`LazyIndexedVec`,
   `LazyLookbackVec`, `LazyPreviousDeltaVec`, `LazyRollingRatioVec`, `LazySmaVec`).

@@ -3,9 +3,9 @@ use bitview_primitives::CentsFract;
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Dollars, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, Rw};
+use vecdb::{Convert, Database, Rw};
 
-use crate::{Fiat, IndexSources, LazyPerBlock, PerBlock, ops::Convert};
+use crate::{Fiat, IndexSources, LazyPerBlock, PerBlock};
 
 /// A cents type that converts to dollars.
 pub trait FiatType:

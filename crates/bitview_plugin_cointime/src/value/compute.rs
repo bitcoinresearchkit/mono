@@ -4,6 +4,7 @@ use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::DollarBlocks;
 use brk_error::Result;
 use brk_exit::Exit;
+use vecdb::ComputeVec;
 
 use super::{super::activity, Vecs};
 

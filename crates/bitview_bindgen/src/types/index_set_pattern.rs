@@ -3,8 +3,6 @@ use std::collections::BTreeSet;
 use bitview_catalog::{SeriesLeafWithSchema, TreeNode};
 use bitview_primitives::Index;
 
-use crate::for_each_leaf;
-
 /// How clients reach a leaf: its indexes, and those whose values can be missing (an empty
 /// period), which clients type as nullable. A property of the series, never of its value type:
 /// undefined values (NaN, sentinels) are typed with the value type, so shapes stay shared.
@@ -18,7 +16,7 @@ pub(crate) struct Access {
 /// sentinel) written as `null`: clients type those nullable wherever they appear.
 pub(crate) fn value_types(tree: &TreeNode) -> ValueTypes {
     let mut types = ValueTypes::default();
-    for_each_leaf(tree, &mut |leaf| {
+    tree.for_each_leaf(&mut |leaf| {
         let kinds = if leaf.undefined {
             &mut types.undefined
         } else {
@@ -69,7 +67,7 @@ pub(crate) fn accessor_of(accessors: &[IndexSetPattern], access: &Access) -> usi
 /// fewest missing indexes.
 pub(crate) fn detect_index_patterns(tree: &TreeNode) -> Vec<IndexSetPattern> {
     let mut accesses = BTreeSet::new();
-    for_each_leaf(tree, &mut |leaf| {
+    tree.for_each_leaf(&mut |leaf| {
         accesses.insert(Access::of(leaf));
     });
 

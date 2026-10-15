@@ -12,13 +12,13 @@ use crate::{READ_CHUNK_SIZE, ReadableBoxedVec, ReadableVec, VecIndex, VecValue, 
 
 /// Lazily computed vector deriving values on-the-fly from one source vector.
 ///
-/// Unlike `EagerVec`, no data is stored on disk. Values are computed during
-/// iteration by applying a function to the source vector's elements. Use when:
+/// Unlike a stored vec computed with `ComputeVec`, no data is stored on disk. Values are
+/// computed during iteration by applying a function to the source vector's elements. Use when:
 /// - Storage space is limited
 /// - Computation is cheap relative to disk I/O
 /// - Values are only accessed once or infrequently
 ///
-/// For frequently accessed derived data, prefer `EagerVec` for better performance.
+/// For frequently accessed derived data, prefer a stored vec computed with `ComputeVec`.
 #[derive(Clone)]
 pub struct LazyVec<I, T, S1I, S1T>
 where

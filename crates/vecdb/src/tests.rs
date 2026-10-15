@@ -568,8 +568,8 @@ mod recovery {
     use crate::PcoVec;
     use crate::tests::init_cache;
     use crate::{
-        AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, EagerVec, ImportableVec, MutableVec,
-        ReadableVec, Result, StoredVec, Version, WritableVec,
+        AnyStoredVec, AnyVec, Budgeted, BytesVec, ComputeVec, Database, ImportableVec, MutableVec,
+        Result, StoredVec, Version, WritableVec,
     };
     use brk_exit::Exit;
     use tempfile::tempdir;
@@ -599,14 +599,14 @@ mod recovery {
                 {
                     let db = Database::open(directory.path()).unwrap();
                     let mut source =
-                        EagerVec::<BytesVec<usize, u64>>::import(&db, "source", version).unwrap();
+                        BytesVec::<usize, u64>::import(&db, "source", version).unwrap();
                     source.truncate_if_needed_at(0).unwrap();
                     for &value in expected {
                         source.push(value);
                     }
                     source.write().unwrap();
                     dependency_version = source.version();
-                    let mut output = EagerVec::<V>::import(&db, "output", Version::ONE).unwrap();
+                    let mut output = V::import(&db, "output", Version::ONE).unwrap();
                     let previous = output.collect();
                     let start =
                         if output.version() == output.header().vec_version() + dependency_version {
@@ -616,7 +616,8 @@ mod recovery {
                         };
                     let mut appended = 0;
                     match compute {
-                        Compute::Batched => output.compute_batched_to(
+                        Compute::Batched => crate::traits::compute::compute_batched_to(
+                            &mut output,
                             max_from,
                             to,
                             dependency_version,
@@ -648,7 +649,7 @@ mod recovery {
                     // No extra write/flush: the compute call must publish truncation itself.
                 }
                 let db = Database::open(directory.path()).unwrap();
-                let output = EagerVec::<V>::import(&db, "output", Version::ONE).unwrap();
+                let output = V::import(&db, "output", Version::ONE).unwrap();
                 assert_eq!(output.len(), to, "reopened length at max_from={max_from}");
                 assert_eq!(output.collect_range_at(0, to), expected);
                 assert_eq!(

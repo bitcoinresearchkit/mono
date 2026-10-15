@@ -6,7 +6,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
-use vecdb::{Database, EagerVec, Ident, ImportableVec, ReadableBoxedVec};
+use vecdb::{Database, Ident, ImportableVec, PcoVec, ReadableBoxedVec};
 
 use super::Vecs;
 
@@ -42,7 +42,7 @@ impl Vecs {
                 mappings,
                 window_starts,
             )?,
-            vocdd_median_1m: EagerVec::import(db, "vocdd_median_1m", v1)?,
+            vocdd_median_1m: PcoVec::import(db, "vocdd_median_1m", v1)?,
             vocdd_median_1m_window: Default::default(),
         })
     }

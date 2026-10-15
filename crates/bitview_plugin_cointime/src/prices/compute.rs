@@ -2,7 +2,7 @@ use bitview_plugin_holders::Vecs as HoldersVecs;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height};
-use vecdb::ReadableVec;
+use vecdb::{ComputeVec, ReadableVec};
 
 use super::{
     super::{activity, cap, supply},

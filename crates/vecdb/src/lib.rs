@@ -50,8 +50,8 @@ pub use sparse_read::SparseRead;
 pub use stamp::Stamp;
 
 pub use traits::{
-    AnyExportableVec, AnySerializableVec, AnyStoredVec, AnyVec, AnyVecWithWriter, Formattable,
-    ImportableVec, PrintableIndex, READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec,
+    AnyExportableVec, AnySerializableVec, AnyStoredVec, AnyVec, AnyVecWithWriter, ComputeVec,
+    Formattable, ImportableVec, PrintableIndex, READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec,
     ReadableCloneableVec, ReadableVec, Ro, Rw, StorageMode, StoredVec, TypedVec, ValueStrategy,
     VecIndex, VecValue, WritableVec, chunk_folds::read_batches, escape_csv_cell, i64_to_usize,
     nullable, short_type_name,
@@ -59,7 +59,7 @@ pub use traits::{
 
 pub use variants::{
     BytesStrategy, BytesVec, BytesVecReader, BytesVecValue, CompressedRangeCursor,
-    CompressionStrategy, DeltaAvg, DeltaChange, DeltaOp, DeltaRate, DeltaSub, EagerVec,
+    CompressionStrategy, Convert, DeltaAvg, DeltaChange, DeltaOp, DeltaRate, DeltaSub,
     EncodedChunk, Ident, IndexVec, LazyDeltaVec, LazyVec, MapOption, MutableVec, OverflowVec,
     OverflowVecReader, OverflowVecValue, RawRangeCursor, RawStrategy, ReadOnlyCompressedVec,
     ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec, ReadWriteRawVec, UnaryTransform,

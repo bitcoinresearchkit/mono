@@ -3,7 +3,7 @@ use bitview_primitives::{DollarDaysPerCoin, Float64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PerBlock, PerBlockCumulativeRolling};
 use brk_types::Height;
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{PcoVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -29,6 +29,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// summed over the trailing 24 hours, in USD-days per BTC. Reserve Risk's
     /// input, not a published series.
     #[traversable(hidden)]
-    pub(crate) vocdd_median_1m: M::Stored<EagerVec<PcoVec<Height, DollarDaysPerCoin>>>,
+    pub(crate) vocdd_median_1m: M::Stored<PcoVec<Height, DollarDaysPerCoin>>,
     pub(crate) vocdd_median_1m_window: M::WriteOnly<Retained<SortedWindow>>,
 }

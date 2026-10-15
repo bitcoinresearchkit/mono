@@ -7,7 +7,7 @@ use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Timestamp};
-use vecdb::{ReadableVec, UnaryTransform, VecIndex};
+use vecdb::{ComputeVec, ReadableVec, UnaryTransform, VecIndex};
 
 use super::{Vecs, seconds_to_days::SecondsToDays};
 

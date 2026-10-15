@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::TxIndex;
 use schemars::JsonSchema;
-use vecdb::{Database, EagerVec, ImportableVec, PcoVec, Rw, StorageMode, Version};
+use vecdb::{Database, ImportableVec, PcoVec, Rw, StorageMode, Version};
 
 use bitview_vecs::IndexSources;
 
@@ -15,7 +15,7 @@ pub struct PerTxDistribution<T, M: StorageMode = Rw>
 where
     T: ComputedVecValue + PartialOrd + JsonSchema,
 {
-    pub tx: M::Stored<EagerVec<PcoVec<TxIndex, T>>>,
+    pub tx: M::Stored<PcoVec<TxIndex, T>>,
     #[traversable(flatten)]
     pub distribution: TxDistribution<T, M>,
 }
@@ -31,7 +31,7 @@ where
         indexes: &IndexSources,
     ) -> Result<Self> {
         Ok(Self {
-            tx: EagerVec::import(db, name, version)?,
+            tx: PcoVec::import(db, name, version)?,
             distribution: TxDistribution::import(db, name, version, indexes)?,
         })
     }

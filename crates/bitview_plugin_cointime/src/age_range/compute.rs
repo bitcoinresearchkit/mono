@@ -7,7 +7,7 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Height, Sats, Version};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, ComputeVec, ReadableVec};
 
 use super::{RangeVecs, Vecs};
 

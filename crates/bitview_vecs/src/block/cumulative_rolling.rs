@@ -10,8 +10,8 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex,
-    VecValue, WritableVec,
+    AnyStoredVec, AnyVec, ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
+    VecIndex, VecValue, WritableVec,
 };
 
 use crate::{

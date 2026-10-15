@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use brk_error::Result;
 use brk_exit::Exit;
-use vecdb::{AnyStoredVec, EagerVec, ReadableVec, StoredVec, VecIndex, VecValue, WritableVec};
+use vecdb::{ReadableVec, StoredVec, VecIndex, VecValue};
 
 use super::Retained;
 use crate::prepare_computed;
@@ -64,8 +64,8 @@ impl<A: Copy + Ord> ExtremaWindow<A> {
 /// Compute a rolling minimum and maximum with one source read, continuing the `retained`
 /// window when it is current.
 pub fn compute_rolling_extrema_from_starts<V, A>(
-    min: &mut EagerVec<V>,
-    max: &mut EagerVec<V>,
+    min: &mut V,
+    max: &mut V,
     max_from: V::I,
     starts: &impl ReadableVec<V::I, V::I>,
     source: &impl ReadableVec<V::I, A>,

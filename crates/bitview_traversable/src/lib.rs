@@ -8,10 +8,10 @@ use schemars::{JsonSchema, SchemaGenerator};
 use serde::Serialize;
 use serde_json::to_value;
 use vecdb::{
-    BytesVec, BytesVecValue, CachePolicy, CompressionStrategy, DeltaOp, EagerVec, Formattable,
-    IndexVec, LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue, PrintableIndex,
-    RawStrategy, ReadOnlyCompressedVec, ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec,
-    ReadableVec, StoredVec, TypedVec, VecIndex, VecValue,
+    BytesVec, BytesVecValue, CachePolicy, CompressionStrategy, DeltaOp, Formattable, IndexVec,
+    LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue, PrintableIndex, RawStrategy,
+    ReadOnlyCompressedVec, ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec, ReadableVec,
+    TypedVec, VecIndex, VecValue,
 };
 
 #[cfg(feature = "lz4")]
@@ -182,11 +182,6 @@ leaf!(stored [I, T, C] ZstdVec<I, T, C> where
     I: VecIndex,
     T: ZstdVecValue + Formattable + Serialize + JsonSchema,
     C: CachePolicy,
-);
-
-leaf!(stored [V] EagerVec<V> where
-    V: StoredVec,
-    V::T: Formattable + Serialize + JsonSchema,
 );
 
 leaf!(stored [V] MutableVec<V> where

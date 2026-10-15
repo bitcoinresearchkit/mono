@@ -4,7 +4,7 @@ use bitview_vecs::ops::Quotient;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Height;
-use vecdb::ReadableVec;
+use vecdb::{ComputeVec, ReadableVec};
 
 use super::{super::activity, Vecs};
 

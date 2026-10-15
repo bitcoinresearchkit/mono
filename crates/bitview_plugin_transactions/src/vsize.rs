@@ -1,10 +1,9 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::ops::Convert;
 use brk_error::Result;
 use brk_types::{TxIndex, VSize, Version, Weight32};
-use vecdb::{Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
+use vecdb::{Convert, Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::distribution::TxDistribution;
 

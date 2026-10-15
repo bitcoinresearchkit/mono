@@ -2,7 +2,7 @@ use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::Count;
 use brk_error::Result;
 use brk_types::Weight32;
-use vecdb::{ReadableVec, VecIndex};
+use vecdb::{ComputeVec, ReadableVec, VecIndex};
 
 use super::{Dependencies, Vecs};
 

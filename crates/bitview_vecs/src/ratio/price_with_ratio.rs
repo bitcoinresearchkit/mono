@@ -4,7 +4,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+use vecdb::{ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 use crate::{IndexSources, LazyPerBlock, Price, RatioPerBlock, ops::price_ratio};
 

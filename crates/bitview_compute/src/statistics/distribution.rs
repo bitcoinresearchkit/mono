@@ -2,8 +2,8 @@ use brk_error::Result;
 
 use brk_exit::Exit;
 use vecdb::{
-    AnyStoredVec, CachePolicy, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue,
-    Version, WritableVec,
+    AnyStoredVec, CachePolicy, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, Version,
+    WritableVec,
 };
 
 use super::{DistributionStats, Retained, window::SortedWindow};
@@ -18,7 +18,7 @@ pub fn compute_rolling_distribution_from_starts<I, T, A, P: CachePolicy>(
     max_from: I,
     window_starts: &impl ReadableVec<I, I>,
     values: &impl ReadableVec<I, A>,
-    mut outputs: DistributionStats<&mut EagerVec<PcoVec<I, T, P>>>,
+    mut outputs: DistributionStats<&mut PcoVec<I, T, P>>,
     retained: &mut Retained<SortedWindow>,
     exit: &Exit,
 ) -> Result<()>

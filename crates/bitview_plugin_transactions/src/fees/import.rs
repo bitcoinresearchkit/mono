@@ -1,7 +1,7 @@
 use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::{Database, EagerVec, ImportableVec};
+use vecdb::{Database, ImportableVec, PcoVec};
 
 use super::Vecs;
 use crate::{distribution::PerTxDistribution, flagged::Classified};
@@ -31,11 +31,11 @@ impl Vecs {
         };
 
         Ok(Vecs {
-            total: EagerVec::import(db, "fee_total", v)?,
-            total_cumulative: EagerVec::import(db, "fee_total_cumulative", v)?,
-            coinbase_value: EagerVec::import(db, "coinbase_value", v)?,
+            total: PcoVec::import(db, "fee_total", v)?,
+            total_cumulative: PcoVec::import(db, "fee_total_cumulative", v)?,
+            coinbase_value: PcoVec::import(db, "coinbase_value", v)?,
             fee: PerTxDistribution::import(db, "tx_fee", v, mappings)?,
-            fee_rate: EagerVec::import(db, "fee_rate", v)?,
+            fee_rate: PcoVec::import(db, "fee_rate", v)?,
             effective_fee_rate: PerTxDistribution::import(
                 db,
                 "effective_fee_rate",

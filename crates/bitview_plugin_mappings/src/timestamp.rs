@@ -10,7 +10,7 @@ use brk_exit::Exit;
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS, BLOCKS_PER_HALVING, Height, Timestamp};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
-    Budgeted, Database, EagerVec, ImportableVec, IndexVec, PcoVec, ReadableBoxedVec, ReadableVec,
+    Budgeted, ComputeVec, Database, ImportableVec, IndexVec, PcoVec, ReadableBoxedVec, ReadableVec,
     Rw, StorageMode, Version,
 };
 
@@ -34,7 +34,7 @@ macro_rules! define_timestamps {
             /// Nondecreasing Unix timestamp in seconds at each block height, computed as
             /// the maximum of the represented raw block-header timestamp and the preceding
             /// monotonic timestamp.
-            pub monotonic: M::Stored<EagerVec<PcoVec<Height, Timestamp, Budgeted>>>,
+            pub monotonic: M::Stored<PcoVec<Height, Timestamp, Budgeted>>,
             /// Unix timestamp in seconds: at a height, the block's header time (not guaranteed to
             /// increase between heights); at a calendar period, its UTC start; at a halving or
             /// difficulty epoch, its first block's header time.
@@ -50,7 +50,7 @@ macro_rules! define_timestamps {
         impl Timestamps {
             pub fn new(
                 version: Version,
-                monotonic: EagerVec<PcoVec<Height, Timestamp, Budgeted>>,
+                monotonic: PcoVec<Height, Timestamp, Budgeted>,
                 raw_timestamps: ReadableBoxedVec<Height, Timestamp>,
                 sources: &IndexSources,
             ) -> Self {
@@ -84,8 +84,8 @@ impl Timestamps {
     pub fn import_monotonic(
         db: &Database,
         version: Version,
-    ) -> Result<EagerVec<PcoVec<Height, Timestamp, Budgeted>>> {
-        Ok(EagerVec::import(db, "timestamp_monotonic", version)?)
+    ) -> Result<PcoVec<Height, Timestamp, Budgeted>> {
+        Ok(PcoVec::import(db, "timestamp_monotonic", version)?)
     }
 
     pub fn compute_monotonic(

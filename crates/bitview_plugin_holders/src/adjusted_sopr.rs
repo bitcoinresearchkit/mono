@@ -9,7 +9,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, Rw, StorageMode};
+use vecdb::{ComputeVec, Database, Rw, StorageMode};
 
 use crate::columns::Columns;
 

@@ -1,11 +1,11 @@
 use bitview_compute::FixedRatio;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
-use vecdb::{ReadableCloneableVec, VecValue};
+use vecdb::{Convert, ReadableCloneableVec, VecValue};
 
 use crate::{
     FiatType, IndexSources, LazyDeltaFiatFromHeight, LazyDeltaFromHeight,
-    LazyDeltaPercentFromHeight, LazyPerBlock, ops::Convert, shapes::Windows,
+    LazyDeltaPercentFromHeight, LazyPerBlock, shapes::Windows,
 };
 
 #[derive(Clone, Traversable)]

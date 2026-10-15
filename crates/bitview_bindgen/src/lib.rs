@@ -2,7 +2,7 @@
 
 use std::{collections::btree_map::Entry, fs::create_dir_all, io, path::PathBuf};
 
-use bitview_catalog::{SeriesLeafWithSchema, TreeNode};
+use bitview_catalog::TreeNode;
 
 /// Output path configuration for each client.
 ///
@@ -283,23 +283,11 @@ pub fn generate_clients(
 
 use serde_json::Value;
 
-/// Visit every leaf of the series tree, in tree order.
-pub(crate) fn for_each_leaf<'a>(node: &'a TreeNode, f: &mut impl FnMut(&'a SeriesLeafWithSchema)) {
-    match node {
-        TreeNode::Leaf(leaf) => f(leaf),
-        TreeNode::Branch(children) => {
-            for child in children.values() {
-                for_each_leaf(child, f);
-            }
-        }
-    }
-}
-
 /// Collect leaf type schemas from the tree and add to schemas map.
 /// Only adds schemas that aren't already present (OpenAPI schemas take precedence).
 /// Collects definitions from schemars-generated schemas (for referenced types).
 fn collect_leaf_type_schemas(node: &TreeNode, schemas: &mut TypeSchemas) {
-    for_each_leaf(node, &mut |leaf| {
+    node.for_each_leaf(&mut |leaf| {
         // Collect definitions from the schema (schemars puts type schemas here)
         // This includes the inner types like `Bitcoin` from `Close<Bitcoin>`
         collect_schema_definitions(&leaf.schema, schemas);

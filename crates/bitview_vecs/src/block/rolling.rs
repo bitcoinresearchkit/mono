@@ -7,7 +7,8 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{
-    Database, ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
+    ComputeVec, Database, ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
+    VecValue,
 };
 
 use crate::{IndexSources, PerBlock, RollingComplete, WindowStarts, shapes::Windows};

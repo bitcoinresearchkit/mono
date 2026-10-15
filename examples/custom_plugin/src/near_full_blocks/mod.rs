@@ -8,7 +8,7 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
-use vecdb::{Database, EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{Database, PcoVec, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("near_full_blocks"), Version::ONE);
 
@@ -20,5 +20,5 @@ pub struct Vecs<M: StorageMode = Rw> {
 
     /// Consecutive blocks whose weight is at least 90% of Bitcoin's consensus
     /// maximum. Resets to zero whenever a block falls below that threshold.
-    streak: M::Stored<EagerVec<PcoVec<Height, Count>>>,
+    streak: M::Stored<PcoVec<Height, Count>>,
 }
