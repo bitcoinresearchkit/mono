@@ -69,10 +69,19 @@ impl Vecs {
             exit,
         )?;
 
-        self.rate.drawdown.compute_drawdown(
+        self.rate.drawdown.fixed.height.compute_transform2(
             starting_height,
             &self.rate.block.height,
             &self.rate.ath.height,
+            |(i, current, ath, ..)| {
+                let ath = f64::from(ath);
+                let drawdown = if ath == 0.0 {
+                    PartsPerMillionSigned32::default()
+                } else {
+                    PartsPerMillionSigned32::from((f64::from(current) - ath) / ath)
+                };
+                (i, drawdown)
+            },
             exit,
         )?;
 
@@ -117,6 +126,8 @@ impl Vecs {
 
         self.price
             .rebound
+            .fixed
+            .height
             .compute_binary::<HashPrice, HashPrice, RelativeChange<PartsPerMillionSigned32>>(
                 starting_height,
                 &self.price.block.height,
@@ -126,6 +137,8 @@ impl Vecs {
 
         self.value
             .rebound
+            .fixed
+            .height
             .compute_binary::<HashValue, HashValue, RelativeChange<PartsPerMillionSigned32>>(
                 starting_height,
                 &self.value.block.height,

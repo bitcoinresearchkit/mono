@@ -24,11 +24,11 @@ use aggregate::Vecs as AggregateVecs;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("coinflow"), Version::new(18));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    #[traversable(skip)]
     urpd_replay: M::WriteOnly<Replay>,
 
     /// Coinflow estimates how likely UTXOs of each age are to be spent, using
@@ -41,13 +41,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// supply unlikely to move.
     #[traversable(flatten)]
     pub aggregate: AggregateVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

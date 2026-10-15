@@ -1,30 +1,64 @@
 use bitview_cohort::Age;
-use bitview_primitives::{CostBasisSnapshot, SupplyState};
-use brk_types::{Cents, CentsSats, Sats};
+use bitview_primitives::{CoinDays, CostBasisSnapshot, Count, SupplyState};
+use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Sats};
 
 use super::{
-    SendPrecomputed,
-    cost_basis::{CostBasisOps, MinimalRealizedState, RealizedOps},
+    SendPrecomputed, UnrealizedState,
+    cost_basis::{CostBasisData, CostBasisOps, MinimalRealizedState, RealizedOps},
 };
+use crate::metrics::RealizedBlockData;
 
+/// A UTXO cohort's accounting state.
+pub type UTXOCohortState<R, C> = CohortState<R, C>;
+/// A UTXO cohort's accounting state with its cost basis distribution.
+pub type MappedUTXOCohortState<R> = CohortState<R, CostBasisData>;
+
+#[derive(Default)]
 pub struct CohortState<R: RealizedOps, C: CostBasisOps> {
     pub supply: SupplyState,
     pub realized: R,
     pub sent: Sats,
-    pub(crate) spent_utxo_count: u64,
-    pub(crate) satdays_destroyed: Sats,
-    pub(crate) cost_basis: C,
+    spent_utxo_count: u64,
+    satdays_destroyed: Sats,
+    cost_basis: C,
 }
 
 impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
-    pub fn new(cost_basis: C) -> Self {
-        Self {
-            supply: SupplyState::default(),
-            realized: R::default(),
-            sent: Sats::ZERO,
-            spent_utxo_count: 0,
-            satdays_destroyed: Sats::ZERO,
-            cost_basis,
+    #[inline(always)]
+    pub fn supply_value(&self) -> Sats {
+        self.supply.value
+    }
+
+    #[inline(always)]
+    pub fn output_counts(&self) -> (Count, Count) {
+        (
+            Count::from(self.supply.utxo_count),
+            Count::from(self.spent_utxo_count),
+        )
+    }
+
+    #[inline(always)]
+    pub fn transfer_volume(&self) -> Sats {
+        self.sent
+    }
+
+    #[inline(always)]
+    pub(crate) fn coindays_destroyed(&self) -> CoinDays {
+        CoinDays::new(f64::from(Bitcoin::from(self.satdays_destroyed)))
+    }
+
+    #[inline(always)]
+    pub fn realized_block_data(&self) -> RealizedBlockData {
+        let profit = self.realized.profit();
+        let loss = self.realized.loss();
+        RealizedBlockData {
+            cap_raw: self.realized.cap_raw(),
+            supply: self.supply.value,
+            cap: self.realized.cap(),
+            profit,
+            loss,
+            net_pnl: CentsSigned::new(profit.inner() as i64 - loss.inner() as i64),
+            value_destroyed: self.realized.value_destroyed(),
         }
     }
 
@@ -69,7 +103,7 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         self.supply += supply;
 
         if supply.value > Sats::ZERO {
-            self.realized.receive(price, supply.value);
+            self.realized.increment(price, supply.value);
             self.cost_basis.increment(price, supply.value);
         }
     }
@@ -107,6 +141,16 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
             self.supply -= supply;
             self.spent_utxo_count += supply.utxo_count;
         }
+    }
+}
+
+impl<R: RealizedOps> CohortState<R, CostBasisData> {
+    pub fn finish_restore(&mut self) {
+        self.cost_basis.finish_restore();
+    }
+
+    pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
+        self.cost_basis.compute_unrealized_state(height_price)
     }
 }
 

@@ -3,15 +3,28 @@ use std::{collections::BTreeMap, fs::File, path::PathBuf, sync::Arc};
 use arc_swap::ArcSwap;
 use brk_error::Result;
 use brk_rpc::Client;
+use brk_types::BlockHash;
+use parking_lot::Mutex;
 
 use crate::{BlkIndexToBlkPath, XORBytes};
 
 // Bounds retained descriptors, not handles still owned by active readers.
 const MAX_CACHED_FILES: usize = 64;
 
+/// Where the last block streamed ends in its blk file: the next blocks are usually appended
+/// right after it.
+#[derive(Debug, Clone, Copy)]
+pub struct AppendPosition {
+    pub hash: BlockHash,
+    pub blk_index: u16,
+    /// The end of the block's frame: the next frame's start.
+    pub end: usize,
+}
+
 #[derive(Debug)]
 pub struct ReaderInner {
     blk_file_cache: ArcSwap<BTreeMap<u16, Arc<File>>>,
+    append_position: Mutex<Option<AppendPosition>>,
     pub xor_bytes: XORBytes,
     pub blocks_dir: PathBuf,
     pub client: Client,
@@ -22,9 +35,18 @@ impl ReaderInner {
         Self {
             xor_bytes: XORBytes::from(blocks_dir.as_path()),
             blk_file_cache: ArcSwap::default(),
+            append_position: Mutex::default(),
             blocks_dir,
             client: client.clone(),
         }
+    }
+
+    pub fn append_position(&self) -> Option<AppendPosition> {
+        *self.append_position.lock()
+    }
+
+    pub fn retain_append_position(&self, position: AppendPosition) {
+        *self.append_position.lock() = Some(position);
     }
 
     pub fn refresh_paths(&self) -> Result<BlkIndexToBlkPath> {

@@ -20,13 +20,10 @@
 
 use std::convert::Infallible;
 
-use brk_types::{Cents, Dollars};
+use brk_types::{Cents, Dollars, Histogram};
 
 mod config;
 mod filter;
-mod histogram_ema;
-mod histogram_ema_compact;
-mod histogram_raw;
 mod scale;
 mod seed;
 mod stencil;
@@ -34,15 +31,19 @@ mod window;
 
 pub use config::{Config, START_HEIGHT_FAST, START_HEIGHT_SLOW};
 pub use filter::PaymentFilter;
-pub use histogram_ema::HistogramEma;
-pub use histogram_ema_compact::HistogramEmaCompact;
-pub use histogram_raw::HistogramRaw;
 use scale::NUM_BINS;
 pub use scale::{bin_to_cents, cents_to_bin, sats_to_bin};
 pub use seed::pre_oracle_prices_from;
 
 use stencil::Stencil;
 use window::EmaWindow;
+
+/// One block's raw output counts per log-scale bin.
+pub type HistogramRaw = Histogram<u32, NUM_BINS>;
+/// The window's smoothed EMA per log-scale bin.
+pub type HistogramEma = Histogram<f64, NUM_BINS>;
+/// The `u16` wire projection of [`HistogramEma`].
+pub type HistogramEmaCompact = Histogram<u16, NUM_BINS>;
 
 /// Oracle algorithm version. Bump on any change that alters computed prices
 /// so downstream consumers can invalidate cached results.

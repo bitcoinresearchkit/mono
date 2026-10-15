@@ -21,7 +21,8 @@ use returns::Returns;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("market"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -35,13 +36,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     range: RangeVecs<M>,
     #[traversable(flatten)]
     moving_average: MovingAverageVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

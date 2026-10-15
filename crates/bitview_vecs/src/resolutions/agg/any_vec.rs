@@ -1,4 +1,4 @@
-use vecdb::{AnyVec, VecIndex, VecValue, Version, short_type_name};
+use vecdb::{AnyVec, VecIndex, VecValue, Version};
 
 use super::LazyAggVec;
 
@@ -18,21 +18,9 @@ where
         &self.name
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
     fn len(&self) -> usize {
         self.mapping.load().len()
     }
 
-    #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<O>()
-    }
-
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<O>()
-    }
+    vecdb::any_vec_type_methods!(I, O);
 }

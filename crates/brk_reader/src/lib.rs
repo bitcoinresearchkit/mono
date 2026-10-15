@@ -8,15 +8,15 @@ use std::{
 
 use brk_error::{Error, Result};
 use brk_rpc::Client;
-use brk_types::{BlkPosition, BlockHash, Height};
+use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
 use canonical::CanonicalRange;
+use crossbeam::channel::IntoIter;
 use reader_inner::ReaderInner;
 use xor_index::XORIndex;
 
 mod bisect;
 mod blk_index_to_blk_path;
 mod blk_read;
-mod block_receiver;
 mod canonical;
 mod parse;
 mod pipeline;
@@ -27,9 +27,12 @@ mod xor_index;
 
 pub(crate) use blk_index_to_blk_path::BlkIndexToBlkPath;
 pub use blk_read::BlkRead;
-pub use block_receiver::BlockReceiver;
 
 pub use xor_bytes::*;
+
+/// Stream of parsed blocks: each item waits for its block, and the stream ends when the pipeline
+/// closes.
+pub type BlockReceiver = IntoIter<Result<ReadBlock>>;
 
 /// bitcoind writes blocks slightly out of height order across files
 /// during initial sync, headers-first body fetch, and reindex, so a

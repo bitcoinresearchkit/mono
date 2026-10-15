@@ -21,7 +21,8 @@ const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("utxo_set"), Ver
 pub const ID: PluginId = STORAGE.id();
 
 /// Publishes the UTXO set's complete history and its global totals after both producers finish.
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -29,7 +30,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     spends_path: PathBuf,
     #[traversable(skip)]
     creations_path: PathBuf,
-    #[traversable(skip)]
     history: M::WriteOnly<History>,
     /// Remaining satoshis after each block.
     #[traversable(hidden)]
@@ -62,14 +62,5 @@ impl<M: StorageMode> Vecs<M> {
             &self.spends_path,
             &self.creations_path,
         )?)
-    }
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
     }
 }

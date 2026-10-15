@@ -14,7 +14,7 @@ impl AddrCohortState {
     pub fn new() -> Self {
         Self {
             addr_count: 0,
-            inner: CohortState::new(()),
+            inner: CohortState::default(),
         }
     }
 

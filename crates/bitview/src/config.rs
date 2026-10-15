@@ -1,10 +1,4 @@
-use std::{
-    env, fs, io,
-    net::IpAddr,
-    path::{Path, PathBuf},
-    process::exit,
-    str::FromStr,
-};
+use std::{env, fs, io, net::IpAddr, path::Path, process::exit, str::FromStr};
 
 use bitview_server::{
     CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, ServerConfig, Website,
@@ -16,7 +10,7 @@ use lexopt::{
     Parser, ValueExt,
 };
 use owo_colors::OwoColorize;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use toml::from_str;
 
 use crate::{
@@ -27,66 +21,33 @@ use crate::{
 /// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`).
 pub const DEFAULT_CACHE_BUDGET: usize = 2 << 30;
 
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    #[serde(default)]
     bitviewdir: Option<String>,
-
-    #[serde(default)]
     serverbind: Option<IpAddr>,
-
-    #[serde(default)]
     serverport: Option<Port>,
-
-    #[serde(default)]
     website: Option<Website>,
-
-    #[serde(default)]
     cdn: Option<bool>,
-
-    #[serde(default)]
     maxweight: Option<usize>,
-
-    #[serde(default)]
     maxutxos: Option<usize>,
-
-    #[serde(default)]
     cachebudget: Option<usize>,
-
-    #[serde(default)]
     bitcoindir: Option<String>,
-
-    #[serde(default)]
     blocksdir: Option<String>,
-
-    #[serde(default)]
     rpcconnect: Option<String>,
-
-    #[serde(default)]
     rpcport: Option<u16>,
-
-    #[serde(default)]
     rpccookiefile: Option<String>,
-
-    #[serde(default)]
     rpcuser: Option<String>,
-
-    #[serde(default)]
     rpcpassword: Option<String>,
 }
 
 impl Config {
-    /// Load persisted settings without creating directories, validating Bitcoin
-    /// paths, parsing arguments, or constructing an RPC client.
-    fn load() -> io::Result<Self> {
-        Self::read(&default_bitview_dir().join("config.toml"))
-    }
-
     pub fn import() -> Result<RunConfig> {
         let config_args = Self::parse_args()?;
 
-        let runner = Self::load()?.with_overrides(config_args).runner()?;
+        let runner = Self::read(&default_bitview_dir().join("config.toml"))?
+            .with_overrides(config_args)
+            .runner()?;
         fs::create_dir_all(&runner.server.data_path)?;
 
         Ok(runner)
@@ -314,53 +275,6 @@ impl Config {
         }
     }
 
-    fn bitviewdir(&self) -> PathBuf {
-        self.bitviewdir
-            .as_ref()
-            .map_or_else(default_bitview_dir, |s| fix_user_path(s.as_ref()))
-    }
-
-    fn website(&self) -> Website {
-        self.website.clone().unwrap_or_default()
-    }
-
-    fn cdn_cache_mode(&self) -> CdnCacheMode {
-        if self.cdn.unwrap_or(false) {
-            CdnCacheMode::Aggressive
-        } else {
-            CdnCacheMode::Live
-        }
-    }
-
-    fn max_weight(&self) -> usize {
-        self.maxweight.unwrap_or(DEFAULT_MAX_WEIGHT)
-    }
-
-    fn max_utxos(&self) -> usize {
-        self.maxutxos.unwrap_or(DEFAULT_MAX_UTXOS)
-    }
-
-    fn serverbind(&self) -> IpAddr {
-        self.serverbind.unwrap_or(DEFAULT_BIND)
-    }
-
-    fn serverport(&self) -> Port {
-        self.serverport.unwrap_or_default()
-    }
-
-    /// Resolve server settings without validating node paths or constructing RPC.
-    fn server_config(&self) -> ServerConfig {
-        ServerConfig {
-            bind: self.serverbind(),
-            port: self.serverport(),
-            data_path: self.bitviewdir(),
-            website: self.website(),
-            cdn_cache_mode: self.cdn_cache_mode(),
-            max_weight: self.max_weight(),
-            max_utxos: self.max_utxos(),
-        }
-    }
-
     /// Resolve everything a runner needs: the blocks directory must exist, and
     /// [`ConnectArgs::client`] checks the RPC credentials.
     fn runner(&self) -> Result<RunConfig> {
@@ -375,7 +289,22 @@ impl Config {
         Ok(RunConfig {
             client: connect.client()?,
             blocks_path,
-            server: self.server_config(),
+            server: ServerConfig {
+                bind: self.serverbind.unwrap_or(DEFAULT_BIND),
+                port: self.serverport.unwrap_or_default(),
+                data_path: self
+                    .bitviewdir
+                    .as_deref()
+                    .map_or_else(default_bitview_dir, fix_user_path),
+                website: self.website.clone().unwrap_or_default(),
+                cdn_cache_mode: if self.cdn.unwrap_or(false) {
+                    CdnCacheMode::Aggressive
+                } else {
+                    CdnCacheMode::Live
+                },
+                max_weight: self.maxweight.unwrap_or(DEFAULT_MAX_WEIGHT),
+                max_utxos: self.maxutxos.unwrap_or(DEFAULT_MAX_UTXOS),
+            },
             cache_budget: self.cachebudget.unwrap_or(DEFAULT_CACHE_BUDGET),
         })
     }

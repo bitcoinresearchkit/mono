@@ -54,17 +54,11 @@ impl<const N: usize, const C: usize> Projection<N, C> {
                 }
             }
         }
-        let mut weighted = [[Sats::ZERO; N]; C];
-        for (target, masses) in weighted.iter_mut().zip(masses) {
-            for (target, mass) in target.iter_mut().zip(masses) {
-                // Conversion already floors positive mass to whole sats.
-                *target = Sats::new(mass as u64);
-            }
-        }
         Some(ProjectedBucket {
             price,
             raw,
-            weighted,
+            // Conversion already floors positive mass to whole sats.
+            weighted: masses.map(|row| row.map(|mass| Sats::new(mass as u64))),
         })
     }
 }

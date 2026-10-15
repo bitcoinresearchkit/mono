@@ -34,7 +34,8 @@ const CAP_COUNT: usize = AmountRangeId::ALL.len();
 /// Address metrics, members first: every address type together at the root, each type under
 /// `types`, each balance band under `balances`. P2PK is one type; P2A, one fixed script, is
 /// not an address type (its lookups still work, under `state`).
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -55,15 +56,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Persistent per-address state: internal slots, served through `/api/address` instead.
     #[traversable(hidden)]
     pub state: AddrStateVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }
 
 impl Vecs {

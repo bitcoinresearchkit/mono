@@ -8,7 +8,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{Sats, Version};
-use vecdb::Database;
+use vecdb::{Database, ReverseOperands};
 
 use super::Vecs;
 
@@ -35,16 +35,17 @@ impl Vecs {
         )?;
         let fees = ValuePerBlockFull::import(db, "fees", version, mappings, window_starts)?;
 
-        // From the claimed subsidy, so an underclaimed coinbase stays within 0..=100%.
-        let subsidy_share = LazyPercentCumulativeRolling::from_cumulative_ratio_with_numerator::<
+        // Claimed subsidy over coinbase, so an underclaimed coinbase stays within 0..=100%;
+        // the coinbase is read first.
+        let subsidy_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Sats,
             Sats,
-            Quotient<PartsPerMillion32>,
+            ReverseOperands<Quotient<PartsPerMillion32>>,
         >(
             "subsidy_share",
             version,
-            subsidy.cumulative.sats.resolutions.height_source(),
             coinbase.cumulative.sats.resolutions.height_source(),
+            subsidy.cumulative.sats.resolutions.height_source(),
             window_starts,
             mappings,
         );

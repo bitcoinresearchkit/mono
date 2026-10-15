@@ -5,21 +5,17 @@ use std::{
 
 use bitview_cohort::AgeRange;
 use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
 use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
 use brk_error::Result;
 use log::info;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeId, Vecs};
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,

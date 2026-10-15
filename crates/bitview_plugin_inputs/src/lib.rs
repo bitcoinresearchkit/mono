@@ -21,14 +21,14 @@ use vecdb::{Database, Rw, StorageMode};
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("inputs"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
     /// Each block's spends grouped by the height of the output they spend, for compute
     /// consumers.
-    #[traversable(skip)]
     pub spends: M::WriteOnly<Spends>,
 
     pub count: CountVecs<M>,
@@ -37,13 +37,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Transaction inputs by the locking-script type of the output they spend,
     /// excluding coinbase inputs and coinbase transactions.
     types: TypesVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

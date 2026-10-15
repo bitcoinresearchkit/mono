@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 #[cfg(feature = "async")]
 use brk_error::Error;
@@ -44,11 +44,6 @@ impl Client {
         self.0.asynchronous()
     }
     pub fn new(url: &str, auth: Auth) -> Result<Self> {
-        Ok(Self(Arc::new(ClientInner::new(
-            url,
-            auth,
-            1_000_000,
-            Duration::from_secs(1),
-        )?)))
+        Ok(Self(Arc::new(ClientInner::new(url, auth)?)))
     }
 }

@@ -5,22 +5,6 @@ use crate::{HistogramRaw, sats_to_bin};
 /// Dust floor: outputs below this many sats are too small to be payments.
 const MIN_SATS: u64 = 1000;
 
-/// Output types skipped entirely (protocol-dominated, too noisy to carry the
-/// round-dollar signal).
-const EXCLUDED_OUTPUT_TYPES: &[OutputType] = &[OutputType::P2TR];
-
-/// Bitmask form of [`EXCLUDED_OUTPUT_TYPES`], folded at compile time so
-/// [`PaymentFilter::eligible_bin`] checks membership with a single AND.
-const EXCLUDED_MASK: u16 = {
-    let mut mask = 0u16;
-    let mut i = 0;
-    while i < EXCLUDED_OUTPUT_TYPES.len() {
-        mask |= 1u16 << EXCLUDED_OUTPUT_TYPES[i] as u8;
-        i += 1;
-    }
-    mask
-};
-
 /// Round-dollar payment filter.
 ///
 /// Input: transaction outputs. Output: eligible log-scale bins or a fresh block
@@ -104,7 +88,8 @@ impl PaymentFilter {
     /// half of the round-dollar payment filter.
     #[inline(always)]
     fn eligible_bin(sats: Sats, output_type: OutputType) -> Option<u16> {
-        if EXCLUDED_MASK & (1u16 << output_type as u8) != 0 {
+        // P2TR is protocol-dominated, too noisy to carry the round-dollar signal.
+        if output_type == OutputType::P2TR {
             return None;
         }
         if *sats < MIN_SATS || Self::is_common_round_value(sats) {

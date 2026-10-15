@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use bitview_traversable::Traversable;
 
 use super::LossPercentileId;
@@ -39,14 +41,10 @@ impl<T> Percentiles<T> {
         ]
         .into_iter()
     }
+
     pub fn from_fn(mut create: impl FnMut(LossPercentileId) -> T) -> Self {
-        Self {
-            pct95: create(LossPercentileId::Pct95),
-            pct98: create(LossPercentileId::Pct98),
-            pct99: create(LossPercentileId::Pct99),
-            pct99_5: create(LossPercentileId::Pct99_5),
-            pct99_9: create(LossPercentileId::Pct99_9),
-        }
+        let Ok(this) = Self::try_from_fn(|id| Ok::<_, Infallible>(create(id)));
+        this
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &T> {

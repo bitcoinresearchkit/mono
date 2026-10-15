@@ -15,7 +15,8 @@ use vecdb::{
 };
 
 use crate::{
-    IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlock, shapes::Windows,
+    CumulativeState, IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlock,
+    shapes::Windows,
 };
 
 #[derive(Traversable)]
@@ -29,7 +30,7 @@ where
     /// the value is taken at the period's final block.
     pub cumulative: PerBlock<T, M>,
     pub sum: LazyRollingSumsFromHeight<T>,
-    last_cumulative: M::WriteOnly<Option<(usize, T)>>,
+    last: M::WriteOnly<CumulativeState<T>>,
 }
 
 impl<T> PerBlockCumulativeRolling<T>
@@ -53,16 +54,12 @@ where
             window_starts,
             indexes,
         );
-        let last_cumulative = cumulative
-            .height
-            .collect_last()
-            .map(|value| (cumulative.height.len(), value));
 
         Ok(Self {
             block,
             cumulative,
             sum,
-            last_cumulative,
+            last: Default::default(),
         })
     }
 
@@ -71,18 +68,12 @@ where
     }
 
     #[inline(always)]
-    pub fn push_block(&mut self, value: T)
-    where
-        T: Copy,
-    {
-        let len = self.cumulative.height.len();
-        let mut cumulative = match self.last_cumulative {
-            Some((cached_len, value)) if cached_len == len => value,
-            _ => self.cumulative.height.collect_last().unwrap_or_default(),
-        };
-        cumulative += value;
+    pub fn push_block(&mut self, value: T) {
+        let height = Height::from(self.cumulative.height.len());
+        let cumulative = self
+            .last
+            .add_at(height, &self.cumulative.height, |total| *total += value);
         self.cumulative.height.push(cumulative);
-        self.last_cumulative = Some((len + 1, cumulative));
     }
 
     pub fn compute_cumulative_transformed<S>(
@@ -94,22 +85,14 @@ where
     ) -> Result<()>
     where
         S: VecValue,
-        T: Copy,
     {
-        self.last_cumulative = None;
-        let mut cumulative = None;
+        let last = &mut self.last;
         Ok(self.cumulative.height.compute_transform(
             max_from,
             source,
             |(height, value, this)| {
-                let cumulative = cumulative.get_or_insert_with(|| {
-                    height
-                        .decremented()
-                        .and_then(|height| this.collect_one(height))
-                        .unwrap_or_default()
-                });
-                *cumulative += transform(value);
-                (height, *cumulative)
+                let value = transform(value);
+                (height, last.add_at(height, this, |total| *total += value))
             },
             exit,
         )?)
@@ -132,7 +115,7 @@ where
         usize: From<B>,
         T: Copy,
     {
-        self.last_cumulative = None;
+        self.last = CumulativeState::default();
         Ok(self.cumulative.height.compute_cumulative_sum_from_indexes(
             max_from,
             first_indexes,

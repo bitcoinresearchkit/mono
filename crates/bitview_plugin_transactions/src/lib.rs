@@ -39,7 +39,8 @@ use vsize::Vecs as VSizeVecs;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("transactions"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -66,13 +67,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub volume: ValuePerBlockCumulativeRolling<M>,
     /// Transaction rate, including coinbase transactions.
     per_second: LazyPerSecondWindows,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

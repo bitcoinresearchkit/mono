@@ -1,15 +1,15 @@
-use std::{convert::Infallible, iter::once, marker::PhantomData, sync::Arc};
+use std::{convert::Infallible, marker::PhantomData, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, TypedVec, VecIndex, VecValue, Version, read_batches, short_type_name,
+    AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
+    TypedVec, VecIndex, VecValue, Version, read_batches,
 };
 
 /// Lazily transforms one metric source with aligned index metadata.
 /// Bounded metadata reads preserve its owner's cold-cache admission policy.
+#[derive(Clone)]
 pub struct LazyIndexedVec<I, S, M, T, F>
 where
     I: VecIndex,
@@ -101,26 +101,6 @@ where
     }
 }
 
-impl<I, S, M, T, F> Clone for LazyIndexedVec<I, S, M, T, F>
-where
-    I: VecIndex,
-    S: VecValue,
-    M: VecValue,
-    T: VecValue,
-    F: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            name: Arc::clone(&self.name),
-            base_version: self.base_version,
-            source: self.source.clone(),
-            metadata: self.metadata.clone(),
-            compute: self.compute.clone(),
-            _marker: PhantomData,
-        }
-    }
-}
-
 impl<I, S, M, T, F> AnyVec for LazyIndexedVec<I, S, M, T, F>
 where
     I: VecIndex,
@@ -137,10 +117,6 @@ where
         &self.name
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
     fn len(&self) -> usize {
         self.source.len().min(self.metadata.len())
     }
@@ -150,13 +126,7 @@ where
         self.source.is_mutable() || self.metadata.is_mutable()
     }
 
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    vecdb::any_vec_type_methods!(I, T);
 }
 
 impl<I, S, M, T, F> TypedVec for LazyIndexedVec<I, S, M, T, F>
@@ -261,19 +231,10 @@ where
     }
 }
 
-impl<I, S, M, T, F> Traversable for LazyIndexedVec<I, S, M, T, F>
-where
+bitview_traversable::leaf!([I, S, M, T, F] LazyIndexedVec<I, S, M, T, F> where
     I: VecIndex,
     S: VecValue,
     M: VecValue,
     T: VecValue + Formattable + Serialize + JsonSchema,
     F: Fn(I, S, M) -> T + Clone + Send + Sync + 'static,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);

@@ -1,13 +1,13 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_compute::{Inputs, write_chunks};
 use bitview_distribution::state::cost_basis::{DensityBand, PRICE_INDEX_VERSION, age_index};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
 use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableCloneableVec, Stamp};
+use vecdb::{AnyStoredVec, AnyVec, ReadableCloneableVec, Stamp};
 
 use crate::{
     Dependencies, Vecs, cost_basis::CostBasisBlockData, live::LiveState, sources::Sources,
@@ -15,11 +15,8 @@ use crate::{
 };
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
+    compute_items!(Dependencies, db);
 
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();
         let exit = context.exit();

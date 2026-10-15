@@ -1,21 +1,17 @@
 use bitview_compute::{prepare_computed, write_chunks};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, Version, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, Version, WritableVec};
 
 use crate::{Dependencies, Vecs, pool_heights::PoolSnapshot};
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,

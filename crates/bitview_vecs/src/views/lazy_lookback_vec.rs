@@ -1,11 +1,10 @@
-use std::{convert::Infallible, iter::once, marker::PhantomData, sync::Arc};
+use std::{convert::Infallible, marker::PhantomData, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, TypedVec, VecIndex, VecValue, Version, read_batches, short_type_name,
+    AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
+    TypedVec, VecIndex, VecValue, Version, read_batches,
 };
 
 use vecdb::SparseRead;
@@ -14,6 +13,7 @@ use vecdb::SparseRead;
 ///
 /// Current and previous ranges are read separately, so a large lookback does
 /// not force reading the gap between them.
+#[derive(Clone)]
 pub struct LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
@@ -119,25 +119,6 @@ where
     }
 }
 
-impl<I, S, T, F> Clone for LazyLookbackVec<I, S, T, F>
-where
-    I: VecIndex,
-    S: VecValue,
-    T: VecValue,
-    F: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            name: Arc::clone(&self.name),
-            base_version: self.base_version,
-            source: self.source.clone(),
-            lookback: self.lookback,
-            compute: self.compute.clone(),
-            _marker: PhantomData,
-        }
-    }
-}
-
 impl<I, S, T, F> AnyVec for LazyLookbackVec<I, S, T, F>
 where
     I: VecIndex,
@@ -153,21 +134,11 @@ where
         &self.name
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
     fn len(&self) -> usize {
         self.source.len()
     }
 
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    vecdb::any_vec_type_methods!(I, T);
 }
 
 impl<I, S, T, F> TypedVec for LazyLookbackVec<I, S, T, F>
@@ -284,18 +255,9 @@ where
     }
 }
 
-impl<I, S, T, F> Traversable for LazyLookbackVec<I, S, T, F>
-where
+bitview_traversable::leaf!([I, S, T, F] LazyLookbackVec<I, S, T, F> where
     I: VecIndex,
     S: VecValue,
     T: VecValue + Formattable + Serialize + JsonSchema,
     F: Fn(S, Option<S>) -> T + Clone + Send + Sync + 'static,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);

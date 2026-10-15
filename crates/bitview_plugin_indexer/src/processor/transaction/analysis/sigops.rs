@@ -179,6 +179,8 @@ impl SigOpCount {
             _ => {}
         }
         let opcode = opcode.to_u8();
-        self.pushnum = (0x51..=0x60).contains(&opcode).then(|| usize::from(opcode - 0x50));
+        self.pushnum = (0x51..=0x60)
+            .contains(&opcode)
+            .then(|| usize::from(opcode - 0x50));
     }
 }

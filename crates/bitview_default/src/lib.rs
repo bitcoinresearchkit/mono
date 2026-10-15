@@ -62,11 +62,8 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     utxos: Box<Utxos<M>>,
     #[plugin_set(has = bitview_plugin_addresses::HasAddresses<M>)]
     addresses: Box<Addresses<M>>,
-    #[plugin_set(has = bitview_plugin_holders::HasHolders<M>)]
     holders: Box<Holders<M>>,
-    #[plugin_set(has = bitview_plugin_entry::HasEntry<M>)]
     entry: Box<Entry<M>>,
-    #[plugin_set(has = bitview_plugin_profitability::HasProfitability<M>)]
     profitability: Box<Profitability<M>>,
     supply: Box<Supply<M>>,
     #[plugin_set(has = bitview_plugin_cointime::HasCointime<M>)]

@@ -5,15 +5,15 @@ use bitview_primitives::Count;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Height, TxIndex, Version};
-use vecdb::{AnyStoredVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, ReadableVec, VecIndex};
 
-use crate::CachedSeries;
+use crate::CumulativeSource;
 
 /// A member's position among the `N` counters, and its cumulative entry and transaction counts.
 type TypeCountTarget<'a> = (
     usize,
-    &'a mut CachedSeries<Height, Count>,
-    &'a mut CachedSeries<Height, Count>,
+    &'a mut CumulativeSource<Count>,
+    &'a mut CumulativeSource<Count>,
 );
 
 /// Compute cumulative entry and transaction counts for the selected output
@@ -52,12 +52,6 @@ where
     if skip >= end || targets.is_empty() {
         return Ok(());
     }
-    let mut entry_totals = [Count::ZERO; N];
-    let mut tx_totals = [Count::ZERO; N];
-    for (slot, entries, txs) in &mut targets {
-        entry_totals[*slot] = entries.collect_last().unwrap_or_default();
-        tx_totals[*slot] = txs.collect_last().unwrap_or_default();
-    }
 
     let mut height = skip;
     let write = |targets: &mut [TypeCountTarget<'_>]| write_locked(stored_vecs(targets), exit);
@@ -77,11 +71,8 @@ where
         open_types(first_entry),
         |aggregate| {
             for (slot, entries, txs) in &mut targets {
-                let slot = *slot;
-                entry_totals[slot] += Count::from(aggregate.entries_per_type[slot]);
-                tx_totals[slot] += Count::from(aggregate.txs_per_type[slot]);
-                entries.push(entry_totals[slot]);
-                txs.push(tx_totals[slot]);
+                entries.push_block(Count::from(aggregate.entries_per_type[*slot]));
+                txs.push_block(Count::from(aggregate.txs_per_type[*slot]));
             }
             height += 1;
             if height.is_multiple_of(WRITE_INTERVAL) {
@@ -96,12 +87,9 @@ where
 fn stored_vecs<'a>(
     targets: &'a mut [TypeCountTarget<'_>],
 ) -> impl Iterator<Item = &'a mut dyn AnyStoredVec> {
-    targets.iter_mut().flat_map(|(_, entries, txs)| {
-        [
-            &mut **entries as &mut dyn AnyStoredVec,
-            &mut **txs as &mut dyn AnyStoredVec,
-        ]
-    })
+    targets
+        .iter_mut()
+        .flat_map(|(_, entries, txs)| [entries.stored_mut(), txs.stored_mut()])
 }
 
 /// Aggregated per-block counters produced by [`walk_blocks`].

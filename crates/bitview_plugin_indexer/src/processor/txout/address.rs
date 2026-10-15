@@ -154,6 +154,18 @@ impl BlockAddresses {
         self.resolved[index]
     }
 
+    /// Caches the indexes the complete block assigned to new addresses, for the next blocks.
+    pub fn finish_block(&mut self) {
+        for lookup in &self.lookups {
+            if lookup.type_index.is_none()
+                && let Some(type_index) = self.resolved[lookup.index]
+            {
+                self.cache
+                    .insert(lookup.output_type, lookup.hash, type_index);
+            }
+        }
+    }
+
     pub fn clear_cache(&mut self) {
         self.cache.clear();
     }

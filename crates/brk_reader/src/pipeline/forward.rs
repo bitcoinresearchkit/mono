@@ -1,12 +1,12 @@
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::os::fd::AsRawFd;
 use std::{
+    collections::BTreeMap,
     fs::File,
     io::{self, Read},
     ops::ControlFlow,
     os::unix::fs::FileExt,
     path::Path,
-    collections::BTreeMap,
     sync::OnceLock,
     thread,
     time::Duration,
@@ -92,7 +92,10 @@ impl Dispatch<'_> {
             if !self.admit(offset, frame.len, wait) {
                 return Ok(true);
             }
-            let frame = self.deferred.remove(&offset).expect("the first deferred block");
+            let frame = self
+                .deferred
+                .remove(&offset)
+                .expect("the first deferred block");
             let bytes = self.reread(&frame)?;
             if !self.send(offset, frame, bytes) {
                 return Ok(false);
@@ -107,7 +110,8 @@ impl Dispatch<'_> {
             if !wait || self.stop.get().is_some() {
                 return false;
             }
-            self.emitted.wait_for(&mut reorder, Duration::from_millis(10));
+            self.emitted
+                .wait_for(&mut reorder, Duration::from_millis(10));
         }
         true
     }

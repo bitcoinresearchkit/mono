@@ -26,7 +26,8 @@ use interval::Vecs as IntervalVecs;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("blocks"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -48,13 +49,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     fullness: LazyPercentVec<PartsPerMillion32, Weight32>,
     pub difficulty: DifficultyVecs,
     halving: HalvingVecs,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

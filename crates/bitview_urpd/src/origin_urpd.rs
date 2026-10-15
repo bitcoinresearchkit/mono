@@ -176,9 +176,6 @@ impl OriginUrpd {
         }
         Ok(())
     }
-    fn price_slots(&self) -> impl Iterator<Item = (CentsCompact, u32)> {
-        self.prices.iter().copied()
-    }
     /// Project all requested weights together, visiting each bucket's ages once.
     /// The caller can consume this view directly or retain its rows for repeated reads.
     /// Weighted entries retain input order; missing weights produce zero. Rounding
@@ -189,7 +186,7 @@ impl OriginUrpd {
         cohorts: [&[AgeRangeId]; C],
     ) -> impl Iterator<Item = ProjectedBucket<N, C>> + 'a + use<'a, N, C> {
         let projection = Projection::new(weights, cohorts);
-        self.price_slots().filter_map(move |(price, slot)| {
+        self.prices.iter().filter_map(move |&(price, slot)| {
             let slot = slot as usize;
             projection.bucket(price, &self.amounts, slot, self.occupied[slot])
         })

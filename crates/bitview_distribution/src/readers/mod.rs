@@ -1,5 +1,4 @@
 mod tx_in;
-mod tx_out;
 use std::{
     ops::{ControlFlow, Range},
     panic::resume_unwind,
@@ -10,13 +9,12 @@ use std::{
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
 use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_types::{Height, OutputType, Sats};
 use rayon::join;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use tx_in::TxInReaders;
-use tx_out::TxOutReaders;
 
 /// Blocks read together, bounding source buffers while amortizing reads.
 const BATCH_BLOCKS: usize = 16;
@@ -123,14 +121,14 @@ pub struct BatchColumns {
 
 /// Output and input column readers; type indexes only `WITH_INDEXES`.
 pub struct Columns<'a, const WITH_INDEXES: bool> {
-    outputs: TxOutReaders<'a, WITH_INDEXES>,
+    indexer: &'a Indexer,
     inputs: TxInReaders<'a, WITH_INDEXES>,
 }
 
 impl<'a, const WITH_INDEXES: bool> Columns<'a, WITH_INDEXES> {
     pub fn new(indexer: &'a Indexer, output_heights: &'a HeightMap<TxOutIndex>) -> Self {
         Self {
-            outputs: TxOutReaders::new(indexer),
+            indexer,
             inputs: TxInReaders::new(indexer, output_heights),
         }
     }
@@ -203,8 +201,27 @@ impl<'a, const WITH_INDEXES: bool> Columns<'a, WITH_INDEXES> {
         } = columns;
         let (outputs, inputs) = join(
             || {
-                self.outputs
-                    .collect_outputs(batch, output_values, output_types, output_indexes)
+                let (from, to) = (batch.outputs.start, batch.outputs.end);
+                let outputs = &self.indexer.vecs().outputs;
+                outputs.value.collect_range_into_at(from, to, output_values);
+                outputs
+                    .output_type
+                    .collect_range_into_at(from, to, output_types);
+                if WITH_INDEXES {
+                    outputs
+                        .type_index
+                        .collect_range_into_at(from, to, output_indexes);
+                }
+                let count = to - from;
+                if output_values.len() != count
+                    || output_types.len() != count
+                    || (WITH_INDEXES && output_indexes.len() != count)
+                {
+                    return Err(Error::NotFound(
+                        "incomplete distribution output columns".into(),
+                    ));
+                }
+                Ok(())
             },
             || {
                 self.inputs.collect_inputs(

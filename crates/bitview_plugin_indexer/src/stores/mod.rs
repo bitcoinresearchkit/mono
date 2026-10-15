@@ -8,7 +8,7 @@ use brk_error::{Error, OptionData, Result};
 use brk_store::{AnyStore, Kind, PendingIngest, Store, StoreView, open_database};
 use brk_types::{Height, OutPoint, OutputType, Sats, TxIndex, TxidPrefix, Unit, Version, Vout};
 use fjall::Database;
-use rayon::{join, prelude::*};
+use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use tracing::debug;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
@@ -127,97 +127,43 @@ impl Stores {
         fs::create_dir_all(&pathbuf)?;
         let database = open_database(path)?;
 
-        let database_ref = &database;
+        let db = &database;
 
-        let create_addr_hash_to_addr_index_store = |id: AddrTypeId| {
-            Store::import(
-                database_ref,
-                path,
-                &format!("h2i{}", id as usize),
-                version,
-                Kind::Random,
-            )
-        };
-
-        let create_addr_index_to_tx_index_store = |id: AddrTypeId| {
-            Store::import(
-                database_ref,
-                path,
-                &format!("a2t{}", id as usize),
-                version,
-                Kind::Vec,
-            )
-        };
-
-        let create_addr_index_to_unspent_outpoint_store = |id: AddrTypeId| {
-            Store::import(
-                database_ref,
-                path,
-                &format!("a2u{}", id as usize),
-                version,
-                Kind::Vec,
-            )
-        };
-
-        let create_blockhash_prefix_store = || {
-            Store::import(
-                database_ref,
-                path,
-                "blockhash_prefix_to_height",
-                version,
-                Kind::Random,
-            )
-        };
-        let create_txid_prefix_store = || {
-            Store::import(
-                database_ref,
-                path,
-                "txid_prefix_to_tx_index",
-                version,
-                Kind::Recent,
-            )
-        };
-
-        let create_address_stores = || {
-            join(
-                || {
-                    join(
-                        || ByAddrType::par_try_from_fn(create_addr_hash_to_addr_index_store),
-                        || ByAddrType::par_try_from_fn(create_addr_index_to_tx_index_store),
-                    )
-                },
-                || ByAddrType::par_try_from_fn(create_addr_index_to_unspent_outpoint_store),
-            )
-        };
-        let create_utxo_stores = || {
-            join(
-                || Store::import(database_ref, path, "utxos", version, Kind::Recent),
-                || Store::import(database_ref, path, "utxo_values", version, Kind::Recent),
-            )
-        };
-        let create_prefix_stores = || {
-            join(
-                || join(create_blockhash_prefix_store, create_txid_prefix_store),
-                create_utxo_stores,
-            )
-        };
-
-        // Every store owns an independent keyspace, so all 28 can recover in parallel.
+        // Every store owns an independent keyspace, so all 28 recover in parallel.
         let (
-            ((addr_hashes, addr_tx_indexes), addr_unspent_outpoints),
-            ((blockhashes, txids), (utxos, utxo_values)),
-        ) = join(create_address_stores, create_prefix_stores);
+            addr_hashes,
+            addr_tx_indexes,
+            addr_unspent_outpoints,
+            blockhashes,
+            txids,
+            utxos,
+            utxo_values,
+        ) = parallel_import! {
+            addr_hashes = ByAddrType::par_try_from_fn(|id: AddrTypeId| {
+                Store::import(db, path, &format!("h2i{}", id as usize), version, Kind::Random)
+            }),
+            addr_tx_indexes = ByAddrType::par_try_from_fn(|id: AddrTypeId| {
+                Store::import(db, path, &format!("a2t{}", id as usize), version, Kind::Vec)
+            }),
+            addr_unspent_outpoints = ByAddrType::par_try_from_fn(|id: AddrTypeId| {
+                Store::import(db, path, &format!("a2u{}", id as usize), version, Kind::Vec)
+            }),
+            blockhashes = Store::import(db, path, "blockhash_prefix_to_height", version, Kind::Random),
+            txids = Store::import(db, path, "txid_prefix_to_tx_index", version, Kind::Recent),
+            utxos = Store::import(db, path, "utxos", version, Kind::Recent),
+            utxo_values = Store::import(db, path, "utxo_values", version, Kind::Recent),
+        };
 
         let stores = Self {
             db: database.clone(),
             checkpoint: StoresCheckpoint::new(path),
-            addr_type_to_addr_hash_to_addr_index: addr_hashes?,
-            addr_type_to_addr_index_and_tx_index: addr_tx_indexes?,
-            addr_type_to_addr_index_and_unspent_outpoint: addr_unspent_outpoints?,
-            blockhash_prefix_to_height: blockhashes?,
-            txid_prefix_to_tx_index: txids?,
-            utxos: utxos?,
-            utxo_values: utxo_values?,
+            addr_type_to_addr_hash_to_addr_index: addr_hashes,
+            addr_type_to_addr_index_and_tx_index: addr_tx_indexes,
+            addr_type_to_addr_index_and_unspent_outpoint: addr_unspent_outpoints,
+            blockhash_prefix_to_height: blockhashes,
+            txid_prefix_to_tx_index: txids,
+            utxos,
+            utxo_values,
         };
 
         if stores.checkpoint.next_height()?.is_none() && stores.is_empty()? {
@@ -308,7 +254,10 @@ impl Stores {
 
     /// Takes every store's pending writes into a commit that begins the checkpoint only when it
     /// persists, so the stores keep their last checkpoint until then.
-    pub(crate) fn take_deferred_commit(&mut self, completed_height: Height) -> DeferredStoresCommit {
+    pub(crate) fn take_deferred_commit(
+        &mut self,
+        completed_height: Height,
+    ) -> DeferredStoresCommit {
         DeferredStoresCommit::new(
             self.db.clone(),
             self.take_pending_ingests(),
@@ -318,7 +267,11 @@ impl Stores {
     }
 
     /// Stages reverse-key entries below the lowered bound for persistence.
-    pub(crate) fn rollback_if_needed(&mut self, vecs: &Vecs, starting_lengths: &Lengths) -> Result<()> {
+    pub(crate) fn rollback_if_needed(
+        &mut self,
+        vecs: &Vecs,
+        starting_lengths: &Lengths,
+    ) -> Result<()> {
         if self.is_empty()? {
             return Ok(());
         }
@@ -375,13 +328,15 @@ impl Stores {
         let start = starting_lengths.tx_index.to_usize();
         let end = vecs.transactions.txid.len();
         let mut tx_index = starting_lengths.tx_index;
-        vecs.transactions.txid.for_each_range_at(start, end, |txid| {
-            // A BIP30 duplicate's txid still maps to the original, which stays.
-            if overwritten_tx_index(tx_index).is_none() {
-                self.txid_prefix_to_tx_index.remove(TxidPrefix::from(&txid));
-            }
-            tx_index = tx_index.incremented();
-        });
+        vecs.transactions
+            .txid
+            .for_each_range_at(start, end, |txid| {
+                // A BIP30 duplicate's txid still maps to the original, which stays.
+                if overwritten_tx_index(tx_index).is_none() {
+                    self.txid_prefix_to_tx_index.remove(TxidPrefix::from(&txid));
+                }
+                tx_index = tx_index.incremented();
+            });
     }
 
     fn rollback_outputs_and_inputs(

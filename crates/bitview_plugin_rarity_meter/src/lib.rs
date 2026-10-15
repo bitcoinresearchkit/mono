@@ -31,7 +31,8 @@ use inner::RarityMeterInner;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("rarity_meter"), Version::new(18));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -57,13 +58,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// creation prices, the vaulted price, True Market Mean, and the awake and mobile
     /// realized prices.
     cycle: RarityMeterInner<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

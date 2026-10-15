@@ -2,6 +2,7 @@ use bitview_cohort::{CohortContext, CohortId};
 use bitview_distribution::{
     families::CumulativeValue,
     metrics::{CreationCohort, ShareTotals},
+    state::RealizedOps,
 };
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CentsSquaredSats, CoinDays};

@@ -29,7 +29,8 @@ const STORAGE: PluginStorage =
     PluginStorage::new(PluginId::new("price"), Version::new(20 + ORACLE_VERSION));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -61,13 +62,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// cents), so an update resumes the oracle where the previous one left it.
     #[traversable(hidden)]
     pub oracle_bin: M::Stored<EagerVec<PcoVec<Height, Float64>>>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

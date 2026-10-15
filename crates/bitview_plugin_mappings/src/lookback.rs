@@ -27,6 +27,12 @@ macro_rules! lookbacks {
                 }
             }
 
+            /// Carries every duration's latest window starts past the timestamps
+            /// written from `starting_height`.
+            pub(crate) fn update(&self, starting_height: Height) {
+                $(self.$field.update(starting_height);)*
+            }
+
             /// The window start of a trailing duration in days.
             pub fn start_vec(&self, days: usize) -> &LazyWindowStartVec {
                 $(if days == $days {

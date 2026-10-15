@@ -1,9 +1,10 @@
 # bitview_plugin_derive
 
-Derives `bitview_plugin::PluginSet` for statically composed Bitview plugins
-(re-exported by `bitview_plugin` under its `derive` feature).
+Derives `bitview_plugin::Plugin` for a plugin from `#[plugin(storage = STORAGE)]`,
+and `bitview_plugin::PluginSet` for statically composed Bitview plugins (both
+re-exported by `bitview_plugin` under its `derive` feature).
 
-Field attributes:
+`PluginSet` field attributes:
 
 - `#[plugin_set(flatten)]` visits a nested composition's plugins.
 - `#[plugin_set(skip)]` excludes non-plugin state.

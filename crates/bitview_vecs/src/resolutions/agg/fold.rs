@@ -34,12 +34,10 @@ pub trait AggFold<O: VecValue, S1I: VecIndex, S1T: VecValue>: 'static {
         init: B,
         mut f: F,
     ) -> B {
-        match Self::try_fold(source, mapping, from, to, init, |b, o| {
+        let Ok(b) = Self::try_fold(source, mapping, from, to, init, |b, o| {
             Ok::<_, Infallible>(f(b, o))
-        }) {
-            Ok(b) => b,
-            Err(e) => match e {},
-        }
+        });
+        b
     }
 
     fn collect_one<MI: VecIndex, S: ReadableVec<S1I, S1T> + ?Sized>(

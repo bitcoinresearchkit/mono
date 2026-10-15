@@ -23,10 +23,6 @@ impl CachedUnrealizedState {
         }
     }
 
-    pub fn current_state(&self) -> UnrealizedState {
-        self.state.to_output(self.at_price)
-    }
-
     pub fn get_at_price(
         &mut self,
         new_price: Cents,
@@ -37,11 +33,8 @@ impl CachedUnrealizedState {
             self.update_for_price_change(new_price, map);
             self.cached_output = None;
         }
-        if let Some(output) = &self.cached_output {
-            return output.clone();
-        }
         self.cached_output
-            .insert(self.state.to_output(self.at_price))
+            .get_or_insert_with(|| self.state.to_output(self.at_price))
             .clone()
     }
 

@@ -1,10 +1,9 @@
-use std::{convert::Infallible, iter, sync::Arc};
+use std::{convert::Infallible, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
+use arc_swap::ArcSwap;
 use brk_types::{Height, Timestamp, Version};
 use vecdb::{
-    AnyExportableVec, AnyVec, PrintableIndex, ReadOnlyClone, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableVec, TypedVec, short_type_name,
+    AnyVec, ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecIndex,
 };
 
 const DAY_SECONDS: u64 = 24 * 60 * 60;
@@ -13,6 +12,26 @@ const WINDOW_READ_CHUNK: usize = 1 << 10;
 /// Sorted requests closer than this many heights share one contiguous
 /// timestamp read; farther ones are read separately.
 const MAX_BRIDGED_GAP: usize = 1 << 16;
+/// Latest heights whose window starts stay resident: an ordinary update and the
+/// height before it read only these.
+const TIP_HEIGHTS: usize = 8;
+/// Fewest timestamps read at a time while carrying a window start forward.
+const TIP_READ: usize = 64;
+
+/// Window starts of the latest heights, computed from timestamps of `version`.
+#[derive(Default)]
+struct Tip {
+    version: Version,
+    first: usize,
+    starts: Vec<Height>,
+}
+
+impl Tip {
+    fn get(&self, from: usize, to: usize) -> Option<&[Height]> {
+        self.starts
+            .get(from.checked_sub(self.first)?..to.checked_sub(self.first)?)
+    }
+}
 
 /// A storage-free window-start vector backed by one monotonic timestamp source.
 ///
@@ -20,13 +39,16 @@ const MAX_BRIDGED_GAP: usize = 1 << 16;
 /// Point lookups into a compressed timestamp source decode a whole page per
 /// probe, which made per-day binary searches over full history cost hundreds
 /// of milliseconds. Range and sorted reads find the first window start once,
-/// then advance it monotonically.
+/// then advance it monotonically. The latest heights' starts are carried forward
+/// by [`Self::update`] and shared by every clone, so an ordinary update reads
+/// none of the history.
 #[derive(Clone)]
 pub struct LazyWindowStartVec {
     name: Arc<str>,
     version: Version,
     duration_seconds: u64,
     timestamps: ReadableBoxedVec<Height, Timestamp>,
+    tip: Arc<ArcSwap<Tip>>,
 }
 
 impl LazyWindowStartVec {
@@ -41,7 +63,85 @@ impl LazyWindowStartVec {
             version,
             duration_seconds: days * DAY_SECONDS,
             timestamps: timestamps.read_only_boxed_clone(),
+            tip: Arc::default(),
         }
+    }
+
+    /// Republishes the latest heights' starts after the timestamps changed from
+    /// `starting_height`; called by the timestamps' writer after each update.
+    /// Starts below the change carry forward; anything else is recomputed.
+    pub fn update(&self, starting_height: Height) {
+        let len = self.timestamps.len();
+        let version = self.timestamps.version();
+        let first = len.saturating_sub(TIP_HEIGHTS);
+        let tip = self.tip.load();
+        let unchanged = if tip.version == version {
+            (tip.first + tip.starts.len()).min(starting_height.to_usize())
+        } else {
+            0
+        };
+        let seed = first
+            .min(unchanged)
+            .checked_sub(1)
+            .and_then(|height| Some((height, tip.get(height, height + 1)?[0].to_usize())));
+        let mut starts = Vec::with_capacity(len - first);
+        let complete = match seed {
+            Some((height, start)) => self.advance(start, height + 1, len, first, &mut starts),
+            None if first < len => self.window_prefix(first).and_then(|(lo, values)| {
+                let start = self.prefix_start(lo, &values, first);
+                starts.push(Height::from(start));
+                self.advance(start, first + 1, len, first, &mut starts)
+            }),
+            None => Some(()),
+        };
+        if complete.is_none() {
+            starts.clear();
+        }
+        self.tip.store(Arc::new(Tip {
+            version,
+            first,
+            starts,
+        }));
+    }
+
+    /// Carries `start`, the window start of `from - 1`, through `[from, to)` and
+    /// pushes the starts from `keep` on, reading only the new timestamps and the
+    /// ones the start moves past.
+    fn advance(
+        &self,
+        mut start: usize,
+        from: usize,
+        to: usize,
+        keep: usize,
+        out: &mut Vec<Height>,
+    ) -> Option<()> {
+        let current = self.timestamps.collect_range_dyn(from, to);
+        if current.len() != to - from {
+            return None;
+        }
+        let mut passed = Vec::new();
+        let mut lo = start;
+        for (height, timestamp) in (from..).zip(current) {
+            while start < height {
+                if start == lo + passed.len() {
+                    let end = (start + (to - height).max(TIP_READ)).min(height);
+                    lo = start;
+                    passed.clear();
+                    self.timestamps.read_into_at(lo, end, &mut passed);
+                    if passed.len() != end - lo {
+                        return None;
+                    }
+                }
+                if !self.is_expired(timestamp, passed[start - lo]) {
+                    break;
+                }
+                start += 1;
+            }
+            if height >= keep {
+                out.push(Height::from(start));
+            }
+        }
+        Some(())
     }
 
     #[inline]
@@ -94,6 +194,9 @@ impl LazyWindowStartVec {
         if from >= to {
             return Ok(());
         }
+        if let Some(starts) = self.tip.load().get(from, to) {
+            return starts.iter().try_for_each(|&start| each(start));
+        }
 
         let Some((lo, mut values)) = self.window_prefix(from) else {
             return Ok(());
@@ -113,14 +216,10 @@ impl LazyWindowStartVec {
     }
 
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(Height)) {
-        let result = self.try_for_each_value(from, to, |value| {
+        let Ok(()) = self.try_for_each_value(from, to, |value| {
             each(value);
             Ok::<_, Infallible>(())
         });
-        match result {
-            Ok(()) => {}
-            Err(error) => match error {},
-        }
     }
 }
 
@@ -137,17 +236,7 @@ impl AnyVec for LazyWindowStartVec {
         self.timestamps.len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        <Height as PrintableIndex>::to_string()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<Height>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<Height>()
-    }
+    vecdb::any_vec_type_methods!(Height, Height);
 }
 
 impl TypedVec for LazyWindowStartVec {
@@ -161,6 +250,9 @@ impl ReadableVec<Height, Height> for LazyWindowStartVec {
     fn collect_one_at(&self, index: usize) -> Option<Height> {
         if index >= self.timestamps.len() {
             return None;
+        }
+        if let Some(&[start]) = self.tip.load().get(index, index + 1) {
+            return Some(start);
         }
         let (lo, values) = self.window_prefix(index)?;
         Some(Height::from(self.prefix_start(lo, &values, index)))
@@ -220,12 +312,4 @@ impl ReadOnlyClone for LazyWindowStartVec {
     }
 }
 
-impl Traversable for LazyWindowStartVec {
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+bitview_traversable::leaf!([] LazyWindowStartVec);

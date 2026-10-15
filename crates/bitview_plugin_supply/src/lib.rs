@@ -18,7 +18,8 @@ use vecdb::{Database, Rw, StorageMode};
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("supply"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -42,13 +43,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// block in each supported trailing monotonic-time window.
     #[traversable(wrap = "market_cap", rename = "delta")]
     market_cap_delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

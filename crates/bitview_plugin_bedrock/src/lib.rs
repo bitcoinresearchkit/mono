@@ -42,24 +42,14 @@ use thresholds::Thresholds;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(17));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    #[traversable(skip)]
     calibration: M::WriteOnly<Option<Calibration>>,
-    #[traversable(skip)]
     replay: M::WriteOnly<Replay>,
 
     #[traversable(flatten)]
     modes: Modes<ModeVecs<M>>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

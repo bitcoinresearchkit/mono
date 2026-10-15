@@ -8,13 +8,13 @@ use brk_types::{Cents, Sats};
 use rustc_hash::FxHashMap;
 
 use super::{CostBasisOps, UnrealizedState, unrealized::CachedUnrealizedState};
-use crate::state::pending::PendingDelta;
 
 /// Price distribution with deferred changes and cached unrealized analytics.
 #[derive(Clone, Debug, Default)]
 pub struct CostBasisData {
     map: BTreeMap<CentsCompact, Sats>,
-    pending: FxHashMap<CentsCompact, PendingDelta>,
+    /// Net sats per price since the last apply, wrapping like the signed deltas they are.
+    pending: FxHashMap<CentsCompact, i64>,
     cache: Option<CachedUnrealizedState>,
 }
 
@@ -25,19 +25,13 @@ impl CostBasisData {
 
     pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
         if self.is_empty() {
-            return UnrealizedState::ZERO;
+            return UnrealizedState::default();
         }
 
         let map = &self.map;
-
-        if let Some(cache) = self.cache.as_mut() {
-            cache.get_at_price(height_price, map)
-        } else {
-            let cache = CachedUnrealizedState::compute_fresh(height_price, map);
-            let state = cache.current_state();
-            self.cache = Some(cache);
-            state
-        }
+        self.cache
+            .get_or_insert_with(|| CachedUnrealizedState::compute_fresh(height_price, map))
+            .get_at_price(height_price, map)
     }
 
     /// Bulk-build a compact, sorted price map from restored origin balances.
@@ -48,8 +42,7 @@ impl CostBasisData {
         // the per-block pending map, whose drain scans would retain that capacity.
         let mut entries: Vec<_> = mem::take(&mut self.pending)
             .into_iter()
-            .filter_map(|(price, pending)| {
-                let sats = pending.inner();
+            .filter_map(|(price, sats)| {
                 debug_assert!(sats >= 0, "restored origin balances cannot be negative");
                 (sats != 0).then_some((price, Sats::new(sats as u64)))
             })
@@ -62,10 +55,8 @@ impl CostBasisData {
 impl CostBasisOps for CostBasisData {
     #[inline]
     fn increment(&mut self, price: Cents, sats: Sats) {
-        self.pending
-            .entry(price.into())
-            .or_default()
-            .increment(sats);
+        let delta = self.pending.entry(price.into()).or_default();
+        *delta = delta.wrapping_add_unsigned(sats.into());
         if let Some(cache) = self.cache.as_mut() {
             cache.on_receive(price, sats);
         }
@@ -73,10 +64,8 @@ impl CostBasisOps for CostBasisData {
 
     #[inline]
     fn decrement(&mut self, price: Cents, sats: Sats) {
-        self.pending
-            .entry(price.into())
-            .or_default()
-            .decrement(sats);
+        let delta = self.pending.entry(price.into()).or_default();
+        *delta = delta.wrapping_sub_unsigned(sats.into());
         if let Some(cache) = self.cache.as_mut() {
             cache.on_send(price, sats);
         }
@@ -87,8 +76,7 @@ impl CostBasisOps for CostBasisData {
             return;
         }
         let map = &mut self.map;
-        for (cents, pending) in self.pending.drain() {
-            let delta = pending.inner();
+        for (cents, delta) in self.pending.drain() {
             if delta == 0 {
                 continue;
             }

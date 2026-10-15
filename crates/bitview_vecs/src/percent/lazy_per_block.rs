@@ -43,28 +43,6 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
         Self::from_height_source(name, version, &source, indexes)
     }
 
-    pub(crate) fn from_ratio_with_numerator<S, D, F>(
-        name: &str,
-        version: Version,
-        numerator: &impl ReadableCloneableVec<Height, S>,
-        denominator: &impl ReadableCloneableVec<Height, D>,
-        indexes: &IndexSources,
-    ) -> Self
-    where
-        S: NumericValue,
-        D: NumericValue,
-        F: BinaryTransform<S, D, B> + Send + Sync + 'static,
-    {
-        let source = LazyIndexedVec::new(
-            &format!("{name}_{}_source", B::SUFFIX),
-            version,
-            denominator,
-            numerator,
-            |_, denominator, numerator| F::apply(numerator, denominator),
-        );
-        Self::from_height_source(name, version, &source, indexes)
-    }
-
     pub fn from_height_source<V>(
         name: &str,
         version: Version,

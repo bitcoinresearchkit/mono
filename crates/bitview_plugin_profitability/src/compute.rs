@@ -1,10 +1,10 @@
 use bitview_compute::{Inputs, save_stamped, write_chunks};
 use bitview_distribution::state::cost_basis::{PRICE_INDEX_VERSION, age_index};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::{AnyVec, Database};
+use vecdb::AnyVec;
 
 use crate::{
     Dependencies, Vecs,
@@ -12,11 +12,7 @@ use crate::{
 };
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();

@@ -3,9 +3,7 @@ use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{
-    BinaryTransform, DeltaAvg, LazyDeltaVec, ReadableCloneableVec, ReverseOperands, UnaryTransform,
-};
+use vecdb::{BinaryTransform, DeltaAvg, LazyDeltaVec, ReadableCloneableVec, UnaryTransform};
 
 use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec, shapes::Windows};
 
@@ -30,59 +28,13 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
         D: NumericValue,
         F: BinaryTransform<S, D, B> + Send + Sync + 'static,
     {
-        Self::from_cumulative_operands::<S, D, F>(
-            name,
-            version,
-            numerator,
-            denominator,
-            window_starts,
-            indexes,
-        )
-    }
-
-    pub(crate) fn from_cumulative_ratio_with_numerator<S, D, F>(
-        name: &str,
-        version: Version,
-        numerator: &impl ReadableCloneableVec<Height, S>,
-        denominator: &impl ReadableCloneableVec<Height, D>,
-        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
-        indexes: &IndexSources,
-    ) -> Self
-    where
-        S: NumericValue,
-        D: NumericValue,
-        F: BinaryTransform<S, D, B> + Send + Sync + 'static,
-    {
-        Self::from_cumulative_operands::<D, S, ReverseOperands<F>>(
-            name,
-            version,
-            denominator,
-            numerator,
-            window_starts,
-            indexes,
-        )
-    }
-
-    fn from_cumulative_operands<S, D, F>(
-        name: &str,
-        version: Version,
-        source: &impl ReadableCloneableVec<Height, S>,
-        operand: &impl ReadableCloneableVec<Height, D>,
-        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
-        indexes: &IndexSources,
-    ) -> Self
-    where
-        S: NumericValue,
-        D: NumericValue,
-        F: BinaryTransform<S, D, B> + Send + Sync + 'static,
-    {
         Self(window_starts.map_with_suffix(|suffix, window_start| {
             let full_name = format!("{name}_{suffix}");
             let ratio = LazyRollingRatioVec::<S, D, B, F>::new(
                 &format!("{full_name}_{}_source", B::SUFFIX),
                 version,
-                source,
-                operand,
+                numerator,
+                denominator,
                 *window_start,
             );
             LazyPercentPerBlock::from_height_source(&full_name, version, &ratio, indexes)

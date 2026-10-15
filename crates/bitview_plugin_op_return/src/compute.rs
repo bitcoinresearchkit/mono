@@ -1,16 +1,12 @@
 use bitview_compute::{prepare_computed, write_chunks, write_locked};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
-use vecdb::{AnyVec, Database, VecIndex};
+use vecdb::{AnyVec, VecIndex};
 
 use crate::{Dependencies, Vecs, batch::Batch};
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,

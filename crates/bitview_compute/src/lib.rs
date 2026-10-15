@@ -3,7 +3,6 @@
 //! Metric vector ownership and view composition live in bitview_vecs.
 mod cohort_accounting;
 mod cohort_weight;
-mod drawdown;
 mod prepare;
 mod statistics;
 mod traits;
@@ -11,7 +10,6 @@ mod weighted;
 
 pub use cohort_accounting::{CohortAccounting, collect_age_range};
 pub use cohort_weight::{collect_cohort_weights, resolve_cohort_weight};
-pub use drawdown::ComputeDrawdown;
 pub use prepare::{
     Inputs, WRITE_INTERVAL, prepare_computed, save_stamped, undo_chunks, undo_tail_start,
     write_chunks, write_locked,

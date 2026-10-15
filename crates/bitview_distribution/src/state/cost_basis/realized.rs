@@ -5,7 +5,10 @@ use brk_types::{Cents, CentsSats, Sats};
 pub trait RealizedOps: Default + Clone + Send + Sync + 'static {
     const TRACK_ACTIVITY: bool = false;
     fn cap_raw(&self) -> CentsSats;
-    fn cap(&self) -> Cents;
+    #[inline]
+    fn cap(&self) -> Cents {
+        self.cap_raw().to_cents()
+    }
     fn profit(&self) -> Cents;
     fn loss(&self) -> Cents;
     fn value_destroyed(&self) -> Cents {
@@ -15,9 +18,6 @@ pub trait RealizedOps: Default + Clone + Send + Sync + 'static {
     fn increment(&mut self, price: Cents, sats: Sats);
     fn increment_snapshot(&mut self, price_sats: CentsSats, capitalized_cap: CentsSquaredSats);
     fn decrement_snapshot(&mut self, price_sats: CentsSats, capitalized_cap: CentsSquaredSats);
-    fn receive(&mut self, price: Cents, sats: Sats) {
-        self.increment(price, sats);
-    }
     fn send(
         &mut self,
         sats: Sats,

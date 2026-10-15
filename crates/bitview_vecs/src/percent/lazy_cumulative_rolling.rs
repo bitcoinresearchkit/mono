@@ -98,42 +98,6 @@ impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
         }
     }
 
-    /// Same ratio, with the pinned value as numerator and the sole
-    /// potentially disk-backed source as denominator.
-    pub fn from_cumulative_ratio_with_numerator<S, D, F>(
-        name: &str,
-        version: Version,
-        numerator: &impl ReadableCloneableVec<Height, S>,
-        denominator: &impl ReadableCloneableVec<Height, D>,
-        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
-        indexes: &IndexSources,
-    ) -> Self
-    where
-        S: NumericValue,
-        D: NumericValue,
-        F: BinaryTransform<S, D, B> + Send + Sync + 'static,
-    {
-        let cumulative = LazyPercentPerBlock::from_ratio_with_numerator::<S, D, F>(
-            &format!("{name}_cumulative"),
-            version,
-            numerator,
-            denominator,
-            indexes,
-        );
-        let rolling = LazyPercentRollingWindows::from_cumulative_ratio_with_numerator::<S, D, F>(
-            name,
-            version,
-            numerator,
-            denominator,
-            window_starts,
-            indexes,
-        );
-        Self {
-            cumulative,
-            rolling,
-        }
-    }
-
     pub fn from_lazy_source<F: UnaryTransform<B, B>>(
         name: &str,
         version: Version,

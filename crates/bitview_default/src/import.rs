@@ -31,76 +31,48 @@ use brk_reader::Reader;
 use tracing::info;
 use vecdb::ReadableCloneableVec;
 
-use crate::{
-    DefaultPlugins,
-    timing::{Phase, timed},
-};
+use crate::{DefaultPlugins, timing::timed_import};
 
 impl DefaultPlugins {
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         info!("Importing plugins...");
         let import_start = Instant::now();
-        let indexer = timed(Phase::Import, INDEXER_ID, || {
-            Indexer::import(context, reader)
-        })?;
+        let indexer = timed_import(INDEXER_ID, || Indexer::import(context, reader))?;
 
         const STACK_SIZE: usize = 8 * 1024 * 1024;
         let big_thread = || thread::Builder::new().stack_size(STACK_SIZE);
 
-        let mappings = timed(Phase::Import, MAPPINGS_ID, || -> Result<_> {
-            Ok(Box::new(Mappings::import(context, &indexer)?))
-        })?;
+        let mappings = timed_import(MAPPINGS_ID, || Mappings::import(context, &indexer))?;
 
-        let price = timed(Phase::Import, PRICE_ID, || -> Result<_> {
-            Ok(Box::new(Price::import(context, &mappings)?))
-        })?;
+        let price = timed_import(PRICE_ID, || Price::import(context, &mappings))?;
 
-        let blocks = timed(Phase::Import, BLOCKS_ID, || -> Result<_> {
-            Ok(Box::new(Blocks::import(context, &indexer, &mappings)?))
-        })?;
+        let blocks = timed_import(BLOCKS_ID, || Blocks::import(context, &indexer, &mappings))?;
 
         let window_starts = mappings.lookback.window_starts();
 
         let (inputs, outputs, mining, transactions, pools, op_return) =
             thread::scope(|scope| -> Result<_> {
-                let inputs_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, INPUTS_ID, || {
-                        Ok(Box::new(Inputs::import(
-                            context,
-                            &mappings,
-                            &window_starts,
-                        )?))
+                let inputs_handle = big_thread().spawn_scoped(scope, || {
+                    timed_import(INPUTS_ID, || {
+                        Inputs::import(context, &mappings, &window_starts)
                     })
                 })?;
 
-                let outputs_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, OUTPUTS_ID, || {
-                        Ok(Box::new(Outputs::import(
-                            context,
-                            &mappings,
-                            &window_starts,
-                        )?))
+                let outputs_handle = big_thread().spawn_scoped(scope, || {
+                    timed_import(OUTPUTS_ID, || {
+                        Outputs::import(context, &mappings, &window_starts)
                     })
                 })?;
 
-                let mining_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, MINING_ID, || {
-                        Ok(Box::new(Mining::import(
-                            context,
-                            &mappings,
-                            &window_starts,
-                        )?))
+                let mining_handle = big_thread().spawn_scoped(scope, || {
+                    timed_import(MINING_ID, || {
+                        Mining::import(context, &mappings, &window_starts)
                     })
                 })?;
 
-                let transactions_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, TRANSACTIONS_ID, || {
-                        Ok(Box::new(Transactions::import(
-                            context,
-                            &indexer,
-                            &mappings,
-                            &window_starts,
-                        )?))
+                let transactions_handle = big_thread().spawn_scoped(scope, || {
+                    timed_import(TRANSACTIONS_ID, || {
+                        Transactions::import(context, &indexer, &mappings, &window_starts)
                     })
                 })?;
 
@@ -111,22 +83,22 @@ impl DefaultPlugins {
                     let indexer = &indexer;
                     let mappings = &mappings;
                     let window_starts = &window_starts;
-                    big_thread().spawn_scoped(scope, move || -> Result<_> {
-                        timed(Phase::Import, OP_RETURN_ID, || {
-                            Ok(Box::new(OpReturn::import(
+                    big_thread().spawn_scoped(scope, move || {
+                        timed_import(OP_RETURN_ID, || {
+                            OpReturn::import(
                                 context,
                                 indexer,
                                 mappings,
                                 window_starts,
                                 block_size,
                                 &chain_fees,
-                            )?))
+                            )
                         })
                     })
                 }?;
                 let mining = mining_handle.join().unwrap()?;
                 // Pool hash rates read mining's network estimates; the import itself is light.
-                let pools = timed(Phase::Import, POOLS_ID, || -> Result<_> {
+                let pools = timed_import(POOLS_ID, || {
                     let rate = &mining.hashrate.rate;
                     let network = Windows {
                         _24h: &rate.block.height,
@@ -134,12 +106,7 @@ impl DefaultPlugins {
                         _1m: &rate.sma._1m.height,
                         _1y: &rate.sma._1y.height,
                     };
-                    Ok(Box::new(Pools::import(
-                        context,
-                        &mappings,
-                        &window_starts,
-                        &network,
-                    )?))
+                    Pools::import(context, &mappings, &window_starts, &network)
                 })?;
                 let inputs = inputs_handle.join().unwrap()?;
                 let outputs = outputs_handle.join().unwrap()?;
@@ -148,31 +115,29 @@ impl DefaultPlugins {
                 Ok((inputs, outputs, mining, transactions, pools, op_return))
             })?;
 
-        let utxo_set = timed(Phase::Import, UTXO_SET_ID, || -> Result<_> {
-            Ok(Box::new(UtxoSet::import(
+        let utxo_set = timed_import(UTXO_SET_ID, || {
+            UtxoSet::import(
                 context,
                 &mappings,
                 inputs.storage().path(context),
                 outputs.storage().path(context),
-            )?))
+            )
         })?;
 
         // Market and distribution are independent; import in parallel.
         let (age, market) = thread::scope(|scope| -> Result<_> {
-            let market_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
-                timed(Phase::Import, MARKET_ID, || {
-                    Ok(Box::new(Market::import(context, &mappings, &price)?))
-                })
+            let market_handle = big_thread().spawn_scoped(scope, || {
+                timed_import(MARKET_ID, || Market::import(context, &mappings, &price))
             })?;
 
-            let age = timed(Phase::Import, AGE_ID, || -> Result<_> {
-                Ok(Box::new(Age::import(
+            let age = timed_import(AGE_ID, || {
+                Age::import(
                     context,
                     &mappings,
                     &window_starts,
                     &price,
                     &utxo_set.supply.read_only_boxed_clone(),
-                )?))
+                )
             })?;
 
             let market = market_handle.join().unwrap()?;
@@ -185,42 +150,30 @@ impl DefaultPlugins {
             supply: &all_supply,
             capital: &all_capital,
         };
-        let utxos = timed(Phase::Import, UTXOS_ID, || -> Result<_> {
-            Ok(Box::new(Utxos::import(
-                context,
-                &mappings,
-                &window_starts,
-                &price,
-                totals,
-            )?))
+        let utxos = timed_import(UTXOS_ID, || {
+            Utxos::import(context, &mappings, &window_starts, &price, totals)
         })?;
 
-        let addresses = timed(Phase::Import, ADDRESSES_ID, || -> Result<_> {
-            Ok(Box::new(Addresses::import(
-                context,
-                &mappings,
-                &window_starts,
-                &price,
-                totals,
-            )?))
+        let addresses = timed_import(ADDRESSES_ID, || {
+            Addresses::import(context, &mappings, &window_starts, &price, totals)
         })?;
 
-        let holders = timed(Phase::Import, HOLDERS_ID, || -> Result<_> {
-            Ok(Box::new(Holders::import(
+        let holders = timed_import(HOLDERS_ID, || {
+            Holders::import(
                 context,
                 &mappings,
                 &window_starts,
                 &price,
                 &utxo_set.supply.read_only_boxed_clone(),
-            )?))
+            )
         })?;
         let all_chain = holders.all_chain_sources();
 
         let (cointime, coinflow, bedrock, entry, profitability) =
             thread::scope(|scope| -> Result<_> {
-                let cointime = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, COINTIME_ID, || {
-                        Ok(Box::new(Cointime::import(
+                let cointime = big_thread().spawn_scoped(scope, || {
+                    timed_import(COINTIME_ID, || {
+                        Cointime::import(
                             context,
                             &mappings,
                             &window_starts,
@@ -228,39 +181,35 @@ impl DefaultPlugins {
                             &mining.rewards.subsidy.cumulative.cents,
                             &all_chain,
                             &age,
-                        )?))
+                        )
                     })
                 })?;
-                let coinflow = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, COINFLOW_ID, || {
-                        Ok(Box::new(Coinflow::import(
-                            context, &mappings, &price, &age,
-                        )?))
+                let coinflow = big_thread().spawn_scoped(scope, || {
+                    timed_import(COINFLOW_ID, || {
+                        Coinflow::import(context, &mappings, &price, &age)
                     })
                 })?;
-                let bedrock = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, BEDROCK_ID, || {
-                        Ok(Box::new(Bedrock::import(context, &mappings)?))
-                    })
+                let bedrock = big_thread().spawn_scoped(scope, || {
+                    timed_import(BEDROCK_ID, || Bedrock::import(context, &mappings))
                 })?;
-                let entry = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, ENTRY_ID, || {
-                        Ok(Box::new(Entry::import(
+                let entry = big_thread().spawn_scoped(scope, || {
+                    timed_import(ENTRY_ID, || {
+                        Entry::import(
                             context,
                             &mappings,
                             &window_starts,
                             &price.spot.cents.height.read_only_boxed_clone(),
                             totals,
-                        )?))
+                        )
                     })
                 })?;
-                let profitability = big_thread().spawn_scoped(scope, || -> Result<_> {
-                    timed(Phase::Import, PROFITABILITY_ID, || {
-                        Ok(Box::new(Profitability::import(
+                let profitability = big_thread().spawn_scoped(scope, || {
+                    timed_import(PROFITABILITY_ID, || {
+                        Profitability::import(
                             context,
                             &mappings,
                             &price.spot.cents.height.read_only_boxed_clone(),
-                        )?))
+                        )
                     })
                 })?;
                 Ok((
@@ -273,23 +222,21 @@ impl DefaultPlugins {
             })?;
 
         let (supply, rarity_meter) = thread::scope(|scope| -> Result<_> {
-            let supply = big_thread().spawn_scoped(scope, || -> Result<_> {
-                timed(Phase::Import, SUPPLY_ID, || {
-                    Ok(Box::new(Supply::import(
+            let supply = big_thread().spawn_scoped(scope, || {
+                timed_import(SUPPLY_ID, || {
+                    Supply::import(
                         context,
                         &mappings,
                         &window_starts,
                         &holders,
                         &all_chain,
                         &transactions,
-                    )?))
+                    )
                 })
             })?;
-            let rarity_meter = big_thread().spawn_scoped(scope, || -> Result<_> {
-                timed(Phase::Import, RARITY_METER_ID, || {
-                    Ok(Box::new(RarityMeter::import(
-                        context, &mappings, &holders, &cointime, &coinflow,
-                    )?))
+            let rarity_meter = big_thread().spawn_scoped(scope, || {
+                timed_import(RARITY_METER_ID, || {
+                    RarityMeter::import(context, &mappings, &holders, &cointime, &coinflow)
                 })
             })?;
             Ok((supply.join().unwrap()?, rarity_meter.join().unwrap()?))
@@ -298,7 +245,7 @@ impl DefaultPlugins {
         info!("Imported all plugins in {:.2?}", import_start.elapsed());
 
         Ok(Self {
-            indexer: Box::new(indexer),
+            indexer,
             blocks,
             mining,
             transactions,

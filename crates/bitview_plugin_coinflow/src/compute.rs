@@ -2,13 +2,13 @@ use std::iter;
 
 use bitview_cohort::AgeRange;
 use bitview_compute::{Inputs, write_chunks, write_locked};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
 use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Timestamp};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use crate::{
     Dependencies, Vecs,
@@ -16,11 +16,7 @@ use crate::{
 };
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,

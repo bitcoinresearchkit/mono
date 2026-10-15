@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use bitview_traversable::Traversable;
 
 use super::LevelId;
@@ -68,17 +70,9 @@ impl<T> Levels<T> {
         ]
         .into_iter()
     }
+
     pub fn from_fn(mut create: impl FnMut(LevelId) -> T) -> Self {
-        Self {
-            pct10: create(LevelId::Pct10),
-            pct20: create(LevelId::Pct20),
-            pct30: create(LevelId::Pct30),
-            pct40: create(LevelId::Pct40),
-            median: create(LevelId::Median),
-            pct60: create(LevelId::Pct60),
-            pct70: create(LevelId::Pct70),
-            pct80: create(LevelId::Pct80),
-            pct90: create(LevelId::Pct90),
-        }
+        let Ok(this) = Self::try_from_fn(|id| Ok::<_, Infallible>(create(id)));
+        this
     }
 }

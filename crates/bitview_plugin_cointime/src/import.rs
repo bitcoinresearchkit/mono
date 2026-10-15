@@ -40,7 +40,7 @@ impl Vecs {
             mappings,
             subsidy_cents,
             &supply,
-            all_chain.realized_cap(),
+            &all_chain.realized_cap,
         )?;
         let prices = prices::Vecs::import(
             &db,

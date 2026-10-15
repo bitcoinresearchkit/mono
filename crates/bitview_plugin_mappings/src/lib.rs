@@ -47,7 +47,8 @@ use txout_index::Vecs as TxOutIndexVecs;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mappings"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -91,15 +92,6 @@ impl<M: StorageMode> Deref for Vecs<M> {
 
     fn deref(&self) -> &Self::Target {
         &self.sources
-    }
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
     }
 }
 

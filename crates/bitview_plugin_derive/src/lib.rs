@@ -2,8 +2,8 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as ProcMacro2TokenStream;
 use quote::quote;
 use syn::{
-    Data, DeriveInput, Error, Field, Fields, GenericArgument, Path, PathArguments, Result, Type,
-    WherePredicate, parse_macro_input, parse_quote,
+    Data, DeriveInput, Error, Expr, Field, Fields, GenericArgument, Path, PathArguments, Result,
+    Type, WherePredicate, parse_macro_input, parse_quote,
 };
 
 enum FieldKind {
@@ -57,6 +57,49 @@ fn boxed_inner(ty: &Type) -> Option<&Type> {
         GenericArgument::Type(inner) => Some(inner),
         _ => None,
     }
+}
+
+/// Implements `bitview_plugin::Plugin` with the storage named by `#[plugin(storage = ..)]`.
+#[proc_macro_derive(Plugin, attributes(plugin))]
+pub fn derive_plugin(input: TokenStream) -> TokenStream {
+    derive_plugin_inner(parse_macro_input!(input as DeriveInput))
+        .unwrap_or_else(Error::into_compile_error)
+        .into()
+}
+
+fn derive_plugin_inner(mut input: DeriveInput) -> Result<ProcMacro2TokenStream> {
+    let mut storage = None::<Expr>;
+    for attribute in input.attrs.iter().filter(|a| a.path().is_ident("plugin")) {
+        attribute.parse_nested_meta(|meta| {
+            if !meta.path.is_ident("storage") {
+                return Err(meta.error("expected `storage = ..`"));
+            }
+            storage = Some(meta.value()?.parse()?);
+            Ok(())
+        })?;
+    }
+    let Some(storage) = storage else {
+        return Err(Error::new_spanned(
+            &input.ident,
+            "Plugin needs `#[plugin(storage = ..)]`",
+        ));
+    };
+
+    let name = &input.ident;
+    input
+        .generics
+        .make_where_clause()
+        .predicates
+        .push(parse_quote!(Self: bitview_plugin::PluginData + Send + Sync));
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    Ok(quote! {
+        impl #impl_generics bitview_plugin::Plugin for #name #ty_generics #where_clause {
+            fn storage(&self) -> bitview_plugin::PluginStorage {
+                #storage
+            }
+        }
+    })
 }
 
 #[proc_macro_derive(PluginSet, attributes(plugin_set))]

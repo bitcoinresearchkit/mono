@@ -12,7 +12,8 @@ use vecdb::{Database, EagerVec, PcoVec, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("near_full_blocks"), Version::ONE);
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -20,13 +21,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Consecutive blocks whose weight is at least 90% of Bitcoin's consensus
     /// maximum. Resets to zero whenever a block falls below that threshold.
     streak: M::Stored<EagerVec<PcoVec<Height, Count>>>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

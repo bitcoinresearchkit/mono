@@ -1,6 +1,6 @@
 # brk_oracle
 
-**Version 4**
+**Version 5**
 
 Pure on-chain BTC/USD price oracle. No exchange feeds, no external APIs. Derives the bitcoin price from transaction data alone. Tracks block by block from height 340,000 (January 2015) onward.
 
@@ -222,30 +222,4 @@ Post-hoc smoothing, for example correcting any block whose price deviates more t
 
 ## Changelog
 
-### v4
-
-Changes from v3:
-
-- **Modern fan-out cap**: below height 630,000 the oracle keeps the strict >100-output transaction drop introduced in v3. At and above 630,000 the cap now relaxes to 250 outputs instead of being fully lifted. This preserves dense-chain payment signal while preventing very large modern fan-outs from dominating a single EMA slot and creating a transient false round-dollar ladder.
-
-`VERSION` is bumped to 4 so downstream consumers invalidate prices computed by an earlier algorithm.
-
-### v3
-
-Changes from v2:
-
-- **Earlier start with a cold-start regime**: on-chain tracking begins at height 340,000 (January 2015) instead of 525,000, adding about 185,000 blocks of history. Below height 508,000 the oracle runs a slower EMA (`Config::slow()`, ~19-block span, window 40) paired with a shape-anchoring restoring force (`shape_weight` 8) that pulls candidate scores toward a slowly-adapted profile of the round-dollar arm shape, resisting the half-price octave drift the fast default locks onto in the thinner pre-2018 output mix. At height 508,000 it switches to the fast default via `Oracle::reconfigure`, which restores `shape_weight` to 0 and turns the force off.
-- **Max-outputs filter**: a transaction with more than 100 outputs is dropped from the histogram below height 630,000. Large fan-outs (exchange sweeps, mixer payouts) are batch machinery, not round-dollar payments, and the thin 2018-2020 signal needs them removed to stay locked onto the pattern. Above 630,000 on-chain volume is dense enough that the cap removes more genuine signal than noise, so it is lifted.
-- **Wider up-reach**: `search_below` raised from 9 to 12 bins. The sharp 2018 reversal candles need extra room to follow a fast move upward in price.
-
-`VERSION` is bumped to 3 so downstream consumers invalidate prices computed by an earlier algorithm.
-
-### v2
-
-Changes from v1:
-
-- **OP_RETURN filter**: every output of a transaction carrying an `OP_RETURN` is now dropped from the histogram. Such transactions are protocol machinery (cross-chain swaps, anchoring) whose payout amounts can form false round-dollar patterns. This was the trigger for the worst price glitches in v1.
-- **P2WSH reactivated**: once the OP_RETURN filter removes the protocol noise, P2WSH outputs are usable round-dollar signal again, so they are no longer excluded. P2TR stays excluded.
-- **Earlier start**: on-chain tracking begins at height 525,000 (May 2018) instead of 550,000, adding about 25,000 blocks of history.
-
-`VERSION` is exposed as a crate constant so downstream consumers can invalidate prices computed by an earlier algorithm.
+Algorithm changes are recorded in the workspace [changelog](../../docs/CHANGELOG.md); each one bumps `VERSION` so downstream consumers recompute stored prices.

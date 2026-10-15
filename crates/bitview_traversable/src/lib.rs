@@ -116,32 +116,37 @@ where
 }
 
 /// A vec published as one series leaf. `stored` vecs also yield themselves for writes.
+#[macro_export]
 macro_rules! leaf {
-    (@ {$($stored:tt)*} [$($g:tt)*] $ty:ty where $($bounds:tt)+) => {
-        impl<$($g)*> Traversable for $ty
-        where
-            $($bounds)+
+    (@ {$($stored:tt)*} [$($g:tt)*] $ty:ty $(where $($bounds:tt)+)?) => {
+        impl<$($g)*> $crate::Traversable for $ty
+        $(where
+            $($bounds)+)?
         {
-            fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-                iter::once(self as &dyn AnyExportableVec)
+            fn iter_any_exportable(
+                &self,
+            ) -> impl Iterator<Item = &dyn $crate::AnyExportableVec> {
+                ::std::iter::once(self as &dyn $crate::AnyExportableVec)
             }
 
             $($stored)*
 
-            fn to_tree_node(&self) -> TreeNode {
-                make_leaf(self)
+            fn to_tree_node(&self) -> $crate::TreeNode {
+                $crate::make_leaf(self)
             }
         }
     };
     (stored $($rest:tt)+) => {
-        leaf!(@ {
-            fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-                iter::once(self as &mut dyn AnyStoredVec)
+        $crate::leaf!(@ {
+            fn iter_any_stored_mut(
+                &mut self,
+            ) -> impl Iterator<Item = &mut dyn $crate::AnyStoredVec> {
+                ::std::iter::once(self as &mut dyn $crate::AnyStoredVec)
             }
         } $($rest)+);
     };
     ($($rest:tt)+) => {
-        leaf!(@ {} $($rest)+);
+        $crate::leaf!(@ {} $($rest)+);
     };
 }
 
@@ -264,38 +269,6 @@ impl<T: Traversable + ?Sized> Traversable for Box<T> {
         descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
     ) {
         (**self).collect_series_descriptions(description_fragments, descriptions);
-    }
-}
-
-impl<T: Traversable> Traversable for Option<T> {
-    fn to_tree_node(&self) -> TreeNode {
-        match self {
-            Some(inner) => inner.to_tree_node(),
-            None => TreeNode::branch(IndexMap::new()),
-        }
-    }
-
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.iter().flat_map(|inner| inner.iter_any_exportable())
-    }
-
-    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.iter().flat_map(|inner| inner.iter_any_visible())
-    }
-
-    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.iter_mut()
-            .flat_map(|inner| inner.iter_any_stored_mut())
-    }
-
-    fn collect_series_descriptions<'a>(
-        &'a self,
-        description_fragments: &mut Vec<&'static str>,
-        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
-    ) {
-        if let Some(inner) = self {
-            inner.collect_series_descriptions(description_fragments, descriptions);
-        }
     }
 }
 

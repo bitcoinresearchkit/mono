@@ -1,3 +1,6 @@
+use brk_types::Height;
+use vecdb::{ReadableVec, VecValue};
+
 /// Writer-owned cumulative values. A length change reloads the persisted checkpoint.
 pub struct CumulativeState<R> {
     last: Option<(usize, R)>,
@@ -23,5 +26,27 @@ impl<R: Clone + Default> CumulativeState<R> {
         add(&mut values);
         self.last = Some((len + 1, values.clone()));
         values
+    }
+
+    /// The running total at `height`, continuing the totals `stored` holds below it.
+    #[inline]
+    pub(crate) fn add_at(
+        &mut self,
+        height: Height,
+        stored: &impl ReadableVec<Height, R>,
+        add: impl FnOnce(&mut R),
+    ) -> R
+    where
+        R: VecValue,
+    {
+        self.accumulate(
+            usize::from(height),
+            || {
+                height
+                    .decremented()
+                    .and_then(|height| stored.collect_one(height))
+            },
+            add,
+        )
     }
 }

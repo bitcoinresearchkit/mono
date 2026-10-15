@@ -1,8 +1,8 @@
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::Count;
 use brk_error::Result;
 use brk_types::Weight32;
-use vecdb::{Database, ReadableVec, VecIndex};
+use vecdb::{ReadableVec, VecIndex};
 
 use super::{Dependencies, Vecs};
 
@@ -17,11 +17,7 @@ fn next_streak(weight: Weight32, previous: Count) -> Count {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,

@@ -1,13 +1,13 @@
 use bitview_cohort::{Age, ByEntry, EntryPrice};
 use bitview_compute::{Inputs, save_stamped, write_chunks};
 use bitview_distribution::state::cost_basis::age_index;
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Sats, Version};
 use statedb::Amount;
-use vecdb::{AnyVec, Database, ReadableVec};
+use vecdb::{AnyVec, ReadableVec};
 
 use crate::{
     Dependencies, Vecs,
@@ -26,11 +26,7 @@ fn classify(price: Cents, previous: Cents) -> EntryPrice {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();

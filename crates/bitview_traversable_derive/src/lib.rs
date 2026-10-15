@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, iter};
+use std::iter;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Group, Span, TokenStream as ProcMacro2TokenStream, TokenTree};
@@ -6,7 +6,7 @@ use quote::quote;
 use syn::{
     Attribute, Data, DeriveInput, Error, Expr, ExprLit, Field, Fields, GenericArgument,
     GenericParam, Generics, Ident, Index, Lit, Member, Meta, PathArguments, Result, Token, Type,
-    TypeParam, WherePredicate, parse_macro_input, punctuated::Punctuated,
+    TypeParam, WherePredicate, parse_macro_input, parse_quote, punctuated::Punctuated,
 };
 
 // ===========================================================================
@@ -30,10 +30,6 @@ struct FieldModel<'a> {
 impl FieldModel<'_> {
     fn ty(&self) -> &Type {
         &self.field.ty
-    }
-
-    fn is_option(&self) -> bool {
-        is_option_type(self.ty())
     }
 
     fn has_options(&self) -> bool {
@@ -178,15 +174,6 @@ fn with_description_fragment(
 // Type helpers
 // ===========================================================================
 
-fn is_option_type(ty: &Type) -> bool {
-    matches!(
-        ty,
-        Type::Path(type_path)
-        if type_path.path.segments.last()
-            .is_some_and(|seg| seg.ident == "Option")
-    )
-}
-
 /// Writer-only associated fields have no traversal or read-only payload.
 fn is_write_only_type(ty: &Type) -> bool {
     matches!(ty, Type::Path(path)
@@ -222,29 +209,6 @@ fn is_box_type(ty: &Type) -> bool {
         if type_path.path.segments.last()
             .is_some_and(|seg| seg.ident == "Box")
     )
-}
-
-fn is_phantom_data_type(ty: &Type) -> bool {
-    matches!(
-        ty,
-        Type::Path(type_path)
-        if type_path.path.segments.last()
-            .is_some_and(|segment| segment.ident == "PhantomData")
-    )
-}
-
-/// Extract the inner type from `Option<T>`, returning `Some(&T)`.
-fn extract_option_inner(ty: &Type) -> Option<&Type> {
-    if let Type::Path(type_path) = ty
-        && let Some(seg) = type_path.path.segments.last()
-        && seg.ident == "Option"
-        && let PathArguments::AngleBracketed(args) = &seg.arguments
-        && let Some(GenericArgument::Type(inner)) = args.args.first()
-    {
-        Some(inner)
-    } else {
-        None
-    }
 }
 
 /// Check if a type AST references the given identifier anywhere.
@@ -391,7 +355,7 @@ fn gen_traversable(
     if let [field] = fields
         && let Member::Unnamed(_) = field.member
     {
-        let where_clause = build_where_clause(generics, &[], &[field.ty()]);
+        let where_clause = build_where_clause(generics, &[field.ty()]);
         let collect_description = with_description_fragment(
             field.description.as_deref(),
             quote! {
@@ -430,14 +394,8 @@ fn gen_traversable(
     let traversed: Vec<&FieldModel> = fields.iter().filter(|f| !f.skipped).collect();
     let visible: Vec<&FieldModel> = traversed.iter().copied().filter(|f| !f.hidden).collect();
 
-    let generic_params: Vec<_> = generics.type_params().map(|p| &p.ident).collect();
-    let (generics_needing_traversable, field_traversable_types) =
-        analyze_fields(&traversed, &generic_params);
-    let where_clause = build_where_clause(
-        generics,
-        &generics_needing_traversable,
-        &field_traversable_types,
-    );
+    let traversed_types: Vec<&Type> = traversed.iter().map(|f| f.ty()).collect();
+    let where_clause = build_where_clause(generics, &traversed_types);
 
     let to_tree_node_body = generate_field_traversals(&visible, merge);
     let exportable_vec = quote! { &dyn bitview_traversable::AnyExportableVec };
@@ -473,52 +431,13 @@ fn gen_traversable(
     }
 }
 
-/// The generic params traversed as bare fields, and the other traversed field types (the inner
-/// type of an `Option`), which the impl bounds by `Traversable`.
-fn analyze_fields<'a>(
-    fields: &[&'a FieldModel],
-    generic_params: &[&'a Ident],
-) -> (Vec<&'a Ident>, Vec<&'a Type>) {
-    let mut generics_set = BTreeSet::new();
-    let mut field_traversable_types = Vec::new();
-
-    for &field in fields {
-        let ty = field.ty();
-        if let Type::Path(type_path) = ty
-            && type_path.path.segments.len() == 1
-            && let Some(seg) = type_path.path.segments.first()
-            && seg.arguments.is_empty()
-            && let Some(&param) = generic_params.iter().find(|&&g| g == &seg.ident)
-        {
-            generics_set.insert(param);
-        } else {
-            field_traversable_types.push(extract_option_inner(ty).unwrap_or(ty));
-        }
-    }
-
-    (generics_set.into_iter().collect(), field_traversable_types)
-}
-
-fn build_where_clause(
-    generics: &Generics,
-    generics_needing_traversable: &[&Ident],
-    extra_traversable_types: &[&Type],
-) -> ProcMacro2TokenStream {
-    let generic_params: Vec<_> = generics.type_params().map(|p| &p.ident).collect();
+/// Bounds every traversed field type by `Traversable` and every type param by `Send + Sync`.
+fn build_where_clause(generics: &Generics, traversed_types: &[&Type]) -> ProcMacro2TokenStream {
+    let generic_params = generics.type_params().map(|p| &p.ident);
     let original_predicates = generics.where_clause.as_ref().map(|w| &w.predicates);
-
-    if generics_needing_traversable.is_empty()
-        && extra_traversable_types.is_empty()
-        && generic_params.is_empty()
-        && original_predicates.is_none()
-    {
-        return quote! {};
-    }
-
     quote! {
         where
-            #(#generics_needing_traversable: bitview_traversable::Traversable,)*
-            #(#extra_traversable_types: bitview_traversable::Traversable,)*
+            #(#traversed_types: bitview_traversable::Traversable,)*
             #(#generic_params: Send + Sync,)*
             #original_predicates
     }
@@ -526,8 +445,7 @@ fn build_where_clause(
 
 /// The fields' vecs, collected into one `Vec`: compiles faster than iterator chains (boxed or
 /// not) and keeps each node's iterator small, as deep trees need. These walks only serve
-/// startup, the catalog and exports. A single field passes through unchanged; optional fields
-/// go through `Option`'s own `Traversable` impl.
+/// startup, the catalog and exports. A single field passes through unchanged.
 fn collect_iters(
     fields: &[&FieldModel],
     method: &str,
@@ -559,7 +477,6 @@ fn generate_field_traversals(visible: &[&FieldModel], merge: bool) -> ProcMacro2
         && let [only] = visible
         && only.flatten
         && only.rename.is_none()
-        && !only.is_option()
     {
         let member = &only.member;
         return quote! { self.#member.to_tree_node() };
@@ -578,23 +495,14 @@ fn generate_field_traversals(visible: &[&FieldModel], merge: bool) -> ProcMacro2
                 .rename
                 .clone()
                 .unwrap_or_else(|| field_name.to_string());
-            let merge_branch = quote! {
-                bitview_traversable::TreeNode::Branch(map) => {
-                    collected.merge_fields(map);
-                }
-                leaf @ bitview_traversable::TreeNode::Leaf(_) => {
-                    collected.merge_field(String::from(#leaf_key), leaf);
-                }
-            };
-            return if info.is_option() {
-                quote! {
-                    if let Some(ref nested) = self.#member {
-                        match nested.to_tree_node() { #merge_branch }
+            return quote! {
+                match self.#member.to_tree_node() {
+                    bitview_traversable::TreeNode::Branch(map) => {
+                        collected.merge_fields(map);
                     }
-                }
-            } else {
-                quote! {
-                    match self.#member.to_tree_node() { #merge_branch }
+                    leaf @ bitview_traversable::TreeNode::Leaf(_) => {
+                        collected.merge_field(String::from(#leaf_key), leaf);
+                    }
                 }
             };
         }
@@ -627,18 +535,9 @@ fn generate_field_traversals(visible: &[&FieldModel], merge: bool) -> ProcMacro2
             })
         };
 
-        if info.is_option() {
-            let node_expr = build_wrapped(quote! { nested.to_tree_node() });
-            quote! {
-                if let Some(nested) = self.#member.as_ref() {
-                    collected.merge_field(String::from(#outer_key), #node_expr);
-                }
-            }
-        } else {
-            let node_expr = build_wrapped(quote! { self.#member.to_tree_node() });
-            quote! {
-                collected.merge_field(String::from(#outer_key), #node_expr);
-            }
+        let node_expr = build_wrapped(quote! { self.#member.to_tree_node() });
+        quote! {
+            collected.merge_field(String::from(#outer_key), #node_expr);
         }
     });
 
@@ -706,14 +605,7 @@ fn gen_read_only_clone(input: &DeriveInput, fields: &[FieldModel]) -> ProcMacro2
     }
 
     // Path 2/3: classify type params as containers or leaves.
-    let type_params: Vec<&TypeParam> = generics
-        .params
-        .iter()
-        .filter_map(|p| match p {
-            GenericParam::Type(tp) => Some(tp),
-            _ => None,
-        })
-        .collect();
+    let type_params: Vec<&TypeParam> = generics.type_params().collect();
 
     if type_params.is_empty() {
         return quote! {};
@@ -745,7 +637,7 @@ fn gen_read_only_clone(input: &DeriveInput, fields: &[FieldModel]) -> ProcMacro2
         return quote! {};
     }
 
-    gen_read_only_clone_generics(name, generics, fields, &type_params, &container_params)
+    gen_read_only_clone_generics(name, generics, fields, &container_params)
 }
 
 /// Find type params used as bare (direct) field types in non-skipped fields.
@@ -774,8 +666,7 @@ fn find_bare_field_params<'a>(
 /// Generate the value expression for a single field in a ReadOnlyClone impl.
 ///
 /// - `M::WriteOnly<T>` → `()`
-/// - Skipped + Option → `None`
-/// - Skipped + non-Option → `Clone::clone()`
+/// - Skipped → `Clone::clone()`
 /// - Contains relevant param + Box → `Box::new(read_only_clone(&*self.field))`
 /// - Contains relevant param → `read_only_clone(&self.field)`
 /// - Otherwise → `self.field.clone()`
@@ -788,24 +679,13 @@ fn gen_roc_field_value(
     if is_write_only_type(ty) {
         return quote! { () };
     }
-    if field.skipped {
-        if is_option_type(ty) {
-            return quote! { None };
-        }
-        if is_phantom_data_type(ty) {
-            return quote! { std::marker::PhantomData };
-        }
+    if field.skipped || !is_relevant(ty) {
         return quote! { self.#member.clone() };
     }
-
-    if is_relevant(ty) {
-        if is_box_type(ty) {
-            quote! { Box::new(bitview_traversable::ReadOnlyClone::read_only_clone(&*self.#member)) }
-        } else {
-            quote! { bitview_traversable::ReadOnlyClone::read_only_clone(&self.#member) }
-        }
+    if is_box_type(ty) {
+        quote! { Box::new(bitview_traversable::ReadOnlyClone::read_only_clone(&*self.#member)) }
     } else {
-        quote! { self.#member.clone() }
+        quote! { bitview_traversable::ReadOnlyClone::read_only_clone(&self.#member) }
     }
 }
 
@@ -855,29 +735,6 @@ fn gen_read_only_clone_storage_mode(
     fields: &[FieldModel],
     mode_param: &Ident,
 ) -> ProcMacro2TokenStream {
-    let impl_params: Vec<ProcMacro2TokenStream> = generics
-        .params
-        .iter()
-        .filter_map(|p| match p {
-            GenericParam::Type(tp) if tp.ident == *mode_param => None,
-            GenericParam::Type(tp) => {
-                let ident = &tp.ident;
-                let bounds = &tp.bounds;
-                if bounds.is_empty() {
-                    Some(quote! { #ident })
-                } else {
-                    Some(quote! { #ident: #bounds })
-                }
-            }
-            GenericParam::Lifetime(lt) => Some(quote! { #lt }),
-            GenericParam::Const(c) => {
-                let ident = &c.ident;
-                let ty = &c.ty;
-                Some(quote! { const #ident: #ty })
-            }
-        })
-        .collect();
-
     let make_ty_args = |replacement: ProcMacro2TokenStream| {
         collect_ty_args(generics, |tp| {
             if tp.ident == *mode_param {
@@ -903,13 +760,11 @@ fn gen_read_only_clone_storage_mode(
     let field_bounds = fields
         .iter()
         .filter(|f| !is_write_only_type(f.ty()))
-        .filter_map(|f| {
+        .filter_map(|f| -> Option<WherePredicate> {
             let ty = f.ty();
             if f.skipped {
-                // Skipped fields are cloned unless they reset to `None`/`PhantomData`.
-                let cloned = !is_option_type(ty) && !is_phantom_data_type(ty);
-                return (cloned && type_projects_param(ty, &other_params))
-                    .then(|| quote! { #ty: Clone });
+                // Skipped fields are cloned.
+                return type_projects_param(ty, &other_params).then(|| parse_quote! { #ty: Clone });
             }
             let generic = other_params.iter().any(|p| type_contains_ident(ty, p));
             if generic && type_contains_ident(ty, mode_param) {
@@ -925,32 +780,30 @@ fn gen_read_only_clone_storage_mode(
                     mode_param,
                     &quote! { bitview_traversable::Ro },
                 );
-                Some(quote! { #rw: bitview_traversable::ReadOnlyClone<ReadOnly = #ro> })
+                Some(parse_quote! { #rw: bitview_traversable::ReadOnlyClone<ReadOnly = #ro> })
             } else if type_projects_param(ty, &other_params) {
-                Some(quote! { #ty: Clone })
+                Some(parse_quote! { #ty: Clone })
             } else {
                 None
             }
-        });
-    let predicates: Vec<ProcMacro2TokenStream> = generics
-        .where_clause
+        })
+        .collect::<Vec<_>>();
+
+    // The impl keeps every other param, its bounds and the struct's predicates.
+    let mut impl_generics = generics.clone();
+    impl_generics.params = generics
+        .params
         .iter()
-        .flat_map(|w| w.predicates.iter().map(|p| quote! { #p }))
-        .chain(field_bounds)
+        .filter(|p| !matches!(p, GenericParam::Type(tp) if tp.ident == *mode_param))
+        .cloned()
         .collect();
-    let where_clause = if predicates.is_empty() {
-        quote! {}
-    } else {
-        quote! { where #(#predicates),* }
-    };
+    impl_generics
+        .make_where_clause()
+        .predicates
+        .extend(field_bounds);
+    let (impl_generics, _, where_clause) = impl_generics.split_for_impl();
 
     let body = gen_roc_body(name, fields, |ty| type_contains_ident(ty, mode_param));
-
-    let impl_generics = if impl_params.is_empty() {
-        quote! {}
-    } else {
-        quote! { <#(#impl_params),*> }
-    };
 
     quote! {
         impl #impl_generics bitview_traversable::ReadOnlyClone for #name<#(#ty_args_rw),*> #where_clause {
@@ -971,7 +824,6 @@ fn gen_read_only_clone_generics(
     name: &Ident,
     generics: &Generics,
     fields: &[FieldModel],
-    type_params: &[&TypeParam],
     container_params: &[&Ident],
 ) -> ProcMacro2TokenStream {
     // Check if any non-skipped field actually uses a container param.
@@ -988,39 +840,42 @@ fn gen_read_only_clone_generics(
 
     let is_container = |ident: &Ident| container_params.contains(&ident);
 
-    // Impl params: containers get ReadOnlyClone (+ original bounds), others keep their bounds.
-    let impl_params: Vec<ProcMacro2TokenStream> = generics
-        .params
-        .iter()
-        .map(|p| match p {
-            GenericParam::Type(tp) => {
-                let ident = &tp.ident;
-                let bounds = &tp.bounds;
-                if is_container(ident) {
-                    if bounds.is_empty() {
-                        quote! { #ident: bitview_traversable::ReadOnlyClone }
-                    } else {
-                        quote! { #ident: #bounds + bitview_traversable::ReadOnlyClone }
-                    }
-                } else if bounds.is_empty() {
-                    quote! { #ident }
-                } else {
-                    quote! { #ident: #bounds }
-                }
-            }
-            GenericParam::Lifetime(lt) => quote! { #lt },
-            GenericParam::Const(c) => {
-                let ident = &c.ident;
-                let ty = &c.ty;
-                quote! { const #ident: #ty }
-            }
-        })
-        .collect();
-
-    let self_ty_args = collect_ty_args(generics, |tp| {
-        let id = &tp.ident;
-        quote! { #id }
-    });
+    // Containers gain `ReadOnlyClone`; the bounds of bounded ones (inline or in the where
+    // clause) carry over to their `ReadOnly` projection.
+    let mut impl_generics = generics.clone();
+    let mut extra_where: Vec<WherePredicate> = Vec::new();
+    for tp in impl_generics.type_params_mut() {
+        if !is_container(&tp.ident) {
+            continue;
+        }
+        let ident = &tp.ident;
+        if !tp.bounds.is_empty() {
+            let bounds = &tp.bounds;
+            extra_where.push(parse_quote! {
+                <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
+            });
+        }
+        tp.bounds
+            .push(parse_quote!(bitview_traversable::ReadOnlyClone));
+    }
+    for pred in generics.where_clause.iter().flat_map(|w| &w.predicates) {
+        if let WherePredicate::Type(pt) = pred
+            && let Type::Path(tp) = &pt.bounded_ty
+            && let Some(seg) = tp.path.segments.first()
+            && is_container(&seg.ident)
+        {
+            let ident = &seg.ident;
+            let bounds = &pt.bounds;
+            extra_where.push(parse_quote! {
+                <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
+            });
+        }
+    }
+    impl_generics
+        .make_where_clause()
+        .predicates
+        .extend(extra_where);
+    let (impl_generics, ty_generics, where_clause) = impl_generics.split_for_impl();
 
     let ro_ty_args = collect_ty_args(generics, |tp| {
         let id = &tp.ident;
@@ -1031,42 +886,6 @@ fn gen_read_only_clone_generics(
         }
     });
 
-    // Where clause: propagate bounds from bounded container params to their ReadOnly.
-    let mut extra_where: Vec<ProcMacro2TokenStream> = Vec::new();
-
-    for tp in type_params {
-        if is_container(&tp.ident) && !tp.bounds.is_empty() {
-            let ident = &tp.ident;
-            let bounds = &tp.bounds;
-            extra_where.push(quote! {
-                <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
-            });
-        }
-    }
-
-    if let Some(wc) = &generics.where_clause {
-        for pred in &wc.predicates {
-            if let WherePredicate::Type(pt) = pred
-                && let Type::Path(tp) = &pt.bounded_ty
-                && let Some(seg) = tp.path.segments.first()
-                && container_params.iter().any(|cp| **cp == seg.ident)
-            {
-                let ident = &seg.ident;
-                let bounds = &pt.bounds;
-                extra_where.push(quote! {
-                    <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
-                });
-            }
-        }
-    }
-
-    let original_predicates = generics.where_clause.as_ref().map(|w| &w.predicates);
-    let combined_where = if extra_where.is_empty() && original_predicates.is_none() {
-        quote! {}
-    } else {
-        quote! { where #(#extra_where,)* #original_predicates }
-    };
-
     let body = gen_roc_body(name, fields, |ty| {
         container_params
             .iter()
@@ -1074,7 +893,7 @@ fn gen_read_only_clone_generics(
     });
 
     quote! {
-        impl<#(#impl_params),*> bitview_traversable::ReadOnlyClone for #name<#(#self_ty_args),*> #combined_where {
+        impl #impl_generics bitview_traversable::ReadOnlyClone for #name #ty_generics #where_clause {
             type ReadOnly = #name<#(#ro_ty_args),*>;
 
             fn read_only_clone(&self) -> Self::ReadOnly {

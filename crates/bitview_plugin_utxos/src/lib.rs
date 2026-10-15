@@ -24,7 +24,8 @@ pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len() + SpendableTypeId::ALL.len();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -32,15 +33,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     #[traversable(flatten)]
     cohorts: CohortMetrics<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }
 
 impl Vecs {

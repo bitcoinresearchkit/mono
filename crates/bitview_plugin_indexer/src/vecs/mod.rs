@@ -1,18 +1,16 @@
-use std::{path::Path, result::Result as StdResult};
+use std::path::Path;
 
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
 use tracing::debug;
-use vecdb::{AnyStoredVec, AnyVec, Database, RawDBError, Rw, Stamp, StorageMode};
+use vecdb::{AnyStoredVec, AnyVec, Database, Rw, Stamp, StorageMode};
 
 use crate::Lengths;
 
 const PAGE_SIZE: usize = 4096;
 
-#[macro_use]
-pub mod macros;
 pub mod addrs;
 pub mod blocks;
 pub mod inputs;
@@ -124,13 +122,8 @@ impl Vecs {
         Ok(())
     }
 
-    pub fn sync_bg_tasks(&self) -> Result<()> {
-        self.db.sync_bg_tasks()?;
-        Ok(())
-    }
-
-    pub fn run_bg(&self, f: impl FnOnce(&Database) -> StdResult<(), RawDBError> + Send + 'static) {
-        self.db.run_bg(f);
+    pub fn db(&self) -> &Database {
+        &self.db
     }
 
     pub fn next_height(&self) -> Height {

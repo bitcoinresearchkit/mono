@@ -68,10 +68,3 @@ pub enum Error {
     #[error("Hole punching is not supported on this platform")]
     HolePunchUnsupported,
 }
-
-impl Error {
-    /// Preserves a caller-supplied error message without classifying its cause.
-    pub fn other(e: impl ToString) -> Self {
-        Self::Other(e.to_string())
-    }
-}

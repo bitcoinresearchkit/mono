@@ -73,14 +73,14 @@ pub fn scan_bytes(
     }
 }
 
-/// Each block's payload offset and length in a blk file, hopping from frame to frame from the
-/// file's start: a scan from an arbitrary offset could take magic bytes inside a transaction for
-/// a frame. Stops at the first gap: the preallocated zero tail, or the file's end once Core trims
-/// that tail on rollover.
-pub fn frames(file: &File, xor_bytes: XORBytes) -> io::Result<Vec<(usize, usize)>> {
+/// Each block's payload offset and length in a blk file, hopping from frame to frame from
+/// `start`, a frame boundary (the file's start or a known frame's end): a scan from an arbitrary
+/// offset could take magic bytes inside a transaction for a frame. Stops at the first gap: the
+/// preallocated zero tail, or the file's end once Core trims that tail on rollover.
+pub fn frames(file: &File, xor_bytes: XORBytes, start: usize) -> io::Result<Vec<(usize, usize)>> {
     let file_len = file.metadata()?.len() as usize;
     let mut frames = Vec::new();
-    let mut offset = 0;
+    let mut offset = start;
     let mut head = [0u8; 8];
     while offset + head.len() <= file_len {
         match file.read_exact_at(&mut head, offset as u64) {

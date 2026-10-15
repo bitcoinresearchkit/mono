@@ -1,14 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use std::{
-    collections::BTreeMap,
-    fs,
-    io::ErrorKind,
-    path::Path,
-    sync::Arc,
-    thread,
-    time::{Duration, Instant},
-};
+use std::{collections::BTreeMap, fs, io::ErrorKind, path::Path, sync::Arc, thread, time::Instant};
 
 use bitcoin::{block::Header, consensus};
 use bitview_plugin::{
@@ -20,10 +12,11 @@ use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_reader::{Reader, XOR_LEN, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
+use crossbeam::channel::{Receiver, bounded};
 use tracing::{debug, error, info, warn};
 use vecdb::{
-    AnyExportableVec, AnyVec, Database, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw,
-    StorageMode, WritableVec, unlikely,
+    AnyExportableVec, AnyVec, Database, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode,
+    WritableVec, unlikely,
 };
 
 use constants::*;
@@ -39,6 +32,8 @@ use vecs::{
     TxFeatureFlags, TxMetadataVecs, Vecs,
 };
 
+#[macro_use]
+mod macros;
 mod confirmed;
 mod constants;
 mod has;
@@ -76,6 +71,8 @@ pub struct Indexer<M: StorageMode = Rw> {
     resume: M::WriteOnly<Option<ResumePoint>>,
     /// Where dependents recompute from in this update ([`Indexer::compute_start`]).
     compute_start: M::WriteOnly<Lengths>,
+    /// The outcome of the update's stores ingestion and checkpoint, running in the background.
+    ingestion: M::WriteOnly<Option<Receiver<Result<()>>>>,
     state: Arc<State>,
 }
 
@@ -273,6 +270,7 @@ impl Indexer {
                 floor: RollbackFloor::load(&plugin_path)?,
                 resume: None,
                 compute_start: Lengths::default(),
+                ingestion: None,
                 state: Arc::new(State::new()),
             })
         };
@@ -427,9 +425,19 @@ impl Indexer {
         self.compute_start
     }
 
-    fn resume_point(&self) -> Result<ResumePoint> {
+    /// Waits for the last stores ingestion and its checkpoint, returning its outcome.
+    fn finish_ingestion(&mut self) -> Result<()> {
+        self.ingestion.take().map_or(Ok(()), |ingested| {
+            ingested
+                .recv()
+                .unwrap_or(Err(Error::Internal("Indexer stores ingestion panicked")))
+        })
+    }
+
+    fn resume_point(&mut self) -> Result<ResumePoint> {
+        self.finish_ingestion()?;
+        self.vecs.db().sync_bg_tasks()?;
         let client = self.reader.client();
-        self.vecs.sync_bg_tasks()?;
 
         let last_blockhash = self.vecs.blocks.blockhash.collect_last();
         // Rollback sim: do not remove
@@ -501,7 +509,6 @@ impl Indexer {
     fn index_inner(&mut self, exit: &Exit, check_collisions: bool) -> Result<()> {
         let reader = self.reader.clone();
         validate_reader_source(&reader)?;
-        let client = reader.client();
 
         debug!("Starting indexing...");
 
@@ -519,12 +526,6 @@ impl Indexer {
         debug!("Rollback done.");
         drop(lock);
         self.compute_start = self.floored(starting_lengths);
-
-        // Checked after the rollback: an orphaned tip above a shorter active chain must go.
-        if starting_lengths.height > client.get_last_height()? {
-            info!("Up to date, nothing to index.");
-            return Ok(());
-        }
 
         self.buffers.continue_from(prev_hash);
 
@@ -568,7 +569,7 @@ impl Indexer {
         let stores = &mut self.stores;
         let buffers = &mut self.buffers;
 
-        for block in reader.after(prev_hash)?.iter() {
+        for block in reader.after(prev_hash)? {
             let block = match block {
                 Ok(block) => block,
                 Err(e) => {
@@ -666,26 +667,23 @@ impl Indexer {
             deferred_commit
         };
 
-        // The stores commit waits for the dependents' compute (or the commit's sync) unlocked: a
-        // quit meanwhile keeps the stores at their last checkpoint and import drops the vectors'
-        // newer rows.
+        // Ingestion starts beside the dependents' compute. A quit before it takes the lock keeps
+        // the stores at their last checkpoint (import drops the vectors' newer rows); once it
+        // holds the lock, the quit waits for the new checkpoint. The commit waits for it; the
+        // vectors' compaction runs after the update, off the publication path.
         let exit = exit.clone();
-        self.vecs.run_bg(move |db| {
-            db.bg_sleep(Duration::from_secs(3));
+        let (done, ingested) = bounded(1);
+        self.ingestion = Some(ingested);
+        self.vecs.db().run_bg(move |_| {
             let _lock = exit.lock();
-
-            info!("Saving indexer data...");
-            let total_i = Instant::now();
-
-            let commit_i = Instant::now();
-            let persisted = deferred_commit.persist().map_err(RawDBError::other)?;
-            debug!("Stores persisted in {:?}", commit_i.elapsed());
-
-            db.compact()?;
-            // Keep the checkpoint invalid until the vector write is durable too.
-            persisted.publish().map_err(RawDBError::other)?;
-
-            info!("Saved indexer data in {:.2?}", total_i.elapsed());
+            let i = Instant::now();
+            let result = deferred_commit
+                .persist()
+                .and_then(|persisted| persisted.publish());
+            if result.is_ok() {
+                info!("Saved indexer data in {:.2?}", i.elapsed());
+            }
+            let _ = done.send(result);
             Ok(())
         });
 
@@ -709,7 +707,7 @@ impl Indexer {
 
     /// Finishes the indexer's own writes and returns the lengths a commit publishes.
     pub fn prepare_commit(&mut self) -> Result<Lengths> {
-        self.vecs.sync_bg_tasks()?;
+        self.finish_ingestion()?;
         Ok(match Lengths::from_local(&self.vecs, &self.stores)? {
             Some(lengths) => lengths,
             None if self.vecs.next_height().is_zero()
@@ -751,6 +749,7 @@ impl ReadOnlyClone for Indexer {
             floor: (),
             resume: (),
             compute_start: (),
+            ingestion: (),
             state: self.state.clone(),
         }
     }
@@ -769,7 +768,7 @@ impl ComputePlugin for Indexer {
     type Dependencies<'a> = ();
 
     fn database(&self) -> Option<&Database> {
-        None
+        Some(self.vecs.db())
     }
 
     fn compute_state(

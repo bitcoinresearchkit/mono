@@ -1,14 +1,10 @@
-use std::{convert::Infallible, iter, sync::Arc};
+use std::{convert::Infallible, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use brk_types::Version;
 use rangeindex::SharedRangeMap;
 use schemars::JsonSchema;
 use serde::Serialize;
-use vecdb::{
-    AnyExportableVec, AnyVec, Formattable, ReadableVec, TypedVec, VecIndex, VecValue,
-    short_type_name,
-};
+use vecdb::{AnyVec, Formattable, ReadableVec, TypedVec, VecIndex, VecValue};
 
 /// Read-only vector view of a shared range map's first indexes.
 /// Updates belong to the map owner; this view adds series metadata and reads.
@@ -60,17 +56,7 @@ impl<I: VecIndex, T: VecValue> AnyVec for RangeMapVec<I, T> {
         self.mapping.load().len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    vecdb::any_vec_type_methods!(I, T);
 }
 
 impl<I: VecIndex, T: VecValue> TypedVec for RangeMapVec<I, T> {
@@ -104,12 +90,10 @@ impl<I: VecIndex, T: VecValue + Copy> ReadableVec<I, T> for RangeMapVec<I, T> {
         init: B,
         mut fold: F,
     ) -> B {
-        match self.try_fold_values(from, to, init, |acc, value| {
+        let Ok(acc) = self.try_fold_values(from, to, init, |acc, value| {
             Ok::<_, Infallible>(fold(acc, value))
-        }) {
-            Ok(acc) => acc,
-            Err(error) => match error {},
-        }
+        });
+        acc
     }
 
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
@@ -133,15 +117,6 @@ impl<I: VecIndex, T: VecValue + Copy> ReadableVec<I, T> for RangeMapVec<I, T> {
     }
 }
 
-impl<I: VecIndex, T> Traversable for RangeMapVec<I, T>
-where
+bitview_traversable::leaf!([I: VecIndex, T] RangeMapVec<I, T> where
     T: VecValue + Copy + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);

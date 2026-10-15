@@ -22,7 +22,8 @@ use pool_heights::PoolHeights;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("pools"), Version::new(13));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -38,13 +39,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     // Each known mining pool, plus `unknown` for unattributed blocks.
     #[traversable(flatten)]
     pub by_slug: BTreeMap<PoolSlug, PoolVecs>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

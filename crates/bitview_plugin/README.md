@@ -17,8 +17,10 @@ own cache invalidation and preserve unchanged prefixes.
 Computing plugins declare their
 read-only dependencies through `ComputePlugin` and update their own data in
 `compute_state`. The provided `compute` wraps it in the storage lifecycle: it
-syncs the database returned by `database()` before computing and compacts it
-after success (`None` opts out for plugins that manage their own storage). Its copyable
+syncs the database returned by `database()` before computing and, when it has
+space to reclaim, compacts it after success (`None` opts out for plugins that
+manage their own storage); `compute_items!(Dependencies, db)` declares both the
+`Dependencies` type and that database. Its copyable
 `UpdateContext` provides shared update control such as cancellation. Plugin
 dependencies stay explicit and typed instead of being hidden in either
 context.
@@ -33,7 +35,8 @@ runnable default composition lives in
 
 `PluginSet` is a statically composed collection of plugins; `ComputePluginSet`
 adds its typed compute schedule (`compute`, `bootstrap_compute` returning a
-`BootstrapAction`) and `commit`. With the `derive` feature, `PluginSet` can be
+`BootstrapAction`) and `commit`. With the `derive` feature, a plugin derives
+`Plugin` from its storage (`#[plugin(storage = STORAGE)]`), and `PluginSet` can be
 derived from composition fields: `#[plugin_set(flatten)]` for a nested
 composition, `#[plugin_set(skip)]` for non-plugin state, and
 `#[plugin_set(has = path::HasX<M>)]` to implement a plugin's capability trait,
@@ -49,7 +52,7 @@ Every built-in plugin crate (except the indexer) has the same root:
 
 - `lib.rs`, in this order: `macro_rules!` used by its modules, module
   declarations, re-exports, imports, `STORAGE` (and `ID` when the composition
-  names the plugin), the `Vecs` struct, its `impl Plugin`, then any other impls;
+  names the plugin), the `Vecs` struct (deriving `Plugin`), then any other impls;
 - `dependencies.rs`: the typed `Dependencies` its computation borrows;
 - `import.rs`: `Vecs::import(ImportContext, ..)`;
 - `compute.rs`: `impl ComputePlugin for Vecs` (plugins with replay machinery keep

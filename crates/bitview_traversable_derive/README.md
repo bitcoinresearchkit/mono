@@ -6,17 +6,15 @@ exportable vec, and keeps a separate visible-only iterator.
 
 Field attributes:
 
-- `skip` excludes a field from traversal. By default its read-only projection
-  clones the field, except skipped `Option` fields become `None`.
+- `skip` excludes a field from traversal; its read-only projection clones it.
 - `flatten` merges a nested tree into its parent.
 - `hidden` keeps a field exportable while omitting it from the public tree and
   visible iterator.
 - `rename = "name"` changes its tree key.
 - `wrap = "path"` places it below an additional path.
 
-Struct attributes support `merge`, `transparent`, `hidden`, and `wrap =
-"path"`. Single-field tuple structs delegate transparently. Named fields may
-be optional, and doc comments are collected as series-description fragments.
+The only struct attribute is `merge`. Single-field tuple structs delegate
+transparently. Doc comments are collected as series-description fragments.
 
 ```rust,ignore
 #[derive(Traversable)]

@@ -8,13 +8,13 @@ pub use price_range_max::PriceRangeMax;
 
 use bitview_compute::{Inputs, write_chunks};
 use bitview_distribution::state::cost_basis::age_index;
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Stamp};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp};
 
 use crate::{Dependencies, Vecs, live::LiveState, state::UTXOStates};
 use origin_targets::OriginTargets;
@@ -23,11 +23,7 @@ use origin_targets::OriginTargets;
 const OUTPUT_CAPACITY: usize = 2_048;
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         // A version reset must invalidate the resident state even if validation fails.

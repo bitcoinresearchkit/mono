@@ -55,11 +55,6 @@ impl RealizedOps for MinimalRealizedState {
     }
 
     #[inline]
-    fn cap(&self) -> Cents {
-        Cents::new((self.cap_raw / Sats::ONE_BTC_U128) as u64)
-    }
-
-    #[inline]
     fn profit(&self) -> Cents {
         Cents::new((self.profit_raw / Sats::ONE_BTC_U128) as u64)
     }

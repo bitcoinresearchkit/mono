@@ -1,14 +1,12 @@
-use std::{convert::Infallible, iter, marker::PhantomData, sync::Arc};
+use std::{convert::Infallible, marker::PhantomData, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use brk_types::Height;
 use input::RollingInput;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, BinaryTransform, CheckedSub, Formattable, PrintableIndex,
-    ReadableBoxedVec, ReadableCloneableVec, ReadableVec, SparseRead, TypedVec, VecIndex, VecValue,
-    Version, read_batches, short_type_name,
+    AnyVec, BinaryTransform, CheckedSub, Formattable, ReadableBoxedVec, ReadableCloneableVec,
+    ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version, read_batches,
 };
 
 mod input;
@@ -161,17 +159,7 @@ where
             .min(self.window_starts.len())
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        <Height as PrintableIndex>::to_string()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    vecdb::any_vec_type_methods!(Height, T);
 }
 
 impl<S, C, T, F> TypedVec for LazyRollingRatioVec<S, C, T, F>
@@ -311,18 +299,9 @@ where
     }
 }
 
-impl<S, C, T, F> Traversable for LazyRollingRatioVec<S, C, T, F>
-where
+bitview_traversable::leaf!([S, C, T, F] LazyRollingRatioVec<S, C, T, F> where
     S: VecValue + CheckedSub + Default,
     C: VecValue + CheckedSub + Default,
     T: VecValue + Formattable + Serialize + JsonSchema,
     F: BinaryTransform<S, C, T> + Send + Sync,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);

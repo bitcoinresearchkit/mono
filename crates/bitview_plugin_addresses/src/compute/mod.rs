@@ -6,18 +6,13 @@ pub use readers::{AddrReaders, Workspace};
 
 use bitview_compute::undo_chunks;
 use bitview_distribution::replay;
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
-use vecdb::Database;
 
 use crate::{Dependencies, Vecs};
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         self.discard_unpublished_state();

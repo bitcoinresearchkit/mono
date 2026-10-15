@@ -20,11 +20,6 @@ impl RealizedOps for CoreRealizedState {
     }
 
     #[inline]
-    fn cap(&self) -> Cents {
-        self.minimal.cap()
-    }
-
-    #[inline]
     fn profit(&self) -> Cents {
         self.minimal.profit()
     }
@@ -76,12 +71,5 @@ impl RealizedOps for CoreRealizedState {
         self.minimal
             .send(sats, current_ps, prev_ps, ath_ps, prev_capitalized_cap);
         self.value_destroyed_raw += prev_ps.as_u128();
-    }
-}
-
-impl CoreRealizedState {
-    #[inline(always)]
-    pub fn cap_raw_u128(&self) -> u128 {
-        self.minimal.cap_raw().as_u128()
     }
 }

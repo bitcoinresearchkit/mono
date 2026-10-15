@@ -58,7 +58,7 @@ impl AdjustedSopr {
             .zip(self.value_created.sum.as_array())
             .zip(self.value_destroyed.sum.as_array())
         {
-            target.compute_binary::<_, _, Quotient<Ratio>>(
+            target.height.compute_binary::<_, _, Quotient<Ratio>>(
                 from,
                 &created.cents.height,
                 &destroyed.cents.height,

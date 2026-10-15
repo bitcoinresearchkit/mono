@@ -28,11 +28,6 @@ impl RealizedOps for RealizedState {
     }
 
     #[inline]
-    fn cap(&self) -> Cents {
-        self.core.cap()
-    }
-
-    #[inline]
     fn profit(&self) -> Cents {
         self.core.profit()
     }
@@ -99,11 +94,6 @@ impl RealizedOps for RealizedState {
 }
 
 impl RealizedState {
-    #[inline]
-    pub fn cap_raw(&self) -> CentsSats {
-        CentsSats::new(self.core.cap_raw_u128())
-    }
-
     #[inline]
     pub fn capitalized_cap_raw(&self) -> CentsSquaredSats {
         self.capitalized_cap_raw

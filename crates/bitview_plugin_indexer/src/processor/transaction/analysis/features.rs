@@ -72,7 +72,7 @@ pub fn record_validated_taproot_sighash(bytes: &[u8], flags: &mut TxFeatureFlags
     flags.insert(taproot_feature_flags(sighash_type));
 }
 
-pub fn ecdsa_feature_flags(sighash_type: EcdsaSighashType) -> u32 {
+fn ecdsa_feature_flags(sighash_type: EcdsaSighashType) -> u32 {
     let mut flags = match sighash_type {
         EcdsaSighashType::All | EcdsaSighashType::AllPlusAnyoneCanPay => {
             TxFeatureFlags::SIGHASH_ALL
@@ -91,12 +91,12 @@ pub fn ecdsa_feature_flags(sighash_type: EcdsaSighashType) -> u32 {
 }
 
 #[inline]
-pub fn is_ecdsa_signature_candidate(bytes: &[u8]) -> bool {
+fn is_ecdsa_signature_candidate(bytes: &[u8]) -> bool {
     (MIN_ECDSA_SIGNATURE_BYTES..=MAX_ECDSA_SIGNATURE_BYTES).contains(&bytes.len())
         && bytes.first() == Some(&0x30)
 }
 
-pub fn taproot_feature_flags(sighash_type: TapSighashType) -> u32 {
+fn taproot_feature_flags(sighash_type: TapSighashType) -> u32 {
     let mut flags = match sighash_type {
         TapSighashType::Default => TxFeatureFlags::SIGHASH_DEFAULT,
         TapSighashType::All | TapSighashType::AllPlusAnyoneCanPay => TxFeatureFlags::SIGHASH_ALL,

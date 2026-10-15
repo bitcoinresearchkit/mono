@@ -37,11 +37,11 @@ use value::Vecs as ValueVecs;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("cointime"), Version::new(11));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    #[traversable(skip)]
     urpd_replay: M::WriteOnly<Replay>,
 
     /// Cointime measures how long bitcoin remains unspent. One coinblock is one
@@ -85,13 +85,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// holders not spending older coins; lower values mean price is low relative
     /// to that accumulated holder reserve.
     reserve_risk: ReserveRiskVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

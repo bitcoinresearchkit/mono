@@ -8,9 +8,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{
-    AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
-};
+use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct FeesSeries<M: StorageMode = Rw> {
@@ -54,9 +52,7 @@ impl FeesSeries {
     }
 
     pub fn push_block(&mut self, value: Sats) {
-        let cumulative = &mut self.fees.cumulative.sats.height;
-        let last = cumulative.collect_last().unwrap_or_default();
-        cumulative.push(last + value);
+        self.fees.push_sats(value);
     }
 
     pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {

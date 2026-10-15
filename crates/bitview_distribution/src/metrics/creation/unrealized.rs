@@ -31,19 +31,11 @@ impl CreationUnrealized {
         mappings: &MappingsVecs,
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
+        let amount =
+            |metric: &str| Fiat::import(db, &name(metric), version + Version::ONE, mappings);
         Ok(Self {
-            profit: Fiat::import(
-                db,
-                &name("unrealized_profit"),
-                version + Version::ONE,
-                mappings,
-            )?,
-            loss: Fiat::import(
-                db,
-                &name("unrealized_loss"),
-                version + Version::ONE,
-                mappings,
-            )?,
+            profit: amount("unrealized_profit")?,
+            loss: amount("unrealized_loss")?,
             net_pnl: Fiat::import(db, &name("net_unrealized_pnl"), version, mappings)?,
         })
     }

@@ -19,7 +19,8 @@ use breakdown::{BucketVecs, KindBreakdownVecs, PolicyBreakdownVecs};
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("op_return"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -38,15 +39,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `multiple` can overlap, and both are subsets of `pre_v30_nonstandard`;
     /// `pre_v30_standard` is the complementary category.
     policies: PolicyBreakdownVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }
 
 impl Vecs {

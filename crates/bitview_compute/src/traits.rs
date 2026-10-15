@@ -34,94 +34,35 @@ pub trait Quantity: Sized {
     type Sum: NumericValue + JsonSchema + Quantity + From<Self>;
 }
 
-impl Quantity for Count {
-    type Fract = CountFract;
-    type Sum = Count;
+/// Each quantity's mean and sum types.
+macro_rules! quantities {
+    ($($quantity:ty => ($fract:ty, $sum:ty),)*) => {
+        $(impl Quantity for $quantity {
+            type Fract = $fract;
+            type Sum = $sum;
+        })*
+    };
 }
 
-impl Quantity for Count16 {
-    type Fract = CountFract;
-    type Sum = Count;
-}
-
-impl Quantity for Count32 {
-    type Fract = CountFract;
-    type Sum = Count;
-}
-
-impl Quantity for Bytes {
-    type Fract = BytesFract;
-    type Sum = Bytes;
-}
-
-impl Quantity for Bytes32 {
-    type Fract = BytesFract;
-    type Sum = Bytes;
-}
-
-impl Quantity for VSize {
-    type Fract = VSizeFract;
-    type Sum = VSize;
-}
-
-impl Quantity for Weight {
-    type Fract = WeightFract;
-    type Sum = Weight;
-}
-
-impl Quantity for Weight32 {
-    type Fract = WeightFract;
-    type Sum = Weight;
-}
-
-impl Quantity for SigOps {
-    type Fract = SigOpsFract;
-    type Sum = SigOps;
-}
-
-impl Quantity for Seconds {
-    type Fract = SecondsFract;
-    type Sum = Seconds;
-}
-
-impl Quantity for Sats {
-    type Fract = SatsFract;
-    type Sum = Sats;
-}
-
-impl Quantity for Cents {
-    type Fract = CentsFract;
-    type Sum = Cents;
-}
-
-impl Quantity for CentsSigned {
-    type Fract = CentsFract;
-    type Sum = CentsSigned;
-}
-
-impl Quantity for CoinDays {
-    type Fract = CoinDays;
-    type Sum = CoinDays;
-}
-
-impl Quantity for CoinBlocks {
-    type Fract = CoinBlocks;
-    type Sum = CoinBlocks;
-}
-
-impl Quantity for DollarBlocks {
-    type Fract = DollarBlocks;
-    type Sum = DollarBlocks;
-}
-
-impl Quantity for DollarDaysPerCoin {
-    type Fract = DollarDaysPerCoin;
-    type Sum = DollarDaysPerCoin;
-}
-
-impl Quantity for Float64 {
-    type Fract = Float64;
-    type Sum = Float64;
+quantities! {
+    Count => (CountFract, Count),
+    Count16 => (CountFract, Count),
+    Count32 => (CountFract, Count),
+    Bytes => (BytesFract, Bytes),
+    Bytes32 => (BytesFract, Bytes),
+    VSize => (VSizeFract, VSize),
+    Weight => (WeightFract, Weight),
+    Weight32 => (WeightFract, Weight),
+    SigOps => (SigOpsFract, SigOps),
+    Seconds => (SecondsFract, Seconds),
+    Sats => (SatsFract, Sats),
+    Cents => (CentsFract, Cents),
+    CentsSigned => (CentsFract, CentsSigned),
+    CoinDays => (CoinDays, CoinDays),
+    CoinBlocks => (CoinBlocks, CoinBlocks),
+    DollarBlocks => (DollarBlocks, DollarBlocks),
+    DollarDaysPerCoin => (DollarDaysPerCoin, DollarDaysPerCoin),
+    Float64 => (Float64, Float64),
 }
 
 /// A stored fixed-point ratio and its public representations.

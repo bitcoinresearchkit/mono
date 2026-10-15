@@ -87,11 +87,15 @@ impl Supply {
         exit: &Exit,
     ) -> Result<()> {
         self.share
+            .fixed
+            .height
             .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from, &c.supply, all_supply, exit,
             )?;
         self.in_profit
             .share
+            .fixed
+            .height
             .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.supply_profit,
@@ -100,6 +104,8 @@ impl Supply {
             )?;
         self.in_loss
             .share
+            .fixed
+            .height
             .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.supply_loss,

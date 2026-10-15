@@ -77,9 +77,13 @@ impl Capital {
         exit: &Exit,
     ) -> Result<()> {
         self.share
+            .fixed
+            .height
             .compute_binary::<_, _, Quotient<PartsPerMillion32>>(from, &c.cap, all_capital, exit)?;
         self.in_profit
             .share
+            .fixed
+            .height
             .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
                 &c.cap_profit,
@@ -88,6 +92,8 @@ impl Capital {
             )?;
         self.in_loss
             .share
+            .fixed
+            .height
             .compute_binary::<_, _, Quotient<PartsPerMillion32>>(from, &c.cap_loss, &c.cap, exit)?;
         Ok(())
     }

@@ -134,15 +134,7 @@ impl<'a> BlockProcessor<'a> {
                     txouts,
                 );
             },
-            || {
-                store_tx_metadata(
-                    height,
-                    txs,
-                    analyses,
-                    txid_prefixes,
-                    &mut tx_metadata,
-                )
-            },
+            || store_tx_metadata(height, txs, analyses, txid_prefixes, &mut tx_metadata),
         );
     }
 }

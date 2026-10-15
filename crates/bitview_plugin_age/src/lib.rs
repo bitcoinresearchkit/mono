@@ -28,7 +28,8 @@ pub const ID: PluginId = STORAGE.id();
 
 /// Age-derived metrics and resident state, independent of address state. Members first:
 /// each UTXO age range, halving epoch and creation year holds its own series.
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -44,15 +45,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Coinblocks destroyed by each block: each spent output's BTC value
     /// multiplied by the blocks it stayed unspent.
     pub coinblocks_destroyed: PerBlockCumulativeRolling<CoinBlocks, M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }
 
 impl<M: StorageMode> Vecs<M> {

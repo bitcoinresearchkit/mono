@@ -42,49 +42,48 @@ impl BlockProcessor<'_> {
         let track_executed_legacy = self.tracks_executed_legacy_sigops();
 
         analyses.clear();
-        analyses.par_extend(txs.par_iter()
-            .map(|tx| {
-                let tx_inputs = tx.inputs(txins);
-                let tx_outputs = tx.outputs(txouts);
-                let is_coinbase = tx.is_coinbase(block_first_tx_index);
+        analyses.par_extend(txs.par_iter().map(|tx| {
+            let tx_inputs = tx.inputs(txins);
+            let tx_outputs = tx.outputs(txouts);
+            let is_coinbase = tx.is_coinbase(block_first_tx_index);
 
-                let mut sigops = sigops::Accumulator::new(track_executed_legacy);
-                let mut flags = TxFeatureFlags::default();
-                let mut output_scanner = output::Scanner::default();
-                let mut policy = policy::Accumulator::new(self.height);
+            let mut sigops = sigops::Accumulator::new(track_executed_legacy);
+            let mut flags = TxFeatureFlags::default();
+            let mut output_scanner = output::Scanner::default();
+            let mut policy = policy::Accumulator::new(self.height);
 
-                if unlikely(is_coinbase) {
-                    let input = &tx.tx.input[0];
+            if unlikely(is_coinbase) {
+                let input = &tx.tx.input[0];
+                record_explicit_rbf_signal(&mut flags, input.sequence);
+                sigops.scan_coinbase_input(input);
+            } else {
+                for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
                     record_explicit_rbf_signal(&mut flags, input.sequence);
-                    sigops.scan_coinbase_input(input);
-                } else {
-                    for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
-                        record_explicit_rbf_signal(&mut flags, input.sequence);
-                        let (output_type, legacy_sigops) = resolved_output_facts(source, txouts);
-                        let facts = input::analyze(input, output_type, &mut flags);
-                        sigops.scan_input(output_type, legacy_sigops, &facts);
-                        policy.scan_input(input, output_type, &facts);
-                    }
+                    let (output_type, legacy_sigops) = resolved_output_facts(source, txouts);
+                    let facts = input::analyze(input, output_type, &mut flags);
+                    sigops.scan_input(output_type, legacy_sigops, &facts);
+                    policy.scan_input(input, output_type, &facts);
                 }
+            }
 
-                for (txout, output) in tx.tx.output.iter().zip(tx_outputs) {
-                    output_scanner.scan(txout, output, &mut flags);
-                    sigops.scan_output(txout, output);
-                    if likely(!is_coinbase) {
-                        policy.scan_output(txout, output);
-                    }
-                }
-
-                let sigops = sigops.finish();
+            for (txout, output) in tx.tx.output.iter().zip(tx_outputs) {
+                output_scanner.scan(txout, output, &mut flags);
+                sigops.scan_output(txout, output);
                 if likely(!is_coinbase) {
-                    policy.finish(tx, sigops, &mut flags);
+                    policy.scan_output(txout, output);
                 }
+            }
 
-                TransactionAnalysis {
-                    total_sigop_cost: sigops.total,
-                    features: flags,
-                }
-            }));
+            let sigops = sigops.finish();
+            if likely(!is_coinbase) {
+                policy.finish(tx, sigops, &mut flags);
+            }
+
+            TransactionAnalysis {
+                total_sigop_cost: sigops.total,
+                features: flags,
+            }
+        }));
     }
 }
 

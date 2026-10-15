@@ -33,21 +33,12 @@ impl CreationRealized {
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
+        let flow = |metric: &str| {
+            CumulativeFiat::import(db, &name(metric), flow_version, mappings, window_starts)
+        };
         Ok(Self {
-            profit: CumulativeFiat::import(
-                db,
-                &name("realized_profit"),
-                flow_version,
-                mappings,
-                window_starts,
-            )?,
-            loss: CumulativeFiat::import(
-                db,
-                &name("realized_loss"),
-                flow_version,
-                mappings,
-                window_starts,
-            )?,
+            profit: flow("realized_profit")?,
+            loss: flow("realized_loss")?,
             net_pnl: CumulativeFiat::import(
                 db,
                 &name("net_realized_pnl"),
@@ -55,13 +46,7 @@ impl CreationRealized {
                 mappings,
                 window_starts,
             )?,
-            value_destroyed: CumulativeFiat::import(
-                db,
-                &name("value_destroyed"),
-                flow_version,
-                mappings,
-                window_starts,
-            )?,
+            value_destroyed: flow("value_destroyed")?,
         })
     }
 

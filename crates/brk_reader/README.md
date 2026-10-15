@@ -58,7 +58,12 @@ Each `ReadBlock` gives you access to:
 
 ## How It Works
 
-Two strategies, picked per call:
+Three strategies, picked per call:
+
+* **appended** — an update right after the previous call reads only the
+  frames appended after the last block it streamed, in the same blk file:
+  no directory scan, probe, or walk from the file's start. Any
+  discontinuity (another anchor, a rollover, a gap) falls back to tail.
 
 * **forward** — one reader thread walks blk files in order from a
   bisection lower bound and ships canonical hits to a pool of parser

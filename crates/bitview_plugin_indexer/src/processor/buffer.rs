@@ -25,6 +25,7 @@ impl BlockBuffers {
     }
 
     pub fn finish_block(&mut self, blockhash: BlockHash) {
+        self.addresses.finish_block();
         self.tip = Some(blockhash);
     }
 }

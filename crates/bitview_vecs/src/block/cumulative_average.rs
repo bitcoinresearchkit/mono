@@ -9,8 +9,8 @@ use vecdb::{
 };
 
 use crate::{
-    CachedSeries, IndexSources, LazyPreviousDeltaVec, LazyRollingAvgsFromHeight, import_cached,
-    shapes::Windows,
+    CachedSeries, CumulativeState, IndexSources, LazyPreviousDeltaVec, LazyRollingAvgsFromHeight,
+    import_cached, shapes::Windows,
 };
 
 /// Cumulative source of truth with lazy exact per-block values and rolling averages.
@@ -24,7 +24,7 @@ where
     #[traversable(hidden)]
     cumulative: CachedSeries<Height, T, M>,
     avg: LazyRollingAvgsFromHeight<T>,
-    last_cumulative: M::WriteOnly<Option<(usize, T)>>,
+    last: M::WriteOnly<CumulativeState<T>>,
 }
 
 impl<T> PerBlockCumulativeAverage<T>
@@ -40,9 +40,6 @@ where
     ) -> Result<Self> {
         let cumulative_version = version + Version::TWO;
         let cumulative = import_cached(db, &format!("{name}_cumulative"), cumulative_version)?;
-        let last_cumulative = cumulative
-            .collect_last()
-            .map(|value| (cumulative.len(), value));
         let block = LazyPreviousDeltaVec::new(name, version, &cumulative);
         let avg = LazyRollingAvgsFromHeight::new(
             &format!("{name}_avg"),
@@ -56,23 +53,17 @@ where
             block,
             cumulative,
             avg,
-            last_cumulative,
+            last: Default::default(),
         })
     }
 
     #[inline(always)]
-    pub fn push_block(&mut self, value: T)
-    where
-        T: Copy,
-    {
-        let len = self.cumulative.len();
-        let mut cumulative = match self.last_cumulative {
-            Some((cached_len, value)) if cached_len == len => value,
-            _ => self.cumulative.collect_last().unwrap_or_default(),
-        };
-        cumulative += value;
+    pub fn push_block(&mut self, value: T) {
+        let height = Height::from(self.cumulative.len());
+        let cumulative = self
+            .last
+            .add_at(height, &self.cumulative, |total| *total += value);
         self.cumulative.push(cumulative);
-        self.last_cumulative = Some((len + 1, cumulative));
     }
 
     pub fn compute_from<S>(
@@ -84,26 +75,17 @@ where
     ) -> Result<()>
     where
         S: VecValue,
-        T: Copy,
     {
-        let mut cumulative = None;
-        self.cumulative.compute_transform(
+        let last = &mut self.last;
+        Ok(self.cumulative.compute_transform(
             max_from,
             source,
             |(height, value, this)| {
-                let cumulative = cumulative.get_or_insert_with(|| {
-                    height
-                        .decremented()
-                        .and_then(|height| this.collect_one(height))
-                        .unwrap_or_default()
-                });
-                *cumulative += transform(height, value);
-                (height, *cumulative)
+                let value = transform(height, value);
+                (height, last.add_at(height, this, |total| *total += value))
             },
             exit,
-        )?;
-        self.last_cumulative = None;
-        Ok(())
+        )?)
     }
 
     /// The stored running total the views derive from.

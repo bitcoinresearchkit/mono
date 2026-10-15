@@ -2,7 +2,7 @@ use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::Ratio64;
-use bitview_vecs::{LazyPerBlock, ops::Quotient};
+use bitview_vecs::{LazyIndexedVec, LazyPerBlock, ops::Quotient};
 use brk_error::Result;
 use brk_types::{Cents, Version};
 use vecdb::{BinaryTransform, Ident};
@@ -17,16 +17,18 @@ impl Vecs {
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
         let volume = &transactions.volume.sum._1y;
-        let btc_source = all_chain.with_supply(
+        let btc_source = LazyIndexedVec::new(
             "velocity_btc_source",
             version,
             &volume.sats.height,
+            &all_chain.supply,
             |_, volume, supply| Quotient::<Ratio64>::apply(volume, supply),
         );
-        let usd_source = all_chain.with_market_cap(
+        let usd_source = LazyIndexedVec::new(
             "velocity_usd_source",
             version,
             &volume.cents.height,
+            &all_chain.market_cap,
             |_, volume: Cents, market_cap| Quotient::<Ratio64>::apply(volume, market_cap),
         );
 

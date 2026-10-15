@@ -9,7 +9,7 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::Database;
+use vecdb::{Database, ReverseOperands};
 
 use super::{DerivedVecs, Vecs};
 
@@ -59,15 +59,16 @@ impl Vecs {
                 mappings,
                 window_starts,
             )?;
-        let concurrent_liveliness = LazyRatioRollingWindows::from_cumulative_ratio_with_numerator::<
+        // Destroyed over created, reading the created blocks first.
+        let concurrent_liveliness = LazyRatioRollingWindows::from_cumulative_ratio::<
             CoinBlocks,
             CoinBlocks,
-            Quotient<PartsPerMillion64>,
+            ReverseOperands<Quotient<PartsPerMillion64>>,
         >(
             "concurrent_liveliness",
             version,
-            age.coinblocks_destroyed.cumulative_source(),
             coinblocks_created.cumulative_source(),
+            age.coinblocks_destroyed.cumulative_source(),
             window_starts,
             mappings,
         );

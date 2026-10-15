@@ -758,6 +758,7 @@ dependencies = [
  "brk_reader",
  "brk_store",
  "brk_types",
+ "crossbeam",
  "rayon",
  "rustc-hash",
  "schemars",
@@ -1227,6 +1228,7 @@ dependencies = [
 name = "bitview_vecs"
 version = "0.12.2"
 dependencies = [
+ "arc-swap",
  "bitview_compute",
  "bitview_primitives",
  "bitview_traversable",
@@ -1430,8 +1432,6 @@ version = "0.12.2"
 dependencies = [
  "brk_types",
  "derive_more",
- "schemars",
- "serde",
 ]
 
 [[package]]

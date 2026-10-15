@@ -26,12 +26,12 @@ use value::Vecs as ValueVecs;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("outputs"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    #[traversable(skip)]
     pub creations: M::WriteOnly<Creations>,
     #[traversable(flatten)]
     pub spent: SpentVecs<M>,
@@ -46,13 +46,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     types: TypesVecs<M>,
     #[traversable(flatten)]
     pub value: ValueVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

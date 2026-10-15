@@ -104,7 +104,7 @@ impl Realized {
             .zip(self.profit.sum.as_array())
             .zip(self.loss.sum.as_array())
         {
-            target.compute_binary::<_, _, Quotient<Ratio>>(
+            target.height.compute_binary::<_, _, Quotient<Ratio>>(
                 from,
                 &profit.cents.height,
                 &loss.cents.height,
@@ -118,7 +118,7 @@ impl Realized {
             .zip(activity.transfer_volume.sum.0.as_array())
             .zip(self.value_destroyed.sum.as_array())
         {
-            target.compute_binary::<_, _, Quotient<Ratio>>(
+            target.height.compute_binary::<_, _, Quotient<Ratio>>(
                 from,
                 &created.cents.height,
                 &destroyed.cents.height,
@@ -134,6 +134,7 @@ impl Realized {
         {
             target
                 .fixed
+                .height
                 .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                     from,
                     &pnl.cents.height,

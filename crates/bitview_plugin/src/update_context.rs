@@ -22,10 +22,14 @@ impl<'a> UpdateContext<'a> {
         self.exit
     }
 
-    /// Schedules deferred compaction as a background task: a cancellable wait, then compaction
-    /// under the shutdown lock, so a quit during the wait never waits for it. The next
-    /// [`crate::ComputePlugin::compute`] joins it before writing again.
+    /// Schedules deferred compaction as a background task, unless the database has nothing to
+    /// reclaim: a cancellable wait, then compaction under the shutdown lock, so a quit during the
+    /// wait never waits for it. The next [`crate::ComputePlugin::compute`] joins it before
+    /// writing again.
     pub(crate) fn compact_database(self, db: &Database) {
+        if !db.needs_compaction() {
+            return;
+        }
         let exit = self.exit.clone();
         db.run_bg(move |db| {
             db.bg_sleep(COMPACTION_DELAY);

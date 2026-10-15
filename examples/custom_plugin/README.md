@@ -38,11 +38,13 @@ invisible until the composition commits.
 
 The author contract is deliberately small:
 
-1. Define one `PluginStorage` and return it from `Plugin`.
+1. Define one `PluginStorage` and derive `Plugin` with
+   `#[plugin(storage = STORAGE)]`.
 2. Accept `ImportContext` in the plugin constructor and open the database
    through that storage descriptor.
-3. Define a typed dependency struct and implement `ComputePlugin`: return the
-   plugin's database from `database()` and compute in `compute_state`; the
+3. Define a typed dependency struct and implement `ComputePlugin`: name it and
+   the plugin's database with `compute_items!(Dependencies, db)` and compute in
+   `compute_state`; the
    provided `compute` syncs that database before and compacts it after a
    successful computation. Use `UpdateContext` only for shared update control
    such as `Exit`.

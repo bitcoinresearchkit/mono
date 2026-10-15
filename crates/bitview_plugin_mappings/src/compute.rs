@@ -1,15 +1,10 @@
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
-use vecdb::Database;
 
 use crate::{Dependencies, Vecs};
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
@@ -30,6 +25,7 @@ impl ComputePlugin for Vecs {
         self.timestamp
             .compute_monotonic(indexer, starting_height, exit)?;
 
+        self.lookback.update(starting_height);
         self.epoch.update(starting_height);
         self.halving.update(starting_height);
         self.minute10.update(starting_height);

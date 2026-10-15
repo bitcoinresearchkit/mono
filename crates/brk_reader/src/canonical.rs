@@ -31,13 +31,6 @@ impl CanonicalRange {
     }
 
     pub fn between(client: &Client, start: Height, end: Height) -> Result<Self> {
-        if start > end {
-            return Ok(Self {
-                start,
-                anchor: None,
-                by_hash: FxHashMap::default(),
-            });
-        }
         let by_hash = client
             .get_block_hashes_range(*start, *end)?
             .into_iter()
@@ -49,6 +42,11 @@ impl CanonicalRange {
             anchor: None,
             by_hash,
         })
+    }
+
+    /// The block before the range, when it was resolved from one.
+    pub fn anchor(&self) -> Option<&BlockHash> {
+        self.anchor.as_ref()
     }
 
     pub fn len(&self) -> usize {

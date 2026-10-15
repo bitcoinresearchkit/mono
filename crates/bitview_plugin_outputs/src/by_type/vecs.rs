@@ -1,8 +1,7 @@
 use bitview_cohort::ByType;
 use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};
-use brk_types::Height;
+use bitview_vecs::{CumulativeSource, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
@@ -10,9 +9,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub(crate) types: ByType<OutputTypeVecs>,
     #[traversable(hidden)]
-    pub(crate) count_stored: ByType<CachedSeries<Height, Count, M>>,
+    pub(crate) count_stored: ByType<CumulativeSource<Count, M>>,
     #[traversable(hidden)]
-    pub(crate) tx_count_stored: ByType<CachedSeries<Height, Count, M>>,
+    pub(crate) tx_count_stored: ByType<CumulativeSource<Count, M>>,
 }
 
 /// Counts and shares of one output type.

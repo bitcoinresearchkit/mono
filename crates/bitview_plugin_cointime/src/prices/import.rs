@@ -1,7 +1,9 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PriceRatio;
-use bitview_vecs::{LazyPerBlock, LazyRatioPerBlock, PriceWithMvrv, PriceWithRatio, import_cached};
+use bitview_vecs::{
+    LazyIndexedVec, LazyPerBlock, LazyRatioPerBlock, PriceWithMvrv, PriceWithRatio, import_cached,
+};
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, CentsSigned, Dollars, Height, Version};
 use vecdb::{Database, Ident, ReadableCloneableVec};
@@ -18,10 +20,11 @@ impl Vecs {
         active_cap: &impl ReadableCloneableVec<Height, Dollars>,
         investor_cap: &impl ReadableCloneableVec<Height, CentsSigned>,
     ) -> Result<Self> {
-        let cointime_source = all_chain.with_supply(
+        let cointime_source = LazyIndexedVec::new(
             "cointime_price_cents_source",
             version,
             cointime_cap,
+            &all_chain.supply,
             |_, cap, supply| Cents::from(f64::from(cap) / f64::from(Bitcoin::from(supply))),
         );
         let vaulted_cents = import_cached(db, "vaulted_price_cents", version)?;

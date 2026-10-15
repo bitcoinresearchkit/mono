@@ -12,6 +12,8 @@ use vecdb::{
 
 pub mod median_time;
 
+use median_time::MedianTimeWindow;
+
 use super::transactions::features::{BlockCount, block_count};
 
 #[derive(Traversable)]
@@ -54,6 +56,7 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// Combined BIP-141 weight in weight units of the block's non-coinbase
     /// SegWit transactions; excludes block overhead and all other transactions.
     pub segwit_tx_weight: Compact<PcoVec<Height, Weight32>, Weight, M>,
+    median_window: M::WriteOnly<MedianTimeWindow>,
 }
 
 impl BlocksVecs {
@@ -95,6 +98,7 @@ impl BlocksVecs {
             segwit_tx_count,
             segwit_tx_size,
             segwit_tx_weight,
+            median_window: MedianTimeWindow::default(),
         };
         // Upgrade old databases from the authoritative timestamp column. A
         // mismatched checkpoint can contain another branch: rebuild, not append.
@@ -109,6 +113,7 @@ impl BlocksVecs {
     }
 
     pub fn truncate(&mut self, height: Height, stamp: Stamp) -> Result<()> {
+        self.median_window = MedianTimeWindow::default();
         self.blockhash
             .truncate_if_needed_with_stamp(height, stamp)?;
         self.coinbase_tag

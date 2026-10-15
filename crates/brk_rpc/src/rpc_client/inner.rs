@@ -17,25 +17,25 @@ use tracing::{debug, info, warn};
 use super::rpc_call::RpcCall;
 use crate::{Auth, auth::cookie_error};
 
+/// Connection-loss retries before giving up: effectively wait for the node forever.
+const MAX_RETRIES: usize = 1_000_000;
+const RETRY_DELAY: Duration = Duration::from_secs(1);
+
 #[derive(Debug)]
 pub struct ClientInner {
     pub url: String,
     pub auth: Auth,
     /// The client and the cookie it authenticates with (cookie auth only), swapped together.
     client: RwLock<(JsonRpcClient, Option<String>)>,
-    max_retries: usize,
-    retry_delay: Duration,
 }
 
 impl ClientInner {
-    pub fn new(url: &str, auth: Auth, max_retries: usize, retry_delay: Duration) -> Result<Self> {
+    pub fn new(url: &str, auth: Auth) -> Result<Self> {
         let (client, cookie) = Self::create_client(url, &auth)?;
         Ok(Self {
             url: url.to_string(),
             auth,
             client: RwLock::new((client, cookie)),
-            max_retries,
-            retry_delay,
         })
     }
 
@@ -84,14 +84,14 @@ impl ClientInner {
     {
         let raw = to_raw_value(args).map_err(Error::from)?;
 
-        for attempt in 0..=self.max_retries {
+        for attempt in 0..=MAX_RETRIES {
             if attempt > 0 {
                 debug!(
                     "Trying to reconnect to Bitcoin Core (attempt {}/{})",
-                    attempt, self.max_retries
+                    attempt, MAX_RETRIES
                 );
                 self.recreate().ok();
-                sleep(self.retry_delay);
+                sleep(RETRY_DELAY);
             }
 
             let (result, rejected_cookie) = {
@@ -130,7 +130,7 @@ impl ClientInner {
 
         warn!(
             "Could not reconnect to Bitcoin Core after {} attempts",
-            self.max_retries + 1
+            MAX_RETRIES + 1
         );
         Err(JsonRpcError::Rpc(RpcError {
             code: -1,

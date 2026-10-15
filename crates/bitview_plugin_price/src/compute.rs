@@ -1,5 +1,5 @@
 use bitview_compute::{prepare_computed, write_locked};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::Float64;
 use brk_error::{Error, OptionData, Result};
@@ -10,7 +10,7 @@ use brk_oracle::{
 };
 use brk_types::Cents;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
 use crate::{Dependencies, Vecs, feed_blocks_for_warmup, feed_blocks_with};
 
@@ -133,11 +133,7 @@ impl Vecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,

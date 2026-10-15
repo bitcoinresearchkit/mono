@@ -8,7 +8,6 @@ mod compute;
 mod cost_basis;
 mod data;
 mod dependencies;
-mod has;
 mod import;
 mod live;
 mod metrics;
@@ -20,7 +19,6 @@ mod unrealized;
 mod unrealized_data;
 
 pub use dependencies::Dependencies;
-pub use has::HasHolders;
 pub use metrics::Metrics;
 
 use bitview_cohort::AgeAggregate;
@@ -35,7 +33,8 @@ use live::LiveState;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("holders"), Version::new(3));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -48,13 +47,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     all_market_cap: ReadableBoxedVec<Height, Cents>,
     live: M::WriteOnly<Option<LiveState>>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

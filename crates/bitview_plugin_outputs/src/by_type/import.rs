@@ -1,6 +1,6 @@
 use bitview_cohort::ByType;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyWindowStartVec, count_and_share, import_cached, shapes::Windows};
+use bitview_vecs::{CumulativeSource, LazyWindowStartVec, count_and_share, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -16,14 +16,14 @@ impl Vecs {
     ) -> Result<Self> {
         let version = version + Version::TWO;
         let count_stored = ByType::try_from_fn(|kind| {
-            import_cached(
+            CumulativeSource::import(
                 db,
                 &format!("{}_output_count_cumulative", kind.key()),
                 version,
             )
         })?;
         let tx_count_stored = ByType::try_from_fn(|kind| {
-            import_cached(
+            CumulativeSource::import(
                 db,
                 &format!("tx_count_with_{}_output_cumulative", kind.key()),
                 version,
@@ -36,7 +36,7 @@ impl Vecs {
             let (count, share) = count_and_share(
                 &format!("{key}_output"),
                 version,
-                kind.select(&count_stored),
+                kind.select(&count_stored).cumulative_source(),
                 &outputs,
                 window_starts,
                 mappings,
@@ -44,7 +44,7 @@ impl Vecs {
             let (tx_count, tx_share) = count_and_share(
                 &format!("{key}_output_tx"),
                 version,
-                kind.select(&tx_count_stored),
+                kind.select(&tx_count_stored).cumulative_source(),
                 &txs,
                 window_starts,
                 mappings,

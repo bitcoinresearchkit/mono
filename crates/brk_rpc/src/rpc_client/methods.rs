@@ -55,15 +55,10 @@ impl Client {
         Ok(FeeRate::from_milli(sat_per_kvb as u64))
     }
 
-    /// Returns the numbers of block in the longest chain.
-    fn get_block_count(&self) -> Result<u64> {
-        let r: GetBlockCount = self.0.call_with_retry("getblockcount", &NO_ARGS)?;
-        Ok(r.0)
-    }
-
-    /// Returns the numbers of block in the longest chain.
+    /// Returns the height of the longest chain's tip.
     pub fn get_last_height(&self) -> Result<Height> {
-        self.get_block_count().map(Height::from)
+        let r: GetBlockCount = self.0.call_with_retry("getblockcount", &NO_ARGS)?;
+        Ok(Height::from(r.0))
     }
     pub fn get_block_header_info<'a, H>(&self, hash: &'a H) -> Result<GetBlockHeaderVerbose>
     where
