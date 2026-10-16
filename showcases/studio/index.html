@@ -1169,17 +1169,6 @@
         align-items: center;
         margin: 4px 0 6px;
 
-        /* New folder: an icon at the end of its row, always there, in the column the rows' ⋯ and counts are in (New chart's
-           key hint before it). */
-        #new-chart {
-          padding-right: 34px;
-        }
-
-        #new-folder {
-          position: absolute;
-          right: 9px;
-        }
-
         &::after {
           content: "";
           position: absolute;
@@ -1518,6 +1507,57 @@
       }
 
       @media (min-width: 761px) and (min-height: 501px) {
+        /* Leaving as they came: a dialog, Quick Look, a menu settle back out (a phone's sheets slide down instead). Hidden
+           meanwhile, nothing in them is reached. */
+        /* (Where a browser can keep a closing dialog over the page meanwhile (Safari can't): elsewhere, gone at once, as
+           before. ⌘K's own list, its color's fade with them.) */
+        @supports (overlay: auto) {
+          dialog,
+          #quick {
+            transition: opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro), display var(--dur-micro) allow-discrete, overlay var(--dur-micro) allow-discrete;
+
+            &::backdrop {
+              transition: opacity var(--dur-micro) var(--ease), display var(--dur-micro) allow-discrete, overlay var(--dur-micro) allow-discrete;
+            }
+          }
+
+          dialog.palette {
+            transition: background var(--dur-small) var(--ease), opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro), display var(--dur-micro) allow-discrete, overlay var(--dur-micro) allow-discrete;
+
+            &::backdrop {
+              transition: background var(--dur-small) var(--ease), opacity var(--dur-micro) var(--ease), display var(--dur-micro) allow-discrete, overlay var(--dur-micro) allow-discrete;
+            }
+          }
+
+          dialog:not([open]),
+          #quick:not(:popover-open) {
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(6px) scale(0.985);
+            pointer-events: none;
+
+            &::backdrop {
+              opacity: 0;
+            }
+          }
+        }
+
+        .menu {
+          transition: opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro), display var(--dur-micro) allow-discrete;
+
+          &[hidden] {
+            visibility: hidden;
+            opacity: 0;
+            transform: scale(0.96);
+            pointer-events: none;
+          }
+        }
+
+        /* (A rail has no New folder of its own: the grid's, as a phone's.) */
+        body[data-sidebar="collapsed"] #home-new-folder {
+          display: inline-grid;
+        }
+
         /* Collapsed, the sidebar is a rail: only its own icons stay (the panel's rows are left alone). */
         body[data-sidebar="collapsed"] .sidebar {
           width: var(--side-collapsed);
@@ -1551,11 +1591,6 @@
 
           #new-chart {
             padding-right: 0;
-          }
-
-          #new-folder {
-            visibility: hidden;
-            opacity: 0;
           }
 
           /*
@@ -1693,10 +1728,6 @@
 
           .new-chart::after {
             transition: left var(--dur-layout) var(--ease-layout), width var(--dur-layout) var(--ease-layout);
-          }
-
-          #new-folder {
-            transition: opacity var(--dur-small) var(--ease), visibility var(--dur-small);
           }
         }
       }
@@ -2046,6 +2077,16 @@
           position: absolute;
           right: 9px;
           opacity: 0;
+        }
+
+        /* (New folder at the end, always there, in the column the rows' ⋯ are in; the head's own ⋯ before it.) */
+        .list-head-add {
+          position: absolute;
+          right: 9px;
+        }
+
+        &.adds .chart-more {
+          right: 33px;
         }
 
         &:hover:where(.can-hover *),
@@ -2545,8 +2586,16 @@
         padding: 3px;
         background: var(--raise);
         box-shadow: var(--pop);
-        transition: opacity var(--fade);
+        transition: opacity var(--fade), translate var(--dur-small) var(--ease), visibility var(--dur-small), display var(--dur-small) allow-discrete;
         animation: belt-in var(--dur-small) var(--ease);
+
+        /* (Put away as it came: down a little as it fades, out of reach meanwhile.) */
+        &[hidden] {
+          visibility: hidden;
+          opacity: 0;
+          translate: 0 4px;
+          pointer-events: none;
+        }
 
         &.busy {
           opacity: 0.4;
@@ -6316,7 +6365,7 @@
 
       }
 
-      /* (A phone's: on a larger screen, New folder is the sidebar's.) */
+      /* (A phone's and a rail's: beside a whole sidebar, New folder is the sidebar's.) */
       #home-new-folder {
         display: none;
         flex-shrink: 0;
@@ -6444,6 +6493,18 @@
          let it through (a row there is landed on, the edge there scrolls the list), and back after. */
       :is(.pick-bar, .mobile-bar) {
         transition: opacity var(--dur-small) var(--ease);
+      }
+
+      /* A selection's bar, its selection cleared: it leaves as it came (down a little as it fades), out of reach meanwhile. */
+      .pick-bar {
+        transition: opacity var(--dur-small) var(--ease), translate var(--dur-small) var(--ease), visibility var(--dur-small), display var(--dur-small) allow-discrete;
+
+        &[hidden] {
+          visibility: hidden;
+          opacity: 0;
+          translate: 0 6px;
+          pointer-events: none;
+        }
       }
 
       body.carrying .pick-bar {
@@ -6788,6 +6849,11 @@
         bottom: 20px;
         left: 50%;
         translate: -50% 0;
+
+        /* (Down a little as it goes, still centered.) */
+        &[hidden] {
+          translate: -50% 6px;
+        }
       }
 
       /* Under the layers, kept in sight as the list scrolls. */
@@ -7434,7 +7500,7 @@
           grid-template-columns: 1fr 1fr 1fr 1fr;
           gap: 2px;
           padding: 4px;
-          transition: grid-template-columns var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), opacity var(--dur-small) var(--ease);
+          transition: grid-template-columns var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), opacity var(--dur-small) var(--ease), visibility var(--dur-small);
 
           .tab {
             position: relative;
@@ -7539,7 +7605,12 @@
           border: 0;
           padding: 4px 6px 4px 8px;
           translate: none;
-          animation: none;
+          /* (In the tab bar's place: the one fades into the other, nothing moving.) */
+          animation: appear var(--dur-small) var(--ease);
+
+          &[hidden] {
+            translate: none;
+          }
 
           .pick-count {
             margin-right: auto;
@@ -7549,6 +7620,7 @@
         body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
         body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
           visibility: hidden;
+          opacity: 0;
         }
 
         /* Full screen: the chart alone, no room kept for the bar; clear of the notch and the home indicator. */
@@ -7669,6 +7741,7 @@
           body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
           body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
             visibility: visible;
+            opacity: 1;
           }
 
           .mobile-bar {
@@ -7681,7 +7754,7 @@
             grid-template-columns: 1fr;
             grid-template-rows: 52px 52px 52px 52px;
             translate: 0 -50%;
-            transition: grid-template-rows var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), opacity var(--dur-small) var(--ease);
+            transition: grid-template-rows var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), opacity var(--dur-small) var(--ease), visibility var(--dur-small);
           }
 
           /* (A rail: Layers folds up, the rail a tab shorter, its ends alike.) */
@@ -7708,6 +7781,10 @@
             width: auto;
             max-width: calc(100% - 24px);
             translate: -50% 0;
+
+            &[hidden] {
+              translate: -50% 0;
+            }
           }
 
           .toast {
@@ -8475,7 +8552,6 @@
         <button id="charts-nav" class="nav-item side-action" type="button" data-action="charts" data-tip="Your Library and the presets" style="--i: 1"><span data-icon="grid"></span><span class="label">Charts</span></button>
         <div class="new-chart" style="--i: 1">
           <button id="new-chart" class="nav-item side-action" type="button" data-tip="New chart" data-kbd="N"><span data-icon="plus"></span><span class="label">New chart</span><kbd>N</kbd></button>
-          <button id="new-folder" class="cap small" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
         </div>
         <div id="chart-list" class="chart-list" style="--i: 2"></div>
         <input id="import-file" type="file" accept="application/json,.json" hidden />
@@ -12451,10 +12527,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!inMotion.length) return;
         // (Its box now and the chart's own size: the same, unless a motion before this one's still holding it.)
         const run = ++motionsSized, at = inMotion.map((motion) => motion.currentTime), now = box.getBoundingClientRect(), own = view.chartElement().getBoundingClientRect();
-        // (Its box at their end: each motion there for a moment, read, and back where it was; nothing's drawn between.)
-        for (const motion of inMotion) motion.currentTime = motion.effect?.getComputedTiming().endTime ?? null;
+        // (Its box at their end: each motion that moves it there for a moment, read, and back where it was; nothing's drawn
+        // between. Those inside the sidebar or the panel (their rows' own, many) don't: only the boxes beside the chart's.)
+        const moving = inMotion.filter((motion) => ((target) => !target || !target.parentElement?.closest(".sidebar, #panel"))(/** @type {KeyframeEffect | null} */ (motion.effect)?.target));
+        for (const motion of moving) motion.currentTime = motion.effect?.getComputedTiming().endTime ?? null;
         const end = box.getBoundingClientRect();
-        inMotion.forEach((motion, i) => (motion.currentTime = at[i]));
+        moving.forEach((motion) => (motion.currentTime = at[inMotion.indexOf(motion)]));
         const width = end.width, height = end.height;
         const side = Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
         view.applyOptions({ autoSize: false });
@@ -12467,7 +12545,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const motion of inMotion) motion.pause();
           view.resize(width, height, true);
           // (Those another toggle has replaced meanwhile left be: started again, they'd come back.)
-          requestAnimationFrame((time) => inMotion.forEach((motion, i) => motion.playState === "paused" && (motion.startTime = time - Number(at[i] ?? 0))));
+          // (Which are still paused, all read first, then each started: a read between writes would lay the page out again
+          // for each of them, hundreds with a long Library's rows.)
+          requestAnimationFrame((time) => inMotion.filter((motion) => motion.playState === "paused").forEach((motion) => (motion.startTime = time - Number(at[inMotion.indexOf(motion)] ?? 0))));
         }
         Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => run === motionsSized && releaseSize());
       }
@@ -15501,8 +15581,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function placeBelt(glide = false, stay = false) {
         const belt = $("belt"), plot = belt.hidden || belt.classList.contains("held") ? null : plotBox();
         if (!plot) return;
-        // Measured at rest: a glide still going ends where it was going.
-        belt.getAnimations().forEach((animation) => animation.finish());
+        // Measured at rest: a glide still going ends where it was going (its coming in, a fade and 4px, isn't one: it plays).
+        belt.getAnimations().forEach((animation) => animation instanceof CSSAnimation || animation.finish());
         // A phone's: in the stage foot's place while it shows (the interval and range wait under it), one row sliding
         // sideways, its tool in sight, what the tool does just above it; never over the chart (no grip: nowhere to take it).
         if (phone.matches) {
@@ -17508,6 +17588,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The page at a place (a shelf's name, a step up, the sidebar's, ⌘K's), nothing searched, at its top; where it is
        * already, back at its top. A step of the history, where it was kept in the one it leaves (Back comes back there).
        */
+      /** Another page of Charts come to (a folder, a section, back): it comes in, up a little as it shows, not swapped at once. */
+      function pageIn() {
+        if (reduced.matches) return;
+        /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).animate({ opacity: [0, 1], translate: ["0 6px", "0 0"] }, { duration: MOTION.small, easing: MOTION.ease });
+      }
       function goTo(/** @type {Place} */ place) {
         quickHide();
         const same = JSON.stringify(place) === JSON.stringify(homeAt);
@@ -17523,6 +17608,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!same) history.pushState(homeState(), "");
         const fromPage = $("home").contains(document.activeElement);
         renderHome();
+        if (!same) pageIn();
         homeScroll().scrollTop = 0;
         // (Gone with the page it was on, the focus starts the new one: its name.)
         if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
@@ -18115,6 +18201,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!home) return showHome(false, place);
           const fromPage = $("home").contains(document.activeElement);
           renderHome();
+          pageIn();
           // (Gone with the page it was on, the focus starts the one come back to: its name.)
           if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
           if (place) placeGallery(place);
@@ -18580,8 +18667,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A draft, the empty chart in place of none, listed only while it's the one open: under the page, not one.)
         const listed = listedPreviews(), draft = home ? undefined : previewCharts.find((doc) => drafts.has(doc)), counts = chartCounts();
         // (The presets under them as the page has them: named before they've arrived, nothing to change once they have.)
-        const libraryNamed = Boolean((listed.length || presetsFailed !== "none") && (draft || sideItems().length));
-        libraryFolded = libraryNamed && groupShut("library");
+        // (Named always, nothing in it too: what's yours, and where New folder is.)
+        libraryFolded = groupShut("library");
         const keys = numbered();
         const row = (/** @type {Chart} */ doc, depth = 0) => ((i) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
             <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i >= 0 ? `data-kbd="⌘ ${i + 1}"` : ""}>${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span>${i >= 0 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
@@ -18594,8 +18681,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(listed.length ? [sideHead("previews", listed.length, Boolean(current && listed.includes(current))), ...(groupShut("previews") ? [] : listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)])))] : []),
           // (Yours named where something's around them to tell them from: previews over them, the presets under them; closed
           // only where named, a way to open them again there.)
-          ...(libraryNamed ? [sideHead("library", library.charts.length, Boolean(current && (current === draft || (!isPreview(current) && current.preset === undefined))))] : []),
-          ...(libraryNamed && groupShut("library") ? [] : [
+          sideHead("library", library.charts.length, Boolean(current && (current === draft || (!isPreview(current) && current.preset === undefined)))),
+          ...(groupShut("library") ? [] : [
           ...(draft ? [/** @type {[string, string]} */ ([`preview:${draft.id}`, previewRow(draft)])] : []),
           // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
           ...treeOf(undefined, true).map(({ item, depth }) => {
@@ -18661,7 +18748,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const sideHead = (group, count, holds) => {
         const [name, place] = GROUP_OF[group], shut = groupShut(group);
-        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}">${name}<span class="count">${shortCount(count)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}">${ICONS.more}</button></div>`];
+        // (Your Library's: its New folder too, folders being its own.)
+        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""} ${group === "library" ? "adds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}">${name}<span class="count">${shortCount(count)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}">${ICONS.more}</button>${group === "library" ? `<button type="button" class="cap small list-head-add" data-new-folder aria-label="New folder" data-tip="New folder">${ICONS.folderAdd}</button>` : ""}</div>`];
       };
       /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
       const groupRows = (group) => [
@@ -18797,8 +18885,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         keys.unshift(...folders.map(sideKey).filter((key) => !keys.includes(key)));
         return keys.map((key) => /** @type {Chart | Folder} */ (byKey.get(key)));
       }
-      /** The sidebar's top level. */
-      const sideItems = () => childrenOf();
       /**
        * A folder's items in a new order (they're all one folder's): written last in the one order, each folder's own
        * among themselves as they were. @param {(Chart | Folder)[]} items
@@ -18848,6 +18934,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (home) $("home-filter").value = "";
         library.folders.push(folder);
         setChildren([folder, ...childrenOf(folder.parent).filter((item) => item !== folder)]);
+        // (Your Library opened in the sidebar if it was closed there: named in place, where it is.)
+        if (prefs.groupsClosed.includes("library")) (prefs.groupsClosed = prefs.groupsClosed.filter((group) => group !== "library")), savePrefs();
         // (Where it is, in sight: the folders it's in opened.)
         for (let at = folder.parent; at; at = folderById(at)?.parent) delete /** @type {Folder} */ (folderById(at)).closed;
         moveToFolder(keys, folder.id, true);
@@ -19779,7 +19867,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.preventDefault();
         newFolder([], "folder" in homeAt ? homeAt.folder || undefined : undefined);
       });
-      $("new-folder").addEventListener("click", () => newFolder());
+      $("chart-list").addEventListener("click", (event) => closest(event, "[data-new-folder]") && newFolder());
       $("chart-list").addEventListener("scroll", () => fitSoon($("chart-list"), true), { passive: true });
       new ResizeObserver(() => fitStrip($("chart-list"), true)).observe($("chart-list"));
       // The empty chart offers the website's recommended charts, each with its mini chart, name and place, in a row that
@@ -25522,6 +25610,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * edge (its right, where that fits better), or, asked for a side (the belt's popovers), centered on it.
        */
       function placeMenu(menu, host, anchor, point, side = "") {
+        // (Opened again as it fades: its fade ended first, its box measured whole and in place.)
+        for (const motion of menu.getAnimations()) if (motion instanceof CSSTransition) motion.finish();
         const own = point ? new DOMRect(point.x, point.y, 0, 0) : anchor.getBoundingClientRect();
         // (A belt's popover from the belt's edge, not its button's: as far from it as a menu from what opened it.)
         const belt = side && !point ? anchor.closest("#belt")?.getBoundingClientRect() : null;
@@ -25715,6 +25805,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (focus && !$("submenu").hidden) /** @type {HTMLElement | undefined} */ ($("submenu").querySelector("button[aria-checked='true']:not(:disabled)") ?? all$("button:not(:disabled)", $("submenu"))[0])?.focus();
       }
       function showSubmenu(/** @type {HTMLElement} */ row, /** @type {string} */ html, /** @type {(data: DOMStringMap) => void} */ onPick) {
+        // (Opened again as it fades: measured whole and in place, as a menu is.)
+        for (const motion of $("submenu").getAnimations()) if (motion instanceof CSSTransition) motion.finish();
         const sub = $("submenu"), host = /** @type {HTMLElement} */ ($("menu").parentElement);
         fillMenu(sub, host, html, calledBy(row), onPick);
         sub.hidden = false;
