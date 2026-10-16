@@ -959,7 +959,8 @@
           position: absolute;
           z-index: 1;
           right: 6px;
-          left: 6px;
+          /* (In a tree, at the level it lands at.) */
+          left: calc(6px + var(--drop-depth, 0) * 16px);
           height: 2px;
           border-radius: 1px;
           background: var(--ink);
@@ -1082,23 +1083,23 @@
         }
       }
 
-      .chart-row.in-folder {
-        .chart-item {
-          padding-left: 29px;
+      /* In a folder, a step in a level (as deep as it goes), along a line down from each folder's icon it's in. */
+      :is(.chart-row, .folder-row).in-folder {
+        > :is(.chart-item, .folder-item) {
+          padding-left: calc(13px + var(--depth, 0) * 16px);
         }
 
-        /* (The line, under its folder's icon: down its charts and the gaps between them.) */
+        /* (The lines, under the icons of the folders it's in: down their rows and the gaps between them.) */
         &::before {
           content: "";
           position: absolute;
           top: calc(-1 * var(--row-gap));
           bottom: 0;
-          left: 20.5px;
-          width: 1px;
-          background: var(--line-strong);
+          left: 13px;
+          width: calc(var(--depth, 0) * 16px);
+          background: linear-gradient(to right, transparent 7.5px, var(--line-strong) 7.5px 8.5px, transparent 8.5px) 0 0 / 16px 100% repeat-x;
           pointer-events: none;
         }
-
       }
 
       :is(.folder-rename, .row-rename) {
@@ -1537,8 +1538,8 @@
            * (half of one: as much is left clear to the next): nothing moves as it opens or closes. Each row draws its
            * slice, through the gap under it.
            */
-          .folder-row:has(+ .chart-row.in-folder),
-          .chart-row.in-folder {
+          .folder-row:not(.in-folder):has(+ .in-folder),
+          :is(.chart-row, .folder-row).in-folder {
             isolation: isolate;
 
             &::before {
@@ -1555,14 +1556,14 @@
             }
           }
 
-          .folder-row:has(+ .chart-row.in-folder)::before {
+          .folder-row:not(.in-folder):has(+ .in-folder)::before {
             top: -2px;
             border-radius: calc(var(--radius-md) + 2px) calc(var(--radius-md) + 2px) 0 0;
             box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
           }
 
-          .chart-row.in-folder {
-            &:not(:has(+ .chart-row.in-folder))::before {
+          :is(.chart-row, .folder-row).in-folder {
+            &:not(:has(+ .in-folder))::before {
               bottom: -2px;
               border-radius: 0 0 calc(var(--radius-md) + 2px) calc(var(--radius-md) + 2px);
               box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line);
@@ -1577,7 +1578,7 @@
               }
             }
 
-            .chart-item {
+            > :is(.chart-item, .folder-item) {
               padding-left: 7px;
             }
           }
@@ -9930,7 +9931,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   layer's) and its line style (else long dashes). A baseline's base draws one too (`baseLine`: gray, in sparse dots).
        * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`:
        *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
-       * @typedef {{ id: string, name: string, closed?: true }} Folder A folder of charts (one level: none in another); `closed`, its charts out of sight.
+       * @typedef {{ id: string, name: string, parent?: string, closed?: true }} Folder A folder of charts and folders, in
+       *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
        * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, updated: number }} Chart
        * @typedef {"trend" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
        * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
@@ -10224,17 +10226,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /**
        * The charts, their folders, and the sidebar's own order: its top level, folders and the charts in none, as arranged
-       * ("f:" a folder's id, "c:" a chart's; see sideItems); and the charts deleted, by id, when (see `discard`).
+       * ("f:" a folder's id, "c:" a chart's; see childrenOf); and the charts deleted, by id, when (see `discard`).
        * @type {{ charts: Chart[], active: string, folders: Folder[], order: string[], deleted: Record<string, number> }}
        */
       let library = storage.get(STORE, null);
       /**
        * The library's shape, as this Studio writes it (raised with what `validate` learns to read, and with what's kept:
-       * 5, the deletions, so a Studio that doesn't record them can't save over them): one saved by a newer
+       * 5, the deletions, so a Studio that doesn't record them can't save over them; 6, folders in folders, so one that
+       * reads them flat can't save them so): one saved by a newer
        * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
        * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
        */
-      const SCHEMA = 5;
+      const SCHEMA = 6;
       let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && (() => {
         try {
           return localStorage.getItem(STORE) !== null;
@@ -10278,13 +10281,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       library.charts = library.charts.flatMap(restore).filter((doc) => !(library.deleted[doc.id] >= doc.updated));
-      /** Folders as stored, read: each named (at most 60 characters), once; a chart's folder that's gone, none. */
+      /**
+       * Folders as stored, read: each named (at most 60 characters), once, in a folder that's there (none in itself, by
+       * any way round: at the top then); a chart's folder that's gone, none.
+       */
       function foldersOf(/** @type {any} */ stored, /** @type {Chart[]} */ charts) {
         const seen = new Set(), folders = /** @type {Folder[]} */ ((Array.isArray(stored) ? stored : []).flatMap((folder) => {
           if (typeof folder?.id !== "string" || !/^[a-z0-9]{1,16}$/.test(folder.id) || seen.has(folder.id)) return [];
           seen.add(folder.id);
-          return [{ id: folder.id, name: String(folder.name ?? "").trim().slice(0, 60) || "Folder", ...(folder.closed === true ? { closed: true } : {}) }];
+          return [{ id: folder.id, name: String(folder.name ?? "").trim().slice(0, 60) || "Folder", ...(typeof folder.parent === "string" && folder.parent ? { parent: folder.parent } : {}), ...(folder.closed === true ? { closed: true } : {}) }];
         }));
+        const byId = new Map(folders.map((folder) => [folder.id, folder]));
+        // (Up from each: one in a folder not here, at the top; a loop, cut where it closes.)
+        for (const folder of folders) {
+          const path = new Set([folder.id]);
+          for (let at = folder; at.parent; ) {
+            const up = byId.get(at.parent);
+            if (!up || path.has(up.id)) {
+              delete at.parent;
+              break;
+            }
+            path.add(up.id);
+            at = up;
+          }
+        }
         for (const doc of charts) if (doc.folder && !seen.has(doc.folder)) delete doc.folder;
         return folders;
       }
@@ -10367,11 +10387,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** A link that couldn't be read, left in the address bar to be put right (until another chart's opened). */
       let brokenLink = "";
-      /** A chart taken out of the list, if it's there (a preview isn't): to put it back elsewhere (see `discard`). */
-      const unlist = (/** @type {Chart} */ doc) => {
-        const at = library.charts.indexOf(doc);
-        if (at >= 0) library.charts.splice(at, 1);
-      };
       /**
        * A chart deleted: out of the list, and when, kept with the library, so that another tab's copy of it (saved before
        * that tab heard) doesn't bring it back. Edited after that (an Undo, an edit in a tab where it's open), it's back.
@@ -10382,9 +10397,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.charts.splice(at, 1);
         library.deleted[doc.id] = Math.max(Date.now(), doc.updated, library.deleted[doc.id] ?? 0);
       };
-      /** A deleted chart back (its Undo): edited now, after its deletion, wherever that's known. @param {Chart} doc */
+      /** A deleted chart back (its Undo): edited now, after its deletion, wherever that's known; its folder gone since, at the top. @param {Chart} doc */
       const recover = (doc) => {
         stampEdit(doc);
+        if (doc.folder && !library.folders.some((folder) => folder.id === doc.folder)) delete doc.folder;
         delete library.deleted[doc.id];
       };
       /** A chart edited, stamped: now, and past its last stamp and any deletion of it (a clock set back). @param {Chart} doc */
@@ -16763,18 +16779,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const drawnTiles = new Map();
       let drawnLayout = "";
       /**
-       * The grid's sections, in the sidebar's order: each folder (its charts, none while closed), and each run of charts in
-       * none between them (`folder` null); filtered, one (`folder` undefined): the charts as they're found.
+       * The grid's sections, in the sidebar's order: each folder in sight (its own charts, none while closed; how many it
+       * holds, at any depth), and each run of charts at the top between them (`folder` null); filtered, one (`folder`
+       * undefined): the charts as they're found.
        * @returns {{ folder: Folder | null | undefined, docs: Chart[], count: number }[]}
        */
       function sectionsOf(/** @type {Chart[]} */ shown, /** @type {string} */ query) {
         if (query) return [{ folder: undefined, docs: shown, count: shown.length }];
-        const seen = new Set(shown), sections = /** @type {{ folder: Folder | null | undefined, docs: Chart[], count: number }[]} */ ([]);
-        for (const item of sideItems()) {
-          if (!("layers" in item)) {
-            const docs = shown.filter((doc) => doc.folder === item.id);
-            sections.push({ folder: item, docs: item.closed ? [] : docs, count: docs.length });
-          } else if (seen.has(item)) {
+        const seen = new Set(shown), sections = /** @type {{ folder: Folder | null | undefined, docs: Chart[], count: number }[]} */ ([]), counts = chartCounts();
+        for (const { item, depth } of treeOf(undefined, true)) {
+          if (!("layers" in item)) sections.push({ folder: item, docs: item.closed ? [] : childrenOf(item.id).flatMap((other) => ("layers" in other && seen.has(other) ? [other] : [])), count: counts.get(item.id) ?? 0 });
+          else if (depth) continue;
+          else if (seen.has(item)) {
             const run = sections.at(-1);
             if (run?.folder === null) run.docs.push(item), run.count++;
             else sections.push({ folder: null, docs: [item], count: 1 });
@@ -16782,7 +16798,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return sections;
       }
-      const gridHeadHtml = (/** @type {Folder} */ folder, /** @type {number} */ count) => `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}"><span class="folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="name">${escape(folder.name)}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`;
+      const gridHeadHtml = (/** @type {Folder} */ folder, /** @type {number} */ count) => `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}"><span class="folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="name">${escape(folderPath(folder.id))}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`;
       function renderHome() {
         if (!home) return;
         showHomeView();
@@ -16803,7 +16819,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // The same charts in the same order (and folders): only the tiles that changed are drawn again (a click on another
         // one, under way, isn't lost; focus and hover stay). Otherwise, all of them.
         const visible = sections.flatMap((section) => section.docs), html = visible.map(tileHtml), tiles = all$(".tile", $("home-grid"));
-        const layout = JSON.stringify(sections.map(({ folder, docs, count, previewGroup }) => [previewGroup, folder?.id, folder?.name, folder?.closed, count, docs.length]));
+        const layout = JSON.stringify(sections.map(({ folder, docs, count, previewGroup }) => [previewGroup, folder?.id, folder && folderPath(folder.id), folder?.closed, count, docs.length]));
         if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.homeCard === visible[i].id)) {
           tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && (tile.outerHTML = html[i]));
         } else {
@@ -16815,7 +16831,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("home-grid").innerHTML = sections.map(({ folder, docs, count, previewGroup }) => (previewGroup
             ? `<section class="grid-section previews">${groupHead("Previews", count)}<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div></section>${saved ? groupHead("Saved", shown.length) : ""}`
             : folder
-            ? `<section class="grid-section folder"><i class="held-mark" aria-hidden="true"></i>${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed ? `<p class="grid-empty">${TOUCH ? "No charts yet. Hold one, then tap Move" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
+            ? `<section class="grid-section folder"><i class="held-mark" aria-hidden="true"></i>${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed && !childrenOf(folder.id).length ? `<p class="grid-empty">${TOUCH ? "No charts yet. Hold one, then tap Move" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
             : `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>`)).join("");
           for (const slot of all$("[data-slot]", $("home-grid"))) slot.replaceWith(/** @type {HTMLElement} */ (old.get(/** @type {string} */ (slot.dataset.slot))));
           restoreFocus($("home-grid"), focus);
@@ -17139,7 +17155,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const docs = library.charts.filter((doc) => (ids ? ids.includes(doc.id) : picked.has(doc.id)));
         if (action === "clear" || !docs.length) return clearPicks(action === "clear");
         if (action === "rename") return void (docs.length === 1 && renameTile(docs[0]));
-        if (action === "folder") return folderMenu(/** @type {HTMLElement} */ (button ?? tileOpen(docs[0].id)), docs.map((doc) => doc.id));
+        if (action === "folder") return folderMenu(/** @type {HTMLElement} */ (button ?? tileOpen(docs[0].id)), docs.map(sideKey));
         if (action === "export") {
           // One, its chart file (as from its menu); several, one file of them (imported, they come back to the grid, picked).
           if (docs.length === 1) return downloadChart(docs[0]);
@@ -17267,12 +17283,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** What the picked charts do together (a picked card's ⋯ or right-click). @returns {Action[]} */
       function gridActions() {
-        const ids = [...picked], n = ids.length, leave = outOf(ids), one = n === 1 ? chartById(ids[0]) : null;
+        const ids = [...picked], n = ids.length, leave = outOf(chartKeys(ids)), one = n === 1 ? chartById(ids[0]) : null;
         return [
           ...(one ? [{ key: "open", icon: ICONS.next, label: "Open", run: () => go(chartById(one.id)) }, { key: "rename", icon: ICONS.pencil, label: "Rename", run: () => batch("rename") }] : []),
           { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", run: () => batch("duplicate") },
-          { key: "folder", icon: ICONS.folder, label: "Move to folder", page: () => choicePage("Move to folder", () => folderChoices(ids, false)) },
-          ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder(ids, null) }] : []),
+          { key: "folder", icon: ICONS.folder, label: "Move to folder", page: () => choicePage("Move to folder", () => folderChoices(chartKeys(ids), false)) },
+          ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder(chartKeys(ids), null) }] : []),
           { key: "download", icon: ICONS.file, label: "Download chart file", aside: "JSON", run: () => batch("export") },
           { key: "delete", icon: ICONS.trash, label: n > 1 ? `Delete ${n} charts` : "Delete", danger: true, run: () => batch("delete") },
         ];
@@ -17961,8 +17977,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ? `<button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="A new chart: in your charts once something's in it">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>`
           : `<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your charts (Keep${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
         // (A new chart, empty, listed only while it's the one open: under All charts' page, not one.)
-        const listed = listedPreviews(), draft = home ? undefined : previewCharts.find((doc) => drafts.has(doc));
-        const row = (/** @type {Chart} */ doc) => ((i) => `<div class="chart-row ${doc.folder ? "in-folder" : ""}" data-chart-row="${doc.id}">
+        const listed = listedPreviews(), draft = home ? undefined : previewCharts.find((doc) => drafts.has(doc)), counts = chartCounts();
+        const row = (/** @type {Chart} */ doc, depth = 0) => ((i) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
             <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i >= 0 ? `data-kbd="⌘ ${i + 1}"` : ""}>${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span>${i >= 0 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
           </div>`)(keys.indexOf(doc));
@@ -17973,13 +17989,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(listed.length ? [/** @type {[string, string]} */ (["head:previews", `<div class="list-head">Previews<span class="count">${listed.length}</span></div>`]), ...listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)]))] : []),
           ...(listed.length && (draft || sideItems().length) ? [/** @type {[string, string]} */ (["head:saved", `<div class="list-head">Saved<span class="count">${library.charts.length}</span></div>`])] : []),
           ...(draft ? [/** @type {[string, string]} */ ([`preview:${draft.id}`, previewRow(draft)])] : []),
-          ...sideItems().flatMap((item) => {
-            if ("layers" in item) return [/** @type {[string, string]} */ ([item.id, row(item)])];
-            const folder = item, docs = library.charts.filter((doc) => doc.folder === folder.id), holds = Boolean(current && docs.includes(current));
-            return [/** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${folder.closed ? "closed" : ""} ${folder.closed && holds ? "holds" : ""}" data-folder-row="${folder.id}">
-              <button type="button" class="nav-item folder-item" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${docs.length}</span></button>
+          // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
+          ...treeOf(undefined, true).map(({ item, depth }) => {
+            if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
+            const folder = item, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
+            return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${folder.closed ? "closed" : ""} ${folder.closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
+              <button type="button" class="nav-item folder-item" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${counts.get(folder.id) ?? 0}</span></button>
               <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button>
-            </div>`]), ...(folder.closed ? [] : docs.map((doc) => /** @type {[string, string]} */ ([doc.id, row(doc)])))];
+            </div>`]);
           }),
         ];
         // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
@@ -18012,39 +18029,88 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A top-level item's key in the sidebar's order: a folder's, or a chart's in none. @param {Chart | Folder} item */
       const sideKey = (item) => ("layers" in item ? `c:${item.id}` : `f:${item.id}`);
+      /** The folder an item's in (none: the top). @param {Chart | Folder} item */
+      const parentOf = (item) => ("layers" in item ? item.folder : item.parent);
+      /** An item put in a folder (none: the top). @param {Chart | Folder} item @param {string | undefined} parent */
+      const setParent = (item, parent) => {
+        if ("layers" in item) parent ? (item.folder = parent) : delete item.folder;
+        else parent ? (item.parent = parent) : delete item.parent;
+      };
+      /** A chart or a folder by its key ("c:…", "f:…"). */
+      const itemOf = (/** @type {string} */ key) => (key[0] === "f" ? folderById(key.slice(2)) : chartById(key.slice(2)));
+      /** Items by their keys, those still here. @returns {(Chart | Folder)[]} */
+      const itemsOf = (/** @type {string[]} */ keys) => keys.flatMap((key) => itemOf(key) ?? []);
       /**
-       * The sidebar's top level, in its order: folders and the charts in none, as arranged. One new to it: a folder, on
-       * top; a chart, after the one before it in the list (on top if none is: a new chart; a copy, after its own).
+       * A folder's items (none given: the top's), in their order: its folders and its charts as arranged (one order for
+       * all, each folder's among themselves). One new to it: a folder, first; a chart, after the one before it in the list
+       * (first if none is: a new chart; a copy, after its own).
        * @returns {(Chart | Folder)[]}
        */
-      function sideItems() {
-        const loose = library.charts.filter((doc) => !doc.folder);
-        const byKey = new Map([...library.folders, ...loose].map((item) => [sideKey(item), item]));
+      function childrenOf(/** @type {string | undefined} */ parent = undefined) {
+        const folders = library.folders.filter((folder) => folder.parent === parent), charts = library.charts.filter((doc) => doc.folder === parent);
+        const byKey = new Map([...folders, ...charts].map((item) => [sideKey(item), item]));
         const keys = library.order.filter((key) => byKey.has(key));
         let after = -1;
-        for (const doc of loose) {
+        for (const doc of charts) {
           const at = keys.indexOf(`c:${doc.id}`);
           if (at >= 0) after = at;
           else keys.splice(++after, 0, `c:${doc.id}`);
         }
-        keys.unshift(...library.folders.map(sideKey).filter((key) => !keys.includes(key)));
+        keys.unshift(...folders.map(sideKey).filter((key) => !keys.includes(key)));
         return keys.map((key) => /** @type {Chart | Folder} */ (byKey.get(key)));
       }
-      /** The sidebar's top level in a new order. @param {(Chart | Folder)[]} items */
-      const setSide = (items) => (library.order = items.map(sideKey));
-      /** The charts as the sidebar lists them: in its order, a folder's in theirs. */
-      const listed = () => sideItems().flatMap((item) => ("layers" in item ? [item] : library.charts.filter((doc) => doc.folder === item.id)));
+      /** The sidebar's top level. */
+      const sideItems = () => childrenOf();
+      /**
+       * A folder's items in a new order (they're all one folder's): written last in the one order, each folder's own
+       * among themselves as they were. @param {(Chart | Folder)[]} items
+       */
+      const setChildren = (items) => ((keys) => (library.order = [...library.order.filter((key) => !keys.includes(key)), ...keys]))(items.map(sideKey));
+      /** Everything under a folder (none: the top), as the sidebar has it, each with how deep; `open`: not into a closed one. @returns {{ item: Chart | Folder, depth: number }[]} */
+      function treeOf(parent = /** @type {string | undefined} */ (undefined), open = false, depth = 0, /** @type {{ item: Chart | Folder, depth: number }[]} */ out = []) {
+        for (const item of childrenOf(parent)) {
+          out.push({ item, depth });
+          if (!("layers" in item) && !(open && item.closed)) treeOf(item.id, open, depth + 1, out);
+        }
+        return out;
+      }
+      /** The charts as the sidebar lists them: in its order, each folder's in theirs, at any depth. */
+      const listed = () => treeOf().flatMap(({ item }) => ("layers" in item ? [item] : []));
       const folderById = (/** @type {string | undefined} */ id) => library.folders.find((folder) => folder.id === id);
+      /** Whether a folder is `outer`, or in it, at any depth. */
+      const isIn = (/** @type {string | undefined} */ id, /** @type {string} */ outer) => {
+        for (let at = id, steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) if (at === outer) return true;
+        return false;
+      };
+      /** Whether an item shows in the sidebar: no folder it's in closed. @param {Chart | Folder} item */
+      const inSight = (item) => {
+        for (let at = parentOf(item), steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) if (folderById(at)?.closed) return false;
+        return true;
+      };
+      /** How many charts each folder holds, at any depth: one pass, each chart counted up through the folders it's in. */
+      function chartCounts() {
+        const byId = new Map(library.folders.map((folder) => [folder.id, folder])), counts = /** @type {Map<string, number>} */ (new Map());
+        for (const doc of library.charts) for (let at = doc.folder, steps = 0; at && steps <= byId.size; at = byId.get(at)?.parent, steps++) counts.set(at, (counts.get(at) ?? 0) + 1);
+        return counts;
+      }
+      /** A folder's name with those it's in ("Work › Cycles"). */
+      const folderPath = (/** @type {string} */ id) => {
+        const names = [];
+        for (let at = /** @type {string | undefined} */ (id), steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) names.unshift(folderById(at)?.name ?? "");
+        return names.join(" › ");
+      };
       /** The charts ⌘1–9 open: the first nine the sidebar shows (one in a closed folder, out of sight, out of reach). */
-      const numbered = () => listed().filter((doc) => !folderById(doc.folder)?.closed).slice(0, 9);
-      /** A folder made, named at once where it shows (`ids`: the charts it starts with). */
-      function newFolder(/** @type {string[]} */ ids = []) {
-        const folder = /** @type {Folder} */ ({ id: uid(), name: "New folder" });
+      const numbered = () => listed().filter(inSight).slice(0, 9);
+      /** A folder made (in `parent`, first there; none: at the top), named at once where it shows (`keys`: what it starts with). */
+      function newFolder(/** @type {string[]} */ keys = [], /** @type {string | undefined} */ parent = undefined) {
+        const folder = /** @type {Folder} */ ({ id: uid(), name: "New folder", ...(parent && folderById(parent) ? { parent } : {}) });
         // (In the grid, its filter cleared: the folder shows, to be named.)
         if (home) $("home-filter").value = "";
         library.folders.push(folder);
-        setSide([folder, ...sideItems().filter((item) => item !== folder)]);
-        moveToFolder(ids, folder.id, true);
+        setChildren([folder, ...childrenOf(folder.parent).filter((item) => item !== folder)]);
+        // (Where it is, in sight: the folders it's in opened.)
+        for (let at = folder.parent; at; at = folderById(at)?.parent) delete /** @type {Folder} */ (folderById(at)).closed;
+        moveToFolder(keys, folder.id, true);
         save();
         renderCharts();
         renameFolder(folder.id);
@@ -18071,7 +18137,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folds = foldOf(id).map((element) => fold(element, closing));
         // (On the rail, its own slice of their surface fades with them.)
         const head = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-row="${id}"]`));
-        if (head) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
+        if (head && !head.classList.contains("in-folder")) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
         if (!closing) return;
         closings++;
         Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
@@ -18151,11 +18217,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         menuOf(anchor, THEMES.map(([id, name]) => ({ key: id, label: name, current: prefs.theme === id, run: () => setTheme(/** @type {"system" | "light" | "dark"} */ (id)) })));
       }
       renderTheme();
+      /** The sidebar's rows under a folder's, at any depth (those after it, deeper than it). */
+      function rowsUnder(/** @type {string} */ id) {
+        const rows = all$("[data-chart-row], [data-folder-row]", $("chart-list")), at = rows.findIndex((row) => row.dataset.folderRow === id);
+        if (at < 0) return [];
+        const depth = depthOf(rows[at]), under = [];
+        for (const row of rows.slice(at + 1)) {
+          if (depthOf(row) <= depth) break;
+          under.push(row);
+        }
+        return under;
+      }
       /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
       let closings = 0;
       /** What a folder's opening or closing moves: its charts' rows in the sidebar, its box in the grid. */
       const foldOf = (/** @type {string} */ id) => [
-        ...all$(".chart-row.in-folder", $("chart-list")).filter((row) => chartById(/** @type {string} */ (row.dataset.chartRow))?.folder === id),
+        ...rowsUnder(id),
         ...(home ? [$("home-grid").querySelector(`[data-grid-folder="${id}"]`)?.parentElement].filter((box) => box instanceof HTMLElement) : []),
       ];
       /**
@@ -18163,7 +18240,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * sliding out from under the one above and fading. One under way turns back from where it is.
        */
       function fold(/** @type {HTMLElement} */ element, /** @type {boolean} */ closing) {
-        const row = element.matches(".chart-row"), moving = element.getAnimations().length > 0, now = element.getBoundingClientRect().height;
+        const row = element.matches(".chart-row, .folder-row"), moving = element.getAnimations().length > 0, now = element.getBoundingClientRect().height;
         for (const animation of element.getAnimations()) animation.cancel();
         const full = element.offsetHeight, low = /** @type {HTMLElement | null} */ (element.querySelector(":scope > .grid-folder"))?.offsetHeight ?? 0;
         const from = moving ? now : closing ? full : low, shown = full > low ? (from - low) / (full - low) : 1;
@@ -18211,12 +18288,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folder = folderById(id);
         if (folder) stepSide(folder, by);
       }
-      /** A top-level item a place up or down in the sidebar's order. @param {Chart | Folder} item */
+      /** An item a place up or down among its folder's (the top's). @param {Chart | Folder} item */
       function stepSide(item, by) {
-        const items = sideItems(), at = items.indexOf(item), to = at + by;
+        const items = childrenOf(parentOf(item)), at = items.indexOf(item), to = at + by;
         if (at < 0 || to < 0 || to >= items.length) return;
         [items[at], items[to]] = [items[to], items[at]];
-        arrange(() => setSide(items), sideKey(item));
+        arrange(() => setChildren(items), sideKey(item));
       }
       /**
        * The sidebar rearranged (`edit`), gliding: its rows from where they were to where they are (`moved`, the one moved,
@@ -18231,29 +18308,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         renderCharts();
         slide(rows(), sideId, was, { moved });
       }
-      /** A folder deleted: its charts kept (out of it, where they were), with an Undo. */
+      /** A folder deleted: what's in it kept (its charts, its folders), a level up where it was, with an Undo. */
       function deleteFolder(/** @type {string} */ id) {
         const at = library.folders.findIndex((folder) => folder.id === id), folder = library.folders[at];
         if (!folder) return;
-        const members = library.charts.filter((doc) => doc.folder === id), keys = sideItems().map(sideKey);
+        const members = childrenOf(id), charts = library.charts.filter((doc) => isIn(doc.folder, id)).length, siblings = childrenOf(folder.parent), place = siblings.indexOf(folder);
         library.folders.splice(at, 1);
         // (Kept with the library, as a chart's: another tab's copy of it doesn't bring it back.)
         library.deleted[id] = Date.now();
-        // (Its charts where it was in the sidebar, in their order.)
-        for (const doc of members) delete doc.folder;
-        library.order = keys.flatMap((key) => (key === `f:${id}` ? members.map((doc) => `c:${doc.id}`) : [key]));
+        // (What was in it where it was, in its order.)
+        for (const item of members) setParent(item, folder.parent);
+        setChildren([...siblings.slice(0, place), ...members, ...siblings.slice(place + 1)]);
         save();
         renderCharts();
-        toast(`Deleted “${folder.name}”${members.length ? `; its ${plural(members.length, "chart")} kept` : ""}`, { label: "Undo", run: () => {
+        toast(`Deleted “${folder.name}”${members.length ? `; ${charts ? `its ${plural(charts, "chart")}` : "what was in it"} kept` : ""}`, { label: "Undo", run: () => {
           if (folderById(id)) return;
           // (Back as a folder anew, its deletion standing: wherever that's been heard, this one isn't it.)
-          const again = { ...folder, id: uid() };
-          const back = new Set(members.map((doc) => doc.id)), now = sideItems().map(sideKey), first = now.findIndex((key) => back.has(key.slice(2)));
-          const order = now.filter((key) => !back.has(key.slice(2)));
+          // (What was in it, still where the delete put it; the folder that was around it gone since, wherever that took
+          // them: the folder back with them there.)
+          const again = /** @type {Folder} */ ({ ...folder, id: uid() }), gone = Boolean(folder.parent && !folderById(folder.parent));
+          const back = itemsOf(members.map(sideKey)).filter((item) => gone || parentOf(item) === folder.parent);
+          const parent = gone ? (back[0] ? parentOf(back[0]) : undefined) : folder.parent;
+          parent ? (again.parent = parent) : delete again.parent;
+          if (gone) back.splice(0, back.length, ...back.filter((item) => parentOf(item) === parent));
+          const now = childrenOf(again.parent), first = now.findIndex((item) => back.includes(item));
           library.folders.splice(Math.min(at, library.folders.length), 0, again);
-          for (const doc of library.charts) if (back.has(doc.id) && !doc.folder) doc.folder = again.id;
-          order.splice(first >= 0 ? first : Math.min(keys.indexOf(`f:${id}`), order.length), 0, `f:${again.id}`);
-          library.order = order;
+          for (const item of back) setParent(item, again.id);
+          setChildren(back);
+          const rest = now.filter((item) => !back.includes(item));
+          rest.splice(first >= 0 ? first : Math.min(place, rest.length), 0, again);
+          setChildren(rest);
           save();
           renderCharts();
           return () => deleteFolder(again.id);
@@ -18265,92 +18349,112 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const at = after === undefined ? 0 : list.indexOf(after) + 1;
         return [...list.slice(0, at), item, ...list.slice(at)];
       }
-      /** The charts as they're arranged (their order, their folders, the sidebar's order), to put back. */
-      const arrangement = () => ({ charts: [...library.charts], order: sideItems().map(sideKey), folders: new Map(library.charts.map((doc) => [doc, doc.folder])) });
-      /** Charts whose folder changed since `was` say so (into one, or out of theirs), with an Undo back to it. @param {Chart[]} docs */
-      function folderToast(was, docs) {
-        const moved = docs.filter((doc) => was.folders.get(doc) !== doc.folder);
+      /** How things are arranged (the one order, each item's folder), to put back. */
+      const arrangement = () => ({ order: treeOf().map(({ item }) => sideKey(item)), folders: new Map([...library.charts, ...library.folders].map((item) => [sideKey(item), parentOf(item)])) });
+      /** Items whose folder changed since `was` say so (into one, or out of theirs), with an Undo back to it. @param {(Chart | Folder)[]} items */
+      function folderToast(was, items) {
+        const moved = items.filter((item) => was.folders.get(sideKey(item)) !== parentOf(item));
         if (!moved.length) return;
-        const what = moved.length === 1 ? `“${titleOf(moved[0])}”` : `${moved.length} charts`, to = new Set(moved.map((doc) => doc.folder)), from = new Set(moved.map((doc) => was.folders.get(doc)));
-        const named = (/** @type {string | undefined} */ id) => `“${folderById(id)?.name ?? ""}”`, into = [...to][0], left = [...from][0];
-        toast(to.size === 1 && into ? `Moved ${what} to ${named(into)}` : to.size === 1 ? `Moved ${what} out of ${from.size === 1 ? named(left) : "their folders"}` : `Moved ${what}`, { label: "Undo", run: () => {
+        const what = moved.length === 1 ? `“${"layers" in moved[0] ? titleOf(moved[0]) : moved[0].name}”` : `${moved.length} ${moved.every((item) => "layers" in item) ? "charts" : "items"}`;
+        const to = new Set(moved.map(parentOf)), from = new Set(moved.map((item) => was.folders.get(sideKey(item)))), into = [...to][0], left = [...from][0];
+        const named = (/** @type {string | undefined} */ id) => `“${folderById(id)?.name ?? ""}”`;
+        toast(to.size === 1 && into ? `Moved ${what} to ${named(into)}` : to.size === 1 && from.size === 1 && left ? `Moved ${what} out of ${named(left)}` : `Moved ${what}`, { label: "Undo", run: () => {
           const after = arrangement();
           placeAs(was, moved);
           // (Again, as they were after it: each where the move put it, however it was moved, a drop's place too.)
-          return () => (placeAs(after, moved), folderToast(was, moved.map((doc) => chartById(doc.id)).filter((doc) => doc !== undefined)));
+          return () => (placeAs(after, moved), folderToast(was, itemsOf(moved.map(sideKey))));
         }, undone: "Moved back" });
       }
       /**
-       * Charts back where an arrangement had them (by id: another tab's moves since, and its copies of them, stay as they
-       * are): each in its folder then (still there), after the nearest chart before it then; at the top level, after the
-       * nearest item before it there. @param {ReturnType<typeof arrangement>} was @param {Chart[]} docs
+       * Items back where an arrangement had them (by key: another tab's moves since, and its copies, stay as they are):
+       * each in its folder then (still there, and not in itself), after the nearest item before it there then.
+       * @param {ReturnType<typeof arrangement>} was @param {(Chart | Folder)[]} items
        */
-      function placeAs(was, docs) {
-        for (const doc of docs) {
-          const now = chartById(doc.id), folder = was.folders.get(doc), key = `c:${doc.id}`;
+      function placeAs(was, items) {
+        for (const old of items) {
+          const key = sideKey(old), now = itemOf(key);
           if (!now) continue;
-          if (folder && folderById(folder)) now.folder = folder;
-          else delete now.folder;
-          library.charts = placedAfter(library.charts.filter((other) => other !== now), now, was.charts.slice(0, was.charts.indexOf(doc)).map((other) => chartById(other.id)));
-          const keys = sideItems().map(sideKey).filter((other) => other !== key);
-          // (Out of a folder deleted since: where that folder was.)
-          const at = was.order.indexOf(key), before = at >= 0 ? was.order.slice(0, at) : was.order.slice(0, was.order.indexOf(`f:${folder}`) + 1);
-          library.order = now.folder ? keys : placedAfter(keys, key, before);
+          const folder = was.folders.get(key), into = folder && folderById(folder) && ("layers" in now || !isIn(folder, now.id)) ? folder : undefined;
+          setParent(now, into);
+          const at = was.order.lastIndexOf(key), before = was.order.slice(0, Math.max(0, at)).map(itemOf);
+          setChildren(placedAfter(childrenOf(into).filter((item) => item !== now), now, before));
         }
         save();
         renderCharts();
       }
       /**
-       * Charts moved into a folder (after its last), or out of any (`null`: each just under the one it was in); said, with
-       * an Undo (`quiet`: not, a new folder's own, named first).
+       * Items (keys) put in a folder (`into`; none: the top), before `before` (a key there; none: at its end; `first`: at
+       * its start), gliding there (from `dropY`, where let go); said, with an Undo (`quiet`: not). A folder never into
+       * itself, nor into one in it.
        */
-      function moveToFolder(/** @type {string[]} */ ids, /** @type {string | null} */ id, quiet = false) {
-        const moving = library.charts.filter((doc) => ids.includes(doc.id) && (doc.folder ?? null) !== id);
+      function placeItems(/** @type {string[]} */ keys, /** @type {string | undefined} */ into, /** @type {string | null} */ before = null, { first = false, quiet = false, dropY = /** @type {number | null} */ (null) } = {}) {
+        // (Several, in the order the tree has them, however they were picked.)
+        const order = keys.length > 1 ? treeOf().map(({ item }) => item) : [];
+        const items = itemsOf(keys).sort((a, b) => order.indexOf(a) - order.indexOf(b)).filter((item) => (("layers" in item && !isPreview(item)) || (!("layers" in item) && !(into && isIn(into, item.id)))));
+        if (!items.length || (before && keys.includes(before))) return;
+        const was = arrangement();
+        arrange(() => {
+          for (const item of items) setParent(item, into);
+          const rest = childrenOf(into).filter((item) => !items.includes(item)), at = before ? rest.findIndex((item) => sideKey(item) === before) : first ? 0 : rest.length;
+          rest.splice(at < 0 ? rest.length : at, 0, ...items);
+          setChildren(rest);
+        }, sideKey(items[0]), dropY);
+        if (!quiet) folderToast(was, items);
+      }
+      /**
+       * Charts and folders (keys) moved into a folder (after what's there; a folder never into itself, nor into one in it),
+       * or out of theirs (`null`: each just under the folder it was in, a level up); said, with an Undo (`quiet`: not, a new
+       * folder's own, named first).
+       */
+      function moveToFolder(/** @type {string[]} */ keys, /** @type {string | null} */ id, quiet = false) {
+        const moving = itemsOf(keys).filter((item) => !("layers" in item && isPreview(item)) && (id ? parentOf(item) !== id : parentOf(item)));
         if (!moving.length) return;
         // (Into a closed folder, their rows out of sight: a focus that was on one, or in its menu, goes to the folder's.)
         const hadFocus = Boolean(document.activeElement?.closest("#chart-list, #menu, #submenu"));
-        const was = arrangement();
-        // (Out of one, each comes just under it in the sidebar, in their order.)
-        const keys = sideItems().map(sideKey);
-        if (!id) for (const doc of [...moving].reverse()) if (doc.folder) keys.splice(keys.indexOf(`f:${doc.folder}`) + 1, 0, `c:${doc.id}`);
-        library.order = keys;
-        for (const doc of moving) {
-          unlist(doc);
-          if (id) doc.folder = id;
-          else delete doc.folder;
+        if (id) placeItems(moving.map(sideKey), id, null, { quiet });
+        else {
+          // (Out: each folder's under it, in their order, one Undo for all.)
+          // (By the folder each was in before any moved: one moved up into another's isn't moved again.)
+          const was = arrangement(), from = new Map(moving.map((item) => [item, parentOf(item)]));
+          for (const folder of new Set(from.values())) {
+            const out = folderById(folder), siblings = out ? childrenOf(out.parent) : [], next = out ? siblings[siblings.indexOf(out) + 1] : undefined;
+            placeItems(moving.filter((item) => from.get(item) === folder).map(sideKey), out?.parent, next ? sideKey(next) : null, { quiet: true });
+          }
+          if (!quiet) folderToast(was, moving);
         }
-        const peers = library.charts.filter((doc) => (doc.folder ?? null) === id);
-        const at = peers.length ? library.charts.indexOf(id ? /** @type {Chart} */ (peers.at(-1)) : peers[0]) + (id ? 1 : 0) : library.charts.length;
-        library.charts.splice(at, 0, ...moving);
-        save();
-        renderCharts();
-        if (hadFocus && id && folderById(id)?.closed) refocus(`#chart-list [data-folder-toggle="${CSS.escape(id)}"]`);
-        if (!quiet) folderToast(was, moving);
+        // (The folder in sight that holds them: the outermost closed one they're in.)
+        let shown = /** @type {string | undefined} */ (undefined);
+        for (let at = id ?? undefined, steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) if (folderById(at)?.closed) shown = at;
+        if (hadFocus && shown) refocus(`#chart-list [data-folder-toggle="${CSS.escape(shown)}"]`);
       }
-      /** "Move out of" the folder charts are in (theirs, for charts in several), or "" for charts in none. @param {string[]} ids */
-      function outOf(ids) {
-        const within = new Set(library.charts.filter((doc) => ids.includes(doc.id) && doc.folder).map((doc) => doc.folder));
-        return !within.size ? "" : within.size === 1 ? `Move out of “${folderById([...within][0])?.name ?? ""}”` : "Move out of their folders";
+      /** Chart ids as keys. */
+      const chartKeys = (/** @type {string[]} */ ids) => ids.map((id) => `c:${id}`);
+      /** "Move out of" the folder items (keys) are in (theirs, for items in several), or "" for items in none. @param {string[]} keys */
+      function outOf(keys) {
+        const from = new Set(itemsOf(keys).map(parentOf).filter(Boolean));
+        return !from.size ? "" : from.size === 1 ? `Move out of “${folderById([...from][0])?.name ?? ""}”` : "Move out of their folders";
       }
       /**
-       * Where charts can go: each folder (theirs checked), a new one; and out of theirs, where nothing else offers it
+       * Where items (keys) can go: each folder (theirs checked), a new one; and out of theirs, where nothing else offers it
        * (`out`: a chart's own menu has it beside Move to folder).
-       * @param {HTMLElement} anchor @param {string[]} ids
+       * @param {HTMLElement} anchor @param {string[]} keys
        */
-      function folderMenu(anchor, ids, point = undefined, out = true) {
-        menuOf(anchor, folderChoices(ids, out), point, "", { title: phone.matches ? "Move to folder" : "" });
+      function folderMenu(anchor, keys, point = undefined, out = true) {
+        menuOf(anchor, folderChoices(keys, out), point, "", { title: phone.matches ? "Move to folder" : "" });
       }
       /**
-       * Where charts go, as choices: each folder (theirs ticked), a new one, out of theirs.
-       * @param {string[]} ids
+       * Where items (keys) go, as choices: each folder as the sidebar has them, named with those it's in (theirs ticked;
+       * a folder moved, not itself nor one in it), a new one (where they are, if they're all in one), out of theirs.
+       * @param {string[]} keys
        * @returns {Action[]}
        */
-      function folderChoices(ids, out = true) {
-        const inFolders = new Set(library.charts.filter((doc) => ids.includes(doc.id)).map((doc) => doc.folder ?? ""));
+      function folderChoices(keys, out = true) {
+        const items = itemsOf(keys), from = new Set(items.map(parentOf)), moved = items.filter((item) => !("layers" in item)).map((folder) => folder.id);
+        const places = treeOf().flatMap(({ item }) => (!("layers" in item) && !moved.some((id) => isIn(item.id, id)) ? [item] : [])), counts = chartCounts();
         return [
-          ...library.folders.map((folder) => ({ key: folder.id, label: folder.name, aside: plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart"), current: inFolders.size === 1 && inFolders.has(folder.id), run: () => moveToFolder(ids, folder.id) })),
-          { key: "new", icon: ICONS.plus, label: "New folder", apart: true, run: () => ($("palette").open && dismissPalette(), newFolder(ids)) },
-          ...(out && outOf(ids) ? [{ key: "out", icon: ICONS.folderOut, label: outOf(ids), run: () => moveToFolder(ids, null) }] : []),
+          ...places.map((folder) => ({ key: folder.id, label: folderPath(folder.id), aside: plural(counts.get(folder.id) ?? 0, "chart"), current: from.size === 1 && from.has(folder.id), run: () => moveToFolder(keys, folder.id) })),
+          { key: "new", icon: ICONS.plus, label: "New folder", apart: true, run: () => ($("palette").open && dismissPalette(), newFolder(keys, from.size === 1 ? [...from][0] : undefined)) },
+          ...(out && outOf(keys) ? [{ key: "out", icon: ICONS.folderOut, label: outOf(keys), run: () => moveToFolder(keys, null) }] : []),
         ];
       }
       /** A folder's menu (its ⋯, a right-click on it). */
@@ -18362,15 +18466,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function folderRows(/** @type {string} */ id, inPalette = false) {
         const folder = folderById(id);
         if (!folder) return [];
-        const at = sideItems().indexOf(folder);
+        const peers = childrenOf(folder.parent), at = peers.indexOf(folder), leave = outOf([`f:${id}`]);
         const toggle = { key: "toggle", icon: folder.closed ? ICONS.folderOpen : ICONS.folder, label: folder.closed ? "Expand" : "Collapse", ...(inPalette ? { aside: folder.closed ? "Its charts shown" : "Its charts out of sight" } : {}), verb: folder.closed ? "Expand" : "Collapse", stay: true, run: () => toggleFolder(id) };
         const rename = { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { aside: folder.name, page: () => renameFolderPage(id) } : { run: () => renameFolder(id) }) };
         return [
           // (In ⌘K, opening it first, as its row's press does; in its menu, Rename first, as a chart's is.)
           ...(inPalette ? [toggle, rename] : [rename, toggle]),
           ...(inPalette && at > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", verb: "Move", stay: true, run: () => stepFolder(id, -1) }] : []),
-          ...(inPalette && at < sideItems().length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", verb: "Move", stay: true, run: () => stepFolder(id, 1) }] : []),
-          { key: "delete", icon: ICONS.trash, label: "Delete the folder", aside: "Its charts kept", verb: "Delete", danger: true, run: () => deleteFolder(id) },
+          ...(inPalette && at < peers.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", verb: "Move", stay: true, run: () => stepFolder(id, 1) }] : []),
+          { key: "new-folder", icon: ICONS.folderAdd, label: "New folder inside", run: () => ($("palette").open && dismissPalette(), newFolder([], id)) },
+          { key: "folder", icon: ICONS.folder, label: "Move to folder", ...(inPalette ? { aside: folder.parent ? folderPath(folder.parent) : "None" } : {}), page: () => choicePage("Move to folder", () => folderChoices([`f:${id}`], inPalette)) },
+          ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder([`f:${id}`], null) }] : []),
+          { key: "delete", icon: ICONS.trash, label: "Delete the folder", aside: "What's in it kept", verb: "Delete", danger: true, run: () => deleteFolder(id) },
         ];
       }
       /** A chart's menu, from its sidebar row (its ⋯, a right-click). */
@@ -18546,7 +18653,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   pick?: (id: string) => void, picking?: () => boolean, unpick?: () => void, refuse?: (event: PointerEvent) => boolean, still?: () => boolean, sticky?: boolean,
        *   label: (id: string) => string, landing: (x: number, y: number, ids: string[]) => Landing | null | undefined,
        *   land: (ids: string[], at: Landing, y: number) => void, lift?: () => void, settle?: () => void }} how
-       * @typedef {{ item: HTMLElement, after: boolean, down?: boolean } | { zone: HTMLElement }} Landing `down`: before or after it is above or below it (a grid of one column)
+       * @typedef {{ item: HTMLElement, after: boolean, down?: boolean, depth?: number } | { zone: HTMLElement }} Landing `down`: before or after it is above or below it (a grid of one column); `depth`: at that level of a tree (its line indented to it)
        */
       function dragToReorder(list, how) {
         /** @type {{ id: string, x: number, y: number, at: [number, number], pointer: number, touch: boolean, held: boolean, began: boolean, timer: number, touched: EventTarget | null } | null} */
@@ -18557,7 +18664,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let drag = null;
         /** The item an id names now (the list may have been drawn anew since the press). */
         const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
-        const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => element.classList.remove("drop-before", "drop-after", "drop-down", "drop-target"));
+        const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => (element.classList.remove("drop-before", "drop-after", "drop-down", "drop-target"), element.style.removeProperty("--drop-depth")));
         const endDrag = (landed = false) => {
           const unpick = Boolean(press?.began && drag && !landed);
           if (press) clearTimeout(press.timer);
@@ -18585,7 +18692,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return found === undefined ? (how.sticky && kept?.isConnected ? drag.at : null) : found;
         };
         /** Two landings the same: the same side of the same item, or the same zone (or none). */
-        const sameLanding = (/** @type {Landing | null} */ a, /** @type {Landing | null} */ b) => (!a || !b ? a === b : "item" in a && "item" in b ? a.item === b.item && a.after === b.after : "zone" in a && "zone" in b && a.zone === b.zone);
+        const sameLanding = (/** @type {Landing | null} */ a, /** @type {Landing | null} */ b) => (!a || !b ? a === b : "item" in a && "item" in b ? a.item === b.item && a.after === b.after && a.depth === b.depth : "zone" in a && "zone" in b && a.zone === b.zone);
         /**
          * The pill by the pointer; the carried dimmed (once: again only if the list was drawn anew); where they'd land,
          * marked, when that changes. (Read first, written after: nothing laid out twice a move.)
@@ -18601,7 +18708,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (marked && sameLanding(at, drag.at) && (!at || ("item" in at ? at.item : at.zone).isConnected)) return;
           unmark();
           drag.at = at;
-          if (at && "item" in at) at.item.classList.add(at.after ? "drop-after" : "drop-before", ...(at.down ? ["drop-down"] : []));
+          if (at && "item" in at) {
+            at.item.classList.add(at.after ? "drop-after" : "drop-before", ...(at.down ? ["drop-down"] : []));
+            if (at.depth !== undefined) at.item.style.setProperty("--drop-depth", String(at.depth));
+          }
           else if (at && "zone" in at) at.zone.classList.add("drop-target");
         };
         /** The list scrolled while the pointer's near its edge, faster the nearer. */
@@ -18734,104 +18844,71 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return { item: row, after: y > box.top + box.height / 2 };
       }
 
-      /** A chart a place up or down: among its folder's, or in the sidebar's order (past a folder too), gliding there. */
+      /** A chart a place up or down among its folder's (past a folder too), gliding there. */
       function stepChart(/** @type {string} */ id, /** @type {number} */ by) {
         const doc = chartById(id);
-        if (!doc || isPreview(doc)) return;
-        if (!doc.folder) return stepSide(doc, by);
-        const peers = library.charts.filter((other) => other.folder === doc.folder), next = peers[peers.indexOf(doc) + by];
-        if (!next) return;
-        const to = library.charts.indexOf(next) + (by > 0 ? 1 : 0);
-        moveCharts([id], to);
+        if (doc && !isPreview(doc)) stepSide(doc, by);
       }
-      /** Moves charts, in their order, before the one at `to` (one of them, or none: the end), gliding there. @param {string[]} ids */
-      function moveCharts(ids, to, /** @type {number | null} */ dropY = null) {
-        const moving = library.charts.filter((doc) => ids.includes(doc.id));
-        if (!moving.length) return;
-        const rows = () => all$("[data-chart-row], [data-folder-row]", $("chart-list"));
-        const key = (/** @type {HTMLElement} */ row) => (row.dataset.chartRow ? row.dataset.chartRow : `f:${row.dataset.folderRow}`);
-        const was = placesOf(rows(), key);
-        const row = rows().find((item) => key(item) === moving[0].id);
-        if (dropY !== null && row) was.set(moving[0].id, dropY - row.offsetHeight / 2);
-        const at = to - library.charts.slice(0, to).filter((doc) => ids.includes(doc.id)).length;
-        for (const doc of moving) unlist(doc);
-        library.charts.splice(clamp(at, 0, library.charts.length), 0, ...moving);
-        save();
-        renderCharts();
-        slide(rows(), key, was, { moved: moving[0].id });
+      /**
+       * Where something lands beside an item (its key), before it or after it: in its folder, before what's there (none:
+       * at its end), the carried (`keys`) aside. @returns {{ into: string | undefined, before: string | null }}
+       */
+      function besideItem(/** @type {string} */ key, /** @type {boolean} */ after, /** @type {string[]} */ keys) {
+        const item = itemOf(key), into = item ? parentOf(item) : undefined;
+        if (!after) return { into, before: key };
+        const rest = childrenOf(into).filter((other) => !keys.includes(sideKey(other))), next = rest[rest.findIndex((other) => sideKey(other) === key) + 1];
+        return { into, before: next ? sideKey(next) : null };
       }
-      /** A landing's place among the charts: before its item (after it, past its middle). @param {Landing} at @param {string} attribute */
-      const chartPlace = (at, attribute) => ("item" in at ? library.charts.findIndex((doc) => doc.id === at.item.getAttribute(`data-${attribute}`)) + (at.after ? 1 : 0) : library.charts.length);
       const chartLabel = (/** @type {string} */ id) => ((doc) => (doc ? `${chartMark(doc)}<span class="name">${escape(titleOf(doc))}</span>` : ""))(chartById(id));
-      // The sidebar, in its one order: a chart onto a folder's row goes into it (its top edge: above it; its foot: into it,
-      // first, or under it, closed); beside a chart, it takes its place (in its folder, or none). A folder moves before or
-      // after anything at the top level, its charts along.
+      // The sidebar, as a tree: a chart or a folder onto a folder's row goes into it (its top edge: above it; its foot: into
+      // it, first, or under it, closed); beside a row, it takes its place, in its folder. A folder never into itself, nor
+      // into one in it: their rows aren't places while it's carried, its own are carried along.
       const sideId = (/** @type {HTMLElement} */ row) => (row.dataset.chartRow ? `c:${row.dataset.chartRow}` : `f:${row.dataset.folderRow}`);
-      /** The top level as laid out: each item's rows, first and last (an open folder's, its last chart's). */
-      function sideBlocks() {
-        /** @type {{ key: string, first: HTMLElement, last: HTMLElement }[]} */
-        const blocks = [];
-        for (const row of all$("[data-chart-row], [data-folder-row]", $("chart-list"))) {
-          const block = blocks.at(-1);
-          if (row.classList.contains("in-folder") && block) block.last = row;
-          else blocks.push({ key: sideId(row), first: row, last: row });
-        }
-        return blocks;
+      /** A sidebar row's level in the tree. */
+      const depthOf = (/** @type {HTMLElement} */ row) => Number(row.style.getPropertyValue("--depth")) || 0;
+      /** The rows a drag can land by: those in sight, but the carried and what's in them. @param {string[]} ids */
+      function placesFor(ids) {
+        const carried = ids.filter((id) => id.startsWith("f:")).map((id) => id.slice(2));
+        return all$("[data-chart-row]:not([inert]), [data-folder-row]:not([inert])", $("chart-list")).filter((row) => {
+          const key = sideId(row), item = itemOf(key);
+          return !ids.includes(key) && item !== undefined && !carried.some((id) => isIn(parentOf(item), id));
+        });
       }
-      /** The top-level item a row stands for: a chart in a folder (an open one's last), its folder. */
-      const topKeyOf = (/** @type {HTMLElement} */ row) => (row.classList.contains("in-folder") ? `f:${chartById(/** @type {string} */ (row.dataset.chartRow))?.folder}` : sideId(row));
       dragToReorder($("chart-list"), {
         item: "[data-chart-row], [data-folder-row]",
         idOf: sideId,
         label: (id) => (id.startsWith("f:") ? `${ICONS.folder}<span class="name">${escape(folderById(id.slice(2))?.name ?? "")}</span>` : chartLabel(id.slice(2))),
         landing: (x, y, ids) => {
-          if (ids[0].startsWith("f:")) {
-            // A folder: before or after a whole item (a folder with its charts), by its middle.
-            const blocks = sideBlocks().filter((block) => !ids.includes(block.key)), block = blocks.find((each) => y < each.last.getBoundingClientRect().bottom) ?? blocks.at(-1);
-            if (!block) return null;
-            const after = y > (block.first.getBoundingClientRect().top + block.last.getBoundingClientRect().bottom) / 2;
-            return { item: after ? block.last : block.first, after };
-          }
-          const onto = /** @type {HTMLElement | null | undefined} */ (document.elementFromPoint(x, y)?.closest("[data-folder-row]"));
+          const places = placesFor(ids), under = /** @type {HTMLElement | null | undefined} */ (document.elementFromPoint(x, y)?.closest("[data-folder-row]"));
+          const onto = under && places.includes(under) ? under : null;
+          /** (At its row's level; after the last row of a folder, as far out as the pointer is, to the next row's level.) @param {Landing | null} at */
+          const level = (at) => {
+            if (!at || !("item" in at) || railed()) return at;
+            const depth = depthOf(at.item), next = places[places.indexOf(at.item) + 1], low = next ? depthOf(next) : 0;
+            if (!at.after || low >= depth) return { ...at, depth };
+            return { ...at, depth: clamp(Math.floor((x - at.item.getBoundingClientRect().left - 13) / 16), low, depth) };
+          };
           if (onto) {
-            const box = onto.getBoundingClientRect(), share = (y - box.top) / box.height;
-            let first = /** @type {HTMLElement | null} */ (onto.nextElementSibling);
-            while (first?.classList.contains("in-folder") && ids.includes(sideId(first))) first = /** @type {HTMLElement | null} */ (first.nextElementSibling);
-            if (share < 0.25) return { item: onto, after: false };
-            if (share > 0.75) return folderById(onto.dataset.folderRow)?.closed ? { item: onto, after: true } : first?.classList.contains("in-folder") ? { item: first, after: false } : { zone: onto };
+            const box = onto.getBoundingClientRect(), share = (y - box.top) / box.height, folder = folderById(onto.dataset.folderRow);
+            const first = places[places.indexOf(onto) + 1], inside = first && folder && parentOf(/** @type {Chart | Folder} */ (itemOf(sideId(first)))) === folder.id ? first : null;
+            if (share < 0.25) return level({ item: onto, after: false });
+            if (share > 0.75) return folder?.closed ? level({ item: onto, after: true }) : inside ? level({ item: inside, after: false }) : { zone: onto };
             return { zone: onto };
           }
-          return landingIn(all$("[data-chart-row]", $("chart-list")), y, sideId, ids);
+          return level(landingIn(places, y, sideId, ids));
         },
         land: (ids, at, y) => {
-          if (ids[0].startsWith("f:")) return "item" in at && placeSide(ids, topKeyOf(at.item), at.after, y);
-          const charts = ids.map((id) => id.slice(2));
-          if ("zone" in at) return moveToFolder(charts, /** @type {string} */ (at.zone.dataset.folderRow));
-          // Beside a chart in a folder: in it, there. Else at the top level, before or after what's there.
-          const beside = at.item.dataset.chartRow ? chartById(at.item.dataset.chartRow) : null;
-          if (!beside?.folder) return placeSide(ids, topKeyOf(at.item), at.after, y);
-          const was = arrangement();
-          for (const doc of library.charts) if (charts.includes(doc.id)) doc.folder = beside.folder;
-          moveCharts(charts, chartPlace(at, "chart-row"), y);
-          folderToast(was, library.charts.filter((doc) => charts.includes(doc.id)));
+          if ("zone" in at) return placeItems(ids, at.zone.dataset.folderRow, null, { dropY: y });
+          // (After a row, levels out from it: after the folder it's in at that level.)
+          let key = sideId(at.item);
+          for (let up = depthOf(at.item) - (at.depth ?? depthOf(at.item)); up > 0; up--) {
+            const item = itemOf(key), parent = item && parentOf(item);
+            if (parent) key = `f:${parent}`;
+          }
+          const { into, before } = besideItem(key, at.after, ids);
+          placeItems(ids, into, before, { dropY: y });
         },
       });
-      /**
-       * Items placed at the sidebar's top level (charts out of their folders), before or after another there (its key),
-       * gliding there. @param {string[]} keys
-       */
-      function placeSide(keys, /** @type {string} */ target, /** @type {boolean} */ after, /** @type {number | null} */ y = null) {
-        if (keys.includes(target)) return;
-        const was = arrangement();
-        arrange(() => {
-          for (const doc of library.charts) if (keys.includes(`c:${doc.id}`)) delete doc.folder;
-          const items = sideItems(), moving = keys.map((key) => items.find((item) => sideKey(item) === key)).filter((item) => item !== undefined), rest = items.filter((item) => !moving.includes(item));
-          const at = rest.findIndex((item) => sideKey(item) === target);
-          rest.splice(at < 0 ? rest.length : at + (after ? 1 : 0), 0, ...moving);
-          setSide(rest);
-        }, keys[0], y);
-        folderToast(was, library.charts.filter((doc) => keys.includes(`c:${doc.id}`)));
-      }
       // The grid's tiles move the charts in the list (the sidebar's order, and ⌘1–9's): those picked together. Found by the
       // filter, they're ranked, not in their order: there's no place to drop them into (a hold still picks).
       dragToReorder($("home-grid"), {
@@ -18862,17 +18939,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return down ? { item: tile, after: y > box.top + box.height / 2, down } : { item: tile, after: x > box.left + box.width / 2 };
         },
         land: (ids, at) => {
-          if ("zone" in at) moveToFolder(ids, at.zone.dataset.gridFolder || null);
+          const keys = ids.map((id) => `c:${id}`);
+          if ("zone" in at) placeItems(keys, at.zone.dataset.gridFolder || undefined);
           else {
-            // (Beside a tile: in its folder, there; or, in none, before or after it in the sidebar's order.)
-            const beside = chartById(/** @type {string} */ (at.item.dataset.homeCard));
-            if (!beside?.folder) placeSide(ids.map((id) => `c:${id}`), `c:${beside?.id}`, at.after);
-            else {
-              const was = arrangement();
-              for (const doc of library.charts) if (ids.includes(doc.id)) doc.folder = beside.folder;
-              moveCharts(ids, chartPlace(at, "home-card"));
-              folderToast(was, library.charts.filter((doc) => ids.includes(doc.id)));
-            }
+            // (Beside a tile: in its folder, before or after it.)
+            const { into, before } = besideItem(`c:${at.item.dataset.homeCard}`, at.after, keys);
+            placeItems(keys, into, before);
           }
           tileOpen(ids[0])?.focus({ preventScroll: true });
         },
@@ -18881,7 +18953,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("chart-list").addEventListener("keydown", (event) => {
         if (event.isComposing || typing(event.target)) return;
         if (!event.altKey && !event.metaKey && !event.ctrlKey && ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
-          const rows = all$("[data-chart-row]:not([inert]), [data-folder-row], [data-preview-row]", $("chart-list"));
+          const rows = all$("[data-chart-row]:not([inert]), [data-folder-row]:not([inert]), [data-preview-row]", $("chart-list"));
           const at = rows.indexOf(/** @type {HTMLElement} */ (closest(event, "[data-chart-row], [data-folder-row], [data-preview-row]")));
           if (at < 0) return;
           event.preventDefault();
@@ -18889,8 +18961,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {HTMLElement | null} */ (rows[stepIn(at, Number(KEY_STEPS[event.key]), rows.length)].querySelector("[data-open-chart], [data-folder-toggle]"))?.focus();
           return;
         }
-        // (← → close and open a folder, as a tree does.)
-        const folder = /** @type {HTMLElement} */ (event.target).dataset?.folderToggle;
+        // (As a tree: → opens a folder, then goes into it; ← closes it, then goes to the folder it's in, as from a chart.)
+        const folder = /** @type {HTMLElement} */ (event.target).dataset?.folderToggle, focused = folder ? folderById(folder) : chartById(/** @type {HTMLElement} */ (event.target).dataset?.openChart ?? "");
+        if (focused && !event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+          const toward = event.key === "ArrowRight" ? (folder && !folderById(folder)?.closed ? childrenOf(folder)[0] : undefined) : (!folder || folderById(folder)?.closed) && parentOf(focused) ? folderById(parentOf(focused)) : undefined;
+          if (toward) {
+            event.preventDefault();
+            return void (/** @type {HTMLElement | null} */ ($("chart-list").querySelector("layers" in toward ? `[data-open-chart="${toward.id}"]` : `[data-folder-toggle="${toward.id}"]`))?.focus());
+          }
+        }
         if (folder && event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
           event.preventDefault();
           stepFolder(folder, event.key === "ArrowUp" ? -1 : 1);
@@ -22170,7 +22249,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(isPreview(chart) && !home && chart.layers.length && previousChart() ? [{ title: "Close this preview", text: `${titleOf(chart)}: not in your charts, let go of.`, words: "close preview discard dismiss", icon: "close", run: () => closePreview() }] : []),
           { title: "New folder", text: "For charts that go together, named at once.", words: "create folder group organize", icon: "folderAdd", run: () => newFolder(), anywhere: true },
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
-          ...library.folders.map((folder) => ({ title: folder.name, text: `A folder: ${plural(library.charts.filter((doc) => doc.folder === folder.id).length, "chart")}.`, words: `folder ${folder.name}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })),
+          ...((counts) => library.folders.map((folder) => ({ title: folderPath(folder.id), text: `A folder: ${plural(counts.get(folder.id) ?? 0, "chart")}.`, words: `folder ${folderPath(folder.id)}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })))(chartCounts()),
           // (All charts, each of its views: yours, or the presets'; the one shown, not offered.)
           ...(home && prefs.homeView === "charts" ? [] : [{ title: "Your charts", text: "All your charts, side by side.", words: "all charts grid overview gallery library home browse saved mine", icon: "grid", anywhere: true, run: () => setHomeView("charts", true) }]),
           ...(home && prefs.homeView === "presets" ? [] : [{ title: "Presets gallery", text: "Every preset, side by side, to look through one by one.", words: "presets gallery browse quick look templates ready made", icon: "presets", anywhere: true, run: () => presetsAt([]) }]),
@@ -22186,7 +22265,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link copy qr code scan phone", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
-          ...(isPreview(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${folderById(chart.folder)?.name ?? "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
+          ...(isPreview(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${chart.folder ? folderPath(chart.folder) : "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
           ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", words: "share image picture png screenshot photos save send message", icon: "share", run: () => exportAs("share") }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
           ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows, with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
@@ -23206,13 +23285,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
       }
       const renameChartPage = (doc) => renamePage("Rename", doc.title ?? "", derivedTitle(doc), (text) => renameChart(chartById(doc.id) ?? doc, text));
-      /** A folder, as ⌘K's page: expand or collapse it, rename it, delete it (its charts kept), and its charts. @returns {Page} */
+      /** A folder, as ⌘K's page: expand or collapse it, rename it, move it, delete it (what's in it kept), and what's in it. @returns {Page} */
       const folderOwnPage = (/** @type {string} */ id) => ({ title: () => folderById(id)?.name ?? "Folder", placeholder: "Search this folder", rows: () => {
         const folder = folderById(id);
         if (!folder) return [];
         return [
           ...folderRows(id, true).map((row) => ({ ...row, group: "Folder" })),
-          ...library.charts.filter((doc) => doc.folder === id).map((doc) => ({ key: `chart:${doc.id}`, icon: chartMark(doc), label: titleOf(doc), verb: "Open", group: "Charts", run: () => go(doc) })),
+          ...((counts) => childrenOf(id).map((item) => ("layers" in item
+            ? { key: `chart:${item.id}`, icon: chartMark(item), label: titleOf(item), verb: "Open", group: "In it", run: () => go(item) }
+            : { key: `folder:${item.id}`, icon: ICONS.folder, label: item.name, aside: plural(counts.get(item.id) ?? 0, "chart"), verb: "Open", group: "In it", page: () => folderOwnPage(item.id) })))(chartCounts()),
         ].map((row) => ({ kind: "row", ...row }));
       } });
       /** A chart's title: the open one as an edit (undoable), another in place. */
@@ -23357,18 +23438,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "page:presets", icon: ICONS.charts, label: "Presets", aside: presets ? plural(presets.length, "chart") : "Loading…", words: "presets templates examples gallery ready made start browse", page: () => presetsPage([]) },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
-      /** The previews and your charts, as ⌘K's page: the previews, yours in no folder, then each folder's under its name (the sidebar's order); and making more. */
+      /** The previews and your charts, as ⌘K's page: the previews, yours in no folder, then each folder's under its name and those it's in (the sidebar's order); and making more. */
       const chartsPage = () => ({ title: "Charts", placeholder: "Search your charts", rows: () => [
         ...listedPreviews().map((doc) => ({ kind: "chart", key: doc.id, group: "Previews" })),
-        ...sideItems().filter((item) => "layers" in item).map((doc) => ({ kind: "chart", key: doc.id, group: "Saved" })),
-        .../** @type {Folder[]} */ (sideItems().filter((item) => !("layers" in item))).flatMap((folder) => library.charts.filter((doc) => doc.folder === folder.id).map((doc) => ({ kind: "chart", key: doc.id, group: folder.name }))),
+        ...childrenOf().filter((item) => "layers" in item).map((doc) => ({ kind: "chart", key: doc.id, group: "Saved" })),
+        ...treeOf().flatMap(({ item }) => ("layers" in item ? [] : childrenOf(item.id).filter((doc) => "layers" in doc).map((doc) => ({ kind: "chart", key: doc.id, group: folderPath(item.id) })))),
         { kind: "row", key: "new", icon: ICONS.plus, label: "New chart", kbd: "N", verb: "Create", group: "Add", run: newChart },
         { kind: "row", key: "new-folder", icon: ICONS.folderAdd, label: "New folder", verb: "Create", group: "Add", run: () => (dismissPalette(), newFolder()) },
         { kind: "row", key: "import", icon: ICONS.upload, label: "Import charts", verb: "Import", group: "Files", run: () => $("import-file").click() },
         ...(library.charts.length || asideCount() ? [{ kind: "row", key: "download-all", icon: ICONS.download, label: "Download all charts", aside: "Folders and all", verb: "Download", group: "Files", run: () => (dismissPalette(), downloadAll()) }] : []),
       ] });
       /** Where charts go, as ⌘K's page. @param {string[]} ids @returns {Page} */
-      const folderPage = (ids) => choicePage("Move to folder", () => folderChoices(ids));
+      const folderPage = (ids) => choicePage("Move to folder", () => folderChoices(chartKeys(ids)));
       /**
        * A chart's actions, where they show (`where`): "row", its sidebar row's ⋯ or right-click; "head", the header's ⋯
        * (it's the one open: renamed in its title; the legend and Export too; on a phone, Redo first: no room for it
@@ -23381,7 +23462,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const doc = chartById(id);
         if (!doc) return [];
         const preview = isPreview(doc), inPalette = where === "palette", tile = where === "tile", head = where === "head", phoneHead = head && phone.matches;
-        const leave = preview ? "" : outOf([id]), peers = inPalette && !preview ? (doc.folder ? library.charts.filter((other) => other.folder === doc.folder) : sideItems()) : [];
+        const leave = preview ? "" : outOf([`c:${id}`]), peers = inPalette && !preview ? childrenOf(doc.folder) : [];
         /** (A card's acts on it alone, the picks as they are; elsewhere, as its row's.) */
         const act = (/** @type {string} */ kind) => () => (tile && !preview ? batch(kind === "download" ? "export" : kind, null, [id]) : chartPick(id, kind));
         return [
@@ -23393,8 +23474,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(preview ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", run: act("duplicate") }]),
           ...(peers.indexOf(doc) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", stay: true, run: () => stepChart(id, -1) }] : []),
           ...(peers.length && peers.indexOf(doc) < peers.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", stay: true, run: () => stepChart(id, 1) }] : []),
-          ...(preview ? [] : [{ key: "folder", icon: ICONS.folder, label: "Move to folder", aside: inPalette ? folderById(doc.folder)?.name ?? "None" : undefined, page: () => choicePage("Move to folder", () => folderChoices([id], inPalette)) }]),
-          ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder([id], null) }] : []),
+          ...(preview ? [] : [{ key: "folder", icon: ICONS.folder, label: "Move to folder", aside: inPalette ? (doc.folder ? folderPath(doc.folder) : "None") : undefined, page: () => choicePage("Move to folder", () => folderChoices([`c:${id}`], inPalette)) }]),
+          ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder([`c:${id}`], null) }] : []),
           ...(head && doc.layers.length ? [{ ...legendAction(), apart: true }, { key: "export", icon: ICONS.download, label: "Export", aside: "Image, data, file", page: () => listPage("Export", exportRows) }] : []),
           ...(head ? [] : [{ key: "download", icon: ICONS.file, label: "Download chart file", aside: "JSON", run: act("download") }]),
           ...(!preview ? [{ key: "delete", icon: ICONS.trash, label: "Delete", danger: true, run: act("delete") }] : doc !== chart || previousChart() ? [{ key: "close", icon: ICONS.close, label: "Close the preview", apart: true, run: () => closePreview(doc) }] : []),
@@ -23432,7 +23513,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => listPage("Export", exportRows) },
             ] : []),
-            ...(isPreview(chart) ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: folderById(chart.folder)?.name ?? "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
+            ...(isPreview(chart) ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: chart.folder ? folderPath(chart.folder) : "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
             ...(isPreview(chart) && chart.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: "A preview: into your charts as it is", verb: "Keep", group: "Chart file", run: () => keepPreview() }] : []),
             ...(isPreview(chart) ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") }]),
             ...(isPreview(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
@@ -24468,10 +24549,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const folder = row ? folderById(/** @type {string} */ (row.dataset.folderToggle)) : null;
           if (!row || !folder?.closed) return void (from && goSoon());
           if (!$("menu").hidden && !flyout) return;
-          const docs = () => library.charts.filter((doc) => doc.folder === folder.id);
+          // (Its charts at any depth, as the sidebar has them; one in a folder in it, that folder named beside it.)
+          const docs = () => treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : []));
           // (Over a sidebar still widening: once it's done, beside the row where it ends.)
           const widened = async () => (await Promise.all(sidebar.getAnimations().map((animation) => animation.finished)).catch(() => {}), docs().length > 0);
-          lookSoon(row, HOVER.row, () => menuOf(row, docs().map((doc) => ({ key: doc.id, icon: chartMark(doc), label: titleOf(doc), run: () => go(chartById(doc.id)) })), null, "right", { title: folder.name, hover: true }), widened);
+          lookSoon(row, HOVER.row, () => menuOf(row, docs().map((doc) => ({ key: doc.id, icon: chartMark(doc), label: titleOf(doc), ...(doc.folder !== folder.id ? { aside: folderById(doc.folder)?.name } : {}), run: () => go(chartById(doc.id)) })), null, "right", { title: folder.name, hover: true }), widened);
         });
         $("chart-list").addEventListener("pointerleave", (event) => event.pointerType === "mouse" && from && goSoon());
         // (Pressed, or right-clicked, before it shows: it doesn't.)
@@ -24814,12 +24896,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             });
             if (!docs.length && already) return toast(`${already === 1 ? "That chart is" : `All ${grouped.format(already)} charts are`} here already`);
             if (!docs.length) throw new Error("No charts in it");
-            // (Folders with charts in them, and empty ones not here by name: none made for charts left out.)
-            for (const [from, folder] of folders) if (!docs.some((doc) => doc.folder === folder.id) && (parsed.charts.some((item) => item?.folder === from) || library.folders.some((other) => other.name === folder.name))) folders.delete(from);
-            const before = sideItems().map(sideKey), among = library.charts.length > 0;
+            // (In the folders made for theirs; then those with charts in them, and empty ones not here by name: none made for
+            // charts left out, what was in one of those a level up.)
+            const made = new Map([...folders.values()].map((folder) => [folder.id, folder]));
+            for (const folder of made.values()) {
+              const parent = folder.parent && folders.get(folder.parent)?.id;
+              parent ? (folder.parent = parent) : delete folder.parent;
+            }
+            const held = (/** @type {(string | undefined)[]} */ ids) => new Set(ids.flatMap((id) => {
+              const chain = [];
+              for (let at = id, steps = 0; at && steps <= made.size; at = made.get(at)?.parent, steps++) chain.push(at);
+              return chain;
+            }));
+            const holds = held(docs.map((doc) => doc.folder)), heldThere = held(parsed.charts.map((item) => folders.get(item?.folder)?.id));
+            // (An empty one already here: the same path of names.)
+            const pathThere = (/** @type {Folder} */ folder) => {
+              const names = [];
+              for (let at = /** @type {Folder | undefined} */ (folder), steps = 0; at && steps <= made.size; at = at.parent ? made.get(at.parent) : undefined, steps++) names.unshift(at.name);
+              return names.join(" › ");
+            };
+            const paths = new Set(library.folders.map((folder) => folderPath(folder.id)));
+            for (const [from, folder] of folders) if (!holds.has(folder.id) && (heldThere.has(folder.id) || paths.has(pathThere(folder)))) folders.delete(from);
+            const kept = new Set([...folders.values()].map((folder) => folder.id));
+            for (const folder of folders.values()) {
+              let parent = folder.parent;
+              while (parent && !kept.has(parent)) parent = made.get(parent)?.parent;
+              parent ? (folder.parent = parent) : delete folder.parent;
+            }
+            const before = treeOf().map(({ item }) => sideKey(item)), among = library.charts.length > 0;
             const order = orderOf(parsed.order).flatMap((key) => {
               const folder = key[0] === "f" ? folders.get(key.slice(2)) : undefined, doc = key[0] === "c" ? byId.get(key.slice(2)) : undefined;
-              return folder ? [`f:${folder.id}`] : doc && !doc.folder ? [`c:${doc.id}`] : [];
+              return folder ? [`f:${folder.id}`] : doc ? [`c:${doc.id}`] : [];
             });
             library.charts.unshift(...docs);
             library.folders.push(...folders.values());
@@ -24842,6 +24949,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               library.folders = library.folders.filter((folder) => !gone.has(folder.id));
               for (const id of gone) library.deleted[id] = Date.now();
               for (const doc of library.charts) if (doc.folder && gone.has(doc.folder)) delete doc.folder;
+              for (const folder of library.folders) if (folder.parent && gone.has(folder.parent)) delete folder.parent;
               library.order = before;
               if (ids.has(chart.id)) {
                 const standIn = library.charts.length ? null : previewCharts[0] ?? newDraft();
@@ -25258,13 +25366,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const fileName = (extension, doc = chart) => `${(titleOf(doc) || "chart").trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "chart"}.${extension}`;
       /**
-       * Several charts in one file (their ids with them), their folders (`folders`: those they're in) and their order in
-       * the sidebar too: imported anywhere else, they're arranged as here.
+       * Several charts in one file (their ids with them), their folders (`folders`: those they're in, at any depth) and
+       * their order in the sidebar too: imported anywhere else, they're arranged as here.
        */
-      function chartsFile(/** @type {Chart[]} */ docs, folders = library.folders.filter((folder) => docs.some((doc) => doc.folder === folder.id)), /** @type {any[]} */ also = []) {
+      function chartsFile(/** @type {Chart[]} */ docs, folders = library.folders.filter((folder) => docs.some((doc) => isIn(doc.folder, folder.id))), /** @type {any[]} */ also = []) {
         const ids = new Set(docs.map((doc) => doc.id)), kept = new Set(folders.map((folder) => `f:${folder.id}`));
         const charts = [...docs.map((doc) => ({ id: doc.id, ...(doc.folder ? { folder: doc.folder } : {}), ...portable(doc) })), ...also];
-        return new Blob([JSON.stringify({ v: 2, charts, folders, order: sideItems().map(sideKey).filter((key) => kept.has(key) || ids.has(key.slice(2))) }, null, 2)], { type: "application/json" });
+        return new Blob([JSON.stringify({ v: 2, charts, folders, order: treeOf().map(({ item }) => sideKey(item)).filter((key) => kept.has(key) || ids.has(key.slice(2))) }, null, 2)], { type: "application/json" });
       }
       /** Charts kept aside (saved, but not readable here), as they were. @returns {any[]} */
       const keptAside = () => ((aside) => (Array.isArray(aside) ? aside : []))(storage.get(UNREAD, []));
