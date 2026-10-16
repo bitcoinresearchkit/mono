@@ -10530,6 +10530,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const PREFS = "bitview-studio:prefs";
       /** The previews edited and not yet kept or closed (every tab's): previews again at the next start. */
       const PREVIEW_ASIDE = "bitview-studio:preview";
+      /** The newer version last said to be served (said once: see version.txt). */
+      const TOLD = "bitview-studio:told";
       const storage = {
         get(key, fallback) {
           try {
@@ -27121,6 +27123,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function undoToast(text) {
         const mark = revision;
         toast(text, { label: "Undo", run: () => (revision === mark ? undo() : notice(`Changed since: step back with ${keyText("⌘Z")}`)) });
+      }
+      // A newer Studio served (its build beside the page, version.txt, not this one's): said as it's come back to, and
+      // every half hour it's open, Reload a tap away; never reloaded on its own (everything's kept as it's done). Said
+      // once a version (kept: a reload that still finds the old page, an edge slow to let it go, isn't told again), and
+      // only while nothing else is said (a toast's Undo never taken); not over a link's picture. Only where it's served
+      // (bitview.space), a file of its own there: a page that isn't (a 404's), nothing said.
+      if (location.protocol === "https:" && /(^|\.)bitview\.space$/.test(location.hostname) && !document.body.hasAttribute("data-picture")) {
+        const newer = async () => {
+          if (document.hidden || !navigator.onLine || $("toast").classList.contains("visible")) return;
+          try {
+            const response = await fetch("/version.txt", { cache: "no-store" });
+            const served = response.ok && !response.headers.get("content-type")?.includes("html") ? (await response.text()).trim() : "";
+            if (!served || served.length >= 80 || served === BUILD || served === storage.get(TOLD, "") || $("toast").classList.contains("visible")) return;
+            storage.set(TOLD, served);
+            notice("A new version of Studio is ready", { label: "Reload", run: () => location.reload() });
+          } catch {}
+        };
+        document.addEventListener("visibilitychange", newer);
+        setInterval(newer, 30 * 60_000);
       }
 
       let toastTimer = 0;

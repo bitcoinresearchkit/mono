@@ -289,7 +289,8 @@ console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024)
 // Beside the page, for those who find it (the page itself is the one file of the app): llms.txt, its text for
 // assistants (the page's own, its "about" section, as Markdown: one text, written once); sitemap.xml, every address it
 // has (the Charts page, the presets' page, each section, each preset: the page's own code makes them, read from it);
-// robots.txt, the sitemap's address (the preview's says no: see deploy.mjs); og.png, how a link to it previews.
+// robots.txt, the sitemap's address (the preview's says no: see deploy.mjs); og.png, how a link to it previews;
+// version.txt, the build (an open page tells a newer one by it).
 {
   const ORIGIN = "https://studio.bitview.space", folder = dirname(out);
   const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
@@ -313,7 +314,11 @@ console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024)
   writeFileSync(join(folder, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `<url><loc>${ORIGIN}${url.replaceAll("&", "&amp;")}</loc></url>`).join("\n")}\n</urlset>\n`);
   writeFileSync(join(folder, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${ORIGIN}/sitemap.xml\n`);
   writeFileSync(join(folder, "og.png"), ogImage);
-  console.log(`Beside it: llms.txt (${(markdown.length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), robots.txt, og.png`);
+  // (version.txt: the build, as the page says it (BUILD): an open page finds a newer one served by it.)
+  const build = /const BUILD = ("[^"]*");/.exec(html)?.[1];
+  if (!build) throw new Error("No BUILD in the page: version.txt is made from it");
+  writeFileSync(join(folder, "version.txt"), `${JSON.parse(build)}\n`);
+  console.log(`Beside it: llms.txt (${(markdown.length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), robots.txt, og.png, version.txt`);
 }
 
 // The page built, on the preview (studio-next.bitview.space; see deploy.mjs): a build elsewhere (an out given), not.

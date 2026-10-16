@@ -41,7 +41,7 @@ export async function deploy(target, quiet = false) {
     throw new Error(why);
   }
   // (The page, and the files the build puts beside it for those who find it: see build.mjs.)
-  const BESIDE = ["llms.txt", "sitemap.xml", "robots.txt", "og.png"];
+  const BESIDE = ["llms.txt", "sitemap.xml", "robots.txt", "og.png", "version.txt"];
   /** @type {Buffer} */
   let page;
   /** @type {Record<string, Buffer>} */
