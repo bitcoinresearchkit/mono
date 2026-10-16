@@ -31,6 +31,8 @@ const input = (/** @type {string} */ path, /** @type {BufferEncoding | undefined
 };
 
 let html = String(input(join(HERE, "index.html"), "utf8"));
+/** How a link to it previews (put beside it below): read now, so the build's version names it too. */
+const ogImage = input(join(HERE, "og.png"));
 /** Replaces what must be there exactly once (the page changed under the build otherwise). */
 function replaceOnce(from, to) {
   const found = typeof from === "string" ? html.split(from).length - 1 : (html.match(new RegExp(from.source, "g")) ?? []).length;
@@ -120,7 +122,7 @@ replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";
 replaceOnce(/new BitviewClient\(\{ baseUrl: "[^"]*"/, `new BitviewClient({ baseUrl: "${SERVER}"`);
 // Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its page, which the
 // module reads first (the same request: anonymous, as fetch makes it).
-replaceOnce(`    <title>Bitview Studio</title>`, `    <link rel="preconnect" href="${SERVER}" crossorigin />\n    <link rel="preload" href="${SERVER}/" as="fetch" crossorigin />\n    <title>Bitview Studio</title>`);
+replaceOnce(`    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`, `    <link rel="preconnect" href="${SERVER}" crossorigin />\n    <link rel="preload" href="${SERVER}/" as="fetch" crossorigin />\n    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`);
 
 // Typed client paths, as the names they stand for (by this repo's client, whose paths they are).
 const { BitviewClient } = await import(pathToFileURL(join(SHOWCASES, "modules/bitview-client/index.js")).href);
@@ -206,6 +208,8 @@ if (served?.differs) {
 // that copy and presets.js (no network, no files beyond, no processes, no environment): their charts come back as
 // JSON, put in the page compressed (unpacked once, when first wanted). Unreadable, the page has none (and says so).
 // (A folder it can't make or remove stops the build; the website's charts unreadable, the page has none.)
+/** The presets, as read (for the sitemap below); none read, none. @type {{ p: string[] }[]} */
+let presetList = [];
 await inFolder("bitview-website-", async (copy) => {
   try {
     const fetched = new Set(), SPECIFIER = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(["'])([^"']+)\2/g;
@@ -236,6 +240,7 @@ await inFolder("bitview-website-", async (copy) => {
     const packed = gzipSync(json, { level: 9 }).toString("base64");
     replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
     console.log(`${SERVER}'s ${presets.length} charts, as presets: ${(packed.length / 1024).toFixed(0)} KB, from ${fetched.size} files`);
+    presetList = presets;
   } catch (error) {
     // (Said in the page: it has no worker to read them with, so it doesn't try.)
     if (html.includes(`<script id="presets" type="application/gzip"></script>`)) replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip" data-none></script>`);
@@ -280,6 +285,36 @@ await inFolder("bitview-page-", (parsing) => {
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, html);
 console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB`);
+
+// Beside the page, for those who find it (the page itself is the one file of the app): llms.txt, its text for
+// assistants (the page's own, its "about" section, as Markdown: one text, written once); sitemap.xml, every address it
+// has (the Charts page, the presets' page, each section, each preset: the page's own code makes them, read from it);
+// robots.txt, the sitemap's address (the preview's says no: see deploy.mjs); og.png, how a link to it previews.
+{
+  const ORIGIN = "https://studio.bitview.space", folder = dirname(out);
+  const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
+  if (!about) throw new Error("No about section in the page: llms.txt is made from it");
+  const entities = { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", nbsp: " " };
+  const plain = (/** @type {string} */ text) => text.replace(/<[^>]+>/g, "").replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, name) => entities[/** @type {keyof typeof entities} */ (name)]).replace(/[ \t]+/g, " ").trim();
+  const markdown = [...about.matchAll(/<(h1|h2|h3|p|li|pre)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/g)].map(([, tag, body]) => (tag === "pre" ? `\`\`\`js\n${plain(body.replace(/<br\s*\/?>/g, "\n")).replace(/ ?\n ?/g, "\n")}\n\`\`\`` : tag === "h1" ? `# ${plain(body)}` : tag === "h2" ? `## ${plain(body)}` : tag === "h3" ? `### ${plain(body)}` : tag === "li" ? `- ${plain(body)}` : plain(body))).join("\n\n").replace(/\n\n(?=- )/g, "\n");
+  const code = /\/\* addresses:[^*]*\*\/([\s\S]*?)\/\* \/addresses \*\//.exec(html)?.[1];
+  if (!code) throw new Error("No addresses in the page: the sitemap is made from them");
+  const addressesOf = /** @type {(list: { p: string[] }[]) => { presets: string[], sections: Map<string, string> }} */ (new Function(`${code}\nreturn addressesOf;`)());
+  const book = addressesOf(presetList);
+  // (Its presets' sections, two levels down, each at its address with how many charts it holds: where to send someone
+  // asking for one; the charts themselves, in the sitemap.)
+  const held = new Map();
+  for (const preset of presetList) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => held.set(key, (held.get(key) ?? 0) + 1))(JSON.stringify(preset.p.slice(0, depth)));
+  const sections = [...held].map(([key, count]) => `${JSON.parse(key).length > 1 ? "  " : ""}- ${JSON.parse(key).at(-1)} (${count}): ${ORIGIN}${book.sections.get(key)}`);
+  // (In plain ASCII where it can be: it's served without a charset, as a text file is.)
+  const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").replace(/›/g, ">").replace(/[−–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+  writeFileSync(join(folder, "llms.txt"), ascii(`${markdown}${sections.length ? `\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml.\n\n${sections.join("\n")}` : ""}\n`));
+  const urls = ["/", ...(presetList.length ? [...book.sections.values(), ...book.presets] : [])];
+  writeFileSync(join(folder, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `<url><loc>${ORIGIN}${url.replaceAll("&", "&amp;")}</loc></url>`).join("\n")}\n</urlset>\n`);
+  writeFileSync(join(folder, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${ORIGIN}/sitemap.xml\n`);
+  writeFileSync(join(folder, "og.png"), ogImage);
+  console.log(`Beside it: llms.txt (${(markdown.length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), robots.txt, og.png`);
+}
 
 // The page built, on the preview (studio-next.bitview.space; see deploy.mjs): a build elsewhere (an out given), not.
 if (!process.argv[2]) {

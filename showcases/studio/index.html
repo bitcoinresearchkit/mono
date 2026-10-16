@@ -30,7 +30,8 @@
     <script>
       // Its manifest, made here (the page is one file): its name, its icons, opening where it's served, as an app.
       {
-        const here = location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
+        // (Studio's own, wherever it's opened from (a preset's address, a section's): the app is the studio, from its start.)
+        const here = /(^|\.)bitview\.space$/.test(location.hostname) ? `${location.origin}/` : location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
         // (Its launch screen in the theme it opens in: dark unless light is chosen, or the system's.)
         const theme = (() => { try { return JSON.parse(localStorage.getItem("bitview-studio:prefs") ?? "{}").theme; } catch { return undefined; } })();
         const ground = theme === "light" || (theme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "#f6f6f7" : "#08090a";
@@ -38,7 +39,20 @@
         /** @type {HTMLLinkElement} */ (document.getElementById("manifest")).href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
       }
     </script>
-    <title>Bitview Studio</title>
+    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>
+    <!-- Found and shared: how a link to it previews, what it is (its canonical address, each place's own, added once it
+         knows where it is: see showAddress). -->
+    <link rel="alternate" type="text/markdown" href="https://studio.bitview.space/llms.txt" title="Bitview Studio, for assistants" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bitview Studio" />
+    <meta property="og:title" content="Bitview Studio: charts of Bitcoin's on-chain data" />
+    <meta property="og:description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
+    <meta property="og:image" content="https://studio.bitview.space/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A chart in Bitview Studio: Bitcoin's price and its on-chain measures over its history" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Bitview Studio","url":"https://studio.bitview.space/","description":"Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link.","applicationCategory":"FinanceApplication","operatingSystem":"Any (a web browser)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://studio.bitview.space/og.png","publisher":{"@type":"Organization","name":"Bitview","url":"https://bitview.space"}}</script>
     <style>
       @font-face {
         font-family: Inter;
@@ -8313,7 +8327,9 @@
         if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);
         // (The Charts page where start() opens it: as the history or the last visit says; nothing kept yet, a first visit.)
         const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio:v2") ?? "") || localStorage.getItem("bitview-studio:preview") !== null;
-        if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : !kept || (prefs.home ?? true))) document.body.toggleAttribute("data-home", true);
+        // (An address of the presets': a preset's, its chart; their page's or a section's, the page.)
+        const routed = !/(^|\.)bitview\.space$/.test(location.hostname) ? null : /^\/chart\//.test(location.pathname) ? false : /^\/presets(?:\/|$)/.test(location.pathname) ? true : null;
+        if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : routed ?? (!kept || (prefs.home ?? true)))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
     <div class="app">
@@ -8346,6 +8362,7 @@
           <ul>
             <li>A chart is a link: https://studio.bitview.space/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
             <li>Its picture alone: the same link with #image= in place of #chart=, a page that is, once drawn, that picture (with only screenshots to work with, take one of it).</li>
+            <li>Thousands of ready-made charts (presets), each at an address of its own: https://studio.bitview.space/chart/ and its place, such as https://studio.bitview.space/chart/market/capitalization/compare; their sections at https://studio.bitview.space/presets/ and theirs, such as https://studio.bitview.space/presets/market; every one listed in https://studio.bitview.space/sitemap.xml.</li>
             <li>From a script in the page: await studio.open(chart); await studio.ready(); await studio.png({ width: 1200, height: 760, scale: 2 }), its picture as a PNG data URL, in one result (see "From a script").</li>
           </ul>
           <h2>Opening a chart from a link</h2>
@@ -8366,7 +8383,7 @@
           <p>One of:</p>
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
-            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out (rsi's 14d).</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"cloud": ["B", "C"]}: filled between those two layers, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them); "color" alone, that one all along; "color" and "colorBelow", those two (where B is over, where C is). Either of the two (or both) can be "top" or "bottom", its pane's edge: from the layer up to the pane's top, or from its bottom up to it, in one color: {"cloud": ["A", "top"]}. Two exactly: for more layers, formulas first, {"formula": "max(B, max(C, D))"} and {"formula": "min(B, min(C, D))"}, then a cloud between those two.</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (a candle's wick counts); width and dash as a line's.</li>
           </ul>
@@ -9284,7 +9301,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         { id: "change", label: "Change over time", text: "Its percent change over a span", formulas: ["change(X, 30d)"], over: false },
         { id: "ath", label: "All-time high", text: "Its highest so far", formulas: ["highest(X)"], over: true },
         { id: "log", label: "Logarithm", text: "Its base-10 logarithm", formulas: ["log(X)"], over: false },
-        { id: "rsi", label: "RSI", text: "Its relative strength, 0 to 100, over 14 days", formulas: ["rsi(X)"], over: false },
+        { id: "rsi", label: "RSI", text: "Its relative strength, 0 to 100, over its last 14 points", formulas: ["rsi(X)"], over: false },
         { id: "macd", label: "MACD", text: "Its MACD line and signal (12, 26, 9)", formulas: ["macd(X)", "macd_signal(X)"], over: false },
         { id: "volatility", label: "Volatility", text: "Its annualized volatility over 30 days, in %", formulas: ["volatility(X, 30d)"], over: false },
         { id: "drawdown", label: "Drawdown", text: "How far below its highest so far, in %", formulas: ["drawdown(X)"], over: false },
@@ -9463,11 +9480,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (axisLabels.size > 4000) axisLabels.clear();
         const abs = Math.abs(value) < 5e-10 ? 0 : Math.abs(value), sign = value < 0 && abs ? "−" : "";
         const digits = (/** @type {number} */ n) => String(Number(n.toPrecision(4)));
+        // (A thousand and up in four digits and a letter: 123.5M, 1.235B.)
+        const lettered = (/** @type {number} */ n) => {
+          let tier = Math.min(SI.length - 1, Math.floor(Math.log10(n) / 3)), value = n / 1000 ** tier;
+          if (Number(value.toPrecision(4)) >= 1000 && tier < SI.length - 1) (tier++), (value /= 1000);
+          return `${digits(value)}${SI[tier]}`;
+        };
         // (Each threshold by the value as written: 999,999.6 is a million.)
-        const text = Math.round(abs) >= 1e6 ? compact(abs, 4, 6) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
+        const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
         // (Never wider than the scales are kept, its sign and suffix counted: a long one (−123,456, 0.0001234) said shorter.)
         const room = PRECISE.length - sign.length - suffix.length;
-        const label = `${sign}${text.length <= room ? text : compact(abs, 4, room)}${suffix}`;
+        const label = `${sign}${text.length <= room ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, room)}${suffix}`;
         axisLabels.set(key, label);
         return label;
       }
@@ -9689,17 +9712,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const macdOf = (x, n, partial = false) => ((fast, slow) => fast.map((value, i) => value - slow[i]))(emaOf(x, Math.max(1, Math.round((n * 12) / 26)), partial), emaOf(x, n, partial));
       /** Annualized volatility: the deviation of log returns over `n` points, a year's worth of points' (`step`: a point's days), in %. @param {Vector} x */
       function volatilityOf(x, n, partial, step) {
-        const returns = new Float64Array(x.length).fill(NaN);
-        let prev = NaN, at = -1;
-        for (let i = 0; i < x.length; i++) {
+        // Each log return with the points it spans (a gap's, more than one): over a window, its drift and its variance
+        // each per point, as time measures them (a return across a gap counts as long as it is, its drift its own share):
+        // variance = (Σ r²/k − (Σ r)² / Σ k) / (returns − 1). A steady growth reads as none, gaps or not.
+        const len = x.length, r = new Float64Array(len).fill(NaN), k = new Float64Array(len);
+        let prev = NaN, at = -1, first = -1;
+        for (let i = 0; i < len; i++) {
           if (!Number.isFinite(x[i])) continue;
-          // (Across points without a value: as a point's, its variance spread over them.)
-          if (prev > 0 && x[i] > 0) returns[i] = Math.log(x[i] / prev) / Math.sqrt(i - at);
+          if (first < 0) first = i;
+          if (prev > 0 && x[i] > 0) (r[i] = Math.log(x[i] / prev)), (k[i] = i - at);
           prev = x[i];
           at = i;
         }
-        const scale = Math.sqrt(365 / step) * 100;
-        return deviationOf(returns, n, partial).map((value) => value * scale);
+        const sums = (/** @type {(i: number) => number} */ of) => {
+          const out = new Float64Array(len + 1);
+          for (let i = 0; i < len; i++) out[i + 1] = out[i] + (Number.isFinite(r[i]) ? of(i) : 0);
+          return out;
+        };
+        const sr = sums((i) => r[i]), sk = sums((i) => k[i]), sq = sums((i) => (r[i] * r[i]) / k[i]), sc = sums(() => 1);
+        const scale = Math.sqrt(365 / step) * 100, out = new Float64Array(len).fill(NaN);
+        for (let i = 0; i < len; i++) {
+          if (!Number.isFinite(x[i]) || !(partial || i - first + 1 >= n)) continue;
+          const lo = Math.max(0, i - n + 1), count = sc[i + 1] - sc[lo];
+          if (count < 2) continue;
+          const total = sr[i + 1] - sr[lo], span = sk[i + 1] - sk[lo];
+          out[i] = Math.sqrt(Math.max(0, (sq[i + 1] - sq[lo] - (total * total) / span) / (count - 1))) * scale;
+        }
+        return out;
       }
       /** The choppiness index over `n` points, of one series: its moves' sum against its range, log-scaled to 0–100. @param {Vector} x */
       function chopOf(x, n) {
@@ -9775,7 +9814,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         cagr: [2, "cagr(x, span?)", "% growth a year, compounded, over the span (no span: since its first value)", (x, n, _p, _partial, step) => cagrOf(x, n, step), true],
         drawdown: [1, "drawdown(x)", "% below its highest so far", (x) => {
           let top = -Infinity;
-          return x.map((value) => (Number.isFinite(value) ? ((top = Math.max(top, value)), (value / top - 1) * 100) : NaN));
+          // (A share of its highest: none where that's not above zero.)
+          return x.map((value) => (Number.isFinite(value) ? ((top = Math.max(top, value)), top > 0 ? (value / top - 1) * 100 : NaN) : NaN));
         }],
         rsi: [2, "rsi(x, span?)", "relative strength index, 0 to 100 (span: 14 points if left out)", (x, n) => rsiOf(x, n), true, 14],
         stochrsi: [2, "stochrsi(x, span?)", "stochastic RSI: the RSI's place between its own low and high, 0 to 100 (span: 14 points if left out)", (x, n) => {
@@ -11210,8 +11250,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return history.back();
         }
         const back = previousChart();
-        if (!(isPreview(chart) || emptyYours(chart)) || chart.layers.length || !back) return;
+        if (!(isPreview(chart) || emptyYours(chart)) || chart.layers.length) return;
         cancelledNew = leaving;
+        // (No chart to go back to (a preset opened, let go of as it was): the Charts page, where it was left.)
+        if (!back) {
+          cancelling = chart.id;
+          return showHome(true, leftPlace);
+        }
         // (The focus on the chart gone back to: its row, else its title.)
         keepFocus(null, () => $("chart-list").querySelector(`[data-open-chart="${CSS.escape(back.id)}"]`), () => $("plot-keys"), () => $("new-chart"));
         // (An empty preview left simply goes.)
@@ -17164,7 +17209,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const yours = "folder" in homeAt, folder = "folder" in homeAt ? folderById(homeAt.folder) : undefined, path = "path" in homeAt ? homeAt.path : null;
         const name = folder ? folder.name : yours ? "Library" : "previews" in homeAt ? "Previews" : path ? path.at(-1) ?? "Presets" : "Charts";
         $("home-title").textContent = name;
-        document.title = `${name} · Bitview Studio`;
         const more = $("home-title-more");
         more.hidden = !folder;
         if (folder) Object.assign(more.dataset, { folderMenu: folder.id }), more.setAttribute("aria-label", `More for ${folder.name}`);
@@ -17324,6 +17368,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const head of all$("[data-at]", $("chart-list"))) lit(head, head.dataset.at === at);
         for (const button of all$("[data-folder-item]", $("chart-list"))) lit(button, button.dataset.folderItem === folder);
         for (const button of all$("[data-section-item]", $("chart-list"))) lit(button, button.dataset.sectionItem === path);
+        showAddress();
       }
       /** The most a shelf shows (its section's first), and a grid at once (more, a button away). */
       const SHELF = 12, GALLERY_PAGE = 60;
@@ -17388,11 +17433,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         gallerySeen.clear();
         galleryTilesSeen.disconnect();
         galleryFound = 0;
-        // (Found at the top, under yours: named, how many.)
-        const head = (/** @type {number} */ count) => (top ? groupHead("Presets", grouped.format(count)) : "");
+        // (Found at the top, under yours: named, how many. The focus in it, back on its like once drawn.)
+        // (A shelf's arrows are alike: one focused is let go, not put on another shelf's.)
+        const head = (/** @type {number} */ count) => (top ? groupHead("Presets", grouped.format(count)) : ""), focus = document.activeElement?.closest?.("[data-shelf-step]") ? null : focusKey($("gallery"));
         if (!presets) {
           $("gallery").innerHTML = (presetsFailed === "none" ? `<p class="gallery-note">This page was built without the presets.</p>` : presetsFailed ? `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>` : `<p class="gallery-note">Loading the presets…</p>`);
-          return;
+          return restoreFocus($("gallery"), focus);
         }
         if (words.length) {
           const found = presetsMatching(words, 1000, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null);
@@ -17408,6 +17454,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ].join("");
         }
         if (kept) placeGallery(kept);
+        restoreFocus($("gallery"), focus);
         for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
         allShelfSteps();
       }
@@ -18675,14 +18722,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (glyph) glyph.innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
         head.classList.toggle("closed", closing);
         head.querySelector("[aria-expanded]")?.setAttribute("aria-expanded", String(!closing));
+        // (Opened while it closes: each row from the height it shows now, drawn anew as it may be.)
+        const rowKey = (/** @type {HTMLElement} */ row) => row.dataset.chartRow ?? row.dataset.folderRow ?? row.dataset.sectionRow ?? row.dataset.presetRow ?? row.dataset.previewRow ?? "";
+        const shown = new Map(closing ? [] : rowsUnder(head).filter((row) => row.getAnimations().length).map((row) => [rowKey(row), row.getBoundingClientRect().height]));
         if (!closing) {
           renderCharts();
           head = find();
           if (!head) return;
         }
-        const folds = rowsUnder(head).map((element) => fold(element, closing));
-        // (On the rail, its own slice of their surface fades with them.)
-        // (Its own slice of the rail's surface: a fade under way, from its closing, goes first.)
+        const folds = rowsUnder(head).map((element) => fold(element, closing, shown.get(rowKey(element))));
+        // (On the rail, its own slice of their surface fades with them: a fade under way, from its closing, goes first.)
         for (const animation of head.getAnimations({ subtree: true })) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.pseudoElement === "::before") animation.cancel();
         if (!head.classList.contains("in-folder") && !group) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
         if (!closing) return;
@@ -18787,10 +18836,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A row unfolding from nothing, or folding to it: clipped as it goes, sliding out from under the one above and
        * fading. One under way turns back from where it is.
        */
-      function fold(/** @type {HTMLElement} */ element, /** @type {boolean} */ closing) {
+      function fold(/** @type {HTMLElement} */ element, /** @type {boolean} */ closing, /** @type {number | undefined} */ was = undefined) {
         const moving = element.getAnimations().length > 0, now = element.getBoundingClientRect().height;
         for (const animation of element.getAnimations()) animation.cancel();
-        const full = element.offsetHeight, from = moving ? now : closing ? full : 0, shown = full ? from / full : 1;
+        const full = element.offsetHeight, from = was ?? (moving ? now : closing ? full : 0), shown = full ? from / full : 1;
         Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: "flex-end" });
         element.inert = closing;
         // (Its gap from the one above, as wide as its list has it, goes and comes with it.)
@@ -19692,6 +19741,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderRecommended();
           presetsArrived();
           renderCharts();
+          // (An address that waited for them, opened now.)
+          if (pendingRoute && started) {
+            const route = routeOf(pendingRoute);
+            pendingRoute = "";
+            // (Its step let go of the address first: the step it leads to, after it, has none either.)
+            const { route: _, ...state } = history.state ?? {};
+            history.replaceState(state, "", `/${location.search}`);
+            if (route) "preset" in route ? openPreset(route.preset) : goTo({ path: route.path });
+          }
           return list;
         })().catch((error) => {
           // Not read: said where they'd be, with a way to try again (never on its own: no loop of attempts; none in a page
@@ -19781,6 +19839,111 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return doc;
       }
+      // ── Addresses: the presets' page, each section, each preset, to be found ──────────────────
+
+      /* addresses: the build runs this same code for the sitemap (build.mjs reads it between these marks) */
+      /**
+       * Each place of the presets' an address of its own, for search engines and links: their page /presets, a section
+       * /presets/market/capitalization, a preset /chart/market/capitalization/compare (its kind said by its start: the page
+       * knows which before they're read). Names as an address writes them: lowercase words joined by dashes, signs as words
+       * (>4M RP: over-4m-rp; +90%: plus-90-percent). Two under one place still alike, each tagged by its own name (a short
+       * hash of it): an address is the same whatever else there is, and in whatever order.
+       * @param {{ p: string[] }[]} list
+       */
+      function addressesOf(list) {
+        const word = (/** @type {string} */ text) => text.replace(/\+/g, " plus ").replace(/(^|\s)-(?=\d)|[−–]/g, "$1 minus ").replace(/≥/g, " at least ").replace(/≤/g, " at most ").replace(/>/g, " over ").replace(/</g, " under ").replace(/%/g, " percent ").replace(/&/g, " and ")
+          .normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "x";
+        const tag = (/** @type {string} */ text) => {
+          let h = 2166136261;
+          for (const c of text) h = Math.imul(h ^ /** @type {number} */ (c.codePointAt(0)), 16777619);
+          return (h >>> 0).toString(36).slice(0, 4);
+        };
+        // (How many of a kind under one place would be written alike: those, tagged.)
+        const sectionPaths = new Map();
+        for (const preset of list) for (let depth = 1; depth < preset.p.length; depth++) sectionPaths.set(JSON.stringify(preset.p.slice(0, depth)), preset.p.slice(0, depth));
+        const alike = new Map(), count = (/** @type {string} */ key) => alike.set(key, (alike.get(key) ?? 0) + 1);
+        const keyOf = (/** @type {string} */ kind, /** @type {string[]} */ path) => `${kind}${JSON.stringify(path.slice(0, -1))}|${word(/** @type {string} */ (path.at(-1)))}`;
+        for (const path of sectionPaths.values()) count(keyOf("s", path));
+        for (const preset of list) count(keyOf("p", preset.p));
+        const named = (/** @type {string} */ kind, /** @type {string[]} */ path) => ((name) => (alike.get(keyOf(kind, path)) > 1 ? `${word(name)}-${tag(name)}` : word(name)))(/** @type {string} */ (path.at(-1)));
+        const sections = new Map([["[]", "/presets"]]), at = /** @type {Map<string, { path: string[] } | { preset: number }>} */ (new Map([["/presets", { path: [] }]]));
+        const sectionAt = (/** @type {string[]} */ path) => {
+          const key = JSON.stringify(path), known = sections.get(key);
+          if (known) return known;
+          const address = `${sectionAt(path.slice(0, -1))}/${named("s", path)}`;
+          sections.set(key, address);
+          at.set(address, { path });
+          return address;
+        };
+        const presetsAt = list.map((preset, i) => {
+          const address = `/chart${sectionAt(preset.p.slice(0, -1)).slice("/presets".length)}/${named("p", preset.p)}`;
+          at.set(address, { preset: i });
+          return address;
+        });
+        return { presets: presetsAt, sections, at };
+      }
+      /* /addresses */
+      /** Whether the page is Studio's own, served at its root (which serves the page at every address): an address of the presets' read as it starts; elsewhere (a file, another server, a page in a folder), none. */
+      const ROUTED = location.protocol === "https:" && /(^|\.)bitview\.space$/.test(location.hostname) && /^\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
+      /** The presets' addresses, made once they're read. */
+      let addressBook = /** @type {{ for: Preset[] | null, book: ReturnType<typeof addressesOf> | null }} */ ({ for: null, book: null });
+      const addresses = () => (!presets ? null : addressBook.for === presets ? addressBook.book : (addressBook = { for: presets, book: addressesOf(presets) }).book);
+      /** What an address opens: a preset, a place of the presets'; none, nothing of theirs. */
+      const routeOf = (/** @type {string} */ pathname) => addresses()?.at.get(pathname.replace(/\/+$/, "")) ?? null;
+      /** Where the page is, as an address (its canonical one): a preset's, a place of the presets', else the page's own ("/": your charts are no one else's); null, not known till they're read. */
+      function addressNow() {
+        const book = addresses();
+        if (home) return "path" in homeAt ? (book ? book.sections.get(JSON.stringify(homeAt.path)) ?? "/" : null) : "/";
+        if (chart.preset === undefined) return "/";
+        const i = presetIndex(chart);
+        return book ? (i >= 0 ? book.presets[i] : "/") : null;
+      }
+      /** The address the page is known by: the live one's (the preview's, any other, point there). */
+      const ORIGIN = "https://studio.bitview.space";
+      /**
+       * The page as it's found, as it is now: its title, its description and its canonical address (each place's own): a
+       * preset's, named by what it charts and where it's kept; a section's, by what's in it; the presets' page; your own,
+       * the studio's. (The address bar isn't: an address of theirs is a way in, read and let go of as the page starts, as
+       * a chart's link is.)
+       */
+      function showAddress() {
+        // (Once what's being done is done: a step of the history pushed after the page's drawn has the address, not the
+        // one before it.)
+        if (addressDue) return;
+        addressDue = true;
+        queueMicrotask(() => ((addressDue = false), placeAddress()));
+      }
+      let addressDue = false, saidFor = "", saidThen = "";
+      function placeAddress() {
+        // (A link's picture being made: the page is its, not a place's; the page still starting, as it was asked for.)
+        if (document.body.hasAttribute("data-picture") || !started) return;
+        const address = addressNow(), i = !home && chart.preset !== undefined ? presetIndex(chart) : -1, path = home && "path" in homeAt ? homeAt.path : null;
+        const shown = (/** @type {Chart} */ doc) => doc.layers.filter((layer) => !layer.hidden).map(labelOf);
+        const list = (/** @type {string[]} */ names) => (names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0] ?? "");
+        document.title = home ? ("top" in homeAt ? "Bitview Studio: charts of Bitcoin's on-chain data" : `${$("home-title").textContent} · Bitview Studio`) : `${titleOf(chart)}${i >= 0 ? " chart" : ""} · Bitview Studio`;
+        const as = `${address}|${home}|${i >= 0 ? chart.updated : ""}|${presets?.length ?? 0}`;
+        const said = as === saidFor ? saidThen : i >= 0 && presets
+          ? `${titleOf(chart)}: ${list(shown(chart))}, a chart of Bitcoin's on-chain data (${presets[i].p.slice(0, -1).join(" › ")}), live from bitview.space. Open it, change it and share it in Bitview Studio, free in the browser.`
+          : path && !path.length ? "Thousands of ready-made charts of Bitcoin's on-chain data: market, network, mining, distribution, investing and more. Open one, change it and share it in Bitview Studio, free in the browser."
+          : path && presets ? ((inside) => `Charts of Bitcoin's on-chain data in ${path.join(" › ")}: ${inside.length > 4 ? `${inside.slice(0, 4).join(", ")} and more` : list(inside)}. Open one, change it and share it in Bitview Studio, free in the browser.`)(((at) => [...at.groups.keys(), ...at.own.map((k) => /** @type {Preset[]} */ (presets)[k].t)])(sectionAt(path)))
+          : DESCRIPTION;
+        saidFor = as;
+        saidThen = said;
+        const meta = /** @type {HTMLMetaElement} */ (document.querySelector('meta[name="description"]'));
+        if (meta.content !== said) meta.content = said;
+        // (Its canonical address made once it knows where it is: none before, rather than the root's at every address.)
+        let link = /** @type {HTMLLinkElement | null} */ (document.querySelector('link[rel="canonical"]'));
+        if (!link) document.head.append((link = Object.assign(document.createElement("link"), { rel: "canonical" })));
+        const canonical = `${ORIGIN}${address ?? location.pathname}`;
+        if (link.href !== canonical) link.href = canonical;
+      }
+      /** Whether start() has made the page what it shows first (till then, the address is the one asked for). */
+      let started = false;
+      /** An address asked for that waits for the presets (they failed to load at first): opened once they're read. */
+      let pendingRoute = "";
+      /** The page's own description, as written in its head (the studio's, for your charts and the Charts page). */
+      const DESCRIPTION = /** @type {HTMLMetaElement} */ (document.querySelector('meta[name="description"]')).content;
+
       // ── The presets, edited where they are ─────────────────────────────────────
 
       /** Which preset a chart of one is: its place in the presets (its sections and its own name). */
@@ -26460,7 +26623,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         at += context.measureText("Studio").width;
         // (Where it was made: this page's own address, studio.bitview.space as it's served; one only this machine or its
         // network knows (a file, localhost, a private address), the data's.)
-        const local = !location.hostname || location.hostname === "localhost" || /^(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|\[)/.test(location.hostname) || location.hostname.endsWith(".local");
+        const local = !location.hostname || location.hostname === "localhost" || /^(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|\[::1\]|\[f[cd])/i.test(location.hostname) || location.hostname.endsWith(".local");
         const where = ` · ${local ? SERVER_HOST : location.host}`;
         context.fillStyle = mutedColor;
         context.fillText(where, at, baseline);
@@ -26837,7 +27000,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.activeElement !== $("title")) $("title").value = chart.title;
         // (Untitled, what it's called meanwhile: in the field, the one it'd be named.)
         $("title").placeholder = derivedTitle(chart);
-        document.title = `${home ? $("home-title").textContent : titleOf(chart)} · Bitview Studio`;
         syncUndo();
         $("interval").innerHTML = `${ICONS.recent}${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
         $("interval").setAttribute("aria-label", `${INTERVAL_LABEL[chart.index] ?? chart.index}, ${(CADENCE[chart.index] ?? chart.index).toLowerCase()} interval`);
@@ -26849,9 +27011,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("chart").classList.toggle("unseen", unseen);
         // A new chart, empty, can be left with Escape (or Cancel), for the chart before it: taken back.
         const back = chart.layers.length ? null : previousChart();
-        $("leave-empty").hidden = !(isPreview(chart) || emptyYours(chart)) || (!back && !backToHome());
+        $("leave-empty").hidden = !(isPreview(chart) || emptyYours(chart));
         if (backToHome()) $("leave-empty").dataset.tip = `Back to ${$("home-title").textContent}`;
-        else if (back) $("leave-empty").dataset.tip = `Back to ${titleOf(back)}`;
+        else $("leave-empty").dataset.tip = back ? `Back to ${titleOf(back)}` : "Back to Charts";
         // An empty chart is the empty state's to fill: no panel beside it, nothing to export or share yet.
         document.body.toggleAttribute("data-empty", !chart.layers.length);
         $("share").disabled = $("draw-toggle").disabled = $("panel-toggle").disabled = !chart.layers.length;
@@ -27180,7 +27342,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (document.body.dataset.sheet) delete document.body.dataset.sheet;
           else if (!home && tablet.matches && panelShown()) togglePanel(false);
           // A new chart left empty: Escape takes it back, as its Cancel button does.
-          else if (!home && !chart.layers.length && (isPreview(chart) || emptyYours(chart)) && (previousChart() || backToHome())) leaveEmpty();
+          else if (!home && !chart.layers.length && (isPreview(chart) || emptyYours(chart))) leaveEmpty();
         } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
         else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
         else if ((event.key === "Backspace" || event.key === "Delete") && (chosen.size || layerPicks.size || selected)) chosen.size ? removeDrawings([...chosen]) : layerPicks.size ? layersBatch("remove") : removeLayer(selected);
@@ -27659,6 +27821,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (The chart as the window lays it out: a link's picture, across it; its legends' marks its own lines, not the
           // faint ones they show till its mini chart's drawn.)
           await studio.ready();
+          document.title = `${titleOf(chart)} · Bitview Studio`;
           const at = navigations;
           if (await freshThumb(chart)) saveThumbsSoon();
           const url = (await chartImage()).toDataURL("image/png");
@@ -27985,14 +28148,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const first = !chart;
         if (first) chart = newDraft();
         // Where this tab was, as its history keeps it (a reload), else where the studio was last: the page, or a chart. A
-        // shared link opens its chart; a first visit, the Charts page.
-        const there = shared ? null : history.state;
-        chart = (there?.chart && chartById(there.chart)) || chart;
+        // shared link opens its chart; a first visit, the Charts page. An address of the presets' (a visit, not a step
+        // back), what it names: the presets read first (the page out of sight meanwhile); one they don't have, the Charts page.
+        const there = shared ? null : history.state, resumed = there?.chart ? chartById(there.chart) : null;
+        // (A step back whose chart is gone (a reload with nothing kept): the address, as a visit's.)
+        const asked = !shared && (!there || (there.chart && !resumed) || there.route) && ROUTED && location.pathname !== "/" ? location.pathname : "";
+        if (asked) await loadPresets().catch(() => {});
+        const routed = asked ? routeOf(asked) : null;
+        chart = resumed || (routed && "preset" in routed ? presetChart(routed.preset) : chart);
+        // (The empty chart a first visit makes in place of none, not wanted under a preset: let go of.)
+        if (first && routed && "preset" in routed) {
+          const draft = previewCharts.findIndex((doc) => drafts.has(doc));
+          if (draft >= 0) previewCharts.splice(draft, 1);
+        }
+        // (An address of a section, there; one that's nothing, the Charts page; the presets unread, kept till they are.)
+        if (asked) homeAt = routed && "path" in routed ? { path: routed.path } : { top: true };
+        if (asked && !routed && !presets) pendingRoute = asked;
         // (Blank charts left elsewhere (a tab closed on one): let go of, the one open here aside.)
         for (const doc of library.charts.filter((doc) => doc !== chart && emptyYours(doc))) dropEmpty(doc);
-        home = !shared && Boolean(there ? there.home : first || prefs.home);
+        home = !shared && Boolean(asked ? !(routed && "preset" in routed) : there ? there.home : first || prefs.home);
+        started = true;
         document.body.toggleAttribute("data-home", home);
-        if (!there) history.replaceState(home ? homeState() : { chart: chart.id }, "");
+        // (Asked by an address, its step is where it led (one waiting for the presets says so: a reload waits again).)
+        if (!there || asked) history.replaceState({ ...(home ? homeState() : { chart: chart.id }), ...(pendingRoute ? { route: true } : {}) }, "");
+        // (The address it was opened at, read: let go of, as a chart's link is (one waiting for the presets, once read).)
+        if (asked && !pendingRoute) history.replaceState(history.state, "", `/${location.search}`);
         library.active = chart.id;
         rememberViewed(chart.id);
         normalize(chart);

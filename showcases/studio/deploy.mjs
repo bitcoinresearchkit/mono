@@ -40,12 +40,21 @@ export async function deploy(target, quiet = false) {
     if (quiet) return void console.log(`Preview not deployed: ${why}`);
     throw new Error(why);
   }
+  // (The page, and the files the build puts beside it for those who find it: see build.mjs.)
+  const BESIDE = ["llms.txt", "sitemap.xml", "robots.txt", "og.png"];
+  /** @type {Buffer} */
   let page;
+  /** @type {Record<string, Buffer>} */
+  const files = {};
+  const take = (/** @type {string} */ folder) => {
+    page = readFileSync(join(folder, "index.html"));
+    for (const name of BESIDE) if (existsSync(join(folder, name))) files[`/${name}`] = readFileSync(join(folder, name));
+  };
   if (target === "live") {
     const apart = mkdtempSync(join(tmpdir(), "studio-live-")), file = join(apart, "index.html");
     try {
       execFileSync(process.execPath, [join(HERE, "build.mjs"), file], { stdio: "inherit" });
-      page = readFileSync(file);
+      take(apart);
     } finally {
       rmSync(apart, { recursive: true, force: true });
     }
@@ -53,10 +62,14 @@ export async function deploy(target, quiet = false) {
     if (built !== head) throw new Error(`Not deployed: built from ${built ? `${built.replace("+", "")} with changes not committed` : "an unknown version"}, not the commit ${head} alone (live is a commit's: commit first)`);
     if (!/<script id="presets" type="application\/gzip">[^<]+<\/script>/.test(String(page))) throw new Error("Not deployed: built without its presets (bitview.space unread): try again");
   } else {
-    const file = join(HERE, "dist", "index.html");
-    if (!existsSync(file)) throw new Error("Nothing built yet (node showcases/studio/build.mjs)");
-    page = readFileSync(file);
+    if (!existsSync(join(HERE, "dist", "index.html"))) throw new Error("Nothing built yet (node showcases/studio/build.mjs)");
+    take(join(HERE, "dist"));
+    // (The preview isn't to be found: its page says so to search engines, which may read it to see that; the live one's
+    // the one they know.)
+    files["/robots.txt"] = Buffer.from("User-agent: *\nAllow: /\n");
+    page = Buffer.from(String(page).replace('<meta charset="utf-8" />', '<meta charset="utf-8" />\n    <meta name="robots" content="noindex" />'));
   }
+  files["/index.html"] = page;
   const [name, hostname] = TARGETS[target];
   /** Cloudflare's API: its result, or what it says went wrong (never what was sent: a failed request says only its kind). */
   const api = async (/** @type {string} */ path, /** @type {RequestInit} */ init = {}, bearer = token) => {
@@ -74,21 +87,29 @@ export async function deploy(target, quiet = false) {
     return body.result;
   };
   const json = { "Content-Type": "application/json" };
-  // The page as a file of the Worker's: named by a hash as Cloudflare's own example makes it (SHA-256 of its base64 and
-  // its extension, 32 hex digits).
-  const base64 = page.toString("base64"), hash = createHash("sha256").update(`${base64}html`).digest("hex").slice(0, 32);
-  const session = await api(`/accounts/${account}/workers/scripts/${name}/assets-upload-session`, { method: "POST", headers: json, body: JSON.stringify({ manifest: { "/index.html": { hash, size: page.length } } }) });
-  // Uploaded only if Cloudflare hasn't it: none asked for, the session's token is the upload's; else the last upload's.
+  // Each file of the Worker's: named by a hash as Cloudflare's own example makes it (SHA-256 of its base64 and its
+  // extension, 32 hex digits).
+  const TYPES = /** @type {Record<string, string>} */ ({ html: "text/html", txt: "text/plain", xml: "application/xml", png: "image/png" });
+  const each = Object.entries(files).map(([path, bytes]) => {
+    const extension = /** @type {string} */ (path.split(".").at(-1)), base64 = bytes.toString("base64");
+    return { path, base64, size: bytes.length, type: TYPES[extension] ?? "application/octet-stream", hash: createHash("sha256").update(`${base64}${extension}`).digest("hex").slice(0, 32) };
+  });
+  const session = await api(`/accounts/${account}/workers/scripts/${name}/assets-upload-session`, { method: "POST", headers: json, body: JSON.stringify({ manifest: Object.fromEntries(each.map(({ path, hash, size }) => [path, { hash, size }])) }) });
+  // Uploaded only if Cloudflare hasn't them: none asked for, the session's token is the upload's; else the last upload's.
   let uploaded = session?.jwt;
   for (const bucket of session?.buckets ?? []) {
     const form = new FormData();
-    for (const each of bucket) form.append(each, new File([base64], each, { type: "text/html" }));
+    for (const hash of bucket) {
+      const file = each.find((item) => item.hash === hash);
+      if (file) form.append(hash, new File([file.base64], hash, { type: file.type }));
+    }
     uploaded = (await api(`/accounts/${account}/workers/assets/upload?base64=true`, { method: "POST", body: form }, session.jwt))?.jwt;
   }
-  if (!uploaded) throw new Error("Cloudflare gave no token for the page's upload");
-  // The Worker: its files alone, served as they are (no code, Cloudflare's defaults).
+  if (!uploaded) throw new Error("Cloudflare gave no token for the files' upload");
+  // The Worker: its files alone, served as they are (no code); any address that isn't one of them, the page (which opens
+  // what it names: /presets/…, /chart/…).
   const worker = new FormData();
-  worker.append("metadata", new Blob([JSON.stringify({ assets: { jwt: uploaded, config: {} }, compatibility_date: "2026-10-11" })], { type: "application/json" }));
+  worker.append("metadata", new Blob([JSON.stringify({ assets: { jwt: uploaded, config: { not_found_handling: "single-page-application" } }, compatibility_date: "2026-10-11" })], { type: "application/json" }));
   await api(`/accounts/${account}/workers/scripts/${name}`, { method: "PUT", body: worker });
   await api(`/accounts/${account}/workers/domains`, { method: "PUT", headers: json, body: JSON.stringify({ hostname, service: name, environment: "production", zone_id: zone }) });
   // (Deployed whatever the purge does: one that fails says so, the page before served a while.)
