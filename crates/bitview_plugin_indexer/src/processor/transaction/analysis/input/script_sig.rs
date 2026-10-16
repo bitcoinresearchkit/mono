@@ -1,10 +1,7 @@
 use bitcoin::{Script, script::Instruction};
-use brk_types::OutputType;
+use brk_types::{OutputType, SigOpCount};
 
-use super::{
-    super::{features, sigops::SigOpCount},
-    ScriptSigFacts,
-};
+use super::{super::features, ScriptSigFacts};
 use crate::TxFeatureFlags;
 
 pub fn analyze<'a>(

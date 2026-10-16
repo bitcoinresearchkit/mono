@@ -14,7 +14,7 @@ use std::{
 
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
-use brk_types::{BlkMetadata, Height, ReadBlock};
+use brk_types::{BlkPosition, Height, ReadBlock};
 use crossbeam::channel::{Receiver, Sender, bounded};
 use parking_lot::{Condvar, Mutex};
 use rustc_hash::FxHashSet;
@@ -44,7 +44,7 @@ struct ScannedBlock {
 
 /// A canonical block's location and already-decoded header.
 struct Frame {
-    metadata: BlkMetadata,
+    position: BlkPosition,
     len: usize,
     header: Header,
 }
@@ -117,7 +117,7 @@ impl Dispatch<'_> {
     }
 
     fn reread(&self, frame: &Frame) -> Result<Vec<u8>> {
-        let position = frame.metadata.position();
+        let position = frame.position;
         let path = self
             .paths
             .get(&position.blk_index())
@@ -213,7 +213,7 @@ fn parser_loop(
 ) {
     for ScannedBlock {
         frame: Frame {
-            metadata, header, ..
+            position, header, ..
         },
         bytes,
         canonical_offset,
@@ -224,9 +224,9 @@ fn parser_loop(
         }
         let height = Height::from(*canonical.start + canonical_offset);
         let len = bytes.len();
-        let xor_state = XORIndex::at_offset(metadata.position().offset() as usize);
+        let xor_state = XORIndex::at_offset(position.offset() as usize);
         let block =
-            match parse_canonical_body(bytes, metadata, xor_state, xor_bytes, height, header) {
+            match parse_canonical_body(bytes, position, xor_state, xor_bytes, height, header) {
                 Ok(block) => block,
                 Err(e) => {
                     error!("parse_canonical_body failed at height {height}: {e}");
@@ -263,7 +263,7 @@ fn read_and_dispatch(
             &mut bytes,
             blk_index,
             xor_bytes,
-            |metadata, block_bytes, xor_state| {
+            |position, block_bytes, xor_state| {
                 if stop.get().is_some() {
                     return ControlFlow::Break(());
                 }
@@ -276,12 +276,9 @@ fn read_and_dispatch(
                             return ControlFlow::Break(());
                         }
                     };
-                debug_assert_eq!(
-                    xor_state,
-                    XORIndex::at_offset(metadata.position().offset() as usize)
-                );
+                debug_assert_eq!(xor_state, XORIndex::at_offset(position.offset() as usize));
                 let frame = Frame {
-                    metadata,
+                    position,
                     len: block_bytes.len(),
                     header,
                 };

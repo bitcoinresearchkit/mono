@@ -40,7 +40,7 @@ fn run() -> Result<()> {
     let chain_height = client.get_last_height()?;
     let benchmark = Benchmark::new(&data_path, &blocks_path, chain_height, cache_budget)?;
     info!("Benchmark results: {}", benchmark.path().display());
-    let reader = Reader::new(blocks_path, &client);
+    let reader = Reader::new(blocks_path, &client)?;
     let exit = Exit::new();
     exit.set_ctrlc_handler();
 

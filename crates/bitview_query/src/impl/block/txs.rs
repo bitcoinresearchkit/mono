@@ -1,5 +1,5 @@
 use crate::{ReadPin, check_bound};
-use bitcoin::{ScriptBuf, Transaction as BitcoinTransaction};
+use bitcoin::Transaction as BitcoinTransaction;
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
@@ -199,54 +199,25 @@ impl Query {
             dtx.outpoints = outpoints;
         }
 
-        // ── Phase 2: Build prevout TxOut map (script_pubkey from addr vecs) ──
-        // Sort by (output_type, type_index) for sequential BytesVec access
-        // within each address type's file.
+        // ── Phase 2: Build prevout TxOut map ──
+        // Sort by (output_type, type_index) for sequential BytesVec access within each address
+        // type's file; non-address output indices are chronological within each script type, so
+        // a decoded parent serves its adjacent outputs.
 
-        let addr_readers = indexer.vecs().addrs.addr_readers();
+        let mut scripts = indexer.output_scripts();
 
         prevouts.sort_unstable_by_key(|&(_, ot, ti, _)| (ot, ti));
 
         let mut prevout_map: FxHashMap<OutPoint, TxOut> =
             FxHashMap::with_capacity_and_hasher(prevouts.len(), Default::default());
 
-        // Non-address output indices are chronological within each script type.
-        // Keep at most one decoded parent, reusing it for adjacent outputs.
-        let mut raw_parent: Option<(TxIndex, BitcoinTransaction)> = None;
         let prevout_count = prevouts.len();
         for (op, output_type, type_index, value) in prevouts {
-            let script_pubkey = if let Some(addr) = addr_readers.get(output_type, type_index) {
-                addr.to_script_pubkey()
-            } else if output_type == OutputType::Empty {
-                ScriptBuf::new()
-            } else if matches!(
-                output_type,
-                OutputType::P2MS | OutputType::Unknown | OutputType::OpReturn
-            ) {
-                if raw_parent
-                    .as_ref()
-                    .is_none_or(|(index, _)| *index != op.tx_index())
-                {
-                    let (_, parent) = indexer.read_tx(op.tx_index())?;
-                    raw_parent = Some((op.tx_index(), parent));
-                }
-                let output = raw_parent
-                    .as_ref()
-                    .data()?
-                    .1
-                    .output
-                    .get(usize::from(op.vout()))
-                    .data()?;
-                if output.value.to_sat() != u64::from(value) {
-                    return Err(Error::Internal("Indexed prevout value mismatch"));
-                }
-                output.script_pubkey.clone()
-            } else {
-                return Err(Error::Internal("Indexed prevout address missing"));
-            };
+            let script_pubkey =
+                scripts.get(op.tx_index(), op.vout(), output_type, type_index, value)?;
             prevout_map.insert(op, TxOut::from((script_pubkey, value)));
         }
-        drop(raw_parent);
+        drop(scripts);
         debug_assert_eq!(prevout_map.len(), prevout_count, "an outpoint spent twice");
 
         // ── Phase 3: Assemble Transaction objects ───────────────────────

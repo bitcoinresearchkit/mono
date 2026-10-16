@@ -1,6 +1,5 @@
+use bitview_primitives::with_resolution_fields;
 use bitview_traversable::Traversable;
-
-use crate::with_resolution_fields;
 
 macro_rules! define_per_resolution {
     (

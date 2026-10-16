@@ -11,13 +11,12 @@ use bitview_primitives::{
 };
 use brk_error::Result;
 use brk_store::Store;
-use brk_types::{AddressBytes, OutPoint, OutputType, Sats, SigOps32, TxIndex, Unit, Vout};
+use brk_types::{
+    AddressBytes, OutPoint, OutputType, Sats, SigOpCount, SigOps32, TxIndex, Unit, Vout,
+};
 use vecdb::{BytesVec, WritableVec, likely};
 
-use super::{
-    BlockProcessor,
-    transaction::{ComputedTx, analysis::sigops::SigOpCount},
-};
+use super::{BlockProcessor, transaction::ComputedTx};
 use crate::{
     AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs,
     constants::overwritten_tx_index,

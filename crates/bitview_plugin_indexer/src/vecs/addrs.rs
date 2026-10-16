@@ -8,9 +8,9 @@ use brk_types::{
     AddressBytes, Height, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes,
     P2TRBytes, P2WPKHBytes, P2WSHBytes, Version,
 };
-use vecdb::{AnyStoredVec, Database, Rw, Stamp, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
-use crate::{Lengths, readers::AddrReaders};
+use crate::readers::AddrReaders;
 
 pub mod addr_type;
 
@@ -46,11 +46,6 @@ macro_rules! addrs_vecs {
                     $($field = AddrTypeVecs::import(db, stringify!($field), version),)+
                 };
                 Ok(Self { $($field),+ })
-            }
-
-            pub fn truncate(&mut self, lengths: &Lengths, stamp: Stamp) -> Result<()> {
-                $(self.$field.truncate(lengths.height, lengths.$length, stamp)?;)+
-                Ok(())
             }
 
             pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

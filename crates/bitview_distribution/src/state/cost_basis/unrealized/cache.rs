@@ -1,26 +1,31 @@
 use std::{collections::BTreeMap, ops::Bound};
 
 use bitview_primitives::CentsCompact;
-use brk_types::{Cents, Sats};
+use brk_types::{Cents, CentsSats, Sats};
 
-use super::{UnrealizedState, sums::Sums};
+use super::UnrealizedState;
 
+/// The supply on each side of a price, with its exact cap (creation price times sats): coins
+/// bought at or under the price are in profit, the rest in loss. A price change moves only the
+/// coins it crosses; unrealized profit and loss derive from the caps, each rounded once.
 #[derive(Debug, Clone)]
 pub struct CachedUnrealizedState {
-    state: Sums,
+    profit: Side,
+    loss: Side,
     at_price: CentsCompact,
-    cached_output: Option<UnrealizedState>,
 }
 
 impl CachedUnrealizedState {
     pub fn compute_fresh(price: Cents, map: &BTreeMap<CentsCompact, Sats>) -> Self {
-        let price = price.into();
-        let state = Self::compute_raw(price, map);
-        Self {
-            state,
-            at_price: price,
-            cached_output: None,
+        let mut this = Self {
+            profit: Side::default(),
+            loss: Side::default(),
+            at_price: price.into(),
+        };
+        for (&price, &sats) in map {
+            this.side_mut(price).add(price, sats);
         }
+        this
     }
 
     pub fn get_at_price(
@@ -31,46 +36,25 @@ impl CachedUnrealizedState {
         let new_price = new_price.into();
         if new_price != self.at_price {
             self.update_for_price_change(new_price, map);
-            self.cached_output = None;
         }
-        self.cached_output
-            .get_or_insert_with(|| self.state.to_output(self.at_price))
-            .clone()
+        self.output()
     }
 
     pub fn on_receive(&mut self, price: Cents, sats: Sats) {
-        self.cached_output = None;
-        let price: CentsCompact = price.into();
-        let sats_u128 = sats.as_u128();
-
-        if price <= self.at_price {
-            self.state.supply_in_profit += sats;
-            if price < self.at_price {
-                let diff = (self.at_price - price).as_u128();
-                self.state.unrealized_profit += diff * sats_u128;
-            }
-        } else {
-            self.state.supply_in_loss += sats;
-            let diff = (price - self.at_price).as_u128();
-            self.state.unrealized_loss += diff * sats_u128;
-        }
+        let price = price.into();
+        self.side_mut(price).add(price, sats);
     }
 
     pub fn on_send(&mut self, price: Cents, sats: Sats) {
-        self.cached_output = None;
-        let price: CentsCompact = price.into();
-        let sats_u128 = sats.as_u128();
+        let price = price.into();
+        self.side_mut(price).sub(price, sats);
+    }
 
+    fn side_mut(&mut self, price: CentsCompact) -> &mut Side {
         if price <= self.at_price {
-            self.state.supply_in_profit -= sats;
-            if price < self.at_price {
-                let diff = (self.at_price - price).as_u128();
-                self.state.unrealized_profit -= diff * sats_u128;
-            }
+            &mut self.profit
         } else {
-            self.state.supply_in_loss -= sats;
-            let diff = (price - self.at_price).as_u128();
-            self.state.unrealized_loss -= diff * sats_u128;
+            &mut self.loss
         }
     }
 
@@ -80,79 +64,56 @@ impl CachedUnrealizedState {
         map: &BTreeMap<CentsCompact, Sats>,
     ) {
         let old_price = self.at_price;
-
-        if new_price > old_price {
-            let delta = (new_price - old_price).as_u128();
-            let original_supply_in_profit = self.state.supply_in_profit.as_u128();
-
-            for (&price, &sats) in
-                map.range((Bound::Excluded(old_price), Bound::Included(new_price)))
-            {
-                let sats_u128 = sats.as_u128();
-
-                self.state.supply_in_loss -= sats;
-                self.state.supply_in_profit += sats;
-
-                let original_loss = (price - old_price).as_u128();
-                self.state.unrealized_loss -= original_loss * sats_u128;
-
-                if price < new_price {
-                    let new_profit = (new_price - price).as_u128();
-                    self.state.unrealized_profit += new_profit * sats_u128;
-                }
-            }
-
-            self.state.unrealized_profit += delta * original_supply_in_profit;
-            let non_crossing_loss_sats = self.state.supply_in_loss.as_u128();
-            self.state.unrealized_loss -= delta * non_crossing_loss_sats;
-        } else if new_price < old_price {
-            let delta = (old_price - new_price).as_u128();
-            let original_supply_in_loss = self.state.supply_in_loss.as_u128();
-
-            for (&price, &sats) in
-                map.range((Bound::Excluded(new_price), Bound::Included(old_price)))
-            {
-                let sats_u128 = sats.as_u128();
-
-                self.state.supply_in_profit -= sats;
-                self.state.supply_in_loss += sats;
-
-                if price < old_price {
-                    let original_profit = (old_price - price).as_u128();
-                    self.state.unrealized_profit -= original_profit * sats_u128;
-                }
-
-                let new_loss = (price - new_price).as_u128();
-                self.state.unrealized_loss += new_loss * sats_u128;
-            }
-
-            self.state.unrealized_loss += delta * original_supply_in_loss;
-            let non_crossing_profit_sats = self.state.supply_in_profit.as_u128();
-            self.state.unrealized_profit -= delta * non_crossing_profit_sats;
+        let (crossed, from, to) = if new_price > old_price {
+            (
+                (Bound::Excluded(old_price), Bound::Included(new_price)),
+                &mut self.loss,
+                &mut self.profit,
+            )
+        } else {
+            (
+                (Bound::Excluded(new_price), Bound::Included(old_price)),
+                &mut self.profit,
+                &mut self.loss,
+            )
+        };
+        for (&price, &sats) in map.range(crossed) {
+            from.sub(price, sats);
+            to.add(price, sats);
         }
-
         self.at_price = new_price;
     }
 
-    fn compute_raw(current_price: CentsCompact, map: &BTreeMap<CentsCompact, Sats>) -> Sums {
-        let mut state = Sums::default();
-
-        for (&price, &sats) in map {
-            let sats_u128 = sats.as_u128();
-
-            if price <= current_price {
-                state.supply_in_profit += sats;
-                if price < current_price {
-                    let diff = (current_price - price).as_u128();
-                    state.unrealized_profit += diff * sats_u128;
-                }
-            } else {
-                state.supply_in_loss += sats;
-                let diff = (price - current_price).as_u128();
-                state.unrealized_loss += diff * sats_u128;
-            }
+    fn output(&self) -> UnrealizedState {
+        let value = |side: &Side| self.at_price.as_u128() * side.sats.as_u128();
+        let cents = |raw: u128| CentsSats::new(raw).to_cents();
+        UnrealizedState {
+            supply_in_profit: self.profit.sats,
+            supply_in_loss: self.loss.sats,
+            unrealized_profit: cents(value(&self.profit) - self.profit.cap),
+            unrealized_loss: cents(self.loss.cap - value(&self.loss)),
+            capital_in_profit: cents(self.profit.cap),
+            capital_in_loss: cents(self.loss.cap),
         }
+    }
+}
 
-        state
+#[derive(Debug, Default, Clone)]
+struct Side {
+    sats: Sats,
+    cap: u128,
+}
+
+impl Side {
+    #[inline]
+    fn add(&mut self, price: CentsCompact, sats: Sats) {
+        self.sats += sats;
+        self.cap += price.as_u128() * sats.as_u128();
+    }
+
+    #[inline]
+    fn sub(&mut self, price: CentsCompact, sats: Sats) {
+        self.sats -= sats;
+        self.cap -= price.as_u128() * sats.as_u128();
     }
 }

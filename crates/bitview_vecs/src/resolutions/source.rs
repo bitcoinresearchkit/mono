@@ -4,9 +4,9 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, VecValue};
 
-use crate::{
-    AggFold, CoarserIndex, IndexSources, LazyAggVec, shapes::PerResolution, with_resolution_fields,
-};
+use bitview_primitives::with_resolution_fields;
+
+use crate::{AggFold, CoarserIndex, IndexSources, LazyAggVec, shapes::PerResolution};
 
 macro_rules! define_resolutions {
     (

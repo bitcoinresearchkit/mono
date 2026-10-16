@@ -1,7 +1,7 @@
-//! Price windows that never reach into the zero-price prefix before
-//! [`FIRST_PRICE_HEIGHT`]: they clamp to start there, and rows before it have no window.
+//! Price windows that never reach into the zero-price prefix before the first price: they
+//! clamp to start there, and rows before it have no window.
 
-use bitview_plugin_price::FIRST_PRICE_HEIGHT;
+use bitview_plugin_price::{first_priced, priced_range};
 use bitview_vecs::LazyWindowStartVec;
 use brk_types::{Cents, Height, Version};
 use vecdb::{
@@ -24,7 +24,8 @@ impl DeltaOp<Cents, Cents> for PricedSma {
         Cents::ZERO
     }
     fn count(index: usize, start: usize) -> usize {
-        (index + 1).saturating_sub(start.max(FIRST_PRICE_HEIGHT))
+        let priced = priced_range(start..index + 1);
+        priced.end - priced.start
     }
     fn combine(current: Cents, previous: Cents, count: usize) -> Cents {
         if count == 0 {
@@ -42,7 +43,7 @@ pub struct FromFirstPrice;
 impl UnaryTransform<Height, Height> for FromFirstPrice {
     #[inline(always)]
     fn apply(start: Height) -> Height {
-        start.max(Height::from(FIRST_PRICE_HEIGHT))
+        Height::from(first_priced(start.to_usize()))
     }
 
     /// One bulk read: window starts locate their first start once per read, so the default

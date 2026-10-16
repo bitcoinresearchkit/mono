@@ -10,7 +10,7 @@ impl Query {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
         let mempool = Self::lookup_mempool(mempool);
-        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, &pin) {
+        let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
                 let (mempool, tip) = mempool.ok_or(Error::UnknownTxid)?;
@@ -20,13 +20,10 @@ impl Query {
             }
             Err(error) => return Err(error),
         };
-        if usize::from(vout) >= output_count {
+        let Some(txout) = outputs.get(vout) else {
             return Ok(TxOutspend::UNSPENT);
-        }
-        let confirmed = self
-            .resolve_outspends(first_txout + vout, 1, safe)?
-            .pop()
-            .data()?;
+        };
+        let confirmed = self.resolve_outspends(txout, 1, safe)?.pop().data()?;
         if confirmed.spent {
             return Ok(confirmed);
         }
@@ -51,7 +48,7 @@ impl Query {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
         let mempool = Self::lookup_mempool(mempool);
-        let (_, first_txout, output_count) = match self.resolve_tx_outputs(txid, &pin) {
+        let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
                 let (mempool, tip) = mempool.ok_or(Error::UnknownTxid)?;
@@ -61,7 +58,7 @@ impl Query {
             }
             Err(error) => return Err(error),
         };
-        let mut outspends = self.resolve_outspends(first_txout, output_count, safe)?;
+        let mut outspends = self.resolve_outspends(outputs.first, outputs.len, safe)?;
         if let Some((mempool, tip)) = mempool {
             anchored(mempool.merge_outspends(txid, &mut outspends, &tip))?;
         }

@@ -96,7 +96,7 @@ where
         server,
         cache_budget,
     } = config;
-    let reader = Reader::new(blocks_path, &client);
+    let reader = Reader::new(blocks_path, &client)?;
     let outputs_path = server.data_path.clone();
     Budgeted::init_global(cache_budget)?;
     let import_context = ImportContext::new(&outputs_path, &exit);

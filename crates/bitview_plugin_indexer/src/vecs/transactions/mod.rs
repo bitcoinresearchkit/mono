@@ -4,10 +4,7 @@ use brk_error::Result;
 use brk_types::{
     BlkPosition, Height, RawLockTime, SigOps, SigOps32, TxIndex, Txid, Version, Weight, Weight32,
 };
-use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode,
-    WritableVec,
-};
+use vecdb::{AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
 
 pub mod features;
 pub mod metadata;
@@ -139,29 +136,6 @@ impl TransactionsVecs {
             versions,
             position,
         })
-    }
-
-    pub fn truncate(&mut self, height: Height, tx_index: TxIndex, stamp: Stamp) -> Result<()> {
-        self.first_tx_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.txid.truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.tx_version
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.raw_locktime
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.weight.truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.total_size
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.total_sigop_cost
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.first_txin_index
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.first_txout_index
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.position
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.features.truncate(height, tx_index, stamp)?;
-        self.versions.truncate(height, stamp)
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

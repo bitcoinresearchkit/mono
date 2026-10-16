@@ -11,7 +11,7 @@ where
     Strat: 'static,
 {
     fn version(&self) -> Version {
-        self.version + self.source.version()
+        self.version + self.source.version() + self.mapping.version()
     }
 
     fn name(&self) -> &str {
@@ -19,7 +19,7 @@ where
     }
 
     fn len(&self) -> usize {
-        self.mapping.load().len()
+        self.mapping.len()
     }
 
     fn is_mutable(&self) -> bool {

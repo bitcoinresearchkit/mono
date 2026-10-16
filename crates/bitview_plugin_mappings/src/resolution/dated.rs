@@ -29,11 +29,17 @@ pub struct DatedResolutionVecs<I: VecIndex, M: StorageMode = Rw> {
 impl<I: VecIndex> DatedResolutionVecs<I> {
     /// `period_date` maps a period to its start date.
     pub fn new(mapping: &impl ReadableCloneableVec<Height, I>, period_date: fn(I) -> Date) -> Self {
+        let resolution = ResolutionVecs::new(mapping);
         let dates = RangeMapWriter::default();
-        let this = Self {
-            date: RangeMapVec::new("date", mapping.version() + DATE_VERSION, dates.shared()),
+        let mut this = Self {
+            date: RangeMapVec::new(
+                "date",
+                DATE_VERSION,
+                resolution.mapping.clone(),
+                dates.shared(),
+            ),
             dates,
-            resolution: ResolutionVecs::new(mapping),
+            resolution,
             period_date,
         };
         this.update_dates(0);
@@ -46,9 +52,10 @@ impl<I: VecIndex> DatedResolutionVecs<I> {
         }
     }
 
-    fn update_dates(&self, from: usize) {
+    fn update_dates(&mut self, from: usize) {
         let to = self.first_height.len();
+        let period_date = self.period_date;
         self.dates
-            .update_at(from, (from..to).map(|i| (self.period_date)(I::from(i))));
+            .update_at(from, (from..to).map(|i| period_date(I::from(i))));
     }
 }

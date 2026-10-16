@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use bitview_primitives::Index;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
@@ -75,42 +76,20 @@ impl Vecs {
         Ok(this)
     }
 
-    /// Truncates every stored vec to `starting_lengths`, stamped as of the block before them.
+    /// Truncates every stored vec to its index's length in `starting_lengths`, stamped as of the
+    /// block before them.
     pub fn rollback_if_needed(&mut self, starting_lengths: &Lengths) -> Result<()> {
         let saved_height = starting_lengths.last_height().unwrap_or_default();
         let stamp = Stamp::from(u64::from(saved_height));
-
-        self.blocks.truncate(starting_lengths.height, stamp)?;
-
-        self.transactions
-            .truncate(starting_lengths.height, starting_lengths.tx_index, stamp)?;
-
-        self.inputs
-            .truncate(starting_lengths.height, starting_lengths.txin_index, stamp)?;
-
-        self.outputs
-            .truncate(starting_lengths.height, starting_lengths.txout_index, stamp)?;
-
-        self.addrs.truncate(starting_lengths, stamp)?;
-
-        self.scripts.truncate(
-            starting_lengths.height,
-            starting_lengths.empty_output_index,
-            starting_lengths.p2ms_output_index,
-            starting_lengths.unknown_output_index,
-            stamp,
-        )?;
-
-        self.op_return.truncate(
-            starting_lengths.height,
-            starting_lengths.op_return_index,
-            stamp,
-        )?;
-
-        debug_assert!(
-            self.iter_any_stored_mut().all(|vec| vec.stamp() == stamp),
-            "a stored vec is missing from its truncation"
-        );
+        self.blocks.reset_median_window();
+        for vec in self.iter_any_stored_mut() {
+            let len = Index::try_from(vec.index_type_to_string())
+                .ok()
+                .and_then(|index| starting_lengths.get(index))
+                .expect("an index the indexer counts");
+            vec.update_stamp(stamp);
+            vec.any_truncate_if_needed_at(len)?;
+        }
         Ok(())
     }
 

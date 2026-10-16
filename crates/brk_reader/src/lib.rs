@@ -45,8 +45,10 @@ const OUT_OF_ORDER_FILE_BACKOFF: usize = 21;
 pub struct Reader(Arc<ReaderInner>);
 
 impl Reader {
-    pub fn new(blocks_dir: PathBuf, client: &Client) -> Self {
-        Self(Arc::new(ReaderInner::new(blocks_dir, client)))
+    /// Errs when the blocks directory's `xor.dat` is unreadable or malformed (a missing one is
+    /// the identity mask).
+    pub fn new(blocks_dir: PathBuf, client: &Client) -> Result<Self> {
+        Ok(Self(Arc::new(ReaderInner::new(blocks_dir, client)?)))
     }
 
     #[inline]

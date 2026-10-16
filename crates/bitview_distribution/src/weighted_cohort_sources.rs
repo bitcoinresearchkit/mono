@@ -55,17 +55,17 @@ impl WeightedCohortSources {
         for &id in AgeAggregateId::ALL {
             let state = id.select(states);
             id.select_mut(&mut self.weighted_supply)
-                .push(state.weighted_supply);
+                .push(state.weighted_supply());
             id.select_mut(&mut self.complement_supply)
-                .push(state.complement_supply);
+                .push(state.complement_supply());
             id.select_mut(&mut self.weighted_realized_cap)
-                .push(state.cost_basis.realized_cap());
+                .push(state.realized_cap());
             id.select_mut(&mut self.weighted_realized_price)
                 .push(state.realized_price());
             id.select_mut(&mut self.weighted_capitalized_price)
-                .push(state.cost_basis.capitalized_price());
+                .push(state.capitalized_price());
             id.select_mut(&mut self.weighted_supply_in_loss_share)
-                .push(state.supply_in_loss.value());
+                .push(state.supply_in_loss_share());
         }
     }
 }

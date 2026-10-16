@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Range};
 
 use crate::{Pages, RangeMapCursor};
 
@@ -41,6 +41,19 @@ impl<I, V> RangeMap<I, V> {
     #[inline]
     pub fn starts(&self) -> &Pages<I> {
         &self.first_indexes
+    }
+}
+
+impl<I: Copy + Into<usize>, V> RangeMap<I, V> {
+    /// Range `index`'s indexes below `len`: from its first index up to the next range's (to
+    /// `len` for the last range); empty when it starts at or past `len`.
+    #[inline]
+    pub fn range(&self, index: usize, len: usize) -> Range<usize> {
+        let end = self
+            .first_indexes
+            .get(index + 1)
+            .map_or(len, |&next| next.into().min(len));
+        self.first_indexes[index].into().min(end)..end
     }
 }
 

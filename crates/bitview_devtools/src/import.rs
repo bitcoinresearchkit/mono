@@ -18,7 +18,7 @@ pub fn import() -> Result<Imported> {
     Budgeted::init_global(bitview::DEFAULT_CACHE_BUDGET)?;
     let dir = tempdir()?;
     let client = Client::new("http://127.0.0.1:1", Auth::None)?;
-    let reader = Reader::new(dir.path().join("blocks"), &client);
+    let reader = Reader::new(dir.path().join("blocks"), &client)?;
     let exit = Exit::new();
     let context = ImportContext::new(dir.path(), &exit);
     let plugins = DefaultPlugins::import(context, &reader)?;

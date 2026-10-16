@@ -5,7 +5,9 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{BytesVecValue, Formattable, LazyVec, ReadableCloneableVec, UnaryTransform};
 
-use crate::{shapes::PerResolution, with_resolution_fields};
+use bitview_primitives::with_resolution_fields;
+
+use crate::shapes::PerResolution;
 
 macro_rules! define_lazy_indexes {
     (

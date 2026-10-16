@@ -13,7 +13,7 @@ use bitview_primitives::Boolean;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
-use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, StorageMode, WritableVec};
 
 macro_rules! define_vecs {
     (
@@ -67,22 +67,6 @@ macro_rules! define_vecs {
                 $(self.$feature.block.debug_checked_push(height, counts.$feature.into());)+
                 self.one_input.block.debug_checked_push(height, counts.one_input.into());
                 self.one_output.block.debug_checked_push(height, counts.one_output.into());
-            }
-
-            pub fn truncate(
-                &mut self,
-                height: Height,
-                tx_index: TxIndex,
-                stamp: Stamp,
-            ) -> Result<()> {
-                $(
-                    self.$feature.flag.truncate_if_needed_with_stamp(tx_index, stamp)?;
-                    self.$feature.block.truncate_if_needed_with_stamp(height, stamp)?;
-                )+
-                $(self.$flag_vector.truncate_if_needed_with_stamp(tx_index, stamp)?;)+
-                self.one_input.block.truncate_if_needed_with_stamp(height, stamp)?;
-                self.one_output.block.truncate_if_needed_with_stamp(height, stamp)?;
-                Ok(())
             }
 
             pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

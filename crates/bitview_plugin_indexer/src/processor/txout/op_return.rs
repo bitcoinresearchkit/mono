@@ -1,7 +1,6 @@
 use bitcoin::{Script, opcodes::all::OP_PUSHNUM_13, script::Instruction};
 use bitview_primitives::{Bytes32, OpReturnKind};
-
-use crate::processor::transaction::analysis::sigops::SigOpCount;
+use brk_types::SigOpCount;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Facts {

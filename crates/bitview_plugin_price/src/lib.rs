@@ -7,13 +7,13 @@ mod has;
 mod import;
 mod ohlc;
 mod oracle_feed;
+mod priced;
 mod split;
 
-/// First height with a nonzero spot price; earlier heights are zero.
-pub use brk_oracle::FIRST_PRICE_HEIGHT;
 pub use dependencies::Dependencies;
 pub use has::HasPrice;
 pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
+pub use priced::{first_priced, is_priced, priced_range};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Float64;

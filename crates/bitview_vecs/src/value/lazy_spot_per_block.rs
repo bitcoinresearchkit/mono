@@ -10,8 +10,8 @@ pub type LazySpotValuePerBlock =
     SpotValue<LazyPerBlock<Sats>, LazyPerBlock<Bitcoin, Sats>, LazyPerBlock<Dollars>>;
 
 impl LazySpotValuePerBlock {
-    /// A lazy weighted stock from shared age-cohort inputs. Retains the historical
-    /// independent flooring of the weighted and complementary sides.
+    /// A lazy weighted stock from shared age-cohort inputs, split as the stored aggregates are
+    /// ([`WeightedCohortState::split_supply`]).
     pub fn from_weighted_supply<const COMPLEMENT: bool>(
         name: &str,
         version: Version,

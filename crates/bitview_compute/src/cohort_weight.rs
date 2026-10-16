@@ -4,7 +4,7 @@ use brk_types::{Height, Sats};
 use vecdb::{Cursor, ReadableVec};
 
 /// A populated cohort needs an observation; an empty one may have none. An undefined weight
-/// moves nothing (as in `weighted::defined_weight`): its coins count on the unweighted side.
+/// moves nothing (as in `WeightedCohortState::new`): its coins count on the unweighted side.
 fn resolve_cohort_value<T>(value: Option<T>, supply: Sats) -> Option<f64>
 where
     f64: From<T>,

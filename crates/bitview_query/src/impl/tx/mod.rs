@@ -5,8 +5,8 @@ use bitcoin::{
     hashes::{Hash, sha256d},
     hex::DisplayHex,
 };
-use bitview_plugin_indexer::SafeLengths;
-use bitview_primitives::{Lengths, TxOutIndex};
+use bitview_plugin_indexer::{OutputRange, SafeLengths};
+use bitview_primitives::Lengths;
 use bitview_types::MerkleProof;
 use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
 use vecdb::{ReadableVec, VecIndex};
@@ -16,7 +16,6 @@ use crate::{Error, OptionData, Query, Result};
 pub(crate) mod body;
 pub mod confirmed;
 pub mod info;
-pub mod output_count;
 pub mod outspend;
 
 pub use confirmed::ResolvedConfirmedTx;
@@ -68,37 +67,16 @@ impl Query {
         }
     }
 
-    /// Resolve txid to (tx_index, first_txout_index, output_count) within the
-    /// published lengths `safe`: the tip transaction's outputs end at
-    /// `safe.txout_index`, never at the writer's unpublished length.
-    fn resolve_tx_outputs(
-        &self,
-        txid: &Txid,
-        pin: &SafeLengths,
-    ) -> Result<(TxIndex, TxOutIndex, usize)> {
-        let safe = pin.lengths();
+    /// Resolve txid to its outputs as published at `pin`: the tip transaction's outputs end at
+    /// the published output length, never at the writer's unpublished one.
+    fn resolve_tx_outputs(&self, txid: &Txid, pin: &SafeLengths) -> Result<OutputRange> {
         let tx_index = self.resolve_tx_index_bounded(txid, pin)?;
-        let first_txout_vec = &self.indexer().vecs().transactions.first_txout_index;
-        let first_txout_reader = first_txout_vec.reader();
-        let first = first_txout_reader
-            .try_get(tx_index)
+        self.indexer()
+            .output_ranges(pin.lengths())
+            .get(tx_index)
             .ok_or(Error::Internal(
-                "resolve_tx_outputs: first txout index past data",
-            ))?
-            .get();
-        let next_tx = tx_index.incremented();
-        let next = if next_tx < safe.tx_index {
-            first_txout_reader
-                .try_get(next_tx)
-                .ok_or(Error::Internal(
-                    "resolve_tx_outputs: next first txout index past data",
-                ))?
-                .get()
-        } else {
-            safe.txout_index
-        };
-        let count = output_count::output_count(first, next, safe.txout_index)?;
-        Ok((tx_index, first, count))
+                "Transaction outputs outside published data",
+            ))
     }
 
     // === Helper methods ===

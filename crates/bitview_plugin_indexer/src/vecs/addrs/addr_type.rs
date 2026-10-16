@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
     AnyStoredVec, AnyVec, BytesVec, BytesVecValue, Database, Formattable, ImportableVec, PcoVec,
-    PcoVecValue, ReadableVec, Rw, Stamp, StorageMode, VecIndex, WritableVec,
+    PcoVecValue, ReadableVec, Rw, StorageMode, VecIndex,
 };
 
 #[derive(Traversable)]
@@ -37,13 +37,6 @@ where
             bytes = BytesVec::import(db, &format!("{name}_bytes"), version),
         };
         Ok(Self { first_index, bytes })
-    }
-
-    pub fn truncate(&mut self, height: Height, index: I, stamp: Stamp) -> Result<()> {
-        self.first_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.bytes.truncate_if_needed_with_stamp(index, stamp)?;
-        Ok(())
     }
 
     pub fn stored_vecs(&self) -> [&dyn AnyStoredVec; 2] {

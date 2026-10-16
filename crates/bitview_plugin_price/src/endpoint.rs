@@ -2,10 +2,10 @@ use bitview_vecs::{
     AggFold, AggResolutions, IndexSources, LazyIndexes, Price, read_sorted_optional,
 };
 use brk_types::{Cents, Dollars, Height, Version};
-use rangeindex::{Pages, RangeMap};
+use rangeindex::RangeMap;
 use vecdb::{Convert, ReadableBoxedVec, ReadableVec, VecIndex};
 
-use crate::FIRST_PRICE_HEIGHT;
+use crate::priced_range;
 
 /// Two: a period holding the first price opens at it.
 const COMPUTE_VERSION: Version = Version::TWO;
@@ -16,26 +16,26 @@ const COMPUTE_VERSION: Version = Version::TWO;
 pub(crate) struct Endpoint<const CLOSE: bool>;
 
 impl<const CLOSE: bool> Endpoint<CLOSE> {
-    fn height(first_heights: &Pages<Height>, index: usize, price_len: usize) -> Option<usize> {
-        // The zero placeholders before the first price are no prices.
-        let first = first_heights[index].to_usize().max(FIRST_PRICE_HEIGHT);
-        let end = first_heights
-            .get(index + 1)
-            .map_or(price_len, |height| height.to_usize().min(price_len));
-        let last = end.checked_sub(1)?;
-        Some(if CLOSE { last } else { first.min(last) })
+    fn height<MI>(mapping: &RangeMap<Height, MI>, index: usize, price_len: usize) -> Option<usize> {
+        let heights = mapping.range(index, price_len);
+        let last = heights.end.checked_sub(1)?;
+        Some(if CLOSE {
+            last
+        } else {
+            priced_range(heights).start.min(last)
+        })
     }
 
     /// One sorted read of the requested periods' heights; adjacent empty periods share one.
-    fn read<S: ReadableVec<Height, Cents> + ?Sized>(
+    fn read<MI, S: ReadableVec<Height, Cents> + ?Sized>(
         source: &S,
-        first_heights: &Pages<Height>,
+        mapping: &RangeMap<Height, MI>,
         indices: impl ExactSizeIterator<Item = usize>,
     ) -> impl Iterator<Item = Cents> {
         let price_len = source.visible_len();
         read_sorted_optional(
             source,
-            indices.map(move |index| Self::height(first_heights, index, price_len)),
+            indices.map(move |index| Self::height(mapping, index, price_len)),
             true,
         )
         .map(|price| price.unwrap_or(Cents::ZERO))
@@ -57,7 +57,7 @@ impl<const CLOSE: bool> AggFold<Cents, Height, Cents> for Endpoint<CLOSE> {
         init: B,
         f: F,
     ) -> Result<B, E> {
-        Self::read(source, mapping.starts(), from..to).try_fold(init, f)
+        Self::read(source, mapping, from..to).try_fold(init, f)
     }
 
     fn read_sorted_into<MI: VecIndex, S: ReadableVec<Height, Cents> + ?Sized>(
@@ -66,11 +66,7 @@ impl<const CLOSE: bool> AggFold<Cents, Height, Cents> for Endpoint<CLOSE> {
         indices: &[usize],
         out: &mut Vec<Cents>,
     ) {
-        out.extend(Self::read(
-            source,
-            mapping.starts(),
-            indices.iter().copied(),
-        ));
+        out.extend(Self::read(source, mapping, indices.iter().copied()));
     }
 }
 

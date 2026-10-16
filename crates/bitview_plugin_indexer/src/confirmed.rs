@@ -1,13 +1,11 @@
-use std::cell::OnceCell;
-
 use bitcoin::{ScriptBuf, Transaction, Weight as BitcoinWeight, consensus::deserialize};
-use bitview_primitives::{Lengths, TxOutIndex, TypeIndex};
+use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout};
 use rustc_hash::FxHashMap;
-use vecdb::{ReadableVec, Ro};
+use vecdb::{BytesVecReader, ReadableVec, Ro};
 
-use crate::{Indexer, UtxoKey};
+use crate::{Indexer, UtxoKey, readers::AddrReaders};
 
 /// Reads of confirmed transactions: their bytes from the block files, and the outputs they spend.
 impl Indexer<Ro> {
@@ -53,6 +51,23 @@ impl Indexer<Ro> {
         Ok((bytes, transaction))
     }
 
+    /// Transaction output ranges as published at `safe`.
+    pub fn output_ranges(&self, safe: Lengths) -> OutputRanges {
+        OutputRanges {
+            first_txout: self.vecs().transactions.first_txout_index.reader(),
+            safe,
+        }
+    }
+
+    /// Scripts of indexed outputs.
+    pub fn output_scripts(&self) -> OutputScripts<'_> {
+        OutputScripts {
+            indexer: self,
+            addrs: self.vecs().addrs.addr_readers(),
+            parent: None,
+        }
+    }
+
     /// The confirmed outputs `holes` spend, as published at `safe` (the caller's pin); misses
     /// (unknown or unpublished parents, invalid outputs) are left out.
     pub fn prevouts(
@@ -66,14 +81,14 @@ impl Indexer<Ro> {
         }
         let vecs = self.vecs();
         let txid_reader = vecs.transactions.txid.reader();
-        let first_txout_reader = vecs.transactions.first_txout_index.reader();
         let output_type_reader = vecs.outputs.output_type.reader();
         let type_index_reader = vecs.outputs.type_index.reader();
         let value_reader = vecs.outputs.value.reader();
-        let addr_readers = vecs.addrs.addr_readers();
+        let ranges = self.output_ranges(safe);
+        let mut scripts = self.output_scripts();
         // A confirmed unspent output with an address or empty script: a UTXO-store lookup (which
-        // carries the value, but for a large one), the txid check and its address bytes.
-        let unspent = |txid: Txid, vout: Vout| -> Option<TxOut> {
+        // carries the value, but for a large one) and the txid check.
+        let unspent = |scripts: &mut OutputScripts, txid: Txid, vout: Vout| -> Option<TxOut> {
             let key = UtxoKey::new(TxidPrefix::from(txid), u32::from(vout));
             let utxo = self.stores().utxos().get(&key).ok()??;
             let (tx_index, txout, output_type, type_index) = (
@@ -82,29 +97,27 @@ impl Indexer<Ro> {
                 utxo.output_type(),
                 utxo.type_index(),
             );
-            if tx_index >= safe.tx_index
+            if script_in_parent(output_type)
+                || tx_index >= safe.tx_index
                 || txout >= safe.txout_index
                 || type_index >= safe.to_type_index(output_type)
                 || txid_reader.try_get(tx_index)? != txid
             {
                 return None;
             }
-            let script_pubkey = if output_type == OutputType::Empty {
-                ScriptBuf::new()
-            } else {
-                addr_readers
-                    .get(output_type, type_index)?
-                    .to_script_pubkey()
-            };
             // A large value is a second lookup; spent in between, it misses like the entry.
             let value = self.stores().utxos().value(&key, &utxo).ok()?;
+            let script_pubkey = scripts
+                .get(tx_index, vout, output_type, type_index, value)
+                .ok()?;
             Some(TxOut::from((script_pubkey, value)))
         };
-        // The rest (misses: unknown, unsafe or spent-above-safe parents; P2MS and unknown scripts) go
-        // through the parent transaction.
+        // The rest (unknown, unsafe or spent-above-safe parents; scripts kept only in the parent)
+        // go through the parent transaction's indexed outputs, grouped so each parent decodes
+        // once.
         let mut parents: FxHashMap<Txid, Vec<Vout>> = FxHashMap::default();
         for &(txid, vout) in holes {
-            match unspent(txid, vout) {
+            match unspent(&mut scripts, txid, vout) {
                 Some(txout) => {
                     resolved.insert((txid, vout), txout);
                 }
@@ -125,58 +138,115 @@ impl Indexer<Ro> {
             {
                 continue;
             }
-            let Some(first_txout) = first_txout_reader.try_get(prev_tx_index).map(|i| i.get())
-            else {
+            let Some(outputs) = ranges.get(prev_tx_index) else {
                 continue;
             };
-            let next_tx = prev_tx_index.incremented();
-            let next_txout = if next_tx < safe.tx_index {
-                match first_txout_reader.try_get(next_tx) {
-                    Some(next) => next.get(),
-                    None => continue,
-                }
-            } else {
-                safe.txout_index
-            };
-            if first_txout > next_txout || next_txout > safe.txout_index {
-                continue;
-            }
-            // Decode at most one raw parent at a time. Retain only the requested outputs, not
-            // every large parent in the batch.
-            let decoded = OnceCell::new();
             resolved.extend(vouts.into_iter().filter_map(|vout| {
-                let txout = usize::from(first_txout).checked_add(usize::from(vout))?;
-                if txout >= usize::from(next_txout) {
-                    return None;
-                }
-                let txout = TxOutIndex::from(txout);
+                let txout = outputs.get(vout)?;
                 let output_type: OutputType = output_type_reader.try_get(txout)?;
                 let type_index: TypeIndex = type_index_reader.try_get(txout)?;
                 let value: Sats = value_reader.try_get(txout)?;
                 if type_index >= safe.to_type_index(output_type) {
                     return None;
                 }
-                let script_pubkey = if output_type == OutputType::Empty {
-                    ScriptBuf::new()
-                } else if let Some(addr) = addr_readers.get(output_type, type_index) {
-                    addr.to_script_pubkey()
-                } else if matches!(
-                    output_type,
-                    OutputType::P2MS | OutputType::Unknown | OutputType::OpReturn
-                ) {
-                    let parent = decoded
-                        .get_or_init(|| self.read_tx(prev_tx_index).ok().map(|(_, parent)| parent));
-                    let output = parent.as_ref()?.output.get(usize::from(vout))?;
-                    if output.value.to_sat() != u64::from(value) {
-                        return None;
-                    }
-                    output.script_pubkey.clone()
-                } else {
-                    return None;
-                };
+                let script_pubkey = scripts
+                    .get(prev_tx_index, vout, output_type, type_index, value)
+                    .ok()?;
                 Some(((prev_txid, vout), TxOut::from((script_pubkey, value))))
             }));
         }
         resolved
+    }
+}
+
+/// A transaction's outputs: `len` of them from `first`.
+#[derive(Debug, Clone, Copy)]
+pub struct OutputRange {
+    pub first: TxOutIndex,
+    pub len: usize,
+}
+
+impl OutputRange {
+    /// Output `vout`, `None` past the transaction's outputs.
+    #[inline]
+    pub fn get(self, vout: Vout) -> Option<TxOutIndex> {
+        (usize::from(vout) < self.len).then(|| self.first + vout)
+    }
+}
+
+/// Transaction output ranges as published at a pin: a transaction's outputs run from its first
+/// output to the next transaction's, the published output length for the last one.
+pub struct OutputRanges {
+    first_txout: BytesVecReader<TxIndex, Index40<TxOutIndex>>,
+    safe: Lengths,
+}
+
+impl OutputRanges {
+    /// `None` for an unpublished transaction or boundaries outside the published outputs.
+    pub fn get(&self, tx_index: TxIndex) -> Option<OutputRange> {
+        if tx_index >= self.safe.tx_index {
+            return None;
+        }
+        let first = self.first_txout.try_get(tx_index)?.get();
+        let next_tx = tx_index.incremented();
+        let next = if next_tx < self.safe.tx_index {
+            self.first_txout.try_get(next_tx)?.get()
+        } else {
+            self.safe.txout_index
+        };
+        let len = usize::from(next).checked_sub(usize::from(first))?;
+        (next <= self.safe.txout_index).then_some(OutputRange { first, len })
+    }
+}
+
+/// The output types whose scripts the indexer does not keep: read from their transaction.
+fn script_in_parent(output_type: OutputType) -> bool {
+    matches!(
+        output_type,
+        OutputType::P2MS | OutputType::Unknown | OutputType::OpReturn
+    )
+}
+
+/// Rebuilds indexed outputs' scripts: empty, from their address bytes, or from their transaction
+/// for the types whose scripts the indexer does not keep (P2MS, unknown, OP_RETURN), the last
+/// one decoded kept for its next outputs.
+pub struct OutputScripts<'a> {
+    indexer: &'a Indexer<Ro>,
+    addrs: AddrReaders,
+    parent: Option<(TxIndex, Transaction)>,
+}
+
+impl OutputScripts<'_> {
+    /// The script of output `vout` of `tx_index`, indexed with `output_type`, `type_index` and
+    /// `value`.
+    pub fn get(
+        &mut self,
+        tx_index: TxIndex,
+        vout: Vout,
+        output_type: OutputType,
+        type_index: TypeIndex,
+        value: Sats,
+    ) -> Result<ScriptBuf> {
+        if output_type == OutputType::Empty {
+            return Ok(ScriptBuf::new());
+        }
+        if let Some(addr) = self.addrs.get(output_type, type_index) {
+            return Ok(addr.to_script_pubkey());
+        }
+        if !script_in_parent(output_type) {
+            return Err(Error::Internal("Indexed output address missing"));
+        }
+        let parent = match &mut self.parent {
+            Some((index, parent)) if *index == tx_index => parent,
+            slot => &mut slot.insert((tx_index, self.indexer.read_tx(tx_index)?.1)).1,
+        };
+        parent
+            .output
+            .get(usize::from(vout))
+            .filter(|output| output.value.to_sat() == u64::from(value))
+            .map(|output| output.script_pubkey.clone())
+            .ok_or(Error::Internal(
+                "Indexed output missing from its transaction",
+            ))
     }
 }

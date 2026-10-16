@@ -45,7 +45,7 @@ fn run() -> Result<()> {
     let network = client.get_network()?;
 
     let mode = Mode::pick(args.pretty, args.compact, args.paths.len())?;
-    let reader = Reader::new(args.connect.blocks_dir(), &client);
+    let reader = Reader::new(args.connect.blocks_dir(), &client)?;
     let formatter = Formatter::new(mode, args.paths);
     let mut out = BufWriter::new(io::stdout().lock());
     for block in reader.range(start, end)? {

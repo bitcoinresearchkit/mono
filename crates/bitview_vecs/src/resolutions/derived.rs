@@ -5,7 +5,9 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{LazyVec, MapOption, ReadableBoxedVec, ReadableCloneableVec, UnaryTransform, VecValue};
 
-use crate::{Resolutions, shapes::PerResolution, with_resolution_fields};
+use bitview_primitives::with_resolution_fields;
+
+use crate::{Resolutions, shapes::PerResolution};
 
 macro_rules! define_derived_resolutions {
     (

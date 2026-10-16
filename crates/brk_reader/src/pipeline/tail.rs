@@ -2,7 +2,7 @@ use std::{fs::File, os::unix::fs::FileExt, sync::Arc};
 
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
-use brk_types::{BlkMetadata, BlkPosition, Height, ReadBlock};
+use brk_types::{BlkPosition, Height, ReadBlock};
 use crossbeam::channel::Sender;
 
 use crate::{
@@ -182,7 +182,7 @@ pub fn emit(
             .read_exact_at(&mut block_bytes, found.offset as u64)?;
         let block = parse_canonical_body(
             block_bytes,
-            BlkMetadata::new(BlkPosition::new(found.blk_index, found.offset as u32)),
+            BlkPosition::new(found.blk_index, found.offset as u32),
             XORIndex::at_offset(found.offset),
             reader.xor_bytes,
             Height::from(*canonical.start + slot as u32),

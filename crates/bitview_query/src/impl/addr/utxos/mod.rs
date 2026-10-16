@@ -1,5 +1,5 @@
 use bitview_plugin_indexer::SafeLengths;
-use bitview_primitives::{Lengths, TxOutIndex};
+use bitview_primitives::Lengths;
 use bitview_types::Utxo;
 use brk_mempool::PendingUtxos;
 use brk_types::{Address, BlockHash, Height, Sats, TxIndex, TxStatus, Txid, Vout};
@@ -137,7 +137,7 @@ impl Query {
     ) -> Result<Vec<(TxIndex, Txid, Vout, Sats)>> {
         let vecs = self.indexer().vecs();
         let txid_reader = vecs.transactions.txid.reader();
-        let first_txout_index_reader = vecs.transactions.first_txout_index.reader();
+        let ranges = self.indexer().output_ranges(lengths);
         let value_reader = vecs.outputs.value.reader();
         let mut outputs = Vec::with_capacity(outpoints.len());
         for &(tx_index, vout) in outpoints {
@@ -145,22 +145,13 @@ impl Query {
             if pending.spent.contains(&(txid, vout)) {
                 continue;
             }
-            let first = first_txout_index_reader.try_get(tx_index).data()?.get();
-            let next_tx = tx_index.incremented();
-            let next = if next_tx < lengths.tx_index {
-                first_txout_index_reader.try_get(next_tx).data()?.get()
-            } else {
-                lengths.txout_index
-            };
-            let output = usize::from(first)
-                .checked_add(usize::from(vout))
-                .ok_or(Error::Internal("UTXO output index overflow"))?;
-            if first > next || next > lengths.txout_index || output >= usize::from(next) {
-                return Err(Error::Internal(
+            let output = ranges
+                .get(tx_index)
+                .and_then(|outputs| outputs.get(vout))
+                .ok_or(Error::Internal(
                     "UTXO outside transaction output boundaries",
-                ));
-            }
-            let value = value_reader.try_get(TxOutIndex::from(output)).data()?;
+                ))?;
+            let value = value_reader.try_get(output).data()?;
             outputs.push((tx_index, txid, vout, value));
         }
         Ok(outputs)

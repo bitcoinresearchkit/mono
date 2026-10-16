@@ -1,7 +1,5 @@
 use std::{marker::PhantomData, sync::Arc};
 
-use rangeindex::SharedRangeMap;
-
 pub mod any_vec;
 pub mod clone;
 pub mod fold;
@@ -13,7 +11,7 @@ pub mod typed;
 pub use fold::*;
 use sparse::Sparse;
 
-use vecdb::{AnyVec, ReadableBoxedVec, VecIndex, VecValue, Version};
+use vecdb::{ReadableBoxedVec, VecIndex, VecValue, Version};
 
 use crate::RangeMapVec;
 
@@ -30,7 +28,7 @@ where
     name: Arc<str>,
     version: Version,
     source: ReadableBoxedVec<S1I, S1T>,
-    mapping: SharedRangeMap<S1I, I>,
+    mapping: RangeMapVec<I, S1I>,
     #[allow(clippy::type_complexity)]
     _phantom: PhantomData<fn() -> (I, O, Strat)>,
 }
@@ -47,21 +45,18 @@ where
         &self.source
     }
 
-    /// The view's version is `version` plus the boundary mapping's.
+    /// The view's version is `version` plus the source's and the boundary mapping's.
     pub(crate) fn new(
         name: &str,
         version: Version,
         source: ReadableBoxedVec<S1I, S1T>,
         mapping: &RangeMapVec<I, S1I>,
-    ) -> Self
-    where
-        S1I: VecValue,
-    {
+    ) -> Self {
         Self {
             name: Arc::from(name),
-            version: version + mapping.version(),
+            version,
             source,
-            mapping: mapping.mapping().clone(),
+            mapping: mapping.clone(),
             _phantom: PhantomData,
         }
     }

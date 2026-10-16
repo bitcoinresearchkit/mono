@@ -1,14 +1,15 @@
 use bitcoin::{
     Script, Transaction as BitcoinTransaction, TxIn as BitcoinTxIn, TxOut as BitcoinTxOut,
-    consensus::Encodable, constants::WITNESS_SCALE_FACTOR,
+    consensus::Encodable, constants::WITNESS_SCALE_FACTOR, opcodes::all::OP_PUSHNUM_16,
+    script::Instruction,
 };
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    CheckedSub, RawLockTime, Sats, SigOps, TxIn, TxIndex, TxOut, TxStatus, TxVersionRaw, Txid,
-    VSize, Weight, Witness,
+    CheckedSub, RawLockTime, Sats, SigOpCount, SigOps, TxIn, TxIndex, TxOut, TxStatus,
+    TxVersionRaw, Txid, VSize, Weight, Witness,
 };
 
 /// Transaction information compatible with mempool.space API format
@@ -105,12 +106,8 @@ impl Transaction {
         self.total_sigop_cost = self.total_sigop_cost();
     }
 
-    /// Total sigop cost (BIP-141 weight units).
-    ///
-    /// Mirrors `bitcoin::Transaction::total_sigop_cost`, but reads
-    /// prevouts from `TxIn.prevout` and uses bitcoin's public
-    /// `Script::redeem_script` (push-only check + last-push extraction
-    /// in one). Inputs whose `prevout` is `None` skip the P2SH and
+    /// Total sigop cost (BIP-141 weight units), counted as Core's `GetTransactionSigOpCost`,
+    /// reading prevouts from `TxIn.prevout`. Inputs whose `prevout` is `None` skip the P2SH and
     /// witness components - legacy script-sig sigops are still counted.
     fn total_sigop_cost(&self) -> SigOps {
         let mut legacy: usize = 0;
@@ -118,7 +115,7 @@ impl Transaction {
         let mut witness: usize = 0;
 
         for input in &self.input {
-            legacy = legacy.saturating_add(input.script_sig.count_sigops_legacy());
+            legacy = legacy.saturating_add(SigOpCount::of(&input.script_sig).legacy);
 
             let Some(prevout) = input.prevout.as_ref() else {
                 continue;
@@ -127,11 +124,11 @@ impl Transaction {
 
             let redeem_script = spk
                 .is_p2sh()
-                .then(|| input.script_sig.redeem_script())
+                .then(|| p2sh_redeem_script(&input.script_sig))
                 .flatten();
 
             if let Some(rs) = redeem_script {
-                redeem = redeem.saturating_add(rs.count_sigops());
+                redeem = redeem.saturating_add(SigOpCount::of(rs).accurate);
             }
 
             let witness_program: Option<&Script> = if spk.is_witness_program() {
@@ -147,7 +144,7 @@ impl Transaction {
         }
 
         for output in &self.output {
-            legacy = legacy.saturating_add(output.script_pubkey.count_sigops_legacy());
+            legacy = legacy.saturating_add(SigOpCount::of(&output.script_pubkey).legacy);
         }
 
         SigOps::from(
@@ -159,11 +156,27 @@ impl Transaction {
     }
 }
 
+/// Core's P2SH redeem script: the last push of a push-only script sig, whose `OP_n`s push no
+/// script (rust-bitcoin's `redeem_script` rejects them, missing spends like `<sig> OP_1 <redeem>`).
+pub(crate) fn p2sh_redeem_script(script_sig: &Script) -> Option<&Script> {
+    let mut last = None;
+    for instruction in script_sig.instructions() {
+        match instruction.ok()? {
+            Instruction::PushBytes(bytes) => last = Some(bytes.as_bytes()),
+            Instruction::Op(opcode) if opcode.to_u8() <= OP_PUSHNUM_16.to_u8() => last = None,
+            Instruction::Op(_) => return None,
+        }
+    }
+    last.map(Script::from_bytes)
+}
+
 fn count_sigops_with_witness_program(witness: &Witness, witness_program: &Script) -> usize {
     if witness_program.is_p2wpkh() {
         1
     } else if witness_program.is_p2wsh() {
-        witness.witness_script().map_or(0, Script::count_sigops)
+        witness
+            .witness_script()
+            .map_or(0, |script| SigOpCount::of(script).accurate)
     } else {
         0
     }

@@ -50,19 +50,15 @@ pub struct ReaderInner {
 }
 
 impl ReaderInner {
-    /// A missing, unreadable or malformed `xor.dat` reads as the identity mask here;
-    /// [`crate::Reader::check_source`] reports the last two.
-    pub fn new(blocks_dir: PathBuf, client: &Client) -> Self {
-        Self {
-            xor_bytes: XORBytes::read(&blocks_dir)
-                .ok()
-                .flatten()
-                .unwrap_or_default(),
+    /// A missing `xor.dat` is the identity mask; an unreadable or malformed one is an error.
+    pub fn new(blocks_dir: PathBuf, client: &Client) -> Result<Self> {
+        Ok(Self {
+            xor_bytes: XORBytes::read(&blocks_dir)?.unwrap_or_default(),
             blk_file_cache: ArcSwap::default(),
             append_position: Mutex::default(),
             blocks_dir,
             client: client.clone(),
-        }
+        })
     }
 
     pub fn append_position(&self) -> Option<AppendPosition> {

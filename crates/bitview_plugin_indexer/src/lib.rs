@@ -47,6 +47,7 @@ mod state;
 mod stores;
 mod vecs;
 
+pub use confirmed::{OutputRange, OutputRanges, OutputScripts};
 pub use constants::overwritten_output;
 pub use has::HasIndexer;
 pub use processor::transaction::analysis::policy::FIRST_V29_POLICY_HEIGHT;
@@ -551,10 +552,10 @@ impl Indexer {
 
             lengths.height = height;
 
-            vecs.blocks.position.push(block.metadata().position());
-            block.tx_metadata().iter().for_each(|m| {
-                vecs.transactions.position.push(m.position());
-            });
+            vecs.blocks.position.push(block.position());
+            block
+                .tx_positions()
+                .for_each(|position| vecs.transactions.position.push(position));
 
             let mut processor = BlockProcessor {
                 block: &block,

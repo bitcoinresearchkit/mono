@@ -4,11 +4,10 @@ use bitview_traversable::Traversable;
 use bitview_vecs::RangeMapVec;
 
 use crate::RangeMapLookupVec;
-use brk_types::Height;
+use brk_types::{Height, Version};
 use rangeindex::RangeMapWriter;
 use vecdb::{
     AnyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex,
-    VecValue,
 };
 
 pub use self::dated::DatedResolutionVecs;
@@ -29,11 +28,17 @@ pub struct ResolutionVecs<I: VecIndex, M: StorageMode = Rw> {
 
 impl<I: VecIndex> ResolutionVecs<I> {
     pub fn new(mapping: &impl ReadableCloneableVec<Height, I>) -> Self {
+        let mapping = mapping.read_only_boxed_clone();
         let boundaries = RangeMapWriter::default();
         let mut this = Self {
-            first_height: RangeMapVec::new("first_height", mapping.version(), boundaries.shared()),
+            first_height: RangeMapVec::new(
+                "first_height",
+                Version::ZERO,
+                mapping.clone(),
+                boundaries.shared(),
+            ),
             boundaries,
-            mapping: mapping.read_only_boxed_clone(),
+            mapping,
             indexed_height: 0,
         };
         this.update(Height::ZERO);
@@ -41,10 +46,7 @@ impl<I: VecIndex> ResolutionVecs<I> {
     }
 
     /// Published reverse view; the original mapping remains the update source.
-    pub fn height_lookup(&self) -> RangeMapLookupVec<Height, I>
-    where
-        I: VecValue,
-    {
+    pub fn height_lookup(&self) -> RangeMapLookupVec<Height, I> {
         RangeMapLookupVec::new(self.boundaries.shared(), &self.mapping)
     }
 

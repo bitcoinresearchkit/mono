@@ -20,6 +20,4 @@ pub use statistics::{
     compute_rolling_distribution_from_starts, compute_rolling_extrema_from_starts, nearest_rank,
 };
 pub use traits::{ComputedVecValue, FixedRatio, NumericValue, Quantity};
-pub use weighted::{
-    WeightedCohortState, WeightedCostBasis, WeightedRatio, weighted_age_aggregates,
-};
+pub use weighted::{WeightedCohortState, weighted_age_aggregates};

@@ -1,6 +1,6 @@
 use std::{fs::File, io, ops::ControlFlow, os::unix::fs::FileExt};
 
-use brk_types::{BlkMetadata, BlkPosition};
+use brk_types::BlkPosition;
 
 use crate::{XORBytes, XORIndex, xor_bytes::XOR_LEN};
 
@@ -47,7 +47,7 @@ pub fn scan_bytes(
     buf: &mut [u8],
     blk_index: u16,
     xor_bytes: XORBytes,
-    mut on_block: impl FnMut(BlkMetadata, &mut [u8], XORIndex) -> ControlFlow<()>,
+    mut on_block: impl FnMut(BlkPosition, &mut [u8], XORIndex) -> ControlFlow<()>,
 ) {
     let mut xor_i = XORIndex::default();
     let mut i = 0;
@@ -64,8 +64,8 @@ pub fn scan_bytes(
         if i + len > buf.len() {
             break;
         }
-        let metadata = BlkMetadata::new(BlkPosition::new(blk_index, i as u32));
-        if on_block(metadata, &mut buf[i..i + len], xor_i).is_break() {
+        let position = BlkPosition::new(blk_index, i as u32);
+        if on_block(position, &mut buf[i..i + len], xor_i).is_break() {
             break;
         }
         i += len;

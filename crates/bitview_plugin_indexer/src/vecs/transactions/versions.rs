@@ -1,7 +1,7 @@
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::{AnyStoredVec, Database, Rw, Stamp, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
 use super::features::{CountVecs, TransactionCounts};
 
@@ -40,13 +40,6 @@ impl VersionCountVecs {
         ] {
             vec.block.debug_checked_push(height, count.into());
         }
-    }
-
-    pub fn truncate(&mut self, height: Height, stamp: Stamp) -> Result<()> {
-        for vec in [&mut self.v1, &mut self.v2, &mut self.v3, &mut self.other] {
-            vec.block.truncate_if_needed_with_stamp(height, stamp)?;
-        }
-        Ok(())
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

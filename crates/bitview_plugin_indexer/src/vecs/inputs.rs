@@ -3,8 +3,7 @@ use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{Height, OutPoint, OutputType, Sats, TxIndex, Version};
 use vecdb::{
-    AnyStoredVec, Budgeted, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode,
-    UnaryTransform, WritableVec,
+    AnyStoredVec, Budgeted, Database, ImportableVec, PcoVec, Rw, StorageMode, UnaryTransform,
 };
 
 /// A coinbase input spends no output: it publishes 0, not the `Sats::MAX` it is stored as, and
@@ -96,24 +95,6 @@ impl InputsVecs {
             type_index: Compact::named_with::<CoinbaseSpendsNothing>(type_index, "type_index"),
             value: Compact::named_with::<CoinbaseSpendsNothing>(value, "input_value"),
         })
-    }
-
-    pub fn truncate(&mut self, height: Height, txin_index: TxInIndex, stamp: Stamp) -> Result<()> {
-        self.first_txin_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.outpoint
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.txout_index
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.tx_index
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.output_type
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.type_index
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.value
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        Ok(())
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

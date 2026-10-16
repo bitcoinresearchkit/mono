@@ -26,7 +26,7 @@ use brk_rpc::Client;
 use brk_types::{BlockHash, Height, TxOut, Txid, Vout};
 use rustc_hash::FxHashMap;
 #[cfg(any(feature = "series", feature = "price"))]
-use vecdb::{PrintableIndex, ReadBounds, ReadScope};
+use vecdb::{ReadBounds, ReadScope};
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 mod r#async;
@@ -251,27 +251,11 @@ impl Query {
     #[cfg(any(feature = "series", feature = "price"))]
     fn index_read_bounds(safe: Lengths) -> ReadBounds {
         let mut bounds = ReadBounds::new();
-
-        bounds.set(Index::Height.name(), safe.height.into());
-        bounds.set(Index::TxIndex.name(), safe.tx_index.into());
-        bounds.set(Index::TxInIndex.name(), safe.txin_index.into());
-        bounds.set(Index::TxOutIndex.name(), safe.txout_index.into());
-        bounds.set(
-            Index::EmptyOutputIndex.name(),
-            safe.empty_output_index.into(),
-        );
-        bounds.set(Index::OpReturnIndex.name(), safe.op_return_index.into());
-        bounds.set(Index::P2MSOutputIndex.name(), safe.p2ms_output_index.into());
-        bounds.set(
-            Index::UnknownOutputIndex.name(),
-            safe.unknown_output_index.into(),
-        );
-        macro_rules! addr_bounds {
-            ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
-                $(bounds.set(<$index as PrintableIndex>::to_string(), safe.$length.into());)+
-            };
+        for index in Index::all() {
+            if let Some(len) = safe.get(index) {
+                bounds.set(index.name(), len);
+            }
         }
-        bitview_primitives::with_address_storage_types!(addr_bounds);
 
         let tip = safe.last_height();
         bounds.set(

@@ -22,15 +22,9 @@ impl<I, V> SharedRangeMap<I, V> {
     }
 }
 
-/// The updater of a [`SharedRangeMap`]: publishes a new root per update, sharing every page
-/// the update leaves unchanged.
+/// The single updater of a [`SharedRangeMap`]: publishes a new root per update, sharing every
+/// page the update leaves unchanged.
 pub struct RangeMapWriter<I, V>(SharedRangeMap<I, V>);
-
-impl<I, V> Clone for RangeMapWriter<I, V> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
 
 impl<I, V> Default for RangeMapWriter<I, V> {
     fn default() -> Self {
@@ -48,9 +42,9 @@ impl<I, V> RangeMapWriter<I, V> {
 }
 
 impl<I: Ord + Copy, V> RangeMapWriter<I, V> {
-    /// Replace only the affected suffix. Callers must serialize updates and
-    /// publish related mappings together before readers can observe them.
-    pub fn update_at(&self, from: usize, first_indexes: impl IntoIterator<Item = I>) {
+    /// Replace only the affected suffix. Callers publish related mappings together before
+    /// readers can observe them.
+    pub fn update_at(&mut self, from: usize, first_indexes: impl IntoIterator<Item = I>) {
         let mut map = RangeMap::clone(&self.0.load());
         debug_assert!(
             from <= map.len(),

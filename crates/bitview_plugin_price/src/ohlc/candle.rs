@@ -1,10 +1,12 @@
+use std::ops::Range;
+
 use bitview_primitives::OHLCCents;
 use bitview_vecs::AggFold;
 use brk_types::{Cents, Height};
 use rangeindex::RangeMap;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::FIRST_PRICE_HEIGHT;
+use crate::priced_range;
 
 /// Prices read at once for a group of adjacent candles.
 const BATCH_PRICES: usize = 1 << 16;
@@ -15,24 +17,19 @@ const BATCH_PRICES: usize = 1 << 16;
 pub(crate) struct Ohlc;
 
 impl Ohlc {
-    /// The first height of the candle `[first, end)` builds from: its first priced one, or `end`
-    /// when it has none.
-    #[inline]
-    fn priced_first(first: usize, end: usize) -> usize {
-        first.max(FIRST_PRICE_HEIGHT).min(end)
-    }
-
-    fn candle_from_prices(first: usize, end: usize, prices: &[Cents]) -> OHLCCents {
-        if first >= end {
-            let close = first
+    /// The candle of `prices` over `heights`, flat at the preceding close when it is empty.
+    fn candle_from_prices(prices: &[Cents], heights: Range<usize>) -> OHLCCents {
+        if heights.is_empty() {
+            let close = heights
+                .start
                 .checked_sub(1)
                 .and_then(|height| prices.get(height))
                 .copied()
                 .unwrap_or_default();
             return OHLCCents::from(close);
         }
-        let mut candle = OHLCCents::from(prices[first]);
-        for &price in &prices[first + 1..end] {
+        let mut candle = OHLCCents::from(prices[heights.start]);
+        for &price in &prices[heights.start + 1..heights.end] {
             candle.high = candle.high.max(price);
             candle.low = candle.low.min(price);
             candle.close = price;
@@ -56,14 +53,9 @@ impl AggFold<OHLCCents, Height, Cents> for Ohlc {
         init: B,
         mut f: F,
     ) -> Result<B, E> {
-        let first_heights = mapping.starts();
         let price_len = source.visible_len();
-        let end = |index: usize| {
-            first_heights
-                .get(index + 1)
-                .map_or(price_len, |height| height.to_usize().min(price_len))
-        };
-        let first = |index: usize| Self::priced_first(first_heights[index].to_usize(), end(index));
+        // Each candle's heights: its period's priced ones.
+        let priced = |index: usize| priced_range(mapping.range(index, price_len));
         // Adjacent candles share one price read, so shared physical pages are decoded once,
         // in groups of about `BATCH_PRICES` (at least one candle) so the buffer stays bounded.
         // Each read includes the preceding close for a leading empty period.
@@ -71,20 +63,20 @@ impl AggFold<OHLCCents, Height, Cents> for Ohlc {
         let mut prices = Vec::new();
         let mut index = from;
         while index < to {
-            let price_from = first(index).saturating_sub(1);
+            let price_from = priced(index).start.saturating_sub(1);
             let mut group_end = index + 1;
-            while group_end < to && end(group_end) - price_from <= BATCH_PRICES {
+            while group_end < to && priced(group_end).end - price_from <= BATCH_PRICES {
                 group_end += 1;
             }
             prices.clear();
-            source.read_into_at(price_from, end(group_end - 1), &mut prices);
+            source.read_into_at(price_from, priced(group_end - 1).end, &mut prices);
             for index in index..group_end {
+                let heights = priced(index);
                 acc = f(
                     acc,
                     Self::candle_from_prices(
-                        first(index) - price_from,
-                        end(index) - price_from,
                         &prices,
+                        heights.start - price_from..heights.end - price_from,
                     ),
                 )?;
             }

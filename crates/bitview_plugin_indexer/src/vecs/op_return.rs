@@ -2,7 +2,7 @@ use bitview_primitives::{Bytes, Bytes32, OpReturnIndex, OpReturnKind};
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
-use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct OpReturnVecs<M: StorageMode = Rw> {
@@ -39,23 +39,6 @@ impl OpReturnVecs {
             kind,
             post_op_return_bytes,
         })
-    }
-
-    pub fn truncate(
-        &mut self,
-        height: Height,
-        op_return_index: OpReturnIndex,
-        stamp: Stamp,
-    ) -> Result<()> {
-        self.first_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.to_tx_index
-            .truncate_if_needed_with_stamp(op_return_index, stamp)?;
-        self.kind
-            .truncate_if_needed_with_stamp(op_return_index, stamp)?;
-        self.post_op_return_bytes
-            .truncate_if_needed_with_stamp(op_return_index, stamp)?;
-        Ok(())
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

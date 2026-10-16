@@ -14,6 +14,8 @@ mod snapshot;
 mod snapshots;
 mod spends;
 mod state;
+#[cfg(test)]
+mod tests;
 mod util;
 mod view;
 

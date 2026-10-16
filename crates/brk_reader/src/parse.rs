@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use bitcoin::{Block as BitcoinBlock, Transaction, VarInt, block::Header, consensus::Decodable};
 use brk_error::{Error, Result};
-use brk_types::{BlkMetadata, Block, BlockHash, Height, ReadBlock};
+use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
 
 use crate::{XORBytes, XORIndex, canonical::CanonicalRange};
 
@@ -38,7 +38,7 @@ pub fn peek_canonical(
 
 pub fn parse_canonical_body(
     mut bytes: Vec<u8>,
-    metadata: BlkMetadata,
+    position: BlkPosition,
     mut xor_state: XORIndex,
     xor_bytes: XORBytes,
     height: Height,
@@ -60,18 +60,19 @@ pub fn parse_canonical_body(
     // wrapping is pure overhead and compounds across ~2000 tx fields.
     let tx_count = VarInt::consensus_decode_from_finite_reader(&mut cursor)?.0 as usize;
     let mut txdata = Vec::with_capacity(tx_count);
-    let mut tx_metadata = Vec::with_capacity(tx_count);
     let mut tx_offsets = Vec::with_capacity(tx_count);
     for _ in 0..tx_count {
-        let tx_start = cursor.position() as u32;
-        tx_offsets.push(tx_start);
+        tx_offsets.push(cursor.position() as u32);
         let tx = Transaction::consensus_decode_from_finite_reader(&mut cursor)?;
         txdata.push(tx);
-        tx_metadata.push(BlkMetadata::new(metadata.position() + tx_start));
     }
 
-    let raw_bytes = cursor.into_inner();
-    let mut block = Block::from((height, bitcoin_hash, BitcoinBlock { header, txdata }));
-    block.set_raw_data(raw_bytes, tx_offsets);
-    Ok(ReadBlock::from((block, metadata, tx_metadata)))
+    Ok(ReadBlock::new(
+        height,
+        BlockHash::from(bitcoin_hash),
+        BitcoinBlock { header, txdata },
+        position,
+        cursor.into_inner(),
+        tx_offsets,
+    ))
 }

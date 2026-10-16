@@ -15,6 +15,8 @@ mod kind;
 mod meta;
 mod pending;
 mod pending_ingest;
+#[cfg(test)]
+mod tests;
 
 use item::Item;
 use meta::checked_open;

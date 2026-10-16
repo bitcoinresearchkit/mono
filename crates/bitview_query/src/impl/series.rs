@@ -308,7 +308,7 @@ impl Query {
         let height = if index.is_date_based() {
             // A period's extent and date also depend on the block after it (its monotonic
             // timestamp ends the period; an empty period takes its date from it).
-            match self.period_first_height(index, end) {
+            match self.plugins().mappings.first_height_at(index, end) {
                 Some(height) if height < cutoff => Some(height),
                 _ => return tip,
             }
@@ -356,30 +356,6 @@ impl Query {
         Some(row)
     }
 
-    /// The first block of period `row` of a date-based, epoch or halving index (the next
-    /// period's when it holds none).
-    fn period_first_height(&self, index: Index, row: usize) -> Option<Height> {
-        let first_height = &self.plugins().mappings.first_height;
-        match index {
-            Index::Minute10 => first_height.minute10.collect_one_at(row),
-            Index::Minute30 => first_height.minute30.collect_one_at(row),
-            Index::Hour1 => first_height.hour1.collect_one_at(row),
-            Index::Hour4 => first_height.hour4.collect_one_at(row),
-            Index::Hour12 => first_height.hour12.collect_one_at(row),
-            Index::Day1 => first_height.day1.collect_one_at(row),
-            Index::Day3 => first_height.day3.collect_one_at(row),
-            Index::Week1 => first_height.week1.collect_one_at(row),
-            Index::Month1 => first_height.month1.collect_one_at(row),
-            Index::Month3 => first_height.month3.collect_one_at(row),
-            Index::Month6 => first_height.month6.collect_one_at(row),
-            Index::Year1 => first_height.year1.collect_one_at(row),
-            Index::Year10 => first_height.year10.collect_one_at(row),
-            Index::Halving => first_height.halving.collect_one_at(row),
-            Index::Epoch => first_height.epoch.collect_one_at(row),
-            _ => unreachable!("{index:?} has no periods"),
-        }
-    }
-
     /// For a height, epoch, halving or entity index: the last block whose rows reach no further
     /// than `row`, a row below `cutoff`'s first one; `None` when the rows through `row` hold no
     /// block.
@@ -389,7 +365,7 @@ impl Query {
             Index::Height => Some(Height::from(row)),
             // Their periods are fixed block counts: the block before the next one's first.
             Index::Epoch | Index::Halving => {
-                self.period_first_height(index, row + 1)?.decremented()
+                mappings.first_height_at(index, row + 1)?.decremented()
             }
             // Every block has transactions and outputs: the block holding `row`.
             Index::TxIndex => mappings.tx_heights.get_shared(TxIndex::from(row)),

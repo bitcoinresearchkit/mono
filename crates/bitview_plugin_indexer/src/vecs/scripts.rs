@@ -1,10 +1,8 @@
 use bitview_primitives::{EmptyOutputIndex, P2MSOutputIndex, TypeIndex, UnknownOutputIndex};
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
-use brk_types::{Height, OutputType, SigOps32, Version};
-use vecdb::{
-    AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,
-};
+use brk_types::{OutputType, SigOps32, Version};
+use vecdb::{AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
 
 use crate::readers::ScriptReaders;
 
@@ -59,41 +57,6 @@ impl ScriptsVecs {
                 legacy_sigop_cost: unknown_legacy_sigop_cost,
             },
         })
-    }
-
-    pub fn truncate(
-        &mut self,
-        height: Height,
-        empty_output_index: EmptyOutputIndex,
-        p2ms_output_index: P2MSOutputIndex,
-        unknown_output_index: UnknownOutputIndex,
-        stamp: Stamp,
-    ) -> Result<()> {
-        self.empty
-            .first_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.p2ms
-            .first_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.unknown
-            .first_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.empty
-            .to_tx_index
-            .truncate_if_needed_with_stamp(empty_output_index, stamp)?;
-        self.p2ms
-            .to_tx_index
-            .truncate_if_needed_with_stamp(p2ms_output_index, stamp)?;
-        self.p2ms
-            .legacy_sigop_cost
-            .truncate_if_needed_with_stamp(p2ms_output_index, stamp)?;
-        self.unknown
-            .to_tx_index
-            .truncate_if_needed_with_stamp(unknown_output_index, stamp)?;
-        self.unknown
-            .legacy_sigop_cost
-            .truncate_if_needed_with_stamp(unknown_output_index, stamp)?;
-        Ok(())
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

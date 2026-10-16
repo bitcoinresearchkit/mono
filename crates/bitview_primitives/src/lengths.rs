@@ -1,7 +1,7 @@
 use brk_types::{Height, OutputType, TxIndex};
 
 use crate::{
-    EmptyOutputIndex, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
+    EmptyOutputIndex, Index, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
     P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
     P2WSHAddressIndex, TxInIndex, TxOutIndex, TypeIndex, UnknownOutputIndex,
 };
@@ -56,6 +56,44 @@ impl Lengths {
     #[inline]
     pub fn last_height(self) -> Option<Height> {
         self.height.decremented()
+    }
+
+    /// The length of `index`, `None` for the indexes not counted here (calendar periods, halving
+    /// and difficulty epochs).
+    pub fn get(&self, index: Index) -> Option<usize> {
+        Some(match index {
+            Index::Height => self.height.into(),
+            Index::TxIndex => self.tx_index.into(),
+            Index::TxInIndex => self.txin_index.into(),
+            Index::TxOutIndex => self.txout_index.into(),
+            Index::EmptyOutputIndex => self.empty_output_index.into(),
+            Index::OpReturnIndex => self.op_return_index.into(),
+            Index::P2MSOutputIndex => self.p2ms_output_index.into(),
+            Index::UnknownOutputIndex => self.unknown_output_index.into(),
+            Index::P2AAddressIndex => self.p2a_addr_index.into(),
+            Index::P2PK33AddressIndex => self.p2pk33_addr_index.into(),
+            Index::P2PK65AddressIndex => self.p2pk65_addr_index.into(),
+            Index::P2PKHAddressIndex => self.p2pkh_addr_index.into(),
+            Index::P2SHAddressIndex => self.p2sh_addr_index.into(),
+            Index::P2TRAddressIndex => self.p2tr_addr_index.into(),
+            Index::P2WPKHAddressIndex => self.p2wpkh_addr_index.into(),
+            Index::P2WSHAddressIndex => self.p2wsh_addr_index.into(),
+            Index::Minute10
+            | Index::Minute30
+            | Index::Hour1
+            | Index::Hour4
+            | Index::Hour12
+            | Index::Day1
+            | Index::Day3
+            | Index::Week1
+            | Index::Month1
+            | Index::Month3
+            | Index::Month6
+            | Index::Year1
+            | Index::Year10
+            | Index::Halving
+            | Index::Epoch => return None,
+        })
     }
 
     pub fn to_type_index(mut self, output_type: OutputType) -> TypeIndex {

@@ -3,8 +3,7 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, OutputType, Sats, Version};
 use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, OverflowVec, PcoVec, Rw, Stamp,
-    StorageMode, WritableVec,
+    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, OverflowVec, PcoVec, Rw, StorageMode,
 };
 
 #[derive(Traversable)]
@@ -42,23 +41,6 @@ impl OutputsVecs {
             output_type,
             type_index,
         })
-    }
-
-    pub fn truncate(
-        &mut self,
-        height: Height,
-        txout_index: TxOutIndex,
-        stamp: Stamp,
-    ) -> Result<()> {
-        self.first_txout_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.value
-            .truncate_if_needed_with_stamp(txout_index, stamp)?;
-        self.output_type
-            .truncate_if_needed_with_stamp(txout_index, stamp)?;
-        self.type_index
-            .truncate_if_needed_with_stamp(txout_index, stamp)?;
-        Ok(())
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

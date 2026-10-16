@@ -1,5 +1,7 @@
+use std::ops::Range;
+
 use bitview_plugin_indexer::SafeLengths;
-use bitview_plugin_price::FIRST_PRICE_HEIGHT;
+use bitview_plugin_price::priced_range;
 use bitview_primitives::{HOUR4_INTERVAL, INDEX_EPOCH, Index};
 use bitview_types::{ExchangeRates, HistoricalPrice, HistoricalPriceEntry};
 use brk_types::{Cents, Dollars, Timestamp};
@@ -71,22 +73,23 @@ impl ResolvedHistoricalPrice<'_> {
             let completed = len.saturating_sub(1);
             // Reuse one decompressed page while walking ordered closes.
             let mut cursor = plugins.price.spot.cents.height.cursor();
-            // Bucket `index`, closed by the block before `next` (the following bucket's first);
-            // none while that block is unpriced.
-            let mut entry = |index: usize, next: usize| -> Result<Option<HistoricalPriceEntry>> {
-                if next <= FIRST_PRICE_HEIGHT {
-                    return Ok(None);
-                }
-                let cents: Cents = cursor.get(next - 1).data()?;
-                if cents.is_nan() {
-                    return Err(Error::Internal("Invalid historical price"));
-                }
-                Ok(Some(HistoricalPriceEntry {
-                    // MAX_BUCKETS proves this arithmetic fits u32.
-                    time: Timestamp::new(INDEX_EPOCH + (index as u32 + 1) * HOUR4_INTERVAL),
-                    usd: Dollars::from(cents),
-                }))
-            };
+            // Bucket `index` over `heights`, closed by its last block; none while it holds no
+            // price.
+            let mut entry =
+                |index: usize, heights: Range<usize>| -> Result<Option<HistoricalPriceEntry>> {
+                    let Some(close) = priced_range(heights).next_back() else {
+                        return Ok(None);
+                    };
+                    let cents: Cents = cursor.get(close).data()?;
+                    if cents.is_nan() {
+                        return Err(Error::Internal("Invalid historical price"));
+                    }
+                    Ok(Some(HistoricalPriceEntry {
+                        // MAX_BUCKETS proves this arithmetic fits u32.
+                        time: Timestamp::new(INDEX_EPOCH + (index as u32 + 1) * HOUR4_INTERVAL),
+                        usd: Dollars::from(cents),
+                    }))
+                };
             let prices = match timestamp {
                 Some(target) => {
                     let end = (((*target).saturating_sub(INDEX_EPOCH) / HOUR4_INTERVAL) as usize)
@@ -98,7 +101,7 @@ impl ResolvedHistoricalPrice<'_> {
                         for index in (0..end).rev() {
                             let start = first(index)?;
                             if start != next {
-                                prices.extend(entry(index, next)?);
+                                prices.extend(entry(index, start..next)?);
                                 break;
                             }
                             next = start;
@@ -112,7 +115,8 @@ impl ResolvedHistoricalPrice<'_> {
                     let mut prices = Vec::with_capacity(completed);
                     for (index, pair) in mapping.windows(2).enumerate() {
                         if pair[0] != pair[1] {
-                            prices.extend(entry(index, usize::from(pair[1]))?);
+                            prices
+                                .extend(entry(index, usize::from(pair[0])..usize::from(pair[1]))?);
                         }
                     }
                     prices

@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    ops::Sub,
-};
+use std::fmt::{Display, Formatter, Result};
 
 use brk_types::{Cents, Dollars};
 use itoa::Buffer;
@@ -176,18 +173,6 @@ impl From<CentsCompact> for Cents {
             Cents::NAN
         } else {
             Cents::new(value.inner() as u64)
-        }
-    }
-}
-
-impl Sub for CentsCompact {
-    type Output = Self;
-    #[inline(always)]
-    fn sub(self, rhs: Self) -> Self {
-        if unlikely(self.is_nan() || rhs.is_nan()) {
-            Self::NAN
-        } else {
-            Self(self.0 - rhs.0)
         }
     }
 }

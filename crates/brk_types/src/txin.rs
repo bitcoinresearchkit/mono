@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "schemars")]
 use serde_json::json;
 
-use crate::{TxOut, Txid, Vout, Witness, bytes::DisplayStr};
+use crate::{TxOut, Txid, Vout, Witness, bytes::DisplayStr, tx::p2sh_redeem_script};
 
 /// Transaction input
 #[derive(Debug, Clone, Deserialize)]
@@ -117,7 +117,9 @@ impl Serialize for TxIn {
 
         // P2SH: the redeem script is the scriptsig's last push
         let is_p2sh = !self.is_coinbase && prevout_script.is_some_and(Script::is_p2sh);
-        let redeem_script = is_p2sh.then(|| self.script_sig.redeem_script()).flatten();
+        let redeem_script = is_p2sh
+            .then(|| p2sh_redeem_script(&self.script_sig))
+            .flatten();
 
         // P2WSH / P2SH-P2WSH: the witness script; P2TR script path: the leaf script
         let inner_witness = prevout_script.and_then(|spk| {

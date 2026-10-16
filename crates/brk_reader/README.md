@@ -18,7 +18,7 @@ bytes, so testnet, signet and regtest are not supported). The reader needs:
 // Bitcoin Core's default data directory, cookie file and RPC port
 let node = ConnectArgs::default();
 let client = node.client()?;
-let reader = Reader::new(node.blocks_dir(), &client);
+let reader = Reader::new(node.blocks_dir(), &client)?;
 
 // Everything from genesis to the current tip
 for block in reader.after(None)? {
@@ -55,8 +55,8 @@ Each `ReadBlock` gives you access to:
 | `block.header`         | Block header (timestamp, nonce, ...)     |
 | `block.txdata`         | All transactions                         |
 | `block.coinbase_tag()` | Miner's coinbase tag                     |
-| `block.metadata()`     | Position in the blk file                 |
-| `block.tx_metadata()`  | Per-transaction blk file positions       |
+| `block.position()`     | Position in the blk file                 |
+| `block.tx_positions()` | Per-transaction blk file positions       |
 
 ## How It Works
 

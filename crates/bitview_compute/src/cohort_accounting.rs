@@ -4,7 +4,7 @@ use brk_types::{CentsSats, Height, Sats};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{ReadableVec, VecValue};
 
-use crate::{WeightedCohortState, weighted::defined_weight};
+use crate::WeightedCohortState;
 
 /// Bounded inputs shared by the weighted age models. Each consumer owns its batch.
 #[derive(Default)]
@@ -23,19 +23,13 @@ impl CohortAccounting {
         offset: usize,
         weight: BoundedRatio,
     ) -> WeightedCohortState {
-        let weight = defined_weight(weight);
-        let mut state = WeightedCohortState::default();
-        state.cost_basis.add(
+        WeightedCohortState::new(
+            age.select(&self.supplies)[offset],
+            age.select(&self.loss_supplies)[offset],
             age.select(&self.cap_raw)[offset],
             age.select(&self.capitalized_cap_raw)[offset],
             weight,
-        );
-        state.add(
-            age.select(&self.supplies)[offset],
-            age.select(&self.loss_supplies)[offset],
-            weight,
-        );
-        state
+        )
     }
 }
 

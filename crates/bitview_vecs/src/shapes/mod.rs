@@ -4,7 +4,6 @@ mod by_lookback_period;
 mod per_resolution;
 mod percent_views;
 mod percentiles;
-mod resolution_fields;
 mod windows;
 
 pub use by_lookback_period::ByLookbackPeriod;

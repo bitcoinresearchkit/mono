@@ -445,6 +445,12 @@ has to be deleted by hand.
   one), and daily points are completed days stamped at their end (were stamped at their start, a day before
   mempool.space's, and included today's partial day)
 - Block-template diffs carry the template's `stats` (a client following diffs kept stale statistics)
+- Mempool transaction `sigops` match Bitcoin Core: a CHECKMULTISIG after a CHECKSIG counted 1 instead of 20, and a
+  P2SH spend whose scriptSig pushes `OP_n` (an HTLC's `OP_1 <redeem>`) counted no redeem sigops; transaction JSON
+  `inner_redeemscript_asm` shows those spends' redeem script (was empty), like Esplora
+- Calendar series (`first_height`, `date`, period timestamps and every per-resolution aggregate) report their height
+  mapping's live version: a fresh sync publishes the same versions and ETags as after a restart (they changed once,
+  on the first restart)
 - On an empty index, hashrate, pool detail and hashrate, difficulty history, reward stats and block fees, rewards
   and fee rates answer 503 `state_updating` (were 500), and pool rankings too (were an empty 200)
 
@@ -747,7 +753,13 @@ has to be deleted by hand.
   `WritableVec::fill_to` are gone; compression strategies implement only `decompress_page_append`.
   `rawdb::Region::with_read_bytes` is gone (`with_read_range`). `lsm_tree::Slice` is `byteview::ByteView`.
   `brk_error::Error::RawDB` is gone (raw database errors arrive as `VecDB`). `brk_reader` parses `xor.dat` itself
-  (`XORBytes::read`, `Reader::check_source`). `brk_types::Weight::to_vbytes_ceil` is gone (`VSize::from`)
+  (`XORBytes::read`, `Reader::check_source`); `Reader::new` returns `Result` (an unreadable or malformed `xor.dat` is
+  an error, was a silent identity mask). `brk_types::Weight::to_vbytes_ceil` is gone (`VSize::from`); `Block` and
+  `BlkMetadata` are one `ReadBlock` (`position()`, `tx_positions()`); `SigOpCount` (Core's counter) moved there from
+  the indexer. `bitview_compute`'s weighted state is one `WeightedCohortState` (`WeightedRatio` and
+  `WeightedCostBasis` are gone). `with_resolution_fields!` lives in `bitview_primitives`; `RangeMapVec::new` takes
+  its source mapping; `rangeindex::RangeMapWriter` is single-writer (`&mut self`, not `Clone`);
+  `bitview_plugin_price::FIRST_PRICE_HEIGHT` is private (`is_priced`, `first_priced`, `priced_range`)
 - `rawdb`: `Region::with_read_range` returns `Option` (a read racing a truncation got a panic). `vecdb`: compressed vectors'
   page table is crate-private; the `Bytes`/`ValueStrategy` safety contracts require exactly `size_of::<T>()` bytes
   per value whatever the layout. `pco` no longer exports `define_number_enum!` (its reference constructors were
@@ -982,7 +994,11 @@ has to be deleted by hand.
 - USD values round to the nearest cent (were truncated: `sth_realized_price` at 300,000 read $608.26 where cap over
   supply is 608.2693), and aggregate capitals come from the exact sum rounded once: the all-chain realized cap and
   the cohort capital-share denominator (were the sum of each age band's truncated cap), and awake/mobile capital and
-  realized prices (each band was truncated before weighting). Holders' capital in profit and in loss shares divide by
+  realized prices (each band was truncated before weighting). Cointime and coinflow weighted cohorts (awake/dormant,
+  mobile/immobile) derive every value from exact weighted moments: the weighted supply rounds once (was floored per
+  age range), its complement is the total minus it (the two sides add up to the total), and realized and capitalized
+  prices divide exact sums with exact half-cent rounding (the realized price divided by the floored supply: up to 2x
+  too high for tiny weighted supplies, null when the floor reached zero). Holders' capital in profit and in loss shares divide by
   the two sides' total, so neither exceeds 100%. URPD bucket P&L rounds the exact difference once (it subtracted two
   rounded values)
 - `market.ath.days_since` and `max_days_between` are null before the first price and count from it (both read the
@@ -1337,9 +1353,14 @@ has to be deleted by hand.
 
 #### Workspace
 
-- No tests are kept: every test module, test file and test-only helper is gone, forks included (pco also drops its
-  compatibility assets), with the test-only dev-dependencies. Changes are verified end to end, then the throwaway
-  checks are deleted. The website and `examples/custom_plugin` examples remain
+- Four consolidated, seeded model-based tests replace every other test (all removed, forks included, pco's
+  compatibility assets too): vecdb's covers rawdb and every vector variant (random pushes, updates, truncations,
+  checkpoints with undo, rollbacks, cancels, resets, reopens, relocations and concurrent readers against an in-memory
+  model); brk_store's covers fjall and lsm-tree (ingestion, weak tombstones, compaction, recovery, pinned views
+  against a `BTreeMap`); statedb's covers producers, reorgs, snapshot rollover, reopen and open readers; pco's
+  round-trips every type, mode, delta and paging. Each runs in about 2 s and caught every planted bug that changes
+  behaviour. Other changes are verified end to end with throwaway checks. The website and `examples/custom_plugin`
+  examples remain
 - Plugin crates other than the indexer follow one skeleton; distribution plugins share their cohort
   families and replay scaffold
 - A simplification pass removed about 4,400 lines without changing a published value (every series hashed before and
@@ -1350,7 +1371,8 @@ has to be deleted by hand.
   client; the indexer's stores, UTXO entries (`Utxos`), sigop classification and column inventory each have one
   owner; one shared conditional-request crate (`bitview_http`) serves the server, website and MCP; one table each
   declares indexes, OHLC records, nullable integer formatting, rarity components, windowed transaction features and
-  blk's fields
+  blk's fields. The first exchange price (block 74,641) has one owner in the price plugin, the indexer owns published
+  output ranges and prevout scripts for the query, and rollback truncates every indexer vector in one loop by index
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`
   (storage layout) regenerate and snapshot the generated outputs. The dev profile drops cross-crate LTO and uses
   limited debuginfo

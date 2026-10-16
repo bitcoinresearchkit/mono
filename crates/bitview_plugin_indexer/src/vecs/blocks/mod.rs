@@ -5,8 +5,8 @@ use brk_types::{
     BlkPosition, BlockHash, CoinbaseTag, Height, Timestamp, Version, Weight, Weight32,
 };
 use vecdb::{
-    AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp,
-    StorageMode, WritableVec,
+    AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode,
+    WritableVec,
 };
 
 pub mod median_time;
@@ -111,28 +111,9 @@ impl BlocksVecs {
         Ok(this)
     }
 
-    pub fn truncate(&mut self, height: Height, stamp: Stamp) -> Result<()> {
+    /// Forgets the retained median-time window, for a rollback: the next run reseeds it.
+    pub fn reset_median_window(&mut self) {
         self.median_window = MedianTimeWindow::default();
-        self.blockhash
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.coinbase_tag
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.difficulty
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.timestamp
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.median_time
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.total.truncate_if_needed_with_stamp(height, stamp)?;
-        self.weight.truncate_if_needed_with_stamp(height, stamp)?;
-        self.position.truncate_if_needed_with_stamp(height, stamp)?;
-        self.segwit_tx_count
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.segwit_tx_size
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.segwit_tx_weight
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        Ok(())
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

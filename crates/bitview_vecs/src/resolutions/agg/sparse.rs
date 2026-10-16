@@ -1,4 +1,4 @@
-use rangeindex::{Pages, RangeMap};
+use rangeindex::RangeMap;
 
 use vecdb::{ReadableVec, VecIndex, VecValue};
 
@@ -9,22 +9,6 @@ use super::{AggFold, read_sorted_optional};
 /// `Some(last_value)` when the range contains source elements,
 /// `None` when the range is empty.
 pub struct Sparse;
-
-impl Sparse {
-    fn source_index<SI: VecIndex>(
-        mapping: &Pages<SI>,
-        index: usize,
-        source_len: usize,
-    ) -> Option<usize> {
-        let first = mapping[index].to_usize();
-        let end = mapping
-            .get(index + 1)
-            .map(|i| i.to_usize())
-            .unwrap_or(source_len)
-            .min(source_len);
-        (first < end).then(|| end - 1)
-    }
-}
 
 impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
     #[inline]
@@ -43,10 +27,9 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
         f: F,
     ) -> Result<B, E> {
         let source_len = source.visible_len();
-        let mapping = mapping.starts();
         read_sorted_optional(
             source,
-            (from..to).map(|index| Self::source_index(mapping, index, source_len)),
+            (from..to).map(|index| mapping.range(index, source_len).next_back()),
             false,
         )
         .try_fold(init, f)
@@ -62,7 +45,9 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
             return None;
         }
         Some(
-            Self::source_index(mapping.starts(), index, source.visible_len())
+            mapping
+                .range(index, source.visible_len())
+                .next_back()
                 .and_then(|i| source.collect_one_at(i)),
         )
     }
@@ -78,12 +63,11 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
             return;
         }
         let source_len = source.visible_len();
-        let mapping = mapping.starts();
         out.extend(read_sorted_optional(
             source,
             indices
                 .iter()
-                .map(|&index| Self::source_index(mapping, index, source_len)),
+                .map(|&index| mapping.range(index, source_len).next_back()),
             true,
         ));
     }

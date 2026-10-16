@@ -1,7 +1,5 @@
 use bitcoin::{Script, WitnessVersion};
-use brk_types::OutputType;
-
-use super::super::sigops::SigOpCount;
+use brk_types::{OutputType, SigOpCount};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {

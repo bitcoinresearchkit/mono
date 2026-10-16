@@ -19,13 +19,46 @@ use crate::{
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
 pub const INDEX_EPOCH: u32 = 1230768000;
 
-/// Declares [`Index`] from one ordered list of index types, each variant named after its type:
-/// the date-based ones first, then the rest. Generates the enum, `all`, `possible_values`, `name`
-/// and `is_date_based`.
+/// Expands the resolution family in its canonical order, [`Index`]'s too: the date-based
+/// periods (time buckets, which may be empty), then the block-count epochs (never empty). The
+/// callback receives each field name, index type and container type parameter, then any tokens
+/// passed after the callback.
+#[macro_export]
+macro_rules! with_resolution_fields {
+    ($callback:ident $(, $($rest:tt)*)?) => {
+        $callback! {
+            periods {
+                minute10: Minute10 => M10,
+                minute30: Minute30 => M30,
+                hour1: Hour1 => H1,
+                hour4: Hour4 => H4,
+                hour12: Hour12 => H12,
+                day1: Day1 => D1,
+                day3: Day3 => D3,
+                week1: Week1 => W1,
+                month1: Month1 => Mo1,
+                month3: Month3 => Mo3,
+                month6: Month6 => Mo6,
+                year1: Year1 => Y1,
+                year10: Year10 => Y10,
+            }
+            epochs {
+                halving: Halving => HE,
+                epoch: Epoch => DE,
+            }
+            $($($rest)*)?
+        }
+    };
+}
+
+/// Declares [`Index`] from the resolution family followed by the `other` index types, each
+/// variant named after its type. Generates the enum, `all`, `possible_values`, `name` and
+/// `is_date_based`.
 macro_rules! indexes {
     (
-        date: [$($date:ident),+ $(,)?],
-        other: [$($(#[$attr:meta])* $other:ident),+ $(,)?] $(,)?
+        periods { $($period_field:ident: $period:ident => $period_param:ident,)* }
+        epochs { $($epoch_field:ident: $epoch:ident => $epoch_param:ident,)* }
+        other: [$($(#[$attr:meta])* $other:ident),+ $(,)?]
     ) => {
         /// Aggregation dimension for querying series. Includes time-based (date, week, month, year),
         /// block-based (height, tx_index), and address/output type indexes.
@@ -33,80 +66,75 @@ macro_rules! indexes {
         #[serde(rename_all = "lowercase")]
         #[schemars(example = Index::Day1)]
         pub enum Index {
-            $($date,)+
+            $($period,)*
+            $($epoch,)*
             $($(#[$attr])* $other,)+
         }
 
         impl Index {
-            const COUNT: usize = [$(Self::$date,)+ $(Self::$other,)+].len();
+            const COUNT: usize = [$(Self::$period,)* $(Self::$epoch,)* $(Self::$other,)+].len();
 
             pub const fn all() -> [Self; Self::COUNT] {
-                [$(Self::$date,)+ $(Self::$other,)+]
+                [$(Self::$period,)* $(Self::$epoch,)* $(Self::$other,)+]
             }
 
             pub fn possible_values(&self) -> &'static [&'static str] {
                 match self {
-                    $(Self::$date => $date::index_aliases(),)+
+                    $(Self::$period => $period::index_aliases(),)*
+                    $(Self::$epoch => $epoch::index_aliases(),)*
                     $(Self::$other => $other::index_aliases(),)+
                 }
             }
 
             pub fn name(&self) -> &'static str {
                 match self {
-                    $(Self::$date => $date::index_name(),)+
+                    $(Self::$period => $period::index_name(),)*
+                    $(Self::$epoch => $epoch::index_name(),)*
                     $(Self::$other => $other::index_name(),)+
                 }
             }
 
             /// Returns true if this index type is date-based.
             pub const fn is_date_based(&self) -> bool {
-                matches!(self, $(Self::$date)|+)
+                matches!(self, $(Self::$period)|*)
             }
         }
     };
 }
 
-indexes! {
-    date: [
-        Minute10, Minute30, Hour1, Hour4, Hour12, Day1, Day3, Week1, Month1, Month3, Month6, Year1,
-        Year10,
-    ],
-    other: [
-        Halving,
-        Epoch,
-        Height,
-        #[serde(rename = "tx_index")]
-        TxIndex,
-        #[serde(rename = "txin_index")]
-        TxInIndex,
-        #[serde(rename = "txout_index")]
-        TxOutIndex,
-        #[serde(rename = "empty_output_index")]
-        EmptyOutputIndex,
-        #[serde(rename = "op_return_index")]
-        OpReturnIndex,
-        #[serde(rename = "p2a_address_index")]
-        P2AAddressIndex,
-        #[serde(rename = "p2ms_output_index")]
-        P2MSOutputIndex,
-        #[serde(rename = "p2pk33_address_index")]
-        P2PK33AddressIndex,
-        #[serde(rename = "p2pk65_address_index")]
-        P2PK65AddressIndex,
-        #[serde(rename = "p2pkh_address_index")]
-        P2PKHAddressIndex,
-        #[serde(rename = "p2sh_address_index")]
-        P2SHAddressIndex,
-        #[serde(rename = "p2tr_address_index")]
-        P2TRAddressIndex,
-        #[serde(rename = "p2wpkh_address_index")]
-        P2WPKHAddressIndex,
-        #[serde(rename = "p2wsh_address_index")]
-        P2WSHAddressIndex,
-        #[serde(rename = "unknown_output_index")]
-        UnknownOutputIndex,
-    ],
-}
+with_resolution_fields!(indexes, other: [
+    Height,
+    #[serde(rename = "tx_index")]
+    TxIndex,
+    #[serde(rename = "txin_index")]
+    TxInIndex,
+    #[serde(rename = "txout_index")]
+    TxOutIndex,
+    #[serde(rename = "empty_output_index")]
+    EmptyOutputIndex,
+    #[serde(rename = "op_return_index")]
+    OpReturnIndex,
+    #[serde(rename = "p2a_address_index")]
+    P2AAddressIndex,
+    #[serde(rename = "p2ms_output_index")]
+    P2MSOutputIndex,
+    #[serde(rename = "p2pk33_address_index")]
+    P2PK33AddressIndex,
+    #[serde(rename = "p2pk65_address_index")]
+    P2PK65AddressIndex,
+    #[serde(rename = "p2pkh_address_index")]
+    P2PKHAddressIndex,
+    #[serde(rename = "p2sh_address_index")]
+    P2SHAddressIndex,
+    #[serde(rename = "p2tr_address_index")]
+    P2TRAddressIndex,
+    #[serde(rename = "p2wpkh_address_index")]
+    P2WPKHAddressIndex,
+    #[serde(rename = "p2wsh_address_index")]
+    P2WSHAddressIndex,
+    #[serde(rename = "unknown_output_index")]
+    UnknownOutputIndex,
+]);
 
 impl Index {
     /// Convert an index value to a timestamp for time-based indexes.
