@@ -7430,9 +7430,11 @@
         .mobile-bar {
           z-index: 13;
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          /* (Plain fr: tracks a browser moves between, not jumps.) */
+          grid-template-columns: 1fr 1fr 1fr 1fr;
           gap: 2px;
           padding: 4px;
+          transition: grid-template-columns var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), opacity var(--dur-small) var(--ease);
 
           .tab {
             position: relative;
@@ -7468,6 +7470,23 @@
             &:is(:disabled, [aria-disabled="true"]) {
               opacity: 0.35;
             }
+          }
+        }
+
+        /* (The Charts page's three, the bar's width between them: Layers, an open chart's, folds away as the page comes,
+           the gap before it taken from the bar's end, the ends alike.) */
+        body[data-home] .mobile-bar {
+          grid-template-columns: 1fr 1fr 1fr 0fr;
+          padding-right: 2px;
+        }
+
+        #mobile-layers {
+          overflow: hidden;
+          transition: color var(--fade), background var(--fade), box-shadow var(--fade), opacity var(--dur-layout) var(--ease-layout), visibility var(--dur-layout) allow-discrete;
+
+          body[data-home] & {
+            visibility: hidden;
+            opacity: 0;
           }
         }
 
@@ -7660,8 +7679,17 @@
             width: 64px;
             height: auto;
             grid-template-columns: 1fr;
-            grid-template-rows: repeat(4, 52px);
+            grid-template-rows: 52px 52px 52px 52px;
             translate: 0 -50%;
+            transition: grid-template-rows var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), opacity var(--dur-small) var(--ease);
+          }
+
+          /* (A rail: Layers folds up, the rail a tab shorter, its ends alike.) */
+          body[data-home] .mobile-bar {
+            grid-template-columns: 1fr;
+            grid-template-rows: 52px 52px 52px 0px;
+            padding-right: 4px;
+            padding-bottom: 2px;
           }
 
           /* (The grid's centered on what the rail leaves; the sheet's, in the sheet, at its foot.) */
@@ -23601,9 +23629,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Recently used" })) : [];
           const fresh = (item) => !usual.some((other) => other.key === item.key);
           const others = root && palette.adding ? otherLayerRows() : [];
-          palette.items = browsing ? [...others, ...recents, ...suggestions, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
+          // (Adding: series first, what's added most; then the other layers, then the catalog.)
+          palette.items = browsing ? [...recents, ...suggestions, ...others, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
           // Coming back up, the row you came from stays highlighted; going in, the first.
-          palette.active = Math.max(0, palette.items.findIndex((item) => (item.kind !== "series" || palette.path.length > 0) && item.key === palette.landOn));
+          palette.active = palette.items.findIndex((item) => (item.kind !== "series" || palette.path.length > 0) && item.key === palette.landOn);
+          // (Adding, it opens on the first series not in the chart yet: ↵ adds something new.)
+          if (palette.active < 0) palette.active = Math.max(0, palette.adding && !home ? palette.items.findIndex((item) => item.kind === "series" && actionable(item) && !chart.layers.some((layer) => layer.series === item.name)) : 0);
           palette.landOn = null;
           renderPalette();
           return;
