@@ -330,7 +330,7 @@
 
       /* On a row that's lit (selected, current, a menu's pointed at or open), its small grey text a tier up: on the lit ground, the muted grey reads too
          faintly. */
-      :is([aria-selected="true"], [aria-current]:not([aria-current="false"]), .menu > button:is(:hover:where(.can-hover *), :focus-visible, [aria-expanded="true"])) {
+      :is([aria-selected="true"], [aria-current]:not([aria-current="false"]), .chart-row.active, .menu > button:is(:hover:where(.can-hover *), :focus-visible, [aria-expanded="true"])) {
         --muted: var(--soft);
         --count: color-mix(in oklab, var(--soft), var(--faint) 30%);
       }
@@ -4220,29 +4220,59 @@
         }
       }
 
-      /* A preview's Keep, once it's edited, and its row in the sidebar: a dot on its corner (its edits go with it, if
-         kept; nothing beside it moves). */
-      /* (A preview's tile, edited: the dot after its name.) */
-      .tile.edited .tile-name::after {
-        content: "";
-        display: inline-block;
+      /* A preset edited here (its edits kept, unlike a preview's): a small pencil, quiet as a count, where a preview's dot
+         would be (its row's, in a folder's count's place; its tile's, after its name). */
+      :root {
+        --edited-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10.5 2.5 3 3-8 8H2.5v-3z'/%3E%3Cpath d='m8.5 4.5 3 3'/%3E%3C/svg%3E");
+      }
+
+      /* (A tile's mark beside its name, shrunk to it, not in it: a long name's ellipsis doesn't take it; its interval
+         still at the end.) */
+      .tile.edited {
+        .tile-name {
+          flex: 0 1 auto;
+        }
+
+        .tile-index {
+          order: 2;
+          margin-left: auto;
+        }
+
+        .tile-head::after {
+          content: "";
+          flex: none;
+          order: 1;
+          align-self: center;
+        }
+      }
+
+      .preset-tile.edited .tile-head::after {
+        width: 11px;
+        height: 11px;
+        background: var(--count);
+        -webkit-mask: var(--edited-mark) center / contain no-repeat;
+        mask: var(--edited-mark) center / contain no-repeat;
+      }
+
+      /* A preview's edits, not kept yet: its Keep's, its row's in the sidebar, a dot on its corner (its edits go with it,
+         if kept; nothing beside it moves); its tile's, after its name. */
+      .tile.edited:not(.preset-tile) .tile-head::after {
         width: 6px;
         height: 6px;
-        margin-left: 6px;
         border-radius: 50%;
-        vertical-align: 2px;
         background: var(--ink);
       }
 
-      /* (A preset's row, edited: the dot where a folder's count is, its ⋯ taking its place as it's pointed at.) */
+      /* (A preset's row, edited: the pencil where a folder's count is, its ⋯ taking its place as it's pointed at.) */
       .preset-row.edited::after {
         content: "";
         position: absolute;
-        right: 18px;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--ink);
+        right: 13px;
+        width: 11px;
+        height: 11px;
+        background: var(--count);
+        -webkit-mask: var(--edited-mark) center / contain no-repeat;
+        mask: var(--edited-mark) center / contain no-repeat;
         pointer-events: none;
       }
 
@@ -6094,6 +6124,24 @@
         place-items: center;
         color: var(--muted);
         font-size: 13px;
+      }
+
+      /* (Your Library with nothing in it: what to do, under what it says.) */
+      .shelf-empty.library-empty {
+        height: auto;
+        gap: 14px;
+        padding: 28px 16px;
+        text-align: center;
+
+        p {
+          margin: 0;
+        }
+
+        .home-none-actions {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+        }
       }
 
       .shelf-title {
@@ -16377,25 +16425,47 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What each keyed list last wrote: its parts, [key, html], each one element. */
       const listWritten = new WeakMap();
       /**
-       * A list written again only where it changed: the same keys in the same order, only the parts whose html changed are
-       * written (the rest, and the focus in them, untouched); else all of it, the focus put back on its like. Whether
-       * anything was written. @param {HTMLElement} container @param {[string, string][]} parts
+       * A list written again only where it changed: each part kept as it is where its key and html are (its element, its
+       * hover, what it's doing: a row lit stays lit, a folder opened above doesn't draw it again), the others written, all
+       * in the parts' order; the focus put back on its like where its own was written. Whether anything was written.
+       * @param {HTMLElement} container @param {[string, string][]} parts
        */
       function writeList(container, parts) {
         const was = listWritten.get(container);
         listWritten.set(container, parts);
-        if (was && was.length === parts.length && container.children.length === parts.length && was.every(([key], i) => key === parts[i][0])) {
-          const changed = parts.flatMap(([, html], i) => (html === was[i][1] ? [] : [i]));
-          if (!changed.length) return false;
-          const focus = focusKey(container);
-          for (const i of changed) container.children[i].outerHTML = parts[i][1];
+        const focus = focusKey(container);
+        // (Written as it was last, its elements one to a part, each key once: each found by its key; else, none to keep.)
+        const unique = (/** @type {[string, string][]} */ list) => new Set(list.map(([key]) => key)).size === list.length;
+        const kept = new Map(was && container.children.length === was.length && unique(was) && unique(parts) ? was.map(([key, html], i) => [key, { html, element: /** @type {Element} */ (container.children[i]) }]) : []);
+        if (!kept.size) {
+          container.innerHTML = parts.map(([, html]) => html).join("");
           restoreFocus(container, focus);
           return true;
         }
-        const focus = focusKey(container);
-        container.innerHTML = parts.map(([, html]) => html).join("");
-        restoreFocus(container, focus);
-        return true;
+        const make = document.createElement("template");
+        let wrote = false;
+        parts.forEach(([key, html], i) => {
+          const old = kept.get(key);
+          kept.delete(key);
+          // (One folded away (inert, its fold's end held), shown again by another way than its fold: written anew.)
+          let element = old?.html === html && !(/** @type {HTMLElement} */ (old.element).inert) ? old.element : null;
+          if (!element) {
+            make.innerHTML = html;
+            element = /** @type {Element} */ (make.content.firstElementChild);
+            if (old) old.element.remove();
+            wrote = true;
+          }
+          // (One kept moved as it is, where the browser can: its focus, its hover kept.)
+          if (container.children[i] !== element) {
+            const to = container.children[i] ?? null, move = /** @type {any} */ (container).moveBefore;
+            if (move && element.isConnected) move.call(container, element, to);
+            else container.insertBefore(element, to);
+            wrote = true;
+          }
+        });
+        for (const { element } of kept.values()) element.remove(), (wrote = true);
+        if (wrote) restoreFocus(container, focus);
+        return wrote;
       }
 
       // ── Mini charts: each chart's own shape, and each layer's, from their data ───────────────────────
@@ -16954,7 +17024,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             html = `${fill}<path stroke="${c}"${dash} d="${mark.d}"/>`;
           }
-          if (mark.end) {
+          // (Its end marked in Quick Look's picture alone, by its value beside it; a card's line just ends.)
+          if (mark.end && size !== PREVIEW) {
             const [x, y] = mark.end, color = mark.k === "baseline" && y > /** @type {number} */ (mark.y0) ? c2 : c;
             html += `<path class="ring" d="M${x} ${y}h0"/><path class="end" stroke="${color}" d="M${x} ${y}h0"/>`;
           }
@@ -17122,7 +17193,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A part of the page's side of your charts: a shelf's `place`, where its name leads; its `folder`, what's dropped on
        * it goes into (yours, "": the Library's top; none: nothing, the previews').
-       * @typedef {{ kind: "head", name: string, count: number } | { kind: "grid", docs: Chart[], previews?: boolean } | { kind: "shelf", name: string, place: Place, folder?: string, docs: Chart[], count: number, previews?: boolean } | { kind: "note", html: string }} YoursPart
+       * @typedef {{ kind: "head", name: string, count: number } | { kind: "grid", docs: Chart[], previews?: boolean } | { kind: "shelf", name: string, place: Place, folder?: string, docs: Chart[], count: number, previews?: boolean, empty?: string } | { kind: "note", html: string }} YoursPart
        */
       /**
        * Your charts' side of the page, where it is (none in a section of the presets): at the top, the previews and yours
@@ -17146,7 +17217,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else if (top) {
           const previewed = listedPreviews(), all = listed();
           if (previewed.length) parts.push({ kind: "shelf", name: "Previews", place: { previews: true }, docs: previewed.slice(0, SHELF), count: previewed.length, previews: true });
-          parts.push(all.length || library.folders.length ? { kind: "shelf", name: "Library", place: { folder: "" }, folder: "", docs: all.slice(0, SHELF), count: all.length } : { kind: "note", html: `<p>${previewed.length ? "None saved yet: Keep a preview to have it here." : "No charts yet. Start a new chart, or open a preset and copy it."}</p>${previewed.length ? "" : `<div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`}` });
+          // (None yet, its shelf all the same, named as the presets' is: what's empty, and how to fill it, in it.)
+          parts.push({ kind: "shelf", name: "Library", place: { folder: "" }, folder: "", docs: all.slice(0, SHELF), count: all.length, ...(all.length || library.folders.length ? {} : { empty: `<div class="shelf-empty library-empty"><p>${previewed.length ? "None saved yet: Keep a preview to have it here." : "No charts yet. Start a new chart, or open a preset and copy it."}</p>${previewed.length ? "" : `<div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`}</div>` }) });
         } else if (!grid.hidden) {
           const items = childrenOf(folderId), counts = chartCounts();
           const own = items.flatMap((item) => ("layers" in item ? [item] : []));
@@ -17164,7 +17236,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // The same charts in the same order (and parts): only the tiles that changed are drawn again (a click on another
         // one, under way, isn't lost; focus and hover stay). Otherwise, all of them.
         const html = visible.map(tileHtml), tiles = all$(".tile", grid);
-        const layout = JSON.stringify(parts.map((part) => (part.kind === "shelf" ? [part.kind, JSON.stringify(part.place), part.name, part.count, part.docs.length] : part.kind === "grid" ? [part.kind, Boolean(part.previews), part.docs.length] : part.kind === "head" ? [part.kind, part.name, part.count] : [part.kind, part.html])));
+        const layout = JSON.stringify(parts.map((part) => (part.kind === "shelf" ? [part.kind, JSON.stringify(part.place), part.name, part.count, part.docs.length, part.empty ?? ""] : part.kind === "grid" ? [part.kind, Boolean(part.previews), part.docs.length] : part.kind === "head" ? [part.kind, part.name, part.count] : [part.kind, part.html])));
         if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.homeCard === visible[i].id)) {
           tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && (tile.outerHTML = html[i]));
         } else {
@@ -17191,10 +17263,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * Your charts as a shelf: a folder's (its name, how many it holds, leading into it; its menu; its charts, the first
-       * of them at any depth), your Library's, the previews', a row; its name leads to its page.
-       * @param {{ name: string, place: Place, folder?: string, count: number, previews?: boolean }} shelf @param {string} tiles
+       * of them at any depth), your Library's, the previews', a row; its name leads to its page. None in it: `empty`, what
+       * it says (else, that it has none).
+       * @param {{ name: string, place: Place, folder?: string, count: number, previews?: boolean, empty?: string }} shelf @param {string} tiles
        */
-      const folderShelfHtml = ({ name, place, folder, count, previews }, tiles) => `<section class="shelf${previews ? " previews" : ""}"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escape(JSON.stringify(place))}">${folder ? ICONS.folder : ""}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles || `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
+      const folderShelfHtml = ({ name, place, folder, count, previews, empty }, tiles) => `<section class="shelf${previews ? " previews" : ""}"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escape(JSON.stringify(place))}">${folder ? ICONS.folder : ""}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles || empty || `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
       /** A chart's tile: what the chart grows out of and shrinks into. */
       const cardOf = (id) => /** @type {HTMLElement | null} */ ($("home-grid").querySelector(`[data-home-card="${id}"]`));
       const tileOpen = (id) => /** @type {HTMLElement | null} */ (cardOf(id)?.querySelector(".tile-open") ?? null);
@@ -18609,6 +18682,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const folds = rowsUnder(head).map((element) => fold(element, closing));
         // (On the rail, its own slice of their surface fades with them.)
+        // (Its own slice of the rail's surface: a fade under way, from its closing, goes first.)
+        for (const animation of head.getAnimations({ subtree: true })) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.pseudoElement === "::before") animation.cancel();
         if (!head.classList.contains("in-folder") && !group) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
         if (!closing) return;
         closings++;
@@ -19100,6 +19175,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (fade) element.animate({ opacity: [0, 1] }, timing);
             continue;
           }
+          // (A glide still under way goes first: where it's laid out now is measured, not where it's being carried.)
+          for (const animation of element.getAnimations()) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.getKeyframes().some((frame) => "transform" in frame)) animation.cancel();
           const by = from - element.getBoundingClientRect().top;
           if (Math.abs(by) < 0.5) continue;
           const lift = moved !== null && key(element) === moved;
@@ -20140,7 +20217,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sections = chart.panes.map((pane, i) => {
           const layers = chart.layers.filter((layer) => layer.pane === pane.id);
           /** @type {[string, string][]} */
-          const rows = [["head", `<div class="pane-head">
+          const rows = [["head:pane", `<div class="pane-head">
               <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale, stack and order">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
               ${((shown) => `<button type="button" class="cap small" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} every layer in pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} every layer">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(layers.some((layer) => !layer.hidden))}
@@ -26381,9 +26458,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.fillStyle = softColor;
         context.fillText("Studio", at, baseline);
         at += context.measureText("Studio").width;
+        // (Where it was made: this page's own address, studio.bitview.space as it's served; one only this machine or its
+        // network knows (a file, localhost, a private address), the data's.)
+        const local = !location.hostname || location.hostname === "localhost" || /^(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|\[)/.test(location.hostname) || location.hostname.endsWith(".local");
+        const where = ` · ${local ? SERVER_HOST : location.host}`;
         context.fillStyle = mutedColor;
-        context.fillText(` · ${SERVER_HOST}`, at, baseline);
-        at += context.measureText(` · ${SERVER_HOST}`).width;
+        context.fillText(where, at, baseline);
+        at += context.measureText(where).width;
         // Too narrow for all of it: the view's dates go first, the values' date stays.
         const full = [cadence, dates.span, dates.values].filter(Boolean).join(" · "), short = [cadence, dates.values || dates.span].join(" · ");
         context.textAlign = "right";
