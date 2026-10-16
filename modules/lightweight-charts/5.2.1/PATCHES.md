@@ -243,13 +243,17 @@ canvases' bitmaps as true to their boxes.
 
 ## 15. No mark's label under a tag
 
-A price axis's tags (a series' last value, a price line's) are drawn over its marks' labels, a label half under one
-showing at its edge ("100K" peeking above a last value just under it). A mark's label is now left out where a tag shown
-on that axis covers it (within half a tag and half the text's height of the tag's place, after the spread and patch
-11); the mark's tick stays, and the crosshair's tag (drawn over, on its own canvas, moving) hides none.
+An axis's tags are drawn over its marks' labels, a label half under one showing at its edge ("100K" peeking above a
+last value just under it; "2021" beside a drawing's date). A mark's label is now left out where a tag shown on that
+axis covers it: on a price axis, a series' last value's and a price line's (within half a tag and half the text's
+height of the tag's place, after the spread and patch 11); on the time axis, a primitive's (a drawing's dates; within
+both halves' widths and 4 px, each where it's drawn: a tag pulled in from an end, a label moved in from one). The mark's tick stays; the crosshair's tags (drawn over, on their own canvas, moving)
+hide none.
 
-- `class Wn`, `Bm()` (the marks): the tags (`this.Pm()`, those shown) read before the labels are written, a label
-  written only where none covers it.
+- `class Wn` (a price axis), `Bm()` (the marks): the tags (`this.Pm()`, those shown) read before the labels are
+  written, a label written only where none covers it.
+- `class Jn` (the time axis), `Bm()`: the same, the tags the panes' sources' (`Jn()`, each `dn()`, as `Jw()` draws
+  them), the crosshair's (`Vd()`) left out.
 
 `tests.html` leaves the axes out of its pictures. Checked in Studio: a last value at a mark, near one, a price line's
-tag; on a phone.
+tag, a drawing's dates; on a phone.

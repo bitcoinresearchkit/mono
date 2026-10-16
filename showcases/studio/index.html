@@ -4900,8 +4900,8 @@
       }
 
       /* The palette floats like a launcher, keys along the bottom. */
-      /* (Its handle a phone's sheet's alone.) */
-      .palette > .menu-handle {
+      /* (Its handle a phone's sheet's alone; the shortcuts' and the guide's too.) */
+      :is(.palette, .shortcuts) > .menu-handle {
         display: none;
       }
 
@@ -5630,7 +5630,8 @@
           font-size: 12px;
         }
 
-        @media (max-width: 760px) {
+        /* (A phone's, on its side too: a column's width.) */
+        @media (max-width: 760px), (max-height: 500px) {
           .key-groups {
             grid-template-columns: minmax(0, 1fr);
           }
@@ -7849,13 +7850,43 @@
            sight). Its list to the screen's foot, the home indicator's room the end of its scroll: rows go on under it, none
            cut short above an empty strip. */
         .palette {
-          width: 100vw;
-          max-width: none;
           height: calc(var(--sheet-whole) * 100dvh);
           max-height: none;
+          padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
+        }
+
+        /* The shortcuts and the guide too, as tall as they need (as tall as ⌘K at most), their handle and head kept at
+           the top as they scroll, their last line clear of the home indicator. */
+        .shortcuts {
+          inset: auto 0 0;
+          height: auto;
+          max-height: calc(var(--sheet-whole) * 100dvh);
+          padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+
+          /* (From the very top, held there.) */
+          > .menu-handle {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--raise);
+          }
+
+          .dialog-head {
+            top: 20px;
+            padding-top: 2px;
+          }
+
+          /* (Over the guide's own width, by coming later.) */
+          &.guide {
+            width: 100vw;
+          }
+        }
+
+        :is(.palette, .shortcuts) {
+          width: 100vw;
+          max-width: none;
           margin: auto 0 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-          padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
           /* (In from the foot, as the layers sheet; closed, it slides down before it's gone, its backdrop fading, where the
              browser keeps a closing dialog over the page meanwhile (Safari doesn't: there, gone at once).) */
           transition: transform var(--dur-layout) var(--ease-layout), background var(--dur-small) var(--ease);
@@ -7923,7 +7954,7 @@
         /* (On its side, the column's place and width, as the layers': the rail and the chart beside it; the screen's left
            inset (its notch) not its: it's at the right.) */
         @media (max-height: 500px) and (min-width: 568px) {
-          .palette {
+          :is(.palette, .shortcuts, .shortcuts.guide) {
             width: var(--column);
             margin: auto 0 0 auto;
             padding-left: 0;
@@ -7935,11 +7966,10 @@
           scroll-padding-bottom: calc(6px + env(safe-area-inset-bottom));
         }
 
-        /* A sheet's handle, a menu's and ⌘K's, as the layers sheet's: dragged down, it goes (no scroll takes the drag). */
-        :is(.menu.as-sheet, .palette) > .menu-handle {
+        /* A sheet's handle, a menu's, ⌘K's, the shortcuts', as the layers sheet's: dragged down, it goes (no scroll takes the drag). */
+        :is(.menu.as-sheet, .palette, .shortcuts) > .menu-handle {
           display: grid;
           height: 20px;
-          margin: -7px 0 0;
           place-items: center;
           touch-action: none;
 
@@ -7953,8 +7983,13 @@
           }
         }
 
+        /* (A menu's and ⌘K's in their top's room; the shortcuts' held at their top, see .shortcuts.) */
+        :is(.menu.as-sheet, .palette) > .menu-handle {
+          margin-top: -7px;
+        }
+
         /* (Held, as the layers sheet's.) */
-        :is(.menu.as-sheet, .palette).pulled > .menu-handle::before {
+        :is(.menu.as-sheet, .palette, .shortcuts).pulled > .menu-handle::before {
           background: var(--ink);
         }
 
@@ -8693,6 +8728,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
     </dialog>
 
     <dialog id="guide" class="shortcuts guide" aria-label="How links work" tabindex="-1">
+      <div class="menu-handle" aria-hidden="true"></div>
       <div class="dialog-head">
         <h2>How links work</h2>
         <span class="spacer"></span>
@@ -8701,6 +8737,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       <div id="guide-body" class="guide-body"></div>
     </dialog>
     <dialog id="shortcuts" class="shortcuts" aria-label="Shortcuts" tabindex="-1">
+      <div class="menu-handle" aria-hidden="true"></div>
       <div class="dialog-head">
         <h2>Shortcuts</h2>
         <span class="spacer"></span>
@@ -14966,6 +15003,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.endsView = { zOrder: () => /** @type {const} */ ("normal"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context }) => paintEnds(context, this.ends, this.endsLook)) }) };
           /** What it draws, by which of its parts it has (made once each: asked for every frame). @type {Map<number, any[]>} */
           this.viewSets = new Map();
+          /** Its axes' tags, made once an update (the library reads them twice a paint: the same, its cache holding). @type {any[] | null} */
+          this.priceTags = null;
+          /** @type {any[] | null} */
+          this.timeTags = null;
         }
         attached({ series, requestUpdate }) {
           this.series = series;
@@ -14976,6 +15017,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.shown = [];
         }
         updateAllViews() {
+          this.priceTags = this.timeTags = null;
           const line = timeLine(), series = this.series;
           // (Once a pane, the lowest pane's with their words: over its frontmost fill, a cloud's, an area's, bars, candles,
           // so none hides them; under the lines in front of it. No fill: under every series.)
@@ -15009,8 +15051,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** Each line across's value; a selected line's or box's, each point's (and as it's drawn): as the axis reads it. */
         priceAxisViews() {
           if (!this.shown.length) return NONE;
+          if (this.priceTags) return this.priceTags;
           const text = this.valueText();
-          return this.shown.flatMap(({ drawing, points }) => (drawing.kind === "hline" ? [0] : told(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].y, text(drawing.points[i][1]), colorOfDrawing(drawing))));
+          return (this.priceTags = this.shown.flatMap(({ drawing, points }) => (drawing.kind === "hline" ? [0] : told(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].y, text(drawing.points[i][1]), colorOfDrawing(drawing)))));
         }
         /**
          * Values as this series' axis writes them: a % or indexed scale reads each against the series' first value in view,
@@ -15029,7 +15072,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         timeAxisViews() {
           if (!this.shown.length) return NONE;
-          return this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : told(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(drawnIndex)), colorOfDrawing(drawing))));
+          if (this.timeTags) return this.timeTags;
+          return (this.timeTags = this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : told(drawing) && PAIRED.has(drawing.kind) ? [0, 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(drawnIndex)), colorOfDrawing(drawing)))));
         }
         draw(context, size) {
           this.size = size;
@@ -18602,15 +18646,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         foldRow(() => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-group="${group}"]`)), closing);
       }
       /**
-       * The presets' sections as a tree, made once they're read: each with its sections (in the presets' order), its own
-       * presets, how many it holds at any depth, its key (its path, as kept).
-       * @typedef {{ path: string[], key: string, sections: PresetNode[], own: number[], count: number }} PresetNode
+       * The presets' sections as a tree, made once they're read: each with what's in it as the website has it (its
+       * sections and its own presets, in the presets' order: Bitcoin Price before the sections after it), how many it
+       * holds at any depth, its key (its path, as kept).
+       * @typedef {{ path: string[], key: string, items: (PresetNode | number)[], count: number }} PresetNode
        */
       let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null }} */ ({ for: null, node: null });
       function presetTree() {
         if (!presets) return null;
         if (presetRoot.for === presets) return presetRoot.node;
-        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", sections: [], own: [], count: 0 }), byKey = new Map([[root.key, root]]);
+        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", items: [], count: 0 }), byKey = new Map([[root.key, root]]);
         presets.forEach((preset, i) => {
           let node = root;
           node.count++;
@@ -18618,14 +18663,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const path = preset.p.slice(0, depth + 1), key = JSON.stringify(path);
             let next = byKey.get(key);
             if (!next) {
-              next = { path, key, sections: [], own: [], count: 0 };
+              next = { path, key, items: [], count: 0 };
               byKey.set(key, next);
-              node.sections.push(next);
+              node.items.push(next);
             }
             node = next;
             node.count++;
           }
-          node.own.push(i);
+          node.items.push(i);
         });
         presetRoot = { for: presets, node: root };
         return root;
@@ -18672,17 +18717,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const parts = [sideHead("presets", presets.length, !home && chart.preset !== undefined)];
         if (groupShut("presets")) return parts;
         const walk = (/** @type {PresetNode} */ node, /** @type {number} */ depth) => {
-          for (const section of node.sections) {
-            const shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
+          for (const item of node.items) {
+            if (typeof item === "number") {
+              if (!depth) continue;
+              const doc = editedPreset(item), title = escape(doc ? titleOf(doc) : /** @type {Preset[]} */ (presets)[item].t), edited = Boolean(doc && presetEdited(doc));
+              parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? ": edited here" : ""}">${presetMark(item)}<span class="label">${title}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`]);
+              continue;
+            }
+            const section = item, shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
             parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"}" data-section-row="${key}" style="--depth: ${depth}">
               <button type="button" class="nav-item folder-item" data-section-item="${key}" aria-expanded="${shown}" data-tip="${escape(name)}"><span class="chart-mark folder-glyph">${shown ? ICONS.folderOpen : ICONS.folder}</span><span class="label">${escape(name)}</span><span class="folder-count">${shortCount(section.count)}</span></button>
               <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}">${ICONS.more}</button>
             </div>`]);
             if (shown) walk(section, depth + 1);
-          }
-          if (depth) for (const i of node.own) {
-            const doc = editedPreset(i), title = escape(doc ? titleOf(doc) : /** @type {Preset[]} */ (presets)[i].t), edited = Boolean(doc && presetEdited(doc));
-            parts.push([`preset:${i}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${i}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${i}" data-tip="${title}${edited ? ": edited here" : ""}">${presetMark(i)}<span class="label">${title}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`]);
           }
         };
         walk(root, 0);
@@ -20803,6 +20850,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A layer's actions, at the inspector's foot: as the layers panel's adds, a row each (each by its key's id: the focus
        * back on it once redrawn). @param {Layer} layer
        */
+      /** The layer's eye, by its name in its settings. */
+      const eyeOf = (/** @type {Layer} */ layer) => `<button type="button" id="inspector-eye" data-hidden="${Boolean(layer.hidden)}" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"} ${keyText("(⌥-click: alone in its pane)")}" data-kbd="H">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>`;
       const actionsOf = (/** @type {Layer} */ layer) => `<section class="layer-actions">${layerActions(layer.id, "panel").map((row, i) => `<button type="button" id="act-${row.key}" class="nav-item${row.danger ? " danger" : ""}" data-act="${i}"${row.page ? ' aria-haspopup="menu"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.kbd?.startsWith("⌘") ? ` data-kbd="${[...row.kbd].join(" ")}"` : ""}>${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.kbd ? `<kbd${row.kbd.startsWith("⌘") ? ' class="mod"' : ""}>${escape(keyText(row.kbd))}</kbd>` : ""}</button>`).join("")}</section>`;
       /** The panel waiting to be drawn again, a color's hex being typed in it (see renderInspector). */
       let inspectorDue = false;
@@ -20829,6 +20878,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           suggestHere();
           const fresh = actionsOf(layer);
           if (fresh !== actionsShown) /** @type {HTMLElement} */ (panel.querySelector(".layer-actions")).outerHTML = actionsShown = fresh;
+          // (Hidden or shown meanwhile, from the list, the legend, another tab: its eye says so.)
+          const eye = $("inspector-eye");
+          if (eye && eye.dataset.hidden !== String(Boolean(layer.hidden))) eye.outerHTML = eyeOf(layer);
           return;
         }
         const another = inspected !== layer.id;
@@ -20885,6 +20937,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
             ${letterChip(layer)}
             <input id="label" class="label-input" maxlength="120" enterkeyhint="done" value="${escape(layer.label ?? "")}" placeholder="${escape(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
+            ${eyeOf(layer)}
             <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
           ${sourceSection}
@@ -22530,7 +22583,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : named.length === 1 ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? named[0] : undefined, mono: true, verb: "Turn", run: () => toSeries(id, named[0]) }]
             : named.length ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? `${named.length} series` : undefined, page: () => listPage("Turn into a series", () => seriesChoices(id), "Turn") }]
             : []),
-          { key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", stay: true, run: () => toggleHidden(id) },
+          // (Its settings', by its name: its eye there.)
+          ...(where === "panel" ? [] : [{ key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", stay: true, run: () => toggleHidden(id) }]),
           ...(chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show only this in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
           // (Its right-click beside others picked: its copy alone, the picks as they are.)
           { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", ...(chart.layers.length < MAX_LAYERS ? {} : { disabled: `A chart holds ${MAX_LAYERS} layers at most` }), run: () => (menu && layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id)) },
@@ -25571,6 +25625,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           move: (by) => (menu.style.transform = `translateY(${Math.max(0, by + base)}px)`),
           back: () => (menu.style.transition = menu.style.transform = ""),
           release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, menu.offsetHeight) && hideMenu(),
+        });
+      }
+      // The shortcuts' and the guide's sheets, a phone's: dragged down by their handle, or their lines at their top, they
+      // go (closed: they slide away as they close); else they come back.
+      for (const sheet of [$("shortcuts"), $("guide")]) {
+        let base = 0;
+        dragSheet(sheet, {
+          pulls: () => phone.matches && /** @type {HTMLDialogElement} */ (sheet).open,
+          grab: (event) => {
+            if (!phone.matches || !(/** @type {HTMLDialogElement} */ (sheet).open) || (event && !closest(event, ".menu-handle"))) return false;
+            base = new DOMMatrix(getComputedStyle(sheet).transform).m42;
+            sheet.style.transition = "none";
+            return true;
+          },
+          move: (by) => (sheet.style.transform = `translateY(${Math.max(0, by + base)}px)`),
+          back: () => (sheet.style.transition = sheet.style.transform = ""),
+          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, sheet.offsetHeight) && /** @type {HTMLDialogElement} */ (sheet).close(),
         });
       }
       /**
