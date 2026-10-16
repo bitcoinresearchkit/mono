@@ -13,12 +13,12 @@ where
     C: NumericValue + JsonSchema,
     B: FixedRatio,
 {
-    /// Absolute change from the start of a trailing window through the
-    /// represented block.
+    /// Absolute change through the represented block from the value just
+    /// before a trailing window (zero for a window from genesis).
     absolute: Windows<LazyDeltaFromHeight<S, C, DeltaChange>>,
-    /// Relative change from the start of a trailing window through the
-    /// represented block, divided by the starting value. Undefined (null) when
-    /// the starting value is zero.
+    /// Relative change through the represented block from the value just
+    /// before a trailing window, divided by that value. Undefined (null) when
+    /// it is zero, as for a window from genesis.
     rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
 }
 

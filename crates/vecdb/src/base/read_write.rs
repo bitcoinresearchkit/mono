@@ -21,9 +21,9 @@ pub struct ReadWriteBaseVec<I, T> {
     pub saved_stamped_changes: u16,
     /// See [`crate::ImportOptions::with_unread_updates`].
     pub unread_updates: bool,
-    /// A rollback's state is not written yet: unsaved changes cancel back to it
+    /// A rollback's or a reset's state is not written yet: unsaved changes cancel back to it
     /// (`previous_stored_len` and the previous pushed values), not to the disk.
-    pub unwritten_rollback: bool,
+    pub unwritten_baseline: bool,
     /// Sorted stamps of the change files, once listed: `None` until then or after an error.
     pub(super) change_stamps: Mutex<Option<Vec<Stamp>>>,
 }
@@ -84,7 +84,7 @@ where
             previous_stored_len: 0,
             saved_stamped_changes: options.saved_stamped_changes,
             unread_updates: options.unread_updates,
-            unwritten_rollback: false,
+            unwritten_baseline: false,
             change_stamps: Mutex::default(),
         })
     }
@@ -228,22 +228,24 @@ where
         index < stored_len
     }
 
+    /// Empties the vec until written: unsaved changes cancel back to empty, never to the rows
+    /// still on disk (a version reset must not resurrect them).
     pub fn reset_base(&mut self) -> CrateResult<()> {
         self.header.check_writable()?;
         self.pushed.clear();
         self.read_only.stored_len.set(0);
         self.previous_stored_len = 0;
-        self.unwritten_rollback = false;
+        self.unwritten_baseline = true;
         self.read_only.header.update_stamp(Stamp::default());
         self.forget_change_files();
         remove_changes_with::<I>(&self.db(), &self.name)
     }
 
-    /// Drops unsaved changes: back to an unwritten rollback's state, else to the `written_len`
-    /// rows on disk.
+    /// Drops unsaved changes: back to an unwritten rollback's or reset's state, else to the
+    /// `written_len` rows on disk.
     pub fn reset_unsaved_base(&mut self, written_len: usize) {
         self.header.assert_writable();
-        if self.unwritten_rollback {
+        if self.unwritten_baseline {
             self.pushed.restore();
             self.read_only.stored_len.set(self.previous_stored_len);
         } else {

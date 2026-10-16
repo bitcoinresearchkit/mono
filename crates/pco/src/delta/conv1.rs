@@ -173,6 +173,11 @@ fn predict_into<L: Latent>(
 
   // TODO: do passes over latents instead of weights so we can use SIMD?
   let order = weights.len();
+  // BRK: a final encoding batch shorter than the order has no full window; the
+  // previous batch already predicted its latents.
+  if latents.len() < order {
+    return;
+  }
   for (i, dst) in preds
     .iter_mut()
     .take(latents.len().saturating_sub(order) + 1)

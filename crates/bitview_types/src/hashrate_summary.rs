@@ -10,7 +10,7 @@ pub struct HashrateSummary {
     pub hashrates: Vec<HashrateEntry>,
     /// Historical difficulty adjustments
     pub difficulty: Vec<DifficultyEntry>,
-    /// Current network hashrate (H/s)
+    /// Current network hashrate over the trailing 7 days (H/s)
     #[serde(rename = "currentHashrate")]
     #[schemars(example = 700_000_000_000_000_000_000_u128)]
     pub current_hashrate: u128,

@@ -112,7 +112,7 @@ where
         self.previous_stored_len = stored_len;
         *self.pushed.current_mut() = pushed;
         self.pushed.save();
-        self.unwritten_rollback = true;
+        self.unwritten_baseline = true;
     }
 
     /// Caller must check `saved_stamped_changes > 0` before calling.

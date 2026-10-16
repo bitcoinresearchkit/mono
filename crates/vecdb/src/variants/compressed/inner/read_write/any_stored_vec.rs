@@ -250,7 +250,7 @@ where
         let guard = self.header().begin_write()?;
         let result = self.write_pushed();
         if result.is_ok() {
-            self.base.unwritten_rollback = false;
+            self.base.unwritten_baseline = false;
         }
         guard.finish(result)
     }

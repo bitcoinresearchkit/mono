@@ -70,8 +70,9 @@ fn derive_wrapper(input: TokenStream, pco: bool) -> TokenStream {
     });
 
     quote! {
-        // SAFETY: native layout only when the inner value has it and this one-field wrapper
-        // matches its size (asserted) and alignment, so it is the same byte image.
+        // SAFETY: the inner value's bytes have this wrapper's size (asserted); native layout
+        // only when the inner value has it and the wrapper matches its alignment too, so it is
+        // the same byte image.
         unsafe impl #impl_generics ::vecdb::Bytes for #struct_name #ty_generics #where_clause {
             type Array = <#inner_type as ::vecdb::Bytes>::Array;
             // Every vector read and write evaluates this, so the size assertion fails the build

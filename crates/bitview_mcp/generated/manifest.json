@@ -4271,7 +4271,7 @@
       "tool": {
         "name": "get_blocks_from_height",
         "title": "Blocks from height",
-        "description": "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*\n\nREST operation: `GET /api/blocks/{height}`.",
+        "description": "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*\n\nREST operation: `GET /api/blocks/{height}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -5025,7 +5025,7 @@
       "tool": {
         "name": "get_blocks_v1_from_height",
         "title": "Blocks from height with extras",
-        "description": "Retrieve up to 15 blocks with extended data going backwards from the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*\n\nREST operation: `GET /api/v1/blocks/{height}`.",
+        "description": "Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*\n\nREST operation: `GET /api/v1/blocks/{height}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -6548,17 +6548,29 @@
       "tool": {
         "name": "get_historical_price",
         "title": "Historical price",
-        "description": "Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*\n\nREST operation: `GET /api/v1/historical-price`.",
+        "description": "Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*\n\nREST operation: `GET /api/v1/historical-price`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "timestamp": {
-              "$ref": "#/$defs/Timestamp"
+              "$ref": "#/$defs/Timestamp",
+              "description": "UNIX timestamp: the latest close at or before it"
+            },
+            "currency": {
+              "$ref": "#/$defs/Currency",
+              "description": "Quote currency: USD, the only one served"
             }
           },
           "additionalProperties": false,
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Currency": {
+              "description": "A quote currency prices are served in: USD only.",
+              "type": "string",
+              "enum": [
+                "USD"
+              ]
+            },
             "Timestamp": {
               "description": "UNIX timestamp in seconds",
               "type": "integer",
@@ -6650,6 +6662,10 @@
         "parameters": [
           {
             "name": "timestamp",
+            "location": "query"
+          },
+          {
+            "name": "currency",
             "location": "query"
           }
         ]
@@ -8526,8 +8542,8 @@
     {
       "tool": {
         "name": "get_pool_blocks_from",
-        "title": "Mining pool blocks from height",
-        "description": "Get up to 100 blocks mined by a specific pool before (and including) the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*\n\nREST operation: `GET /api/v1/mining/pool/{slug}/blocks/{height}`.",
+        "title": "Mining pool blocks before height",
+        "description": "Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*\n\nREST operation: `GET /api/v1/mining/pool/{slug}/blocks/{height}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -10303,14 +10319,14 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
-          "$ref": "#/$defs/RecommendedFees",
+          "$ref": "#/$defs/PreciseRecommendedFees",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "FeeRate": {
               "format": "double",
               "type": "number"
             },
-            "RecommendedFees": {
+            "PreciseRecommendedFees": {
               "required": [
                 "fastestFee",
                 "halfHourFee",
@@ -13122,7 +13138,7 @@
       "tool": {
         "name": "get_urpd",
         "title": "Latest URPD",
-        "description": "URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.\n\nREST operation: `GET /api/urpd/{cohort}`.",
+        "description": "URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.\n\nREST operation: `GET /api/urpd/{cohort}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -13364,7 +13380,7 @@
       "tool": {
         "name": "get_urpd_at",
         "title": "URPD at block height or date",
-        "description": "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.\n\nREST operation: `GET /api/urpd/{cohort}/{point}`.",
+        "description": "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.\n\nREST operation: `GET /api/urpd/{cohort}/{point}`.",
         "inputSchema": {
           "type": "object",
           "properties": {

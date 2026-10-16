@@ -2595,7 +2595,7 @@ impl BitviewClient {
 
     /// Latest URPD
     ///
-    /// URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.
+    /// URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}`
     pub fn get_urpd(
@@ -2622,7 +2622,7 @@ impl BitviewClient {
 
     /// URPD at block height or date
     ///
-    /// URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.
+    /// URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}/{point}`
     pub fn get_urpd_at(
@@ -2678,15 +2678,22 @@ impl BitviewClient {
 
     /// Historical price
     ///
-    /// Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.
+    /// Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
     ///
     /// Endpoint: `GET /api/v1/historical-price`
-    pub fn get_historical_price(&self, timestamp: Option<Timestamp>) -> Result<HistoricalPrice> {
+    pub fn get_historical_price(
+        &self,
+        timestamp: Option<Timestamp>,
+        currency: Option<Currency>,
+    ) -> Result<HistoricalPrice> {
         let mut query = Vec::new();
         if let Some(v) = timestamp {
             query.push(query_pair("timestamp", v));
+        }
+        if let Some(v) = currency {
+            query.push(query_pair("currency", v));
         }
         let query_str = if query.is_empty() {
             String::new()
@@ -2994,7 +3001,7 @@ impl BitviewClient {
 
     /// Blocks from height
     ///
-    /// Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.
+    /// Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
     ///
@@ -3017,7 +3024,7 @@ impl BitviewClient {
 
     /// Blocks from height with extras
     ///
-    /// Retrieve up to 15 blocks with extended data going backwards from the given height.
+    /// Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
     ///
@@ -3121,9 +3128,9 @@ impl BitviewClient {
         ))
     }
 
-    /// Mining pool blocks from height
+    /// Mining pool blocks before height
     ///
-    /// Get up to 100 blocks mined by a specific pool before (and including) the given height.
+    /// Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
     ///
@@ -3273,7 +3280,7 @@ impl BitviewClient {
 
     /// Recommended fees
     ///
-    /// Recommended fee rates by confirmation target.
+    /// Recommended fee rates by confirmation target, in whole sat/vB.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
     ///
@@ -3289,7 +3296,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
     ///
     /// Endpoint: `GET /api/v1/fees/precise`
-    pub fn get_precise_fees(&self) -> Result<RecommendedFees> {
+    pub fn get_precise_fees(&self) -> Result<PreciseRecommendedFees> {
         self.base.get_json(&format!("/api/v1/fees/precise"))
     }
 
@@ -3369,7 +3376,7 @@ impl BitviewClient {
 
     /// Block template diff since hash
     ///
-    /// Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+    /// Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
     ///
     /// Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`
     pub fn get_block_template_diff(&self, hash: NextBlockHash) -> Result<BlockTemplateDiff> {

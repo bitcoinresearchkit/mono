@@ -75,7 +75,7 @@ pub struct CohortCapital<M: StorageMode = Rw> {
     #[traversable(flatten)]
     views: CapitalViews,
     #[traversable(hidden)]
-    pub stored: CachedSeries<Height, Cents, M>,
+    stored: CachedSeries<Height, Cents, M>,
 }
 
 impl CohortCapital {

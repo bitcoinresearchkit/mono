@@ -16,8 +16,8 @@ pub trait MutableRawVec: StoredVec + ImportableVec + WritableVec<Self::I, Self::
     fn reader_len(reader: &Self::Reader) -> usize;
     fn read_stored(reader: &Self::Reader, index: usize) -> Self::T;
     fn rollback_len(&self) -> usize;
-    /// See [`crate::ReadWriteBaseVec::unwritten_rollback`].
-    fn unwritten_rollback(&self) -> bool;
+    /// See [`crate::ReadWriteBaseVec::unwritten_baseline`].
+    fn unwritten_baseline(&self) -> bool;
     fn pushed_mut(&mut self) -> &mut Vec<Self::T>;
     fn reserve_pushed(&mut self, additional: usize);
     fn write_updates(&mut self, updated: BTreeMap<usize, Self::T>) -> Result<()>;

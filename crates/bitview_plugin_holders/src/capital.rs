@@ -9,7 +9,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, CentsSigned, Height, Version};
-use vecdb::{ComputeVec, Database, ReadableBoxedVec, Rw, StorageMode};
+use vecdb::{BinaryTransform, ComputeVec, Database, ReadableBoxedVec, Rw, StorageMode};
 
 use crate::{columns::Columns, part::Part};
 
@@ -84,17 +84,24 @@ impl Capital {
             .share
             .fixed
             .height
-            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
-                from,
-                &c.cap_profit,
-                &c.cap,
-                exit,
-            )?;
+            .compute_binary::<_, _, SideShare>(from, &c.cap_profit, &c.cap_loss, exit)?;
         self.in_loss
             .share
             .fixed
             .height
-            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(from, &c.cap_loss, &c.cap, exit)?;
+            .compute_binary::<_, _, SideShare>(from, &c.cap_loss, &c.cap_profit, exit)?;
         Ok(())
+    }
+}
+
+/// One side's share of both sides together. The sides sum the bands' capitals, each rounded
+/// once, so their total can differ from the exact `cap` by a few cents: dividing by it could
+/// exceed 100%, dividing by the sides' own total keeps each share within it.
+struct SideShare;
+
+impl BinaryTransform<Cents, Cents, PartsPerMillion32> for SideShare {
+    #[inline(always)]
+    fn apply(side: Cents, other: Cents) -> PartsPerMillion32 {
+        Quotient::apply(side, side + other)
     }
 }

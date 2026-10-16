@@ -7,9 +7,12 @@ use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Timestamp};
-use vecdb::{ComputeVec, ReadableVec, UnaryTransform, VecIndex};
+use vecdb::{ComputeVec, ReadableVec, UnaryTransform};
 
-use super::{Vecs, seconds_to_days::SecondsToDays};
+use super::{
+    Vecs,
+    seconds_to_days::{SecondsToDays, UNPRICED},
+};
 
 impl Vecs {
     pub(crate) fn compute(
@@ -56,25 +59,25 @@ fn compute_seconds_since(
     timestamps: &impl ReadableVec<Height, Timestamp>,
     exit: &Exit,
 ) -> Result<()> {
-    let mut ath_ts: Option<Timestamp> = None;
+    // The latest ATH's timestamp, from the row before the first one computed; `None` before the
+    // first price, whose zero ATH is none.
+    let mut ath_ts: Option<Option<Timestamp>> = None;
     seconds_since.compute_transform3(
         starting_height,
         high,
         prices,
         timestamps,
         |(i, ath, price, ts, slf)| {
-            if ath_ts.is_none() {
-                let idx = i.to_usize();
-                ath_ts = Some(if idx > 0 {
-                    let prev_seconds = slf.collect_one_at(idx - 1).unwrap();
-                    let prev_ts = timestamps.collect_one_at(idx - 1).unwrap();
-                    Timestamp::from(*prev_ts - *prev_seconds)
-                } else {
-                    ts
-                });
-            }
-            if price == ath {
-                ath_ts = Some(ts);
+            let ath_ts = ath_ts.get_or_insert_with(|| {
+                let prev = i.decremented()?;
+                let seconds = slf.collect_one(prev).unwrap();
+                (seconds != UNPRICED)
+                    .then(|| Timestamp::from(*timestamps.collect_one(prev).unwrap() - *seconds))
+            });
+            if ath == Cents::ZERO {
+                (i, UNPRICED)
+            } else if price == ath {
+                *ath_ts = Some(ts);
                 (i, Seconds::ZERO)
             } else {
                 (i, Seconds::from(*ts - *ath_ts.unwrap()))
@@ -87,7 +90,8 @@ fn compute_seconds_since(
 }
 
 /// Running maximum of the time elapsed since the previous ATH, measured before an ATH resets
-/// it: a completed interval counts at the block that ends it.
+/// it: a completed interval counts at the block that ends it. Null before the first price, the
+/// first ATH.
 fn compute_max_days_between(
     max_days_between: &mut CachedSeries<Height, Days>,
     starting_height: Height,
@@ -95,27 +99,37 @@ fn compute_max_days_between(
     timestamps: &impl ReadableVec<Height, Timestamp>,
     exit: &Exit,
 ) -> Result<()> {
-    // The previous block's running maximum, seconds since its ATH and timestamp.
-    let mut prev: Option<(Days, Seconds, Timestamp)> = None;
+    // The previous block's running maximum, seconds since its ATH and timestamp; `None` before
+    // the first price.
+    let mut prev: Option<Option<(Days, Seconds, Timestamp)>> = None;
     max_days_between.compute_transform2(
         starting_height,
         seconds_since,
         timestamps,
         |(i, seconds, ts, slf)| {
-            if prev.is_none()
-                && let Some(h) = i.decremented()
-            {
-                prev = Some((
-                    slf.collect_one(h).unwrap(),
-                    seconds_since.collect_one(h).unwrap(),
-                    timestamps.collect_one(h).unwrap(),
-                ));
-            }
-            let max = prev.map_or(Days::default(), |(max, prev_seconds, prev_ts)| {
-                let elapsed = Seconds::from(*prev_seconds + (*ts - *prev_ts));
-                max.max(SecondsToDays::apply(elapsed))
+            let prev = prev.get_or_insert_with(|| {
+                let h = i.decremented()?;
+                let seconds = seconds_since.collect_one(h).unwrap();
+                (seconds != UNPRICED).then(|| {
+                    (
+                        slf.collect_one(h).unwrap(),
+                        seconds,
+                        timestamps.collect_one(h).unwrap(),
+                    )
+                })
             });
-            prev = Some((max, seconds, ts));
+            if seconds == UNPRICED {
+                return (i, Days::NAN);
+            }
+            let max = match *prev {
+                Some((max, prev_seconds, prev_ts)) => {
+                    let elapsed = Seconds::from(*prev_seconds + (*ts - *prev_ts));
+                    max.max(SecondsToDays::apply(elapsed))
+                }
+                // The first price is the first ATH.
+                None => SecondsToDays::apply(seconds),
+            };
+            *prev = Some((max, seconds, ts));
             (i, max)
         },
         exit,

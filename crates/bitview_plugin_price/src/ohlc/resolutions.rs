@@ -11,7 +11,8 @@ use vecdb::{
 
 use super::candle::LazyOhlcVec;
 
-const COMPUTE_VERSION: Version = Version::TWO;
+/// Three: candles skip the zero placeholders before the first price.
+const COMPUTE_VERSION: Version = Version::new(3);
 
 macro_rules! define_lazy_ohlc_cents_vecs {
     (

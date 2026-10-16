@@ -256,7 +256,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mempool/block-template/diff/{hash}",
         summary: "Block template diff since hash",
-        description: "Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.",
+        description: "Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "NextBlockHash", repeatable: false, description: None },
         ],
@@ -372,7 +372,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/blocks/{height}",
         summary: "Blocks from height",
-        description: "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
+        description: "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
@@ -397,7 +397,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/blocks/{height}",
         summary: "Blocks from height with extras",
-        description: "Retrieve up to 15 blocks with extended data going backwards from the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*",
+        description: "Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
@@ -521,11 +521,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/historical-price",
         summary: "Historical price",
-        description: "Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*",
+        description: "Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*",
         path_parameters: &[
         ],
         query_parameters: &[
-            Parameter { api_name: "timestamp", name: "timestamp", required: false, value_name: "Timestamp", repeatable: false, description: None },
+            Parameter { api_name: "timestamp", name: "timestamp", required: false, value_name: "Timestamp", repeatable: false, description: Some("UNIX timestamp: the latest close at or before it") },
+            Parameter { api_name: "currency", name: "currency", required: false, value_name: "Currency", repeatable: false, description: Some("Quote currency: USD, the only one served") },
         ],
         request_body: None,
     },
@@ -717,8 +718,8 @@ pub static COMMANDS: &[Command] = &[
         name: "get-pool-blocks-from",
         method: "GET",
         path: "/api/v1/mining/pool/{slug}/blocks/{height}",
-        summary: "Mining pool blocks from height",
-        description: "Get up to 100 blocks mined by a specific pool before (and including) the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*",
+        summary: "Mining pool blocks before height",
+        description: "Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*",
         path_parameters: &[
             Parameter { api_name: "slug", name: "slug", required: true, value_name: "PoolSlug", repeatable: false, description: None },
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
@@ -819,7 +820,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/fees/recommended",
         summary: "Recommended fees",
-        description: "Recommended fee rates by confirmation target.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*",
+        description: "Recommended fee rates by confirmation target, in whole sat/vB.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -1145,7 +1146,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}",
         summary: "Latest URPD",
-        description: "URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.",
+        description: "URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
         ],
@@ -1160,7 +1161,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}/{point}",
         summary: "URPD at block height or date",
-        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.",
+        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
             Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: None },

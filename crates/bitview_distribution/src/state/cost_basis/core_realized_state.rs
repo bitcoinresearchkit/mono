@@ -34,7 +34,7 @@ impl RealizedOps for CoreRealizedState {
         if unlikely(self.value_destroyed_raw == 0) {
             Cents::ZERO
         } else {
-            Cents::new((self.value_destroyed_raw / Sats::ONE_BTC_U128) as u64)
+            CentsSats::new(self.value_destroyed_raw).to_cents()
         }
     }
 

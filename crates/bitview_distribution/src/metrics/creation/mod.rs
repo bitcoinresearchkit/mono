@@ -73,14 +73,9 @@ impl CreationCohort {
         })
     }
 
-    /// Writes the block's values, with the cohort's profitability at `price`; returns its
-    /// capital.
+    /// Writes the block's values, with the cohort's profitability at `price`.
     #[inline(always)]
-    pub fn push<R: RealizedOps>(
-        &mut self,
-        state: &mut MappedUTXOCohortState<R>,
-        price: Cents,
-    ) -> Cents {
+    pub fn push<R: RealizedOps>(&mut self, state: &mut MappedUTXOCohortState<R>, price: Cents) {
         let profitability = state.compute_unrealized_state(price);
         let realized = state.realized_block_data();
         self.supply.push(state.supply_value(), &profitability);
@@ -91,6 +86,5 @@ impl CreationCohort {
             .push(state.transfer_volume(), state.coindays_destroyed(), price);
         self.realized.push(&realized);
         self.cost_basis.push(realized.price());
-        realized.cap
     }
 }

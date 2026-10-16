@@ -1,11 +1,11 @@
-mod capitalized_price;
 mod cohort_aggregates;
 mod cohort_state;
+mod cost_basis;
 mod ratio;
 
-pub use capitalized_price::WeightedCapitalizedPrice;
 pub use cohort_aggregates::weighted_age_aggregates;
 pub use cohort_state::WeightedCohortState;
+pub use cost_basis::WeightedCostBasis;
 pub use ratio::WeightedRatio;
 
 use bitview_primitives::BoundedRatio;

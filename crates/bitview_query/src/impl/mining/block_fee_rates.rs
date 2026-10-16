@@ -10,7 +10,7 @@ impl Query {
     /// (`min, pct10, pct25, median, pct75, pct90, max`).
     pub fn block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
         let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin);
+        let tip = Query::tip_height(&pin)?;
         let bw = BlockWindow::new(self, time_period, tip)?;
         let frd = &self
             .plugins()

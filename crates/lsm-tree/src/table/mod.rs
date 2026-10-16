@@ -90,30 +90,6 @@ impl Table {
         self.0.global_seqno
     }
 
-    #[must_use]
-    pub fn filter_size(&self) -> u32 {
-        self.regions.filter.map(|x| x.size()).unwrap_or_default()
-    }
-
-    #[must_use]
-    pub fn pinned_filter_size(&self) -> usize {
-        self.pinned_filter_block
-            .as_ref()
-            .map(StandardBloomFilterReader::size)
-            .unwrap_or_default()
-    }
-
-    #[must_use]
-    pub fn pinned_block_index_size(&self) -> usize {
-        match &*self.block_index {
-            BlockIndexImpl::Full(full_block_index) => full_block_index.inner().inner.size(),
-            BlockIndexImpl::VolatileFull(_) => 0,
-            BlockIndexImpl::TwoLevel(two_level_block_index) => {
-                two_level_block_index.top_level_index.inner.size()
-            }
-        }
-    }
-
     /// Gets the table ID.
     ///
     /// The table ID is unique for this tree, but not

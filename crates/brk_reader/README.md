@@ -5,9 +5,11 @@ canonical chain order, skipping orphans.
 
 ## Requirements
 
-A running Bitcoin Core node with RPC access. The reader needs:
+A running mainnet Bitcoin Core node with RPC access (block files are matched by mainnet's magic
+bytes, so testnet, signet and regtest are not supported). The reader needs:
 
-- The `blocks/` directory (to read `blk*.dat` files)
+- The `blocks/` directory (to read `blk*.dat` files), holding every block it is asked for: reading
+  from genesis needs an unpruned node
 - RPC connection (to resolve the canonical chain up front)
 
 ## Quick Start

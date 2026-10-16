@@ -130,7 +130,12 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                             `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. \
                             `close` and each bucket's `price_floor`, `realized_cap`, and \
                             `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. \
-                            `unrealized_pnl` can be negative.",
+                            `unrealized_pnl` can be negative. Bucket `realized_cap` and \
+                            `unrealized_pnl` value each coin at its creation price on the price grid \
+                            (four significant digits of the price in cents, within 0.05% of the exact \
+                            price), rounded to the cent per bucket, so the buckets need not sum to the \
+                            realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is \
+                            the weighted supply (whole satoshis) and the bucket values follow it.",
                         )
                         .json_response::<Urpd>()
                         .not_modified()
@@ -157,7 +162,13 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                             `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where \
                             each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. \
                             `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; \
-                            `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.",
+                            `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. \
+                            Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation \
+                            price on the price grid (four significant digits of the price in cents, \
+                            within 0.05% of the exact price), rounded to the cent per bucket, so the \
+                            buckets need not sum to the realized cap series. With a `cointime` or \
+                            `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and \
+                            the bucket values follow it.",
                         )
                         .json_response::<Urpd>()
                         .not_modified()

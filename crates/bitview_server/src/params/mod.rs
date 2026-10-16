@@ -18,6 +18,8 @@ mod height_or_date_param;
 #[cfg(feature = "chain")]
 mod height_param;
 #[cfg(feature = "chain")]
+mod historical_price_param;
+#[cfg(feature = "chain")]
 mod next_block_hash_param;
 #[cfg(feature = "chain")]
 mod pool_slug_param;
@@ -65,6 +67,8 @@ pub use empty::*;
 pub use height_or_date_param::*;
 #[cfg(feature = "chain")]
 pub use height_param::*;
+#[cfg(feature = "chain")]
+pub use historical_price_param::*;
 #[cfg(feature = "chain")]
 pub use next_block_hash_param::*;
 #[cfg(feature = "chain")]

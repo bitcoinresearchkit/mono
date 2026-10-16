@@ -12,7 +12,10 @@ use std::{hash::Hasher, sync::Arc};
 
 pub use block_stats::BlockStats;
 use brk_error::{Error as QueryError, Result};
-use brk_types::{FeeRate, MempoolBlock, NextBlockHash, RecommendedFees, Transaction, Txid};
+use brk_types::{
+    FeeRate, MempoolBlock, NextBlockHash, PreciseRecommendedFees, RecommendedFees, Transaction,
+    Txid,
+};
 use builder::KeyIndex;
 pub use rebuilder::Rebuilder;
 use rustc_hash::FxHasher;
@@ -32,6 +35,7 @@ pub struct Snapshot {
     /// by descending chunk rate, with a final overflow block.
     blocks: Vec<Vec<TxIndex>>,
     pub(crate) block_stats: Vec<BlockStats>,
+    pub precise_fees: PreciseRecommendedFees,
     pub fees: RecommendedFees,
     min_fee: FeeRate,
     /// Content identity of the published template statistics and complete bodies.
@@ -52,11 +56,13 @@ impl Snapshot {
         min_fee: FeeRate,
     ) -> Self {
         let block_stats = BlockStats::for_blocks(&blocks, &txs);
-        let fees = fees::compute(&block_stats, min_fee);
+        let precise_fees = fees::precise(&block_stats, min_fee);
+        let fees = fees::whole(&block_stats, min_fee);
         Self {
             txs,
             blocks,
             block_stats,
+            precise_fees,
             fees,
             min_fee,
             next_block_hash: NextBlockHash::ZERO,

@@ -117,7 +117,7 @@ impl From<CentsFract> for Cents {
     /// To the nearest whole cent.
     #[inline]
     fn from(value: CentsFract) -> Self {
-        Self::from(value.0.round())
+        Self::from(value.0)
     }
 }
 

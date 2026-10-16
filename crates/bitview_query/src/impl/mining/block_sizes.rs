@@ -3,7 +3,7 @@ use bitview_types::{BlockSizeEntry, BlockSizesWeights, BlockWeightEntry, TimePer
 use brk_types::Weight;
 
 use super::block_window::BlockWindow;
-use crate::{Error, Query, Result};
+use crate::{Query, Result};
 
 impl Query {
     /// Time-bucketed average block size and weight over `time_period`. Returns
@@ -15,7 +15,7 @@ impl Query {
     pub fn block_sizes_weights(&self, time_period: TimePeriod) -> Result<BlockSizesWeights> {
         let pin = self.pin_safe_lengths()?;
         let blocks = &self.indexer().vecs().blocks;
-        let tip = pin.lengths().last_height().ok_or(Error::StateUpdating)?;
+        let tip = Query::tip_height(&pin)?;
         let bw = BlockWindow::new(self, time_period, tip)?;
 
         let sizes = bw.means_rounded(&*blocks.total, Bytes::from)?;

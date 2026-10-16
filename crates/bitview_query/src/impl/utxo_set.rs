@@ -44,17 +44,8 @@ impl Query {
     pub fn utxo_set_point_date(&self, date: Date) -> Result<UtxoSetPoint> {
         let pin = self.pin_safe_lengths()?;
         let end = self.utxo_set_end(&pin)?;
-        let day = Day1::try_from(date)?;
-        let starts = &self.plugins().mappings.day1.first_height;
-        let first = starts.collect_one(day).map_or(end, usize::from).min(end);
-        let next = starts
-            .collect_one_at(usize::from(day) + 1)
-            .map_or(end, usize::from)
-            .min(end);
-        if first >= next {
-            return Err(Error::NotFound(format!("No published block on {date}")));
-        }
-        self.utxo_set_point(Height::from(first), Height::from(next - 1))
+        let heights = self.day_heights(Day1::try_from(date)?, end, &pin)?;
+        self.utxo_set_point(Height::from(heights.start), Height::from(heights.end - 1))
     }
 
     /// The set after block `point.last`.

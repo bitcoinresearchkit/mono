@@ -5,7 +5,7 @@ use bitview_types::DifficultyAdjustment;
 use brk_types::{BLOCKS_PER_DIFF_EPOCHS as BLOCKS_PER_EPOCH, Height};
 use vecdb::ReadableVec;
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{OptionData, Query, Result};
 
 /// Target block time in seconds (10 minutes)
 const TARGET_BLOCK_TIME: u64 = 600;
@@ -15,16 +15,15 @@ const QUARTER_EPOCH: u32 = 503;
 impl Query {
     /// Live difficulty-adjustment snapshot for the current epoch, as mempool.space computes it
     /// on mainnet but measured to the tip block's time instead of the wall clock (cacheable per
-    /// block). Bundles progress through the 2016-block window, the projected next-retarget
-    /// percentage from the observed pace, the projection pace (`adjustedTimeAvg`), remaining
-    /// blocks and time at that pace, an estimated wall-clock retarget time, and the previous
+    /// block). Bundles progress through the 2016-block window, the projection pace
+    /// (`adjustedTimeAvg`) with the next-retarget percentage, remaining blocks and time at it, an estimated wall-clock retarget time, and the previous
     /// retarget percentage (current vs previous epoch first-block difficulty). Output time
     /// fields are in milliseconds.
     pub fn difficulty_adjustment(&self) -> Result<DifficultyAdjustment> {
         let pin = self.pin_safe_lengths()?;
         let indexer = self.indexer();
         let plugins = self.plugins();
-        let current_height = pin.lengths().last_height().ok_or(Error::StateUpdating)?;
+        let current_height = Query::tip_height(&pin)?;
         let current_height_u32: u32 = current_height.into();
 
         let current_epoch = Epoch::from(current_height);
@@ -86,11 +85,12 @@ impl Query {
             0.0
         };
 
-        // mempool.space's projection pace: early in an epoch, the last quarter epoch's blocks,
-        // those before the retarget scaled by it; otherwise the observed pace. As a span (ms)
-        // over a block count: multiplied before dividing, a pace under a millisecond per block
-        // still projects time.
-        let (span_ms, span_blocks) = if epoch_start_u32 > 0 && blocks_into_epoch < QUARTER_EPOCH {
+        // mempool.space's projection: early in an epoch, the last quarter epoch's blocks, those
+        // before the retarget scaled by it; otherwise the observed pace. As a span (ms) over the
+        // block intervals it covers: multiplied before dividing, a pace under a millisecond per
+        // block still projects time. A span of no time (backward-stepping timestamps) projects
+        // nothing: the target pace, no change.
+        let quarter_span_ms = if epoch_start_u32 > 0 && blocks_into_epoch < QUARTER_EPOCH {
             let quarter_start = indexer
                 .vecs()
                 .blocks
@@ -99,15 +99,18 @@ impl Query {
                 .data()?;
             let before_retarget = (*epoch_start_timestamp).saturating_sub(*quarter_start);
             let scaled = f64::from(before_retarget) * (1.0 + previous_retarget / 100.0);
-            (
-                ((elapsed_time as f64 + scaled) * 1000.0) as u64,
-                u64::from(QUARTER_EPOCH),
-            )
-        } else if observed {
-            (elapsed_time * 1000, u64::from(blocks_into_epoch))
+            ((elapsed_time as f64 + scaled) * 1000.0) as u64
         } else {
-            (TARGET_BLOCK_TIME * 1000, 1)
+            0
         };
+        let projection = if quarter_span_ms > 0 {
+            Some((quarter_span_ms, u64::from(QUARTER_EPOCH)))
+        } else if observed {
+            Some((elapsed_time * 1000, u64::from(blocks_into_epoch)))
+        } else {
+            None
+        };
+        let (span_ms, span_blocks) = projection.unwrap_or((TARGET_BLOCK_TIME * 1000, 1));
         let adjusted_time_avg_ms = span_ms / span_blocks;
         let remaining_time_ms = span_ms * u64::from(remaining_blocks) / span_blocks;
         let now = SystemTime::now()
@@ -116,13 +119,13 @@ impl Query {
             .unwrap_or(u64::from(*current_timestamp));
         let estimated_retarget_date_ms = now * 1000 + remaining_time_ms;
 
-        let expected_time = blocks_into_epoch as u64 * TARGET_BLOCK_TIME;
-        // A retarget changes difficulty by at most a factor of four either way.
-        let difficulty_change = if elapsed_time > 0 && blocks_into_epoch > 0 {
-            (((expected_time as f64 / elapsed_time as f64) - 1.0) * 100.0).clamp(-75.0, 300.0)
-        } else {
-            0.0
-        };
+        // The retarget at the projected pace, as Bitcoin's rule counts it: one block more than
+        // the intervals its span covers (exact at an epoch's last block). A retarget changes
+        // difficulty by at most a factor of four either way.
+        let difficulty_change = projection.map_or(0.0, |(span_ms, span_blocks)| {
+            let target_ms = TARGET_BLOCK_TIME * 1000 * (span_blocks + 1);
+            ((target_ms as f64 / span_ms as f64 - 1.0) * 100.0).clamp(-75.0, 300.0)
+        });
 
         let expected_blocks = elapsed_time as f64 / TARGET_BLOCK_TIME as f64;
 

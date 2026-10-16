@@ -24,8 +24,11 @@ pub struct Component<M: StorageMode = Rw> {
     /// 210,000 with a 210,000-block backward half-life. Low percentiles represent
     /// rare low valuations and high percentiles rare high valuations. Ratios
     /// include the represented block, are rounded to 0.001, clamped from 0
-    /// through 43, and exclude undefined values. Each price band equals the reference price
-    /// multiplied by its historical ratio percentile.
+    /// through 43, and exclude undefined values. A percentile below the median
+    /// reads the lower edge of its 0.001 step and one above it the upper edge,
+    /// so spot crosses a band only from a more extreme step, never by its own
+    /// observation. Each price band equals the reference price multiplied by its
+    /// historical ratio percentile.
     pub bands: RarityPercentiles<Band>,
 
     /// Raw historical spot-to-reference ratio percentiles behind this Rarity
@@ -33,9 +36,10 @@ pub struct Component<M: StorageMode = Rw> {
     /// rare low valuations and high percentiles rare high valuations.
     /// Observations begin at height 210,000, include the represented block, and
     /// use a 210,000-block backward half-life. Ratios are rounded to 0.001,
-    /// clamped from 0 through 43, and exclude undefined values. Percentiles are 0.1, 0.5, 1,
-    /// 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9
-    /// percent.
+    /// clamped from 0 through 43, and exclude undefined values; a percentile
+    /// below the median reads the lower edge of its 0.001 step and one above it
+    /// the upper edge. Percentiles are 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50,
+    /// 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9 percent.
     #[traversable(hidden)]
     ratios: RarityPercentiles<CachedSeries<Height, PartsPerMillion32, M>>,
 
@@ -43,7 +47,7 @@ pub struct Component<M: StorageMode = Rw> {
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
 }
 
-const VERSION: Version = Version::new(13);
+const VERSION: Version = Version::new(14);
 
 impl Component {
     pub(crate) fn import(

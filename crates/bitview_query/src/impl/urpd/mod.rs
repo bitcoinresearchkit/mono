@@ -67,11 +67,13 @@ impl Query {
         let end = reader.len();
         let mut dates = Vec::new();
         for index in 0..self.plugins().mappings.day1.date.len() {
-            let date = Date::from(Day1::from(index));
-            if let Ok(height) = self.urpd_date_height(date, end)
-                && self.urpd_weights(ages, height, weight).is_ok()
+            let day = Day1::from(index);
+            if let Ok(heights) = self.day_heights(day, end, &pin)
+                && self
+                    .urpd_weights(ages, Height::from(heights.end - 1), weight)
+                    .is_ok()
             {
-                dates.push(date);
+                dates.push(Date::from(day));
             }
         }
         Ok(dates)
@@ -85,8 +87,15 @@ impl Query {
         weight: UrpdWeight,
     ) -> Result<ResolvedUrpd> {
         let pin = self.pin_safe_lengths()?;
-        let height = self.urpd_date_height(date, usize::from(pin.lengths().height))?;
-        self.resolve_urpd_inner(cohort, height, aggregation, weight, pin)
+        let end = usize::from(pin.lengths().height);
+        let heights = self.day_heights(Day1::try_from(date)?, end, &pin)?;
+        self.resolve_urpd_inner(
+            cohort,
+            Height::from(heights.end - 1),
+            aggregation,
+            weight,
+            pin,
+        )
     }
 
     pub fn resolve_urpd_height(
@@ -112,21 +121,6 @@ impl Query {
             .last_height()
             .ok_or_else(|| Error::NotFound("No published UTXO set".into()))?;
         self.resolve_urpd_inner(cohort, height, aggregation, weight, pin)
-    }
-
-    fn urpd_date_height(&self, date: Date, end: usize) -> Result<Height> {
-        let day = Day1::try_from(date)?;
-        let starts = &self.plugins().mappings.day1.first_height;
-        let start = starts.collect_one(day).map(usize::from).unwrap_or(end);
-        let next = starts
-            .collect_one_at(usize::from(day) + 1)
-            .map(usize::from)
-            .unwrap_or(end)
-            .min(end);
-        if start >= next {
-            return Err(Error::NotFound(format!("No published block on {date}")));
-        }
-        Ok(Height::from(next - 1))
     }
 
     fn urpd_ages(cohort: &Cohort) -> Result<&'static [AgeRangeId]> {

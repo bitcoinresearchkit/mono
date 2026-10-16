@@ -1,16 +1,14 @@
 use bitview_primitives::{BoundedRatio, Ratio64};
 use brk_types::{Cents, Sats};
-use vecdb::unlikely;
 
-use super::{WeightedCapitalizedPrice, WeightedRatio, defined_weight};
+use super::{WeightedCostBasis, WeightedRatio, defined_weight};
 
 #[derive(Clone, Copy, Default)]
 pub struct WeightedCohortState {
     pub weighted_supply: Sats,
     pub complement_supply: Sats,
-    pub weighted_cap: Cents,
     pub supply_in_loss: WeightedRatio,
-    pub capitalized_price: WeightedCapitalizedPrice,
+    pub cost_basis: WeightedCostBasis,
 }
 
 impl WeightedCohortState {
@@ -26,20 +24,10 @@ impl WeightedCohortState {
     }
 
     #[inline]
-    pub(crate) fn add(
-        &mut self,
-        total_supply: Sats,
-        loss_supply: Sats,
-        total_cap: Cents,
-        weight: BoundedRatio,
-    ) {
+    pub(crate) fn add(&mut self, total_supply: Sats, loss_supply: Sats, weight: BoundedRatio) {
         let (weighted_supply, complement_supply) = Self::split_supply(total_supply, weight);
-        let weight = Ratio64::from(f64::from(weight));
         self.weighted_supply += weighted_supply;
         self.complement_supply += complement_supply;
-        if !total_supply.is_zero() {
-            self.weighted_cap += weight * total_cap;
-        }
         self.supply_in_loss.add(
             loss_supply.as_u128() as f64,
             total_supply.as_u128() as f64,
@@ -51,20 +39,14 @@ impl WeightedCohortState {
     pub(crate) fn merged(mut self, other: Self) -> Self {
         self.weighted_supply += other.weighted_supply;
         self.complement_supply += other.complement_supply;
-        self.weighted_cap += other.weighted_cap;
         self.supply_in_loss.merge(other.supply_in_loss);
-        self.capitalized_price.merge(other.capitalized_price);
+        self.cost_basis.merge(other.cost_basis);
         self
     }
 
+    /// The exact weighted cap over the weighted supply, rounded once.
     #[inline]
     pub fn realized_price(&self) -> Cents {
-        if unlikely(self.weighted_cap.is_nan()) {
-            return Cents::NAN;
-        }
-
-        (self.weighted_cap.as_u128() * Sats::ONE_BTC_U128)
-            .checked_div(self.weighted_supply.as_u128())
-            .map_or(Cents::NAN, Cents::from)
+        self.cost_basis.realized_price(self.weighted_supply)
     }
 }

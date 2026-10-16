@@ -1,5 +1,5 @@
 use bitview_primitives::CentsCompact;
-use brk_types::{Cents, Sats};
+use brk_types::{Cents, CentsSats, Sats};
 
 use super::UnrealizedState;
 
@@ -36,6 +36,6 @@ fn div_btc(raw: u128) -> Cents {
     if raw == 0 {
         Cents::ZERO
     } else {
-        Cents::new((raw / Sats::ONE_BTC_U128) as u64)
+        CentsSats::new(raw).to_cents()
     }
 }

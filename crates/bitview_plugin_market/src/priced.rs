@@ -4,13 +4,16 @@
 use bitview_plugin_price::FIRST_PRICE_HEIGHT;
 use bitview_vecs::LazyWindowStartVec;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyVec, DeltaOp, LazyDeltaVec, LazyVec, ReadableCloneableVec, UnaryTransform};
+use vecdb::{
+    AnyVec, DeltaOp, LazyDeltaVec, LazyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
+    UnaryTransform, VecIndex,
+};
 
 /// A price SMA over a cumulative price source and plain window starts.
 pub type PricedSmaVec = LazyDeltaVec<Height, Cents, Cents, PricedSma>;
 
-/// Integer-cent average of the window's priced rows; NaN before the first price. The prefix
-/// sum before a window start in the zero prefix equals the one before the first price.
+/// Average of the window's priced rows, rounded to the nearest cent; NaN before the first price.
+/// The prefix sum before a window start in the zero prefix equals the one before the first price.
 pub struct PricedSma;
 
 impl DeltaOp<Cents, Cents> for PricedSma {
@@ -27,7 +30,8 @@ impl DeltaOp<Cents, Cents> for PricedSma {
         if count == 0 {
             Cents::NAN
         } else {
-            Cents::new((*current - *previous) / count as u64)
+            let count = count as u64;
+            Cents::new((*current - *previous + count / 2) / count)
         }
     }
 }
@@ -39,6 +43,21 @@ impl UnaryTransform<Height, Height> for FromFirstPrice {
     #[inline(always)]
     fn apply(start: Height) -> Height {
         start.max(Height::from(FIRST_PRICE_HEIGHT))
+    }
+
+    /// One bulk read: window starts locate their first start once per read, so the default
+    /// chunked read would search the timestamp history again for every chunk.
+    fn read_into<I: VecIndex>(
+        source: &ReadableBoxedVec<I, Height>,
+        from: usize,
+        to: usize,
+        out: &mut Vec<Height>,
+    ) {
+        let first = out.len();
+        source.read_into_at(from, to, out);
+        for start in &mut out[first..] {
+            *start = Self::apply(*start);
+        }
     }
 }
 

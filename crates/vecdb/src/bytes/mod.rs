@@ -18,11 +18,13 @@ pub mod numeric;
 ///
 /// # Safety
 ///
-/// When `IS_NATIVE_LAYOUT` is true, `Self` must have no padding and the size of
-/// `Array`, `to_bytes` must return exactly the value's in-memory bytes, and every
-/// bit pattern of that size must be a valid `Self` (the value `from_bytes` would
-/// return). Vectors then copy values to and from storage without `to_bytes` or
-/// `from_bytes`. Implementations that leave it false have no safety obligation.
+/// `to_bytes` must return exactly `size_of::<Self>()` bytes, whatever `IS_NATIVE_LAYOUT`:
+/// vectors store that many bytes per value and read rows back at those offsets unchecked.
+///
+/// When `IS_NATIVE_LAYOUT` is true, `Self` must also have no padding, `to_bytes` must
+/// return exactly the value's in-memory bytes, and every bit pattern of that size must be
+/// a valid `Self` (the value `from_bytes` would return). Vectors then copy values to and
+/// from storage without `to_bytes` or `from_bytes`.
 pub unsafe trait Bytes: Sized {
     /// The byte array type returned by `to_bytes`.
     /// For fixed-size types, this is `[u8; N]` where N is the size of the type.

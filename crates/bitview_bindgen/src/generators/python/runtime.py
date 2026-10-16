@@ -49,19 +49,24 @@ class BitviewClientBase:
                 self._conn = HTTPConnection(self._host, timeout=self._timeout)
         return self._conn
 
-    def get(self, path: str) -> bytes:
-        """Make a GET request and return raw bytes."""
+    def _request(self, method: str, path: str, body: Optional[str] = None) -> bytes:
+        """Make a request and return raw bytes. A failed exchange closes the connection, which
+        `http.client` would otherwise leave mid-request for every later call."""
         try:
             conn = self._connect()
-            conn.request("GET", self._prefix + path)
+            conn.request(method, self._prefix + path, body=body)
             res = conn.getresponse()
             data = res.read()
-            if res.status >= 400:
-                raise _response_error(res.status, data)
-            return data
-        except (ConnectionError, OSError, TimeoutError) as e:
-            self._conn = None
+        except (HTTPException, OSError) as e:
+            self.close()
             raise BitviewError(str(e))
+        if res.status >= 400:
+            raise _response_error(res.status, data)
+        return data
+
+    def get(self, path: str) -> bytes:
+        """Make a GET request and return raw bytes."""
+        return self._request("GET", path)
 
     def get_json(self, path: str) -> Any:
         """Make a GET request and return JSON."""
@@ -73,17 +78,7 @@ class BitviewClientBase:
 
     def post(self, path: str, body: str) -> bytes:
         """Make a POST request with a string body and return raw bytes."""
-        try:
-            conn = self._connect()
-            conn.request("POST", self._prefix + path, body=body)
-            res = conn.getresponse()
-            data = res.read()
-            if res.status >= 400:
-                raise _response_error(res.status, data)
-            return data
-        except (ConnectionError, OSError, TimeoutError) as e:
-            self._conn = None
-            raise BitviewError(str(e))
+        return self._request("POST", path, body)
 
     def post_json(self, path: str, body: str) -> Any:
         """Make a POST request and return JSON."""
@@ -458,7 +453,7 @@ class _EndpointConfig:
         self.limit = limit
 
     def path(self) -> str:
-        return f"/api/series/{self.name}/{self.index}"
+        return f"/api/series/{_segment(self.name)}/{self.index}"
 
     def _build_path(self, format: Optional[str] = None) -> str:
         params: List[Tuple[str, Any]] = []

@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use brk_mempool::ReadOnlyState;
 pub use brk_mempool::{BlockTemplateSource, ResolvedBlockTemplateDiff};
-use brk_types::{MempoolBlock, MempoolRecentTx, NextBlockHash, RecommendedFees, Txid};
+use brk_types::{
+    MempoolBlock, MempoolRecentTx, NextBlockHash, PreciseRecommendedFees, RecommendedFees, Txid,
+};
 use serde::{Serialize, Serializer};
 use serde_json::to_vec;
 
@@ -68,8 +70,14 @@ impl Query {
         Ok(MempoolTxids { mempool, hash })
     }
 
+    /// mempool.space's `/api/v1/fees/recommended`: whole sat/vB.
     pub fn recommended_fees(&self) -> Result<RecommendedFees> {
         Ok(self.require_mempool()?.fees()?)
+    }
+
+    /// mempool.space's `/api/v1/fees/precise`.
+    pub fn precise_fees(&self) -> Result<PreciseRecommendedFees> {
+        Ok(self.require_mempool()?.precise_fees()?)
     }
 
     pub fn mempool_blocks(&self) -> Result<Vec<MempoolBlock>> {

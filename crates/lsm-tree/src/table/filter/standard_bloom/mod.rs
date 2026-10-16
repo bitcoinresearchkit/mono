@@ -61,12 +61,6 @@ impl<B: AsRef<[u8]>> StandardBloomFilterReader<B> {
         self.contains_hash(hash)
     }
 
-    /// Returns the encoded filter size, including its fixed header.
-    #[must_use]
-    pub fn size(&self) -> usize {
-        self.m / 8 + HEADER_LEN
-    }
-
     /// Returns `true` if the hash may be contained.
     ///
     /// Will never have a false negative.

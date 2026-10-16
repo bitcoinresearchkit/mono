@@ -6,7 +6,7 @@ pub use context::ComputeContext;
 pub(crate) use origin_loop::replay_origins;
 pub use price_range_max::PriceRangeMax;
 
-use bitview_compute::{Inputs, write_chunks};
+use bitview_compute::{Inputs, save_point, write_chunks};
 use bitview_distribution::state::cost_basis::age_index;
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
@@ -14,7 +14,7 @@ use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use crate::{Dependencies, Vecs, live::LiveState, state::UTXOStates};
 use origin_targets::OriginTargets;
@@ -133,14 +133,14 @@ impl Vecs {
         vecs
     }
 
-    /// Saves the outputs computed through `end`, stamped, in parallel (`save_stamped` writes one
-    /// at a time); the final chunk keeps rollback changes.
+    /// Saves the outputs computed through `end` at their [`save_point`], in parallel
+    /// (`save_stamped` writes one at a time); the final chunk keeps rollback changes.
     fn save(&mut self, end: usize, final_chunk: bool, exit: &Exit) -> Result<()> {
         let _lock = exit.lock();
-        let stamp = Stamp::from(Height::from(end - 1));
+        let (stamp, with_changes) = save_point(end, final_chunk);
         self.outputs_mut()
             .into_par_iter()
-            .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, final_chunk))?;
+            .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
         self.db.flush();
         Ok(())
     }

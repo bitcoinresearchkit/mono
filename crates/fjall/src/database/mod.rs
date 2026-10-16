@@ -65,6 +65,10 @@ impl Database {
     /// # Errors
     ///
     /// Returns an error if the keyspace cannot be created or recovered.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless `name` is 1 to 255 lowercase ASCII letters, digits, `_` or `-`.
     pub fn keyspace(
         &self,
         name: &str,
@@ -99,11 +103,13 @@ impl Database {
         Ok(opened)
     }
 
+    /// Canonical names only: each names its own directory, so no case aliases (case-insensitive
+    /// file systems) and no `.` or `..`.
     fn is_valid_keyspace_name(name: &str) -> bool {
         !name.is_empty()
             && u8::try_from(name.len()).is_ok()
             && name.bytes().all(|byte| {
-                byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.' | b'#' | b'$')
+                byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-')
             })
     }
 }

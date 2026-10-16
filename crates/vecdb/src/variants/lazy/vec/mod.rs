@@ -20,8 +20,8 @@ use crate::{READ_CHUNK_SIZE, ReadableBoxedVec, ReadableVec, VecIndex, VecValue, 
 ///
 /// For frequently accessed derived data, prefer a stored vec computed with `ComputeVec`.
 ///
-/// The source is dense: every index below its length holds a value (checked in dev builds), so
-/// each value pairs with its index.
+/// The source must be dense: every index below its length holds a value, so each value pairs
+/// with its index. Reads cannot check it: a source may grow or be truncated while read.
 #[derive(Clone)]
 pub struct LazyVec<I, T, S1I, S1T>
 where
@@ -63,8 +63,6 @@ where
             source,
             compute,
             read: |this, from, to, out| {
-                let expected = to.min(this.source.len()).saturating_sub(from);
-                let before = out.len();
                 this.source.for_each_chunk_at(from, to, &mut |at, values| {
                     out.extend(
                         values
@@ -74,8 +72,6 @@ where
                             .map(|(offset, value)| (this.compute)(I::from(at + offset), value)),
                     );
                 });
-                // A source can only grow meanwhile: fewer values means holes.
-                debug_assert!(out.len() - before >= expected, "LazyVec sources are dense");
             },
             visit: |this, from, to, f| {
                 let mut output = Vec::new();

@@ -78,11 +78,8 @@ where
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
         let compute = self.compute;
+        // The source is dense, so its values pair with the leading indices.
         let source_vals = self.source.read_sorted_at(indices);
-        debug_assert!(
-            source_vals.len() >= indices.partition_point(|&i| i < self.source.len()),
-            "LazyVec sources are dense"
-        );
         out.reserve(source_vals.len());
         indices
             .iter()

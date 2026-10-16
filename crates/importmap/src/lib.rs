@@ -327,8 +327,14 @@ impl ImportMap {
         let after_open = start_pos + Self::MARKER_OPEN.len();
         let end_pos = html[after_open..].find(Self::MARKER_CLOSE)? + after_open;
 
+        // The marker's indentation: what precedes it on its line, when that is only whitespace.
         let line_start = html[..start_pos].rfind('\n').map(|i| i + 1).unwrap_or(0);
-        let indent = &html[line_start..start_pos];
+        let prefix = &html[line_start..start_pos];
+        let indent = if prefix.chars().all(char::is_whitespace) {
+            prefix
+        } else {
+            ""
+        };
 
         let mut output = String::with_capacity(html.len() + content.len());
         output.push_str(&html[..after_open]);

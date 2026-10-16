@@ -126,9 +126,9 @@ pub trait AnyStoredVec: AnyVec {
             return Ok(false);
         }
         self.mut_header().update_computed_version(version);
-        if !self.is_empty() {
-            self.any_reset()?;
-        }
+        // Even when it looks empty: a pending truncation hides rows still on disk, and only the
+        // reset's empty baseline keeps a cancel from bringing them back under the new version.
+        self.any_reset()?;
         Ok(true)
     }
 }

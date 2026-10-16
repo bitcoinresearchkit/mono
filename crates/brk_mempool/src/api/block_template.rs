@@ -160,9 +160,10 @@ impl Serialize for BlockTemplateDiffJson {
                 Slot::New(position) => SlotJson::New(&bodies[position]),
             })
         };
-        let mut diff = serializer.serialize_struct("BlockTemplateDiff", 4)?;
+        let mut diff = serializer.serialize_struct("BlockTemplateDiff", 5)?;
         diff.serialize_field("hash", &self.hash)?;
         diff.serialize_field("since", &self.since)?;
+        diff.serialize_field("stats", &self.snapshot.template_stats())?;
         diff.serialize_field("order", &Seq(order))?;
         diff.serialize_field("removed", &self.removed)?;
         diff.end()

@@ -23,7 +23,7 @@ use vecdb::{Database, ReadableBoxedVec, ReadableVec, Rw, StorageMode};
 
 use live::LiveState;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("age"), Version::new(50));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("age"), Version::new(52));
 pub const ID: PluginId = STORAGE.id();
 
 /// Age-derived metrics and resident state, independent of address state. Members first:

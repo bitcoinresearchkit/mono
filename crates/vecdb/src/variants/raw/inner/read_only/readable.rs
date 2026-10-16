@@ -28,16 +28,16 @@ where
                 },
             );
         }
-        let len = self.base.len();
-        if index >= len {
+        if index >= self.base.len() {
             return None;
         }
-        // Borrows only this value: see `ImportOptions::with_unread_updates`.
-        Some(self.base.region().with_read_range(
+        // Borrows only this value: see `ImportOptions::with_unread_updates`. Bounded again under
+        // the region lock: a truncation may have won the race since the length read.
+        self.base.region().with_read_range(
             HEADER_OFFSET + index * size_of::<T>(),
             size_of::<T>(),
             |bytes| unsafe { S::read_from_ptr(bytes.as_ptr(), 0) },
-        ))
+        )
     }
 
     fn read_cached_into_at(&self, from: usize, to: usize, out: &mut Vec<T>) -> bool {

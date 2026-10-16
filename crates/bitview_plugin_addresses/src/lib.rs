@@ -27,7 +27,7 @@ use balance::Balances;
 use compute::UnpublishedState;
 use state::AddrStates;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("addresses"), Version::new(49));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("addresses"), Version::new(50));
 pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len();

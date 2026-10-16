@@ -90,7 +90,8 @@ impl ClientInner {
         .into())
     }
 
-    /// One batch round-trip, responses in request order. No retry: callers decide batch sizing
+    /// One batch round-trip, responses in request order. Only the transport's own replays (a
+    /// changed cookie, a dead pooled connection), no reconnect loop: callers decide batch sizing
     /// and failure semantics.
     fn send_batch<'a>(
         &self,

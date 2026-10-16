@@ -44,7 +44,6 @@ macro_rules! with_columns {
                 cdd,
                 $r.activity.coindays_destroyed.stored.cumulative_source()
             ),
-            (cap, &$r.capital.stored),
             (cap_raw, &$r.raw.cap),
             (capitalized_cap_raw, &$r.raw.capitalized_cap),
             (profit, $r.realized.profit.stored.cumulative_source()),

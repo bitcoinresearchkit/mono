@@ -2,7 +2,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{BlockTemplateDiffEntry, NextBlockHash, Txid};
+use crate::{BlockTemplateDiffEntry, MempoolBlock, NextBlockHash, Txid};
 
 /// Delta between the current `getblocktemplate` projection and a prior
 /// one identified by `since`. Returned by
@@ -26,6 +26,10 @@ pub struct BlockTemplateDiff {
 
     /// Echoed prior hash the diff was computed against.
     pub since: NextBlockHash,
+
+    /// Aggregate stats for the new template (size, vsize, fee range, ...). They can change
+    /// while every transaction is retained.
+    pub stats: MempoolBlock,
 
     /// New template in order. Each entry is either an index into the
     /// prior template's transactions or a full transaction body.

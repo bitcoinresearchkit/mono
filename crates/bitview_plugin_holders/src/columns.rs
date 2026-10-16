@@ -188,7 +188,8 @@ impl Columns {
         self.adjusted_value_destroyed
             .push(d.adjusted_value_destroyed);
         self.cdd.push(d.cdd);
-        self.cap.push(d.cap);
+        // From the exact sum, rounded once (the bands' rounded caps would add their errors).
+        self.cap.push(d.cap_raw.to_cents());
         self.profit.push(d.profit);
         self.loss.push(d.loss);
         self.net_pnl.push(d.net_pnl);
@@ -197,18 +198,9 @@ impl Columns {
         self.unrealized_loss.push(d.unrealized_loss);
         self.supply_profit.push(d.supply_profit);
         self.supply_loss.push(d.supply_loss);
-        self.price.push(
-            d.cap_raw
-                .as_u128()
-                .checked_div(d.supply.as_u128())
-                .map_or(Cents::NAN, |price| Cents::new(price as u64)),
-        );
-        self.capitalized_price.push(
-            d.capitalized_cap_raw
-                .inner()
-                .checked_div(d.cap_raw.as_u128())
-                .map_or(Cents::NAN, |price| Cents::new(price as u64)),
-        );
+        self.price.push(d.cap_raw.realized_price(d.supply));
+        self.capitalized_price
+            .push(d.capitalized_cap_raw.capitalized_price(d.cap_raw));
         self.gross_pnl.push(d.profit + d.loss);
         self.peak_regret.push(peak);
         let net_pnl =

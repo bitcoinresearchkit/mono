@@ -56,12 +56,12 @@ impl RealizedOps for MinimalRealizedState {
 
     #[inline]
     fn profit(&self) -> Cents {
-        Cents::new((self.profit_raw / Sats::ONE_BTC_U128) as u64)
+        CentsSats::new(self.profit_raw).to_cents()
     }
 
     #[inline]
     fn loss(&self) -> Cents {
-        Cents::new((self.loss_raw / Sats::ONE_BTC_U128) as u64)
+        CentsSats::new(self.loss_raw).to_cents()
     }
 
     #[inline]

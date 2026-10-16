@@ -72,15 +72,13 @@ impl Query {
 
     // === Helper methods ===
 
+    /// The header at `height`, checked against its pinned hash like every other header read.
     pub(crate) fn read_block_header_at(
         &self,
         height: Height,
         guard: &ReadPin,
     ) -> Result<BitcoinHeader> {
-        check_bound(guard, height, guard.lengths().height)?;
-        if height >= guard.lengths().height {
-            return Err(Error::OutOfRange("Block height out of range".into()));
-        }
+        let hash = self.block_hash_by_height(height, guard)?;
         let position = self
             .indexer()
             .vecs()
@@ -89,6 +87,7 @@ impl Query {
             .collect_one(height)
             .data()?;
         let raw = self.reader().read_raw_bytes(position, HEADER_SIZE)?;
+        Self::verify_header(&raw, &hash)?;
         BitcoinHeader::consensus_decode(&mut raw.as_slice())
             .map_err(|_| Error::Internal("Failed to decode block header"))
     }
@@ -648,18 +647,18 @@ impl Query {
             Ok(blocks)
         })
     }
-    /// Half-open window ending at the requested height (default safe tip).
-    /// `height_len` is the exclusive published bound, including zero for no blocks.
+    /// The half-open window of `count` heights ending at the requested height (default the
+    /// safe tip), clamped to the published `height_len` (zero for no blocks): a window past the
+    /// tip keeps only its published part.
     pub(crate) fn resolve_block_range(
         start_height: Option<Height>,
         count: u32,
         height_len: Height,
     ) -> (usize, usize) {
         let height_len = height_len.to_usize();
-        let end = start_height.map_or(height_len, |height| {
-            height.to_usize().saturating_add(1).min(height_len)
-        });
-        (end.saturating_sub(count as usize), end)
+        let end = start_height.map_or(height_len, |height| height.to_usize().saturating_add(1));
+        let begin = end.saturating_sub(count as usize).min(height_len);
+        (begin, end.min(height_len))
     }
     pub(crate) fn block_tx_count(first: TxIndex, next: TxIndex, limit: TxIndex) -> Result<u32> {
         (*next)

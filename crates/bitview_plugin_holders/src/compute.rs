@@ -1,5 +1,5 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
-use bitview_compute::{Inputs, write_chunks};
+use bitview_compute::{Inputs, save_point, write_chunks};
 use bitview_distribution::state::cost_basis::{DensityBand, PRICE_INDEX_VERSION, age_index};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
@@ -8,7 +8,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, ReadableCloneableVec, Stamp};
+use vecdb::{AnyStoredVec, AnyVec, ReadableCloneableVec};
 
 use crate::{
     Dependencies, Vecs, cost_basis::CostBasisBlockData, live::LiveState, sources::Sources,
@@ -137,7 +137,7 @@ impl Vecs {
     }
 
     /// Saves the block loop's outputs, or with `derived` the outputs derived from them (the
-    /// loop saved its own), stamped through `end`.
+    /// loop saved its own), at the [`save_point`] through `end`: only derived ones keep undo.
     fn save(&mut self, end: usize, derived: bool, exit: &Exit) -> Result<()> {
         debug_assert_eq!(
             self.iter_any_stored_mut().count(),
@@ -145,14 +145,14 @@ impl Vecs {
             "every output is a state or a derived one"
         );
         let _lock = exit.lock();
-        let stamp = Stamp::from(Height::from(end - 1));
+        let (stamp, with_changes) = save_point(end, derived);
         let vectors = if derived {
             self.derived_vecs_mut()
         } else {
             self.state_vecs_mut()
         };
         for v in vectors {
-            v.any_stamped_write_maybe_with_changes(stamp, derived)?;
+            v.any_stamped_write_maybe_with_changes(stamp, with_changes)?;
         }
         Ok(())
     }

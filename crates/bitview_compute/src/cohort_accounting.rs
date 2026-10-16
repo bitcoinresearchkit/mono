@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_primitives::{BoundedRatio, CentsSquaredSats};
-use brk_types::{Cents, CentsSats, Height, Sats};
+use brk_types::{CentsSats, Height, Sats};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{ReadableVec, VecValue};
 
@@ -24,16 +24,15 @@ impl CohortAccounting {
         weight: BoundedRatio,
     ) -> WeightedCohortState {
         let weight = defined_weight(weight);
-        let cap = age.select(&self.cap_raw)[offset];
         let mut state = WeightedCohortState::default();
-        state
-            .capitalized_price
-            .add(cap, age.select(&self.capitalized_cap_raw)[offset], weight);
-        // Floor each disjoint band's cap before weighting, just as its stored cap does.
+        state.cost_basis.add(
+            age.select(&self.cap_raw)[offset],
+            age.select(&self.capitalized_cap_raw)[offset],
+            weight,
+        );
         state.add(
             age.select(&self.supplies)[offset],
             age.select(&self.loss_supplies)[offset],
-            Cents::new((cap.inner() / Sats::ONE_BTC_U128) as u64),
             weight,
         );
         state

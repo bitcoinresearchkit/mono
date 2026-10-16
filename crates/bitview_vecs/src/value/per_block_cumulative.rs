@@ -20,7 +20,7 @@ pub struct ValuePerBlockCumulative<M: StorageMode = Rw> {
     last_cents: M::WriteOnly<CumulativeState<Cents>>,
 }
 
-const VERSION: Version = Version::ONE;
+const VERSION: Version = Version::TWO;
 
 impl ValuePerBlockCumulative {
     pub(crate) fn import(

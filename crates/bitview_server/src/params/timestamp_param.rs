@@ -8,10 +8,3 @@ use brk_types::Timestamp;
 pub struct TimestampParam {
     pub timestamp: Timestamp,
 }
-
-/// Optional UNIX timestamp query parameter
-#[derive(Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct OptionalTimestampParam {
-    pub timestamp: Option<Timestamp>,
-}

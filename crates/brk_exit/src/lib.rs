@@ -27,13 +27,10 @@ static SIGNAL_PIPE: AtomicI32 = AtomicI32::new(-1);
 
 type CleanupCallback = Box<dyn Fn() + Send + Sync>;
 
+/// Sets the flag and wakes the shutdown thread on the first signal, nothing else: the thread
+/// logs through the logger, like every other line.
 extern "C" fn signal_handler(_sig: c_int) {
-    if SIGNAL_RECEIVED.swap(true, Ordering::Relaxed) {
-        const MSG: &[u8] = b"Shutdown already pending...\n";
-        unsafe { LibcWrite(2, MSG.as_ptr().cast(), MSG.len()) };
-    } else {
-        const MSG: &[u8] = b"Signal received, shutdown pending...\n";
-        unsafe { LibcWrite(2, MSG.as_ptr().cast(), MSG.len()) };
+    if !SIGNAL_RECEIVED.swap(true, Ordering::Relaxed) {
         let fd = SIGNAL_PIPE.load(Ordering::Relaxed);
         unsafe { LibcWrite(fd, b"x".as_ptr().cast(), 1) };
     }
@@ -43,7 +40,7 @@ extern "C" fn signal_handler(_sig: c_int) {
 ///
 /// On first signal, a background thread acquires the write lock (waiting only for the
 /// current critical section to finish), runs cleanup callbacks, and exits.
-/// On subsequent signals, reports that shutdown is already pending and continues waiting.
+/// Later signals change nothing: the shutdown keeps waiting.
 #[derive(Default, Clone)]
 pub struct Exit {
     lock: Arc<RwLock<()>>,
@@ -114,7 +111,7 @@ impl Exit {
         thread::spawn(move || {
             let mut buf = [0u8; 1];
             unsafe { read(read_fd, buf.as_mut_ptr().cast(), 1) };
-
+            info!("Signal received, shutdown pending...");
             let _guard = lock.write();
             for callback in callbacks.lock().iter() {
                 callback();

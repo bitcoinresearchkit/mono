@@ -81,10 +81,11 @@ fn respond(
     let etag = hash
         .filter(|_| !immutable)
         .map(|hash| format!("W/\"{hash}\""));
-    if let Some(etag) = etag.as_deref()
-        && request_headers.has_etag(etag)
-    {
-        return Ok(not_modified(etag));
+    if request_headers.has_etag(etag.as_deref()) {
+        let mut response = Response::new(Body::new(NotModifiedBody));
+        *response.status_mut() = StatusCode::NOT_MODIFIED;
+        insert_caching(response.headers_mut(), etag.as_deref(), immutable);
+        return Ok(response);
     }
     let mut response = Response::new(Body::from(contents));
     let headers = response.headers_mut();
@@ -94,32 +95,26 @@ fn respond(
     } else {
         headers.insert_content_type(Path::new(&path));
     }
-    if let Some(etag) = etag.as_deref() {
+    insert_caching(headers, etag.as_deref(), immutable);
+
+    Ok(response)
+}
+
+/// The validator and cache policy a file's 200 and 304 share.
+fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, immutable: bool) {
+    if let Some(etag) = etag {
         headers.insert_etag(etag);
     }
     headers.insert_vary_accept_encoding();
-
     if immutable {
         headers.insert_cache_control_immutable();
     } else {
         headers.insert_cache_control_must_revalidate();
     }
-
-    Ok(response)
 }
 
-/// Without a length: a 304's Content-Length would have to describe the full response.
-fn not_modified(etag: &str) -> Response<Body> {
-    let mut response = Response::new(Body::new(NotModifiedBody));
-    *response.status_mut() = StatusCode::NOT_MODIFIED;
-    let headers = response.headers_mut();
-    headers.insert_etag(etag);
-    headers.insert_vary_accept_encoding();
-    headers.insert_cache_control_must_revalidate();
-    response
-}
-
-/// Empty content without the exact-length hint Axum turns into `Content-Length: 0`.
+/// A 304's empty content, without the exact-length hint Axum turns into `Content-Length: 0`: a
+/// 304's Content-Length would have to describe the full response.
 struct NotModifiedBody;
 
 impl HttpBody for NotModifiedBody {

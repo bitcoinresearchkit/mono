@@ -13,7 +13,7 @@ impl Query {
     /// (the spot price, not rewards-in-USD: clients multiply).
     pub fn block_rewards(&self, time_period: TimePeriod) -> Result<Vec<BlockRewardsEntry>> {
         let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin);
+        let tip = Query::tip_height(&pin)?;
         let bw = BlockWindow::new(self, time_period, tip)?;
         let rewards =
             bw.means_rounded(&self.plugins().mining.rewards.coinbase.block.sats, identity)?;

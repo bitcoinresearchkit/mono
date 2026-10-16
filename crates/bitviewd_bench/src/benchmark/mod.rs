@@ -203,10 +203,13 @@ impl Benchmark {
 
     fn finish(&self, outcome: Outcome, measured: Option<Duration>) -> Result<()> {
         let ended_at = Instant::now();
+        // Held until the report is written: a shutdown's `abort` waits for it instead of exiting
+        // mid-finalization.
+        let mut state = self.0.state.lock();
         let State::Running {
             started_at,
             monitors,
-        } = mem::replace(&mut *self.0.state.lock(), State::Finished)
+        } = mem::replace(&mut *state, State::Finished)
         else {
             return Ok(());
         };

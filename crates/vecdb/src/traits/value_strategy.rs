@@ -8,7 +8,11 @@ use crate::Result;
 ///
 /// # Safety
 ///
-/// When `IS_NATIVE_LAYOUT` is true, `T` must meet the native-layout contract of
+/// Every value serializes to exactly `size_of::<T>()` bytes, whatever `IS_NATIVE_LAYOUT`:
+/// `write_to_vec` appends that many, `write_to_slice` fills that many and `values_bytes`
+/// returns that many per value. Vectors read rows back at those offsets unchecked.
+///
+/// When `IS_NATIVE_LAYOUT` is true, `T` must also meet the native-layout contract of
 /// [`Bytes`](crate::Bytes): vectors then copy values to and from storage bytes directly.
 pub unsafe trait ValueStrategy<T>: Send + Sync + Clone {
     /// Whether T has native memory layout (can be memcpy'd to/from bytes).
@@ -36,6 +40,11 @@ pub unsafe trait ValueStrategy<T>: Send + Sync + Clone {
             for value in values {
                 Self::write_to_vec(value, &mut bytes);
             }
+            debug_assert_eq!(
+                bytes.len(),
+                size_of_val(values),
+                "values must serialize to their size (see `ValueStrategy`'s safety contract)"
+            );
             Cow::Owned(bytes)
         }
     }
@@ -45,7 +54,8 @@ pub unsafe trait ValueStrategy<T>: Send + Sync + Clone {
 /// Used by all Bytes-based strategies (BytesStrategy, LZ4Strategy, ZstdStrategy, PcodecStrategy).
 macro_rules! impl_bytes_value_strategy {
     ($strategy:ident, $value_trait:path) => {
-        // SAFETY: the native-layout flag is `T`'s, under the `Bytes` contract.
+        // SAFETY: values serialize through `T::to_bytes` (`size_of::<T>()` bytes) and the
+        // native-layout flag is `T`'s, under the `Bytes` contract.
         unsafe impl<T> $crate::ValueStrategy<T> for $strategy<T>
         where
             T: $value_trait,

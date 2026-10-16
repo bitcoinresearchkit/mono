@@ -196,8 +196,8 @@ impl MiningRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_pool_blocks_from")
                         .mining_tag()
-                        .summary("Mining pool blocks from height")
-                        .description("Get up to 100 blocks mined by a specific pool before (and including) the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*")
+                        .summary("Mining pool blocks before height")
+                        .description("Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*")
                         .json_response::<Vec<BlockInfoV1>>()
                         .not_modified()
                         .not_found()

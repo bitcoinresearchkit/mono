@@ -135,27 +135,29 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {Dollars} price - USD price at block height
  */
 /**
- * A single block fee rates data point with percentiles.
+ * A single block fee rates data point: one time bucket of blocks. Each `avgFee_*` field is the
+ * bucket's mean of its blocks' own percentile of their non-coinbase transactions' effective fee
+ * rates, weighted by vsize (a block without such transactions counts as 0).
  *
  * @typedef {Object} BlockFeeRatesEntry
- * @property {Height} avgHeight - Average block height in this window
- * @property {Timestamp} timestamp - Unix timestamp at the window midpoint
- * @property {FeeRate} avgFee_0 - Minimum fee rate (sat/vB)
- * @property {FeeRate} avgFee_10 - 10th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee_25 - 25th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee_50 - Median fee rate (sat/vB)
- * @property {FeeRate} avgFee_75 - 75th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee_90 - 90th percentile fee rate (sat/vB)
- * @property {FeeRate} avgFee_100 - Maximum fee rate (sat/vB)
+ * @property {Height} avgHeight - Average block height in this bucket
+ * @property {Timestamp} timestamp - Average block timestamp in this bucket
+ * @property {FeeRate} avgFee_0 - Mean of the blocks' minimum fee rate (sat/vB)
+ * @property {FeeRate} avgFee_10 - Mean of the blocks' 10th percentile fee rate (sat/vB)
+ * @property {FeeRate} avgFee_25 - Mean of the blocks' 25th percentile fee rate (sat/vB)
+ * @property {FeeRate} avgFee_50 - Mean of the blocks' median fee rate (sat/vB)
+ * @property {FeeRate} avgFee_75 - Mean of the blocks' 75th percentile fee rate (sat/vB)
+ * @property {FeeRate} avgFee_90 - Mean of the blocks' 90th percentile fee rate (sat/vB)
+ * @property {FeeRate} avgFee_100 - Mean of the blocks' maximum fee rate (sat/vB)
  */
 /**
- * A single block fees data point.
+ * A single block fees data point: one time bucket of blocks.
  *
  * @typedef {Object} BlockFeesEntry
- * @property {Height} avgHeight - Average block height in this window
- * @property {Timestamp} timestamp - Unix timestamp at the window midpoint
- * @property {Sats} avgFees - Average fees per block in this window (sats)
- * @property {Dollars} USD - BTC/USD price at this height
+ * @property {Height} avgHeight - Average block height in this bucket
+ * @property {Timestamp} timestamp - Average block timestamp in this bucket
+ * @property {Sats} avgFees - Mean fees per block in this bucket, rounded half up (sats)
+ * @property {Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
  */
 /**
  * Double-SHA256 block-header hash, serialized in Bitcoin's conventional
@@ -232,13 +234,13 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {?string[]=} minerNames - Miner name tags found in coinbase scriptsig
  */
 /**
- * A single block rewards data point.
+ * A single block rewards data point: one time bucket of blocks.
  *
  * @typedef {Object} BlockRewardsEntry
- * @property {Height} avgHeight - Average block height in this window
- * @property {Timestamp} timestamp - Unix timestamp at the window midpoint
- * @property {Sats} avgRewards - Average coinbase reward per block (subsidy + fees, sats)
- * @property {Dollars} USD - BTC/USD price at this height
+ * @property {Height} avgHeight - Average block height in this bucket
+ * @property {Timestamp} timestamp - Average block timestamp in this bucket
+ * @property {Sats} avgRewards - Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
+ * @property {Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
  */
 /**
  * A single block size data point.
@@ -291,6 +293,8 @@ Matches mempool.space/bitcoin-cli behavior.
  * @typedef {Object} BlockTemplateDiff
  * @property {NextBlockHash} hash - Current next-block hash. Use as `since` on the next diff call.
  * @property {NextBlockHash} since - Echoed prior hash the diff was computed against.
+ * @property {MempoolBlock} stats - Aggregate stats for the new template (size, vsize, fee range, ...). They can change
+while every transaction is retained.
  * @property {BlockTemplateDiffEntry[]} order - New template in order. Each entry is either an index into the
 prior template's transactions or a full transaction body.
  * @property {Txid[]} removed - Txids that left the projected next block since `since`
@@ -457,6 +461,11 @@ and the seed's chunk index. Omitted when the seed has no
 ancestors and no descendants (matches mempool.space).
  */
 /**
+ * A quote currency prices are served in: USD only.
+ *
+ * @typedef {("USD")} Currency
+ */
+/**
  * Range parameters with output format for API query parameters.
  *
  * @typedef {Object} DataRangeFormat
@@ -505,7 +514,7 @@ ancestors and no descendants (matches mempool.space).
  *
  * @typedef {Object} DifficultyAdjustment
  * @property {number} progressPercent - Progress through current difficulty epoch (0-100%)
- * @property {number} difficultyChange - Estimated difficulty change at next retarget (%)
+ * @property {number} difficultyChange - Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
  * @property {number} estimatedRetargetDate - Estimated timestamp of next retarget (milliseconds)
  * @property {number} remainingBlocks - Blocks remaining until retarget
  * @property {number} remainingTime - Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
@@ -639,7 +648,7 @@ mainnet, as mempool.space
  * A single hashrate data point.
  *
  * @typedef {Object} HashrateEntry
- * @property {Timestamp} timestamp - Unix timestamp
+ * @property {Timestamp} timestamp - End of the day the hashrate covers (Unix timestamp), as mempool.space stamps it
  * @property {number} avgHashrate - Average hashrate (H/s)
  */
 /**
@@ -648,7 +657,7 @@ mainnet, as mempool.space
  * @typedef {Object} HashrateSummary
  * @property {HashrateEntry[]} hashrates - Historical hashrate data points
  * @property {DifficultyEntry[]} difficulty - Historical difficulty adjustments
- * @property {number} currentHashrate - Current network hashrate (H/s)
+ * @property {number} currentHashrate - Current network hashrate over the trailing 7 days (H/s)
  * @property {number} currentDifficulty - Current network difficulty
  */
 /**
@@ -710,6 +719,13 @@ mainnet, as mempool.space
  * @property {Dollars} USD - BTC/USD price
  */
 /**
+ * Historical price query parameters, as mempool.space's
+ *
+ * @typedef {Object} HistoricalPriceParam
+ * @property {(Timestamp|null)=} timestamp - UNIX timestamp: the latest close at or before it
+ * @property {(Currency|null)=} currency - Quote currency: USD, the only one served
+ */
+/**
  * Index of an hour.
  *
  * @typedef {number} Hour1
@@ -760,7 +776,9 @@ mainnet, as mempool.space
  * @property {number} count - Number of transactions in the mempool
  * @property {VSize} vsize - Total virtual size of all transactions in the mempool (vbytes)
  * @property {Sats} totalFee - Total fees of all transactions in the mempool (satoshis)
- * @property {number[][]} feeHistogram - Fee histogram: `[[fee_rate, vsize], ...]` sorted by descending fee rate
+ * @property {number[][]} feeHistogram - Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each
+entry the vsize of the transactions paying from its fee rate up to the previous entry's,
+a bin closing at the first fee rate change past 50,000 vB
  */
 /**
  * Simplified mempool transaction for the `/api/mempool/recent` endpoint.
@@ -833,12 +851,6 @@ mainnet, as mempool.space
  * Protocol or format detected in an OP_RETURN output.
  *
  * @typedef {("runes"|"witness_commitment"|"veri_block"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coin_spark"|"poet"|"docproof"|"open_timestamps"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"epobc"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
- */
-/**
- * Optional UNIX timestamp query parameter
- *
- * @typedef {Object} OptionalTimestampParam
- * @property {(Timestamp|null)=} timestamp
  */
 /**
  * The output a transaction input spends: its transaction index and output position, written as
@@ -1075,6 +1087,16 @@ mainnet, as mempool.space
  * @property {number} lastEstimatedHashrate1w - Estimated network hashrate over last 1 week (H/s)
  */
 /**
+ * Recommended fee rates in sat/vB, to the thousandth (`/api/v1/fees/precise`)
+ *
+ * @typedef {Object} PreciseRecommendedFees
+ * @property {FeeRate} fastestFee - Fee rate for fastest confirmation (next block)
+ * @property {FeeRate} halfHourFee - Fee rate for confirmation within ~30 minutes (3 blocks)
+ * @property {FeeRate} hourFee - Fee rate for confirmation within ~1 hour (6 blocks)
+ * @property {FeeRate} economyFee - Fee rate for economical confirmation
+ * @property {FeeRate} minimumFee - Minimum relay fee rate
+ */
+/**
  * Current price response matching mempool.space /api/v1/prices format
  *
  * @typedef {Object} Prices
@@ -1127,14 +1149,14 @@ mainnet, as mempool.space
 this tx displaced at least one non-signaling predecessor.
  */
 /**
- * Recommended fee rates in sat/vB
+ * Recommended fee rates in whole sat/vB (`/api/v1/fees/recommended`)
  *
  * @typedef {Object} RecommendedFees
- * @property {FeeRate} fastestFee - Fee rate for fastest confirmation (next block)
- * @property {FeeRate} halfHourFee - Fee rate for confirmation within ~30 minutes (3 blocks)
- * @property {FeeRate} hourFee - Fee rate for confirmation within ~1 hour (6 blocks)
- * @property {FeeRate} economyFee - Fee rate for economical confirmation
- * @property {FeeRate} minimumFee - Minimum relay fee rate
+ * @property {number} fastestFee - Fee rate for fastest confirmation (next block)
+ * @property {number} halfHourFee - Fee rate for confirmation within ~30 minutes (3 blocks)
+ * @property {number} hourFee - Fee rate for confirmation within ~1 hour (6 blocks)
+ * @property {number} economyFee - Fee rate for economical confirmation
+ * @property {number} minimumFee - Minimum relay fee rate
  */
 /**
  * One node in an RBF replacement tree. The node's `tx` replaced each
@@ -1355,7 +1377,7 @@ undefined one (e.g. NaN).
  * @property {string} scriptpubkey - Script pubkey (locking script), encoded as hexadecimal.
  * @property {string} scriptpubkeyAsm - Script pubkey in assembly format.
  * @property {OutputTypeNormalized} scriptpubkeyType - Esplora/mempool.space script type.
- * @property {Address=} scriptpubkeyAddress - Bitcoin address, omitted for scripts without an address.
+ * @property {Address=} scriptpubkeyAddress - Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
  * @property {Sats} value - Value of the output in satoshis.
  */
 /**
@@ -1438,9 +1460,11 @@ undefined one (e.g. NaN).
  * UTXO Realized Price Distribution for a cohort at a specific block.
  *
  * Supply is grouped by the price at the block in which each UTXO was last moved.
- * Each bucket exposes three values: supply in BTC, realized cap contribution
- * in USD (sum of `realized_price * supply` over the coins in the bucket), and
- * unrealized P&L in USD (`close * supply - realized_cap`, can be negative).
+ * Each bucket exposes three values: supply in BTC (weighted by `weight`), realized
+ * cap contribution in USD (`price * supply` over the coins in the bucket at their
+ * grid creation prices, each within 0.05% of the exact price, rounded to the cent
+ * per bucket), and unrealized P&L in USD (`close * supply - realized_cap`, can be
+ * negative).
  *
  * @typedef {Object} Urpd
  * @property {Cohort} cohort
@@ -1465,9 +1489,14 @@ undefined one (e.g. NaN).
  * @typedef {Object} UrpdBucket
  * @property {Dollars} priceFloor - The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its
 coins' creation prices round to (four significant digits of the price in cents).
- * @property {Bitcoin} supply - Supply held with a last-move price inside this bucket, in BTC.
- * @property {Dollars} realizedCap - Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
- * @property {Dollars} unrealizedPnl - Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.
+ * @property {Bitcoin} supply - Supply held with a last-move price inside this bucket, in BTC. With a `cointime` or
+`coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
+ * @property {Dollars} realizedCap - Realized cap contribution in USD: `price * supply` summed over the coins in this bucket,
+each coin's creation price taken on the price grid (the `Raw` bucket price, within 0.05%
+of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
+buckets therefore need not sum to the cohort's realized cap series.
+ * @property {Dollars} unrealizedPnl - Unrealized P&L in USD against the close on the snapshot date: `close * supply` minus the
+bucket's grid capital, rounded to the cent once. Can be negative.
  */
 /**
  * Path parameters for per-cohort URPD endpoints.
@@ -1952,7 +1981,7 @@ function _wrapSeriesData(raw) {
  * @returns {DateSeriesEndpoint<T>}
  */
 function _endpoint(client, name, index) {
-  const p = `/api/series/${name}/${index}`;
+  const p = `/api/series/${encodeURIComponent(name)}/${index}`;
 
   /**
    * Counted selections send `limit`: the server ends them after resolving a negative start.
@@ -2074,16 +2103,24 @@ class BitviewClientBase {
   }
 
   /**
+   * The request's timeout, joined with the caller's signal when one is given.
+   * @param {AbortSignal} [signal]
+   * @returns {AbortSignal}
+   */
+  _signal(signal) {
+    const timeout = AbortSignal.timeout(this.timeout);
+    return signal ? AbortSignal.any([timeout, signal]) : timeout;
+  }
+
+  /**
    * @param {string} path
    * @param {{ signal?: AbortSignal, cache?: boolean, etag?: string | null }} [options]
    * @returns {Promise<Response>}
    */
   async get(path, { signal, cache = true, etag } = {}) {
     const url = `${this.baseUrl}${path}`;
-    const signals = [AbortSignal.timeout(this.timeout)];
-    if (signal) signals.push(signal);
     /** @type {RequestInit} */
-    const init = { signal: AbortSignal.any(signals) };
+    const init = { signal: this._signal(signal) };
     // Let browsers manage HTTP revalidation; explicit validators bypass their HTTP cache.
     const revalidate = cache && etag && typeof location === 'undefined';
     if (revalidate) init.headers = { 'If-None-Match': etag };
@@ -2242,13 +2279,7 @@ class BitviewClientBase {
    */
   async post(path, body, { signal } = {}) {
     const url = `${this.baseUrl}${path}`;
-    const signals = [AbortSignal.timeout(this.timeout)];
-    if (signal) signals.push(signal);
-    const res = await fetch(url, {
-      method: 'POST',
-      body,
-      signal: AbortSignal.any(signals),
-    });
+    const res = await fetch(url, { method: 'POST', body, signal: this._signal(signal) });
     if (!res.ok) throw await _responseError(res);
     return res;
   }
@@ -8012,7 +8043,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Latest URPD
    *
-   * URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.
+   * URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
    *
    * Endpoint: `GET /api/urpd/{cohort}`
    *
@@ -8034,7 +8065,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * URPD at block height or date
    *
-   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.
+   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
    *
    * Endpoint: `GET /api/urpd/{cohort}/{point}`
    *
@@ -8089,19 +8120,21 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Historical price
    *
-   * Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.
+   * Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
    *
    * Endpoint: `GET /api/v1/historical-price`
    *
-   * @param {Timestamp=} [timestamp]
+   * @param {Timestamp=} [timestamp] - UNIX timestamp: the latest close at or before it
+   * @param {Currency=} [currency] - Quote currency: USD, the only one served
    * @param {{ signal?: AbortSignal, onValue?: (value: HistoricalPrice) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<HistoricalPrice>}
    */
-  async getHistoricalPrice(timestamp, { signal, onValue, cache, memCache } = {}) {
+  async getHistoricalPrice(timestamp, currency, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
     if (timestamp !== undefined) params.set('timestamp', String(timestamp));
+    if (currency !== undefined) params.set('currency', String(currency));
     const query = params.toString();
     const path = `/api/v1/historical-price${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
@@ -8503,7 +8536,7 @@ address payload bytes.
   /**
    * Blocks from height
    *
-   * Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.
+   * Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
    *
@@ -8537,7 +8570,7 @@ address payload bytes.
   /**
    * Blocks from height with extras
    *
-   * Retrieve up to 15 blocks with extended data going backwards from the given height.
+   * Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
    *
@@ -8675,9 +8708,9 @@ address payload bytes.
   }
 
   /**
-   * Mining pool blocks from height
+   * Mining pool blocks before height
    *
-   * Get up to 100 blocks mined by a specific pool before (and including) the given height.
+   * Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
    *
@@ -8870,7 +8903,7 @@ address payload bytes.
   /**
    * Recommended fees
    *
-   * Recommended fee rates by confirmation target.
+   * Recommended fee rates by confirmation target, in whole sat/vB.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
    *
@@ -8891,8 +8924,8 @@ address payload bytes.
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
    *
    * Endpoint: `GET /api/v1/fees/precise`
-   * @param {{ signal?: AbortSignal, onValue?: (value: RecommendedFees) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<RecommendedFees>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: PreciseRecommendedFees) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<PreciseRecommendedFees>}
    */
   async getPreciseFees({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fees/precise`;
@@ -9010,7 +9043,7 @@ address payload bytes.
   /**
    * Block template diff since hash
    *
-   * Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+   * Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
    *
    * Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`
    *

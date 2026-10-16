@@ -45,7 +45,8 @@ fn exact_diff<S: CheckedSub + PartialOrd + Clone + Into<f64>>(current: S, ago: S
 /// - Point ops ([`DeltaOp`]'s defaults): read `source[h]` and `source[start]`,
 ///   count = `h - start`.
 ///
-/// Sources are dense: every index below their length holds a value (checked in dev builds).
+/// Sources are dense (every index below their length holds a value) and never shrink while read:
+/// they may grow, but a truncation waits for readers (checked in dev builds).
 ///
 /// Nothing is stored on disk — values are computed on-the-fly during iteration.
 pub struct LazyDeltaVec<I: VecIndex, S: VecValue, T, Op> {

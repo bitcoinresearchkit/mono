@@ -17,7 +17,6 @@ pub(crate) struct Data {
     pub adjusted_volume: Cents,
     pub adjusted_value_destroyed: Cents,
     pub cdd: CoinDays,
-    pub cap: Cents,
     pub cap_raw: CentsSats,
     pub capitalized_cap_raw: CentsSquaredSats,
     pub profit: Cents,

@@ -402,9 +402,9 @@ has to be deleted by hand.
   `/data` as any value (was typed as booleans)
 - A week is labeled by the Monday it starts on, as weeks are bucketed (was its Thursday): its `timestamp`, and the date
   the clients give a `week1` point. Week 0 starts 2008-12-29
-- A range by a date or time before its index's first date (2009-01-01; day3's 2008-12-31, week1's 2008-12-29) answers
-  400 "out of range" at every index, as in the clients (minute, hour and day3 ranges started at 0, the others said
-  "not supported")
+- A range by a date or time before its index's first date (2009-01-01; day3's 2008-12-31, week1's 2008-12-29) starts
+  at the index's first row at every index, dates before 1970 included (minute, hour and day3 ranges started at 0, the
+  others said "not supported")
 - Ten pools take their API slug in their tree key and series ids like every other pool: `pools.1thash`, `1thash_*`,
   and likewise `175btc`, `50btc`, `21inc`, `8baochi`, `1hash`, `58coin`, `7pool`, `1m1x` and `solopoolcom` (were
   `onethash`, `pool175btc`, `pool50btc`, `twentyoneinc`, `eightbaochi`, `onehash`, `fiftyeightcoin`, `sevenpool`,
@@ -415,8 +415,6 @@ has to be deleted by hand.
   (its schema was capped at 65535)
 - `GET /api/block/{hash}/status` answers `in_best_chain: false` for a hash outside the published best chain, orphaned
   or unknown, like Esplora (an unknown hash answered 404)
-- `GET /api/v1/difficulty-adjustment` projects `remainingTime` and `estimatedRetargetDate` at the epoch's observed
-  pace (was the pace needed to reach the target), and `difficultyChange` stays within a retarget's -75% to +300%
 - A series range wholly below the six-block reorg window has an ETag keyed by the hash of the last block it covers:
   appends keep it, a reorg replacing those blocks changes it (was keyed by version and bounds alone, so a reorg
   could revalidate stale rows). The OpenAPI document's ETags are content hashes, other ETags change shape (caches
@@ -427,12 +425,28 @@ has to be deleted by hand.
   `/txs`, `/txs/chain` and `/utxo` (was 404 `unknown_address`; unparsable addresses still answer 400)
 - `GET /api/v1/difficulty-adjustment` follows mempool.space's mainnet semantics: `adjustedTimeAvg` is the observed
   pace (in an epoch's first 503 blocks, the last quarter epoch's pace scaled by the previous retarget),
-  `remainingTime` uses it and `timeOffset` is 0 (were a required pace that reached 0 in slow epochs, and a
-  seconds offset)
+  `remainingTime`, `estimatedRetargetDate` and `difficultyChange` use it, `difficultyChange` stays within a
+  retarget's -75% to +300%, and `timeOffset` is 0 (they used the pace needed to reach the target, which reached 0 in
+  slow epochs, and a seconds offset; `difficultyChange` read the few blocks mined so far: -48% three blocks into an
+  epoch where mempool.space said +1.5%)
 - Pool rankings report `emptyBlocks`, the period's coinbase-only blocks (was always 0); v1 block extras' `virtualSize`
   is `weight / 4`, unrounded (was rounded up)
 - `/openapi.json` and `/api.json` declare their JSON 200 and 304 responses (the Rust client's `get_openapi` returns
   JSON, was `String`); `/api.json` is a compact custom summary, not OpenAPI: build tools from `/openapi.json`
+- mempool.space parity: `/api/blocks/{height}` above the tip answers 404 and `/api/v1/blocks/{height}` lists only the
+  published part of its window (they answered the 10 and 15 tip blocks); `/api/v1/mining/pool/{slug}/blocks/{height}` lists
+  blocks strictly below the height (included it, so paging repeated a block); P2PK outputs omit
+  `scriptpubkey_address` (it held the pubkey hex); `/api/mempool`'s `fee_histogram` is binned in 50,000 vB steps like
+  Esplora's (was one entry per fee rate); `/api/v1/historical-price` accepts `currency=USD` and starts at the first
+  priced interval (2010-08-16; it listed 3,463 $0 closes before it); `/api/v1/fees/recommended` returns
+  mempool.space's whole sat/vB tiers as `RecommendedFees` (was the precise floats), `/api/v1/fees/precise` returns
+  `PreciseRecommendedFees` (was `RecommendedFees`)
+- Hashrate endpoints: `currentHashrate` is the trailing 7-day estimate, like mempool.space's (was the noisy 1-day
+  one), and daily points are completed days stamped at their end (were stamped at their start, a day before
+  mempool.space's, and included today's partial day)
+- Block-template diffs carry the template's `stats` (a client following diffs kept stale statistics)
+- On an empty index, hashrate, pool detail and hashrate, difficulty history, reward stats and block fees, rewards
+  and fee rates answer 503 `state_updating` (were 500), and pool rankings too (were an empty 200)
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
@@ -451,8 +465,8 @@ has to be deleted by hand.
   `total=False` subclass); keys that aren't identifiers (`24h`, `txId[]`) use the functional `TypedDict` form; the
   package ships `py.typed`
 - JS and Python date selectors use UTC with the server's day1/week1/year10 mapping (they used local time and put day1
-  0 on 2009-01-03), and dates before an index's first date throw, as the Rust client and the server reject them
-  (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29)
+  0 on 2009-01-03), and dates before an index's first date throw, as in the Rust client (2009-01-01; day3's is
+  2008-12-31, week1's 2008-12-29)
 - One selection builder per client: a single item is a one-item range (JS `SingleItemBuilder` and
   `DateSingleItemBuilder`, Python `SingleItemBuilder` and `DateSingleItemBuilder` are gone). In Rust the selection
   methods return the `SeriesEndpoint` itself (`SingleItemBuilder`, `RangeBuilder` and `SkippedBuilder` are gone;
@@ -719,6 +733,18 @@ has to be deleted by hand.
 - `brk_types`: `Dollars: CheckedSub<usize>` (which mixed units) is removed; `CentsSats::realized_price` no longer caps
   at `u32::MAX` cents; `CoinbaseTag` is `repr(transparent)`; `Index::Day3.index_to_date` works
 - `bitview_vecs::LazySmaVec` is removed (the market plugin's averages start at the first price)
+- `brk_types::Dollars`: `From<u64>`/`From<u128>` (which read cents) and `From<Dollars> for u128` (which returned
+  cents) are removed: integers convert as dollars, cents go through `Cents`/`CentsSigned`; `Dollars * Bitcoin` keeps
+  negative amounts and `Dollars / f64` keeps a NaN quotient (both gave $0); `Dollars * Sats` is removed. Conversions
+  to cents round to the nearest cent (`Cents::from(f64)`, `CentsSats::to_cents`, `realized_price`; were truncated;
+  `to_cents_rounded` is gone); `bitview_primitives::CentsSquaredSats / u128` became `capitalized_price(cap)`.
+  `brk_mempool`: `fees()` returns the whole tiers and `precise_fees()` the precise ones.
+  `bitview_compute::WeightedCapitalizedPrice` is `WeightedCostBasis` (exact weighted capital and capitalized price)
+- `rawdb`: `Region::with_read_range` returns `Option` (a read racing a truncation got a panic). `vecdb`: compressed vectors'
+  page table is crate-private; the `Bytes`/`ValueStrategy` safety contracts require exactly `size_of::<T>()` bytes
+  per value whatever the layout. `pco` no longer exports `define_number_enum!` (its reference constructors were
+  unsound). `fjall` keyspace names are lowercase ASCII letters, digits, `_` and `-` (case aliases and `.` mapped onto
+  shared directories)
 - `brk_oracle::FIRST_PRICE_HEIGHT` (74,641, re-exported by the price plugin); `bitview_plugin_indexer` exports
   `FIRST_V29_POLICY_HEIGHT`
 
@@ -846,11 +872,11 @@ has to be deleted by hand.
   the lowest rate among the transactions overlapping the block's last 2% of vsize, max the higher of the 99th
   percentile and the highest among those overlapping its first 2% (mempool.space's heuristic; were the plain
   extremes, which a single outlier set)
-- Per-transaction and rolling-window statistics use one unweighted rank, the lower nearest rank
-  `sorted[max(0, floor(n·p) − 1)]`: transaction vsize statistics (were the rounded nearest rank) and every
-  rolling-window percentile and median (were linearly interpolated), the VOCDD median behind Reserve Risk included,
-  Bedrock's loss thresholds (were linearly interpolated) and the rarity meter's extreme thresholds (were
-  `sorted[floor((n − 1)·p)]`)
+- Per-transaction statistics use mempool.space's lower nearest rank `sorted[max(0, floor(n·p) − 1)]` (transaction
+  vsize statistics were the rounded nearest rank). Every computed percentile uses the nearest rank `ceil(n·p) − 1`,
+  like the cost-basis and URPD percentiles: rolling-window percentiles and medians (were linearly interpolated), the
+  VOCDD median behind Reserve Risk, Bedrock's loss thresholds (were linearly interpolated) and the rarity meter's
+  extreme thresholds (were `sorted[floor((n − 1)·p)]`)
 - True range is exact cents
 - The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
   blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply
@@ -936,9 +962,6 @@ has to be deleted by hand.
   with the last price before the window
 - Hash price, its all-time low and its rebound are null until the trailing 24 hours are fully priced (a partly
   priced first day pinned the low for years)
-- Every computed percentile (rolling distributions, the VOCDD median, Bedrock thresholds, Rarity Meter extremes) uses
-  the nearest rank `ceil(n·p) − 1`, like the cost-basis and URPD percentiles (a 3-value median was the minimum). The
-  transactions plugin's per-block fee statistics keep mempool.space's rank
 - OP_RETURN: coinbase transactions no longer count in the pre-v30 policy categories, documented as size/count
   categories; kind descriptions corrected (Po.et vs Proof of Existence, the OpenTimestamps tag, length/prefix
   heuristics). A new `witness_commitment` protocol matches the BIP141 header (a 36-byte push beginning `aa21a9ed`),
@@ -948,6 +971,20 @@ has to be deleted by hand.
   one's)
 - Profitability band capital shares come from exact capitals and are stored (rounded cents gave 100%/0% splits
   early); address capital sums the exact band capitals before rounding
+- USD values round to the nearest cent (were truncated: `sth_realized_price` at 300,000 read $608.26 where cap over
+  supply is 608.2693), and aggregate capitals come from the exact sum rounded once: the all-chain realized cap and
+  the cohort capital-share denominator (were the sum of each age band's truncated cap), and awake/mobile capital and
+  realized prices (each band was truncated before weighting). Holders' capital in profit and in loss shares divide by
+  the two sides' total, so neither exceeds 100%. URPD bucket P&L rounds the exact difference once (it subtracted two
+  rounded values)
+- `market.ath.days_since` and `max_days_between` are null before the first price and count from it (both read the
+  zero placeholder as an all-time high: 5.36 days from genesis carried into the priced era). Price candles, `open`
+  and `low` skip the zeros before the first price (August 2010's monthly candle opened and bottomed at $0)
+- The rarity meter's bands stay ordered: where its models disagree (early 2013, one model's 5% boundary above
+  another's 95%), the range between reads as neither side, and the full meter combines its 16 components itself (on
+  2013-04-09 its 5% band read $153.54, above its median $145.00 and its 95% band $136.94). Its percentiles read the
+  outer edge of their 0.001 ratio step, so spot crosses a band only from a more extreme step (the first calibration
+  block read maximally rare: level 5, score 35 at 210,000)
 
 #### Clients
 
@@ -966,6 +1003,9 @@ has to be deleted by hand.
   parameters are percent-encoded (an id with `?`, `#` or `/` is one segment); Rust bulk series queries send the
   index by name (`tx_index`, was the rejected `TxIndex`) and very large `last`/`skip`/`take` values saturate; JS
   concurrent requests for one URL each get their `onValue`
+- Generated clients percent-encode the series name in dynamic series endpoints too; the Python client closes its
+  connection and raises `BitviewError` on an HTTP protocol error (the connection stayed unusable); the JS client
+  combines abort signals only when the caller passes one and requires Node 20.3+
 
 #### API and node I/O
 
@@ -1088,7 +1128,6 @@ has to be deleted by hand.
 - A request whose `Accept-Encoding` refuses every encoding gets 406 before any handler runs: a broadcast is no longer
   submitted and then answered with 406
 - Outspends, RBF trees, replacements and all-pools hashrate count toward response-body admission
-- Series date/timestamp bounds before an index's first period clamp to its first row; dates before 1970 clamp too
 - Confirmed CPFP rates use sigop-adjusted sizes, like the mempool's; daily payment histograms count blocks before the
   oracle's start as zeros (like height reads) and answer 503 for a day a rollback hides
 - P2PK hash-prefix matches are accepted by the address endpoints (any 33/65-byte key field in hex); shared series ids
@@ -1137,6 +1176,23 @@ has to be deleted by hand.
 - mmpl: a replacement history past the RBF traversal limits reports the transaction `vanished` instead of stalling
 - bitviewd_bench refuses to start when LOG/RUST_LOG filters out its timing events, and a run without plugin timings
   is marked failed; brk_reader reads non-XOR block files in debug builds
+- UTXO-set, URPD and oracle date queries answer 503 `state_updating` for a day a rollback hides (UTXO-set and URPD
+  answered a cacheable 404); merkleblock proofs check the block header against its hash; an epoch whose quarter
+  window spans no time projects at the observed, then the target pace (it projected an instant retarget)
+- The indexer rolls back across a BIP30 duplicate coinbase (91,842, 91,880) restoring the original's UTXO and address
+  outpoint; a first computation of genesis alone saves every plugin's state without an undo record (one rule in
+  `bitview_compute`);
+  bitviewd_bench finishes its report before a shutdown exits
+- Storage: cancelling after a version reset leaves the vector empty, and a version change always resets, even a
+  vector a pending truncation emptied (the stale rows came back under the new version and were written); bulk reads of a mutable vector no longer skip updates after a hole a rollback restored; a raw
+  read racing a truncation returns nothing instead of panicking; statedb drops a page generation as soon as neither
+  `tip` nor `prev` uses it; pco conv1 no longer panics on a final batch shorter than its order; the signal handler
+  only flags and wakes the shutdown thread (it wrote to stderr itself; later signals print nothing)
+- importmap: markers inline with other markup no longer prefix the map; website: `If-None-Match: *` answers 304 for
+  content-hashed assets too; descriptions corrected: mining fee/reward buckets (averages of their blocks), window
+  deltas (from the value before the window), the veteran cohort (an undefined capitalized price), Bedrock floors (some
+  supply with a positive creation price), URPD buckets (`realized_cap` and `unrealized_pnl` use grid creation
+  prices within 0.05% of each coin's, rounded to the cent per bucket, and weighted supply under a weight), and the brk_rpc, brk_reader, bitviewd, bitview_query and brk_mempool READMEs
 
 ### Performance Improvements
 
@@ -1242,6 +1298,9 @@ has to be deleted by hand.
   readers' lock (125-400 ms), so new blocks are served 55-60% sooner; live one-block updates on a 16 GB Mac mini take
   a median 81 ms (were 575 ms). The indexer's deferred store ingestion runs on its own threads, so plugins no longer
   wait behind it for the shared thread pool
+- Market averages and price ranges read their window starts in one pass (they restarted a backward timestamp search
+  every 4,096 rows), and calendar reads of rolling windows serve the latest heights from the resident tip (a current
+  365-day value read ~87k timestamps)
 
 #### `brk_reader`
 

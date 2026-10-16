@@ -36,7 +36,7 @@ struct TxOutSchema {
     /// Esplora/mempool.space script type.
     #[schemars(example = &"v0_p2wpkh")]
     scriptpubkey_type: OutputTypeNormalized,
-    /// Bitcoin address, omitted for scripts without an address.
+    /// Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
     #[schemars(example = &"bc1q8vryck26jhuh0uqr2ttwj96szfnu4nwxfmu39y")]
     scriptpubkey_address: Address,
     /// Value of the output in satoshis.
@@ -111,7 +111,11 @@ impl Serialize for TxOut {
         S: Serializer,
     {
         let output_type = self.type_();
-        let addr = Address::try_from((&self.script_pubkey, output_type)).ok();
+        // As Esplora, P2PK has no address here; the pubkey hex stands for one only in the
+        // address endpoints.
+        let addr = (!matches!(output_type, OutputType::P2PK65 | OutputType::P2PK33))
+            .then(|| Address::try_from((&self.script_pubkey, output_type)).ok())
+            .flatten();
         let field_count = if addr.is_some() { 5 } else { 4 };
         let mut state = serializer.serialize_struct("TxOut", field_count)?;
         state.serialize_field(

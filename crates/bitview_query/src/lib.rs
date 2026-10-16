@@ -242,10 +242,10 @@ impl Query {
         )
     }
 
-    /// The published tip height a pin reads at (genesis while nothing is published).
+    /// The published tip height a pin reads at; `StateUpdating` while nothing is published.
     #[cfg(feature = "chain")]
-    fn tip_height(pin: &SafeLengths) -> Height {
-        pin.lengths().last_height().unwrap_or_default()
+    fn tip_height(pin: &SafeLengths) -> Result<Height> {
+        pin.lengths().last_height().ok_or(Error::StateUpdating)
     }
 
     #[cfg(any(feature = "series", feature = "price"))]

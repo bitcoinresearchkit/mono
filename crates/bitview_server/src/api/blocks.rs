@@ -742,10 +742,11 @@ impl BlockRoutes for ApiRouter<AppState> {
                             .blocks_tag()
                             .summary("Blocks from height")
                             .description(
-                                "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
+                                "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
                             )
                             .json_response::<Vec<BlockInfo>>()
                             .not_modified()
+                            .not_found()
                     },
                 ),
             )
@@ -777,7 +778,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                         op.id("get_blocks_v1_from_height")
                             .blocks_tag()
                             .summary("Blocks from height with extras")
-                            .description("Retrieve up to 15 blocks with extended data going backwards from the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*")
+                            .description("Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*")
                             .json_response::<Vec<BlockInfoV1>>()
                             .not_modified()
                     },

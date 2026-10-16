@@ -2,15 +2,9 @@
 
 use dtype_dispatch::build_dtype_macros;
 
+// BRK: not exported. dtype_dispatch's reference constructors (`new(&Container<S>)` on an
+// `Enum<'a>`) do not tie the input lifetime to `'a`, so the definer stays crate-private.
 build_dtype_macros!(
-  #[doc = "\
-    Defines enums holding a container generic to `Number`.
-  "]
-  #[doc = "\
-    You'll only want to use this if you're using pco's low level APIs.
-    See the dtype_dispatch crate for usage details.
-  "]
-  #[macro_export]
   define_number_enum,
 
   #[doc = "\

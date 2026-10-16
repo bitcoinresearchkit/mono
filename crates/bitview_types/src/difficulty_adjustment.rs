@@ -10,7 +10,7 @@ pub struct DifficultyAdjustment {
     #[schemars(example = 44.4)]
     pub progress_percent: f64,
 
-    /// Estimated difficulty change at next retarget (%)
+    /// Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
     #[schemars(example = 2.5)]
     pub difficulty_change: f64,
 

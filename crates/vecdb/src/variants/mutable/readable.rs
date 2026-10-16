@@ -28,6 +28,10 @@ where
         for index in from..stored_to {
             if unlikely(holes.peek() == Some(&&index)) {
                 holes.next();
+                // A rollback restores a hole's backing value as an update: skip it too.
+                if updated.peek().is_some_and(|&(&key, _)| key == index) {
+                    updated.next();
+                }
                 continue;
             }
             let value = if unlikely(updated.peek().is_some_and(|&(&key, _)| key == index)) {

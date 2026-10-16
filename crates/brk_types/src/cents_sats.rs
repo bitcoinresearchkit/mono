@@ -59,34 +59,36 @@ impl CentsSats {
         self.0
     }
 
-    /// Convert to CentsUnsigned by dividing by ONE_BTC.
+    /// The amount in cents (divided by one BTC), rounded to the nearest cent.
     #[inline(always)]
     pub fn to_cents(self) -> Cents {
-        Cents::new((self.0 / Sats::ONE_BTC_U128) as u64)
+        Cents::from(div_round(self.0, Sats::ONE_BTC_U128))
     }
 
-    /// Convert to cents, rounding to the nearest cent.
-    #[inline(always)]
-    pub fn to_cents_rounded(self) -> Cents {
-        Cents::new(((self.0 + Sats::ONE_BTC_U128 / 2) / Sats::ONE_BTC_U128) as u64)
-    }
-
-    /// The realized price (cents per BTC) given the sats amount; undefined (NaN) without sats.
+    /// The realized price (cents per BTC) given the sats amount, rounded to the nearest cent;
+    /// undefined (NaN) without sats.
     #[inline(always)]
     pub fn realized_price(self, sats: Sats) -> Cents {
         if sats.is_zero() {
             return Cents::NAN;
         }
-        Cents::from(self.0 / sats.as_u128())
+        Cents::from(div_round(self.0, sats.as_u128()))
     }
+}
+
+/// `numerator / denominator` rounded to the nearest integer (halves up).
+#[inline(always)]
+fn div_round(numerator: u128, denominator: u128) -> u128 {
+    (numerator + denominator / 2) / denominator
 }
 
 crate::impl_int_format!(CentsSats);
 
 #[cfg(feature = "storage")]
-// SAFETY: not native layout.
+// SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
+// value the contract requires; the values are encoded, not in native layout.
 unsafe impl Bytes for CentsSats {
-    type Array = [u8; 16];
+    type Array = [u8; size_of::<Self>()];
 
     fn to_bytes(&self) -> Self::Array {
         self.0.to_le_bytes()

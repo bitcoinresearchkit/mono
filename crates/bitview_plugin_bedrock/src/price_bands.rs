@@ -7,8 +7,8 @@ pub struct PriceBands<T> {
     /// Lowest creation price at which the share of mode-weighted supply with a
     /// higher creation price is no greater than the historical loss-share
     /// threshold identified below. If spot equaled this floor, that higher-cost
-    /// supply would be in loss. Unavailable when the mode has no positive
-    /// weighted supply or no historical threshold.
+    /// supply would be in loss. Unavailable when no mode-weighted supply has a
+    /// positive creation price, or without a historical threshold.
     pub floor: Percentiles<T>,
     /// Creation-price percentiles of the mode-weighted supply at or above the
     /// mode's 95th-percentile floor. Unavailable when that floor or the

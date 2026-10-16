@@ -77,7 +77,8 @@ impl Formattable for EmptyAddressData {
 }
 
 #[cfg(feature = "storage")]
-// SAFETY: not native layout.
+// SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
+// value the contract requires; the values are encoded, not in native layout.
 unsafe impl Bytes for EmptyAddressData {
     type Array = [u8; size_of::<Self>()];
 

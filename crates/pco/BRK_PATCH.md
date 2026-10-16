@@ -26,7 +26,13 @@ Upstream fixes kept small and local:
   only (`[..dst.len()]`), not the stale tail of the 256-entry scratch, which
   made valid short dictionary pages fail as corrupt.
 - `delta/conv1.rs`: a page shorter than the conv1 order pads its delta state
-  with zeros (as consecutive deltas do) instead of panicking.
+  with zeros (as consecutive deltas do) instead of panicking, and a final
+  encoding batch shorter than the order predicts nothing (the previous batch
+  already did) instead of panicking.
+- `macros.rs`: `define_number_enum!` is no longer exported: dtype_dispatch's
+  reference-enum constructors do not tie the input lifetime to the enum's, so
+  outside code could keep a reference past its storage. The match macros stay
+  exported.
 - `describers.rs`: float types describe `Dict` mode chunks (they panicked).
 - `standalone/decompressor.rs`: `FileDecompressor::simple_decompress` is public
   so `with_max_prealloc` reaches a public entry point.

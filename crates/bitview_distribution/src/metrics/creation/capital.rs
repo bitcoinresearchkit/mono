@@ -33,7 +33,7 @@ impl CreationCapital {
         all_capital: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
-        // Split before rounding: each side's exact creation value, floored once.
+        // Split before rounding: each side's exact creation value, rounded once.
         let split_version = version + Version::ONE;
         Ok(Self {
             base: CohortCapital::import(db, name, version, mappings, window_starts, all_capital)?,

@@ -30,21 +30,25 @@ impl ResolvedPoolBlocks {
 }
 
 impl Query {
-    /// Resolve the page's exact block heights and activity anchor once.
+    /// Resolve the page's exact block heights and activity anchor once: the pool's latest
+    /// `limit` blocks strictly below `before_height` (default through the tip), so a page
+    /// requested before its predecessor's last height continues it, as mempool.space pages.
     pub fn resolve_pool_blocks(
         &self,
         slug: PoolSlug,
         before_height: Option<Height>,
         limit: usize,
     ) -> Result<ResolvedPoolBlocks> {
-        let chain = self.resolve_blocks(None, 0)?;
+        let chain = self.blocks_window(None, 0)?;
         let tip = chain.last_height().ok_or(Error::StateUpdating)?;
-        let through_height = before_height.unwrap_or(tip).min(tip);
-        let heights = self
-            .plugins()
-            .pools
-            .heights
-            .latest_heights(slug, through_height, limit);
+        let heights = before_height
+            .map_or(Some(tip), Height::decremented)
+            .map_or_else(Vec::new, |through| {
+                self.plugins()
+                    .pools
+                    .heights
+                    .latest_heights(slug, through.min(tip), limit)
+            });
         let activity_anchor = heights
             .first()
             .map(|height| {

@@ -333,7 +333,7 @@ curl -s "https://bitview.space/api/blocks/tip/height"
 
 Blocks from height
 
-Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
+Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
 
 Parameters:
 - `height` (path, Height, required)
@@ -360,7 +360,7 @@ curl -s "https://bitview.space/api/v1/blocks"
 
 Blocks from height with extras
 
-Retrieve up to 15 blocks with extended data going backwards from the given height. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
+Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
 
 Parameters:
 - `height` (path, Height, required)
@@ -422,7 +422,7 @@ Recommended fee rates (precise)
 
 Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
 
-Returns: JSON `RecommendedFees`
+Returns: JSON `PreciseRecommendedFees`
 
 ```bash
 curl -s "https://bitview.space/api/v1/fees/precise"
@@ -432,7 +432,7 @@ curl -s "https://bitview.space/api/v1/fees/precise"
 
 Recommended fees
 
-Recommended fee rates by confirmation target. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
+Recommended fee rates by confirmation target, in whole sat/vB. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
 
 Returns: JSON `RecommendedFees`
 
@@ -474,15 +474,16 @@ curl -s "https://bitview.space/health"
 
 Historical price
 
-Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
+Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
 
 Parameters:
-- `timestamp` (query, Timestamp, optional)
+- `timestamp` (query, Timestamp, optional): UNIX timestamp: the latest close at or before it
+- `currency` (query, Currency, optional): Quote currency: USD, the only one served
 
 Returns: JSON `HistoricalPrice`
 
 ```bash
-curl -s "https://bitview.space/api/v1/historical-price?timestamp=<timestamp>"
+curl -s "https://bitview.space/api/v1/historical-price?timestamp=<timestamp>&currency=<currency>"
 ```
 
 ### Mempool
@@ -563,7 +564,7 @@ curl -s "https://bitview.space/api/v1/mempool/block-template"
 
 Block template diff since hash
 
-Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
 
 Parameters:
 - `hash` (path, NextBlockHash, required)
@@ -764,9 +765,9 @@ curl -s "https://bitview.space/api/v1/mining/pool/<slug>/blocks"
 
 #### GET `/api/v1/mining/pool/{slug}/blocks/{height}`
 
-Mining pool blocks from height
+Mining pool blocks before height
 
-Get up to 100 blocks mined by a specific pool before (and including) the given height. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
+Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
 
 Parameters:
 - `slug` (path, PoolSlug, required)
@@ -1368,7 +1369,7 @@ curl -s "https://bitview.space/api/urpd"
 
 Latest URPD
 
-URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.
+URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
 Parameters:
 - `cohort` (path, Cohort, required)
@@ -1401,7 +1402,7 @@ curl -s "https://bitview.space/api/urpd/<cohort>/dates?weight=<weight>"
 
 URPD at block height or date
 
-URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.
+URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
 Parameters:
 - `cohort` (path, Cohort, required)
@@ -1581,22 +1582,22 @@ curl -s "https://bitview.space/version"
 
 ### `BlockFeeRatesEntry`
 
-- `avgHeight`: `Height` (required) — Average block height in this window
-- `timestamp`: `Timestamp` (required) — Unix timestamp at the window midpoint
-- `avgFee_0`: `FeeRate` (required) — Minimum fee rate (sat/vB)
-- `avgFee_10`: `FeeRate` (required) — 10th percentile fee rate (sat/vB)
-- `avgFee_25`: `FeeRate` (required) — 25th percentile fee rate (sat/vB)
-- `avgFee_50`: `FeeRate` (required) — Median fee rate (sat/vB)
-- `avgFee_75`: `FeeRate` (required) — 75th percentile fee rate (sat/vB)
-- `avgFee_90`: `FeeRate` (required) — 90th percentile fee rate (sat/vB)
-- `avgFee_100`: `FeeRate` (required) — Maximum fee rate (sat/vB)
+- `avgHeight`: `Height` (required) — Average block height in this bucket
+- `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
+- `avgFee_0`: `FeeRate` (required) — Mean of the blocks' minimum fee rate (sat/vB)
+- `avgFee_10`: `FeeRate` (required) — Mean of the blocks' 10th percentile fee rate (sat/vB)
+- `avgFee_25`: `FeeRate` (required) — Mean of the blocks' 25th percentile fee rate (sat/vB)
+- `avgFee_50`: `FeeRate` (required) — Mean of the blocks' median fee rate (sat/vB)
+- `avgFee_75`: `FeeRate` (required) — Mean of the blocks' 75th percentile fee rate (sat/vB)
+- `avgFee_90`: `FeeRate` (required) — Mean of the blocks' 90th percentile fee rate (sat/vB)
+- `avgFee_100`: `FeeRate` (required) — Mean of the blocks' maximum fee rate (sat/vB)
 
 ### `BlockFeesEntry`
 
-- `avgHeight`: `Height` (required) — Average block height in this window
-- `timestamp`: `Timestamp` (required) — Unix timestamp at the window midpoint
-- `avgFees`: `Sats` (required) — Average fees per block in this window (sats)
-- `USD`: `Dollars` (required) — BTC/USD price at this height
+- `avgHeight`: `Height` (required) — Average block height in this bucket
+- `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
+- `avgFees`: `Sats` (required) — Mean fees per block in this bucket, rounded half up (sats)
+- `USD`: `Dollars` (required) — Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
 
 ### `BlockHash`
 
@@ -1646,10 +1647,10 @@ curl -s "https://bitview.space/version"
 
 ### `BlockRewardsEntry`
 
-- `avgHeight`: `Height` (required) — Average block height in this window
-- `timestamp`: `Timestamp` (required) — Unix timestamp at the window midpoint
-- `avgRewards`: `Sats` (required) — Average coinbase reward per block (subsidy + fees, sats)
-- `USD`: `Dollars` (required) — BTC/USD price at this height
+- `avgHeight`: `Height` (required) — Average block height in this bucket
+- `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
+- `avgRewards`: `Sats` (required) — Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
+- `USD`: `Dollars` (required) — Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
 
 ### `BlockSizeEntry`
 
@@ -1678,6 +1679,7 @@ curl -s "https://bitview.space/version"
 
 - `hash`: `NextBlockHash` (required) — Current next-block hash. Use as `since` on the next diff call.
 - `since`: `NextBlockHash` (required) — Echoed prior hash the diff was computed against.
+- `stats`: `MempoolBlock` (required) — Aggregate stats for the new template (size, vsize, fee range, ...). They can change while every transaction is retained.
 - `order`: `BlockTemplateDiffEntry[]` (required) — New template in order. Each entry is either an index into the prior template's transactions or a full transaction body.
 - `removed`: `Txid[]` (required) — Txids that left the projected next block since `since` (confirmed, evicted, replaced, or pushed past block 0).
 
@@ -1745,6 +1747,10 @@ curl -s "https://bitview.space/version"
 - `adjustedVsize`: `VSize` (required) — Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
 - `cluster`: `CpfpCluster | null` — Cluster the seed belongs to: full tx list, linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
 
+### `Currency`
+
+`USD`
+
 ### `Date`
 
 `string`
@@ -1760,7 +1766,7 @@ curl -s "https://bitview.space/version"
 ### `DifficultyAdjustment`
 
 - `progressPercent`: `number` (required) — Progress through current difficulty epoch (0-100%)
-- `difficultyChange`: `number` (required) — Estimated difficulty change at next retarget (%)
+- `difficultyChange`: `number` (required) — Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
 - `estimatedRetargetDate`: `integer` (required) — Estimated timestamp of next retarget (milliseconds)
 - `remainingBlocks`: `integer` (required) — Blocks remaining until retarget
 - `remainingTime`: `integer` (required) — Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
@@ -1809,14 +1815,14 @@ curl -s "https://bitview.space/version"
 
 ### `HashrateEntry`
 
-- `timestamp`: `Timestamp` (required) — Unix timestamp
+- `timestamp`: `Timestamp` (required) — End of the day the hashrate covers (Unix timestamp), as mempool.space stamps it
 - `avgHashrate`: `integer` (required) — Average hashrate (H/s)
 
 ### `HashrateSummary`
 
 - `hashrates`: `HashrateEntry[]` (required) — Historical hashrate data points
 - `difficulty`: `DifficultyEntry[]` (required) — Historical difficulty adjustments
-- `currentHashrate`: `integer` (required) — Current network hashrate (H/s)
+- `currentHashrate`: `integer` (required) — Current network hashrate over the trailing 7 days (H/s)
 - `currentDifficulty`: `number` (required) — Current network difficulty
 
 ### `Health`
@@ -1879,7 +1885,7 @@ curl -s "https://bitview.space/version"
 - `count`: `integer` (required) — Number of transactions in the mempool
 - `vsize`: `VSize` (required) — Total virtual size of all transactions in the mempool (vbytes)
 - `total_fee`: `Sats` (required) — Total fees of all transactions in the mempool (satoshis)
-- `fee_histogram`: `number[][]` (required) — Fee histogram: `[[fee_rate, vsize], ...]` sorted by descending fee rate
+- `fee_histogram`: `number[][]` (required) — Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each entry the vsize of the transactions paying from its fee rate up to the previous entry's, a bin closing at the first fee rate change past 50,000 vB
 
 ### `MempoolRecentTx`
 
@@ -1983,6 +1989,14 @@ curl -s "https://bitview.space/version"
 - `lastEstimatedHashrate3d`: `integer` (required) — Estimated network hashrate over last 3 days (H/s)
 - `lastEstimatedHashrate1w`: `integer` (required) — Estimated network hashrate over last 1 week (H/s)
 
+### `PreciseRecommendedFees`
+
+- `fastestFee`: `FeeRate` (required) — Fee rate for fastest confirmation (next block)
+- `halfHourFee`: `FeeRate` (required) — Fee rate for confirmation within ~30 minutes (3 blocks)
+- `hourFee`: `FeeRate` (required) — Fee rate for confirmation within ~1 hour (6 blocks)
+- `economyFee`: `FeeRate` (required) — Fee rate for economical confirmation
+- `minimumFee`: `FeeRate` (required) — Minimum relay fee rate
+
 ### `Prices`
 
 - `time`: `Timestamp` (required) — Unix timestamp
@@ -2014,11 +2028,11 @@ curl -s "https://bitview.space/version"
 
 ### `RecommendedFees`
 
-- `fastestFee`: `FeeRate` (required) — Fee rate for fastest confirmation (next block)
-- `halfHourFee`: `FeeRate` (required) — Fee rate for confirmation within ~30 minutes (3 blocks)
-- `hourFee`: `FeeRate` (required) — Fee rate for confirmation within ~1 hour (6 blocks)
-- `economyFee`: `FeeRate` (required) — Fee rate for economical confirmation
-- `minimumFee`: `FeeRate` (required) — Minimum relay fee rate
+- `fastestFee`: `integer` (required) — Fee rate for fastest confirmation (next block)
+- `halfHourFee`: `integer` (required) — Fee rate for confirmation within ~30 minutes (3 blocks)
+- `hourFee`: `integer` (required) — Fee rate for confirmation within ~1 hour (6 blocks)
+- `economyFee`: `integer` (required) — Fee rate for economical confirmation
+- `minimumFee`: `integer` (required) — Minimum relay fee rate
 
 ### `ReplacementNode`
 
@@ -2147,7 +2161,7 @@ curl -s "https://bitview.space/version"
 - `scriptpubkey`: `string` (required) — Script pubkey (locking script), encoded as hexadecimal.
 - `scriptpubkey_asm`: `string` (required) — Script pubkey in assembly format.
 - `scriptpubkey_type`: `OutputTypeNormalized` (required) — Esplora/mempool.space script type.
-- `scriptpubkey_address`: `Address` — Bitcoin address, omitted for scripts without an address.
+- `scriptpubkey_address`: `Address` — Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
 - `value`: `Sats` (required) — Value of the output in satoshis.
 
 ### `TxOutspend`
@@ -2194,9 +2208,9 @@ curl -s "https://bitview.space/version"
 ### `UrpdBucket`
 
 - `price_floor`: `Dollars` (required) — The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its coins' creation prices round to (four significant digits of the price in cents).
-- `supply`: `Bitcoin` (required) — Supply held with a last-move price inside this bucket, in BTC.
-- `realized_cap`: `Dollars` (required) — Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
-- `unrealized_pnl`: `Dollars` (required) — Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.
+- `supply`: `Bitcoin` (required) — Supply held with a last-move price inside this bucket, in BTC. With a `cointime` or `coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
+- `realized_cap`: `Dollars` (required) — Realized cap contribution in USD: `price * supply` summed over the coins in this bucket, each coin's creation price taken on the price grid (the `Raw` bucket price, within 0.05% of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The buckets therefore need not sum to the cohort's realized cap series.
+- `unrealized_pnl`: `Dollars` (required) — Unrealized P&L in USD against the close on the snapshot date: `close * supply` minus the bucket's grid capital, rounded to the cent once. Can be negative.
 
 ### `UrpdWeight`
 

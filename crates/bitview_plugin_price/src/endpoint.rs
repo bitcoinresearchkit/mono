@@ -8,16 +8,20 @@ use vecdb::{
     AnyVec, Convert, LazyVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, VecIndex,
 };
 
-const COMPUTE_VERSION: Version = Version::ONE;
+use crate::FIRST_PRICE_HEIGHT;
+
+/// Two: a period holding the first price opens at it.
+const COMPUTE_VERSION: Version = Version::TWO;
 
 /// A period's opening (`CLOSE = false`) or closing spot price, read at one height instead of
-/// building its candle: the first or last block of a populated period. An empty period carries
-/// the previous close, zero before the first price, as its flat candle does.
+/// building its candle: the first priced or last block of a populated period. An empty period
+/// carries the previous close, zero before the first price, as its flat candle does.
 pub(crate) struct Endpoint<const CLOSE: bool>;
 
 impl<const CLOSE: bool> Endpoint<CLOSE> {
     fn height(first_heights: &Pages<Height>, index: usize, price_len: usize) -> Option<usize> {
-        let first = first_heights[index].to_usize().min(price_len);
+        // The zero placeholders before the first price are no prices.
+        let first = first_heights[index].to_usize().max(FIRST_PRICE_HEIGHT);
         let end = first_heights
             .get(index + 1)
             .map_or(price_len, |height| height.to_usize().min(price_len));

@@ -7,9 +7,10 @@ use crate::{Error, OptionData, Query, Result};
 
 impl Query {
     /// Network hashrate summary for `time_period` (`None` walks the full
-    /// chain). Bundles a downsampled daily hashrate series (at most
-    /// `max_points.max(1)` samples), every difficulty retarget within the window, the
-    /// current 1-day hashrate, and the current block's difficulty. The
+    /// chain). Bundles a downsampled series of completed days' hashrates (at most
+    /// `max_points.max(1)` samples), each stamped at its day's end as mempool.space does, every
+    /// difficulty retarget within the window, the trailing 7-day hashrate (the blocks of the
+    /// last 7 days), and the current block's difficulty. The
     /// window cutoff uses timestamp lookbacks from the tip (via `start_height`), matching
     /// `difficulty_adjustments` so the two endpoints agree on the same
     /// `time_period`.
@@ -19,7 +20,7 @@ impl Query {
         max_points: usize,
     ) -> Result<HashrateSummary> {
         let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin);
+        let tip = Query::tip_height(&pin)?;
         let indexer = self.indexer();
         let plugins = self.plugins();
         let current_height = tip;
@@ -31,7 +32,7 @@ impl Query {
             .collect_one(current_height)
             .data()?;
 
-        let current_hashrate = self.hashrate_at(current_height)?;
+        let current_hashrate = self.trailing_hashrate(current_height, 7)?;
         let current_day1 = plugins
             .mappings
             .height
@@ -53,23 +54,23 @@ impl Query {
             .data()?;
         let end_day1 = current_day1;
 
-        // Sample at regular intervals so the chart payload stays bounded
-        // regardless of window size.
-        let total_days = end_day1
+        // Completed days only (the tip's is still open), sampled at regular intervals so the
+        // chart payload stays bounded regardless of window size.
+        let days = end_day1
             .to_usize()
             .checked_sub(start_day1.to_usize())
-            .ok_or(Error::Internal("Reversed hashrate day window"))?
-            + 1;
-        let step = total_days.div_ceil(max_points.max(1));
+            .ok_or(Error::Internal("Reversed hashrate day window"))?;
+        let step = days.div_ceil(max_points.max(1)).max(1);
 
         let mut hr_cursor = plugins.mining.hashrate.rate.block.day1.cursor();
         let mut ts_cursor = plugins.mappings.timestamp.day1.cursor();
 
-        let mut hashrates = Vec::with_capacity(total_days / step + 1);
+        let mut hashrates = Vec::with_capacity(days.div_ceil(step));
         let mut di = start_day1.to_usize();
-        while di <= end_day1.to_usize() {
+        while di < end_day1.to_usize() {
             let hr = hr_cursor.get(di).data()?;
-            let timestamp = ts_cursor.get(di).data()?;
+            // The day's end: the next day's start.
+            let timestamp = ts_cursor.get(di + 1).data()?;
             if let Some(hr) = hr {
                 hashrates.push(HashrateEntry {
                     timestamp,

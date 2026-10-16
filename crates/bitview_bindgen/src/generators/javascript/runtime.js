@@ -329,7 +329,7 @@ function _wrapSeriesData(raw) {
  * @returns {DateSeriesEndpoint<T>}
  */
 function _endpoint(client, name, index) {
-  const p = `/api/series/${name}/${index}`;
+  const p = `/api/series/${encodeURIComponent(name)}/${index}`;
 
   /**
    * Counted selections send `limit`: the server ends them after resolving a negative start.
@@ -451,16 +451,24 @@ class BitviewClientBase {
   }
 
   /**
+   * The request's timeout, joined with the caller's signal when one is given.
+   * @param {AbortSignal} [signal]
+   * @returns {AbortSignal}
+   */
+  _signal(signal) {
+    const timeout = AbortSignal.timeout(this.timeout);
+    return signal ? AbortSignal.any([timeout, signal]) : timeout;
+  }
+
+  /**
    * @param {string} path
    * @param {{ signal?: AbortSignal, cache?: boolean, etag?: string | null }} [options]
    * @returns {Promise<Response>}
    */
   async get(path, { signal, cache = true, etag } = {}) {
     const url = `${this.baseUrl}${path}`;
-    const signals = [AbortSignal.timeout(this.timeout)];
-    if (signal) signals.push(signal);
     /** @type {RequestInit} */
-    const init = { signal: AbortSignal.any(signals) };
+    const init = { signal: this._signal(signal) };
     // Let browsers manage HTTP revalidation; explicit validators bypass their HTTP cache.
     const revalidate = cache && etag && typeof location === 'undefined';
     if (revalidate) init.headers = { 'If-None-Match': etag };
@@ -619,13 +627,7 @@ class BitviewClientBase {
    */
   async post(path, body, { signal } = {}) {
     const url = `${this.baseUrl}${path}`;
-    const signals = [AbortSignal.timeout(this.timeout)];
-    if (signal) signals.push(signal);
-    const res = await fetch(url, {
-      method: 'POST',
-      body,
-      signal: AbortSignal.any(signals),
-    });
+    const res = await fetch(url, { method: 'POST', body, signal: this._signal(signal) });
     if (!res.ok) throw await _responseError(res);
     return res;
   }

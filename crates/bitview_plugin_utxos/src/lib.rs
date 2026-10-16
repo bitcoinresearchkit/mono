@@ -18,7 +18,7 @@ use vecdb::{Database, Rw, StorageMode};
 use metrics::CohortMetrics;
 use state::UTXOStates;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("utxos"), Version::new(49));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("utxos"), Version::new(50));
 pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len() + SpendableTypeId::ALL.len();

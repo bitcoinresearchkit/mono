@@ -2,7 +2,7 @@ use super::ZeroCopyStrategy;
 use crate::{Error, Result, ValueStrategy, ZeroCopyVecValue};
 
 // SAFETY: zerocopy's `FromBytes + IntoBytes` bounds make every value a plain, padding-free byte
-// image valid for every bit pattern.
+// image of `size_of::<T>()` bytes, valid for every bit pattern.
 unsafe impl<T: ZeroCopyVecValue> ValueStrategy<T> for ZeroCopyStrategy<T> {
     const IS_NATIVE_LAYOUT: bool = true;
 

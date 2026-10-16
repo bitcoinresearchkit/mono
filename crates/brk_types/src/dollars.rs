@@ -8,7 +8,7 @@ use derive_more::{Add, AddAssign, Deref, From, Into, Neg, Sub, SubAssign, Sum};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Bitcoin, CentsSigned, Sats};
+use super::{Bitcoin, CentsSigned};
 use crate::{Cents, CheckedSub};
 
 #[cfg(feature = "storage")]
@@ -90,10 +90,11 @@ impl From<usize> for Dollars {
 impl Div<f64> for Dollars {
     type Output = Self;
     fn div(self, rhs: f64) -> Self::Output {
-        if self.is_nan() || rhs == 0.0 {
+        let quotient = self.0 / rhs;
+        if quotient.is_nan() || rhs == 0.0 {
             Dollars::NAN
         } else {
-            Dollars::from(CentsSigned::from(Self::from(self.0 / rhs)))
+            Dollars::from(CentsSigned::from(Self(quotient)))
         }
     }
 }
@@ -120,20 +121,7 @@ impl Mul<f64> for Dollars {
 impl Mul<Bitcoin> for Dollars {
     type Output = Self;
     fn mul(self, rhs: Bitcoin) -> Self::Output {
-        self * Sats::from(rhs)
-    }
-}
-
-impl Mul<Sats> for Dollars {
-    type Output = Self;
-    fn mul(self, rhs: Sats) -> Self::Output {
-        if self.is_nan() {
-            self
-        } else {
-            let cents = i128::from(CentsSigned::from(self));
-            let sats = rhs.as_u128() as i128;
-            Self::from(CentsSigned::from(sats * cents / Sats::ONE_BTC_U128 as i128))
-        }
+        self * f64::from(rhs)
     }
 }
 
@@ -148,27 +136,6 @@ impl Mul<usize> for Dollars {
     type Output = Self;
     fn mul(self, rhs: usize) -> Self::Output {
         Self(self.0 * rhs as f64)
-    }
-}
-
-impl From<u64> for Dollars {
-    #[inline]
-    fn from(value: u64) -> Self {
-        Self::from(CentsSigned::from(value))
-    }
-}
-
-impl From<u128> for Dollars {
-    #[inline]
-    fn from(value: u128) -> Self {
-        Self::from(CentsSigned::from(value))
-    }
-}
-
-impl From<Dollars> for u128 {
-    #[inline]
-    fn from(value: Dollars) -> Self {
-        u128::from(CentsSigned::from(value))
     }
 }
 

@@ -3,7 +3,7 @@ use std::path::Path;
 use axum::http::{HeaderMap, HeaderValue, header};
 
 pub trait HeaderMapExtended {
-    fn has_etag(&self, etag: &str) -> bool;
+    fn has_etag(&self, etag: Option<&str>) -> bool;
     fn insert_etag(&mut self, etag: &str);
     fn insert_vary_accept_encoding(&mut self);
     fn insert_cache_control_must_revalidate(&mut self);
@@ -13,9 +13,10 @@ pub trait HeaderMapExtended {
 }
 
 impl HeaderMapExtended for HeaderMap {
-    /// Weak comparison over every listed tag: a CDN may weaken or list them.
-    fn has_etag(&self, etag: &str) -> bool {
-        let etag = etag.strip_prefix("W/").unwrap_or(etag);
+    /// Whether `If-None-Match` matches an existing representation with `etag` (if any): `*`
+    /// always does; tags compare weakly over every listed one, as a CDN may weaken or list them.
+    fn has_etag(&self, etag: Option<&str>) -> bool {
+        let etag = etag.map(|etag| etag.strip_prefix("W/").unwrap_or(etag));
         self.get_all(header::IF_NONE_MATCH)
             .iter()
             .filter_map(|value| value.to_str().ok())
@@ -23,7 +24,7 @@ impl HeaderMapExtended for HeaderMap {
                 value.trim() == "*"
                     || value.split(',').any(|tag| {
                         let tag = tag.trim();
-                        tag.strip_prefix("W/").unwrap_or(tag) == etag
+                        Some(tag.strip_prefix("W/").unwrap_or(tag)) == etag
                     })
             })
     }

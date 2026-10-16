@@ -59,7 +59,7 @@ impl CentsSigned {
 impl From<Dollars> for CentsSigned {
     #[inline]
     fn from(value: Dollars) -> Self {
-        Self((*value * 100.0).round() as i64)
+        Self::from(*value * 100.0)
     }
 }
 
@@ -77,10 +77,11 @@ impl From<CentsSigned> for f64 {
     }
 }
 
+/// Rounds to the nearest cent, like every conversion to cents.
 impl From<f64> for CentsSigned {
     #[inline]
     fn from(value: f64) -> Self {
-        Self(value as i64)
+        Self(value.round() as i64)
     }
 }
 

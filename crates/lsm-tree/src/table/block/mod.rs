@@ -106,12 +106,6 @@ pub struct Block {
 }
 
 impl Block {
-    /// Returns the uncompressed block size in bytes.
-    #[must_use]
-    pub fn size(&self) -> usize {
-        self.data.len()
-    }
-
     /// Writes an uncompressed block.
     pub fn write_into<W: Write>(
         writer: &mut W,

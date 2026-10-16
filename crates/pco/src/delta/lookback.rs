@@ -76,11 +76,15 @@ fn find_best_lookback<L: Latent>(
   let mut best_goodness = 0;
   let mut best_lookback: usize = 0;
   for &lookback in proposed_lookbacks {
-    // SAFETY: each `lookback` comes from `proposed_lookbacks`, whose entries
-    // are initialised to `(k+1).min(state_n) >= 1` and subsequently updated
-    // only to values in `[1, window_n]`.  `window_n <= lookback_counts.len()`,
-    // so `lookback - 1 < lookback_counts.len()`.  `i >= state_n >= lookback`,
-    // so `i - lookback` doesn't underflow and stays in `[0, latents.len())`.
+    // SAFETY: every proposed lookback is in `1..=min(i, window_n)`: initial
+    // ones are `<= state_n <= min(i, window_n)`, brute ones
+    // `i.min(PROPOSED_LOOKBACKS)` (asserted `<= window_n`), hash ones either
+    // `i - j` for a table entry `j < i` (when `<= window_n`) or
+    // `proposal_idx.min(i)` with `proposal_idx < PROPOSED_LOOKBACKS`, and
+    // repeating ones are earlier picks among these (every proposal scores at
+    // least 1, so a pick is never the initial 0). With `i < latents.len()`,
+    // `lookback - 1 < min(window_n, latents.len()) = lookback_counts.len()`
+    // and `i - lookback` lies in `[0, i)`.
     let (lookback_count, other) = unsafe {
       (
         *lookback_counts.get_unchecked(lookback - 1),

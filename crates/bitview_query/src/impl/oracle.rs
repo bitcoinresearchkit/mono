@@ -190,26 +190,10 @@ impl Query {
         Ok(safe)
     }
 
-    /// The confirmed block heights `[first, end)` of calendar `day`, clamped to
-    /// the same histogram-available bound as `check_histogram_height`. 404 when
-    /// the day has no committed blocks in range; 503 while a lowered publication hides them.
+    /// The confirmed block heights of calendar `day`, clamped to the same histogram-available
+    /// bound as `check_histogram_height`.
     fn day_block_range(&self, day: Day1, pin: &SafeLengths) -> Result<Range<usize>> {
-        let first_height = &self.plugins().mappings.day1.first_height;
-        let bound = self.histogram_bound(&pin.lengths());
-        let start = first_height
-            .collect_one(day)
-            .map_or(usize::MAX, |h| h.to_usize());
-        let end = first_height
-            .collect_one_at(usize::from(day) + 1)
-            .map_or(bound, |h| h.to_usize())
-            .min(bound);
-        if start >= end {
-            check_bound(pin, start, bound)?;
-            return Err(Error::NotFound(format!(
-                "oracle histogram unavailable for day {day}"
-            )));
-        }
-        Ok(start..end)
+        self.day_heights(day, self.histogram_bound(&pin.lengths()), pin)
     }
 
     /// Unfiltered histogram for a contiguous confirmed block range: every output,

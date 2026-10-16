@@ -27,15 +27,18 @@ impl UrpdEntries {
         let mut total = Sats::ZERO;
         let mut current: Option<(Cents, Sats, CentsSats)> = None;
         let finish = |(price, supply, capital): (Cents, Sats, CentsSats)| {
-            let realized_cap = capital.to_cents();
-            let market_cap = CentsSats::from_price_sats(close, supply).to_cents();
+            let market = CentsSats::from_price_sats(close, supply);
+            // The exact difference, rounded once.
+            let unrealized_pnl = if market >= capital {
+                i128::from((market - capital).to_cents().inner())
+            } else {
+                -i128::from((capital - market).to_cents().inner())
+            };
             UrpdBucket {
                 price_floor: Dollars::from(price),
                 supply: Bitcoin::from(supply),
-                realized_cap: Dollars::from(realized_cap),
-                unrealized_pnl: Dollars::from(
-                    CentsSigned::from(market_cap.inner()) - CentsSigned::from(realized_cap.inner()),
-                ),
+                realized_cap: Dollars::from(capital.to_cents()),
+                unrealized_pnl: Dollars::from(CentsSigned::from(unrealized_pnl)),
             }
         };
         for &(price, supply) in &self.entries {

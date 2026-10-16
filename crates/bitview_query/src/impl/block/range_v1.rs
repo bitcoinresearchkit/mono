@@ -50,7 +50,7 @@ impl Query {
         start_height: Option<Height>,
         count: u32,
     ) -> Result<Option<ResolvedBlocksV1>> {
-        self.try_block_prices(self.resolve_blocks(start_height, count)?)
+        self.try_block_prices(self.blocks_window(start_height, count)?)
     }
 
     /// Validate a caller's height hint without performing a hash-store lookup.
@@ -90,7 +90,7 @@ impl Query {
         start_height: Option<Height>,
         count: u32,
     ) -> Result<ResolvedBlocksV1> {
-        let blocks = self.resolve_blocks(start_height, count)?;
+        let blocks = self.blocks_window(start_height, count)?;
         self.block_prices(blocks)
     }
 

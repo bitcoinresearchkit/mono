@@ -278,8 +278,10 @@ where
     fn create_reader(&self) -> Reader {
         self.base.region().create_reader()
     }
+    /// Crate-private: changing the page table out of step with the length would let cursors
+    /// read past their decoded pages.
     #[inline]
-    pub fn pages(&self) -> &Arc<RwLock<Pages>> {
+    pub(crate) fn pages(&self) -> &Arc<RwLock<Pages>> {
         &self.pages
     }
     /// Rewrites the region from `at` and publishes the matching page table and length with it.

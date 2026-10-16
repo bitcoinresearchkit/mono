@@ -84,8 +84,21 @@ impl BlockDecayPercentiles {
         }
 
         let buckets = self.tree.kth(targets, &|weight: &f64| *weight);
-        for (index, bucket) in buckets.iter().enumerate() {
-            out[index] = *bucket as f64 * BUCKET_WIDTH;
+        for ((out, bucket), &quantile) in out.iter_mut().zip(buckets).zip(qs) {
+            *out = (bucket as f64 + outer_edge(quantile)) * BUCKET_WIDTH;
         }
+    }
+}
+
+/// Where a quantile reads in its bucket: the outer edge on either side of the median, so a
+/// value crosses it only from a more extreme bucket. Within the quantile's own bucket,
+/// rounding alone would decide (a lone observation read beyond its own quantiles).
+fn outer_edge(quantile: f64) -> f64 {
+    if quantile < 0.5 {
+        -0.5
+    } else if quantile > 0.5 {
+        0.5
+    } else {
+        0.0
     }
 }

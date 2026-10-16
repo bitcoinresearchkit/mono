@@ -2,6 +2,8 @@
 pub mod addr;
 #[cfg(feature = "chain")]
 pub mod block;
+#[cfg(feature = "price")]
+mod calendar;
 #[cfg(feature = "chain")]
 pub mod cpfp;
 #[cfg(feature = "chain")]

@@ -88,14 +88,22 @@ pub fn undo_tail_start(range: &Range<usize>) -> usize {
 
 /// `range` in the writes of a computation that keeps undo, each with whether it does:
 /// [`WRITE_INTERVAL`]-block chunks from the start (the bulk, whose last write is the baseline the
-/// undo lands on), then the protected tail ([`undo_tail_start`]), the only write with undo. An
-/// update of at most [`UNDO_TAIL`] blocks is that one write.
+/// undo lands on), then the protected tail ([`undo_tail_start`]), the only write with undo
+/// unless it is genesis alone ([`save_point`]). An update of at most [`UNDO_TAIL`] blocks is
+/// that one write.
 pub fn undo_chunks(range: Range<usize>) -> impl Iterator<Item = (Range<usize>, bool)> {
     let tail = undo_tail_start(&range);
     (range.start..tail)
         .step_by(WRITE_INTERVAL)
         .map(move |from| (from..(from + WRITE_INTERVAL).min(tail), false))
-        .chain((tail < range.end).then_some((tail..range.end, true)))
+        .chain((tail < range.end).then_some((tail..range.end, range.end > 1)))
+}
+
+/// The stamp of a save computed through `end` (its last height), and whether it keeps the
+/// rollback changes asked for. Genesis alone never does: it is the initial baseline, at a fresh
+/// vector's stamp, and no rollback reaches before it (its undo would link the stamp to itself).
+pub fn save_point(end: usize, with_changes: bool) -> (Stamp, bool) {
+    (Stamp::from(Height::from(end - 1)), with_changes && end > 1)
 }
 
 /// Flushes a group under the exit lock: a soft quit never persists part of it.
@@ -110,8 +118,8 @@ pub fn write_locked<'a, V: AnyStoredVec + ?Sized + 'a>(
     Ok(())
 }
 
-/// Saves a group computed through `end` under the exit lock, stamped with its last height and
-/// keeping rollback changes when asked, then flushes its database.
+/// Saves a group computed through `end` under the exit lock at its [`save_point`], then flushes
+/// its database.
 pub fn save_stamped<'a, V: AnyStoredVec + ?Sized + 'a>(
     db: &Database,
     outputs: impl IntoIterator<Item = &'a mut V>,
@@ -120,7 +128,7 @@ pub fn save_stamped<'a, V: AnyStoredVec + ?Sized + 'a>(
     exit: &Exit,
 ) -> Result<()> {
     let _lock = exit.lock();
-    let stamp = Stamp::from(Height::from(end - 1));
+    let (stamp, with_changes) = save_point(end, with_changes);
     for vec in outputs {
         vec.any_stamped_write_maybe_with_changes(stamp, with_changes)?;
     }

@@ -64,18 +64,28 @@ impl Region {
     }
 
     /// Runs `f` on the `len` bytes at `offset`, borrowing nothing else: a value read this way
-    /// never overlaps [`Self::write_indexed_unread`]'s writes of other values.
-    pub fn with_read_range<R>(&self, offset: usize, len: usize, f: impl FnOnce(&[u8]) -> R) -> R {
+    /// never overlaps [`Self::write_indexed_unread`]'s writes of other values. `None` when the
+    /// region does not hold them (a truncation may win the race against a length read earlier).
+    pub fn with_read_range<R>(
+        &self,
+        offset: usize,
+        len: usize,
+        f: impl FnOnce(&[u8]) -> R,
+    ) -> Option<R> {
         let db = self.db();
         let data = &db.inner.data;
         let _access = self.read_lock();
         // SAFETY: access keeps start and reservation stable; the length only grows under it.
         let (start, region_len, _) = unsafe { self.0.bounds() };
-        assert!(len <= region_len && offset <= region_len - len);
+        if len > region_len || offset > region_len - len {
+            return None;
+        }
         let mmap = data.mapping();
         // SAFETY: the range lies within the region, access prevents changes to these bytes (but
         // for unread writes, which never write them), and the mapping never moves.
-        f(unsafe { slice::from_raw_parts(mmap.as_ptr().add(start + offset), len) })
+        Some(f(unsafe {
+            slice::from_raw_parts(mmap.as_ptr().add(start + offset), len)
+        }))
     }
 
     pub fn open_db_read_only_file(&self) -> Result<File> {
@@ -204,7 +214,7 @@ impl Region {
     /// Writes at or before the current end, extending the length if needed.
     #[inline]
     pub fn write_at(&self, data: &[u8], at: usize) -> Result<()> {
-        self.write_with(data, Some(at), false)
+        self.write_with(data, at, false)
     }
 
     /// Writes fixed-size values at `at + index * value_len` within the current region length, in no
@@ -328,18 +338,15 @@ impl Region {
     /// Truncates to `at`, then writes data there.
     #[inline]
     pub fn truncate_write(&self, at: usize, data: &[u8]) -> Result<()> {
-        self.write_with(data, Some(at), true)
+        self.write_with(data, at, true)
     }
 
     /// An append within the reservation shares region access with readers: it writes past every
     /// reader's bounds, then publishes the length. Anything else, or growth past the reservation,
     /// takes access exclusively.
     #[inline]
-    fn write_with(&self, data: &[u8], at: Option<usize>, truncate: bool) -> Result<()> {
+    fn write_with(&self, data: &[u8], offset: usize, truncate: bool) -> Result<()> {
         if data.is_empty() {
-            let Some(offset) = at else {
-                return Ok(());
-            };
             let len = self.meta().byte_len();
             if offset > len {
                 return Err(Error::WriteOutOfBounds {
@@ -357,7 +364,6 @@ impl Region {
             let _writer = self.0.writer.lock();
             // SAFETY: shared access keeps start and reservation stable; the writer lock, the length.
             let (start, len, reserved) = unsafe { self.0.bounds() };
-            let offset = at.unwrap_or(len);
             let end = offset.saturating_add(data.len());
             let new_len = if truncate { end } else { end.max(len) };
             if offset == len && new_len <= reserved {
@@ -373,7 +379,6 @@ impl Region {
         let _access = self.0.access.write();
         // SAFETY: access keeps metadata stable until this operation updates it.
         let (mut start, len, reserved) = unsafe { self.0.bounds() };
-        let offset = at.unwrap_or(len);
         if offset > len {
             return Err(Error::WriteOutOfBounds {
                 position: offset,

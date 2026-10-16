@@ -9,7 +9,7 @@ use std::{
 use brk_error::{Error, Result};
 use brk_mempool::{RbfNode, ReadOnlyState};
 use brk_rpc::Client;
-use brk_types::{BlockHash, FeeRate, NextBlockHash, RecommendedFees, Sats, Txid, VSize};
+use brk_types::{BlockHash, FeeRate, NextBlockHash, PreciseRecommendedFees, Sats, Txid, VSize};
 use rustc_hash::FxHashSet;
 use serde::Deserialize;
 use serde_json::{from_slice, to_writer};
@@ -24,7 +24,7 @@ use crate::event::{Event, LeaveReason};
 pub struct Emitter {
     prev_tip: Option<BlockHash>,
     prev_next_block_hash: Option<NextBlockHash>,
-    prev_fees: Option<RecommendedFees>,
+    prev_fees: Option<PreciseRecommendedFees>,
     prev_txids: FxHashSet<Txid>,
 }
 
@@ -114,7 +114,7 @@ impl Emitter {
                 fee: block.total_fee,
             });
         }
-        let fees = state.fees().ok();
+        let fees = state.precise_fees().ok();
         if let Some(fees) = &fees
             && self.prev_fees.as_ref() != Some(fees)
         {

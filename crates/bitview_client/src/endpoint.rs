@@ -9,7 +9,7 @@ use bitview_types::SeriesData;
 use brk_types::Timestamp;
 use serde::de::DeserializeOwned;
 
-use crate::{BitviewClientBase, BitviewError, DateSeriesData, Result};
+use crate::{BitviewClientBase, BitviewError, DateSeriesData, Result, client_base::path_segment};
 
 /// Builder for series endpoint queries.
 ///
@@ -133,7 +133,11 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
 
     /// The base endpoint path.
     pub fn path(&self) -> String {
-        format!("/api/series/{}/{}", self.name, self.index.name())
+        format!(
+            "/api/series/{}/{}",
+            path_segment(&self.name),
+            self.index.name()
+        )
     }
 
     /// Counted selections send `limit`: the server ends them after resolving a negative start.

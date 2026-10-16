@@ -134,19 +134,7 @@ impl Cents {
 impl From<Dollars> for Cents {
     #[inline]
     fn from(value: Dollars) -> Self {
-        let f = f64::from(value);
-        if unlikely(!f.is_finite()) {
-            Self::NAN
-        } else if f < 0.0 {
-            Self::ZERO
-        } else {
-            let cents = (f * 100.0).round();
-            if cents >= u64::MAX as f64 {
-                Self::MAX_FINITE
-            } else {
-                Self(cents as u64)
-            }
-        }
+        Self::from(f64::from(value) * 100.0)
     }
 }
 
@@ -203,9 +191,11 @@ impl From<Cents> for f64 {
     }
 }
 
+/// Rounds to the nearest cent, like every conversion to cents.
 impl From<f64> for Cents {
     #[inline]
     fn from(value: f64) -> Self {
+        let value = value.round();
         if unlikely(!value.is_finite()) {
             Self::NAN
         } else if value < 0.0 {

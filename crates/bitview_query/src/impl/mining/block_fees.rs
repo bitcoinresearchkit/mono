@@ -13,7 +13,7 @@ impl Query {
     /// fees-in-USD: clients multiply).
     pub fn block_fees(&self, time_period: TimePeriod) -> Result<Vec<BlockFeesEntry>> {
         let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin);
+        let tip = Query::tip_height(&pin)?;
         let bw = BlockWindow::new(self, time_period, tip)?;
         let fees = bw.means_rounded(&self.plugins().mining.rewards.fees.block.sats, identity)?;
         let prices = bw.mean_prices(&self.plugins().price.spot.cents.height)?;

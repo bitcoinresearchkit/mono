@@ -16,7 +16,7 @@ impl Bucket {
         // Rounding the running totals, not each band, keeps a filter's bands summing to its total.
         let cents = |cap: i128| {
             debug_assert!(cap >= 0, "negative capital {cap}");
-            CentsSats::new(cap as u128).to_cents_rounded().inner()
+            CentsSats::new(cap as u128).to_cents().inner()
         };
         let values = AgeAggregate::from_fn(|id| {
             let (before_sats, before_cap) = age_index::selected(id, &before);

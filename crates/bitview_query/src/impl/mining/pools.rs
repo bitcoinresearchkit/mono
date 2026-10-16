@@ -35,19 +35,9 @@ impl Query {
     /// block-count math; `TimePeriod::All` walks from genesis.
     pub fn mining_pools(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
         let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin);
+        let tip = Query::tip_height(&pin)?;
         let plugins = self.plugins();
         let current_height = tip;
-
-        if pin.lengths().height.is_zero() {
-            return Ok(PoolsSummary {
-                pools: vec![],
-                block_count: 0,
-                last_estimated_hashrate: 0,
-                last_estimated_hashrate3d: 0,
-                last_estimated_hashrate1w: 0,
-            });
-        }
 
         let start = start_height(self, time_period, tip)?.to_usize();
 
@@ -149,7 +139,7 @@ impl Query {
     /// the pool mined.
     pub fn pool_detail(&self, slug: PoolSlug) -> Result<PoolDetail> {
         let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin);
+        let tip = Query::tip_height(&pin)?;
         let plugins = self.plugins();
         let current_height = tip;
         let end = current_height.to_usize();
@@ -219,7 +209,7 @@ impl Query {
     /// network's last-7-days block count.
     pub fn pool_hashrate(&self, slug: PoolSlug) -> Result<Vec<PoolHashrateEntry>> {
         let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin);
+        let tip = Query::tip_height(&pin)?;
         let pool_name = pools().get(slug).name;
         let samples = self.hashrate_samples(0, tip)?;
         let pool_cum = self.pool_sampled_cumulative(slug, &samples.days)?;
@@ -238,7 +228,7 @@ impl Query {
         time_period: Option<TimePeriod>,
     ) -> Result<Vec<PoolHashrateEntry>> {
         let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin);
+        let tip = Query::tip_height(&pin)?;
         let start_height = match time_period {
             Some(tp) => start_height(self, tp, tip)?.to_usize(),
             None => 0,

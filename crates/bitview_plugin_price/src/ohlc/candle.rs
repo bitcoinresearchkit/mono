@@ -4,6 +4,8 @@ use brk_types::{Cents, Height};
 use rangeindex::RangeMap;
 use vecdb::{ReadableVec, VecIndex};
 
+use crate::FIRST_PRICE_HEIGHT;
+
 /// Prices read at once for a group of adjacent candles.
 const BATCH_PRICES: usize = 1 << 16;
 
@@ -11,10 +13,18 @@ const BATCH_PRICES: usize = 1 << 16;
 pub(super) type LazyOhlcVec<I> = LazyAggVec<I, OHLCCents, Height, Cents, Ohlc>;
 
 /// Each period's candle from the spot prices between its boundaries; an empty period carries
-/// the preceding close.
+/// the preceding close. The zero placeholders before the first price are no prices: a period
+/// holding the first price starts its candle there, and one before it is a flat zero candle.
 pub(super) struct Ohlc;
 
 impl Ohlc {
+    /// The first height of the candle `[first, end)` builds from: its first priced one, or `end`
+    /// when it has none.
+    #[inline]
+    fn priced_first(first: usize, end: usize) -> usize {
+        first.max(FIRST_PRICE_HEIGHT).min(end)
+    }
+
     fn candle_from_prices(first: usize, end: usize, prices: &[Cents]) -> OHLCCents {
         if first >= end {
             let close = first
@@ -51,12 +61,12 @@ impl AggFold<OHLCCents, Height, Cents> for Ohlc {
     ) -> Result<B, E> {
         let first_heights = mapping.starts();
         let price_len = source.visible_len();
-        let first = |index: usize| first_heights[index].to_usize().min(price_len);
         let end = |index: usize| {
             first_heights
                 .get(index + 1)
                 .map_or(price_len, |height| height.to_usize().min(price_len))
         };
+        let first = |index: usize| Self::priced_first(first_heights[index].to_usize(), end(index));
         // Adjacent candles share one price read, so shared physical pages are decoded once,
         // in groups of about `BATCH_PRICES` (at least one candle) so the buffer stays bounded.
         // Each read includes the preceding close for a leading empty period.
@@ -93,12 +103,12 @@ impl AggFold<OHLCCents, Height, Cents> for Ohlc {
     ) -> Option<OHLCCents> {
         let boundaries = mapping.starts();
         let price_len = source.visible_len();
-        let first = boundaries.get(index)?.to_usize().min(price_len);
         let end = boundaries
             .get(index + 1)
             .map_or(price_len, |height| height.to_usize().min(price_len));
+        let first = Self::priced_first(boundaries.get(index)?.to_usize(), end);
         let from = first.saturating_sub(1);
-        let prices = source.collect_range_dyn(from, end.max(first));
+        let prices = source.collect_range_dyn(from, end);
         Some(Self::candle_from_prices(
             first - from,
             end.saturating_sub(from),

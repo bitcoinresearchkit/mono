@@ -7,7 +7,7 @@ use super::historical_price;
 use crate::{
     AppState,
     extended::TransformResponseExtended,
-    params::{Empty, OptionalTimestampParam},
+    params::{Empty, HistoricalPriceParam},
     request_state::RequestState,
 };
 
@@ -64,7 +64,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
             "/api/v1/historical-price",
             get_with(
                 async |headers: HeaderMap,
-                       Query(params): Query<OptionalTimestampParam>,
+                       Query(params): Query<HistoricalPriceParam>,
                        RequestState(state): RequestState| {
                     historical_price::serve(state, headers, params.timestamp).await
                 },
@@ -72,7 +72,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
                     op.id("get_historical_price")
                         .general_tag()
                         .summary("Historical price")
-                        .description("Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*")
+                        .description("Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*")
                         .json_response::<HistoricalPrice>()
                         .not_modified()
                 },

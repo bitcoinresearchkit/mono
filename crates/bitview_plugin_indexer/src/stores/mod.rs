@@ -385,13 +385,45 @@ impl Stores {
         .zip(&removed_txids)
         {
             let txid_prefix = TxidPrefix::from(txid);
+            // A BIP30 duplicate is its original's transaction again: the same keys, output types,
+            // addresses and values. Undoing it brings back the original's outputs it overwrote;
+            // when the original goes too, its removals cover the shared keys.
+            let duplicate_of = overwritten_tx_index(tx_index);
+            let restored = match duplicate_of {
+                Some(original) if original < starting_tx_index => {
+                    let first_txout_index = vecs
+                        .transactions
+                        .first_txout_index
+                        .collect_one(original)
+                        .data()?;
+                    Some((original, first_txout_index.get()))
+                }
+                _ => None,
+            };
             for (vout, txout_index) in txout_range.enumerate() {
                 let output_type = txout_index_to_output_type_reader.get_at(txout_index);
+                let type_index = txout_index_to_type_index_reader.get_at(txout_index);
                 if !output_type.is_unspendable() {
                     let key = UtxoKey::new(txid_prefix, vout as u32);
-                    self.utxos.remove(key);
-                    if Utxo::is_large(txout_index_to_value_reader.get_at(txout_index)) {
-                        self.utxo_values.remove(key);
+                    let value = txout_index_to_value_reader.get_at(txout_index);
+                    if let Some((original, first_txout_index)) = restored {
+                        // A put replaces the duplicate's entry; the equal value keeps any
+                        // overflow entry.
+                        self.utxos.insert(
+                            key,
+                            Utxo::new(
+                                original,
+                                first_txout_index + TxOutIndex::from(vout),
+                                output_type,
+                                type_index,
+                                value,
+                            ),
+                        );
+                    } else if duplicate_of.is_none() {
+                        self.utxos.remove(key);
+                        if Utxo::is_large(value) {
+                            self.utxo_values.remove(key);
+                        }
                     }
                 }
                 if !output_type.is_addr() {
@@ -399,15 +431,24 @@ impl Stores {
                 }
 
                 let addr_type = output_type;
-                let addr_index = txout_index_to_type_index_reader.get_at(txout_index);
+                let addr_index = type_index;
 
                 addr_index_tx_index_to_remove.insert((addr_type, addr_index, tx_index));
 
-                let outpoint = OutPoint::new(tx_index, Vout::from(vout));
-
-                self.addr_type_to_addr_index_and_unspent_outpoint
-                    .get_mut_unwrap(addr_type)
-                    .remove(AddrIndexOutPoint::from((addr_index, outpoint)));
+                let vout = Vout::from(vout);
+                let outpoints = self
+                    .addr_type_to_addr_index_and_unspent_outpoint
+                    .get_mut_unwrap(addr_type);
+                outpoints.remove(AddrIndexOutPoint::from((
+                    addr_index,
+                    OutPoint::new(tx_index, vout),
+                )));
+                if let Some((original, _)) = restored {
+                    outpoints.insert(
+                        AddrIndexOutPoint::from((addr_index, OutPoint::new(original, vout))),
+                        Unit,
+                    );
+                }
             }
         }
 

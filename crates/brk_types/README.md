@@ -20,7 +20,7 @@ linearization lives in `brk_cpfp`.
 | Transactions | `Txid`, `TxIndex`, `TxIn`, `TxOut`, `VSize`, `Weight`, `RawLockTime` |
 | Addresses | `Address`, `AddressBytes`, `OutputType`, `P2PKHBytes` |
 | Values | `Sats`, `Bitcoin`, `Dollars`, `Cents`, `FeeRate` |
-| Mempool | `MempoolInfo`, `MempoolBlock`, `BlockTemplate`, `RecommendedFees`, `CpfpInfo` |
+| Mempool | `MempoolInfo`, `MempoolBlock`, `BlockTemplate`, `RecommendedFees`, `PreciseRecommendedFees`, `CpfpInfo` |
 
 The types implement the serialization, arithmetic, formatting, and optional JSON
 Schema (`schemars`) and vecdb (`storage`) traits needed by their domains rather

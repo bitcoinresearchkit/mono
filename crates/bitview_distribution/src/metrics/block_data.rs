@@ -15,9 +15,6 @@ impl RealizedBlockData {
     /// Compute mean creation price only for consumers that publish it; undefined (NaN) without
     /// supply.
     pub fn price(&self) -> Cents {
-        self.cap_raw
-            .as_u128()
-            .checked_div(self.supply.as_u128())
-            .map_or(Cents::NAN, |price| Cents::new(price as u64))
+        self.cap_raw.realized_price(self.supply)
     }
 }

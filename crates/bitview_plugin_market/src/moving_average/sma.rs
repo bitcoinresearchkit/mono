@@ -49,7 +49,7 @@ pub struct SmaVecs<M: StorageMode = Rw> {
     pub mayer_multiple: LazyPerBlock<Ratio, Ratio>,
 }
 
-const VERSION: Version = Version::ONE;
+const VERSION: Version = Version::TWO;
 
 impl SmaVecs {
     pub fn import(

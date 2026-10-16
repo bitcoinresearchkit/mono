@@ -47,10 +47,10 @@ let stats = query.addr(address)?;
 |--------|---------|
 | Series | `search_series`, `resolve`, `format`, `series_count`, `series_list`, `series_catalog`, `series_info` |
 | Blocks | `resolve_block_hash`, `resolve_block_v1`, `resolve_blocks`, `resolve_block_by_timestamp`, `block_status` |
-| Transactions | `resolve_transaction`, `transaction_status`, `transaction_hex_resolved`, `outspend_json`, `outspends_json` |
-| Addresses | `addr`, `addr_txs_resolved`, `addr_utxos_resolved`, `addr_mempool_txs`, `addr_hash_prefix_matches` |
+| Transactions | `resolve_transaction`, `resolve_raw_transaction`, `resolve_confirmed_tx`, `transaction_status`, `outspend_json`, `outspends_json` |
+| Addresses | `addr`, `resolve_addr_txs`, `resolve_addr_utxos`, `resolve_addr_mempool_txs`, `addr_hash_prefix_matches` |
 | Mining | `difficulty_adjustments`, `hashrate`, `mining_pools`, `reward_stats` |
-| Mempool | `mempool_info_json`, `recommended_fees`, `mempool_blocks` |
+| Mempool | `mempool_info_json`, `recommended_fees`, `precise_fees`, `mempool_blocks` |
 
 ## Async Usage
 
@@ -88,41 +88,27 @@ actions and already-prepared immutable work. Running work keeps its pin and
 admission until it finishes, even after HTTP cancellation. No publication
 notifications or async runtime are required by the synchronous data layer.
 
-## Confirmed transaction reads
+## Resolve, then build
 
-Public transaction methods acquire their own publication protection. Internally,
-confirmed-position resolution and handoff revalidation are methods on an
-`IndexerRead` view that owns the query's shared pipeline guard. Keep the view alive
-through all dependent reads; do not reacquire a guard inside that scope. Proven
-immutable-prefix reads instead retain the separate rollback pin and can continue
-during an append-only update.
+Reads served after an async handoff split in two. A `resolve_*` method pins the publication,
+finds the exact source and returns a token carrying its representation identity, so HTTP
+revalidation can answer before any body is built. The matching `*_resolved` method (or
+`format` for series) then builds the body.
 
-`resolve_confirmed_tx_guarded`, `resolve_confirmed_position`, and
-`revalidate_confirmed_tx` are no longer public `Query` methods. Use
-`resolve_confirmed_tx`, `resolve_tx`, and the resolved transaction/proof/CPFP
-operations instead. Resolved tokens do not retain a lock across async handoffs;
-the consuming operation reacquires protection and revalidates the block hash.
-Immutable block snapshots still use their separate safe-length protection.
+Transaction tokens (`resolve_transaction`, `resolve_raw_transaction`, `resolve_confirmed_tx`,
+`resolve_cpfp`) hold no pin: a mempool body travels with the token, and a confirmed one is
+named by its position and block hash. Consuming it (`transaction_json_resolved`,
+`transaction_raw_resolved`, `transaction_hex_resolved`, `merkle_proof_resolved`,
+`merkleblock_proof_resolved`, `cpfp_json_resolved`) takes one new `ReadPin`, checks that the
+block is still at that height (a token from a replaced block answers `UnknownTxid`, or
+`StateUpdating` while a lowered publication hides it), and does every dependent read under that
+pin.
 
-Raw block payload and size helpers borrow the snapshot's resumed pin (`ReadPin`),
-not a copied `Lengths` value. They are internal to the block-query module; public
-callers use `block_raw` or `ResolvedBlocks::anchor_raw` / `anchor_raw_size`.
-The selected height is checked against the pinned prefix before reading the
-indexed record. HEAD still checks framing and identity without reading the full
-payload, and HTTP revalidation still precedes body preparation.
-
-## Series read bounds
-
-`search` returns a `SeriesRead` that owns the selected plugin guards and published
-bounds. `ResolvedQuery` retains that same view through formatting. Both expose
-`columns()` as bounded readers, never raw vectors; those readers cannot outlive
-their owning view. `Query::weight` accepts the view rather than unbounded vectors.
-
-Each column operation applies its limits automatically: length, latest values,
-JSON, CSV, and row writers all use the same published prefix. Binding a vector
-without a limit for its index fails closed. Nested lazy inputs still receive
-bounds through vecdb's internal thread-local scope, installed by every bounded
-operation rather than by callers. Ordinary storage/compute reads remain unbounded.
+`resolve` for series instead keeps its pin: the `ResolvedQuery` holds the selected series and
+the publication's bounds until `format` (or `format_bulk`, `format_raw`) consumes it, so
+formatting reads exactly the rows `resolve` counted. Every column read is bounded by that
+publication, nested lazy inputs included, while ordinary storage and compute reads stay
+unbounded.
 
 ## Errors
 

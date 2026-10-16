@@ -38,8 +38,9 @@ where
     }
 
     fn reset_unsaved(&mut self) {
-        if self.vec.unwritten_rollback() {
-            // Back to what the rollback restored (saved as the undo baseline).
+        if self.vec.unwritten_baseline() {
+            // Back to what the rollback restored (saved as the undo baseline), or to a reset's
+            // empty state.
             self.holes.restore();
             self.updated.restore();
         } else {

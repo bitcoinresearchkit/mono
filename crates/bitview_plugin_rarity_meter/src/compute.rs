@@ -47,8 +47,14 @@ impl ComputePlugin for Vecs {
         let starting_height = indexer.compute_start().height;
         let local = self.components.local();
         let cycle = self.components.cycle();
-        let jobs: [(&mut RarityMeterInner, &[&Component]); 2] =
-            [(&mut self.local, &local), (&mut self.cycle, &cycle)];
+        // Full combines all 16 components itself: with disputed ranges reading as neither, its
+        // boundaries do not follow from Local's and Cycle's.
+        let full: Vec<_> = local.iter().chain(&cycle).copied().collect();
+        let jobs: [(&mut RarityMeterInner, &[&Component]); 3] = [
+            (&mut self.local, &local),
+            (&mut self.cycle, &cycle),
+            (&mut self.full, &full),
+        ];
         let has_work = jobs
             .iter()
             .any(|(inner, components)| inner.needs_compute(components, spot, starting_height));
@@ -56,15 +62,9 @@ impl ComputePlugin for Vecs {
             inner.compute(components, spot, starting_height, exit)
         };
         if has_work {
-            jobs.into_par_iter().try_for_each(compute)?;
+            jobs.into_par_iter().try_for_each(compute)
         } else {
-            jobs.into_iter().try_for_each(compute)?;
+            jobs.into_iter().try_for_each(compute)
         }
-
-        // Full inherits every boundary and score from Local and Cycle.
-        self.full
-            .compute_combined(&[&self.local, &self.cycle], spot, starting_height, exit)?;
-
-        Ok(())
     }
 }

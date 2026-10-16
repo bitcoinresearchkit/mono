@@ -160,14 +160,9 @@ impl RangeVecs {
         self.coindays_created.push_block(coindays_created);
     }
 
-    /// Returns the range's capital.
     #[inline(always)]
-    pub(crate) fn push(
-        &mut self,
-        state: &mut UTXOCohortState<RealizedState>,
-        price: Cents,
-    ) -> Cents {
-        let capital = self.cohort.push(state, price);
+    pub(crate) fn push(&mut self, state: &mut UTXOCohortState<RealizedState>, price: Cents) {
+        self.cohort.push(state, price);
         let realized = &state.realized;
         let (in_profit, in_loss) = realized.sent_split();
         self.transfer_volume_in_profit
@@ -181,7 +176,6 @@ impl RangeVecs {
         self.raw
             .peak_regret
             .push(CentsSats::new(realized.peak_regret_raw()));
-        capital
     }
 }
 

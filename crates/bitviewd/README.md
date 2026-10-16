@@ -15,8 +15,10 @@ For AI clients, the official stateless, read-only MCP endpoint is
 ## Requirements
 
 - Linux or macOS
-- Bitcoin Core with `server=1` in `bitcoin.conf`
-- Access to `blk*.dat` files
+- Bitcoin Core on mainnet (testnet, signet and regtest are not supported) with
+  `server=1` in `bitcoin.conf`
+- Access to `blk*.dat` files, complete from genesis for the initial sync (no
+  pruned node)
 - About 290 GiB of disk space for the current default composition, plus Bitcoin
   Core storage and growth headroom (see [Disk usage](#disk-usage))
 - 16 GB of RAM recommended for a full sync.

@@ -106,7 +106,7 @@ impl Query {
         hash: &BlockHash,
         height_hint: Height,
     ) -> Result<Option<ResolvedBlocks>> {
-        let blocks = self.resolve_blocks(Some(height_hint), 1)?;
+        let blocks = self.blocks_window(Some(height_hint), 1)?;
         if blocks.last_height() != Some(height_hint) || blocks.anchor() != Some(*hash) {
             return Ok(None);
         }
@@ -121,7 +121,23 @@ impl Query {
         self.blocks_snapshot(Some(height), 1, guard)
     }
 
+    /// Esplora's block list: `count` blocks down from `start_height` (default the tip), which
+    /// must be published.
     pub fn resolve_blocks(
+        &self,
+        start_height: Option<Height>,
+        count: u32,
+    ) -> Result<ResolvedBlocks> {
+        let blocks = self.blocks_window(start_height, count)?;
+        if start_height.is_some_and(|height| blocks.last_height() != Some(height)) {
+            return Err(Error::NotFound("Block not found".into()));
+        }
+        Ok(blocks)
+    }
+
+    /// The published blocks among the `count` heights ending at `start_height` (default the
+    /// tip): fewer past the tip, as mempool.space's block lists.
+    pub(crate) fn blocks_window(
         &self,
         start_height: Option<Height>,
         count: u32,

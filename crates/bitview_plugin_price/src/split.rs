@@ -36,13 +36,15 @@ type ExtremePrice = Price<LazyIndexes<Cents, OHLCCents>, LazyIndexes<Dollars, Ce
 #[derive(Clone, Traversable)]
 pub(crate) struct SplitPrice {
     /// Opening price for each supported period. A populated period uses its
-    /// first block-level price; an empty period carries the previous close.
+    /// first priced block-level price (zero before the first price, block
+    /// 74,641); an empty period carries the previous close.
     open: EndpointPrice<false>,
     /// Highest price for each supported period. A populated period uses its
     /// maximum block-level price; an empty period carries the previous close.
     high: ExtremePrice,
     /// Lowest price for each supported period. A populated period uses its
-    /// minimum block-level price; an empty period carries the previous close.
+    /// minimum priced block-level price (zero before the first price, block
+    /// 74,641); an empty period carries the previous close.
     low: ExtremePrice,
     /// Closing price for each supported period. A populated period uses its
     /// final block-level price; an empty period carries the previous close.

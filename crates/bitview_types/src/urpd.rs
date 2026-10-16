@@ -8,9 +8,11 @@ use crate::{Cohort, UrpdAggregation, UrpdBucket, UrpdWeight};
 /// UTXO Realized Price Distribution for a cohort at a specific block.
 ///
 /// Supply is grouped by the price at the block in which each UTXO was last moved.
-/// Each bucket exposes three values: supply in BTC, realized cap contribution
-/// in USD (sum of `realized_price * supply` over the coins in the bucket), and
-/// unrealized P&L in USD (`close * supply - realized_cap`, can be negative).
+/// Each bucket exposes three values: supply in BTC (weighted by `weight`), realized
+/// cap contribution in USD (`price * supply` over the coins in the bucket at their
+/// grid creation prices, each within 0.05% of the exact price, rounded to the cent
+/// per bucket), and unrealized P&L in USD (`close * supply - realized_cap`, can be
+/// negative).
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct Urpd {
     pub cohort: Cohort,

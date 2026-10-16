@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import cached_property
 from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, Tuple, TYPE_CHECKING
-from http.client import HTTPSConnection, HTTPConnection
+from http.client import HTTPException, HTTPSConnection, HTTPConnection
 from urllib.parse import quote, urlencode, urlparse
 from datetime import date, datetime, timedelta, timezone
 import json
@@ -246,6 +246,8 @@ Day3 = int
 Day1 = int
 # Calendar date in YYYY-MM-DD format.
 Date = str
+# A quote currency prices are served in: USD only.
+Currency = Literal["USD"]
 # Position of a transaction inside a `CpfpCluster.txs` array. Cluster-local,
 # has no meaning outside the enclosing cluster.
 CpfpClusterTxIndex = int
@@ -391,18 +393,12 @@ class PoolHashrateEntry(TypedDict):
     share: float
     poolName: str
 
-class OptionalTimestampParam(TypedDict, total=False):
-    """
-    Optional UNIX timestamp query parameter
-    """
-    timestamp: Union[Timestamp, None]
-
 class HashrateEntry(TypedDict):
     """
     A single hashrate data point.
 
     Attributes:
-        timestamp: Unix timestamp
+        timestamp: End of the day the hashrate covers (Unix timestamp), as mempool.space stamps it
         avgHashrate: Average hashrate (H/s)
     """
     timestamp: Timestamp
@@ -472,7 +468,7 @@ class MempoolInfo(TypedDict):
         count: Number of transactions in the mempool
         vsize: Total virtual size of all transactions in the mempool (vbytes)
         total_fee: Total fees of all transactions in the mempool (satoshis)
-        fee_histogram: Fee histogram: `[[fee_rate, vsize], ...]` sorted by descending fee rate
+        fee_histogram: Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each entry the vsize of the transactions paying from its fee rate up to the previous entry's, a bin closing at the first fee rate change past 50,000 vB
     """
     count: int
     vsize: VSize
@@ -507,6 +503,23 @@ class AddressMempoolStats(TypedDict):
     spent_txo_count: int
     spent_txo_sum: Sats
     tx_count: int
+
+class RecommendedFees(TypedDict):
+    """
+    Recommended fee rates in whole sat/vB (`/api/v1/fees/recommended`)
+
+    Attributes:
+        fastestFee: Fee rate for fastest confirmation (next block)
+        halfHourFee: Fee rate for confirmation within ~30 minutes (3 blocks)
+        hourFee: Fee rate for confirmation within ~1 hour (6 blocks)
+        economyFee: Fee rate for economical confirmation
+        minimumFee: Minimum relay fee rate
+    """
+    fastestFee: int
+    halfHourFee: int
+    hourFee: int
+    economyFee: int
+    minimumFee: int
 
 class PoolStats(TypedDict):
     """
@@ -877,7 +890,7 @@ class HashrateSummary(TypedDict):
     Attributes:
         hashrates: Historical hashrate data points
         difficulty: Historical difficulty adjustments
-        currentHashrate: Current network hashrate (H/s)
+        currentHashrate: Current network hashrate over the trailing 7 days (H/s)
         currentDifficulty: Current network difficulty
     """
     hashrates: List[HashrateEntry]
@@ -891,7 +904,7 @@ class DifficultyAdjustment(TypedDict):
 
     Attributes:
         progressPercent: Progress through current difficulty epoch (0-100%)
-        difficultyChange: Estimated difficulty change at next retarget (%)
+        difficultyChange: Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
         estimatedRetargetDate: Estimated timestamp of next retarget (milliseconds)
         remainingBlocks: Blocks remaining until retarget
         remainingTime: Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
@@ -989,23 +1002,6 @@ class DataRangeFormat(TypedDict, total=False):
     limit: Union[Limit, None]
     format: Format
 
-class RecommendedFees(TypedDict):
-    """
-    Recommended fee rates in sat/vB
-
-    Attributes:
-        fastestFee: Fee rate for fastest confirmation (next block)
-        halfHourFee: Fee rate for confirmation within ~30 minutes (3 blocks)
-        hourFee: Fee rate for confirmation within ~1 hour (6 blocks)
-        economyFee: Fee rate for economical confirmation
-        minimumFee: Minimum relay fee rate
-    """
-    fastestFee: FeeRate
-    halfHourFee: FeeRate
-    hourFee: FeeRate
-    economyFee: FeeRate
-    minimumFee: FeeRate
-
 class _RbfTxRequired(TypedDict):
     txid: Txid
     fee: Sats
@@ -1057,6 +1053,23 @@ class RbfResponse(TypedDict, total=False):
     replacements: Union[ReplacementNode, None]
     replaces: Optional[List[Txid]]
 
+class PreciseRecommendedFees(TypedDict):
+    """
+    Recommended fee rates in sat/vB, to the thousandth (`/api/v1/fees/precise`)
+
+    Attributes:
+        fastestFee: Fee rate for fastest confirmation (next block)
+        halfHourFee: Fee rate for confirmation within ~30 minutes (3 blocks)
+        hourFee: Fee rate for confirmation within ~1 hour (6 blocks)
+        economyFee: Fee rate for economical confirmation
+        minimumFee: Minimum relay fee rate
+    """
+    fastestFee: FeeRate
+    halfHourFee: FeeRate
+    hourFee: FeeRate
+    economyFee: FeeRate
+    minimumFee: FeeRate
+
 class MempoolBlock(TypedDict):
     """
     Block info in a mempool.space like format for fee estimation.
@@ -1078,18 +1091,20 @@ class MempoolBlock(TypedDict):
 
 class BlockFeeRatesEntry(TypedDict):
     """
-    A single block fee rates data point with percentiles.
+    A single block fee rates data point: one time bucket of blocks. Each `avgFee_*` field is the
+    bucket's mean of its blocks' own percentile of their non-coinbase transactions' effective fee
+    rates, weighted by vsize (a block without such transactions counts as 0).
 
     Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgFee_0: Minimum fee rate (sat/vB)
-        avgFee_10: 10th percentile fee rate (sat/vB)
-        avgFee_25: 25th percentile fee rate (sat/vB)
-        avgFee_50: Median fee rate (sat/vB)
-        avgFee_75: 75th percentile fee rate (sat/vB)
-        avgFee_90: 90th percentile fee rate (sat/vB)
-        avgFee_100: Maximum fee rate (sat/vB)
+        avgHeight: Average block height in this bucket
+        timestamp: Average block timestamp in this bucket
+        avgFee_0: Mean of the blocks' minimum fee rate (sat/vB)
+        avgFee_10: Mean of the blocks' 10th percentile fee rate (sat/vB)
+        avgFee_25: Mean of the blocks' 25th percentile fee rate (sat/vB)
+        avgFee_50: Mean of the blocks' median fee rate (sat/vB)
+        avgFee_75: Mean of the blocks' 75th percentile fee rate (sat/vB)
+        avgFee_90: Mean of the blocks' 90th percentile fee rate (sat/vB)
+        avgFee_100: Mean of the blocks' maximum fee rate (sat/vB)
     """
     avgHeight: Height
     timestamp: Timestamp
@@ -1155,13 +1170,13 @@ class HistoricalPrice(TypedDict):
 
 class BlockRewardsEntry(TypedDict):
     """
-    A single block rewards data point.
+    A single block rewards data point: one time bucket of blocks.
 
     Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgRewards: Average coinbase reward per block (subsidy + fees, sats)
-        USD: BTC/USD price at this height
+        avgHeight: Average block height in this bucket
+        timestamp: Average block timestamp in this bucket
+        avgRewards: Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
+        USD: Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
     """
     avgHeight: Height
     timestamp: Timestamp
@@ -1170,13 +1185,13 @@ class BlockRewardsEntry(TypedDict):
 
 class BlockFeesEntry(TypedDict):
     """
-    A single block fees data point.
+    A single block fees data point: one time bucket of blocks.
 
     Attributes:
-        avgHeight: Average block height in this window
-        timestamp: Unix timestamp at the window midpoint
-        avgFees: Average fees per block in this window (sats)
-        USD: BTC/USD price at this height
+        avgHeight: Average block height in this bucket
+        timestamp: Average block timestamp in this bucket
+        avgFees: Mean fees per block in this bucket, rounded half up (sats)
+        USD: Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
     """
     avgHeight: Height
     timestamp: Timestamp
@@ -1293,6 +1308,17 @@ class DiskUsage(TypedDict):
     bitcoin: str
     bitcoin_bytes: int
     ratio: float
+
+class HistoricalPriceParam(TypedDict, total=False):
+    """
+    Historical price query parameters, as mempool.space's
+
+    Attributes:
+        timestamp: UNIX timestamp: the latest close at or before it
+        currency: Quote currency: USD, the only one served
+    """
+    timestamp: Union[Timestamp, None]
+    currency: Union[Currency, None]
 
 class CpfpClusterTx(TypedDict):
     """
@@ -1628,9 +1654,9 @@ class UrpdBucket(TypedDict):
 
     Attributes:
         price_floor: The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its coins' creation prices round to (four significant digits of the price in cents).
-        supply: Supply held with a last-move price inside this bucket, in BTC.
-        realized_cap: Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
-        unrealized_pnl: Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.
+        supply: Supply held with a last-move price inside this bucket, in BTC. With a `cointime` or `coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
+        realized_cap: Realized cap contribution in USD: `price * supply` summed over the coins in this bucket, each coin's creation price taken on the price grid (the `Raw` bucket price, within 0.05% of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The buckets therefore need not sum to the cohort's realized cap series.
+        unrealized_pnl: Unrealized P&L in USD against the close on the snapshot date: `close * supply` minus the bucket's grid capital, rounded to the cent once. Can be negative.
     """
     price_floor: Dollars
     supply: Bitcoin
@@ -1642,9 +1668,11 @@ class Urpd(TypedDict):
     UTXO Realized Price Distribution for a cohort at a specific block.
     
     Supply is grouped by the price at the block in which each UTXO was last moved.
-    Each bucket exposes three values: supply in BTC, realized cap contribution
-    in USD (sum of `realized_price * supply` over the coins in the bucket), and
-    unrealized P&L in USD (`close * supply - realized_cap`, can be negative).
+    Each bucket exposes three values: supply in BTC (weighted by `weight`), realized
+    cap contribution in USD (`price * supply` over the coins in the bucket at their
+    grid creation prices, each within 0.05% of the exact price, rounded to the cent
+    per bucket), and unrealized P&L in USD (`close * supply - realized_cap`, can be
+    negative).
 
     Attributes:
         date: UTC date of the represented block.
@@ -1702,7 +1730,7 @@ class TxOut(_TxOutRequired, total=False):
         scriptpubkey: Script pubkey (locking script), encoded as hexadecimal.
         scriptpubkey_asm: Script pubkey in assembly format.
         scriptpubkey_type: Esplora/mempool.space script type.
-        scriptpubkey_address: Bitcoin address, omitted for scripts without an address.
+        scriptpubkey_address: Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
         value: Value of the output in satoshis.
     """
     scriptpubkey_address: Address
@@ -1784,11 +1812,13 @@ class BlockTemplateDiff(TypedDict):
     Attributes:
         hash: Current next-block hash. Use as `since` on the next diff call.
         since: Echoed prior hash the diff was computed against.
+        stats: Aggregate stats for the new template (size, vsize, fee range, ...). They can change while every transaction is retained.
         order: New template in order. Each entry is either an index into the prior template's transactions or a full transaction body.
         removed: Txids that left the projected next block since `since` (confirmed, evicted, replaced, or pushed past block 0).
     """
     hash: NextBlockHash
     since: NextBlockHash
+    stats: MempoolBlock
     order: List[BlockTemplateDiffEntry]
     removed: List[Txid]
 
@@ -1898,19 +1928,24 @@ class BitviewClientBase:
                 self._conn = HTTPConnection(self._host, timeout=self._timeout)
         return self._conn
 
-    def get(self, path: str) -> bytes:
-        """Make a GET request and return raw bytes."""
+    def _request(self, method: str, path: str, body: Optional[str] = None) -> bytes:
+        """Make a request and return raw bytes. A failed exchange closes the connection, which
+        `http.client` would otherwise leave mid-request for every later call."""
         try:
             conn = self._connect()
-            conn.request("GET", self._prefix + path)
+            conn.request(method, self._prefix + path, body=body)
             res = conn.getresponse()
             data = res.read()
-            if res.status >= 400:
-                raise _response_error(res.status, data)
-            return data
-        except (ConnectionError, OSError, TimeoutError) as e:
-            self._conn = None
+        except (HTTPException, OSError) as e:
+            self.close()
             raise BitviewError(str(e))
+        if res.status >= 400:
+            raise _response_error(res.status, data)
+        return data
+
+    def get(self, path: str) -> bytes:
+        """Make a GET request and return raw bytes."""
+        return self._request("GET", path)
 
     def get_json(self, path: str) -> Any:
         """Make a GET request and return JSON."""
@@ -1922,17 +1957,7 @@ class BitviewClientBase:
 
     def post(self, path: str, body: str) -> bytes:
         """Make a POST request with a string body and return raw bytes."""
-        try:
-            conn = self._connect()
-            conn.request("POST", self._prefix + path, body=body)
-            res = conn.getresponse()
-            data = res.read()
-            if res.status >= 400:
-                raise _response_error(res.status, data)
-            return data
-        except (ConnectionError, OSError, TimeoutError) as e:
-            self._conn = None
-            raise BitviewError(str(e))
+        return self._request("POST", path, body)
 
     def post_json(self, path: str, body: str) -> Any:
         """Make a POST request and return JSON."""
@@ -2307,7 +2332,7 @@ class _EndpointConfig:
         self.limit = limit
 
     def path(self) -> str:
-        return f"/api/series/{self.name}/{self.index}"
+        return f"/api/series/{_segment(self.name)}/{self.index}"
 
     def _build_path(self, format: Optional[str] = None) -> str:
         params: List[Tuple[str, Any]] = []
@@ -6049,7 +6074,7 @@ class BitviewClient(BitviewClientBase):
     def get_urpd(self, cohort: Cohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """Latest URPD.
 
-        URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.
+        URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
         Endpoint: `GET /api/urpd/{cohort}`"""
         params: List[Tuple[str, Any]] = []
@@ -6062,7 +6087,7 @@ class BitviewClient(BitviewClientBase):
     def get_urpd_at(self, cohort: Cohort, point: str, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """URPD at block height or date.
 
-        URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.
+        URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
         Endpoint: `GET /api/urpd/{cohort}/{point}`"""
         params: List[Tuple[str, Any]] = []
@@ -6092,16 +6117,17 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/prices`"""
         return self.get_json('/api/v1/prices')
 
-    def get_historical_price(self, timestamp: Optional[Timestamp] = None) -> HistoricalPrice:
+    def get_historical_price(self, timestamp: Optional[Timestamp] = None, currency: Optional[Currency] = None) -> HistoricalPrice:
         """Historical price.
 
-        Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.
+        Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
 
         Endpoint: `GET /api/v1/historical-price`"""
         params: List[Tuple[str, Any]] = []
         if timestamp is not None: params.append(('timestamp', timestamp))
+        if currency is not None: params.append(('currency', currency))
         query = urlencode(params)
         path = f'/api/v1/historical-price{"?" + query if query else ""}'
         return self.get_json(path)
@@ -6327,7 +6353,7 @@ class BitviewClient(BitviewClientBase):
     def get_blocks_from_height(self, height: Height) -> List[BlockInfo]:
         """Blocks from height.
 
-        Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.
+        Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
 
@@ -6347,7 +6373,7 @@ class BitviewClient(BitviewClientBase):
     def get_blocks_v1_from_height(self, height: Height) -> List[BlockInfoV1]:
         """Blocks from height with extras.
 
-        Retrieve up to 15 blocks with extended data going backwards from the given height.
+        Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
 
@@ -6425,9 +6451,9 @@ class BitviewClient(BitviewClientBase):
         return self.get_json(f'/api/v1/mining/pool/{_segment(slug)}/blocks')
 
     def get_pool_blocks_from(self, slug: PoolSlug, height: Height) -> List[BlockInfoV1]:
-        """Mining pool blocks from height.
+        """Mining pool blocks before height.
 
-        Get up to 100 blocks mined by a specific pool before (and including) the given height.
+        Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
 
@@ -6537,14 +6563,14 @@ class BitviewClient(BitviewClientBase):
     def get_recommended_fees(self) -> RecommendedFees:
         """Recommended fees.
 
-        Recommended fee rates by confirmation target.
+        Recommended fee rates by confirmation target, in whole sat/vB.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
 
         Endpoint: `GET /api/v1/fees/recommended`"""
         return self.get_json('/api/v1/fees/recommended')
 
-    def get_precise_fees(self) -> RecommendedFees:
+    def get_precise_fees(self) -> PreciseRecommendedFees:
         """Recommended fee rates (precise).
 
         Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.
@@ -6623,7 +6649,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_template_diff(self, hash: NextBlockHash) -> BlockTemplateDiff:
         """Block template diff since hash.
 
-        Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+        Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
 
         Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`"""
         return self.get_json(f'/api/v1/mempool/block-template/diff/{_segment(hash)}')

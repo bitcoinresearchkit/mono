@@ -87,7 +87,7 @@ where
             Ok(true)
         });
         if result.is_ok() {
-            self.base.unwritten_rollback = false;
+            self.base.unwritten_baseline = false;
         }
         guard.finish(result)
     }

@@ -222,6 +222,41 @@ impl LazyWindowStartVec {
             Ok::<_, Infallible>(())
         });
     }
+
+    /// Window starts of sorted, present `indices`, searched in the timestamps; `None` once a read
+    /// comes up short.
+    fn search_sorted_into(&self, indices: &[usize], out: &mut Vec<Height>) -> Option<()> {
+        // Window starts never decrease, so one start is carried across a segment's indices,
+        // exactly as a linear scan would.
+        let mut rest = indices;
+        while let Some(&first) = rest.first() {
+            let mut end = 1;
+            while end < rest.len() && rest[end] - rest[end - 1] <= MAX_BRIDGED_GAP {
+                end += 1;
+            }
+            let (segment, next) = rest.split_at(end);
+            rest = next;
+
+            let (lo, mut values) = self.window_prefix(first)?;
+            let last = segment[segment.len() - 1];
+            values.extend(self.timestamps.collect_range_dyn(first + 1, last + 1));
+            let available = lo + values.len();
+
+            let mut start = self.prefix_start(lo, &values, first);
+            for &current in segment {
+                if current >= available {
+                    return None;
+                }
+                if start < current {
+                    let timestamp = values[current - lo];
+                    start += values[start - lo..current - lo]
+                        .partition_point(|&older| self.is_expired(timestamp, older));
+                }
+                out.push(Height::from(start));
+            }
+        }
+        Some(())
+    }
 }
 
 impl AnyVec for LazyWindowStartVec {
@@ -268,44 +303,19 @@ impl ReadableVec<Height, Height> for LazyWindowStartVec {
         let indices = &indices[..indices.partition_point(|&index| index < len)];
         out.reserve(indices.len());
 
-        // Window starts never decrease, so one start is carried across every
-        // requested index, exactly as a linear scan would.
-        let mut carried: Option<usize> = None;
-        let mut rest = indices;
-        while let Some(&first) = rest.first() {
-            let mut end = 1;
-            while end < rest.len() && rest[end] - rest[end - 1] <= MAX_BRIDGED_GAP {
-                end += 1;
-            }
-            let (segment, next) = rest.split_at(end);
-            rest = next;
-
-            let Some((lo, mut values)) = self.window_prefix(first) else {
-                return;
-            };
-            let last = segment[segment.len() - 1];
-            values.extend(self.timestamps.collect_range_dyn(first + 1, last + 1));
-            let available = lo + values.len();
-
-            let fresh = self.prefix_start(lo, &values, first);
-            // After a skipped gap, a linear scan would have stopped at `first`.
-            let mut start = match carried {
-                Some(_) => fresh.min(first),
-                None => fresh,
-            };
-            for &current in segment {
-                if current >= available {
-                    return;
-                }
-                if start < current {
-                    let timestamp = values[current - lo];
-                    start += values[start - lo..current - lo]
-                        .partition_point(|&older| self.is_expired(timestamp, older));
-                }
-                out.push(Height::from(start));
-            }
-            carried = Some(start);
+        // Sorted, the requests the resident tip covers form one run: only the others search.
+        let tip = self.tip.load();
+        let covered_from = indices.partition_point(|&index| index < tip.first);
+        let covered_to = indices.partition_point(|&index| index < tip.first + tip.starts.len());
+        let (covered, after) = indices[covered_from..].split_at(covered_to - covered_from);
+        if self
+            .search_sorted_into(&indices[..covered_from], out)
+            .is_none()
+        {
+            return;
         }
+        out.extend(covered.iter().map(|&index| tip.starts[index - tip.first]));
+        self.search_sorted_into(after, out);
     }
 }
 

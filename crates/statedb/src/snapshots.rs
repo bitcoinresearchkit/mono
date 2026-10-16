@@ -6,6 +6,7 @@ use crate::{
 use std::{
     fs::{self, File, OpenOptions},
     io::{Error, ErrorKind, Result, Write},
+    mem,
     os::unix::fs::FileExt,
     path::{Path, PathBuf},
 };
@@ -375,9 +376,11 @@ impl Snapshots {
                 .write(true)
                 .open(&next)?;
             dir.write_all(&bytes)?;
+            // The `prev` this replaces may have been the last to point into its page file.
+            let mut displaced = None;
             if this.tip.is_some() {
                 fs::rename(this.path.join(TIP), this.path.join(PREV))?;
-                this.prev = this.tip.take();
+                displaced = mem::replace(&mut this.prev, this.tip.take()).map(|p| p.generation());
             }
             fs::rename(next, this.path.join(TIP))?;
             this.tip = Some(Tip {
@@ -386,22 +389,28 @@ impl Snapshots {
                 pages: file,
                 len: state.len(),
             });
-            if fresh {
+            if fresh || displaced.is_some_and(|g| !this.uses(g)) {
                 this.remove_unused_pages()?;
             }
             Ok(())
         })
     }
+    /// Whether the tip or `prev` points into page file `generation`.
+    fn uses(&self, generation: u64) -> bool {
+        [&self.tip, &self.prev]
+            .into_iter()
+            .flatten()
+            .any(|tip| tip.generation() == generation)
+    }
     /// Removes the page files neither the tip nor `prev` points into.
     fn remove_unused_pages(&self) -> Result<()> {
-        let used = [&self.tip, &self.prev].map(|tip| tip.as_ref().map(Tip::generation));
         for entry in fs::read_dir(&self.path)? {
             let entry = entry?;
             let generation = entry
                 .file_name()
                 .to_str()
                 .and_then(|name| name.strip_prefix(PAGES)?.parse::<u64>().ok());
-            if generation.is_some_and(|g| !used.contains(&Some(g))) {
+            if generation.is_some_and(|g| !self.uses(g)) {
                 fs::remove_file(entry.path())?;
             }
         }

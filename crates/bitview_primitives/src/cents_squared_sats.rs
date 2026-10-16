@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use brk_types::{Cents, CentsSats};
 use schemars::JsonSchema;
@@ -34,13 +34,16 @@ impl CentsSquaredSats {
     pub fn from_price_cents_sats(price: Cents, value: CentsSats) -> Self {
         Self(price.inner() as u128 * value.inner())
     }
-}
 
-impl Div<u128> for CentsSquaredSats {
-    type Output = u128;
+    /// The capitalized price (cents per BTC) given the realized cap, rounded to the nearest cent;
+    /// undefined (NaN) without cap.
     #[inline(always)]
-    fn div(self, rhs: u128) -> u128 {
-        self.0 / rhs
+    pub fn capitalized_price(self, cap: CentsSats) -> Cents {
+        let cap = cap.inner();
+        if cap == 0 {
+            return Cents::NAN;
+        }
+        Cents::from((self.0 + cap / 2) / cap)
     }
 }
 
@@ -112,9 +115,10 @@ impl From<usize> for CentsSquaredSats {
 brk_types::impl_int_format!(CentsSquaredSats);
 
 #[cfg(feature = "storage")]
-// SAFETY: not native layout.
+// SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
+// value the contract requires; the values are encoded, not in native layout.
 unsafe impl Bytes for CentsSquaredSats {
-    type Array = [u8; 16];
+    type Array = [u8; size_of::<Self>()];
 
     fn to_bytes(&self) -> Self::Array {
         self.0.to_le_bytes()

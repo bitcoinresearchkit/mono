@@ -38,7 +38,7 @@ pub(crate) fn generate_python_client(
     .unwrap();
     writeln!(
         output,
-        "from http.client import HTTPSConnection, HTTPConnection"
+        "from http.client import HTTPException, HTTPSConnection, HTTPConnection"
     )
     .unwrap();
     writeln!(
