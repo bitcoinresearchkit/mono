@@ -257,3 +257,20 @@ hide none.
 
 `tests.html` leaves the axes out of its pictures. Checked in Studio: a last value at a mark, near one, a price line's
 tag, a drawing's dates; on a phone.
+
+## 16. A scale's range, read and set as it is
+
+`getVisibleRange()` and `setVisibleRange()` don't meet on a log scale: the one reads prices rounded to the scale's
+`minMove` (a small ratio's range read as 0 to 0), the other writes its numbers as the scale holds them (on a log scale,
+logarithms, read as prices), so a range read and written back isn't the one read. And a scale auto scaled finds its
+range only as it's drawn next (a view set is applied only then too): the range it'll take isn't known before it shows.
+Studio glides a scale from one range to another (an interval changed by Auto: the old range to the new, frame by
+frame), on any scale: three methods.
+
+- `class` of `IPriceScaleApi` (`setAutoScale(t){…}`): `bvRange()` (the range shown, `{ from, to }`, or `null`: prices,
+  unrounded, a log scale's converted with its formula as it is now, `ci()`), `bvSetRange(t)` (a range of prices held,
+  auto scale off: a log scale's converted with its formula as it is now, `ui()`) and `bvAutoRange()` (auto scale on, its
+  range found now, as its pane finds it when drawn, `hu()`, for the bars the view has as last applied: returned as
+  `bvRange()` says it; a log scale's formula may change with it, and prices stay prices).
+
+`tests.html` doesn't use them. Checked in Studio: a log scale, a linear one, a percentage one, glided between ranges.
