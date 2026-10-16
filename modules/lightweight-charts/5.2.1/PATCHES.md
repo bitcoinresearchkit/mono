@@ -7,7 +7,7 @@ then open `tests.html` (served from the repo) in a window wide enough for its tw
 
 The plots draw exactly what the library does, but for the log marks (1, 12) and the rounded bars (7, only where a radius
 is set); the axes' tags are rounded (6), the time axis's labels fade before its ends (10), a price axis's tags stay inside
-its pane (11). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14) draw the same, faster. `tests.html` runs the patched file and 5.2.1 as published side by side through every
+its pane (11). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14) draw the same, faster; a tag hides the mark labels under it (15). `tests.html` runs the patched file and 5.2.1 as published side by side through every
 series type, every price scale mode (inverted too), pans, jumps, zooms, the crosshair, restyles, live updates, new data,
 resizes, margins, moves between scales, a held price range and conflation, and compares their plots pixel for pixel, the
 axes left out (713 steps).
@@ -240,3 +240,16 @@ size). One layout; the same frame, 33 ms.
 `tests.html`: the pictures (resizes among their steps, drawn on the next frame) are 5.2.1's; a chart of two panes resized
 and drawn at once, then pictured in the same task (down, up, sizes of fractions, back), draws what 5.2.1 does, its
 canvases' bitmaps as true to their boxes.
+
+## 15. No mark's label under a tag
+
+A price axis's tags (a series' last value, a price line's) are drawn over its marks' labels, a label half under one
+showing at its edge ("100K" peeking above a last value just under it). A mark's label is now left out where a tag shown
+on that axis covers it (within half a tag and half the text's height of the tag's place, after the spread and patch
+11); the mark's tick stays, and the crosshair's tag (drawn over, on its own canvas, moving) hides none.
+
+- `class Wn`, `Bm()` (the marks): the tags (`this.Pm()`, those shown) read before the labels are written, a label
+  written only where none covers it.
+
+`tests.html` leaves the axes out of its pictures. Checked in Studio: a last value at a mark, near one, a price line's
+tag; on a phone.

@@ -3099,62 +3099,20 @@
       /* One row, the next card peeking at the edge; the padding gives focus rings room inside the strip. */
       .templates {
         display: grid;
-        grid-auto-columns: 208px;
+        grid-auto-columns: 248px;
         grid-auto-flow: column;
-        gap: 8px;
+        gap: 12px;
         margin: -3px;
         padding: 3px;
       }
 
-      .template {
-        display: grid;
-        align-content: start;
-        border: 0;
-        border-radius: var(--radius-xl);
-        padding: 12px;
-        background: light-dark(var(--card), var(--field));
-        box-shadow: inset 0 0 0 1px var(--line), var(--sheen);
-        text-align: left;
-        transition: background var(--fade), box-shadow var(--fade);
+      /* (On the new chart's ground, the card's: a field's, as a raised card's would be lost on it.) */
+      .templates .tile {
+        --plot-ground: light-dark(var(--card), var(--field));
+        background: var(--plot-ground);
 
-        /* Waiting for the website's charts: the room a card takes, its plot shimmering, nothing to press. */
         &.waiting {
           pointer-events: none;
-        }
-
-        .template-plot {
-          --plot-ground: color-mix(in srgb, var(--card), white 4%);
-          height: 76px;
-          margin-bottom: 12px;
-        }
-
-        .name {
-          overflow: hidden;
-          color: var(--text);
-          font-size: 13px;
-          font-weight: 510;
-          line-height: 18px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        /* (Its place one line, as its name is: whole on hover. The cards a row, one card's two lines would make each as tall.) */
-        .gist {
-          overflow: hidden;
-          color: var(--muted);
-          font-size: 12px;
-          line-height: 16px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        &:hover:where(.can-hover *) {
-          background: light-dark(var(--hover), color-mix(in srgb, var(--field), white 4%));
-          box-shadow: inset 0 0 0 1px var(--line-strong), var(--sheen);
-
-          .name {
-            color: var(--ink);
-          }
         }
       }
 
@@ -6055,7 +6013,8 @@
       }
 
       .home-scroll {
-        --home-top: 56px;
+        --home-room: 56px;
+        --home-top: var(--home-room);
         position: absolute;
         inset: 0;
         overflow-y: auto;
@@ -6151,34 +6110,34 @@
          at its edge), to the window's edges. */
       .gallery-path {
         display: flex;
-        flex-wrap: wrap;
         align-items: center;
         gap: 4px;
-        margin: -10px 0 14px;
+        white-space: nowrap;
+        /* (In the room above the page's name: the name where it is on every page, the way up over it.) */
+        height: 28px;
+        margin: calc(-1 * min(36px, var(--home-room) - 8px)) 0 8px;
         color: var(--muted);
         font-size: 13px;
 
         > button:not(.cap) {
           border: 0;
           border-radius: var(--radius-sm);
+          min-width: 0;
+          overflow: hidden;
           padding: 2px 4px;
           color: var(--soft);
           background: none;
           font: inherit;
+          text-overflow: ellipsis;
 
           &:hover:where(.can-hover *) {
             color: var(--ink);
           }
         }
 
-        > [aria-current] {
-          padding: 2px 4px;
-          color: var(--text);
-          font-weight: 510;
-        }
-
         > .cap {
-          margin-right: 4px;
+          flex: none;
+          margin: 0 2px 0 -6px;
         }
       }
 
@@ -6573,7 +6532,7 @@
         }
       }
 
-      :is(.tile-plot, .template-plot, .palette-plot) {
+      :is(.tile-plot, .palette-plot) {
         position: relative;
         display: block;
 
@@ -7811,7 +7770,8 @@
         }
 
         .home-scroll {
-          --home-top: calc(24px + env(safe-area-inset-top));
+          --home-room: 44px;
+          --home-top: calc(var(--home-room) + env(safe-area-inset-top));
           --gutter: 12px;
           padding: var(--home-top) var(--gutter) calc(var(--bar-room) + 12px);
         }
@@ -8348,7 +8308,7 @@
           background: Mark;
         }
 
-        :is(.swatch, .letter, .series-mark, .chart-mark, .plane, .tile-plot, .templates svg) {
+        :is(.swatch, .letter, .series-mark, .chart-mark, .plane, .tile-plot) {
           forced-color-adjust: none;
         }
 
@@ -8549,8 +8509,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </div>
           <div class="head-actions">
             <span id="saved" class="saved"></span>
-            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Keep puts it in your Library, as it is" data-kbd="⌘ S">Keep</button></span>
-            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn small ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn small" type="button" data-tip="A copy of it, as it is, in your Library">Copy</button></span>
+            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Keep puts it in your Library, as it is" data-kbd="⌘ S"><span data-icon="keep"></span>Keep</button></span>
+            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn small ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn small" type="button" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span>Copy</button></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
             <span class="divider"></span>
@@ -8643,6 +8603,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <section id="home" class="home" aria-labelledby="home-title">
           <div class="home-scroll">
             <div class="home-inner">
+              <!-- (Above its name: the way up, each level a step to; the page itself only named once, by its name.) -->
+              <nav id="gallery-path" class="gallery-path" aria-label="Where it is" hidden></nav>
               <div class="home-head">
                 <h1 id="home-title" tabindex="-1">Charts</h1>
                 <button id="home-title-more" class="cap small" type="button" aria-haspopup="menu" data-icon="more" hidden></button>
@@ -8652,7 +8614,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                   <button id="home-redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
                 </span>
               </div>
-              <nav id="gallery-path" class="gallery-path" aria-label="Where it is" hidden></nav>
               <div id="home-tools" class="home-tools">
               <label class="home-filter">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
@@ -8811,9 +8772,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Go to a date</dt><dd><kbd>G</kbd></dd></div>
             <div><dt>Previous or next interval</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div>
             <div><dt>Zoom out or in</dt><dd><kbd>−</kbd><kbd>+</kbd></dd></div>
-            <div><dt>On the navigator (after Go to a date, or tabbed to): move the view, zoom it, further with ⇧; its start, the latest</dt><dd><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Home</kbd> <kbd>End</kbd></dd></div>
             <div><dt>Log or linear scale</dt><dd><kbd>L</kbd></dd></div>
             <div><dt>Measure a change with the ruler</dt><dd><kbd>M</kbd></dd></div>
+          </dl>
+          <h3>On the navigator</h3>
+          <dl>
+            <div><dt>Reach it: Go to a date lands there</dt><dd><kbd>G</kbd> or <kbd>⇥</kbd></dd></div>
+            <div><dt>Move the view, further with ⇧</dt><dd><kbd>←</kbd><kbd>→</kbd></dd></div>
+            <div><dt>Zoom in or out, further with ⇧</dt><dd><kbd>↑</kbd><kbd>↓</kbd></dd></div>
+            <div><dt>Its start, the latest</dt><dd><kbd>Home</kbd><kbd>End</kbd></dd></div>
           </dl>
           <h3>Drawing</h3>
           <dl>
@@ -17256,12 +17223,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [coarsest, "week1", "day1"].find((id) => !days || days / INTERVAL_DAYS[id] >= points) ?? "day1";
       }
       /** A tile's plot: the chart drawn, a blank box for an empty one, a shimmer until it's drawn. @param {Chart} doc */
-      function plotHtml(doc, current = false) {
+      function plotHtml(doc, current = false, frame = "tile-plot") {
         const drawn = previews.get(doc.id);
         // (An empty one's box, blank: its legend's line says so.)
         if (!doc.layers.length) return `<span class="tile-plot blank"></span>`;
         // (`current`: one drawn before it changed is drawn again, as it is now, once in view.)
-        return `<span class="tile-plot ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}">${drawn ? previewSvg(drawn, `tile-plot-${doc.id}`) : ""}</span>`;
+        // (`frame`: its classes, the first naming its drawing's ids: two frames of one chart, a hidden one's ids not the
+        // shown one's.)
+        return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}">${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
       }
       /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
       function tileHtml(doc) {
@@ -17343,7 +17312,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           : "previews" in homeAt ? [charts] : [];
         const where = $("gallery-path"), top = "top" in homeAt;
         where.hidden = top;
-        where.innerHTML = top ? "" : `<button type="button" class="cap small" data-place="${escape(JSON.stringify(/** @type {{ name: string, at: Place }} */ (ups[ups.length - 1]).at))}" aria-label="Up a level" data-tip="Up a level">${ICONS.back}</button>${[...ups.map((up) => `<button type="button" data-place="${escape(JSON.stringify(up.at))}">${escape(up.name)}</button>`), `<span aria-current="page">${escape(name)}</span>`].join('<span class="sep" aria-hidden="true">›</span>')}`;
+        where.innerHTML = top ? "" : `<button type="button" class="cap small" data-place="${escape(JSON.stringify(/** @type {{ name: string, at: Place }} */ (ups[ups.length - 1]).at))}" aria-label="Up a level" data-tip="Up a level">${ICONS.back}</button>${ups.map((up) => `<button type="button" dir="auto" data-place="${escape(JSON.stringify(up.at))}">${escape(up.name)}</button>`).join('<span class="sep" aria-hidden="true">›</span>')}`;
         const field = /** @type {HTMLInputElement} */ ($("home-filter"));
         field.placeholder = top ? "Search your Library and the presets" : `Search in ${name}`;
         field.setAttribute("aria-label", field.placeholder);
@@ -17514,17 +17483,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The recommended presets, by their place in the tree. */
       const recommendedPresets = () => RECOMMENDED.flatMap((place) => ((i) => (i < 0 ? [] : [i]))(/** @type {Preset[]} */ (presets).findIndex((preset) => preset.p.join(" › ") === place)));
-      /** A preset's tile, as a chart's in the grid: its title, its layers' legend, its mini chart (drawn once in view). */
-      function presetTileHtml(/** @type {number} */ i) {
-        const doc = presetDoc(i), title = escape(titleOf(doc));
+      /**
+       * A preset's tile, as a chart's in the grid: its title, its layers' legend, its mini chart (drawn once in view). New
+       * chart's (`card`, its place among the recommended): the same, its drawing framed apart (its own ids).
+       */
+      function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
+        const title = escape(titleOf(doc));
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
-        return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"><button type="button" class="tile-open" data-open-preset="${i}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span></span><span class="tile-legend">${legend}</span>${plotHtml(doc, true)}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`;
+        return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span></span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`;
       }
       /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
       let listsDrawn = 0;
       const listAt = () => listsDrawn++;
       /** A grid of presets, as many as shown, more a button away. @param {number[]} list */
-      const presetGridHtml = (list) => `<div class="grid-tiles" data-list="${listAt()}">${list.slice(0, galleryShown).map(presetTileHtml).join("")}</div>${list.length > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, list.length - galleryShown))} more</button>` : ""}`;
+      const presetGridHtml = (list) => `<div class="grid-tiles" data-list="${listAt()}">${list.slice(0, galleryShown).map((i) => presetTileHtml(i)).join("")}</div>${list.length > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, list.length - galleryShown))} more</button>` : ""}`;
       /** A shelf's steps, a page of tiles back and on (see stepShelf). */
       const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-shelf-step="-1" aria-label="Scroll back" data-tip="Scroll back">${ICONS.back}</button><button type="button" class="cap small shelf-step" data-shelf-step="1" aria-label="Scroll on" data-tip="Scroll on">${ICONS.next}</button>`;
       /**
@@ -17532,7 +17504,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * the top, the recommended, leading to all of them: `count`, how many that is).
        * @param {string} name @param {number[]} list @param {string[] | null} to
        */
-      const shelfHtml = (name, list, to, count = list.length) => `<section class="shelf" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${list.slice(0, SHELF).map(presetTileHtml).join("")}</div></section>`;
+      const shelfHtml = (name, list, to, count = list.length) => `<section class="shelf" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${list.slice(0, SHELF).map((i) => presetTileHtml(i)).join("")}</div></section>`;
       /** The presets' side of the page, where it is (none in your Library): at the top, one shelf (the recommended, leading to them all); on their page, the recommended, then each section as a shelf; in a section, its own as a grid, then each section in it. */
       function renderGallery() {
         const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -18895,6 +18867,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           view.applyOptions(chartColors());
           refresh();
           if (home) renderHome();
+          if (presets && !$("empty").hidden) renderRecommended();
           // (Every chart's plot on screen in its tones: the tiles, the cards of charts to start from, ⌘K's preview, Quick
           // Look's.)
           for (const [id, drawn] of previews) paint(id, drawn, true);
@@ -19276,9 +19249,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const wasOpen = doc === chart;
         // Its history goes with it and comes back with it: undone, the chart can still be undone further.
         const undoable = wasOpen ? { past: [...edits.past], future: [...edits.future] } : null;
-        // (Where the focus goes, asked before what has it goes: the row after, else the one before, else New chart.)
-        const neighbor = library.charts[index + 1] ?? library.charts[index - 1];
-        keepFocus(null, () => (neighbor && library.charts.includes(neighbor) ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(neighbor.id)}"]`) : null), () => $("new-chart"));
+        // (Where the focus goes, asked before what has it goes: the row after, else the one before, else New chart; from
+        // the Charts page (its tile, its ⋯'s menu), that one's tile there.)
+        const neighbor = library.charts[index + 1] ?? library.charts[index - 1], kept = () => Boolean(neighbor && library.charts.includes(neighbor));
+        const onPage = home && [document.activeElement, ownerNow(), performance.now() - closedAt < 1000 ? closedOwner : null].some((element) => element?.closest("#home"));
+        // (There, the tile shown after it in its row, else the one before: a shelf shows some, a folder's elsewhere.)
+        const tile = onPage ? cardOf(doc.id) : null, beside = /** @type {HTMLElement | null | undefined} */ (tile?.nextElementSibling?.matches(".tile[data-home-card]") ? tile.nextElementSibling : tile?.previousElementSibling?.matches(".tile[data-home-card]") ? tile.previousElementSibling : null)?.dataset.homeCard;
+        keepFocus(null, () => (beside ? tileOpen(beside) : null), () => (kept() ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(/** @type {Chart} */ (neighbor).id)}"]`) : null), () => $("new-chart"));
         discard(doc);
         // The last chart gone (the open one), the preview there is stands in, else a blank one.
         const standIn = wasOpen && !library.charts.length ? previewCharts[0] ?? newDraft() : null;
@@ -19749,14 +19726,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         recommendedDrawn = recommendedKey();
         // (Not read: no row, nor its head.)
         /** @type {HTMLElement} */ ($("templates").closest(".starts")).hidden = !list && Boolean(presetsFailed);
-        $("templates").innerHTML = list ? recommendedCards.map(({ preset, doc }, i) => `<button type="button" class="template" data-template="${i}"><span class="template-plot ${previews.has(doc.id) ? "" : "pending"}" data-plot="${doc.id}">${previews.has(doc.id) ? previewSvg(/** @type {Preview} */ (previews.get(doc.id)), `template-plot-${doc.id}`) : ""}</span><span class="name" title="${escape(titleOf(doc))}">${escape(titleOf(doc))}</span><span class="gist" title="${escape(list[preset].p.slice(0, -1).join(" › "))}">${escape(list[preset].p.slice(0, -1).join(" › "))}</span></button>`).join("")
-          : RECOMMENDED.map(() => '<span class="template waiting" aria-hidden="true"><span class="template-plot pending"></span><span class="name">&nbsp;</span><span class="gist">&nbsp;</span></span>').join("");
+        // (Each a preset's tile, as the gallery's.)
+        $("templates").innerHTML = list ? recommendedCards.map(({ preset, doc }, i) => presetTileHtml(preset, doc, i)).join("")
+          : RECOMMENDED.map(() => '<div class="tile waiting" aria-hidden="true"><span class="tile-open"><span class="tile-head"><span class="tile-name">&nbsp;</span></span><span class="tile-legend"></span><span class="tile-plot pending"></span></span></div>').join("");
         for (const card of all$("[data-template]")) cardsSeen.observe(card);
         fitStrip($("templates"));
       }
-      /** The recommended cards as last drawn: by the presets edited among them (one edited since, drawn anew, see renderCharts). */
+      /** The recommended cards as last drawn: by the theme and the presets edited among them (one edited since, drawn anew, see renderCharts). */
       let recommendedDrawn = "";
-      const recommendedKey = () => (presets ? JSON.stringify(RECOMMENDED.map((place) => ((i) => ((doc) => (doc && presetEdited(doc) ? `${doc.id}@${doc.updated}` : ""))(i >= 0 ? editedPreset(i) : undefined))(/** @type {Preset[]} */ (presets).findIndex((item) => item.p.join(" › ") === place)))) : "");
+      const recommendedKey = () => (presets ? JSON.stringify([light, ...RECOMMENDED.map((place) => ((i) => ((doc) => (doc && presetEdited(doc) ? `${doc.id}@${doc.updated}` : ""))(i >= 0 ? editedPreset(i) : undefined))(/** @type {Preset[]} */ (presets).findIndex((item) => item.p.join(" › ") === place)))]) : "");
       // A card's drawing, once it comes into view: one at a time, while the page is idle and the row isn't scrolling (the
       // data it's drawn from comes over the network; drawn mid-scroll, the scroll would stall on it). Kept for the day.
       const cardQueue = new Set();
@@ -22420,8 +22398,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <span class="under-label"><span class="sign" aria-hidden="true">&lt;</span><span class="vh">Under </span>${lowest}</span>
             <i class="cap small spacer" aria-hidden="true"></i>
           </div>` : "";
-        // (Their unit said once, by their name: every value's.)
-        return `<div class="field levels-field"><span><span>Levels${fieldUnit(unit) ? `<span class="levels-unit"> · ${escape(fieldUnit(unit))}</span>` : ""}</span>${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at a round value over the latest">${ICONS.plus}</button></span>${levels.length ? `<div class="levels" role="list" aria-label="Levels, the highest first">${order.map(row).join("")}${under}</div>` : ""}</div>`;
+        // (Their unit said once, by their name: every value's; none said before there are any.)
+        return `<div class="field levels-field"><span><span>Levels${levels.length && fieldUnit(unit) ? `<span class="levels-unit"> · ${escape(fieldUnit(unit))}</span>` : ""}</span>${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at a round value over the latest">${ICONS.plus}</button></span>${levels.length ? `<div class="levels" role="list" aria-label="Levels, the highest first">${order.map(row).join("")}${under}</div>` : ""}</div>`;
       }
       /** A level's ⋯: its line (none, its band alone; a dash), its value on the axis, removing it. @param {string} id @param {number} i */
       function levelRows(id, i) {
