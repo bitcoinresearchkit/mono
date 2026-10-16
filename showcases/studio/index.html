@@ -1972,19 +1972,69 @@
         }
       }
 
-      /* The sidebar's groups, while there are previews: the previews', then your charts', each named, how many beside. */
+      /* The sidebar's groups: the previews', your Library's, the presets', each named (how many beside), opened or closed
+         there as a folder is (a turn after it, closed always, open as it's pointed at), its ⋯ at its end. */
       .list-head {
+        position: relative;
         display: flex;
-        align-items: baseline;
-        gap: 6px;
-        padding: 2px 13px 3px;
-        color: var(--soft);
-        font: 510 12px/16px var(--sans);
-        white-space: nowrap;
+        align-items: center;
+
+        .list-head-name {
+          display: flex;
+          flex: 1;
+          align-items: baseline;
+          gap: 6px;
+          min-width: 0;
+          padding: 2px 13px 3px;
+          border: 0;
+          border-radius: var(--radius-sm);
+          color: var(--soft);
+          background: none;
+          font: 510 12px/16px var(--sans);
+          text-align: left;
+          white-space: nowrap;
+
+          &:hover:where(.can-hover *),
+          &[aria-current="page"] {
+            color: var(--ink);
+          }
+        }
+
+        &.holds .list-head-name {
+          color: var(--ink);
+        }
 
         .count {
           color: var(--count);
           font-variant-numeric: tabular-nums;
+        }
+
+        .turn {
+          display: inline-flex;
+          align-self: center;
+          color: var(--count);
+          opacity: 0;
+          rotate: 90deg;
+          transition: opacity var(--dur-micro) var(--ease), rotate var(--dur-small) var(--ease);
+        }
+
+        &.closed .turn {
+          opacity: 1;
+          rotate: 0deg;
+        }
+
+        .chart-more {
+          position: absolute;
+          right: 9px;
+          opacity: 0;
+        }
+
+        &:hover:where(.can-hover *),
+        &:has(:focus-visible) {
+          .turn,
+          .chart-more {
+            opacity: 1;
+          }
         }
 
         /* (The first, under New chart's rule, as far from it as the rule is from New chart and more.) */
@@ -1993,9 +2043,8 @@
         }
 
         /* Each group set apart from the one before by a rule, as New chart's: the previews', your Library's, the
-           presets'. */
-        :is(.chart-row, .folder-row) + & {
-          position: relative;
+           presets' (one closed, from its head). */
+        :is(.chart-row, .folder-row, .list-head) + & {
           margin-top: 17px;
 
           &::before {
@@ -2006,20 +2055,6 @@
             width: calc(100% - 16px);
             height: 1px;
             background: var(--line);
-          }
-        }
-
-        /* (Each a way to its page, lit there.) */
-        &:is(button) {
-          width: 100%;
-          border: 0;
-          border-radius: var(--radius-sm);
-          background: none;
-          text-align: left;
-
-          &:hover:where(.can-hover *),
-          &[aria-current="page"] {
-            color: var(--ink);
           }
         }
       }
@@ -2919,6 +2954,13 @@
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+        }
+
+        .home-undo {
+          display: flex;
+          flex: none;
+          gap: 4px;
+          margin-left: auto;
         }
 
         /* (Its name typed in place, as large.) */
@@ -6497,6 +6539,13 @@
         translate: 0 -50%;
       }
 
+      /* (No tick to pick it (a preset's, a preview's): its ⋯ in the corner, where the tick would be; by touch, always there.) */
+      @media (hover: hover) {
+        .tile:not(:has(.tile-check)) .tile-more {
+          right: 9px;
+        }
+      }
+
       .tile:is(:hover:where(.can-hover *), :has(:focus-visible)) {
         .tile-more {
           opacity: 1;
@@ -6894,6 +6943,12 @@
             margin: 7px auto 0;
             border-radius: 3px;
             background: var(--faint);
+            transition: background var(--dur-small) var(--ease);
+          }
+
+          /* (Held, its handle lit: the sheet's with the finger.) */
+          &.pulled::before {
+            background: var(--ink);
           }
         }
 
@@ -7748,7 +7803,13 @@
             height: 5px;
             border-radius: 3px;
             background: var(--faint);
+            transition: background var(--dur-small) var(--ease);
           }
+        }
+
+        /* (Held, as the layers sheet's.) */
+        :is(.menu.as-sheet, .palette).pulled > .menu-handle::before {
+          background: var(--ink);
         }
 
         .palette-body {
@@ -7918,7 +7979,7 @@
       }
 
       @media (hover: none) {
-        :is(.chart-row, .folder-row) .chart-more,
+        :is(.chart-row, .folder-row, .list-head) .chart-more,
         .shelf-more,
         .tile .tile-more {
           opacity: 1;
@@ -8396,6 +8457,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <div class="home-head">
                 <h1 id="home-title" tabindex="-1">Charts</h1>
                 <button id="home-title-more" class="cap small" type="button" aria-haspopup="menu" data-icon="more" hidden></button>
+                <!-- (Undo and Redo where a chart has them, its top right: what's done here, a toast's, undone there.) -->
+                <span class="home-undo">
+                  <button id="home-undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo" aria-disabled="true"></button>
+                  <button id="home-redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
+                </span>
               </div>
               <nav id="gallery-path" class="gallery-path" aria-label="Where it is" hidden></nav>
               <div id="home-tools" class="home-tools">
@@ -10516,6 +10582,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let revision = 0;
       /** Whether the open chart changed in this task (a toast now says that change; see toastStep). */
       let chartChanged = false;
+      /** The sidebar's groups, each its name and its page. @typedef {"previews" | "library" | "presets"} Group */
+      const GROUPS = /** @type {Group[]} */ (["previews", "library", "presets"]);
+      const GROUP_OF = /** @type {Record<Group, [string, Place]>} */ ({ previews: ["Previews", { previews: true }], library: ["Library", { folder: "" }], presets: ["Presets", { path: [] }] });
       /** Preferences as stored, read (each its default where it's missing or isn't one). */
       function readPrefs(/** @type {any} */ stored) {
         return {
@@ -10526,6 +10595,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** Where the Charts page was last (see Place): Charts, from a chart, after a reload too, comes back there. */
           at: /** @type {any} */ (stored.at && typeof stored.at === "object" ? stored.at : null),
           presetsOpen: /** @type {string[]} */ (Array.isArray(stored.presetsOpen) ? stored.presetsOpen.filter((/** @type {any} */ key) => typeof key === "string").slice(0, 500) : []),
+          /** The sidebar's groups closed there (see GROUPS). */
+          groupsClosed: /** @type {Group[]} */ (Array.isArray(stored.groupsClosed) ? GROUPS.filter((group) => stored.groupsClosed.includes(group)) : []),
           /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
           keys: stored.keys !== false,
           theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "dark"),
@@ -11228,6 +11299,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Collapsed, the rail keeps only its icons: a focus on what it puts away, a row's ⋯, a folder's, on its toggle.)
         const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
         applySidebar();
+        // (A group closed shows on the rail, closed again out of it.)
+        if (prefs.groupsClosed.length) renderCharts();
         keepFocus(putAway, () => $("sidebar-toggle"));
       }
       $("sidebar").addEventListener("transitionend", (event) => event.target === $("sidebar") && event.propertyName === "width" && document.body.removeAttribute("data-sliding"));
@@ -17050,7 +17123,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const lit = (/** @type {Element} */ element, /** @type {boolean} */ on) => on !== element.hasAttribute("aria-current") && (on ? element.setAttribute("aria-current", "page") : element.removeAttribute("aria-current"));
         const folder = home && "folder" in homeAt ? homeAt.folder : null, path = home && "path" in homeAt ? JSON.stringify(homeAt.path) : null, at = home ? JSON.stringify(homeAt) : "";
         lit($("charts-nav"), home && "top" in homeAt);
-        for (const head of all$("[data-place]", $("chart-list"))) lit(head, head.dataset.place === at);
+        for (const head of all$("[data-at]", $("chart-list"))) lit(head, head.dataset.at === at);
         for (const button of all$("[data-folder-item]", $("chart-list"))) lit(button, button.dataset.folderItem === folder);
         for (const button of all$("[data-section-item]", $("chart-list"))) lit(button, button.dataset.sectionItem === path);
       }
@@ -17477,6 +17550,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         delete document.body.dataset.sheet;
         if (home) return;
         navigations++;
+        // (A toast of the chart's edit stays with it: its Undo isn't the page's.)
+        if (toastStep) hideToast();
         // (Full screen is the chart's: the grid, as ever.)
         setFull(false);
         leaveField();
@@ -17651,6 +17726,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function dragSheet(element, { grab, move, release, back, pulls }) {
         // (`pointer` -1: a finger's pull, by touch events.)
         let pull = /** @type {{ y: number, pointer: number, trail: { y: number, at: number }[] } | null} */ (null);
+        // (Held, its handle lit, from the press to the release: what's held shows it.)
+        const letGo = () => (element.classList.remove("pulled"), back());
         const follow = (/** @type {number} */ y) => {
           if (!pull) return;
           const now = performance.now();
@@ -17663,12 +17740,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const now = performance.now(), past = pull.trail.find((point) => now - point.at <= 100) ?? { y, at: now };
           const by = y - pull.y, speed = (y - past.y) / Math.max(1, now - past.at);
           pull = null;
-          back();
+          letGo();
           release(by, speed);
         };
         element.addEventListener("pointerdown", (event) => {
           if (pull || !grab(event)) return;
           pull = { y: event.clientY, pointer: event.pointerId, trail: [{ y: event.clientY, at: performance.now() }] };
+          element.classList.add("pulled");
           // (Where it shows from now, still or not: taken as it slides in, there, not at its stop till a move.)
           move(0);
           // (Held by what was pressed, the handle or the head: the click after a drag is its, not the sheet's own, which in
@@ -17677,7 +17755,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         element.addEventListener("pointermove", (event) => event.pointerId === pull?.pointer && follow(event.clientY));
         element.addEventListener("pointerup", (event) => event.pointerId === pull?.pointer && end(event.clientY));
-        for (const type of ["pointercancel", "lostpointercapture"]) element.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), back()));
+        for (const type of ["pointercancel", "lostpointercapture"]) element.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), letGo()));
         if (!pulls) return;
         // (A finger's, by touch events: one that turns out a pull stops the list's scroll, as a pointer's can't. Its events
         // go to what it touched, out of the sheet or not: a list drawn anew under it (a search's answer, a layer's data)
@@ -17702,6 +17780,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (The gesture's now: a row's press waiting to be held goes.)
             stopCarrying();
             pull = { y: point.clientY, pointer: -1, trail: [{ y: point.clientY, at: performance.now() }] };
+            element.classList.add("pulled");
           }
           event.preventDefault();
           follow(point.clientY);
@@ -17716,7 +17795,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const taken = touch?.taken;
           if (!own(event)) return;
           forget();
-          if (taken && pull?.pointer === -1) (pull = null), back();
+          if (taken && pull?.pointer === -1) (pull = null), letGo();
         };
         // (Each event once: on the sheet while what it touched is on it, else on what it touched.)
         const heard = (/** @type {(event: TouchEvent) => void} */ handle, /** @type {boolean} */ on) => (/** @type {Event} */ event) => (event.target instanceof Node && element.contains(event.target)) === on && handle(/** @type {TouchEvent} */ (event));
@@ -17735,7 +17814,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if ([...event.touches].some((point) => point.identifier === id) && ![...event.changedTouches].some((point) => point.identifier === id)) return;
             // (Its finger's end never heard (none should go unsent): let go where it was.)
             forget();
-            if (pull?.pointer === -1) (pull = null), back();
+            if (pull?.pointer === -1) (pull = null), letGo();
           }
           forget();
           const point = event.touches[0], target = event.target, box = element.getBoundingClientRect();
@@ -18078,13 +18157,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * again only where it changed (an edit that changes nothing in it, a formula typed, leaves it as it is).
        */
       function renderCharts() {
-        const current = home ? null : chart, keys = numbered();
+        const current = home ? null : chart;
         /** A preview's row: a new chart's, empty, only that; another's, its × (but the open one with nothing to go back to). */
         const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${drafts.has(doc)
           ? `<button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="A new chart: in your Library once something's in it">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>`
           : `<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library (Keep${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
         // (A draft, the empty chart in place of none, listed only while it's the one open: under the page, not one.)
         const listed = listedPreviews(), draft = home ? undefined : previewCharts.find((doc) => drafts.has(doc)), counts = chartCounts();
+        // (The presets under them as the page has them: named before they've arrived, nothing to change once they have.)
+        const libraryNamed = Boolean((listed.length || presetsFailed !== "none") && (draft || sideItems().length));
+        libraryFolded = libraryNamed && groupShut("library");
+        const keys = numbered();
         const row = (/** @type {Chart} */ doc, depth = 0) => ((i) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
             <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i >= 0 ? `data-kbd="⌘ ${i + 1}"` : ""}>${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span>${i >= 0 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
@@ -18093,9 +18176,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const parts = [
           // The previews first, under their head, then your charts under theirs (the two told apart; none, no heads), a new
           // chart first among yours (where it'll be once something's in it).
-          ...(listed.length ? [/** @type {[string, string]} */ (["head:previews", `<button type="button" class="list-head" data-place='{"previews":true}' data-tip="The previews, their page">Previews<span class="count">${shortCount(listed.length)}</span></button>`]), ...listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)]))] : []),
-          // (Yours named where something's around them to tell them from: previews over them, the presets under them.)
-          ...((listed.length || presets) && (draft || sideItems().length) ? [/** @type {[string, string]} */ (["head:saved", `<button type="button" class="list-head" data-place='{"folder":""}' data-tip="Your Library, its page">Library<span class="count">${shortCount(library.charts.length)}</span></button>`])] : []),
+          ...(listed.length ? [sideHead("previews", listed.length, Boolean(current && listed.includes(current))), ...(groupShut("previews") ? [] : listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)])))] : []),
+          // (Yours named where something's around them to tell them from: previews over them, the presets under them; closed
+          // only where named, a way to open them again there.)
+          ...(libraryNamed ? [sideHead("library", library.charts.length, Boolean(current && (current === draft || (!isPreview(current) && current.preset === undefined))))] : []),
+          ...(libraryNamed && groupShut("library") ? [] : [
           ...(draft ? [/** @type {[string, string]} */ ([`preview:${draft.id}`, previewRow(draft)])] : []),
           // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
           ...treeOf(undefined, true).map(({ item, depth }) => {
@@ -18105,7 +18190,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
               <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button>
             </div>`]);
-          }),
+          })]),
           ...presetParts(),
         ];
         // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
@@ -18150,6 +18235,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A count as the sidebar says it, short: whole thousands (1k, 11k, 111k), whole millions, never more than it is. */
       const shortCount = (/** @type {number} */ n) => (n < 1000 ? String(n) : n < 1e6 ? `${Math.floor(n / 1000)}k` : `${Math.floor(n / 1e6)}m`);
+      /** Whether one of the sidebar's groups is closed there. @param {Group} group */
+      // (On the rail, none: its heads aren't there to open them again.)
+      const groupShut = (group) => !railed() && prefs.groupsClosed.includes(group);
+      /**
+       * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept), how many it holds, a
+       * turn showing which (closed, always); its ⋯ (a right-click), its page first. Closed, holding the open chart, it
+       * says so (as a folder does).
+       * @param {Group} group @param {number} count @param {boolean} holds @returns {[string, string]}
+       */
+      const sideHead = (group, count, holds) => {
+        const [name, place] = GROUP_OF[group], shut = groupShut(group);
+        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}">${name}<span class="count">${shortCount(count)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}">${ICONS.more}</button></div>`];
+      };
+      /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
+      const groupRows = (group) => [
+        { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", run: () => goTo(asPlace(GROUP_OF[group][1])) },
+        ((shut) => ({ key: "toggle", icon: shut ? ICONS.folderOpen : ICONS.folder, label: shut ? "Expand" : "Collapse", stay: true, run: () => toggleGroup(group) }))(groupShut(group)),
+      ];
+      /** One of the sidebar's groups opened or closed there, as a folder is (kept as left). @param {Group} group */
+      function toggleGroup(group) {
+        const closing = !groupShut(group);
+        prefs.groupsClosed = closing ? [...prefs.groupsClosed, group] : prefs.groupsClosed.filter((other) => other !== group);
+        savePrefs();
+        foldRow(() => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-group="${group}"]`)), closing);
+      }
       /**
        * The presets' sections as a tree, made once they're read: each with its sections (in the presets' order), its own
        * presets, how many it holds at any depth, its key (its path, as kept).
@@ -18218,7 +18328,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!root || !presets) return [];
         const open = new Set(prefs.presetsOpen);
         /** @type {[string, string][]} */
-        const parts = [["head:presets", `<button type="button" class="list-head" data-place='{"path":[]}' data-tip="The presets, their page">Presets<span class="count">${shortCount(presets.length)}</span></button>`]];
+        const parts = [sideHead("presets", presets.length, !home && chart.preset !== undefined)];
+        if (groupShut("presets")) return parts;
         const walk = (/** @type {PresetNode} */ node, /** @type {number} */ depth) => {
           for (const section of node.sections) {
             const shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
@@ -18308,8 +18419,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let at = /** @type {string | undefined} */ (id), steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) names.unshift(folderById(at)?.name ?? "");
         return names.join(" › ");
       };
-      /** The charts ⌘1–9 open: the first nine the sidebar shows (one in a closed folder, out of sight, out of reach). */
-      const numbered = () => listed().filter(inSight).slice(0, 9);
+      /** Whether your Library's closed in the sidebar, as last drawn (named, so closed: see renderCharts). */
+      let libraryFolded = false;
+      /** The charts ⌘1–9 open: the first nine the sidebar shows (one in a closed folder or a closed Library, out of sight, out of reach). */
+      const numbered = () => (libraryFolded ? [] : listed().filter(inSight).slice(0, 9));
       /** A folder made (in `parent`, first there; none: at the top), named at once where it shows (`keys`: what it starts with). */
       function newFolder(/** @type {string[]} */ keys = [], /** @type {string | undefined} */ parent = undefined) {
         const folder = /** @type {Folder} */ ({ id: uid(), name: "New folder", ...(parent && folderById(parent) ? { parent } : {}) });
@@ -18359,8 +18472,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function foldRow(/** @type {() => HTMLElement | null} */ find, /** @type {boolean} */ closing) {
         let head = find();
         if (reduced.matches || !head) return renderCharts();
-        /** @type {HTMLElement} */ (head.querySelector(".folder-glyph")).innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
-        head.querySelector(".folder-item")?.setAttribute("aria-expanded", String(!closing));
+        // (A group's head turns its arrow, as its class says.)
+        const group = head.classList.contains("list-head"), glyph = head.querySelector(".folder-glyph");
+        if (glyph) glyph.innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
+        head.classList.toggle("closed", closing);
+        head.querySelector("[aria-expanded]")?.setAttribute("aria-expanded", String(!closing));
         if (!closing) {
           renderCharts();
           head = find();
@@ -18368,7 +18484,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const folds = rowsUnder(head).map((element) => fold(element, closing));
         // (On the rail, its own slice of their surface fades with them.)
-        if (!head.classList.contains("in-folder")) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
+        if (!head.classList.contains("in-folder") && !group) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
         if (!closing) return;
         closings++;
         Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
@@ -18437,11 +18553,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderTheme();
           applyTheme();
         }
-        if (took.includes("sidebar")) applySidebar();
+        if (took.includes("sidebar")) (applySidebar(), renderCharts());
         if (took.includes("panel") && !fullOn()) applyPanel();
         if (took.includes("belt") || took.includes("pen")) renderBelt();
         if (took.includes("keys")) renderSingleKeys();
-        if (took.includes("presetsOpen")) renderCharts();
+        if (took.includes("presetsOpen") || took.includes("groupsClosed")) renderCharts();
       });
       /** The themes, from their row: the one chosen ticked. */
       function themeMenu(/** @type {HTMLElement} */ anchor) {
@@ -18450,6 +18566,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       renderTheme();
       /** The sidebar's rows under a folder's (yours, a section's), at any depth (those after it, deeper than it). */
       function rowsUnder(/** @type {HTMLElement} */ head) {
+        // (A group's: all up to the next group's head.)
+        if (head.classList.contains("list-head")) {
+          const under = [];
+          for (let row = head.nextElementSibling; row && !row.classList.contains("list-head"); row = row.nextElementSibling) under.push(/** @type {HTMLElement} */ (row));
+          return under;
+        }
         const rows = all$(".chart-row, .folder-row", $("chart-list")), at = rows.indexOf(head);
         if (at < 0) return [];
         const depth = depthOf(rows[at]), under = [];
@@ -19174,11 +19296,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         },
       });
       // In the list, ↑ ↓ (Home, End) walk its rows rather than the layers; ⌥↑ ⌥↓ move the focused one (yours); ← → as a
-      // tree: → opens a folder, then goes into it; ← closes it, then goes to the folder it's in, as from a chart.
+      // tree: → opens a folder (a group's head), then goes into it; ← closes it, then goes to the one it's in, as from a
+      // chart. (The heads a level above the rows; on the rail, out of sight, none.)
       $("chart-list").addEventListener("keydown", (event) => {
         if (event.isComposing || typing(event.target)) return;
-        const rows = all$(".chart-row:not([inert]), .folder-row:not([inert])", $("chart-list")), row = /** @type {HTMLElement | null} */ (closest(event, ".chart-row, .folder-row"));
-        const first = (/** @type {HTMLElement | undefined} */ each) => /** @type {HTMLElement | null | undefined} */ (each?.querySelector(".nav-item"));
+        const rows = all$(`.chart-row:not([inert]), .folder-row:not([inert])${railed() ? "" : ", .list-head"}`, $("chart-list")), row = /** @type {HTMLElement | null} */ (closest(event, ".chart-row, .folder-row, .list-head"));
+        const first = (/** @type {HTMLElement | undefined} */ each) => /** @type {HTMLElement | null | undefined} */ (each?.querySelector(".nav-item, .list-head-name"));
+        const level = (/** @type {HTMLElement} */ each) => (each.classList.contains("list-head") ? -1 : depthOf(each));
         if (!row) return;
         if (!event.altKey && !event.metaKey && !event.ctrlKey && ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
           const at = rows.indexOf(row);
@@ -19187,18 +19311,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.stopPropagation();
           return void first(rows[stepIn(at, Number(KEY_STEPS[event.key]), rows.length)])?.focus();
         }
-        const folder = row.dataset.folderRow, section = row.dataset.sectionRow, id = row.dataset.chartRow;
+        const folder = row.dataset.folderRow, section = row.dataset.sectionRow, group = /** @type {Group | undefined} */ (row.dataset.group), id = row.dataset.chartRow;
         if (!event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
-          const opens = folder !== undefined || section !== undefined, open = opens && !row.classList.contains("closed"), depth = depthOf(row), at = rows.indexOf(row);
+          const opens = folder !== undefined || section !== undefined || group !== undefined, open = opens && !row.classList.contains("closed"), depth = level(row), at = rows.indexOf(row);
           event.preventDefault();
           if (opens && open === (event.key === "ArrowLeft")) {
             if (folder) toggleFolder(folder);
+            else if (group) toggleGroup(group);
             else toggleSection(/** @type {string} */ (section));
             // (Drawn anew: its row's own again.)
-            const again = all$(".folder-row", $("chart-list")).find((each) => (folder ? each.dataset.folderRow === folder : each.dataset.sectionRow === section));
+            const again = all$(".folder-row, .list-head", $("chart-list")).find((each) => (folder ? each.dataset.folderRow === folder : group ? each.dataset.group === group : each.dataset.sectionRow === section));
             return void first(again)?.focus();
           }
-          const toward = event.key === "ArrowRight" ? (open && depthOf(rows[at + 1] ?? row) > depth ? rows[at + 1] : undefined) : rows.slice(0, at).findLast((each) => depthOf(each) < depth);
+          const toward = event.key === "ArrowRight" ? (open && rows[at + 1] && level(rows[at + 1]) > depth ? rows[at + 1] : undefined) : rows.slice(0, at).findLast((each) => level(each) < depth);
           return void first(toward)?.focus();
         }
         if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
@@ -21849,6 +21974,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (TOUCH && presetAt.matches("[data-preset]")) return;
           const more = /** @type {HTMLElement} */ (presetAt.querySelector("[data-preset-menu]"));
           return menuOf(more, presetActions(Number(more.dataset.presetMenu), presetAt.matches("[data-preset-row]") ? "row" : "tile"), { x: event.clientX, y: event.clientY });
+        }
+        const groupAt = closest(event, "#chart-list [data-group]");
+        if (groupAt) {
+          event.preventDefault();
+          return menuOf(/** @type {HTMLElement} */ (groupAt.querySelector("[data-group-menu]")), groupRows(/** @type {Group} */ (groupAt.dataset.group)), { x: event.clientX, y: event.clientY });
         }
         const sectionRow = closest(event, "[data-section-row]");
         if (sectionRow) {
@@ -25227,8 +25357,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (now && now !== field && fieldOpener.has(field)) fieldOpener.set(now, /** @type {HTMLElement} */ (fieldOpener.get(field)));
         if (now) letGo(now);
       }, true);
-      $("undo").addEventListener("click", () => ($("undo").getAttribute("aria-disabled") === "true" ? say("Nothing to undo") : undoLast()));
-      $("redo").addEventListener("click", () => ($("redo").getAttribute("aria-disabled") === "true" ? say("Nothing to redo") : redoLast()));
+      for (const id of ["undo", "home-undo"]) $(id).addEventListener("click", () => ($(id).getAttribute("aria-disabled") === "true" ? say("Nothing to undo") : undoLast()));
+      for (const id of ["redo", "home-redo"]) $(id).addEventListener("click", () => ($(id).getAttribute("aria-disabled") === "true" ? say("Nothing to redo") : redoLast()));
       /**
        * Out of the open chart: its image (shared, where there's a share sheet for a picture: a phone's, its Photos and
        * messages; copied, opened, downloaded), its data, its file. @returns {Action[]}
@@ -26297,8 +26427,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function syncUndo() {
         // (Dimmed, not disabled: a key's focus on one stays there as it runs out.)
-        $("undo").setAttribute("aria-disabled", String(!edits.past.length && toastUndo?.mark !== revision));
-        $("redo").setAttribute("aria-disabled", String(!edits.future.length && toastRedo?.mark !== revision));
+        // (The page's: a toast's alone, the chart under it out of reach there.)
+        const back = toastUndo?.mark === revision, forth = toastRedo?.mark === revision;
+        $("undo").setAttribute("aria-disabled", String(!edits.past.length && !back));
+        $("redo").setAttribute("aria-disabled", String(!edits.future.length && !forth));
+        $("home-undo").setAttribute("aria-disabled", String(!back));
+        $("home-redo").setAttribute("aria-disabled", String(!forth));
         const edited = isPreview(chart) && touched.has(chart), keep = $("keep");
         keep.classList.toggle("edited", edited);
         keep.dataset.tip = edited ? "Your edits aren't in your Library yet: Keep puts it there, with them" : "Keep puts it in your Library, as it is";
@@ -26536,8 +26670,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (folderItem) return toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
         const sectionMenu = closest(event, "[data-section-menu]");
         if (sectionMenu) return menuOf(sectionMenu, sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
-        const head = closest(event, "#chart-list [data-place]");
-        if (head) return goTo(asPlace(JSON.parse(/** @type {string} */ (head.dataset.place))));
+        const groupItem = closest(event, "[data-group-item]");
+        if (groupItem) return toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
+        const groupMenu = closest(event, "[data-group-menu]");
+        if (groupMenu) return menuOf(groupMenu, groupRows(/** @type {Group} */ (groupMenu.dataset.groupMenu)));
         const sectionItem = closest(event, "[data-section-item]");
         if (sectionItem) return toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
         const sidePreset = closest(event, "#chart-list [data-open-preset]");
