@@ -59,7 +59,6 @@ where
     #[doc(hidden)]
     fn save_rollback_state(&mut self);
 
-    /// Rolls back changes to before the given stamp.
     /// The stamp [`Self::rollback_before`] lands at for `stamp`, without rolling back; `None`
     /// when the saved changes do not reach below `stamp`.
     fn rollback_landing(&self, stamp: Stamp) -> Result<Option<Stamp>> {
@@ -85,6 +84,9 @@ where
         Ok(Some(current))
     }
 
+    /// Rolls back changes to before the given stamp and returns the stamp it lands at. The next
+    /// write persists the restored state; until then read-only clones see the reduced length over
+    /// the written bytes (see [`StoredVec::read_only_clone`](crate::StoredVec::read_only_clone)).
     fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp> {
         self.header().check_writable()?;
         let files = self.find_rollback_files()?;

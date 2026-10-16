@@ -2,12 +2,9 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{
-    AnyVec, BinaryTransform, ComputeVec, Database, ReadableVec, Rw, StorageMode, VecValue,
-    WritableVec,
-};
+use vecdb::{AnyVec, ComputeVec, Database, ReadableVec, Rw, StorageMode, VecValue, WritableVec};
 
-use crate::{CumulativeState, IndexSources, LazyValueBlock, ValuePerBlock, ops::SatsToCents};
+use crate::{CumulativeState, IndexSources, LazyValueBlock, ValuePerBlock};
 
 #[derive(Traversable)]
 pub struct ValuePerBlockCumulative<M: StorageMode = Rw> {
@@ -67,7 +64,7 @@ impl ValuePerBlockCumulative {
             source,
             |(height, value, this)| {
                 let value = transform(height, value);
-                (height, last.add_at(height, this, |total| *total += value))
+                last.add_at(height, this, |total| *total += value)
             },
             exit,
         )?;
@@ -94,7 +91,7 @@ impl ValuePerBlockCumulative {
             source2,
             |(height, value1, value2, this)| {
                 let value = transform(height, value1, value2);
-                (height, last.add_at(height, this, |total| *total += value))
+                last.add_at(height, this, |total| *total += value)
             },
             exit,
         )?;
@@ -113,8 +110,8 @@ impl ValuePerBlockCumulative {
             &self.block.sats,
             price_cents,
             |(height, sats, price, this)| {
-                let value = SatsToCents::apply(sats, price);
-                (height, last.add_at(height, this, |total| *total += value))
+                let value = sats.value_at(price);
+                last.add_at(height, this, |total| *total += value)
             },
             exit,
         )?)

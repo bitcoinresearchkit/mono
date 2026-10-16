@@ -23,14 +23,6 @@ T = TypeVar('T')
 Year10 = int
 # Index of a year.
 Year1 = int
-# Transaction witness: a stack of byte arrays, one per witness item.
-#
-# Wraps `bitcoin::Witness` (single-buffer layout with offsets, much
-# more compact than `Vec<Vec<u8>>`). Serializes as a JSON array of
-# hex strings - the format used by Bitcoin Core REST and mempool.space
-# and matching brk's `script_sig: ScriptBuf` (bytes internally, hex
-# on the wire).
-Witness = List[str]
 # A mean weight in weight units.
 WeightFract = float
 # Weight in weight units (WU): non-witness bytes count four and witness bytes one. A block holds
@@ -1135,20 +1127,9 @@ class ErrorBody(TypedDict):
     """
     error: ErrorDetail
 
-class Prices(TypedDict):
+class PricePoint(TypedDict):
     """
-    Current price response matching mempool.space /api/v1/prices format
-
-    Attributes:
-        time: Unix timestamp
-        USD: BTC/USD price
-    """
-    time: Timestamp
-    USD: Dollars
-
-class HistoricalPriceEntry(TypedDict):
-    """
-    A single price data point
+    A BTC/USD price at a time: the current price (`/api/v1/prices`) or one historical close
 
     Attributes:
         time: Unix timestamp
@@ -1165,7 +1146,7 @@ class HistoricalPrice(TypedDict):
         prices: Price data points
         exchangeRates: Exchange rates (currently empty)
     """
-    prices: List[HistoricalPriceEntry]
+    prices: List[PricePoint]
     exchangeRates: ExchangeRates
 
 class BlockRewardsEntry(TypedDict):
@@ -1758,7 +1739,7 @@ class TxIn(_TxInRequired, total=False):
         inner_redeemscript_asm: Inner redeemscript in assembly (P2SH inputs)
         inner_witnessscript_asm: Inner witnessscript in assembly (P2WSH and P2SH-P2WSH: the witness script; P2TR script path: the leaf script)
     """
-    witness: Witness
+    witness: List[str]
     inner_redeemscript_asm: str
     inner_witnessscript_asm: str
 
@@ -1875,6 +1856,37 @@ class AddressAfterTxidParam(TypedDict):
     """
     address: Address
     after_txid: Txid
+
+
+# Each date-based index's buckets as (unit, size, phase): bucket i starts i * size - phase units
+# after 2009-01-01 UTC, except that a month calendar's bucket 0 starts at January 2009.
+_CALENDARS: Dict[str, Tuple[str, int, int]] = {
+    'minute10': ('second', 600, 0),
+    'minute30': ('second', 1800, 0),
+    'hour1': ('second', 3600, 0),
+    'hour4': ('second', 14400, 0),
+    'hour12': ('second', 43200, 0),
+    'day1': ('day', 1, 0),
+    'day3': ('day', 3, 1),
+    'week1': ('day', 7, 3),
+    'month1': ('month', 1, 0),
+    'month3': ('month', 3, 0),
+    'month6': ('month', 6, 0),
+    'year1': ('month', 12, 0),
+    'year10': ('month', 120, 108),
+}
+
+# Each address type's payload length in bytes.
+_ADDRESS_PAYLOAD_LENGTHS: Dict[str, int] = {
+    'p2pk65': 65,
+    'p2pk33': 33,
+    'p2pkh': 20,
+    'p2sh': 20,
+    'p2wpkh': 20,
+    'p2wsh': 32,
+    'p2tr': 32,
+    'p2a': 2,
+}
 
 
 class BitviewError(Exception):
@@ -2073,26 +2085,13 @@ def _validate_hash_prefix_nibbles(nibbles: int) -> None:
         raise ValueError("Expected hash-prefix length from 1 to 16 hex nibbles")
 
 
-def _address_payload_lengths(address_type: OutputType) -> Tuple[int, ...]:
-    if address_type == "p2a":
-        return (2,)
-    if address_type == "p2pk33":
-        return (33,)
-    if address_type == "p2pk65":
-        return (65,)
-    if address_type in ("p2pkh", "p2sh", "p2wpkh"):
-        return (20,)
-    if address_type in ("p2wsh", "p2tr"):
-        return (32,)
-    raise ValueError(f"Unsupported address type for address payload hash-prefix: {address_type}")
-
-
 def _validate_address_payload_for_type(address_type: OutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
     length = len(bytes(payload))
-    expected = _address_payload_lengths(address_type)
-    if length not in expected:
-        joined = " or ".join(str(value) for value in expected)
-        raise ValueError(f"Expected {address_type} address payload length {joined} bytes")
+    expected = _ADDRESS_PAYLOAD_LENGTHS.get(address_type)
+    if expected is None:
+        raise ValueError(f"Unsupported address type for address payload hash-prefix: {address_type}")
+    if length != expected:
+        raise ValueError(f"Expected {address_type} address payload length {expected} bytes")
 
 
 def address_payload_hash_prefix(payload: Union[bytes, bytearray, memoryview], nibbles: int) -> str:
@@ -2101,51 +2100,27 @@ def address_payload_hash_prefix(payload: Union[bytes, bytearray, memoryview], ni
     return f"{_rapid_hash_v3(payload):016x}"[:nibbles]
 
 
-# Date conversion constants
-# Mirrors the server's indexes: UTC, from 2009-01-01 (week1 buckets ISO weeks, which start three days earlier;
-# year10 buckets calendar decades, 2009 alone in the first)
+# Date conversion, mirroring the server's indexes (`_CALENDARS`): UTC, from 2009-01-01
 _EPOCH = datetime(2009, 1, 1, tzinfo=timezone.utc)
 _EPOCH_DATE = _EPOCH.date()
-_DATE_INDEXES = frozenset([
-    'minute10', 'minute30',
-    'hour1', 'hour4', 'hour12',
-    'day1', 'day3', 'week1',
-    'month1', 'month3', 'month6',
-    'year1', 'year10',
-])
+
+
+def _calendar(index: str) -> Tuple[str, int, int]:
+    calendar = _CALENDARS.get(index)
+    if calendar is None:
+        raise ValueError(f"{index} is not a date-based index")
+    return calendar
+
 
 def _index_to_date(index: str, i: int) -> Union[date, datetime]:
     """Convert an index value to a date/datetime for date-based indexes."""
-    if index == 'minute10':
-        return _EPOCH + timedelta(minutes=i * 10)
-    elif index == 'minute30':
-        return _EPOCH + timedelta(minutes=i * 30)
-    elif index == 'hour1':
-        return _EPOCH + timedelta(hours=i)
-    elif index == 'hour4':
-        return _EPOCH + timedelta(hours=i * 4)
-    elif index == 'hour12':
-        return _EPOCH + timedelta(hours=i * 12)
-    elif index == 'day1':
-        return _EPOCH_DATE + timedelta(days=i)
-    elif index == 'day3':
-        return _EPOCH_DATE - timedelta(days=1) + timedelta(days=i * 3)
-    elif index == 'week1':
-        return _EPOCH_DATE - timedelta(days=3) + timedelta(weeks=i)
-    elif index == 'month1':
-        return date(2009 + i // 12, i % 12 + 1, 1)
-    elif index == 'month3':
-        m = i * 3
-        return date(2009 + m // 12, m % 12 + 1, 1)
-    elif index == 'month6':
-        m = i * 6
-        return date(2009 + m // 12, m % 12 + 1, 1)
-    elif index == 'year1':
-        return date(2009 + i, 1, 1)
-    elif index == 'year10':
-        return date(2009 if i == 0 else 2000 + i * 10, 1, 1)
-    else:
-        raise ValueError(f"{index} is not a date-based index")
+    unit, size, phase = _calendar(index)
+    if unit == 'second':
+        return _EPOCH + timedelta(seconds=i * size)
+    if unit == 'day':
+        return _EPOCH_DATE + timedelta(days=i * size - phase)
+    months = i * size - phase if i else 0
+    return date(2009 + months // 12, months % 12 + 1, 1)
 
 
 def _date_to_index(index: str, d: Union[date, datetime]) -> int:
@@ -2155,41 +2130,23 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
     For sub-day indexes (minute*, hour*), a plain date is treated as midnight UTC.
     Raises ValueError for dates before the index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29).
     """
-    if index in ('minute10', 'minute30', 'hour1', 'hour4', 'hour12'):
+    unit, size, phase = _calendar(index)
+    if unit == 'second':
         if isinstance(d, datetime):
             dt = d if d.tzinfo else d.replace(tzinfo=timezone.utc)
         else:
             dt = datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
         if dt < _EPOCH:
             raise ValueError("date is before the first index (2009-01-01)")
-        secs = int((dt - _EPOCH).total_seconds())
-        div = {'minute10': 600, 'minute30': 1800,
-               'hour1': 3600, 'hour4': 14400, 'hour12': 43200}
-        return secs // div[index]
+        return int((dt - _EPOCH).total_seconds()) // size
     if isinstance(d, datetime):
         d = (d.astimezone(timezone.utc) if d.tzinfo else d).date()
-    dd = d
     first = _index_to_date(index, 0)
-    if dd < first:
+    if d < first:
         raise ValueError(f"date is before the first {index} date ({first})")
-    if index == 'day1':
-        return (dd - _EPOCH_DATE).days
-    elif index == 'day3':
-        return (dd - date(2008, 12, 31)).days // 3
-    elif index == 'week1':
-        return ((dd - _EPOCH_DATE).days + 3) // 7
-    elif index == 'month1':
-        return (dd.year - 2009) * 12 + (dd.month - 1)
-    elif index == 'month3':
-        return (dd.year - 2009) * 4 + (dd.month - 1) // 3
-    elif index == 'month6':
-        return (dd.year - 2009) * 2 + (dd.month - 1) // 6
-    elif index == 'year1':
-        return dd.year - 2009
-    elif index == 'year10':
-        return (dd.year - 2000) // 10
-    else:
-        raise ValueError(f"{index} is not a date-based index")
+    if unit == 'day':
+        return ((d - _EPOCH_DATE).days + phase) // size
+    return ((d.year - 2009) * 12 + d.month - 1 + phase) // size
 
 
 @dataclass
@@ -2206,7 +2163,7 @@ class SeriesData(Generic[T]):
     @property
     def is_date_based(self) -> bool:
         """Whether this series uses a date-based index."""
-        return self.index in _DATE_INDEXES
+        return self.index in _CALENDARS
 
     def indexes(self) -> List[int]:
         """Get raw index numbers."""
@@ -2302,7 +2259,7 @@ AnyDateSeriesData = DateSeriesData[Any]
 
 def _series_data(raw: Dict[str, Any]) -> AnySeriesData:
     """Series data with its helpers (and dates, for a date-based index)."""
-    return (DateSeriesData if raw['index'] in _DATE_INDEXES else SeriesData)(**raw)
+    return (DateSeriesData if raw['index'] in _CALENDARS else SeriesData)(**raw)
 
 
 def _contiguous(key: slice) -> slice:
@@ -2601,7 +2558,7 @@ def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
 
 def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
     """The endpoint for any index: with date helpers for a date-based one."""
-    return _dep(c, n, i) if i in _DATE_INDEXES else _ep(c, n, i)
+    return _dep(c, n, i) if i in _CALENDARS else _ep(c, n, i)
 
 # Index accessor classes
 
@@ -3349,7 +3306,7 @@ class PricesActive(_Node):
     mvrv: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mvrv')
 
 
-class CointimePrices(_Node):
+class Prices(_Node):
     vaulted: PricesActive = _at(PricesActive, '*')
     active: PricesActive = _at(PricesActive, 'active')
     true_market_mean: TrueMarketMean = _at(TrueMarketMean, 'true_market_mean')
@@ -4512,7 +4469,7 @@ class Cointime(_Node):
     supply: CointimeSupply = _at(CointimeSupply, 'supply')
     value: Value = _at(Value, 'cointime_value')
     caps: Caps = _at(Caps, 'cap')
-    prices: CointimePrices = _at(CointimePrices, 'vaulted')
+    prices: Prices = _at(Prices, 'vaulted')
     adjusted: Adjusted = _at(Adjusted, 'cointime_adjusted')
     reserve_risk: ReserveRisk = _at(ReserveRisk, 'reserve_risk')
 
@@ -6107,7 +6064,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/difficulty-adjustment`"""
         return self.get_json('/api/v1/difficulty-adjustment')
 
-    def get_prices(self) -> Prices:
+    def get_prices(self) -> PricePoint:
         """Current BTC price.
 
         Returns bitcoin latest price (on-chain derived, USD only).

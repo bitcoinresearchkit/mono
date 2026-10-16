@@ -17,22 +17,16 @@ pub type PricedSmaVec = LazyDeltaVec<Height, Cents, Cents, PricedSma>;
 pub struct PricedSma;
 
 impl DeltaOp<Cents, Cents> for PricedSma {
-    fn ago_index(start: usize) -> Option<usize> {
-        start.checked_sub(1)
-    }
-    fn ago_default() -> Cents {
-        Cents::ZERO
-    }
     fn count(index: usize, start: usize) -> usize {
         let priced = priced_range(start..index + 1);
         priced.end - priced.start
     }
-    fn combine(current: Cents, previous: Cents, count: usize) -> Cents {
+    fn combine(current: Cents, before: Cents, count: usize) -> Cents {
         if count == 0 {
             Cents::NAN
         } else {
             let count = count as u64;
-            Cents::new((*current - *previous + count / 2) / count)
+            Cents::new((*current - *before + count / 2) / count)
         }
     }
 }
@@ -63,7 +57,7 @@ impl UnaryTransform<Height, Height> for FromFirstPrice {
 }
 
 /// `starts` clamped to the first priced height: rows before it get an empty window.
-pub fn priced_starts(starts: &LazyWindowStartVec) -> LazyVec<Height, Height, Height, Height> {
+pub fn priced_starts(starts: &LazyWindowStartVec) -> LazyVec<Height, Height, Height> {
     LazyVec::transformed::<FromFirstPrice>(
         &format!("{}_priced", starts.name()),
         starts.version() + Version::ONE,

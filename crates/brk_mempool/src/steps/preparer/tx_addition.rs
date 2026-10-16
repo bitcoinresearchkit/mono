@@ -93,7 +93,7 @@ impl TxAddition {
             txid: prev_txid,
             vout: prev_vout,
             script_sig: txin.script_sig,
-            witness: txin.witness.into(),
+            witness: txin.witness,
             sequence: txin.sequence.into(),
         }
     }

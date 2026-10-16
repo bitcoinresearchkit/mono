@@ -15,25 +15,25 @@ use crate::RangeMapLookupVec;
 pub struct Vecs {
     /// Zero-based 10-minute UTC period containing the block's monotonic
     /// timestamp, counted from 2009-01-01 00:00:00 UTC.
-    pub minute10: LazyVec<Height, Minute10, Height, Timestamp>,
+    pub minute10: LazyVec<Height, Minute10, Timestamp>,
     /// Zero-based 30-minute UTC period containing the block's monotonic
     /// timestamp, counted from 2009-01-01 00:00:00 UTC.
-    pub minute30: LazyVec<Height, Minute30, Height, Timestamp>,
+    pub minute30: LazyVec<Height, Minute30, Timestamp>,
     /// Zero-based one-hour UTC period containing the block's monotonic timestamp,
     /// counted from 2009-01-01 00:00:00 UTC.
-    pub hour1: LazyVec<Height, Hour1, Height, Timestamp>,
+    pub hour1: LazyVec<Height, Hour1, Timestamp>,
     /// Zero-based four-hour UTC period containing the block's monotonic
     /// timestamp, counted from 2009-01-01 00:00:00 UTC.
-    pub hour4: LazyVec<Height, Hour4, Height, Timestamp>,
+    pub hour4: LazyVec<Height, Hour4, Timestamp>,
     /// Zero-based 12-hour UTC period containing the block's monotonic timestamp,
     /// counted from 2009-01-01 00:00:00 UTC.
-    pub hour12: LazyVec<Height, Hour12, Height, Timestamp>,
+    pub hour12: LazyVec<Height, Hour12, Timestamp>,
     /// Zero-based UTC calendar day containing the block's monotonic timestamp,
     /// with 2009-01-01 equal to 0.
     pub day1: RangeMapLookupVec<Height, Day1>,
     /// Zero-based three-day UTC period containing the block's monotonic
     /// timestamp, with period 1 beginning on 2009-01-03.
-    pub day3: LazyVec<Height, Day3, Height, Timestamp>,
+    pub day3: LazyVec<Height, Day3, Timestamp>,
     /// Zero-based difficulty epoch: block height divided by 2,016, rounded down.
     pub epoch: IndexVec<Height, Epoch, ReadableBoxedVec<Height, Timestamp>>,
     /// Zero-based halving epoch (block-subsidy era): block height divided by 210,000, rounded
@@ -68,7 +68,7 @@ impl Vecs {
         name: &str,
         timestamps: ReadableBoxedVec<Height, Timestamp>,
         compute: fn(Height, Timestamp) -> T,
-    ) -> LazyVec<Height, T, Height, Timestamp> {
+    ) -> LazyVec<Height, T, Timestamp> {
         LazyVec::init(name, Version::ZERO, timestamps, compute)
     }
 
@@ -76,7 +76,7 @@ impl Vecs {
     pub(crate) fn dated_from_timestamps<T>(
         name: &str,
         timestamps: ReadableBoxedVec<Height, Timestamp>,
-    ) -> LazyVec<Height, T, Height, Timestamp>
+    ) -> LazyVec<Height, T, Timestamp>
     where
         T: VecValue + TryFrom<Date, Error: Debug>,
     {

@@ -1,6 +1,6 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Query, http::HeaderMap};
-use bitview_types::{DifficultyAdjustment, HistoricalPrice, Prices};
+use bitview_types::{DifficultyAdjustment, HistoricalPrice, PricePoint};
 use brk_types::Timestamp;
 
 use super::historical_price;
@@ -44,7 +44,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                     state
                         .respond_json_content(&headers, |q| {
-                            Ok(Prices {
+                            Ok(PricePoint {
                                 time: Timestamp::now(),
                                 usd: q.live_price()?,
                             })
@@ -56,7 +56,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
                         .tag(tags::GENERAL)
                         .summary("Current BTC price")
                         .description("Returns bitcoin latest price (on-chain derived, USD only).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*")
-                        .json_response::<Prices>()
+                        .json_response::<PricePoint>()
                         .not_modified()
                 },
             ),

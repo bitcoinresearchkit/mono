@@ -465,11 +465,10 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
@@ -596,12 +595,6 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint64"
-            },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
             }
           }
         },
@@ -847,11 +840,10 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
@@ -978,12 +970,6 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint64"
-            },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
             }
           }
         },
@@ -1336,11 +1322,10 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
@@ -1467,12 +1452,6 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint64"
-            },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
             }
           }
         },
@@ -1704,11 +1683,10 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
@@ -1835,12 +1813,6 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint64"
-            },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
             }
           }
         },
@@ -3358,11 +3330,10 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
@@ -3489,12 +3460,6 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint64"
-            },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
             }
           }
         },
@@ -6606,7 +6571,7 @@
               "properties": {
                 "prices": {
                   "items": {
-                    "$ref": "#/$defs/HistoricalPriceEntry"
+                    "$ref": "#/$defs/PricePoint"
                   },
                   "type": "array"
                 },
@@ -6619,7 +6584,7 @@
                 }
               }
             },
-            "HistoricalPriceEntry": {
+            "PricePoint": {
               "required": [
                 "time",
                 "USD"
@@ -10400,14 +10365,14 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
-          "$ref": "#/$defs/Prices",
+          "$ref": "#/$defs/PricePoint",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Dollars": {
               "format": "double",
               "type": "number"
             },
-            "Prices": {
+            "PricePoint": {
               "required": [
                 "time",
                 "USD"
@@ -12114,11 +12079,10 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
@@ -12245,12 +12209,6 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint64"
-            },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
             }
           }
         },

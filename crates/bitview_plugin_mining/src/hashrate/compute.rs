@@ -73,14 +73,13 @@ impl Vecs {
             starting_height,
             &self.rate.block.height,
             &self.rate.ath.height,
-            |(i, current, ath, ..)| {
+            |(_, current, ath, ..)| {
                 let ath = f64::from(ath);
-                let drawdown = if ath == 0.0 {
+                if ath == 0.0 {
                     PartsPerMillionSigned32::default()
                 } else {
                     PartsPerMillionSigned32::from((f64::from(current) - ath) / ath)
-                };
-                (i, drawdown)
+                }
             },
             exit,
         )?;
@@ -91,13 +90,12 @@ impl Vecs {
             coinbase_usd_24h_sum,
             &self.rate.block.height,
             lookback.start_vec(1),
-            |(i, coinbase_sum, hashrate, start, ..)| {
-                let price = if is_priced(usize::from(start)) {
+            |(_, coinbase_sum, hashrate, start, ..)| {
+                if is_priced(usize::from(start)) {
                     HashPrice::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)))
                 } else {
                     HashPrice::NAN
-                };
-                (i, price)
+                }
             },
             exit,
         )?;
@@ -106,11 +104,8 @@ impl Vecs {
             starting_height,
             coinbase_sats_24h_sum,
             &self.rate.block.height,
-            |(i, coinbase_sum, hashrate, ..)| {
-                (
-                    i,
-                    HashValue::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate))),
-                )
+            |(_, coinbase_sum, hashrate, ..)| {
+                HashValue::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)))
             },
             exit,
         )?;

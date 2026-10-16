@@ -9,13 +9,12 @@ use bitview_primitives::{CentsSquaredSats, CoinDays};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling, SatsCents,
-    ops::SatsToCents, shapes::Windows,
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Cents, CentsSats, Height, Sats, Version};
 use vecdb::{
-    BinaryTransform, Database, ImportableVec, ReadableBoxedVec, Rw, StorageMode, WritableVec,
-    ZstdVec, ZstdVecValue,
+    BytesVecValue, Database, ImportableVec, ReadableBoxedVec, Rw, StorageMode, WritableVec, ZstdVec,
 };
 
 use derive_more::{Deref, DerefMut};
@@ -156,7 +155,7 @@ impl RangeVecs {
         self.matured_sources.sats.push_block(matured);
         self.matured_sources
             .cents
-            .push_block(SatsToCents::apply(matured, price));
+            .push_block(matured.value_at(price));
         self.coindays_created.push_block(coindays_created);
     }
 
@@ -166,9 +165,9 @@ impl RangeVecs {
         let realized = &state.realized;
         let (in_profit, in_loss) = realized.sent_split();
         self.transfer_volume_in_profit
-            .push_block(in_profit, SatsToCents::apply(in_profit, price));
+            .push_block(in_profit, in_profit.value_at(price));
         self.transfer_volume_in_loss
-            .push_block(in_loss, SatsToCents::apply(in_loss, price));
+            .push_block(in_loss, in_loss.value_at(price));
         self.raw.cap.push(realized.cap_raw());
         self.raw
             .capitalized_cap
@@ -179,7 +178,7 @@ impl RangeVecs {
     }
 }
 
-fn import_raw<T: ZstdVecValue>(
+fn import_raw<T: BytesVecValue>(
     db: &Database,
     cohort: CohortId,
     name: &str,

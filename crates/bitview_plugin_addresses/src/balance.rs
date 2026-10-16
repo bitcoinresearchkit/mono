@@ -5,13 +5,10 @@ use bitview_distribution::{
 };
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, import_cached, ops::SatsToCents};
+use bitview_vecs::{CachedSeries, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, CentsSats, Height, Sats, Version};
-use vecdb::{
-    BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
-    WritableVec,
-};
+use vecdb::{ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec};
 
 use crate::{
     addr::ImportContext,
@@ -141,7 +138,7 @@ impl BalanceVecs {
             .push(Count::from(inner.supply.utxo_count));
         self.activity
             .transfer_volume
-            .push_block(inner.sent, SatsToCents::apply(inner.sent, price));
+            .push_block(inner.sent, inner.sent.value_at(price));
         self.capital.push(inner.realized.cap());
         self.realized.profit.push_block(inner.realized.profit());
         self.realized.loss.push_block(inner.realized.loss());

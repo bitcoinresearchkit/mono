@@ -3,10 +3,10 @@ use bitview_cohort::{CohortContext, CohortId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::CoinDays;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, ops::SatsToCents, shapes::Windows};
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
-use vecdb::{BinaryTransform, Database, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct CreationActivity<M: StorageMode = Rw> {
@@ -50,7 +50,7 @@ impl CreationActivity {
     #[inline(always)]
     pub(super) fn push(&mut self, volume: Sats, cdd: CoinDays, price: Cents) {
         self.transfer_volume
-            .push_block(volume, SatsToCents::apply(volume, price));
+            .push_block(volume, volume.value_at(price));
         self.coindays_destroyed.push_block(cdd);
     }
 }

@@ -16,17 +16,20 @@ pub use op::DeltaOp;
 pub use rate::DeltaRate;
 pub use sub::DeltaSub;
 
-use crate::{AnyVec, CheckedSub, ReadableBoxedVec, VecIndex, VecValue, Version, read_batches};
+use crate::{
+    AnyVec, CheckedSub, ReadableBoxedVec, VecIndex, VecValue, Version, WindowBatch, WindowBuffers,
+    before_window_bounds, read_batches,
+};
 
-/// `current - ago` as `f64`, subtracted exactly first: cumulative integers can exceed `f64`'s
+/// `current - before` as `f64`, subtracted exactly first: cumulative integers can exceed `f64`'s
 /// 53 bits, where converting both operands first loses the difference. A difference past `S`'s
 /// range (signed extremes) is subtracted in `f64` instead.
 #[inline(always)]
-fn exact_diff<S: CheckedSub + PartialOrd + Clone + Into<f64>>(current: S, ago: S) -> f64 {
-    let (high, low, sign) = if current >= ago {
-        (current, ago, 1.0)
+fn exact_diff<S: CheckedSub + PartialOrd + Clone + Into<f64>>(current: S, before: S) -> f64 {
+    let (high, low, sign) = if current >= before {
+        (current, before, 1.0)
     } else {
-        (ago, current, -1.0)
+        (before, current, -1.0)
     };
     let diff = high
         .clone()
@@ -35,15 +38,12 @@ fn exact_diff<S: CheckedSub + PartialOrd + Clone + Into<f64>>(current: S, ago: S
     sign * diff
 }
 
-/// Lazily computed vector that combines a source value with a lookback value.
+/// Lazily computed vector that combines a source value with the value before its window.
 ///
-/// For each index `h` with `start = window_starts[h]` (the window's first index):
-/// - Window ops ([`DeltaSub`], [`DeltaAvg`], [`DeltaChange`], [`DeltaRate`]): read `source[h]`
-///   and the value before the window, `source[start - 1]` (the default for a window from 0),
-///   count = `h - start + 1`: rolling sums/averages from prefix sums, and changes that equal
-///   the sum of the flows in the window.
-/// - Point ops ([`DeltaOp`]'s defaults): read `source[h]` and `source[start]`,
-///   count = `h - start`.
+/// For each index `h` with `start = window_starts[h]` (the window's first index), `Op` combines
+/// `source[h]` with the value before the window, `source[start - 1]` (the default for a window
+/// from 0), over `h - start + 1` elements ([`DeltaOp::count`]): rolling sums/averages from prefix
+/// sums, and changes that equal the sum of the flows in the window.
 ///
 /// Sources are dense (every index below their length holds a value) and never shrink while read:
 /// they may grow, but a truncation waits for readers (checked in dev builds).
@@ -61,7 +61,7 @@ pub struct LazyDeltaVec<I: VecIndex, S: VecValue, T, Op> {
 impl<I, S, T, Op> LazyDeltaVec<I, S, T, Op>
 where
     I: VecIndex,
-    S: VecValue,
+    S: VecValue + Default,
     T: VecValue,
     Op: DeltaOp<S, T>,
 {
@@ -80,99 +80,53 @@ where
         }
     }
 
-    /// Visits `[from, to)` in [`read_batches`], each with its current
-    /// values, window starts and the historical values they reach (read from `previous_from`).
-    /// Overlapping current and historical ranges are read once; the gap between disjoint ones
-    /// never is. Each batch's reads complete before `visit` runs: sources may hold
-    /// non-reentrant publication locks while lending chunks. Scratch is bounded by the batch.
+    /// Visits `[from, to)` in [`read_batches`], each with its window starts and its source batch
+    /// ([`WindowBuffers`]). Scratch is bounded by the batch.
     fn try_for_each_batch<E>(
         &self,
         from: usize,
         to: usize,
-        mut visit: impl FnMut(usize, &[S], &[I], usize, &[S]) -> Result<(), E>,
+        mut visit: impl FnMut(usize, &[I], WindowBatch<'_, S>) -> Result<(), E>,
     ) -> Result<(), E> {
         let to = to.min(self.len());
-        let (mut starts, mut values, mut previous) = (Vec::new(), Vec::new(), Vec::new());
+        let (mut starts, mut buffers) = (Vec::new(), WindowBuffers::default());
         // Batches large enough that historical pages shared by adjacent ones are rarely read twice.
         for (at, end) in read_batches(from, to, self.source.cursor_chunk_size()) {
             starts.clear();
             self.window_starts.read_into_at(at, end, &mut starts);
             debug_assert_eq!(starts.len(), end - at, "LazyDeltaVec sources are dense");
-            // Window starts need not be monotonic: bound every historical index.
-            let bounds = starts
-                .iter()
-                .filter_map(|start| Op::ago_index(start.to_usize()))
-                .fold(None, |bounds: Option<(usize, usize)>, index| {
-                    Some(bounds.map_or((index, index), |(low, high)| {
-                        (low.min(index), high.max(index))
-                    }))
-                });
-            values.clear();
-            match bounds {
-                Some((low, high)) if high.saturating_add(1) >= at => {
-                    let read_from = low.min(at);
-                    self.source.read_into_at(read_from, end, &mut values);
-                    debug_assert_eq!(
-                        values.len(),
-                        end - read_from,
-                        "LazyDeltaVec sources are dense"
-                    );
-                    visit(at, &values[at - read_from..], &starts, read_from, &values)?;
-                }
-                Some((low, high)) => {
-                    previous.clear();
-                    self.source.read_into_at(low, high + 1, &mut previous);
-                    self.source.read_into_at(at, end, &mut values);
-                    debug_assert!(
-                        previous.len() == high + 1 - low && values.len() == end - at,
-                        "LazyDeltaVec sources are dense"
-                    );
-                    visit(at, &values, &starts, low, &previous)?;
-                }
-                None => {
-                    self.source.read_into_at(at, end, &mut values);
-                    debug_assert_eq!(values.len(), end - at, "LazyDeltaVec sources are dense");
-                    visit(at, &values, &starts, 0, &[])?;
-                }
-            }
+            let bounds = before_window_bounds(&starts);
+            visit(at, &starts, buffers.read(&*self.source, at, end, bounds))?;
         }
         Ok(())
     }
 
     fn transformed_values<'a>(
         at: usize,
-        current: &'a [S],
         starts: &'a [I],
-        previous_from: usize,
-        previous: &'a [S],
+        batch: WindowBatch<'a, S>,
     ) -> impl Iterator<Item = T> + 'a {
-        (at..at + current.len())
-            .zip(current)
+        (at..)
+            .zip(batch.current)
             .zip(starts)
             .map(move |((index, current), start)| {
                 let start = start.to_usize();
-                let ago = Op::ago_index(start)
-                    .map(|index| previous[index - previous_from].clone())
-                    .unwrap_or_else(Op::ago_default);
-                Op::combine(current.clone(), ago, Op::count(index, start))
+                Op::combine(
+                    current.clone(),
+                    batch.before(start),
+                    Op::count(index, start),
+                )
             })
     }
 
     /// Visits each batch's transformed values through one reused buffer.
     fn for_each_transformed_chunk(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
         let mut output = Vec::new();
-        let Ok(()) =
-            self.try_for_each_batch(from, to, |at, current, starts, previous_from, previous| {
-                output.clear();
-                output.extend(Self::transformed_values(
-                    at,
-                    current,
-                    starts,
-                    previous_from,
-                    previous,
-                ));
-                f(at, &output);
-                Ok::<_, Infallible>(())
-            });
+        let Ok(()) = self.try_for_each_batch(from, to, |at, starts, batch| {
+            output.clear();
+            output.extend(Self::transformed_values(at, starts, batch));
+            f(at, &output);
+            Ok::<_, Infallible>(())
+        });
     }
 }

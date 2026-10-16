@@ -2,8 +2,6 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::f32::consts::LN_2;
-
 use xxhash_rust::xxh3::xxh3_64;
 
 use super::super::bit_array::Builder as BitArrayBuilder;
@@ -35,91 +33,14 @@ impl Builder {
         bytes
     }
 
-    /// Constructs a bloom filter that can hold `n` items
-    /// while maintaining a certain false positive rate `fpr`.
+    /// An empty filter of `bytes` bytes (`8 * bytes` bits) and `k` hash functions.
     #[must_use]
-    pub fn with_fp_rate(n: usize, fpr: f32) -> Self {
-        assert!(n > 0);
-
-        // NOTE: Some sensible minimum
-        let fpr = fpr.max(0.000_000_1);
-
-        let m = Self::calculate_m(n, fpr);
-
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "bpk tends to be in the range of 0-50, so easily fits into u32"
-        )]
-        let bpk = (m / n) as f32;
-
-        #[expect(
-            clippy::cast_sign_loss,
-            clippy::cast_possible_truncation,
-            reason = "bpk easily fits into u32 and LN_2 < 1.0, so should still fit into a usize as well"
-        )]
-        let k = ((bpk * LN_2) as usize).max(1);
-
-        Self {
-            inner: BitArrayBuilder::with_capacity(m / 8),
-            m,
-            k,
-        }
-    }
-
-    /// Constructs a bloom filter that can hold `n` items
-    /// with `bpk` bits per key.
-    ///
-    /// 10 bits per key is a sensible default.
-    #[must_use]
-    pub fn with_bpk(n: usize, bpk: f32) -> Self {
-        assert!(bpk > 0.0);
-        assert!(n > 0);
-
-        // NOTE: Round up so a fractional bpk never yields zero bits
-        #[expect(
-            clippy::cast_possible_truncation,
-            clippy::cast_precision_loss,
-            clippy::cast_sign_loss,
-            reason = "n * bpk is a positive bit count far below usize::MAX"
-        )]
-        let m = (n as f64 * f64::from(bpk)).ceil() as usize;
-
-        #[expect(
-            clippy::cast_possible_truncation,
-            clippy::cast_sign_loss,
-            reason = "bpk easily fits into usize and LN_2 < 1.0, so should still fit into a usize as well"
-        )]
-        let k = ((bpk * LN_2) as usize).max(1);
-
-        // NOTE: Round up so we don't get too little bits
-        let bytes = m.div_ceil(8);
-
+    pub fn new(bytes: usize, k: usize) -> Self {
         Self {
             inner: BitArrayBuilder::with_capacity(bytes),
             m: bytes * 8,
             k,
         }
-    }
-
-    pub fn calculate_m(n: usize, fp_rate: f32) -> usize {
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "n tends to be in the single millions at most, so f32 should be precise enough"
-        )]
-        let n = n as f32;
-        let ln2_squared = LN_2.powi(2);
-
-        let numerator = n * fp_rate.ln();
-        let m = -(numerator / ln2_squared);
-
-        // NOTE: Round up to next byte
-        #[expect(
-            clippy::cast_possible_truncation,
-            clippy::cast_sign_loss,
-            reason = "m already fits, and because we divide, it should definitely fit into usize"
-        )]
-        let result = ((m / 8.0).ceil() * 8.0) as usize;
-        result
     }
 
     /// Adds the key to the filter.

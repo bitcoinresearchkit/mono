@@ -1,10 +1,7 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_primitives::{CoinDays, Count, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{
-    CachedSeries, CumulativeState, import_cached,
-    ops::{Quotient, SatsToCents},
-};
+use bitview_vecs::{CachedSeries, CumulativeState, import_cached, ops::Quotient};
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Sats, Version};
 use vecdb::{AnyVec, BinaryTransform, Database, ReadableVec, Rw, StorageMode, WritableVec};
@@ -207,7 +204,7 @@ impl Columns {
             CentsSigned::new(d.unrealized_profit.inner() as i64 - d.unrealized_loss.inner() as i64);
         self.unrealized_net_pnl.push(net_pnl);
         self.nupl
-            .push(Quotient::apply(net_pnl, SatsToCents::apply(d.supply, spot)));
+            .push(Quotient::apply(net_pnl, d.supply.value_at(spot)));
         self.unrealized_gross_pnl
             .push(d.unrealized_profit + d.unrealized_loss);
         // The bands' capitals, each rounded once from its exact sum.

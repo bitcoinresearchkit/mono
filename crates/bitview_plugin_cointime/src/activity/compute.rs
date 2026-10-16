@@ -38,11 +38,8 @@ impl Vecs {
             starting_height,
             &age.coinblocks_destroyed.cumulative.height,
             &self.coinblocks_created.cumulative.height,
-            |(h, destroyed, created, ..)| {
-                (
-                    h,
-                    BoundedRatio::from(f64::from(destroyed) / f64::from(created)),
-                )
+            |(_, destroyed, created, ..)| {
+                BoundedRatio::from(f64::from(destroyed) / f64::from(created))
             },
             exit,
         )?;

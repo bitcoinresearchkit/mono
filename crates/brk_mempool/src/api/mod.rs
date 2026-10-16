@@ -14,7 +14,7 @@ pub mod rbf;
 pub mod tx;
 
 pub use addr::PendingUtxos;
-pub use block_template::{BlockTemplateDiffJson, BlockTemplateJson, BlockTemplateSource};
+pub use block_template::BlockTemplateSource;
 pub use published_tx::PublishedTx;
 pub use rbf::{RbfForTx, RbfNode};
 

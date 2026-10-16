@@ -10,7 +10,7 @@ use crate::{ops::FixedToPercent, shapes::PercentViews};
 /// Fully lazy lightweight percent container with no derived resolutions.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyPercentVec<B: FixedRatio, S: VecValue>(
-    pub PercentViews<LazyVec<Height, B, Height, S>, LazyVec<Height, Percent, Height, B>>,
+    pub PercentViews<LazyVec<Height, B, S>, LazyVec<Height, Percent, B>>,
 );
 
 impl<B: FixedRatio, S: VecValue> LazyPercentVec<B, S> {

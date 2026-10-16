@@ -66,16 +66,6 @@ impl AgeRangeId {
             Term::Lth
         }
     }
-
-    pub fn series<T>(
-        context: CohortContext,
-        mut create: impl FnMut(Self, &str) -> T,
-    ) -> AgeRange<T> {
-        AgeRange::from_fn(|id| {
-            let name = context.prefixed(id.name().id);
-            create(id, &name)
-        })
-    }
 }
 
 impl AgeRangeId {

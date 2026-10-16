@@ -45,8 +45,7 @@ pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
 
 /// Load the connected component into `graph` in topological order, parent
 /// edges remapped to local indices, and return the members: `graph`'s
-/// local index `i` is `members[i]`. Callers must filter singletons before
-/// calling - the singleton's `chunk_rate` is `fee/vsize`, set elsewhere.
+/// local index `i` is `members[i]`.
 pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<TxIndex> {
     let position: FxHashMap<TxIndex, usize> = component
         .iter()

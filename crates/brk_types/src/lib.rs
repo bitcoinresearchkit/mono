@@ -64,7 +64,6 @@ mod vout;
 mod vsize;
 mod weight;
 mod weight32;
-mod witness;
 
 pub use addr::*;
 pub use addr_bytes::*;
@@ -122,7 +121,6 @@ pub use vout::*;
 pub use vsize::*;
 pub use weight::*;
 pub use weight32::*;
-pub use witness::*;
 
 #[doc(hidden)]
 pub mod __private {

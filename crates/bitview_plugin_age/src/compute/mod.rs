@@ -49,11 +49,7 @@ impl ComputePlugin for Vecs {
             return Ok(());
         }
         let live = match live {
-            Some(live)
-                if live.origins.len() == start
-                    && live.version == version
-                    && history.matches(&live.origins)? =>
-            {
+            Some(live) if live.version == version && history.resumes(&live.origins, start)? => {
                 Some(live)
             }
             _ => None,

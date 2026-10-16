@@ -6,11 +6,10 @@
 //! - cluster: connected component over `parents ∪ children`,
 //!   linearized for wire shape and seed chunk feerate.
 
-use brk_cpfp::{Cluster, find_seed_chunk};
+use brk_cpfp::Cluster;
 use brk_error::Result;
 use brk_types::{
-    BlockHash, CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry,
-    CpfpInfo, FeeRate, SigOps, Txid, VSize,
+    BlockHash, CPFP_CHAIN_LIMIT, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid,
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
@@ -37,28 +36,23 @@ impl ReadOnlyState {
 
 impl Snapshot {
     fn cpfp_info_at(&self, seed_idx: TxIndex, seed: &SnapTx, sigops: SigOps) -> CpfpInfo {
-        let ancestors = Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.parents);
-        let descendants = Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children);
-        let best_descendant = descendants
+        let mut graph = Cluster::default();
+        let members = cluster::load(&self.txs, &cluster::walk(&self.txs, seed_idx), &mut graph);
+        let seed_local = members
             .iter()
-            .max_by_key(|e| FeeRate::from((e.fee, e.weight)))
-            .cloned();
-
-        let (cluster, effective_fee_per_vsize) =
-            Self::build_cpfp_cluster(&self.txs, seed_idx, seed);
-        let vsize = VSize::from(seed.weight);
-
-        CpfpInfo {
-            ancestors,
-            best_descendant,
-            descendants,
-            effective_fee_per_vsize,
+            .position(|&i| i == seed_idx)
+            .map_or(0, |p| p as u32);
+        CpfpInfo::new(
+            Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.parents),
+            Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children),
+            seed.fee,
+            seed.weight,
             sigops,
-            fee: seed.fee,
-            vsize,
-            adjusted_vsize: sigops.adjust_vsize(vsize),
-            cluster,
-        }
+            graph.project(CpfpClusterTxIndex::from(seed_local), |local| {
+                let t = &self.txs[members[local].as_usize()];
+                (t.txid, t.weight)
+            }),
+        )
     }
 
     /// Capped DFS from `seed` (exclusive) along `next`, lifted directly
@@ -90,57 +84,5 @@ impl Snapshot {
             }
         }
         out
-    }
-
-    /// Wire-shape `CpfpCluster` plus the seed's chunk feerate. Members
-    /// are the connected component of the seed in the dependency graph,
-    /// topologically ordered (parents before children) so wire indices
-    /// and chunk-internal ordering are valid for client-side
-    /// reconstruction. Returns `(None, seed_per_tx_rate)` for singletons
-    /// (matches mempool.space, which omits `cluster` when no relations
-    /// exist).
-    fn build_cpfp_cluster(
-        txs: &[SnapTx],
-        seed_idx: TxIndex,
-        seed: &SnapTx,
-    ) -> (Option<CpfpCluster>, FeeRate) {
-        let seed_per_tx_rate = FeeRate::from((seed.fee, seed.vsize));
-        let component = cluster::walk(txs, seed_idx);
-        if component.len() <= 1 {
-            return (None, seed_per_tx_rate);
-        }
-
-        let mut graph = Cluster::default();
-        let members = cluster::load(txs, &component, &mut graph);
-        let chunks = graph.chunks();
-        let cluster_txs = members
-            .iter()
-            .enumerate()
-            .map(|(local, &idx)| {
-                let t = &txs[idx.as_usize()];
-                CpfpClusterTx {
-                    txid: t.txid,
-                    weight: t.weight,
-                    fee: t.fee,
-                    parents: graph.parents(local).to_vec(),
-                }
-            })
-            .collect();
-        let seed_local = CpfpClusterTxIndex::from(
-            members
-                .iter()
-                .position(|&i| i == seed_idx)
-                .map_or(0, |p| p as u32),
-        );
-        let (chunk_index, seed_chunk_rate) = find_seed_chunk(&chunks, seed_local, seed_per_tx_rate);
-
-        (
-            Some(CpfpCluster {
-                txs: cluster_txs,
-                chunks,
-                chunk_index,
-            }),
-            seed_chunk_rate,
-        )
     }
 }

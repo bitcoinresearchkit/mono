@@ -13,7 +13,7 @@ pub struct Vecs {
     /// Mining difficulty encoded by the block header: Bitcoin's maximum target
     /// divided by the block's proof-of-work target.
     #[traversable(rename = "block")]
-    pub(crate) block_height: LazyVec<Height, Difficulty, Height, Difficulty>,
+    pub(crate) block_height: LazyVec<Height, Difficulty, Difficulty>,
     /// Theoretical hash rate implied by difficulty at the ten-minute target:
     /// difficulty multiplied by 2^32 and divided by 600, in hashes per second.
     /// This is the rate expected to find one block every ten minutes at that

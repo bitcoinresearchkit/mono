@@ -20,7 +20,7 @@ impl Vecs {
         let ema = ema_stored.try_map(|suffix, stored| {
             let name = format!("price_ema_{suffix}");
             // Whole cents for the price family; the stored state keeps the exact average.
-            let cents = LazyVec::<Height, Cents, Height, CentsFract>::transformed::<Convert>(
+            let cents = LazyVec::<Height, Cents, CentsFract>::transformed::<Convert>(
                 &format!("{name}_cents"),
                 ema_version,
                 stored.read_only_boxed_clone(),

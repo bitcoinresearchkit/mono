@@ -92,7 +92,7 @@ where
             source,
             |(height, value, this)| {
                 let value = transform(value);
-                (height, last.add_at(height, this, |total| *total += value))
+                last.add_at(height, this, |total| *total += value)
             },
             exit,
         )?)

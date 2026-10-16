@@ -68,7 +68,7 @@ pub trait ComputeVec: StoredVec {
     ) -> Result<()>
     where
         A: VecValue,
-        F: FnMut((Self::I, A, &Self)) -> (Self::I, Self::T),
+        F: FnMut((Self::I, A, &Self)) -> Self::T,
     {
         self.compute_to(
             max_from,
@@ -77,9 +77,9 @@ pub trait ComputeVec: StoredVec {
             |this, range| {
                 let mut i = range.start;
                 source.fold_range_at(range.start, range.end, (), |(), b: A| {
-                    let (idx, v) = t((Self::I::from(i), b, &*this));
+                    let v = t((Self::I::from(i), b, &*this));
                     i += 1;
-                    this.debug_checked_push(idx, v);
+                    this.push(v);
                 });
                 Ok(())
             },
@@ -98,7 +98,7 @@ pub trait ComputeVec: StoredVec {
     where
         A: VecValue,
         B: VecValue,
-        F: FnMut((Self::I, A, B, &Self)) -> (Self::I, Self::T),
+        F: FnMut((Self::I, A, B, &Self)) -> Self::T,
     {
         self.compute_to(
             max_from,
@@ -110,9 +110,9 @@ pub trait ComputeVec: StoredVec {
                 let mut i = range.start;
 
                 other1.fold_range_at(range.start, range.end, (), |(), b: A| {
-                    let (idx, v) = t((Self::I::from(i), b, iter2.next().unwrap(), &*this));
+                    let v = t((Self::I::from(i), b, iter2.next().unwrap(), &*this));
                     i += 1;
-                    this.debug_checked_push(idx, v);
+                    this.push(v);
                 });
                 Ok(())
             },
@@ -136,7 +136,7 @@ pub trait ComputeVec: StoredVec {
             max_from,
             source1,
             source2,
-            |(h, a, b, ..)| (h, F::apply(a, b)),
+            |(_, a, b, ..)| F::apply(a, b),
             exit,
         )
     }
@@ -154,7 +154,7 @@ pub trait ComputeVec: StoredVec {
         A: VecValue,
         B: VecValue,
         C: VecValue,
-        F: FnMut((Self::I, A, B, C, &Self)) -> (Self::I, Self::T),
+        F: FnMut((Self::I, A, B, C, &Self)) -> Self::T,
     {
         self.compute_to(
             max_from,
@@ -168,7 +168,7 @@ pub trait ComputeVec: StoredVec {
                 let mut i = range.start;
 
                 other1.fold_range_at(range.start, range.end, (), |(), b: A| {
-                    let (idx, v) = t((
+                    let v = t((
                         Self::I::from(i),
                         b,
                         iter2.next().unwrap(),
@@ -176,7 +176,7 @@ pub trait ComputeVec: StoredVec {
                         &*this,
                     ));
                     i += 1;
-                    this.debug_checked_push(idx, v);
+                    this.push(v);
                 });
                 Ok(())
             },
@@ -198,12 +198,9 @@ pub trait ComputeVec: StoredVec {
             max_from,
             subtracted,
             subtracter,
-            |(i, v1, v2, ..)| {
-                (
-                    i,
-                    v1.checked_sub(v2)
-                        .expect("subtraction underflow in compute_subtract"),
-                )
+            |(_, v1, v2, ..)| {
+                v1.checked_sub(v2)
+                    .expect("subtraction underflow in compute_subtract")
             },
             exit,
         )

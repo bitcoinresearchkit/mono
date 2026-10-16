@@ -6,8 +6,8 @@ use rawdb::Region;
 
 use super::{CompressionStrategy, PAGES_PER_BLOCK, Pages, ReadOnlyCompressedVec};
 use crate::{
-    AnyStoredVec, AnyVec, CompressedMmapSource, CompressedRangeCursor, Error, ImportOptions,
-    ReadWriteBaseVec, Result as CrateResult, VecIndex, VecValue, Version, WritableVec,
+    AnyStoredVec, AnyVec, CompressedMmapSource, Error, ImportOptions, ReadWriteBaseVec,
+    Result as CrateResult, VecIndex, VecValue, Version, WritableVec,
     cache::{CachePolicy, NoCache},
     remove_vec_with, vec_region_name_with,
 };
@@ -42,9 +42,14 @@ where
     S: CompressionStrategy<T>,
 {
     /// Creates a forward cursor over a bounded persisted range.
+    #[cfg(any(feature = "lz4", feature = "pco", feature = "zstd"))]
     #[inline]
-    pub fn range_cursor_at(&self, from: usize, to: usize) -> CompressedRangeCursor<'_, I, T, S> {
-        CompressedRangeCursor::new(self.region(), &self.pages, self.stored_len(), from, to)
+    pub fn range_cursor_at(
+        &self,
+        from: usize,
+        to: usize,
+    ) -> crate::CompressedRangeCursor<'_, I, T, S> {
+        crate::CompressedRangeCursor::new(self.region(), &self.pages, self.stored_len(), from, to)
     }
 
     /// Resets the stored data on a schema mismatch or a corrupt layout.

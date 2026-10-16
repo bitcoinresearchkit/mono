@@ -1,5 +1,5 @@
 use bitcoin::{
-    Script, Transaction as BitcoinTransaction, TxIn as BitcoinTxIn, TxOut as BitcoinTxOut,
+    Script, Transaction as BitcoinTransaction, TxIn as BitcoinTxIn, TxOut as BitcoinTxOut, Witness,
     consensus::Encodable, constants::WITNESS_SCALE_FACTOR, opcodes::all::OP_PUSHNUM_16,
     script::Instruction,
 };
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     CheckedSub, RawLockTime, Sats, SigOpCount, SigOps, TxIn, TxIndex, TxOut, TxStatus,
-    TxVersionRaw, Txid, VSize, Weight, Witness,
+    TxVersionRaw, Txid, VSize, Weight,
 };
 
 /// Transaction information compatible with mempool.space API format

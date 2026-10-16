@@ -103,10 +103,6 @@ define_cohort_id!(SpendableTypeId for SpendableType {
 });
 
 impl<T> SpendableType<T> {
-    pub fn map_with_id<U>(&self, mut map: impl FnMut(CohortId, &T) -> U) -> SpendableType<U> {
-        SpendableType::from_fn(|kind| map(kind.cohort(), kind.select(self)))
-    }
-
     /// The member holding `output_type`; P2PK's 33- and 65-byte keys share one.
     pub fn get(&self, output_type: OutputType) -> &T {
         SpendableTypeId::from_output_type(output_type)
@@ -118,10 +114,6 @@ impl<T> SpendableType<T> {
         SpendableTypeId::from_output_type(output_type)
             .expect("spendable output type")
             .select_mut(self)
-    }
-
-    pub fn iter_typed(&self) -> impl Iterator<Item = (SpendableTypeId, &T)> {
-        SpendableTypeId::ALL.iter().copied().zip(self.iter())
     }
 
     pub fn iter_typed_mut(&mut self) -> impl Iterator<Item = (SpendableTypeId, &mut T)> {

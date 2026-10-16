@@ -1,14 +1,14 @@
 #[cfg(feature = "schemars")]
 use std::borrow::Cow;
 
-use bitcoin::{Script, ScriptBuf, Sequence, TxIn as BitcoinTxIn, transaction::OutPoint};
+use bitcoin::{Script, ScriptBuf, Sequence, TxIn as BitcoinTxIn, Witness, transaction::OutPoint};
 #[cfg(feature = "schemars")]
 use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "schemars")]
 use serde_json::json;
 
-use crate::{TxOut, Txid, Vout, Witness, bytes::DisplayStr, tx::p2sh_redeem_script};
+use crate::{TxOut, Txid, Vout, bytes::DisplayStr, tx::p2sh_redeem_script};
 
 /// Transaction input
 #[derive(Debug, Clone, Deserialize)]
@@ -54,6 +54,7 @@ struct TxInSchema {
     /// Signature script in assembly format
     scriptsig_asm: String,
     /// Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
+    #[schemars(with = "Vec<String>")]
     witness: Witness,
     /// Whether this input is a coinbase (block reward) input
     #[schemars(example = false)]
@@ -102,7 +103,7 @@ impl From<&TxIn> for BitcoinTxIn {
             },
             script_sig: txin.script_sig.clone(),
             sequence: Sequence(txin.sequence),
-            witness: (&txin.witness).into(),
+            witness: txin.witness.clone(),
         }
     }
 }
@@ -126,7 +127,7 @@ impl Serialize for TxIn {
             if spk.is_p2wsh() || redeem_script.is_some_and(Script::is_p2wsh) {
                 self.witness.witness_script()
             } else if spk.is_p2tr() {
-                self.witness.taproot_leaf_script()
+                self.witness.taproot_leaf_script().map(|leaf| leaf.script)
             } else {
                 None
             }

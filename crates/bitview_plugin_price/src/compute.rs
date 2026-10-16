@@ -98,10 +98,7 @@ impl Vecs {
             let mut processed = 0usize;
             let mut next_progress = 10u8;
             let mut push_ref_bin = |ref_bin| {
-                self.spot
-                    .cents
-                    .height
-                    .push(Cents::new(bin_to_cents(ref_bin)));
+                self.spot.cents.height.push(bin_to_cents(ref_bin));
                 self.oracle_bin.push(Float64::from(ref_bin));
 
                 processed += 1;

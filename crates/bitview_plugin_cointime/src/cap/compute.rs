@@ -27,11 +27,8 @@ impl Vecs {
             starting_lengths.height,
             realized_cap_cents,
             &self.thermo.cents.height,
-            |(i, realized, thermo, ..)| {
-                (
-                    i,
-                    CentsSigned::new(realized.inner() as i64 - thermo.inner() as i64),
-                )
+            |(_, realized, thermo, ..)| {
+                CentsSigned::new(realized.inner() as i64 - thermo.inner() as i64)
             },
             exit,
         )?;
@@ -42,12 +39,11 @@ impl Vecs {
             &value.destroyed.cumulative.height,
             circulating_supply,
             &activity.coinblocks_stored.cumulative.height,
-            |(i, destroyed, supply, stored, ..)| {
+            |(_, destroyed, supply, stored, ..)| {
                 let destroyed: f64 = *destroyed;
                 let supply: f64 = supply.into();
                 let stored: f64 = *stored;
-                let usd = Dollars::from(destroyed * supply / stored);
-                (i, usd.to_cents())
+                Dollars::from(destroyed * supply / stored).to_cents()
             },
             exit,
         )?;

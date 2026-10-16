@@ -7,8 +7,8 @@ use crate::{LazyPreviousDeltaVec, Value, ValuePerBlock};
 pub type LazyValueBlock = Value<
     LazyPreviousDeltaVec<Height, Sats>,
     LazyPreviousDeltaVec<Height, Cents>,
-    LazyVec<Height, Bitcoin, Height, Sats>,
-    LazyVec<Height, Dollars, Height, Cents>,
+    LazyVec<Height, Bitcoin, Sats>,
+    LazyVec<Height, Dollars, Cents>,
 >;
 
 impl LazyValueBlock {

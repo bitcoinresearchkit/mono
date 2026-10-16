@@ -3,7 +3,7 @@
 
 use std::ops::Mul;
 
-use brk_types::{Cents, Height, Sats, TxIndex};
+use brk_types::{Cents, Dollars, Height, Sats, TxIndex};
 
 use crate::{TxInIndex, TxOutIndex, scalar::scalar};
 
@@ -118,6 +118,13 @@ impl From<CentsFract> for Cents {
     #[inline]
     fn from(value: CentsFract) -> Self {
         Self::from(value.0)
+    }
+}
+
+impl From<CentsFract> for Dollars {
+    #[inline]
+    fn from(value: CentsFract) -> Self {
+        Self::from(f64::from(value) / 100.0)
     }
 }
 

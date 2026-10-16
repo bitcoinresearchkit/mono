@@ -1,15 +1,13 @@
 use std::{convert::Infallible, marker::PhantomData, sync::Arc};
 
 use brk_types::Height;
-use input::RollingInput;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
     AnyVec, BinaryTransform, CheckedSub, Formattable, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version, read_batches,
+    ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version, WindowBatch, WindowBuffers,
+    before_window, before_window_bounds, read_batches,
 };
-
-mod input;
 
 /// Rolling transform from a cumulative source, an aligned operand, and window starts.
 /// Snapshots belong to the input readers; this view retains no full-height result.
@@ -51,68 +49,54 @@ where
         }
     }
 
-    /// The cumulative value preceding a window: none for a window starting at zero.
+    /// Both window totals, current minus the cumulative value before the window, combined by `F`.
     #[inline(always)]
-    fn previous_index(start: &Height) -> Option<usize> {
-        start.to_usize().checked_sub(1)
-    }
-
-    /// Both window totals, current minus preceding cumulative value, combined by `F`.
-    #[inline(always)]
-    fn compute(source: S, source_previous: S, operand: C, operand_previous: C) -> T {
+    fn compute(source: S, source_before: S, operand: C, operand_before: C) -> T {
         F::apply(
-            source.checked_sub(source_previous).unwrap_or_default(),
-            operand.checked_sub(operand_previous).unwrap_or_default(),
+            source.checked_sub(source_before).unwrap_or_default(),
+            operand.checked_sub(operand_before).unwrap_or_default(),
         )
     }
 
     /// Visits `[from, to)` one bounded batch at a time with its window starts and both inputs'
-    /// current and preceding values.
+    /// batches ([`WindowBuffers`]).
     fn try_for_each_batch<E>(
         &self,
         from: usize,
         to: usize,
-        mut visit: impl FnMut(&[Height], &RollingInput<S>, &RollingInput<C>) -> Result<(), E>,
+        mut visit: impl FnMut(&[Height], WindowBatch<'_, S>, WindowBatch<'_, C>) -> Result<(), E>,
     ) -> Result<(), E> {
         let mut starts = Vec::new();
-        let (mut source, mut operand) = (RollingInput::default(), RollingInput::default());
+        let (mut source, mut operand) = (WindowBuffers::default(), WindowBuffers::default());
         for (at, end) in read_batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
             starts.clear();
             self.window_starts.read_into_at(at, end, &mut starts);
-            let bounds = starts.iter().filter_map(Self::previous_index).fold(
-                None,
-                |bounds: Option<(usize, usize)>, index| {
-                    Some(bounds.map_or((index, index), |(low, high)| {
-                        (low.min(index), high.max(index))
-                    }))
-                },
-            );
-            source.read(&self.source, at, end, bounds);
-            operand.read(&self.operand, at, end, bounds);
-            visit(&starts, &source, &operand)?;
+            let bounds = before_window_bounds(&starts);
+            visit(
+                &starts,
+                source.read(&*self.source, at, end, bounds),
+                operand.read(&*self.operand, at, end, bounds),
+            )?;
         }
         Ok(())
     }
 
     fn values<'a>(
         starts: &'a [Height],
-        source: &'a RollingInput<S>,
-        operand: &'a RollingInput<C>,
+        source: WindowBatch<'a, S>,
+        operand: WindowBatch<'a, C>,
     ) -> impl Iterator<Item = T> + 'a {
-        source
-            .current()
-            .iter()
-            .zip(operand.current())
-            .zip(starts)
-            .map(move |((current, operand_current), start)| {
-                let previous = Self::previous_index(start);
+        source.current.iter().zip(operand.current).zip(starts).map(
+            move |((current, operand_current), start)| {
+                let start = start.to_usize();
                 Self::compute(
                     current.clone(),
-                    previous.map(|i| source.previous(i)).unwrap_or_default(),
+                    source.before(start),
                     operand_current.clone(),
-                    previous.map(|i| operand.previous(i)).unwrap_or_default(),
+                    operand.before(start),
                 )
-            })
+            },
+        )
     }
 }
 
@@ -238,7 +222,7 @@ where
             return None;
         }
 
-        let previous = Self::previous_index(&self.window_starts.collect_one_at(index)?);
+        let previous = before_window(self.window_starts.collect_one_at(index)?.to_usize());
         Some(Self::compute(
             self.source.collect_one_at(index)?,
             previous
@@ -270,12 +254,12 @@ where
         let window_starts = self.window_starts.read_sorted_at(indices);
         let mut starts = window_starts.iter();
         let source = SparseRead::new(&*self.source, indices, |_| {
-            Self::previous_index(starts.next().unwrap())
+            before_window(starts.next().unwrap().to_usize())
         });
 
         let mut starts = window_starts.iter();
         let operand = SparseRead::new(&*self.operand, indices, |_| {
-            Self::previous_index(starts.next().unwrap())
+            before_window(starts.next().unwrap().to_usize())
         });
 
         out.reserve(indices.len());

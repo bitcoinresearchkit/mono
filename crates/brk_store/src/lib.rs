@@ -1,6 +1,13 @@
 #![doc = include_str!("../README.md")]
 
-use std::{cmp::Ordering, fs, hash::Hash, marker::PhantomData, ops::Range, path::Path};
+use std::{
+    cmp::Ordering,
+    fs,
+    hash::Hash,
+    marker::PhantomData,
+    ops::{Bound, RangeBounds},
+    path::Path,
+};
 
 use brk_error::Result;
 use brk_types::{StoreValue, Version};
@@ -154,12 +161,14 @@ where
     #[inline]
     pub fn range<B: StoreValue>(
         &self,
-        range: Range<B>,
+        range: impl RangeBounds<B>,
     ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + '_ {
-        let start = range.start.to_store_bytes();
-        let end = range.end.to_store_bytes();
+        let bytes = |bound: Bound<&B>| bound.map(StoreValue::to_store_bytes);
         self.keyspace
-            .range_as::<K::Bytes, V::Bytes, _, _>(start..end)
+            .range_as::<K::Bytes, V::Bytes, _, _>((
+                bytes(range.start_bound()),
+                bytes(range.end_bound()),
+            ))
             .map(|result| {
                 let (k, v) = result?;
                 Ok((K::from_store_bytes(k), V::from_store_bytes(v)))

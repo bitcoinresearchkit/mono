@@ -12,7 +12,7 @@ use crate::{Traversable, TreeNode};
 /// `Deref`.
 pub struct Compact<V: StoredVec + 'static, T, M: StorageMode = Rw> {
     stored: M::Stored<V>,
-    view: LazyVec<V::I, T, V::I, V::T>,
+    view: LazyVec<V::I, T, V::T>,
 }
 
 impl<V, T> Compact<V, T>
@@ -42,7 +42,7 @@ where
 
 impl<V: StoredVec + 'static, T, M: StorageMode> Compact<V, T, M> {
     /// The published view, for plugins that show the same series beside their own.
-    pub fn view(&self) -> &LazyVec<V::I, T, V::I, V::T> {
+    pub fn view(&self) -> &LazyVec<V::I, T, V::T> {
         &self.view
     }
 }
@@ -66,7 +66,7 @@ where
     V: StoredVec + 'static,
     M: StorageMode,
     M::Stored<V>: Traversable,
-    LazyVec<V::I, T, V::I, V::T>: Traversable,
+    LazyVec<V::I, T, V::T>: Traversable,
 {
     fn to_tree_node(&self) -> TreeNode {
         self.view.to_tree_node()

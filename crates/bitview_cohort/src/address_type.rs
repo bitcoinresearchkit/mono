@@ -73,12 +73,4 @@ impl<T> AddressType<T> {
     pub fn get_mut(&mut self, output_type: OutputType) -> Option<&mut T> {
         AddressTypeId::from_output_type(output_type).map(|id| id.select_mut(self))
     }
-
-    pub fn iter_typed(&self) -> impl Iterator<Item = (AddressTypeId, &T)> {
-        AddressTypeId::ALL.iter().copied().zip(self.iter())
-    }
-
-    pub fn iter_typed_mut(&mut self) -> impl Iterator<Item = (AddressTypeId, &mut T)> {
-        AddressTypeId::ALL.iter().copied().zip(self.iter_mut())
-    }
 }

@@ -19,7 +19,7 @@ key-value database or an ACID transaction layer.
 | `ZstdVec<I, T>` | Denser general-purpose compression |
 | `MutableVec<V>` | Updates and sparse deletions over a raw stored vector |
 | `OverflowVec<I, T>` | Compact common values with a stored overflow path |
-| `LazyVec<I, T, SI, ST>` | A cheap, read-only derivation from one source vector |
+| `LazyVec<I, T, S>` | A cheap, read-only derivation from one source vector |
 
 `BytesVec` is the default starting point. Choose another representation only
 when its layout or access behavior provides a concrete benefit. Lazy vectors

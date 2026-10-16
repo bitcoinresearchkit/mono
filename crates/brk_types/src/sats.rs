@@ -6,8 +6,8 @@ use derive_more::{Add, AddAssign, Deref, From, Into, Sub, Sum};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Bitcoin, Cents, Dollars, Height};
-use crate::CheckedSub;
+use super::{Bitcoin, Cents, CentsSats, Height};
+use crate::{CheckedSub, unlikely};
 
 #[cfg(feature = "storage")]
 use vecdb::{OverflowVecValue, Pco, SaturatingAdd, Version};
@@ -116,6 +116,23 @@ impl Sats {
     pub fn is_max(&self) -> bool {
         *self == Self::MAX
     }
+
+    /// The amount's value at `price` (cents per BTC), rounded to the nearest cent; NaN at a NaN
+    /// price. Widens to u128 only when the u64 product overflows.
+    #[inline(always)]
+    pub fn value_at(self, price: Cents) -> Cents {
+        if unlikely(price.is_nan()) {
+            Cents::NAN
+        } else if let Some(value) = self
+            .0
+            .checked_mul(price.inner())
+            .and_then(|value| value.checked_add(Self::ONE_BTC_U64 / 2))
+        {
+            Cents::from(value / Self::ONE_BTC_U64)
+        } else {
+            CentsSats::from_price_sats(price, self).to_cents()
+        }
+    }
 }
 
 impl CheckedSub for Sats {
@@ -184,21 +201,6 @@ impl Mul<f64> for Sats {
     type Output = Self;
     fn mul(self, rhs: f64) -> Self::Output {
         Sats::from((self.0 as f64 * rhs) as u64)
-    }
-}
-
-impl Div<Dollars> for Sats {
-    type Output = Self;
-    #[allow(
-        clippy::suspicious_arithmetic_impl,
-        reason = "cents-precision upscale before division"
-    )]
-    fn div(self, rhs: Dollars) -> Self::Output {
-        let raw_cents = u64::from(Cents::from(rhs));
-        (self.0 * 100)
-            .checked_div(raw_cents)
-            .map(Self)
-            .unwrap_or(Self::MAX)
     }
 }
 

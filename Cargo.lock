@@ -364,6 +364,7 @@ dependencies = [
  "bitview_catalog",
  "bitview_cohort",
  "bitview_primitives",
+ "brk_types",
  "derive_more",
  "oas3",
  "serde",

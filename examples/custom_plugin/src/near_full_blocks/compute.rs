@@ -41,7 +41,7 @@ impl ComputePlugin for Vecs {
                         .unwrap_or_default()
                 });
                 *current = next_streak(weight, *current);
-                (height, *current)
+                *current
             },
             exit,
         )?;

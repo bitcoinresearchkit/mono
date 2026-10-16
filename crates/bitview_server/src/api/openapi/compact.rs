@@ -4,316 +4,238 @@ use serde_json::{Map, Value, to_vec};
 
 /// Compacts an OpenAPI spec JSON for LLM consumption: drops deprecated endpoints, `*Param`
 /// schemas, examples, formats, constraints and secondary descriptions, and reduces schemas,
-/// responses and parameters to their types.
+/// responses and parameters to their types. Walks the document's known sections; every schema
+/// goes through [`compact_schema`].
 pub(super) fn compact_json(mut spec: Value) -> Vec<u8> {
-    if let Some(Value::Object(paths)) = spec.get_mut("paths") {
-        paths.retain(|_, v| {
-            if let Value::Object(path_obj) = v
-                && let Some(Value::Object(get_obj)) = path_obj.get("get")
-            {
-                return get_obj.get("deprecated") != Some(&Value::Bool(true));
-            }
-            true
-        });
-    }
-
     if let Some(Value::Object(info)) = spec.get_mut("info") {
-        info.remove("contact");
-        info.remove("license");
+        info.shift_remove("contact");
+        info.shift_remove("license");
+        trim_description(info);
     }
 
-    if let Some(Value::Object(components)) = spec.get_mut("components")
-        && let Some(Value::Object(schemas)) = components.get_mut("schemas")
-    {
+    if let Some(Value::Array(tags)) = spec.get_mut("tags") {
+        tags.iter_mut()
+            .filter_map(Value::as_object_mut)
+            .for_each(trim_description);
+    }
+
+    if let Some(Value::Object(paths)) = spec.get_mut("paths") {
+        paths.retain(|_, path| path.pointer("/get/deprecated") != Some(&Value::Bool(true)));
+        paths
+            .values_mut()
+            .filter_map(Value::as_object_mut)
+            .flat_map(|path| path.values_mut())
+            .filter_map(Value::as_object_mut)
+            .for_each(compact_operation);
+    }
+
+    if let Some(Value::Object(schemas)) = spec.pointer_mut("/components/schemas") {
         schemas.retain(|name, _| !name.ends_with("Param"));
+        for schema in schemas.values_mut() {
+            *schema = compact_component(mem::take(schema));
+        }
     }
 
-    compact_value(&mut spec);
     to_vec(&spec).unwrap()
 }
 
-fn compact_value(value: &mut Value) {
-    match value {
-        Value::Object(obj) => {
-            // The success response as `"returns": "Type"`; error responses are dropped.
-            if let Some(Value::Object(responses)) = obj.remove("responses")
-                && let Some(returns) = extract_return_type(&responses)
-            {
-                obj.insert("returns".to_string(), Value::String(returns));
-            }
-
-            // Per-endpoint tag arrays only, not the top-level tag definitions.
-            if let Some(Value::Array(_)) = obj.get("tags") {
-                obj.remove("tags");
-            }
-            // Complete here: the recursion below skips parameters.
-            if let Some(Value::Array(params)) = obj.get_mut("parameters") {
-                for param in params {
-                    simplify_parameter(param);
-                }
-            }
-
-            for key in ["style", "summary", "operationId", "example", "examples"] {
-                obj.remove(key);
-            }
-            if let Some(Value::String(ref_path)) = obj.remove("$ref") {
-                let type_name = ref_path.split('/').next_back().unwrap_or("any");
-                obj.insert("type".to_string(), Value::String(type_name.to_string()));
-            }
-
-            if let Some(Value::Array(all_of)) = obj.remove("allOf")
-                && all_of.len() == 1
-                && let Some(Value::Object(inner)) = all_of.into_iter().next()
-            {
-                for (k, v) in inner {
-                    obj.insert(k, v);
-                }
-            }
-
-            if let Some(Value::Array(any_of)) = obj.remove("anyOf") {
-                let types = union_types(any_of);
-                if !types.is_empty() {
-                    obj.insert("type".to_string(), Value::Array(types));
-                }
-            }
-
-            // After the allOf flattening, which may bring them back.
-            for key in ["format", "minimum", "maximum"] {
-                obj.remove(key);
-            }
-
-            // Schema `required` arrays; parameters keep their boolean.
-            if let Some(Value::Array(_)) = obj.get("required") {
-                obj.remove("required");
-            }
-
-            if let Some(value) = obj.get_mut("type")
-                && let Value::Array(arr) = value
-                && arr.len() == 1
-            {
-                *value = arr.pop().unwrap();
-            }
-
-            if obj.contains_key("properties")
-                && obj.get("type").and_then(Value::as_str) == Some("object")
-            {
-                obj.remove("type");
-            }
-
-            // Large enums become their plain type.
-            if let Some(Value::Array(enum_values)) = obj.get("enum")
-                && enum_values.len() > 40
-            {
-                obj.remove("enum");
-            }
-
-            if let Some(Value::String(desc)) = obj.get_mut("description") {
-                *desc = trim_description(desc);
-            }
-
-            if let Some(Value::Object(props)) = obj.get_mut("properties") {
-                simplify_properties(props);
-            }
-
-            for (key, v) in obj.iter_mut() {
-                if key != "parameters" {
-                    compact_value(v);
-                }
-            }
-        }
-        Value::Array(arr) => {
-            for item in arr {
-                compact_value(item);
-            }
-        }
-        _ => {}
+/// An operation as its trimmed description, parameters and `"returns": "Type"`; error
+/// responses are dropped.
+fn compact_operation(operation: &mut Map<String, Value>) {
+    for key in ["tags", "summary", "operationId"] {
+        operation.shift_remove(key);
     }
-}
-
-/// Trim description to first paragraph and strip mempool.space endpoint links.
-fn trim_description(desc: &str) -> String {
-    let desc = if let Some(idx) = desc.find("*[Mempool.space docs]") {
-        desc[..idx].trim()
-    } else {
-        desc
-    };
-
-    if let Some(idx) = desc.find("\n\n") {
-        desc[..idx].trim().to_string()
-    } else {
-        desc.trim().to_string()
+    trim_description(operation);
+    if let Some(Value::Array(params)) = operation.get_mut("parameters") {
+        params
+            .iter_mut()
+            .filter_map(Value::as_object_mut)
+            .for_each(compact_parameter);
     }
-}
-
-/// The successful response: its JSON type, or its type and media type when it is not JSON.
-fn extract_return_type(responses: &Map<String, Value>) -> Option<String> {
-    let content = responses.get("200")?.get("content")?.as_object()?;
-    if let Some(schema) = content
-        .get("application/json")
-        .and_then(|json| json.get("schema"))
+    if let Some(Value::Object(responses)) = operation.shift_remove("responses")
+        && let Some(returns) = return_type(responses)
     {
-        return Some(schema_to_type_string(schema));
+        operation.insert("returns".to_owned(), Value::String(returns));
     }
-    let (media_type, body) = content.iter().next()?;
+}
+
+/// A parameter as its name, location, requirement and what a valid request needs from its
+/// schema: type, enum, default and bounds.
+fn compact_parameter(param: &mut Map<String, Value>) {
+    for key in ["description", "style", "example", "examples"] {
+        param.shift_remove(key);
+    }
+    let Some(Value::Object(mut schema)) = param.shift_remove("schema") else {
+        return;
+    };
+    for key in ["enum", "default", "minimum", "maximum"] {
+        if let Some(value) = schema.shift_remove(key)
+            && !value.is_null()
+        {
+            param.insert(key.to_owned(), value);
+        }
+    }
+    param.insert("type".to_owned(), compact_schema(Value::Object(schema)));
+}
+
+/// The successful response's type, followed by its media type when it is not JSON.
+fn return_type(mut responses: Map<String, Value>) -> Option<String> {
+    let mut success = responses.shift_remove("200")?;
+    let content = success.get_mut("content")?.as_object_mut()?;
+    if let Some(schema) = content
+        .get_mut("application/json")
+        .and_then(|json| json.get_mut("schema"))
+    {
+        return Some(type_name(schema.take()));
+    }
+    let (media_type, body) = content.iter_mut().next()?;
     let media_type = media_type.split(';').next().unwrap_or(media_type);
-    Some(match body.get("schema") {
-        Some(schema) => format!("{} ({media_type})", schema_to_type_string(schema)),
+    Some(match body.get_mut("schema") {
+        Some(schema) => format!("{} ({media_type})", type_name(schema.take())),
         None => media_type.to_owned(),
     })
 }
 
-fn schema_to_type_string(schema: &Value) -> String {
-    if let Some(Value::String(ref_path)) = schema.get("$ref") {
-        return ref_path.split('/').next_back().unwrap_or("any").to_string();
+/// A component schema: its trimmed description, then its compact form (a bare type as `type`).
+fn compact_component(schema: Value) -> Value {
+    let mut component = Map::new();
+    if let Some(description) = schema.get("description").and_then(Value::as_str) {
+        component.insert(
+            "description".to_owned(),
+            Value::String(trimmed(description)),
+        );
     }
-    if let Some(Value::String(t)) = schema.get("type") {
-        if t == "array"
-            && let Some(items) = schema.get("items")
-        {
-            return format!("array[{}]", schema_to_type_string(items));
-        }
-        return t.clone();
-    }
-    "any".to_string()
-}
-
-/// A parameter as its name, location, requirement and what a valid request needs from its
-/// schema: type, enum, default, bounds and array items.
-fn simplify_parameter(param: &mut Value) {
-    let Value::Object(obj) = param else {
-        return;
-    };
-    for key in ["description", "style", "example", "examples"] {
-        obj.remove(key);
-    }
-    let Some(Value::Object(mut schema)) = obj.remove("schema") else {
-        return;
-    };
-    for key in ["enum", "default", "minimum", "maximum"] {
-        if let Some(value) = schema.remove(key)
-            && !value.is_null()
-        {
-            obj.insert(key.to_owned(), value);
+    match compact_schema(schema) {
+        Value::Object(fields) => component.extend(fields),
+        compact => {
+            component.insert("type".to_owned(), compact);
         }
     }
-    if let Some(items) = schema.remove("items") {
-        obj.insert("items".to_owned(), extract_type_from_schema(items));
-    }
-    obj.insert(
-        "type".to_owned(),
-        extract_type_from_schema(Value::Object(schema)),
-    );
+    Value::Object(component)
 }
 
-fn simple_type(schema: Value) -> Option<Value> {
-    let Value::Object(mut obj) = schema else {
-        return None;
+/// A schema as the type a reader needs: a referenced schema's name, a JSON type, `array[T]`, a
+/// union `[T, ...]`, or, when there is more to say, an object of its `type`, `items`, small
+/// `enum`, `properties` and map values (`additionalProperties`), each compacted the same way.
+/// Everything else (descriptions, examples, formats, patterns, bounds, `required`) is dropped.
+fn compact_schema(schema: Value) -> Value {
+    let mut schema = match schema {
+        Value::Object(schema) => schema,
+        Value::Bool(true) => return Value::String("any".to_owned()),
+        other => return other,
     };
-    if let Some(Value::String(path)) = obj.remove("$ref") {
-        return Some(Value::String(
-            path.rsplit('/').next().unwrap_or("any").to_owned(),
-        ));
+    if let Some(Value::String(path)) = schema.get("$ref") {
+        return Value::String(path.rsplit('/').next().unwrap_or(path).to_owned());
     }
     // A described reference is wrapped as `allOf: [{ $ref }]`.
-    if let Some(Value::Array(mut all_of)) = obj.remove("allOf")
+    if let Some(Value::Array(all_of)) = schema.get_mut("allOf")
         && all_of.len() == 1
     {
-        return simple_type(all_of.pop().unwrap());
+        return compact_schema(all_of.pop().unwrap());
     }
-    obj.remove("type")
-}
-
-fn union_types(schemas: Vec<Value>) -> Vec<Value> {
-    schemas.into_iter().filter_map(simple_type).collect()
-}
-
-fn extract_type_from_schema(mut schema: Value) -> Value {
-    if let Value::Object(obj) = &mut schema
-        && let Some(Value::Array(any_of)) = obj.remove("anyOf")
+    if let Some(Value::Array(members)) = schema
+        .shift_remove("anyOf")
+        .or_else(|| schema.shift_remove("oneOf"))
     {
-        let mut types = union_types(any_of);
-        return if types.len() == 1 {
-            types.pop().unwrap()
-        } else {
-            Value::Array(types)
+        return union(members.into_iter().map(compact_schema));
+    }
+
+    let mut compact = Map::new();
+    let items = schema.shift_remove("items").map(compact_schema);
+    if let Some(mut ty) = schema.shift_remove("type") {
+        // An array of a named item type reads as `array[T]`.
+        if let Some(Value::String(item)) = &items {
+            let array_of = Value::String(format!("array[{item}]"));
+            match &mut ty {
+                Value::Array(types) => types
+                    .iter_mut()
+                    .filter(|ty| **ty == "array")
+                    .for_each(|ty| *ty = array_of.clone()),
+                ty if *ty == "array" => *ty = array_of,
+                _ => {}
+            }
+        }
+        compact.insert("type".to_owned(), single(ty));
+    }
+    if let Some(items @ (Value::Object(_) | Value::Array(_))) = items {
+        compact.insert("items".to_owned(), items);
+    }
+    if let Some(Value::Array(values)) = schema.shift_remove("enum")
+        && values.len() <= 40
+    {
+        compact.insert("enum".to_owned(), Value::Array(values));
+    }
+    if let Some(Value::Object(properties)) = schema.shift_remove("properties") {
+        let properties = properties
+            .into_iter()
+            .map(|(name, property)| (name, compact_schema(property)))
+            .collect();
+        compact.insert("properties".to_owned(), Value::Object(properties));
+        // Properties imply an object.
+        if compact.get("type").is_some_and(|ty| ty == "object") {
+            compact.shift_remove("type");
+        }
+    }
+    if let Some(values @ Value::Object(_)) = schema.shift_remove("additionalProperties") {
+        compact.insert("additionalProperties".to_owned(), compact_schema(values));
+    }
+
+    // A lone type stands for the whole schema.
+    match compact.len() {
+        0 => Value::String("any".to_owned()),
+        1 if compact.contains_key("type") => compact.shift_remove("type").unwrap(),
+        _ => Value::Object(compact),
+    }
+}
+
+/// The distinct member types of a union, in order; a lone one stands alone.
+fn union(members: impl Iterator<Item = Value>) -> Value {
+    let mut types = Vec::new();
+    for member in members {
+        let member = match member {
+            Value::Array(nested) => nested,
+            member => vec![member],
         };
+        for ty in member {
+            if !types.contains(&ty) {
+                types.push(ty);
+            }
+        }
     }
-    simple_type(schema).unwrap_or_else(|| Value::String("any".to_owned()))
+    single(Value::Array(types))
 }
 
-fn simplify_properties(props: &mut Map<String, Value>) {
-    for value in props.values_mut() {
-        if let Value::Object(obj) = value {
-            *value = simplify_property_value(mem::take(obj));
-        }
+/// A one-element type list as its element.
+fn single(ty: Value) -> Value {
+    match ty {
+        Value::Array(mut types) if types.len() == 1 => types.pop().unwrap(),
+        ty => ty,
     }
 }
 
-fn simplify_property_value(mut obj: Map<String, Value>) -> Value {
-    // Remove validation constraints, format, and examples
-    for key in &[
-        "default",
-        "minItems",
-        "maxItems",
-        "uniqueItems",
-        "minimum",
-        "maximum",
-        "format",
-        "examples",
-        "example",
-        "description",
-    ] {
-        obj.remove(*key);
+/// A schema's compact form as text.
+fn type_name(schema: Value) -> String {
+    match compact_schema(schema) {
+        Value::String(name) => name,
+        compact => compact.to_string(),
     }
+}
 
-    // Remove "items": true (means any type, not useful)
-    if obj.get("items") == Some(&Value::Bool(true)) {
-        obj.remove("items");
+fn trim_description(object: &mut Map<String, Value>) {
+    if let Some(Value::String(description)) = object.get_mut("description") {
+        *description = trimmed(description);
     }
+}
 
-    // Handle $ref - convert to type (runs before recursion would)
-    if let Some(Value::String(ref_path)) = obj.remove("$ref") {
-        let type_name = ref_path.split('/').next_back().unwrap_or("any");
-        return Value::String(type_name.to_string());
-    }
-
-    // Handle single-item allOf - flatten and extract type
-    if let Some(Value::Array(all_of)) = obj.remove("allOf")
-        && all_of.len() == 1
-        && let Some(Value::Object(inner)) = all_of.into_iter().next()
-        && let Some(t) = simple_type(Value::Object(inner))
-    {
-        return t;
-    }
-
-    // Handle anyOf - flatten to type array (runs before recursion would)
-    if let Some(Value::Array(any_of)) = obj.remove("anyOf") {
-        let types = union_types(any_of);
-        return Value::Array(types);
-    }
-
-    // If only "type" remains, return just the type value
-    if obj.len() == 1
-        && let Some(t) = obj.remove("type")
-    {
-        return t;
-    }
-
-    // Handle array with items
-    if obj.get("type").and_then(Value::as_str) == Some("array")
-        && let Some(items) = obj.get("items")
-        && let Value::Object(items_obj) = items
-        && items_obj.len() == 1
-    {
-        // Items can have either "type" or "$ref"
-        if let Some(Value::String(item_type)) = items_obj.get("type") {
-            return Value::String(format!("array[{}]", item_type));
-        }
-        if let Some(Value::String(ref_path)) = items_obj.get("$ref") {
-            let type_name = ref_path.split('/').next_back().unwrap_or("any");
-            return Value::String(format!("array[{}]", type_name));
-        }
-    }
-
-    Value::Object(obj)
+/// A description's first paragraph, without the mempool.space docs link.
+fn trimmed(description: &str) -> String {
+    let description = description
+        .find("*[Mempool.space docs]")
+        .map_or(description, |idx| description[..idx].trim());
+    description
+        .split("\n\n")
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_owned()
 }

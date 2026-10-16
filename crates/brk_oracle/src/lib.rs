@@ -20,7 +20,7 @@
 
 use std::convert::Infallible;
 
-use brk_types::{Cents, Dollars, Histogram};
+use brk_types::{Dollars, Histogram};
 
 mod config;
 mod filter;
@@ -124,11 +124,7 @@ impl Oracle {
         self.window.ema()
     }
 
-    fn price_cents(&self) -> Cents {
-        bin_to_cents(self.ref_bin).into()
-    }
-
     pub fn price_dollars(&self) -> Dollars {
-        self.price_cents().into()
+        bin_to_cents(self.ref_bin).into()
     }
 }

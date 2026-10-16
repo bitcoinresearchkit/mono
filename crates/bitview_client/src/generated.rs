@@ -627,7 +627,7 @@ pub mod tree {
         ratio: SeriesPattern1<Option<Ratio>> = "*_price_ratio",
         mvrv: SeriesPattern1<Option<Ratio>> = "*_mvrv",
     } }
-    shape! { CointimePrices at "series().cointime.prices" {
+    shape! { Prices at "series().cointime.prices" {
         vaulted: PricesActive = "*",
         active: PricesActive = "active",
         true_market_mean: TrueMarketMean = "true_market_mean",
@@ -1665,7 +1665,7 @@ pub mod tree {
         supply: CointimeSupply = "supply",
         value: Value = "cointime_value",
         caps: Caps = "cap",
-        prices: CointimePrices = "vaulted",
+        prices: Prices = "vaulted",
         adjusted: Adjusted = "cointime_adjusted",
         reserve_risk: ReserveRisk = "reserve_risk",
     } }
@@ -2672,7 +2672,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
     ///
     /// Endpoint: `GET /api/v1/prices`
-    pub fn get_prices(&self) -> Result<Prices> {
+    pub fn get_prices(&self) -> Result<PricePoint> {
         self.base.get_json(&format!("/api/v1/prices"))
     }
 

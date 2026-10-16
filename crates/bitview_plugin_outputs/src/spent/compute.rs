@@ -125,8 +125,8 @@ impl Vecs {
             } else {
                 first_txout(blocks.end)
             };
-            // Keep the chunk staged: fill_to may issue an unstamped write before
-            // rollback data for a reorg truncation has been saved.
+            // Staged in memory only: the chunk's one write below is stamped, after the rollback
+            // data for a reorg truncation is saved.
             let len = self.spending_txin_index.len();
             self.spending_txin_index.extend(repeat_n(
                 Index40::new(TxInIndex::UNSPENT),

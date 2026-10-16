@@ -23,40 +23,31 @@ use crate::{ReadableBoxedVec, ReadableVec, VecIndex, VecValue, Version};
 /// The source must be dense: every index below its length holds a value, so each value pairs
 /// with its index. Reads cannot check it: a source may grow or be truncated while read.
 #[derive(Clone)]
-pub struct LazyVec<I, T, S1I, S1T>
+pub struct LazyVec<I, T, S>
 where
-    S1I: VecIndex,
-    S1T: VecValue,
+    I: VecIndex,
+    S: VecValue,
 {
     name: Arc<str>,
     base_version: Version,
-    source: ReadableBoxedVec<S1I, S1T>,
-    compute: fn(I, S1T) -> T,
+    source: ReadableBoxedVec<I, S>,
+    compute: fn(I, S) -> T,
     read: fn(&Self, usize, usize, &mut Vec<T>),
     visit: fn(&Self, usize, usize, &mut dyn FnMut(usize, &[T])),
 }
 
-impl<I, T, S1I, S1T> LazyVec<I, T, S1I, S1T>
+impl<I, T, S> LazyVec<I, T, S>
 where
     I: VecIndex,
     T: VecValue,
-    S1I: VecIndex,
-    S1T: VecValue,
+    S: VecValue,
 {
     pub fn init(
         name: &str,
         version: Version,
-        source: ReadableBoxedVec<S1I, S1T>,
-        compute: fn(I, S1T) -> T,
+        source: ReadableBoxedVec<I, S>,
+        compute: fn(I, S) -> T,
     ) -> Self {
-        assert_eq!(
-            I::to_string(),
-            S1I::to_string(),
-            "LazyVec index type mismatch: expected {}, got {}",
-            I::to_string(),
-            S1I::to_string()
-        );
-
         Self {
             name: Arc::from(name),
             base_version: version,
@@ -80,20 +71,13 @@ where
             },
         }
     }
-}
 
-impl<I, T, S1T> LazyVec<I, T, I, S1T>
-where
-    I: VecIndex,
-    T: VecValue,
-    S1T: VecValue,
-{
     /// Create a lazy vec with a generic transform.
     /// Usage: `LazyVec::transformed::<Ident>(name, v, source)`
-    pub fn transformed<F: UnaryTransform<S1T, T>>(
+    pub fn transformed<F: UnaryTransform<S, T>>(
         name: &str,
         version: Version,
-        source: ReadableBoxedVec<I, S1T>,
+        source: ReadableBoxedVec<I, S>,
     ) -> Self {
         let mut vec = Self::init(name, version, source, |_, v| F::apply(v));
         vec.read = |this, from, to, out| F::read_into(&this.source, from, to, out);

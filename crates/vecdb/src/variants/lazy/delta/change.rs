@@ -10,26 +10,11 @@ pub struct DeltaChange;
 
 impl<S, C> DeltaOp<S, C> for DeltaChange
 where
-    S: CheckedSub + PartialOrd + Clone + Into<f64> + Default,
+    S: CheckedSub + PartialOrd + Clone + Into<f64>,
     C: From<f64>,
 {
     #[inline]
-    fn ago_index(start: usize) -> Option<usize> {
-        start.checked_sub(1)
-    }
-
-    #[inline]
-    fn ago_default() -> S {
-        S::default()
-    }
-
-    #[inline]
-    fn count(h: usize, start: usize) -> usize {
-        h - start + 1
-    }
-
-    #[inline]
-    fn combine(current: S, ago: S, _count: usize) -> C {
-        C::from(exact_diff(current, ago))
+    fn combine(current: S, before: S, _count: usize) -> C {
+        C::from(exact_diff(current, before))
     }
 }

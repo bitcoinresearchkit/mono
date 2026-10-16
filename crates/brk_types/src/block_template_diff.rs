@@ -17,10 +17,12 @@ use crate::{BlockTemplateDiffEntry, MempoolBlock, NextBlockHash, Txid};
 /// `removed` lists txids no longer present. A changed body can be emitted as
 /// `New` without removing its txid; absence of a retained index alone does not
 /// imply removal.
+// `Order` holds the entries: owned by default, a view of the published bodies when serving.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", schemars(rename = "BlockTemplateDiff"))]
 #[serde(rename_all = "camelCase")]
-pub struct BlockTemplateDiff {
+pub struct BlockTemplateDiff<Order = Vec<BlockTemplateDiffEntry>> {
     /// Current next-block hash. Use as `since` on the next diff call.
     pub hash: NextBlockHash,
 
@@ -33,7 +35,7 @@ pub struct BlockTemplateDiff {
 
     /// New template in order. Each entry is either an index into the
     /// prior template's transactions or a full transaction body.
-    pub order: Vec<BlockTemplateDiffEntry>,
+    pub order: Order,
 
     /// Txids that left the projected next block since `since`
     /// (confirmed, evicted, replaced, or pushed past block 0).

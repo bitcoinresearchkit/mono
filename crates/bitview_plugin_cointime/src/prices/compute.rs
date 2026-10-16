@@ -25,9 +25,7 @@ impl Vecs {
             from,
             realized_price,
             &activity.vaultedness.height,
-            |(i, price, vaultedness, ..)| {
-                (i, Cents::from(f64::from(price) / f64::from(vaultedness)))
-            },
+            |(_, price, vaultedness, ..)| Cents::from(f64::from(price) / f64::from(vaultedness)),
             exit,
         )?;
 
@@ -35,7 +33,7 @@ impl Vecs {
             from,
             realized_price,
             &activity.liveliness.height,
-            |(i, price, liveliness, ..)| (i, Cents::from(f64::from(price) / f64::from(liveliness))),
+            |(_, price, liveliness, ..)| Cents::from(f64::from(price) / f64::from(liveliness)),
             exit,
         )?;
 
@@ -43,14 +41,13 @@ impl Vecs {
             from,
             &cap.investor.cents.height,
             &supply.active.btc.height,
-            |(i, cap_cents, supply_btc, ..)| {
+            |(_, cap_cents, supply_btc, ..)| {
                 let (cap, supply) = (f64::from(cap_cents), f64::from(supply_btc));
-                let price = if cap > 0.0 && supply > 0.0 {
+                if cap > 0.0 && supply > 0.0 {
                     Cents::from(cap / supply)
                 } else {
                     Cents::NAN
-                };
-                (i, price)
+                }
             },
             exit,
         )?;

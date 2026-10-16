@@ -1,11 +1,10 @@
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::ReadableCloneableVec;
+use vecdb::{Convert, ReadableCloneableVec};
 
 use crate::{
     IndexSources, LazyPerBlock, LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight,
-    ops::{AvgCentsToUsd, AvgSatsToBtc},
     shapes::Windows,
 };
 
@@ -42,11 +41,8 @@ impl LazyRollingAvgsAmountFromHeight {
             );
 
             // BTC from the sats average.
-            let btc = LazyPerBlock::from_resolutions::<AvgSatsToBtc>(
-                &full_name,
-                version,
-                &sats.resolutions,
-            );
+            let btc =
+                LazyPerBlock::from_resolutions::<Convert>(&full_name, version, &sats.resolutions);
 
             // Cents rolling average, stored as a float.
             let cents = LazyRollingAvgFromHeight::from_source(
@@ -58,7 +54,7 @@ impl LazyRollingAvgsAmountFromHeight {
             );
 
             // USD from the cents average.
-            let usd = LazyPerBlock::from_resolutions::<AvgCentsToUsd>(
+            let usd = LazyPerBlock::from_resolutions::<Convert>(
                 &format!("{full_name}_usd"),
                 version,
                 &cents.resolutions,

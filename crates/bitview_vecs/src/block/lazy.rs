@@ -16,7 +16,7 @@ where
     T: VecValue + PartialOrd + JsonSchema,
     S1T: VecValue,
 {
-    pub height: LazyVec<Height, T, Height, S1T>,
+    pub height: LazyVec<Height, T, S1T>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]

@@ -2,9 +2,7 @@ use bitview_primitives::{Boolean, Count, Count16};
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
-use vecdb::{
-    AnyVec, Database, Ident, ImportableVec, LazyVec, PcoVec, ReadableCloneableVec, Rw, StorageMode,
-};
+use vecdb::{Database, ImportableVec, PcoVec, Rw, StorageMode, StoredVec};
 
 /// A per-block transaction count, stored in 2 bytes per block and published as `Count`.
 pub type BlockCount<M = Rw> = Compact<PcoVec<Height, Count16>, Count, M>;
@@ -18,17 +16,13 @@ pub struct FeatureVecs<M: StorageMode = Rw> {
     pub block: BlockCount<M>,
 }
 
-/// A transaction flag read as is, for plugins that show it beside their own series.
-pub type FlagView = LazyVec<TxIndex, Boolean, TxIndex, Boolean>;
+/// A transaction flag's read-only clone, for plugins that show it beside their own series.
+pub type FlagView = <PcoVec<TxIndex, Boolean> as StoredVec>::ReadOnly;
 
 impl FeatureVecs {
-    /// The flag as a view, for plugins that show it beside their own series.
+    /// The flag's read-only clone, for plugins that show it beside their own series.
     pub fn flag_view(&self) -> FlagView {
-        LazyVec::transformed::<Ident>(
-            self.flag.name(),
-            Version::ZERO,
-            self.flag.read_only_boxed_clone(),
-        )
+        self.flag.read_only_clone()
     }
 
     pub(crate) fn import(db: &Database, flag: &str, block: &str, version: Version) -> Result<Self> {

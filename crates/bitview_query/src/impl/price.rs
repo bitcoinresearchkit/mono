@@ -3,7 +3,7 @@ use std::ops::Range;
 use bitview_plugin_indexer::SafeLengths;
 use bitview_plugin_price::priced_range;
 use bitview_primitives::{HOUR4_INTERVAL, INDEX_EPOCH, Index};
-use bitview_types::{ExchangeRates, HistoricalPrice, HistoricalPriceEntry};
+use bitview_types::{ExchangeRates, HistoricalPrice, PricePoint};
 use brk_types::{Cents, Dollars, Timestamp};
 use vecdb::{AnyVec, ReadBounds, ReadableVec};
 
@@ -75,21 +75,20 @@ impl ResolvedHistoricalPrice<'_> {
             let mut cursor = plugins.price.spot.cents.height.cursor();
             // Bucket `index` over `heights`, closed by its last block; none while it holds no
             // price.
-            let mut entry =
-                |index: usize, heights: Range<usize>| -> Result<Option<HistoricalPriceEntry>> {
-                    let Some(close) = priced_range(heights).next_back() else {
-                        return Ok(None);
-                    };
-                    let cents: Cents = cursor.get(close).data()?;
-                    if cents.is_nan() {
-                        return Err(Error::Internal("Invalid historical price"));
-                    }
-                    Ok(Some(HistoricalPriceEntry {
-                        // MAX_BUCKETS proves this arithmetic fits u32.
-                        time: Timestamp::new(INDEX_EPOCH + (index as u32 + 1) * HOUR4_INTERVAL),
-                        usd: Dollars::from(cents),
-                    }))
+            let mut entry = |index: usize, heights: Range<usize>| -> Result<Option<PricePoint>> {
+                let Some(close) = priced_range(heights).next_back() else {
+                    return Ok(None);
                 };
+                let cents: Cents = cursor.get(close).data()?;
+                if cents.is_nan() {
+                    return Err(Error::Internal("Invalid historical price"));
+                }
+                Ok(Some(PricePoint {
+                    // MAX_BUCKETS proves this arithmetic fits u32.
+                    time: Timestamp::new(INDEX_EPOCH + (index as u32 + 1) * HOUR4_INTERVAL),
+                    usd: Dollars::from(cents),
+                }))
+            };
             let prices = match timestamp {
                 Some(target) => {
                     let end = (((*target).saturating_sub(INDEX_EPOCH) / HOUR4_INTERVAL) as usize)

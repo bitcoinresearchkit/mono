@@ -40,9 +40,7 @@ impl Replay {
         } = inputs;
         let cached = match cached {
             Some(cache)
-                if cache.origins.len() == range.start
-                    && cache.version == version
-                    && history.matches(&cache.origins)? =>
+                if cache.version == version && history.resumes(&cache.origins, range.start)? =>
             {
                 Some(cache)
             }

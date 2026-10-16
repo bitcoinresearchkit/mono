@@ -102,6 +102,18 @@ impl Cents {
         }
     }
 
+    /// The whole sats one dollar buys at this price (cents per BTC), rounded down; zero at a zero
+    /// price. A NaN price has no whole-sats value.
+    #[inline]
+    pub fn sats_per_dollar(self) -> Sats {
+        debug_assert!(!self.is_nan(), "a NaN price has no sats per dollar");
+        Sats::new(
+            (100 * Sats::ONE_BTC_U64)
+                .checked_div(self.inner())
+                .unwrap_or_default(),
+        )
+    }
+
     pub fn to_dollars(self) -> Dollars {
         if unlikely(self.is_nan()) {
             Dollars::NAN

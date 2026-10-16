@@ -16,8 +16,6 @@ use vecdb::{
 
 #[cfg(feature = "lz4")]
 use vecdb::LZ4Vec;
-#[cfg(feature = "lz4")]
-use vecdb::LZ4VecValue;
 #[cfg(feature = "pco")]
 use vecdb::PcoVec;
 #[cfg(feature = "pco")]
@@ -28,8 +26,6 @@ use vecdb::ZeroCopyVec;
 use vecdb::ZeroCopyVecValue;
 #[cfg(feature = "zstd")]
 use vecdb::ZstdVec;
-#[cfg(feature = "zstd")]
-use vecdb::ZstdVecValue;
 
 mod compact;
 
@@ -173,14 +169,14 @@ leaf!(stored [I, T, C] PcoVec<I, T, C> where
 #[cfg(feature = "lz4")]
 leaf!(stored [I, T, C] LZ4Vec<I, T, C> where
     I: VecIndex,
-    T: LZ4VecValue + Formattable + Serialize + JsonSchema,
+    T: BytesVecValue + Formattable + Serialize + JsonSchema,
     C: CachePolicy,
 );
 
 #[cfg(feature = "zstd")]
 leaf!(stored [I, T, C] ZstdVec<I, T, C> where
     I: VecIndex,
-    T: ZstdVecValue + Formattable + Serialize + JsonSchema,
+    T: BytesVecValue + Formattable + Serialize + JsonSchema,
     C: CachePolicy,
 );
 
@@ -227,16 +223,15 @@ leaf!([I, T, S] IndexVec<I, T, S> where
     S: TypedVec<I = I>,
 );
 
-leaf!([I, T, S1I, S1T] LazyVec<I, T, S1I, S1T> where
+leaf!([I, T, S] LazyVec<I, T, S> where
     I: VecIndex,
     T: VecValue + Formattable + Serialize + JsonSchema,
-    S1I: VecIndex,
-    S1T: VecValue,
+    S: VecValue,
 );
 
 leaf!([I, S, T, Op] LazyDeltaVec<I, S, T, Op> where
     I: VecIndex,
-    S: VecValue,
+    S: VecValue + Default,
     T: VecValue + Formattable + Serialize + JsonSchema,
     Op: DeltaOp<S, T>,
 );

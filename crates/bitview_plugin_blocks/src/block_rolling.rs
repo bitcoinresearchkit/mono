@@ -14,7 +14,7 @@ where
     T: NumericValue + JsonSchema + Quantity,
 {
     /// Value for the represented block.
-    pub block: LazyVec<Height, T::Sum, Height, T>,
+    pub block: LazyVec<Height, T::Sum, T>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]

@@ -1,6 +1,9 @@
 use std::ops::Range;
 
-use brk_types::{CpfpClusterChunk, CpfpClusterTxIndex, FeeRate, Sats, VSize};
+use brk_types::{
+    CpfpCluster, CpfpClusterChunk, CpfpClusterTx, CpfpClusterTxIndex, FeeRate, Sats, Txid, VSize,
+    Weight,
+};
 
 use crate::linearize::{Scratch, linearize};
 
@@ -53,14 +56,6 @@ impl Cluster {
         self.nodes[local].fee
     }
 
-    pub fn vsize(&self, local: usize) -> VSize {
-        self.nodes[local].vsize
-    }
-
-    pub fn parents(&self, local: usize) -> &[CpfpClusterTxIndex] {
-        &self.parents[self.nodes[local].parents.clone()]
-    }
-
     /// Linearize into descending-feerate chunks and pass each chunk's members (ascending
     /// local indices) and feerate to `emit`, in chunk order. Order: the best remaining ancestor set
     /// first (exact feerate, then size, then earliest); a group paying more than the chunk
@@ -69,15 +64,53 @@ impl Cluster {
         linearize(&self.nodes, &self.parents, &mut self.scratch, emit);
     }
 
-    /// [`Cluster::linearize`] collected into owned chunks.
-    pub fn chunks(&mut self) -> Vec<CpfpClusterChunk> {
+    /// The cluster as served for the member `seed`, and the seed's effective feerate: that of
+    /// the chunk holding it. A lone transaction has no cluster (mempool.space omits it) and its
+    /// own feerate. `member(local)` is each member's txid and weight.
+    pub fn project(
+        &mut self,
+        seed: CpfpClusterTxIndex,
+        member: impl Fn(usize) -> (Txid, Weight),
+    ) -> (Option<CpfpCluster>, FeeRate) {
+        let seed_node = &self.nodes[u32::from(seed) as usize];
+        let own_rate = FeeRate::from((seed_node.fee, seed_node.vsize));
+        if self.nodes.len() == 1 {
+            return (None, own_rate);
+        }
         let mut chunks = Vec::new();
+        let mut seed_chunk = None;
         self.linearize(|txs, feerate| {
+            if txs.contains(&seed) {
+                seed_chunk = Some((chunks.len() as u32, feerate));
+            }
             chunks.push(CpfpClusterChunk {
                 txs: txs.to_vec(),
                 feerate,
-            })
+            });
         });
-        chunks
+        debug_assert!(seed_chunk.is_some(), "every member is in a chunk");
+        let (chunk_index, rate) = seed_chunk.unwrap_or((0, own_rate));
+        let txs = self
+            .nodes
+            .iter()
+            .enumerate()
+            .map(|(local, node)| {
+                let (txid, weight) = member(local);
+                CpfpClusterTx {
+                    txid,
+                    weight,
+                    fee: node.fee,
+                    parents: self.parents[node.parents.clone()].to_vec(),
+                }
+            })
+            .collect();
+        (
+            Some(CpfpCluster {
+                txs,
+                chunks,
+                chunk_index,
+            }),
+            rate,
+        )
     }
 }

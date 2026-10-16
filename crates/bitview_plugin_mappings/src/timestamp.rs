@@ -106,7 +106,7 @@ impl Timestamps {
                 }
                 let monotonic = prev.map_or(timestamp, |p| p.max(timestamp));
                 prev.replace(monotonic);
-                (h, monotonic)
+                monotonic
             },
             exit,
         )?;

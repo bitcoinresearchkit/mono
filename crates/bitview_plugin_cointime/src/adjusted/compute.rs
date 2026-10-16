@@ -24,9 +24,8 @@ impl Vecs {
             starting_height,
             &activity.liveliness_to_vaultedness.height,
             inflation_rate,
-            |(h, active_to_vaulted, inflation, ..)| {
-                let adjusted = f64::from(active_to_vaulted) * f64::from(inflation);
-                (h, PartsPerMillionSigned32::from(adjusted))
+            |(_, active_to_vaulted, inflation, ..)| {
+                PartsPerMillionSigned32::from(f64::from(active_to_vaulted) * f64::from(inflation))
             },
             exit,
         )?;

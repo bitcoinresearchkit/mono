@@ -87,7 +87,7 @@ impl Activity {
                 from,
                 &cdd.height,
                 &volume.btc.height,
-                |(h, cdd, btc, _)| (h, Days::new((f64::from(cdd) / f64::from(btc)) as f32)),
+                |(_, cdd, btc, _)| Days::new((f64::from(cdd) / f64::from(btc)) as f32),
                 exit,
             )?;
         }

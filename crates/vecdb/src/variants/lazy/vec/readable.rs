@@ -3,12 +3,11 @@ use crate::{AnyVec, ReadableVec, VecIndex, VecValue};
 
 use super::LazyVec;
 
-impl<I, T, S1I, S1T> ReadableVec<I, T> for LazyVec<I, T, S1I, S1T>
+impl<I, T, S> ReadableVec<I, T> for LazyVec<I, T, S>
 where
     I: VecIndex,
     T: VecValue,
-    S1I: VecIndex,
-    S1T: VecValue,
+    S: VecValue,
 {
     #[inline]
     fn cursor_chunk_size(&self) -> usize {

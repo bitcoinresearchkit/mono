@@ -75,12 +75,12 @@ fn compute_seconds_since(
                     .then(|| Timestamp::from(*timestamps.collect_one(prev).unwrap() - *seconds))
             });
             if ath == Cents::ZERO {
-                (i, UNPRICED)
+                UNPRICED
             } else if price == ath {
                 *ath_ts = Some(ts);
-                (i, Seconds::ZERO)
+                Seconds::ZERO
             } else {
-                (i, Seconds::from(*ts - *ath_ts.unwrap()))
+                Seconds::from(*ts - *ath_ts.unwrap())
             }
         },
         exit,
@@ -119,7 +119,7 @@ fn compute_max_days_between(
                 })
             });
             if seconds == UNPRICED {
-                return (i, Days::NAN);
+                return Days::NAN;
             }
             let max = match *prev {
                 Some((max, prev_seconds, prev_ts)) => {
@@ -130,7 +130,7 @@ fn compute_max_days_between(
                 None => SecondsToDays::apply(seconds),
             };
             *prev = Some((max, seconds, ts));
-            (i, max)
+            max
         },
         exit,
     )?;

@@ -433,6 +433,12 @@ has to be deleted by hand.
   is `weight / 4`, unrounded (was rounded up)
 - `/openapi.json` and `/api.json` declare their JSON 200 and 304 responses (the Rust client's `get_openapi` returns
   JSON, was `String`); `/api.json` is a compact custom summary, not OpenAPI: build tools from `/openapi.json`
+- OpenAPI: `/api/v1/prices` and the `/api/v1/historical-price` entries share one `PricePoint` schema (were `Prices`
+  and `HistoricalPriceEntry`; JSON unchanged), and `TxIn.witness` is an inline array of hex strings (the `Witness`
+  component is gone). `/api.json` compacts every schema with one rule set: nullable and array types read `array[T]`,
+  maps show their value type, unions are deduplicated, and patterns, item counts and `additionalProperties: false`
+  are dropped everywhere. The schema description of mean sat amounts (`SatsFract`) reads "A mean amount in sats." (it
+  described USD prices in sats, which are whole `Sats`)
 - mempool.space parity: `/api/blocks/{height}` above the tip answers 404 and `/api/v1/blocks/{height}` lists only the
   published part of its window (they answered the 10 and 15 tip blocks); `/api/v1/mining/pool/{slug}/blocks/{height}` lists
   blocks strictly below the height (included it, so paging repeated a block); P2PK outputs omit
@@ -470,6 +476,10 @@ has to be deleted by hand.
 - Python response keys the server can omit are optional (required keys in a `_XRequired` base, optional ones in a
   `total=False` subclass); keys that aren't identifiers (`24h`, `txId[]`) use the functional `TypedDict` form; the
   package ships `py.typed`
+- JS and Python date conversions and address payload checks read tables generated from the server's own
+  declarations (`Index::calendar`, `ADDRESS_PAYLOAD_LENGTHS`) instead of hand-kept copies. Rust:
+  `decode_address_payload` returns `AddressBytes` (`AddressPayload` is gone); the cointime prices node type is
+  `Prices` (was `CointimePrices`)
 - JS and Python date selectors use UTC with the server's day1/week1/year10 mapping (they used local time and put day1
   0 on 2009-01-03), and dates before an index's first date throw, as in the Rust client (2009-01-01; day3's is
   2008-12-31, week1's 2008-12-29)
@@ -767,6 +777,22 @@ has to be deleted by hand.
   shared directories)
 - `brk_oracle::FIRST_PRICE_HEIGHT` (74,641, re-exported by the price plugin); `bitview_plugin_indexer` exports
   `FIRST_V29_POLICY_HEIGHT`
+- `vecdb`: `compute_transform*` callbacks return only the value (the loop owns the index); `DeltaOp` keeps `count`
+  and `combine`, the window views own the value before the window (`before_window`, `WindowBuffers`); `LazyVec<I, T,
+  S>` has one index type; `LZ4VecValue` and `ZstdVecValue` are gone (`BytesVecValue`); read-only raw and compressed
+  vectors are their own `ReadOnlyClone`. `brk_types`: `Sats::value_at(price)` and `Cents::sats_per_dollar()` replace
+  `bitview_vecs::SatsToCents` and `Sats / Dollars`; `brk_types::Witness` is gone (`TxIn.witness` is rust-bitcoin's
+  `Witness`, like `script_sig`'s `ScriptBuf`); `BlockTemplate`,
+  `BlockTemplateDiff` and `BlockTemplateDiffEntry` are generic with owned defaults (`BlockTemplateJson` and
+  `BlockTemplateDiffJson` are gone); `CpfpInfo::new` derives the sizes and best descendant, and `brk_cpfp`'s
+  `Cluster::project` replaces `chunks`, `find_seed_chunk`, `vsize` and `parents`. `bitview_types::PricePoint`
+  replaces `Prices` and `HistoricalPriceEntry`. `brk_store::Store::range` takes any `RangeBounds`.
+  `statedb::Reader::resumes` checks a resume point (`matches` is private). `bitview_primitives` declares the
+  OP_RETURN kinds once (`with_op_return_kinds!`; `OpReturnKind::ALL` and `get` are gone), adds `Index::calendar()`,
+  `From<SatsFract> for Bitcoin` and `From<CentsFract> for Dollars` (`bitview_vecs`' `AvgSatsToBtc` and
+  `AvgCentsToUsd` are gone). `brk_oracle::bin_to_cents` returns `Cents`. `lsm_tree`'s bloom `Builder::new(bytes,
+  k)` replaces `with_bpk` and `with_fp_rate`. `bitview_cohort` drops `AgeRangeId::series`,
+  `SpendableType::map_with_id`/`iter_typed` and `AddressType::iter_typed`/`iter_typed_mut`
 
 #### Configuration
 
@@ -1039,6 +1065,8 @@ has to be deleted by hand.
   website answers `304` to weakened or listed tags (a CDN weakening them got full bodies). The MCP pages revalidate
   after a second under a content ETag (were five minutes without one) and the logo's URL carries the release, so its
   year-long cache never outlives it
+- `/api.json` lists the `format` query field of `DataRangeFormat` and `SeriesSelection` and the tag definitions (its
+  compaction removed every `format` key, property names included, and every tag list) and keeps key order
 - `/api/address/{address}` no longer answers 503 while a block's address state is written: the update publishes the
   changed addresses from memory and writes them after (readers wait at most 10 ms for the publication's lock)
 
@@ -1372,7 +1400,12 @@ has to be deleted by hand.
   owner; one shared conditional-request crate (`bitview_http`) serves the server, website and MCP; one table each
   declares indexes, OHLC records, nullable integer formatting, rarity components, windowed transaction features and
   blk's fields. The first exchange price (block 74,641) has one owner in the price plugin, the indexer owns published
-  output ranges and prevout scripts for the query, and rollback truncates every indexer vector in one loop by index
+  output ranges and prevout scripts for the query, and rollback truncates every indexer vector in one loop by index.
+  A second round removed about 850 more: the window views (deltas, rolling ratios) share one read kernel and own the
+  value-before-the-window rule; one table each declares the OP_RETURN kinds, address payload lengths and calendars
+  (the generated JS and Python clients read them); mempool and confirmed CPFP share one projection; lsm-tree sizes
+  bloom filters with one rule for construction and partition planning (new 7-bits-per-key partitions split at 4,681
+  keys, were 4,682)
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`
   (storage layout) regenerate and snapshot the generated outputs. The dev profile drops cross-crate LTO and uses
   limited debuginfo

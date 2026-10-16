@@ -1,13 +1,15 @@
+use brk_types::{Bitcoin, Sats};
+
 use crate::scalar::scalar;
 
 scalar! {
-    /// Fractional satoshis (f64): mean amounts in sats, and USD prices expressed in sats.
-    ///
-    /// A USD price in sats is `usd_value * 100_000_000 / btc_price`
-    ///
-    /// When BTC is $100,000:
-    /// - $1 = 1,000 sats
-    /// - $0.001 = 1 sat
-    /// - $0.0001 = 0.1 sats (fractional)
+    /// A mean amount in sats.
     float SatsFract(f64)
+}
+
+impl From<SatsFract> for Bitcoin {
+    #[inline]
+    fn from(value: SatsFract) -> Self {
+        Self::from(f64::from(value) / Sats::ONE_BTC_U128 as f64)
+    }
 }

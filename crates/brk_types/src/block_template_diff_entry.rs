@@ -15,10 +15,12 @@ use crate::Transaction;
 ///
 /// Reconstruction is a single pass: for each entry, either copy
 /// `prior[idx]` or append the inline body.
+// `Tx` holds the new body: owned by default, a reference or a template position when serving.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", schemars(rename = "BlockTemplateDiffEntry"))]
 #[serde(untagged)]
-pub enum BlockTemplateDiffEntry {
+pub enum BlockTemplateDiffEntry<Tx = Transaction> {
     Retained(u32),
-    New(Transaction),
+    New(Tx),
 }

@@ -243,14 +243,12 @@ impl Query {
                         (prev_txid, outpoint.vout(), Some(prev_txout))
                     };
 
-                    let witness = txin.witness.into();
-
                     Ok(TxIn {
                         txid: prev_txid,
                         vout: prev_vout,
                         prevout,
                         script_sig: txin.script_sig,
-                        witness,
+                        witness: txin.witness,
                         is_coinbase,
                         sequence: txin.sequence.0,
                     })

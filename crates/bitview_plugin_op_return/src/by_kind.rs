@@ -1,25 +1,17 @@
-use bitview_primitives::OpReturnKind;
+use bitview_primitives::with_op_return_kinds;
 use bitview_traversable::Traversable;
 
+/// One value per OP_RETURN kind: fields follow `OpReturnKind` order, so values indexed by kind
+/// push in field order.
 macro_rules! define_by_kind {
-    ($($field:ident => $kind:ident, $description:literal),+ $(,)?) => {
+    ($($kind:ident => $field:ident, $description:literal,)+) => {
         #[derive(Clone, Traversable)]
         pub struct ByKind<T> {
             $(
                 #[doc = $description]
-                pub $field: T
-            ),+
-        }
-
-        // Fields follow `OpReturnKind` order: values indexed by kind push in field order.
-        const _: () = {
-            let mut index = 0;
-            $(
-                assert!(OpReturnKind::$kind as usize == index);
-                index += 1;
+                pub $field: T,
             )+
-            let _ = index;
-        };
+        }
 
         impl<T> ByKind<T> {
             pub fn try_new<E>(mut create: impl FnMut(&'static str) -> Result<T, E>) -> Result<Self, E> {
@@ -27,35 +19,10 @@ macro_rules! define_by_kind {
             }
 
             pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
-                [$( &mut self.$field ),+].into_iter()
+                [$(&mut self.$field),+].into_iter()
             }
         }
     };
 }
 
-define_by_kind! {
-    runes => Runes, "Restricted to OP_RETURN outputs classified as Runes by their payload opcode.",
-    witness_commitment => WitnessCommitment, "Restricted to OP_RETURN outputs that start with the BIP141 witness commitment header (a 36-byte push beginning `aa21a9ed`), which SegWit-era coinbases carry.",
-    veri_block => VeriBlock, "Restricted to otherwise-unmarked OP_RETURN outputs with exactly 82 post-OP_RETURN bytes: a length heuristic for VeriBlock publications, not a protocol marker.",
-    omni => Omni, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Omni marker.",
-    stacks => Stacks, "Restricted to OP_RETURN outputs whose first pushed payload starts with a Stacks marker.",
-    blockstack => Blockstack, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Blockstack marker.",
-    colu => Colu, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Colu marker.",
-    open_assets => OpenAssets, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Open Assets marker.",
-    komodo => Komodo, "Restricted to otherwise-unmarked OP_RETURN outputs with 36 to 38 post-OP_RETURN bytes: a length heuristic for Komodo notarizations, not a protocol marker.",
-    coin_spark => CoinSpark, "Restricted to OP_RETURN outputs whose first pushed payload starts with the CoinSpark marker.",
-    poet => Poet, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Po.et marker `POET`.",
-    docproof => Docproof, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Proof of Existence marker `DOCPROOF`.",
-    open_timestamps => OpenTimestamps, "Restricted to OP_RETURN outputs whose first pushed payload starts with the 8-byte tag OpenTimestamps uses for Bitcoin attestations in its proof files. OpenTimestamps calendars commit bare 32-byte hashes on chain, which count as bare hashes instead.",
-    factom => Factom, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Factom marker.",
-    eternity_wall => EternityWall, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Eternity Wall marker.",
-    memo => Memo, "Restricted to OP_RETURN outputs whose first pushed payload starts with a Memo action prefix (byte 0x6d followed by 0x01 to 0x07 or 0x0c): a two-byte heuristic that can also match unrelated payloads.",
-    bitproof => Bitproof, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Bitproof marker.",
-    ascribe => Ascribe, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Ascribe marker.",
-    stampery => Stampery, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Stampery marker.",
-    epobc => Epobc, "Restricted to OP_RETURN outputs whose first pushed payload starts with the EPOBC marker.",
-    bare_hash => BareHash, "Restricted to OP_RETURN outputs classified as bare hashes because their first pushed payload is 20 or 32 bytes.",
-    text => Text, "Restricted to otherwise-unclassified OP_RETURN outputs whose first pushed payload is at least 90% printable ASCII.",
-    empty => Empty, "Restricted to OP_RETURN outputs with no non-empty pushed payload.",
-    unknown => Unknown, "Restricted to OP_RETURN outputs that do not match another recognized payload kind.",
-}
+with_op_return_kinds!(define_by_kind);

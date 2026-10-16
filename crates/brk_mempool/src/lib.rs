@@ -23,8 +23,7 @@ mod steps;
 mod stores;
 
 pub use api::{
-    BlockTemplateDiffJson, BlockTemplateJson, BlockTemplateSource, PendingUtxos, PublishedTx,
-    RbfForTx, RbfNode, ResolvedBlockTemplateDiff,
+    BlockTemplateSource, PendingUtxos, PublishedTx, RbfForTx, RbfNode, ResolvedBlockTemplateDiff,
 };
 pub use chain_waker::ChainWaker;
 pub use read_only::ReadOnlyMempool;

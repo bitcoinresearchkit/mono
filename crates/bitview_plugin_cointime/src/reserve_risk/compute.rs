@@ -47,7 +47,7 @@ impl Vecs {
                     DollarDaysPerCoin::from(f64::from(price) * f64::from(cdd) / supply_f64)
                 };
                 *cumulative += value;
-                (i, *cumulative)
+                *cumulative
             },
             exit,
         )?;
@@ -90,7 +90,7 @@ impl Vecs {
                 let days = timestamp.difference_in_days_between_float(*previous);
                 *previous = timestamp;
                 *bank += (f64::from(price) - f64::from(median)) * days;
-                (height, Float64::from(*bank))
+                Float64::from(*bank)
             },
             exit,
         )?;

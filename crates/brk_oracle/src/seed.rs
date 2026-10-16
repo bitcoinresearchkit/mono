@@ -1,4 +1,4 @@
-use brk_types::Cents;
+use brk_types::{Cents, Dollars};
 
 use crate::config::START_HEIGHT_SLOW;
 
@@ -19,6 +19,7 @@ pub fn pre_oracle_prices_from(start_height: usize) -> impl Iterator<Item = Cents
 }
 
 fn parse_price_cents(line: &str) -> Cents {
-    let dollars: f64 = line.parse().expect("invalid baked oracle price");
-    Cents::new((dollars * 100.0).round() as u64)
+    Cents::from(Dollars::from(
+        line.parse::<f64>().expect("invalid baked oracle price"),
+    ))
 }

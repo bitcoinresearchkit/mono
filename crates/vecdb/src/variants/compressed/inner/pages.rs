@@ -355,10 +355,6 @@ impl Pages {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.truncate(0);
-    }
-
     pub fn truncate(&mut self, page_index: usize) -> Option<Page> {
         let page = self.get(page_index);
         if page_index >= self.len {

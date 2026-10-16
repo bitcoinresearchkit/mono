@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 
 use brk_error::Error;
-use brk_types::{Height, Timestamp, TxIndex};
+use brk_types::{Height, ONE_DAY_IN_SEC, Timestamp, TxIndex};
 use schemars::JsonSchema;
 use serde::{
     Deserialize, Deserializer, Serialize,
@@ -18,6 +18,20 @@ use crate::{
 
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
 pub const INDEX_EPOCH: u32 = 1230768000;
+
+/// How a date-based [`Index`] buckets time, for clients that convert dates themselves (bindgen
+/// emits it); agrees with the index types' own conversions. Bucket `i` starts `i * size - phase`
+/// units after 2009-01-01 00:00 UTC, except that a month calendar's bucket 0 starts at January
+/// 2009.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Calendar {
+    /// Buckets of this many seconds (sub-daily indexes).
+    Seconds(u32),
+    /// Buckets of whole UTC days.
+    Days { size: u32, phase: u32 },
+    /// Buckets of calendar months.
+    Months { size: u32, phase: u32 },
+}
 
 /// Expands the resolution family in its canonical order, [`Index`]'s too: the date-based
 /// periods (time buckets, which may be empty), then the block-count epochs (never empty). The
@@ -52,12 +66,13 @@ macro_rules! with_resolution_fields {
 }
 
 /// Declares [`Index`] from the resolution family followed by the `other` index types, each
-/// variant named after its type. Generates the enum, `all`, `possible_values`, `name` and
-/// `is_date_based`.
+/// variant named after its type, with every period's [`Calendar`]. Generates the enum, `all`,
+/// `possible_values`, `name`, `is_date_based` and `calendar`.
 macro_rules! indexes {
     (
         periods { $($period_field:ident: $period:ident => $period_param:ident,)* }
         epochs { $($epoch_field:ident: $epoch:ident => $epoch_param:ident,)* }
+        calendars { $($calendar:ident => $kind:ident $value:tt,)* }
         other: [$($(#[$attr:meta])* $other:ident),+ $(,)?]
     ) => {
         /// Aggregation dimension for querying series. Includes time-based (date, week, month, year),
@@ -98,11 +113,37 @@ macro_rules! indexes {
             pub const fn is_date_based(&self) -> bool {
                 matches!(self, $(Self::$period)|*)
             }
+
+            /// How this index buckets time; `None` unless date-based.
+            pub const fn calendar(self) -> Option<Calendar> {
+                match self {
+                    $(Self::$calendar => Some(Calendar::$kind $value),)*
+                    $(Self::$epoch => None,)*
+                    $(Self::$other => None,)+
+                }
+            }
         }
     };
 }
 
-with_resolution_fields!(indexes, other: [
+with_resolution_fields!(indexes, calendars {
+    Minute10 => Seconds(MINUTE10_INTERVAL),
+    Minute30 => Seconds(MINUTE30_INTERVAL),
+    Hour1 => Seconds(HOUR1_INTERVAL),
+    Hour4 => Seconds(HOUR4_INTERVAL),
+    Hour12 => Seconds(HOUR12_INTERVAL),
+    Day1 => Days { size: 1, phase: 0 },
+    // The first bucket starts on 2008-12-31.
+    Day3 => Days { size: 3, phase: 1 },
+    // ISO weeks: 2009-W01 starts on 2008-12-29.
+    Week1 => Days { size: 7, phase: 3 },
+    Month1 => Months { size: 1, phase: 0 },
+    Month3 => Months { size: 3, phase: 0 },
+    Month6 => Months { size: 6, phase: 0 },
+    Year1 => Months { size: 12, phase: 0 },
+    // Calendar decades, 2009 alone in the first.
+    Year10 => Months { size: 120, phase: 108 },
+} other: [
     Height,
     #[serde(rename = "tx_index")]
     TxIndex,
@@ -140,16 +181,13 @@ impl Index {
     /// Convert an index value to a timestamp for time-based indexes.
     /// Returns None for non-time-based indexes.
     pub fn index_to_timestamp(&self, i: usize) -> Option<Timestamp> {
-        let interval = match self {
-            Self::Minute10 => MINUTE10_INTERVAL,
-            Self::Minute30 => MINUTE30_INTERVAL,
-            Self::Hour1 => HOUR1_INTERVAL,
-            Self::Hour4 => HOUR4_INTERVAL,
-            Self::Hour12 => HOUR12_INTERVAL,
-            Self::Day3 => return Some(Day3::from(i).to_timestamp()),
-            _ => return self.index_to_date(i).map(|d| d.into()),
-        };
-        Some(Timestamp::new(INDEX_EPOCH + i as u32 * interval))
+        match self.calendar()? {
+            Calendar::Seconds(size) => Some(Timestamp::new(INDEX_EPOCH + i as u32 * size)),
+            Calendar::Days { size, phase } => Some(Timestamp::new(
+                INDEX_EPOCH - phase * ONE_DAY_IN_SEC + i as u32 * size * ONE_DAY_IN_SEC,
+            )),
+            Calendar::Months { .. } => self.index_to_date(i).map(Timestamp::from),
+        }
     }
 
     /// Convert a date to an index value for day-precision or coarser indexes.
@@ -180,16 +218,16 @@ impl Index {
         if ts < self.index_to_timestamp(0)? {
             return None;
         }
-        let interval = match self {
-            Self::Minute10 => MINUTE10_INTERVAL,
-            Self::Minute30 => MINUTE30_INTERVAL,
-            Self::Hour1 => HOUR1_INTERVAL,
-            Self::Hour4 => HOUR4_INTERVAL,
-            Self::Hour12 => HOUR12_INTERVAL,
-            Self::Day3 => return Some(usize::from(Day3::from_timestamp(ts))),
-            _ => return self.date_to_index(Date::from(ts)),
-        };
-        Some((*ts).saturating_sub(INDEX_EPOCH) as usize / interval as usize)
+        match self.calendar()? {
+            Calendar::Seconds(size) => {
+                Some((*ts).saturating_sub(INDEX_EPOCH) as usize / size as usize)
+            }
+            Calendar::Days { size, phase } => Some(
+                (*ts - (INDEX_EPOCH - phase * ONE_DAY_IN_SEC)) as usize
+                    / (size * ONE_DAY_IN_SEC) as usize,
+            ),
+            Calendar::Months { .. } => self.date_to_index(Date::from(ts)),
+        }
     }
 
     /// Convert an index value to a date for day-precision or coarser indexes.

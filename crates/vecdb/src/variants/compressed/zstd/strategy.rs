@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use zstd::{bulk::Decompressor, encode_all};
 
-use super::{super::inner::CompressionStrategy, value::ZstdVecValue};
-use crate::{EncodedChunk, Format, Result, ValueStrategy};
+use super::super::inner::CompressionStrategy;
+use crate::{BytesVecValue, EncodedChunk, Format, Result, ValueStrategy};
 
 /// Zstd compression level (1-22). Level 3 provides a good balance
 /// between compression ratio and speed for most workloads.
@@ -13,11 +13,11 @@ const ZSTD_COMPRESSION_LEVEL: i32 = 3;
 #[derive(Debug, Clone, Copy)]
 pub struct ZstdStrategy<T>(PhantomData<T>);
 
-impl_bytes_value_strategy!(ZstdStrategy, ZstdVecValue);
+impl_bytes_value_strategy!(ZstdStrategy, BytesVecValue);
 
 impl<T> ZstdStrategy<T>
 where
-    T: ZstdVecValue,
+    T: BytesVecValue,
 {
     /// Decompresses one page into the decoder's byte scratch.
     fn decompress_bytes<'a>(
@@ -39,7 +39,7 @@ where
 
 impl<T> CompressionStrategy<T> for ZstdStrategy<T>
 where
-    T: ZstdVecValue,
+    T: BytesVecValue,
 {
     /// A decompression context and a byte scratch buffer, both created once.
     type Decoder = (Option<Decompressor<'static>>, Vec<u8>);

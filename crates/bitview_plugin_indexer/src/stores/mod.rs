@@ -1,4 +1,9 @@
-use std::{fs, ops::Range, path::Path, time::Instant};
+use std::{
+    fs,
+    ops::{Range, RangeBounds},
+    path::Path,
+    time::Instant,
+};
 
 use bitview_primitives::{
     AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, AddrTypeId, BlockHashPrefix, ByAddrType,
@@ -54,7 +59,7 @@ impl Stores {
     pub fn addr_hash_range(
         &self,
         addr_type: OutputType,
-        range: Range<AddrHash>,
+        range: impl RangeBounds<AddrHash>,
     ) -> Result<impl DoubleEndedIterator<Item = Result<(AddrHash, TypeIndex)>> + '_> {
         Ok(self
             .addr_type_to_addr_hash_to_addr_index

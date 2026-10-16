@@ -375,7 +375,7 @@ where
             }
             let next = compare(prev.take().unwrap(), v);
             prev = Some(next.clone());
-            (i, next)
+            next
         },
         exit,
     )

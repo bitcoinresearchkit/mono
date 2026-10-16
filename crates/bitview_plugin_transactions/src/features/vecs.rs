@@ -7,7 +7,7 @@ use vecdb::{LazyVec, Rw, StorageMode};
 
 use crate::flagged::{Block, Flagged};
 
-pub(super) type BlockView = Block<LazyVec<Height, Count, Height, Count16>>;
+pub(super) type BlockView = Block<LazyVec<Height, Count, Count16>>;
 type Windowed<M> = PerBlockCumulativeRolling<Count, M>;
 
 /// Transaction features: each one's per-transaction flag beside its per-block count, with

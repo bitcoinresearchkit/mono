@@ -19,8 +19,8 @@ macro_rules! define_derived_resolutions {
         #[derive(Clone, Deref, DerefMut, Traversable)]
         pub struct DerivedResolutions<T, S1T = T>(
             pub PerResolution<
-                $(LazyVec<$index, Option<T>, $index, Option<S1T>>,)*
-                $(LazyVec<$epoch_index, T, $epoch_index, S1T>,)*
+                $(LazyVec<$index, Option<T>, Option<S1T>>,)*
+                $(LazyVec<$epoch_index, T, S1T>,)*
             >,
         )
         where

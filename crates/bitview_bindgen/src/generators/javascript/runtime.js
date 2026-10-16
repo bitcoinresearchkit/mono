@@ -76,22 +76,16 @@ const _responseError = async (res) => {
   return new BitviewError(message, res.status, detail?.code);
 };
 
-// Date conversion constants and helpers, mirroring the server's indexes: UTC, from 2009-01-01
-// (week1 buckets ISO weeks, which start three days earlier; year10 buckets calendar decades, 2009 alone in the first).
-const _MS_PER_DAY = 86400000;
-const _MS_PER_WEEK = 7 * _MS_PER_DAY;
+// Date conversion, mirroring the server's indexes (`_CALENDARS`): UTC, from 2009-01-01.
 const _EPOCH_MS = 1230768000000;
-/** @typedef {'minute10'|'minute30'|'hour1'|'hour4'|'hour12'|'day1'|'day3'|'week1'|'month1'|'month3'|'month6'|'year1'|'year10'} DateIndex */
-const _DATE_INDEXES = new Set([
-  'minute10', 'minute30',
-  'hour1', 'hour4', 'hour12',
-  'day1', 'day3', 'week1',
-  'month1', 'month3', 'month6',
-  'year1', 'year10',
-]);
+const _UNIT_MS = { second: 1000, day: 86400000 };
 
-/** @param {number} months @returns {globalThis.Date} */
-const _addMonths = (months) => new Date(Date.UTC(2009, months, 1));
+/** @param {string} index */
+const _calendar = (index) => {
+  const calendar = _CALENDARS.get(index);
+  if (!calendar) throw new Error(`${index} is not a date-based index`);
+  return calendar;
+};
 
 /**
  * Convert an index value to a Date for date-based indexes.
@@ -100,22 +94,9 @@ const _addMonths = (months) => new Date(Date.UTC(2009, months, 1));
  * @returns {globalThis.Date}
  */
 function indexToDate(index, i) {
-  switch (index) {
-    case 'minute10': return new Date(_EPOCH_MS + i * 600000);
-    case 'minute30': return new Date(_EPOCH_MS + i * 1800000);
-    case 'hour1': return new Date(_EPOCH_MS + i * 3600000);
-    case 'hour4': return new Date(_EPOCH_MS + i * 14400000);
-    case 'hour12': return new Date(_EPOCH_MS + i * 43200000);
-    case 'day1': return new Date(_EPOCH_MS + i * _MS_PER_DAY);
-    case 'day3': return new Date(_EPOCH_MS - 86400000 + i * 259200000);
-    case 'week1': return new Date(_EPOCH_MS - 3 * _MS_PER_DAY + i * _MS_PER_WEEK);
-    case 'month1': return _addMonths(i);
-    case 'month3': return _addMonths(i * 3);
-    case 'month6': return _addMonths(i * 6);
-    case 'year1': return new Date(Date.UTC(2009 + i, 0, 1));
-    case 'year10': return new Date(Date.UTC(i === 0 ? 2009 : 2000 + i * 10, 0, 1));
-    default: throw new Error(`${index} is not a date-based index`);
-  }
+  const [unit, size, phase] = _calendar(index);
+  if (unit === 'month') return new Date(Date.UTC(2009, i === 0 ? 0 : i * size - phase, 1));
+  return new Date(_EPOCH_MS + (i * size - phase) * _UNIT_MS[unit]);
 }
 
 /**
@@ -129,22 +110,9 @@ function indexToDate(index, i) {
 function dateToIndex(index, d) {
   const ms = d.getTime(), first = indexToDate(index, 0);
   if (!(ms >= first.getTime())) throw new RangeError(`Date is before the first ${index} date (${first.toISOString().slice(0, 10)})`);
-  switch (index) {
-    case 'minute10': return Math.floor((ms - _EPOCH_MS) / 600000);
-    case 'minute30': return Math.floor((ms - _EPOCH_MS) / 1800000);
-    case 'hour1': return Math.floor((ms - _EPOCH_MS) / 3600000);
-    case 'hour4': return Math.floor((ms - _EPOCH_MS) / 14400000);
-    case 'hour12': return Math.floor((ms - _EPOCH_MS) / 43200000);
-    case 'day1': return Math.floor((ms - _EPOCH_MS) / _MS_PER_DAY);
-    case 'day3': return Math.floor((ms - _EPOCH_MS + 86400000) / 259200000);
-    case 'week1': return Math.floor((ms - _EPOCH_MS + 3 * _MS_PER_DAY) / _MS_PER_WEEK);
-    case 'month1': return (d.getUTCFullYear() - 2009) * 12 + d.getUTCMonth();
-    case 'month3': return (d.getUTCFullYear() - 2009) * 4 + Math.floor(d.getUTCMonth() / 3);
-    case 'month6': return (d.getUTCFullYear() - 2009) * 2 + Math.floor(d.getUTCMonth() / 6);
-    case 'year1': return d.getUTCFullYear() - 2009;
-    case 'year10': return Math.floor((d.getUTCFullYear() - 2000) / 10);
-    default: throw new Error(`${index} is not a date-based index`);
-  }
+  const [unit, size, phase] = _calendar(index);
+  if (unit === 'month') return Math.floor(((d.getUTCFullYear() - 2009) * 12 + d.getUTCMonth() + phase) / size);
+  return Math.floor((ms - _EPOCH_MS + phase * _UNIT_MS[unit]) / (size * _UNIT_MS[unit]));
 }
 
 /**
@@ -155,7 +123,7 @@ function dateToIndex(index, d) {
  */
 function _wrapSeriesData(raw) {
   const { index, start, end, data } = raw;
-  const _dateBased = _DATE_INDEXES.has(index);
+  const _dateBased = _CALENDARS.has(index);
   return /** @type {DateSeriesData<T>} */ ({
     ...raw,
     isDateBased: _dateBased,
@@ -818,31 +786,18 @@ function _validateHashPrefixNibbles(nibbles) {
   }
 }
 
-/** @param {OutputType} addressType @returns {number[]} */
-function _addressPayloadLengths(addressType) {
-  switch (addressType) {
-    case "p2a": return [2];
-    case "p2pk33": return [33];
-    case "p2pk65": return [65];
-    case "p2pkh":
-    case "p2sh":
-    case "p2wpkh": return [20];
-    case "p2wsh":
-    case "p2tr": return [32];
-    default:
-      throw new Error(`Unsupported address type for address payload hash-prefix: ${addressType}`);
-  }
-}
-
 /**
  * @param {OutputType} addressType
  * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
  */
 function _validateAddressPayloadForType(addressType, payload) {
   const length = _asUint8Array(payload).length;
-  const expected = _addressPayloadLengths(addressType);
-  if (!expected.includes(length)) {
-    throw new Error(`Expected ${addressType} address payload length ${expected.join(" or ")} bytes`);
+  const expected = _ADDRESS_PAYLOAD_LENGTHS.get(addressType);
+  if (expected === undefined) {
+    throw new Error(`Unsupported address type for address payload hash-prefix: ${addressType}`);
+  }
+  if (length !== expected) {
+    throw new Error(`Expected ${addressType} address payload length ${expected} bytes`);
   }
 }
 

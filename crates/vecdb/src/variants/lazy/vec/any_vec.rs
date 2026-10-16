@@ -2,12 +2,11 @@ use crate::{AnyVec, VecIndex, VecValue, Version};
 
 use super::LazyVec;
 
-impl<I, T, S1I, S1T> AnyVec for LazyVec<I, T, S1I, S1T>
+impl<I, T, S> AnyVec for LazyVec<I, T, S>
 where
     I: VecIndex,
     T: VecValue,
-    S1I: VecIndex,
-    S1T: VecValue,
+    S: VecValue,
 {
     fn version(&self) -> Version {
         self.base_version + self.source.version()

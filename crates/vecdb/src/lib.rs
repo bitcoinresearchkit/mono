@@ -30,6 +30,7 @@ mod stamp;
 mod traits;
 mod variants;
 mod version;
+mod window_read;
 
 pub(crate) use base::HEADER_OFFSET;
 pub use base::{Format, Header, ImportOptions, SharedLen, WithPrev};
@@ -65,15 +66,16 @@ pub use variants::{
     VecReader,
 };
 #[cfg(feature = "lz4")]
-pub use variants::{LZ4Strategy, LZ4Vec, LZ4VecValue};
+pub use variants::{LZ4Strategy, LZ4Vec};
 #[cfg(feature = "pco")]
 pub use variants::{Pco, PcoVec, PcoVecValue, PcodecStrategy};
 #[cfg(feature = "zerocopy")]
 pub use variants::{ZeroCopyStrategy, ZeroCopyVec, ZeroCopyVecValue};
 #[cfg(feature = "zstd")]
-pub use variants::{ZstdStrategy, ZstdVec, ZstdVecValue};
+pub use variants::{ZstdStrategy, ZstdVec};
 
 pub use version::Version;
+pub use window_read::{WindowBatch, WindowBuffers, before_window, before_window_bounds};
 
 const ONE_KIB: usize = 1024;
 

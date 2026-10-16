@@ -926,7 +926,7 @@ Current BTC price
 
 Returns bitcoin latest price (on-chain derived, USD only). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
 
-Returns: JSON `Prices`
+Returns: JSON `PricePoint`
 
 ```bash
 curl -s "https://bitview.space/api/v1/prices"
@@ -1850,13 +1850,8 @@ curl -s "https://bitview.space/version"
 
 ### `HistoricalPrice`
 
-- `prices`: `HistoricalPriceEntry[]` (required) — Price data points
+- `prices`: `PricePoint[]` (required) — Price data points
 - `exchangeRates`: `ExchangeRates` (required) — Exchange rates (currently empty)
-
-### `HistoricalPriceEntry`
-
-- `time`: `Timestamp` (required) — Unix timestamp
-- `USD`: `Dollars` (required) — BTC/USD price
 
 ### `Index`
 
@@ -1997,7 +1992,7 @@ curl -s "https://bitview.space/version"
 - `economyFee`: `FeeRate` (required) — Fee rate for economical confirmation
 - `minimumFee`: `FeeRate` (required) — Minimum relay fee rate
 
-### `Prices`
+### `PricePoint`
 
 - `time`: `Timestamp` (required) — Unix timestamp
 - `USD`: `Dollars` (required) — BTC/USD price
@@ -2146,7 +2141,7 @@ curl -s "https://bitview.space/version"
 - `prevout`: `TxOut | null` (required) — Information about the previous output being spent
 - `scriptsig`: `string` (required) — Signature script (hex, for non-SegWit inputs)
 - `scriptsig_asm`: `string` (required) — Signature script in assembly format
-- `witness`: `Witness` — Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
+- `witness`: `string[]` — Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
 - `is_coinbase`: `boolean` (required) — Whether this input is a coinbase (block reward) input
 - `sequence`: `integer` (required) — Input sequence number
 - `inner_redeemscript_asm`: `string` — Inner redeemscript in assembly (P2SH inputs)
@@ -2271,8 +2266,4 @@ curl -s "https://bitview.space/version"
 ### `Weight`
 
 `integer`
-
-### `Witness`
-
-`string[]`
 

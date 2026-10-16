@@ -6,10 +6,10 @@ use bitview_distribution::{
 };
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, ops::SatsToCents, shapes::Windows};
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{BinaryTransform, Database, ReadableBoxedVec, Rw, StorageMode};
+use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 type State = UTXOCohortState<MinimalRealizedState, ()>;
 
@@ -102,7 +102,7 @@ impl CohortVecs {
         let sent = state.transfer_volume();
         self.activity
             .transfer_volume
-            .push_block(sent, SatsToCents::apply(sent, price));
+            .push_block(sent, sent.value_at(price));
         let realized = state.realized_block_data();
         self.capital.push(realized.cap);
         self.realized.profit.push_block(realized.profit);

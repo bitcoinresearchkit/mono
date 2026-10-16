@@ -17,7 +17,7 @@ where
     pub identity: IndexVec<I, I, ReadableBoxedVec<I, B>>,
     /// Textual identifier reconstructed from the indexed locking script: raw
     /// public-key hex for P2PK, otherwise the standard mainnet Bitcoin address.
-    pub address: LazyVec<I, Address, I, B>,
+    pub address: LazyVec<I, Address, B>,
 }
 
 impl<I, B> AddressVecs<I, B>

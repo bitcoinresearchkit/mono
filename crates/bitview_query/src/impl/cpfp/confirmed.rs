@@ -1,7 +1,7 @@
-use brk_cpfp::{Cluster, find_seed_chunk};
+use brk_cpfp::Cluster;
 use brk_types::{
-    CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, FeeRate,
-    Height, SigOps, TxIndex, Txid, VSize, Weight,
+    CPFP_CHAIN_LIMIT, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, Height, SigOps, TxIndex, Txid,
+    VSize, Weight,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
@@ -32,13 +32,14 @@ impl Query {
         let walk = self.walk_same_block_cluster(seed, height, read.pin(), &mut graph)?;
         drop(read);
 
-        Ok(build_cpfp_info(
-            &mut graph,
-            &walk.members,
-            walk.seed_local,
+        let seed_position = u32::from(walk.seed_local) as usize;
+        Ok(CpfpInfo::new(
             walk.ancestors,
             walk.descendants,
+            graph.fee(seed_position),
+            walk.members[seed_position].1,
             walk.seed_sigops,
+            graph.project(walk.seed_local, |local| walk.members[local]),
         ))
     }
 
@@ -215,59 +216,4 @@ fn walk_direction<'a>(
         stack.extend_from_slice(next(tx));
     }
     members
-}
-
-fn build_cpfp_info(
-    graph: &mut Cluster,
-    members: &[(Txid, Weight)],
-    seed_local: CpfpClusterTxIndex,
-    ancestors: Vec<CpfpEntry>,
-    descendants: Vec<CpfpEntry>,
-    sigops: SigOps,
-) -> CpfpInfo {
-    let seed_position = u32::from(seed_local) as usize;
-    let fee = graph.fee(seed_position);
-    let vsize = VSize::from(members[seed_position].1);
-    let raw_rate = FeeRate::from((fee, graph.vsize(seed_position)));
-    let best_descendant = descendants
-        .iter()
-        .max_by_key(|entry| FeeRate::from((entry.fee, entry.weight)))
-        .cloned();
-
-    let (cluster, effective_fee_per_vsize) = if members.len() == 1 {
-        (None, raw_rate)
-    } else {
-        let chunks = graph.chunks();
-        let (chunk_index, rate) = find_seed_chunk(&chunks, seed_local, raw_rate);
-        let txs = members
-            .iter()
-            .enumerate()
-            .map(|(local, &(txid, weight))| CpfpClusterTx {
-                txid,
-                weight,
-                fee: graph.fee(local),
-                parents: graph.parents(local).to_vec(),
-            })
-            .collect();
-        (
-            Some(CpfpCluster {
-                txs,
-                chunks,
-                chunk_index,
-            }),
-            rate,
-        )
-    };
-
-    CpfpInfo {
-        ancestors,
-        best_descendant,
-        descendants,
-        effective_fee_per_vsize,
-        sigops,
-        fee,
-        vsize,
-        adjusted_vsize: sigops.adjust_vsize(vsize),
-        cluster,
-    }
 }

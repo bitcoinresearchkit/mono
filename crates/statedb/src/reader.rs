@@ -21,8 +21,14 @@ impl Reader<'_> {
         (self.spends.version(), self.creations.version())
     }
 
+    /// Whether `state`, retained from an earlier update, ends at `start` on this history's chain:
+    /// a consumer then resumes from it instead of restoring the state at `start`.
+    pub fn resumes(&self, state: &State, start: usize) -> Result<bool> {
+        Ok(state.len() == start && self.matches(state)?)
+    }
+
     /// Checks the prefix identity before reusing resident analytical state.
-    pub fn matches(&self, state: &State) -> Result<bool> {
+    pub(crate) fn matches(&self, state: &State) -> Result<bool> {
         let prefix = (state.len(), state.hash());
         if prefix.0 > self.end {
             return Ok(false);

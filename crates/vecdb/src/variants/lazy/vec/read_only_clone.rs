@@ -2,12 +2,11 @@ use crate::{ReadOnlyClone, VecIndex, VecValue};
 
 use super::LazyVec;
 
-impl<I, T, S1I, S1T> ReadOnlyClone for LazyVec<I, T, S1I, S1T>
+impl<I, T, S> ReadOnlyClone for LazyVec<I, T, S>
 where
     I: VecIndex,
     T: VecValue,
-    S1I: VecIndex,
-    S1T: VecValue,
+    S: VecValue,
 {
     type ReadOnly = Self;
 

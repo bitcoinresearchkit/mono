@@ -121,15 +121,12 @@ impl Vecs {
                 starting_height,
                 *created,
                 &coindays_consumed.cumulative.height,
-                |(height, created, consumed, ..)| {
+                |(_, created, consumed, ..)| {
                     debug_assert!(
                         consumed <= created,
                         "coin days consumed exceed those created"
                     );
-                    (
-                        height,
-                        BoundedRatio::from(f64::from(consumed) / f64::from(created)),
-                    )
+                    BoundedRatio::from(f64::from(consumed) / f64::from(created))
                 },
                 exit,
             )?;

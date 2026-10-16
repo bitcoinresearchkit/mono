@@ -2,7 +2,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{FeeRate, Sats, SigOps, VSize};
+use crate::{FeeRate, Sats, SigOps, VSize, Weight};
 
 use super::{CpfpCluster, CpfpEntry};
 
@@ -35,4 +35,34 @@ pub struct CpfpInfo {
     /// ancestors and no descendants (matches mempool.space).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cluster: Option<CpfpCluster>,
+}
+
+impl CpfpInfo {
+    /// The seed's info from its relatives, its fee, weight and sigops, and its cluster as served
+    /// with its effective feerate.
+    pub fn new(
+        ancestors: Vec<CpfpEntry>,
+        descendants: Vec<CpfpEntry>,
+        fee: Sats,
+        weight: Weight,
+        sigops: SigOps,
+        (cluster, effective_fee_per_vsize): (Option<CpfpCluster>, FeeRate),
+    ) -> Self {
+        let best_descendant = descendants
+            .iter()
+            .max_by_key(|entry| FeeRate::from((entry.fee, entry.weight)))
+            .cloned();
+        let vsize = VSize::from(weight);
+        Self {
+            ancestors,
+            best_descendant,
+            descendants,
+            effective_fee_per_vsize,
+            sigops,
+            fee,
+            vsize,
+            adjusted_vsize: sigops.adjust_vsize(vsize),
+            cluster,
+        }
+    }
 }

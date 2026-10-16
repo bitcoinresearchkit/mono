@@ -19,8 +19,8 @@ macro_rules! define_lazy_indexes {
         #[derive(Clone, Deref, DerefMut, Traversable)]
         pub struct LazyIndexes<T, S>(
             pub PerResolution<
-                $(LazyVec<$index, T, $index, S>,)*
-                $(LazyVec<$epoch_index, T, $epoch_index, S>,)*
+                $(LazyVec<$index, T, S>,)*
+                $(LazyVec<$epoch_index, T, S>,)*
             >,
         )
         where

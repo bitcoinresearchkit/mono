@@ -15,10 +15,9 @@ use std::{
 };
 
 use crate::{
-    AnyStoredVec, AnyVec, Budgeted, BytesVec, CompressionStrategy, Database, DeltaSub, Header,
-    ImportOptions, LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue, RawStrategy,
-    ReadWriteCompressedVec, ReadWriteRawVec, ReadableCloneableVec, ReadableVec, Stamp, StoredVec,
-    Version, cache::CachePolicy,
+    AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, DeltaSub, Header, ImportOptions,
+    LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue, RawStrategy, ReadWriteRawVec,
+    ReadableCloneableVec, ReadableVec, Stamp, StoredVec, Version, cache::CachePolicy,
 };
 
 /// Undo records each vector keeps: deeper rollbacks fail to land and rebuild instead.
@@ -314,12 +313,10 @@ impl<V: Variant> Subject<V> {
         let x: Vec<u64> = m.cur.iter().map(|value| value.unwrap()).collect();
         let mapped: Vec<_> = (0..x.len()).map(|i| Some(lazy_value(i, x[i]))).collect();
         check_reads(&lazy, &mapped, rng);
-        let starts = LazyVec::<usize, usize, usize, u64>::init(
-            "starts",
-            Version::ONE,
-            boxed.clone(),
-            |i, _| window_start(i),
-        );
+        let starts =
+            LazyVec::<usize, usize, u64>::init("starts", Version::ONE, boxed.clone(), |i, _| {
+                window_start(i)
+            });
         let sums = LazyDeltaVec::<usize, u64, u64, DeltaSub>::new(
             "sums",
             Version::ONE,
@@ -627,8 +624,9 @@ impl<S: RawStrategy<u64>, C: CachePolicy> Variant for ReadWriteRawVec<usize, u64
     }
 }
 
-impl<S: CompressionStrategy<u64>, C: CachePolicy> Variant
-    for ReadWriteCompressedVec<usize, u64, S, C>
+#[cfg(any(feature = "lz4", feature = "pco", feature = "zstd"))]
+impl<S: crate::CompressionStrategy<u64>, C: CachePolicy> Variant
+    for crate::ReadWriteCompressedVec<usize, u64, S, C>
 {
     const MUTABLE: bool = false;
 

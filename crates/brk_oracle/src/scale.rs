@@ -1,4 +1,4 @@
-use brk_types::Sats;
+use brk_types::{Cents, Dollars, Sats};
 
 pub const BINS_PER_DECADE: usize = 200;
 const MIN_LOG_BTC: i32 = -8;
@@ -24,9 +24,10 @@ pub fn sats_to_bin(sats: Sats) -> Option<usize> {
 /// For a $D output at price P: sats = D * 1e8 / P, so P = 10^(10 - bin/200) dollars,
 /// where 10 = log10($100 reference * 1e8 sats/BTC).
 #[inline]
-pub fn bin_to_cents(bin: f64) -> u64 {
-    let dollars = 10.0_f64.powf(10.0 - bin / BINS_PER_DECADE as f64);
-    (dollars * 100.0).round() as u64
+pub fn bin_to_cents(bin: f64) -> Cents {
+    Cents::from(Dollars::from(
+        10.0_f64.powf(10.0 - bin / BINS_PER_DECADE as f64),
+    ))
 }
 
 /// Converts a USD price in cents to a fractional bin (inverse of bin_to_cents).

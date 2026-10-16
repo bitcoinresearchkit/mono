@@ -20,7 +20,7 @@ where
 
 impl<S, T, Op> LazyDeltaFromHeight<S, T, Op>
 where
-    S: VecValue,
+    S: VecValue + Default,
     T: NumericValue + JsonSchema,
     Op: DeltaOp<S, T>,
 {

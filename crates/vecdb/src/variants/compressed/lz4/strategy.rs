@@ -2,18 +2,18 @@ use std::marker::PhantomData;
 
 use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 
-use super::{super::inner::CompressionStrategy, value::LZ4VecValue};
-use crate::{EncodedChunk, Format, Result, ValueStrategy};
+use super::super::inner::CompressionStrategy;
+use crate::{BytesVecValue, EncodedChunk, Format, Result, ValueStrategy};
 
 /// LZ4 compression strategy for fast compression/decompression.
 #[derive(Debug, Clone, Copy)]
 pub struct LZ4Strategy<T>(PhantomData<T>);
 
-impl_bytes_value_strategy!(LZ4Strategy, LZ4VecValue);
+impl_bytes_value_strategy!(LZ4Strategy, BytesVecValue);
 
 impl<T> CompressionStrategy<T> for LZ4Strategy<T>
 where
-    T: LZ4VecValue,
+    T: BytesVecValue,
 {
     type Decoder = ();
 

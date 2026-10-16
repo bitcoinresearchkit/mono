@@ -16,7 +16,7 @@ pub struct AccountingSources<'a> {
 }
 
 /// An age range's supply in sats, as its series publishes it.
-type SupplySource = LazyVec<Height, Sats, Height, Sats>;
+type SupplySource = LazyVec<Height, Sats, Sats>;
 
 impl Vecs {
     pub fn accounting_sources(&self) -> AccountingSources<'_> {

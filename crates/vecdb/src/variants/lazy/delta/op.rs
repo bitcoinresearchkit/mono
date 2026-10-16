@@ -1,30 +1,15 @@
-/// Trait defining how to combine a current value with an earlier value.
+/// How a window view ([`LazyDeltaVec`](super::LazyDeltaVec)) combines the current value with the
+/// value before the window.
 ///
 /// `S` is the source type read from the vec, `T` is the output type produced.
 /// When `S = T` (e.g., rolling sums), the operation is same-type.
 /// When `S != T` (e.g., delta change/rate), the operation converts between types.
 pub trait DeltaOp<S, T>: Send + Sync + 'static {
-    /// Source index for the `ago` value given a window start.
-    /// Returns `None` when there is no preceding element (cumulative ops at start = 0).
-    #[inline]
-    fn ago_index(start: usize) -> Option<usize> {
-        Some(start)
-    }
-
-    /// Fallback `ago` value when `ago_index` returns `None`.
-    #[inline]
-    fn ago_default() -> S
-    where
-        S: Sized,
-    {
-        unreachable!()
-    }
-
-    /// Window element count from current index `h` and window start.
+    /// The number of elements the window covers, `[start, h]`.
     #[inline]
     fn count(h: usize, start: usize) -> usize {
-        h - start
+        h - start + 1
     }
 
-    fn combine(current: S, ago: S, count: usize) -> T;
+    fn combine(current: S, before: S, count: usize) -> T;
 }

@@ -2,7 +2,10 @@
 
 use std::fmt::Write;
 
-use crate::{ClientConstants, IndexSetPattern, cohort_constants, format_json, index_to_field_name};
+use crate::{
+    ClientConstants, IndexSetPattern, address_payload_lengths, calendars, cohort_constants,
+    format_json, index_to_field_name,
+};
 
 /// Generate class-level constants for the BitviewClient class.
 pub(crate) fn generate_class_constants(output: &mut String) {
@@ -39,8 +42,33 @@ fn write_class_const(output: &mut String, name: &str, json: &str) {
     output.push_str("\n\n");
 }
 
-/// The fixed runtime: base client, series data and endpoint classes (`runtime.py`).
+/// The fixed runtime (`runtime.py`: base client, series data and endpoint classes) after the
+/// server's tables it reads.
 pub(crate) fn generate_runtime(output: &mut String) {
+    let calendars: String = calendars()
+        .into_iter()
+        .map(|(index, (unit, size, phase))| {
+            format!("    '{index}': ('{unit}', {size}, {phase}),\n")
+        })
+        .collect();
+    let payload_lengths: String = address_payload_lengths()
+        .map(|(output_type, len)| format!("    '{output_type}': {len},\n"))
+        .collect();
+    write!(
+        output,
+        "# Each date-based index's buckets as (unit, size, phase): bucket i starts i * size - phase units
+# after 2009-01-01 UTC, except that a month calendar's bucket 0 starts at January 2009.
+_CALENDARS: Dict[str, Tuple[str, int, int]] = {{
+{calendars}}}
+
+# Each address type's payload length in bytes.
+_ADDRESS_PAYLOAD_LENGTHS: Dict[str, int] = {{
+{payload_lengths}}}
+
+
+"
+    )
+    .unwrap();
     output.push_str(include_str!("runtime.py"));
 }
 
@@ -79,7 +107,7 @@ def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
 
 def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
     """The endpoint for any index: with date helpers for a date-based one."""
-    return _dep(c, n, i) if i in _DATE_INDEXES else _ep(c, n, i)
+    return _dep(c, n, i) if i in _CALENDARS else _ep(c, n, i)
 "#
     )
     .unwrap();

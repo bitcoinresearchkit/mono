@@ -1,10 +1,8 @@
 use crate::{ReadWriteCompressedVec, cache::NoCache};
 
 pub mod strategy;
-pub mod value;
 
 pub use strategy::*;
-pub use value::*;
 
 /// Compressed storage using LZ4 for speed-optimized general-purpose compression.
 ///

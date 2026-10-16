@@ -2,10 +2,51 @@
 
 use std::fmt::Write;
 
-use crate::{ClientConstants, IndexSetPattern, camel_case_keys, cohort_constants, format_json};
+use crate::{
+    ClientConstants, IndexSetPattern, address_payload_lengths, calendars, camel_case_keys,
+    cohort_constants, format_json,
+};
 
-/// The fixed runtime: base client, endpoints, caching and address hashing (`runtime.js`).
+/// The fixed runtime (`runtime.js`: base client, endpoints, caching and address hashing) after
+/// the server's tables it reads.
 pub(crate) fn generate_base_client(output: &mut String) {
+    let calendars = calendars();
+    let date_indexes = calendars
+        .iter()
+        .map(|(index, _)| format!("'{index}'"))
+        .collect::<Vec<_>>()
+        .join("|");
+    let calendars: String = calendars
+        .iter()
+        .map(|(index, (unit, size, phase))| {
+            format!("  ['{index}', ['{unit}', {size}, {phase}]],\n")
+        })
+        .collect();
+    let payload_lengths: String = address_payload_lengths()
+        .map(|(output_type, len)| format!("  ['{output_type}', {len}],\n"))
+        .collect();
+    write!(
+        output,
+        r#"/** @typedef {{{date_indexes}}} DateIndex */
+
+/**
+ * Each date-based index's buckets as [unit, size, phase]: bucket i starts i * size - phase units
+ * after 2009-01-01 UTC, except that a month calendar's bucket 0 starts at January 2009.
+ * @type {{ReadonlyMap<string, readonly ['second' | 'day' | 'month', number, number]>}}
+ */
+const _CALENDARS = new Map([
+{calendars}]);
+
+/**
+ * Each address type's payload length in bytes.
+ * @type {{ReadonlyMap<string, number>}}
+ */
+const _ADDRESS_PAYLOAD_LENGTHS = new Map([
+{payload_lengths}]);
+
+"#
+    )
+    .unwrap();
     output.push_str(include_str!("runtime.js"));
 }
 
