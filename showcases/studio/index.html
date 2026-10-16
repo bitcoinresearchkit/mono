@@ -126,7 +126,6 @@
         /* (Its ring, around its edge: an outline, not a shadow's spread, which Firefox redraws dearly as the card resizes.) */
         --card-ring: 2px solid light-dark(transparent, rgb(0 0 0 / 0.2));
         --lift: 0 1px 3px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.3)), 0 0 0 1px light-dark(rgb(0 0 0 / 0.07), transparent);
-        --held-shadow: 0 12px 20px -14px light-dark(rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.8));
         --hint-shadow: 0 0 0 1px light-dark(rgb(0 0 0 / 0.08), transparent), 0 4px 12px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.45));
         --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         /* The chart's own text (its axes, its value tags, the navigator): Inter a tad heavier (see chartFont). */
@@ -1062,7 +1061,7 @@
             opacity: 1;
           }
 
-          .folder-count {
+          &:has(.chart-more) .folder-count {
             visibility: hidden;
           }
         }
@@ -1074,6 +1073,29 @@
 
         &.holds .folder-item {
           color: var(--ink);
+        }
+
+        /* (Its page open: lit, as the open chart's row is.) */
+        .folder-item[aria-current="page"] {
+          color: var(--ink);
+          background: var(--press);
+        }
+
+        /* Its icon, a button of its own over it: opens or closes it here (its name, its page). */
+        .folder-fold {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: calc(7px + var(--depth, 0) * 16px);
+          width: 28px;
+          border: 0;
+          border-radius: var(--radius-sm);
+          padding: 0;
+          background: none;
+
+          &:hover:where(.can-hover *) {
+            background: var(--hover);
+          }
         }
 
         &.drop-target .folder-item {
@@ -1134,13 +1156,8 @@
         }
       }
 
-      #your-charts {
+      #charts-nav {
         margin-top: -2px;
-      }
-
-      /* (Your charts, Presets and New chart a step apart, as the charts under them are: one rhythm down the sidebar.) */
-      #presets-nav {
-        margin-top: 4px;
       }
 
       /* A rule in the gap under them sets the charts apart (on the rail, a short one, at the same height). */
@@ -1170,13 +1187,6 @@
           width: calc(100% - 16px);
           height: 1px;
           background: var(--line);
-        }
-      }
-
-      /* (Where the sidebar shows, it's the switch between your charts and the presets: no switch in the page.) */
-      @media (min-width: 761px) and (min-height: 501px) {
-        .home-views {
-          display: none;
         }
       }
 
@@ -1506,8 +1516,19 @@
         body[data-sidebar="collapsed"] .sidebar {
           width: var(--side-collapsed);
 
+          /* (A folder's icon is all its row shows: the whole of it opens or closes it.) */
+          .folder-fold {
+            inset: 0 4px;
+            width: auto;
+          }
+
+          /* (The heads out of reach too, once faded: Your charts' is a button.) */
+          .list-head {
+            visibility: hidden;
+            transition: opacity var(--fade), visibility 0s var(--fade);
+          }
+
           .brand > :not(.logo),
-          .list-head,
           .search > :not([data-icon]),
           .nav-item > :not([data-icon], .chart-mark),
           .live > :not(i) {
@@ -1515,6 +1536,11 @@
             pointer-events: none;
             /* (Going back to the rail, the words fade as it narrows.) */
             transition: opacity var(--fade);
+          }
+
+          .list-head {
+            opacity: 0;
+            pointer-events: none;
           }
 
           /* On the rail, the rule under New chart is short, at the same height: nothing moves. New chart, a square as
@@ -2014,8 +2040,22 @@
           font-variant-numeric: tabular-nums;
         }
 
-        .chart-row + & {
+        :is(.chart-row, .folder-row) + & {
           margin-top: 10px;
+        }
+
+        /* (Yours: a way to their page, lit there.) */
+        &:is(button) {
+          width: 100%;
+          border: 0;
+          border-radius: var(--radius-sm);
+          background: none;
+          text-align: left;
+
+          &:hover:where(.can-hover *),
+          &[aria-current="page"] {
+            color: var(--ink);
+          }
         }
       }
 
@@ -2901,17 +2941,27 @@
         letter-spacing: -0.026em;
       }
 
-      /* All charts' head: its title, and which it shows (your charts, the presets) across from it. */
+      /* The page's head: its name (a folder of yours, its menu beside it). */
       .home-head {
+        position: relative;
         display: flex;
-        flex-wrap: wrap;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+        gap: 8px;
         margin-bottom: 24px;
 
         h1 {
           margin: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* (Its name typed in place, as large.) */
+        .folder-rename {
+          inset: 0 auto 0 -8px;
+          width: min(480px, 100%);
+          font: 590 28px/1.2 var(--sans);
+          letter-spacing: -0.026em;
         }
       }
 
@@ -5812,8 +5862,8 @@
           }
         }
 
-        /* (Where you are: your charts, the presets, a section of them.) */
-        :is(#your-charts, #presets-nav)[aria-current="page"] {
+        /* (Where you are: the page's top.) */
+        #charts-nav[aria-current="page"] {
           color: var(--ink);
           background: var(--press);
         }
@@ -5971,10 +6021,48 @@
       }
 
       .shelf-head {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 4px;
         min-height: 28px;
+        border-radius: var(--radius-md);
+
+        /* (A folder of yours: its menu as a row's, shown as it's pointed at; charts dragged onto it, it's lit.) */
+        .shelf-more {
+          opacity: 0;
+        }
+
+        &:hover:where(.can-hover *) .shelf-more,
+        .shelf-more:is(:focus-visible, [aria-expanded="true"]) {
+          opacity: 1;
+        }
+
+        &.drop-target {
+          background: var(--press);
+          box-shadow: inset 0 0 0 1px var(--edge);
+        }
+
+        .folder-rename {
+          inset: 0 auto 0 0;
+          width: min(320px, 70%);
+        }
+      }
+
+      /* A folder of yours with no charts in it: a place to drop them, saying so. */
+      .shelf-row:has(> .shelf-empty) {
+        display: block;
+      }
+
+      .shelf-empty {
+        display: grid;
+        height: 64px;
+        margin: 0;
+        border: 1px dashed var(--line-strong);
+        border-radius: var(--radius-lg);
+        place-items: center;
+        color: var(--muted);
+        font-size: 13px;
       }
 
       .shelf-title {
@@ -6063,130 +6151,6 @@
           margin-bottom: -10px;
         }
 
-        .grid-section > & {
-          margin-bottom: 10px;
-        }
-      }
-
-      /* A folder: a box of its own, quieter than its charts (between the page and them), a card's corners; its head kept
-         in sight while its charts scroll under it. */
-      .grid-section.folder {
-        --box: color-mix(in srgb, var(--card) 50%, var(--app));
-        border-radius: var(--radius-xl);
-        padding: 0 10px 10px;
-        background: var(--box);
-        box-shadow: inset 0 0 0 1px var(--line);
-
-        /* (At the very top of the page as it scrolls: a sticky box keeps clear of its scroller's padding, it's undone;
-           under an installed app's status bar, below it.) */
-        > .grid-folder {
-          position: sticky;
-          top: calc(env(safe-area-inset-top) - var(--home-top));
-          z-index: 3;
-          height: 44px;
-          margin: 0 -10px;
-          border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-          padding: 0 10px;
-          background: var(--box);
-          box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
-          transition: box-shadow var(--dur-small) var(--ease);
-
-          &.closed {
-            border-radius: inherit;
-          }
-
-          /* Held at the top while its charts scroll under it (square, at the window's edge, no line there): its foot
-             edged, a shadow over them. */
-          &.held:not(.closed) {
-            border-radius: 0;
-            box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line), var(--held-shadow);
-          }
-        }
-
-        /* (Where its box starts, as far above it as its head is held under an installed app's status bar: see heldHeads.) */
-        > .held-mark {
-          position: relative;
-          top: calc(-1 * env(safe-area-inset-top));
-          display: block;
-        }
-
-        /* (Closed: its head, alone.) */
-        &:has(> .grid-folder.closed) {
-          padding-bottom: 0;
-        }
-      }
-
-      /* A section's head: a folder's (opened or closed, its menu), or those in none's. */
-      .grid-folder {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        height: 28px;
-        margin-bottom: 8px;
-        border-radius: var(--radius-md);
-        color: var(--soft);
-        font-weight: 590;
-
-        .grid-folder-toggle {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          height: 100%;
-          border: 0;
-          border-radius: var(--radius-md);
-          padding: 0 10px 0 14px;
-          color: inherit;
-          background: none;
-          font: inherit;
-
-          .folder-glyph {
-            display: inline-flex;
-            color: var(--soft);
-
-            svg {
-              width: 14px;
-              height: 14px;
-            }
-          }
-
-          &:hover:where(.can-hover *) {
-            color: var(--ink);
-            background: var(--hover);
-          }
-        }
-
-        .name {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .folder-count {
-          color: var(--count);
-          font: 510 12px/1 var(--sans);
-          font-variant-numeric: tabular-nums;
-        }
-
-        .cap {
-          opacity: 0;
-        }
-
-        &:hover:where(.can-hover *) .cap,
-        .cap:focus-visible {
-          opacity: 1;
-        }
-
-        &.drop-target {
-          color: var(--ink);
-          background: var(--press);
-          box-shadow: inset 0 0 0 1px var(--edge);
-        }
-
-        .folder-rename {
-          inset: 0 auto 0 12px;
-          width: min(320px, 70%);
-        }
       }
 
       /* (A phone's: on a larger screen, New folder is the sidebar's.) */
@@ -6235,18 +6199,6 @@
           justify-content: center;
           gap: 8px;
         }
-      }
-
-      /* An empty folder's box: a place to drop charts, saying so. */
-      .grid-empty {
-        display: grid;
-        height: 64px;
-        margin: 0;
-        border: 1px dashed var(--line-strong);
-        border-radius: var(--radius-lg);
-        place-items: center;
-        color: var(--muted);
-        font-size: 13px;
       }
 
       /* A chart, as its own card, small: its title, its layers' legend at the top (as on its panes), its mini chart (as
@@ -7618,16 +7570,7 @@
           max-width: 7rem;
         }
 
-        .grid-section.folder {
-          padding: 0 8px 8px;
-
-          > .grid-folder {
-            margin: 0 -8px;
-            padding: 0 8px;
-          }
-        }
-
-        .grid-empty {
+        .shelf-empty {
           height: auto;
           min-height: 64px;
           padding: 12px 16px;
@@ -8025,7 +7968,7 @@
 
       @media (hover: none) {
         :is(.chart-row, .folder-row) .chart-more,
-        .grid-folder .cap,
+        .shelf-more,
         .tile .tile-more {
           opacity: 1;
         }
@@ -8306,8 +8249,7 @@
           <span class="brand-name"><b>Bitview</b> Studio</span>
         </a>
         <button class="search" type="button" data-action="palette" data-tip="Search or run a command" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search or run a command</span><kbd class="mod">⌘K</kbd></button>
-        <button id="your-charts" class="nav-item side-action" type="button" data-action="your-charts" data-tip="Your charts" style="--i: 1"><span data-icon="grid"></span><span class="label">Your charts</span></button>
-        <button id="presets-nav" class="nav-item side-action" type="button" data-action="presets-gallery" data-tip="Presets" style="--i: 1"><span data-icon="presets"></span><span class="label">Presets</span></button>
+        <button id="charts-nav" class="nav-item side-action" type="button" data-action="charts" data-tip="Your charts and the presets" style="--i: 1"><span data-icon="grid"></span><span class="label">Charts</span></button>
         <div class="new-chart" style="--i: 1">
           <button id="new-chart" class="nav-item side-action" type="button" data-tip="New chart" data-kbd="N"><span data-icon="plus"></span><span class="label">New chart</span><kbd>N</kbd></button>
           <button id="new-folder" class="cap small" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
@@ -8453,7 +8395,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                     <span id="cta-label">Search every series</span><kbd>A</kbd>
                   </button>
                   <div class="starts">
-                    <div class="starts-head"><h2>Recommended</h2><button class="btn ghost small" type="button" data-action="gallery">Browse all<span class="more" data-icon="next"></span></button></div>
+                    <div class="starts-head"><h2>Recommended</h2><button class="btn ghost small" type="button" data-action="charts">Browse all<span class="more" data-icon="next"></span></button></div>
                     <div id="templates" class="templates strip"></div>
                   </div>
                   <div class="keys"><button class="btn ghost small keys-sheet" type="button" data-action="shortcuts"><span data-icon="keyboard"></span>Shortcuts<kbd>?</kbd></button><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div></div>
@@ -8500,10 +8442,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <div class="home-scroll">
             <div class="home-inner">
               <div class="home-head">
-                <h1 id="home-title">Your charts</h1>
-                <div class="tabs home-views" role="group" aria-label="Show"><button type="button" data-home-view="charts" aria-pressed="true">Your charts</button><button type="button" data-home-view="presets" aria-pressed="false">Presets</button></div>
+                <h1 id="home-title" tabindex="-1">Charts</h1>
+                <button id="home-title-more" class="cap small" type="button" aria-haspopup="menu" data-icon="more" hidden></button>
               </div>
-              <nav id="gallery-path" class="gallery-path" aria-label="Where in the presets" hidden></nav>
+              <nav id="gallery-path" class="gallery-path" aria-label="Where it is" hidden></nav>
               <div id="home-tools" class="home-tools">
               <label class="home-filter">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
@@ -8514,7 +8456,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               </div>
               <div id="home-grid" class="home-grid"></div>
               <div id="gallery" class="gallery" hidden></div>
-              <div id="home-none" class="home-none" hidden></div>
               <div id="home-foot" class="home-foot" hidden>
                 <p>Your charts are kept in this browser. Download them all, folders and all, to import them anywhere else.</p>
                 <div><button class="btn ghost small" type="button" data-action="download-all"><span data-icon="download"></span>Download all charts</button><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button></div>
@@ -10356,7 +10297,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * list's place on the gallery, `before` the chart under the grid, `place` the gallery's scroll, to come back to.
        * `flat`: a search's list, as found (else in its tree's order, see quickTree); `open`: its list's sections open (as
        * the one shown is in one, or by hand; closed by hand only); `drawn`: the list as last written.
-       * @type {{ list: number[], at: number, doc: Chart, from: string, before: Chart, place: { top: number, rows: number[], shown: number }, closing?: boolean, after?: () => void, flat: boolean, tree: QuickTree, position: Map<number, number>, open: Set<string>, drawn: string } | null}
+       * @type {{ list: number[], at: number, doc: Chart, from: string, before: Chart, place: { top: number, rows: Record<string, number>, shown: number }, closing?: boolean, after?: () => void, flat: boolean, tree: QuickTree, position: Map<number, number>, open: Set<string>, drawn: string } | null}
        */
       let quick = null;
       /** Whether a chart is the one Quick Look shows. @param {Chart} doc */
@@ -10496,8 +10437,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           sidebar: stored.sidebar === "collapsed" || stored.sidebar === "expanded" ? stored.sidebar : tablet.matches ? "collapsed" : "expanded",
           panel: stored.panel === "open" || stored.panel === "closed" ? stored.panel : tablet.matches ? "closed" : "open",
           home: stored.home !== false,
-          /** All charts' view: your charts, or the presets' gallery. */
-          homeView: /** @type {"charts" | "presets"} */ (stored.homeView === "presets" ? "presets" : "charts"),
+          /** The presets' sections open in the sidebar (their paths, as kept). */
+          presetsOpen: /** @type {string[]} */ (Array.isArray(stored.presetsOpen) ? stored.presetsOpen.filter((/** @type {any} */ key) => typeof key === "string").slice(0, 500) : []),
           /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
           keys: stored.keys !== false,
           theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "dark"),
@@ -16756,11 +16697,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return found.map(([id]) => docs[id]);
       }
       /** A group's head in the grid, while there are previews: what it is, how many. */
-      const groupHead = (/** @type {string} */ name, /** @type {number} */ count) => `<h2 class="grid-group">${name}<span class="count">${count}</span></h2>`;
+      const groupHead = (/** @type {string} */ name, /** @type {number | string} */ count) => `<h2 class="grid-group">${name}<span class="count">${count}</span></h2>`;
       /** A chart's words for the grid's filter: its title, its layers' names, series and formulas. @param {Chart} doc */
       const wordsOf = (doc) => [titleOf(doc), folderById(doc.folder)?.name ?? "", ...doc.layers.flatMap((layer) => [labelOf(layer), layer.series ?? "", layer.formula ?? ""])].join(" ").toLowerCase().replace(/_/g, " ");
-      /** The charts the grid shows, in its order: its sections' (a closed folder's, none). */
-      const shownCharts = () => sectionsOf(filtered(), $("home-filter").value.trim()).flatMap((section) => section.docs);
+      /** Your charts the page shows, in its order (its grid's, then its shelves'), as last drawn. */
+      let shownYours = /** @type {Chart[]} */ ([]);
+      const shownCharts = () => shownYours.filter((doc) => library.charts.includes(doc));
       /** The filter's index of the charts (their words, their folders' names), kept till a chart or a folder changes. */
       let filterIndex = { key: "", charts: /** @type {Chart[]} */ ([]), index: /** @type {any} */ (null) };
       /**
@@ -16775,86 +16717,130 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const found = filterIndex.index.matchesBestWithIdsAndMatchedWords(query, new QuickMatchConfig().withLimit(filterIndex.charts.length).withUnionFallback(false));
         return found.map((/** @type {[number]} */ [id]) => filterIndex.charts[id]);
       }
-      /** Each tile as last drawn, to redraw only those that changed; the sections as last drawn. @type {Map<string, string>} */
+      /** Each tile as last drawn, to redraw only those that changed; your part of the page as last laid out. @type {Map<string, string>} */
       const drawnTiles = new Map();
       let drawnLayout = "";
       /**
-       * The grid's sections, in the sidebar's order: each folder in sight (its own charts, none while closed; how many it
-       * holds, at any depth), and each run of charts at the top between them (`folder` null); filtered, one (`folder`
-       * undefined): the charts as they're found.
-       * @returns {{ folder: Folder | null | undefined, docs: Chart[], count: number }[]}
+       * The page, where it is (see homeAt): at the top, your charts (the previews first, then yours: those in no folder
+       * as a grid, each folder as a shelf its name leads into) and the presets (the recommended, then each section as a
+       * shelf); in one of your folders, its charts and its folders the same way; in a section of the presets, its own.
+       * The search searches where it is: at the top, both.
        */
-      function sectionsOf(/** @type {Chart[]} */ shown, /** @type {string} */ query) {
-        if (query) return [{ folder: undefined, docs: shown, count: shown.length }];
-        const seen = new Set(shown), sections = /** @type {{ folder: Folder | null | undefined, docs: Chart[], count: number }[]} */ ([]), counts = chartCounts();
-        for (const { item, depth } of treeOf(undefined, true)) {
-          if (!("layers" in item)) sections.push({ folder: item, docs: item.closed ? [] : childrenOf(item.id).flatMap((other) => ("layers" in other && seen.has(other) ? [other] : [])), count: counts.get(item.id) ?? 0 });
-          else if (depth) continue;
-          else if (seen.has(item)) {
-            const run = sections.at(-1);
-            if (run?.folder === null) run.docs.push(item), run.count++;
-            else sections.push({ folder: null, docs: [item], count: 1 });
-          }
-        }
-        return sections;
-      }
-      const gridHeadHtml = (/** @type {Folder} */ folder, /** @type {number} */ count) => `<div class="grid-folder ${folder.closed ? "closed" : ""}" data-grid-folder="${folder.id}"><button type="button" class="grid-folder-toggle" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}"><span class="folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="name">${escape(folderPath(folder.id))}</span><span class="folder-count">${count}</span></button><button type="button" class="cap small" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button></div>`;
       function renderHome() {
         if (!home) return;
-        showHomeView();
-        if (prefs.homeView === "presets") return renderGallery();
-        // (No charts left: nothing to filter; the filter, hidden, let go of what it had.)
-        const total = library.charts.length + listedPreviews().length;
-        if (!total && !library.folders.length) $("home-filter").value = "";
-        // (The previews first, a section of their own, then your charts': both named while there are previews.)
-        const shown = filtered(), query = $("home-filter").value.trim(), previewed = previewsShown();
-        const sections = [...(previewed.length ? [{ folder: undefined, docs: previewed, count: previewed.length, previewGroup: true }] : []), ...sectionsOf(shown, query).map((section) => ({ ...section, previewGroup: false }))];
+        // (One of your folders gone meanwhile (deleted in another tab): your charts' page.)
+        if ("folder" in homeAt && homeAt.folder && !folderById(homeAt.folder)) {
+          homeAt = { folder: "" };
+          history.replaceState(homeState(), "");
+        }
+        renderHomeHead();
+        renderYours();
+        renderGallery();
+        // (Searched: how many found, of both.)
+        const query = $("home-filter").value.trim();
+        $("home-count").textContent = query ? `${grouped.format(shownYours.length + (yoursShown() && "path" in homeAt ? previewsShown().length : 0) + galleryFound)}${galleryFound === 1000 ? "+" : ""} found` : "";
+      }
+      /** The page's head: its name (a folder of yours, its menu beside it), the way up (each level a step to), its search, what's there to do. */
+      function renderHomeHead() {
+        const yours = "folder" in homeAt, folder = "folder" in homeAt ? folderById(homeAt.folder) : undefined, path = "path" in homeAt ? homeAt.path : [];
+        const name = folder ? folder.name : yours ? "Your charts" : path.at(-1) ?? "Charts";
+        $("home-title").textContent = name;
+        document.title = `${name} · Bitview Studio`;
+        const more = $("home-title-more");
+        more.hidden = !folder;
+        if (folder) Object.assign(more.dataset, { folderMenu: folder.id }), more.setAttribute("aria-label", `More for ${folder.name}`);
+        /** @type {{ name: string, at: Place }[]} */
+        const ups = yours ? [{ name: "Charts", at: { path: [] } }, ...(folder ? [{ name: "Your charts", at: { folder: "" } }, ...foldersAbove(folder).map((above) => ({ name: above.name, at: { folder: above.id } }))] : [])] : path.slice(0, -1).reduce((list, step, k) => [...list, { name: step, at: { path: path.slice(0, k + 1) } }], [{ name: "Charts", at: /** @type {Place} */ ({ path: [] }) }]);
+        const where = $("gallery-path"), top = !yours && !path.length;
+        where.hidden = top;
+        where.innerHTML = top ? "" : `<button type="button" class="cap small" data-place="${escape(JSON.stringify(/** @type {{ at: Place }} */ (ups.at(-1)).at))}" aria-label="Up a level" data-tip="Up a level">${ICONS.back}</button>${[...ups.map((up) => `<button type="button" data-place="${escape(JSON.stringify(up.at))}">${escape(up.name)}</button>`), `<span aria-current="page">${escape(name)}</span>`].join('<span class="sep" aria-hidden="true">›</span>')}`;
+        const field = /** @type {HTMLInputElement} */ ($("home-filter"));
+        field.placeholder = top ? "Search your charts and the presets" : `Search in ${name}`;
+        field.setAttribute("aria-label", field.placeholder);
+        // (Where your folders are: their page, a folder's; the way to have them all elsewhere, on their page.)
+        $("home-new-folder").hidden = !yours;
+        $("home-foot").hidden = !yours || Boolean(folder) || (!library.charts.length && !asideCount());
+        renderSideNav();
+      }
+      /** The folders a folder's in, the outermost first. @param {Folder} folder */
+      function foldersAbove(folder) {
+        const above = [];
+        for (let at = folderById(folder.parent), steps = 0; at && steps <= library.folders.length; at = folderById(at.parent), steps++) above.unshift(at);
+        return above;
+      }
+      /**
+       * A part of your charts' side of the page: a shelf's `folder` is where its name leads (yours, "": their page; none,
+       * nowhere: the previews').
+       * @typedef {{ kind: "head", name: string, count: number } | { kind: "grid", docs: Chart[], previews?: boolean } | { kind: "shelf", name: string, folder?: string, docs: Chart[], count: number, previews?: boolean } | { kind: "note", html: string }} YoursPart
+       */
+      /**
+       * Your charts' side of the page, where it is (none in a section of the presets): at the top, the previews and yours
+       * as shelves (yours leading to their page); on their page or a folder's, its charts as a grid, then each folder in
+       * it as a shelf. Its tiles drawn again only where they changed.
+       */
+      function renderYours() {
+        const grid = $("home-grid"), folderId = "folder" in homeAt ? homeAt.folder || undefined : undefined, top = "path" in homeAt && !homeAt.path.length;
+        grid.hidden = !yoursShown();
+        /** @type {YoursPart[]} */
+        const parts = [];
+        const query = $("home-filter").value.trim();
+        if (!grid.hidden && query) {
+          const found = filtered().filter((doc) => !folderId || isIn(doc.folder, folderId)), previewed = top ? previewsShown() : [];
+          if (previewed.length) parts.push({ kind: "head", name: "Previews", count: previewed.length }, { kind: "grid", docs: previewed, previews: true });
+          if (top) parts.push({ kind: "head", name: "Your charts", count: found.length });
+          parts.push(found.length ? { kind: "grid", docs: found } : { kind: "note", html: `No charts match “${escape(query)}”` });
+        } else if (top) {
+          const previewed = listedPreviews(), all = listed();
+          if (previewed.length) parts.push({ kind: "shelf", name: "Previews", docs: previewed.slice(0, SHELF), count: previewed.length, previews: true });
+          parts.push(all.length || library.folders.length ? { kind: "shelf", name: "Your charts", folder: "", docs: all.slice(0, SHELF), count: all.length } : { kind: "note", html: `<p>${previewed.length ? "None saved yet: Keep a preview to have it here." : "No charts yet. Start a new chart, or open a preset and keep it."}</p>${previewed.length ? "" : `<div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`}` });
+        } else if (!grid.hidden) {
+          const items = childrenOf(folderId), counts = chartCounts();
+          const own = items.flatMap((item) => ("layers" in item ? [item] : []));
+          if (own.length) parts.push({ kind: "grid", docs: own });
+          for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
+          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet: drag charts here, or move them from their menu"}</p>` : `<p>No charts yet. Start a new chart, or open a preset and keep it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>` });
+        }
+        const visible = parts.flatMap((part) => (part.kind === "grid" || part.kind === "shelf" ? part.docs : []));
+        shownYours = visible.filter((doc) => !isPreview(doc));
         // Only what's shown stays picked: the bar acts on what can be seen (of your charts: no preview's picked).
-        const ids = new Set(sections.filter((section) => !section.previewGroup).flatMap((section) => section.docs).map((doc) => doc.id));
+        const ids = new Set(shownYours.map((doc) => doc.id));
         for (const id of [...picked]) if (!ids.has(id)) picked.delete(id);
         if (!picked.has(pickedLast)) pickedLast = [...picked].at(-1) ?? "";
         const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".tile-open") ?? null)?.dataset.openChart;
-        /** @type {HTMLInputElement} */ ($("home-filter")).placeholder = total ? `Filter ${plural(total, "chart")}` : "Filter charts";
-        $("home-count").textContent = query ? `${shown.length + previewed.length} of ${total}` : "";
-        // The same charts in the same order (and folders): only the tiles that changed are drawn again (a click on another
+        // The same charts in the same order (and parts): only the tiles that changed are drawn again (a click on another
         // one, under way, isn't lost; focus and hover stay). Otherwise, all of them.
-        const visible = sections.flatMap((section) => section.docs), html = visible.map(tileHtml), tiles = all$(".tile", $("home-grid"));
-        const layout = JSON.stringify(sections.map(({ folder, docs, count, previewGroup }) => [previewGroup, folder?.id, folder && folderPath(folder.id), folder?.closed, count, docs.length]));
+        const html = visible.map(tileHtml), tiles = all$(".tile", grid);
+        const layout = JSON.stringify(parts.map((part) => (part.kind === "shelf" ? [part.kind, part.folder, part.name, part.count, part.docs.length] : part.kind === "grid" ? [part.kind, Boolean(part.previews), part.docs.length] : part.kind === "head" ? [part.kind, part.name, part.count] : [part.kind, part.html])));
         if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.homeCard === visible[i].id)) {
           tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && (tile.outerHTML = html[i]));
         } else {
-          // (The focus, on a head or a tile, comes back to its like. A tile drawn as it was is moved, not written again: a
-          // filter typed, a folder opened, its charts' mini charts aren't made anew.)
-          const focus = focusKey($("home-grid")), old = new Map(tiles.map((tile) => [/** @type {string} */ (tile.dataset.homeCard), tile]));
+          // (The focus comes back to its like. A tile drawn as it was is moved, not written again: a search typed, its
+          // charts' mini charts aren't made anew.)
+          const focus = focusKey(grid), old = new Map(tiles.map((tile) => [/** @type {string} */ (tile.dataset.homeCard), tile]));
           const htmlOf = new Map(visible.map((doc, i) => [doc.id, old.has(doc.id) && drawnTiles.get(doc.id) === html[i] ? `<i data-slot="${doc.id}"></i>` : html[i]]));
-          const saved = sections.some((section) => !section.previewGroup && (section.docs.length || section.folder));
-          $("home-grid").innerHTML = sections.map(({ folder, docs, count, previewGroup }) => (previewGroup
-            ? `<section class="grid-section previews">${groupHead("Previews", count)}<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div></section>${saved ? groupHead("Saved", shown.length) : ""}`
-            : folder
-            ? `<section class="grid-section folder"><i class="held-mark" aria-hidden="true"></i>${gridHeadHtml(folder, count)}${docs.length ? `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>` : !count && !folder.closed && !childrenOf(folder.id).length ? `<p class="grid-empty">${TOUCH ? "No charts yet. Hold one, then tap Move" : "No charts yet: drag one here, or move it from its menu"}</p>` : ""}</section>`
-            : `<div class="grid-tiles">${docs.map((doc) => htmlOf.get(doc.id)).join("")}</div>`)).join("");
-          for (const slot of all$("[data-slot]", $("home-grid"))) slot.replaceWith(/** @type {HTMLElement} */ (old.get(/** @type {string} */ (slot.dataset.slot))));
-          restoreFocus($("home-grid"), focus);
-          heldHeads.disconnect();
-          for (const mark of all$(".held-mark", $("home-grid"))) heldHeads.observe(mark);
+          const tilesOf = (/** @type {Chart[]} */ docs) => docs.map((doc) => htmlOf.get(doc.id)).join("");
+          grid.innerHTML = parts.map((part) => (part.kind === "head" ? groupHead(part.name, part.count)
+            : part.kind === "grid" ? `<div class="grid-tiles${part.previews ? " previews" : ""}">${tilesOf(part.docs)}</div>`
+            : part.kind === "shelf" ? folderShelfHtml(part, tilesOf(part.docs))
+            : `<div class="home-none">${part.html}</div>`)).join("");
+          for (const slot of all$("[data-slot]", grid)) slot.replaceWith(/** @type {HTMLElement} */ (old.get(/** @type {string} */ (slot.dataset.slot))));
+          restoreFocus(grid, focus);
+          allShelfSteps();
         }
         drawnLayout = layout;
         drawnTiles.clear();
         visible.forEach((doc, i) => drawnTiles.set(doc.id, html[i]));
-        $("home-none").hidden = shown.length > 0 || (Boolean(query) && previewed.length > 0);
-        $("home-foot").hidden = !library.charts.length && !asideCount();
-        // (No charts at all: nothing to filter, select, or put in a folder; only how to have one.)
-        $("home-tools").hidden = !total && !library.folders.length;
-        $("home-none").innerHTML = query ? `No charts match “${escape(query)}”` : previewed.length ? `<p>None saved yet: Keep a preview to have it here.</p>` : `<p>No charts yet. Start a new chart, or open a preset and keep it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`;
         if (focused) tileOpen(focused)?.focus({ preventScroll: true });
         renderPicked();
         schedulePreviews();
         keepNaming();
       }
-      /** A folder's head, held at the top of the grid while its charts scroll under it: edged then, a line and a shadow. */
-      const heldHeads = new IntersectionObserver((entries) => {
-        for (const { target, isIntersecting, boundingClientRect, rootBounds } of entries) target.nextElementSibling?.classList.toggle("held", !isIntersecting && boundingClientRect.top < (rootBounds?.top ?? 0));
-      }, { root: /** @type {HTMLElement} */ (document.querySelector(".home-scroll")) });
+      /**
+       * Your charts as a shelf: a folder's (its name, how many it holds, leading into it; its menu; its charts, the first
+       * of them at any depth), all of yours (leading to their page), the previews (nowhere), a row.
+       * @param {{ name: string, folder?: string, count: number, previews?: boolean }} shelf @param {string} tiles
+       */
+      const folderShelfHtml = ({ name, folder, count, previews }, tiles) => `<section class="shelf${previews ? " previews" : ""}"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}>${folder === undefined ? `<h2 class="shelf-title">${escape(name)}<span class="count">${grouped.format(count)}</span></h2>` : `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ folder }))}">${folder ? ICONS.folder : ""}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>`}${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles || `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
       /** A chart's tile: what the chart grows out of and shrinks into. */
       const cardOf = (id) => /** @type {HTMLElement | null} */ ($("home-grid").querySelector(`[data-home-card="${id}"]`));
       const tileOpen = (id) => /** @type {HTMLElement | null} */ (cardOf(id)?.querySelector(".tile-open") ?? null);
@@ -16862,14 +16848,52 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // ── The presets, as a gallery ─────────────────────────────────────────────
 
       /**
-       * All charts' other view: the presets as the presets' tree has them, a section at a time: its own charts as a grid,
-       * then each section under it as a shelf (a row of its first charts, its name leading to it), at the top the
-       * recommended; the filter searching where it is. Its place a step of the history (Back goes up). Each tile drawn
-       * once it's in view.
+       * Where the page is: at the top (`path` []), in a section of the presets (`path`, as their tree names it), or in one
+       * of your folders (`folder`). Each a step of the history (Back goes back up).
+       * @typedef {{ path: string[] } | { folder: string }} Place
        */
-      let galleryPath = /** @type {string[]} */ (Array.isArray(history.state?.gallery) ? history.state.gallery : []);
-      /** What the filter holds in each view, each its own. */
-      const filters = { charts: "", presets: "" };
+      /** A place as kept in a step of the history, as it can be. @returns {Place} */
+      const asPlace = (/** @type {any} */ at) => (typeof at?.folder === "string" ? { folder: at.folder } : { path: Array.isArray(at?.path) ? at.path.filter((/** @type {any} */ name) => typeof name === "string") : [] });
+      let homeAt = asPlace(history.state?.at);
+      /** The page's step of the history as it is. */
+      const homeState = () => ({ home: true, at: homeAt });
+      /** Whether the page shows your charts (at the top, in a folder of yours): what picks, ⌘A and New folder act on. */
+      const yoursShown = () => home && ("folder" in homeAt || !homeAt.path.length);
+      /**
+       * The page at a place (a shelf's name, a step up, the sidebar's, ⌘K's), nothing searched, at its top; where it is
+       * already, back at its top. A step of the history, where it was kept in the one it leaves (Back comes back there).
+       */
+      function goTo(/** @type {Place} */ place) {
+        // (Quick Look over the page (⌘K's command over it): closed first, its step the page's.)
+        if (quick) {
+          if (history.state?.quick) history.replaceState({ ...homeState(), place: quick.place }, "");
+          finishQuick();
+        }
+        const same = JSON.stringify(place) === JSON.stringify(homeAt);
+        /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
+        if (!same) {
+          if (home) history.replaceState({ ...homeState(), place: galleryPlace() }, "");
+          homeAt = place;
+          galleryShown = GALLERY_PAGE;
+          clearPicks();
+        }
+        homeScroll().scrollTop = 0;
+        if (!home) return showHome();
+        if (!same) history.pushState(homeState(), "");
+        const fromPage = $("home").contains(document.activeElement);
+        renderHome();
+        homeScroll().scrollTop = 0;
+        // (Gone with the page it was on, the focus starts the new one: its name.)
+        if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
+      }
+      /** Where the page is, lit in the sidebar: Charts at its top, a folder of yours, a section of the presets. */
+      function renderSideNav() {
+        const lit = (/** @type {Element} */ element, /** @type {boolean} */ on) => on !== element.hasAttribute("aria-current") && (on ? element.setAttribute("aria-current", "page") : element.removeAttribute("aria-current"));
+        const folder = home && "folder" in homeAt ? homeAt.folder : null, path = home && "path" in homeAt ? JSON.stringify(homeAt.path) : null;
+        lit($("charts-nav"), path === "[]");
+        for (const button of all$("[data-open-folder]", $("chart-list"))) lit(button, button.dataset.openFolder === folder);
+        for (const button of all$("[data-open-section]", $("chart-list"))) lit(button, button.dataset.openSection === path);
+      }
       /** The most a shelf shows (its section's first), and a grid at once (more, a button away). */
       const SHELF = 12, GALLERY_PAGE = 60;
       let galleryShown = GALLERY_PAGE;
@@ -16903,100 +16927,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const listAt = (/** @type {number[]} */ list) => galleryLists.push(list) - 1;
       /** A grid of presets, as many as shown, more a button away. @param {number[]} list */
       const presetGridHtml = (list) => `<div class="grid-tiles" data-list="${listAt(list)}">${list.slice(0, galleryShown).map(presetTileHtml).join("")}</div>${list.length > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, list.length - galleryShown))} more</button>` : ""}`;
+      /** A shelf's steps, a page of tiles back and on (see stepShelf). */
+      const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-shelf-step="-1" aria-label="Scroll back" data-tip="Scroll back">${ICONS.back}</button><button type="button" class="cap small shelf-step" data-shelf-step="1" aria-label="Scroll on" data-tip="Scroll on">${ICONS.next}</button>`;
       /** A shelf: a section's first charts in a row, its name leading to it (the recommended's, nowhere). @param {string} name @param {number[]} list @param {string[] | null} to */
-      const shelfHtml = (name, list, to) => `<section class="shelf" data-list="${listAt(list)}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-gallery-open="${escape(JSON.stringify(to))}">${escape(name)}<span class="count">${grouped.format(list.length)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span><button type="button" class="cap small shelf-step" data-shelf-step="-1" aria-label="Scroll back" data-tip="Scroll back">${ICONS.back}</button><button type="button" class="cap small shelf-step" data-shelf-step="1" aria-label="Scroll on" data-tip="Scroll on">${ICONS.next}</button></div><div class="shelf-row">${list.slice(0, SHELF).map(presetTileHtml).join("")}</div></section>`;
-      /** Which view All charts shows, said and shown: your charts (the grid, its tools), or the presets' gallery. */
-      function showHomeView() {
-        const presetsView = prefs.homeView === "presets";
-        for (const button of all$("[data-home-view]")) button.setAttribute("aria-pressed", String(button.dataset.homeView === prefs.homeView));
-        for (const id of ["home-grid", "home-none", "home-foot"]) if (presetsView) $(id).hidden = true;
-        $("home-new-folder").hidden = presetsView;
-        $("home-grid").hidden = presetsView;
-        $("gallery").hidden = !presetsView;
-        if (!presetsView) $("gallery-path").hidden = true;
-        if (presetsView) $("home-bar").hidden = true;
-        // (Named as the sidebar names it.)
-        $("home-title").textContent = presetsView ? "Presets" : "Your charts";
-        if (home) document.title = `${presetsView ? "Presets" : "Your charts"} · Bitview Studio`;
-        renderSideNav();
-      }
-      /** The sidebar's All charts and Presets as where you are: the one lit. */
-      function renderSideNav() {
-        const lit = (/** @type {Element} */ element, /** @type {boolean} */ on) => (on ? element.setAttribute("aria-current", "page") : element.removeAttribute("aria-current"));
-        lit($("your-charts"), home && prefs.homeView === "charts");
-        lit($("presets-nav"), home && prefs.homeView === "presets");
-      }
-      /** All charts' view, as it's taken (each its own filter; the picks your charts' alone). @param {"charts" | "presets"} view */
-      function takeHomeView(view) {
-        if (prefs.homeView === view) return;
-        filters[prefs.homeView] = /** @type {HTMLInputElement} */ ($("home-filter")).value;
-        prefs.homeView = view;
-        savePrefs();
-        /** @type {HTMLInputElement} */ ($("home-filter")).value = filters[view];
-        if (view === "presets") clearPicks();
-      }
-      /**
-       * All charts' view set, at its top: `push`, a step of the history (the sidebar's, ⌘K's: places to go), else this
-       * step's view (the page's own switch). @param {"charts" | "presets"} view
-       */
-      function setHomeView(view, push = false) {
-        // (Quick Look over the gallery (⌘K's command over it): closed first, its step the gallery's.)
-        if (quick) {
-          if (history.state?.quick) history.replaceState({ ...homeState(), place: quick.place }, "");
-          finishQuick();
-        }
-        const was = JSON.stringify(history.state?.home ? homeState() : null), place = home ? galleryPlace() : null;
-        takeHomeView(view);
-        if (!home) return void ((homeScroll().scrollTop = 0), showHome());
-        // (Somewhere else: the place left kept in its step, Back coming back there.)
-        if (push && JSON.stringify(homeState()) !== was) {
-          if (place) history.replaceState({ ...history.state, place }, "");
-          history.pushState(homeState(), "");
-        } else history.replaceState(homeState(), "");
-        homeScroll().scrollTop = 0;
-        renderHome();
-      }
-      /**
-       * The presets' gallery at a place (the sidebar's Presets or a section of it, ⌘K's, the empty chart's Browse all),
-       * nothing searched, at its top; where it is already, back at its top.
-       */
-      function presetsAt(/** @type {string[]} */ path = []) {
-        if (home && prefs.homeView === "presets" && !quick) {
-          if (JSON.stringify(path) !== JSON.stringify(galleryPath)) return galleryTo(path);
-          /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
-          renderHome();
-          return void (homeScroll().scrollTop = 0);
-        }
-        filters.presets = "";
-        if (prefs.homeView === "presets") /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
-        galleryPath = path;
-        galleryShown = GALLERY_PAGE;
-        setHomeView("presets", true);
-      }
-      /** All charts' step of the history as it is: the presets' place in them, if they're what it shows. */
-      const homeState = () => (prefs.homeView === "presets" ? { home: true, gallery: galleryPath } : { home: true });
-      /** The gallery somewhere else in the presets (a step of the history: Back comes back). @param {string[]} path */
-      function galleryTo(path) {
-        // (Where it was, kept in its step: Back comes back there.)
-        history.replaceState({ ...homeState(), place: galleryPlace() }, "");
-        galleryPath = path;
-        galleryShown = GALLERY_PAGE;
-        /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
-        history.pushState({ home: true, gallery: path }, "");
-        /** @type {HTMLElement} */ (document.querySelector(".home-scroll")).scrollTop = 0;
-        renderHome();
-      }
+      const shelfHtml = (name, list, to) => `<section class="shelf" data-list="${listAt(list)}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(list.length)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${list.slice(0, SHELF).map(presetTileHtml).join("")}</div></section>`;
+      /** The presets' side of the page, where it is (none in a folder of yours): at the top, under their name, the recommended, then each section as a shelf; in a section, its own as a grid, then each section in it. */
       function renderGallery() {
-        const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean), path = galleryPath;
+        const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        const shown = "path" in homeAt, path = "path" in homeAt ? homeAt.path : [], top = shown && !path.length;
+        $("gallery").hidden = !shown;
+        if (!shown) {
+          galleryDrawn = gallerySpot = "";
+          galleryFound = 0;
+          return;
+        }
         if (!presets) void loadPresets().catch(() => {});
-        field.placeholder = path.length ? `Search in ${path.at(-1)}` : presets ? `Search ${grouped.format(presets.length)} presets` : "Search the presets";
-        $("home-tools").hidden = false;
-        // Where it is: up a level, then each level a step up to.
-        const where = $("gallery-path");
-        where.hidden = !path.length;
-        // (Drawn as it is already, it stays: what's scrolled on it, focused, drawn, as it was; Quick Look comes back to it.)
+        // (Drawn as it is already, it stays: what's scrolled on it, focused, drawn, as it was.)
         const spot = JSON.stringify([path, words, galleryShown]), drawn = JSON.stringify([spot, presets?.length ?? 0, presetsFailed, light]);
-        if (drawn === galleryDrawn) return void ($("home-count").textContent = galleryCount);
+        if (drawn === galleryDrawn) return;
         // (The same place drawn anew (the theme switched): its scroll and its shelves' kept.)
         const kept = spot === gallerySpot ? galleryPlace() : null;
         galleryDrawn = drawn;
@@ -17004,20 +16952,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         galleryLists = [];
         galleryQueue.clear();
         gallerySeen.clear();
-        where.innerHTML = path.length ? `<button type="button" class="cap small" data-gallery-to="${path.length - 1}" aria-label="Up a level" data-tip="Up a level">${ICONS.back}</button>${["Presets", ...path].map((name, k) => (k === path.length ? `<span aria-current="page">${escape(name)}</span>` : `<button type="button" data-gallery-to="${k}">${escape(name)}</button>`)).join('<span class="sep" aria-hidden="true">›</span>')}` : "";
         galleryTilesSeen.disconnect();
+        galleryFound = 0;
+        // (Found at the top, under yours: named, how many.)
+        const head = (/** @type {number} */ count) => (top ? groupHead("Presets", grouped.format(count)) : "");
         if (!presets) {
-          $("home-count").textContent = galleryCount = "";
-          $("gallery").innerHTML = presetsFailed === "none" ? `<p class="gallery-note">This page was built without the presets.</p>` : presetsFailed ? `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>` : `<p class="gallery-note">Loading the presets…</p>`;
+          $("gallery").innerHTML = (presetsFailed === "none" ? `<p class="gallery-note">This page was built without the presets.</p>` : presetsFailed ? `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>` : `<p class="gallery-note">Loading the presets…</p>`);
           return;
         }
         if (words.length) {
           const found = presetsMatching(words, 1000, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null);
-          $("home-count").textContent = `${grouped.format(found.length)}${found.length === 1000 ? "+" : ""} found`;
+          galleryFound = found.length;
           searchLists.add(found);
-          $("gallery").innerHTML = found.length ? presetGridHtml(found) : `<p class="gallery-note">No presets match “${escape(field.value.trim())}”</p>`;
+          $("gallery").innerHTML = head(found.length) + (found.length ? presetGridHtml(found) : `<p class="gallery-note">No presets match “${escape(field.value.trim())}”</p>`);
         } else {
-          $("home-count").textContent = "";
           const { own, groups } = sectionAt(path);
           $("gallery").innerHTML = [
             ...(path.length ? [] : [shelfHtml("Recommended", recommendedPresets(), null)]),
@@ -17025,13 +16973,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...[...groups].map(([name, list]) => shelfHtml(name, list, [...path, name])),
           ].join("");
         }
-        galleryCount = $("home-count").textContent;
         if (kept) placeGallery(kept);
         for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
         allShelfSteps();
       }
-      /** The gallery as last drawn (where, the search, how much of it, the presets as read, the theme), its place, and its count. */
-      let galleryDrawn = "", gallerySpot = "", galleryCount = "";
+      /** The gallery as last drawn (where, the search, how much of it, the presets as read, the theme), its place, and how many it found. */
+      let galleryDrawn = "", gallerySpot = "", galleryFound = 0;
       /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
       function shelfSteps(row) {
         fitShelf(row, row.scrollLeft, row.clientWidth, row.scrollWidth);
@@ -17046,7 +16993,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Every shelf's steps and edges (all read first, then written: one layout, not one a shelf). */
       function allShelfSteps() {
-        const rows = all$(".shelf-row", $("gallery")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth }));
+        const rows = all$(".shelf-row", $("home")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth }));
         rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full));
       }
       /** A shelf as it's scrolled: its steps there while it scrolls, each off at its end; its edges faded where there's more, as a strip's. */
@@ -17058,8 +17005,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         edges(row, at, size, full);
       }
-      $("gallery").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
-      addEventListener("resize", () => home && prefs.homeView === "presets" && allShelfSteps());
+      $("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
+      addEventListener("resize", () => home && allShelfSteps());
       // Each tile drawn once it's in view (on a shelf, scrolled to), one at a time; let go of if it's left before its turn
       // (a preset on two shelves, the recommended's and its section's: while either's in view).
       const galleryQueue = /** @type {Set<number>} */ (new Set()), gallerySeen = /** @type {Set<Element>} */ (new Set());
@@ -17073,18 +17020,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const drawGallery = serial(async () => {
         for (const i of galleryQueue) {
           galleryQueue.delete(i);
-          if (!presets?.[i] || !home || prefs.homeView !== "presets" || !$("gallery").querySelector(`[data-preset="${i}"] .pending`)) continue;
+          if (!presets?.[i] || !home || $("gallery").hidden || !$("gallery").querySelector(`[data-preset="${i}"] .pending`)) continue;
           const doc = presetDoc(i), have = previews.get(doc.id);
           if (have?.key === previewKey(doc)) paint(doc.id, have, true);
           else await drawPreview(doc, previewIndex(doc));
         }
       });
       $("home").addEventListener("click", (event) => {
-        const view = closest(event, "[data-home-view]"), open = closest(event, "[data-gallery-open]"), to = closest(event, "[data-gallery-to]");
-        const step = closest(event, "[data-shelf-step]"), preset = closest(event, "[data-open-preset]");
-        if (view) setHomeView(view.dataset.homeView === "presets" ? "presets" : "charts");
-        else if (open) galleryTo(JSON.parse(/** @type {string} */ (open.dataset.galleryOpen)));
-        else if (to) galleryTo(galleryPath.slice(0, Number(to.dataset.galleryTo)));
+        const to = closest(event, "[data-place]"), step = closest(event, "[data-shelf-step]"), preset = closest(event, "[data-open-preset]");
+        if (to) goTo(asPlace(JSON.parse(/** @type {string} */ (to.dataset.place))));
         else if (closest(event, "[data-gallery-more]")) {
           // (Where it was, the focus on the first one more.)
           const place = galleryPlace(), from = galleryShown, grid = /** @type {HTMLElement} */ (closest(event, "[data-gallery-more]")).previousElementSibling?.getAttribute("data-list");
@@ -17095,11 +17039,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         else if (closest(event, "[data-gallery-retry]")) retryPresets();
         else if (step && step.getAttribute("aria-disabled") !== "true") stepShelf(/** @type {HTMLElement} */ (step.closest(".shelf")?.querySelector(".shelf-row")), Number(step.dataset.shelfStep));
-        else if (preset) {
-          // (Quick Look, through the list it's on: its shelf's section, its grid.)
-          const from = /** @type {string} */ (preset.closest("[data-list]")?.getAttribute("data-list")), list = galleryLists[Number(from)];
-          if (list) quickLook(list, list.indexOf(Number(preset.dataset.openPreset)), from);
-        }
+        else if (preset && presets) useTemplate(presetTemplate(presets[Number(preset.dataset.openPreset)]));
       });
 
       // ── Picking charts in the grid, and what the bar does to them ──
@@ -17167,7 +17107,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const copies = duplicateCharts(docs).map((doc) => doc.id);
           if (!ids) {
             picked.clear();
-            for (const id of copies) picked.add(id);
+            // (Those shown: one past a shelf's end isn't.)
+            for (const id of copies) if (shownYours.some((doc) => doc.id === id)) picked.add(id);
             renderPicked();
           }
           tileOpen(copies[0])?.focus();
@@ -17318,8 +17259,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             renderHome();
           } else letGo($("home-filter"));
         } else if (event.key === "ArrowDown" || event.key === "Enter") {
-          // Down, or ↵, to the first chart through (the view's shown: yours, or the presets').
-          const tiles = all$(".tile-open", prefs.homeView === "presets" ? $("gallery") : $("home-grid")), first = tiles[0];
+          // Down, or ↵, to the first chart through (yours first, then the presets').
+          const tiles = all$(".tile-open", $("home")).filter((tile) => tile.checkVisibility()), first = tiles[0];
           if (!first) return;
           event.preventDefault();
           if (event.key === "Enter" && tiles.length === 1) first.click();
@@ -17367,7 +17308,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The grid of every chart; the open one shrinks into its card (a new chart Cancel sends back here is taken back).
        * `push`: a step of the browser's history (not when going back to it).
        */
-      function showHome(push = true, /** @type {{ top: number, rows: number[] } | null} */ place = null) {
+      function showHome(push = true, /** @type {{ top: number, rows: Record<string, number> } | null} */ place = null) {
         stopCarrying();
         delete document.body.dataset.sheet;
         if (home) return;
@@ -17402,9 +17343,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           document.body.toggleAttribute("data-home", true);
           refresh("none");
           // (Back to the gallery from a chart opened from it: where it was.)
-          if (place) placeGallery(place);
+          // (Where it was, else where the chart's card is.)
           const card = cardOf(chart.id);
-          card?.scrollIntoView({ block: "nearest" });
+          if (place) placeGallery(place);
+          else card?.scrollIntoView({ block: "nearest" });
           tileOpen(chart.id)?.focus({ preventScroll: true });
           return draft ? null : card;
         });
@@ -17422,7 +17364,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         savePrefs();
         picked.clear();
         show();
-        // (Quick Look's step, ended by this chart: this chart's, not one more step.)
+        // (Where the page was, kept in its step: Back comes back there. Quick Look's step, ended by this chart: this
+        // chart's, not one more step.)
+        if (push && !stepFree && history.state?.home) history.replaceState({ ...history.state, place: galleryPlace() }, "");
         if (push) (stepFree ? history.replaceState : history.pushState).call(history, { chart: chart.id, fromHome: true }, "");
         stepFree = false;
         const focused = $("home").contains(document.activeElement);
@@ -17511,17 +17455,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (event.state?.home) {
           // (A step in the presets: there; All charts' own, its view as it is, the gallery at its top. Quick Look's, Forward
           // again: it, over the gallery, where it can be.)
-          const to = Array.isArray(event.state.gallery) ? event.state.gallery : null, look = event.state.quick, place = event.state.place ?? null;
-          takeHomeView(to ? "presets" : "charts");
-          // (Back to where it was (from Quick Look, a chart), as much of it shown; elsewhere in it, as much as it showed
-          // when left, else a page; its scroll as it was left, else its top.)
-          if (to && JSON.stringify(to) !== JSON.stringify(galleryPath)) galleryShown = Number.isInteger(place?.shown) ? place.shown : GALLERY_PAGE;
-          if (to) galleryPath = to;
+          const to = asPlace(event.state.at), look = event.state.quick, place = event.state.place ?? null;
+          // (Back to where it was (from Quick Look, a chart), as much of it shown; elsewhere, as much as it showed when
+          // left, else a page, nothing searched; its scroll as it was left, else its top.)
+          if (JSON.stringify(to) !== JSON.stringify(homeAt)) {
+            galleryShown = Number.isInteger(place?.shown) ? place.shown : GALLERY_PAGE;
+            /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
+            clearPicks();
+          }
+          homeAt = to;
           // (Quick Look's step: it, over the gallery; the presets still being read, once they are.)
           if (look && home && !quick && quickable(look)) return quickLook(look.list, look.at, look.from, false, look.flat === true);
           if (look) history.replaceState(homeState(), "");
           if (!home) return showHome(false, place);
+          const fromPage = $("home").contains(document.activeElement);
           renderHome();
+          // (Gone with the page it was on, the focus starts the one come back to: its name.)
+          if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
           // (Quick Look closed (its dialog, above): the gallery under it as it is, not moved.)
           if (closingQuick) return;
           if (place) placeGallery(place);
@@ -17987,17 +17937,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // The previews first, under their head, then your charts under theirs (the two told apart; none, no heads), a new
           // chart first among yours (where it'll be once something's in it).
           ...(listed.length ? [/** @type {[string, string]} */ (["head:previews", `<div class="list-head">Previews<span class="count">${listed.length}</span></div>`]), ...listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)]))] : []),
-          ...(listed.length && (draft || sideItems().length) ? [/** @type {[string, string]} */ (["head:saved", `<div class="list-head">Saved<span class="count">${library.charts.length}</span></div>`])] : []),
+          // (Yours named where something's around them to tell them from: previews over them, the presets under them.)
+          ...((listed.length || presets) && (draft || sideItems().length) ? [/** @type {[string, string]} */ (["head:saved", `<button type="button" class="list-head" data-open-folder="" data-tip="Your charts, their page">Your charts<span class="count">${library.charts.length}</span></button>`])] : []),
           ...(draft ? [/** @type {[string, string]} */ ([`preview:${draft.id}`, previewRow(draft)])] : []),
           // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
           ...treeOf(undefined, true).map(({ item, depth }) => {
             if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
             const folder = item, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
             return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${folder.closed ? "closed" : ""} ${folder.closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-folder-toggle="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${counts.get(folder.id) ?? 0}</span></button>
+              <button type="button" class="nav-item folder-item" data-open-folder="${folder.id}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${counts.get(folder.id) ?? 0}</span></button>
+              ${foldButton(`data-folder-toggle="${folder.id}"`, folder.name, !folder.closed)}
               <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button>
             </div>`]);
           }),
+          ...presetParts(),
         ];
         // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
         if (writeList($("chart-list"), parts)) {
@@ -18026,6 +17979,65 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else $("mobile-add").setAttribute("aria-haspopup", "dialog");
         keepNaming();
         renderHome();
+      }
+      /** A folder's icon in the sidebar, as a button of its own: it opens or closes it there (its name opens its page). */
+      const foldButton = (/** @type {string} */ attribute, /** @type {string} */ name, /** @type {boolean} */ open) => `<button type="button" class="folder-fold" ${attribute} aria-expanded="${open}" aria-label="${open ? "Close" : "Open"} ${escape(name)} here" tabindex="-1"></button>`;
+      /**
+       * The presets' sections as a tree, made once they're read: each with its sections (in the presets' order), its own
+       * presets, how many it holds at any depth, its key (its path, as kept).
+       * @typedef {{ path: string[], key: string, sections: PresetNode[], own: number[], count: number }} PresetNode
+       */
+      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null }} */ ({ for: null, node: null });
+      function presetTree() {
+        if (!presets) return null;
+        if (presetRoot.for === presets) return presetRoot.node;
+        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", sections: [], own: [], count: 0 }), byKey = new Map([[root.key, root]]);
+        presets.forEach((preset, i) => {
+          let node = root;
+          node.count++;
+          for (let depth = 0; depth < preset.p.length - 1; depth++) {
+            const path = preset.p.slice(0, depth + 1), key = JSON.stringify(path);
+            let next = byKey.get(key);
+            if (!next) {
+              next = { path, key, sections: [], own: [], count: 0 };
+              byKey.set(key, next);
+              node.sections.push(next);
+            }
+            node = next;
+            node.count++;
+          }
+          node.own.push(i);
+        });
+        presetRoot = { for: presets, node: root };
+        return root;
+      }
+      /**
+       * The presets in the sidebar, under your charts, under their name: their sections as folders are (a section's name
+       * opens its page, its icon opens or closes it here, as kept), the presets in an open one as charts are (one opens it).
+       * @returns {[string, string][]}
+       */
+      function presetParts() {
+        const root = presetTree();
+        if (!root || !presets) return [];
+        const open = new Set(prefs.presetsOpen);
+        /** @type {[string, string][]} */
+        const parts = [["head:presets", `<div class="list-head">Presets<span class="count">${grouped.format(presets.length)}</span></div>`]];
+        const walk = (/** @type {PresetNode} */ node, /** @type {number} */ depth) => {
+          for (const section of node.sections) {
+            const shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
+            parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"}" data-section-row="${key}" style="--depth: ${depth}">
+              <button type="button" class="nav-item folder-item" data-open-section="${key}" data-tip="${escape(name)}"><span class="chart-mark folder-glyph">${shown ? ICONS.folderOpen : ICONS.folder}</span><span class="label">${escape(name)}</span><span class="folder-count">${grouped.format(section.count)}</span></button>
+              ${foldButton(`data-section-toggle="${key}"`, name, shown)}
+            </div>`]);
+            if (shown) walk(section, depth + 1);
+          }
+          if (depth) for (const i of node.own) {
+            const title = escape(/** @type {Preset[]} */ (presets)[i].t);
+            parts.push([`preset:${i}`, `<div class="chart-row preset-row in-folder" data-preset-row="${i}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${i}" data-tip="${title}"><span class="chart-mark">${ICONS.charts}</span><span class="label">${title}</span></button></div>`]);
+          }
+        };
+        walk(root, 0);
+        return parts;
       }
       /** A top-level item's key in the sidebar's order: a folder's, or a chart's in none. @param {Chart | Folder} item */
       const sideKey = (item) => ("layers" in item ? `c:${item.id}` : `f:${item.id}`);
@@ -18128,22 +18140,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (closing) folder.closed = true;
         else delete folder.closed;
         save();
-        if (reduced.matches) return renderCharts();
-        for (const toggle of all$(`[data-folder-toggle="${id}"]`)) {
-          toggle.setAttribute("aria-expanded", String(!closing));
-          /** @type {HTMLElement} */ (toggle.querySelector(".folder-glyph")).innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
+        foldRow(() => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-row="${id}"]`)), closing);
+      }
+      /** A section of the presets opened or closed in the sidebar, as a folder is (kept as left). @param {string} key */
+      function toggleSection(key) {
+        const closing = prefs.presetsOpen.includes(key);
+        prefs.presetsOpen = closing ? prefs.presetsOpen.filter((other) => other !== key) : [...prefs.presetsOpen, key];
+        savePrefs();
+        foldRow(() => all$("[data-section-row]", $("chart-list")).find((row) => row.dataset.sectionRow === key) ?? null, closing);
+      }
+      /**
+       * A folder's row in the sidebar (yours, a section of the presets) opened or closed: what's under it unfolds from
+       * under it, or folds back into it, and what's under them follows. Its icon turns at once; closing, the list is drawn
+       * without them once they've folded away. (Its row found anew once drawn: opening draws the list again.)
+       */
+      function foldRow(/** @type {() => HTMLElement | null} */ find, /** @type {boolean} */ closing) {
+        let head = find();
+        if (reduced.matches || !head) return renderCharts();
+        /** @type {HTMLElement} */ (head.querySelector(".folder-glyph")).innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
+        head.querySelector(".folder-fold")?.setAttribute("aria-expanded", String(!closing));
+        if (!closing) {
+          renderCharts();
+          head = find();
+          if (!head) return;
         }
-        if (!closing) renderCharts();
-        const folds = foldOf(id).map((element) => fold(element, closing));
+        const folds = rowsUnder(head).map((element) => fold(element, closing));
         // (On the rail, its own slice of their surface fades with them.)
-        const head = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-row="${id}"]`));
-        if (head && !head.classList.contains("in-folder")) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
+        if (!head.classList.contains("in-folder")) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
         if (!closing) return;
         closings++;
         Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
           if (--closings) return;
-          // (Out of the grid by now, it's drawn anew when it's back: its box may be left folded.)
-          if (!home) drawnLayout = "";
           renderCharts();
         });
       }
@@ -18198,7 +18225,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (!theirs || typeof theirs !== "object") return;
         // (All charts' view is this tab's own while it's open: another's switching doesn't switch it here.)
-        const read = readPrefs(theirs), took = Object.keys(prefs).filter((name) => name !== "homeView" && name in theirs && JSON.stringify(/** @type {any} */ (read)[name]) !== prefsSeen[name]);
+        const read = readPrefs(theirs), took = Object.keys(prefs).filter((name) => name in theirs && JSON.stringify(/** @type {any} */ (read)[name]) !== prefsSeen[name]);
         for (const name of took) {
           /** @type {any} */ (prefs)[name] = /** @type {any} */ (read)[name];
           prefsSeen[name] = JSON.stringify(/** @type {any} */ (read)[name]);
@@ -18211,15 +18238,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (took.includes("panel") && !fullOn()) applyPanel();
         if (took.includes("belt") || took.includes("pen")) renderBelt();
         if (took.includes("keys")) renderSingleKeys();
+        if (took.includes("presetsOpen")) renderCharts();
       });
       /** The themes, from their row: the one chosen ticked. */
       function themeMenu(/** @type {HTMLElement} */ anchor) {
         menuOf(anchor, THEMES.map(([id, name]) => ({ key: id, label: name, current: prefs.theme === id, run: () => setTheme(/** @type {"system" | "light" | "dark"} */ (id)) })));
       }
       renderTheme();
-      /** The sidebar's rows under a folder's, at any depth (those after it, deeper than it). */
-      function rowsUnder(/** @type {string} */ id) {
-        const rows = all$("[data-chart-row], [data-folder-row]", $("chart-list")), at = rows.findIndex((row) => row.dataset.folderRow === id);
+      /** The sidebar's rows under a folder's (yours, a section's), at any depth (those after it, deeper than it). */
+      function rowsUnder(/** @type {HTMLElement} */ head) {
+        const rows = all$(".chart-row, .folder-row", $("chart-list")), at = rows.indexOf(head);
         if (at < 0) return [];
         const depth = depthOf(rows[at]), under = [];
         for (const row of rows.slice(at + 1)) {
@@ -18230,50 +18258,47 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
       let closings = 0;
-      /** What a folder's opening or closing moves: its charts' rows in the sidebar, its box in the grid. */
-      const foldOf = (/** @type {string} */ id) => [
-        ...rowsUnder(id),
-        ...(home ? [$("home-grid").querySelector(`[data-grid-folder="${id}"]`)?.parentElement].filter((box) => box instanceof HTMLElement) : []),
-      ];
       /**
-       * A chart's row unfolding from nothing, or folding to it (a folder's box, to its head): clipped as it goes, a row
-       * sliding out from under the one above and fading. One under way turns back from where it is.
+       * A row unfolding from nothing, or folding to it: clipped as it goes, sliding out from under the one above and
+       * fading. One under way turns back from where it is.
        */
       function fold(/** @type {HTMLElement} */ element, /** @type {boolean} */ closing) {
-        const row = element.matches(".chart-row, .folder-row"), moving = element.getAnimations().length > 0, now = element.getBoundingClientRect().height;
+        const moving = element.getAnimations().length > 0, now = element.getBoundingClientRect().height;
         for (const animation of element.getAnimations()) animation.cancel();
-        const full = element.offsetHeight, low = /** @type {HTMLElement | null} */ (element.querySelector(":scope > .grid-folder"))?.offsetHeight ?? 0;
-        const from = moving ? now : closing ? full : low, shown = full > low ? (from - low) / (full - low) : 1;
-        Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: row ? "flex-end" : "" });
-        if (row) element.inert = closing;
-        // (A row's gap from the one above, as wide as its list has it, goes and comes with it.)
-        const gap = row ? `-${parseFloat(getComputedStyle(/** @type {HTMLElement} */ (element.parentElement)).rowGap) || 0}px` : "0px";
+        const full = element.offsetHeight, from = moving ? now : closing ? full : 0, shown = full ? from / full : 1;
+        Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: "flex-end" });
+        element.inert = closing;
+        // (Its gap from the one above, as wide as its list has it, goes and comes with it.)
+        const gap = `-${parseFloat(getComputedStyle(/** @type {HTMLElement} */ (element.parentElement)).rowGap) || 0}px`;
         const animation = element.animate({
-          height: [`${from}px`, `${closing ? low : full}px`],
-          ...(row ? { marginTop: closing ? ["0px", gap] : [gap, "0px"], opacity: [shown, closing ? 0 : 1] } : {}),
+          height: [`${from}px`, `${closing ? 0 : full}px`],
+          marginTop: closing ? ["0px", gap] : [gap, "0px"],
+          opacity: [shown, closing ? 0 : 1],
         }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
         if (!closing) animation.finished.then(() => Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), () => {});
         return animation;
       }
       /**
-       * A folder's name typed in place (the grid's head, at home; else the sidebar's row): ↵ keeps it, esc doesn't. Neither
-       * in sight (a phone, the rail, a filter on the grid): typed in ⌘K.
+       * A folder's name typed in place (on the page: its head, on its own page, else its shelf's; else the sidebar's row):
+       * ↵ keeps it, esc doesn't. None in sight (a phone's sidebar, the rail): typed in ⌘K.
        */
-      function renameFolder(/** @type {string} */ id) {
+      function renameFolder(/** @type {string} */ id, inSide = false) {
         const folder = folderById(id);
         if (!folder) return;
-        const inGrid = home ? $("home-grid").querySelector(`[data-grid-folder="${id}"]`) : null;
-        const inSide = !phone.matches && !railed() ? $("chart-list").querySelector(`[data-folder-row="${id}"]`) : null;
-        const host = /** @type {HTMLElement | null} */ (inGrid ?? inSide);
+        // (Asked from the sidebar's row (its double-click): there, where it can be.)
+        const own = home && "folder" in homeAt && homeAt.folder === id && !(inSide && !phone.matches && !railed());
+        const at = own ? ".home-head" : home && $("home-grid").querySelector(`[data-grid-folder="${id}"]`) ? `#home-grid [data-grid-folder="${id}"]` : !phone.matches && !railed() ? `#chart-list [data-folder-row="${id}"]` : "";
+        const host = /** @type {HTMLElement | null} */ (at ? document.querySelector(at) : null);
         if (!host) return openPage(renameFolderPage(id));
-        const scope = /** @type {HTMLElement} */ (host.closest("#home-grid, #chart-list"));
+        // (Back to where it was asked from: the page's ⋯, the shelf's name, the sidebar's row.)
+        const back = own ? "#home-title-more" : at.startsWith("#home-grid") ? `${at} .shelf-title` : `#chart-list [data-open-folder="${id}"]`;
         nameInPlace(host, { className: "folder-rename", value: folder.name, placeholder: "Folder", max: 60, label: "Folder name", apply: (name) => {
           const now = folderById(id);
           if (!now || !name || name === now.name) return;
           now.name = name;
           save();
           renderCharts();
-        }, back: () => /** @type {HTMLElement | null} */ (scope.querySelector(`[data-folder-toggle="${id}"]`))?.focus(), find: () => scope.querySelector(inGrid ? `[data-grid-folder="${id}"]` : `[data-folder-row="${id}"]`) });
+        }, back: () => /** @type {HTMLElement | null} */ (document.querySelector(back))?.focus(), find: () => document.querySelector(at) });
       }
       /** A folder's name, as ⌘K's page (read by its id when set: another tab may have changed it since). */
       const renameFolderPage = (/** @type {string} */ id) => inputPage({ title: "Rename", value: folderById(id)?.name ?? "", placeholder: "The folder's name", hint: "A folder needs a name", verb: "Rename", read: (text) => (text.trim() ? `Rename to “${text.trim().slice(0, 60)}”` : null), apply: (text) => {
@@ -18316,8 +18341,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.folders.splice(at, 1);
         // (Kept with the library, as a chart's: another tab's copy of it doesn't bring it back.)
         library.deleted[id] = Date.now();
-        // (What was in it where it was, in its order.)
+        // (What was in it where it was, in its order; its page open, the one it was in.)
         for (const item of members) setParent(item, folder.parent);
+        if (home && "folder" in homeAt && homeAt.folder === id) {
+          homeAt = { folder: folder.parent ?? "" };
+          history.replaceState(homeState(), "");
+        }
         setChildren([...siblings.slice(0, place), ...members, ...siblings.slice(place + 1)]);
         save();
         renderCharts();
@@ -18425,7 +18454,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The folder in sight that holds them: the outermost closed one they're in.)
         let shown = /** @type {string | undefined} */ (undefined);
         for (let at = id ?? undefined, steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) if (folderById(at)?.closed) shown = at;
-        if (hadFocus && shown) refocus(`#chart-list [data-folder-toggle="${CSS.escape(shown)}"]`);
+        if (hadFocus && shown) refocus(`#chart-list [data-open-folder="${CSS.escape(shown)}"]`);
       }
       /** Chart ids as keys. */
       const chartKeys = (/** @type {string[]} */ ids) => ids.map((id) => `c:${id}`);
@@ -18458,7 +18487,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ];
       }
       /** A folder's menu (its ⋯, a right-click on it). */
-      const folderActions = (/** @type {HTMLElement} */ anchor, /** @type {string} */ id, point = undefined) => menuOf(anchor, folderRows(id), point ?? null);
+      const folderActions = (/** @type {HTMLElement} */ anchor, /** @type {string} */ id, /** @type {{ x: number, y: number } | undefined} */ point = undefined) => menuOf(anchor, folderRows(id), point ?? null);
       /**
        * A folder's actions (its menu; ⌘K's page of it, before its charts: renamed there, moved with ⌥↑ and ⌥↓).
        * @returns {Action[]}
@@ -18920,27 +18949,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         picking: () => picked.size > 0,
         unpick: () => clearPicks(),
         refuse: (event) => Boolean(closest(event, ".tile-check, .tile-more, .tile-rename, .tile.preview")),
-        still: () => Boolean($("home-filter").value.trim()),
+        // (Searched, or at the top, where your charts' shelf holds them from every folder: nowhere to drop them into.)
+        still: () => Boolean($("home-filter").value.trim()) || ("path" in homeAt && !homeAt.path.length),
         sticky: true,
         landing: (x, y, ids) => {
           const under = document.elementFromPoint(x, y), head = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-grid-folder]"));
           if (head) return { zone: head };
           // (Not among the previews: they're none of your charts' order.)
-          if (under?.closest(".grid-section.previews")) return undefined;
+          if (under?.closest(".grid-tiles.previews, .shelf.previews")) return undefined;
           const tile = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-home-card]"));
-          // Off the tiles: in a folder's box, into it; elsewhere on the grid, out of any.
+          // Off the tiles: on a folder's shelf, into it; elsewhere on the page's charts, into the folder it's in.
           if (!tile) {
-            const box = under?.closest(".grid-section.folder");
-            return box ? { zone: /** @type {HTMLElement} */ (box.querySelector("[data-grid-folder]")) } : under?.closest("#home-grid") ? { zone: $("home-grid") } : undefined;
+            const head = under?.closest(".shelf")?.querySelector("[data-grid-folder]");
+            return head ? { zone: /** @type {HTMLElement} */ (head) } : under?.closest("#home-grid") ? { zone: $("home-grid") } : undefined;
           }
           if (ids.includes(/** @type {string} */ (tile.dataset.homeCard))) return null;
-          // (Beside it, in a grid of columns; above or below it, in one of one: a phone's, upright.)
-          const box = tile.getBoundingClientRect(), down = getComputedStyle(/** @type {HTMLElement} */ (tile.parentElement)).gridTemplateColumns.split(" ").length < 2;
+          // (Beside it, in a grid of columns or on a shelf; above or below it, in a grid of one: a phone's, upright.)
+          const box = tile.getBoundingClientRect(), row = /** @type {HTMLElement} */ (tile.parentElement), down = row.matches(".grid-tiles") && getComputedStyle(row).gridTemplateColumns.split(" ").length < 2;
           return down ? { item: tile, after: y > box.top + box.height / 2, down } : { item: tile, after: x > box.left + box.width / 2 };
         },
         land: (ids, at) => {
           const keys = ids.map((id) => `c:${id}`);
-          if ("zone" in at) placeItems(keys, at.zone.dataset.gridFolder || undefined);
+          if ("zone" in at) placeItems(keys, at.zone.dataset.gridFolder || ("folder" in homeAt ? homeAt.folder : undefined));
           else {
             // (Beside a tile: in its folder, before or after it.)
             const { into, before } = besideItem(`c:${at.item.dataset.homeCard}`, at.after, keys);
@@ -18949,39 +18979,41 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           tileOpen(ids[0])?.focus({ preventScroll: true });
         },
       });
-      // In the list, ↑ ↓ (Home, End) walk the charts rather than the layers; ⌥↑ ⌥↓ move the focused one.
+      // In the list, ↑ ↓ (Home, End) walk its rows rather than the layers; ⌥↑ ⌥↓ move the focused one (yours); ← → as a
+      // tree: → opens a folder, then goes into it; ← closes it, then goes to the folder it's in, as from a chart.
       $("chart-list").addEventListener("keydown", (event) => {
         if (event.isComposing || typing(event.target)) return;
+        const rows = all$(".chart-row:not([inert]), .folder-row:not([inert])", $("chart-list")), row = /** @type {HTMLElement | null} */ (closest(event, ".chart-row, .folder-row"));
+        const first = (/** @type {HTMLElement | undefined} */ each) => /** @type {HTMLElement | null | undefined} */ (each?.querySelector(".nav-item"));
+        if (!row) return;
         if (!event.altKey && !event.metaKey && !event.ctrlKey && ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
-          const rows = all$("[data-chart-row]:not([inert]), [data-folder-row]:not([inert]), [data-preview-row]", $("chart-list"));
-          const at = rows.indexOf(/** @type {HTMLElement} */ (closest(event, "[data-chart-row], [data-folder-row], [data-preview-row]")));
+          const at = rows.indexOf(row);
           if (at < 0) return;
           event.preventDefault();
           event.stopPropagation();
-          /** @type {HTMLElement | null} */ (rows[stepIn(at, Number(KEY_STEPS[event.key]), rows.length)].querySelector("[data-open-chart], [data-folder-toggle]"))?.focus();
-          return;
+          return void first(rows[stepIn(at, Number(KEY_STEPS[event.key]), rows.length)])?.focus();
         }
-        // (As a tree: → opens a folder, then goes into it; ← closes it, then goes to the folder it's in, as from a chart.)
-        const folder = /** @type {HTMLElement} */ (event.target).dataset?.folderToggle, focused = folder ? folderById(folder) : chartById(/** @type {HTMLElement} */ (event.target).dataset?.openChart ?? "");
-        if (focused && !event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
-          const toward = event.key === "ArrowRight" ? (folder && !folderById(folder)?.closed ? childrenOf(folder)[0] : undefined) : (!folder || folderById(folder)?.closed) && parentOf(focused) ? folderById(parentOf(focused)) : undefined;
-          if (toward) {
-            event.preventDefault();
-            return void (/** @type {HTMLElement | null} */ ($("chart-list").querySelector("layers" in toward ? `[data-open-chart="${toward.id}"]` : `[data-folder-toggle="${toward.id}"]`))?.focus());
+        const folder = row.dataset.folderRow, section = row.dataset.sectionRow, id = row.dataset.chartRow;
+        if (!event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+          const opens = folder !== undefined || section !== undefined, open = opens && !row.classList.contains("closed"), depth = depthOf(row), at = rows.indexOf(row);
+          event.preventDefault();
+          if (opens && open === (event.key === "ArrowLeft")) {
+            if (folder) toggleFolder(folder);
+            else toggleSection(/** @type {string} */ (section));
+            // (Drawn anew: its row's own again.)
+            const again = all$(".folder-row", $("chart-list")).find((each) => (folder ? each.dataset.folderRow === folder : each.dataset.sectionRow === section));
+            return void first(again)?.focus();
           }
+          const toward = event.key === "ArrowRight" ? (open && depthOf(rows[at + 1] ?? row) > depth ? rows[at + 1] : undefined) : rows.slice(0, at).findLast((each) => depthOf(each) < depth);
+          return void first(toward)?.focus();
         }
-        if (folder && event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+        if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+        if (folder) {
           event.preventDefault();
           stepFolder(folder, event.key === "ArrowUp" ? -1 : 1);
-          return void (/** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-toggle="${folder}"]`))?.focus());
+          return void (/** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-folder="${folder}"]`))?.focus());
         }
-        if (folder && (event.key === "ArrowLeft" || event.key === "ArrowRight") && Boolean(folderById(folder)?.closed) === (event.key === "ArrowRight")) {
-          event.preventDefault();
-          toggleFolder(folder);
-          return void (/** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-toggle="${folder}"]`))?.focus());
-        }
-        const id = /** @type {HTMLElement} */ (event.target).dataset?.openChart;
-        if (!id || !event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+        if (!id) return;
         event.preventDefault();
         stepChart(id, event.key === "ArrowUp" ? -1 : 1);
         /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${id}"]`))?.focus();
@@ -18995,7 +19027,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       $("home-new-folder").addEventListener("click", (event) => {
         event.preventDefault();
-        newFolder();
+        newFolder([], "folder" in homeAt ? homeAt.folder || undefined : undefined);
       });
       $("new-folder").addEventListener("click", () => newFolder());
       $("chart-list").addEventListener("scroll", () => fitSoon($("chart-list"), true), { passive: true });
@@ -19124,7 +19156,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           presetLooks = looksOf(list);
           renderRecommended();
           presetsArrived();
-          renderHome();
+          renderCharts();
           return list;
         })().catch((error) => {
           // Not read: said where they'd be, with a way to try again (never on its own: no loop of attempts; none in a page
@@ -19284,7 +19316,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               counts.set(name, (counts.get(name) ?? 0) + 1);
             });
             for (const row of rows) if (counts.has(row.label) && row.page) row.aside = plural(counts.get(row.label), "chart");
-            if (path.length) return rows;
+            if (path.length) return [{ kind: "row", key: "page", icon: ICONS.grid, label: "Open its page", verb: "Open", run: () => goTo({ path }) }, ...rows];
             const recommended = RECOMMENDED.flatMap((place) => {
               const i = list.findIndex((preset) => preset.p.join(" › ") === place);
               return i < 0 ? [] : [{ ...presetRow(i, true), key: `recommended:${i}`, group: "Recommended" }];
@@ -21420,8 +21452,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folderRow = closest(event, "[data-folder-row], [data-grid-folder]");
         if (folderRow && !closest(event, ".folder-rename")) {
           event.preventDefault();
-          const more = /** @type {HTMLElement} */ (folderRow.querySelector("[data-folder-menu]"));
-          return folderActions(more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY });
+          // (Yours, all of them: no menu of its own.)
+          const more = /** @type {HTMLElement | null} */ (folderRow.querySelector("[data-folder-menu]"));
+          return more ? folderActions(more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY }) : undefined;
         }
         const previewRow = closest(event, "[data-preview-row]:not(:has(.row-rename))");
         const previewed = previewRow && chartById(/** @type {string} */ (/** @type {HTMLElement} */ (previewRow).dataset.previewRow));
@@ -22251,8 +22284,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...((counts) => library.folders.map((folder) => ({ title: folderPath(folder.id), text: `A folder: ${plural(counts.get(folder.id) ?? 0, "chart")}.`, words: `folder ${folderPath(folder.id)}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })))(chartCounts()),
           // (All charts, each of its views: yours, or the presets'; the one shown, not offered.)
-          ...(home && prefs.homeView === "charts" ? [] : [{ title: "Your charts", text: "All your charts, side by side.", words: "all charts grid overview gallery library home browse saved mine", icon: "grid", anywhere: true, run: () => setHomeView("charts", true) }]),
-          ...(home && prefs.homeView === "presets" ? [] : [{ title: "Presets gallery", text: "Every preset, side by side, to look through one by one.", words: "presets gallery browse quick look templates ready made", icon: "presets", anywhere: true, run: () => presetsAt([]) }]),
+          ...(home && "path" in homeAt && !homeAt.path.length ? [] : [{ title: "Charts", text: "Your charts and the presets, side by side.", words: "all charts presets grid overview gallery library home browse templates ready made", icon: "grid", anywhere: true, run: () => goTo({ path: [] }) }]),
+          ...(home && "folder" in homeAt && !homeAt.folder ? [] : [{ title: "Your charts", text: "Your charts and their folders, side by side.", words: "your charts mine saved library folders grid", icon: "grid", anywhere: true, run: () => goTo({ folder: "" }) }]),
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
             { title: "Add a cloud", text: "Filled between two layers, in the color of the one over; or from one to the pane's top or bottom.", words: "cloud band envelope fill between shade percentiles cross crossing edge top bottom from layers", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) },
@@ -23290,6 +23323,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folder = folderById(id);
         if (!folder) return [];
         return [
+          { key: "page", icon: ICONS.grid, label: "Open its page", verb: "Open", group: "Folder", run: () => goTo({ folder: id }) },
           ...folderRows(id, true).map((row) => ({ ...row, group: "Folder" })),
           ...((counts) => childrenOf(id).map((item) => ("layers" in item
             ? { key: `chart:${item.id}`, icon: chartMark(item), label: titleOf(item), verb: "Open", group: "In it", run: () => go(item) }
@@ -24543,10 +24577,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         $("chart-list").addEventListener("pointerover", (event) => {
           if (event.pointerType !== "mouse") return;
-          const row = /** @type {HTMLElement | null} */ (closest(event, ".folder-item[data-folder-toggle]"));
+          const row = /** @type {HTMLElement | null} */ (closest(event, "[data-folder-row]")?.querySelector(".folder-item") ?? null);
           if (row && row === from && flyout) return clearTimeout(flyTimer);
           clearTimeout(flyTimer);
-          const folder = row ? folderById(/** @type {string} */ (row.dataset.folderToggle)) : null;
+          const folder = row ? folderById(/** @type {string} */ (row.dataset.openFolder)) : null;
           if (!row || !folder?.closed) return void (from && goSoon());
           if (!$("menu").hidden && !flyout) return;
           // (Its charts at any depth, as the sidebar has them; one in a folder in it, that folder named beside it.)
@@ -24564,7 +24598,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $(id).addEventListener("pointerleave", (event) => flyout && event.pointerType === "mouse" && goSoon());
         }
         // (Pressed, the folder opens: its flyout goes.)
-        $("chart-list").addEventListener("click", (event) => closest(event, "[data-folder-toggle]") && shut(), true);
+        $("chart-list").addEventListener("click", (event) => closest(event, "[data-folder-row]") && shut(), true);
         // The chart's ⋯ the same: pointed at a moment, its menu; pressed then, the menu's kept (a press with none shown
         // opens it, as before).
         const more = $("chart-more");
@@ -25984,7 +26018,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.activeElement !== $("title")) $("title").value = chart.title;
         // (Untitled, what it's called meanwhile: in the field, the one it'd be named.)
         $("title").placeholder = derivedTitle(chart);
-        document.title = home ? `${prefs.homeView === "presets" ? "Presets" : "Your charts"} · Bitview Studio` : `${titleOf(chart)} · Bitview Studio`;
+        document.title = `${home ? $("home-title").textContent : titleOf(chart)} · Bitview Studio`;
         syncUndo();
         $("interval").innerHTML = `${ICONS.recent}${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
         $("interval").setAttribute("aria-label", `${INTERVAL_LABEL[chart.index] ?? chart.index}, ${(CADENCE[chart.index] ?? chart.index).toLowerCase()} interval`);
@@ -25996,7 +26030,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A new chart, empty, can be left with Escape (or Cancel), for the chart before it: taken back.
         const back = chart.layers.length ? null : previousChart();
         $("leave-empty").hidden = !isPreview(chart) || (!back && !backToHome());
-        if (backToHome()) $("leave-empty").dataset.tip = prefs.homeView === "presets" ? "Back to the presets" : "Back to your charts";
+        if (backToHome()) $("leave-empty").dataset.tip = `Back to ${$("home-title").textContent}`;
         else if (back) $("leave-empty").dataset.tip = `Back to ${titleOf(back)}`;
         // An empty chart is the empty state's to fill: no panel beside it, nothing to export or share yet.
         document.body.toggleAttribute("data-empty", !chart.layers.length);
@@ -26027,9 +26061,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       document.addEventListener("click", (event) => {
         const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu], [data-folder-menu]");
         if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : menuFor.dataset.paneMenu ? paneActions(menuFor, menuFor.dataset.paneMenu) : menuFor.dataset.folderMenu ? folderActions(menuFor, menuFor.dataset.folderMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
-        const folderToggle = closest(event, "[data-folder-toggle]");
-        // (Its second click, a double-click's: renamed where it is, as a chart's row is; the first opened or closed it.)
-        if (folderToggle) return event.detail === 2 ? renameFolder(/** @type {string} */ (folderToggle.dataset.folderToggle)) : toggleFolder(/** @type {string} */ (folderToggle.dataset.folderToggle));
+        // A folder in the sidebar: its icon opens or closes it there, its name opens its page (a second click, a
+        // double-click's, renames it where it is, as a chart's row is); a section of the presets the same.
+        const folding = closest(event, "[data-folder-toggle], [data-section-toggle]");
+        if (folding) return folding.dataset.folderToggle ? toggleFolder(folding.dataset.folderToggle) : toggleSection(/** @type {string} */ (folding.dataset.sectionToggle));
+        const openFolder = closest(event, "[data-open-folder]");
+        if (openFolder) return event.detail === 2 ? renameFolder(/** @type {string} */ (openFolder.dataset.openFolder), true) : goTo({ folder: /** @type {string} */ (openFolder.dataset.openFolder) });
+        const openSection = closest(event, "[data-open-section]");
+        if (openSection) return goTo(asPlace({ path: JSON.parse(/** @type {string} */ (openSection.dataset.openSection)) }));
+        const sidePreset = closest(event, "#chart-list [data-open-preset]");
+        if (sidePreset && presets) return useTemplate(presetTemplate(presets[Number(sidePreset.dataset.openPreset)]));
         const check = closest(event, "[data-pick-layer]");
         if (check) return pickLayer(/** @type {string} */ (check.dataset.pickLayer), event.shiftKey);
         const marker = closest(event, "[data-markers]");
@@ -26062,8 +26103,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "import") $("import-file").click();
         else if (action === "download-all") downloadAll();
         else if (action === "presets") openPresets();
-        else if (action === "gallery" || action === "presets-gallery") presetsAt([]);
-        else if (action === "your-charts") setHomeView("charts", true);
+        else if (action === "charts") goTo({ path: [] });
         else if (action === "toggle-sidebar") toggleSidebar();
         else if (action === "toggle-panel") togglePanel();
         else if (action === "shortcuts") showShortcuts();
@@ -26229,7 +26269,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           return redoLast();
         }
-        if (mod && key === "a" && home && prefs.homeView === "charts" && !typing(event.target)) {
+        if (mod && key === "a" && yoursShown() && !typing(event.target)) {
           event.preventDefault();
           for (const doc of shownCharts()) picked.add(doc.id);
           return renderPicked();
@@ -26275,7 +26315,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Turned off, a letter, a digit or a sign alone does nothing here: only named keys, ⌫, esc, the arrows.)
         if (!prefs.keys && event.key.length === 1) return;
-        if (home && prefs.homeView === "charts" && (event.key === "Backspace" || event.key === "Delete") && picked.size) {
+        if (yoursShown() && (event.key === "Backspace" || event.key === "Delete") && picked.size) {
           event.preventDefault();
           return batch("delete");
         }
@@ -26970,11 +27010,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** The grid's and the gallery's scroll. */
       const homeScroll = () => /** @type {HTMLElement} */ (document.querySelector(".home-scroll"));
-      /** Where All charts is: its scroll, and (the presets') each shelf's. */
-      const galleryPlace = () => ({ top: homeScroll().scrollTop, rows: all$(".shelf-row", $("gallery")).map((row) => row.scrollLeft), shown: galleryShown });
-      /** The gallery back where it was (drawn with as much of it as it showed, see popstate). @param {{ top: number, rows: number[] }} place */
+      /** Where the page is: its scroll, and each shelf's. */
+      const galleryPlace = () => ({ top: homeScroll().scrollTop, rows: Object.fromEntries(all$(".shelf-row", $("home")).map((row) => [shelfKey(row), row.scrollLeft])), shown: galleryShown });
+      /** A shelf by what it is (where its name leads, else its name): kept where it was, whatever came before it since. */
+      const shelfKey = (/** @type {HTMLElement} */ row) => ((title) => title?.getAttribute("data-place") ?? title?.firstChild?.textContent ?? "")(row.closest(".shelf")?.querySelector(".shelf-title"));
+      /** The gallery back where it was (drawn with as much of it as it showed, see popstate). @param {{ top: number, rows: Record<string, number> }} place */
       function placeGallery(place) {
-        if (prefs.homeView === "presets") all$(".shelf-row", $("gallery")).forEach((row, k) => (row.scrollLeft = place.rows[k] ?? 0));
+        for (const row of all$(".shelf-row", $("home"))) row.scrollLeft = place.rows[shelfKey(row)] ?? 0;
         homeScroll().scrollTop = place.top;
       }
       /** The tile of the preset Quick Look shows, on the list it steps through (else anywhere on the gallery), if it's there. @param {{ list: number[], at: number, from: string }} look */
@@ -27346,8 +27388,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         document.body.toggleAttribute("data-home", home);
         // (All charts as this tab's step has it, whichever view another tab left; reloaded in Quick Look, back in it once
         // the presets are read, over its gallery shown first. A first visit, the presets.)
-        if (home && there) takeHomeView(Array.isArray(there.gallery) ? "presets" : "charts");
-        else if (home && first) takeHomeView("presets");
         // (Reloaded in Quick Look: the gallery it was over, its step gone back over (a look isn't a page).)
         const lookLeft = home && Boolean(there?.quick);
         if (!there) history.replaceState(home ? homeState() : { chart: chart.id }, "");
