@@ -8243,7 +8243,7 @@
           <p>One of:</p>
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
-            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, and percentile(A, 95, 1y). Spans are a number and a unit: h, d, w, mo or y.</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out (rsi's 14d).</li>
             <li>{"cloud": ["B", "C"]}: filled between those two layers, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them); "color" alone, that one all along; "color" and "colorBelow", those two (where B is over, where C is). Either of the two (or both) can be "top" or "bottom", its pane's edge: from the layer up to the pane's top, or from its bottom up to it, in one color: {"cloud": ["A", "top"]}. Two exactly: for more layers, formulas first, {"formula": "max(B, max(C, D))"} and {"formula": "min(B, min(C, D))"}, then a cloud between those two.</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (a candle's wick counts); width and dash as a line's.</li>
           </ul>
@@ -9148,11 +9148,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         { id: "ema", label: "Exponential average", text: "Its mean, the recent weighing more", formulas: ["ema(X, 200d)"], over: true },
         { id: "bands", label: "Deviation bands", text: "Two standard deviations around its mean", formulas: ["sma(X, 1y) + 2 * stdev(X, 1y)", "sma(X, 1y) - 2 * stdev(X, 1y)"], over: true },
         { id: "percentiles", label: "Percentile band", text: "Its 95th and 5th percentiles over a span", formulas: ["percentile(X, 95, 1y)", "percentile(X, 5, 1y)"], over: true },
-        { id: "median", label: "Median", text: "The middle of its values over a span", formulas: ["percentile(X, 50, 1y)"], over: true },
+        { id: "median", label: "Median", text: "The middle of its values over a span", formulas: ["median(X, 1y)"], over: true },
         { id: "zscore", label: "Z-score", text: "Its deviations from the rolling mean", formulas: ["zscore(X, 1y)"], over: false },
         { id: "change", label: "Change over time", text: "Its percent change over a span", formulas: ["change(X, 30d)"], over: false },
         { id: "ath", label: "All-time high", text: "Its highest so far", formulas: ["highest(X)"], over: true },
         { id: "log", label: "Logarithm", text: "Its base-10 logarithm", formulas: ["log(X)"], over: false },
+        { id: "rsi", label: "RSI", text: "Its relative strength, 0 to 100, over 14 days", formulas: ["rsi(X)"], over: false },
+        { id: "macd", label: "MACD", text: "Its MACD line and signal (12, 26, 9)", formulas: ["macd(X)", "macd_signal(X)"], over: false },
+        { id: "volatility", label: "Volatility", text: "Its annualized volatility over 30 days, in %", formulas: ["volatility(X, 30d)"], over: false },
+        { id: "drawdown", label: "Drawdown", text: "How far below its highest so far, in %", formulas: ["drawdown(X)"], over: false },
       ];
       /**
        * A transform a layer had before (sma, ema, change, zscore, log over a window) as the formula of `of` it is now: a
@@ -9497,6 +9501,79 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return out;
       }
+      /** An exponential moving average over `n` points, decaying by points (one without a value counting as time passed). @param {Vector} x */
+      function emaOf(x, n, partial = false) {
+        const out = new Float64Array(x.length).fill(NaN), alpha = 2 / (n + 1);
+        let value = NaN, first = -1, last = -1;
+        for (let i = 0; i < x.length; i++) {
+          if (!Number.isFinite(x[i])) continue;
+          if (first < 0) (first = i), (value = x[i]);
+          else value += (i - last === 1 ? alpha : 1 - (1 - alpha) ** (i - last)) * (x[i] - value);
+          last = i;
+          if (partial || i - first + 1 >= n) out[i] = value;
+        }
+        return out;
+      }
+      /** A rolling standard deviation (two values at least). @param {Vector} x */
+      const deviationOf = (x, n, partial = false) => ((stats) => stats.variance.map((value, i) => (stats.count[i] >= 2 ? Math.sqrt(value) : NaN)))(rolling(x, n, partial));
+      /** Wilder's RSI over `n` points: its average gain against its average loss, each smoothed by 1/n. @param {Vector} x */
+      function rsiOf(x, n) {
+        const out = new Float64Array(x.length).fill(NaN);
+        let gain = 0, loss = 0, prev = NaN, seen = 0;
+        for (let i = 0; i < x.length; i++) {
+          if (!Number.isFinite(x[i])) continue;
+          if (Number.isFinite(prev)) {
+            const d = x[i] - prev, up = Math.max(d, 0), down = Math.max(-d, 0);
+            seen++;
+            if (seen <= n) (gain += up / n), (loss += down / n);
+            else (gain = (gain * (n - 1) + up) / n), (loss = (loss * (n - 1) + down) / n);
+            if (seen >= n) out[i] = loss ? 100 - 100 / (1 + gain / loss) : gain ? 100 : 50;
+          }
+          prev = x[i];
+        }
+        return out;
+      }
+      /** MACD's line: an EMA over 12/26 of `n` points less one over `n`. @param {Vector} x */
+      const macdOf = (x, n, partial = false) => ((fast, slow) => fast.map((value, i) => value - slow[i]))(emaOf(x, Math.max(1, Math.round((n * 12) / 26)), partial), emaOf(x, n, partial));
+      /** Annualized volatility: the deviation of log returns over `n` points, a year's worth of points' (`step`: a point's days), in %. @param {Vector} x */
+      function volatilityOf(x, n, partial, step) {
+        const returns = new Float64Array(x.length).fill(NaN);
+        let prev = NaN, at = -1;
+        for (let i = 0; i < x.length; i++) {
+          if (!Number.isFinite(x[i])) continue;
+          // (Across points without a value: as a point's, its variance spread over them.)
+          if (prev > 0 && x[i] > 0) returns[i] = Math.log(x[i] / prev) / Math.sqrt(i - at);
+          prev = x[i];
+          at = i;
+        }
+        const scale = Math.sqrt(365 / step) * 100;
+        return deviationOf(returns, n, partial).map((value) => value * scale);
+      }
+      /** The choppiness index over `n` points, of one series: its moves' sum against its range, log-scaled to 0–100. @param {Vector} x */
+      function chopOf(x, n) {
+        const moves = new Float64Array(x.length).fill(NaN);
+        let prev = NaN;
+        for (let i = 0; i < x.length; i++) {
+          if (!Number.isFinite(x[i])) continue;
+          if (Number.isFinite(prev)) moves[i] = Math.abs(x[i] - prev);
+          prev = x[i];
+        }
+        const total = rolling(moves, n).total, hi = extreme(x, n, (a, b) => a > b), lo = extreme(x, n, (a, b) => a < b), log = Math.log10(n);
+        return x.map((_, i) => (hi[i] > lo[i] && total[i] > 0 && log > 0 ? (100 * Math.log10(total[i] / (hi[i] - lo[i]))) / log : NaN));
+      }
+      /** Growth a year, compounded, in %: over `n` points (`step`: a point's days), or (`n` Infinity) since its first value. @param {Vector} x */
+      function cagrOf(x, n, step) {
+        const out = new Float64Array(x.length).fill(NaN), positive = (/** @type {number} */ value) => Number.isFinite(value) && value > 0;
+        // (Over the real time between its two values: a span back, the latest at or before it; else its first.)
+        let before = -1, first = -1;
+        for (let i = 0; i < x.length; i++) {
+          if (n !== Infinity && i >= n && positive(x[i - n])) before = i - n;
+          if (first < 0 && positive(x[i])) first = i;
+          const from = n === Infinity ? first : before;
+          if (from >= 0 && from < i && positive(x[i])) out[i] = ((x[i] / x[from]) ** (365 / ((i - from) * step)) - 1) * 100;
+        }
+        return out;
+      }
       /** `f(value, the one a span earlier)`: the latest value `n` points back or before (a point may have none). */
       function shifted(x, n, f) {
         const out = new Float64Array(x.length).fill(NaN);
@@ -9509,28 +9586,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * name → [arity, signature, what it does, run, the span may be left out]; a window is a span of time (30d, 4w, 6mo,
-       * 2y, 12h; a bare number is days), always the last argument, run as the interval's points. Where the data is all of
-       * history (1D and up), a window at its start holds what there is (`partial`), and one left out is all of it so far;
-       * on a finer interval, only part of history loads: a window waits to be full.
-       * @type {Record<string, [number, string, string, ((x: Vector, n: number, p: number, partial: boolean) => Vector) | null, boolean?]>}
+       * name → [arity, signature, what it does, run, the span may be left out, its usual span (days)]; a window is a span
+       * of time (30d, 4w, 6mo, 2y, 12h; a bare number is days), always the last argument, run as the interval's points
+       * (`step`: the days a point is). Where the data is all of history (1D and up), a window at its start holds what there
+       * is (`partial`), and one left out is all of it so far (or its usual span, where it has one, in points, as these
+       * indicators count: RSI's 14); on a finer
+       * interval, only part of history loads: a window waits to be full.
+       * @type {Record<string, [number, string, string, ((x: Vector, n: number, p: number, partial: boolean, step: number) => Vector) | null, boolean?, number?]>}
        */
       const FUNCTIONS = {
         sma: [2, "sma(x, span?)", "moving average (no span: of all so far)", (x, n, _p, partial) => rolling(x, n, partial).mean, true],
-        ema: [2, "ema(x, span)", "exponential moving average", (x, n, _p, partial) => {
-          const out = new Float64Array(x.length).fill(NaN);
-          // (Decaying by points, a point without a value counting as time passed.)
-          const alpha = 2 / (n + 1);
-          let value = NaN, first = -1, last = -1;
-          for (let i = 0; i < x.length; i++) {
-            if (!Number.isFinite(x[i])) continue;
-            if (first < 0) (first = i), (value = x[i]);
-            else value += (i - last === 1 ? alpha : 1 - (1 - alpha) ** (i - last)) * (x[i] - value);
-            last = i;
-            if (partial || i - first + 1 >= n) out[i] = value;
-          }
-          return out;
-        }],
+        ema: [2, "ema(x, span)", "exponential moving average", (x, n, _p, partial) => emaOf(x, n, partial)],
         sum: [2, "sum(x, span?)", "rolling sum (no span: of all so far)", (x, n, _p, partial) => {
           // All so far: a running total, exact.
           if (n === Infinity) {
@@ -9540,10 +9606,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return rolling(x, n, partial).total;
         }, true],
         // A deviation takes two values at least.
-        stdev: [2, "stdev(x, span?)", "rolling standard deviation (no span: of all so far)", (x, n, _p, partial) => {
-          const { variance, count } = rolling(x, n, partial);
-          return variance.map((value, i) => (count[i] >= 2 ? Math.sqrt(value) : NaN));
-        }, true],
+        stdev: [2, "stdev(x, span?)", "rolling standard deviation (no span: of all so far)", (x, n, _p, partial) => deviationOf(x, n, partial), true],
+        sd: [2, "sd(x, span?)", "stdev, by its short name", (x, n, _p, partial) => deviationOf(x, n, partial), true],
         zscore: [2, "zscore(x, span?)", "deviations from the rolling mean (no span: of all so far)", (x, n, _p, partial) => {
           const { mean, variance, count } = rolling(x, n, partial);
           return x.map((value, i) => {
@@ -9551,10 +9615,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return count[i] >= 2 ? (sd ? (value - mean[i]) / sd : 0) : NaN;
           });
         }, true],
+        median: [2, "median(x, span?)", "rolling median (no span: of all so far)", (x, n, _p, partial) => rollingPercentile(x, n, 50, partial), true],
         percentile: [3, "percentile(x, p, span?)", "rolling p-th percentile (p from 0 to 100; the median at 50; no span: of all so far)", (x, n, p, partial) => rollingPercentile(x, n, p, partial), true],
         change: [2, "change(x, span)", "% change over the span", (x, n) => shifted(x, n, (a, b) => (a / b - 1) * 100)],
         diff: [2, "diff(x, span)", "difference over the span", (x, n) => shifted(x, n, (a, b) => a - b)],
         lag: [2, "lag(x, span)", "value a span earlier", (x, n) => shifted(x, n, (_a, b) => b)],
+        cagr: [2, "cagr(x, span?)", "% growth a year, compounded, over the span (no span: since its first value)", (x, n, _p, _partial, step) => cagrOf(x, n, step), true],
+        drawdown: [1, "drawdown(x)", "% below its highest so far", (x) => {
+          let top = -Infinity;
+          return x.map((value) => (Number.isFinite(value) ? ((top = Math.max(top, value)), (value / top - 1) * 100) : NaN));
+        }],
+        rsi: [2, "rsi(x, span?)", "relative strength index, 0 to 100 (span: 14 points if left out)", (x, n) => rsiOf(x, n), true, 14],
+        stochrsi: [2, "stochrsi(x, span?)", "stochastic RSI: the RSI's place between its own low and high, 0 to 100 (span: 14 points if left out)", (x, n) => {
+          const r = rsiOf(x, n), lo = extreme(r, n, (a, b) => a < b), hi = extreme(r, n, (a, b) => a > b);
+          // (Its RSI flat over the window: where it was.)
+          let was = NaN;
+          return r.map((value, i) => (Number.isFinite(value) ? (was = hi[i] > lo[i] ? ((value - lo[i]) / (hi[i] - lo[i])) * 100 : was) : NaN));
+        }, true, 14],
+        macd: [2, "macd(x, span?)", "MACD line: a fast EMA (12/26 of the span) less a slow one (span: 26 points if left out)", (x, n, _p, partial) => macdOf(x, n, partial), true, 26],
+        macd_signal: [2, "macd_signal(x, span?)", "MACD's signal: its line's EMA over 9/26 of the span (span: 26 points if left out)", (x, n, _p, partial) => emaOf(macdOf(x, n, partial), Math.max(1, Math.round((n * 9) / 26)), partial), true, 26],
+        macd_hist: [2, "macd_hist(x, span?)", "MACD's histogram: its line less its signal (span: 26 points if left out)", (x, n, _p, partial) => ((line) => ((signal) => line.map((value, i) => value - signal[i]))(emaOf(line, Math.max(1, Math.round((n * 9) / 26)), partial)))(macdOf(x, n, partial)), true, 26],
+        volatility: [2, "volatility(x, span?)", "annualized volatility: the deviation of its log returns over the span, in % (span: 30 points if left out)", (x, n, _p, partial, step) => volatilityOf(x, n, partial, step), true, 30],
+        vol: [2, "vol(x, span?)", "volatility, by its short name", (x, n, _p, partial, step) => volatilityOf(x, n, partial, step), true, 30],
+        chop: [2, "chop(x, span?)", "choppiness index, 0 to 100: high, moving sideways; low, trending (span: 14 points if left out)", (x, n) => chopOf(x, n), true, 14],
         highest: [2, "highest(x, span?)", "rolling maximum (no span: of all so far)", (x, n, _p, partial) => extreme(x, n, (a, b) => a > b, partial), true],
         lowest: [2, "lowest(x, span?)", "rolling minimum (no span: of all so far)", (x, n, _p, partial) => extreme(x, n, (a, b) => a < b, partial), true],
         log: [1, "log(x)", "logarithm, base 10", (x) => x.map(Math.log10)],
@@ -9677,9 +9760,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A formula with a series renamed (as a series: a function of the same name stays). */
       const renamed = (formula, from, to) => formula.replace(new RegExp(`(?<![A-Za-z0-9_])${from}(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), to);
 
-      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "percentile", "highest", "lowest", "lag", "diff", "abs"]);
+      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "sd", "median", "percentile", "highest", "lowest", "lag", "diff", "abs", "macd", "macd_signal", "macd_hist"]);
+      /** Functions whose result is a percent, whatever their input's unit. */
+      const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility", "vol"]);
       /** The unit a function's result carries, from its input's. */
-      const unitOfCall = (/** @type {string} */ f, /** @type {string | null} */ unit) => (KEEPS_UNIT.has(f) ? unit : f === "change" ? "percent" : "number");
+      const unitOfCall = (/** @type {string} */ f, /** @type {string | null} */ unit) => (KEEPS_UNIT.has(f) ? unit : IN_PERCENT.has(f) ? "percent" : "number");
       /** The unit a formula's result carries, from its parts (`unitOfRef(name, kind)`); null for plain numbers. @returns {string | null} */
       function unitOfNode(node, unitOfRef) {
         switch (node.k) {
@@ -9745,27 +9830,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return lift(a, b, op);
           }
           case "call": {
-            const [arity, signature, , run] = FUNCTIONS[node.f];
+            const [arity, signature, , run, , usual] = FUNCTIONS[node.f];
             const windowed = arity >= 2 && run !== null, spanned = windowed && node.args.length === arity;
             if (node.f === "percentile" && spanned && node.args[1].k === "num" && node.args[1].unit) throw new Error(`${signature}: p first, the span last`);
             const args = node.args.map((arg, i) => sub(arg, spanned ? i === arity - 1 : inWindow));
             if (!run) return lift(args[0], args[1], node.f === "min" ? Math.min : Math.max);
             if (windowed) {
-              const days = spanned ? args[arity - 1] : Infinity, p = args[1];
-              if (!spanned && FINE.has(index)) throw failing(`${node.f} over all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it, or give it a span (like 2y)`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+              // (A usual span, in points at any interval: 14 RSI's, 26 MACD's; its days for what's said.)
+              const days = spanned ? args[arity - 1] : usual ? usual * INTERVAL_DAYS[index] : Infinity, p = args[1];
+              if (days === Infinity && FINE.has(index)) throw failing(`${node.f} over all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it, or give it a span (like 2y)`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
               if (typeof days !== "number" || !(days > 0)) throw new Error(`${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`);
               if (arity === 3 && (typeof p !== "number" || !(p >= 0 && p <= 100))) throw new Error(`${signature}: p is a percent, from 0 to 100`);
-              const x = vec(args[0]), points = spanned ? windowPoints(days, index) : Infinity;
-              if ((node.f === "stdev" || node.f === "zscore") && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and a deviation takes two values (a longer span, or a finer interval)`, "Span too short");
-              const out = run(x, points, /** @type {number} */ (p), !FINE.has(index));
-              // (Where a window must be full: on a finer interval, and for a value a span back.)
-              if (!out.some(Number.isFinite) && (FINE.has(index) || ["change", "diff", "lag"].includes(node.f)) && outreaches(x, points)) {
-                const written = node.args[arity - 1];
-                throw windowTooLong(node.f, written.k === "num" ? (written.unit ? written.text ?? "" : `${written.v}d`) : `${grouped.format(points)} points`, days, index, points > length, ["change", "diff", "lag"].includes(node.f));
+              const x = vec(args[0]), points = days === Infinity ? Infinity : !spanned && usual ? usual : windowPoints(/** @type {number} */ (days), index);
+              if (["stdev", "sd", "zscore", "volatility", "vol", "chop", "rsi", "stochrsi"].includes(node.f) && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and it needs two at least (a longer span, or a finer interval)`, "Span too short");
+              const out = run(x, points, /** @type {number} */ (p), !FINE.has(index), INTERVAL_DAYS[index]);
+              // (A growth over all of history, or a span, with nothing to grow from: said so.)
+              if (node.f === "cagr" && !out.some(Number.isFinite) && !outreaches(x, points === Infinity ? 1 : points)) throw new Error("cagr: growth needs positive values, two at least");
+              // (Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice, an
+              // RSI's stochastic, MACD's signal, reach twice as far.)
+              const reach = ["stochrsi", "macd_signal", "macd_hist"].includes(node.f) ? points * 2 : points;
+              if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "lag", "cagr"].includes(node.f)) && outreaches(x, reach)) {
+                const written = spanned ? node.args[arity - 1] : null;
+                throw windowTooLong(node.f, !written ? `${grouped.format(points)} points` : written.k === "num" ? (written.unit ? written.text ?? "" : `${written.v}d`) : `${grouped.format(points)} points`, /** @type {number} */ (days), index, reach > length, ["change", "diff", "lag"].includes(node.f));
               }
               return out;
             }
-            return run(vec(args[0]), 0, 0, false);
+            // (A drawdown is from the highest of all history: on a finer interval, only part of it loads.)
+            if (node.f === "drawdown" && FINE.has(index)) throw failing(`drawdown: from the highest of all history, more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+            return run(vec(args[0]), 0, 0, false, INTERVAL_DAYS[index]);
           }
         }
       }
@@ -16135,7 +16227,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a formula runs a window (a call with its span: on a coarser interval, a short one would be one point). */
       const runsWindow = (/** @type {string} */ formula) => {
         /** @param {Node} node @returns {boolean} */
-        const spans = (node) => node.k === "call" ? (FUNCTIONS[node.f][0] >= 2 && FUNCTIONS[node.f][3] !== null && node.args.length === FUNCTIONS[node.f][0]) || node.args.some(spans)
+        const spans = (node) => node.k === "call" ? (FUNCTIONS[node.f][0] >= 2 && FUNCTIONS[node.f][3] !== null && (node.args.length === FUNCTIONS[node.f][0] || FUNCTIONS[node.f][5] !== undefined)) || node.args.some(spans)
           : node.k === "bin" ? spans(node.a) || spans(node.b) : node.k === "neg" ? spans(node.a) : false;
         try {
           return spans(parse(formula));
@@ -20185,7 +20277,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <h3>Series</h3>
               <div class="source-name"><button type="button" class="source-pick" data-action="change-series" aria-label="Replace series, ${escape(layer.series)}" data-tip="Replace series"><code>${escape(layer.series)}</code>${ICONS.swap}</button>
                 <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
-                ${result?.missing ? "" : `<a class="cap small" href="${client.baseUrl}/api/series/${encodeURIComponent(layer.series)}/${chart.index}" target="_blank" rel="noreferrer" aria-label="Open the raw data" data-tip="Open the raw data">${ICONS.link}</a>`}
               </div>
               ${result?.error ? errorBox(result, layer.series ?? "") : ""}
               ${meta?.description ? `<p class="description ${expanded ? "" : "clamped"}">${escape(meta.description)}</p>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
@@ -21189,9 +21280,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const word = /(?<![A-Za-z0-9_.])[a-z_][a-z0-9_]*$/.exec(text.slice(0, caret))?.[0] ?? "";
         const call = hasFunction(word) ? { f: word, arg: -1 } : callAt(text, caret);
         if (!call?.f) return "";
-        const [, signature, what] = FUNCTIONS[call.f], names = signature.slice(signature.indexOf("(") + 1, -1).split(", "), at = names[call.arg];
+        const [, signature, what, , , usual] = FUNCTIONS[call.f], names = signature.slice(signature.indexOf("(") + 1, -1).split(", "), at = names[call.arg];
         return `<div class="call-sig"><b>${escape(call.f)}</b>(${names.map((name, i) => `<span${i === call.arg ? ' class="on"' : ""}>${escape(name)}</span>`).join(", ")})</div>
-          ${call.arg < 0 ? "" : `<p>${at ? `<b>${escape(at.replace("?", ""))}</b>: ${escape(ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escape(call.f)} takes ${names.length} at most`}</p>`}
+          ${call.arg < 0 ? "" : `<p>${at ? `<b>${escape(at.replace("?", ""))}</b>: ${escape(at === "span?" && usual ? `${ARGUMENTS.span}; left out, ${usual} points (as it's usually counted)` : ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escape(call.f)} takes ${names.length} at most`}</p>`}
           <p class="call-what">${escape(capitalize(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
       }
       /** Spans a window often takes, from the shortest, each in words. */
@@ -21734,6 +21825,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Its right-click beside others picked: its copy alone, the picks as they are.)
           { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", ...(chart.layers.length < MAX_LAYERS ? {} : { disabled: `A chart holds ${MAX_LAYERS} layers at most` }), run: () => (menu && layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id)) },
           ...(menu ? [{ key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices([id])) }] : []),
+          // (Its data, as the chart has it, at its interval: any layer's, a formula's too; a series', where it comes from.)
+          { key: "data", icon: ICONS.table, label: "Download data", aside: "CSV", verb: "Download", ...(resolved?.results.get(id)?.shown ? {} : { disabled: "Its data isn't here yet" }), run: () => exportData([layer]) },
+          ...(layer.series ? [{ key: "api", icon: ICONS.link, label: "Open in the API", aside: "As JSON", verb: "Open", run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") }] : []),
           { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", danger: true, run: () => removeLayer(id) },
         ];
         // (In a menu, a rule under what opens it, Settings and Replace series, whatever follows.)
@@ -23946,7 +24040,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.type === "trend" ? [{ key: "ref", icon: ICONS.riding, label: "Flips when it touches", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: "Trend", page: () => choicePage("Flips when it touches", () => refChoices(id)) }] : []),
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
-              { key: "raw", icon: ICONS.link, label: "Open the raw data", aside: "As JSON, in a new tab", verb: "Open", group: first, run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") },
             ] : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => retype(item, type)) }))) },
@@ -25786,25 +25879,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(`Downloaded “${titleOf(doc)}”`);
       }
 
+      /**
+       * Layers' data as a CSV (the chart's whole, Export's; one layer's, its own actions'), as the chart has it: one row
+       * per date at its interval, a column per layer (a cloud's, its low and its high but for an edge), the hidden ones too.
+       * @param {Layer[]} which
+       */
+      function exportData(which) {
+        // (Still loading, what's there may be what was before: nothing then.)
+        if (!settled()) return notice("The chart is still loading");
+        const layers = which.filter((layer) => resolved?.results.get(layer.id)?.shown);
+        if (!layers.length || !resolved) return notice("Its data isn't here yet");
+        const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
+        // (A cloud's columns: its low, its high, but for an edge.)
+        const ends = (/** @type {Layer} */ layer) => (layer.type === "cloud" ? ["low", "high"].filter((end) => !layer.from?.includes(end === "low" ? "bottom" : "top")) : [""]);
+        const header = ["date", ...layers.flatMap((layer) => ends(layer).map((end) => quote(`${layer.letter} ${labelOf(layer)}${end ? ` (${end})` : ""}`)))].join(",");
+        const columns = layers.flatMap((layer) => ((result) => ends(layer).map((end) => (end === "low" ? result?.low : result?.shown)))(resolved?.results.get(layer.id)));
+        const rows = resolved.times.map((time, i) => {
+          const cells = columns.map((values) => ((value) => (value !== undefined && Number.isFinite(value) ? String(value) : ""))(values?.[i]));
+          return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
+        }).filter(Boolean);
+        download(which.length === 1 && chart.layers.length > 1 ? fileName("csv").replace(/\.csv$/, `-${labelOf(which[0]).trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "layer"}.csv`) : fileName("csv"), new Blob([[header, ...rows].join("\n")], { type: "text/csv" }));
+        return toast(`Downloaded ${grouped.format(rows.length)} rows`);
+      }
       function exportAs(kind) {
         if (kind === "json") return downloadChart(chart);
         if (!chart.layers.length) return notice("Add a layer first");
         if (!settled()) return notice("The chart is still loading");
         if (!resolved.times.length) return notice("This chart has no data yet");
-        if (kind === "csv") {
-          const layers = chart.layers.filter((layer) => resolved.results.get(layer.id)?.shown);
-          const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
-          // (A cloud's columns: its low, its high, but for an edge.)
-          const ends = (/** @type {Layer} */ layer) => (layer.type === "cloud" ? ["low", "high"].filter((end) => !layer.from?.includes(end === "low" ? "bottom" : "top")) : [""]);
-          const header = ["date", ...layers.flatMap((layer) => ends(layer).map((end) => quote(`${layer.letter} ${labelOf(layer)}${end ? ` (${end})` : ""}`)))].join(",");
-          const columns = layers.flatMap((layer) => ((result) => ends(layer).map((end) => (end === "low" ? result?.low : result?.shown)))(resolved?.results.get(layer.id)));
-          const rows = resolved.times.map((time, i) => {
-            const cells = columns.map((values) => ((value) => (value !== undefined && Number.isFinite(value) ? String(value) : ""))(values?.[i]));
-            return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
-          }).filter(Boolean);
-          download(fileName("csv"), new Blob([[header, ...rows].join("\n")], { type: "text/csv" }));
-          return toast(`Downloaded ${grouped.format(rows.length)} rows`);
-        }
+        if (kind === "csv") return exportData(chart.layers);
         if (kind === "copy") return copyImage();
         if (kind === "share") return shareImage();
         if (kind === "open") return openImage();
@@ -26428,16 +26530,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (presetMenu) return menuOf(presetMenu, presetActions(Number(presetMenu.dataset.presetMenu), presetMenu.closest("#chart-list") ? "row" : "tile"));
         const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu], [data-folder-menu]");
         if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : menuFor.dataset.paneMenu ? paneActions(menuFor, menuFor.dataset.paneMenu) : menuFor.dataset.folderMenu ? folderActions(menuFor, menuFor.dataset.folderMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
-        // A folder in the sidebar: a click opens or closes it there (a double-click's second does nothing more); its page,
-        // its ⋯'s View; renamed from there too. A section of the presets the same.
+        // A folder in the sidebar: each click opens or closes it there (one under way turns back from where it is: clicks
+        // as fast as they come); its page, its ⋯'s View; renamed from there too. A section of the presets the same.
         const folderItem = closest(event, "[data-folder-item]");
-        if (folderItem) return void (event.detail < 2 && toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem)));
+        if (folderItem) return toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
         const sectionMenu = closest(event, "[data-section-menu]");
         if (sectionMenu) return menuOf(sectionMenu, sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
         const head = closest(event, "#chart-list [data-place]");
         if (head) return goTo(asPlace(JSON.parse(/** @type {string} */ (head.dataset.place))));
         const sectionItem = closest(event, "[data-section-item]");
-        if (sectionItem) return void (event.detail < 2 && toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem)));
+        if (sectionItem) return toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
         const sidePreset = closest(event, "#chart-list [data-open-preset]");
         if (sidePreset) return pickPreset(Number(sidePreset.dataset.openPreset));
         const check = closest(event, "[data-pick-layer]");
