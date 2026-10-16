@@ -17404,7 +17404,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A part of the page's side of your charts: a shelf's `place`, where its name leads; its `folder`, what's dropped on
        * it goes into (yours, "": the Library's top; none: nothing, the previews').
-       * @typedef {{ kind: "head", name: string, count: number } | { kind: "grid", docs: Chart[], previews?: boolean } | { kind: "shelf", name: string, place: Place, folder?: string, docs: Chart[], count: number, previews?: boolean, empty?: string } | { kind: "note", html: string }} YoursPart
+       * @typedef {{ kind: "head", name: string, count: number } | { kind: "grid", docs: Chart[], previews?: boolean } | { kind: "shelf", name: string, place: Place, folder?: string, docs: Chart[], count: number, previews?: boolean, empty?: string } | { kind: "note", html: string, card?: boolean }} YoursPart
        */
       /**
        * Your charts' side of the page, where it is (none in a section of the presets): at the top, the previews and yours
@@ -17435,7 +17435,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const own = items.flatMap((item) => ("layers" in item ? [item] : []));
           if (own.length) parts.push({ kind: "grid", docs: own });
           for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, place: { folder: folder.id }, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
-          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet: drag charts here, or move them from their menu"}</p>` : `<p>No charts yet. Start a new chart, or open a preset and copy it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>` });
+          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet: drag charts onto it in the sidebar, or move them from their menu"}</p>` : `<p>No charts yet. Start a new chart, or open a preset and copy it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
         }
         const visible = parts.flatMap((part) => (part.kind === "grid" || part.kind === "shelf" ? part.docs : []));
         shownYours = visible.filter((doc) => !isPreview(doc));
@@ -17459,7 +17459,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           grid.innerHTML = parts.map((part) => (part.kind === "head" ? groupHead(part.name, part.count)
             : part.kind === "grid" ? `<div class="grid-tiles${part.previews ? " previews" : ""}">${tilesOf(part.docs)}</div>`
             : part.kind === "shelf" ? folderShelfHtml(part, tilesOf(part.docs))
-            : `<div class="home-none">${part.html}</div>`)).join("");
+            : `<div class="${part.card ? "shelf-empty library-empty" : "home-none"}">${part.html}</div>`)).join("");
           for (const slot of all$("[data-slot]", grid)) slot.replaceWith(/** @type {HTMLElement} */ (old.get(/** @type {string} */ (slot.dataset.slot))));
           restoreFocus(grid, focus);
           allShelfSteps();
@@ -23805,9 +23805,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return missing ? goneLayer(chart, missing) ?? `There is no layer ${missing}` : "";
       }
       /** A row of the formula page: the formula to add, or a piece of one (a layer by its color). */
+      /** The last formula found not to compute, what's wrong with it, and the layer it was for (its row says so while it's the one typed). */
+      let formulaProblem = { text: "", editing: /** @type {string | null} */ (null), problem: "" };
       function formulaRow(item) {
         if (item.kind === "formula") {
-          const editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(palette.query.trim());
+          const text = palette.query.trim(), kept = formulaProblem.text === text && formulaProblem.editing === palette.editing ? formulaProblem.problem : "";
+          const editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || kept;
           return `${ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
         }
         const layer = item.layer ? layerById(item.layer) : null;
@@ -23871,9 +23874,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (run !== formulaRun || palette.items[palette.active]?.kind !== "formula") return;
           const result = data?.results.get(layer.id);
           if (!result || result.error) {
-            panel.innerHTML = `<h4><code>${escape(text)}</code></h4><div class="error-box">${escape(result?.detail ?? result?.error ?? "It couldn't be computed")}.</div>`;
+            const problem = result?.detail ?? result?.error ?? "It couldn't be computed";
+            panel.innerHTML = `<h4><code>${escape(text)}</code></h4><div class="error-box">${escape(problem)}.</div>`;
+            // (Said on its row too, as a mistake in how it's written is, kept while it's the one typed (the row drawn
+            // again, a completion offered, still says it): where there's no room for this side, a phone's, the row's the
+            // only place it shows. Said aloud once.)
+            const fresh = formulaProblem.text !== text || formulaProblem.problem !== problem;
+            formulaProblem = { text, editing: palette.editing, problem };
+            const meta = $("palette-list").querySelector('[data-kind="formula"] .item-meta');
+            if (meta) (meta.textContent = problem), (meta.className = "item-meta error");
+            if (fresh) say(problem);
             return;
           }
+          if (formulaProblem.text === text) formulaProblem = { text: "", editing: null, problem: "" };
           const uses = usesOf(node);
           const unit = unitFor(layer, result);
           panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
@@ -27309,9 +27322,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** The block the server's series are computed up to, when it was indexed (unix seconds), and the live price, as last seen. */
       let liveHeight = 0, liveAt = 0, livePrice = 0;
-      /** When bitview.space last answered (its health): a minute without, and the live element says it's offline. */
+      /** When bitview.space last answered (its health): a minute without, or the device itself offline, and the live element says it's offline. */
       let answeredAt = Date.now();
-      const offline = () => Date.now() - answeredAt > 60_000;
+      const offline = () => !navigator.onLine || Date.now() - answeredAt > 60_000;
       /** Live, with the last block the server's series include and when it came. */
       function updateStatus() {
         const points = resolved?.times.length ?? 0;
@@ -27828,6 +27841,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (chart && seriesIn(chart).length) draw(false, true);
       }
       setInterval(checkLive, 15_000);
+      // (The device's network gone: said at once, not a minute on; back, asked at once. Nothing said before the first
+      // answer: it's still connecting.)
+      addEventListener("offline", () => !$("live").classList.contains("waiting") && updateStatus());
+      addEventListener("online", () => checkLive());
       // (Hidden, nothing is asked: back in view, the minute starts over.)
       document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && (answeredAt = Date.now()));
       document.addEventListener("visibilitychange", checkLive);
