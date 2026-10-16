@@ -1987,11 +1987,29 @@
           font-variant-numeric: tabular-nums;
         }
 
-        :is(.chart-row, .folder-row) + & {
-          margin-top: 10px;
+        /* (The first, under New chart's rule, as far from it as the rule is from New chart and more.) */
+        .chart-list > &:first-child {
+          margin-top: 6px;
         }
 
-        /* (Yours: a way to their page, lit there.) */
+        /* Each group set apart from the one before by a rule, as New chart's: the previews', your Library's, the
+           presets'. */
+        :is(.chart-row, .folder-row) + & {
+          position: relative;
+          margin-top: 17px;
+
+          &::before {
+            content: "";
+            position: absolute;
+            top: -11px;
+            left: 8px;
+            width: calc(100% - 16px);
+            height: 1px;
+            background: var(--line);
+          }
+        }
+
+        /* (Each a way to its page, lit there.) */
         &:is(button) {
           width: 100%;
           border: 0;
@@ -10413,6 +10431,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           panel: stored.panel === "open" || stored.panel === "closed" ? stored.panel : tablet.matches ? "closed" : "open",
           home: stored.home !== false,
           /** The presets' sections open in the sidebar (their paths, as kept). */
+          /** Where the Charts page was last (see Place): Charts, from a chart, after a reload too, comes back there. */
+          at: /** @type {any} */ (stored.at && typeof stored.at === "object" ? stored.at : null),
           presetsOpen: /** @type {string[]} */ (Array.isArray(stored.presetsOpen) ? stored.presetsOpen.filter((/** @type {any} */ key) => typeof key === "string").slice(0, 500) : []),
           /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
           keys: stored.keys !== false,
@@ -10889,7 +10909,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         leaveField();
         saveView();
         // This tab's place, for a reload and for Back: the chart it shows now (a step from the grid stays one).
-        if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id }, "");
+        if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id, ...(history.state.place ? { place: history.state.place } : {}) }, "");
         // (An empty preview left has nothing to come back to (nor kept aside); a link that couldn't be read, left behind.)
         for (const item of previewCharts) if (item !== doc && !item.layers.length) (dropPreview(item), forgetPreview(item));
         brokenLink = "";
@@ -16767,7 +16787,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!home) return;
         // (One of your folders gone meanwhile (deleted in another tab): your charts' page.)
         if ("folder" in homeAt && homeAt.folder && !folderById(homeAt.folder)) {
-          homeAt = { folder: "" };
+          placeHome({ folder: "" });
+          leftPlace = null;
           history.replaceState(homeState(), "");
         }
         renderHomeHead();
@@ -16898,7 +16919,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       /** A place as kept in a step of the history, as it can be (none: the top). @returns {Place} */
       const asPlace = (/** @type {any} */ at) => (typeof at?.folder === "string" ? { folder: at.folder } : Array.isArray(at?.path) ? { path: at.path.filter((/** @type {any} */ name) => typeof name === "string") } : at?.previews === true ? { previews: true } : { top: true });
-      let homeAt = asPlace(history.state?.at);
+      let homeAt = asPlace(history.state?.at ?? prefs.at);
+      /** The page somewhere else: kept (with the preferences: a reload, from a chart, comes back there). @param {Place} place */
+      const placeHome = (place) => {
+        homeAt = place;
+        prefs.at = place;
+        savePrefs();
+      };
       /** The page's step of the history as it is. */
       const homeState = () => ({ home: true, at: homeAt });
       /** Whether the page shows charts of yours (or previews): at the top, your Library, a folder of it, the previews. */
@@ -16913,7 +16940,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
         if (!same) {
           if (home) history.replaceState({ ...homeState(), place: galleryPlace() }, "");
-          homeAt = place;
+          placeHome(place);
           galleryShown = GALLERY_PAGE;
           clearPicks();
         }
@@ -17391,8 +17418,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const card = cardOf(chart.id);
           if (place) placeGallery(place);
           else card?.scrollIntoView({ block: "nearest" });
-          tileOpen(chart.id)?.focus({ preventScroll: true });
-          return draft ? null : card;
+          // (Its card in sight where the page came back to: the chart shrinks into it, the focus on it; else neither,
+          // the page as it was left.)
+          const box = card?.getBoundingClientRect(), view = homeScroll().getBoundingClientRect(), seen = Boolean(box && box.bottom > view.top && box.top < view.bottom);
+          if (seen) tileOpen(chart.id)?.focus({ preventScroll: true });
+          return draft || !seen ? null : card;
         });
       }
       /**
@@ -17408,9 +17438,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         savePrefs();
         picked.clear();
         show();
-        // (Where the page was, kept in its step: Back comes back there.)
-        if (push && history.state?.home) history.replaceState({ ...history.state, place: galleryPlace() }, "");
-        if (push) history.pushState({ chart: chart.id, fromHome: true }, "");
+        // (Where the page was, kept in its step: Back comes back there; Charts, too.)
+        leftPlace = galleryPlace();
+        if (push && history.state?.home) history.replaceState({ ...history.state, place: leftPlace }, "");
+        if (push) history.pushState({ chart: chart.id, fromHome: true, place: leftPlace }, "");
         const focused = $("home").contains(document.activeElement);
         return morph(before, async () => {
           // (Pressed as it was tapped, see go: as it grows, as it is.)
@@ -17440,6 +17471,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         card?.classList.add("opening");
         requestAnimationFrame(() => setTimeout(() => mine === goes && ((goingCard = null), leaveHome(() => doc !== chart && openChart(doc), card, push))));
       }
+      /** Where the page was when a chart was opened from it (its scroll, its shelves'): Charts comes back there. @type {{ top: number, rows: Record<string, number>, shown: number } | null} */
+      let leftPlace = ((place) => (Number.isFinite(place?.top) && place.rows && typeof place.rows === "object" ? place : null))(history.state?.chart ? history.state.place : null);
       /** A new chart being cancelled on the way back to the grid (it's taken back once there). */
       let cancelling = "";
       /** A new chart, untouched, opened from the grid: leaving it goes back there. */
@@ -17496,7 +17529,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
             clearPicks();
           }
-          homeAt = to;
+          placeHome(to);
           if (!home) return showHome(false, place);
           const fromPage = $("home").contains(document.activeElement);
           renderHome();
@@ -18421,9 +18454,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.deleted[id] = Date.now();
         // (What was in it where it was, in its order; its page open, the one it was in.)
         for (const item of members) setParent(item, folder.parent);
-        if (home && "folder" in homeAt && homeAt.folder === id) {
-          homeAt = { folder: folder.parent ?? "" };
-          history.replaceState(homeState(), "");
+        // (Its page where the page is, or was left: the one it was in, from its top.)
+        if ("folder" in homeAt && homeAt.folder === id) {
+          placeHome({ folder: folder.parent ?? "" });
+          leftPlace = null;
+          if (home) history.replaceState(homeState(), "");
         }
         setChildren([...siblings.slice(0, place), ...members, ...siblings.slice(place + 1)]);
         save();
@@ -26431,12 +26466,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "palette") openPalette({ resume: true });
         else if (action === "new-chart") newChart();
         else if (action === "close-preview") closePreview(chartById(target.dataset.preview ?? "") ?? chart);
-        else if (action === "home") showHome();
+        // (From a chart, the page as it was left, where it was; on the page, its top: the phone's Charts as the sidebar's.)
+        else if (action === "home") home ? goTo({ top: true }) : showHome(true, leftPlace);
         else if (action === "add-series") openPalette({ add: true });
         else if (action === "leave-empty") leaveEmpty();
         else if (action === "import") $("import-file").click();
         else if (action === "download-all") downloadAll();
-        else if (action === "charts") goTo({ top: true });
+        // (From a chart, the page as it was left, where it was; on the page, its top.)
+        else if (action === "charts") home ? goTo({ top: true }) : showHome(true, leftPlace);
         else if (action === "toggle-sidebar") toggleSidebar();
         else if (action === "toggle-panel") togglePanel();
         else if (action === "shortcuts") showShortcuts();
