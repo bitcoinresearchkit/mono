@@ -1162,17 +1162,16 @@
       }
 
       /* A rule in the gap under them sets the charts apart (on the rail, a short one, at the same height). */
-      .new-chart {
+      .side-rule {
         position: relative;
-        display: flex;
         flex-shrink: 0;
-        align-items: center;
-        margin: 4px 0 6px;
+        height: 0;
+        margin: 9px 0 1px;
 
         &::after {
           content: "";
           position: absolute;
-          bottom: -5px;
+          bottom: 0;
           left: 8px;
           width: calc(100% - 16px);
           height: 1px;
@@ -1583,14 +1582,9 @@
             pointer-events: none;
           }
 
-          /* On the rail, the rule under New chart is short, at the same height: nothing moves. New chart, a square as
-             the others (its room for New folder given back). */
-          .new-chart {
+          /* On the rail, the rule under Charts is short, at the same height: nothing moves. */
+          .side-rule {
             overflow: visible;
-          }
-
-          #new-chart {
-            padding-right: 0;
           }
 
           /*
@@ -1644,8 +1638,8 @@
             }
           }
 
-          /* (Centered under New chart's icon.) */
-          .new-chart::after {
+          /* (Centered under Charts' icon.) */
+          .side-rule::after {
             left: 11px;
             width: 20px;
           }
@@ -1726,7 +1720,7 @@
             transition: width var(--dur-layout) var(--ease-layout), height var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), box-shadow var(--fade), color var(--fade);
           }
 
-          .new-chart::after {
+          .side-rule::after {
             transition: left var(--dur-layout) var(--ease-layout), width var(--dur-layout) var(--ease-layout);
           }
         }
@@ -8550,9 +8544,7 @@
         </a>
         <button class="search" type="button" data-action="palette" data-tip="Search or run a command" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search or run a command</span><kbd class="mod">⌘K</kbd></button>
         <button id="charts-nav" class="nav-item side-action" type="button" data-action="charts" data-tip="Your Library and the presets" style="--i: 1"><span data-icon="grid"></span><span class="label">Charts</span></button>
-        <div class="new-chart" style="--i: 1">
-          <button id="new-chart" class="nav-item side-action" type="button" data-tip="New chart" data-kbd="N"><span data-icon="plus"></span><span class="label">New chart</span><kbd>N</kbd></button>
-        </div>
+        <div class="side-rule" style="--i: 1" aria-hidden="true"></div>
         <div id="chart-list" class="chart-list" style="--i: 2"></div>
         <input id="import-file" type="file" accept="application/json,.json" hidden />
         <div class="side-foot" style="--i: 3">
@@ -8869,6 +8861,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>New chart</dt><dd><kbd>N</kbd></dd></div>
             <div><dt>Move a chart in your list</dt><dd><kbd>⌥↑</kbd><kbd>⌥↓</kbd> or drag</dd></div>
             <div><dt>Open or close a folder in the sidebar, go in or out</dt><dd><kbd>←</kbd><kbd>→</kbd></dd></div>
+            <div><dt>The menu of the row in focus</dt><dd><kbd>⇧F10</kbd></dd></div>
             <div><dt>Duplicate or delete the chart in focus</dt><dd><kbd>⌘D</kbd><kbd>⌫</kbd></dd></div>
           </dl>
           <h3>On your Library's pages</h3>
@@ -11480,7 +11473,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return showHome(true, leftPlace);
         }
         // (The focus on the chart gone back to: its row, else its title.)
-        keepFocus(null, () => $("chart-list").querySelector(`[data-open-chart="${CSS.escape(back.id)}"]`), () => $("plot-keys"), () => $("new-chart"));
+        keepFocus(null, () => $("chart-list").querySelector(`[data-open-chart="${CSS.escape(back.id)}"]`), () => $("plot-keys"), () => $("new-chart"), () => $("charts-nav"));
         // (An empty preview left simply goes.)
         openChart(back);
       }
@@ -11660,8 +11653,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Collapsed, the rail keeps only its icons: a focus on what it puts away, a row's ⋯, a folder's, on its toggle.)
         const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
         applySidebar();
-        // (A group closed shows on the rail, closed again out of it.)
+        // (A group closed shows on the rail, closed again out of it; the list's one stop for Tab on a row in sight: the
+        // rail's heads aren't.)
         if (prefs.groupsClosed.length) renderCharts();
+        else roveList();
         keepFocus(putAway, () => $("sidebar-toggle"));
       }
       $("sidebar").addEventListener("transitionend", (event) => event.target === $("sidebar") && event.propertyName === "width" && document.body.removeAttribute("data-sliding"));
@@ -18682,6 +18677,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Yours named where something's around them to tell them from: previews over them, the presets under them; closed
           // only where named, a way to open them again there.)
           sideHead("library", library.charts.length, Boolean(current && (current === draft || (!isPreview(current) && current.preset === undefined)))),
+          // (New chart first: what it makes is yours, here; in sight with them folded too.)
+          /** @type {[string, string]} */ (["new", `<div class="chart-row new-row" style="--depth: 0"><button type="button" id="new-chart" class="nav-item chart-item side-action" data-action="new-chart" data-tip="New chart" data-kbd="N"><span data-icon="plus">${ICONS.plus}</span><span class="label">New chart</span><kbd>N</kbd></button></div>`]),
           ...(groupShut("library") ? [] : [
           ...(draft ? [/** @type {[string, string]} */ ([`preview:${draft.id}`, previewRow(draft)])] : []),
           // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
@@ -18700,6 +18697,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           fitSoon($("chart-list"), true);
           drawKeys($("chart-list"));
         }
+        roveList();
         // (The presets' rows in sight: their marks, drawn as they come; those drawn already, nothing to watch; those
         // gone, nothing to draw.)
         presetRowsSeen.disconnect();
@@ -18755,6 +18753,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const groupRows = (group) => [
         { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", run: () => goTo(asPlace(GROUP_OF[group][1])) },
         ((shut) => ({ key: "toggle", icon: shut ? ICONS.folderOpen : ICONS.folder, label: shut ? "Expand" : "Collapse", stay: true, run: () => toggleGroup(group) }))(groupShut(group)),
+        // (Your Library's, as a folder's: what can be made in it.)
+        ...(group === "library" ? [{ key: "new-chart", icon: ICONS.plus, label: "New chart", kbd: "N", run: () => newChart() }, { key: "new-folder", icon: ICONS.folderAdd, label: "New folder", run: () => newFolder() }] : []),
       ];
       /** One of the sidebar's groups opened or closed there, as a folder is (kept as left). @param {Group} group */
       function toggleGroup(group) {
@@ -19080,7 +19080,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A group's: all up to the next group's head.)
         if (head.classList.contains("list-head")) {
           const under = [];
-          for (let row = head.nextElementSibling; row && !row.classList.contains("list-head"); row = row.nextElementSibling) under.push(/** @type {HTMLElement} */ (row));
+          // (Your Library's New chart stays, folded or not.)
+          for (let row = head.nextElementSibling; row && !row.classList.contains("list-head"); row = row.nextElementSibling) if (!row.classList.contains("new-row")) under.push(/** @type {HTMLElement} */ (row));
           return under;
         }
         const rows = all$(".chart-row, .folder-row", $("chart-list")), at = rows.indexOf(head);
@@ -19342,6 +19343,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(inPalette ? [view, toggle, rename] : [view, rename, toggle]),
           ...(inPalette && at > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", verb: "Move", stay: true, run: () => stepFolder(id, -1) }] : []),
           ...(inPalette && at < peers.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", verb: "Move", stay: true, run: () => stepFolder(id, 1) }] : []),
+          { key: "new-chart", icon: ICONS.plus, label: "New chart inside", run: () => ($("palette").open && dismissPalette(), newChart(id)) },
           { key: "new-folder", icon: ICONS.folderAdd, label: "New folder inside", run: () => ($("palette").open && dismissPalette(), newFolder([], id)) },
           { key: "folder", icon: ICONS.folder, label: "Move to folder", ...(inPalette ? { aside: folder.parent ? folderPath(folder.parent) : "None" } : {}), page: () => choicePage("Move to folder", () => folderChoices([`f:${id}`], inPalette)) },
           ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder([`f:${id}`], null) }] : []),
@@ -19420,7 +19422,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const onPage = home && [document.activeElement, ownerNow(), performance.now() - closedAt < 1000 ? closedOwner : null].some((element) => element?.closest("#home"));
         // (There, the tile shown after it in its row, else the one before: a shelf shows some, a folder's elsewhere.)
         const tile = onPage ? cardOf(doc.id) : null, beside = /** @type {HTMLElement | null | undefined} */ (tile?.nextElementSibling?.matches(".tile[data-home-card]") ? tile.nextElementSibling : tile?.previousElementSibling?.matches(".tile[data-home-card]") ? tile.previousElementSibling : null)?.dataset.homeCard;
-        keepFocus(null, () => (beside ? tileOpen(beside) : null), () => (kept() ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(/** @type {Chart} */ (neighbor).id)}"]`) : null), () => $("new-chart"));
+        keepFocus(null, () => (beside ? tileOpen(beside) : null), () => (kept() ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(/** @type {Chart} */ (neighbor).id)}"]`) : null), () => $("new-chart"), () => $("charts-nav"));
         discard(doc);
         // The last chart gone (the open one), the preview there is stands in, else a blank one.
         const standIn = wasOpen && !library.charts.length ? previewCharts[0] ?? newDraft() : null;
@@ -19450,11 +19452,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A blank chart, where to start from (series, a preset, a file): yours at once, first in your charts (on a folder's
        * page, in it); left as it came, it goes (see emptyYours). One just made, still as it came, open: that one.
        */
-      function newChart() {
+      /** A new chart, in `into` (a folder's ⋯), else in the folder whose page it's made from. @param {string} [into] */
+      function newChart(into) {
         delete document.body.dataset.sheet;
-        if (emptyYours(chart)) leaveHome(() => {});
-        else {
-          const doc = /** @type {Chart} */ ({ ...blankChart(), blank: true }), folder = home && "folder" in homeAt ? folderById(homeAt.folder) : undefined;
+        const folder = into ? folderById(into) : home && "folder" in homeAt ? folderById(homeAt.folder) : undefined;
+        if (emptyYours(chart)) {
+          // (The empty one at hand taken, where it's asked for.)
+          if (into && chart.folder !== into) (chart.folder = into), save(), renderCharts();
+          leaveHome(() => {});
+        } else {
+          const doc = /** @type {Chart} */ ({ ...blankChart(), blank: true });
           if (folder) doc.folder = folder.id;
           library.charts.unshift(doc);
           save();
@@ -19812,6 +19819,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           tileOpen(ids[0])?.focus({ preventScroll: true });
         },
       });
+      /**
+       * The sidebar's list, one stop for Tab (not two a row: a long Library, a hundred): the row last on (by its key),
+       * else the open chart's, else the first; ↑ ↓ and ← → walk it from there. A row's ⋯ (a head's buttons too) by its
+       * menu key or ⇧F10, its press, a right-click.
+       */
+      let listStop = "", keyMenuAt = 0;
+      const rowKeyOf = (/** @type {Element | null} */ row) => (row instanceof HTMLElement ? Object.entries(row.dataset).map(([key, value]) => `${key}:${value}`).join(" ") || row.className : "");
+      function roveList() {
+        const list = $("chart-list"), rows = all$(`.chart-row:not([inert]), .folder-row:not([inert])${railed() ? "" : ", .list-head"}`, list);
+        for (const button of all$("button", list)) button.tabIndex = -1;
+        const row = rows.find((each) => listStop && rowKeyOf(each) === listStop) ?? list.querySelector(".chart-row.active") ?? rows[0];
+        const stop = /** @type {HTMLElement | null | undefined} */ (row?.querySelector(".nav-item, .list-head-name"));
+        if (stop) stop.tabIndex = 0;
+      }
+      $("chart-list").addEventListener("focusin", (event) => {
+        const target = /** @type {HTMLElement} */ (event.target);
+        if (!target.matches(".nav-item, .list-head-name")) return;
+        for (const button of all$('button[tabindex="0"]', $("chart-list"))) if (button !== target) button.tabIndex = -1;
+        target.tabIndex = 0;
+        listStop = rowKeyOf(target.closest(".chart-row, .folder-row, .list-head"));
+      });
       // In the list, ↑ ↓ (Home, End) walk its rows rather than the layers; ⌥↑ ⌥↓ move the focused one (yours); ← → as a
       // tree: → opens a folder (a group's head), then goes into it; ← closes it, then goes to the one it's in, as from a
       // chart. (The heads a level above the rows; on the rail, out of sight, none.)
@@ -19821,6 +19849,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const first = (/** @type {HTMLElement | undefined} */ each) => /** @type {HTMLElement | null | undefined} */ (each?.querySelector(".nav-item, .list-head-name"));
         const level = (/** @type {HTMLElement} */ each) => (each.classList.contains("list-head") ? -1 : depthOf(each));
         if (!row) return;
+        // (Its menu, as a right-click on it is: the menu key, ⇧F10; the focus back on the row as it closes. The browser's
+        // own right-click from the same key, after it, not a second one.)
+        if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+          const button = /** @type {HTMLElement | null} */ (row.querySelector(".nav-item, .list-head-name"));
+          if (!button) return;
+          event.preventDefault();
+          const box = button.getBoundingClientRect();
+          keyMenuAt = performance.now();
+          button.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.left + 16, clientY: box.bottom }));
+          if (!$("menu").hidden) menuOwner = button;
+          return;
+        }
         if (!event.altKey && !event.metaKey && !event.ctrlKey && ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
           const at = rows.indexOf(row);
           if (at < 0) return;
@@ -19855,7 +19895,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${id}"]`))?.focus();
       });
 
-      $("new-chart").addEventListener("click", newChart);
       $("keep").addEventListener("click", () => keepPreview());
       $("preset-copy").addEventListener("click", () => copyPreset(presetIndex(chart)));
       $("preset-reset").addEventListener("click", () => resetPreset(chart));
@@ -22717,6 +22756,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return rows;
       }
       document.addEventListener("contextmenu", (event) => {
+        // (The browser's own, after the menu key opened a row's menu: that one's open.)
+        if (event.isTrusted && performance.now() - keyMenuAt < 500 && closest(event, "#chart-list")) return void event.preventDefault();
         const tile = closest(event, "[data-home-card]");
         if (tile && !closest(event, ".tile-rename")) {
           event.preventDefault();
