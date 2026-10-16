@@ -4738,8 +4738,8 @@
 
       /* The levels, as the bands they make: the highest first, each a row (its color, its name, the value it's from, its
          ⋯), under small heads; the band under them all last. */
-      /* (One field, as the colors' editor is: on its ground, a rule between the bands, what's in it without boxes of its
-         own till pointed at or typed in.) */
+      /* (One field, as every field is (its ground, its edge), a rule between the bands, what's in it without boxes of its
+         own till pointed at or typed in, then ringed as a field is.) */
       .levels {
         display: grid;
         grid-template-columns: 24px minmax(0, 1fr) minmax(88px, 32%) 24px;
@@ -4747,7 +4747,8 @@
         width: 100%;
         padding: 0 6px;
         border-radius: var(--radius-md);
-        background: light-dark(rgb(0 0 0 / 0.055), var(--field));
+        background: var(--field);
+        box-shadow: inset 0 0 0 1px var(--line-strong);
 
         .level {
           display: grid;
@@ -4761,18 +4762,19 @@
           }
         }
 
-        .number-input {
-          border-color: transparent;
+        :is(.number-input, .level-name) {
           background: none;
           box-shadow: none;
 
           &:hover:where(.can-hover *) {
             background: var(--hover);
+            box-shadow: none;
           }
 
           &:focus {
-            border-color: var(--line-strong);
-            background: var(--raise);
+            outline: none;
+            background: var(--field);
+            box-shadow: var(--field-focus);
           }
         }
 
@@ -4803,11 +4805,10 @@
 
         .level-name {
           min-width: 0;
-          height: 32px;
-          border: 1px solid transparent;
+          height: 28px;
+          border: 0;
           border-radius: var(--radius-md);
-          padding: 0 8px;
-          background: none;
+          padding: 0 9px;
           font: inherit;
           font-size: 13px;
           font-weight: 510;
@@ -4818,15 +4819,6 @@
             font-weight: 400;
           }
 
-          &:hover:where(.can-hover *) {
-            background: var(--hover);
-          }
-
-          &:focus {
-            outline: none;
-            border-color: var(--line-strong);
-            background: var(--raise);
-          }
         }
 
         /* (As a value's field writes it: the number as typed.) */
