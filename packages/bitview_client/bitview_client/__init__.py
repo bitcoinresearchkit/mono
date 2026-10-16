@@ -164,7 +164,7 @@ OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return",
 # Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
 OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty", "unknown"]
 # Protocol or format detected in an OP_RETURN output.
-OpReturnKind = Literal["runes", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "open_timestamps", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "epobc", "bare_hash", "text", "empty", "unknown"]
+OpReturnKind = Literal["runes", "witness_commitment", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "open_timestamps", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "epobc", "bare_hash", "text", "empty", "unknown"]
 # Content hash of the projected next block (block 0 of the mempool
 # snapshot), including its statistics and complete transaction bodies.
 # Opaque token, distinct from HTTP ETag formatting: pass back
@@ -4516,6 +4516,7 @@ class Policies(_Node):
 
 class Protocols(_Node):
     runes: Multiple = _at(Multiple, '*_runes')
+    witness_commitment: Multiple = _at(Multiple, '*_witness_commitment')
     veri_block: Multiple = _at(Multiple, '*_veri_block')
     omni: Multiple = _at(Multiple, '*_omni')
     stacks: Multiple = _at(Multiple, '*_stacks')

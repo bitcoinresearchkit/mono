@@ -12,6 +12,7 @@ use crate::Auth;
 use crate::AsyncClient;
 
 mod block_template;
+mod http;
 mod inner;
 mod mempool_entry;
 mod mempool_state;

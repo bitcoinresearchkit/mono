@@ -3,7 +3,7 @@ use brk_types::{Height, Sats, TxIndex, Version};
 
 // One version for all data sources
 // Increment on **change _OR_ addition**
-pub const VERSION: Version = Version::new(43);
+pub const VERSION: Version = Version::new(44);
 
 /// A BIP30 duplicate coinbase (https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki): it re-created
 /// an earlier coinbase's txid and overwrote that coinbase's unspent outputs, as in Bitcoin Core.

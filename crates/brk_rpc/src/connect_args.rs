@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf};
+use std::{env, net::Ipv6Addr, path::PathBuf};
 
 use brk_error::{Error, Result};
 
@@ -29,11 +29,14 @@ impl ConnectArgs {
     }
 
     fn url(&self) -> String {
-        format!(
-            "http://{}:{}",
-            self.rpcconnect.as_deref().unwrap_or("localhost"),
-            self.rpcport.unwrap_or(8332)
-        )
+        let host = self.rpcconnect.as_deref().unwrap_or("localhost");
+        let port = self.rpcport.unwrap_or(8332);
+        // An IPv6 address (`::1`) needs brackets before the port.
+        if host.parse::<Ipv6Addr>().is_ok() {
+            format!("http://[{host}]:{port}")
+        } else {
+            format!("http://{host}:{port}")
+        }
     }
 
     /// Relative cookie paths are inside the data directory, like `bitcoin-cli`'s.

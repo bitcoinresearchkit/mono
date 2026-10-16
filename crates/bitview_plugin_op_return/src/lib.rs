@@ -16,7 +16,7 @@ use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use breakdown::{BucketVecs, KindBreakdownVecs, PolicyBreakdownVecs};
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("op_return"), Version::new(10));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("op_return"), Version::new(11));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable, Plugin)]

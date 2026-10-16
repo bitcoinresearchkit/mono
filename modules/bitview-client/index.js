@@ -832,7 +832,7 @@ mainnet, as mempool.space
 /**
  * Protocol or format detected in an OP_RETURN output.
  *
- * @typedef {("runes"|"veri_block"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coin_spark"|"poet"|"docproof"|"open_timestamps"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"epobc"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
+ * @typedef {("runes"|"witness_commitment"|"veri_block"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coin_spark"|"poet"|"docproof"|"open_timestamps"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"epobc"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
  */
 /**
  * Optional UNIX timestamp query parameter
@@ -5665,6 +5665,7 @@ const _Policies = _s({
 /**
  * @typedef {{
  *   runes: Multiple,
+ *   witnessCommitment: Multiple,
  *   veriBlock: Multiple,
  *   omni: Multiple,
  *   stacks: Multiple,
@@ -5691,6 +5692,7 @@ const _Policies = _s({
  */
 const _Protocols = _s({
   runes: [_Multiple, '*_runes'],
+  witnessCommitment: [_Multiple, '*_witness_commitment'],
   veriBlock: [_Multiple, '*_veri_block'],
   omni: [_Multiple, '*_omni'],
   stacks: [_Multiple, '*_stacks'],

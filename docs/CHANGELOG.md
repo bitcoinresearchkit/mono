@@ -12,7 +12,7 @@ A workspace-wide refactor: one job per crate, typed series values, a typed error
 composition model, and many correctness fixes.
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
-size), so every stored vector resets; the indexer reindexes (indexer version 43) and every plugin recomputes. Nothing
+size), so every stored vector resets; the indexer reindexes (indexer version 44) and every plugin recomputes. Nothing
 has to be deleted by hand.
 
 ### Breaking Changes
@@ -941,7 +941,8 @@ has to be deleted by hand.
   transactions plugin's per-block fee statistics keep mempool.space's rank
 - OP_RETURN: coinbase transactions no longer count in the pre-v30 policy categories, documented as size/count
   categories; kind descriptions corrected (Po.et vs Proof of Existence, the OpenTimestamps tag, length/prefix
-  heuristics; `komodo` counts SegWit witness commitments)
+  heuristics). A new `witness_commitment` protocol matches the BIP141 header (a 36-byte push beginning `aa21a9ed`),
+  so `komodo` no longer counts every SegWit coinbase commitment
 - Transactions: the ephemeral-dust policy switch uses the indexer's v29 height, 892,500 (was 905,000)
 - Coarse calendar periods' `date` is the period's start (was its first block's date: empty periods repeated the next
   one's)
@@ -1101,7 +1102,11 @@ has to be deleted by hand.
   and template body); a replacement is recorded when its replacer was already pooled, and when both arrive in one
   poll outspends point to the replacer; template entries synthesized without `getmempoolentry` get Core's
   sigop-adjusted vsize; live keys are keyed hashes of txids, so ground prefix collisions cannot corrupt the pool
-- The blocking RPC client rejects non-`http://` URLs (it sent `https` URLs, credentials included, over plain TCP)
+- The blocking RPC client has its own HTTP/1.1 transport (was `jsonrpc`'s `simple_http`): a node closing the
+  connection mid-headers fails the call (it spun forever holding the shared socket), chunked bodies are read,
+  concurrent callers use pooled keep-alive sockets instead of queueing on one, a socket the node closed while idle is
+  replayed once, and a rejected cookie is re-read and retried once. Non-`http://` URLs are rejected (`https` URLs were
+  sent, credentials included, over plain TCP), and an IPv6 `rpcconnect` gets its brackets
 - Website: weak ETags (`W/"hash"`), `Vary: Accept-Encoding`, 304s without `Content-Length`; filesystem mode is limited
   to 2 concurrent responses and gets the request deadline
 - importmap: stylesheet links between the markers keep all their attributes and external links; multiline tags work

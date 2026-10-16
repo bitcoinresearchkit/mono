@@ -35,6 +35,7 @@ pub const OP_RETURN_KIND_COUNT: usize = OpReturnKind::Unknown as usize + 1;
 #[repr(u8)]
 pub enum OpReturnKind {
     Runes,
+    WitnessCommitment,
     VeriBlock,
     Omni,
     Stacks,
@@ -61,6 +62,7 @@ pub enum OpReturnKind {
 
 const OP_RETURN_KINDS: [OpReturnKind; OP_RETURN_KIND_COUNT] = [
     OpReturnKind::Runes,
+    OpReturnKind::WitnessCommitment,
     OpReturnKind::VeriBlock,
     OpReturnKind::Omni,
     OpReturnKind::Stacks,

@@ -1690,6 +1690,7 @@ pub mod tree {
     } }
     shape! { Protocols at "series().op_return.protocols" {
         runes: Multiple = "*_runes",
+        witness_commitment: Multiple = "*_witness_commitment",
         veri_block: Multiple = "*_veri_block",
         omni: Multiple = "*_omni",
         stacks: Multiple = "*_stacks",

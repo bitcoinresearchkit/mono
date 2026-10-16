@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 use bitcoin::Txid as BitcoinTxid;
@@ -16,7 +16,11 @@ use serde_json::{json, to_vec};
 use tokio::{fs as TokioFs, sync::Mutex};
 
 use super::connection::{Connection, Exchange};
-use crate::{Auth, auth::cookie_error, rpc_client, rpc_response};
+use crate::{
+    Auth,
+    auth::{cookie_error, read_cookie},
+    rpc_client, rpc_response,
+};
 
 pub struct Inner {
     connection: Mutex<Option<Connection>>,
@@ -39,9 +43,7 @@ impl Inner {
                 (None, Some(authorization(&format!("{user}:{password}"))?))
             }
             Auth::CookieFile(path) => {
-                let cookie =
-                    fs::read_to_string(&path).map_err(|error| cookie_error(&path, error))?;
-                let header = authorization(cookie.trim())?;
+                let header = authorization(&read_cookie(&path).map_err(Error::IO)?)?;
                 (Some(path), Some(header))
             }
         };

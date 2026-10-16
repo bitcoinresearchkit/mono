@@ -35,13 +35,14 @@ macro_rules! define_by_kind {
 
 define_by_kind! {
     runes => Runes, "Restricted to OP_RETURN outputs classified as Runes by their payload opcode.",
+    witness_commitment => WitnessCommitment, "Restricted to OP_RETURN outputs that start with the BIP141 witness commitment header (a 36-byte push beginning `aa21a9ed`), which SegWit-era coinbases carry.",
     veri_block => VeriBlock, "Restricted to otherwise-unmarked OP_RETURN outputs with exactly 82 post-OP_RETURN bytes: a length heuristic for VeriBlock publications, not a protocol marker.",
     omni => Omni, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Omni marker.",
     stacks => Stacks, "Restricted to OP_RETURN outputs whose first pushed payload starts with a Stacks marker.",
     blockstack => Blockstack, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Blockstack marker.",
     colu => Colu, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Colu marker.",
     open_assets => OpenAssets, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Open Assets marker.",
-    komodo => Komodo, "Restricted to otherwise-unmarked OP_RETURN outputs with 36 to 38 post-OP_RETURN bytes: a length heuristic for Komodo notarizations, not a protocol marker, which also matches SegWit witness commitments in coinbase transactions.",
+    komodo => Komodo, "Restricted to otherwise-unmarked OP_RETURN outputs with 36 to 38 post-OP_RETURN bytes: a length heuristic for Komodo notarizations, not a protocol marker.",
     coin_spark => CoinSpark, "Restricted to OP_RETURN outputs whose first pushed payload starts with the CoinSpark marker.",
     poet => Poet, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Po.et marker `POET`.",
     docproof => Docproof, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Proof of Existence marker `DOCPROOF`.",

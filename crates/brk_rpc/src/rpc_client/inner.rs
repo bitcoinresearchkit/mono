@@ -1,12 +1,10 @@
-use std::{fs::read_to_string, thread::sleep, time::Duration};
+use std::{thread::sleep, time::Duration};
 
 use brk_error::{Error, Result};
 use corepc_jsonrpc::{
     Client as JsonRpcClient, Request, Response,
     error::{Error as JsonRpcError, RpcError},
-    simple_http,
 };
-use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use serde_json::{
     from_str,
@@ -14,8 +12,11 @@ use serde_json::{
 };
 use tracing::{debug, info, warn};
 
-use super::rpc_call::RpcCall;
-use crate::{Auth, auth::cookie_error};
+use super::{
+    http::{Http, HttpError},
+    rpc_call::RpcCall,
+};
+use crate::Auth;
 
 /// Connection-loss retries before giving up: effectively wait for the node forever.
 const MAX_RETRIES: usize = 1_000_000;
@@ -23,63 +24,23 @@ const RETRY_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Debug)]
 pub struct ClientInner {
+    /// Kept for [`ClientInner::asynchronous`].
+    #[cfg(feature = "async")]
     pub url: String,
+    #[cfg(feature = "async")]
     pub auth: Auth,
-    /// The client and the cookie it authenticates with (cookie auth only), swapped together.
-    client: RwLock<(JsonRpcClient, Option<String>)>,
+    client: JsonRpcClient,
 }
 
 impl ClientInner {
     pub fn new(url: &str, auth: Auth) -> Result<Self> {
-        // The transport also takes `https` (or no scheme) but always speaks plain TCP: it would
-        // send the credentials unencrypted.
-        if !url.starts_with("http://") {
-            return Err(Error::Internal("node RPC requires an HTTP URL"));
-        }
-        let (client, cookie) = Self::create_client(url, &auth)?;
         Ok(Self {
+            client: JsonRpcClient::with_transport(Http::new(url, &auth)?),
+            #[cfg(feature = "async")]
             url: url.to_string(),
+            #[cfg(feature = "async")]
             auth,
-            client: RwLock::new((client, cookie)),
         })
-    }
-
-    /// Builds a `jsonrpc::Client` using the `simple_http` transport, which
-    /// keeps a single pooled TCP socket with reconnect-on-failure. The
-    /// upstream `corepc-client` hard-wires `bitreq_http` (one TCP connect
-    /// per request), which collapses under concurrent load.
-    fn create_client(url: &str, auth: &Auth) -> Result<(JsonRpcClient, Option<String>)> {
-        let builder = simple_http::Builder::new()
-            .url(url)
-            .map_err(|e| Error::Parse(format!("bad rpc url: {e}")))?
-            .timeout(Duration::from_secs(60));
-        let (builder, cookie) = match auth {
-            Auth::None => (builder, None),
-            Auth::UserPass(u, p) => (builder.auth(u.clone(), Some(p.clone())), None),
-            Auth::CookieFile(path) => {
-                let cookie = read_to_string(path).map_err(|error| cookie_error(path, error))?;
-                let cookie = cookie.trim().to_owned();
-                (builder.cookie_auth(&cookie), Some(cookie))
-            }
-        };
-        Ok((JsonRpcClient::with_transport(builder.build()), cookie))
-    }
-
-    fn recreate(&self) -> Result<()> {
-        *self.client.write() = Self::create_client(&self.url, &self.auth)?;
-        Ok(())
-    }
-
-    /// After `rejected` was refused, whether the node has a new cookie: Bitcoin Core writes it
-    /// before serving RPC and answers 503 (retried as a lost connection) before deleting it, so a
-    /// rejection with the cookie unchanged, or unreadable, is real. Passwords and missing auth
-    /// never change.
-    fn cookie_changed(&self, rejected: Option<&str>) -> Result<bool> {
-        let Auth::CookieFile(path) = &self.auth else {
-            return Ok(false);
-        };
-        let cookie = read_to_string(path).map_err(|error| cookie_error(path, error))?;
-        Ok(rejected != Some(cookie.trim()))
     }
 
     pub fn call_with_retry<T, P>(&self, method: &str, args: &P) -> Result<T>
@@ -95,20 +56,10 @@ impl ClientInner {
                     "Trying to reconnect to Bitcoin Core (attempt {}/{})",
                     attempt, MAX_RETRIES
                 );
-                self.recreate().ok();
                 sleep(RETRY_DELAY);
             }
 
-            let (result, rejected_cookie) = {
-                let client = self.client.read();
-                let result = client.0.call::<T>(method, Some(&raw));
-                let rejected = match &result {
-                    Err(e) if is_auth_rejection(e) => client.1.clone(),
-                    _ => None,
-                };
-                (result, rejected)
-            };
-            match result {
+            match self.client.call::<T>(method, Some(&raw)) {
                 Ok(value) => {
                     if attempt > 0 {
                         info!(
@@ -118,18 +69,12 @@ impl ClientInner {
                     }
                     return Ok(value);
                 }
-                Err(e) if is_auth_rejection(&e) => {
-                    if !self.cookie_changed(rejected_cookie.as_deref())? {
-                        return Err(Error::RpcAuthFailed);
-                    }
-                    warn!("Bitcoin Core rejected the RPC cookie; waiting for its new cookie...");
-                }
                 Err(e) if is_retriable(&e) => {
                     if attempt == 0 {
                         warn!("Lost connection to Bitcoin Core; reconnecting...");
                     }
                 }
-                Err(e) => return Err(refusal(&e).unwrap_or_else(|| e.into())),
+                Err(e) => return Err(refusal(e)),
             }
         }
 
@@ -152,14 +97,13 @@ impl ClientInner {
         label: &str,
         calls: impl IntoIterator<Item = (&'a str, &'a RawValue)>,
     ) -> Result<Vec<Option<Response>>> {
-        let client = &self.client.read().0;
         let requests: Vec<Request> = calls
             .into_iter()
-            .map(|(method, params)| client.build_request(method, Some(params)))
+            .map(|(method, params)| self.client.build_request(method, Some(params)))
             .collect();
-        client.send_batch(&requests).map_err(|error| {
-            refusal(&error)
-                .unwrap_or_else(|| Error::Parse(format!("batch {label} failed: {error}")))
+        self.client.send_batch(&requests).map_err(|error| match refusal(error) {
+            Error::CorepcRPC(error) => Error::Parse(format!("batch {label} failed: {error}")),
+            refused => refused,
         })
     }
 
@@ -245,35 +189,28 @@ fn is_retriable(error: &JsonRpcError) -> bool {
     match error {
         // RPC_IN_WARMUP: the node is still loading.
         JsonRpcError::Rpc(e) => e.code == -28,
-        JsonRpcError::Transport(_) => match http_status(error) {
-            Some(408 | 429) | None => true,
-            Some(code) => !(400..500).contains(&code),
+        JsonRpcError::Transport(e) => match e.downcast_ref() {
+            Some(HttpError::Status(408 | 429)) => true,
+            Some(HttpError::Status(code)) => !(400..500).contains(code),
+            Some(HttpError::Cookie(_)) => false,
+            Some(HttpError::Malformed(_) | HttpError::Io(_)) | None => true,
         },
         _ => false,
     }
 }
 
-/// The node answered 401: it rejected the credentials.
-fn is_auth_rejection(error: &JsonRpcError) -> bool {
-    http_status(error) == Some(401)
-}
-
-/// The node refused the request itself, whatever its content.
-fn refusal(error: &JsonRpcError) -> Option<Error> {
-    match http_status(error)? {
-        401 => Some(Error::RpcAuthFailed),
-        403 => Some(Error::RpcForbidden),
-        _ => None,
-    }
-}
-
-/// The HTTP status of an answer without a JSON-RPC body.
-fn http_status(error: &JsonRpcError) -> Option<u16> {
-    match error {
-        JsonRpcError::Transport(e) => match e.downcast_ref() {
-            Some(simple_http::Error::HttpErrorCode(code)) => Some(*code),
-            _ => None,
+/// The node refused the request itself (credentials, `rpcallowip`), else the error as is.
+fn refusal(error: JsonRpcError) -> Error {
+    let JsonRpcError::Transport(boxed) = error else {
+        return error.into();
+    };
+    match boxed.downcast::<HttpError>() {
+        Ok(http) => match *http {
+            HttpError::Status(401) => Error::RpcAuthFailed,
+            HttpError::Status(403) => Error::RpcForbidden,
+            HttpError::Cookie(error) => Error::IO(error),
+            http => JsonRpcError::Transport(Box::new(http)).into(),
         },
-        _ => None,
+        Err(boxed) => JsonRpcError::Transport(boxed).into(),
     }
 }

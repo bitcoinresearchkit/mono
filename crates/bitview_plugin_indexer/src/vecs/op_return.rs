@@ -16,7 +16,8 @@ pub struct OpReturnVecs<M: StorageMode = Rw> {
     /// Heuristic classification of the indexed OP_RETURN output from the first
     /// non-empty pushed-data prefix, or from the full post-OP_RETURN byte count
     /// for length-based formats. `runes` is recognized from an immediate
-    /// `OP_13`; unmatched payloads are `text`, `bare_hash`, or `unknown`.
+    /// `OP_13` and `witness_commitment` from the BIP141 header; unmatched
+    /// payloads are `text`, `bare_hash`, or `unknown`.
     #[traversable(rename = "protocol")]
     pub kind: M::Stored<PcoVec<OpReturnIndex, OpReturnKind>>,
     /// Number of serialized locking-script bytes after the initial

@@ -26,7 +26,13 @@ pub fn analyze(script: &Script) -> Facts {
     }
 }
 
+/// BIP141: a 36-byte push of `aa21a9ed` and the 32-byte commitment, right after `OP_RETURN`.
+const WITNESS_COMMITMENT_HEADER: [u8; 5] = [0x24, 0xaa, 0x21, 0xa9, 0xed];
+
 fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
+    if data.len() >= 37 && data.starts_with(&WITNESS_COMMITMENT_HEADER) {
+        return OpReturnKind::WitnessCommitment;
+    }
     let Some(prefix) = prefix else {
         return OpReturnKind::Empty;
     };
