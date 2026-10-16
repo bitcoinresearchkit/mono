@@ -16777,8 +16777,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const drawnTiles = new Map();
       let drawnLayout = "";
       /**
-       * The page, where it is (see homeAt): at the top, shelves (the previews', your Library's, each leading to its page;
-       * the recommended; each section of the presets); your Library's page or a folder's, its charts as a grid, then each
+       * The page, where it is (see homeAt): at the top, shelves, each leading to its page (the previews', your Library's,
+       * the presets': their recommended); your Library's page or a folder's, its charts as a grid, then each
        * folder in it as a shelf; the presets' or a section's, the same; the previews', a grid. The search searches where
        * it is: at the top, everything.
        */
@@ -16987,9 +16987,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetGridHtml = (list) => `<div class="grid-tiles" data-list="${listAt()}">${list.slice(0, galleryShown).map(presetTileHtml).join("")}</div>${list.length > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, list.length - galleryShown))} more</button>` : ""}`;
       /** A shelf's steps, a page of tiles back and on (see stepShelf). */
       const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-shelf-step="-1" aria-label="Scroll back" data-tip="Scroll back">${ICONS.back}</button><button type="button" class="cap small shelf-step" data-shelf-step="1" aria-label="Scroll on" data-tip="Scroll on">${ICONS.next}</button>`;
-      /** A shelf: a section's first charts in a row, its name leading to it (the recommended's, nowhere). @param {string} name @param {number[]} list @param {string[] | null} to */
-      const shelfHtml = (name, list, to) => `<section class="shelf" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(list.length)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${list.slice(0, SHELF).map(presetTileHtml).join("")}</div></section>`;
-      /** The presets' side of the page, where it is (none in a folder of yours): at the top, under their name, the recommended, then each section as a shelf; in a section, its own as a grid, then each section in it. */
+      /**
+       * A shelf: a section's first charts in a row, its name leading to it (the recommended's, nowhere; the presets', at
+       * the top, the recommended, leading to all of them: `count`, how many that is).
+       * @param {string} name @param {number[]} list @param {string[] | null} to
+       */
+      const shelfHtml = (name, list, to, count = list.length) => `<section class="shelf" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${list.slice(0, SHELF).map(presetTileHtml).join("")}</div></section>`;
+      /** The presets' side of the page, where it is (none in your Library): at the top, one shelf (the recommended, leading to them all); on their page, the recommended, then each section as a shelf; in a section, its own as a grid, then each section in it. */
       function renderGallery() {
         const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
         const top = "top" in homeAt, shown = top || "path" in homeAt, path = "path" in homeAt ? homeAt.path : [];
@@ -17002,7 +17006,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!presets) void loadPresets().catch(() => {});
         // (Drawn as it is already, it stays: what's scrolled on it, focused, drawn, as it was.)
         // (A preset edited here shows as it is: drawn anew once one is.)
-        const spot = JSON.stringify([path, words, galleryShown]), drawn = JSON.stringify([spot, presets?.length ?? 0, presetsFailed, light, library.presets.map((doc) => `${doc.preset}@${doc.updated}`)]);
+        const spot = JSON.stringify([top, path, words, galleryShown]), drawn = JSON.stringify([spot, presets?.length ?? 0, presetsFailed, light, library.presets.map((doc) => `${doc.preset}@${doc.updated}`)]);
         if (drawn === galleryDrawn) return;
         // (The same place drawn anew (the theme switched): its scroll and its shelves' kept.)
         const kept = spot === gallerySpot ? galleryPlace() : null;
@@ -17025,7 +17029,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("gallery").innerHTML = head(found.length) + (found.length ? presetGridHtml(found) : `<p class="gallery-note">No presets match “${escape(field.value.trim())}”</p>`);
         } else {
           const { own, groups } = sectionAt(path);
-          $("gallery").innerHTML = [
+          // (At the top, the presets as one shelf, as your Library's is: the recommended, leading to them all.)
+          $("gallery").innerHTML = top ? shelfHtml("Presets", recommendedPresets(), [], presets.length) : [
             ...(path.length ? [] : [shelfHtml("Recommended", recommendedPresets(), null)]),
             ...(own.length ? [presetGridHtml(own)] : []),
             ...[...groups].map(([name, list]) => shelfHtml(name, list, [...path, name])),
@@ -18003,6 +18008,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           fitSoon($("chart-list"), true);
           drawKeys($("chart-list"));
         }
+        // (The presets' rows in sight: their marks, drawn as they come; those drawn already, nothing to watch; those
+        // gone, nothing to draw.)
+        presetRowsSeen.disconnect();
+        presetMarkQueue.clear();
+        for (const row of all$("[data-preset-row]", $("chart-list"))) if (!presetMarks.has(presetMarkKey(Number(row.dataset.presetRow)))) presetRowsSeen.observe(row);
         // The open one marked in place: a switch writes no row again (the focus on one stays where it is). (A preset's,
         // by which it is.)
         const openedPreset = current?.preset !== undefined ? presetIndex(current) : -1;
@@ -18064,8 +18074,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         presetRoot = { for: presets, node: root };
         return root;
       }
+      /** The presets' marks in the sidebar, as drawn (this visit's: made as their rows come into sight), by what each is of. @type {Map<string, any[]>} */
+      const presetMarks = new Map();
+      // (By the preset, as the website has it; edited here, by its copy as it is: nothing else changes it.)
+      const presetMarkKey = (/** @type {number} */ i) => ((doc) => (doc ? `${doc.id}@${doc.updated}` : presetKey(i)))(editedPreset(i));
+      /** A preset's mark, as its row shows it: drawn, else the empty one till it is. */
+      const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? []);
+      /** The preset rows in sight, their marks drawn one at a time; one gone out of sight before its turn, let go of. */
+      const presetMarkQueue = /** @type {Set<number>} */ (new Set());
+      const presetRowsSeen = new IntersectionObserver((entries) => {
+        for (const { target, isIntersecting } of entries) {
+          const i = Number(/** @type {HTMLElement} */ (target).dataset.presetRow);
+          if (isIntersecting && !presetMarks.has(presetMarkKey(i))) presetMarkQueue.add(i);
+          else presetMarkQueue.delete(i);
+        }
+        drawPresetMarks();
+      }, { root: $("chart-list") });
+      const drawPresetMarks = serial(async () => {
+        for (const i of presetMarkQueue) {
+          presetMarkQueue.delete(i);
+          if (!presets?.[i] || presetMarks.has(presetMarkKey(i))) continue;
+          const doc = presetDoc(i), key = presetMarkKey(i);
+          const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : { lines: [] };
+          if (!drawing) continue;
+          presetMarks.set(key, drawing.lines);
+          for (const [old] of presetMarks) if (presetMarks.size > 400) presetMarks.delete(old);
+          const mark = $("chart-list").querySelector(`[data-preset-row="${i}"] .chart-mark`);
+          if (mark) mark.outerHTML = presetMark(i);
+        }
+      });
       /**
-       * The presets in the sidebar, under your charts, under their name: their sections as folders are (a section's name
+       * The presets in the sidebar, under your Library, under their name: their sections as folders are (a section's name
        * opens its page, its icon opens or closes it here, as kept), the presets in an open one as charts are (one opens it).
        * @returns {[string, string][]}
        */
@@ -18086,7 +18125,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           if (depth) for (const i of node.own) {
             const doc = editedPreset(i), title = escape(doc ? titleOf(doc) : /** @type {Preset[]} */ (presets)[i].t), edited = Boolean(doc && presetEdited(doc));
-            parts.push([`preset:${i}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${i}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${i}" data-tip="${title}${edited ? ": edited here" : ""}"><span class="chart-mark">${ICONS.charts}</span><span class="label">${title}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`]);
+            parts.push([`preset:${i}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${i}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${i}" data-tip="${title}${edited ? ": edited here" : ""}">${presetMark(i)}<span class="label">${title}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`]);
           }
         };
         walk(root, 0);
