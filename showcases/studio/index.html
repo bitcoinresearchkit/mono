@@ -9902,7 +9902,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
        * @typedef {{ id: string, name: string, parent?: string, closed?: true }} Folder A folder of charts and folders, in
        *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
-       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, updated: number }} Chart
+       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
        * @typedef {"trend" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
        * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
        *   opacity?: number, extend?: "right" | "both", arrow?: boolean, text?: string, label?: string, at?: number, size?: number, back?: string }} Drawing
@@ -10071,8 +10071,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function blankChart(title = "") {
         return { id: uid(), title, index: "day1", range: DEFAULT_RANGE, panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
       }
-      /** Charts started empty here (New chart, a first visit, the last one deleted): the person's own from their first edit (another's preview, a link's or a website's, is kept only by Keep). */
+      /** Charts started empty in their stead, nothing else there (a first visit, the last one deleted): the person's own from their first edit (a link's preview is kept only by Keep). */
       const drafts = new WeakSet();
+      /**
+       * A chart of yours New chart made that's never had anything in it (`blank`, kept till its first content, a reload
+       * through): left so, it goes, as a note left empty does. (One emptied since is a chart still: it stays.)
+       * @param {Chart} doc
+       */
+      const emptyYours = (doc) => isYours(doc) && doc.blank === true && !doc.layers.length && !doc.title && !doc.drawings?.length;
       /** A chart started here and kept by an edit: the undo steps it had once kept (that step undone, a draft again). @type {WeakMap<Chart, number>} */
       const keptByEdit = new WeakMap();
       const draftChart = () => ((doc) => (drafts.add(doc), doc))(blankChart());
@@ -10236,6 +10242,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A preset's, which one it is: the library's too.)
         if (typeof stored.preset === "string" && stored.preset.length <= 2000) doc.preset = stored.preset;
         if (typeof stored.base === "string" && /^[a-z0-9]{1,24}$/.test(stored.base)) doc.base = stored.base;
+        if (stored.blank === true) doc.blank = true;
         doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;
         return doc;
       }
@@ -10383,6 +10390,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (at < 0) return;
         library.charts.splice(at, 1);
         library.deleted[doc.id] = Math.max(Date.now(), doc.updated, library.deleted[doc.id] ?? 0);
+      };
+      /**
+       * An empty chart of yours let go of (see emptyYours): out of the list, deleted as of its last edit only (another tab's
+       * work on it since, not saved yet here, wins).
+       */
+      const dropEmpty = (/** @type {Chart} */ doc) => {
+        const at = library.charts.indexOf(doc);
+        if (at < 0) return;
+        library.charts.splice(at, 1);
+        // (Within the month deletions are kept, or it'd be pruned before another tab hears.)
+        library.deleted[doc.id] = Math.max(doc.updated, Date.now() - 29 * 86400000, library.deleted[doc.id] ?? 0);
       };
       /** A deleted chart back (its Undo): edited now, after its deletion, wherever that's known; its folder gone since, at the top. @param {Chart} doc */
       const recover = (doc) => {
@@ -10740,6 +10758,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const before = JSON.stringify(chart);
         edit(chart);
         normalize(chart);
+        // (Something in it at last: a chart, not a blank one New chart made, for good.)
+        if (chart.blank && (chart.layers.length || chart.title || chart.drawings?.length)) delete chart.blank;
         if (JSON.stringify(chart) === before) return;
         const now = Date.now();
         // One step: a drag's edits, however long it lasts (the next drag, another); typed ones a second apart.
@@ -10965,8 +10985,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         brokenLink = "";
         const previous = chart;
         chart = doc;
-        // (A preset left as it was: nothing of it kept.)
+        // (A preset left as it was: nothing of it kept; a chart New chart made, left as it came, the same.)
         if (previous?.preset !== undefined && previous !== doc) prunePresets(doc);
+        if (previous && previous !== doc && emptyYours(previous) && library.charts.includes(previous)) dropEmpty(previous);
         // (Quick Look's isn't where Studio opens next, nor one of the charts last opened.)
         const lookOnly = isQuick(doc);
         if (!lookOnly) library.active = doc.id;
@@ -11001,7 +11022,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return history.back();
         }
         const back = previousChart();
-        if (!isPreview(chart) || chart.layers.length || !back) return;
+        if (!(isPreview(chart) || emptyYours(chart)) || chart.layers.length || !back) return;
         // (The focus on the chart gone back to: its row, else its title.)
         keepFocus(null, () => $("chart-list").querySelector(`[data-open-chart="${CSS.escape(back.id)}"]`), () => $("plot-keys"), () => $("new-chart"));
         // (An empty preview left simply goes.)
@@ -17381,7 +17402,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           savePreviews();
         }
         // Taken back only when Cancel (or esc) is the way there; another way, it stays (as a chart left for another).
-        const draft = cancelling === chart.id && previousChart() ? chart : null;
+        const draft = (cancelling === chart.id && previousChart()) || emptyYours(chart) ? chart : null;
         cancelling = "";
         hideMenu();
         putDown();
@@ -17397,7 +17418,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Once the page as it was is pictured (the new chart, empty), it's taken back and the one before it goes under
           // the grid (else that one's foot would show, fading, as the page leaves).
           // (An empty preview left simply goes.)
-          if (draft) openChart(previousChart() ?? library.charts[0]);
+          if (draft) openChart(previousChart() ?? newDraft());
           document.body.toggleAttribute("data-home", true);
           refresh("none");
           // (Back to the gallery from a chart opened from it: where it was.)
@@ -17461,7 +17482,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A new chart being cancelled on the way back to the grid (it's taken back once there). */
       let cancelling = "";
       /** A new chart, untouched, opened from the grid: leaving it goes back there. */
-      const backToHome = () => isPreview(chart) && history.state?.fromHome === true && history.state.chart === chart.id;
+      const backToHome = () => (isPreview(chart) || emptyYours(chart)) && history.state?.fromHome === true && history.state.chart === chart.id;
       // Back and Forward, between the grid and the charts opened from it.
       /** Back, Forward or a link pasted in: whatever dialog is open closes first. */
       const closeDialogs = () => all$("dialog[open]").forEach((dialog) => /** @type {HTMLDialogElement} */ (dialog).close());
@@ -17536,9 +17557,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else homeScroll().scrollTop = 0;
           return;
         }
-        // (A preset's step, its chart let go of since (left as it was): made again.)
-        const preset = typeof event.state?.chart === "string" ? presetById(event.state.chart) : -1;
-        go(chartById(event.state?.chart) ?? (preset >= 0 ? presetChart(preset) : chart), false);
+        // (A preset's step, its chart let go of since (left as it was): made again. Another's gone (an empty one let go
+        // of): nowhere, the step where it is now.)
+        const preset = typeof event.state?.chart === "string" ? presetById(event.state.chart) : -1, doc = chartById(event.state?.chart) ?? (preset >= 0 ? presetChart(preset) : undefined);
+        if (!doc) return void history.replaceState(home ? homeState() : { chart: chart.id }, "");
+        go(doc, false);
       });
       /**
        * A sheet dragged by its top, one pointer at a time: `grab`, a press there starts it (or not); `move`, how far it's
@@ -18674,23 +18697,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
       }
       /**
-       * A blank chart, where to start from (series, a website chart, a file), as a preview: in the list once something's in
-       * it. One already open, empty, is the one (brought to the fore).
+       * A blank chart, where to start from (series, a preset, a file): yours at once, first in your charts (on a folder's
+       * page, in it); left as it came, it goes (see emptyFresh). One just made, still as it came, open: that one.
        */
       function newChart() {
         delete document.body.dataset.sheet;
-        // (A preview until something's in it: one already open, empty, is the one.)
-        // (The empty preview already open taken up again: started here now, as a new one is.)
-        if (!(isPreview(chart) && !chart.layers.length && !chart.title)) showPreview(draftChart());
-        else (drafts.add(chart), leaveHome(() => {}));
+        if (emptyYours(chart)) leaveHome(() => {});
+        else {
+          const doc = /** @type {Chart} */ ({ ...blankChart(), blank: true }), folder = home && "folder" in homeAt ? folderById(homeAt.folder) : undefined;
+          if (folder) doc.folder = folder.id;
+          library.charts.unshift(doc);
+          save();
+          leaveHome(() => openChart(doc));
+        }
         void until(() => !document.body.hasAttribute("data-home"), 1000).then(() => /** @type {HTMLElement | null} */ ($("empty").querySelector(".search-cta"))?.focus());
       }
-      /** A template on the empty chart of yours on screen, in one undoable step (a title it has stays); else (a preview, a chart with something in it, the grid) as a preview of its own. */
+      /** A template on the empty chart of yours on screen (see pickPreset), in one undoable step (a title it has stays). */
       function useTemplate(template) {
         delete document.body.dataset.sheet;
         const made = fromTemplate(template);
-        // (On a preview, or with something here: the template as a preview of its own; else, on the empty chart that's yours.)
-        if (chart.layers.length || home || isPreview(chart)) return showPreview(made);
         commit((doc) => {
           doc.title ||= made.title;
           Object.assign(doc, { index: made.index, range: made.range, panes: made.panes, layers: made.layers });
@@ -26310,7 +26335,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("chart").classList.toggle("unseen", unseen);
         // A new chart, empty, can be left with Escape (or Cancel), for the chart before it: taken back.
         const back = chart.layers.length ? null : previousChart();
-        $("leave-empty").hidden = !isPreview(chart) || (!back && !backToHome());
+        $("leave-empty").hidden = !(isPreview(chart) || emptyYours(chart)) || (!back && !backToHome());
         if (backToHome()) $("leave-empty").dataset.tip = `Back to ${$("home-title").textContent}`;
         else if (back) $("leave-empty").dataset.tip = `Back to ${titleOf(back)}`;
         // An empty chart is the empty state's to fill: no panel beside it, nothing to export or share yet.
@@ -26631,7 +26656,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (document.body.dataset.sheet) delete document.body.dataset.sheet;
           else if (!home && tablet.matches && panelShown()) togglePanel(false);
           // A new chart left empty: Escape takes it back, as its Cancel button does.
-          else if (!home && !chart.layers.length && isPreview(chart) && (previousChart() || backToHome())) leaveEmpty();
+          else if (!home && !chart.layers.length && (isPreview(chart) || emptyYours(chart)) && (previousChart() || backToHome())) leaveEmpty();
         } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
         else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
         else if ((event.key === "Backspace" || event.key === "Delete") && (chosen.size || layerPicks.size || selected)) chosen.size ? removeDrawings([...chosen]) : layerPicks.size ? layersBatch("remove") : removeLayer(selected);
@@ -27668,6 +27693,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // shared link opens its chart; a first visit, the presets.
         const there = shared ? null : history.state;
         chart = (there?.chart && chartById(there.chart)) || chart;
+        // (Blank charts left elsewhere (a tab closed on one): let go of, the one open here aside.)
+        for (const doc of library.charts.filter((doc) => doc !== chart && emptyYours(doc))) dropEmpty(doc);
         home = !shared && Boolean(there ? there.home : first || prefs.home);
         document.body.toggleAttribute("data-home", home);
         // (All charts as this tab's step has it, whichever view another tab left; reloaded in Quick Look, back in it once
