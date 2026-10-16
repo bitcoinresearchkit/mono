@@ -1379,6 +1379,11 @@
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
 
+        /* (A named value: in its band's color, see .named.) */
+        &.named {
+          color: light-dark(color-mix(in oklab, var(--c), black 32%), var(--c));
+        }
+
         /* A cloud's: its highest over its lowest. */
         &[data-lines] {
           line-height: 16px;
@@ -2428,6 +2433,11 @@
           .legend-value {
             box-sizing: content-box;
             color: var(--ink);
+
+            /* (A named value: in its band's color, see .named.) */
+            &.named {
+              color: light-dark(color-mix(in oklab, var(--c), black 32%), var(--c));
+            }
           }
         }
       }
@@ -4714,6 +4724,8 @@
         gap: 6px;
       }
 
+      /* A level: its line's look, its value, removing it; under its value, its name (what the values from it up read
+         as), quiet till it has one. */
       .field .level {
         display: flex;
         align-items: center;
@@ -4724,21 +4736,127 @@
         }
       }
 
-      /* Under its levels, colored by them: its own color, said by where it is (in line with the levels' values). */
-      .field .level.under {
+      /* The levels, as the bands they make: the highest first, each a row (its color, its name, the value it's from, its
+         ⋯), under small heads; the band under them all last. */
+      /* (One field, as the colors' editor is: on its ground, a rule between the bands, what's in it without boxes of its
+         own till pointed at or typed in.) */
+      .levels {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr) minmax(88px, 32%) 24px;
+        column-gap: 4px;
         width: 100%;
+        padding: 0 6px;
+        border-radius: var(--radius-md);
+        background: light-dark(rgb(0 0 0 / 0.055), var(--field));
 
-        .spacer {
-          flex: none;
-          visibility: hidden;
+        .level {
+          display: grid;
+          grid-column: 1 / -1;
+          grid-template-columns: subgrid;
+          align-items: center;
+          min-height: 40px;
+
+          & + .level {
+            border-top: 1px solid var(--line);
+          }
         }
 
-        .under-label {
-          flex: 1;
-          padding: 0 9px;
+        .number-input {
+          border-color: transparent;
+          background: none;
+          box-shadow: none;
+
+          &:hover:where(.can-hover *) {
+            background: var(--hover);
+          }
+
+          &:focus {
+            border-color: var(--line-strong);
+            background: var(--raise);
+          }
+        }
+
+        /* Where its band starts: ≥ its value (to the next one up); the band under them all, < the lowest. The sign in the
+           value's field, the numbers in line. */
+        .sign {
+          position: absolute;
+          top: 50%;
+          left: 10px;
           color: var(--muted);
           font-size: 13px;
+          pointer-events: none;
+          transform: translateY(-50%);
         }
+
+        .number-field .number-input {
+          padding-left: 25px;
+        }
+
+        /* (No unit, no room kept for one; one, as much as it takes.) */
+        .number-field:has(> .unit:empty) .number-input {
+          padding-right: 10px;
+        }
+
+        .number-field:has(> .unit:not(:empty)) .number-input {
+          padding-right: 42px;
+        }
+
+        .level-name {
+          min-width: 0;
+          height: 32px;
+          border: 1px solid transparent;
+          border-radius: var(--radius-md);
+          padding: 0 8px;
+          background: none;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 510;
+          text-overflow: ellipsis;
+
+          &::placeholder {
+            color: var(--muted);
+            font-weight: 400;
+          }
+
+          &:hover:where(.can-hover *) {
+            background: var(--hover);
+          }
+
+          &:focus {
+            outline: none;
+            border-color: var(--line-strong);
+            background: var(--raise);
+          }
+        }
+
+        /* (As a value's field writes it: the number as typed.) */
+        .under-label {
+          position: relative;
+          padding: 0 0 0 26px;
+          color: var(--muted);
+          font-size: 13px;
+          font-variant-numeric: tabular-nums;
+        }
+      }
+
+      .levels-field .levels-unit {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      /* A name in its band's color, as a value reads (the legend, the panel, a level's field): on a light ground, a
+         darker shade of it, to be read. */
+      .named {
+        color: light-dark(color-mix(in oklab, var(--c, var(--ink)), black 32%), var(--c, var(--ink)));
+      }
+
+      [data-value].named {
+        display: inline-block;
+        max-width: 9.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
       }
 
       /* Rows of glyphs (types, line styles) share their row evenly like every row of tabs, each glyph at its drawn size
@@ -8396,8 +8514,8 @@
             <li>"colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend or a cloud with a "colorBelow": its one color, that second kept.</li>
             <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc); left out, the series' own look.</li>
             <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).</li>
-            <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis).</li>
-            <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis).</li>
+            <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
+            <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
             <li>"format": how its values read: usd, btc, sats, percent, ratio, count or number (by its unit if none).</li>
             <li>"pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.</li>
@@ -10084,7 +10202,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
-       *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number, tag?: boolean }, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean }} Layer
+       *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
        *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
        *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
@@ -10100,9 +10218,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   bar grows from the base, fainter where it fades back toward it (`colorFading` above, `colorBelowFading` below;
        *   unset, each side's color fainter: see fadingOf). A trend's or a cloud's 1: its one, its second (`colorBelow`) kept. Colors
        *   picked stay, whichever way it's colored.
-       * @typedef {{ value: number, color?: string, dash?: number, tag?: boolean }} Level A line across at a value: its color (else its
-       *   layer's) and its line style (else long dashes); its value on the axis only with `tag`. A baseline's base draws one
-       *   too (`baseLine`: gray, in sparse dots).
+       * @typedef {{ value: number, color?: string, dash?: number, line?: false, tag?: boolean, name?: string }} Level A line
+       *   across at a value: its color (else its layer's) and its line style (else long dashes; `line` false, none: its band
+       *   alone); its value on the axis only with `tag`; `name`, what a value from it up (to the next level) is called, read
+       *   in its color in place of the number (see bandOf; under them all, the layer's `underName`). A baseline's base draws
+       *   one too (`baseLine`: gray, in sparse dots).
        * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`:
        *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
        * @typedef {{ id: string, name: string, parent?: string, closed?: true }} Folder A folder of charts and folders, in
@@ -12662,7 +12782,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (shares.has(layer.pane)) return;
           const values = [...(layer.levels ?? []).map((level, i) => ({ key: String(i), value: level.value })), ...(layer.type === "baseline" ? [{ key: "base", value: baseOf(layer) }] : [])];
           for (const { key, value } of values) {
-            const { color, dash, tag } = lineLook(layer, key);
+            const { color, dash, tag, line } = lineLook(layer, key);
+            // (No line, its band alone: nothing across.)
+            if (line === false) continue;
             across.push({ layer, mode: modeOf(doc, layer), pane, format, value, color: op < 1 ? alpha(ink(color), op) : ink(color), dash, tag: Boolean(tag) });
           }
         };
@@ -13229,8 +13351,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const layer = layerById(element.dataset.value);
           const result = resolved?.results.get(element.dataset.value);
           if (!layer || !result || result.error) continue;
-          const value = valueAt(layer, point), text = result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
+          // (A named band's value: its name, in its color.)
+          const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
           if (element.textContent !== text) element.textContent = text;
+          const color = band ? cssColor(band.color) : "";
+          if ((element.dataset.band ?? "") !== color) {
+            element.dataset.band = color;
+            element.classList.toggle("named", Boolean(band));
+            if (band) element.style.setProperty("--c", color);
+            else element.style.removeProperty("--c");
+          }
         }
       }
       /**
@@ -13440,7 +13570,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function valueSlot(layer, size, lines = false) {
         const result = resolved?.results.get(layer.id), values = result?.shown;
         if (!values) return 0;
-        const unit = unitFor(layer, result), key = `${layer.id}:${unit}:${size}:${layer.from ? edgesOf(layer).join() : ""}:${lines ? "lines" : ""}`;
+        const unit = unitFor(layer, result), key = `${layer.id}:${unit}:${size}:${layer.from ? edgesOf(layer).join() : ""}:${lines ? "lines" : ""}:${named(layer) ? JSON.stringify([layer.underName, layer.levels?.map((level) => level.name)]) : ""}`;
         const measured = slotsNow();
         if (measured.has(key)) return measured.get(key);
         // A cloud's: its widest low, its widest high, and the dash between; to an edge, its value after a ≥ or ≤.
@@ -13451,7 +13581,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           measured.set(key, width);
           return width;
         }
-        const width = slotOf(values, unit, size);
+        // (Its names, where they're read in its numbers' place: the widest of either, a long one cut short.)
+        const width = Math.max(slotOf(values, unit, size), named(layer) ? Math.min(152, widest([...(layer.levels ?? []).flatMap((level) => (level.name ? [level.name] : [])), layer.underName ?? ""], 510, size)) : 0);
         measured.set(key, width);
         return width;
       }
@@ -13827,7 +13958,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const layer = layerById(element.dataset.change);
           const result = resolved.results.get(element.dataset.change);
           if (!layer || !result) continue;
-          const change = !layer.hidden && !result.error ? changeOver(layer, point) : null;
+          // (A named value's change says nothing: its name says where it is.)
+          const change = !layer.hidden && !result.error && !(named(layer) && bandOf(layer, valueAt(layer, point))) ? changeOver(layer, point) : null;
           // (Each written only where it changed: a crosshair's move restyles nothing else.)
           const name = `row-change ${change?.up === true ? "up" : change?.up === false ? "down" : ""}`, text = change ? chipText(change) : "";
           if (element.className !== name) element.className = name;
@@ -16770,7 +16902,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine]), leftView(doc.id), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName]), leftView(doc.id), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
@@ -16934,8 +17066,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (None in a 100% stack: a layer's levels are its own values', not shares.)
               const across = pane.stack === "percent" ? [] : [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", base]] : [])];
               for (const [key, value] of across) {
-                const yAt = y(scaled(value)), { color, dash } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
-                if (yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) });
+                const yAt = y(scaled(value)), { color, dash, line } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
+                if (line !== false && yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) });
               }
               const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
               const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) };
@@ -20692,6 +20824,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       let inspected = "";
+      /** How many levels the layer had as its panel was last drawn (a field kept as it's typed in only while they're the same). */
+      let inspectedLevels = 0;
       let expanded = false;
       /** The layer's actions as last written (written again only when they change). */
       let actionsShown = "";
@@ -20717,7 +20851,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // While typing into this layer's formula or name, keep the field (and its caret) as it is.
         const active = document.activeElement;
         // (Turned into a series meanwhile, or into a formula, it's drawn anew.)
-        if (inspected === layer.id && Boolean($("formula")) === (layer.formula !== undefined) && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-"))) {
+        // (Its levels taken off or added meanwhile (a field's index another level's now): drawn anew, the field too.)
+        const shape = (layer.levels ?? []).length;
+        if (active && inspected === layer.id && shape === inspectedLevels && Boolean($("formula")) === (layer.formula !== undefined) && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-"))) {
           updateFormula(layer);
           // (The interval may have changed: the spans offered follow.)
           suggestHere();
@@ -20727,8 +20863,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const another = inspected !== layer.id;
         if (another) expanded = false;
-        const focus = inspected === layer.id ? focusKey(panel) : null;
+        // (A level's field, its levels changed meanwhile: not put back by its index, another level's now.)
+        const focus = inspected === layer.id && !(shape !== inspectedLevels && active?.closest?.(".levels")) ? focusKey(panel) : null;
         inspected = layer.id;
+        inspectedLevels = (layer.levels ?? []).length;
         const result = resolved?.results.get(layer.id);
         const meta = result?.info;
         const isFormula = layer.formula !== undefined;
@@ -20793,9 +20931,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div></div>` : ""}
             ${layer.type === "area" ? `<div class="field"><span>Fill</span><div class="tabs" role="group" aria-label="Fill">${[["below", "Below", "Filled from the line down"], ["above", "Above", "Filled from the line up"]].map(([fill, text, tip]) => `<button type="button" data-fill="${fill}" aria-pressed="${(layer.fill ?? "below") === fill}" data-tip="${tip}">${text}</button>`).join("")}</div></div>` : ""}
             ${layer.type === "cloud" ? "" : `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`}
-            ${layer.from ? "" : `<div class="field"><span>Levels${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at a round value over the latest">${ICONS.plus}</button></span>${layer.byLevels ? `<span class="level under"><button type="button" id="color-select-under" class="cap small" data-color-select="under" aria-haspopup="menu" aria-label="Under its levels: ${escape(colorName(layer.color))}" data-tip="Under its levels"><i class="swatch" style="--c:${escape(cssColor(layer.color))}"></i></button><i class="cap small spacer" aria-hidden="true"></i><span class="under-label">Under ${escape(format(Math.min(...(layer.levels ?? []).map((level) => level.value)), unitFor(layer, result)))}</span></span>` : ""}${(layer.levels ?? []).map((level, i) => {
-              return `<span class="level">${lineButtons(layer, i, `Level ${i + 1}`)}<span class="number-field"><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="Level ${i + 1}" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /><span class="unit">${escape(fieldUnit(unit))}</span></span><button type="button" class="cap small" data-remove-level="${i}" aria-label="Remove level ${i + 1}" data-tip="Remove the level">${ICONS.trash}</button></span>`;
-            }).join("")}</div>`}
+            ${layer.from ? "" : levelsField(layer, unit, result)}
           </section>
           <section>
             <h3>Layout</h3>
@@ -21105,6 +21241,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function withoutLevel(layer, i) {
         const others = layer.levels?.filter((_, k) => k !== i);
         layer.levels = others?.length ? others : undefined;
+        // (No levels, no band under them.)
+        if (!layer.levels) delete layer.underName;
       }
       /**
        * A layer's levels made to color it: each without a color of its own given one (by value, lowest first, from
@@ -22031,14 +22169,32 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else if (target.id === "base") {
           const base = readNumber(target.value);
           if (Number.isFinite(base)) editLayer((layer) => (layer.base = base || undefined), { coalesce: `base:${selected}` });
+        } else if (target.id === "level-name-under") {
+          // (The band under its levels: what its values read as.)
+          const name = target.value.trim().slice(0, 40);
+          editLayer((layer) => (name ? (layer.underName = name) : delete layer.underName), { coalesce: `under-name:${selected}`, redraw: "none" });
+        } else if (target.id.startsWith("level-name-")) {
+          // (A level's name: what the values from it up read as, in its color.)
+          const i = Number(target.id.slice(11)), name = target.value.trim().slice(0, 40);
+          editLayer((layer) => {
+            const level = layer.levels?.[i];
+            if (!level) return;
+            if (name) level.name = name;
+            else delete level.name;
+          }, { coalesce: `level-name:${i}:${selected}`, redraw: "none" });
         } else if (target.id.startsWith("level-")) {
           const i = Number(target.id.slice(6)), level = readNumber(target.value);
           if (Number.isFinite(level)) editLayer((layer) => layer.levels?.[i] && (layer.levels[i].value = level), { coalesce: `level:${i}:${selected}` });
           // (Coloring it: the band under them and the select's swatch follow in place, the field kept as it's typed in.)
           const layer = layerById(selected), under = $("inspector").querySelector(".under-label"), swatch = $("color-select-color")?.querySelector(".swatch");
-          if (layer?.byLevels && under) under.textContent = `Under ${format(Math.min(...(layer.levels ?? []).map((item) => item.value)), unitFor(layer, resolved?.results.get(layer.id)))}`;
+          if (under && layer?.levels?.length) under.innerHTML = `<span class="sign" aria-hidden="true">&lt;</span><span class="vh">Under </span>${Math.min(...layer.levels.map((item) => item.value))}`;
           if (layer?.byLevels && swatch) swatch.outerHTML = bandsSwatch(layer);
         }
+      });
+      // A level's field left: the levels drawn again as they are now (in their order, the band under them shown once one's named).
+      $("inspector").addEventListener("focusout", (event) => {
+        if (!/** @type {HTMLElement} */ (event.target).closest?.(".levels")) return;
+        requestAnimationFrame(() => !$("inspector").querySelector(".levels")?.contains(document.activeElement) && renderInspector());
       });
       $("inspector").addEventListener("keydown", (event) => {
         // A picker (pane, format, color) opens its menu on ↑↓, as a select does: the keys don't go on to the layers.
@@ -22115,7 +22271,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorSelect, replace, removeLevel, lineColor, lineDash, lineTag, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
+        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorSelect, replace, removeLevel, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
         const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
         if (index) switchInterval(index);
         else if (slot) colorSlot.set(selected, slot), renderInspector();
@@ -22155,9 +22311,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "add-level") addLevel();
         else if (lineColor) lineMenu(button, lineColor, "color");
         else if (lineDash) lineMenu(button, lineDash, "dash");
+        else if (levelMenu) menuOf(button, levelRows(selected, Number(levelMenu)));
         else if (lineTag) {
           const layer = layerById(selected);
-          if (!layer || !lineAt(layer, lineTag)) return;
+          // (No line, no value on the axis: nothing to turn on.)
+          if (!layer || !lineAt(layer, lineTag) || lineLook(layer, lineTag).line === false) return;
           refocus(`[data-line-tag="${lineTag}"]`);
           const on = !lineLook(layer, lineTag).tag;
           setLineLook(selected, lineTag, "tag", on || undefined);
@@ -22205,9 +22363,91 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const lineAt = (layer, key) => (key === "base" ? layer.baseLine ?? {} : layer.levels?.[Number(key)]);
       const lineDefaults = (layer, key) => (key === "base" ? { color: "gray", dash: LC.LineStyle.SparseDotted } : { color: layer.color, dash: LC.LineStyle.LargeDashed });
       const lineLook = (layer, key) => ({ ...lineDefaults(layer, key), ...lineAt(layer, key) });
+      /**
+       * A value as its layer's levels name it: the highest level at or under it (as they color it, by levels; of two at one
+       * value, the first), if it's named: its name, in its color; under them all, the layer's `underName`, in its own. Not
+       * named there, none (the number, as ever).
+       * @param {Layer} layer @param {number} value @returns {{ name: string, color: string } | null}
+       */
+      function bandOf(layer, value) {
+        const levels = layer.levels;
+        if (!levels?.length || !Number.isFinite(value) || !(layer.underName || levels.some((level) => level.name))) return null;
+        let at = -1;
+        levels.forEach((level, i) => level.value <= value && (at < 0 || level.value > levels[at].value) && (at = i));
+        if (at < 0) return layer.underName ? { name: layer.underName, color: layer.color } : null;
+        return levels[at].name ? { name: /** @type {string} */ (levels[at].name), color: lineLook(layer, at).color } : null;
+      }
+      /** Whether a layer's values can read as names (a level named, or the band under them). @param {Layer} layer */
+      const named = (layer) => Boolean(layer.levels?.length && (layer.underName || layer.levels.some((level) => level.name)));
+      /** No line, as a line style's glyph: a slashed circle. */
+      const NO_LINE = glyphSvg('<circle cx="8" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 8.8 10.8 3.2" stroke="currentColor" stroke-width="1.3"/>');
+      /** A line's style as said and drawn (none: its band alone). */
+      const lineStyleName = (/** @type {{ dash: number, line?: false }} */ look) => (look.line === false ? "None" : dashOf(look.dash)[1]);
+      const lineStyleGlyph = (/** @type {{ dash: number, line?: false }} */ look) => (look.line === false ? NO_LINE : ((d) => dashGlyph(d[2], d[3]))(dashOf(look.dash)));
+      /**
+       * A line across's styles, as choices: none first (a level that only names or colors its band, a base not drawn),
+       * then the line's dashes, the one in effect ticked; each kept with ↵, shown on the chart while highlighted (⌘K).
+       * @param {string} id @param {string | number} key @returns {any[]} (Actions: typed as such, they'd refer to themselves)
+       */
+      function lineChoices(id, key) {
+        const layer = layerById(id);
+        if (!layer || !lineAt(layer, key)) return [];
+        const look = lineLook(layer, key), set = (/** @type {Chart} */ doc, /** @type {number | null} */ dash) => {
+          lineLookOn(doc, id, key, "line", dash === null ? false : undefined);
+          if (dash !== null) lineLookOn(doc, id, key, "dash", dash);
+        };
+        return /** @type {any[]} */ ([
+          /** @type {any} */ ({ key: "none", icon: NO_LINE, label: "None", aside: "No line: its band alone", current: look.line === false, run: () => commit((doc) => set(doc, null)), look: (/** @type {Chart} */ doc) => set(doc, null) }),
+          ...dashChoices(look.line === false ? undefined : look.dash, (style) => ({ run: () => commit((doc) => set(doc, style)), look: (/** @type {Chart} */ doc) => set(doc, style) })),
+        ]);
+      }
+      /**
+       * A layer's levels, as the bands they make, the way the chart has them: the highest first, each its color, its name
+       * (what its values read as), the value it starts at (≥: up to the next), and its ⋯ (its line, its value on the axis,
+       * removing it); under them, the band under them all (<: its color the layer's own; its name). The band under shows
+       * where they're bands (coloring the layer, or named); lines across alone, their rows.
+       * @param {Layer} layer @param {string} unit @param {any} result
+       */
+      function levelsField(layer, unit, result) {
+        const levels = layer.levels ?? [], banded = Boolean(layer.byLevels || named(layer));
+        const order = levels.map((_, i) => i).sort((a, b) => levels[b].value - levels[a].value || a - b);
+        const swatch = (/** @type {string} */ color) => `<i class="swatch" style="--c:${escape(cssColor(color))}"></i>`;
+        const row = (/** @type {number} */ i) => {
+          const level = levels[i], { color } = lineLook(layer, i), said = `At ${format(level.value, unitFor(layer, result))} and up`;
+          return `<div class="level" role="listitem" data-level="${i}">
+            <button type="button" class="cap small" data-line-color="${i}" aria-haspopup="menu" aria-label="${escape(said)}, its color: ${escape(colorName(color))}" data-tip="Color">${swatch(color)}</button>
+            <input id="level-name-${i}" class="level-name named" style="--c:${escape(cssColor(color))}" enterkeyhint="done" aria-label="${escape(said)}, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escape(level.name ?? "")}" />
+            <span class="number-field"><span class="sign" aria-hidden="true">≥</span><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="${escape(said)}, its value" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /><span class="unit"></span></span>
+            <button type="button" class="cap small" data-level-menu="${i}" aria-haspopup="menu" aria-label="More for the level ${escape(said.toLowerCase())}" data-tip="More">${ICONS.more}</button>
+          </div>`;
+        };
+        const lowest = levels.length ? Math.min(...levels.map((level) => level.value)) : 0;
+        const under = banded && levels.length ? `<div class="level under" role="listitem">
+            ${layer.byLevels ? `<button type="button" id="color-select-under" class="cap small" data-color-select="under" aria-haspopup="menu" aria-label="Under its levels, its color: ${escape(colorName(layer.color))}" data-tip="Under its levels">${swatch(layer.color)}</button>` : `<span class="cap small" role="img" aria-label="The line's own color" data-tip="The line's own color (its levels color it: Colors)">${swatch(layer.color)}</span>`}
+            <input id="level-name-under" class="level-name named" style="--c:${escape(cssColor(layer.color))}" enterkeyhint="done" aria-label="Under its levels, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escape(layer.underName ?? "")}" />
+            <span class="under-label"><span class="sign" aria-hidden="true">&lt;</span><span class="vh">Under </span>${lowest}</span>
+            <i class="cap small spacer" aria-hidden="true"></i>
+          </div>` : "";
+        // (Their unit said once, by their name: every value's.)
+        return `<div class="field levels-field"><span><span>Levels${fieldUnit(unit) ? `<span class="levels-unit"> · ${escape(fieldUnit(unit))}</span>` : ""}</span>${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" data-tip="Add a level, at a round value over the latest">${ICONS.plus}</button></span>${levels.length ? `<div class="levels" role="list" aria-label="Levels, the highest first">${order.map(row).join("")}${under}</div>` : ""}</div>`;
+      }
+      /** A level's ⋯: its line (none, its band alone; a dash), its value on the axis, removing it. @param {string} id @param {number} i */
+      function levelRows(id, i) {
+        const layer = layerById(id);
+        if (!layer?.levels?.[i]) return [];
+        const look = lineLook(layer, i);
+        return /** @type {any[]} */ ([
+          { key: "line", icon: lineStyleGlyph(look), label: "Line", aside: lineStyleName(look), page: () => ({ title: "Line", rows: () => lineChoices(id, i) }) },
+          { key: "tag", icon: ICONS.label, label: "Value on the axis", current: Boolean(look.tag) && look.line !== false, ...(look.line === false ? { disabled: "No line, no value on the axis" } : {}), run: () => setLineLook(id, i, "tag", look.tag ? undefined : true) },
+          { key: "remove", icon: ICONS.trash, label: "Remove the level", danger: true, run: () => {
+            editById(id, (item) => withoutLevel(item, i));
+            refocus('[data-action="add-level"]');
+          } },
+        ]);
+      }
       function lineButtons(layer, key, label) {
-        const { color, dash, tag } = lineLook(layer, key), [, dashName, length, gap] = dashOf(dash);
-        return `<button type="button" class="cap small" data-line-tag="${key}" aria-pressed="${Boolean(tag)}" aria-label="${label}: its value on the axis" data-tip="${tag ? "Its value on the axis" : "Show its value on the axis"}">${ICONS.label}</button><button type="button" class="cap small" data-line-color="${key}" aria-haspopup="menu" aria-label="${label} color: ${escape(colorName(color))}" data-tip="Color"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button><button type="button" class="cap small" data-line-dash="${key}" aria-haspopup="menu" aria-label="${label} line style: ${dashName}" data-tip="Line style">${dashGlyph(length, gap)}</button>`;
+        const look = lineLook(layer, key), { color, tag } = look, dashName = lineStyleName(look);
+        return `<button type="button" class="cap small" data-line-tag="${key}" aria-pressed="${Boolean(tag) && look.line !== false}" ${look.line === false ? 'aria-disabled="true"' : ""} aria-label="${label}: its value on the axis" data-tip="${look.line === false ? "No line, no value on the axis" : tag ? "Its value on the axis" : "Show its value on the axis"}">${ICONS.label}</button><button type="button" class="cap small" data-line-color="${key}" aria-haspopup="menu" aria-label="${label} color: ${escape(colorName(color))}" data-tip="Color"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button><button type="button" class="cap small" data-line-dash="${key}" aria-haspopup="menu" aria-label="${label} line style: ${dashName}" data-tip="Line style">${lineStyleGlyph(look)}</button>`;
       }
       /** A line's color (Bitview's) or style, from a menu under its button; picking its default forgets the choice. */
       function lineMenu(anchor, key, part) {
@@ -22222,7 +22462,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const now = /** @type {HTMLElement | null} */ (document.querySelector(`#inspector [data-line-color="${key}"]`));
           if (now) lineMenu(now, key, "color");
         });
-        menuOf(anchor, dashChoices(current, (style) => ({ run: () => apply(style) })));
+        menuOf(anchor, lineChoices(selected, key));
       }
       /**
        * The line styles, as choices, the one in effect ticked; `does`: what a style does (and shows, in ⌘K).
@@ -24676,19 +24916,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A line across, as a row: its color and style, opening them (and a level's value) to change. */
       function lineRow(id, key, label, group) {
-        const layer = /** @type {Layer} */ (layerById(id)), look = lineLook(layer, key), dash = dashOf(look.dash);
-        return { key: `line:${key}`, icon: swatchOf(look.color), label, aside: `${colorName(look.color)}, ${dash[1].toLowerCase()}`, group, page: () => linePage(id, key, label) };
+        const layer = /** @type {Layer} */ (layerById(id)), look = lineLook(layer, key);
+        return { key: `line:${key}`, icon: swatchOf(look.color), label: look.name ? `${label}: ${look.name}` : label, aside: `${colorName(look.color)}, ${lineStyleName(look).toLowerCase()}`, group, page: () => linePage(id, key, label) };
       }
       /** A line across (a level, by index, or the base): a level's value; its color, its style; removing a level. @returns {Page} */
       function linePage(id, key, title) {
         return { title, rows: () => {
           const layer = layerById(id), level = key === "base" ? null : layer?.levels?.[Number(key)];
           if (!layer || (key !== "base" && !level)) return [];
-          const now = () => lineLook(layerById(id) ?? layer, key), look = now(), dash = dashOf(look.dash);
+          const now = () => lineLook(layerById(id) ?? layer, key), look = now();
           return [
+            ...(level ? [{ key: "name", icon: ICONS.label, label: "Name", aside: level.name ?? "None: its value shows", page: () => inputPage({ title: "Name", value: level.name ?? "", placeholder: "Bull, bear, overheated…", hint: "What its values from here up read as, in its color", verb: "Name", read: (text) => (text.trim() ? `Name it “${text.trim().slice(0, 40)}”` : "No name: its value shows"), apply: (text) => editById(id, (item) => {
+              const line = item.levels?.[Number(key)];
+              if (!line) return;
+              if (text.trim()) line.name = text.trim().slice(0, 40);
+              else delete line.name;
+            }) }) }] : []),
             ...(level ? [{ key: "value", icon: ICONS.pencil, label: "Value", aside: format(level.value, unitFor(layer, resolved?.results.get(layer.id))), page: () => numberPage({ title: "Value", value: String(level.value), apply: (n) => editById(id, (item) => item.levels?.[Number(key)] && (item.levels[Number(key)].value = n)) }) }] : []),
             { key: "color", icon: swatchOf(look.color), label: "Color", aside: colorName(look.color), page: () => choicePage("Color", () => colorRows(now().color, (name) => setLineLook(id, key, "color", name), (doc, name) => lineLookOn(doc, id, key, "color", name))) },
-            { key: "dash", icon: dashGlyph(dash[2], dash[3]), label: "Line style", aside: dash[1], page: () => choicePage("Line style", () => dashChoices(now().dash, (style) => ({ run: () => setLineLook(id, key, "dash", style), look: (/** @type {Chart} */ doc) => lineLookOn(doc, id, key, "dash", style) }))) },
+            { key: "dash", icon: lineStyleGlyph(look), label: "Line style", aside: lineStyleName(look), page: () => choicePage("Line style", () => lineChoices(id, key)) },
             { key: "tag", icon: ICONS.label, label: "Value on the axis", aside: look.tag ? "On" : "Off", verb: look.tag ? "Turn off" : "Turn on", stay: true, run: () => setLineLook(id, key, "tag", now().tag ? undefined : true) },
             ...(level ? [{ key: "remove", icon: ICONS.trash, label: "Remove the level", verb: "Remove", danger: true, stay: true, run: () => {
               editById(id, (item) => withoutLevel(item, Number(key)));
@@ -24705,6 +24951,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const unit = unitFor(layer, resolved?.results.get(layer.id)), last = valueAt(layer, { at: lastShown(), rest: true });
           return [
             ...(layer.levels ?? []).map((level, i) => ({ ...lineRow(id, String(i), format(level.value, unit), ""), key: `level:${i}`, page: () => linePage(id, String(i), `Level ${i + 1}`) })),
+            ...(layer.levels?.length && (layer.byLevels || named(layer)) ? [{ key: "under", icon: swatchOf(layer.color), label: `Under ${format(Math.min(...layer.levels.map((level) => level.value)), unit)}`, aside: layer.underName ? `Named “${layer.underName}”` : "Its name: none, its value shows", page: () => inputPage({ title: "Under its levels", value: layer.underName ?? "", placeholder: "Bear, cold, oversold…", hint: "What its values under the lowest level read as", verb: "Name", read: (text) => (text.trim() ? `Name it “${text.trim().slice(0, 40)}”` : "No name: its value shows"), apply: (text) => editById(id, (item) => (text.trim() ? (item.underName = text.trim().slice(0, 40)) : delete item.underName)) }) }] : []),
             ...((layer.levels?.length ?? 0) < 12 ? [{ key: "add", icon: ICONS.plus, label: "Add a level", aside: "At a value you type", page: () => numberPage({ title: "New level", value: Number.isFinite(last) ? String(Number(last.toPrecision(3))) : "", apply: (n) => {
               const index = layerById(id)?.levels?.length ?? 0;
               editById(id, (item) => withLevel(item, n));
@@ -25718,7 +25965,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (title !== chart.title) commit((doc) => (doc.title = title), { coalesce: "title", redraw: "none" });
       });
       // Single-line fields: Enter is done, Escape takes back what was typed; both leave the field.
-      const FIELDS = "#title, #label, .number-input";
+      const FIELDS = "#title, #label, .number-input, .level-name";
       const typedFrom = new WeakMap();
       document.addEventListener("focusin", (event) => {
         if (event.target instanceof HTMLInputElement && event.target.matches(FIELDS)) typedFrom.set(event.target, event.target.value);
@@ -26255,13 +26502,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A line's style, read back: its color and line style where valid. */
       function lineStyleOf(line) {
-        return { ...(isColor(line?.color) ? { color: line.color } : {}), ...(DASHES.some(([style]) => style === line?.dash) ? { dash: line.dash } : {}), ...(line?.tag === true ? { tag: true } : {}) };
+        return { ...(isColor(line?.color) ? { color: line.color } : {}), ...(DASHES.some(([style]) => style === line?.dash) ? { dash: line.dash } : {}), ...(line?.line === false ? { line: /** @type {false} */ (false) } : {}), ...(line?.tag === true ? { tag: true } : {}) };
       }
       /** A layer's levels, read back: each a value, with its color and line style if valid (a plain number is a value); none, nothing. @returns {Level[] | undefined} */
       function levelsOf(input) {
         if (!Array.isArray(input)) return undefined;
         const levels = input.map((level) => (typeof level === "number" ? { value: level } : level)).filter((level) => Number.isFinite(level?.value)).slice(0, 12);
-        return levels.length ? levels.map((level) => ({ value: level.value, ...lineStyleOf(level) })) : undefined;
+        return levels.length ? levels.map((level) => ({ value: level.value, ...lineStyleOf(level), ...(typeof level.name === "string" && level.name.trim() ? { name: level.name.trim().slice(0, 40) } : {}) })) : undefined;
       }
       /** Validates chart fields (only `keepIds` preserves valid, unique ids). @returns {Chart} */
       function validate(input, keepIds = false) {
@@ -26312,6 +26559,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.byLevels === true ? { byLevels: true } : {}),
             ...(layer.byLayers === true ? { byLayers: true } : {}),
             levels: levelsOf(layer.levels),
+            ...(typeof layer.underName === "string" && layer.underName.trim() && levelsOf(layer.levels) ? { underName: layer.underName.trim().slice(0, 40) } : {}),
             baseLine: Object.keys(lineStyleOf(layer.baseLine)).length ? lineStyleOf(layer.baseLine) : undefined,
           };
           // A transform from before is the formula it was: a series layer becomes a formula of its series (named as it
@@ -28032,7 +28280,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Quick Look's picture: as large as its frame, as many points as it has room for. */
       const QUICK_PICTURE = { width: 1000, height: 560, points: 700 };
-      /** Each chart's picture for Quick Look as last made, by what it's of (its content, the theme): the last few; with each layer's latest value, as its legend says it. @type {Map<string, Promise<{ drawn: Preview, values: Map<string, string> } | null>>} */
+      /** Each chart's picture for Quick Look as last made, by what it's of (its content, the theme): the last few; with each layer's latest value, as its legend says it. @type {Map<string, Promise<{ drawn: Preview, values: Map<string, string>, bands: Map<string, string> } | null>>} */
       const quickPictures = new Map();
       /** A chart's picture for Quick Look: drawn from its data on its own, at its interval, over its window (nothing opened). */
       function quickPicture(/** @type {Chart} */ doc) {
@@ -28053,9 +28301,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             let at = Math.min(drawn.end ?? high.length - 1, high.length - 1);
             while (at >= 0 && !Number.isFinite(high[at])) at--;
             if (at < 0) return [];
-            return [[layer.id, !low ? format(high[at], unit) : layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`]];
+            return [[layer.id, !low ? bandOf(layer, high[at])?.name ?? format(high[at], unit) : layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`]];
           }));
-          return { drawn, values };
+          // (Its named values, in their band's color.)
+          const bands = new Map(copy.layers.flatMap((layer) => {
+            const high = data.results.get(layer.id)?.shown;
+            if (!high || !named(layer)) return [];
+            let at = Math.min(drawn.end ?? high.length - 1, high.length - 1);
+            while (at >= 0 && !Number.isFinite(high[at])) at--;
+            const band = at >= 0 ? bandOf(layer, high[at]) : null;
+            return band ? [[layer.id, cssColor(band.color)]] : [];
+          }));
+          return { drawn, values, bands };
         })();
         quickPictures.set(key, made);
         for (const [old] of quickPictures) if (quickPictures.size > 12) quickPictures.delete(old);
@@ -28086,10 +28343,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const plot = /** @type {HTMLElement} */ (frame.querySelector(".quick-plot"));
             plot.classList.remove("pending");
             if (!made) return void (plot.textContent = "Couldn't be drawn");
-            const { drawn, values } = made, { width: W, height: H } = QUICK_PICTURE;
+            const { drawn, values, bands } = made, { width: W, height: H } = QUICK_PICTURE;
             plot.innerHTML = previewSvg(drawn, `quick-${doc.id}`, QUICK_PICTURE);
             // (Each layer's latest value by its name; each pane's highest and lowest where they are; the dates along its foot.)
-            for (const value of all$("[data-quick-value]", frame)) value.textContent = values.get(/** @type {string} */ (value.dataset.quickValue)) ?? "";
+            for (const value of all$("[data-quick-value]", frame)) {
+              const id = /** @type {string} */ (value.dataset.quickValue), color = bands.get(id);
+              value.textContent = values.get(id) ?? "";
+              value.classList.toggle("named", Boolean(color));
+              if (color) value.style.setProperty("--c", color);
+            }
             /** @type {HTMLElement} */ (frame.querySelector(".quick-scales")).innerHTML = (drawn.scales ?? []).map((tag) => `<span class="${tag.side}" style="top: ${((tag.y / H) * 100).toFixed(2)}%">${escape(tag.text)}</span>`).join("");
             /** @type {HTMLElement} */ (frame.querySelector(".quick-ticks")).innerHTML = (drawn.ticks ?? []).map((tick) => `<span style="left: ${((tick.x / W) * 100).toFixed(2)}%">${escape(tick.text)}</span>`).join("");
           }));
