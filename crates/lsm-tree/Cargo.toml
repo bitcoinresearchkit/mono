@@ -11,6 +11,7 @@ homepage.workspace = true
 [lib]
 name = "lsm_tree"
 path = "src/lib.rs"
+doctest = false
 
 [dependencies]
 arc-swap = "1.9.2"

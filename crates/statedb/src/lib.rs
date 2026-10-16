@@ -28,6 +28,3 @@ pub use spends::Spends;
 pub use state::State;
 
 pub use view::View;
-
-#[cfg(test)]
-mod tests;

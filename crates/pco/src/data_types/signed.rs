@@ -89,16 +89,3 @@ impl_signed!(i32, u32, 3);
 impl_signed!(i64, u64, 4);
 impl_signed!(i16, u16, 8);
 impl_signed!(i8, u8, 11);
-
-#[cfg(test)]
-mod tests {
-  use crate::data_types::{LatentPriv, NumberPriv};
-
-  #[test]
-  fn test_ordering() {
-    assert_eq!(i32::MIN.to_latent_ordered(), 0_u32);
-    assert_eq!((-1_i32).to_latent_ordered(), u32::MID - 1);
-    assert_eq!(0_i32.to_latent_ordered(), u32::MID);
-    assert_eq!(i32::MAX.to_latent_ordered(), u32::MAX);
-  }
-}

@@ -11,8 +11,6 @@ use parking_lot::Mutex;
 
 pub(super) trait Reclaim: Send + Sync {
     fn try_clear(&self);
-    #[cfg(test)]
-    fn clear(&self);
 }
 
 /// Shared limit for retained buffer and span-directory allocations.
@@ -38,7 +36,7 @@ impl CacheBudget {
         self.limit
     }
 
-    pub(crate) fn used(&self) -> usize {
+    fn used(&self) -> usize {
         self.used.load(Relaxed)
     }
 
@@ -50,20 +48,6 @@ impl CacheBudget {
             registry.retain(|cache| cache.strong_count() != 0);
         }
         registry.push_back(cache);
-    }
-
-    /// Evicts retained data without invalidating the underlying source generation.
-    #[cfg(test)]
-    pub(crate) fn clear(&self) {
-        let caches: Vec<_> = self
-            .registry
-            .lock()
-            .iter()
-            .filter_map(Weak::upgrade)
-            .collect();
-        for cache in caches {
-            cache.clear();
-        }
     }
 
     pub(super) fn reserve(&self, bytes: usize) -> bool {

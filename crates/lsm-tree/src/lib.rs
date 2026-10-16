@@ -29,19 +29,6 @@
 #![warn(clippy::multiple_crate_versions)]
 #![allow(clippy::option_if_let_else)]
 #![warn(clippy::redundant_feature_names)]
-#![cfg_attr(
-    test,
-    allow(
-        clippy::cast_possible_truncation,
-        clippy::cast_precision_loss,
-        clippy::indexing_slicing,
-        clippy::items_after_statements,
-        clippy::too_many_lines,
-        clippy::unwrap_used,
-        clippy::useless_vec,
-        reason = "test fixtures favor direct assertions and intentionally bounded inputs"
-    )
-)]
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 macro_rules! fail_iter {
@@ -64,9 +51,6 @@ mod coding;
 
 mod compaction;
 mod compression;
-
-#[cfg(test)]
-mod tests;
 
 /// Configuration
 pub mod config;

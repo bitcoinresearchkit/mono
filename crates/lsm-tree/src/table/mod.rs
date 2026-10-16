@@ -212,16 +212,6 @@ impl Table {
         )
     }
 
-    #[cfg(test)]
-    pub fn iter(&self) -> Iter {
-        self.range_as(..)
-    }
-
-    #[cfg(test)]
-    pub fn range<R: RangeBounds<Slice>>(&self, range: R) -> Iter {
-        self.range_as(range)
-    }
-
     /// Iterates over the records in `range`, decoding them as `K` and `V`.
     pub fn range_as<K: RecordBytes, V: RecordBytes, R: RangeBounds<Slice>>(
         &self,

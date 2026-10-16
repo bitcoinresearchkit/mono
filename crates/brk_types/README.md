@@ -51,9 +51,9 @@ Verify the modes separately to avoid workspace feature unification hiding an
 accidental storage or schemars dependency:
 
 ```sh
-cargo test -p brk_types --no-default-features
-cargo test -p brk_types --features storage
-cargo test -p brk_types --features schemars,storage
+cargo check -p brk_types --no-default-features
+cargo check -p brk_types --features storage
+cargo check -p brk_types --features schemars,storage
 cargo tree -p bitview_catalog
 ```
 

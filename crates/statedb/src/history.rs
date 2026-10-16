@@ -12,7 +12,6 @@ pub const SNAPSHOT_INTERVAL: usize = 5000;
 /// Owns full snapshots. Spends and creations remain their sole, separately produced diff columns.
 pub struct History {
     snapshots: Snapshots,
-    interval: usize,
     live: Option<(State, (u64, u64))>,
 }
 impl History {
@@ -20,24 +19,14 @@ impl History {
         fs::create_dir_all(path)?;
         Ok(Self {
             snapshots: Snapshots::open(&path.join("snapshots"), true)?,
-            interval: SNAPSHOT_INTERVAL,
             live: None,
         })
     }
     pub(crate) fn open_reader(path: &Path) -> Result<Self> {
         Ok(Self {
             snapshots: Snapshots::open(&path.join("snapshots"), false)?,
-            interval: SNAPSHOT_INTERVAL,
             live: None,
         })
-    }
-    #[cfg(test)]
-    pub(crate) fn set_snapshot_interval(&mut self, interval: usize) -> Result<()> {
-        if interval == 0 {
-            return Err(invalid("zero snapshot interval"));
-        }
-        self.interval = interval;
-        Ok(())
     }
     /// A reader of the published history: as far as its newest snapshot the producers carry.
     pub fn reader<'a>(
@@ -184,13 +173,13 @@ impl History {
         changed[start / PAGE..].fill(true);
         let mut height = start;
         loop {
-            if height > 0 && height.is_multiple_of(self.interval) {
+            if height > 0 && height.is_multiple_of(SNAPSHOT_INTERVAL) {
                 self.snapshots.retain(&state, versions)?;
             }
             if height == end {
                 break;
             }
-            height = ((height / self.interval + 1) * self.interval).min(end);
+            height = ((height / SNAPSHOT_INTERVAL + 1) * SNAPSHOT_INTERVAL).min(end);
             Self::replay(
                 &mut state,
                 height,

@@ -76,23 +76,6 @@ where
         self.mut_holes().insert(index);
     }
 
-    #[cfg(test)]
-    pub(crate) fn collect_holed(&self) -> Vec<Option<V::T>> {
-        let reader = self.reader();
-        (0..self.vec.len())
-            .map(|index| self.get_with_reader_at(index, &reader))
-            .collect()
-    }
-
-    #[cfg(test)]
-    fn take_at(&mut self, index: usize, reader: &V::Reader) -> Option<V::T> {
-        let value = self.get_with_reader_at(index, reader);
-        if value.is_some() {
-            self.delete_at(index);
-        }
-        value
-    }
-
     #[inline]
     pub(crate) fn fill_first_hole_or_push(&mut self, value: V::T) -> Result<V::I> {
         self.header().check_writable()?;
@@ -114,12 +97,6 @@ where
         self.get_with_reader_at(index.to_usize(), reader)
     }
 
-    #[cfg(test)]
-    #[inline]
-    pub(crate) fn update(&mut self, index: V::I, value: V::T) -> Result<()> {
-        self.update_value_at(index.to_usize(), value)
-    }
-
     #[inline]
     pub(crate) fn update_at(&mut self, index: usize, value: V::T) -> Result<()> {
         self.update_value_at(index, value)
@@ -134,10 +111,5 @@ where
     #[inline]
     pub fn pushed_mut(&mut self) -> &mut [V::T] {
         self.vec.pushed_mut()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn take(&mut self, index: V::I, reader: &V::Reader) -> Option<V::T> {
-        self.take_at(index.to_usize(), reader)
     }
 }

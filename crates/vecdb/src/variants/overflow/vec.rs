@@ -158,7 +158,7 @@ where
         }
     }
 
-    pub(crate) fn read_only_clone(&self) -> ReadOnlyOverflowVec<I, T> {
+    fn read_only_clone(&self) -> ReadOnlyOverflowVec<I, T> {
         ReadOnlyOverflowVec::new(
             self.compact.read_only_clone(),
             self.overflow.read_only_clone(),
@@ -179,7 +179,7 @@ where
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, value: T) {
+    fn push(&mut self, value: T) {
         self.header().assert_writable();
         let compact = self.encode(&value);
         self.compact.push(compact);

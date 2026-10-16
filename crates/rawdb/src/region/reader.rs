@@ -52,7 +52,7 @@ impl Reader {
         unsafe { slice::from_raw_parts(self.base.add(offset), len) }
     }
 
-    pub(crate) fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.len
     }
 

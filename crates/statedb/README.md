@@ -114,8 +114,7 @@ This format replaces the earlier varint/CRC journals and LZ4 snapshot directory.
 Existing stores using the earlier format must be converted offline or rebuilt
 before using them.
 Conversion tooling and representative measurements are retained under the
-repository's ignored `tmp/statedb-hotpath-20260930` directory. Live data is not
-modified by the tests.
+repository's ignored `tmp/statedb-hotpath-20260930` directory.
 
 Fixed-width diffs deliberately favor sequential throughput over disk size. The
 measured spend payloads are about 2.2–2.3 times larger than the earlier varints.

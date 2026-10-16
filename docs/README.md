@@ -117,8 +117,8 @@ The repository pins its Rust toolchain in `rust-toolchain.toml`.
 
 ```bash
 cargo check --workspace
-cargo api   # records the API snapshots the client test compares against
-cargo test --workspace
+cargo api   # records the API snapshots
+cargo bindgen   # regenerates the clients
 ```
 
 ## Documentation

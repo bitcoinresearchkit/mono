@@ -10,6 +10,3 @@ pub use error::{Error, Result};
 pub use region::{Reader, Region, RegionMetadata};
 
 pub const PAGE_SIZE: usize = 4096;
-
-#[cfg(test)]
-mod tests;

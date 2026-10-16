@@ -63,7 +63,7 @@ pub fn render_api(plugins: &DefaultPlugins) -> Result<Vec<Snapshot>> {
     let mut openapi = serde_json::to_string_pretty(&openapi)?;
     openapi.push('\n');
 
-    // Read by scripts/check_client_paths.{mjs,py}, which walk each path in the generated clients.
+    // Every typed client path with its spelling in each client, snapshotted for review.
     let mut paths = String::from("# series\trust\tjavascript\tpython\tindexes\n");
     for path in client_paths(vecs.catalog()) {
         let indexes = path

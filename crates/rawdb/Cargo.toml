@@ -18,8 +18,5 @@ parking_lot = { workspace = true }
 thiserror = { workspace = true }
 rustc-hash = { workspace = true }
 
-[dev-dependencies]
-tempfile = { workspace = true }
-
 [package.metadata.docs.rs]
 all-features = true

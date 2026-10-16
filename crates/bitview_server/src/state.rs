@@ -307,12 +307,7 @@ impl AppState {
     }
 
     /// JSON response whose validator is derived from the exact serialized value.
-    #[cfg(any(
-        feature = "chain",
-        feature = "price",
-        feature = "urpd",
-        all(test, feature = "series")
-    ))]
+    #[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
     pub async fn respond_json_content<T, F>(&self, headers: &HeaderMap, f: F) -> Response<Body>
     where
         T: Serialize + Send + 'static,

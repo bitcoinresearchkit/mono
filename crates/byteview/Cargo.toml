@@ -10,3 +10,4 @@ homepage.workspace = true
 [lib]
 name = "byteview"
 path = "src/lib.rs"
+doctest = false

@@ -6,15 +6,6 @@ use std::{
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use varint_rs::{VarintReader, VarintWriter};
 
-#[cfg(test)]
-use std::mem::size_of;
-
-#[cfg(test)]
-use byteorder::LittleEndian;
-
-#[cfg(test)]
-use crate::table::block::Trailer;
-
 use super::block::{
     Block, Decodable, Decoder, Encodable, Encoder, ParsedItem, TRAILER_START_MARKER,
 };
@@ -345,28 +336,6 @@ impl DataBlock {
             &self.inner.data,
             Decoder::<InternalValue, DataBlockParsedItem>::new(&self.inner),
         )
-    }
-
-    /// Returns the binary index length (number of pointers).
-    ///
-    /// The number of pointers is equal to the number of restart intervals.
-    #[cfg(test)]
-    #[must_use]
-    pub(crate) fn binary_index_len(&self) -> u32 {
-        let trailer = Trailer::new(&self.inner);
-
-        // NOTE: Skip restart interval (u8) and binary index step size (u8)
-        let offset = 2 * size_of::<u8>();
-        let mut reader = unwrap!(trailer.as_slice().get(offset..));
-
-        unwrap!(reader.read_u32::<LittleEndian>())
-    }
-
-    /// Returns the number of items in the block.
-    #[cfg(test)]
-    #[must_use]
-    pub(crate) fn len(&self) -> usize {
-        Trailer::new(&self.inner).item_count()
     }
 
     /// Builds an data block.

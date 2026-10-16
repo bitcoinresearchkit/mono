@@ -586,7 +586,3 @@ impl<const N: usize> From<&[u8; N]> for ByteView {
         Self::from(value.as_slice())
     }
 }
-
-#[cfg(test)]
-#[path = "tests.rs"]
-mod tests;

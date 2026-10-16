@@ -71,10 +71,8 @@ its type parameters stand for whole child types where needed, so the types
 alone select each child's builder (the crate-private `Node` trait).
 
 Whatever the generator, every client exposes the same typed paths
-(`series.a.b.c`): `client_paths` lists them, and
-`crates/bitview_devtools/scripts/check_client_paths.{mjs,py}` and the
-`bitview_client` test verify that each one resolves to the right series in the
-generated JavaScript, Python and Rust clients, and that nothing else is there.
+(`series.a.b.c`): `client_paths` lists them, and `cargo api` snapshots the list
+with each path's Rust, JavaScript and Python spelling and its indexes.
 
 Regenerate or verify only Rust outputs (client and CLI):
 

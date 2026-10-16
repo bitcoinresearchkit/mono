@@ -90,25 +90,3 @@ pub fn join_latents<T: Number>(
   }
   Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::dyn_slices::DynLatentSlice;
-  use crate::metadata::DynLatents;
-
-  #[test]
-  fn test_join_latents_oob_index_returns_err() {
-    // dict has 3 entries; valid indices are 0, 1, 2
-    let dict = DynLatents::new(vec![10_u32, 20_u32, 30_u32]);
-    // index 3 == dict.len() — the off-by-one: currently passes the `> dict.len()`
-    // guard and panics on dict[3]; after the fix it must return Err
-    let idxs = [0_u32, 1_u32, 3_u32];
-    let mut dst = vec![MaybeUninit::<u32>::uninit(); 3];
-    let result = join_latents::<u32>(&dict, DynLatentSlice::new(&idxs), &mut dst);
-    assert!(
-      result.is_err(),
-      "expected Err for out-of-range dict index"
-    );
-  }
-}

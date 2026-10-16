@@ -256,10 +256,4 @@ impl<T: VecValue> Reclaim for Cache<T> {
             .map(|mut table| mem::replace(&mut *table, Table::new()));
         drop(old);
     }
-
-    #[cfg(test)]
-    fn clear(&self) {
-        let old = mem::replace(&mut *self.table.write(), Table::new());
-        drop(old);
-    }
 }

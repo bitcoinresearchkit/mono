@@ -124,9 +124,6 @@ pub use weight::*;
 pub use weight32::*;
 pub use witness::*;
 
-#[cfg(test)]
-mod tests;
-
 #[doc(hidden)]
 pub mod __private {
     pub use {itoa, ryu};

@@ -70,14 +70,6 @@ impl<K, V> InternalValue<K, V> {
     }
 }
 
-#[cfg(test)]
-#[cfg_attr(coverage_nightly, coverage(off))]
-impl PartialEq for InternalValue {
-    fn eq(&self, other: &Self) -> bool {
-        self.key == other.key
-    }
-}
-
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl<K: Debug, V: Debug + AsRef<[u8]>> Debug for InternalValue<K, V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {

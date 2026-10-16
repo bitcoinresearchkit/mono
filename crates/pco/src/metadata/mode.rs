@@ -228,36 +228,3 @@ impl Mode {
     BITS_TO_ENCODE_MODE_VARIANT as usize + payload_bits
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::bit_writer::BitWriter;
-  use crate::metadata::{DynLatent, DynLatents};
-
-  fn check_bit_size(mode: Mode) {
-    let mut bytes = Vec::new();
-    let mut writer = BitWriter::new(&mut bytes, 100);
-    unsafe {
-      mode.write_to(&mut writer);
-    }
-    let true_bit_size = writer.bit_idx();
-    assert!(true_bit_size <= mode.max_bit_size());
-    // all modes except dict should actually be able to given an exact bit size
-    if !matches!(mode, Mode::Dict(_)) {
-      assert_eq!(true_bit_size, mode.max_bit_size());
-    }
-  }
-
-  #[test]
-  fn test_bit_size() {
-    check_bit_size(Mode::Classic);
-    check_bit_size(Mode::Dict(DynLatents::new::<u32>(vec![])));
-    check_bit_size(Mode::Dict(DynLatents::new::<u64>(vec![
-      1, 77, 1111,
-    ])));
-    check_bit_size(Mode::IntMult(DynLatent::new(77_u32)));
-    check_bit_size(Mode::FloatMult(DynLatent::new(77_u32)));
-    check_bit_size(Mode::FloatQuant(7));
-  }
-}

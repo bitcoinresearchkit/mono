@@ -101,10 +101,12 @@ impl ClientInner {
             .into_iter()
             .map(|(method, params)| self.client.build_request(method, Some(params)))
             .collect();
-        self.client.send_batch(&requests).map_err(|error| match refusal(error) {
-            Error::CorepcRPC(error) => Error::Parse(format!("batch {label} failed: {error}")),
-            refused => refused,
-        })
+        self.client
+            .send_batch(&requests)
+            .map_err(|error| match refusal(error) {
+                Error::CorepcRPC(error) => Error::Parse(format!("batch {label} failed: {error}")),
+                refused => refused,
+            })
     }
 
     fn serialize_args<P: Serialize>(

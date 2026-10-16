@@ -201,12 +201,6 @@ impl Region {
         Ok(writes)
     }
 
-    /// Appends data to the region.
-    #[cfg(test)]
-    pub(crate) fn write(&self, data: &[u8]) -> Result<()> {
-        self.write_with(data, None, false)
-    }
-
     /// Writes at or before the current end, extending the length if needed.
     #[inline]
     pub fn write_at(&self, data: &[u8], at: usize) -> Result<()> {

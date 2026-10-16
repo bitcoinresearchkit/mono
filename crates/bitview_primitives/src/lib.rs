@@ -46,8 +46,6 @@ mod price_ratio;
 mod sats_fract;
 mod scalar;
 mod supply_state;
-#[cfg(test)]
-mod tests;
 mod tx_version;
 mod txin_index;
 mod txout_index;

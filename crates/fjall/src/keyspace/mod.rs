@@ -86,11 +86,6 @@ impl Keyspace {
         Ok(keyspace)
     }
 
-    #[cfg(test)]
-    pub(crate) fn tree(&self) -> &lsm_tree::Tree {
-        &self.inner.tree
-    }
-
     /// Returns the keyspace name.
     #[must_use]
     pub(crate) fn name(&self) -> &str {

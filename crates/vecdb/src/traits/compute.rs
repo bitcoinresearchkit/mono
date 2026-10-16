@@ -7,52 +7,6 @@ use crate::{
     Version, traits::writable::MAX_CACHE_SIZE,
 };
 
-/// [`ComputeVec::compute_to`] with an explicit batch size.
-pub(crate) fn compute_batched_to<V, F>(
-    vec: &mut V,
-    max_from: V::I,
-    to: usize,
-    version: Version,
-    batch_size: usize,
-    mut compute: F,
-    exit: &Exit,
-) -> Result<()>
-where
-    V: StoredVec,
-    F: FnMut(&mut V, Range<usize>) -> Result<()>,
-{
-    if batch_size == 0 {
-        return Err(Error::InvalidArgument(
-            "compute batch size must be greater than zero",
-        ));
-    }
-
-    {
-        let _lock = exit.lock();
-        vec.validate_computed_version_or_reset(version)?;
-        vec.truncate_if_needed_at(max_from.to_usize().min(to))?;
-    }
-
-    loop {
-        let from = vec.len();
-        let end = from.saturating_add(batch_size).min(to);
-        if from < end {
-            compute(vec, from..end)?;
-            if vec.len() != end {
-                return Err(Error::InvalidArgument(
-                    "compute batch callback must append one value per index",
-                ));
-            }
-        }
-
-        let _lock = exit.lock();
-        vec.write()?;
-        if end >= to {
-            return Ok(());
-        }
-    }
-}
-
 /// Computes and stores derived values from source vecs, implemented for every [`StoredVec`].
 ///
 /// Only missing values are computed (incremental updates); stale data is reset when the
@@ -69,7 +23,7 @@ pub trait ComputeVec: StoredVec {
         max_from: Self::I,
         to: usize,
         version: Version,
-        compute: F,
+        mut compute: F,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -78,7 +32,31 @@ pub trait ComputeVec: StoredVec {
         // Enough values per batch that `pushed_len * SIZE_OF_T >= MAX_CACHE_SIZE`, so
         // `batch_limit_reached()` fires.
         let batch_size = MAX_CACHE_SIZE.div_ceil(size_of::<Self::T>().max(1));
-        compute_batched_to(self, max_from, to, version, batch_size, compute, exit)
+
+        {
+            let _lock = exit.lock();
+            self.validate_computed_version_or_reset(version)?;
+            self.truncate_if_needed_at(max_from.to_usize().min(to))?;
+        }
+
+        loop {
+            let from = self.len();
+            let end = from.saturating_add(batch_size).min(to);
+            if from < end {
+                compute(self, from..end)?;
+                if self.len() != end {
+                    return Err(Error::InvalidArgument(
+                        "compute batch callback must append one value per index",
+                    ));
+                }
+            }
+
+            let _lock = exit.lock();
+            self.write()?;
+            if end >= to {
+                return Ok(());
+            }
+        }
     }
 
     fn compute_transform<A, F>(

@@ -1365,7 +1365,6 @@ dependencies = [
  "brk_lsm_tree",
  "flume",
  "log",
- "tempfile",
 ]
 
 [[package]]
@@ -1434,7 +1433,6 @@ dependencies = [
  "better_io",
  "dtype_dispatch",
  "half",
- "rand",
  "rand_xoshiro",
 ]
 
@@ -1484,7 +1482,6 @@ dependencies = [
  "brk_fjall",
  "brk_types",
  "rustc-hash",
- "tempfile",
 ]
 
 [[package]]
@@ -3263,7 +3260,6 @@ dependencies = [
  "memmap2",
  "parking_lot",
  "rustc-hash",
- "tempfile",
  "thiserror",
 ]
 
@@ -3768,7 +3764,6 @@ name = "statedb"
 version = "0.12.2"
 dependencies = [
  "brk_pco",
- "tempfile",
  "zerocopy",
 ]
 
@@ -4282,7 +4277,6 @@ dependencies = [
  "ryu",
  "schemars",
  "serde",
- "tempfile",
  "thiserror",
  "vecdb_derive",
  "zerocopy",

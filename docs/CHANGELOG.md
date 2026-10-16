@@ -1265,14 +1265,14 @@ has to be deleted by hand.
 
 #### Workspace
 
-- Kept only critical low-level tests (storage invariants in rawdb, vecdb, statedb, brk_store and brk_types, scalar and
-  bindgen-model checks, and a client typed-paths check) and the website and `examples/custom_plugin` examples; the
-  JS/Python client and quickmatch parity suites are gone; the byteview and lsm-tree forks drop repetitive tests
+- No tests are kept: every test module, test file and test-only helper is gone, forks included (pco also drops its
+  compatibility assets), with the test-only dev-dependencies. Changes are verified end to end, then the throwaway
+  checks are deleted. The website and `examples/custom_plugin` examples remain
 - Plugin crates other than the indexer follow one skeleton; distribution plugins share their cohort
   families and replay scaffold
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`
-  (storage layout) regenerate and snapshot the generated outputs; `cargo api` records the snapshot the client test
-  reads. The dev profile drops cross-crate LTO and uses limited debuginfo
+  (storage layout) regenerate and snapshot the generated outputs. The dev profile drops cross-crate LTO and uses
+  limited debuginfo
 - rawdb maps a reserved address range per data file once (four times its size at open, at least 1 TiB): growing a
   file never remaps it, so a writer never waits for readers to release the mapping, and growing past the range fails
   with `ReservationExhausted` (reopening reserves more) instead of remapping. An append within a

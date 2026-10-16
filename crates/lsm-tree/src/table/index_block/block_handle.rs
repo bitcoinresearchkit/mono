@@ -125,13 +125,6 @@ impl KeyedBlockHandle {
     }
 }
 
-#[cfg(test)]
-impl PartialEq for KeyedBlockHandle {
-    fn eq(&self, other: &Self) -> bool {
-        self.offset() == other.offset()
-    }
-}
-
 impl Encodable<BlockOffset> for KeyedBlockHandle {
     fn encode_full_into<W: Write>(
         &self,

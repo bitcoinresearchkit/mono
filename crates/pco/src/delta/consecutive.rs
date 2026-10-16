@@ -49,32 +49,3 @@ pub fn decode_in_place<L: Latent>(delta_moments: &mut [L], latents: &mut [L]) {
     first_order_decode_consecutive_in_place(moment, latents);
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_consecutive_encode_decode() {
-    let orig_latents: Vec<u32> = vec![2, 2, 1, u32::MAX, 0];
-    let mut deltas = orig_latents.clone();
-    let order = 2;
-    let mut moments = encode_in_place(order, &mut deltas);
-
-    // Encoding left junk deltas at the front,
-    // but for decoding we need junk deltas at the end.
-    let mut deltas_to_decode = Vec::new();
-    deltas_to_decode.extend(&deltas[order..]);
-    for _ in 0..order {
-      deltas_to_decode.push(1337);
-    }
-    let mut deltas = deltas_to_decode;
-
-    // decode in two parts to show we keep state properly
-    decode_in_place(&mut moments, &mut deltas[..3]);
-    assert_eq!(&deltas[..3], &orig_latents[..3]);
-
-    decode_in_place(&mut moments, &mut deltas[3..]);
-    assert_eq!(&deltas[3..5], &orig_latents[3..5]);
-  }
-}

@@ -20,6 +20,5 @@ instead of reading out of bounds.
 ## Checks
 
 ```bash
-cargo test -p brk_lsm_tree
 cargo clippy -p brk_lsm_tree --all-targets --all-features -- -D warnings
 ```

@@ -118,10 +118,7 @@ impl Http {
         })
     }
 
-    fn post<T: DeserializeOwned>(
-        &self,
-        payload: &impl Serialize,
-    ) -> StdResult<T, JsonRpcError> {
+    fn post<T: DeserializeOwned>(&self, payload: &impl Serialize) -> StdResult<T, JsonRpcError> {
         let body = to_vec(payload)?;
         let (status, bytes) = self.exchange(&body).map_err(transport)?;
         match from_slice(&bytes) {
@@ -181,7 +178,9 @@ impl Http {
             }
         }
         let mut connection = self.connect()?;
-        let answer = connection.exchange(request).map_err(|failure| failure.error)?;
+        let answer = connection
+            .exchange(request)
+            .map_err(|failure| failure.error)?;
         Ok(self.release(connection, answer))
     }
 
@@ -386,9 +385,7 @@ impl Connection {
         budget: &mut usize,
     ) -> StdResult<&'a [u8], HttpError> {
         line.clear();
-        let read = (&mut self.0)
-            .take(*budget as u64)
-            .read_until(b'\n', line)?;
+        let read = (&mut self.0).take(*budget as u64).read_until(b'\n', line)?;
         *budget -= read;
         if line.last() != Some(&b'\n') {
             return Err(if *budget == 0 {

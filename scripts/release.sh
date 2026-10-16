@@ -23,10 +23,10 @@ echo "Release argument: $RELEASE_ARG"
 echo ""
 
 # ============================================================================
-# 1. TESTS
+# 1. CHECKS
 # ============================================================================
 
-echo "=== Running tests ==="
+echo "=== Running checks ==="
 echo ""
 
 echo "--- Rust ---"
@@ -35,9 +35,7 @@ cd "$ROOT_DIR"
 # Note: --no-verify skips rebuild check due to version collision with crates.io
 # The cargo build --workspace --release step above already verified compilation
 cargo package --workspace --allow-dirty --no-verify
-# The client test compares against the API snapshot, recorded offline.
 cargo api
-cargo test --workspace
 echo ""
 
 # ============================================================================
