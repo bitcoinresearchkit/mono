@@ -45,6 +45,7 @@ bitview_catalog = { version = "0.12.2", path = "crates/bitview_catalog" }
 bitview_cohort = { version = "0.12.2", path = "crates/bitview_cohort" }
 bitview_compute = { version = "0.12.2", path = "crates/bitview_compute" }
 bitview_default = { version = "0.12.2", path = "crates/bitview_default" }
+bitview_http = { version = "0.12.2", path = "crates/bitview_http" }
 bitview_plugin = { version = "0.12.2", path = "crates/bitview_plugin", features = ["derive"] }
 bitview_plugin_derive = { version = "0.12.2", path = "crates/bitview_plugin_derive" }
 bitview_distribution = { version = "0.12.2", path = "crates/bitview_distribution" }

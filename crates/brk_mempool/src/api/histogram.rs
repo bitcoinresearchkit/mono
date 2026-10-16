@@ -23,8 +23,7 @@ impl ReadOnlyState {
     /// oracle without re-parsing scripts per request. Requires a completed
     /// publication at the requested confirmed-chain tip.
     pub fn live_eligible_histogram(&self, tip: &BlockHash) -> Result<HistogramRaw> {
-        let state = self.pool()?;
-        state.ensure_at(tip)?;
+        let state = self.pool()?.at(tip)?;
         Ok(state.txs.live_eligible_histogram())
     }
 
@@ -32,8 +31,7 @@ impl ReadOnlyState {
     /// value with no payment filtering. Backs the `histogram/raw/live`
     /// endpoint. Requires a completed publication at the requested tip.
     pub fn live_raw_histogram(&self, tip: &BlockHash) -> Result<HistogramRaw> {
-        let state = self.pool()?;
-        state.ensure_at(tip)?;
+        let state = self.pool()?.at(tip)?;
         Ok(state.txs.live_raw_histogram())
     }
 }

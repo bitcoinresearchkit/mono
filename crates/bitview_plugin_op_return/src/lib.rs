@@ -45,12 +45,16 @@ pub struct Vecs<M: StorageMode = Rw> {
 }
 
 impl Vecs {
+    /// Every bucket: the total, then the protocols and the policies.
+    fn buckets_mut(&mut self) -> impl Iterator<Item = &mut BucketVecs> {
+        [&mut self.total]
+            .into_iter()
+            .chain(self.protocols.iter_mut())
+            .chain(self.policies.iter_mut())
+    }
+
     /// Every column a block pushes to, in all buckets.
     fn stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.total
-            .stored_mut()
-            .into_iter()
-            .chain(self.protocols.iter_mut().flat_map(BucketVecs::stored_mut))
-            .chain(self.policies.iter_mut().flat_map(BucketVecs::stored_mut))
+        self.buckets_mut().flat_map(BucketVecs::stored_mut)
     }
 }

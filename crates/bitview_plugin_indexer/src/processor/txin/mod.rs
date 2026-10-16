@@ -4,47 +4,39 @@ pub mod source;
 pub use resolver::InputResolver;
 pub use source::InputSource;
 
-use bitcoin::Transaction;
 use bitview_primitives::{
     AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, TxInIndex, TxOutIndex, TypeIndex,
 };
 use brk_store::Store;
-use brk_types::{OutPoint, OutputType, Sats, TxIndex, Txid, TxidPrefix, Unit, Vin};
+use brk_types::{OutPoint, OutputType, Sats, TxIndex, Txid, TxidPrefix, Unit};
 use vecdb::{PcoVec, WritableVec, unlikely};
 
-use super::txout::ProcessedOutput;
+use super::{transaction::ComputedTx, txout::ProcessedOutput};
 use crate::{
     InputsVecs,
-    stores::{Utxo, UtxoKey},
+    stores::{UtxoKey, Utxos},
 };
 
 #[allow(clippy::too_many_arguments)]
 pub fn finalize_inputs(
-    transactions: &[Transaction],
-    base_tx_index: TxIndex,
+    txs: &[ComputedTx],
     base_txin_index: TxInIndex,
     first_txin_index: &mut PcoVec<TxIndex, TxInIndex>,
     inputs: &mut InputsVecs,
     addr_tx_index_stores: &mut ByAddrType<Store<AddrIndexTxIndex, Unit>>,
     addr_outpoint_stores: &mut ByAddrType<Store<AddrIndexOutPoint, Unit>>,
-    utxos: &mut Store<UtxoKey, Utxo>,
-    utxo_values: &mut Store<UtxoKey, Sats>,
+    utxos: &mut Utxos,
     txins: &[InputSource],
     txouts: &[ProcessedOutput],
 ) {
-    let mut input_offset = 0;
-    for (block_tx_index, tx) in transactions.iter().enumerate() {
-        let tx_index = base_tx_index + TxIndex::from(block_tx_index);
-        let next_input_offset = input_offset + tx.input.len();
+    for ct in txs {
+        let tx_index = ct.tx_index;
+        let first_txin = base_txin_index + TxInIndex::from(ct.input_offset);
+        // Every transaction has an input.
+        first_txin_index.debug_checked_push(tx_index, first_txin);
 
-        for (vin, (input_source, txin)) in txins[input_offset..next_input_offset]
-            .iter()
-            .zip(&tx.input)
-            .enumerate()
-        {
-            let block_txin_index = input_offset + vin;
-            let txin_index = base_txin_index + TxInIndex::from(block_txin_index);
-            let vin = Vin::from(vin);
+        for (vin, (input_source, txin)) in ct.inputs(txins).iter().zip(&ct.tx.input).enumerate() {
+            let txin_index = first_txin + TxInIndex::from(vin);
             let (outpoint, txout_index, output_type, type_index, value) = match input_source {
                 InputSource::PreviousBlock {
                     outpoint,
@@ -78,18 +70,13 @@ pub fn finalize_inputs(
                 }
             };
 
-            if vin.is_zero() {
-                first_txin_index.debug_checked_push(tx_index, txin_index);
-            }
-
             if !matches!(input_source, InputSource::Coinbase) {
                 let previous_output = &txin.previous_output;
                 let txid = <&Txid>::from(&previous_output.txid);
-                let key = UtxoKey::new(TxidPrefix::from(txid), previous_output.vout);
-                utxos.remove(key);
-                if Utxo::is_large(value) {
-                    utxo_values.remove(key);
-                }
+                utxos.remove(
+                    UtxoKey::new(TxidPrefix::from(txid), previous_output.vout),
+                    value,
+                );
             }
 
             inputs.tx_index.debug_checked_push(txin_index, tx_index);
@@ -114,7 +101,5 @@ pub fn finalize_inputs(
                 .get_mut_unwrap(output_type)
                 .remove(AddrIndexOutPoint::from((type_index, outpoint)));
         }
-
-        input_offset = next_input_offset;
     }
 }

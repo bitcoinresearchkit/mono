@@ -41,9 +41,11 @@ impl<T: Ranged> Run<T> {
 
     /// Returns the table that may possibly contains the given key.
     pub fn get_for_key(&self, key: &[u8]) -> Option<&T> {
-        let idx = self.partition_point(|x| x.key_range().max() < &key);
+        let idx = self.partition_point(|x| x.key_range().max().as_ref() < key);
 
-        self.0.get(idx).filter(|x| x.key_range().min() <= &key)
+        self.0
+            .get(idx)
+            .filter(|x| x.key_range().min().as_ref() <= key)
     }
 
     /// Returns the run's key range.
@@ -88,10 +90,10 @@ impl<T: Ranged> Run<T> {
         let lo = match key_range.start_bound() {
             Bound::Unbounded => 0,
             Bound::Included(start_key) => {
-                level.partition_point(|x| x.key_range().max() < start_key)
+                level.partition_point(|x| x.key_range().max().as_ref() < start_key.as_ref())
             }
             Bound::Excluded(start_key) => {
-                level.partition_point(|x| x.key_range().max() <= start_key)
+                level.partition_point(|x| x.key_range().max().as_ref() <= start_key.as_ref())
             }
         };
 
@@ -107,7 +109,9 @@ impl<T: Ranged> Run<T> {
             Bound::Unbounded => level.len() - 1,
             Bound::Included(end_key) => {
                 // IMPORTANT: We need to add back `lo` because we sliced it off
-                let idx = lo + truncated_level.partition_point(|x| x.key_range().min() <= end_key);
+                let idx = lo
+                    + truncated_level
+                        .partition_point(|x| x.key_range().min().as_ref() <= end_key.as_ref());
 
                 if idx == 0 {
                     return None;
@@ -117,7 +121,9 @@ impl<T: Ranged> Run<T> {
             }
             Bound::Excluded(end_key) => {
                 // IMPORTANT: We need to add back `lo` because we sliced it off
-                let idx = lo + truncated_level.partition_point(|x| x.key_range().min() < end_key);
+                let idx = lo
+                    + truncated_level
+                        .partition_point(|x| x.key_range().min().as_ref() < end_key.as_ref());
 
                 if idx == 0 {
                     return None;

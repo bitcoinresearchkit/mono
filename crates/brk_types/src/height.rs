@@ -12,9 +12,6 @@ use serde::{Deserialize, Serialize};
 use crate::{CheckedSub, Sats};
 
 #[cfg(feature = "storage")]
-use brk_error::Error as ErrorError;
-
-#[cfg(feature = "storage")]
 use std::io::Error as IoError;
 
 #[cfg(feature = "storage")]
@@ -208,14 +205,6 @@ impl From<AbsoluteHeight> for Height {
     #[inline]
     fn from(value: AbsoluteHeight) -> Self {
         Self(value.to_consensus_u32())
-    }
-}
-
-#[cfg(feature = "storage")]
-impl TryFrom<&Path> for Height {
-    type Error = ErrorError;
-    fn try_from(value: &Path) -> Result<Self, Self::Error> {
-        Ok(Self::from_bytes(fs::read(value)?.as_slice())?.to_owned())
     }
 }
 

@@ -4,7 +4,6 @@
 
 use std::{
     alloc::{Layout, alloc, alloc_zeroed, dealloc, handle_alloc_error},
-    borrow::Borrow,
     cmp::{Ord, Ordering as CmpOrdering, PartialEq, PartialOrd},
     fmt::{Debug, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
@@ -545,12 +544,6 @@ impl ByteView {
     }
 }
 
-impl Borrow<[u8]> for ByteView {
-    fn borrow(&self) -> &[u8] {
-        self
-    }
-}
-
 impl AsRef<[u8]> for ByteView {
     fn as_ref(&self) -> &[u8] {
         self
@@ -572,17 +565,5 @@ impl From<Vec<u8>> for ByteView {
 impl From<&str> for ByteView {
     fn from(value: &str) -> Self {
         Self::from(value.as_bytes())
-    }
-}
-
-impl<const N: usize> From<[u8; N]> for ByteView {
-    fn from(value: [u8; N]) -> Self {
-        Self::from(value.as_slice())
-    }
-}
-
-impl<const N: usize> From<&[u8; N]> for ByteView {
-    fn from(value: &[u8; N]) -> Self {
-        Self::from(value.as_slice())
     }
 }

@@ -1,19 +1,14 @@
-use std::{
-    fmt, mem,
-    str::{self, FromStr},
-};
+use std::str::FromStr;
 
-use bitcoin::{BlockHash as BitcoinBlockHash, hashes::Hash};
+use bitcoin::BlockHash as BitcoinBlockHash;
 use brk_error::Error;
 use derive_more::Deref;
 
-use crate::bytes::reversed_hex;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 #[cfg(feature = "storage")]
-use vecdb::{Bytes, Formattable};
+use vecdb::Bytes;
 
 /// Double-SHA256 block-header hash, serialized in Bitcoin's conventional
 /// hexadecimal byte order.
@@ -29,12 +24,7 @@ use vecdb::{Bytes, Formattable};
 ))]
 pub struct BlockHash([u8; 32]);
 
-impl BlockHash {
-    #[inline]
-    fn hex(&self) -> [u8; 64] {
-        reversed_hex(&self.0)
-    }
-}
+crate::bytes::impl_hash32!(BlockHash, BitcoinBlockHash, expecting: "a block hash");
 
 impl TryFrom<&str> for BlockHash {
     type Error = Error;
@@ -47,92 +37,5 @@ impl FromStr for BlockHash {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::try_from(s)
-    }
-}
-
-// The reference casts between `BlockHash` and `bitcoin::BlockHash` rely on this.
-// `bitcoin::BlockHash` wraps `sha256d::Hash` (`repr(transparent)` over `[u8; 32]`) with the
-// default representation, which guarantees no layout by itself; but at 32 bytes and alignment 1
-// its one 32-byte field can only sit at offset 0 with no padding. Both types then are 32 bytes
-// valid for every bit pattern.
-const _: () = assert!(
-    size_of::<BlockHash>() == 32
-        && size_of::<BitcoinBlockHash>() == 32
-        && align_of::<BlockHash>() == 1
-        && align_of::<BitcoinBlockHash>() == 1
-);
-
-impl From<BitcoinBlockHash> for BlockHash {
-    #[inline]
-    fn from(value: BitcoinBlockHash) -> Self {
-        Self(value.to_byte_array())
-    }
-}
-
-impl From<&BitcoinBlockHash> for &BlockHash {
-    #[inline]
-    fn from(value: &BitcoinBlockHash) -> Self {
-        // SAFETY: same layout (see the layout assertion).
-        unsafe { mem::transmute(value) }
-    }
-}
-
-impl From<BlockHash> for BitcoinBlockHash {
-    #[inline]
-    fn from(value: BlockHash) -> Self {
-        Self::from_byte_array(value.0)
-    }
-}
-
-impl From<&BlockHash> for &BitcoinBlockHash {
-    #[inline]
-    fn from(value: &BlockHash) -> Self {
-        // SAFETY: same layout (see the layout assertion).
-        unsafe { mem::transmute(value) }
-    }
-}
-
-impl From<&BlockHash> for BitcoinBlockHash {
-    #[inline]
-    fn from(value: &BlockHash) -> Self {
-        Self::from_byte_array(value.0)
-    }
-}
-
-impl fmt::Display for BlockHash {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(str::from_utf8(&self.hex()).unwrap())
-    }
-}
-
-impl Serialize for BlockHash {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(str::from_utf8(&self.hex()).unwrap())
-    }
-}
-
-impl<'de> Deserialize<'de> for BlockHash {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Self::from_str(&s).map_err(de::Error::custom)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for BlockHash {
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        buf.extend_from_slice(&self.hex());
-    }
-
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        buf.push(b'"');
-        self.write_to(buf);
-        buf.push(b'"');
     }
 }

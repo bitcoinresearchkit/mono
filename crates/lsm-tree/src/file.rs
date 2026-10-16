@@ -9,8 +9,6 @@ use std::{
 };
 
 #[cfg(unix)]
-use byteview::ByteView;
-#[cfg(unix)]
 use rustix::io::pread;
 #[cfg(windows)]
 use std::os::windows::fs::FileExt;
@@ -31,12 +29,11 @@ pub const CURRENT_VERSION_FILE: &str = "current";
 pub fn read_exact(file: &File, offset: u64, size: usize) -> Result<Slice> {
     #[cfg(unix)]
     {
-        ByteView::try_init(size, |buffer| {
+        Slice::try_init(size, |buffer| {
             let (initialized, _) = pread(file, buffer, offset)?;
             check_read(file, offset, size, initialized.len())?;
             Ok(initialized)
         })
-        .map(Into::into)
     }
 
     #[cfg(windows)]
@@ -44,7 +41,7 @@ pub fn read_exact(file: &File, offset: u64, size: usize) -> Result<Slice> {
         let mut builder = Slice::builder(size);
         let bytes_read = file.seek_read(&mut builder, offset)?;
         check_read(file, offset, size, bytes_read)?;
-        Ok(builder.freeze().into())
+        Ok(builder.freeze())
     }
 
     #[cfg(not(any(unix, windows)))]

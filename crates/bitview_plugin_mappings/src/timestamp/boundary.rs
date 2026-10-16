@@ -74,16 +74,6 @@ impl<I: VecIndex> ReadableVec<I, Timestamp> for BoundaryTimestampVec<I> {
         self.values(from, to).into_iter().for_each(each);
     }
 
-    fn fold_range_at<B, F: FnMut(B, Timestamp) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        fold: F,
-    ) -> B {
-        self.values(from, to).into_iter().fold(init, fold)
-    }
-
     fn try_fold_range_at<B, E, F: FnMut(B, Timestamp) -> Result<B, E>>(
         &self,
         from: usize,

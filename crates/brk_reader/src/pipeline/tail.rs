@@ -2,7 +2,7 @@ use std::{fs::File, os::unix::fs::FileExt, sync::Arc};
 
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
-use brk_types::{BlkMetadata, BlkPosition, BlockHash, Height, ReadBlock};
+use brk_types::{BlkMetadata, BlkPosition, Height, ReadBlock};
 use crossbeam::channel::Sender;
 
 use crate::{
@@ -64,19 +64,12 @@ impl<'a> Slots<'a> {
             XORIndex::at_offset(offset),
             reader.xor_bytes,
             self.canonical,
-        ) else {
+        )?
+        else {
             return Ok(false);
         };
         if self.slots[slot as usize].is_some() {
             return Ok(false);
-        }
-        if !self
-            .canonical
-            .verify_prev(slot, &BlockHash::from(header.prev_blockhash))
-        {
-            return Err(Error::Internal(
-                "tail pipeline: canonical batch stitched across a reorg",
-            ));
         }
         self.slots[slot as usize] = Some(Found {
             file: file.clone(),

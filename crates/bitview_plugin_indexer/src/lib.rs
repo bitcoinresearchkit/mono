@@ -10,7 +10,7 @@ use bitview_primitives::Lengths;
 use bitview_traversable::{AnyStoredVec, Traversable, TreeNode};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
-use brk_reader::{Reader, XOR_LEN, XORBytes};
+use brk_reader::{Reader, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
 use crossbeam::channel::{Receiver, bounded};
 use tracing::{debug, error, info, warn};
@@ -87,49 +87,12 @@ enum ImportValidation {
     Reset(&'static str),
 }
 
-enum XorMarker {
-    Missing,
-    Invalid(usize),
-    Valid(XORBytes),
-}
-
 fn is_export_height(height: Height) -> bool {
     height != 0 && height % EXPORT_HEIGHT_INTERVAL == 0
 }
 
 fn is_export_due(height: Height, pending_records: usize) -> bool {
     is_export_height(height) && pending_records >= MAX_PENDING_RECORDS
-}
-
-fn read_xor_marker(path: &Path) -> Result<XorMarker> {
-    let bytes = match fs::read(path.join("xor.dat")) {
-        Ok(bytes) => bytes,
-        Err(err) if err.kind() == ErrorKind::NotFound => return Ok(XorMarker::Missing),
-        Err(err) => return Err(err.into()),
-    };
-    Ok(match <[u8; XOR_LEN]>::try_from(bytes) {
-        Ok(bytes) => XorMarker::Valid(XORBytes::from(bytes)),
-        Err(bytes) => XorMarker::Invalid(bytes.len()),
-    })
-}
-
-fn validate_reader_source(reader: &Reader) -> Result<()> {
-    let current = match read_xor_marker(reader.blocks_dir())? {
-        XorMarker::Missing => XORBytes::from([0; XOR_LEN]),
-        XorMarker::Invalid(received) => {
-            return Err(Error::WrongLength {
-                expected: XOR_LEN,
-                received,
-            });
-        }
-        XorMarker::Valid(xor) => xor,
-    };
-    if current != reader.xor_bytes() {
-        return Err(Error::Internal(
-            "Block source changed after the Reader was created",
-        ));
-    }
-    Ok(())
 }
 
 /// Whether the plugin-data directory holds anything besides the indexer's own.
@@ -243,7 +206,7 @@ impl Indexer {
     /// the failed import attempt have been dropped. The bootstrap holds the shutdown lock around
     /// the import, so a reset never leaves a half-deleted directory that validation could accept.
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
-        validate_reader_source(reader)?;
+        reader.check_source()?;
         Self::import_inner(context, reader, true)
     }
 
@@ -270,7 +233,7 @@ impl Indexer {
                 resume: None,
                 compute_start: Lengths::default(),
                 ingestion: None,
-                state: Arc::new(State::new()),
+                state: Arc::default(),
             })
         };
 
@@ -378,14 +341,16 @@ impl Indexer {
             ));
         }
 
-        match read_xor_marker(plugin_path)? {
-            XorMarker::Missing if is_empty => write_xor_marker(plugin_path, reader.xor_bytes())?,
-            XorMarker::Valid(marker) if marker == reader.xor_bytes() => {}
-            XorMarker::Missing | XorMarker::Invalid(_) | XorMarker::Valid(_) => {
+        // The node's mask, recorded beside the data indexed from its blocks.
+        match XORBytes::read(plugin_path) {
+            Ok(None) if is_empty => write_xor_marker(plugin_path, reader.xor_bytes())?,
+            Ok(Some(marker)) if marker == reader.xor_bytes() => {}
+            Ok(_) | Err(Error::WrongLength { .. }) => {
                 return Ok(ImportValidation::Reset(
                     "Indexer block source marker is missing, invalid, or changed",
                 ));
             }
+            Err(error) => return Err(error),
         }
 
         let Some(hash) = blockhash.collect_last() else {
@@ -505,9 +470,9 @@ impl Indexer {
         persisted.publish()
     }
 
-    fn index_inner(&mut self, exit: &Exit, check_collisions: bool) -> Result<()> {
+    fn index_inner(&mut self, exit: &Exit) -> Result<()> {
         let reader = self.reader.clone();
-        validate_reader_source(&reader)?;
+        reader.check_source()?;
 
         debug!("Starting indexing...");
 
@@ -540,12 +505,7 @@ impl Indexer {
                 let _lock = exit.lock();
                 let checkpoint = stores.begin_commit(completed_height)?;
                 thread::scope(|s| -> Result<()> {
-                    let stores_res = s.spawn(|| {
-                        let i = Instant::now();
-                        let persisted = stores.persist(checkpoint)?;
-                        debug!("Stores persisted in {:?}", i.elapsed());
-                        Ok::<_, Error>(persisted)
-                    });
+                    let stores_res = s.spawn(|| stores.persist(checkpoint));
                     let vecs_res = s.spawn(|| -> Result<()> {
                         let i = Instant::now();
                         vecs.flush(completed_height)?;
@@ -599,7 +559,6 @@ impl Indexer {
             let mut processor = BlockProcessor {
                 block: &block,
                 height,
-                check_collisions,
                 lengths: &mut lengths,
                 vecs,
                 stores,
@@ -621,7 +580,7 @@ impl Indexer {
             let (txins_result, txouts_result) = join_reads(
                 &txs,
                 || inputs.resolve(&processor, &txs),
-                || processor.process_outputs(addresses, outputs),
+                || processor.process_outputs(&txs, addresses, outputs),
             );
             let txins = txins_result?;
             txouts_result?;
@@ -775,6 +734,6 @@ impl ComputePlugin for Indexer {
         (): Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        self.index_inner(context.exit(), cfg!(debug_assertions))
+        self.index_inner(context.exit())
     }
 }

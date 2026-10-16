@@ -6,9 +6,9 @@ use std::fmt::Write;
 use serde_json::Value;
 
 use crate::{
-    TypeSchemas, collect_schema_refs, escape_python_keyword,
+    Ty, TypeSchemas, collect_schema_refs, escape_python_keyword,
     generators::{MANUAL_GENERIC_TYPES, write_description},
-    get_union_variants, is_rust_concrete_generic, ref_to_type_name, rust_array_element_type,
+    is_rust_concrete_generic, rust_array_element_type,
     topological::topological,
 };
 
@@ -43,7 +43,8 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
     for name in type_aliases {
         let schema = &schemas[&name];
         let type_desc = schema.get("description").and_then(|d| d.as_str());
-        let py_type = schema_to_python_type(schema, Some(&name), Some(&typed_dict_set));
+        let quote = |reference: &str| reference == name || typed_dict_set.contains(reference);
+        let py_type = python_type(&Ty::parse(schema), &quote);
         if let Some(desc) = type_desc {
             write_description(output, desc, "# ", "#");
         }
@@ -69,8 +70,9 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
         let (required_props, optional_props): (Vec<_>, Vec<_>) = props
             .iter()
             .partition(|(prop_name, _)| required.contains(prop_name.as_str()));
+        let quote = |reference: &str| reference == name;
         let field = |output: &mut String, (prop_name, prop_schema): (&String, &Value)| {
-            let prop_type = schema_to_python_type(prop_schema, Some(&name), None);
+            let prop_type = python_type(&Ty::parse(prop_schema), &quote);
             writeln!(
                 output,
                 "    {}: {}",
@@ -97,10 +99,7 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             let entries: Vec<String> = props
                 .iter()
                 .map(|(key, prop_schema)| {
-                    format!(
-                        "{key:?}: {}",
-                        schema_to_python_type(prop_schema, Some(&name), None)
-                    )
+                    format!("{key:?}: {}", python_type(&Ty::parse(prop_schema), &quote))
                 })
                 .collect();
             let total = if required_props.is_empty() {
@@ -206,155 +205,29 @@ fn topological_sort_schemas(schemas: &TypeSchemas) -> Vec<String> {
         .collect()
 }
 
-/// Convert a single JSON type string to Python type
-fn json_type_to_python(ty: &str, schema: &Value, current_type: Option<&str>) -> String {
+/// A type in Python syntax. `quote` names the references to quote (self-references, and
+/// classes an alias would otherwise reference before their definition).
+pub(crate) fn python_type(ty: &Ty, quote: &impl Fn(&str) -> bool) -> String {
     match ty {
-        "integer" => "int".to_string(),
-        "number" => "float".to_string(),
-        "boolean" => "bool".to_string(),
-        "string" => "str".to_string(),
-        "null" => "None".to_string(),
-        "array" => {
-            let item_type = schema
-                .get("items")
-                .map(|s| schema_to_python_type(s, current_type, None))
-                .unwrap_or_else(|| "Any".to_string());
-            format!("List[{}]", item_type)
+        Ty::Any => "Any".to_owned(),
+        Ty::Null => "None".to_owned(),
+        Ty::Boolean => "bool".to_owned(),
+        Ty::Integer => "int".to_owned(),
+        Ty::Number => "float".to_owned(),
+        Ty::String => "str".to_owned(),
+        Ty::Object => "dict".to_owned(),
+        Ty::Map(value) => format!("dict[str, {}]", python_type(value, quote)),
+        Ty::List(item) => format!("List[{}]", python_type(item, quote)),
+        Ty::Ref(name) if quote(name) => format!("\"{name}\""),
+        Ty::Ref(name) => name.clone(),
+        Ty::Literals(values) => {
+            let values: Vec<String> = values.iter().map(|value| format!("\"{value}\"")).collect();
+            format!("Literal[{}]", values.join(", "))
         }
-        "object" => {
-            if let Some(add_props) = schema.get("additionalProperties") {
-                let value_type = schema_to_python_type(add_props, current_type, None);
-                return format!("dict[str, {}]", value_type);
-            }
-            "dict".to_string()
-        }
-        _ => "Any".to_string(),
-    }
-}
-
-/// Convert JSON Schema to Python type.
-///
-/// - `current_type`: Used to detect and quote self-references for recursive types
-/// - `quote_types`: Optional set of additional type names that should be quoted
-fn schema_to_python_type(
-    schema: &Value,
-    current_type: Option<&str>,
-    quote_types: Option<&BTreeSet<String>>,
-) -> String {
-    if let Some(all_of) = schema.get("allOf").and_then(|v| v.as_array()) {
-        for item in all_of {
-            let resolved = schema_to_python_type(item, current_type, quote_types);
-            if resolved != "Any" {
-                return resolved;
-            }
-        }
-    }
-
-    // Handle $ref
-    if let Some(ref_path) = schema.get("$ref").and_then(|r| r.as_str()) {
-        let type_name = ref_to_type_name(ref_path).unwrap_or("Any");
-        if let Some(element) = rust_array_element_type(type_name) {
-            return format!("List[{element}]");
-        }
-        // Quote self-references or types in quote_types set
-        let should_quote =
-            current_type == Some(type_name) || quote_types.is_some_and(|qt| qt.contains(type_name));
-        if should_quote {
-            return format!("\"{}\"", type_name);
-        }
-        return type_name.to_string();
-    }
-
-    // Handle enum (array of string values)
-    if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
-        let literals: Vec<String> = enum_values
-            .iter()
-            .filter_map(|v| v.as_str())
-            .map(|s| format!("\"{}\"", s))
-            .collect();
-        if !literals.is_empty() {
-            return format!("Literal[{}]", literals.join(", "));
-        }
-    }
-
-    if let Some(ty) = schema.get("type") {
-        if let Some(type_array) = ty.as_array() {
-            let types: Vec<String> = type_array
-                .iter()
-                .filter_map(|t| t.as_str())
-                .filter(|t| *t != "null")
-                .map(|t| json_type_to_python(t, schema, current_type))
-                .collect();
-            let has_null = type_array.iter().any(|t| t.as_str() == Some("null"));
-
-            if types.len() == 1 {
-                let base_type = &types[0];
-                return if has_null {
-                    format!("Optional[{}]", base_type)
-                } else {
-                    base_type.clone()
-                };
-            } else if !types.is_empty() {
-                let union = format!("Union[{}]", types.join(", "));
-                return if has_null {
-                    format!("Optional[{}]", union)
-                } else {
-                    union
-                };
-            }
-        }
-
-        if let Some(ty_str) = ty.as_str() {
-            return json_type_to_python(ty_str, schema, current_type);
-        }
-    }
-
-    if let Some(variants) = get_union_variants(schema) {
-        let types: Vec<String> = variants
-            .iter()
-            .map(|v| schema_to_python_type(v, current_type, quote_types))
-            .collect();
-        let filtered: Vec<_> = types.iter().filter(|t| *t != "Any").collect();
-        if !filtered.is_empty() {
-            return format!(
-                "Union[{}]",
-                filtered
-                    .iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            );
-        }
-        return format!("Union[{}]", types.join(", "));
-    }
-
-    // Check for format hint without type (common in OpenAPI)
-    if let Some(format) = schema.get("format").and_then(|f| f.as_str()) {
-        return match format {
-            "int32" | "int64" => "int".to_string(),
-            "float" | "double" => "float".to_string(),
-            "date" | "date-time" => "str".to_string(),
-            _ => "Any".to_string(),
-        };
-    }
-
-    "Any".to_string()
-}
-
-/// Convert JS-style type to Python type (e.g., `Txid[]` -> `List[Txid]`, `integer` -> `int`).
-pub(crate) fn js_type_to_python(js_type: &str) -> String {
-    if let Some(inner) = js_type.strip_suffix("[]") {
-        format!("List[{}]", js_type_to_python(inner))
-    } else {
-        match js_type {
-            "integer" => "int".to_string(),
-            "number" => "float".to_string(),
-            "boolean" => "bool".to_string(),
-            "string" => "str".to_string(),
-            "null" => "None".to_string(),
-            "Object" | "object" => "dict".to_string(),
-            "*" => "Any".to_string(),
-            _ => js_type.to_string(),
+        Ty::Nullable(ty) => format!("Optional[{}]", python_type(ty, quote)),
+        Ty::Union(variants) => {
+            let variants: Vec<String> = variants.iter().map(|ty| python_type(ty, quote)).collect();
+            format!("Union[{}]", variants.join(", "))
         }
     }
 }

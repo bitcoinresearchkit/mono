@@ -19,12 +19,10 @@ pub struct CostBasisData {
 }
 
 impl CostBasisData {
-    fn is_empty(&self) -> bool {
-        self.pending.is_empty() && self.map.is_empty()
-    }
-
+    /// Applies pending changes first: the cache builds from and crosses the map.
     pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
-        if self.is_empty() {
+        self.apply_pending();
+        if self.map.is_empty() {
             return UnrealizedState::default();
         }
 

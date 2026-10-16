@@ -15,13 +15,13 @@ use bitview_primitives::{Count, Count32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyPerBlockCumulativeRolling, LazyPerSecondWindows, PerBlockFullFromCumulative,
+    ValuePerBlockCumulativeRolling,
 };
 use brk_types::Version;
 use statedb::Creations;
 use vecdb::{Database, Rw, StorageMode};
 
 use spent::Vecs as SpentVecs;
-use value::Vecs as ValueVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("outputs"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
@@ -47,6 +47,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Transaction outputs by locking-script type, including coinbase outputs
     /// and coinbase transactions.
     types: TypesVecs<M>,
-    #[traversable(flatten)]
-    pub value: ValueVecs<M>,
+    /// Total bitcoin value assigned to provably unspendable `OP_RETURN`
+    /// outputs.
+    pub op_return_value: ValuePerBlockCumulativeRolling<M>,
 }

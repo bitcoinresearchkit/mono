@@ -6,6 +6,7 @@ use brk_types::Dollars;
 
 use crate::{
     AppState,
+    api::tags,
     error::Result,
     extended::TransformResponseExtended,
     params::{Empty, HeightOrDate, HeightOrDateParam},
@@ -32,7 +33,7 @@ impl OracleRoutes for ApiRouter<AppState> {
             "/api/oracle/price",
             get_with(serve_live_price, |op| {
                 op.id("get_oracle_price")
-                    .oracle_tag()
+                    .tag(tags::ORACLE)
                     .mcp_ignore()
                     .summary("Live BTC/USD price")
                     .description(
@@ -54,7 +55,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_oracle_histogram_payments_live")
-                        .oracle_tag()
+                        .tag(tags::ORACLE)
                         .summary("Live payment output histogram")
                         .description(
                             "Live smoothed histogram of oracle-eligible payment outputs, binned \
@@ -90,7 +91,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_oracle_histogram_payments")
-                        .oracle_tag()
+                        .tag(tags::ORACLE)
                         .summary("Payment output histogram at height or day")
                         .description(
                             "Smoothed histogram of oracle-eligible payment outputs for a \
@@ -115,7 +116,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_oracle_histogram_outputs_live")
-                        .oracle_tag()
+                        .tag(tags::ORACLE)
                         .summary("Live output value histogram")
                         .description(
                             "Live unfiltered output value histogram for the complete published \
@@ -150,7 +151,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_oracle_histogram_outputs")
-                        .oracle_tag()
+                        .tag(tags::ORACLE)
                         .summary("Output value histogram at height or day")
                         .description(
                             "Unfiltered output value histogram for a confirmed point. A block \

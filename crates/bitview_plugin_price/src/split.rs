@@ -5,7 +5,7 @@ use brk_types::{Cents, Dollars, Height, Version};
 use vecdb::{Convert, ReadableBoxedVec, UnaryTransform};
 
 use crate::{
-    endpoint::{EndpointCents, endpoint_price},
+    endpoint::{EndpointPrice, endpoint_price},
     ohlc::OhlcPrice,
 };
 
@@ -28,7 +28,6 @@ ohlc_field!(
     OhlcCentsToLowCents => low,
 );
 
-type EndpointPrice<const CLOSE: bool> = Price<EndpointCents<CLOSE>, LazyIndexes<Dollars, Cents>>;
 type ExtremePrice = Price<LazyIndexes<Cents, OHLCCents>, LazyIndexes<Dollars, Cents>>;
 
 /// Each price of the OHLC candle as its own series: an empty period is a flat candle at the
@@ -75,10 +74,9 @@ fn extreme<F: UnaryTransform<OHLCCents, Cents>>(
     version: Version,
     ohlc: &OhlcPrice,
 ) -> ExtremePrice {
-    let cents = ohlc
-        .cents
-        .transformed::<Cents, F>(&format!("{name}_{field}_cents"), version);
+    let cents =
+        LazyIndexes::from_resolutions::<F>(&format!("{name}_{field}_cents"), version, &ohlc.cents);
     let usd =
-        LazyIndexes::from_lazy_indexes::<Convert, _>(&format!("{name}_{field}"), version, &cents);
+        LazyIndexes::from_resolutions::<Convert>(&format!("{name}_{field}"), version, &cents.0);
     Price { usd, cents }
 }

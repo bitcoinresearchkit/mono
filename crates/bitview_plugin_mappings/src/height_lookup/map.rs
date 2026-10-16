@@ -9,6 +9,7 @@ const DIRECTORY_BITS: u32 = 20;
 
 /// Block index boundaries with a small directory narrowing floor lookups.
 /// The directory indexes the same boundary pages; it stores no separate mapping.
+#[derive(Clone)]
 pub struct HeightMap<I> {
     ranges: RangeMap<I, Height>,
     // First boundary at or above each bucket; the final entry is ranges.len(). At most 2^20
@@ -17,17 +18,6 @@ pub struct HeightMap<I> {
     // The last boundary, inline for the hot tip check; meaningless while empty.
     last: I,
     shift: usize,
-}
-
-impl<I: Copy> Clone for HeightMap<I> {
-    fn clone(&self) -> Self {
-        Self {
-            ranges: self.ranges.clone(),
-            bounds: self.bounds.clone(),
-            last: self.last,
-            shift: self.shift,
-        }
-    }
 }
 
 impl<I: VecIndex> Default for HeightMap<I> {

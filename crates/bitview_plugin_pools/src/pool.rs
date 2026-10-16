@@ -4,10 +4,12 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyCumulativeValuePerBlock, LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock,
     LazyPercentRollingWindows, LazyRollingSumsAmountFromHeight, LazyRollingSumsFromHeight,
-    LazyWindowStartVec, shapes::Windows,
+    LazyWindowStartVec, ops::Quotient, shapes::Windows,
 };
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats};
-use vecdb::{DeltaSub, Ident, LazyDeltaVec, LazyVec, ReadableCloneableVec, Version};
+use vecdb::{
+    BinaryTransform, DeltaSub, Ident, LazyDeltaVec, LazyVec, ReadableCloneableVec, Version,
+};
 
 use crate::pool_heights::{Column, PoolCumulativeVec, PoolHeights};
 
@@ -179,13 +181,14 @@ impl PoolVecs {
                     fee_cents.read_only_boxed_clone(),
                     start.read_only_boxed_clone(),
                 );
+                // A window without the pool's blocks holds none of its fees: 0 / 0, undefined.
                 let btc = LazyIndexedVec::new(
                     &format!("{full_name}_source"),
                     version,
                     &sats,
                     &blocks.height,
                     |_, sats: Sats, blocks: Count| {
-                        Bitcoin::from(per_block(f64::from(Bitcoin::from(sats)), blocks))
+                        Quotient::<Bitcoin>::apply(Bitcoin::from(sats), blocks)
                     },
                 );
                 let usd = LazyIndexedVec::new(
@@ -194,7 +197,7 @@ impl PoolVecs {
                     &cents,
                     &blocks.height,
                     |_, cents: Cents, blocks: Count| {
-                        Dollars::from(per_block(f64::from(Dollars::from(cents)), blocks))
+                        Quotient::<Dollars>::apply(Dollars::from(cents), blocks)
                     },
                 );
                 FeesPerBlock {
@@ -245,13 +248,5 @@ impl PoolVecs {
             fees_per_block,
             hashrate,
         }
-    }
-}
-
-/// `value` per block; NaN (served as null) when the pool mined none in the window.
-fn per_block(value: f64, blocks: Count) -> f64 {
-    match u64::from(blocks) {
-        0 => f64::NAN,
-        blocks => value / blocks as f64,
     }
 }

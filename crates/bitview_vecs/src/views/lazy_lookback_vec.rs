@@ -204,19 +204,6 @@ where
         });
     }
 
-    fn fold_range_at<B, G: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: G,
-    ) -> B {
-        let Ok(accumulator) = self.try_fold_range_at(from, to, init, |accumulator, value| {
-            Ok::<_, Infallible>(fold(accumulator, value))
-        });
-        accumulator
-    }
-
     fn try_fold_range_at<B, E, G: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,

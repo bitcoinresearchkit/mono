@@ -7,8 +7,6 @@ them with the invariant each relies on.
   and `needle`, bounded by `max_pfx_len = min(prefix.len(), needle.len())`.
 - `table/filter/bit_array/builder.rs` `enable_bit`: unchecked byte write; the
   Bloom builder reduces every bit index modulo its own bit count.
-- `double_ended_peekable.rs`: `unreachable_unchecked` right after the
-  `Unpeeked` state is replaced with `Peeked`.
 
 Block decoding has no unchecked access. Blocks are not checksummed, so on-disk
 bytes are untrusted: `Block::from_file`/`from_reader` validate the trailer,

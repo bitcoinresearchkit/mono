@@ -1,10 +1,13 @@
 use std::ptr;
 
 use super::EncodedChunk;
-use crate::{Error, Result, ValueStrategy, likely};
+use crate::{Error, Format, Result, ValueStrategy, likely};
 
 /// Trait for compression strategies used by ReadWriteCompressedVec.
-pub trait CompressionStrategy<T>: ValueStrategy<T> {
+pub trait CompressionStrategy<T>: ValueStrategy<T> + 'static {
+    /// On-disk format of vectors stored with this strategy.
+    const FORMAT: Format;
+
     /// Decoding state reused across pages, its scratch across chunks too.
     type Decoder: Default;
 
@@ -18,34 +21,13 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
     /// decoded only after a successful reset for their chunk.
     fn reset_decoder(decoder: &mut Self::Decoder, header: &[u8]) -> Result<()>;
 
-    /// Decodes one page body, replacing `dst` while reusing its allocation.
-    fn decompress_page_into(
-        decoder: &mut Self::Decoder,
-        body: &[u8],
-        expected_len: usize,
-        dst: &mut Vec<T>,
-    ) -> Result<()>;
-
     /// Decodes one page body directly onto the end of `dst`.
-    #[inline]
     fn decompress_page_append(
         decoder: &mut Self::Decoder,
         body: &[u8],
         expected_len: usize,
         dst: &mut Vec<T>,
-    ) -> Result<()> {
-        let mut values = Vec::with_capacity(expected_len);
-        Self::decompress_page_into(decoder, body, expected_len, &mut values)?;
-        dst.extend(values);
-        Ok(())
-    }
-
-    /// Deserializes bytes into an existing buffer, reusing its allocation.
-    #[inline]
-    fn bytes_to_values_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
-        dst.clear();
-        Self::bytes_to_values_append(bytes, expected_len, dst)
-    }
+    ) -> Result<()>;
 
     /// Deserializes bytes onto the end of `dst`.
     #[inline]

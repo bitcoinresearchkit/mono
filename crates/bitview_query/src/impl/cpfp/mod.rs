@@ -4,30 +4,3 @@ pub mod confirmed;
 pub mod resolved;
 
 pub use resolved::ResolvedCpfp;
-
-use brk_types::{CpfpInfo, Txid};
-
-use crate::{Error, Query, Result, r#impl::tx::ResolvedConfirmedTx};
-
-enum CpfpSource {
-    Memory(CpfpInfo),
-    Chain(ResolvedConfirmedTx),
-}
-
-impl Query {
-    fn resolve_cpfp_source(&self, txid: &Txid) -> Result<CpfpSource> {
-        let (mempool, pin) = self.mempool_then_pin()?;
-        let read = self.read_indexer_at(pin);
-        match read.resolve_confirmed_tx(txid) {
-            Ok(transaction) => Ok(CpfpSource::Chain(transaction)),
-            Err(Error::UnknownTxid) => {
-                let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::UnknownTxid)?;
-                mempool
-                    .cpfp_info(txid, &tip)?
-                    .map(CpfpSource::Memory)
-                    .ok_or(Error::UnknownTxid)
-            }
-            Err(error) => Err(error),
-        }
-    }
-}

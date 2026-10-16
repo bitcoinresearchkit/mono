@@ -1,7 +1,6 @@
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
-use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, Rw, Stamp, StorageMode, WritableVec};
 
 use super::features::{CountVecs, TransactionCounts};
@@ -48,16 +47,6 @@ impl VersionCountVecs {
             vec.block.truncate_if_needed_with_stamp(height, stamp)?;
         }
         Ok(())
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut *self.v1.block as &mut dyn AnyStoredVec,
-            &mut *self.v2.block,
-            &mut *self.v3.block,
-            &mut *self.other.block,
-        ]
-        .into_par_iter()
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

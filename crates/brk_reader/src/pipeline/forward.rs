@@ -21,7 +21,7 @@ use rustc_hash::FxHashSet;
 use tracing::error;
 
 use crate::{
-    BlkIndexToBlkPath, BlockHash, XORBytes, XORIndex,
+    BlkIndexToBlkPath, XORBytes, XORIndex,
     canonical::CanonicalRange,
     parse::{parse_canonical_body, peek_canonical},
     pipeline::{CHANNEL_CAPACITY, reorder::ReorderState},
@@ -267,18 +267,15 @@ fn read_and_dispatch(
                 if stop.get().is_some() {
                     return ControlFlow::Break(());
                 }
-                let Some((canonical_offset, header)) =
-                    peek_canonical(block_bytes, xor_state, xor_bytes, canonical)
-                else {
-                    return ControlFlow::Continue(());
-                };
-                if !canonical.verify_prev(canonical_offset, &BlockHash::from(header.prev_blockhash))
-                {
-                    let _ = stop.set(Stop::Failed(Error::Internal(
-                        "forward pipeline: canonical batch stitched across a reorg",
-                    )));
-                    return ControlFlow::Break(());
-                }
+                let (canonical_offset, header) =
+                    match peek_canonical(block_bytes, xor_state, xor_bytes, canonical) {
+                        Ok(Some(found)) => found,
+                        Ok(None) => return ControlFlow::Continue(()),
+                        Err(e) => {
+                            let _ = stop.set(Stop::Failed(e));
+                            return ControlFlow::Break(());
+                        }
+                    };
                 debug_assert_eq!(
                     xor_state,
                     XORIndex::at_offset(metadata.position().offset() as usize)

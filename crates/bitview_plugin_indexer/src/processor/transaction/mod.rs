@@ -4,7 +4,7 @@ use brk_store::Store;
 use brk_types::{Height, TxIndex, Txid, TxidPrefix};
 use rayon::{join, prelude::*};
 use tracing::error;
-use vecdb::{WritableVec, likely, unlikely};
+use vecdb::{WritableVec, likely};
 
 use self::analysis::TransactionAnalysis;
 use super::{
@@ -24,7 +24,6 @@ pub use computed::ComputedTx;
 
 impl<'a> BlockProcessor<'a> {
     pub fn compute_txids(&self) -> Result<Vec<ComputedTx<'a>>> {
-        let check_collisions = self.check_collisions;
         let base_tx_index = self.lengths.tx_index;
 
         let mut txs = self
@@ -37,7 +36,8 @@ impl<'a> BlockProcessor<'a> {
                 let txid = Txid::from(btc_txid);
                 let tx_index = base_tx_index + TxIndex::from(index);
 
-                if unlikely(check_collisions)
+                // Only debug builds check: in release it measured +115% indexing.
+                if cfg!(debug_assertions)
                     && let Some(prev_tx_index) = self.stores.tx_index(&TxidPrefix::from(&txid))?
                 {
                     self.validate_txid_collision(tx_index, prev_tx_index)?;
@@ -77,9 +77,7 @@ impl<'a> BlockProcessor<'a> {
     ) {
         self.analyze_transactions(&txs, txins, txouts, analyses);
         let lengths = &mut *self.lengths;
-        let base_tx_index = lengths.tx_index;
         let base_txin_index = lengths.txin_index;
-        let transactions = &self.block.txdata;
 
         // Split transactions vecs: finalize needs first_txout_index/first_txin_index, metadata needs the rest
         let (first_txout_index, first_txin_index, mut tx_metadata) =
@@ -98,7 +96,6 @@ impl<'a> BlockProcessor<'a> {
             addr_unspent_outpoints,
             txid_prefixes,
             utxos,
-            utxo_values,
         } = self.stores.transaction_stores_mut();
         let txs = &txs;
 
@@ -116,20 +113,17 @@ impl<'a> BlockProcessor<'a> {
                     addr_tx_indexes,
                     addr_unspent_outpoints,
                     utxos,
-                    utxo_values,
                     txouts,
                     addresses,
                 );
                 txin::finalize_inputs(
-                    transactions,
-                    base_tx_index,
+                    txs,
                     base_txin_index,
                     first_txin_index,
                     inputs,
                     addr_tx_indexes,
                     addr_unspent_outpoints,
                     utxos,
-                    utxo_values,
                     txins,
                     txouts,
                 );

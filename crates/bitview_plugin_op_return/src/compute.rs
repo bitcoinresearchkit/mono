@@ -45,11 +45,12 @@ impl ComputePlugin for Vecs {
         }
 
         let prices = &price.spot.cents.height;
-        let height = starting_lengths.height;
-        self.total.compute_cents(height, prices, exit)?;
-        self.protocols.compute_cents(height, prices, exit)?;
-        self.policies.compute_cents(height, prices, exit)?;
-
+        for bucket in self.buckets_mut() {
+            bucket
+                .fees
+                .fees
+                .compute_cents(starting_lengths.height, prices, exit)?;
+        }
         Ok(())
     }
 }

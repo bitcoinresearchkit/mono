@@ -1,4 +1,4 @@
-use std::{fs, marker::PhantomData, ops::Deref, path::PathBuf, result::Result, sync::Arc};
+use std::{fs, marker::PhantomData, ops::Deref, path::PathBuf, sync::Arc};
 
 use parking_lot::Mutex;
 use rawdb::Database;
@@ -187,27 +187,6 @@ where
     pub fn remove(self) -> CrateResult<()> {
         self.read_only.region.remove()?;
         Ok(())
-    }
-
-    #[inline]
-    pub fn try_fold_pushed<B, E, F: FnMut(B, T) -> Result<B, E>>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut f: F,
-    ) -> Result<B, E> {
-        let stored_len = self.stored_len();
-        let start = from.max(stored_len);
-        if start >= to {
-            return Ok(init);
-        }
-        let pushed = self.pushed();
-        let mut acc = init;
-        for v in &pushed[(start - stored_len)..(to - stored_len).min(pushed.len())] {
-            acc = f(acc, v.clone())?;
-        }
-        Ok(acc)
     }
 
     /// Returns true if stored_len needs updating to `index`.

@@ -12,7 +12,6 @@ mod inscription;
 mod patterns;
 mod policy;
 mod resume;
-mod sigops;
 mod versions;
 mod vsize;
 
@@ -24,16 +23,16 @@ use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Count16;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPerSecondWindows, PerBlockFullFromCumulative, ValuePerBlockCumulativeRolling,
+    LazyPerSecondWindows, PerBlockCumulativeRolling, PerBlockFullFromCumulative,
+    ValuePerBlockCumulativeRolling,
 };
-use brk_types::Version;
+use brk_types::{SigOps, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use features::Vecs as FeaturesVecs;
+use flagged::Classified;
 use inscription::Vecs as InscriptionVecs;
 use patterns::Vecs as PatternsVecs;
-use policy::Vecs as PolicyVecs;
-use sigops::Vecs as SigopsVecs;
 use versions::Vecs as VersionsVecs;
 use vsize::Vecs as VSizeVecs;
 
@@ -57,9 +56,22 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub fees: FeesVecs<M>,
     inscription: InscriptionVecs<M>,
     patterns: PatternsVecs<M>,
-    #[traversable(flatten)]
-    policy: PolicyVecs<M>,
-    sigop_cost: SigopsVecs<M>,
+    /// Transactions nonstandard under BRK's transaction-local approximation of
+    /// default Bitcoin Core relay standardness at the represented block height.
+    /// It checks version, size and weight, scripts and witnesses,
+    /// signature-operation limits, dust, and `OP_RETURN` policy. It does not
+    /// model node adoption, fee floors, mempool or package topology, conflicts or
+    /// replacement, or node-specific settings. Modeled rules change after height
+    /// 863,500 and at heights 892,500 and 921,000; coinbase transactions are not
+    /// evaluated (never nonstandard).
+    nonstandard: Classified<M>,
+    /// Block total of BIP-141 signature-operation cost, including coinbase:
+    /// legacy scriptPubKey, scriptSig, and P2SH redeem-script sigops cost four
+    /// units; P2WPKH and P2WSH sigops cost one. This is a static count, not the
+    /// number of signatures executed. Tapscript sigops are excluded because
+    /// BIP-342 uses a separate per-input budget. The post-SegWit block limit is
+    /// 80,000 cost units.
+    sigop_cost: PerBlockCumulativeRolling<SigOps, M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Bitcoin transaction version.
     versions: VersionsVecs<M>,

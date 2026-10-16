@@ -6,6 +6,7 @@ use crate::{
 };
 
 mod cached;
+mod persisted;
 pub mod read_only;
 pub mod read_write;
 pub mod strategy;

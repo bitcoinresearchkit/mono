@@ -3,9 +3,8 @@ use bitview_primitives::{Bytes, Count};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, VSize, Version};
-use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+use brk_types::{Height, Sats, VSize, Version};
+use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, Rw, StorageMode};
 
 use super::{BlockMetrics, DataBytesSeries, FeesSeries};
 use crate::{by_kind::ByKind, policy::Policy};
@@ -71,7 +70,7 @@ impl BucketVecs {
         self.data_bytes.data_bytes.push_block(block.data_bytes);
         self.tx_count.push_block(Count::from(block.tx_count));
         self.tx_vsize.push_block(block.tx_vsize);
-        self.fees.push_block(block.fees);
+        self.fees.fees.push_sats(block.fees);
     }
 
     /// The stored columns every block pushes to; fiat columns compute apart.
@@ -81,17 +80,8 @@ impl BucketVecs {
             self.data_bytes.data_bytes.stored_mut(),
             self.tx_count.stored_mut(),
             self.tx_vsize.stored_mut(),
-            self.fees.stored_mut(),
+            &mut self.fees.fees.cumulative.sats.height,
         ]
-    }
-
-    pub(crate) fn compute_cents(
-        &mut self,
-        max_from: Height,
-        price_cents: &impl ReadableVec<Height, Cents>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.fees.compute_cents(max_from, price_cents, exit)
     }
 }
 
@@ -127,18 +117,6 @@ macro_rules! impl_breakdown {
                 for (bucket, value) in self.iter_mut().zip(values) {
                     bucket.push(value);
                 }
-            }
-
-            pub fn compute_cents(
-                &mut self,
-                max_from: Height,
-                price_cents: &impl ReadableVec<Height, Cents>,
-                exit: &Exit,
-            ) -> Result<()> {
-                for bucket in self.iter_mut() {
-                    bucket.compute_cents(max_from, price_cents, exit)?;
-                }
-                Ok(())
             }
         }
     };

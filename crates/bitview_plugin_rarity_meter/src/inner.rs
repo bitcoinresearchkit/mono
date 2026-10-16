@@ -172,17 +172,24 @@ impl RarityMeterInner {
         self.prices.iter().map(|p| p.cents.height.version()).sum()
     }
 
-    /// Upper boundaries spot exceeds minus lower boundaries it stays under.
+    /// The level of the combined boundaries.
     fn level(close: Cents, values: &[Cents; RARITY_PERCENTILES_LEN]) -> Score {
-        let lower = RarityPercentileId::BOUNDARIES[..5]
-            .iter()
-            .filter(|&&id| !values[id as usize].is_nan() && close < values[id as usize])
+        Score::new(Self::boundary_score(close, |i| {
+            values[RarityPercentileId::BOUNDARIES[i] as usize]
+        }))
+    }
+
+    /// Upper boundaries `price` exceeds minus lower boundaries it stays under, `boundary(i)`
+    /// being the `i`th of the five lower then five upper ones. An undefined lower boundary
+    /// counts as neither.
+    #[inline]
+    fn boundary_score(price: Cents, boundary: impl Fn(usize) -> Cents) -> i8 {
+        let lower = (0..5)
+            .map(&boundary)
+            .filter(|&value| !value.is_nan() && price < value)
             .count() as i8;
-        let upper = RarityPercentileId::BOUNDARIES[5..]
-            .iter()
-            .filter(|&&id| close > values[id as usize])
-            .count() as i8;
-        Score::new(upper - lower)
+        let upper = (5..10).filter(|&i| price > boundary(i)).count() as i8;
+        upper - lower
     }
 
     pub fn needs_compute(
@@ -269,13 +276,7 @@ impl RarityMeterInner {
     }
 
     fn score_at(price: Cents, bands: &[Vec<Cents>; 10], index: usize) -> i8 {
-        let lower = bands[..5]
-            .iter()
-            .filter(|band| !band[index].is_nan() && price < band[index])
-            .count() as i8;
-        let upper = bands[5..].iter().filter(|band| price > band[index]).count() as i8;
-
-        upper - lower
+        Self::boundary_score(price, |i| bands[i][index])
     }
 }
 

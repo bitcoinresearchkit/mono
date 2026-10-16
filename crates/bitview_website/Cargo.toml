@@ -10,7 +10,7 @@ include = ["src/**/*", "website/**/*", "Cargo.toml", "README.md"]
 
 [dependencies]
 axum = { workspace = true }
-http-body = { workspace = true }
+bitview_http = { workspace = true }
 include_dir = { workspace = true }
 importmap = { workspace = true, features = ["embedded"] }
 serde = { workspace = true }

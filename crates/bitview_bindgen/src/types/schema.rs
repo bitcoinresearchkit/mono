@@ -91,11 +91,3 @@ pub(crate) fn rust_array_element_type(type_name: &str) -> Option<&str> {
 pub(crate) fn is_rust_concrete_generic(type_name: &str) -> bool {
     type_name.contains('<') && type_name.ends_with('>')
 }
-
-/// Get union variants from anyOf or oneOf schema.
-pub(crate) fn get_union_variants(schema: &Value) -> Option<&Vec<Value>> {
-    schema
-        .get("anyOf")
-        .or_else(|| schema.get("oneOf"))
-        .and_then(|v| v.as_array())
-}

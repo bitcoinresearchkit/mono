@@ -3,7 +3,7 @@ use bitview_primitives::BlockHashPrefix;
 use brk_error::{Error, Result};
 use brk_types::Timestamp;
 use tracing::error;
-use vecdb::{WritableVec, unlikely};
+use vecdb::WritableVec;
 
 use super::{BlockProcessor, transaction::ComputedTx};
 use crate::lengths::IndexerLengths as _;
@@ -14,7 +14,7 @@ impl BlockProcessor<'_> {
         let blockhash = self.block.hash();
         let blockhash_prefix = BlockHashPrefix::from(blockhash);
 
-        if unlikely(self.check_collisions)
+        if cfg!(debug_assertions)
             && self
                 .stores
                 .block_height(&blockhash_prefix)?

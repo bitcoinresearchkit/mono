@@ -13,7 +13,9 @@ pub mod typed;
 pub use fold::*;
 use sparse::Sparse;
 
-use vecdb::{ReadableBoxedVec, VecIndex, VecValue, Version};
+use vecdb::{AnyVec, ReadableBoxedVec, VecIndex, VecValue, Version};
+
+use crate::RangeMapVec;
 
 /// Lazy aggregation vector that maps coarser output indices to ranges in a finer source.
 ///
@@ -45,18 +47,21 @@ where
         &self.source
     }
 
-    /// `version` includes the boundary mapping's schema version.
-    pub fn new(
+    /// The view's version is `version` plus the boundary mapping's.
+    pub(crate) fn new(
         name: &str,
         version: Version,
         source: ReadableBoxedVec<S1I, S1T>,
-        mapping: SharedRangeMap<S1I, I>,
-    ) -> Self {
+        mapping: &RangeMapVec<I, S1I>,
+    ) -> Self
+    where
+        S1I: VecValue,
+    {
         Self {
             name: Arc::from(name),
-            version,
+            version: version + mapping.version(),
             source,
-            mapping,
+            mapping: mapping.mapping().clone(),
             _phantom: PhantomData,
         }
     }

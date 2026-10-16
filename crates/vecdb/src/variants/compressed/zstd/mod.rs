@@ -1,7 +1,4 @@
-use crate::{
-    Format, ReadOnlyCompressedVec, ReadWriteCompressedVec, VecValue, cache::CachePolicy,
-    cache::NoCache,
-};
+use crate::{ReadWriteCompressedVec, cache::NoCache};
 
 pub mod strategy;
 pub mod value;
@@ -22,16 +19,4 @@ pub use value::*;
 /// # When to Use
 /// - Storage space is expensive
 /// - Can tolerate slower compression (decompression is fast)
-#[derive(Debug)]
-#[must_use = "Vector should be stored to keep data accessible"]
-pub struct ZstdVec<I, T: VecValue, C: CachePolicy = NoCache>(
-    ReadWriteCompressedVec<I, T, ZstdStrategy<T>, C>,
-);
-
-impl_vec_wrapper!(
-    ZstdVec,
-    ReadWriteCompressedVec<I, T, ZstdStrategy<T>, C>,
-    ZstdVecValue,
-    Format::Zstd,
-    ReadOnlyCompressedVec<I, T, ZstdStrategy<T>, C>
-);
+pub type ZstdVec<I, T, C = NoCache> = ReadWriteCompressedVec<I, T, ZstdStrategy<T>, C>;

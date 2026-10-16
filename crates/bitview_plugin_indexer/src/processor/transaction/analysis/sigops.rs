@@ -1,5 +1,5 @@
 use bitcoin::{
-    Script, TxIn, TxOut,
+    Script, TxIn,
     constants::WITNESS_SCALE_FACTOR,
     opcodes::all::{OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY},
     script::Instruction,
@@ -97,10 +97,8 @@ impl Accumulator {
             .saturating_add(SigOpCount::of(&input.script_sig).legacy);
     }
 
-    pub fn scan_output(&mut self, txout: &TxOut, output: &ProcessedOutput) {
-        self.legacy = self
-            .legacy
-            .saturating_add(legacy_sigops_for_output(output, &txout.script_pubkey));
+    pub fn scan_output(&mut self, output: &ProcessedOutput) {
+        self.legacy = self.legacy.saturating_add(output.script_legacy_sigops());
     }
 
     pub fn finish(self) -> ComputedSigOps {
@@ -113,26 +111,6 @@ impl Accumulator {
             ),
             executed_legacy: SigOps32::from(self.executed_legacy),
         }
-    }
-}
-
-/// Legacy sigop count of a script_pubkey, dispatched on `OutputType`.
-/// P2PKH and P2PK end in a single OP_CHECKSIG (1); P2SH/P2WPKH/P2WSH/P2TR/P2A/Empty contain no
-/// CHECKSIG-class opcodes outside their pushdata. The P2MS classifier also accepts extra signature
-/// opcodes before its CHECKMULTISIG, `OpReturn` payloads can hold 0xac/0xae outside a push, and
-/// `Unknown` can be anything, so those are counted (an OP_RETURN's at classification).
-#[inline]
-pub fn legacy_sigops_for_output(output: &ProcessedOutput, script_pubkey: &Script) -> usize {
-    match output.output_type {
-        OutputType::P2PKH | OutputType::P2PK33 | OutputType::P2PK65 => 1,
-        OutputType::P2SH
-        | OutputType::P2WPKH
-        | OutputType::P2WSH
-        | OutputType::P2TR
-        | OutputType::P2A
-        | OutputType::Empty => 0,
-        OutputType::OpReturn => output.op_return_legacy_sigops(),
-        OutputType::P2MS | OutputType::Unknown => SigOpCount::of(script_pubkey).legacy,
     }
 }
 

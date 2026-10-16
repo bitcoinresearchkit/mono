@@ -24,6 +24,7 @@ use serde_json::{Value, to_vec};
 
 use crate::{
     AppState, CacheParams, CdnCacheMode, Error,
+    api::tags,
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
     params::{Empty, SeriesParam},
@@ -83,7 +84,9 @@ const MAX_INPUT_BYTES: usize = 1024;
 
 fn empty_search(headers: &HeaderMap, cdn_cache_mode: CdnCacheMode) -> Response {
     let params = CacheParams::immutable(Version::ONE, cdn_cache_mode);
-    Response::json_bytes(headers, &params, || Bytes::from_static(b"[]"))
+    Response::cached_bytes(headers, &params, "application/json", || {
+        Bytes::from_static(b"[]")
+    })
 }
 
 pub async fn serve_series_info(
@@ -93,10 +96,10 @@ pub async fn serve_series_info(
 ) -> Result<Response> {
     validate_name(&series)?;
     if let Some(info) = state.query.sync(|q| q.resolve_series_info(&series)) {
-        return Ok(Response::json_bytes(
+        return Ok(Response::cached_json(
             &headers,
             &state.series_bodies.info,
-            || Bytes::from(to_vec(&info.into_info()).unwrap()),
+            || info.into_info(),
         ));
     }
 
@@ -146,7 +149,7 @@ pub async fn serve_len(
         .await?;
     // The JSON number depends only on length, not on the chain tip or deploy.
     let params = CacheParams::live(format!("len1-{length}"));
-    Ok(state.respond_json_value(&headers, params, length))
+    Ok(Response::cached_json(&headers, &params, || length))
 }
 
 pub async fn serve_version(
@@ -158,7 +161,7 @@ pub async fn serve_version(
     validate_name(&series)?;
     if let Some(version) = state.query.sync(|q| q.find_version(&series, index))? {
         let params = CacheParams::live(format!("sv1-{version}"));
-        return Ok(state.respond_json_value(&headers, params, version));
+        return Ok(Response::cached_json(&headers, &params, || version));
     }
     let error = state
         .read_with_admission(&state.series_bodies.search_query, move |q| {
@@ -187,17 +190,11 @@ pub async fn serve(
     state
         .read_with_admission(&state.series_bodies.data_query, move |q| {
             let resolved = q.resolve(params, max_weight)?;
-            let cache_params = CacheParams::series(
-                resolved.version,
-                resolved.start,
-                resolved.end,
-                resolved.anchor,
-                cdn_cache_mode,
-            );
+            let cache_params = CacheParams::series(&resolved, cdn_cache_mode);
             if cache_params.matches_etag(&headers) {
                 return Ok(Response::new_not_modified(&cache_params));
             }
-            let csv_filename = match resolved.format {
+            let csv_filename = match resolved.format() {
                 Format::CSV => Some(resolved.csv_filename()),
                 Format::JSON => None,
             };
@@ -225,39 +222,6 @@ fn output_to_bytes(out: Output) -> Bytes {
     }
 }
 
-async fn data_handler(
-    headers: HeaderMap,
-    Query(params): Query<SeriesSelection>,
-    RequestState(state): RequestState,
-) -> Result<Response> {
-    serve(state, headers, params, |q, r| {
-        q.format(r).map(output_to_bytes)
-    })
-    .await
-}
-
-async fn data_bulk_handler(
-    headers: HeaderMap,
-    Query(params): Query<SeriesSelection>,
-    RequestState(state): RequestState,
-) -> Result<Response> {
-    serve(state, headers, params, |q, r| {
-        q.format_bulk(r).map(output_to_bytes)
-    })
-    .await
-}
-
-async fn data_raw_handler(
-    headers: HeaderMap,
-    Query(params): Query<SeriesSelection>,
-    RequestState(state): RequestState,
-) -> Result<Response> {
-    serve(state, headers, params, |q, r| {
-        q.format_raw(r).map(output_to_bytes)
-    })
-    .await
-}
-
 pub trait ApiSeriesRoutes {
     fn add_series_routes(self) -> Self;
 }
@@ -272,7 +236,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("get_series_tree")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .mcp_ignore()
                     .summary("Series catalog")
                     .description(
@@ -295,7 +259,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("get_series_count")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Series count")
                     .description("Returns the number of series available per index type.")
                     .json_response::<DetailedSeriesCount>()
@@ -314,7 +278,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("get_indexes")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("List available indexes")
                     .description(
                         "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only."
@@ -335,7 +299,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("list_series")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Series list")
                     .description("Paginated flat list of all available series names. Use `page` query param for pagination.")
                     .json_response::<PaginatedSeries>()
@@ -354,7 +318,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("search_series")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Search series")
                     .description(&format!("Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
                     .json_response::<Vec<&str>>()
@@ -374,7 +338,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("get_series_info")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Get series info")
                     .description(&format!("Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
                     .json_response::<SeriesInfo>()
@@ -386,21 +350,18 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
             "/api/series/{series}/{index}",
             get_with(
                 async |headers: HeaderMap,
-                       state: RequestState,
+                       RequestState(state): RequestState,
                        Path(path): Path<SeriesNameWithIndex>,
                        Query(range): Query<DataRangeFormat>|
                        -> Response {
-                    data_handler(
-                        headers,
-                        Query(SeriesSelection::from((path.index, path.series, range))),
-                        state,
-                    )
-                    .await
-                    .into_response()
+                    let params = SeriesSelection::from((path.index, path.series, range));
+                    serve(state, headers, params, |q, r| q.format(r).map(output_to_bytes))
+                        .await
+                        .into_response()
                 },
                 |op| op
                     .id("get_series")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Get series data")
                     .description(
                         "Fetch data for a specific series at the given index. \
@@ -416,21 +377,18 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
             "/api/series/{series}/{index}/data",
             get_with(
                 async |headers: HeaderMap,
-                       state: RequestState,
+                       RequestState(state): RequestState,
                        Path(path): Path<SeriesNameWithIndex>,
                        Query(range): Query<DataRangeFormat>|
                        -> Response {
-                    data_raw_handler(
-                        headers,
-                        Query(SeriesSelection::from((path.index, path.series, range))),
-                        state,
-                    )
-                    .await
-                    .into_response()
+                    let params = SeriesSelection::from((path.index, path.series, range));
+                    serve(state, headers, params, |q, r| q.format_raw(r).map(output_to_bytes))
+                        .await
+                        .into_response()
                 },
                 |op| op
                     .id("get_series_data")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .mcp_ignore()
                     .summary("Get raw series data")
                     .description(
@@ -455,7 +413,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("get_series_latest")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Get latest series value")
                     .description(
                         "Returns the single most recent value for a series, unwrapped (not inside a SeriesData object)."
@@ -476,7 +434,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("get_series_len")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Get series data length")
                     .description("Returns the total number of data points for a series at the given index.")
                     .json_response::<usize>()
@@ -496,7 +454,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 },
                 |op| op
                     .id("get_series_version")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Get series version")
                     .description("Returns the vector's schema/computation version, not its length or latest update. Appends and reorgs do not by themselves change this version.")
                     .json_response::<Version>()
@@ -507,14 +465,17 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/series/bulk",
             get_with(
-                |headers, query, state| async move {
-                    data_bulk_handler(headers, query, state)
+                async |headers: HeaderMap,
+                       Query(params): Query<SeriesSelection>,
+                       RequestState(state): RequestState|
+                       -> Response {
+                    serve(state, headers, params, |q, r| q.format_bulk(r).map(output_to_bytes))
                         .await
                         .into_response()
                 },
                 |op| op
                     .id("get_series_bulk")
-                    .series_tag()
+                    .tag(tags::SERIES)
                     .summary("Bulk series data")
                     .not_found()
                     .description(

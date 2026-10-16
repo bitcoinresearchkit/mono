@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    collections::{BTreeMap, BTreeSet, btree_map},
+    collections::{BTreeMap, BTreeSet, btree_map, hash_map},
     sync::Arc,
 };
 
@@ -354,6 +354,7 @@ fn value_type(vec: &dyn AnyExportableVec) -> (&'static str, bool) {
     (vec.value_type_to_string(), vec.nullable())
 }
 
+#[derive(Clone, Copy)]
 struct Registration<'a> {
     db: &'a str,
     vec: &'a dyn AnyExportableVec,
@@ -375,46 +376,31 @@ impl<'a> Builder<'a> {
     /// earlier plugin; with another type, it loses the id entirely. Nullability is part of the
     /// type: short names erase `Option`, and a kept copy's catalog entry must say what is served.
     fn resolve(&mut self) -> Resolution<'a> {
-        let registrations = std::mem::take(&mut self.registrations);
         let mut seen = FxHashSet::default();
-        let mut by_name: FxHashMap<&'a str, Vec<usize>> = FxHashMap::default();
-        let mut names = Vec::new();
-        for (position, registration) in registrations.iter().enumerate() {
+        let mut by_name: FxHashMap<&'a str, Vec<Registration<'a>>> = FxHashMap::default();
+        for registration in std::mem::take(&mut self.registrations) {
             let name = registration.vec.name();
             assert!(
                 seen.insert((name, registration.index, registration.db)),
                 "Duplicate series: {name} for index {:?}",
                 registration.index
             );
-            by_name
-                .entry(name)
-                .or_insert_with(|| {
-                    names.push(name);
-                    Vec::new()
-                })
-                .push(position);
+            by_name.entry(name).or_default().push(registration);
         }
+        let mut by_name = by_name.into_iter().collect::<Vec<_>>();
+        by_name.sort_unstable_by_key(|&(name, _)| name);
 
-        let mut accepted = vec![false; registrations.len()];
         let mut resolution = Resolution::default();
-        names.sort_unstable();
-        for name in names {
-            let positions = &by_name[name];
+        for (name, registrations) in by_name {
             let mut served: FxHashMap<Index, (&'static str, bool)> = FxHashMap::default();
             let mut served_by = None;
             let mut others = BTreeMap::new();
-            let mut start = 0;
-            while start < positions.len() {
-                let db = registrations[positions[start]].db;
-                let end = positions[start..]
-                    .iter()
-                    .position(|&position| registrations[position].db != db)
-                    .map_or(positions.len(), |offset| start + offset);
-                let own = &positions[start..end];
+            // Each plugin's registrations are consecutive, in composition order.
+            for own in registrations.chunk_by(|a, b| a.db == b.db) {
+                let db = own[0].db;
                 let mut collides = false;
                 let mut matches = true;
-                for &position in own {
-                    let registration = &registrations[position];
+                for registration in own {
                     if let Some(&served_type) = served.get(&registration.index) {
                         collides = true;
                         matches &= served_type == value_type(registration.vec);
@@ -423,28 +409,22 @@ impl<'a> Builder<'a> {
                 if collides {
                     others.insert(db, matches);
                 }
-                if matches {
-                    served_by.get_or_insert(db);
-                    for &position in own {
-                        let registration = &registrations[position];
-                        if let std::collections::hash_map::Entry::Vacant(entry) =
-                            served.entry(registration.index)
-                        {
-                            entry.insert(value_type(registration.vec));
-                            accepted[position] = true;
-                        }
-                    }
-                } else {
+                if !matches {
                     resolution.excluded.insert((name, db));
+                    continue;
                 }
-                start = end;
+                served_by.get_or_insert(db);
+                for &registration in own {
+                    if let hash_map::Entry::Vacant(entry) = served.entry(registration.index) {
+                        entry.insert(value_type(registration.vec));
+                        self.insert(registration);
+                    }
+                }
             }
-            let value_types = positions
-                .iter()
-                .filter(|&&position| accepted[position])
-                .map(|&position| registrations[position].vec.value_type_to_string())
-                .collect::<FxHashSet<_>>();
-            if value_types.len() > 1 {
+            let mut value_types = served.values().map(|&(value_type, _)| value_type);
+            if let Some(first) = value_types.next()
+                && value_types.any(|value_type| value_type != first)
+            {
                 resolution.value_type_conflicts.push(name);
             }
             if !others.is_empty() {
@@ -457,11 +437,6 @@ impl<'a> Builder<'a> {
                         .map(|(db, matches)| (db.to_string(), matches))
                         .collect(),
                 });
-            }
-        }
-        for (position, registration) in registrations.into_iter().enumerate() {
-            if accepted[position] {
-                self.insert(registration);
             }
         }
         resolution

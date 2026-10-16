@@ -8,7 +8,6 @@ use bitcoin::{
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::MerkleProof;
-use brk_mempool::PublishedTx;
 use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
 use vecdb::{ReadableVec, VecIndex};
 
@@ -19,35 +18,11 @@ pub mod confirmed;
 pub mod info;
 pub mod output_count;
 pub mod outspend;
-pub mod raw;
 
 pub use confirmed::ResolvedConfirmedTx;
 pub use info::ResolvedTransaction;
-pub use raw::ResolvedRawTransaction;
-
-enum TransactionSource {
-    Memory(PublishedTx),
-    Chain(ResolvedConfirmedTx),
-}
 
 impl Query {
-    /// Resolve one exact live, confirmed, or recently vanished transaction.
-    fn resolve_transaction_source(&self, txid: &Txid) -> Result<TransactionSource> {
-        let (mempool, pin) = self.mempool_then_pin()?;
-        let read = self.read_indexer_at(pin);
-        match read.resolve_confirmed_tx(txid) {
-            Ok(transaction) => Ok(TransactionSource::Chain(transaction)),
-            Err(Error::UnknownTxid) => {
-                let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::UnknownTxid)?;
-                mempool
-                    .transaction(txid, &tip)?
-                    .map(TransactionSource::Memory)
-                    .ok_or(Error::UnknownTxid)
-            }
-            Err(error) => Err(error),
-        }
-    }
-
     // ── Txid → TxIndex resolution (single source of truth) ─────────
 
     pub fn txid_by_index(&self, index: TxIndex) -> Result<Txid> {
@@ -213,7 +188,7 @@ impl Query {
     /// Use this raw form only for "is this mined?" probes that don't deref
     /// derived data (mempool merge, cpfp fee-rate fall-through).
     #[inline]
-    pub(crate) fn resolve_tx_index(&self, txid: &Txid) -> Result<TxIndex> {
+    fn resolve_tx_index(&self, txid: &Txid) -> Result<TxIndex> {
         self.indexer()
             .stores()
             .tx_index(&TxidPrefix::from(txid))?

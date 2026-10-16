@@ -1,4 +1,3 @@
-pub mod activity;
 pub mod hash_prefix;
 pub mod mempool;
 pub mod resolve;

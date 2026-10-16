@@ -7,7 +7,7 @@ use std::{
 
 use inner::Inner;
 use log::{debug, info};
-use rustc_hash::FxHashMap;
+use rustc_hash::FxHashSet;
 
 use crate::{
     Config, Error, InternalValue, RecordBytes, Result, Slice, Table,
@@ -16,7 +16,7 @@ use crate::{
     mvcc_stream::MvccStream,
     range,
     run_reader::RunReader,
-    version::{Level, Version, recovery::Recovery},
+    version::{Level, Run, Version, recovery::Recovery},
 };
 
 pub mod ingest;
@@ -271,21 +271,42 @@ impl Tree {
         Ok(Self(Arc::new(Inner::create_new(config)?)))
     }
 
+    /// Opens the manifest's tables into their levels, then deletes table files the manifest
+    /// does not list (left by an interrupted ingestion or compaction).
     fn recover_tables(path: &Path, tree_id: u32, config: &Config) -> Result<Version> {
         let recovery = Recovery::load(path)?;
-        let mut expected: FxHashMap<u32, (u8, u64)> = FxHashMap::default();
-
-        for (level_index, runs) in (0_u8..).zip(&recovery.table_ids) {
-            for table in runs.iter().flatten() {
-                expected.insert(table.id, (level_index, table.global_seqno));
-            }
-        }
-
         let tables_path = path.join(TABLES_FOLDER);
         fs::create_dir_all(&tables_path)?;
-        let mut tables = Vec::with_capacity(expected.len());
-        let mut orphaned = Vec::new();
 
+        let mut live = FxHashSet::default();
+        let mut levels = Vec::with_capacity(recovery.table_ids.len());
+        for (level, runs) in recovery.table_ids.iter().enumerate() {
+            let mut level_runs = Vec::with_capacity(runs.len());
+            for run in runs {
+                let mut tables = Vec::with_capacity(run.len());
+                for table in run {
+                    let file = tables_path.join(table.id.to_string());
+                    // A listed table without its file cannot be recovered.
+                    if !file.try_exists()? {
+                        return Err(Error::Unrecoverable);
+                    }
+                    let recovered =
+                        Table::recover(file, table.global_seqno, tree_id, level, config)?;
+                    // The file must hold the table the manifest lists under its name.
+                    if recovered.id() != table.id {
+                        return Err(Error::Unrecoverable);
+                    }
+                    live.insert(table.id);
+                    tables.push(recovered);
+                }
+                // The manifest loader rejects empty runs.
+                level_runs.push(Arc::new(Run::new(tables).ok_or(Error::Unrecoverable)?));
+            }
+            levels.push(Level::from_runs(level_runs));
+        }
+        let version = Version::from_levels(recovery.curr_version_id, levels);
+
+        let mut orphaned = Vec::new();
         for entry in fs::read_dir(&tables_path)? {
             let entry = entry?;
             let file_name = entry.file_name();
@@ -298,25 +319,10 @@ impl Tree {
                 .ok_or(Error::Unrecoverable)?
                 .parse::<u32>()
                 .map_err(|_| Error::Unrecoverable)?;
-
-            if let Some(&(level, global_seqno)) = expected.get(&table_id) {
-                tables.push(Table::recover(
-                    entry.path(),
-                    global_seqno,
-                    tree_id,
-                    level.into(),
-                    config,
-                )?);
-            } else {
+            if !live.contains(&table_id) {
                 orphaned.push(entry.path());
             }
         }
-
-        if tables.len() != expected.len() {
-            return Err(Error::Unrecoverable);
-        }
-
-        let version = Version::from_recovery(&recovery, &tables)?;
         for table in orphaned {
             fs::remove_file(table)?;
         }

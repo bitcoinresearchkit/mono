@@ -129,7 +129,7 @@ Compact API summary
 
 Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.
 
-Returns: JSON `*`
+Returns: JSON `value`
 
 ```bash
 curl -s "https://bitview.space/api.json"
@@ -844,7 +844,7 @@ OpenAPI specification
 
 Full OpenAPI 3.1 specification for this API. Build tools from this document.
 
-Returns: JSON `*`
+Returns: JSON `value`
 
 ```bash
 curl -s "https://bitview.space/openapi.json"
@@ -1085,7 +1085,7 @@ Parameters:
 - `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
 - `format` (query, Format, optional): Format of the output
 
-Returns: JSON `*[]`
+Returns: JSON `value[]`
 
 ```bash
 curl -s "https://bitview.space/api/series/<series>/<index>/data?start=<start>&end=<end>&limit=<limit>&format=<format>"
@@ -1101,7 +1101,7 @@ Parameters:
 - `series` (path, SeriesName, required): Series name
 - `index` (path, Index, required): Aggregation index
 
-Returns: JSON `*`
+Returns: JSON `value`
 
 ```bash
 curl -s "https://bitview.space/api/series/<series>/<index>/latest"
@@ -1541,7 +1541,7 @@ curl -s "https://bitview.space/version"
 - `iswitness`: `boolean | null` — Whether this is a witness address
 - `witness_version`: `integer | null` — Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
 - `witness_program`: `string | null` — Witness program in hex
-- `error_locations`: `array | null` — Error locations (empty array for most errors)
+- `error_locations`: `integer[] | null` — Error locations (empty array for most errors)
 - `error`: `string | null` — Error message for invalid addresses
 
 ### `Bitcoin`
@@ -1643,7 +1643,7 @@ curl -s "https://bitview.space/version"
 - `name`: `string` (required) — Pool name
 - `slug`: `PoolSlug` (required) — URL-friendly pool identifier
 - `blockNumber`: `integer` (required) — This block's ordinal among blocks attributed to this pool
-- `minerNames`: `array | null` — Miner name tags found in coinbase scriptsig
+- `minerNames`: `string[] | null` — Miner name tags found in coinbase scriptsig
 
 ### `BlockRewardsEntry`
 
@@ -2013,7 +2013,7 @@ curl -s "https://bitview.space/version"
 ### `RbfResponse`
 
 - `replacements`: `ReplacementNode | null`
-- `replaces`: `array | null`
+- `replaces`: `Txid[] | null`
 
 ### `RbfTx`
 

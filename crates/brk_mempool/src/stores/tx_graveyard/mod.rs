@@ -94,13 +94,10 @@ impl TxGraveyard {
     }
 
     pub fn bury(&mut self, record: TxRecord, chunk_rate: FeeRate, removal: TxRemoval) {
-        let TxRecord { tx, entry, digest } = record;
-        let txid = entry.txid;
+        let txid = record.entry.txid;
         let removed_at = Instant::now();
         let tombstone = TxTombstone {
-            tx,
-            entry,
-            digest,
+            record,
             chunk_rate,
             removal,
             removed_at,

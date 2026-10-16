@@ -32,21 +32,7 @@ impl Query {
         if weight > Weight::MAX_BLOCK.to_wu() || size > weight {
             return Err(Error::Internal("Invalid indexed block weight"));
         }
-        let first = vecs
-            .transactions
-            .first_tx_index
-            .collect_one(height)
-            .data()?;
-        let next_height = usize::from(height) + 1;
-        let next = if next_height < usize::from(safe.height) {
-            vecs.transactions
-                .first_tx_index
-                .collect_one_at(next_height)
-                .data()?
-        } else {
-            safe.tx_index
-        };
-        let count = Self::block_tx_count(first, next, safe.tx_index)?;
+        let (_, count) = self.block_tx_range(height, guard)?;
         let offset = position
             .offset()
             .checked_sub(8)
@@ -58,7 +44,7 @@ impl Query {
             reader,
             size,
             weight,
-            count,
+            count: count as u32,
         })
     }
 

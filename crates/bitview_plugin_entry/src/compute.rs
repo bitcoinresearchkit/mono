@@ -138,7 +138,6 @@ impl ComputePlugin for Vecs {
                         ));
                 }
                 for (target, state) in self.cohorts.iter_mut().zip(live.cohorts.iter_mut()) {
-                    state.apply_pending();
                     target.push(state, price);
                     state.reset_single_iteration_values();
                 }

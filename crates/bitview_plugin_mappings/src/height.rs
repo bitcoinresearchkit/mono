@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use bitview_primitives::{
     Count, Date, Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1,
     Month3, Month6, Week1, Year1, Year10,
@@ -70,31 +72,16 @@ impl Vecs {
         LazyVec::init(name, Version::ZERO, timestamps, compute)
     }
 
-    pub fn day1_from_timestamp(timestamp: Timestamp) -> Day1 {
-        Day1::try_from(Date::from(timestamp)).unwrap()
-    }
-
-    pub fn month1_from_timestamp(timestamp: Timestamp) -> Month1 {
-        Month1::from(Self::day1_from_timestamp(timestamp))
-    }
-
-    pub fn week1_from_timestamp(timestamp: Timestamp) -> Week1 {
-        Week1::from(Self::day1_from_timestamp(timestamp))
-    }
-
-    pub fn month3_from_timestamp(timestamp: Timestamp) -> Month3 {
-        Month3::from(Self::month1_from_timestamp(timestamp))
-    }
-
-    pub fn month6_from_timestamp(timestamp: Timestamp) -> Month6 {
-        Month6::from(Self::month1_from_timestamp(timestamp))
-    }
-
-    pub fn year1_from_timestamp(timestamp: Timestamp) -> Year1 {
-        Year1::from(Self::month1_from_timestamp(timestamp))
-    }
-
-    pub fn year10_from_timestamp(timestamp: Timestamp) -> Year10 {
-        Year10::from(Self::year1_from_timestamp(timestamp))
+    /// The calendar period holding each block's timestamp.
+    pub(crate) fn dated_from_timestamps<T>(
+        name: &str,
+        timestamps: ReadableBoxedVec<Height, Timestamp>,
+    ) -> LazyVec<Height, T, Height, Timestamp>
+    where
+        T: VecValue + TryFrom<Date, Error: Debug>,
+    {
+        Self::from_timestamps(name, timestamps, |_, timestamp| {
+            T::try_from(Date::from(timestamp)).unwrap()
+        })
     }
 }

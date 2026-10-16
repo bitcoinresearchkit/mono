@@ -195,8 +195,8 @@ pub fn generate_clients(
 ) -> io::Result<()> {
     // Parse OpenAPI spec
     let spec = parse_openapi_json(openapi_json)?;
-    let endpoints = extract_endpoints(&spec)?;
     let mut schemas = extract_schemas(openapi_json);
+    let endpoints = extract_endpoints(&spec, &schemas)?;
     collect_leaf_type_schemas(catalog, &mut schemas);
     let schema_values: Vec<_> = schemas.values().cloned().collect();
     for schema in &schema_values {

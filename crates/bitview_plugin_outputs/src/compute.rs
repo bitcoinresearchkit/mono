@@ -25,7 +25,7 @@ impl ComputePlugin for Vecs {
             spent,
             count,
             types,
-            value,
+            op_return_value,
             ..
         } = self;
         let exit = context.exit();
@@ -33,13 +33,13 @@ impl ComputePlugin for Vecs {
 
         // The spend index reads only indexer columns: it runs beside everything else.
         let (spent, created) = join(
-            || spent.compute(indexer, exit),
+            || spent.compute(indexer, mappings, exit),
             || -> Result<()> {
                 let outputs = &indexer.vecs().outputs;
                 // Price-independent output facts; require neither Inputs nor transaction
                 // analysis.
                 value::compute_sats(
-                    &mut value.op_return_value.cumulative.sats.height,
+                    &mut op_return_value.cumulative.sats.height,
                     creations,
                     usize::from(start)..outputs.first_txout_index.len(),
                     &outputs.first_txout_index,
@@ -50,11 +50,7 @@ impl ComputePlugin for Vecs {
                 db.flush();
                 count.compute(start, &mappings.lookback.window_starts(), exit)?;
                 let (fiat, counts) = join(
-                    || {
-                        value
-                            .op_return_value
-                            .compute_cents(start, &price.spot.cents.height, exit)
-                    },
+                    || op_return_value.compute_cents(start, &price.spot.cents.height, exit),
                     || types.compute(indexer, exit),
                 );
                 fiat?;

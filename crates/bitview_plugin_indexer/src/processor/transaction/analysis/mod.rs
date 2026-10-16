@@ -68,7 +68,7 @@ impl BlockProcessor<'_> {
 
             for (txout, output) in tx.tx.output.iter().zip(tx_outputs) {
                 output_scanner.scan(txout, output, &mut flags);
-                sigops.scan_output(txout, output);
+                sigops.scan_output(output);
                 if likely(!is_coinbase) {
                     policy.scan_output(txout, output);
                 }

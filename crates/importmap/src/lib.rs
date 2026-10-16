@@ -32,14 +32,9 @@ impl ImportMap {
     const MARKER_OPEN: &str = "<!-- IMPORTMAP -->";
     const MARKER_CLOSE: &str = "<!-- /IMPORTMAP -->";
 
-    /// Create an empty import map (useful for dev mode).
-    fn empty() -> Self {
-        Self::default()
-    }
-
     /// Scan a directory and generate an import map.
     pub fn scan(dir: &Path, base_url: &str) -> io::Result<Self> {
-        let mut map = Self::empty();
+        let mut map = Self::default();
         let base_url = base_url.trim_end_matches('/');
         map.scan_fs(dir, dir, base_url)?;
         Ok(map)
@@ -160,7 +155,8 @@ impl ImportMap {
     /// its stylesheet links stay, in order and with their attributes, the hrefs of scanned files
     /// hashed; the import map and module preloads are regenerated after them.
     pub fn transform_html(&self, html: &str) -> Option<String> {
-        let start = html.find(Self::MARKER_OPEN)? + Self::MARKER_OPEN.len();
+        let open = html.find(Self::MARKER_OPEN)?;
+        let start = open + Self::MARKER_OPEN.len();
         let end = html[start..].find(Self::MARKER_CLOSE)? + start;
 
         let mut content = String::new();
@@ -189,7 +185,7 @@ impl ImportMap {
             }
         }
 
-        Self::replace_between_markers(html, &content)
+        Some(Self::replace_between_markers(html, open, end, &content))
     }
 
     /// Each `<link ...>` tag (any case, may span lines) outside HTML comments.
@@ -322,14 +318,14 @@ impl ImportMap {
             .unwrap_or(value)
     }
 
-    fn replace_between_markers(html: &str, content: &str) -> Option<String> {
-        let start_pos = html.find(Self::MARKER_OPEN)?;
-        let after_open = start_pos + Self::MARKER_OPEN.len();
-        let end_pos = html[after_open..].find(Self::MARKER_CLOSE)? + after_open;
+    /// `html` with `content` between the opening marker at `open` and the closing one at `end`,
+    /// each line indented like the opening marker.
+    fn replace_between_markers(html: &str, open: usize, end: usize, content: &str) -> String {
+        let after_open = open + Self::MARKER_OPEN.len();
 
         // The marker's indentation: what precedes it on its line, when that is only whitespace.
-        let line_start = html[..start_pos].rfind('\n').map(|i| i + 1).unwrap_or(0);
-        let prefix = &html[line_start..start_pos];
+        let line_start = html[..open].rfind('\n').map(|i| i + 1).unwrap_or(0);
+        let prefix = &html[line_start..open];
         let indent = if prefix.chars().all(char::is_whitespace) {
             prefix
         } else {
@@ -350,7 +346,7 @@ impl ImportMap {
         }
         output.push('\n');
         output.push_str(indent);
-        output.push_str(&html[end_pos..]);
-        Some(output)
+        output.push_str(&html[end..]);
+        output
     }
 }

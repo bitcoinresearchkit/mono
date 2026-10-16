@@ -43,7 +43,7 @@ where
 {
     #[inline]
     fn read_only_boxed_clone(&self) -> ReadableBoxedVec<V::I, V::T> {
-        ReadableBoxedVec::new(self.read_only_clone())
+        ReadableBoxedVec::from_read_only(self.read_only_clone())
     }
 }
 

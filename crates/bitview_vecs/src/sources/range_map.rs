@@ -1,4 +1,4 @@
-use std::{convert::Infallible, sync::Arc};
+use std::sync::Arc;
 
 use brk_types::Version;
 use rangeindex::SharedRangeMap;
@@ -24,7 +24,7 @@ impl<I: VecIndex, T: VecValue> RangeMapVec<I, T> {
         }
     }
 
-    pub fn mapping(&self) -> &SharedRangeMap<T, I> {
+    pub(crate) fn mapping(&self) -> &SharedRangeMap<T, I> {
         &self.mapping
     }
 
@@ -86,19 +86,6 @@ impl<I: VecIndex, T: VecValue + Copy> ReadableVec<I, T> for RangeMapVec<I, T> {
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(T)) {
         self.fold_range_at(from, to, (), |(), value| each(value));
-    }
-
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        let Ok(acc) = self.try_fold_values(from, to, init, |acc, value| {
-            Ok::<_, Infallible>(fold(acc, value))
-        });
-        acc
     }
 
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(

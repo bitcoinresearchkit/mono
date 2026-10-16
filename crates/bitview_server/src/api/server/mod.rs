@@ -13,6 +13,7 @@ use jiff::Timestamp;
 use super::AppState;
 use crate::{
     CacheParams, VERSION,
+    api::tags,
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
     params::Empty,
@@ -51,7 +52,7 @@ impl ServerRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_health")
-                        .server_tag()
+                        .tag(tags::SERVER)
                         .mcp_ignore()
                         .summary("Health check")
                         .description("Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.")
@@ -65,7 +66,7 @@ impl ServerRoutes for ApiRouter<AppState> {
                 version,
                 |op| {
                     op.id("get_version")
-                        .server_tag()
+                        .tag(tags::SERVER)
                         .mcp_ignore()
                         .summary("API version")
                         .description("Returns the current version of the API server")
@@ -86,11 +87,11 @@ impl ServerRoutes for ApiRouter<AppState> {
                         "sync1-{}-{}-{}",
                         sync.indexed_height, sync.tip_height, *sync.last_indexed_at_unix,
                     ));
-                    Ok(state.respond_json_value(&headers, params, sync))
+                    Ok(Response::cached_json(&headers, &params, || sync))
                 },
                 |op| {
                     op.id("get_sync_status")
-                        .server_tag()
+                        .tag(tags::SERVER)
                         .summary("Sync status")
                         .description(
                             "Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. \
@@ -107,7 +108,7 @@ impl ServerRoutes for ApiRouter<AppState> {
                 disk::get,
                 |op| {
                     op.id("get_disk_usage")
-                        .server_tag()
+                        .tag(tags::SERVER)
                         .mcp_ignore()
                         .summary("Disk usage")
                         .description(
@@ -122,8 +123,7 @@ impl ServerRoutes for ApiRouter<AppState> {
 }
 
 async fn version(headers: HeaderMap, _: Empty) -> Response {
-    Response::static_json_bytes(
-        &headers,
-        Bytes::from_static(concat!("\"", env!("CARGO_PKG_VERSION"), "\"").as_bytes()),
-    )
+    Response::cached_bytes(&headers, &CacheParams::deploy(), "application/json", || {
+        Bytes::from_static(concat!("\"", env!("CARGO_PKG_VERSION"), "\"").as_bytes())
+    })
 }

@@ -2,7 +2,6 @@ use bitview_primitives::{Bytes, Bytes32, OpReturnIndex, OpReturnKind};
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
-use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec};
 
 #[derive(Traversable)]
@@ -57,16 +56,6 @@ impl OpReturnVecs {
         self.post_op_return_bytes
             .truncate_if_needed_with_stamp(op_return_index, stamp)?;
         Ok(())
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.first_index as &mut dyn AnyStoredVec,
-            &mut self.to_tx_index,
-            &mut self.kind,
-            &mut *self.post_op_return_bytes,
-        ]
-        .into_par_iter()
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

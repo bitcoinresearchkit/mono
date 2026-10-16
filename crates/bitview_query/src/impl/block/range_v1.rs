@@ -36,7 +36,7 @@ impl ResolvedBlocksV1 {
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfoV1>> {
         let (begin, end) = self.blocks.range();
         let pin = self.blocks.read_pin(query);
-        let build = query.capture_blocks_v1_range(begin, end, &pin, Some(self.prices))?;
+        let build = query.capture_blocks_v1_range(begin, end, &pin, self.prices)?;
         drop(pin);
         drop(self.blocks);
         build()
@@ -142,7 +142,7 @@ impl ResolvedBlocks {
                 heights[end - 1].to_usize(),
                 heights[begin].to_usize() + 1,
                 &pin,
-                Some(ascending_prices),
+                ascending_prices,
             )?);
             begin = end;
         }

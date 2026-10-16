@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use vecdb::{ReadableVec, VecIndex};
 
-use bitview_primitives::Lengths;
+use bitview_plugin_indexer::SafeLengths;
 
 use crate::{OptionData, Query, ResolvedConfirmedTx, Result};
 
@@ -15,8 +15,9 @@ struct WalkResult {
     /// Each `graph` member's txid and weight, by local index.
     members: Vec<(Txid, Weight)>,
     seed_local: CpfpClusterTxIndex,
-    ancestors: Vec<TxIndex>,
-    descendants: Vec<TxIndex>,
+    ancestors: Vec<CpfpEntry>,
+    descendants: Vec<CpfpEntry>,
+    seed_sigops: SigOps,
 }
 
 impl Query {
@@ -26,69 +27,34 @@ impl Query {
     ) -> Result<CpfpInfo> {
         let read = self.read_indexer()?;
         let (_, seed, height) = read.revalidate_confirmed_tx(transaction)?;
-        let safe = read.pin().lengths();
         let mut graph = Cluster::default();
         // Count views end at their source's visible length, bounded by the read's pin.
-        let walk = self.walk_same_block_cluster(seed, height, safe, &mut graph)?;
-        let ancestors = self.resolve_entries(&walk.ancestors)?;
-        let descendants = self.resolve_entries(&walk.descendants)?;
-        let sigops = self
-            .indexer()
-            .vecs()
-            .transactions
-            .total_sigop_cost
-            .collect_one(seed)
-            .data()?
-            .into();
+        let walk = self.walk_same_block_cluster(seed, height, read.pin(), &mut graph)?;
         drop(read);
 
         Ok(build_cpfp_info(
             &mut graph,
             &walk.members,
             walk.seed_local,
-            ancestors,
-            descendants,
-            sigops,
+            walk.ancestors,
+            walk.descendants,
+            walk.seed_sigops,
         ))
-    }
-
-    fn resolve_entries(&self, indexes: &[TxIndex]) -> Result<Vec<CpfpEntry>> {
-        let indexer = self.indexer();
-        let plugins = self.plugins();
-        let mut weight = indexer.vecs().transactions.weight.cursor();
-        let mut fee = plugins.transactions.fees.fee.tx.cursor();
-        let txid = indexer.vecs().transactions.txid.reader();
-
-        indexes
-            .iter()
-            .map(|index| {
-                let position = index.to_usize();
-                Ok(CpfpEntry {
-                    txid: txid.get(*index),
-                    fee: fee.get(position).data()?,
-                    weight: weight.get(position).data()?.into(),
-                })
-            })
-            .collect()
     }
 
     fn walk_same_block_cluster(
         &self,
         seed: TxIndex,
         height: Height,
-        safe: Lengths,
+        pin: &SafeLengths,
         graph: &mut Cluster,
     ) -> Result<WalkResult> {
         let indexer = self.indexer();
         let plugins = self.plugins();
-        let first_tx = &indexer.vecs().transactions.first_tx_index;
-        let block_first = first_tx.collect_one(height).data()?;
-        let next_height = height.incremented();
-        let block_end = if next_height < safe.height {
-            first_tx.collect_one(next_height).data()?
-        } else {
-            safe.tx_index
-        };
+        let safe = pin.lengths();
+        let (first, count) = self.block_tx_range(height, pin)?;
+        let block_first = TxIndex::from(first);
+        let block_end = TxIndex::from(first + count);
 
         let mut first_txin = indexer.vecs().transactions.first_txin_index.cursor();
         let mut input_count = plugins.mappings.tx_index.input_count.cursor();
@@ -153,10 +119,14 @@ impl Query {
         let txid = indexer.vecs().transactions.txid.reader();
         graph.clear();
         let mut members = Vec::with_capacity(sorted.len());
+        let mut seed_sigops = SigOps::ZERO;
         for &tx in &sorted {
             let position = tx.to_usize();
             let tx_weight = Weight::from(weight.get(position).data()?);
             let tx_sigops = SigOps::from(sigops.get(position).data()?);
+            if tx == seed {
+                seed_sigops = tx_sigops;
+            }
             // Rates over the policy-adjusted size, as the mempool's.
             graph.push(
                 fee.get(position).data()?,
@@ -169,12 +139,29 @@ impl Query {
             );
             members.push((txid.get(tx), tx_weight));
         }
+        // Ancestors and descendants are members: their entries come from what was just read.
+        let entries = |txs: Vec<TxIndex>| -> Vec<CpfpEntry> {
+            txs.into_iter()
+                .map(|tx| {
+                    let local = sorted.binary_search(&tx);
+                    debug_assert!(local.is_ok(), "a relative is a component member");
+                    let local = local.unwrap_or_default();
+                    let (txid, weight) = members[local];
+                    CpfpEntry {
+                        txid,
+                        fee: graph.fee(local),
+                        weight,
+                    }
+                })
+                .collect()
+        };
 
         Ok(WalkResult {
+            ancestors: entries(ancestors),
+            descendants: entries(descendants),
             members,
             seed_local,
-            ancestors,
-            descendants,
+            seed_sigops,
         })
     }
 }

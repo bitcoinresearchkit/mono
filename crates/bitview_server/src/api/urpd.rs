@@ -11,6 +11,7 @@ use serde_json::to_vec;
 use super::AppState;
 use crate::{
     CacheParams,
+    api::tags,
     error::Result,
     extended::TransformResponseExtended,
     params::{
@@ -72,7 +73,7 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("list_urpd_cohorts")
-                        .urpd_tag()
+                        .tag(tags::URPD)
                         .summary("Available URPD cohorts")
                         .description(
                             "Cohorts for which URPD data is available. Returns names like \
@@ -98,7 +99,7 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("list_urpd_dates")
-                        .urpd_tag()
+                        .tag(tags::URPD)
                         .summary("Available URPD dates")
                         .description(
                             "Dates for which a published block is available for the cohort and \
@@ -122,7 +123,7 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_urpd")
-                        .urpd_tag()
+                        .tag(tags::URPD)
                         .summary("Latest URPD")
                         .description(
                             "URPD for the latest published block. \
@@ -155,7 +156,7 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_urpd_at")
-                        .urpd_tag()
+                        .tag(tags::URPD)
                         .summary("URPD at block height or date")
                         .description(
                             "URPD for a cohort at a block height or the last block of a UTC day. Returns \

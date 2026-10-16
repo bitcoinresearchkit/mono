@@ -43,8 +43,7 @@ impl ReadOnlyState {
     /// Rejects histories exceeding 4096 traversal steps or 32 nested nodes;
     /// never returns a silently truncated tree.
     pub fn rbf_for_tx(&self, txid: &Txid, tip: &BlockHash) -> Result<RbfForTx> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         let mut remaining = MAX_RBF_WORK;
         let root_txid = state
             .graveyard
@@ -80,8 +79,7 @@ impl ReadOnlyState {
         limit: usize,
         tip: &BlockHash,
     ) -> Result<Vec<RbfNode>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         if limit == 0 {
             return Ok(Vec::new());
         }
@@ -170,8 +168,8 @@ impl ReadOnlyState {
         }
         graveyard.get(txid).map(|tombstone| {
             (
-                tombstone.tx.as_ref(),
-                &tombstone.entry,
+                tombstone.record.tx.as_ref(),
+                &tombstone.record.entry,
                 tombstone.chunk_rate,
                 false,
             )

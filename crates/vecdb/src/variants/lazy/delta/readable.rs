@@ -37,15 +37,7 @@ where
 
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
-        self.bulk_fold(from, to, (), |(), value| f(value));
-    }
-
-    #[inline]
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B
-    where
-        Self: Sized,
-    {
-        self.bulk_fold(from, to, init, f)
+        self.fold_range_at(from, to, (), |(), value| f(value));
     }
 
     #[inline]
@@ -54,12 +46,20 @@ where
         from: usize,
         to: usize,
         init: B,
-        f: F,
+        mut f: F,
     ) -> Result<B, E>
     where
         Self: Sized,
     {
-        self.bulk_try_fold(from, to, init, f)
+        let mut acc = Some(init);
+        self.try_for_each_batch(from, to, |at, current, starts, previous_from, previous| {
+            acc = Some(
+                Self::transformed_values(at, current, starts, previous_from, previous)
+                    .try_fold(acc.take().unwrap(), &mut f)?,
+            );
+            Ok(())
+        })?;
+        Ok(acc.unwrap())
     }
 
     #[inline]

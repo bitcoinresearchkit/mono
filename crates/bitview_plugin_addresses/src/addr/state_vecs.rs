@@ -210,7 +210,7 @@ impl AddrStateVecs {
     /// Records each address's final data in `changed` too, when given.
     pub fn apply_updates(
         &mut self,
-        cache: &mut [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>>],
+        cache: &mut [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData>>],
         changed: Option<&mut Changed>,
     ) -> Result<()> {
         info!("Updating address state...");

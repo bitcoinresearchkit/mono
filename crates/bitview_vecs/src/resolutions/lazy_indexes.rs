@@ -30,16 +30,15 @@ macro_rules! define_lazy_indexes {
             T: BytesVecValue + Formattable + Serialize + JsonSchema,
             S: BytesVecValue,
         {
-            pub fn from_lazy_indexes<Transform, U>(
+            /// Each resolution of `source` through `Transform`.
+            pub fn from_resolutions<Transform: UnaryTransform<S, T>>(
                 name: &str,
                 version: Version,
-                source: &LazyIndexes<S, U>,
-            ) -> Self
-            where
-                Transform: UnaryTransform<S, T>,
-                S: BytesVecValue + Formattable + Serialize + JsonSchema,
-                U: BytesVecValue,
-            {
+                source: &PerResolution<
+                    $(impl ReadableCloneableVec<$index, S>,)*
+                    $(impl ReadableCloneableVec<$epoch_index, S>,)*
+                >,
+            ) -> Self {
                 Self(PerResolution {
                     $($field: LazyVec::transformed::<Transform>(
                         name, version, source.$field.read_only_boxed_clone(),

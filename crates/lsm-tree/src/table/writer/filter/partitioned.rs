@@ -87,15 +87,6 @@ impl PartitionedFilterWriter {
 }
 
 impl<K: RecordBytes, V: RecordBytes> FilterWriter<K, V> for PartitionedFilterWriter {
-    fn set_filter_policy(
-        mut self: Box<Self>,
-        policy: BloomConstructionPolicy,
-    ) -> Box<dyn FilterWriter<K, V>> {
-        self.bloom_policy = policy;
-        self.partition_key_limit = policy.partition_key_limit(META_PARTITION_SIZE);
-        self
-    }
-
     fn register_block(&mut self, items: &[InternalValue<K, V>]) -> Result<()> {
         for item in items {
             let key = item.key.user_key.as_ref();

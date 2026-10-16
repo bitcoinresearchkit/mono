@@ -112,29 +112,14 @@ impl Vecs {
                 }
             };
 
-            if committed < START_HEIGHT_FAST {
-                let slow_end = START_HEIGHT_FAST.min(total_heights);
-                feed_blocks_with(
-                    &mut oracle,
-                    indexer,
-                    committed..slow_end,
-                    None,
-                    |_, _, ref_bin| push_ref_bin(ref_bin),
-                )?;
-                if slow_end == START_HEIGHT_FAST {
+            for segment in Config::segments_for_range(committed..total_heights) {
+                let end = segment.end;
+                feed_blocks_with(&mut oracle, indexer, segment, None, |_, _, ref_bin| {
+                    push_ref_bin(ref_bin)
+                })?;
+                if end == START_HEIGHT_FAST {
                     oracle.reconfigure(Config::default());
                 }
-            }
-
-            let fast_start = committed.max(START_HEIGHT_FAST);
-            if fast_start < total_heights {
-                feed_blocks_with(
-                    &mut oracle,
-                    indexer,
-                    fast_start..total_heights,
-                    None,
-                    |_, _, ref_bin| push_ref_bin(ref_bin),
-                )?;
             }
         }
 

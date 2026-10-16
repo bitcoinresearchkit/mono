@@ -2,24 +2,68 @@ use bitview_compute::{FixedRatio, NumericValue};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{DeltaChange, ReadableCloneableVec, VecValue};
+use vecdb::{Convert, DeltaChange, ReadableCloneableVec, VecValue};
 
-use crate::{IndexSources, LazyDeltaFromHeight, LazyDeltaPercentFromHeight, shapes::Windows};
+use crate::{
+    AmountType, FiatType, IndexSources, LazyDeltaAmountFromHeight, LazyDeltaFiatFromHeight,
+    LazyDeltaFromHeight, LazyDeltaPercentFromHeight, LazyPerBlock, shapes::Windows,
+};
+
+/// Trailing-window deltas of a value in its plain units.
+pub type LazyRollingDeltasFromHeight<S, C, B> =
+    LazyRollingDeltas<LazyDeltaFromHeight<S, C, DeltaChange>, S, B>;
+/// Trailing-window deltas of a Bitcoin amount: BTC, with sats as its exact storage.
+pub type LazyRollingDeltasAmountFromHeight<S, C, B> =
+    LazyRollingDeltas<LazyDeltaAmountFromHeight<S, C>, S, B>;
+/// Trailing-window deltas of a fiat value: USD, with cents as its exact storage.
+pub type LazyRollingDeltasFiatFromHeight<S, C, B> =
+    LazyRollingDeltas<LazyDeltaFiatFromHeight<S, C>, S, B>;
 
 #[derive(Clone, Traversable)]
-pub struct LazyRollingDeltasFromHeight<S, C, B>
+pub struct LazyRollingDeltas<A, S, B>
 where
     S: VecValue,
-    C: NumericValue + JsonSchema,
     B: FixedRatio,
 {
     /// Absolute change through the represented block from the value just
     /// before a trailing window (zero for a window from genesis).
-    absolute: Windows<LazyDeltaFromHeight<S, C, DeltaChange>>,
+    absolute: Windows<A>,
     /// Relative change through the represented block from the value just
     /// before a trailing window, divided by that value. Undefined (null) when
     /// it is zero, as for a window from genesis.
     rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
+}
+
+impl<A, S, B> LazyRollingDeltas<A, S, B>
+where
+    S: NumericValue,
+    B: FixedRatio + From<f64>,
+{
+    /// Each window's `absolute` member from its name, version and window starts.
+    fn build<W: ReadableCloneableVec<Height, Height>>(
+        name: &str,
+        version: Version,
+        source: &impl ReadableCloneableVec<Height, S>,
+        window_starts: &Windows<&W>,
+        indexes: &IndexSources,
+        mut absolute: impl FnMut(&str, Version, &W) -> A,
+    ) -> Self {
+        let version = version + super::VERSION;
+        let (absolute, rate) = window_starts
+            .map_with_suffix(|suffix, window_start| {
+                let name = format!("{name}_{suffix}");
+                let rate = LazyDeltaPercentFromHeight::from_source(
+                    &name,
+                    version,
+                    source,
+                    *window_start,
+                    indexes,
+                );
+                (absolute(&name, version, *window_start), rate)
+            })
+            .unzip();
+        Self { absolute, rate }
+    }
 }
 
 impl<S, C, B> LazyRollingDeltasFromHeight<S, C, B>
@@ -35,30 +79,77 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
         indexes: &IndexSources,
     ) -> Self {
-        let version = version + super::VERSION;
-        let (absolute, rate) = window_starts
-            .map_with_suffix(|suffix, window_start| {
-                let name = format!("{name}_{suffix}");
-                let absolute = LazyDeltaFromHeight::from_source(
-                    &name,
-                    version,
-                    source,
-                    *window_start,
-                    indexes,
-                );
+        Self::build(
+            name,
+            version,
+            source,
+            window_starts,
+            indexes,
+            |name, version, start| {
+                LazyDeltaFromHeight::from_source(name, version, source, start, indexes)
+            },
+        )
+    }
+}
 
-                let rate = LazyDeltaPercentFromHeight::from_source(
-                    &name,
-                    version,
-                    source,
-                    *window_start,
-                    indexes,
-                );
+impl<S, C, B> LazyRollingDeltasAmountFromHeight<S, C, B>
+where
+    S: NumericValue,
+    C: AmountType + From<f64>,
+    B: FixedRatio + From<f64>,
+{
+    pub fn new(
+        name: &str,
+        version: Version,
+        source: &impl ReadableCloneableVec<Height, S>,
+        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
+        indexes: &IndexSources,
+    ) -> Self {
+        Self::build(
+            name,
+            version,
+            source,
+            window_starts,
+            indexes,
+            |name, version, start| {
+                let sats_name = format!("{name}_sats");
+                let sats =
+                    LazyDeltaFromHeight::from_source(&sats_name, version, source, start, indexes);
+                let btc =
+                    LazyPerBlock::from_resolutions::<Convert>(name, version, &sats.resolutions);
+                LazyDeltaAmountFromHeight { btc, sats }
+            },
+        )
+    }
+}
 
-                (absolute, rate)
-            })
-            .unzip();
-
-        Self { absolute, rate }
+impl<S, C, B> LazyRollingDeltasFiatFromHeight<S, C, B>
+where
+    S: NumericValue,
+    C: FiatType + From<f64>,
+    B: FixedRatio + From<f64>,
+{
+    pub fn new(
+        name: &str,
+        version: Version,
+        source: &impl ReadableCloneableVec<Height, S>,
+        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
+        indexes: &IndexSources,
+    ) -> Self {
+        Self::build(
+            name,
+            version,
+            source,
+            window_starts,
+            indexes,
+            |name, version, start| {
+                let cents_name = format!("{name}_cents");
+                let cents =
+                    LazyDeltaFromHeight::from_source(&cents_name, version, source, start, indexes);
+                let usd =
+                    LazyPerBlock::from_resolutions::<Convert>(name, version, &cents.resolutions);
+                LazyDeltaFiatFromHeight { usd, cents }
+            },
+        )
     }
 }

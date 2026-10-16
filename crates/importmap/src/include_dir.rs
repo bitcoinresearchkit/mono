@@ -7,7 +7,7 @@ use crate::ImportMap;
 impl ImportMap {
     /// Scan an embedded directory (from `include_dir!`) and generate an import map.
     pub fn scan_embedded(dir: &Dir<'_>, base_url: &str) -> Self {
-        let mut map = Self::empty();
+        let mut map = Self::default();
         let base_url = base_url.trim_end_matches('/');
         map.scan_dir(dir, base_url);
         map

@@ -5,9 +5,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "storage")]
-use vecdb::Result;
-
-#[cfg(feature = "storage")]
 use vecdb::Bytes;
 
 /// Raw cents squared (u128) - stores cents² × sats without division.
@@ -16,6 +13,7 @@ use vecdb::Bytes;
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]
+#[cfg_attr(feature = "storage", derive(Bytes))]
 pub struct CentsSquaredSats(u128);
 
 impl CentsSquaredSats {
@@ -113,18 +111,3 @@ impl From<usize> for CentsSquaredSats {
 }
 
 brk_types::impl_int_format!(CentsSquaredSats);
-
-#[cfg(feature = "storage")]
-// SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
-// value the contract requires; the values are encoded, not in native layout.
-unsafe impl Bytes for CentsSquaredSats {
-    type Array = [u8; size_of::<Self>()];
-
-    fn to_bytes(&self) -> Self::Array {
-        self.0.to_le_bytes()
-    }
-
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        Ok(Self(u128::from_bytes(bytes)?))
-    }
-}

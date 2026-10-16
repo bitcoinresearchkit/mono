@@ -1,9 +1,12 @@
 use owo_colors::{OwoColorize, Stream};
 
+use crate::fields::{self, Fields};
+
 const SEL_W: usize = 5; // longest selector token: "tip-N"
 const LABEL_W: usize = 28; // longest label across OUTPUT/OPTIONS/EXAMPLES (= example cmd "blk 800000 tx.0.vout.0.value")
 const FLAG_W: usize = 15; // longest flag: "--rpccookiefile"
 const PH_W: usize = LABEL_W - FLAG_W - 1; // placeholder column width so flag+ph total = LABEL_W
+const NAMES_W: usize = 60; // field-name lines
 
 pub fn print() {
     println!("{} - inspect a Bitcoin Core block", bold("blk"));
@@ -35,28 +38,16 @@ pub fn print() {
     );
     println!();
     group("block");
-    fields(&[
-        "height, hash, time, version, version_hex, bits, nonce,",
-        "prev, merkle, difficulty, txs, n_inputs, n_outputs,",
-        "witness_txs, size, strippedsize, weight, subsidy,",
-        "coinbase, coinbase_hex, header_hex, hex",
-    ]);
+    names(fields::BLOCK);
     println!();
     group_note("tx.i", "omit i for all txs");
-    fields(&[
-        "txid, wtxid, version, locktime, size, base_size, vsize,",
-        "weight, inputs, outputs, is_coinbase, has_witness, is_rbf,",
-        "total_out, hex",
-    ]);
+    names(fields::TX);
     println!();
     group_note("tx.i.vin.j", "omit j for all inputs");
-    fields(&[
-        "prev_txid, prev_vout, sequence, script_sig, script_sig_asm,",
-        "witness, has_witness, is_rbf, coinbase",
-    ]);
+    names(fields::VIN);
     println!();
     group_note("tx.i.vout.j", "omit j for all outputs");
-    fields(&["value, script_pubkey, script_pubkey_asm, type, address"]);
+    names(fields::VOUT);
     println!();
     println!(
         "    {}",
@@ -129,10 +120,22 @@ fn group_note(name: &str, note: &str) {
     );
 }
 
-fn fields(lines: &[&str]) {
-    for line in lines {
-        println!("    {line}");
+/// The field names, comma-separated and wrapped at `NAMES_W`.
+fn names<F>(fields: Fields<F>) {
+    let mut line = String::new();
+    for (i, (name, _)) in fields.iter().enumerate() {
+        let comma = if i + 1 < fields.len() { "," } else { "" };
+        if !line.is_empty() && line.len() + 1 + name.len() + comma.len() > NAMES_W {
+            println!("    {line}");
+            line.clear();
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(name);
+        line.push_str(comma);
     }
+    println!("    {line}");
 }
 
 // Plain text is padded before coloring, so escape codes never count toward a column width.

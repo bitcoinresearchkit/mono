@@ -3,8 +3,8 @@
 use std::fmt::Write;
 
 use crate::{
-    Endpoint, Parameter,
-    generators::{javascript::types::jsdoc_normalize, normalize_return_type, write_description},
+    Endpoint, Parameter, Ty,
+    generators::{javascript::types::js_type, normalize_return_type, write_description},
     to_camel_case,
 };
 
@@ -26,13 +26,13 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
     write_method_doc(output, endpoint);
     for param in &endpoint.path_params {
         let desc = format_param_desc(param.description.as_deref());
-        let ty = jsdoc_normalize(&param.param_type);
+        let ty = js_type(&param.ty);
         writeln!(output, "   * @param {{{}}} {}{}", ty, param.name, desc).unwrap();
     }
     for param in &endpoint.query_params {
         let optional = if param.required { "" } else { "=" };
         let desc = format_param_desc(param.description.as_deref());
-        let ty = jsdoc_normalize(&param.param_type);
+        let ty = js_type(&param.ty);
         let ident = sanitize_ident(&param.name);
         let name_decl = if param.required {
             ident
@@ -48,7 +48,7 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
     }
     if let Some(body) = body {
         let optional = if body.required { "" } else { "=" };
-        let ty = jsdoc_normalize(&body.body_type);
+        let ty = js_type(&body.ty);
         writeln!(output, "   * @param {{{ty}{optional}}} body - Request body").unwrap();
     }
     if post {
@@ -103,11 +103,12 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
         ("get", format!("path, {options}"))
     };
     // Series data gets the same helpers however it is fetched.
+    let response = endpoint.response_kind.ty();
     let fetch_call = if endpoint.returns_binary() {
         format!("this.{verb}Bytes({args})")
-    } else if endpoint.schema_name() == Some("SeriesData") {
+    } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
         "_wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }))".to_string()
-    } else if endpoint.schema_name() == Some("SeriesData[]") {
+    } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
         "(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData)".to_string()
     } else if endpoint.returns_json() {
         format!("this.{verb}Json({args})")
@@ -134,13 +135,10 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
 }
 
 fn build_return_type(endpoint: &Endpoint) -> String {
-    let base = if endpoint.returns_binary() {
-        "Uint8Array".to_string()
-    } else {
-        jsdoc_normalize(&normalize_return_type(
-            endpoint.schema_name().unwrap_or("*"),
-        ))
-    };
+    let base = endpoint.response_kind.ty().map_or_else(
+        || "Uint8Array".to_owned(),
+        |ty| normalize_return_type(&js_type(ty)),
+    );
     if endpoint.supports_csv {
         format!("{} | string", base)
     } else {
@@ -181,8 +179,7 @@ fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
         writeln!(output, "    const params = new URLSearchParams();").unwrap();
         for param in &endpoint.query_params {
             let ident = sanitize_ident(&param.name);
-            let is_array = param.param_type.ends_with("[]");
-            if is_array {
+            if matches!(param.ty, Ty::List(_)) {
                 if param.required {
                     writeln!(
                         output,

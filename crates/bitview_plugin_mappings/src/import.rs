@@ -1,6 +1,9 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{Date, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30};
+use bitview_primitives::{
+    Date, Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
+    Month6, Week1, Year1, Year10,
+};
 use bitview_vecs::{IndexSources, LazyPreviousDeltaVec, shapes::PerResolution};
 use brk_error::Result;
 use brk_types::Version;
@@ -76,46 +79,32 @@ impl Vecs {
         let hour4 = ResolutionVecs::new(&hour4_source);
         let hour12 = ResolutionVecs::new(&hour12_source);
         let day1 = DatedResolutionVecs::new(
-            &HeightVecs::from_timestamps("block_day1", monotonic_source.clone(), |_, t| {
-                HeightVecs::day1_from_timestamp(t)
-            }),
+            &HeightVecs::dated_from_timestamps::<Day1>("block_day1", monotonic_source.clone()),
             Date::from,
         );
         let day3 = DatedResolutionVecs::new(&day3_source, |day3| Date::from(day3.to_timestamp()));
         let week1 = DatedResolutionVecs::new(
-            &HeightVecs::from_timestamps("block_week1", monotonic_source.clone(), |_, t| {
-                HeightVecs::week1_from_timestamp(t)
-            }),
+            &HeightVecs::dated_from_timestamps::<Week1>("block_week1", monotonic_source.clone()),
             Date::from,
         );
         let month1 = DatedResolutionVecs::new(
-            &HeightVecs::from_timestamps("block_month1", monotonic_source.clone(), |_, t| {
-                HeightVecs::month1_from_timestamp(t)
-            }),
+            &HeightVecs::dated_from_timestamps::<Month1>("block_month1", monotonic_source.clone()),
             Date::from,
         );
         let month3 = DatedResolutionVecs::new(
-            &HeightVecs::from_timestamps("block_month3", monotonic_source.clone(), |_, t| {
-                HeightVecs::month3_from_timestamp(t)
-            }),
+            &HeightVecs::dated_from_timestamps::<Month3>("block_month3", monotonic_source.clone()),
             Date::from,
         );
         let month6 = DatedResolutionVecs::new(
-            &HeightVecs::from_timestamps("block_month6", monotonic_source.clone(), |_, t| {
-                HeightVecs::month6_from_timestamp(t)
-            }),
+            &HeightVecs::dated_from_timestamps::<Month6>("block_month6", monotonic_source.clone()),
             Date::from,
         );
         let year1 = DatedResolutionVecs::new(
-            &HeightVecs::from_timestamps("block_year1", monotonic_source.clone(), |_, t| {
-                HeightVecs::year1_from_timestamp(t)
-            }),
+            &HeightVecs::dated_from_timestamps::<Year1>("block_year1", monotonic_source.clone()),
             Date::from,
         );
         let year10 = DatedResolutionVecs::new(
-            &HeightVecs::from_timestamps("block_year10", monotonic_source.clone(), |_, t| {
-                HeightVecs::year10_from_timestamp(t)
-            }),
+            &HeightVecs::dated_from_timestamps::<Year10>("block_year10", monotonic_source.clone()),
             Date::from,
         );
         let height = HeightVecs {

@@ -144,10 +144,10 @@ impl<K: RecordBytes, V: RecordBytes> Iterator for Iter<K, V> {
             if self.lo_data_block.is_none()
                 && let Some(bound) = &self.range.0
             {
-                reader.seek_lower_bound(bound, u64::MAX);
+                reader.seek_lower_bound(bound);
             }
             if let Some(bound) = self.upper_bound_within(&handle) {
-                reader.seek_upper_bound(bound, u64::MAX);
+                reader.seek_upper_bound(bound);
             }
 
             let item = reader.next_as::<K, V>();
@@ -197,12 +197,12 @@ impl<K: RecordBytes, V: RecordBytes> DoubleEndedIterator for Iter<K, V> {
             // Clamp the high side first, then the low side. Once forward iteration has read
             // the first block, every block reached from the back lies above the lower bound.
             if let Some(bound) = self.upper_bound_within(&handle) {
-                reader.seek_upper_bound(bound, u64::MAX);
+                reader.seek_upper_bound(bound);
             }
             if self.lo_data_block.is_none()
                 && let Some(bound) = &self.range.0
             {
-                reader.seek_lower_bound(bound, u64::MAX);
+                reader.seek_lower_bound(bound);
             }
 
             let item = reader.next_back_as::<K, V>();

@@ -1,27 +1,24 @@
 use std::collections::hash_map::Entry;
 
-use bitview_primitives::{ByAddrType, TypeIndex};
+use bitview_primitives::TypeIndex;
 use brk_types::{OutputType, Sats, TxIndex};
-use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{SHARDS, shard_of},
-    block::Received,
+    addr::shard_of,
+    block::{Received, ShardBlocks},
 };
 
 /// Group received value, output count and unique transaction uses per typed address, by shard.
 pub fn process_outputs(
+    blocks: &mut ShardBlocks,
     mut txs: impl Iterator<Item = TxIndex>,
     values: &[Sats],
     types: &[OutputType],
     indexes: &[TypeIndex],
-) -> [ByAddrType<FxHashMap<TypeIndex, Received>>; SHARDS] {
+) {
     let output_count = values.len();
     debug_assert_eq!(types.len(), output_count);
     debug_assert_eq!(indexes.len(), output_count);
-
-    // Maps allocate on first insert: most shard/type pairs of a block stay empty.
-    let mut received: [ByAddrType<FxHashMap<TypeIndex, Received>>; SHARDS] = Default::default();
 
     for ((&value, &output_type), &type_index) in values.iter().zip(types).zip(indexes) {
         let tx_index = txs.next().expect("incomplete output transaction ranges");
@@ -30,8 +27,9 @@ pub fn process_outputs(
             continue;
         }
 
-        match received[shard_of(type_index)]
+        match blocks[shard_of(type_index)]
             .get_mut_unwrap(output_type)
+            .received
             .entry(type_index)
         {
             Entry::Occupied(mut entry) => {
@@ -44,5 +42,4 @@ pub fn process_outputs(
     }
 
     debug_assert!(txs.next().is_none(), "excess output transaction ranges");
-    received
 }

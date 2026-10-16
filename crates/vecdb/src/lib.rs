@@ -4,7 +4,7 @@
 use std::mem;
 
 use base::{
-    ChangeCursor, ReadOnlyBaseVec, ReadWriteBaseVec, remove_vec_with, vec_region_name,
+    ChangeCursor, ChangeData, ReadOnlyBaseVec, ReadWriteBaseVec, remove_vec_with, vec_region_name,
     vec_region_name_with,
 };
 use variants::*;
@@ -50,11 +50,10 @@ pub use sparse_read::SparseRead;
 pub use stamp::Stamp;
 
 pub use traits::{
-    AnyExportableVec, AnySerializableVec, AnyStoredVec, AnyVec, AnyVecWithWriter, ComputeVec,
-    Formattable, ImportableVec, PrintableIndex, READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableVec, Ro, Rw, StorageMode, StoredVec, TypedVec, ValueStrategy,
-    VecIndex, VecValue, WritableVec, chunk_folds::read_batches, escape_csv_cell, i64_to_usize,
-    nullable, short_type_name,
+    AnyExportableVec, AnyStoredVec, AnyVec, ComputeVec, Formattable, ImportableVec, PrintableIndex,
+    READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Ro, Rw,
+    StorageMode, StoredVec, TypedVec, ValueStrategy, VecIndex, VecValue, WritableVec,
+    chunk_folds::read_batches, escape_csv_cell, i64_to_usize, nullable, short_type_name,
 };
 
 pub use variants::{

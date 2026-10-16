@@ -10,30 +10,6 @@ use crate::extended::TypedText;
 
 pub trait TransformResponseExtended<'t> {
     fn error_response<const STATUS: u16>(self, description: &str) -> Self;
-    #[cfg(feature = "chain")]
-    fn general_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn addrs_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn blocks_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn mining_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn fees_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn mempool_tag(self) -> Self;
-    #[cfg(feature = "price")]
-    fn oracle_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn transactions_tag(self) -> Self;
-    fn server_tag(self) -> Self;
-    #[cfg(feature = "series")]
-    fn series_tag(self) -> Self;
-    #[cfg(feature = "urpd")]
-    fn urpd_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn utxo_set_tag(self) -> Self;
-
     /// Keep the REST operation public while excluding it from generated MCP tools.
     fn mcp_ignore(self) -> Self;
 
@@ -84,65 +60,6 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
             }
             response.description(description)
         })
-    }
-
-    #[cfg(feature = "chain")]
-    fn general_tag(self) -> Self {
-        self.tag("General")
-    }
-
-    #[cfg(feature = "chain")]
-    fn addrs_tag(self) -> Self {
-        self.tag("Addresses")
-    }
-
-    #[cfg(feature = "chain")]
-    fn blocks_tag(self) -> Self {
-        self.tag("Blocks")
-    }
-
-    #[cfg(feature = "chain")]
-    fn mining_tag(self) -> Self {
-        self.tag("Mining")
-    }
-
-    #[cfg(feature = "chain")]
-    fn fees_tag(self) -> Self {
-        self.tag("Fees")
-    }
-
-    #[cfg(feature = "chain")]
-    fn mempool_tag(self) -> Self {
-        self.tag("Mempool")
-    }
-
-    #[cfg(feature = "price")]
-    fn oracle_tag(self) -> Self {
-        self.tag("Oracle")
-    }
-
-    #[cfg(feature = "chain")]
-    fn transactions_tag(self) -> Self {
-        self.tag("Transactions")
-    }
-
-    fn server_tag(self) -> Self {
-        self.tag("Server")
-    }
-
-    #[cfg(feature = "series")]
-    fn series_tag(self) -> Self {
-        self.tag("Series")
-    }
-
-    #[cfg(feature = "urpd")]
-    fn urpd_tag(self) -> Self {
-        self.tag("URPD")
-    }
-
-    #[cfg(feature = "chain")]
-    fn utxo_set_tag(self) -> Self {
-        self.tag("UTXO Set")
     }
 
     fn json_response<R>(self) -> Self

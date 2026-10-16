@@ -17,8 +17,15 @@ fn btc(sats: u64) -> Bitcoin {
 pub struct UtxoSetPoint {
     first: Height,
     last: Height,
-    pub hash: BlockHash,
+    hash: BlockHash,
     date: Date,
+}
+
+impl UtxoSetPoint {
+    /// The last covered block's hash.
+    pub fn hash(&self) -> &BlockHash {
+        &self.hash
+    }
 }
 
 impl Query {

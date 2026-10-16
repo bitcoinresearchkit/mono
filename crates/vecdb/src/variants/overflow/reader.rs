@@ -20,7 +20,6 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    #[doc(hidden)]
     pub(crate) fn new(
         compact: &MutableVec<BytesVec<I, T::Compact>>,
         overflow: &MutableVec<BytesVec<usize, T>>,
@@ -31,7 +30,6 @@ where
         }
     }
 
-    #[doc(hidden)]
     pub(crate) fn from_read_only(
         compact: &ReadOnlyMutableVec<ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>>,
         overflow: &ReadOnlyMutableVec<ReadOnlyRawVec<usize, T, BytesStrategy<T>>>,
@@ -71,7 +69,6 @@ where
     }
 
     #[inline(always)]
-    #[doc(hidden)]
     pub(crate) fn compact(
         &self,
         vec: &MutableVec<BytesVec<I, T::Compact>>,
@@ -81,7 +78,6 @@ where
     }
 
     #[inline(always)]
-    #[doc(hidden)]
     pub(crate) fn overflow(&self, vec: &MutableVec<BytesVec<usize, T>>, index: usize) -> Option<T> {
         vec.get_with_reader_at(index, &self.overflow)
     }

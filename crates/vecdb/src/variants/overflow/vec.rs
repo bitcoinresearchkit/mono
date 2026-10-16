@@ -3,10 +3,10 @@ use std::{collections::BTreeMap, path::PathBuf, result::Result as StdResult, syn
 use parking_lot::RwLock;
 use rawdb::{Database, Region};
 
-use super::{DECODE_CHUNK_SIZE, decode::decode};
+use super::decode::{self, decode};
 use crate::{
-    AnyStoredVec, AnyVec, BytesVec, BytesVecReader, Error, Header, ImportOptions, ImportableVec,
-    MutableVec, OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
+    AnyStoredVec, AnyVec, BytesVec, Error, Header, ImportOptions, ImportableVec, MutableVec,
+    OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
     ReadableCloneableVec, ReadableVec, Result, SharedLen, Stamp, StoredVec, TypedVec, VecIndex,
     Version, WritableVec, base::clear_pushed,
 };
@@ -90,17 +90,14 @@ where
         })
     }
 
-    #[inline(always)]
-    fn decode_with_overflow_reader(
-        compact: T::Compact,
-        overflow_vec: &MutableVec<BytesVec<usize, T>>,
-        overflow: &BytesVecReader<usize, T>,
-    ) -> T {
-        decode::<T>(compact, |index| {
-            overflow_vec
-                .get_with_reader_at(index, overflow)
+    /// Reads overflow values, unsaved ones included, through one sidecar reader.
+    fn sidecar(&self) -> impl Fn(usize) -> T + '_ {
+        let reader = self.overflow.reader();
+        move |index| {
+            self.overflow
+                .get_with_reader_at(index, &reader)
                 .expect("OverflowVec pointer must reference a stored value")
-        })
+        }
     }
 
     fn store_overflow(overflow: &mut MutableVec<BytesVec<usize, T>>, value: T) -> usize {
@@ -406,31 +403,19 @@ where
         self.compact.write_header()
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
-        self.stamped_write_with_changes(stamp)
+    /// Both undo records exist before either half is overwritten.
+    fn any_save_changes(&self, stamp: Stamp) -> Result<()> {
+        self.overflow.any_save_changes(stamp)?;
+        self.compact.any_save_changes(stamp)
     }
 
-    fn any_stamped_write_maybe_with_changes(
-        &mut self,
-        stamp: Stamp,
-        with_changes: bool,
-    ) -> Result<()> {
-        if with_changes {
-            return self.stamped_write_with_changes(stamp);
-        }
-        // Advance the baseline without collecting old values this checkpoint discards.
-        self.any_remove_changes_above(self.stamp())?;
-        let write_guard = self.header().begin_write()?;
+    fn any_write_checkpoint(&mut self, stamp: Stamp) -> Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = (!self.unread_updates).then(|| gate.write());
-        self.overflow.write_saved_changes(stamp)?;
-        self.compact.write_saved_changes(stamp)?;
+        self.overflow.any_write_checkpoint(stamp)?;
+        self.compact.any_write_checkpoint(stamp)?;
         self.written();
-        write_guard.finish(Ok(()))
-    }
-
-    fn any_save_rollback_state(&mut self) {
-        self.save_rollback_state();
+        Ok(())
     }
 
     fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()> {
@@ -520,19 +505,6 @@ where
         self.compact.is_dirty() || self.overflow.is_dirty()
     }
 
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
-        let write_guard = self.header().begin_write()?;
-        let gate = Arc::clone(&self.gate);
-        let _guard = (!self.unread_updates).then(|| gate.write());
-        // Both undo records must exist before either half is overwritten.
-        self.overflow.save_changes(stamp)?;
-        self.compact.save_changes(stamp)?;
-        self.overflow.write_saved_changes(stamp)?;
-        self.compact.write_saved_changes(stamp)?;
-        self.written();
-        write_guard.finish(Ok(()))
-    }
-
     fn rollback(&mut self) -> Result<()> {
         let write_guard = self.header().begin_write()?;
         let gate = Arc::clone(&self.gate);
@@ -570,75 +542,19 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
-        let len = self.len();
-        let indices = &indices[..indices.partition_point(|&i| i < len)];
-        if indices.is_empty() {
-            return;
-        }
-        let compact = if indices.len() > 1 && indices.windows(2).all(|pair| pair[1] == pair[0] + 1)
-        {
-            self.compact
-                .collect_range_at(indices[0], indices[indices.len() - 1] + 1)
-        } else {
-            self.compact.read_sorted_at(indices)
-        };
-        let overflow = self.overflow.reader();
-        out.extend(
-            compact
-                .into_iter()
-                .map(|value| Self::decode_with_overflow_reader(value, &self.overflow, &overflow)),
-        );
+        decode::read_sorted_into(&self.compact, self.len(), indices, out, || self.sidecar());
     }
 
     #[inline]
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<T>) {
-        let len = self.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return;
-        }
-
-        let overflow_vec = &self.overflow;
-        let overflow = overflow_vec.reader();
-        buf.reserve(to - from);
-        if to - from > DECODE_CHUNK_SIZE {
-            let mut compact = Vec::with_capacity(DECODE_CHUNK_SIZE);
-            for chunk_from in (from..to).step_by(DECODE_CHUNK_SIZE) {
-                compact.clear();
-                self.compact.read_into_at(
-                    chunk_from,
-                    (chunk_from + DECODE_CHUNK_SIZE).min(to),
-                    &mut compact,
-                );
-                buf.extend(compact.iter().copied().map(|value| {
-                    Self::decode_with_overflow_reader(value, overflow_vec, &overflow)
-                }));
-            }
-            return;
-        }
-
-        self.compact.for_each_range_at(from, to, |compact| {
-            buf.push(Self::decode_with_overflow_reader(
-                compact,
-                overflow_vec,
-                &overflow,
-            ));
-        });
+        decode::read_into(&self.compact, self.len(), from, to, buf, || self.sidecar());
     }
 
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
-        let overflow_vec = &self.overflow;
-        let overflow = overflow_vec.reader();
+        let overflow = self.sidecar();
         self.compact
-            .for_each_range_dyn_at(from, to, &mut |compact| {
-                f(Self::decode_with_overflow_reader(
-                    compact,
-                    overflow_vec,
-                    &overflow,
-                ))
-            });
+            .for_each_range_dyn_at(from, to, &mut |compact| f(decode(compact, &overflow)));
     }
 
     #[inline]
@@ -649,14 +565,10 @@ where
         init: B,
         mut f: F,
     ) -> StdResult<B, E> {
-        let overflow_vec = &self.overflow;
-        let overflow = overflow_vec.reader();
+        let overflow = self.sidecar();
         self.compact
             .try_fold_range_at(from, to, init, |acc, compact| {
-                f(
-                    acc,
-                    Self::decode_with_overflow_reader(compact, overflow_vec, &overflow),
-                )
+                f(acc, decode(compact, &overflow))
             })
     }
 }
@@ -679,6 +591,6 @@ where
     T: OverflowVecValue,
 {
     fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, T> {
-        ReadableBoxedVec::new(self.read_only_clone())
+        ReadableBoxedVec::from_read_only(self.read_only_clone())
     }
 }

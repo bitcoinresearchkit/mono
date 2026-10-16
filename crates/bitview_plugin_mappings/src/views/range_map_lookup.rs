@@ -99,21 +99,6 @@ impl<I: VecIndex, T: VecIndex + VecValue> ReadableVec<I, T> for RangeMapLookupVe
         self.fold_range_at(from, to, (), |(), value| each(value));
     }
 
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        match self.try_fold_indices(from..to, init, |acc, value| {
-            Ok::<_, Infallible>(fold(acc, value))
-        }) {
-            Ok(acc) => acc,
-            Err(error) => match error {},
-        }
-    }
-
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,

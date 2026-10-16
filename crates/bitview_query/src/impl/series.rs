@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{fmt::Write, ops::Range};
 
 use bitview_catalog::TreeNode;
 use bitview_primitives::{BlockHashPrefix, Date, Epoch, Halving, Index, TxOutIndex};
@@ -605,15 +605,33 @@ pub enum SeriesAnchor {
 /// column cannot outlive the query that owns its pin.
 pub struct ResolvedQuery {
     read: SeriesRead,
-    pub format: Format,
+    format: Format,
     index: Index,
-    pub version: Version,
-    pub start: usize,
-    pub end: usize,
-    pub anchor: SeriesAnchor,
+    version: Version,
+    start: usize,
+    end: usize,
+    anchor: SeriesAnchor,
 }
 
 impl ResolvedQuery {
+    pub fn format(&self) -> Format {
+        self.format
+    }
+
+    /// The summed versions of the selected series.
+    pub fn version(&self) -> Version {
+        self.version
+    }
+
+    /// The selected rows, `start..end`.
+    pub fn range(&self) -> Range<usize> {
+        self.start..self.end
+    }
+
+    pub fn anchor(&self) -> SeriesAnchor {
+        self.anchor
+    }
+
     fn columns(&self) -> impl ExactSizeIterator<Item = BoundedVec<'_>> + '_ {
         self.read.columns()
     }

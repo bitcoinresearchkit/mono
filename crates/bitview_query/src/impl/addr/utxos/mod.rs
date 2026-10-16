@@ -41,8 +41,12 @@ impl Query {
             .unwrap_or_default();
         let (outpoints, anchor) = match found {
             Some((output_type, type_index)) => {
-                let height =
-                    self.addr_last_activity_height_bounded(output_type, type_index, None, lengths)?;
+                let last_tx = self
+                    .addr_tx_history(output_type, type_index, None, &pin)?
+                    .next_back()
+                    .transpose()?
+                    .ok_or(Error::UnknownAddress)?;
+                let height = self.confirmed_status_height_bounded(last_tx, lengths)?;
                 // The unspent set as of the pin: unavailable while a lowered publication sits
                 // below what the stores hold.
                 let outpoints: Vec<(TxIndex, Vout)> = pin

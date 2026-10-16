@@ -7,7 +7,7 @@ use bitview_cohort::AddressTypeId;
 use bitview_distribution::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::{Indexer, overwritten_output};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{AddrTypeId, ByAddrType, FundedAddressData, TypeIndex};
+use bitview_primitives::{AddrTypeId, ByAddrType, TypeIndex};
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
@@ -21,7 +21,7 @@ use crate::{
     Vecs,
     addr::{Changed, MemberState, SHARDS, SourcedAddrData},
     block::{
-        AddrTypeLookup, Received, TransferAddressCache, TxIndexes, process_inputs, process_lost,
+        AddrTypeLookup, ShardBlocks, TransferAddressCache, TypeBlock, process_inputs, process_lost,
         process_outputs, process_received, process_sent,
     },
     compute::write::{UnpublishedState, write},
@@ -35,16 +35,6 @@ struct Lost {
     type_index: TypeIndex,
     value: Sats,
     creation_price: Cents,
-}
-
-/// One address type's activity in one block, for one shard of its addresses.
-#[derive(Default)]
-struct TypeBlock {
-    received: FxHashMap<TypeIndex, Received>,
-    /// Spends in input order, with their creation prices.
-    spends: Vec<(TypeIndex, Sats, Cents)>,
-    /// Transactions each address spent in.
-    sent_txs: FxHashMap<TypeIndex, TxIndexes>,
 }
 
 /// Flush the address cache early once it holds this many addresses (checked after each batch):
@@ -188,13 +178,16 @@ pub fn process_chunk(
                 let output_range = batch.block_outputs(height);
                 // Omit this block's coinbase, including coinbase-only blocks.
                 let input_range = batch.block_spends(height);
-                let received = process_outputs(
+                let mut blocks = ShardBlocks::default();
+                process_outputs(
+                    &mut blocks,
                     tx_indexes(first_tx, tx_len, tx_index_to_output_count),
                     &output_values[output_range.clone()],
                     &output_types[output_range.clone()],
                     &output_indexes[output_range],
                 );
-                let inputs = process_inputs(
+                process_inputs(
+                    &mut blocks,
                     tx_indexes(first_tx, tx_len, tx_index_to_input_count).skip(1),
                     &input_values[input_range.clone()],
                     &input_types[input_range.clone()],
@@ -202,7 +195,7 @@ pub fn process_chunk(
                     &input_heights[input_range],
                     prices,
                 );
-                (received, inputs.spends, inputs.tx_index_vecs)
+                blocks
             })
             .collect::<Vec<_>>();
         // Every shard of every type is a lane holding its blocks side by side, lanes in
@@ -213,24 +206,10 @@ pub fn process_chunk(
             SHARDS * AddrTypeId::ALL.len() * block_count,
             TypeBlock::default,
         );
-        for (offset, (received, spends, sent_txs)) in groups.into_iter().enumerate() {
-            let blocks = received.into_iter().zip(spends).zip(sent_txs).flat_map(
-                |((received, spends), sent_txs)| {
-                    received
-                        .into_iter()
-                        .zip(spends.into_iter())
-                        .zip(sent_txs.into_iter())
-                },
-            );
-            for (lane, (((output_type, received), (spends_type, spends)), (sent_type, sent_txs))) in
-                blocks.enumerate()
-            {
-                debug_assert!(output_type == spends_type && output_type == sent_type);
-                lanes[lane * block_count + offset] = TypeBlock {
-                    received,
-                    spends,
-                    sent_txs,
-                };
+        for (offset, blocks) in groups.into_iter().enumerate() {
+            let blocks = blocks.into_iter().flat_map(|shard| shard.into_iter());
+            for (lane, (_, block)) in blocks.enumerate() {
+                lanes[lane * block_count + offset] = block;
             }
         }
 
@@ -323,7 +302,7 @@ pub fn process_chunk(
 #[allow(clippy::too_many_arguments)]
 fn process_shard(
     output_type: OutputType,
-    addrs: &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>,
+    addrs: &mut FxHashMap<TypeIndex, SourcedAddrData>,
     blocks: &mut [TypeBlock],
     first_height: usize,
     prices: &[Cents],

@@ -1,11 +1,9 @@
 use std::{
-    fmt::{Display, Formatter, Result},
     iter::Sum,
     ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
 };
 
 use derive_more::Deref;
-use itoa::Buffer;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -14,7 +12,7 @@ use super::{CentsSats, Dollars, Sats};
 use crate::{CheckedSub, unlikely};
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// An amount in US cents (100 cents = 1 USD).
 ///
@@ -319,38 +317,4 @@ impl CheckedSub for Cents {
     }
 }
 
-impl Display for Cents {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for Cents {
-    const UNDEFINED: bool = true;
-
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-
-    #[inline(always)]
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        if unlikely(self.is_nan()) {
-            buf.extend_from_slice(b"null");
-        } else {
-            self.write_to(buf);
-        }
-    }
-
-    /// Undefined: an empty CSV cell (JSON writes `null`).
-    #[inline(always)]
-    fn fmt_csv(&self, buf: &mut Vec<u8>) {
-        if !unlikely(self.is_nan()) {
-            self.write_to(buf);
-        }
-    }
-}
+crate::impl_int_format!(Cents, nullable);

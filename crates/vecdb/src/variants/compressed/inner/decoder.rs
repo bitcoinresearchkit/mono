@@ -43,6 +43,33 @@ where
         Ok(&mut self.decoder)
     }
 
+    /// Appends one whole page of `expected_len` values: every page decode goes through here.
+    fn append_page(
+        &mut self,
+        page: Page,
+        header: &[u8],
+        body: &[u8],
+        expected_len: usize,
+        dst: &mut Vec<T>,
+    ) -> Result<()> {
+        let before = dst.len();
+        if page.is_raw() {
+            S::bytes_to_values_append(body, expected_len, dst)?;
+        } else {
+            S::decompress_page_append(self.decoder(page, header)?, body, expected_len, dst)?;
+        }
+        // Cursors read decoded pages unchecked: a strategy's length is checked once here.
+        let actual_len = dst.len() - before;
+        if actual_len != expected_len {
+            return Err(Error::DecompressionMismatch {
+                expected_len,
+                actual_len,
+            });
+        }
+        Ok(())
+    }
+
+    /// Replaces `dst` with one whole page, reusing its allocation.
     pub fn decode_into(
         &mut self,
         page: Page,
@@ -51,19 +78,8 @@ where
         expected_len: usize,
         dst: &mut Vec<T>,
     ) -> Result<()> {
-        if page.is_raw() {
-            S::bytes_to_values_into(body, expected_len, dst)?;
-        } else {
-            S::decompress_page_into(self.decoder(page, header)?, body, expected_len, dst)?;
-        }
-        // Cursors read decoded pages unchecked: a strategy's length is checked once here.
-        if dst.len() != expected_len {
-            return Err(Error::DecompressionMismatch {
-                expected_len,
-                actual_len: dst.len(),
-            });
-        }
-        Ok(())
+        dst.clear();
+        self.append_page(page, header, body, expected_len, dst)
     }
 
     /// Appends values `range` of one page: a raw page converts only those bytes; a compressed
@@ -82,13 +98,12 @@ where
         if page.is_raw() {
             return Self::raw_range_append(body, range, dst);
         }
-        let decoder = self.decoder(page, header)?;
         if range.start == 0 {
             let before = dst.len();
-            S::decompress_page_append(decoder, body, values_count, dst)?;
+            self.append_page(page, header, body, values_count, dst)?;
             dst.truncate(before + range.end);
         } else {
-            S::decompress_page_into(decoder, body, values_count, scratch)?;
+            self.decode_into(page, header, body, values_count, scratch)?;
             dst.extend_from_slice(&scratch[range]);
         }
         Ok(())

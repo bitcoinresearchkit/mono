@@ -1,6 +1,5 @@
-use std::{mem, ops::Range, path::PathBuf};
+use std::{mem, ops::Range};
 
-use rawdb::{Database, Region};
 use rayon::prelude::*;
 
 use super::{
@@ -8,8 +7,7 @@ use super::{
     ReadWriteCompressedVec,
 };
 use crate::{
-    AnyStoredVec, AnyVec, Error, Header, Result, Stamp, VecIndex, VecValue, WritableVec,
-    cache::CachePolicy,
+    AnyStoredVec, AnyVec, Error, Result, VecIndex, VecValue, WritableVec, cache::CachePolicy,
 };
 
 impl<I, T, S, C: CachePolicy> ReadWriteCompressedVec<I, T, S, C>
@@ -72,8 +70,16 @@ where
         Ok((bytes, layouts))
     }
 
+    /// Rows on disk.
+    #[inline]
+    pub(super) fn written_len(&self) -> usize {
+        self.pages
+            .read()
+            .stored_len(Self::PER_PAGE, Self::SIZE_OF_T)
+    }
+
     /// Reads back and encodes outside the cache gate, so readers wait only for publication.
-    fn write_pushed(&mut self) -> Result<bool> {
+    pub(super) fn write_pushed(&mut self) -> Result<bool> {
         let stored_len = self.stored_len();
         let pushed_len = self.base.pushed().len();
 
@@ -200,93 +206,5 @@ where
 
             Ok(true)
         })
-    }
-}
-
-impl<I, T, S, C: CachePolicy> AnyStoredVec for ReadWriteCompressedVec<I, T, S, C>
-where
-    I: VecIndex,
-    T: VecValue,
-    S: CompressionStrategy<T>,
-{
-    #[inline]
-    fn db_path(&self) -> PathBuf {
-        self.base.db_path()
-    }
-
-    #[inline]
-    fn region(&self) -> &Region {
-        self.base.region()
-    }
-
-    #[inline]
-    fn header(&self) -> &Header {
-        self.base.header()
-    }
-
-    #[inline]
-    fn mut_header(&mut self) -> &mut Header {
-        self.base.mut_header()
-    }
-
-    #[inline]
-    fn saved_stamped_changes(&self) -> u16 {
-        self.base.saved_stamped_changes()
-    }
-
-    #[inline]
-    fn stored_len(&self) -> usize {
-        self.base.stored_len()
-    }
-
-    #[inline]
-    fn real_stored_len(&self) -> usize {
-        self.pages
-            .read()
-            .stored_len(Self::PER_PAGE, Self::SIZE_OF_T)
-    }
-
-    fn write(&mut self) -> Result<bool> {
-        let guard = self.header().begin_write()?;
-        let result = self.write_pushed();
-        if result.is_ok() {
-            self.base.unwritten_baseline = false;
-        }
-        guard.finish(result)
-    }
-
-    #[inline]
-    fn serialize_changes(&self) -> Result<Vec<u8>> {
-        self.base
-            .serialize_changes::<S>(|from, to| self.collect_stored_range(from, to))
-    }
-
-    #[inline]
-    fn db(&self) -> Database {
-        self.base.db()
-    }
-
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
-        <Self as WritableVec<I, T>>::stamped_write_with_changes(self, stamp)
-    }
-
-    fn any_save_rollback_state(&mut self) {
-        <Self as WritableVec<I, T>>::save_rollback_state(self)
-    }
-
-    fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()> {
-        self.base.remove_changes_above(stamp)
-    }
-
-    fn remove(self) -> Result<()> {
-        Self::remove(self)
-    }
-
-    fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
-        <Self as WritableVec<I, T>>::truncate_if_needed_at(self, index)
-    }
-
-    fn any_reset(&mut self) -> Result<()> {
-        <Self as WritableVec<I, T>>::reset(self)
     }
 }

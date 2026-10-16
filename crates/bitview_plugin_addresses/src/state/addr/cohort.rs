@@ -5,19 +5,13 @@ use brk_types::{Cents, CentsSats, Sats};
 use super::{super::CohortState, super::MinimalRealizedState};
 
 /// Mutable state for one address balance cohort.
+#[derive(Default)]
 pub struct AddrCohortState {
     pub addr_count: u64,
     pub inner: CohortState<MinimalRealizedState, ()>,
 }
 
 impl AddrCohortState {
-    pub fn new() -> Self {
-        Self {
-            addr_count: 0,
-            inner: CohortState::default(),
-        }
-    }
-
     fn apply(&mut self, change: Change) {
         match change {
             Change::Add { supply, cap } => {

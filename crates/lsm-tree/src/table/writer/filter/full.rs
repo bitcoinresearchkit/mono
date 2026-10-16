@@ -31,14 +31,6 @@ impl FullFilterWriter {
 }
 
 impl<K: RecordBytes, V: RecordBytes> FilterWriter<K, V> for FullFilterWriter {
-    fn set_filter_policy(
-        mut self: Box<Self>,
-        policy: BloomConstructionPolicy,
-    ) -> Box<dyn FilterWriter<K, V>> {
-        self.bloom_policy = policy;
-        self
-    }
-
     fn register_block(&mut self, items: &[InternalValue<K, V>]) -> Result<()> {
         self.bloom_hash_buffer.extend(
             items

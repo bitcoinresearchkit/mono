@@ -67,25 +67,12 @@ quantities! {
 
 /// A stored fixed-point ratio and its public representations.
 pub trait FixedRatio: NumericValue + JsonSchema + Into<f32> {
-    const SUFFIX: &'static str;
-}
-
-impl FixedRatio for PartsPerMillion32 {
+    /// The stored series' name suffix: every fixed ratio is in parts per million.
     const SUFFIX: &'static str = "ppm";
 }
 
-impl FixedRatio for PriceRatio {
-    const SUFFIX: &'static str = "ppm";
-}
-
-impl FixedRatio for PartsPerMillionSigned32 {
-    const SUFFIX: &'static str = "ppm";
-}
-
-impl FixedRatio for PartsPerMillion64 {
-    const SUFFIX: &'static str = "ppm";
-}
-
-impl FixedRatio for PartsPerMillionSigned64 {
-    const SUFFIX: &'static str = "ppm";
-}
+impl FixedRatio for PartsPerMillion32 {}
+impl FixedRatio for PriceRatio {}
+impl FixedRatio for PartsPerMillionSigned32 {}
+impl FixedRatio for PartsPerMillion64 {}
+impl FixedRatio for PartsPerMillionSigned64 {}

@@ -4,7 +4,7 @@ use brk_types::{Cents, CentsSats, OutputType, Sats};
 
 use super::{super::cache::AddrTypeLookup, transfer_address_cache::TransferAddressCache};
 use crate::{
-    addr::{AddrSendPreState, MemberState},
+    addr::{AddrPreState, MemberState},
     state::CohortLog,
 };
 
@@ -24,7 +24,7 @@ pub fn process_sent(
         let addr_data = lookup.get_for_send(type_index);
         for &(_, value, prev_price) in group {
             debug_assert!(addr_data.is_funded());
-            let pre = AddrSendPreState::capture(addr_data, output_type);
+            let pre = AddrPreState::capture(addr_data, output_type);
             let prev_balance = addr_data.balance();
             let will_be_empty = addr_data.has_1_utxos();
             let prev_bucket = AmountRangeId::from(prev_balance);
@@ -74,7 +74,7 @@ pub fn process_lost(
         addr_data.utxo_count() > 1,
         "the overwritten output's address also holds the overwriting one"
     );
-    let pre = AddrSendPreState::capture(addr_data, output_type);
+    let pre = AddrPreState::capture(addr_data, output_type);
     let prev_bucket = AmountRangeId::from(addr_data.balance());
     cohorts.subtract(prev_bucket, addr_data);
     addr_data.forget_output(value, creation_price);

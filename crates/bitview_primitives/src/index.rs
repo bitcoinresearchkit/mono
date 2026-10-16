@@ -19,189 +19,96 @@ use crate::{
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
 pub const INDEX_EPOCH: u32 = 1230768000;
 
-/// Aggregation dimension for querying series. Includes time-based (date, week, month, year),
-/// block-based (height, tx_index), and address/output type indexes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
-#[schemars(example = Index::Day1)]
-pub enum Index {
-    Minute10,
-    Minute30,
-    Hour1,
-    Hour4,
-    Hour12,
-    Day1,
-    Day3,
-    Week1,
-    Month1,
-    Month3,
-    Month6,
-    Year1,
-    Year10,
-    Halving,
-    Epoch,
-    Height,
-    #[serde(rename = "tx_index")]
-    TxIndex,
-    #[serde(rename = "txin_index")]
-    TxInIndex,
-    #[serde(rename = "txout_index")]
-    TxOutIndex,
-    #[serde(rename = "empty_output_index")]
-    EmptyOutputIndex,
-    #[serde(rename = "op_return_index")]
-    OpReturnIndex,
-    #[serde(rename = "p2a_address_index")]
-    P2AAddressIndex,
-    #[serde(rename = "p2ms_output_index")]
-    P2MSOutputIndex,
-    #[serde(rename = "p2pk33_address_index")]
-    P2PK33AddressIndex,
-    #[serde(rename = "p2pk65_address_index")]
-    P2PK65AddressIndex,
-    #[serde(rename = "p2pkh_address_index")]
-    P2PKHAddressIndex,
-    #[serde(rename = "p2sh_address_index")]
-    P2SHAddressIndex,
-    #[serde(rename = "p2tr_address_index")]
-    P2TRAddressIndex,
-    #[serde(rename = "p2wpkh_address_index")]
-    P2WPKHAddressIndex,
-    #[serde(rename = "p2wsh_address_index")]
-    P2WSHAddressIndex,
-    #[serde(rename = "unknown_output_index")]
-    UnknownOutputIndex,
+/// Declares [`Index`] from one ordered list of index types, each variant named after its type:
+/// the date-based ones first, then the rest. Generates the enum, `all`, `possible_values`, `name`
+/// and `is_date_based`.
+macro_rules! indexes {
+    (
+        date: [$($date:ident),+ $(,)?],
+        other: [$($(#[$attr:meta])* $other:ident),+ $(,)?] $(,)?
+    ) => {
+        /// Aggregation dimension for querying series. Includes time-based (date, week, month, year),
+        /// block-based (height, tx_index), and address/output type indexes.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, JsonSchema)]
+        #[serde(rename_all = "lowercase")]
+        #[schemars(example = Index::Day1)]
+        pub enum Index {
+            $($date,)+
+            $($(#[$attr])* $other,)+
+        }
+
+        impl Index {
+            const COUNT: usize = [$(Self::$date,)+ $(Self::$other,)+].len();
+
+            pub const fn all() -> [Self; Self::COUNT] {
+                [$(Self::$date,)+ $(Self::$other,)+]
+            }
+
+            pub fn possible_values(&self) -> &'static [&'static str] {
+                match self {
+                    $(Self::$date => $date::index_aliases(),)+
+                    $(Self::$other => $other::index_aliases(),)+
+                }
+            }
+
+            pub fn name(&self) -> &'static str {
+                match self {
+                    $(Self::$date => $date::index_name(),)+
+                    $(Self::$other => $other::index_name(),)+
+                }
+            }
+
+            /// Returns true if this index type is date-based.
+            pub const fn is_date_based(&self) -> bool {
+                matches!(self, $(Self::$date)|+)
+            }
+        }
+    };
+}
+
+indexes! {
+    date: [
+        Minute10, Minute30, Hour1, Hour4, Hour12, Day1, Day3, Week1, Month1, Month3, Month6, Year1,
+        Year10,
+    ],
+    other: [
+        Halving,
+        Epoch,
+        Height,
+        #[serde(rename = "tx_index")]
+        TxIndex,
+        #[serde(rename = "txin_index")]
+        TxInIndex,
+        #[serde(rename = "txout_index")]
+        TxOutIndex,
+        #[serde(rename = "empty_output_index")]
+        EmptyOutputIndex,
+        #[serde(rename = "op_return_index")]
+        OpReturnIndex,
+        #[serde(rename = "p2a_address_index")]
+        P2AAddressIndex,
+        #[serde(rename = "p2ms_output_index")]
+        P2MSOutputIndex,
+        #[serde(rename = "p2pk33_address_index")]
+        P2PK33AddressIndex,
+        #[serde(rename = "p2pk65_address_index")]
+        P2PK65AddressIndex,
+        #[serde(rename = "p2pkh_address_index")]
+        P2PKHAddressIndex,
+        #[serde(rename = "p2sh_address_index")]
+        P2SHAddressIndex,
+        #[serde(rename = "p2tr_address_index")]
+        P2TRAddressIndex,
+        #[serde(rename = "p2wpkh_address_index")]
+        P2WPKHAddressIndex,
+        #[serde(rename = "p2wsh_address_index")]
+        P2WSHAddressIndex,
+        #[serde(rename = "unknown_output_index")]
+        UnknownOutputIndex,
+    ],
 }
 
 impl Index {
-    pub const fn all() -> [Self; 31] {
-        [
-            Self::Minute10,
-            Self::Minute30,
-            Self::Hour1,
-            Self::Hour4,
-            Self::Hour12,
-            Self::Day1,
-            Self::Day3,
-            Self::Week1,
-            Self::Month1,
-            Self::Month3,
-            Self::Month6,
-            Self::Year1,
-            Self::Year10,
-            Self::Halving,
-            Self::Epoch,
-            Self::Height,
-            Self::TxIndex,
-            Self::TxInIndex,
-            Self::TxOutIndex,
-            Self::EmptyOutputIndex,
-            Self::OpReturnIndex,
-            Self::P2AAddressIndex,
-            Self::P2MSOutputIndex,
-            Self::P2PK33AddressIndex,
-            Self::P2PK65AddressIndex,
-            Self::P2PKHAddressIndex,
-            Self::P2SHAddressIndex,
-            Self::P2TRAddressIndex,
-            Self::P2WPKHAddressIndex,
-            Self::P2WSHAddressIndex,
-            Self::UnknownOutputIndex,
-        ]
-    }
-
-    pub fn possible_values(&self) -> &'static [&'static str] {
-        match self {
-            Self::Minute10 => Minute10::index_aliases(),
-            Self::Minute30 => Minute30::index_aliases(),
-            Self::Hour1 => Hour1::index_aliases(),
-            Self::Hour4 => Hour4::index_aliases(),
-            Self::Hour12 => Hour12::index_aliases(),
-            Self::Day1 => Day1::index_aliases(),
-            Self::Day3 => Day3::index_aliases(),
-            Self::Week1 => Week1::index_aliases(),
-            Self::Month1 => Month1::index_aliases(),
-            Self::Month3 => Month3::index_aliases(),
-            Self::Month6 => Month6::index_aliases(),
-            Self::Year1 => Year1::index_aliases(),
-            Self::Year10 => Year10::index_aliases(),
-            Self::Halving => Halving::index_aliases(),
-            Self::Epoch => Epoch::index_aliases(),
-            Self::Height => Height::index_aliases(),
-            Self::TxIndex => TxIndex::index_aliases(),
-            Self::TxInIndex => TxInIndex::index_aliases(),
-            Self::TxOutIndex => TxOutIndex::index_aliases(),
-            Self::EmptyOutputIndex => EmptyOutputIndex::index_aliases(),
-            Self::OpReturnIndex => OpReturnIndex::index_aliases(),
-            Self::P2AAddressIndex => P2AAddressIndex::index_aliases(),
-            Self::P2MSOutputIndex => P2MSOutputIndex::index_aliases(),
-            Self::P2PK33AddressIndex => P2PK33AddressIndex::index_aliases(),
-            Self::P2PK65AddressIndex => P2PK65AddressIndex::index_aliases(),
-            Self::P2PKHAddressIndex => P2PKHAddressIndex::index_aliases(),
-            Self::P2SHAddressIndex => P2SHAddressIndex::index_aliases(),
-            Self::P2TRAddressIndex => P2TRAddressIndex::index_aliases(),
-            Self::P2WPKHAddressIndex => P2WPKHAddressIndex::index_aliases(),
-            Self::P2WSHAddressIndex => P2WSHAddressIndex::index_aliases(),
-            Self::UnknownOutputIndex => UnknownOutputIndex::index_aliases(),
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
-        match self {
-            Self::Minute10 => Minute10::index_name(),
-            Self::Minute30 => Minute30::index_name(),
-            Self::Hour1 => Hour1::index_name(),
-            Self::Hour4 => Hour4::index_name(),
-            Self::Hour12 => Hour12::index_name(),
-            Self::Day1 => Day1::index_name(),
-            Self::Day3 => Day3::index_name(),
-            Self::Week1 => Week1::index_name(),
-            Self::Month1 => Month1::index_name(),
-            Self::Month3 => Month3::index_name(),
-            Self::Month6 => Month6::index_name(),
-            Self::Year1 => Year1::index_name(),
-            Self::Year10 => Year10::index_name(),
-            Self::Halving => Halving::index_name(),
-            Self::Epoch => Epoch::index_name(),
-            Self::Height => Height::index_name(),
-            Self::TxIndex => TxIndex::index_name(),
-            Self::TxInIndex => TxInIndex::index_name(),
-            Self::TxOutIndex => TxOutIndex::index_name(),
-            Self::EmptyOutputIndex => EmptyOutputIndex::index_name(),
-            Self::OpReturnIndex => OpReturnIndex::index_name(),
-            Self::P2AAddressIndex => P2AAddressIndex::index_name(),
-            Self::P2MSOutputIndex => P2MSOutputIndex::index_name(),
-            Self::P2PK33AddressIndex => P2PK33AddressIndex::index_name(),
-            Self::P2PK65AddressIndex => P2PK65AddressIndex::index_name(),
-            Self::P2PKHAddressIndex => P2PKHAddressIndex::index_name(),
-            Self::P2SHAddressIndex => P2SHAddressIndex::index_name(),
-            Self::P2TRAddressIndex => P2TRAddressIndex::index_name(),
-            Self::P2WPKHAddressIndex => P2WPKHAddressIndex::index_name(),
-            Self::P2WSHAddressIndex => P2WSHAddressIndex::index_name(),
-            Self::UnknownOutputIndex => UnknownOutputIndex::index_name(),
-        }
-    }
-
-    /// Returns true if this index type is date-based.
-    pub const fn is_date_based(&self) -> bool {
-        matches!(
-            self,
-            Self::Minute10
-                | Self::Minute30
-                | Self::Hour1
-                | Self::Hour4
-                | Self::Hour12
-                | Self::Day1
-                | Self::Day3
-                | Self::Week1
-                | Self::Month1
-                | Self::Month3
-                | Self::Month6
-                | Self::Year1
-                | Self::Year10
-        )
-    }
-
     /// Convert an index value to a timestamp for time-based indexes.
     /// Returns None for non-time-based indexes.
     pub fn index_to_timestamp(&self, i: usize) -> Option<Timestamp> {

@@ -8,8 +8,9 @@ use serde_json::to_vec;
 
 use crate::{
     AppState, CacheParams,
+    api::tags,
     error::Result,
-    extended::TransformResponseExtended,
+    extended::{ResponseExtended, TransformResponseExtended},
     params::{
         AddressAfterTxidParam, AddressHashPrefixParam, AddressParam, Empty, ValidateAddressParam,
     },
@@ -67,7 +68,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 }).await
             }, |op| op
                 .id("get_address_hash_prefix_matches")
-                .addrs_tag()
+                .tag(tags::ADDRESSES)
                 .summary("Address hash-prefix matches")
                 .description("Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.")
                 .json_response::<AddressHashPrefixMatches>()
@@ -87,7 +88,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                     .await)
             }, |op| op
                 .id("get_address")
-                .addrs_tag()
+                .tag(tags::ADDRESSES)
                 .summary("Address information")
                 .description("Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*")
                 .json_response::<AddressStats>()
@@ -105,7 +106,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 serve_txs(state, headers, path.addr).await
             }, |op| op
                 .id("get_address_txs")
-                .addrs_tag()
+                .tag(tags::ADDRESSES)
                 .summary("Address transactions")
                 .description("Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*")
                 .json_response::<Vec<Transaction>>()
@@ -127,7 +128,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 ).await)
             }, |op| op
                 .id("get_address_confirmed_txs")
-                .addrs_tag()
+                .tag(tags::ADDRESSES)
                 .summary("Address confirmed transactions")
                 .description("Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*")
                 .json_response::<Vec<Transaction>>()
@@ -149,7 +150,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 ).await)
             }, |op| op
                 .id("get_address_confirmed_txs_after")
-                .addrs_tag()
+                .tag(tags::ADDRESSES)
                 .summary("Address confirmed transactions (paginated)")
                 .description("Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*")
                 .json_response::<Vec<Transaction>>()
@@ -177,7 +178,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 ).await)
             }, |op| op
                 .id("get_address_mempool_txs")
-                .addrs_tag()
+                .tag(tags::ADDRESSES)
                 .summary("Address mempool transactions")
                 .description("Get unconfirmed transactions for an address from the mempool, newest first (up to 50).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*")
                 .json_response::<Vec<Transaction>>()
@@ -195,7 +196,7 @@ impl AddrRoutes for ApiRouter<AppState> {
                 serve_utxos(state, headers, path.addr).await
             }, |op| op
                 .id("get_address_utxos")
-                .addrs_tag()
+                .tag(tags::ADDRESSES)
                 .summary("Address UTXOs")
                 .description("Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*")
                 .json_response::<Vec<Utxo>>()
@@ -207,15 +208,14 @@ impl AddrRoutes for ApiRouter<AppState> {
             get_with(async |
                 headers: HeaderMap,
                 Path(path): Path<ValidateAddressParam>,
-                _: Empty,
-                RequestState(state): RequestState
+                _: Empty
             | {
-                state.respond_json_immediate(&headers, CacheParams::deploy(), move || {
+                Response::cached_json(&headers, &CacheParams::deploy(), move || {
                     AddressValidation::from_addr(&path.addr)
                 })
             }, |op| op
                 .id("validate_address")
-                .addrs_tag()
+                .tag(tags::ADDRESSES)
                 .summary("Validate address")
                 .description("Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*")
                 .json_response::<AddressValidation>()

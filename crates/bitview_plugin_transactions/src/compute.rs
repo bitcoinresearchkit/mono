@@ -1,8 +1,9 @@
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
+use brk_types::SigOps;
 use rayon::join;
 
-use super::Vecs;
+use super::{Vecs, policy};
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -25,7 +26,7 @@ impl ComputePlugin for Vecs {
             fees,
             inscription,
             patterns,
-            policy,
+            nonstandard,
             sigop_cost,
             versions,
             volume,
@@ -50,7 +51,16 @@ impl ComputePlugin for Vecs {
                             || {
                                 join(
                                     || versions.compute(indexer, exit),
-                                    || sigop_cost.compute(indexer, mappings, exit),
+                                    || {
+                                        sigop_cost.compute_cumulative_sum_from_indexes(
+                                            start,
+                                            &indexer.vecs().transactions.first_tx_index,
+                                            &mappings.height.tx_index_count,
+                                            &*indexer.vecs().transactions.total_sigop_cost,
+                                            SigOps::from,
+                                            exit,
+                                        )
+                                    },
                                 )
                             },
                             || patterns.compute(indexer, mappings, exit),
@@ -75,7 +85,7 @@ impl ComputePlugin for Vecs {
                     },
                     || {
                         join(
-                            || policy.compute(indexer, mappings, fees, exit),
+                            || policy::compute(nonstandard, indexer, mappings, fees, exit),
                             || volume.compute_cents(start, price, exit),
                         )
                     },

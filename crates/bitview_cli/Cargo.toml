@@ -11,6 +11,7 @@ keywords = ["bitcoin", "analytics", "api", "cli"]
 categories = ["command-line-utilities", "api-bindings"]
 
 [dependencies]
+percent-encoding = "2.3.2"
 ureq = { workspace = true }
 
 [[bin]]

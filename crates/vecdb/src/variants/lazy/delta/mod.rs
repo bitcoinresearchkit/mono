@@ -158,34 +158,6 @@ where
             })
     }
 
-    /// Scalar transform/consumer ordering is retained for fallible folds.
-    #[inline]
-    fn bulk_try_fold<B, E>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut f: impl FnMut(B, T) -> Result<B, E>,
-    ) -> Result<B, E> {
-        let mut acc = Some(init);
-        self.try_for_each_batch(from, to, |at, current, starts, previous_from, previous| {
-            acc = Some(
-                Self::transformed_values(at, current, starts, previous_from, previous)
-                    .try_fold(acc.take().unwrap(), &mut f)?,
-            );
-            Ok(())
-        })?;
-        Ok(acc.unwrap())
-    }
-
-    #[inline]
-    fn bulk_fold<B>(&self, from: usize, to: usize, init: B, mut f: impl FnMut(B, T) -> B) -> B {
-        let Ok(acc) = self.bulk_try_fold(from, to, init, |acc, value| {
-            Ok::<_, Infallible>(f(acc, value))
-        });
-        acc
-    }
-
     /// Visits each batch's transformed values through one reused buffer.
     fn for_each_transformed_chunk(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
         let mut output = Vec::new();

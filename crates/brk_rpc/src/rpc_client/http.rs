@@ -12,14 +12,17 @@ use std::{
     time::Duration,
 };
 
-use base64::{Engine, engine::general_purpose::STANDARD};
-use brk_error::{Error, Result};
+use brk_error::Result;
 use corepc_jsonrpc::{Request, Response, Transport, error::Error as JsonRpcError};
 use parking_lot::{Mutex, RwLock};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{from_slice, to_vec};
 
-use crate::{Auth, auth::read_cookie};
+use crate::{
+    Auth,
+    auth::{basic, read_cookie},
+    endpoint::Endpoint,
+};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
 /// Per read or write: a long response keeps flowing, a silent node fails the exchange.
@@ -64,11 +67,7 @@ impl From<io::Error> for HttpError {
 }
 
 pub struct Http {
-    host: String,
-    port: u16,
-    /// `Host` header value.
-    authority: String,
-    path: String,
+    endpoint: Endpoint,
     cookie: Option<PathBuf>,
     /// `Authorization` header value, refreshed when the node's cookie changes.
     authorization: RwLock<Option<String>>,
@@ -76,42 +75,16 @@ pub struct Http {
 }
 
 impl Http {
-    /// Parses `http://host[:port][/path]` (port 80 when missing, IPv6 hosts in brackets) and
-    /// reads the cookie, without connecting.
+    /// Parses the URL and reads the cookie, without connecting.
     pub fn new(url: &str, auth: &Auth) -> Result<Self> {
-        let invalid = || Error::Internal("invalid node RPC URL");
-        let rest = url
-            .strip_prefix("http://")
-            .ok_or(Error::Internal("node RPC requires an HTTP URL"))?;
-        let (authority, path) = rest.find('/').map_or((rest, "/"), |at| rest.split_at(at));
-        let (host, port) = match authority.strip_prefix('[') {
-            Some(bracketed) => {
-                let (host, rest) = bracketed.split_once(']').ok_or_else(invalid)?;
-                let port = match rest {
-                    "" => None,
-                    rest => Some(rest.strip_prefix(':').ok_or_else(invalid)?),
-                };
-                (host, port)
-            }
-            None => match authority.split_once(':') {
-                Some((host, port)) => (host, Some(port)),
-                None => (authority, None),
-            },
-        };
-        let port = port.map_or(Ok(80), str::parse).map_err(|_| invalid())?;
-        if host.is_empty() {
-            return Err(invalid());
-        }
+        let endpoint = Endpoint::parse(url)?;
         let (cookie, authorization) = match auth {
             Auth::None => (None, None),
             Auth::UserPass(user, password) => (None, Some(basic(&format!("{user}:{password}")))),
             Auth::CookieFile(path) => (Some(path.clone()), Some(basic(&read_cookie(path)?))),
         };
         Ok(Self {
-            host: host.to_owned(),
-            port,
-            authority: authority.to_owned(),
-            path: path.to_owned(),
+            endpoint,
             cookie,
             authorization: RwLock::new(authorization),
             idle: Mutex::new(Vec::new()),
@@ -154,8 +127,8 @@ impl Http {
         let _ = write!(
             request,
             "POST {} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n",
-            self.path,
-            self.authority,
+            self.endpoint.path,
+            self.endpoint.authority,
             body.len()
         );
         if let Some(authorization) = authorization {
@@ -196,7 +169,7 @@ impl Http {
 
     fn connect(&self) -> StdResult<Connection, HttpError> {
         let mut last = None;
-        for addr in (self.host.as_str(), self.port).to_socket_addrs()? {
+        for addr in (self.endpoint.host.as_str(), self.endpoint.port).to_socket_addrs()? {
             match TcpStream::connect_timeout(&addr, CONNECT_TIMEOUT) {
                 Ok(stream) => {
                     stream.set_nodelay(true)?;
@@ -223,12 +196,12 @@ impl Transport for Http {
     }
 
     fn fmt_target(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "http://{}{}", self.authority, self.path)
+        write!(
+            f,
+            "http://{}{}",
+            self.endpoint.authority, self.endpoint.path
+        )
     }
-}
-
-fn basic(credentials: &str) -> String {
-    format!("Basic {}", STANDARD.encode(credentials))
 }
 
 fn transport(error: HttpError) -> JsonRpcError {

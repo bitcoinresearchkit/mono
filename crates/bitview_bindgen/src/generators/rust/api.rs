@@ -2,9 +2,9 @@
 
 use std::fmt::Write;
 
-use crate::{Endpoint, VERSION, generators::write_description, to_snake_case};
+use crate::{Endpoint, ResponseKind, Ty, VERSION, generators::write_description, to_snake_case};
 
-use super::types::js_type_to_rust;
+use super::types::{rust_param_type, rust_type};
 
 /// Generate the main BitviewClient struct.
 pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
@@ -166,7 +166,10 @@ fn fetch(verb: &str, endpoint: &Endpoint) -> (String, &'static str) {
         ("bytes", "")
     } else if endpoint.returns_json() || endpoint.response_kind.text_is_numeric() {
         ("json", "")
-    } else if endpoint.schema_name().is_some() {
+    } else if matches!(
+        endpoint.response_kind,
+        ResponseKind::Text { ty: Ty::Ref(_), .. }
+    ) {
         ("text", ".and_then(parse_text)")
     } else {
         ("text", "")
@@ -175,14 +178,10 @@ fn fetch(verb: &str, endpoint: &Endpoint) -> (String, &'static str) {
 }
 
 fn build_return_type(endpoint: &Endpoint) -> String {
-    let base = if endpoint.returns_binary() {
-        "Vec<u8>".to_string()
-    } else {
-        endpoint
-            .schema_name()
-            .map(js_type_to_rust)
-            .unwrap_or_else(|| "String".to_string())
-    };
+    let base = endpoint
+        .response_kind
+        .ty()
+        .map_or_else(|| "Vec<u8>".to_owned(), rust_type);
     if endpoint.supports_csv {
         format!("FormatResponse<{}>", base)
     } else {
@@ -219,13 +218,19 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, pa
     for param in &endpoint.query_params {
         let ident = sanitize_ident(&param.name);
         let name = &param.name;
-        let element = param.param_type.strip_suffix("[]");
-        // `Index` displays its variant (`TxIndex`); the server parses its name (`tx_index`).
-        let value = |v: &str| match element.unwrap_or(&param.param_type) {
-            "Index" => format!("{v}.name()"),
-            _ => v.to_string(),
+        let (list, item) = match &param.ty {
+            Ty::List(item) => (true, &**item),
+            ty => (false, ty),
         };
-        if element.is_some() {
+        // `Index` displays its variant (`TxIndex`); the server parses its name (`tx_index`).
+        let value = |v: &str| {
+            if item.is_ref("Index") {
+                format!("{v}.name()")
+            } else {
+                v.to_string()
+            }
+        };
+        if list {
             let v = value("v");
             writeln!(
                 output,
@@ -260,11 +265,11 @@ fn endpoint_to_method_name(endpoint: &Endpoint) -> String {
 fn build_method_params(endpoint: &Endpoint) -> String {
     let mut params = String::new();
     for param in &endpoint.path_params {
-        let rust_type = param_type_to_rust(&param.param_type);
+        let rust_type = rust_param_type(&param.ty);
         write!(params, ", {}: {}", sanitize_ident(&param.name), rust_type).unwrap();
     }
     for param in &endpoint.query_params {
-        let rust_type = param_type_to_rust(&param.param_type);
+        let rust_type = rust_param_type(&param.ty);
         let name = sanitize_ident(&param.name);
         if param.required {
             write!(params, ", {}: {}", name, rust_type).unwrap();
@@ -278,19 +283,6 @@ fn build_method_params(endpoint: &Endpoint) -> String {
 /// Strip characters invalid in Rust identifiers (e.g. `[]` from `txId[]`).
 fn sanitize_ident(name: &str) -> String {
     name.replace(['[', ']'], "")
-}
-
-/// Convert parameter type to Rust type for function signatures.
-fn param_type_to_rust(param_type: &str) -> String {
-    if let Some(inner) = param_type.strip_suffix("[]") {
-        return format!("&[{}]", param_type_to_rust(inner));
-    }
-    match param_type {
-        "string" | "*" => "&str".to_string(),
-        "integer" | "number" => "i64".to_string(),
-        "boolean" => "bool".to_string(),
-        other => other.to_string(),
-    }
 }
 
 /// The path as a format template (`{}` per path parameter) and its format args, in path order:
@@ -308,7 +300,7 @@ fn build_path_template(endpoint: &Endpoint) -> (String, String) {
             .find(|param| param.name == name)
             .expect("undeclared path parameter");
         let ident = sanitize_ident(name);
-        if param.param_type == "Index" {
+        if param.ty.is_ref("Index") {
             write!(args, ", {ident}.name()").unwrap();
         } else {
             write!(args, ", path_segment({ident})").unwrap();

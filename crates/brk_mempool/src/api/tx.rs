@@ -20,22 +20,24 @@ fn transaction_times_hash(times: &[u64]) -> u64 {
 
 impl ReadOnlyState {
     pub fn contains_txid(&self, txid: &Txid, tip: &BlockHash) -> Result<bool> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         Ok(state.txs.contains(txid))
     }
 
     /// Capture an immutable live body or its recently vanished fallback from
     /// one completed publication. Replaced tombstones are excluded.
     pub fn transaction(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedTx>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
-        Ok(state.txs.record(txid).map(PublishedTx::live).or_else(|| {
-            state
-                .graveyard
-                .get_vanished(txid)
-                .map(PublishedTx::vanished)
-        }))
+        let state = self.pool()?.resolved_at(tip)?;
+        Ok(state
+            .txs
+            .record(txid)
+            .map(PublishedTx::from_record)
+            .or_else(|| {
+                state
+                    .graveyard
+                    .get_vanished(txid)
+                    .map(|tomb| PublishedTx::from_record(&tomb.record))
+            }))
     }
 
     /// Spend status for a live mempool transaction's output, or `None` when
@@ -47,8 +49,7 @@ impl ReadOnlyState {
         vout: Vout,
         tip: &BlockHash,
     ) -> Result<Option<TxOutspend>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         let Some(transaction) = state.txs.get(txid) else {
             return Ok(None);
         };
@@ -62,8 +63,7 @@ impl ReadOnlyState {
     /// confirmed. The spender's full input list is checked to rule out key
     /// collisions.
     pub fn outspend(&self, txid: &Txid, vout: Vout, tip: &BlockHash) -> Result<TxOutspend> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         Ok(Self::outspend_for(state, txid, vout))
     }
 
@@ -75,8 +75,7 @@ impl ReadOnlyState {
         txid: &Txid,
         tip: &BlockHash,
     ) -> Result<Option<Vec<TxOutspend>>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         let Some(transaction) = state.txs.get(txid) else {
             return Ok(None);
         };
@@ -95,8 +94,7 @@ impl ReadOnlyState {
         if outspends.iter().all(|outspend| outspend.spent) {
             return Ok(());
         }
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         Self::overlay_outspends(state, txid, outspends);
         Ok(())
     }

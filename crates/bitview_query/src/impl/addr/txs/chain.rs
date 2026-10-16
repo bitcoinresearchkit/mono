@@ -1,7 +1,8 @@
+use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::TypeIndex;
 use brk_types::{Address, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
-use crate::{Error, Query, ReadPin, Result, check_bound, r#impl::addr::parse_addr};
+use crate::{Query, ReadPin, Result, r#impl::addr::parse_addr};
 
 /// A confirmed address transaction page resolved against one best-chain view.
 #[derive(Debug)]
@@ -47,36 +48,30 @@ impl Query {
         &self,
         resolved: ResolvedAddrChainTxs,
     ) -> Result<Vec<Transaction>> {
-        self.addr_txs_chain_at(resolved)
+        self.addr_txs_chain_pinned(resolved, &self.pin_safe_lengths()?)
     }
 
-    fn addr_txindices_for(
+    /// The confirmed transactions of an address `pin` holds, oldest first: those before the
+    /// `before` cursor, or all of them.
+    pub(crate) fn addr_tx_history(
         &self,
         output_type: OutputType,
         type_index: TypeIndex,
-        after_txid: Option<Txid>,
-        limit: usize,
-        pin: &ReadPin,
-    ) -> Result<Vec<TxIndex>> {
-        let stores = self.indexer().stores();
-        let safe = pin.lengths();
-        check_bound(pin, type_index, safe.to_type_index(output_type))?;
-        if type_index >= safe.to_type_index(output_type) {
-            return Err(Error::UnknownAddress);
-        }
-        let tx_index_len = safe.tx_index;
-
-        let before = after_txid
-            .as_ref()
-            .map(|txid| self.resolve_tx_index_bounded(txid, pin))
-            .transpose()?
-            .unwrap_or(tx_index_len)
-            .min(tx_index_len);
-        Ok(stores
-            .addr_tx_indexes_before(output_type, type_index, before)?
-            .rev()
-            .take(limit)
-            .collect::<brk_error::Result<_>>()?)
+        before: Option<&Txid>,
+        pin: &SafeLengths,
+    ) -> Result<impl DoubleEndedIterator<Item = brk_error::Result<TxIndex>> + '_> {
+        debug_assert!(
+            type_index < pin.lengths().to_type_index(output_type),
+            "a found address is published"
+        );
+        let before = match before {
+            Some(txid) => self.resolve_tx_index_bounded(txid, pin)?,
+            None => pin.lengths().tx_index,
+        };
+        Ok(self
+            .indexer()
+            .stores()
+            .addr_tx_indexes_before(output_type, type_index, before)?)
     }
 
     pub(crate) fn resolve_addr_chain_txs_for(
@@ -87,7 +82,11 @@ impl Query {
         limit: usize,
         pin: &ReadPin,
     ) -> Result<ResolvedAddrChainTxs> {
-        let txindices = self.addr_txindices_for(output_type, type_index, after_txid, limit, pin)?;
+        let txindices = self
+            .addr_tx_history(output_type, type_index, after_txid.as_ref(), pin)?
+            .rev()
+            .take(limit)
+            .collect::<brk_error::Result<Vec<_>>>()?;
         let anchor = txindices
             .first()
             .map(|txindex| -> Result<_> {
@@ -106,12 +105,6 @@ impl Query {
             anchor_height: anchor.map(|(height, _)| height),
             activity_anchor,
         })
-    }
-
-    /// Revalidate the selected prefix under rollback protection before reading.
-    fn addr_txs_chain_at(&self, resolved: ResolvedAddrChainTxs) -> Result<Vec<Transaction>> {
-        let guard = self.pin_safe_lengths()?;
-        self.addr_txs_chain_pinned(resolved, &guard)
     }
 
     pub(crate) fn addr_txs_chain_pinned(

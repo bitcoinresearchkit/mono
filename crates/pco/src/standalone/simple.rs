@@ -113,7 +113,7 @@ pub fn simple_decompress_into<T: Number>(src: &[u8], mut dst: &mut [T]) -> PcoRe
       }
     }
 
-    let (limit, is_limited) = if dst.len() < chunk_decompressor.n() {
+    let (limit, is_limited) = if dst.len() < chunk_decompressor.n_remaining() {
       (dst.len() / FULL_BATCH_N * FULL_BATCH_N, true)
     } else {
       (dst.len(), false)

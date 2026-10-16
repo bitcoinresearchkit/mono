@@ -1,23 +1,20 @@
-use std::{marker::PhantomData, result::Result};
+use std::marker::PhantomData;
 
-use log::debug;
-use rawdb::{Reader, Region};
-
-use super::{RawStrategy, ReadOnlyRawVec};
+use super::{RawStrategy, ReadOnlyRawVec, persisted::RawPersisted};
 use crate::{
-    AnyStoredVec, Error, Format, HEADER_OFFSET, ImportOptions, RawIoSource, RawMmapSource,
-    RawRangeCursor, ReadWriteBaseVec, Result as CrateResult, VecIndex, VecReader, VecValue,
-    Version,
+    AnyStoredVec, Error, HEADER_OFFSET, ImportOptions, RawRangeCursor, ReadWriteBaseVec,
+    Result as CrateResult, VecIndex, VecReader, VecValue, Version,
     cache::{CachePolicy, NoCache},
-    remove_vec_with,
+    variants::stored_reads::PersistedReads,
 };
 
-pub mod any_stored_vec;
 pub mod any_vec;
 mod mutable;
 pub mod readable;
+mod stored;
 pub mod typed;
 pub mod writable;
+mod write;
 
 const VERSION: Version = Version::ONE;
 
@@ -45,43 +42,14 @@ where
 {
     const SIZE_OF_T: usize = size_of::<T>();
 
-    pub(crate) fn read_only_clone(&self) -> ReadOnlyRawVec<I, T, S, C> {
-        ReadOnlyRawVec {
-            base: self.base.read_only_base(),
-            cache: self.cache.clone(),
-            _strategy: PhantomData,
-        }
-    }
-
-    /// # Warning
-    ///
-    /// This will DELETE all existing data on format/version errors. Use with caution.
-    pub(crate) fn import_with(options: ImportOptions, format: Format) -> CrateResult<Self> {
-        let res = Self::import_strict_with(options, format);
-        match res {
-            Err(Error::WrongLength { .. })
-            | Err(Error::DifferentFormat { .. })
-            | Err(Error::DifferentValueSize { .. })
-            | Err(Error::DifferentVersion { .. }) => {
-                debug!("Resetting {}...", options.name);
-                remove_vec_with::<I>(options.db, options.name)?;
-                Self::import_strict_with(options, format)
-            }
-            _ => res,
-        }
-    }
-
     /// Imports without resetting: a version or format mismatch is an error.
-    pub(crate) fn import_strict_with(
-        mut options: ImportOptions,
-        format: Format,
-    ) -> CrateResult<Self> {
+    fn import_strict_with(mut options: ImportOptions) -> CrateResult<Self> {
         options.version = options.version + VERSION;
 
         let name = options.name;
 
         let cache = C::create()?;
-        let base = ReadWriteBaseVec::import(options, format)?;
+        let base = ReadWriteBaseVec::import(options, S::FORMAT)?;
 
         // Raw format requires data to be aligned to SIZE_OF_T
         let region_len = base.region().meta().byte_len();
@@ -107,23 +75,8 @@ where
         Ok(this)
     }
 
-    pub(crate) fn remove(self) -> CrateResult<()> {
+    fn remove(self) -> CrateResult<()> {
         self.base.remove()
-    }
-
-    #[inline(always)]
-    pub(crate) fn mut_pushed(&mut self) -> &mut Vec<T> {
-        self.base.mut_pushed()
-    }
-
-    #[inline]
-    pub(crate) fn reserve_pushed(&mut self, additional: usize) {
-        self.base.reserve_pushed(additional);
-    }
-
-    #[inline]
-    fn raw_reader(&self) -> Reader {
-        self.base.region().create_reader()
     }
 
     #[inline]
@@ -138,36 +91,8 @@ where
     }
 
     #[inline]
-    pub(super) fn read_stored_into(
-        region: &Region,
-        len: usize,
-        from: usize,
-        to: usize,
-        output: &mut Vec<T>,
-    ) {
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return;
-        }
-        let offset = HEADER_OFFSET + from * Self::SIZE_OF_T;
-        let bytes = (to - from) * Self::SIZE_OF_T;
-        if region.prefers_mmap(offset, bytes) {
-            RawMmapSource::<I, T, S>::new_from_parts(region, len, from, to).read_into(output);
-        } else {
-            RawIoSource::<I, T, S>::new_from_parts(region, len, from, to).read_into(output);
-        }
-    }
-
-    #[inline]
     fn index_to_name(&self) -> String {
         self.base.index_to_name()
-    }
-
-    #[inline(always)]
-    fn unchecked_read_at(&self, index: usize, reader: &Reader) -> T {
-        let ptr = reader.read_from(HEADER_OFFSET).as_ptr();
-        unsafe { S::read_from_ptr(ptr, index * Self::SIZE_OF_T) }
     }
 
     /// Reads from the persisted or pushed layer.
@@ -190,32 +115,15 @@ where
         Some(reader.get_at(index))
     }
 
-    pub(crate) fn base(&self) -> &ReadWriteBaseVec<I, T> {
-        &self.base
-    }
-    pub(crate) fn base_mut(&mut self) -> &mut ReadWriteBaseVec<I, T> {
-        &mut self.base
-    }
+    /// The persisted rows `[from, to)`, past the stored length too (a pending truncation).
     fn collect_stored_range(&self, from: usize, to: usize) -> CrateResult<Vec<T>> {
-        let reader = self.raw_reader();
-        Ok((from..to)
-            .map(|index| self.unchecked_read_at(index, &reader))
-            .collect())
-    }
-    #[inline(always)]
-    fn try_fold_source<B, E, F: FnMut(B, T) -> Result<B, E>>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        f: F,
-    ) -> Result<B, E> {
-        let offset = HEADER_OFFSET + from * Self::SIZE_OF_T;
-        let bytes = (to - from) * Self::SIZE_OF_T;
-        if self.region().prefers_mmap(offset, bytes) {
-            RawMmapSource::new(self, from, to).try_fold(init, f)
-        } else {
-            RawIoSource::new(self, from, to).try_fold(init, f)
-        }
+        let mut values = Vec::with_capacity(to.saturating_sub(from));
+        RawPersisted::<I, T, S>::new(self.region()).read(to, from, to, &mut values);
+        debug_assert_eq!(
+            values.len(),
+            to.saturating_sub(from),
+            "rows missing on disk"
+        );
+        Ok(values)
     }
 }

@@ -27,7 +27,7 @@ mod offset;
 mod trailer;
 mod r#type;
 
-pub use decoder::{Decodable, Decoder, ParsedItem};
+pub use decoder::{Decodable, Decoder, ParsedItem, read_key, skip_field};
 pub use encoder::{Encodable, Encoder};
 pub use header::Header;
 pub use offset::BlockOffset;
@@ -66,7 +66,7 @@ fn decompress_lz4(raw_data: &[u8], uncompressed_len: usize) -> Result<Slice> {
         return Err(Error::Decompress(CompressionType::Lz4));
     }
 
-    Ok(builder.freeze().into())
+    Ok(builder.freeze())
 }
 
 /// Output buffer and hash table reused across LZ4 block compressions.

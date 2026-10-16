@@ -67,14 +67,23 @@ impl CostBasisVecs {
     pub fn push(&mut self, cohort_values: AgeAggregate<CostBasisBlockData>) {
         for id in AgeAggregateId::ALL {
             let values = id.select(&cohort_values);
-            id.select_mut(&mut self.min).cents.height.push(values.min);
-            id.select_mut(&mut self.max).cents.height.push(values.max);
+            let percentiles = &values.percentiles;
+            id.select_mut(&mut self.min)
+                .cents
+                .height
+                .push(percentiles.min_price);
+            id.select_mut(&mut self.max)
+                .cents
+                .height
+                .push(percentiles.max_price);
             id.select_mut(&mut self.supply_density)
                 .push(&values.supply_density);
             id.select_mut(&mut self.capital_density)
                 .push(&values.capital_density);
-            id.select_mut(&mut self.per_coin).push(&values.per_coin);
-            id.select_mut(&mut self.per_dollar).push(&values.per_dollar);
+            id.select_mut(&mut self.per_coin)
+                .push(&percentiles.sat_prices);
+            id.select_mut(&mut self.per_dollar)
+                .push(&percentiles.usd_prices);
         }
     }
 }

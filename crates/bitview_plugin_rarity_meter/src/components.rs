@@ -71,181 +71,100 @@ pub struct Components<M: StorageMode = Rw> {
     pub mobile_realized_price: Component<M>,
 }
 
+/// Generates the import and compute of every component from one table: each mean component's
+/// reference price (its cents and its spot ratio), and each median component's cost basis (whose
+/// median it prices). `$holders`, `$cointime` and `$coinflow` name the plugins the paths start at.
+macro_rules! components {
+    (
+        ($holders:ident, $cointime:ident, $coinflow:ident)
+        means { $($mean:ident: $reference:expr,)* }
+        medians { $($median:ident: $cost_basis:expr,)* }
+    ) => {
+        impl Components {
+            pub(crate) fn import(
+                db: &Database,
+                version: Version,
+                mappings: &MappingsVecs,
+                $holders: &HoldersVecs,
+                $cointime: &CointimeVecs,
+                $coinflow: &CoinflowVecs,
+            ) -> Result<Self> {
+                Ok(Components {
+                    $($mean: Component::import(
+                        db,
+                        stringify!($mean),
+                        version,
+                        mappings,
+                        &$reference.cents.height,
+                    )?,)*
+                    $($median: MedianComponent::import(
+                        db,
+                        stringify!($median),
+                        version,
+                        mappings,
+                        &$cost_basis.percentiles.median.cents.height,
+                    )?,)*
+                })
+            }
+
+            pub(crate) fn compute(
+                &mut self,
+                indexer: &Indexer,
+                $holders: &HoldersVecs,
+                $cointime: &CointimeVecs,
+                $coinflow: &CoinflowVecs,
+                spot: &impl ReadableVec<Height, Cents>,
+                exit: &Exit,
+            ) -> Result<()> {
+                let starting_lengths = indexer.compute_start();
+
+                [$(&mut self.$median,)*]
+                    .into_par_iter()
+                    .try_for_each(|median| median.compute(&starting_lengths, spot, exit))?;
+
+                let jobs = [$((&mut self.$mean, &$reference.relative.ratio.height),)*];
+                let has_work = jobs.iter().any(|(component, source)| {
+                    component.needs_compute(starting_lengths.height, *source)
+                });
+                let compute = |(component, source)| {
+                    Component::compute(component, &starting_lengths, source, exit)
+                };
+
+                if has_work {
+                    jobs.into_par_iter().try_for_each(compute)
+                } else {
+                    jobs.into_iter().try_for_each(compute)
+                }
+            }
+        }
+    };
+}
+
+components! {
+    (holders, cointime, coinflow)
+    means {
+        realized_price: holders.cohorts.all.cost_basis.per_coin.avg,
+        capitalized_price: holders.cohorts.all.cost_basis.per_dollar.avg,
+        sth_realized_price: holders.cohorts.sth.cost_basis.per_coin.avg,
+        sth_capitalized_price: holders.cohorts.sth.cost_basis.per_dollar.avg,
+        utxos_under_6m_old_realized_price: holders.cohorts.under_6m.cost_basis.per_coin.avg,
+        utxos_under_6m_old_capitalized_price: holders.cohorts.under_6m.cost_basis.per_dollar.avg,
+        vaulted_price: cointime.prices.vaulted,
+        true_market_mean: cointime.prices.true_market_mean,
+        awake_realized_price: cointime.aggregate.cohorts.all.awake.cost_basis.per_coin.avg,
+        mobile_realized_price: coinflow.aggregate.cohorts.all.mobile.cost_basis.per_coin.avg,
+    }
+    medians {
+        cost_basis_per_coin_median: holders.cohorts.all.cost_basis.per_coin,
+        cost_basis_per_dollar_median: holders.cohorts.all.cost_basis.per_dollar,
+        sth_cost_basis_per_coin_median: holders.cohorts.sth.cost_basis.per_coin,
+        sth_cost_basis_per_dollar_median: holders.cohorts.sth.cost_basis.per_dollar,
+        mobile_cost_basis_per_coin_median: coinflow.aggregate.cohorts.all.mobile.cost_basis.per_coin,
+        mobile_cost_basis_per_dollar_median: coinflow.aggregate.cohorts.all.mobile.cost_basis.per_dollar,
+    }
+}
+
 impl Components {
-    pub(crate) fn import(
-        db: &Database,
-        version: Version,
-        mappings: &MappingsVecs,
-        holders: &HoldersVecs,
-        cointime: &CointimeVecs,
-        coinflow: &CoinflowVecs,
-    ) -> Result<Self> {
-        let utxos = &holders.cohorts;
-        let mobile = &coinflow.aggregate.cohorts.all.mobile;
-
-        macro_rules! import {
-            ($name:expr, $source:expr) => {
-                Component::import(db, $name, version, mappings, &$source.cents.height)?
-            };
-        }
-        macro_rules! median {
-            ($name:expr, $cost_basis:expr) => {
-                MedianComponent::import(
-                    db,
-                    $name,
-                    version,
-                    mappings,
-                    &$cost_basis.percentiles.median.cents.height,
-                )?
-            };
-        }
-
-        Ok(Components {
-            realized_price: import!("realized_price", utxos.all.cost_basis.per_coin.avg),
-            capitalized_price: import!("capitalized_price", utxos.all.cost_basis.per_dollar.avg),
-            cost_basis_per_coin_median: median!(
-                "cost_basis_per_coin_median",
-                utxos.all.cost_basis.per_coin
-            ),
-            cost_basis_per_dollar_median: median!(
-                "cost_basis_per_dollar_median",
-                utxos.all.cost_basis.per_dollar
-            ),
-            sth_cost_basis_per_coin_median: median!(
-                "sth_cost_basis_per_coin_median",
-                utxos.sth.cost_basis.per_coin
-            ),
-            sth_cost_basis_per_dollar_median: median!(
-                "sth_cost_basis_per_dollar_median",
-                utxos.sth.cost_basis.per_dollar
-            ),
-            mobile_cost_basis_per_coin_median: median!(
-                "mobile_cost_basis_per_coin_median",
-                mobile.cost_basis.per_coin
-            ),
-            mobile_cost_basis_per_dollar_median: median!(
-                "mobile_cost_basis_per_dollar_median",
-                mobile.cost_basis.per_dollar
-            ),
-            sth_realized_price: import!("sth_realized_price", utxos.sth.cost_basis.per_coin.avg),
-            sth_capitalized_price: import!(
-                "sth_capitalized_price",
-                utxos.sth.cost_basis.per_dollar.avg
-            ),
-            utxos_under_6m_old_realized_price: import!(
-                "utxos_under_6m_old_realized_price",
-                utxos.under_6m.cost_basis.per_coin.avg
-            ),
-            utxos_under_6m_old_capitalized_price: import!(
-                "utxos_under_6m_old_capitalized_price",
-                utxos.under_6m.cost_basis.per_dollar.avg
-            ),
-            vaulted_price: import!("vaulted_price", cointime.prices.vaulted),
-            true_market_mean: import!("true_market_mean", cointime.prices.true_market_mean),
-            awake_realized_price: import!(
-                "awake_realized_price",
-                cointime.aggregate.cohorts.all.awake.cost_basis.per_coin.avg
-            ),
-            mobile_realized_price: import!("mobile_realized_price", mobile.cost_basis.per_coin.avg),
-        })
-    }
-
-    pub(crate) fn compute(
-        &mut self,
-        indexer: &Indexer,
-        holders: &HoldersVecs,
-        cointime: &CointimeVecs,
-        coinflow: &CoinflowVecs,
-        spot: &impl ReadableVec<Height, Cents>,
-        exit: &Exit,
-    ) -> Result<()> {
-        let starting_lengths = indexer.compute_start();
-        let utxos = &holders.cohorts;
-        let mobile = &coinflow.aggregate.cohorts.all.mobile;
-
-        [
-            &mut self.cost_basis_per_coin_median,
-            &mut self.cost_basis_per_dollar_median,
-            &mut self.sth_cost_basis_per_coin_median,
-            &mut self.sth_cost_basis_per_dollar_median,
-            &mut self.mobile_cost_basis_per_coin_median,
-            &mut self.mobile_cost_basis_per_dollar_median,
-        ]
-        .into_par_iter()
-        .try_for_each(|median| median.compute(&starting_lengths, spot, exit))?;
-
-        let jobs = [
-            (
-                &mut self.realized_price,
-                &utxos.all.cost_basis.per_coin.avg.relative.ratio.height,
-            ),
-            (
-                &mut self.capitalized_price,
-                &utxos.all.cost_basis.per_dollar.avg.relative.ratio.height,
-            ),
-            (
-                &mut self.sth_realized_price,
-                &utxos.sth.cost_basis.per_coin.avg.relative.ratio.height,
-            ),
-            (
-                &mut self.sth_capitalized_price,
-                &utxos.sth.cost_basis.per_dollar.avg.relative.ratio.height,
-            ),
-            (
-                &mut self.utxos_under_6m_old_realized_price,
-                &utxos.under_6m.cost_basis.per_coin.avg.relative.ratio.height,
-            ),
-            (
-                &mut self.utxos_under_6m_old_capitalized_price,
-                &utxos
-                    .under_6m
-                    .cost_basis
-                    .per_dollar
-                    .avg
-                    .relative
-                    .ratio
-                    .height,
-            ),
-            (
-                &mut self.vaulted_price,
-                &cointime.prices.vaulted.relative.ratio.height,
-            ),
-            (
-                &mut self.true_market_mean,
-                &cointime.prices.true_market_mean.relative.ratio.height,
-            ),
-            (
-                &mut self.awake_realized_price,
-                &cointime
-                    .aggregate
-                    .cohorts
-                    .all
-                    .awake
-                    .cost_basis
-                    .per_coin
-                    .avg
-                    .relative
-                    .ratio
-                    .height,
-            ),
-            (
-                &mut self.mobile_realized_price,
-                &mobile.cost_basis.per_coin.avg.relative.ratio.height,
-            ),
-        ];
-        let has_work = jobs
-            .iter()
-            .any(|(component, source)| component.needs_compute(starting_lengths.height, *source));
-        let compute =
-            |(component, source)| Component::compute(component, &starting_lengths, source, exit);
-
-        if has_work {
-            jobs.into_par_iter().try_for_each(compute)
-        } else {
-            jobs.into_iter().try_for_each(compute)
-        }
-    }
-
     /// Young-coin references: the short-term holders' and under-six-month cohorts' means and
     /// the short-term holders' medians.
     pub(crate) fn local(&self) -> [&Component; 6] {

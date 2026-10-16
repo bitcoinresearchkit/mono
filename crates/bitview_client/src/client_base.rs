@@ -1,9 +1,7 @@
-use std::{
-    fmt::{Display, Write},
-    time::Duration,
-};
+use std::{fmt::Display, time::Duration};
 
 use bitview_types::ErrorCode;
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use serde::de::{DeserializeOwned, IntoDeserializer, value};
 use serde_json::Value;
 use ureq::{Agent, Body, BodyWithConfig, http::Response};
@@ -147,27 +145,22 @@ pub(crate) fn parse_text<T: DeserializeOwned>(text: String) -> Result<T> {
     })
 }
 
+/// Every byte but RFC 3986's unreserved characters is percent-encoded.
+const ESCAPED: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'~');
+
 /// `name=value`, the value percent-encoded.
 pub(crate) fn query_pair(name: &str, value: impl Display) -> String {
-    let mut pair = format!("{name}=");
-    percent_encode(&mut pair, value);
-    pair
+    format!(
+        "{name}={}",
+        utf8_percent_encode(&value.to_string(), ESCAPED)
+    )
 }
 
 /// A path segment, percent-encoded so `/`, `?` or `#` in a value stay inside it.
 pub(crate) fn path_segment(value: impl Display) -> String {
-    let mut segment = String::new();
-    percent_encode(&mut segment, value);
-    segment
-}
-
-/// Appends `value` percent-encoded: RFC 3986 unreserved characters pass through.
-fn percent_encode(out: &mut String, value: impl Display) {
-    for byte in value.to_string().bytes() {
-        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-            out.push(char::from(byte));
-        } else {
-            write!(out, "%{byte:02X}").unwrap();
-        }
-    }
+    utf8_percent_encode(&value.to_string(), ESCAPED).to_string()
 }

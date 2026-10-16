@@ -2,7 +2,6 @@ use bitview_primitives::{TxOutIndex, TypeIndex};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, OutputType, Sats, Version};
-use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, OverflowVec, PcoVec, Rw, Stamp,
     StorageMode, WritableVec,
@@ -60,16 +59,6 @@ impl OutputsVecs {
         self.type_index
             .truncate_if_needed_with_stamp(txout_index, stamp)?;
         Ok(())
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.first_txout_index as &mut dyn AnyStoredVec,
-            &mut self.value,
-            &mut self.output_type,
-            &mut self.type_index,
-        ]
-        .into_par_iter()
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

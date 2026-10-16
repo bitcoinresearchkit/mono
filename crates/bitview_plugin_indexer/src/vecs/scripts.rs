@@ -2,7 +2,6 @@ use bitview_primitives::{EmptyOutputIndex, P2MSOutputIndex, TypeIndex, UnknownOu
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{Height, OutputType, SigOps32, Version};
-use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,
 };
@@ -95,20 +94,6 @@ impl ScriptsVecs {
             .legacy_sigop_cost
             .truncate_if_needed_with_stamp(unknown_output_index, stamp)?;
         Ok(())
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.empty.first_index as &mut dyn AnyStoredVec,
-            &mut self.p2ms.first_index,
-            &mut self.unknown.first_index,
-            &mut self.empty.to_tx_index,
-            &mut self.p2ms.to_tx_index,
-            &mut *self.p2ms.legacy_sigop_cost,
-            &mut self.unknown.to_tx_index,
-            &mut *self.unknown.legacy_sigop_cost,
-        ]
-        .into_par_iter()
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

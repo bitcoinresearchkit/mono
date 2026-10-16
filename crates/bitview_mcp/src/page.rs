@@ -6,8 +6,8 @@ use std::{
 use axum::{
     body::Bytes,
     http::{
-        HeaderMap, HeaderValue, StatusCode,
-        header::{CACHE_CONTROL, ETAG, IF_NONE_MATCH},
+        HeaderMap, HeaderValue,
+        header::{CACHE_CONTROL, ETAG},
     },
     response::{Html, IntoResponse, Response},
     routing::{MethodRouter, get},
@@ -71,25 +71,15 @@ impl Pages {
 pub fn route(html: Bytes) -> MethodRouter {
     let mut hasher = DefaultHasher::new();
     html.hash(&mut hasher);
-    let etag = HeaderValue::try_from(format!("\"{:x}\"", hasher.finish()))
-        .expect("a hex ETag is a valid header value");
-    get(move |headers: HeaderMap| future::ready(response(html.clone(), &etag, &headers)))
+    let tag = format!("{:x}", hasher.finish());
+    let etag =
+        HeaderValue::try_from(format!("\"{tag}\"")).expect("a hex ETag is a valid header value");
+    get(move |headers: HeaderMap| future::ready(response(html.clone(), &tag, &etag, &headers)))
 }
 
-fn response(html: Bytes, etag: &HeaderValue, request: &HeaderMap) -> Response {
-    let not_modified = request
-        .get_all(IF_NONE_MATCH)
-        .iter()
-        .filter_map(|value| value.to_str().ok())
-        .any(|value| {
-            value.trim() == "*"
-                || value.split(',').any(|tag| {
-                    let tag = tag.trim();
-                    tag.strip_prefix("W/").unwrap_or(tag).as_bytes() == etag.as_bytes()
-                })
-        });
-    let mut response = if not_modified {
-        StatusCode::NOT_MODIFIED.into_response()
+fn response(html: Bytes, tag: &str, etag: &HeaderValue, request: &HeaderMap) -> Response {
+    let mut response = if bitview_http::if_none_match(request, Some(tag.as_bytes())) {
+        bitview_http::not_modified()
     } else {
         Html(html).into_response()
     };

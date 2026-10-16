@@ -7,7 +7,7 @@ use crate::{AnyStoredVec, HEADER_OFFSET, ReadOnlyRawVec, VecIndex, VecValue, cac
 
 /// Read-only random-access handle into a raw vector's stored data.
 ///
-/// Created via `raw_vec.reader()` (available on BytesVec/ZeroCopyVec via Deref).
+/// Created via `raw_vec.reader()` on a `BytesVec` or `ZeroCopyVec`.
 /// Provides O(1) point reads directly from the memory-mapped file.
 ///
 /// Only sees **stored** (persisted) values, not pushed values. A
@@ -18,8 +18,11 @@ use crate::{AnyStoredVec, HEADER_OFFSET, ReadOnlyRawVec, VecIndex, VecValue, cac
 /// writes that rewrite, truncate or move the region. Appends within its
 /// reserved capacity do not wait for them; ones that must grow it do.
 pub struct VecReader<I, T, S> {
+    // SAFETY: `_reader` holds the region's shared access and its database handle keeps the fixed
+    // mapping alive. `data` points into that mapping and has no destructor, so `_reader` outlives
+    // every use of it; the bytes stay in place and unchanged while it holds that access.
     _reader: Reader,
-    data: *const u8,
+    pub(super) data: *const u8,
     stored_len: usize,
     _marker: PhantomData<(I, T, S)>,
 }
@@ -85,7 +88,7 @@ where
 
     /// `stored_len` was read before the region's shared access was taken: it is bounded by the
     /// bytes the reader now holds, so a truncation in between never leaves rows past them.
-    fn from_region(region: &Region, stored_len: usize) -> Self {
+    pub(crate) fn from_region(region: &Region, stored_len: usize) -> Self {
         let reader = region.create_reader();
         let slice = reader.read_from(HEADER_OFFSET);
         let stored_len = stored_len.min(slice.len() / Self::SIZE_OF_T);

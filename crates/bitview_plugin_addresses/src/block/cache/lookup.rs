@@ -1,4 +1,4 @@
-use bitview_primitives::{FundedAddressData, TypeIndex};
+use bitview_primitives::TypeIndex;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -8,11 +8,11 @@ use crate::{
 
 /// Cached address data of one output type.
 pub struct AddrTypeLookup<'a> {
-    addrs: &'a mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>,
+    addrs: &'a mut FxHashMap<TypeIndex, SourcedAddrData>,
 }
 
 impl<'a> AddrTypeLookup<'a> {
-    pub fn new(addrs: &'a mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>) -> Self {
+    pub fn new(addrs: &'a mut FxHashMap<TypeIndex, SourcedAddrData>) -> Self {
         Self { addrs }
     }
 
@@ -38,20 +38,14 @@ impl<'a> AddrTypeLookup<'a> {
     }
 
     fn add_tx_count(&mut self, type_index: TypeIndex, tx_count: u32) {
-        self.addrs
-            .entry(type_index)
-            .or_insert_with(|| SourcedAddrData::New(FundedAddressData::default()))
-            .tx_count += tx_count;
+        self.addrs.entry(type_index).or_default().tx_count += tx_count;
     }
 
     pub fn get_or_create_for_receive(
         &mut self,
         type_index: TypeIndex,
-    ) -> (&mut SourcedAddrData<FundedAddressData>, AddrReceiveStatus) {
-        let addr_data = self
-            .addrs
-            .entry(type_index)
-            .or_insert_with(|| SourcedAddrData::New(FundedAddressData::default()));
+    ) -> (&mut SourcedAddrData, AddrReceiveStatus) {
+        let addr_data = self.addrs.entry(type_index).or_default();
         let status = if addr_data.funded_txo_count == 0 {
             AddrReceiveStatus::New
         } else if addr_data.is_funded() {
@@ -63,10 +57,7 @@ impl<'a> AddrTypeLookup<'a> {
     }
 
     #[inline]
-    pub fn get_for_send(
-        &mut self,
-        type_index: TypeIndex,
-    ) -> &mut SourcedAddrData<FundedAddressData> {
+    pub fn get_for_send(&mut self, type_index: TypeIndex) -> &mut SourcedAddrData {
         self.addrs
             .get_mut(&type_index)
             .expect("Addr must exist for send")

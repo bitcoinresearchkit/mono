@@ -7,9 +7,6 @@ use serde::{Deserialize, Serialize};
 use super::{Cents, Sats};
 
 #[cfg(feature = "storage")]
-use vecdb::Result;
-
-#[cfg(feature = "storage")]
 use vecdb::Bytes;
 
 /// Cents × Sats (u128) - price in cents multiplied by amount in sats.
@@ -33,6 +30,7 @@ use vecdb::Bytes;
     Into,
 )]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "storage", derive(Bytes))]
 pub struct CentsSats(u128);
 
 impl CentsSats {
@@ -83,18 +81,3 @@ fn div_round(numerator: u128, denominator: u128) -> u128 {
 }
 
 crate::impl_int_format!(CentsSats);
-
-#[cfg(feature = "storage")]
-// SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
-// value the contract requires; the values are encoded, not in native layout.
-unsafe impl Bytes for CentsSats {
-    type Array = [u8; size_of::<Self>()];
-
-    fn to_bytes(&self) -> Self::Array {
-        self.0.to_le_bytes()
-    }
-
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        Ok(Self(u128::from_bytes(bytes)?))
-    }
-}

@@ -1,6 +1,6 @@
 use std::array;
 
-use bitview_compute::{FenwickNode, FenwickTree};
+use bitview_compute::FenwickTree;
 use bitview_primitives::{CentsCompact, PERCENTILES, PERCENTILES_LEN};
 use bitview_urpd::{COST_BASIS_PRICE_DIGITS, DensityBand};
 use brk_types::{Cents, Version};
@@ -133,7 +133,7 @@ impl<const N: usize> PriceIndex<N> {
     pub(crate) fn add_raw(&mut self, price: BucketedPrice, sats: i64, filters: [bool; N]) {
         let delta = Self::delta(price.price, sats, filters);
         self.tree.add_raw(price.bucket as usize, &delta);
-        self.totals.add_assign(&delta);
+        self.totals += &delta;
     }
 
     pub(crate) fn build(&mut self) {
@@ -147,7 +147,7 @@ impl<const N: usize> PriceIndex<N> {
         }
         let delta = Self::delta(price.price, sats, filters);
         self.tree.add(price.bucket as usize, &delta);
-        self.totals.add_assign(&delta);
+        self.totals += &delta;
     }
 
     pub fn totals(&self) -> PriceTotals<N> {

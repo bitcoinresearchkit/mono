@@ -117,51 +117,36 @@ impl TxStore {
         &self.unresolved
     }
 
-    /// Apply resolved prevouts to a tx in place. `fills` is `(vin, prevout)`.
-    /// Returns the prevouts actually written (so the caller can fold them
-    /// into `AddrTracker`). Updates `unresolved` if fully resolved after
-    /// the fill, and refreshes `total_sigop_cost` (P2SH and witness
-    /// components depend on prevouts). `entry.vsize` is Core's value from
-    /// `MempoolEntryInfo` and is not recomputed here - the sigops shift
+    /// Apply resolved prevouts to a tx in place. `fills` is `(vin, prevout)`, each for a
+    /// missing prevout; `on_applied` sees every written prevout (the caller folds them into
+    /// `AddrTracker`). Updates `unresolved` if fully resolved after the fill, and refreshes
+    /// `total_sigop_cost` (P2SH and witness components depend on prevouts). `entry.vsize` is
+    /// Core's value from `MempoolEntryInfo` and is not recomputed here - the sigops shift
     /// belongs to the `Transaction`, not the entry.
-    pub fn apply_fills(&mut self, key: &TxKey, fills: Vec<(Vin, TxOut)>) -> Vec<TxOut> {
+    pub fn apply_fills(
+        &mut self,
+        key: &TxKey,
+        fills: Vec<(Vin, TxOut)>,
+        mut on_applied: impl FnMut(&TxOut),
+    ) {
         let Some(record) = self.read_only.records.get_mut(key) else {
-            return Vec::new();
+            return;
         };
-        if !fills.iter().any(|(vin, _)| {
-            record
-                .tx
-                .input
-                .get(usize::from(*vin))
-                .is_some_and(|input| input.prevout.is_none())
-        }) {
-            return Vec::new();
-        }
         let tx = Arc::make_mut(&mut record.tx);
-        let applied = Self::write_prevouts(tx, fills);
+        for (vin, prevout) in fills {
+            let txin = &mut tx.input[usize::from(vin)];
+            debug_assert!(txin.prevout.is_none(), "fills only fill missing prevouts");
+            on_applied(txin.prevout.insert(prevout));
+        }
         tx.refresh_sigops();
         record.digest = TxRecord::digest_of(tx);
         if record.tx.input.iter().all(|i| i.prevout.is_some()) {
             self.unresolved.remove(key);
         }
         self.bump_content_revision();
-        applied
     }
 
     fn bump_content_revision(&mut self) {
         self.read_only.content_revision = self.read_only.content_revision.wrapping_add(1);
-    }
-
-    fn write_prevouts(tx: &mut Transaction, fills: Vec<(Vin, TxOut)>) -> Vec<TxOut> {
-        let mut applied = Vec::with_capacity(fills.len());
-        for (vin, prevout) in fills {
-            if let Some(txin) = tx.input.get_mut(usize::from(vin))
-                && txin.prevout.is_none()
-            {
-                txin.prevout = Some(prevout.clone());
-                applied.push(prevout);
-            }
-        }
-        applied
     }
 }

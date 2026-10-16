@@ -9,8 +9,7 @@ use parking_lot::RwLock;
 use log::debug;
 
 use crate::{
-    AnyStoredVec, AnyVec, Bytes, Error, Result, Stamp, TypedVec, VecIndex, WithPrev,
-    vec_region_name_with,
+    AnyStoredVec, AnyVec, Bytes, Error, Result, TypedVec, VecIndex, WithPrev, vec_region_name_with,
 };
 
 pub mod any_stored_vec;
@@ -297,28 +296,6 @@ where
         }
 
         guard.finish(Ok(changed))
-    }
-
-    pub(super) fn save_changes(&self, stamp: Stamp) -> Result<()> {
-        self.header().check_writable()?;
-        if self.saved_stamped_changes() > 0 {
-            self.vec
-                .save_change_file(stamp, &self.serialize_changes()?)?;
-        }
-        Ok(())
-    }
-
-    pub(super) fn write_saved_changes(&mut self, stamp: Stamp) -> Result<()> {
-        let guard = self.header().begin_write()?;
-        self.write_inner(false)?;
-        self.update_stamp(stamp);
-        self.write_header()?;
-        if self.saved_stamped_changes() > 0 {
-            self.vec.save_previous();
-            self.holes.save();
-            self.updated.clear_previous();
-        }
-        guard.finish(Ok(()))
     }
 
     fn update_value_at(&mut self, index: usize, value: V::T) -> Result<()> {

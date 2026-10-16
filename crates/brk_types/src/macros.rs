@@ -1,22 +1,58 @@
 /// `Display` and `Formattable` for an integer newtype `$t(int)`: the integer's decimal digits.
 ///
+/// `nullable`: the type's `is_nan()` sentinel is undefined, written as JSON `null` and an empty CSV
+/// cell; the raw writer stays branch-free.
+///
 /// The `vecdb` impl follows the calling crate's `storage` feature, which must enable `vecdb`; the
 /// calling crate gets `itoa` through `brk_types`.
 #[macro_export]
 macro_rules! impl_int_format {
-    ($t:ty) => {
+    (@display $t:ty) => {
         impl ::std::fmt::Display for $t {
             #[inline]
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 f.write_str($crate::__private::itoa::Buffer::new().format(self.0))
             }
         }
+    };
+    ($t:ty) => {
+        $crate::impl_int_format!(@display $t);
 
         #[cfg(feature = "storage")]
         impl vecdb::Formattable for $t {
             #[inline(always)]
             fn write_to(&self, buf: &mut Vec<u8>) {
                 vecdb::Formattable::write_to(&self.0, buf)
+            }
+        }
+    };
+    ($t:ty, nullable) => {
+        $crate::impl_int_format!(@display $t);
+
+        #[cfg(feature = "storage")]
+        impl vecdb::Formattable for $t {
+            const UNDEFINED: bool = true;
+
+            #[inline(always)]
+            fn write_to(&self, buf: &mut Vec<u8>) {
+                vecdb::Formattable::write_to(&self.0, buf)
+            }
+
+            #[inline(always)]
+            fn fmt_json(&self, buf: &mut Vec<u8>) {
+                if vecdb::unlikely(self.is_nan()) {
+                    buf.extend_from_slice(b"null");
+                } else {
+                    self.write_to(buf);
+                }
+            }
+
+            /// Undefined: an empty CSV cell (JSON writes `null`).
+            #[inline(always)]
+            fn fmt_csv(&self, buf: &mut Vec<u8>) {
+                if !vecdb::unlikely(self.is_nan()) {
+                    self.write_to(buf);
+                }
             }
         }
     };

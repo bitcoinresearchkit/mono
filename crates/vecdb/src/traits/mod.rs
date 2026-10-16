@@ -1,8 +1,6 @@
 pub mod any;
 pub mod any_exportable;
-pub mod any_serializable;
 pub mod any_stored;
-pub mod any_with_writer;
 pub(crate) mod chunk_folds;
 pub mod compute;
 pub mod formattable;
@@ -24,9 +22,7 @@ pub mod writable;
 
 pub use any::*;
 pub use any_exportable::*;
-pub use any_serializable::*;
 pub use any_stored::*;
-pub use any_with_writer::*;
 pub use compute::ComputeVec;
 pub use formattable::*;
 pub use importable::*;

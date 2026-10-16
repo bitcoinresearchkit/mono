@@ -7,8 +7,6 @@
 //!
 //! Also changes the generics a bit so it plays well with `self_cell`.
 
-use core::{fmt::Debug, hash::Hash, hint::unreachable_unchecked, mem};
-
 /// An _extension trait_ to create [`DoubleEndedPeekable`].
 ///
 /// This has a blanket implementation for all types that implement [`Iterator`].
@@ -30,8 +28,8 @@ where
     fn double_ended_peekable(self) -> DoubleEndedPeekable<T, I> {
         DoubleEndedPeekable {
             iter: self,
-            front: MaybePeeked::Unpeeked,
-            back: MaybePeeked::Unpeeked,
+            front: None,
+            back: None,
         }
     }
 }
@@ -42,10 +40,14 @@ where
 ///
 /// [`Peekable`]: core::iter::Peekable
 /// [`double_ended_peekable`]: DoubleEndedPeekableExt::double_ended_peekable
+#[expect(
+    clippy::option_option,
+    reason = "`None` until peeked; `Some(None)` caches the end of the iteration"
+)]
 pub struct DoubleEndedPeekable<T, I: Iterator<Item = T>> {
     iter: I,
-    front: MaybePeeked<T>,
-    back: MaybePeeked<T>,
+    front: Option<Option<T>>,
+    back: Option<Option<T>>,
 }
 
 impl<T, I> DoubleEndedPeekable<T, I>
@@ -64,9 +66,9 @@ where
     #[inline]
     pub fn peek(&mut self) -> Option<&I::Item> {
         self.front
-            .get_peeked_or_insert_with(|| self.iter.next())
+            .get_or_insert_with(|| self.iter.next())
             .as_ref()
-            .or_else(|| self.back.peeked_value_ref())
+            .or_else(|| self.back.as_ref().and_then(Option::as_ref))
     }
 
     /// Consumes and returns the next value of this iterator if a condition is true.
@@ -79,8 +81,8 @@ where
         match self.next() {
             Some(item) if func(&item) => Some(item),
             other => {
-                debug_assert!(self.front.is_unpeeked());
-                self.front = MaybePeeked::Peeked(other);
+                debug_assert!(self.front.is_none());
+                self.front = Some(other);
                 None
             }
         }
@@ -103,9 +105,9 @@ where
     #[inline]
     pub fn peek_back(&mut self) -> Option<&I::Item> {
         self.back
-            .get_peeked_or_insert_with(|| self.iter.next_back())
+            .get_or_insert_with(|| self.iter.next_back())
             .as_ref()
-            .or_else(|| self.front.peeked_value_ref())
+            .or_else(|| self.front.as_ref().and_then(Option::as_ref))
     }
 }
 
@@ -117,14 +119,10 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        match self.front.take() {
-            MaybePeeked::Peeked(out @ Some(_)) => out,
-            MaybePeeked::Peeked(None) => self.back.take().into_peeked_value(),
-            MaybePeeked::Unpeeked => match self.iter.next() {
-                item @ Some(_) => item,
-                None => self.back.take().into_peeked_value(),
-            },
-        }
+        self.front
+            .take()
+            .unwrap_or_else(|| self.iter.next())
+            .or_else(|| self.back.take().flatten())
     }
 }
 
@@ -134,64 +132,9 @@ where
 {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.back.take() {
-            MaybePeeked::Peeked(out @ Some(_)) => out,
-            MaybePeeked::Peeked(None) => self.front.take().into_peeked_value(),
-            MaybePeeked::Unpeeked => match self.iter.next_back() {
-                out @ Some(_) => out,
-                None => self.front.take().into_peeked_value(),
-            },
-        }
-    }
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum MaybePeeked<T> {
-    #[default]
-    Unpeeked,
-    Peeked(Option<T>),
-}
-
-impl<T> MaybePeeked<T> {
-    fn get_peeked_or_insert_with<F>(&mut self, f: F) -> &mut Option<T>
-    where
-        F: FnOnce() -> Option<T>,
-    {
-        if matches!(self, Self::Unpeeked) {
-            *self = Self::Peeked(f());
-        }
-
-        let Self::Peeked(peeked) = self else {
-            // SAFETY: it cannot be `Unpeeked` because that case has been just replaced with
-            // `Peeked`, and we only have two possible states.
-            #[expect(unsafe_code, reason = "see safety")]
-            unsafe {
-                unreachable_unchecked()
-            }
-        };
-
-        peeked
-    }
-
-    const fn peeked_value_ref(&self) -> Option<&T> {
-        match self {
-            Self::Unpeeked | Self::Peeked(None) => None,
-            Self::Peeked(Some(peeked)) => Some(peeked),
-        }
-    }
-
-    fn take(&mut self) -> Self {
-        mem::replace(self, Self::Unpeeked)
-    }
-
-    fn into_peeked_value(self) -> Option<T> {
-        match self {
-            Self::Unpeeked | Self::Peeked(None) => None,
-            Self::Peeked(Some(peeked)) => Some(peeked),
-        }
-    }
-
-    const fn is_unpeeked(&self) -> bool {
-        matches!(self, Self::Unpeeked)
+        self.back
+            .take()
+            .unwrap_or_else(|| self.iter.next_back())
+            .or_else(|| self.front.take().flatten())
     }
 }

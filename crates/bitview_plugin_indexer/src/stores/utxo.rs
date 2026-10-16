@@ -1,4 +1,6 @@
 use bitview_primitives::{TxOutIndex, TypeIndex};
+use brk_error::{Error, Result};
+use brk_store::Store;
 use brk_types::{OutputType, Sats, StoreValue, TxIndex, TxidPrefix};
 use vecdb::{Bytes, OverflowVecValue};
 
@@ -38,7 +40,7 @@ pub struct Utxo([u8; 18]);
 
 impl Utxo {
     #[inline]
-    pub(crate) fn new(
+    fn new(
         tx_index: TxIndex,
         txout_index: TxOutIndex,
         output_type: OutputType,
@@ -58,7 +60,7 @@ impl Utxo {
 
     /// Whether `value` is kept in the overflow store instead of the entry.
     #[inline]
-    pub(crate) fn is_large(value: Sats) -> bool {
+    fn is_large(value: Sats) -> bool {
         value.to_compact().is_none()
     }
 
@@ -93,3 +95,62 @@ impl Utxo {
 }
 
 brk_types::impl_store_value!(Utxo, [u8; 18]);
+
+/// Every output not spent yet but OP_RETURN ones: an entry each with what resolving an input needs,
+/// in one lookup, and for a large value its overflow record, which inserts and removals keep
+/// beside the entry.
+#[derive(Clone)]
+pub struct Utxos {
+    pub(super) entries: Store<UtxoKey, Utxo>,
+    /// The values of large unspent outputs, which their entry only marks.
+    pub(super) large_values: Store<UtxoKey, Sats>,
+}
+
+impl Utxos {
+    /// The unspent output under `key`, as last ingested: it can be above the published safe lengths, and the key
+    /// holds only an 8-byte txid prefix, so readers outside the indexer check both. Spent outputs miss.
+    #[inline]
+    pub fn get(&self, key: &UtxoKey) -> Result<Option<Utxo>> {
+        self.entries.get(key)
+    }
+
+    /// The value of `utxo`, the unspent output under `key`: in the entry, or for a large one in the overflow store.
+    #[inline]
+    pub fn value(&self, key: &UtxoKey, utxo: &Utxo) -> Result<Sats> {
+        match utxo.value() {
+            Some(value) => Ok(value),
+            None => self
+                .large_values
+                .get(key)?
+                .ok_or(Error::Internal("large unspent output without its value")),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn insert(
+        &mut self,
+        key: UtxoKey,
+        tx_index: TxIndex,
+        txout_index: TxOutIndex,
+        output_type: OutputType,
+        type_index: TypeIndex,
+        value: Sats,
+    ) {
+        self.entries.insert(
+            key,
+            Utxo::new(tx_index, txout_index, output_type, type_index, value),
+        );
+        if Utxo::is_large(value) {
+            self.large_values.insert(key, value);
+        }
+    }
+
+    /// Removes the unspent output under `key`, whose value is `value`.
+    #[inline]
+    pub(crate) fn remove(&mut self, key: UtxoKey, value: Sats) {
+        self.entries.remove(key);
+        if Utxo::is_large(value) {
+            self.large_values.remove(key);
+        }
+    }
+}

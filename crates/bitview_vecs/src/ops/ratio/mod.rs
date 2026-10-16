@@ -6,8 +6,6 @@ mod fixed_to_ratio;
 pub(crate) use fixed_to_ratio::FixedToRatio;
 mod fixed_to_percent;
 pub use fixed_to_percent::FixedToPercent;
-mod price;
-pub(crate) use price::price_ratio;
 mod price_times;
 pub use price_times::PriceTimesRatio;
 mod quotient;

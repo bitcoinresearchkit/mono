@@ -27,9 +27,10 @@ brk_oracle = { workspace = true, features = ["schemars"] }
 bitview_query = { workspace = true, default-features = false }
 bitview_types = { workspace = true }
 bitview_catalog = { workspace = true }
+bitview_http = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 bitview_website = { workspace = true }
-derive_more = { workspace = true }
+derive_more = { workspace = true, features = ["display", "from", "from_str", "into"] }
 jiff = { workspace = true }
 rayon = { workspace = true }
 schemars = { workspace = true }

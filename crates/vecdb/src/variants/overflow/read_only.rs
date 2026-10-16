@@ -2,13 +2,14 @@ use std::{result::Result, sync::Arc};
 
 use parking_lot::RwLock;
 
-use super::{DECODE_CHUNK_SIZE, decode::decode};
+use super::decode::{self, decode};
 use crate::{
-    AnyVec, BytesStrategy, BytesVecReader, OverflowVecReader, OverflowVecValue, ReadOnlyMutableVec,
-    ReadOnlyRawVec, ReadableVec, SharedLen, TypedVec, VecIndex, Version,
+    AnyVec, BytesStrategy, OverflowVecReader, OverflowVecValue, ReadOnlyMutableVec, ReadOnlyRawVec,
+    ReadableVec, SharedLen, TypedVec, VecIndex, Version,
 };
 
 /// Lean read-only clone of an [`OverflowVec`](crate::OverflowVec).
+#[derive(Clone)]
 pub struct ReadOnlyOverflowVec<I, T>
 where
     I: VecIndex,
@@ -25,7 +26,6 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    #[doc(hidden)]
     pub(crate) fn new(
         compact: ReadOnlyMutableVec<ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>>,
         overflow: ReadOnlyMutableVec<ReadOnlyRawVec<usize, T, BytesStrategy<T>>>,
@@ -54,27 +54,13 @@ where
         })
     }
 
-    #[inline(always)]
-    fn decode_with_reader(compact: T::Compact, overflow: &BytesVecReader<usize, T>) -> T {
-        decode::<T>(compact, |index| {
+    /// Reads overflow values through one reader of the persisted sidecar.
+    fn sidecar(&self) -> impl Fn(usize) -> T {
+        let overflow = self.overflow.reader();
+        move |index| {
             overflow
                 .try_get_at(index)
                 .expect("OverflowVec pointer must reference a stored value")
-        })
-    }
-}
-
-impl<I, T> Clone for ReadOnlyOverflowVec<I, T>
-where
-    I: VecIndex,
-    T: OverflowVecValue,
-{
-    fn clone(&self) -> Self {
-        Self {
-            compact: self.compact.clone(),
-            overflow: self.overflow.clone(),
-            visible_len: self.visible_len.clone(),
-            gate: Arc::clone(&self.gate),
         }
     }
 }
@@ -137,70 +123,23 @@ where
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
         let _guard = self.gate.read_recursive();
         let len = self.visible_len.get();
-        let indices = &indices[..indices.partition_point(|&i| i < len)];
-        if indices.is_empty() {
-            return;
-        }
-        let compact = if indices.len() > 1 && indices.windows(2).all(|pair| pair[1] == pair[0] + 1)
-        {
-            self.compact
-                .collect_range_at(indices[0], indices[indices.len() - 1] + 1)
-        } else {
-            self.compact.read_sorted_at(indices)
-        };
-        let overflow = self.overflow.reader();
-        out.extend(
-            compact
-                .into_iter()
-                .map(|value| Self::decode_with_reader(value, &overflow)),
-        );
+        decode::read_sorted_into(&self.compact, len, indices, out, || self.sidecar());
     }
 
     #[inline]
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<T>) {
         let _guard = self.gate.read_recursive();
         let len = self.visible_len.get();
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return;
-        }
-
-        let overflow = self.overflow.reader();
-        buf.reserve(to - from);
-        if to - from > DECODE_CHUNK_SIZE {
-            let mut compact = Vec::with_capacity(DECODE_CHUNK_SIZE);
-            for chunk_from in (from..to).step_by(DECODE_CHUNK_SIZE) {
-                compact.clear();
-                self.compact.read_into_at(
-                    chunk_from,
-                    (chunk_from + DECODE_CHUNK_SIZE).min(to),
-                    &mut compact,
-                );
-                buf.extend(
-                    compact
-                        .iter()
-                        .copied()
-                        .map(|value| Self::decode_with_reader(value, &overflow)),
-                );
-            }
-            return;
-        }
-
-        self.compact.for_each_range_at(from, to, |compact| {
-            buf.push(Self::decode_with_reader(compact, &overflow));
-        });
+        decode::read_into(&self.compact, len, from, to, buf, || self.sidecar());
     }
 
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
         let _guard = self.gate.read_recursive();
         let to = to.min(self.visible_len.get());
-        let overflow = self.overflow.reader();
+        let overflow = self.sidecar();
         self.compact
-            .for_each_range_dyn_at(from, to, &mut |compact| {
-                f(Self::decode_with_reader(compact, &overflow));
-            });
+            .for_each_range_dyn_at(from, to, &mut |compact| f(decode(compact, &overflow)));
     }
 
     #[inline]
@@ -213,10 +152,10 @@ where
     ) -> Result<B, E> {
         let _guard = self.gate.read_recursive();
         let to = to.min(self.visible_len.get());
-        let overflow = self.overflow.reader();
+        let overflow = self.sidecar();
         self.compact
             .try_fold_range_at(from, to, init, |acc, compact| {
-                f(acc, Self::decode_with_reader(compact, &overflow))
+                f(acc, decode(compact, &overflow))
             })
     }
 }

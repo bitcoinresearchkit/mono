@@ -265,11 +265,7 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
         .iter()
         .chain(endpoint.query_params.iter())
     {
-        let mut schema = if parameter.schema.as_object().is_some_and(Map::is_empty) {
-            schema_from_type_name(&parameter.param_type)
-        } else {
-            parameter.schema.clone()
-        };
+        let mut schema = parameter.schema.clone();
         if let Some(description) = &parameter.description
             && let Some(object) = schema.as_object_mut()
         {
@@ -342,25 +338,6 @@ fn check_validated_keywords(schema: &Value) -> io::Result<()> {
     Ok(())
 }
 
-fn schema_from_type_name(name: &str) -> Value {
-    if let Some(inner) = name.strip_suffix("[]") {
-        return json!({
-            "type": "array",
-            "items": schema_from_type_name(inner)
-        });
-    }
-
-    match name {
-        "*" | "Object" => json!({}),
-        "string" => json!({ "type": "string" }),
-        "number" => json!({ "type": "number" }),
-        "integer" => json!({ "type": "integer" }),
-        "boolean" => json!({ "type": "boolean" }),
-        "null" => json!({ "type": "null" }),
-        other => json!({ "$ref": format!("{COMPONENT_REF_PREFIX}{other}") }),
-    }
-}
-
 /// Turn an OpenAPI schema into a self-contained JSON Schema. MCP clients must
 /// not fetch external `$ref` targets, so component references are rewritten to
 /// local `$defs` and only the transitively used definitions are copied.
@@ -380,27 +357,23 @@ fn standalone_schema(mut root: Value, schemas: &TypeSchemas) -> io::Result<Value
     }
 
     let mut pending = VecDeque::new();
-    let mut seen = BTreeSet::new();
-    collect_component_refs(&root, &mut pending)?;
-
+    localize_refs(&mut root, &mut pending)?;
     let mut definitions = BTreeMap::new();
     while let Some(name) = pending.pop_front() {
-        if !seen.insert(name.clone()) {
+        if definitions.contains_key(&name) {
             continue;
         }
-        let schema = schemas.get(&name).ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("OpenAPI schema references missing component {name}"),
-            )
-        })?;
-        collect_component_refs(schema, &mut pending)?;
-        definitions.insert(name, schema.clone());
-    }
-
-    rewrite_component_refs(&mut root);
-    for schema in definitions.values_mut() {
-        rewrite_component_refs(schema);
+        let mut schema = schemas
+            .get(&name)
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("OpenAPI schema references missing component {name}"),
+                )
+            })?
+            .clone();
+        localize_refs(&mut schema, &mut pending)?;
+        definitions.insert(name, schema);
     }
 
     let object = root.as_object_mut().expect("root checked above");
@@ -417,13 +390,16 @@ fn standalone_schema(mut root: Value, schemas: &TypeSchemas) -> io::Result<Value
     Ok(root)
 }
 
-fn collect_component_refs(value: &Value, pending: &mut VecDeque<String>) -> io::Result<()> {
+/// Point every component reference at its local `$defs` copy and queue the component to copy.
+/// The MCP bridge resolves only local `#/$defs/<name>` references.
+fn localize_refs(value: &mut Value, pending: &mut VecDeque<String>) -> io::Result<()> {
     match value {
         Value::Object(object) => {
-            if let Some(reference) = object.get("$ref").and_then(Value::as_str) {
-                // The MCP bridge resolves only local `#/$defs/<name>` references.
+            if let Some(Value::String(reference)) = object.get_mut("$ref") {
                 if let Some(name) = reference.strip_prefix(COMPONENT_REF_PREFIX) {
-                    pending.push_back(unescape_json_pointer(name));
+                    let name = unescape_json_pointer(name);
+                    *reference = format!("#/$defs/{}", escape_json_pointer(&name));
+                    pending.push_back(name);
                 } else if !reference.starts_with("#/$defs/") {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
@@ -431,48 +407,18 @@ fn collect_component_refs(value: &Value, pending: &mut VecDeque<String>) -> io::
                     ));
                 }
             }
-            for nested in object.values() {
-                collect_component_refs(nested, pending)?;
+            for nested in object.values_mut() {
+                localize_refs(nested, pending)?;
             }
         }
         Value::Array(array) => {
             for nested in array {
-                collect_component_refs(nested, pending)?;
+                localize_refs(nested, pending)?;
             }
         }
         _ => {}
     }
     Ok(())
-}
-
-fn rewrite_component_refs(value: &mut Value) {
-    match value {
-        Value::Object(object) => {
-            if let Some(reference) = object.get_mut("$ref") {
-                let replacement = reference
-                    .as_str()
-                    .and_then(|reference| reference.strip_prefix(COMPONENT_REF_PREFIX))
-                    .map(|name| {
-                        format!(
-                            "#/$defs/{}",
-                            escape_json_pointer(&unescape_json_pointer(name))
-                        )
-                    });
-                if let Some(replacement) = replacement {
-                    *reference = Value::String(replacement);
-                }
-            }
-            for nested in object.values_mut() {
-                rewrite_component_refs(nested);
-            }
-        }
-        Value::Array(array) => {
-            for nested in array {
-                rewrite_component_refs(nested);
-            }
-        }
-        _ => {}
-    }
 }
 
 /// The MCP bridge forwards tools as-is: each must be a read-only GET on a safe local path whose

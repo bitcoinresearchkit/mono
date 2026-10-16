@@ -50,10 +50,6 @@ where
         [&self.first_index, &self.bytes]
     }
 
-    pub fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 2] {
-        [&mut self.first_index, &mut self.bytes]
-    }
-
     /// Calls `f` with the hash of every address first seen at or after `height` (for rollback).
     pub fn for_each_hash_from(&self, height: Height, mut f: impl FnMut(AddrHash)) {
         if let Some(first) = self.first_index.collect_one(height) {

@@ -79,7 +79,7 @@ impl CostBasisVecs {
     }
 
     /// Spot divided by each mean, stored.
-    pub fn compute_ratios(
+    pub(crate) fn compute_ratios(
         &mut self,
         max_from: Height,
         spot: &impl ReadableVec<Height, Cents>,

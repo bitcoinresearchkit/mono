@@ -82,6 +82,18 @@ pub enum Error {
 }
 
 impl Error {
+    /// The stored vector has another schema (version, format, value size or a length it cannot
+    /// hold): import deletes it and starts over.
+    pub(crate) fn is_schema_mismatch(&self) -> bool {
+        matches!(
+            self,
+            Error::WrongLength { .. }
+                | Error::DifferentFormat { .. }
+                | Error::DifferentValueSize { .. }
+                | Error::DifferentVersion { .. }
+        )
+    }
+
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
     pub fn is_lock_error(&self) -> bool {

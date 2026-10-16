@@ -7,19 +7,11 @@ use crate::{
     balance::Balances,
 };
 
+#[derive(Default)]
 pub struct AddrStates {
     pub amount_range: AmountRange<AddrCohortState>,
     /// The address types' running counters, retained between updates like the bands.
     pub metrics: AddrMetricsState,
-}
-
-impl Default for AddrStates {
-    fn default() -> Self {
-        Self {
-            amount_range: AmountRange::from_fn(|_| AddrCohortState::new()),
-            metrics: AddrMetricsState::default(),
-        }
-    }
 }
 
 impl AddrStates {

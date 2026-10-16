@@ -1,8 +1,5 @@
 use super::ReadWriteRawVec;
-use crate::{
-    Format, ReadOnlyRawVec, VecValue,
-    cache::{CachePolicy, NoCache},
-};
+use crate::cache::NoCache;
 
 pub mod reader;
 pub mod strategy;
@@ -33,19 +30,4 @@ pub use value::*;
 /// Use `ZeroCopyVec` when:
 /// - Maximum performance is critical
 /// - Data stays on the same architecture
-#[derive(Debug)]
-#[must_use = "Vector should be stored to keep data accessible"]
-pub struct BytesVec<I, T: VecValue, C: CachePolicy = NoCache>(
-    ReadWriteRawVec<I, T, BytesStrategy<T>, C>,
-);
-
-impl_vec_wrapper!(
-    BytesVec,
-    ReadWriteRawVec<I, T, BytesStrategy<T>, C>,
-    BytesVecValue,
-    Format::Bytes,
-    ReadOnlyRawVec<I, T, BytesStrategy<T>, C>,
-    no_deref_mut
-);
-
-impl_mutable_raw_vec!(BytesVec, BytesVecValue, BytesStrategy);
+pub type BytesVec<I, T, C = NoCache> = ReadWriteRawVec<I, T, BytesStrategy<T>, C>;

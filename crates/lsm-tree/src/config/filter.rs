@@ -30,4 +30,12 @@ impl FilterPolicy {
     pub fn disabled() -> Self {
         Self::all(FilterPolicyEntry::None)
     }
+
+    /// The Bloom policy of `level`, if it builds filters.
+    pub(crate) fn bloom_at(&self, level: usize) -> Option<BloomConstructionPolicy> {
+        match self.at_level(level) {
+            FilterPolicyEntry::Bloom(policy) if policy.is_active() => Some(policy),
+            FilterPolicyEntry::Bloom(_) | FilterPolicyEntry::None => None,
+        }
+    }
 }

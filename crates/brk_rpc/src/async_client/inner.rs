@@ -1,12 +1,11 @@
 use std::path::PathBuf;
 
-use base64::{Engine, engine::general_purpose::STANDARD};
 use bitcoin::Txid as BitcoinTxid;
 use brk_error::{Error, Result};
 use brk_types::{Height, Txid};
 use http_body_util::Full;
 use hyper::{
-    Request, StatusCode, Uri,
+    Request, StatusCode,
     body::Bytes,
     header::{AUTHORIZATION, HOST, HeaderValue},
 };
@@ -18,25 +17,21 @@ use tokio::{fs as TokioFs, sync::Mutex};
 use super::connection::{Connection, Exchange};
 use crate::{
     Auth,
-    auth::{cookie_error, read_cookie},
+    auth::{basic, cookie_error, read_cookie},
+    endpoint::Endpoint,
     rpc_client, rpc_response,
 };
 
 pub struct Inner {
     connection: Mutex<Option<Connection>>,
-    uri: Uri,
+    endpoint: Endpoint,
     cookie: Option<PathBuf>,
     authorization: RwLock<Option<HeaderValue>>,
 }
 
 impl Inner {
     pub fn new(url: &str, auth: Auth) -> Result<Self> {
-        let uri: Uri = url
-            .parse()
-            .map_err(|_| Error::Internal("invalid node RPC URL"))?;
-        if uri.scheme_str() != Some("http") || uri.host().is_none() {
-            return Err(Error::Internal("node RPC requires an HTTP URL"));
-        }
+        let endpoint = Endpoint::parse(url)?;
         let (cookie, header) = match auth {
             Auth::None => (None, None),
             Auth::UserPass(user, password) => {
@@ -49,7 +44,7 @@ impl Inner {
         };
         Ok(Self {
             connection: Mutex::new(None),
-            uri,
+            endpoint,
             cookie,
             authorization: RwLock::new(header),
         })
@@ -84,16 +79,9 @@ impl Inner {
     async fn call<T: DeserializeOwned>(&self, body: Bytes, mut reconnect: bool) -> Result<T> {
         let mut refresh = true;
         loop {
-            let mut request =
-                Request::post(self.uri.path_and_query().map_or("/", |path| path.as_str()))
-                    .header(
-                        HOST,
-                        self.uri
-                            .authority()
-                            .expect("validated RPC authority")
-                            .as_str(),
-                    )
-                    .header("content-type", "application/json");
+            let mut request = Request::post(self.endpoint.path.as_str())
+                .header(HOST, self.endpoint.authority.as_str())
+                .header("content-type", "application/json");
             let header = self.authorization.read().clone();
             if let Some(header) = &header {
                 request = request.header(AUTHORIZATION, header);
@@ -107,7 +95,7 @@ impl Inner {
                 // Taking ownership makes cancellation close the socket, with no background task.
                 let mut connection = match idle.take() {
                     Some(connection) => connection,
-                    None => Connection::connect(&self.uri).await?,
+                    None => Connection::connect(&self.endpoint).await?,
                 };
                 let (status, bytes) = match connection.request(request).await? {
                     Exchange::Complete(status, bytes) => (status, bytes),
@@ -148,7 +136,7 @@ impl Inner {
 }
 
 fn authorization(credentials: &str) -> Result<HeaderValue> {
-    let mut header = HeaderValue::from_str(&format!("Basic {}", STANDARD.encode(credentials)))
+    let mut header = HeaderValue::from_str(&basic(credentials))
         .map_err(|_| Error::Internal("invalid node RPC credentials"))?;
     header.set_sensitive(true);
     Ok(header)

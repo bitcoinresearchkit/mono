@@ -43,7 +43,7 @@ impl TxAddition {
         let built = Self::build_tx(info, tx, total_size, mempool_txs);
         let mut entry = TxEntry::new(info, total_size as u64, rbf);
         if let Some(tomb) = graveyard.get(&info.txid) {
-            entry.first_seen = tomb.entry.first_seen;
+            entry.first_seen = tomb.record.entry.first_seen;
         }
         Self {
             tx: built,

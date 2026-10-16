@@ -26,17 +26,22 @@ static INDEX_HTML: OnceLock<(Bytes, String)> = OnceLock::new();
 /// Embedded files' content hashes by path, computed once on first use.
 static EMBEDDED_HASHES: OnceLock<HashMap<&'static Path, String>> = OnceLock::new();
 
-/// A file to serve. Embedded content carries its hash (release only), computed once.
+pub(crate) const HTML: &str = "text/html";
+
+/// A file to serve, with the content type its resolved name declares. Embedded content carries
+/// its hash (release only), computed once.
 pub(crate) struct File {
     pub(crate) contents: Bytes,
     pub(crate) hash: Option<&'static str>,
+    pub(crate) content_type: Option<&'static str>,
 }
 
 impl File {
-    fn fresh(contents: Vec<u8>) -> Self {
+    fn fresh(contents: Vec<u8>, path: &Path) -> Self {
         Self {
             contents: contents.into(),
             hash: None,
+            content_type: content_type(path),
         }
     }
 
@@ -44,8 +49,28 @@ impl File {
         Self {
             contents: Bytes::from_static(file.contents()),
             hash: (!cfg!(debug_assertions)).then(|| embedded_hash(file)),
+            content_type: content_type(file.path()),
         }
     }
+}
+
+/// The content type a file's name declares, for the kinds the website serves.
+fn content_type(path: &Path) -> Option<&'static str> {
+    Some(match path.extension()?.to_str()? {
+        "js" | "mjs" => "application/javascript",
+        "json" | "map" => "application/json",
+        "html" => HTML,
+        "css" => "text/css",
+        "toml" | "txt" => "text/plain",
+        "pdf" => "application/pdf",
+        "woff2" => "font/woff2",
+        "ico" => "image/x-icon",
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "svg" => "image/svg+xml",
+        "webmanifest" => "application/manifest+json",
+        _ => return None,
+    })
 }
 
 /// Website configuration:
@@ -108,13 +133,13 @@ impl Website {
     fn get_index(&self) -> Result<File, Error> {
         // Filesystem content is mutable and must never enter the embedded cache.
         if let Some(base) = self.filesystem_path() {
+            let index = base.join("index.html");
             if cfg!(debug_assertions) {
-                return fs::read(base.join("index.html"))
-                    .map(File::fresh)
+                return fs::read(&index)
+                    .map(|contents| File::fresh(contents, &index))
                     .map_err(|e| Error::not_found(e.to_string()));
             }
-            let html = fs::read_to_string(base.join("index.html"))
-                .map_err(|e| Error::not_found(e.to_string()))?;
+            let html = fs::read_to_string(&index).map_err(|e| Error::not_found(e.to_string()))?;
             let html = match ImportMap::scan(base, "") {
                 Ok(importmap) => importmap.transform_html(&html).unwrap_or(html),
                 Err(e) => {
@@ -122,7 +147,7 @@ impl Website {
                     html
                 }
             };
-            return Ok(File::fresh(html.into_bytes()));
+            return Ok(File::fresh(html.into_bytes(), &index));
         }
 
         let file = EMBEDDED_WEBSITE
@@ -145,6 +170,7 @@ impl Website {
         Ok(File {
             contents: html.clone(),
             hash: Some(hash),
+            content_type: Some(HTML),
         })
     }
 
@@ -197,10 +223,12 @@ impl Website {
             return self.get_index();
         }
 
-        fs::read(&file_path).map(File::fresh).map_err(|e| {
-            error!("{e}");
-            Error::not_found("File not found")
-        })
+        fs::read(&file_path)
+            .map(|contents| File::fresh(contents, &file_path))
+            .map_err(|e| {
+                error!("{e}");
+                Error::not_found("File not found")
+            })
     }
 }
 

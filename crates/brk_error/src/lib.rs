@@ -64,10 +64,6 @@ pub enum Error {
     #[error(transparent)]
     VecDB(#[from] VecdbError),
 
-    #[cfg(feature = "vecdb")]
-    #[error(transparent)]
-    RawDB(#[from] RawDBError),
-
     #[cfg(feature = "bitcoin")]
     #[error(transparent)]
     BitcoinConsensusEncode(#[from] EncodeError),
@@ -152,6 +148,15 @@ pub enum Error {
     },
 }
 
+/// Raw database errors go through vecdb's, which owns their lock and corruption classification.
+#[cfg(feature = "vecdb")]
+impl From<RawDBError> for Error {
+    #[inline]
+    fn from(error: RawDBError) -> Self {
+        Self::VecDB(error.into())
+    }
+}
+
 impl Error {
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
@@ -159,8 +164,6 @@ impl Error {
         match self {
             #[cfg(feature = "vecdb")]
             Error::VecDB(e) => e.is_lock_error(),
-            #[cfg(feature = "vecdb")]
-            Error::RawDB(RawDBError::TryLock(_)) => true,
             #[cfg(feature = "fjall")]
             Error::Fjall(FjallError::Locked) => true,
             _ => false,

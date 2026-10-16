@@ -387,6 +387,7 @@ dependencies = [
 name = "bitview_cli"
 version = "0.12.2"
 dependencies = [
+ "percent-encoding",
  "ureq",
 ]
 
@@ -399,6 +400,7 @@ dependencies = [
  "bitview_primitives",
  "bitview_types",
  "brk_types",
+ "percent-encoding",
  "rapidhash",
  "serde",
  "serde_json",
@@ -522,13 +524,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitview_http"
+version = "0.12.2"
+dependencies = [
+ "axum",
+ "http-body",
+]
+
+[[package]]
 name = "bitview_mcp"
 version = "0.12.2"
 dependencies = [
  "axum",
  "base64 0.23.1",
+ "bitview_http",
  "brk_logger",
  "http-body-util",
+ "percent-encoding",
  "rmcp",
  "serde",
  "serde_json",
@@ -859,7 +871,6 @@ dependencies = [
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
- "brk_exit",
  "brk_types",
  "derive_more",
  "rayon",
@@ -929,8 +940,6 @@ dependencies = [
  "derive_more",
  "rangeindex",
  "rayon",
- "schemars",
- "serde",
  "tracing",
  "vecdb",
 ]
@@ -1137,6 +1146,7 @@ dependencies = [
  "axum",
  "bitcoin",
  "bitview_catalog",
+ "bitview_http",
  "bitview_primitives",
  "bitview_query",
  "bitview_types",
@@ -1240,8 +1250,8 @@ name = "bitview_website"
 version = "0.12.2"
 dependencies = [
  "axum",
+ "bitview_http",
  "brk_logger",
- "http-body",
  "importmap",
  "include_dir",
  "serde",
@@ -1290,6 +1300,7 @@ dependencies = [
 name = "bitviewd_latency"
 version = "0.12.2"
 dependencies = [
+ "brk_logger",
  "jiff",
  "tempfile",
 ]

@@ -213,16 +213,6 @@ impl From<Count> for usize {
     }
 }
 
-/// Ratios multiply into ratios.
-impl Mul for Ratio64 {
-    type Output = Self;
-
-    #[inline]
-    fn mul(self, rhs: Self) -> Self {
-        Self(self.0 * rhs.0)
-    }
-}
-
 /// An amount scaled by a ratio.
 impl Mul<Ratio64> for Sats {
     type Output = Self;
@@ -238,24 +228,6 @@ impl Mul<Sats> for Ratio64 {
 
     #[inline]
     fn mul(self, rhs: Sats) -> Sats {
-        rhs * self
-    }
-}
-
-impl Mul<Ratio64> for Cents {
-    type Output = Self;
-
-    #[inline]
-    fn mul(self, rhs: Ratio64) -> Self {
-        Self::from(f64::from(self) * rhs.0)
-    }
-}
-
-impl Mul<Cents> for Ratio64 {
-    type Output = Cents;
-
-    #[inline]
-    fn mul(self, rhs: Cents) -> Cents {
         rhs * self
     }
 }

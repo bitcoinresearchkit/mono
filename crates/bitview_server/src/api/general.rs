@@ -6,6 +6,7 @@ use brk_types::Timestamp;
 use super::historical_price;
 use crate::{
     AppState,
+    api::tags,
     extended::TransformResponseExtended,
     params::{Empty, HistoricalPriceParam},
     request_state::RequestState,
@@ -29,7 +30,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_difficulty_adjustment")
-                        .general_tag()
+                        .tag(tags::GENERAL)
                         .summary("Difficulty adjustment")
                         .description("Get current difficulty adjustment progress and estimates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*")
                         .json_response::<DifficultyAdjustment>()
@@ -52,7 +53,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_prices")
-                        .general_tag()
+                        .tag(tags::GENERAL)
                         .summary("Current BTC price")
                         .description("Returns bitcoin latest price (on-chain derived, USD only).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*")
                         .json_response::<Prices>()
@@ -70,7 +71,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_historical_price")
-                        .general_tag()
+                        .tag(tags::GENERAL)
                         .summary("Historical price")
                         .description("Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*")
                         .json_response::<HistoricalPrice>()

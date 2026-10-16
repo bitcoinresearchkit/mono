@@ -476,6 +476,8 @@ has to be deleted by hand.
 
 #### Crates and features
 
+- New `bitview_http`: ETag matching (weak, quoted, lists, `*`) and the lengthless 304 body, shared by
+  `bitview_server`, `bitview_website` and `bitview_mcp`
 - A plugin's crate, id and series root are one word: `bitview_plugin_age` (was `bitview_plugin_distribution_age`),
   `holders` (`distribution_aggregated`), `utxos` (`distribution_utxos`), `entry` (`distribution_entry`), `addresses`
   (`distribution_addresses`), `profitability` (`distribution_profitability`); the shared library is
@@ -740,6 +742,12 @@ has to be deleted by hand.
   `to_cents_rounded` is gone); `bitview_primitives::CentsSquaredSats / u128` became `capitalized_price(cap)`.
   `brk_mempool`: `fees()` returns the whole tiers and `precise_fees()` the precise ones.
   `bitview_compute::WeightedCapitalizedPrice` is `WeightedCostBasis` (exact weighted capital and capitalized price)
+- `vecdb`: `BytesVec`, `ZeroCopyVec`, `PcoVec`, `LZ4Vec` and `ZstdVec` are type aliases of the generic raw and
+  compressed stores; `AnySerializableVec` and `AnyVecWithWriter` merged into `AnyExportableVec`; `AnyVec::etag` and
+  `WritableVec::fill_to` are gone; compression strategies implement only `decompress_page_append`.
+  `rawdb::Region::with_read_bytes` is gone (`with_read_range`). `lsm_tree::Slice` is `byteview::ByteView`.
+  `brk_error::Error::RawDB` is gone (raw database errors arrive as `VecDB`). `brk_reader` parses `xor.dat` itself
+  (`XORBytes::read`, `Reader::check_source`). `brk_types::Weight::to_vbytes_ceil` is gone (`VSize::from`)
 - `rawdb`: `Region::with_read_range` returns `Option` (a read racing a truncation got a panic). `vecdb`: compressed vectors'
   page table is crate-private; the `Bytes`/`ValueStrategy` safety contracts require exactly `size_of::<T>()` bytes
   per value whatever the layout. `pco` no longer exports `define_number_enum!` (its reference constructors were
@@ -1188,6 +1196,11 @@ has to be deleted by hand.
   read racing a truncation returns nothing instead of panicking; statedb drops a page generation as soon as neither
   `tip` nor `prev` uses it; pco conv1 no longer panics on a final batch shorter than its order; the signal handler
   only flags and wakes the shutdown thread (it wrote to stderr itself; later signals print nothing)
+- A corrupted raw database header now counts as data corruption, so the indexer rebuilds instead of failing; pco
+  rejects a malformed page whose secondary stream has neither delta nor bins (it decoded zeros); lsm-tree recovery
+  keeps rejecting a table file whose id differs from the manifest's; the website serves an `index.html` resolved
+  from a dotted path as HTML; MCP 304s carry no `Content-Length: 0`; the RPC clients reject a URL with credentials
+  (`user@host`: use rpcuser/rpcpassword or the cookie); generated docs keep nullable arrays' item types
 - importmap: markers inline with other markup no longer prefix the map; website: `If-None-Match: *` answers 304 for
   content-hashed assets too; descriptions corrected: mining fee/reward buckets (averages of their blocks), window
   deltas (from the value before the window), the veteran cohort (an undefined capitalized price), Bedrock floors (some
@@ -1329,6 +1342,15 @@ has to be deleted by hand.
   checks are deleted. The website and `examples/custom_plugin` examples remain
 - Plugin crates other than the indexer follow one skeleton; distribution plugins share their cohort
   families and replay scaffold
+- A simplification pass removed about 4,400 lines without changing a published value (every series hashed before and
+  after a full recompute, the indexer reindexed to 600,000): vecdb's five vector types are aliases over two generic
+  stores sharing one read path, one compressed page source for mapped and buffered reads, one checked page decoder
+  and one checkpoint/cancellation sequence; lsm-tree drops its `Slice` wrapper (an alias of `ByteView`), resolves
+  writer options once and keeps two seek loops instead of four; bindgen reads each schema once (`Ty`) for every
+  client; the indexer's stores, UTXO entries (`Utxos`), sigop classification and column inventory each have one
+  owner; one shared conditional-request crate (`bitview_http`) serves the server, website and MCP; one table each
+  declares indexes, OHLC records, nullable integer formatting, rarity components, windowed transaction features and
+  blk's fields
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`
   (storage layout) regenerate and snapshot the generated outputs. The dev profile drops cross-crate LTO and uses
   limited debuginfo
@@ -1337,7 +1359,7 @@ has to be deleted by hand.
   with `ReservationExhausted` (reopening reserves more) instead of remapping. An append within a
   region's reservation shares the region with its readers instead of waiting for them: it writes past every reader's
   bounds and the region length is atomic, published after the bytes. Readers borrow only the bytes they read
-  (`with_read_bytes` takes an offset). Read guards on data an
+  (`with_read_range`). Read guards on data an
   update changes (compressed page tables, pool heights, overflow and hole sets) are recursive, so a read nested in
   another read of the same vector cannot deadlock behind a waiting writer
 - statedb keeps the latest snapshot as `snapshots/tip` (and the one it replaced as `snapshots/prev`), a small

@@ -1,8 +1,5 @@
 use crate::VERSION;
-use axum::http::{
-    HeaderMap, HeaderValue,
-    header::{ETAG, IF_NONE_MATCH},
-};
+use axum::http::{HeaderMap, HeaderValue, header::ETAG};
 
 /// Typed weak entity tag with its validated HTTP representation. Every tag starts with the
 /// release, so a release changing a response's format never validates an older body.
@@ -11,27 +8,7 @@ pub struct Etag(HeaderValue);
 
 impl Etag {
     pub fn matches(&self, headers: &HeaderMap) -> bool {
-        let target = self.token();
-        headers.get_all(IF_NONE_MATCH).iter().any(|value| {
-            let value = value.as_bytes().trim_ascii();
-            if value == b"*" {
-                return true;
-            }
-            // A whole-field match needs no list parsing. The target was validated
-            // at construction, so equality also establishes valid token bytes.
-            if Self::normalize(value) == Some(target) {
-                return true;
-            }
-            let mut quoted = false;
-            value
-                .split(|&byte| {
-                    if byte == b'"' {
-                        quoted = !quoted;
-                    }
-                    byte == b',' && !quoted
-                })
-                .any(|entry| Self::normalize(entry.trim_ascii()) == Some(target))
-        })
+        bitview_http::if_none_match(headers, Some(self.token()))
     }
 
     /// A request's tag token without the release prefix, if it is this release's.
@@ -46,11 +23,6 @@ impl Etag {
     fn token(&self) -> &[u8] {
         let value = self.0.as_bytes();
         &value[3..value.len() - 1]
-    }
-
-    fn normalize(value: &[u8]) -> Option<&[u8]> {
-        let value = value.strip_prefix(b"W/").unwrap_or(value);
-        value.strip_prefix(b"\"")?.strip_suffix(b"\"")
     }
 }
 

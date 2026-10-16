@@ -18,7 +18,7 @@ impl KeyRange {
     /// Creates an empty key range.
     #[must_use]
     pub fn empty() -> Self {
-        Self(Slice::empty(), Slice::empty())
+        Self(Slice::default(), Slice::default())
     }
 
     /// Returns the lower bound.

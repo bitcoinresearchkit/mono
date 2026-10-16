@@ -1,34 +1,38 @@
 mod candle;
-mod resolutions;
 
 use bitview_primitives::{OHLCCents, OHLCDollars};
 use bitview_traversable::Traversable;
-use bitview_vecs::{IndexSources, LazyIndexes, Price};
-use brk_types::Version;
+use bitview_vecs::{AggResolutions, IndexSources, LazyIndexes, Price};
+use brk_types::{Cents, Height, Version};
 use derive_more::Deref;
-use vecdb::{Convert, ReadableCloneableVec};
+use vecdb::{Convert, ReadableBoxedVec};
 
-use crate::spot::SpotPrice;
-use resolutions::LazyOhlcCentsVecs;
+use candle::Ohlc;
+
+/// Three: candles skip the zero placeholders before the first price.
+const COMPUTE_VERSION: Version = Version::new(3);
+
+/// Candles in cents per resolution.
+pub(crate) type OhlcCents = AggResolutions<OHLCCents, Cents, Ohlc>;
 
 /// OHLC candles of the spot price per resolution: cents, with a lazy USD view.
 #[derive(Clone, Deref, Traversable)]
-pub(crate) struct OhlcPrice(Price<LazyOhlcCentsVecs, LazyIndexes<OHLCDollars, OHLCCents>>);
+pub(crate) struct OhlcPrice(Price<OhlcCents, LazyIndexes<OHLCDollars, OHLCCents>>);
 
 impl OhlcPrice {
-    pub(crate) fn from_spot(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         indexes: &IndexSources,
-        spot: &SpotPrice,
+        prices: &ReadableBoxedVec<Height, Cents>,
     ) -> Self {
-        let cents = LazyOhlcCentsVecs::new(
+        let cents = OhlcCents::aggregate(
             &format!("{name}_cents"),
-            version,
+            version + COMPUTE_VERSION,
+            prices,
             indexes,
-            spot.cents.height.read_only_boxed_clone(),
         );
-        let usd = cents.transformed::<OHLCDollars, Convert>(name, version);
+        let usd = LazyIndexes::from_resolutions::<Convert>(name, version, &cents);
         Self(Price { usd, cents })
     }
 }

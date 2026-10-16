@@ -1,9 +1,9 @@
-use std::{convert::Infallible, marker::PhantomData, result::Result, slice};
+use std::{convert::Infallible, result::Result, slice};
 
-use rawdb::{Reader, Region};
+use rawdb::Region;
 
-use super::super::{RawStrategy, ReadWriteRawVec};
-use crate::{AnyStoredVec, HEADER_OFFSET, READ_CHUNK_SIZE, VecIndex, VecValue, cache::CachePolicy};
+use super::{super::super::RawStrategy, VecReader};
+use crate::{HEADER_OFFSET, READ_CHUNK_SIZE, VecIndex, VecValue};
 
 /// Read-only mmap-backed source over a raw (uncompressed) vector.
 ///
@@ -13,18 +13,10 @@ use crate::{AnyStoredVec, HEADER_OFFSET, READ_CHUNK_SIZE, VecIndex, VecValue, ca
 /// The data slice is computed once at construction time, so try_fold/for_each are
 /// direct slice operations.
 pub struct RawMmapSource<I, T, S> {
-    // SAFETY: `_reader` holds the region's shared access and its database
-    // handle keeps the fixed mapping alive. `data` points into that mapping
-    // and has no destructor, so `_reader` outlives every use of it.
-    _reader: Reader,
-    data: *const u8,
+    reader: VecReader<I, T, S>,
     pos: usize,
     end: usize,
-    _marker: PhantomData<(I, T, S)>,
 }
-
-// SAFETY: RawMmapSource is read-only. The bytes it points to stay in place and
-// unchanged while its `Reader` holds the region's shared access.
 
 impl<I, T, S> RawMmapSource<I, T, S>
 where
@@ -34,32 +26,22 @@ where
 {
     const SIZE_OF_T: usize = size_of::<T>();
 
-    pub fn new<C: CachePolicy>(vec: &ReadWriteRawVec<I, T, S, C>, from: usize, to: usize) -> Self {
-        Self::new_from_parts(vec.region(), vec.stored_len(), from, to)
-    }
-
     /// The range is bounded by `stored_len` and by the bytes the reader holds, so a length read
     /// before a truncation (or a wrong one) never reaches past them.
     pub fn new_from_parts(region: &Region, stored_len: usize, from: usize, to: usize) -> Self {
-        let reader = region.create_reader();
-        let slice = reader.read_from(HEADER_OFFSET);
-        let to = to.min(stored_len).min(slice.len() / Self::SIZE_OF_T);
-        let from = from.min(to);
-        let ptr = slice.as_ptr();
-
+        let reader = VecReader::from_region(region, stored_len);
+        let to = to.min(reader.stored_len());
         Self {
-            _reader: reader,
-            data: ptr,
-            pos: from,
+            reader,
+            pos: from.min(to),
             end: to,
-            _marker: PhantomData,
         }
     }
 
     pub fn byte_window(&self) -> (*const u8, usize) {
         let byte_position = self.pos * Self::SIZE_OF_T;
         let byte_len = (self.end - self.pos) * Self::SIZE_OF_T;
-        (unsafe { self.data.add(byte_position) }, byte_len)
+        (unsafe { self.reader.data.add(byte_position) }, byte_len)
     }
 
     /// Appends the stored range, copying native-layout values in bulk.
@@ -114,7 +96,7 @@ where
             return None;
         }
         // SAFETY: within the reader's bounded range (`pos <= end <= stored_len`).
-        let values = unsafe { self.data.add(self.pos * Self::SIZE_OF_T) }.cast::<T>();
+        let values = unsafe { self.reader.data.add(self.pos * Self::SIZE_OF_T) }.cast::<T>();
         // Values start `HEADER_OFFSET` bytes into a page-aligned region: only larger alignments miss.
         if !values.is_aligned() {
             return None;
@@ -127,7 +109,7 @@ where
     /// Fallible fold with early exit on error.
     #[inline(always)]
     pub fn try_fold<B, E, F: FnMut(B, T) -> Result<B, E>>(self, init: B, mut f: F) -> Result<B, E> {
-        let ptr = self.data;
+        let ptr = self.reader.data;
         let mut byte_off = self.pos * Self::SIZE_OF_T;
         let end_byte = self.end * Self::SIZE_OF_T;
         let mut acc = init;
@@ -138,7 +120,3 @@ where
         Ok(acc)
     }
 }
-
-unsafe impl<I: Send, T: Send, S: Send> Send for RawMmapSource<I, T, S> {}
-
-unsafe impl<I: Sync, T: Sync, S: Sync> Sync for RawMmapSource<I, T, S> {}

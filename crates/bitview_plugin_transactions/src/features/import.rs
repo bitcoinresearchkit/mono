@@ -5,7 +5,7 @@ use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
 
-use super::{Vecs, vecs::BlockView};
+use super::{Vecs, vecs::BlockView, with_windowed_features};
 use crate::flagged::{Block, Flagged};
 
 impl Vecs {
@@ -26,58 +26,31 @@ impl Vecs {
             )
         };
         let source = &indexer.vecs().transactions.features;
-        Ok(Vecs {
-            p2pk: flagged(&source.p2pk),
-            p2ms: flagged(&source.p2ms),
-            p2pkh: flagged(&source.p2pkh),
-            p2sh: flagged(&source.p2sh),
-            p2wpkh: flagged(&source.p2wpkh),
-            p2wsh: flagged(&source.p2wsh),
-            p2tr: Flagged {
-                flag: source.p2tr.flag_view(),
-                count: windowed("p2tr_tx_count")?,
-            },
-            p2a: flagged(&source.p2a),
-            empty: flagged(&source.empty),
-            unknown: flagged(&source.unknown),
-            fake_pubkey: flagged(&source.fake_pubkey),
-            fake_scripthash: flagged(&source.fake_scripthash),
-            segwit: windowed("segwit_tx_count")?,
-            annex: Flagged {
-                flag: source.annex.flag_view(),
-                count: windowed("annex_tx_count")?,
-            },
-            sighash_all: Flagged {
-                flag: source.sighash_all.flag_view(),
-                count: windowed("sighash_all_tx_count")?,
-            },
-            sighash_none: Flagged {
-                flag: source.sighash_none.flag_view(),
-                count: windowed("sighash_none_tx_count")?,
-            },
-            sighash_single: Flagged {
-                flag: source.sighash_single.flag_view(),
-                count: windowed("sighash_single_tx_count")?,
-            },
-            sighash_default: Flagged {
-                flag: source.sighash_default.flag_view(),
-                count: windowed("sighash_default_tx_count")?,
-            },
-            sighash_anyone_can_pay: Flagged {
-                flag: source.sighash_anyone_can_pay.flag_view(),
-                count: windowed("sighash_anyone_can_pay_tx_count")?,
-            },
-            explicitly_rbf: Flagged {
-                flag: source.explicitly_rbf.flag_view(),
-                count: windowed("explicitly_rbf_tx_count")?,
-            },
-            dust_output: Flagged {
-                flag: source.dust_output.flag_view(),
-                count: windowed("dust_output_tx_count")?,
-            },
-            one_input: block(&source.one_input.block),
-            one_output: block(&source.one_output.block),
-        })
+        macro_rules! import {
+            ($($feature:ident),*) => {
+                Vecs {
+                    p2pk: flagged(&source.p2pk),
+                    p2ms: flagged(&source.p2ms),
+                    p2pkh: flagged(&source.p2pkh),
+                    p2sh: flagged(&source.p2sh),
+                    p2wpkh: flagged(&source.p2wpkh),
+                    p2wsh: flagged(&source.p2wsh),
+                    p2a: flagged(&source.p2a),
+                    empty: flagged(&source.empty),
+                    unknown: flagged(&source.unknown),
+                    fake_pubkey: flagged(&source.fake_pubkey),
+                    fake_scripthash: flagged(&source.fake_scripthash),
+                    segwit: windowed("segwit_tx_count")?,
+                    $($feature: Flagged {
+                        flag: source.$feature.flag_view(),
+                        count: windowed(concat!(stringify!($feature), "_tx_count"))?,
+                    },)*
+                    one_input: block(&source.one_input.block),
+                    one_output: block(&source.one_output.block),
+                }
+            };
+        }
+        Ok(with_windowed_features!(import))
     }
 }
 

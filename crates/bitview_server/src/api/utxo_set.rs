@@ -10,6 +10,7 @@ use serde_json::to_vec;
 use super::AppState;
 use crate::{
     CacheParams,
+    api::tags,
     error::Result,
     extended::TransformResponseExtended,
     params::{Empty, HeightOrDate, HeightOrDateParam},
@@ -40,7 +41,7 @@ impl AppState {
                         Some(HeightOrDate::Date(date)) => q.utxo_set_point_date(date)?,
                     };
                     let params =
-                        CacheParams::activity_bound(VERSION, BlockHashPrefix::from(&point.hash));
+                        CacheParams::activity_bound(VERSION, BlockHashPrefix::from(point.hash()));
                     Ok((point, params))
                 },
                 move |q, point| Ok(to_vec(&build(q, &point)?)?.into()),
@@ -66,7 +67,7 @@ impl UtxoSetRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_utxo_set_latest")
-                        .utxo_set_tag()
+                        .tag(tags::UTXO_SET)
                         .mcp_ignore()
                         .summary("Latest UTXO set")
                         .description(
@@ -96,7 +97,7 @@ impl UtxoSetRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_utxo_set")
-                        .utxo_set_tag()
+                        .tag(tags::UTXO_SET)
                         .mcp_ignore()
                         .summary("UTXO set at block height or date")
                         .description(
@@ -127,7 +128,7 @@ impl UtxoSetRoutes for ApiRouter<AppState> {
                 },
                 |op| {
                     op.id("get_utxo_set_diff")
-                        .utxo_set_tag()
+                        .tag(tags::UTXO_SET)
                         .summary("UTXO set changes of a block or date")
                         .description(
                             "What a block (`840000`) or a UTC day's published blocks \

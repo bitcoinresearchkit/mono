@@ -198,24 +198,13 @@ impl PoolSnapshot {
 }
 
 /// A pool's running total of one column, lazily read from `PoolHeights`.
+#[derive(Clone)]
 pub(crate) struct PoolCumulativeVec<T> {
     name: Arc<str>,
     slug: PoolSlug,
     column: Column,
     pool_heights: PoolHeights,
     value: PhantomData<fn() -> T>,
-}
-
-impl<T> Clone for PoolCumulativeVec<T> {
-    fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-            slug: self.slug,
-            column: self.column,
-            pool_heights: self.pool_heights.clone(),
-            value: PhantomData,
-        }
-    }
 }
 
 impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {

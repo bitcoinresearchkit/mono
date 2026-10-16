@@ -55,24 +55,17 @@ where
         self.vec.is_dirty() || self.holes_changed() || !self.current_updated().is_empty()
     }
 
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
-        let guard = self.header().begin_write()?;
-        self.save_changes(stamp)?;
-        self.write_saved_changes(stamp)?;
-        guard.finish(Ok(()))
-    }
-
     fn rollback(&mut self) -> Result<()> {
         self.header().check_writable()?;
         let bytes = self.vec.read_current_change_file()?;
-        let (modifications, previous_holes) = V::parse_mutable_changes(&bytes)?;
+        let (change, modifications, previous_holes) = V::parse_mutable_changes(&bytes)?;
         let guard = self.header().begin_write()?;
 
         // Undo from the last save point, like the wrapped vec: unsaved updates are dropped (the
         // saved map holds what earlier undos restored and the stamp's values of rows written
         // since). Holes need no reset: the undo replaces them below.
         *self.updated.current_mut() = self.updated.previous().clone();
-        self.vec.rollback()?;
+        self.vec.rollback_change(change)?;
         // Restored rows past the stored length live in the pushed values: updates there are stale.
         self.truncate_mutations_at(self.vec.stored_len());
         for (index, value) in modifications {

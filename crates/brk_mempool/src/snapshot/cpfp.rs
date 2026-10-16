@@ -22,8 +22,7 @@ impl ReadOnlyState {
     /// isn't in the completed live publication. Requires the graph and live
     /// fields to share the same transaction revision and requested chain tip.
     pub fn cpfp_info(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<CpfpInfo>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         let snapshot = &state.graph;
         let Some(tx) = state.txs.get(txid) else {
             return Ok(None);

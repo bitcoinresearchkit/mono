@@ -8,7 +8,6 @@ use brk_types::{
     AddressBytes, Height, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes,
     P2TRBytes, P2WPKHBytes, P2WSHBytes, Version,
 };
-use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, Rw, Stamp, StorageMode, WritableVec};
 
 use crate::{Lengths, readers::AddrReaders};
@@ -52,14 +51,6 @@ macro_rules! addrs_vecs {
             pub fn truncate(&mut self, lengths: &Lengths, stamp: Stamp) -> Result<()> {
                 $(self.$field.truncate(lengths.height, lengths.$length, stamp)?;)+
                 Ok(())
-            }
-
-            pub fn par_iter_mut_any(
-                &mut self,
-            ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-                [$(self.$field.stored_vecs_mut()),+]
-                    .into_par_iter()
-                    .flat_map_iter(|vecs| vecs)
             }
 
             pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

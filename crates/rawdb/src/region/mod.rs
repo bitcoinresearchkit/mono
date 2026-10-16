@@ -46,23 +46,6 @@ impl Region {
         self.0.access.read_recursive()
     }
 
-    /// Runs `f` with the region's bytes from `offset` to its end. The callback must not rewrite,
-    /// truncate or move this region (or append past its reservation) while the bytes are alive.
-    #[inline(always)]
-    pub fn with_read_bytes<R>(&self, offset: usize, f: impl FnOnce(&[u8]) -> R) -> R {
-        let db = self.db();
-        let data = &db.inner.data;
-        let _access = self.read_lock();
-        // SAFETY: access keeps start and reservation stable; the length only grows under it.
-        let (start, len, _) = unsafe { self.0.bounds() };
-        assert!(offset <= len);
-        let mmap = data.mapping();
-        debug_assert!(start <= mmap.len() && len <= mmap.len() - start);
-        // SAFETY: access prevents changes to these bytes (appends go past them), and the mapping
-        // never moves.
-        f(unsafe { slice::from_raw_parts(mmap.as_ptr().add(start + offset), len - offset) })
-    }
-
     /// Runs `f` on the `len` bytes at `offset`, borrowing nothing else: a value read this way
     /// never overlaps [`Self::write_indexed_unread`]'s writes of other values. `None` when the
     /// region does not hold them (a truncation may win the race against a length read earlier).

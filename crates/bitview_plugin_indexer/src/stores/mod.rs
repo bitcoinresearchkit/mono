@@ -6,7 +6,7 @@ use bitview_primitives::{
 };
 use brk_error::{Error, OptionData, Result};
 use brk_store::{AnyStore, Kind, PendingIngest, Store, StoreView, open_database};
-use brk_types::{Height, OutPoint, OutputType, Sats, TxIndex, TxidPrefix, Unit, Version, Vout};
+use brk_types::{Height, OutPoint, OutputType, TxIndex, TxidPrefix, Unit, Version, Vout};
 use fjall::Database;
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
@@ -24,7 +24,7 @@ mod transaction;
 mod utxo;
 
 pub(crate) use transaction::TransactionStoresMut;
-pub use utxo::{Utxo, UtxoKey};
+pub use utxo::{UtxoKey, Utxos};
 
 /// The eight address-unspent stores, pinned as ingested.
 pub(crate) type AddrUnspentViews = ByAddrType<StoreView<AddrIndexOutPoint, Unit>>;
@@ -39,11 +39,7 @@ pub struct Stores {
     addr_type_to_addr_index_and_unspent_outpoint: ByAddrType<Store<AddrIndexOutPoint, Unit>>,
     blockhash_prefix_to_height: Store<BlockHashPrefix, Height>,
     txid_prefix_to_tx_index: Store<TxidPrefix, TxIndex>,
-    /// Every output not spent yet but OP_RETURN ones: what resolving an input needs, in one lookup (two for a
-    /// large value).
-    utxos: Store<UtxoKey, Utxo>,
-    /// The values of large unspent outputs, which their entry in `utxos` only marks.
-    utxo_values: Store<UtxoKey, Sats>,
+    utxos: Utxos,
 }
 
 impl Stores {
@@ -101,23 +97,9 @@ impl Stores {
         self.txid_prefix_to_tx_index.get(prefix)
     }
 
-    /// The unspent output under `key`, as last ingested: it can be above the published safe lengths, and the key
-    /// holds only an 8-byte txid prefix, so readers outside the indexer check both. Spent outputs miss.
     #[inline]
-    pub fn utxo(&self, key: &UtxoKey) -> Result<Option<Utxo>> {
-        self.utxos.get(key)
-    }
-
-    /// The value of `utxo`, the unspent output under `key`: in the entry, or for a large one in the overflow store.
-    #[inline]
-    pub fn utxo_value(&self, key: &UtxoKey, utxo: &Utxo) -> Result<Sats> {
-        match utxo.value() {
-            Some(value) => Ok(value),
-            None => self
-                .utxo_values
-                .get(key)?
-                .ok_or(Error::Internal("large unspent output without its value")),
-        }
+    pub fn utxos(&self) -> &Utxos {
+        &self.utxos
     }
 
     pub(crate) fn import(parent: &Path, version: Version) -> Result<Self> {
@@ -154,7 +136,7 @@ impl Stores {
             utxo_values = Store::import(db, path, "utxo_values", version, Kind::Recent),
         };
 
-        let stores = Self {
+        let mut stores = Self {
             db: database.clone(),
             checkpoint: StoresCheckpoint::new(path),
             addr_type_to_addr_hash_to_addr_index: addr_hashes,
@@ -162,8 +144,10 @@ impl Stores {
             addr_type_to_addr_index_and_unspent_outpoint: addr_unspent_outpoints,
             blockhash_prefix_to_height: blockhashes,
             txid_prefix_to_tx_index: txids,
-            utxos,
-            utxo_values,
+            utxos: Utxos {
+                entries: utxos,
+                large_values: utxo_values,
+            },
         };
 
         if stores.checkpoint.next_height()?.is_none() && stores.is_empty()? {
@@ -177,27 +161,28 @@ impl Stores {
         self.checkpoint.next_height()
     }
 
-    fn par_iter_any_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStore> {
+    /// Every store, once: commits and the emptiness check walk this one list.
+    fn stores_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStore> {
         [
             &mut self.blockhash_prefix_to_height as &mut dyn AnyStore,
             &mut self.txid_prefix_to_tx_index,
-            &mut self.utxos,
-            &mut self.utxo_values,
+            &mut self.utxos.entries,
+            &mut self.utxos.large_values,
         ]
-        .into_par_iter()
+        .into_iter()
         .chain(
             self.addr_type_to_addr_hash_to_addr_index
-                .par_values_mut()
+                .values_mut()
                 .map(|s| s as &mut dyn AnyStore),
         )
         .chain(
             self.addr_type_to_addr_index_and_tx_index
-                .par_values_mut()
+                .values_mut()
                 .map(|s| s as &mut dyn AnyStore),
         )
         .chain(
             self.addr_type_to_addr_index_and_unspent_outpoint
-                .par_values_mut()
+                .values_mut()
                 .map(|s| s as &mut dyn AnyStore),
         )
     }
@@ -211,45 +196,19 @@ impl Stores {
         checkpoint: PendingStoresCheckpoint,
     ) -> Result<PersistedStoresCheckpoint> {
         let i = Instant::now();
-        let persisted = checkpoint.persist(|| {
-            self.par_iter_any_mut()
-                .try_for_each(|store| store.ingest_pending())
-        })?;
+        let ingests = self.take_pending_ingests();
+        let persisted =
+            checkpoint.persist(|| ingests.into_par_iter().try_for_each(PendingIngest::run))?;
         debug!("Stores persisted in {:?}", i.elapsed());
 
         Ok(persisted)
     }
 
-    /// Takes all pending puts/dels from every store and returns closures
-    /// that can ingest them on a background thread.
+    /// Takes all pending puts/dels from every store as ingestions to run elsewhere.
     fn take_pending_ingests(&mut self) -> Vec<PendingIngest> {
-        let mut tasks = Vec::new();
-
-        macro_rules! take {
-            ($store:expr) => {
-                tasks.extend($store.take_pending_ingest());
-            };
-        }
-
-        take!(self.blockhash_prefix_to_height);
-        take!(self.txid_prefix_to_tx_index);
-        take!(self.utxos);
-        take!(self.utxo_values);
-
-        for store in self.addr_type_to_addr_hash_to_addr_index.values_mut() {
-            take!(store);
-        }
-        for store in self.addr_type_to_addr_index_and_tx_index.values_mut() {
-            take!(store);
-        }
-        for store in self
-            .addr_type_to_addr_index_and_unspent_outpoint
-            .values_mut()
-        {
-            take!(store);
-        }
-
-        tasks
+        self.stores_mut()
+            .filter_map(|store| store.take_pending_ingest())
+            .collect()
     }
 
     /// Takes every store's pending writes into a commit that begins the checkpoint only when it
@@ -287,23 +246,9 @@ impl Stores {
         Ok(())
     }
 
-    fn is_empty(&self) -> Result<bool> {
-        Ok(self.blockhash_prefix_to_height.is_empty()?
-            && self.txid_prefix_to_tx_index.is_empty()?
-            && self.utxos.is_empty()?
-            && self.utxo_values.is_empty()?
-            && self
-                .addr_type_to_addr_hash_to_addr_index
-                .values()
-                .try_fold(true, |acc, s| s.is_empty().map(|empty| acc && empty))?
-            && self
-                .addr_type_to_addr_index_and_tx_index
-                .values()
-                .try_fold(true, |acc, s| s.is_empty().map(|empty| acc && empty))?
-            && self
-                .addr_type_to_addr_index_and_unspent_outpoint
-                .values()
-                .try_fold(true, |acc, s| s.is_empty().map(|empty| acc && empty))?)
+    fn is_empty(&mut self) -> Result<bool> {
+        self.stores_mut()
+            .try_fold(true, |empty, store| Ok(empty && store.is_empty()?))
     }
 
     fn rollback_block_metadata(&mut self, vecs: &Vecs, starting_lengths: &Lengths) {
@@ -407,23 +352,17 @@ impl Stores {
                     let key = UtxoKey::new(txid_prefix, vout as u32);
                     let value = txout_index_to_value_reader.get_at(txout_index);
                     if let Some((original, first_txout_index)) = restored {
-                        // A put replaces the duplicate's entry; the equal value keeps any
-                        // overflow entry.
+                        // Puts replace the duplicate's records with the original's (equal value).
                         self.utxos.insert(
                             key,
-                            Utxo::new(
-                                original,
-                                first_txout_index + TxOutIndex::from(vout),
-                                output_type,
-                                type_index,
-                                value,
-                            ),
+                            original,
+                            first_txout_index + TxOutIndex::from(vout),
+                            output_type,
+                            type_index,
+                            value,
                         );
                     } else if duplicate_of.is_none() {
-                        self.utxos.remove(key);
-                        if Utxo::is_large(value) {
-                            self.utxo_values.remove(key);
-                        }
+                        self.utxos.remove(key, value);
                     }
                 }
                 if !output_type.is_addr() {
@@ -471,21 +410,14 @@ impl Stores {
             // Outputs created by removed transactions went with them; older ones are unspent again.
             if outpoint.tx_index() < starting_tx_index {
                 let txid = txids.get(outpoint.tx_index());
-                let key = UtxoKey::new(TxidPrefix::from(&txid), u32::from(outpoint.vout()));
-                let value = values.get(index).data()?;
                 self.utxos.insert(
-                    key,
-                    Utxo::new(
-                        outpoint.tx_index(),
-                        txout_indexes.get(index).data()?,
-                        output_type,
-                        type_index,
-                        value,
-                    ),
+                    UtxoKey::new(TxidPrefix::from(&txid), u32::from(outpoint.vout())),
+                    outpoint.tx_index(),
+                    txout_indexes.get(index).data()?,
+                    output_type,
+                    type_index,
+                    values.get(index).data()?,
                 );
-                if Utxo::is_large(value) {
-                    self.utxo_values.insert(key, value);
-                }
             }
             if output_type.is_addr() {
                 let addr_type = output_type;
@@ -524,7 +456,6 @@ impl Stores {
             addr_unspent_outpoints: &mut self.addr_type_to_addr_index_and_unspent_outpoint,
             txid_prefixes: &mut self.txid_prefix_to_tx_index,
             utxos: &mut self.utxos,
-            utxo_values: &mut self.utxo_values,
         }
     }
 }

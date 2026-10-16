@@ -53,31 +53,27 @@ where
         self.vec.stored_len()
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
-        <Self as WritableVec<V::I, V::T>>::stamped_write_with_changes(self, stamp)
+    fn any_save_changes(&self, stamp: Stamp) -> Result<()> {
+        self.vec.save_change_file(stamp, &self.serialize_changes()?)
     }
 
-    fn any_stamped_write_maybe_with_changes(
-        &mut self,
-        stamp: Stamp,
-        with_changes: bool,
-    ) -> Result<()> {
-        if with_changes {
-            self.any_stamped_write_with_changes(stamp)
-        } else {
-            // Advance the baseline without collecting old values that this
-            // checkpoint explicitly discards.
-            self.any_remove_changes_above(self.stamp())?;
-            self.write_saved_changes(stamp)
+    /// The undo record is saved or discarded already: the updated values' previous ones are not
+    /// read back.
+    fn any_write_checkpoint(&mut self, stamp: Stamp) -> Result<()> {
+        let guard = self.header().begin_write()?;
+        self.write_inner(false)?;
+        self.update_stamp(stamp);
+        self.write_header()?;
+        if self.saved_stamped_changes() > 0 {
+            self.vec.save_previous();
+            self.holes.save();
+            self.updated.clear_previous();
         }
+        guard.finish(Ok(()))
     }
 
     fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()> {
         self.vec.any_remove_changes_above(stamp)
-    }
-
-    fn any_save_rollback_state(&mut self) {
-        <Self as WritableVec<V::I, V::T>>::save_rollback_state(self)
     }
 
     fn serialize_changes(&self) -> Result<Vec<u8>> {

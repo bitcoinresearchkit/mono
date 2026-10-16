@@ -51,7 +51,7 @@ impl AgeRangeId {
 
     #[inline]
     pub fn bounds(self) -> &'static Range<usize> {
-        self.select(&AGE_RANGE_BOUNDS)
+        &AGE_RANGE_BOUNDS[self.index()]
     }
 
     #[inline]
@@ -78,10 +78,11 @@ impl AgeRangeId {
     }
 }
 
-impl From<Age> for AgeRangeId {
+impl AgeRangeId {
+    /// The range holding an age of `hours`.
     #[inline]
-    fn from(age: Age) -> Self {
-        match age.hours() {
+    const fn from_hours(hours: usize) -> Self {
+        match hours {
             0..HOURS_1H => Self::Under1H,
             HOURS_1H..HOURS_1D => Self::From1HTo1D,
             HOURS_1D..HOURS_1W => Self::From1DTo1W,
@@ -109,6 +110,13 @@ impl From<Age> for AgeRangeId {
     }
 }
 
+impl From<Age> for AgeRangeId {
+    #[inline]
+    fn from(age: Age) -> Self {
+        Self::from_hours(age.hours())
+    }
+}
+
 /// Age boundaries in hours. Defines the cohort ranges:
 /// [0, 1h), [1h, 1d), [1d, 1w), [1w, 1m), ..., [15y, ∞)
 pub const AGE_BOUNDARIES: [usize; AGE_RANGE_COUNT - 1] = [
@@ -117,31 +125,24 @@ pub const AGE_BOUNDARIES: [usize; AGE_RANGE_COUNT - 1] = [
     HOURS_8Y, HOURS_10Y, HOURS_12Y, HOURS_15Y,
 ];
 
-/// Age range bounds (end = usize::MAX means unbounded)
-const AGE_RANGE_BOUNDS: AgeRange<Range<usize>> = AgeRange {
-    under_1h: 0..HOURS_1H,
-    _1h_to_1d: HOURS_1H..HOURS_1D,
-    _1d_to_1w: HOURS_1D..HOURS_1W,
-    _1w_to_1m: HOURS_1W..HOURS_1M,
-    _1m_to_2m: HOURS_1M..HOURS_2M,
-    _2m_to_3m: HOURS_2M..HOURS_3M,
-    _3m_to_4m: HOURS_3M..HOURS_4M,
-    _4m_to_5m: HOURS_4M..HOURS_5M,
-    _5m_to_6m: HOURS_5M..HOURS_6M,
-    _6m_to_9m: HOURS_6M..HOURS_9M,
-    _9m_to_1y: HOURS_9M..HOURS_1Y,
-    _1y_to_18m: HOURS_1Y..HOURS_18M,
-    _18m_to_2y: HOURS_18M..HOURS_2Y,
-    _2y_to_3y: HOURS_2Y..HOURS_3Y,
-    _3y_to_4y: HOURS_3Y..HOURS_4Y,
-    _4y_to_5y: HOURS_4Y..HOURS_5Y,
-    _5y_to_6y: HOURS_5Y..HOURS_6Y,
-    _6y_to_7y: HOURS_6Y..HOURS_7Y,
-    _7y_to_8y: HOURS_7Y..HOURS_8Y,
-    _8y_to_10y: HOURS_8Y..HOURS_10Y,
-    _10y_to_12y: HOURS_10Y..HOURS_12Y,
-    _12y_to_15y: HOURS_12Y..HOURS_15Y,
-    over_15y: HOURS_15Y..usize::MAX,
+/// Each range's bounds from [`AGE_BOUNDARIES`] (end = usize::MAX means unbounded). Building them
+/// checks at compile time that classification agrees with the boundaries and the id order.
+const AGE_RANGE_BOUNDS: [Range<usize>; AGE_RANGE_COUNT] = {
+    let mut bounds = [const { 0..0 }; AGE_RANGE_COUNT];
+    let mut i = 0;
+    while i < AGE_RANGE_COUNT {
+        let start = if i == 0 { 0 } else { AGE_BOUNDARIES[i - 1] };
+        let end = if i < AGE_BOUNDARIES.len() {
+            AGE_BOUNDARIES[i]
+        } else {
+            usize::MAX
+        };
+        assert!(AgeRangeId::from_hours(start).index() == i);
+        assert!(AgeRangeId::from_hours(end - 1).index() == i);
+        bounds[i] = start..end;
+        i += 1;
+    }
+    bounds
 };
 
 /// Age range names

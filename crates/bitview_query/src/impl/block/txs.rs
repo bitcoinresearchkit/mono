@@ -1,5 +1,6 @@
 use crate::{ReadPin, check_bound};
 use bitcoin::{ScriptBuf, Transaction as BitcoinTransaction};
+use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
 use brk_types::{
@@ -307,35 +308,29 @@ impl Query {
 
         Ok(txs.into_iter().map(Option::unwrap).collect())
     }
-    /// Half-open `[first, first + tx_count)` window into the flat tx vecs
-    /// for the block at `height`. Single source of truth for the four
-    /// `block_*` callers in this file.
-    ///
-    /// `OutOfRange` when `height` is past the indexed-tip stamp.
-    /// `Internal` when `first_tx_index[height]` is missing under the
-    /// stamp-before-data race. The tip-of-safe block falls back to
-    /// `safe.tx_index` (not live `txid.len()`, which can be ahead of the
-    /// writer's stamped boundary mid-block).
-    pub(crate) fn block_tx_range(&self, height: Height, guard: &ReadPin) -> Result<(usize, usize)> {
-        let safe = guard.lengths();
-        check_bound(guard, height, safe.height)?;
+    /// The block at `height`'s transactions as `(first, count)` in the flat tx vecs, under
+    /// `pin`: the published tip block ends at `pin`'s transaction length, never at the writer's
+    /// unpublished one. `OutOfRange` past the published tip; `Internal` for boundaries that
+    /// are missing, empty or past the published data.
+    pub(crate) fn block_tx_range(
+        &self,
+        height: Height,
+        pin: &SafeLengths,
+    ) -> Result<(usize, usize)> {
+        let safe = pin.lengths();
+        check_bound(pin, height, safe.height)?;
         if height >= safe.height {
             return Err(Error::OutOfRange("Block height out of range".into()));
         }
-        let first_tx_index_vec = &self.indexer().vecs().transactions.first_tx_index;
-        let first: usize = first_tx_index_vec.collect_one(height).data()?.into();
+        let first_tx_index = &self.indexer().vecs().transactions.first_tx_index;
+        let first = first_tx_index.collect_one(height).data()?;
         let next_height = height.incremented();
-        let next: usize = if next_height < safe.height {
-            first_tx_index_vec.collect_one(next_height).data()?.into()
+        let next = if next_height < safe.height {
+            first_tx_index.collect_one(next_height).data()?
         } else {
-            safe.tx_index.to_usize()
+            safe.tx_index
         };
-        let count = next
-            .checked_sub(first)
-            .ok_or(Error::Internal("Invalid block transaction boundaries"))?;
-        if next > safe.tx_index.to_usize() {
-            return Err(Error::Internal("Block transactions exceed published data"));
-        }
-        Ok((first, count))
+        let count = Self::block_tx_count(first, next, safe.tx_index)?;
+        Ok((first.to_usize(), count as usize))
     }
 }

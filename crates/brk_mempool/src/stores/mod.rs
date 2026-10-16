@@ -9,5 +9,5 @@ pub mod tx_store;
 pub use addr_tracker::AddrTracker;
 pub use live_histograms::LiveHistograms;
 pub use outpoint_spends::OutpointSpends;
-pub use tx_graveyard::{TxGraveyard, TxTombstone};
+pub use tx_graveyard::TxGraveyard;
 pub use tx_store::{ReadOnlyTxStore, TxStore};

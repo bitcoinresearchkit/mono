@@ -12,6 +12,7 @@ pub mod decoder;
 pub mod encoded_chunk;
 pub mod page;
 pub mod pages;
+mod persisted;
 pub mod read_only;
 pub mod read_write;
 pub mod strategy;

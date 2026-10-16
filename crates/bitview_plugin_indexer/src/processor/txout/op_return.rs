@@ -1,13 +1,14 @@
 use bitcoin::{Script, opcodes::all::OP_PUSHNUM_13, script::Instruction};
 use bitview_primitives::{Bytes32, OpReturnKind};
-use brk_types::SigOps32;
 
 use crate::processor::transaction::analysis::sigops::SigOpCount;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Facts {
     pub kind: OpReturnKind,
-    pub legacy_sigops: SigOps32,
+    /// Signature opcodes outside a push (0xac/0xae in the payload), which never execute but count
+    /// in the transaction's legacy total.
+    pub legacy_sigops: u32,
     pub post_op_return_bytes: Bytes32,
 }
 
@@ -21,7 +22,7 @@ pub fn analyze(script: &Script) -> Facts {
     };
     Facts {
         kind,
-        legacy_sigops: SigOps32::from(legacy_sigops),
+        legacy_sigops: legacy_sigops as u32,
         post_op_return_bytes: Bytes32::from(data.len()),
     }
 }

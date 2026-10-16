@@ -1,6 +1,6 @@
 use brk_types::{Height, Timestamp};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize, Serializer, ser::SerializeTuple};
+use serde::{Deserialize, Serialize, Serializer};
 
 /// A single difficulty adjustment entry.
 /// Serializes as array: [timestamp, height, difficulty, change_percent]
@@ -24,11 +24,12 @@ impl Serialize for DifficultyAdjustmentEntry {
     where
         S: Serializer,
     {
-        let mut tup = serializer.serialize_tuple(4)?;
-        tup.serialize_element(&self.timestamp)?;
-        tup.serialize_element(&self.height)?;
-        tup.serialize_element(&self.difficulty)?;
-        tup.serialize_element(&self.change_percent)?;
-        tup.end()
+        (
+            self.timestamp,
+            self.height,
+            self.difficulty,
+            self.change_percent,
+        )
+            .serialize(serializer)
     }
 }

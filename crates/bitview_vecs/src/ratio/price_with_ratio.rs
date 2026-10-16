@@ -6,7 +6,7 @@ use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
-use crate::{IndexSources, LazyPerBlock, Price, RatioPerBlock, ops::price_ratio};
+use crate::{IndexSources, LazyPerBlock, Price, RatioPerBlock, ops::Quotient};
 
 /// A price, a lazy view of its source, and its stored spot/price ratio.
 #[derive(Deref, DerefMut, Traversable)]
@@ -45,13 +45,15 @@ impl PriceWithRatio {
         spot: &impl ReadableVec<Height, Cents>,
         exit: &Exit,
     ) -> Result<()> {
-        self.relative.fixed.height.compute_transform2(
-            max_from,
-            spot,
-            &self.price.cents.height,
-            |(height, spot, price, _)| (height, price_ratio(spot, price)),
-            exit,
-        )?;
+        self.relative
+            .fixed
+            .height
+            .compute_binary::<_, _, Quotient<PriceRatio>>(
+                max_from,
+                spot,
+                &self.price.cents.height,
+                exit,
+            )?;
         Ok(())
     }
 }

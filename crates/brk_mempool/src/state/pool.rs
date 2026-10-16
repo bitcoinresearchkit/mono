@@ -86,19 +86,20 @@ impl Pool {
             && Arc::ptr_eq(&self.graph, graph)
     }
 
-    pub fn ensure_at(&self, tip: &BlockHash) -> Result<()> {
+    /// This publication, when it is anchored at `tip`.
+    pub fn at(&self, tip: &BlockHash) -> Result<&Self> {
         if self.tip != *tip {
             return Err(Error::StateUpdating);
         }
-        Ok(())
+        Ok(self)
     }
 
-    pub fn ensure_resolved_at(&self, tip: &BlockHash) -> Result<()> {
-        self.ensure_at(tip)?;
+    /// This publication, when it is anchored at `tip` with every input resolved.
+    pub fn resolved_at(&self, tip: &BlockHash) -> Result<&Self> {
         if !self.inputs_complete {
             return Err(Error::StateUpdating);
         }
-        Ok(())
+        self.at(tip)
     }
 
     pub fn first_seen(&self, txid: &Txid) -> Option<Timestamp> {
@@ -108,7 +109,7 @@ impl Pool {
             .or_else(|| {
                 self.graveyard
                     .get_vanished(txid)
-                    .map(|tomb| tomb.entry.first_seen)
+                    .map(|tomb| tomb.record.entry.first_seen)
             })
     }
 

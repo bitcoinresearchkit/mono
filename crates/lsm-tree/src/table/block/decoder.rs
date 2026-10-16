@@ -2,15 +2,48 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::{cmp::Ordering, io::Cursor, marker::PhantomData};
+use std::{
+    cmp::Ordering,
+    io::{Cursor, Seek},
+    marker::PhantomData,
+};
 
 use byteorder::{LittleEndian, ReadBytesExt};
+use varint_rs::VarintReader;
 
 use super::binary_index::Reader as BinaryIndexReader;
 use crate::{
     Slice,
-    table::{Block, block::Trailer},
+    table::{Block, block::Trailer, util::SliceIndexes},
 };
+
+/// Skips the next `len` bytes of an item at `offset`, returning where they lie in the block.
+#[inline]
+pub fn skip_field(reader: &mut Cursor<&[u8]>, offset: usize, len: usize) -> SliceIndexes {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "blocks are a few megabytes at most, so positions fit into usize"
+    )]
+    let start = offset + reader.position() as usize;
+    #[expect(
+        clippy::cast_possible_wrap,
+        reason = "field lengths are bounded by u32::MAX"
+    )]
+    let skip = len as i64;
+    unwrap!(reader.seek_relative(skip));
+    SliceIndexes(start, start + len)
+}
+
+/// Reads a whole key's length (unless fixed) and skips the key.
+#[inline]
+pub fn read_key(
+    reader: &mut Cursor<&[u8]>,
+    offset: usize,
+    fixed_key_len: Option<u16>,
+) -> SliceIndexes {
+    let len = fixed_key_len.unwrap_or_else(|| unwrap!(reader.read_u16_varint()));
+    skip_field(reader, offset, len.into())
+}
 
 /// Represents an object that was parsed from a byte array
 ///

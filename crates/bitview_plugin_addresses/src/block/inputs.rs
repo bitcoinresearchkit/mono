@@ -1,34 +1,26 @@
 use std::collections::hash_map::Entry;
 
-use bitview_primitives::{ByAddrType, TypeIndex};
+use bitview_primitives::TypeIndex;
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
-use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{SHARDS, shard_of},
-    block::TxIndexes,
+    addr::shard_of,
+    block::{ShardBlocks, TxIndexes},
 };
-
-/// Result of processing inputs for a block.
-pub struct InputsResult {
-    /// Address spends in input order with their creation prices, by shard and type.
-    pub spends: [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS],
-    /// Transaction indexes per address for tx_count tracking, by shard.
-    pub tx_index_vecs: [ByAddrType<FxHashMap<TypeIndex, TxIndexes>>; SHARDS],
-}
 
 /// Process inputs (spent UTXOs) for a block.
 ///
 /// Price address spends at their creation heights (`prices` by height) and retain unique
 /// transaction uses.
 pub fn process_inputs(
+    blocks: &mut ShardBlocks,
     txs: impl Iterator<Item = TxIndex>,
     txin_index_to_value: &[Sats],
     txin_index_to_output_type: &[OutputType],
     txin_index_to_type_index: &[TypeIndex],
     txin_index_to_prev_height: &[Height],
     prices: &[Cents],
-) -> InputsResult {
+) {
     let input_count = txin_index_to_value.len();
     debug_assert_eq!(txin_index_to_output_type.len(), input_count);
     debug_assert_eq!(txin_index_to_type_index.len(), input_count);
@@ -37,11 +29,6 @@ pub fn process_inputs(
     let txin_index_to_output_type = &txin_index_to_output_type[..input_count];
     let txin_index_to_type_index = &txin_index_to_type_index[..input_count];
     let txin_index_to_prev_height = &txin_index_to_prev_height[..input_count];
-
-    // Vectors and maps allocate on first insert: most shard/type pairs of a block stay empty.
-    let mut spends: [ByAddrType<Vec<(TypeIndex, Sats, Cents)>>; SHARDS] = Default::default();
-    let mut tx_index_vecs: [ByAddrType<FxHashMap<TypeIndex, TxIndexes>>; SHARDS] =
-        Default::default();
 
     let mut processed = 0;
     for (local_idx, tx_index) in txs.enumerate() {
@@ -55,16 +42,11 @@ pub fn process_inputs(
         }
 
         let type_index = txin_index_to_type_index[local_idx];
-        let shard = shard_of(type_index);
-        spends[shard].get_mut_unwrap(output_type).push((
-            type_index,
-            value,
-            prices[usize::from(prev_height)],
-        ));
-        match tx_index_vecs[shard]
-            .get_mut_unwrap(output_type)
-            .entry(type_index)
-        {
+        let block = blocks[shard_of(type_index)].get_mut_unwrap(output_type);
+        block
+            .spends
+            .push((type_index, value, prices[usize::from(prev_height)]));
+        match block.sent_txs.entry(type_index) {
             Entry::Occupied(mut entry) => {
                 entry.get_mut().push(tx_index);
             }
@@ -78,8 +60,4 @@ pub fn process_inputs(
         processed, input_count,
         "incomplete input transaction ranges"
     );
-    InputsResult {
-        spends,
-        tx_index_vecs,
-    }
 }

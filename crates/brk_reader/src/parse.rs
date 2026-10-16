@@ -8,23 +8,32 @@ use crate::{XORBytes, XORIndex, canonical::CanonicalRange};
 
 pub const HEADER_LEN: usize = 80;
 
-/// Decodes the header onto a stack buffer so `bytes` stays untouched:
-/// the body parse later re-XORs the full block from the original phase.
+/// The canonical offset and header of the block in `bytes`, `None` for any other block. A block
+/// of the range that does not follow its canonical predecessor is an error: the range was resolved
+/// across a reorg. Decodes the header onto a stack buffer so `bytes` stays untouched: the body
+/// parse later re-XORs the full block from the original phase.
 pub fn peek_canonical(
     bytes: &[u8],
     mut xor_state: XORIndex,
     xor_bytes: XORBytes,
     canonical: &CanonicalRange,
-) -> Option<(u32, Header)> {
+) -> Result<Option<(u32, Header)>> {
     if bytes.len() < HEADER_LEN {
-        return None;
+        return Ok(None);
     }
     let mut header_buf = [0u8; HEADER_LEN];
     header_buf.copy_from_slice(&bytes[..HEADER_LEN]);
     xor_state.bytes(&mut header_buf, xor_bytes);
-    let header = Header::consensus_decode_from_finite_reader(&mut &header_buf[..]).ok()?;
-    let offset = canonical.offset_of(&BlockHash::from(header.block_hash()))?;
-    Some((offset, header))
+    let Ok(header) = Header::consensus_decode_from_finite_reader(&mut &header_buf[..]) else {
+        return Ok(None);
+    };
+    let Some(offset) = canonical.offset_of(&BlockHash::from(header.block_hash())) else {
+        return Ok(None);
+    };
+    if !canonical.verify_prev(offset, &BlockHash::from(header.prev_blockhash)) {
+        return Err(Error::Internal("canonical batch stitched across a reorg"));
+    }
+    Ok(Some((offset, header)))
 }
 
 pub fn parse_canonical_body(

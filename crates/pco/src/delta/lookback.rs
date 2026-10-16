@@ -1,4 +1,4 @@
-use std::{array, cmp, mem::MaybeUninit};
+use std::{array, cmp};
 
 use super::toggle_center_in_place;
 use crate::{
@@ -123,45 +123,42 @@ pub fn choose_lookbacks<L: Latent>(
   );
 
   let mut lookback_counts = vec![1_u32; window_n.min(latents.len())];
-  let mut lookbacks = Vec::with_capacity(latents.len() - state_n);
-  let uninit_lookbacks = lookbacks.spare_capacity_mut();
   let mut idx_hash_table = vec![0_usize; COARSENESSES.len() * hash_table_n];
   let mut proposed_lookbacks = array::from_fn::<_, PROPOSED_LOOKBACKS, _>(|i| (i + 1).min(state_n));
   let mut best_lookback = 1;
   let mut repeating_lookback_idx: usize = 0;
-  for i in state_n..latents.len() {
-    let l = latents[i];
+  (state_n..latents.len())
+    .map(|i| {
+      let l = latents[i];
 
-    let new_brute_lookback = i.min(PROPOSED_LOOKBACKS);
-    proposed_lookbacks[new_brute_lookback - 1] = new_brute_lookback;
+      let new_brute_lookback = i.min(PROPOSED_LOOKBACKS);
+      proposed_lookbacks[new_brute_lookback - 1] = new_brute_lookback;
 
-    hash_lookup(
-      l.to_u64(),
-      i,
-      hash_table_n,
-      window_n,
-      &mut idx_hash_table,
-      &mut proposed_lookbacks,
-    );
-    let new_best_lookback = find_best_lookback(
-      l,
-      i,
-      latents,
-      &proposed_lookbacks,
-      &mut lookback_counts,
-    );
-    if new_best_lookback != best_lookback {
-      repeating_lookback_idx += 1;
-    }
-    proposed_lookbacks[BRUTE_LOOKBACKS + (repeating_lookback_idx) % REPEATING_LOOKBACKS] =
-      new_best_lookback;
-    best_lookback = new_best_lookback;
-    uninit_lookbacks[i - state_n] = MaybeUninit::new(best_lookback as DeltaLookback);
-    lookback_counts[best_lookback - 1] += 1;
-  }
-
-  unsafe { lookbacks.set_len(latents.len() - state_n) };
-  lookbacks
+      hash_lookup(
+        l.to_u64(),
+        i,
+        hash_table_n,
+        window_n,
+        &mut idx_hash_table,
+        &mut proposed_lookbacks,
+      );
+      let new_best_lookback = find_best_lookback(
+        l,
+        i,
+        latents,
+        &proposed_lookbacks,
+        &mut lookback_counts,
+      );
+      if new_best_lookback != best_lookback {
+        repeating_lookback_idx += 1;
+      }
+      proposed_lookbacks[BRUTE_LOOKBACKS + (repeating_lookback_idx) % REPEATING_LOOKBACKS] =
+        new_best_lookback;
+      best_lookback = new_best_lookback;
+      lookback_counts[best_lookback - 1] += 1;
+      best_lookback as DeltaLookback
+    })
+    .collect()
 }
 
 // All encode in place functions leave junk data (`state_n` latents in this

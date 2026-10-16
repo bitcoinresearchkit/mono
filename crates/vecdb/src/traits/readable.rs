@@ -307,14 +307,29 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
 /// can use this trait without requiring `Clone` or `'static` on the source.
 pub trait ReadableCloneableVec<I: VecIndex, T: VecValue>: ReadableVec<I, T> {
     fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, T>;
+
+    /// [`Self::read_only_boxed_clone`], consuming `self`: a read-only reader moves in as is.
+    #[inline]
+    fn into_read_only_boxed(self) -> ReadableBoxedVec<I, T>
+    where
+        Self: Sized,
+    {
+        self.read_only_boxed_clone()
+    }
 }
 
+/// Cloneable readers are read-only views: stored writers are not `Clone`.
 impl<I: VecIndex, T: VecValue, U> ReadableCloneableVec<I, T> for U
 where
     U: 'static + ReadableVec<I, T> + Clone,
 {
     fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, T> {
-        ReadableBoxedVec::new(self.clone())
+        ReadableBoxedVec::from_read_only(self.clone())
+    }
+
+    #[inline]
+    fn into_read_only_boxed(self) -> ReadableBoxedVec<I, T> {
+        ReadableBoxedVec::from_read_only(self)
     }
 }
 

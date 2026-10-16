@@ -9,10 +9,11 @@ use bitcoin::{
     hex::DisplayHex,
     io::FromStd,
 };
-use bitview_primitives::{PoolSlug, pools};
+use bitview_primitives::{Bytes32, Difficulty, Lengths, PoolSlug, pools};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
 use brk_types::{
-    BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, Weight,
+    BlkPosition, BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, Weight,
+    Weight32,
 };
 use vecdb::{ReadableVec, VecIndex};
 
@@ -100,12 +101,6 @@ impl Query {
         let raw = BitcoinHeader::consensus_decode(&mut &bytes[..])
             .map_err(|_| Error::Internal("Failed to decode block header"))?;
         Ok(BlockHeader::from(raw))
-    }
-
-    /// Source retention is transparent to this bounded read.
-    fn block_timestamps(&self, begin: usize, end: usize) -> Vec<Timestamp> {
-        let timestamps = &self.indexer().vecs().blocks.timestamp;
-        timestamps.collect_range_at(begin, end)
     }
 
     /// Parse OCEAN DATUM protocol miner names from a coinbase scriptsig.
@@ -242,92 +237,19 @@ impl Query {
         end: usize,
         guard: &ReadPin,
     ) -> Result<Vec<BlockInfo>> {
-        let safe = guard.lengths();
-        let height_len = safe.height.to_usize();
-        let end = end.min(height_len);
-        if begin >= end {
-            return Ok(Vec::new());
-        }
-
-        let indexer = self.indexer();
+        let columns = BlockColumns::capture(self, begin, end, guard.lengths())?;
         let reader = self.reader();
-        let count = end - begin;
-
-        // The published bounds cover these columns; validate returned lengths
-        // before indexing so incomplete local data cannot produce partial rows.
-        let difficulties = indexer
-            .vecs()
-            .blocks
-            .difficulty
-            .collect_range_at(begin, end);
-        let sizes = indexer.vecs().blocks.total.collect_range_at(begin, end);
-        let weights = indexer.vecs().blocks.weight.collect_range_at(begin, end);
-        let positions = indexer.vecs().blocks.position.collect_range_at(begin, end);
-
-        // Read one past the last block for its tx-count, capped by the snapshot's
-        // exclusive height bound. Only the tip uses the published transaction count.
-        let tx_index_end = end.saturating_add(1).min(height_len);
-        let first_tx_indexes: Vec<TxIndex> = indexer
-            .vecs()
-            .transactions
-            .first_tx_index
-            .collect_range_at(begin, tx_index_end);
-
-        let timestamps = self.block_timestamps(begin, end);
-        let median_times = indexer
-            .vecs()
-            .blocks
-            .median_time
-            .collect_range_at(begin, end);
-        if [
-            difficulties.len(),
-            sizes.len(),
-            weights.len(),
-            positions.len(),
-            median_times.len(),
-        ]
-        .into_iter()
-        .any(|len| len != count)
-            || first_tx_indexes.len() != tx_index_end - begin
-            || timestamps.len() != count
-        {
-            return Err(Error::Internal("Incomplete block data"));
-        }
-
         // Fixed-size hashes can be read directly without materializing history
         // or allocating a second array. Taken last: a held reader must not wait
         // on another vector's writer.
-        let blockhashes = indexer.vecs().blocks.blockhash.reader();
-        let mut blocks = Vec::with_capacity(count);
-
-        for i in (0..count).rev() {
-            let id = blockhashes.try_get_at(begin + i).data()?;
-            let raw_header = reader.read_raw_bytes(positions[i], HEADER_SIZE)?;
+        let blockhashes = self.indexer().vecs().blocks.blockhash.reader();
+        let mut blocks = Vec::with_capacity(columns.len());
+        for i in (0..columns.len()).rev() {
+            let id = blockhashes.try_get_at(columns.begin + i).data()?;
+            let raw_header = reader.read_raw_bytes(columns.positions[i], HEADER_SIZE)?;
             let header = Self::decode_header(&raw_header, &id)?;
-
-            let next = first_tx_indexes
-                .get(i + 1)
-                .copied()
-                .unwrap_or(safe.tx_index);
-            let tx_count = Self::block_tx_count(first_tx_indexes[i], next, safe.tx_index)?;
-
-            blocks.push(BlockInfo {
-                id,
-                height: Height::from(begin + i),
-                version: header.version,
-                timestamp: timestamps[i],
-                bits: header.bits,
-                nonce: header.nonce,
-                difficulty: *difficulties[i],
-                merkle_root: header.merkle_root,
-                tx_count,
-                size: u64::from(*sizes[i]),
-                weight: weights[i].into(),
-                previous_block_hash: header.previous_block_hash,
-                median_time: median_times[i],
-            });
+            blocks.push(columns.info(i, id, header, columns.tx_count(i)?));
         }
-
         Ok(blocks)
     }
     /// Capture every column under one pin, reusing selected prices.
@@ -337,47 +259,22 @@ impl Query {
         begin: usize,
         end: usize,
         pin: &ReadPin,
-        prices: Option<Vec<Dollars>>,
+        prices: Vec<Dollars>,
     ) -> Result<impl FnOnce() -> Result<Vec<BlockInfoV1>> + '_> {
-        let safe = pin.lengths();
-        let height_len = safe.height.to_usize();
-        let end = end.min(height_len);
-        let begin = begin.min(end);
-
-        let count = end - begin;
+        let columns = BlockColumns::capture(self, begin, end, pin.lengths())?;
+        let (begin, count) = (columns.begin, columns.len());
+        let end = begin + count;
         let indexer = self.indexer();
         let plugins = self.plugins();
         let reader = self.reader();
         let all_pools = pools();
 
-        // Bulk read all indexed data
         let blockhashes = indexer.vecs().blocks.blockhash.collect_range_at(begin, end);
-        let difficulties = indexer
-            .vecs()
-            .blocks
-            .difficulty
-            .collect_range_at(begin, end);
-        let sizes = indexer.vecs().blocks.total.collect_range_at(begin, end);
-        let weights = indexer.vecs().blocks.weight.collect_range_at(begin, end);
-        let positions = indexer.vecs().blocks.position.collect_range_at(begin, end);
         let pool_slugs = plugins.pools.pool.collect_range_at(begin, end);
         let pool_block_numbers = plugins
             .pools
             .heights
             .block_numbers(&pool_slugs, Height::from(begin));
-
-        // Read one past the last block for its tx-count, capped by the snapshot's
-        // exclusive height bound. Only the tip uses the published transaction count.
-        let tx_index_end = if count == 0 {
-            end
-        } else {
-            end.saturating_add(1).min(height_len)
-        };
-        let first_tx_indexes: Vec<TxIndex> = indexer
-            .vecs()
-            .transactions
-            .first_tx_index
-            .collect_range_at(begin, tx_index_end);
 
         // Bulk read segwit stats
         let segwit_txs = indexer
@@ -420,8 +317,6 @@ impl Query {
             .block
             .sats
             .collect_range_at(begin, end);
-        let prices =
-            prices.unwrap_or_else(|| plugins.price.spot.usd.height.collect_range_at(begin, end));
 
         // Bulk read effective fee rate distribution (accounts for CPFP)
         let frd = &plugins.transactions.fees.effective_fee_rate.distribution;
@@ -443,21 +338,9 @@ impl Query {
         let fa_pct90 = fad.pct90.height.collect_range_at(begin, end);
         let fa_max = fad.max.height.collect_range_at(begin, end);
 
-        let timestamps = self.block_timestamps(begin, end);
-        let median_times = indexer
-            .vecs()
-            .blocks
-            .median_time
-            .collect_range_at(begin, end);
-
-        // Validate complete columns before indexing or using the tip fallback.
+        // Validate complete columns before indexing.
         if [
             blockhashes.len(),
-            difficulties.len(),
-            sizes.len(),
-            weights.len(),
-            positions.len(),
-            median_times.len(),
             pool_slugs.len(),
             pool_block_numbers.len(),
             segwit_txs.len(),
@@ -487,8 +370,6 @@ impl Query {
         ]
         .into_iter()
         .any(|len| len != count)
-            || first_tx_indexes.len() != tx_index_end - begin
-            || timestamps.len() != count
         {
             return Err(Error::Internal("Incomplete extended block data"));
         }
@@ -497,16 +378,12 @@ impl Query {
             let mut blocks = Vec::with_capacity(count);
 
             for i in (0..count).rev() {
-                let next = first_tx_indexes
-                    .get(i + 1)
-                    .copied()
-                    .unwrap_or(safe.tx_index);
-                let tx_count = Self::block_tx_count(first_tx_indexes[i], next, safe.tx_index)?;
+                let tx_count = columns.tx_count(i)?;
 
                 // Single reader for header + coinbase (adjacent in blk file).
                 // Read failures must not produce partial block data.
                 let mut blk = reader
-                    .reader_at(positions[i])
+                    .reader_at(columns.positions[i])
                     .map_err(|_| Error::Internal("blocks_v1_range: failed to open block reader"))?;
                 let mut raw_header = [0u8; HEADER_SIZE];
                 blk.read_exact(&mut raw_header)
@@ -525,8 +402,8 @@ impl Query {
                     weight: coinbase_weight,
                 } = Self::parse_coinbase_from_read(blk)?;
 
-                let weight = Weight::from(weights[i]);
-                let size = u64::from(*sizes[i]);
+                let info = columns.info(i, id, header, tx_count);
+                let (weight, size) = (info.weight, info.size);
                 let total_fees = fee_sats[i];
                 let reward = coinbase_sats[i];
                 let total_inputs = *input_counts[i];
@@ -541,29 +418,12 @@ impl Query {
 
                 let pool_slug = pool_slugs[i];
                 let pool = all_pools.get(pool_slug);
-                let height = begin + i;
                 let block_number = pool_block_numbers[i];
 
                 let miner_names = if pool_slug == PoolSlug::Ocean {
                     Self::parse_datum_miner_names(&scriptsig_bytes)
                 } else {
                     None
-                };
-
-                let info = BlockInfo {
-                    id,
-                    height: Height::from(height),
-                    version: header.version,
-                    timestamp: timestamps[i],
-                    bits: header.bits,
-                    nonce: header.nonce,
-                    difficulty: *difficulties[i],
-                    merkle_root: header.merkle_root,
-                    tx_count,
-                    size,
-                    weight,
-                    previous_block_hash: header.previous_block_hash,
-                    median_time: median_times[i],
                 };
 
                 let total_input_amt = input_volumes[i];
@@ -685,5 +545,101 @@ impl Query {
             ));
         }
         Ok(count.size())
+    }
+}
+
+/// The columns of blocks `begin..`, which every block row reads, captured complete under one pin.
+struct BlockColumns {
+    begin: usize,
+    difficulties: Vec<Difficulty>,
+    sizes: Vec<Bytes32>,
+    weights: Vec<Weight32>,
+    positions: Vec<BlkPosition>,
+    /// Also the next block's while it is published: the last block ends there.
+    first_tx_indexes: Vec<TxIndex>,
+    /// The published transaction length, where the tip block ends.
+    tx_index_len: TxIndex,
+    timestamps: Vec<Timestamp>,
+    median_times: Vec<Timestamp>,
+}
+
+impl BlockColumns {
+    /// Blocks `begin..end` within the published heights of `safe`.
+    fn capture(query: &Query, begin: usize, end: usize, safe: Lengths) -> Result<Self> {
+        let height_len = safe.height.to_usize();
+        let end = end.min(height_len);
+        let begin = begin.min(end);
+        let count = end - begin;
+        let first_tx_index_end = if count == 0 {
+            end
+        } else {
+            (end + 1).min(height_len)
+        };
+        let vecs = query.indexer().vecs();
+        let blocks = &vecs.blocks;
+        let columns = Self {
+            begin,
+            difficulties: blocks.difficulty.collect_range_at(begin, end),
+            sizes: blocks.total.collect_range_at(begin, end),
+            weights: blocks.weight.collect_range_at(begin, end),
+            positions: blocks.position.collect_range_at(begin, end),
+            first_tx_indexes: vecs
+                .transactions
+                .first_tx_index
+                .collect_range_at(begin, first_tx_index_end),
+            tx_index_len: safe.tx_index,
+            timestamps: blocks.timestamp.collect_range_at(begin, end),
+            median_times: blocks.median_time.collect_range_at(begin, end),
+        };
+        // The published bounds cover these columns; validate returned lengths
+        // before indexing so incomplete local data cannot produce partial rows.
+        if [
+            columns.difficulties.len(),
+            columns.sizes.len(),
+            columns.weights.len(),
+            columns.positions.len(),
+            columns.timestamps.len(),
+            columns.median_times.len(),
+        ]
+        .into_iter()
+        .any(|len| len != count)
+            || columns.first_tx_indexes.len() != first_tx_index_end - begin
+        {
+            return Err(Error::Internal("Incomplete block data"));
+        }
+        Ok(columns)
+    }
+
+    fn len(&self) -> usize {
+        self.difficulties.len()
+    }
+
+    /// Row `i`'s transaction count.
+    fn tx_count(&self, i: usize) -> Result<u32> {
+        let next = self
+            .first_tx_indexes
+            .get(i + 1)
+            .copied()
+            .unwrap_or(self.tx_index_len);
+        Query::block_tx_count(self.first_tx_indexes[i], next, self.tx_index_len)
+    }
+
+    /// Row `i` with its verified header.
+    fn info(&self, i: usize, id: BlockHash, header: BlockHeader, tx_count: u32) -> BlockInfo {
+        BlockInfo {
+            id,
+            height: Height::from(self.begin + i),
+            version: header.version,
+            timestamp: self.timestamps[i],
+            bits: header.bits,
+            nonce: header.nonce,
+            difficulty: *self.difficulties[i],
+            merkle_root: header.merkle_root,
+            tx_count,
+            size: u64::from(*self.sizes[i]),
+            weight: self.weights[i].into(),
+            previous_block_hash: header.previous_block_hash,
+            median_time: self.median_times[i],
+        }
     }
 }

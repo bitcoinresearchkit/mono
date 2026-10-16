@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use zstd::{bulk::Decompressor, encode_all};
 
 use super::{super::inner::CompressionStrategy, value::ZstdVecValue};
-use crate::{EncodedChunk, Result, ValueStrategy};
+use crate::{EncodedChunk, Format, Result, ValueStrategy};
 
 /// Zstd compression level (1-22). Level 3 provides a good balance
 /// between compression ratio and speed for most workloads.
@@ -44,6 +44,8 @@ where
     /// A decompression context and a byte scratch buffer, both created once.
     type Decoder = (Option<Decompressor<'static>>, Vec<u8>);
 
+    const FORMAT: Format = Format::Zstd;
+
     const MAX_UNCOMPRESSED_CHUNK_SIZE: usize = 8 * 1024;
 
     fn compress_chunk(values: &[T], _values_per_page: usize) -> Result<EncodedChunk> {
@@ -53,16 +55,6 @@ where
 
     fn reset_decoder(_decoder: &mut Self::Decoder, _header: &[u8]) -> Result<()> {
         Ok(())
-    }
-
-    fn decompress_page_into(
-        decoder: &mut Self::Decoder,
-        body: &[u8],
-        expected_len: usize,
-        dst: &mut Vec<T>,
-    ) -> Result<()> {
-        let bytes = Self::decompress_bytes(decoder, body, expected_len)?;
-        Self::bytes_to_values_into(bytes, expected_len, dst)
     }
 
     fn decompress_page_append(

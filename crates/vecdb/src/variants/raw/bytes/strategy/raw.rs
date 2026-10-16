@@ -1,9 +1,11 @@
 use std::slice;
 
 use super::BytesStrategy;
-use crate::{BytesVecValue, ValueStrategy, variants::raw::RawStrategy};
+use crate::{BytesVecValue, Format, ValueStrategy, variants::raw::RawStrategy};
 
 impl<T: BytesVecValue> RawStrategy<T> for BytesStrategy<T> {
+    const FORMAT: Format = Format::Bytes;
+
     #[inline(always)]
     unsafe fn read_from_ptr(ptr: *const u8, byte_offset: usize) -> T {
         unsafe {

@@ -64,6 +64,17 @@ impl Reader {
         self.0.xor_bytes
     }
 
+    /// Errs when the blocks directory's `xor.dat` is unreadable or malformed, or no longer the
+    /// mask this reader decodes with: another node's blocks are behind the path now.
+    pub fn check_source(&self) -> Result<()> {
+        if XORBytes::read(self.blocks_dir())?.unwrap_or_default() != self.xor_bytes() {
+            return Err(Error::Internal(
+                "Block source changed after the Reader was created",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn read_raw_bytes(&self, position: BlkPosition, size: usize) -> Result<Vec<u8>> {
         let file = self.0.open_blk(position.blk_index())?;
         let mut buffer = vec![0u8; size];

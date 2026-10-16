@@ -2,12 +2,10 @@
 
 use std::fmt::Write;
 
-use serde_json::Value;
-
 use crate::{
-    TypeSchemas,
+    Ty, TypeSchemas,
     generators::{MANUAL_GENERIC_TYPES, write_description},
-    get_union_variants, is_rust_concrete_generic, ref_to_type_name, rust_array_element_type,
+    is_rust_concrete_generic, rust_array_element_type,
 };
 
 /// Generate JSDoc type definitions from OpenAPI schemas.
@@ -26,7 +24,7 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             continue;
         }
 
-        let js_type = schema_to_js_type(schema, Some(name));
+        let alias = js_type(&Ty::parse(schema));
 
         let type_desc = schema.get("description").and_then(|d| d.as_str());
 
@@ -48,7 +46,7 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             if names.clone().all(|name| is_js_identifier(&name)) {
                 writeln!(output, " * @typedef {{Object}} {}", name).unwrap();
                 for ((prop_name, prop_schema), safe_name) in props.iter().zip(names) {
-                    let prop_type = schema_to_js_type(prop_schema, Some(name));
+                    let prop_type = js_type(&Ty::parse(prop_schema));
                     let optional = if required(prop_name) { "" } else { "=" };
                     let prop_desc = prop_schema
                         .get("description")
@@ -74,7 +72,7 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
                     .zip(names)
                     .map(|((prop_name, prop_schema), safe_name)| {
                         let optional = if required(prop_name) { "" } else { "?" };
-                        let prop_type = schema_to_js_type(prop_schema, Some(name));
+                        let prop_type = js_type(&Ty::parse(prop_schema));
                         if is_js_identifier(&safe_name) {
                             format!("{safe_name}{optional}: {prop_type}")
                         } else {
@@ -90,10 +88,10 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             writeln!(output, "/**").unwrap();
             write_description(output, desc, " * ", " *");
             writeln!(output, " *").unwrap();
-            writeln!(output, " * @typedef {{{}}} {}", js_type, name).unwrap();
+            writeln!(output, " * @typedef {{{}}} {}", alias, name).unwrap();
             writeln!(output, " */").unwrap();
         } else {
-            writeln!(output, "/** @typedef {{{}}} {} */", js_type, name).unwrap();
+            writeln!(output, "/** @typedef {{{}}} {} */", alias, name).unwrap();
         }
     }
     writeln!(output).unwrap();
@@ -124,136 +122,26 @@ fn is_js_identifier(name: &str) -> bool {
         && chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$')
 }
 
-fn json_type_to_js(ty: &str, schema: &Value, current_type: Option<&str>) -> String {
+/// A type in JSDoc syntax (which has no `integer`, only `number`).
+pub(crate) fn js_type(ty: &Ty) -> String {
     match ty {
-        "integer" | "number" => "number".to_string(),
-        "boolean" => "boolean".to_string(),
-        "string" => "string".to_string(),
-        "null" => "null".to_string(),
-        "array" => {
-            let item_type = schema
-                .get("items")
-                .map(|s| schema_to_js_type(s, current_type))
-                .unwrap_or_else(|| "*".to_string());
-            format!("{}[]", item_type)
+        Ty::Any => "*".to_owned(),
+        Ty::Null => "null".to_owned(),
+        Ty::Boolean => "boolean".to_owned(),
+        Ty::Integer | Ty::Number => "number".to_owned(),
+        Ty::String => "string".to_owned(),
+        Ty::Object => "Object".to_owned(),
+        Ty::Map(value) => format!("{{ [key: string]: {} }}", js_type(value)),
+        Ty::List(item) => format!("{}[]", js_type(item)),
+        Ty::Ref(name) => name.clone(),
+        Ty::Literals(values) => {
+            let values: Vec<String> = values.iter().map(|value| format!("\"{value}\"")).collect();
+            format!("({})", values.join("|"))
         }
-        "object" => {
-            if let Some(add_props) = schema.get("additionalProperties") {
-                let value_type = schema_to_js_type(add_props, current_type);
-                return format!("{{ [key: string]: {} }}", value_type);
-            }
-            "Object".to_string()
-        }
-        _ => "*".to_string(),
-    }
-}
-
-/// JSDoc has no `integer` keyword, only `number`. Map `integer` (and `integer[]`,
-/// `Foo<integer>`, etc.) to `number` before emitting type strings to JS.
-pub(crate) fn jsdoc_normalize(ty: &str) -> String {
-    if ty == "integer" {
-        return "number".to_string();
-    }
-    if !ty.contains("integer") {
-        return ty.to_string();
-    }
-    // Every replacement preserves delimiters and removes an `integer` token;
-    // none can introduce a match that requires another pass.
-    ty.replace("integer[]", "number[]")
-        .replace("<integer>", "<number>")
-        .replace("(integer)", "(number)")
-        .replace("integer | ", "number | ")
-        .replace(" | integer", " | number")
-}
-
-/// Convert a JSON schema to a JavaScript type string.
-fn schema_to_js_type(schema: &Value, current_type: Option<&str>) -> String {
-    if let Some(all_of) = schema.get("allOf").and_then(|v| v.as_array()) {
-        for item in all_of {
-            let resolved = schema_to_js_type(item, current_type);
-            if resolved != "*" {
-                return resolved;
-            }
+        Ty::Nullable(ty) => format!("?{}", js_type(ty)),
+        Ty::Union(variants) => {
+            let variants: Vec<String> = variants.iter().map(js_type).collect();
+            format!("({})", variants.join("|"))
         }
     }
-
-    if let Some(ref_path) = schema.get("$ref").and_then(|r| r.as_str()) {
-        let type_name = ref_to_type_name(ref_path).unwrap_or("*");
-        return rust_array_element_type(type_name)
-            .map(|element| format!("{element}[]"))
-            .unwrap_or_else(|| type_name.to_string());
-    }
-
-    if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {
-        let literals: Vec<String> = enum_values
-            .iter()
-            .filter_map(|v| v.as_str())
-            .map(|s| format!("\"{}\"", s))
-            .collect();
-        if !literals.is_empty() {
-            return format!("({})", literals.join("|"));
-        }
-    }
-
-    if let Some(ty) = schema.get("type") {
-        if let Some(type_array) = ty.as_array() {
-            let types: Vec<String> = type_array
-                .iter()
-                .filter_map(|t| t.as_str())
-                .filter(|t| *t != "null")
-                .map(|t| json_type_to_js(t, schema, current_type))
-                .collect();
-            let has_null = type_array.iter().any(|t| t.as_str() == Some("null"));
-
-            if types.len() == 1 {
-                let base_type = &types[0];
-                return if has_null {
-                    format!("?{}", base_type)
-                } else {
-                    base_type.clone()
-                };
-            } else if !types.is_empty() {
-                let union = format!("({})", types.join("|"));
-                return if has_null {
-                    format!("?{}", union)
-                } else {
-                    union
-                };
-            }
-        }
-
-        if let Some(ty_str) = ty.as_str() {
-            return json_type_to_js(ty_str, schema, current_type);
-        }
-    }
-
-    if let Some(variants) = get_union_variants(schema) {
-        let types: Vec<String> = variants
-            .iter()
-            .map(|v| schema_to_js_type(v, current_type))
-            .collect();
-        let filtered: Vec<_> = types.iter().filter(|t| *t != "*").collect();
-        if !filtered.is_empty() {
-            return format!(
-                "({})",
-                filtered
-                    .iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>()
-                    .join("|")
-            );
-        }
-        return format!("({})", types.join("|"));
-    }
-
-    if let Some(format) = schema.get("format").and_then(|f| f.as_str()) {
-        return match format {
-            "int32" | "int64" => "number".to_string(),
-            "float" | "double" => "number".to_string(),
-            "date" | "date-time" => "string".to_string(),
-            _ => "*".to_string(),
-        };
-    }
-
-    "*".to_string()
 }

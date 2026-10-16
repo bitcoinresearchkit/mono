@@ -75,7 +75,7 @@ impl Indexer<Ro> {
         // carries the value, but for a large one), the txid check and its address bytes.
         let unspent = |txid: Txid, vout: Vout| -> Option<TxOut> {
             let key = UtxoKey::new(TxidPrefix::from(txid), u32::from(vout));
-            let utxo = self.stores().utxo(&key).ok()??;
+            let utxo = self.stores().utxos().get(&key).ok()??;
             let (tx_index, txout, output_type, type_index) = (
                 utxo.tx_index(),
                 utxo.txout_index(),
@@ -97,7 +97,7 @@ impl Indexer<Ro> {
                     .to_script_pubkey()
             };
             // A large value is a second lookup; spent in between, it misses like the entry.
-            let value = self.stores().utxo_value(&key, &utxo).ok()?;
+            let value = self.stores().utxos().value(&key, &utxo).ok()?;
             Some(TxOut::from((script_pubkey, value)))
         };
         // The rest (misses: unknown, unsafe or spent-above-safe parents; P2MS and unknown scripts) go

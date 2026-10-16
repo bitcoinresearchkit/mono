@@ -2,7 +2,7 @@ use bitview_primitives::FundedAddressData;
 use brk_types::{OutputType, Sats};
 use derive_more::AddAssign;
 
-use super::{AddrReceivePreState, AddrReceiveStatus, AddrSendPreState, delta::ShardDelta};
+use super::{AddrPreState, AddrReceivePreState, AddrReceiveStatus, delta::ShardDelta};
 
 /// One address type's running counters (the root sums them): funded and empty counts, the
 /// supply the addresses hold, the block's outputs, inputs and activity, and the reuse and
@@ -93,7 +93,7 @@ impl MemberState {
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddressData,
-        pre: &AddrSendPreState,
+        pre: &AddrPreState,
     ) {
         debug_assert!(addr_data.is_funded());
         debug_assert!(
@@ -131,7 +131,7 @@ impl MemberState {
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddressData,
-        pre: &AddrSendPreState,
+        pre: &AddrPreState,
         is_first_encounter: bool,
         also_received: bool,
         will_be_empty: bool,
@@ -233,7 +233,7 @@ impl ReuseState {
     fn on_send_as_reused(
         &mut self,
         addr_data: &FundedAddressData,
-        pre: &AddrSendPreState,
+        pre: &AddrPreState,
         is_first_encounter: bool,
         also_received: bool,
         will_be_empty: bool,
@@ -258,7 +258,7 @@ impl ReuseState {
     fn on_send_as_respent(
         &mut self,
         addr_data: &FundedAddressData,
-        pre: &AddrSendPreState,
+        pre: &AddrPreState,
         is_first_encounter: bool,
         also_received: bool,
         will_be_empty: bool,
@@ -317,7 +317,7 @@ impl ExposedState {
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddressData,
-        pre: &AddrSendPreState,
+        pre: &AddrPreState,
         will_be_empty: bool,
     ) {
         apply_supply_delta(

@@ -1,18 +1,14 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    ops::{Add, AddAssign, Sub, SubAssign},
-};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use brk_types::CheckedSub;
 use derive_more::Deref;
-use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::unlikely;
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// Declares a fixed-point parts-per-million type over `$repr` with `$nan` as its NaN sentinel,
 /// plus the mechanics all of them share: sentinel-propagating arithmetic, integer and float
@@ -157,39 +153,7 @@ macro_rules! parts_per_million {
             }
         }
 
-
-        impl Display for $name {
-            fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-                f.write_str(Buffer::new().format(self.0))
-            }
-        }
-
-        #[cfg(feature = "storage")]
-        impl Formattable for $name {
-            const UNDEFINED: bool = true;
-
-            #[inline(always)]
-            fn write_to(&self, buf: &mut Vec<u8>) {
-                buf.extend_from_slice(Buffer::new().format(self.0).as_bytes());
-            }
-
-            #[inline(always)]
-            fn fmt_json(&self, buf: &mut Vec<u8>) {
-                if unlikely(self.is_nan()) {
-                    buf.extend_from_slice(b"null");
-                } else {
-                    self.write_to(buf);
-                }
-            }
-
-            /// Undefined: an empty CSV cell (JSON writes `null`).
-            #[inline(always)]
-            fn fmt_csv(&self, buf: &mut Vec<u8>) {
-                if !unlikely(self.is_nan()) {
-                    self.write_to(buf);
-                }
-            }
-        }
+        brk_types::impl_int_format!($name, nullable);
     };
 }
 

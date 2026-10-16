@@ -1,4 +1,4 @@
-use std::{convert::Infallible, sync::Arc};
+use std::sync::Arc;
 
 use bitview_primitives::Count;
 use vecdb::{
@@ -114,19 +114,6 @@ where
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(Count)) {
         self.fold_range_at(from, to, (), |(), value| each(value));
-    }
-
-    fn fold_range_at<B, F: FnMut(B, Count) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        self.try_fold_range_at(from, to, init, |accumulator, value| {
-            Ok::<_, Infallible>(fold(accumulator, value))
-        })
-        .unwrap()
     }
 
     fn try_fold_range_at<B, E, F: FnMut(B, Count) -> Result<B, E>>(

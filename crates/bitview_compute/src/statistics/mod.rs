@@ -11,7 +11,7 @@ mod window;
 pub use distribution::compute_rolling_distribution_from_starts;
 pub use distribution_stats::DistributionStats;
 pub use extrema::{ExtremaWindow, compute_rolling_extrema_from_starts};
-pub use fenwick::{FenwickNode, FenwickTree};
+pub use fenwick::FenwickTree;
 pub use median::ComputeRollingMedianFromStarts;
 pub use order::{ExactOrderStats, nearest_rank};
 pub use retained::Retained;

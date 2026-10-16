@@ -4,7 +4,6 @@ use brk_error::Result;
 use brk_types::{
     BlkPosition, BlockHash, CoinbaseTag, Height, Timestamp, Version, Weight, Weight32,
 };
-use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp,
     StorageMode, WritableVec,
@@ -134,23 +133,6 @@ impl BlocksVecs {
         self.segwit_tx_weight
             .truncate_if_needed_with_stamp(height, stamp)?;
         Ok(())
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.blockhash as &mut dyn AnyStoredVec,
-            &mut self.coinbase_tag,
-            &mut self.difficulty,
-            &mut self.timestamp,
-            &mut self.median_time,
-            &mut *self.total,
-            &mut *self.weight,
-            &mut self.position,
-            &mut *self.segwit_tx_count,
-            &mut *self.segwit_tx_size,
-            &mut *self.segwit_tx_weight,
-        ]
-        .into_par_iter()
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

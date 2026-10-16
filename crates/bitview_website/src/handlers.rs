@@ -1,21 +1,17 @@
-use std::{
-    borrow::Cow,
-    convert::Infallible,
-    path::Path,
-    pin::Pin,
-    task::{Context, Poll},
-};
+use std::{borrow::Cow, path::Path};
 
 use axum::{
-    body::{Body, Bytes, HttpBody},
+    body::Body,
     extract::{Path as ExtractPath, State},
-    http::{HeaderMap, Response, StatusCode},
+    http::{HeaderMap, HeaderValue, Response, header::CONTENT_TYPE},
 };
-use http_body::Frame;
 use importmap::ImportMap;
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
-use crate::{Error, HeaderMapExtended, Website, website::File};
+use crate::{
+    Error, HeaderMapExtended, Website,
+    website::{File, HTML},
+};
 
 pub async fn file_handler(
     State(website): State<Website>,
@@ -63,39 +59,33 @@ fn respond(
     request_headers: &HeaderMap,
 ) -> Result<Response<Body>, Error> {
     let path = sanitize(path);
-
-    let is_html =
-        path.is_empty() || Path::new(&path).extension().is_none() || path.ends_with(".html");
-
-    let File { contents, hash } = website.get_file(&path)?;
+    let File {
+        contents,
+        hash,
+        content_type,
+    } = website.get_file(&path)?;
     // Release only. Embedded files carry theirs; filesystem content is mutable, so hash it now.
     let hash = (!cfg!(debug_assertions))
         .then(|| hash.map_or_else(|| Cow::Owned(ImportMap::hash(&contents)), Cow::Borrowed));
     // Only a URL naming its content's hash is immutable; fixed names (JSON, workers, fonts) and
     // stale hashes revalidate.
-    let immutable = !is_html
+    let immutable = content_type != Some(HTML)
         && hash
             .as_deref()
             .is_some_and(|hash| ImportMap::names_hash(Path::new(&path), hash));
-    // Weak: compression serves other bytes under the same validator.
-    let etag = hash
-        .filter(|_| !immutable)
-        .map(|hash| format!("W/\"{hash}\""));
-    if request_headers.has_etag(etag.as_deref()) {
-        let mut response = Response::new(Body::new(NotModifiedBody));
-        *response.status_mut() = StatusCode::NOT_MODIFIED;
-        insert_caching(response.headers_mut(), etag.as_deref(), immutable);
+    let etag = hash.filter(|_| !immutable);
+    let etag = etag.as_deref();
+    if bitview_http::if_none_match(request_headers, etag.map(str::as_bytes)) {
+        let mut response = bitview_http::not_modified();
+        insert_caching(response.headers_mut(), etag, immutable);
         return Ok(response);
     }
     let mut response = Response::new(Body::from(contents));
     let headers = response.headers_mut();
-
-    if is_html {
-        headers.insert_content_type_text_html();
-    } else {
-        headers.insert_content_type(Path::new(&path));
+    if let Some(content_type) = content_type {
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static(content_type));
     }
-    insert_caching(headers, etag.as_deref(), immutable);
+    insert_caching(headers, etag, immutable);
 
     Ok(response)
 }
@@ -110,26 +100,6 @@ fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, immutable: bool) 
         headers.insert_cache_control_immutable();
     } else {
         headers.insert_cache_control_must_revalidate();
-    }
-}
-
-/// A 304's empty content, without the exact-length hint Axum turns into `Content-Length: 0`: a
-/// 304's Content-Length would have to describe the full response.
-struct NotModifiedBody;
-
-impl HttpBody for NotModifiedBody {
-    type Data = Bytes;
-    type Error = Infallible;
-
-    fn poll_frame(
-        self: Pin<&mut Self>,
-        _: &mut Context<'_>,
-    ) -> Poll<Option<Result<Frame<Bytes>, Infallible>>> {
-        Poll::Ready(None)
-    }
-
-    fn is_end_stream(&self) -> bool {
-        true
     }
 }
 

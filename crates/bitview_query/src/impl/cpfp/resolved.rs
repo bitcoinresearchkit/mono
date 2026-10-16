@@ -1,7 +1,6 @@
 use brk_types::Txid;
 use serde_json::to_vec;
 
-use super::CpfpSource;
 use crate::{Query, RepresentationId, Result, r#impl::tx::body::ResolvedTxBody};
 
 /// CPFP JSON resolved to one exact live or confirmed transaction source.
@@ -18,14 +17,13 @@ impl ResolvedCpfp {
 impl Query {
     /// Resolve CPFP JSON once before an async response handoff.
     pub fn resolve_cpfp(&self, txid: &Txid) -> Result<ResolvedCpfp> {
-        let source = match self.resolve_cpfp_source(txid)? {
-            CpfpSource::Memory(info) => {
+        let source = self.resolve_tx_body(txid, |mempool, tip| {
+            Ok(mempool.cpfp_info(txid, tip)?.map(|info| {
                 let value = to_vec(&info).unwrap();
                 let hash = RepresentationId::content_hash(&value);
-                ResolvedTxBody::Memory { value, hash }
-            }
-            CpfpSource::Chain(transaction) => ResolvedTxBody::Chain(transaction),
-        };
+                (value, hash)
+            }))
+        })?;
         Ok(ResolvedCpfp { source })
     }
 

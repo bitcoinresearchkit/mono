@@ -13,7 +13,6 @@ use bitview_primitives::Boolean;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
-use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec};
 
 macro_rules! define_vecs {
@@ -84,21 +83,6 @@ macro_rules! define_vecs {
                 self.one_input.block.truncate_if_needed_with_stamp(height, stamp)?;
                 self.one_output.block.truncate_if_needed_with_stamp(height, stamp)?;
                 Ok(())
-            }
-
-            pub fn par_iter_mut_any(
-                &mut self,
-            ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-                let features = [$(&mut self.$feature,)+].into_par_iter().flat_map_iter(|feature| {
-                    [&mut feature.flag as &mut dyn AnyStoredVec, &mut *feature.block]
-                });
-                [
-                    $(&mut self.$flag_vector as &mut dyn AnyStoredVec,)+
-                    &mut *self.one_input.block,
-                    &mut *self.one_output.block,
-                ]
-                .into_par_iter()
-                .chain(features)
             }
 
             pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

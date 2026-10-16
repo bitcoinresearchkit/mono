@@ -6,6 +6,7 @@ use aide::{
 };
 use axum::{
     Extension,
+    body::Bytes,
     http::HeaderMap,
     response::{Html, Redirect, Response},
     routing::get,
@@ -18,7 +19,7 @@ use crate::api::series::ApiSeriesRoutes;
 #[cfg(feature = "urpd")]
 use crate::api::urpd::ApiUrpdRoutes;
 use crate::{
-    Error,
+    CacheParams, Error,
     api::server::ServerRoutes,
     extended::{ResponseExtended, TransformResponseExtended},
     params::Empty,
@@ -110,7 +111,7 @@ impl ApiRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_openapi")
-                            .server_tag()
+                            .tag(tags::SERVER)
                             .mcp_ignore()
                             .summary("OpenAPI specification")
                             .description("Full OpenAPI 3.1 specification for this API. Build tools from this document.")
@@ -127,7 +128,7 @@ impl ApiRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_api")
-                            .server_tag()
+                            .tag(tags::SERVER)
                             .mcp_ignore()
                             .summary("Compact API summary")
                             .description(
@@ -143,10 +144,11 @@ impl ApiRoutes for ApiRouter<AppState> {
             .route("/api", get(Html::from(include_str!("./scalar.html"))))
             // Encoded per request as the client accepts, by the compression layer.
             .route("/scalar.js", get(|headers: HeaderMap| async move {
-                Response::static_bytes(
+                Response::cached_bytes(
                     &headers,
-                    include_bytes!("./scalar.js").as_slice(),
+                    &CacheParams::deploy(),
                     "application/javascript",
+                    || Bytes::from_static(include_bytes!("./scalar.js")),
                 )
             }))
             .route(

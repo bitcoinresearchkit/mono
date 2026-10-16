@@ -11,10 +11,8 @@ use libc::read as LibcRead;
 use parking_lot::RwLockReadGuard;
 use rawdb::Region;
 
-use super::super::{RawStrategy, ReadWriteRawVec};
-use crate::{
-    AnyStoredVec, BUFFER_SIZE, HEADER_OFFSET, VecIndex, VecValue, cache::CachePolicy, likely,
-};
+use super::super::RawStrategy;
+use crate::{BUFFER_SIZE, HEADER_OFFSET, VecIndex, VecValue, likely};
 
 /// Buffer size aligned to SIZE_OF_T for raw I/O reads.
 const fn aligned_buffer_size<T>() -> usize {
@@ -73,14 +71,6 @@ where
         self.file_offset += buffer_len;
         self.buffer_len = buffer_len;
         self.buffer_pos = 0;
-    }
-
-    pub fn new<C: CachePolicy>(
-        vec: &'a ReadWriteRawVec<I, T, S, C>,
-        from: usize,
-        to: usize,
-    ) -> Self {
-        Self::new_from_parts(vec.region(), vec.stored_len(), from, to)
     }
 
     pub fn new_from_parts(region: &'a Region, stored_len: usize, from: usize, to: usize) -> Self {

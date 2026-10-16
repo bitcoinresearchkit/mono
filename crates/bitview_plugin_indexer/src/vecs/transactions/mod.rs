@@ -4,7 +4,6 @@ use brk_error::Result;
 use brk_types::{
     BlkPosition, Height, RawLockTime, SigOps, SigOps32, TxIndex, Txid, Version, Weight, Weight32,
 };
-use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode,
     WritableVec,
@@ -163,24 +162,6 @@ impl TransactionsVecs {
             .truncate_if_needed_with_stamp(tx_index, stamp)?;
         self.features.truncate(height, tx_index, stamp)?;
         self.versions.truncate(height, stamp)
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.first_tx_index as &mut dyn AnyStoredVec,
-            &mut self.txid,
-            &mut self.tx_version,
-            &mut self.raw_locktime,
-            &mut *self.weight,
-            &mut *self.total_size,
-            &mut *self.total_sigop_cost,
-            &mut self.first_txin_index,
-            &mut *self.first_txout_index,
-            &mut self.position,
-        ]
-        .into_par_iter()
-        .chain(self.features.par_iter_mut_any())
-        .chain(self.versions.par_iter_mut_any())
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

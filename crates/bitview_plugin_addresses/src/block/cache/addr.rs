@@ -1,11 +1,11 @@
-use bitview_primitives::{ByAddrType, DecodedAddrState, FundedAddressData, TypeIndex};
+use bitview_primitives::{ByAddrType, DecodedAddrState, TypeIndex};
 use brk_error::Result;
 use brk_types::OutputType;
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrStateVecs, Changed, SHARDS, SourcedAddrData, shard_of},
+    addr::{AddrOrigin, AddrStateVecs, Changed, SHARDS, SourcedAddrData, shard_of},
     compute::AddrReaders,
 };
 
@@ -43,22 +43,23 @@ impl AddressKey {
         TypeIndex::from(self.0 as u32)
     }
 
-    fn load(self, vr: &AddrReaders, state: &AddrStateVecs) -> SourcedAddrData<FundedAddressData> {
+    fn load(self, vr: &AddrReaders, state: &AddrStateVecs) -> SourcedAddrData {
         let addr_type = self.addr_type();
         let type_index = self.type_index();
 
         match vr.state(state, addr_type, type_index).decode() {
-            DecodedAddrState::Funded(funded_index) => {
-                let funded_data = vr.funded_data(state, funded_index);
-                SourcedAddrData::FromFunded(funded_index, funded_data)
-            }
-            DecodedAddrState::ExtendedEmpty(empty_index) => {
-                let empty_data = vr.extended_empty_data(state, empty_index);
-                SourcedAddrData::FromExtendedEmpty(empty_index, empty_data.into())
-            }
-            DecodedAddrState::Empty(empty_data) => {
-                SourcedAddrData::FromInlineEmpty(empty_data.into())
-            }
+            DecodedAddrState::Funded(funded_index) => SourcedAddrData {
+                origin: AddrOrigin::Funded(funded_index),
+                data: vr.funded_data(state, funded_index),
+            },
+            DecodedAddrState::ExtendedEmpty(empty_index) => SourcedAddrData {
+                origin: AddrOrigin::ExtendedEmpty(empty_index),
+                data: vr.extended_empty_data(state, empty_index).into(),
+            },
+            DecodedAddrState::Empty(empty_data) => SourcedAddrData {
+                origin: AddrOrigin::InlineEmpty,
+                data: empty_data.into(),
+            },
         }
     }
 }
@@ -67,11 +68,11 @@ impl AddressKey {
 /// place: their UTXO count tells funded and empty apart at flush.
 #[derive(Default)]
 pub struct AddrCache {
-    shards: [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>>; SHARDS],
+    shards: [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData>>; SHARDS],
     /// Reusable scratch space for the unique addresses touched by one batch.
     addresses: Vec<AddressKey>,
     /// Reusable scratch space for their loaded sources (`None`: already cached).
-    sources: Vec<Option<SourcedAddrData<FundedAddressData>>>,
+    sources: Vec<Option<SourcedAddrData>>,
 }
 
 impl AddrCache {
@@ -131,12 +132,7 @@ impl AddrCache {
     /// Each shard's cached addresses per type, shard by shard, for processing them apart.
     pub fn shards_mut(
         &mut self,
-    ) -> impl Iterator<
-        Item = (
-            OutputType,
-            &mut FxHashMap<TypeIndex, SourcedAddrData<FundedAddressData>>,
-        ),
-    > {
+    ) -> impl Iterator<Item = (OutputType, &mut FxHashMap<TypeIndex, SourcedAddrData>)> {
         self.shards.iter_mut().flat_map(|shard| shard.iter_mut())
     }
 

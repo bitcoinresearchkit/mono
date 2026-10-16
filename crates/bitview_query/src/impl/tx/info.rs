@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
+use bitcoin::hex::DisplayHex;
 use brk_types::{Transaction, Txid};
 use serde_json::to_vec;
 
-use super::{TransactionSource, body::ResolvedTxBody};
+use super::body::ResolvedTxBody;
 use crate::{Query, RepresentationId, Result};
 
-/// Transaction JSON resolved to one exact in-memory or indexed source.
+/// A transaction resolved to one exact in-memory or indexed source, encoded as JSON, raw bytes
+/// or hex once a response needs it.
 pub struct ResolvedTransaction {
     source: ResolvedTxBody<Arc<Transaction>>,
 }
@@ -18,15 +20,13 @@ impl ResolvedTransaction {
 }
 
 impl Query {
-    /// Resolve transaction JSON once before an async response handoff.
+    /// Resolve a transaction once before an async response handoff.
     pub fn resolve_transaction(&self, txid: &Txid) -> Result<ResolvedTransaction> {
-        let source = match self.resolve_transaction_source(txid)? {
-            TransactionSource::Memory(transaction) => ResolvedTxBody::Memory {
-                value: transaction.tx,
-                hash: transaction.digest,
-            },
-            TransactionSource::Chain(transaction) => ResolvedTxBody::Chain(transaction),
-        };
+        let source = self.resolve_tx_body(txid, |mempool, tip| {
+            Ok(mempool
+                .transaction(txid, tip)?
+                .map(|transaction| (transaction.tx, transaction.digest)))
+        })?;
         Ok(ResolvedTransaction { source })
     }
 
@@ -43,5 +43,23 @@ impl Query {
                 Ok(bytes)
             }
         }
+    }
+
+    /// Read raw bytes without repeating the transaction-prefix lookup.
+    pub fn transaction_raw_resolved(&self, transaction: ResolvedTransaction) -> Result<Vec<u8>> {
+        match transaction.source {
+            ResolvedTxBody::Memory { value: tx, .. } => Ok(tx.encode_bytes()),
+            ResolvedTxBody::Chain(transaction) => {
+                let read = self.read_indexer()?;
+                let (_, index, _) = read.revalidate_confirmed_tx(transaction)?;
+                self.transaction_raw_by_index(index, read.pin())
+            }
+        }
+    }
+
+    /// Hex-encode raw bytes without repeating transaction resolution.
+    pub fn transaction_hex_resolved(&self, transaction: ResolvedTransaction) -> Result<String> {
+        self.transaction_raw_resolved(transaction)
+            .map(|bytes| bytes.to_lower_hex_string())
     }
 }

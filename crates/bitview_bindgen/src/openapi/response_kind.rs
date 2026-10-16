@@ -1,29 +1,28 @@
-use crate::openapi::TextSchema;
+use crate::Ty;
 
 /// 200-response body shape.
 #[derive(Debug, Clone)]
 pub enum ResponseKind {
-    /// JSON body, schema named (e.g. "Block").
-    Json(String),
-    /// `text/plain` body. `Some(schema)` carries a typed shape (e.g. "Height", "Hex");
-    /// `None` is the escape hatch for opaque text.
-    Text(Option<TextSchema>),
+    /// JSON body.
+    Json(Ty),
+    /// `text/plain` body: a named type (`Height`, `Txid`, `Hex`) or plain text (`Ty::String`).
+    /// `numeric` when the body is a number (`Height`), parsed as one.
+    Text { ty: Ty, numeric: bool },
     /// `application/octet-stream`.
     Binary,
 }
 
 impl ResponseKind {
-    /// Schema name, if the body is named (Json or typed Text).
-    pub(crate) fn schema_name(&self) -> Option<&str> {
+    /// The body's type; none for binary.
+    pub(crate) fn ty(&self) -> Option<&Ty> {
         match self {
-            Self::Json(s) => Some(s.as_str()),
-            Self::Text(Some(t)) => Some(t.name.as_str()),
-            _ => None,
+            Self::Json(ty) | Self::Text { ty, .. } => Some(ty),
+            Self::Binary => None,
         }
     }
 
     /// True when a typed text body needs numeric parsing (`int(...)` etc.).
     pub(crate) fn text_is_numeric(&self) -> bool {
-        matches!(self, Self::Text(Some(t)) if t.is_numeric)
+        matches!(self, Self::Text { numeric: true, .. })
     }
 }

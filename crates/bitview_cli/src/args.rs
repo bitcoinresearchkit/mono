@@ -3,6 +3,8 @@ use std::{
     io::{self, Read},
 };
 
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, PercentEncode, utf8_percent_encode};
+
 use crate::command::Command;
 
 pub const BASE_URL_ENV: &str = "BITVIEW_URL";
@@ -153,14 +155,14 @@ impl Args {
         for (parameter, value) in self.command.path_parameters.iter().zip(&self.path_values) {
             path = path.replace(
                 &format!("{{{}}}", parameter.api_name),
-                &encode_component(value),
+                &encode_component(value).to_string(),
             );
         }
         for (index, (name, value)) in self.query.iter().enumerate() {
             path.push(if index == 0 { '?' } else { '&' });
-            path.push_str(&encode_component(name));
+            path.extend(encode_component(name));
             path.push('=');
-            path.push_str(&encode_component(value));
+            path.extend(encode_component(value));
         }
         format!("{}{path}", self.base_url)
     }
@@ -193,16 +195,13 @@ fn read_body(path: &str) -> Result<Vec<u8>, String> {
     }
 }
 
-fn encode_component(value: &str) -> String {
-    use std::fmt::Write;
+/// Every byte but RFC 3986's unreserved characters is percent-encoded.
+const ESCAPED: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'~');
 
-    let mut encoded = String::with_capacity(value.len());
-    for byte in value.bytes() {
-        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-            encoded.push(char::from(byte));
-        } else {
-            write!(encoded, "%{byte:02X}").unwrap();
-        }
-    }
-    encoded
+fn encode_component(value: &str) -> PercentEncode<'_> {
+    utf8_percent_encode(value, ESCAPED)
 }

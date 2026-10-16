@@ -1,5 +1,5 @@
 use bitview_primitives::OHLCCents;
-use bitview_vecs::{AggFold, LazyAggVec};
+use bitview_vecs::AggFold;
 use brk_types::{Cents, Height};
 use rangeindex::RangeMap;
 use vecdb::{ReadableVec, VecIndex};
@@ -9,13 +9,10 @@ use crate::FIRST_PRICE_HEIGHT;
 /// Prices read at once for a group of adjacent candles.
 const BATCH_PRICES: usize = 1 << 16;
 
-/// OHLC candles derived directly from spot prices and period boundaries.
-pub(super) type LazyOhlcVec<I> = LazyAggVec<I, OHLCCents, Height, Cents, Ohlc>;
-
 /// Each period's candle from the spot prices between its boundaries; an empty period carries
 /// the preceding close. The zero placeholders before the first price are no prices: a period
 /// holding the first price starts its candle there, and one before it is a flat zero candle.
-pub(super) struct Ohlc;
+pub(crate) struct Ohlc;
 
 impl Ohlc {
     /// The first height of the candle `[first, end)` builds from: its first priced one, or `end`
@@ -94,26 +91,6 @@ impl AggFold<OHLCCents, Height, Cents> for Ohlc {
             index = group_end;
         }
         Ok(acc)
-    }
-
-    fn collect_one<MI: VecIndex, S: ReadableVec<Height, Cents> + ?Sized>(
-        source: &S,
-        mapping: &RangeMap<Height, MI>,
-        index: usize,
-    ) -> Option<OHLCCents> {
-        let boundaries = mapping.starts();
-        let price_len = source.visible_len();
-        let end = boundaries
-            .get(index + 1)
-            .map_or(price_len, |height| height.to_usize().min(price_len));
-        let first = Self::priced_first(boundaries.get(index)?.to_usize(), end);
-        let from = first.saturating_sub(1);
-        let prices = source.collect_range_dyn(from, end);
-        Some(Self::candle_from_prices(
-            first - from,
-            end.saturating_sub(from),
-            &prices,
-        ))
     }
 
     /// Each run of adjacent requested candles shares one read; gaps are skipped.

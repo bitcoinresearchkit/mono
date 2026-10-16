@@ -85,11 +85,11 @@ impl ComputePlugin for Vecs {
                     } else {
                         (Density::NAN, Density::NAN)
                     };
-                    CostBasisBlockData::from_percentiles(
-                        percentiles.next().expect("one result per age filter"),
+                    CostBasisBlockData {
+                        percentiles: percentiles.next().expect("one result per age filter"),
                         supply_density,
                         capital_density,
-                    )
+                    }
                 }));
                 for id in AgeAggregateId::ALL {
                     id.select_mut(&mut self.cohorts).push(id.select(row), spot);

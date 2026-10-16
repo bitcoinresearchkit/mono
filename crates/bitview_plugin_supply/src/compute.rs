@@ -24,7 +24,7 @@ impl ComputePlugin for Vecs {
         self.burned.compute_from_pair(
             indexer.compute_start().height,
             &price.spot.cents.height,
-            &outputs.value.op_return_value.block.sats,
+            &outputs.op_return_value.block.sats,
             &mining.rewards.unclaimed.block.sats,
             |height, op_return, unclaimed| {
                 let genesis = if height.to_usize() == 0 {

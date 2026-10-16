@@ -18,7 +18,7 @@ use super::{
     filter::BloomConstructionPolicy,
 };
 use crate::{
-    CompressionType, InternalValue, RecordBytes, Result, Slice, ValueType,
+    CompressionType, Config, InternalValue, RecordBytes, Result, Slice, ValueType,
     coding::Encode,
     table::{
         BlockHandle,
@@ -70,6 +70,28 @@ impl FixedLen {
     }
 }
 
+/// How a writer encodes its tables, resolved once per ingestion or compaction.
+#[derive(Clone, Copy)]
+pub struct WriterOptions {
+    restart_interval: u8,
+    partition_index: bool,
+    partition_filter: bool,
+    /// `None` builds no filter.
+    bloom: Option<BloomConstructionPolicy>,
+}
+
+impl WriterOptions {
+    /// The block policies of `level`, with `bloom` filters.
+    pub fn new(config: &Config, level: usize, bloom: Option<BloomConstructionPolicy>) -> Self {
+        Self {
+            restart_interval: config.data_block_restart_interval_policy.at_level(level),
+            partition_index: config.index_block_partitioning_policy.at_level(level),
+            partition_filter: config.filter_block_partitioning_policy.at_level(level),
+            bloom,
+        }
+    }
+}
+
 /// Serializes and compresses values into blocks and writes them to disk as a table
 pub struct Writer<K = Slice, V = Slice> {
     /// Table file path
@@ -96,9 +118,9 @@ pub struct Writer<K = Slice, V = Slice> {
     #[expect(clippy::struct_field_names)]
     index_writer: Box<dyn BlockIndexWriter>,
 
-    /// Writer of filter
+    /// Writer of filter, if any
     #[expect(clippy::struct_field_names)]
-    filter_writer: Box<dyn FilterWriter<K, V>>,
+    filter_writer: Option<Box<dyn FilterWriter<K, V>>>,
 
     /// Buffer of KVs
     chunk: Vec<InternalValue<K, V>>,
@@ -107,12 +129,10 @@ pub struct Writer<K = Slice, V = Slice> {
     chunk_value_len: FixedLen,
 
     pub meta: meta::Metadata,
-
-    bloom_policy: BloomConstructionPolicy,
 }
 
 impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
-    pub fn new(path: PathBuf, table_id: u32) -> Result<Self> {
+    pub fn new(path: PathBuf, table_id: u32, options: WriterOptions) -> Result<Self> {
         let writer = BufWriter::with_capacity(FILE_BUFFER_CAPACITY, File::create_new(&path)?);
         let mut writer = SfaWriter::from_writer(writer);
         writer.start("data")?;
@@ -122,12 +142,22 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
 
             table_id,
 
-            data_block_restart_interval: 16,
+            data_block_restart_interval: options.restart_interval,
 
             path: path::absolute(path)?,
 
-            index_writer: Box::new(FullIndexWriter::new()),
-            filter_writer: Box::new(FullFilterWriter::new(BloomConstructionPolicy::default())),
+            index_writer: if options.partition_index {
+                Box::new(index::PartitionedIndexWriter::new())
+            } else {
+                Box::new(FullIndexWriter::new())
+            },
+            filter_writer: options.bloom.map(|bloom| -> Box<dyn FilterWriter<K, V>> {
+                if options.partition_filter {
+                    Box::new(filter::PartitionedFilterWriter::new(bloom))
+                } else {
+                    Box::new(FullFilterWriter::new(bloom))
+                }
+            }),
 
             block_buffer: Vec::new(),
             restart_buffer: Vec::new(),
@@ -138,34 +168,7 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
             chunk_size: 0,
             chunk_key_len: FixedLen::default(),
             chunk_value_len: FixedLen::default(),
-
-            bloom_policy: BloomConstructionPolicy::default(),
         })
-    }
-
-    #[must_use]
-    pub fn use_partitioned_filter(mut self) -> Self {
-        self.filter_writer = Box::new(filter::PartitionedFilterWriter::new(self.bloom_policy));
-        self
-    }
-
-    #[must_use]
-    pub fn use_partitioned_index(mut self) -> Self {
-        self.index_writer = Box::new(index::PartitionedIndexWriter::new());
-        self
-    }
-
-    #[must_use]
-    pub fn use_data_block_restart_interval(mut self, interval: u8) -> Self {
-        self.data_block_restart_interval = interval;
-        self
-    }
-
-    #[must_use]
-    pub fn use_bloom_policy(mut self, bloom_policy: BloomConstructionPolicy) -> Self {
-        self.bloom_policy = bloom_policy;
-        self.filter_writer = self.filter_writer.set_filter_policy(bloom_policy);
-        self
     }
 
     /// Writes an item.
@@ -214,8 +217,8 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
             return Ok(());
         };
 
-        if self.bloom_policy.is_active() {
-            self.filter_writer.register_block(&self.chunk)?;
+        if let Some(filter_writer) = &mut self.filter_writer {
+            filter_writer.register_block(&self.chunk)?;
         }
 
         self.block_buffer.clear();
@@ -295,12 +298,14 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
         self.index_writer.finish(&mut self.file_writer)?;
 
         // Write filter
-        trace!("Finishing filter writer");
-        self.filter_writer.finish(
-            &mut self.file_writer,
-            #[expect(clippy::expect_used, reason = "the non-empty table has been flushed")]
-            self.meta.last_key.as_ref().expect("non-empty table"),
-        )?;
+        if let Some(filter_writer) = self.filter_writer {
+            trace!("Finishing filter writer");
+            filter_writer.finish(
+                &mut self.file_writer,
+                #[expect(clippy::expect_used, reason = "the non-empty table has been flushed")]
+                self.meta.last_key.as_ref().expect("non-empty table"),
+            )?;
+        }
 
         // Write metadata
         self.file_writer.start("meta")?;

@@ -40,23 +40,12 @@ where
                 None
             }
             Self::Sequential(changes) => {
-                let mut pending = None;
-                for change in changes {
+                Item::reduce(changes.iter().filter(|change| change.key() == key)).map(|change| {
                     match change {
-                        Item::Value {
-                            key: change_key,
-                            value,
-                        } if change_key == key => pending = Some(Some(value)),
-                        Item::Tomb(change_key) if change_key == key => {
-                            pending = match pending {
-                                Some(Some(_)) => None,
-                                _ => Some(None),
-                            };
-                        }
-                        _ => {}
+                        Item::Value { value, .. } => Some(value),
+                        Item::Tomb(_) => None,
                     }
-                }
-                pending
+                })
             }
         }
     }

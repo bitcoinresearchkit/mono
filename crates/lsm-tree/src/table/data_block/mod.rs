@@ -1,13 +1,14 @@
 use std::{
     cmp::Ordering,
-    io::{Cursor, Seek, Write},
+    io::{Cursor, Write},
 };
 
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use varint_rs::{VarintReader, VarintWriter};
 
 use super::block::{
-    Block, Decodable, Decoder, Encodable, Encoder, ParsedItem, TRAILER_START_MARKER,
+    Block, Decodable, Decoder, Encodable, Encoder, ParsedItem, TRAILER_START_MARKER, read_key,
+    skip_field,
 };
 use crate::{
     InternalValue, RecordBytes, Result, ValueType, point_read_value::PointReadValue,
@@ -24,6 +25,39 @@ mod parsed_item;
 pub use iter::Iter;
 pub use parsed_item::DataBlockParsedItem;
 
+/// Reads a value's length (unless fixed) and skips the value; tombstones store none.
+#[inline]
+fn read_value(
+    reader: &mut Cursor<&[u8]>,
+    offset: usize,
+    value_type: ValueType,
+    fixed_value_len: Option<u32>,
+) -> Option<SliceIndexes> {
+    (!value_type.is_tombstone()).then(|| {
+        let len = fixed_value_len.unwrap_or_else(|| unwrap!(reader.read_u32_varint()));
+        skip_field(reader, offset, len as usize)
+    })
+}
+
+/// Writes a value's length (unless fixed) and bytes; tombstones store none.
+#[inline]
+fn write_value<K: RecordBytes, V: RecordBytes, W: Write>(
+    item: &InternalValue<K, V>,
+    writer: &mut W,
+    fixed_value_len: Option<u32>,
+) -> Result<()> {
+    if item.is_tombstone() {
+        return Ok(());
+    }
+    let value = item.value.as_ref();
+    if fixed_value_len.is_none() {
+        #[expect(clippy::cast_possible_truncation, reason = "values are u32 length max")]
+        writer.write_u32_varint(value.len() as u32)?;
+    }
+    writer.write_all(value)?;
+    Ok(())
+}
+
 impl Decodable<DataBlockParsedItem> for InternalValue {
     fn parse_restart_key<'a>(
         reader: &mut Cursor<&[u8]>,
@@ -39,24 +73,9 @@ impl Decodable<DataBlockParsedItem> for InternalValue {
         }
 
         let seqno = unwrap!(reader.read_u64_varint());
+        let SliceIndexes(start, end) = read_key(reader, offset, fixed_key_len);
 
-        let key_len: usize =
-            fixed_key_len.map_or_else(|| unwrap!(reader.read_u16_varint()).into(), usize::from);
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks tend to be some megabytes in size at most, so position should fit into usize"
-        )]
-        let key_start = offset + reader.position() as usize;
-        #[expect(
-            clippy::cast_possible_wrap,
-            reason = "key_len is bounded by u16::MAX, no wrap expected"
-        )]
-        let key_len_i64 = key_len as i64;
-        unwrap!(reader.seek_relative(key_len_i64));
-
-        let key = data.get(key_start..(key_start + key_len));
-
-        key.map(|k| (k, seqno))
+        data.get(start..end).map(|k| (k, seqno))
     }
 
     fn parse_full(
@@ -69,54 +88,18 @@ impl Decodable<DataBlockParsedItem> for InternalValue {
         if value_type == TRAILER_START_MARKER {
             return None;
         }
-
-        #[expect(clippy::expect_used, reason = "value_type is expected to be valid")]
-        let value_type = ValueType::try_from(value_type).expect("should be valid value type");
+        let value_type = unwrap!(ValueType::try_from(value_type));
 
         let seqno = unwrap!(reader.read_u64_varint());
-
-        let key_len: usize =
-            fixed_key_len.map_or_else(|| unwrap!(reader.read_u16_varint()).into(), usize::from);
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks tend to be some megabytes in size at most, so position should fit into usize"
-        )]
-        let key_start = offset + reader.position() as usize;
-        #[expect(
-            clippy::cast_possible_wrap,
-            reason = "key_len is bounded by u16::MAX, no wrap expected"
-        )]
-        let key_len_i64 = key_len as i64;
-        unwrap!(reader.seek_relative(key_len_i64));
-
-        let is_value = !value_type.is_tombstone();
-
-        let val_len: usize = if is_value {
-            fixed_value_len.map_or_else(
-                || unwrap!(reader.read_u32_varint()) as usize,
-                |len| len as usize,
-            )
-        } else {
-            0
-        };
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks tend to be some megabytes in size at most, so position should fit into usize"
-        )]
-        let val_offset = offset + reader.position() as usize;
-        #[expect(
-            clippy::cast_possible_wrap,
-            reason = "val_len is bounded by u32::MAX, no wrap expected"
-        )]
-        let val_len_i64 = val_len as i64;
-        unwrap!(reader.seek_relative(val_len_i64));
+        let key = read_key(reader, offset, fixed_key_len);
+        let value = read_value(reader, offset, value_type, fixed_value_len);
 
         Some(DataBlockParsedItem {
             value_type,
             seqno,
             prefix: None,
-            key: SliceIndexes(key_start, key_start + key_len),
-            value: is_value.then_some(SliceIndexes(val_offset, val_offset + val_len)),
+            key,
+            value,
         })
     }
 
@@ -140,41 +123,8 @@ impl Decodable<DataBlockParsedItem> for InternalValue {
             || unwrap!(reader.read_u16_varint()).into(),
             |len| usize::from(len) - shared_prefix_len,
         );
-
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "truncation is not expected to happen"
-        )]
-        let key_offset = offset + reader.position() as usize;
-
-        #[expect(
-            clippy::cast_possible_wrap,
-            reason = "rest_key_len is bounded by u16::MAX, no wrap expected"
-        )]
-        let rest_key_len_i64 = rest_key_len as i64;
-        unwrap!(reader.seek_relative(rest_key_len_i64));
-
-        let is_value = !value_type.is_tombstone();
-
-        let val_len: usize = if is_value {
-            fixed_value_len.map_or_else(
-                || unwrap!(reader.read_u32_varint()) as usize,
-                |len| len as usize,
-            )
-        } else {
-            0
-        };
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "truncation is not expected to happen"
-        )]
-        let val_offset = offset + reader.position() as usize;
-        #[expect(
-            clippy::cast_possible_wrap,
-            reason = "val_len is bounded by u16::MAX, no wrap expected"
-        )]
-        let val_len_i64 = val_len as i64;
-        unwrap!(reader.seek_relative(val_len_i64));
+        let key = skip_field(reader, offset, rest_key_len);
+        let value = read_value(reader, offset, value_type, fixed_value_len);
 
         Some(DataBlockParsedItem {
             value_type,
@@ -183,8 +133,8 @@ impl Decodable<DataBlockParsedItem> for InternalValue {
                 base_key_offset,
                 base_key_offset + shared_prefix_len,
             )),
-            key: SliceIndexes(key_offset, key_offset + rest_key_len),
-            value: is_value.then_some(SliceIndexes(val_offset, val_offset + val_len)),
+            key,
+            value,
         })
     }
 }
@@ -210,16 +160,7 @@ impl<K: RecordBytes, V: RecordBytes> Encodable<()> for InternalValue<K, V> {
         }
         writer.write_all(self.key.user_key.as_ref())?; // 4
 
-        // NOTE: Only write value len + value if we are actually a value
-        if !self.is_tombstone() {
-            if fixed_value_len.is_none() {
-                #[expect(clippy::cast_possible_truncation, reason = "values are u32 length max")]
-                writer.write_u32_varint(self.value.as_ref().len() as u32)?; // 5
-            }
-            writer.write_all(self.value.as_ref())?; // 6
-        }
-
-        Ok(())
+        write_value(self, writer, fixed_value_len) // 5, 6
     }
 
     fn encode_truncated_into<W: Write>(
@@ -262,16 +203,7 @@ impl<K: RecordBytes, V: RecordBytes> Encodable<()> for InternalValue<K, V> {
 
         writer.write_all(truncated_user_key)?; // 5
 
-        // NOTE: Only write value len + value if we are actually a value
-        if !self.is_tombstone() {
-            if fixed_value_len.is_none() {
-                #[expect(clippy::cast_possible_truncation, reason = "values are u32 length max")]
-                writer.write_u32_varint(self.value.as_ref().len() as u32)?; // 6
-            }
-            writer.write_all(self.value.as_ref())?; // 7
-        }
-
-        Ok(())
+        write_value(self, writer, fixed_value_len) // 6, 7
     }
 
     fn key(&self) -> &[u8] {

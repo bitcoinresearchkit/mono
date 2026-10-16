@@ -43,7 +43,10 @@ where
     /// Writes an update checkpoint, saving changes before overwriting values.
     /// Compute loops should use `stamped_write_maybe_with_changes(stamp, false)`
     /// for periodic writes and save rollback history only at the final update.
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()>;
+    #[inline]
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+        self.any_stamped_write_maybe_with_changes(stamp, true)
+    }
 
     /// Rolls back the most recent change set.
     fn rollback(&mut self) -> Result<()>;
@@ -159,26 +162,6 @@ where
     #[inline]
     fn batch_limit_reached(&self) -> bool {
         self.pushed_len() * Self::SIZE_OF_T >= MAX_CACHE_SIZE
-    }
-
-    /// Extends the vector to `target_len`, filling with `value`.
-    /// Batches writes in ~1GB chunks to avoid memory explosion.
-    fn fill_to(&mut self, target_len: usize, value: T) -> Result<()>
-    where
-        T: Copy,
-    {
-        let batch_count = MAX_CACHE_SIZE / Self::SIZE_OF_T.max(1);
-
-        while self.len() < target_len {
-            let count = (target_len - self.len()).min(batch_count);
-            for _ in 0..count {
-                self.push(value);
-            }
-            if self.batch_limit_reached() {
-                self.write()?;
-            }
-        }
-        Ok(())
     }
 
     /// Flushes with the given stamp, optionally saving changes for rollback.

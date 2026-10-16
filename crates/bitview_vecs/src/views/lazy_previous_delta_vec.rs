@@ -1,4 +1,4 @@
-use std::{convert::Infallible, mem, sync::Arc};
+use std::{mem, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -150,19 +150,6 @@ where
         self.for_each_chunk_at(from, to, &mut |_, values| {
             values.iter().cloned().for_each(&mut *f);
         });
-    }
-
-    fn fold_range_at<B, G: FnMut(B, S) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut f: G,
-    ) -> B {
-        let Ok(accumulator) = self.try_fold_range_at(from, to, init, |accumulator, value| {
-            Ok::<_, Infallible>(f(accumulator, value))
-        });
-        accumulator
     }
 
     fn try_fold_range_at<B, E, G: FnMut(B, S) -> Result<B, E>>(

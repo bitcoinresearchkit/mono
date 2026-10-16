@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use base64::{Engine, engine::general_purpose::STANDARD};
 #[cfg(feature = "async")]
 use brk_error::Error;
 
@@ -31,4 +32,9 @@ pub(crate) fn read_cookie(path: &Path) -> io::Result<String> {
     fs::read_to_string(path)
         .map(|cookie| cookie.trim().to_owned())
         .map_err(|error| cookie_io_error(path, error))
+}
+
+/// The `Authorization` header value for `user:password` credentials (a cookie holds them as is).
+pub(crate) fn basic(credentials: &str) -> String {
+    format!("Basic {}", STANDARD.encode(credentials))
 }

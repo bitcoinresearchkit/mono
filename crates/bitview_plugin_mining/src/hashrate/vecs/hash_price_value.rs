@@ -1,9 +1,12 @@
-use bitview_compute::ComputedVecValue;
+use bitview_compute::{ComputeRollingStats, ComputedVecValue};
 use bitview_primitives::PartsPerMillionSigned32;
 use bitview_traversable::Traversable;
-use bitview_vecs::{PerBlock, PercentPerBlock};
+use bitview_vecs::{PerBlock, PercentPerBlock, ops::RelativeChange};
+use brk_error::Result;
+use brk_exit::Exit;
+use brk_types::Height;
 use schemars::JsonSchema;
-use vecdb::{Rw, StorageMode};
+use vecdb::{ComputeVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct HashPriceValueVecs<T, M: StorageMode = Rw>
@@ -19,4 +22,30 @@ where
     /// low, minus one. Zero marks the historical floor and positive values
     /// measure the rebound above it. Undefined (null) before a nonzero low exists.
     pub rebound: PercentPerBlock<PartsPerMillionSigned32, M>,
+}
+
+impl<T> HashPriceValueVecs<T>
+where
+    T: ComputedVecValue + JsonSchema + Ord + Default + Into<f64>,
+{
+    /// The running all-time low of `block`, then `block`'s rebound above it.
+    pub(crate) fn compute_floor_and_rebound(
+        &mut self,
+        max_from: Height,
+        exit: &Exit,
+    ) -> Result<()> {
+        self.atl
+            .height
+            .compute_all_time_low::<T>(max_from, &self.block.height, exit)?;
+        self.rebound
+            .fixed
+            .height
+            .compute_binary::<T, T, RelativeChange<PartsPerMillionSigned32>>(
+                max_from,
+                &self.block.height,
+                &self.atl.height,
+                exit,
+            )?;
+        Ok(())
+    }
 }

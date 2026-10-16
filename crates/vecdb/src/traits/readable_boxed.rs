@@ -1,10 +1,12 @@
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 
 use crate::{AnyVec, ReadableCloneableVec, ReadableVec, TypedVec, VecIndex, VecValue, Version};
 
 use super::chunk_folds;
 
-pub struct ReadableBoxedVec<I, T>(Box<dyn ReadableCloneableVec<I, T>>)
+/// A type-erased read-only reader. Clones share it: readers hold no per-clone state.
+#[derive(Clone)]
+pub struct ReadableBoxedVec<I, T>(Arc<dyn ReadableCloneableVec<I, T>>)
 where
     I: VecIndex,
     T: VecValue;
@@ -14,18 +16,17 @@ where
     I: VecIndex,
     T: VecValue,
 {
+    /// Erases `inner`'s read-only form: a stored writer converts to its read-only clone, so no
+    /// erased reader sees (or shares) a writer's unsaved values.
+    #[inline]
     pub fn new(inner: impl ReadableCloneableVec<I, T> + 'static) -> Self {
-        Self(Box::new(inner))
+        inner.into_read_only_boxed()
     }
-}
 
-impl<I, T> Clone for ReadableBoxedVec<I, T>
-where
-    I: VecIndex,
-    T: VecValue,
-{
-    fn clone(&self) -> Self {
-        self.0.read_only_boxed_clone()
+    /// Erases a reader that is read-only already.
+    #[inline]
+    pub(crate) fn from_read_only(inner: impl ReadableCloneableVec<I, T> + 'static) -> Self {
+        Self(Arc::new(inner))
     }
 }
 

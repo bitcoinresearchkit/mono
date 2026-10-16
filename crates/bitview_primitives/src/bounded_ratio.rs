@@ -1,14 +1,11 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
-
 use derive_more::Deref;
-use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::unlikely;
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// A ratio between 0 and 1.
 ///
@@ -98,37 +95,4 @@ impl From<BoundedRatio> for f32 {
     }
 }
 
-impl Display for BoundedRatio {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let mut buf = Buffer::new();
-        f.write_str(buf.format(self.0))
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for BoundedRatio {
-    const UNDEFINED: bool = true;
-
-    #[inline]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut value = Buffer::new();
-        buf.extend_from_slice(value.format(self.0).as_bytes());
-    }
-
-    #[inline]
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        if unlikely(self.is_nan()) {
-            buf.extend_from_slice(b"null");
-        } else {
-            self.write_to(buf);
-        }
-    }
-
-    /// Undefined: an empty CSV cell (JSON writes `null`).
-    #[inline(always)]
-    fn fmt_csv(&self, buf: &mut Vec<u8>) {
-        if !unlikely(self.is_nan()) {
-            self.write_to(buf);
-        }
-    }
-}
+brk_types::impl_int_format!(BoundedRatio, nullable);

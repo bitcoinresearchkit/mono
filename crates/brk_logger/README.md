@@ -11,7 +11,7 @@ Drop-in logging initialization that silences noisy dependencies (bitcoin, fjall,
 - **Dual output**: Console (colorized) + optional file logging with daily rotation
 - **Per-level files**: One combined log plus one file per tracing level (error/warn/info/debug/trace)
 - **Per-level rate limit**: 100 writes/sec per level so a chatty level can't starve the others; combined file mirrors what the per-level files accept
-- **Auto-cleanup**: `*.txt` files older than 7 days are pruned on startup
+- **Auto-cleanup**: log files older than 7 days are pruned on startup
 - **Log hooks**: Register callbacks to intercept log messages programmatically
 - **Sensible defaults**: Pre-configured filters silence common verbose libraries,
   including RMCP transport lifecycle messages

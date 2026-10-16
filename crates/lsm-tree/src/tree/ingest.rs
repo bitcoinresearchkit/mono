@@ -1,9 +1,8 @@
 use crate::{
     InternalValue, RecordBytes, Result, Slice, Table, Tree, ValueType,
-    config::{BloomConstructionPolicy, FilterPolicyEntry},
     file::TABLES_FOLDER,
     key::InternalKey,
-    table::multi_writer::MultiWriter,
+    table::{multi_writer::MultiWriter, writer::WriterOptions},
 };
 
 // Use L1 encoding policies, then publish completed tables into L0.
@@ -28,37 +27,16 @@ impl<'a, K: RecordBytes, V: RecordBytes> Ingestion<'a, K, V> {
     /// Returns an error when the table writer cannot be created.
     pub fn new(tree: &'a Tree) -> Result<Self> {
         let config = &tree.config;
-        let mut writer = MultiWriter::new(
+        let writer = MultiWriter::new(
             config.path.join(TABLES_FOLDER),
             tree.table_id_counter.clone(),
             64 * 1_024 * 1_024,
-        )?
-        .use_bloom_policy(
-            if let FilterPolicyEntry::Bloom(policy) = config.filter_policy.at_level(ENCODING_LEVEL)
-            {
-                policy
-            } else {
-                BloomConstructionPolicy::BitsPerKey(0.0)
-            },
-        )
-        .use_data_block_restart_interval(
-            config
-                .data_block_restart_interval_policy
-                .at_level(ENCODING_LEVEL),
-        );
-
-        if config
-            .index_block_partitioning_policy
-            .at_level(ENCODING_LEVEL)
-        {
-            writer = writer.use_partitioned_index();
-        }
-        if config
-            .filter_block_partitioning_policy
-            .at_level(ENCODING_LEVEL)
-        {
-            writer = writer.use_partitioned_filter();
-        }
+            WriterOptions::new(
+                config,
+                ENCODING_LEVEL,
+                config.filter_policy.bloom_at(ENCODING_LEVEL),
+            ),
+        )?;
 
         Ok(Self {
             tree,

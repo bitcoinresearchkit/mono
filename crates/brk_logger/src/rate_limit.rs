@@ -6,7 +6,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use jiff::{Timestamp, tz};
+use jiff::{Timestamp, civil::Date, tz};
 use tracing::{Level, Metadata};
 use tracing_subscriber::fmt::MakeWriter;
 
@@ -15,7 +15,8 @@ pub use writer::FileWriter;
 
 const MAX_WRITES_PER_SEC: u64 = 100;
 const LEVELS: usize = 5;
-const LEVEL_SUFFIX: [&str; LEVELS] = ["error", "warn", "info", "debug", "trace"];
+/// Level names, as file suffixes and in log lines.
+pub const LEVEL_NAMES: [&str; LEVELS] = ["error", "warn", "info", "debug", "trace"];
 
 const fn level_index(level: Level) -> usize {
     match level {
@@ -27,32 +28,16 @@ const fn level_index(level: Level) -> usize {
     }
 }
 
-/// Returns true if `name` matches a file produced by this writer:
-/// `YYYY-MM-DD.txt` or `YYYY-MM-DD_<level>.txt`.
-pub fn is_log_file(name: &str) -> bool {
-    let Some(stem) = name.strip_suffix(".txt") else {
-        return false;
-    };
-    let Some((date, rest)) = stem.split_at_checked(10) else {
-        return false;
-    };
-    if !is_date_yyyymmdd(date) {
-        return false;
-    }
-    rest.is_empty()
+/// The day of a file this writer produces, `YYYY-MM-DD.txt` (combined) or
+/// `YYYY-MM-DD_<level>.txt`: `Some("YYYY-MM-DD")`, `None` for any other name.
+pub fn log_file_date(name: &str) -> Option<&str> {
+    let (date, rest) = name.strip_suffix(".txt")?.split_at_checked(10)?;
+    date.parse::<Date>().ok()?;
+    (rest.is_empty()
         || rest
             .strip_prefix('_')
-            .is_some_and(|s| LEVEL_SUFFIX.contains(&s))
-}
-
-fn is_date_yyyymmdd(s: &str) -> bool {
-    let b = s.as_bytes();
-    b.len() == 10
-        && b[0..4].iter().all(u8::is_ascii_digit)
-        && b[4] == b'-'
-        && b[5..7].iter().all(u8::is_ascii_digit)
-        && b[7] == b'-'
-        && b[8..10].iter().all(u8::is_ascii_digit)
+            .is_some_and(|level| LEVEL_NAMES.contains(&level)))
+    .then_some(date)
 }
 
 struct Cached {

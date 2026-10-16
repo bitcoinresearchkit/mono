@@ -68,10 +68,6 @@ impl Weight {
         )
     }
 
-    pub fn to_vbytes_ceil(&self) -> u64 {
-        self.0.div_ceil(4)
-    }
-
     /// Block fullness as a ratio (0–1+) of `MAX_BLOCK`.
     #[inline]
     pub fn fullness(&self) -> f32 {

@@ -1,8 +1,10 @@
 use std::{future::Future, path::PathBuf, sync::Arc, time::Instant};
 
+#[cfg(feature = "chain")]
+use axum::http::{HeaderValue, header};
 use axum::{
     body::{Body, Bytes},
-    http::{HeaderMap, HeaderValue, Response, header},
+    http::{HeaderMap, Response},
     response::IntoResponse,
 };
 #[cfg(feature = "chain")]
@@ -13,7 +15,9 @@ use brk_rpc::AsyncClient;
 use brk_types::Version;
 use derive_more::Deref;
 use jiff::Timestamp;
+#[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
 use serde::Serialize;
+#[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
@@ -180,55 +184,6 @@ impl AppState {
         }
     }
 
-    fn respond_immediate(
-        &self,
-        headers: &HeaderMap,
-        params: CacheParams,
-        content_type: &'static str,
-        bytes: impl FnOnce() -> Bytes,
-    ) -> Response<Body> {
-        if params.matches_etag(headers) {
-            return ResponseExtended::new_not_modified(&params);
-        }
-
-        Self::assemble_response(params, bytes(), |headers| {
-            headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
-        })
-    }
-
-    /// Immediate JSON response whose value is only built after ETag validation.
-    pub fn respond_json_immediate<T: Serialize>(
-        &self,
-        headers: &HeaderMap,
-        params: CacheParams,
-        value: impl FnOnce() -> T,
-    ) -> Response<Body> {
-        self.respond_immediate(headers, params, "application/json", || {
-            Bytes::from(to_vec(&value()).unwrap())
-        })
-    }
-
-    /// Immediate JSON response for values already resolved during preflight.
-    pub fn respond_json_value<T: Serialize>(
-        &self,
-        headers: &HeaderMap,
-        params: CacheParams,
-        value: T,
-    ) -> Response<Body> {
-        self.respond_json_immediate(headers, params, || value)
-    }
-
-    /// Immediate text response for values already resolved during preflight.
-    #[cfg(feature = "chain")]
-    pub fn respond_text_value(
-        &self,
-        headers: &HeaderMap,
-        params: CacheParams,
-        value: String,
-    ) -> Response<Body> {
-        self.respond_immediate(headers, params, "text/plain", || Bytes::from(value))
-    }
-
     /// Immediate JSON response whose validator is derived from its exact bytes.
     #[cfg(feature = "chain")]
     pub fn respond_json_content_value<T: Serialize>(
@@ -326,12 +281,7 @@ impl AppState {
     }
 
     pub fn respond_json_content_bytes(&self, headers: &HeaderMap, bytes: Bytes) -> Response<Body> {
-        let hash = RepresentationId::content_hash(&bytes);
-        self.respond_immediate(
-            headers,
-            CacheParams::live_hash(hash),
-            "application/json",
-            || bytes,
-        )
+        let params = CacheParams::live_hash(RepresentationId::content_hash(&bytes));
+        Response::cached_bytes(headers, &params, "application/json", || bytes)
     }
 }

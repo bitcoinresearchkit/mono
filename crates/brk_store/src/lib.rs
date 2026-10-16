@@ -122,11 +122,6 @@ where
     }
 
     #[inline]
-    pub fn is_empty(&self) -> Result<bool> {
-        self.keyspace.is_empty().map_err(|e| e.into())
-    }
-
-    #[inline]
     pub fn insert(&mut self, key: K, value: V) {
         self.pending.insert(key, value);
     }
@@ -134,27 +129,6 @@ where
     #[inline]
     pub fn remove(&mut self, key: K) {
         self.pending.remove(key);
-    }
-
-    /// Takes buffered puts/dels and returns a closure that ingests them into the keyspace.
-    /// The store is left with empty buffers, ready for the next batch. A successful ingestion
-    /// persists and publishes the records: it writes immutable tables and its manifest.
-    pub fn take_pending_ingest(&mut self) -> Option<PendingIngest>
-    where
-        K: Send + 'static,
-        V: Send + 'static,
-    {
-        let pending = self.pending.take();
-
-        if pending.is_empty() {
-            return None;
-        }
-
-        let keyspace = self.keyspace.clone();
-
-        Some(PendingIngest::new(move || {
-            Self::ingest_owned(&keyspace, pending)
-        }))
     }
 
     /// Pins the ingested records for later reads. Call it with nothing pending: the view holds
@@ -243,28 +217,14 @@ where
         // Equal-key operations must retain their arrival order.
         changes.sort_by(|left, right| left.key().cmp(right.key()));
 
-        let mut changes = changes.into_iter().peekable();
-        let mut pending = None;
         let mut ingestion = keyspace.start_ingestion_as::<K::Bytes, V::Bytes>()?;
-        while let Some(change) = changes.next() {
-            let same_key_follows = changes
-                .peek()
-                .is_some_and(|next| next.key() == change.key());
-            change.apply_to(&mut pending);
-
-            if same_key_follows {
-                continue;
-            }
-
-            if let Some(pending) = pending.take() {
-                match pending {
-                    Item::Value { key, value } => {
-                        ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
-                    }
-                    Item::Tomb(key) => {
-                        ingestion.write_weak_tombstone(key.to_store_bytes())?;
-                    }
+        for same_key in changes.chunk_by(|left, right| left.key() == right.key()) {
+            match Item::reduce(same_key) {
+                Some(Item::Value { key, value }) => {
+                    ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
                 }
+                Some(Item::Tomb(key)) => ingestion.write_weak_tombstone(key.to_store_bytes())?,
+                None => {}
             }
         }
 
@@ -313,21 +273,27 @@ where
 
 impl<K, V> AnyStore for Store<K, V>
 where
-    K: StoreValue + Ord + Hash,
-    V: StoreValue,
+    K: StoreValue + Ord + Hash + Send + 'static,
+    V: StoreValue + Send + 'static,
     K::Bytes: RecordBytes,
     V::Bytes: RecordBytes,
     Self: Send + Sync,
 {
-    fn ingest_pending(&mut self) -> Result<()> {
+    fn is_empty(&self) -> Result<bool> {
+        self.keyspace.is_empty().map_err(|e| e.into())
+    }
+
+    fn take_pending_ingest(&mut self) -> Option<PendingIngest> {
         let pending = self.pending.take();
 
         if pending.is_empty() {
-            return Ok(());
+            return None;
         }
 
-        Self::ingest_owned(&self.keyspace, pending)?;
+        let keyspace = self.keyspace.clone();
 
-        Ok(())
+        Some(PendingIngest::new(move || {
+            Self::ingest_owned(&keyspace, pending)
+        }))
     }
 }

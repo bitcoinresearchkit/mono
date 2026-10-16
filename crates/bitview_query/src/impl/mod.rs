@@ -39,7 +39,7 @@ pub use mining::ResolvedPoolBlocks;
 #[cfg(feature = "series")]
 pub use series::{ResolvedQuery, SeriesAnchor, SeriesRead};
 #[cfg(feature = "chain")]
-pub use tx::{ResolvedConfirmedTx, ResolvedRawTransaction, ResolvedTransaction};
+pub use tx::{ResolvedConfirmedTx, ResolvedTransaction};
 #[cfg(feature = "chain")]
 pub use utxo_set::UtxoSetPoint;
 

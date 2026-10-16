@@ -5,7 +5,8 @@ use std::{backtrace::Backtrace, env, fs, io, panic, path::Path, time::Duration};
 
 use format::Formatter;
 use hook::HookLayer;
-use rate_limit::{RateLimitedFile, is_log_file};
+use rate_limit::RateLimitedFile;
+pub use rate_limit::{LEVEL_NAMES, log_file_date};
 use tracing::{Event, Level, error, field};
 use tracing_log::LogTracer;
 use tracing_subscriber::{
@@ -24,8 +25,8 @@ const MAX_LOG_AGE_DAYS: u64 = 7;
 ///
 /// If `dir` is `Some`, also writes daily log files to that directory:
 /// `YYYY-MM-DD.txt` for the combined log and `YYYY-MM-DD_<level>.txt` for each
-/// tracing level. The directory is created if it does not exist, and any
-/// `*.txt` file older than 7 days is pruned on startup.
+/// tracing level. The directory is created if it does not exist, and those
+/// files older than 7 days are pruned on startup.
 pub fn init(dir: Option<&Path>) -> io::Result<()> {
     #[cfg(debug_assertions)]
     const DEFAULT_LEVEL: &str = "debug";
@@ -112,7 +113,7 @@ fn cleanup_old_logs(dir: &Path) {
         let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
             continue;
         };
-        if !is_log_file(name) {
+        if log_file_date(name).is_none() {
             continue;
         }
 

@@ -8,19 +8,17 @@ mod import;
 mod ohlc;
 mod oracle_feed;
 mod split;
-mod spot;
 
 /// First height with a nonzero spot price; earlier heights are zero.
 pub use brk_oracle::FIRST_PRICE_HEIGHT;
 pub use dependencies::Dependencies;
 pub use has::HasPrice;
 pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
-pub use spot::SpotPrice;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Float64;
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyPerBlock;
+use bitview_vecs::{LazyPerBlock, PerBlock, Price};
 use brk_oracle::{Oracle, VERSION as ORACLE_VERSION};
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, PcoVec, Rw, StorageMode};
@@ -58,7 +56,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// before the first exchange price (block 74,641, August 2010), and so are USD
     /// values derived from it. At time-period indexes, the value is taken at the
     /// period's final block; null when the period has no block.
-    pub spot: SpotPrice<M>,
+    pub spot: Price<PerBlock<Cents, M>>,
     /// Whole satoshis one US dollar buys at the spot price, rounded down: 100,000,000 divided
     /// by the price in USD per BTC. 0 while the spot price is zero.
     sats_per_dollar: LazyPerBlock<Sats, Cents>,

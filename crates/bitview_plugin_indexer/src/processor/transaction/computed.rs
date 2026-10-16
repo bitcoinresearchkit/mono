@@ -53,6 +53,11 @@ impl ComputedTx<'_> {
     }
 
     #[inline]
+    pub fn outputs_mut<'a, T>(&self, outputs: &'a mut [T]) -> &'a mut [T] {
+        &mut outputs[self.output_offset..self.output_offset + self.tx.output.len()]
+    }
+
+    #[inline]
     pub fn txout_offset(&self, vout: u32) -> usize {
         self.output_offset + vout as usize
     }

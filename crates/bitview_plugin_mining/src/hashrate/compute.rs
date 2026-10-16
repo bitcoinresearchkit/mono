@@ -4,7 +4,6 @@ use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::FIRST_PRICE_HEIGHT;
 use bitview_primitives::{HashPrice, HashValue, Hashrate, PartsPerMillionSigned32};
-use bitview_vecs::ops::RelativeChange;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Dollars, Height, Sats, TARGET_BLOCKS_PER_DAY_F64};
@@ -117,39 +116,8 @@ impl Vecs {
             exit,
         )?;
 
-        self.price.atl.height.compute_all_time_low(
-            starting_height,
-            &self.price.block.height,
-            exit,
-        )?;
-        self.value.atl.height.compute_all_time_low(
-            starting_height,
-            &self.value.block.height,
-            exit,
-        )?;
-
         self.price
-            .rebound
-            .fixed
-            .height
-            .compute_binary::<HashPrice, HashPrice, RelativeChange<PartsPerMillionSigned32>>(
-                starting_height,
-                &self.price.block.height,
-                &self.price.atl.height,
-                exit,
-            )?;
-
-        self.value
-            .rebound
-            .fixed
-            .height
-            .compute_binary::<HashValue, HashValue, RelativeChange<PartsPerMillionSigned32>>(
-                starting_height,
-                &self.value.block.height,
-                &self.value.atl.height,
-                exit,
-            )?;
-
-        Ok(())
+            .compute_floor_and_rebound(starting_height, exit)?;
+        self.value.compute_floor_and_rebound(starting_height, exit)
     }
 }

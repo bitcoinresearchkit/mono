@@ -1,8 +1,8 @@
-use std::{sync::Arc, time::Instant};
+use std::time::Instant;
 
-use brk_types::{FeeRate, Transaction, Txid};
+use brk_types::{FeeRate, Txid};
 
-use crate::{TxRemoval, state::TxEntry};
+use crate::{TxRemoval, stores::tx_store::TxRecord};
 
 /// A buried mempool tx, retained for reappearance detection and
 /// post-mine analytics. `chunk_rate` is the linearized chunk feerate at
@@ -11,10 +11,7 @@ use crate::{TxRemoval, state::TxEntry};
 /// package-effective rate, not a misleading isolated `fee/vsize`.
 #[derive(Clone)]
 pub struct TxTombstone {
-    pub tx: Arc<Transaction>,
-    pub entry: TxEntry,
-    /// The body's [`crate::stores::tx_store::TxRecord::digest`].
-    pub digest: u64,
+    pub record: TxRecord,
     pub chunk_rate: FeeRate,
     pub removal: TxRemoval,
     pub removed_at: Instant,

@@ -11,7 +11,7 @@ use oas3::Spec;
 use serde_json::Value;
 
 use super::write_if_changed;
-use crate::{Endpoint, ResponseKind, TypeSchemas, collect_schema_refs};
+use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs};
 
 mod manifest;
 
@@ -238,7 +238,7 @@ fn render_endpoint(output: &mut String, endpoint: &Endpoint) {
             write!(
                 output,
                 "- `{}` ({location}, {}, {requirement})",
-                parameter.name, parameter.param_type
+                parameter.name, parameter.ty
             )
             .unwrap();
             if let Some(description) = parameter
@@ -257,7 +257,7 @@ fn render_endpoint(output: &mut String, endpoint: &Endpoint) {
         writeln!(
             output,
             "Request body: `{}` ({})\n",
-            body.body_type,
+            body.ty,
             if body.required {
                 "required"
             } else {
@@ -279,9 +279,9 @@ fn render_endpoint(output: &mut String, endpoint: &Endpoint) {
 
 fn response_label(response: &ResponseKind) -> String {
     match response {
-        ResponseKind::Json(name) => format!("JSON `{name}`"),
-        ResponseKind::Text(Some(schema)) => format!("text `{}`", schema.name),
-        ResponseKind::Text(None) => "text".to_owned(),
+        ResponseKind::Json(ty) => format!("JSON `{ty}`"),
+        ResponseKind::Text { ty: Ty::String, .. } => "text".to_owned(),
+        ResponseKind::Text { ty, .. } => format!("text `{ty}`"),
         ResponseKind::Binary => "binary data".to_owned(),
     }
 }
@@ -308,7 +308,7 @@ fn curl_example(endpoint: &Endpoint) -> String {
     if let Some(body) = &endpoint.request_body {
         format!(
             "curl -s -X {} --data '<{}>' \"{BASE_URL}{path}\"",
-            endpoint.method, body.body_type
+            endpoint.method, body.ty
         )
     } else {
         format!("curl -s \"{BASE_URL}{path}\"")
@@ -325,15 +325,17 @@ fn referenced_schemas<'a>(
         if let Some(schema) = &endpoint.json_response_schema {
             collect_schema_refs(schema, &mut names);
         }
-        if let ResponseKind::Text(Some(text)) = &endpoint.response_kind {
-            names.insert(text.name.as_str());
+        if let ResponseKind::Text {
+            ty: Ty::Ref(name), ..
+        } = &endpoint.response_kind
+        {
+            names.insert(name.as_str());
         }
         for parameter in endpoint.path_params.iter().chain(&endpoint.query_params) {
             collect_schema_refs(&parameter.schema, &mut names);
-            names.insert(parameter.param_type.trim_end_matches("[]"));
         }
-        if let Some(body) = &endpoint.request_body {
-            names.insert(body.body_type.as_str());
+        if let Some(Ty::Ref(name)) = endpoint.request_body.as_ref().map(|body| &body.ty) {
+            names.insert(name.as_str());
         }
     }
     names.retain(|name| schemas.contains_key(*name));
@@ -371,7 +373,7 @@ fn render_schema(output: &mut String, name: &str, schema: &Value) {
             write!(
                 output,
                 "- `{property}`: `{}`{}",
-                schema_type(shape),
+                Ty::parse(shape),
                 if required.contains(property.as_str()) {
                     " (required)"
                 } else {
@@ -389,60 +391,9 @@ fn render_schema(output: &mut String, name: &str, schema: &Value) {
             writeln!(output).unwrap();
         }
     } else {
-        writeln!(output, "`{}`", schema_type(schema)).unwrap();
+        writeln!(output, "`{}`", Ty::parse(schema)).unwrap();
     }
     writeln!(output).unwrap();
-}
-
-fn schema_type(schema: &Value) -> String {
-    // A boolean schema: `true` accepts any value.
-    if schema.is_boolean() {
-        return "value".to_owned();
-    }
-    if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
-        return reference.rsplit('/').next().unwrap_or(reference).to_owned();
-    }
-    if let Some(values) = schema.get("enum").and_then(Value::as_array) {
-        return values
-            .iter()
-            .map(|value| {
-                value
-                    .as_str()
-                    .map_or_else(|| value.to_string(), str::to_owned)
-            })
-            .collect::<Vec<_>>()
-            .join(" | ");
-    }
-    // `["integer", "null"]`: each type, joined.
-    if let Some(kinds) = schema.get("type").and_then(Value::as_array) {
-        return kinds
-            .iter()
-            .filter_map(Value::as_str)
-            .collect::<Vec<_>>()
-            .join(" | ");
-    }
-    if let Some(kind) = schema.get("type").and_then(Value::as_str) {
-        if kind == "array" {
-            return format!(
-                "{}[]",
-                schema
-                    .get("items")
-                    .map(schema_type)
-                    .unwrap_or_else(|| "value".to_owned())
-            );
-        }
-        return kind.to_owned();
-    }
-    for key in ["oneOf", "anyOf", "allOf"] {
-        if let Some(values) = schema.get(key).and_then(Value::as_array) {
-            return values
-                .iter()
-                .map(schema_type)
-                .collect::<Vec<_>>()
-                .join(" | ");
-        }
-    }
-    "object".to_owned()
 }
 
 fn one_line(value: &str) -> String {

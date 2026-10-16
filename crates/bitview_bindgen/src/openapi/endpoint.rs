@@ -48,9 +48,4 @@ impl Endpoint {
     pub(crate) fn returns_binary(&self) -> bool {
         matches!(self.response_kind, ResponseKind::Binary)
     }
-
-    /// Schema name attached to the response, if any.
-    pub(crate) fn schema_name(&self) -> Option<&str> {
-        self.response_kind.schema_name()
-    }
 }

@@ -6,7 +6,7 @@ use bitview_primitives::{CostBasisByPercentile, Ratio64};
 use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Sats, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use super::{
@@ -18,7 +18,7 @@ use crate::{COMPUTE_VERSION, Replay, ReplayInputs};
 const COHORTS: usize = AgeAggregateId::ALL.len();
 
 /// Replays the weighted URPD over `recompute_from..` and pushes every cohort's cost basis,
-/// `cohorts` in `AgeAggregateId::ALL` order.
+/// `cohorts` in `AgeAggregateId::ALL` order, then their mean prices' ratios to `spot`.
 #[allow(clippy::too_many_arguments)]
 pub fn compute_cost_basis(
     replay: &mut Replay,
@@ -28,6 +28,7 @@ pub fn compute_cost_basis(
     inputs: ReplayInputs<'_>,
     weights: &AgeRange<&(impl ReadableVec<Height, Ratio64> + Sync)>,
     supplies: &AgeRange<&(impl ReadableVec<Height, Sats> + Sync)>,
+    spot: &impl ReadableVec<Height, Cents>,
     exit: &Exit,
 ) -> Result<()> {
     let rows = Inputs::new(
@@ -83,7 +84,11 @@ pub fn compute_cost_basis(
             }
             Ok(())
         },
-    )
+    )?;
+    let from = Height::from(recompute_from);
+    cohorts
+        .iter_mut()
+        .try_for_each(|cohort| cohort.compute_ratios(from, spot, exit))
 }
 
 fn push_block(

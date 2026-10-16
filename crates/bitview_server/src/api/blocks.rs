@@ -16,6 +16,7 @@ use serde_json::to_vec;
 
 use crate::{
     AppState, CacheParams, Error,
+    api::tags,
     etag::Etag,
     extended::{ResponseExtended, TransformResponseExtended},
     params::{
@@ -87,22 +88,15 @@ fn block_params(snapshot: &ResolvedBlocks, schema: &str) -> QueryResult<CachePar
 // A hint only: at most one candidate is checked against the full canonical hash.
 // Actual conditional matching still uses the complete computed ETag afterward.
 fn block_height_hint(headers: &HeaderMap, schema: &str) -> Option<Height> {
-    headers
-        .get_all(header::IF_NONE_MATCH)
-        .iter()
-        .filter_map(|value| value.to_str().ok())
-        .flat_map(|value| value.split(','))
-        .find_map(|tag| {
-            let tag = tag.trim();
-            let tag = tag.strip_prefix("W/").unwrap_or(tag);
-            let token = Etag::unprefixed(tag.strip_prefix('"')?.strip_suffix('"')?)?;
-            let suffix = token
-                .strip_prefix("block-")?
-                .strip_prefix(schema)?
-                .strip_prefix('-')?;
-            let (height, _) = suffix.split_once('-')?;
-            height.parse::<u32>().ok().map(Height::from)
-        })
+    bitview_http::listed_etags(headers).find_map(|tag| {
+        let token = Etag::unprefixed(str::from_utf8(tag).ok()?)?;
+        let suffix = token
+            .strip_prefix("block-")?
+            .strip_prefix(schema)?
+            .strip_prefix('-')?;
+        let (height, _) = suffix.split_once('-')?;
+        height.parse::<u32>().ok().map(Height::from)
+    })
 }
 
 fn block_json_response(params: CacheParams, value: &impl Serialize) -> QueryResult<Response> {
@@ -129,15 +123,11 @@ impl AppState {
             // The owned value is the whole representation. In particular, a
             // same-height reorg changes the hash endpoint but not the height.
             let params = CacheParams::revalidate(format!("block-tip-v2-{value}"));
-            if params.matches_etag(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
-            }
-            Ok(AppState::assemble_response(
-                params,
-                Bytes::from(value),
-                |headers| {
-                    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
-                },
+            Ok(Response::cached_bytes(
+                &headers,
+                &params,
+                "text/plain",
+                || Bytes::from(value),
             ))
         })
         .await
@@ -223,15 +213,11 @@ impl AppState {
         let respond = move |hash: BlockHash| {
             let body = hash.to_string();
             let params = CacheParams::revalidate(format!("block-height-v2-{body}"));
-            if params.matches_etag(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
-            }
-            Ok(AppState::assemble_response(
-                params,
-                Bytes::from(body),
-                |headers| {
-                    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
-                },
+            Ok(Response::cached_bytes(
+                &headers,
+                &params,
+                "text/plain",
+                || Bytes::from(body),
             ))
         };
         if let Some(hash) = self.preflight(|q| q.resolve_block_hash(height).map(Some))? {
@@ -433,7 +419,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block information")
                             .description(
                                 "Retrieve block information by block hash. Returns block metadata including height, timestamp, difficulty, size, weight, and transaction count.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
@@ -456,7 +442,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_v1")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block (v1)")
                             .description("Returns block details with extras by hash.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-v1)*")
                             .json_response::<BlockInfoV1>()
@@ -477,7 +463,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_header")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block header")
                             .description("Returns the hex-encoded 80-byte block header.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-header)*")
                             .text_response::<Hex>()
@@ -496,7 +482,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_by_height")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block hash by height")
                             .description(
                                 "Retrieve the block hash at a given height. Returns the hash as plain text.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*",
@@ -517,7 +503,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_by_timestamp")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block by timestamp")
                             .description("Find the block with the greatest header timestamp at or before the given UNIX timestamp, choosing the earliest height on ties.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-timestamp)*")
                             .json_response::<BlockTimestamp>()
@@ -539,7 +525,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_raw")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .mcp_ignore()
                             .summary("Raw block")
                             .description(
@@ -564,7 +550,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_status")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block status")
                             .description(
                                 "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*",
@@ -582,7 +568,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_tip_height")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block tip height")
                             .description("Returns the height of the last block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*")
                             .text_response::<Height>()
@@ -598,7 +584,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_tip_hash")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block tip hash")
                             .description("Returns the hash of the last block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*")
                             .text_response::<BlockHash>()
@@ -623,7 +609,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_txid")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Transaction ID at index")
                             .description(
                                 "Retrieve a single transaction ID at a specific index within a block. Returns plain text txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-id)*",
@@ -648,7 +634,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_txids")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .mcp_ignore()
                             .summary("Block transaction IDs")
                             .description(
@@ -674,7 +660,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_txs")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .mcp_ignore()
                             .summary("Block transactions")
                             .description(&format!(
@@ -701,7 +687,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_block_txs_from_index")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Block transactions (paginated)")
                             .description(&format!(
                                 "Retrieve transactions in a block by block hash, starting from the specified index. Returns up to {} transactions at a time.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
@@ -721,7 +707,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_blocks")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Recent blocks")
                             .description("Retrieve the last 10 blocks. Returns block metadata for each block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*")
                             .json_response::<Vec<BlockInfo>>()
@@ -739,7 +725,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_blocks_from_height")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Blocks from height")
                             .description(
                                 "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
@@ -758,7 +744,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_blocks_v1")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Recent blocks with extras")
                             .description("Retrieve the last 15 blocks with extended data including pool identification and fee statistics.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*")
                             .json_response::<Vec<BlockInfoV1>>()
@@ -776,7 +762,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     },
                     |op| {
                         op.id("get_blocks_v1_from_height")
-                            .blocks_tag()
+                            .tag(tags::BLOCKS)
                             .summary("Blocks from height with extras")
                             .description("Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*")
                             .json_response::<Vec<BlockInfoV1>>()

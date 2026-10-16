@@ -59,3 +59,121 @@ impl<T: fmt::Display> serde::Serialize for DisplayStr<T> {
         serializer.collect_str(&self.0)
     }
 }
+
+/// The impls a 32-byte hash newtype (`struct $t([u8; 32])`) shares with its rust-bitcoin
+/// counterpart `$bitcoin`: owned and zero-cost reference conversions both ways, and Bitcoin's
+/// reversed-hex text for `Display`, serde (parsed by the type's `FromStr`) and vector output.
+macro_rules! impl_hash32 {
+    ($t:ident, $bitcoin:ty, expecting: $expecting:literal) => {
+        // The reference casts between the two types rely on this. A rust-bitcoin hash wraps
+        // `sha256d::Hash` (`repr(transparent)` over `[u8; 32]`) with the default representation,
+        // which guarantees no layout by itself; but at 32 bytes and alignment 1 its one 32-byte
+        // field can only sit at offset 0 with no padding. Both types then are 32 bytes valid for
+        // every bit pattern.
+        const _: () = assert!(
+            size_of::<$t>() == 32
+                && size_of::<$bitcoin>() == 32
+                && align_of::<$t>() == 1
+                && align_of::<$bitcoin>() == 1
+        );
+
+        impl $t {
+            #[inline]
+            fn hex(&self) -> [u8; 64] {
+                $crate::bytes::reversed_hex(&self.0)
+            }
+        }
+
+        impl From<$bitcoin> for $t {
+            #[inline]
+            fn from(value: $bitcoin) -> Self {
+                Self(::bitcoin::hashes::Hash::to_byte_array(value))
+            }
+        }
+
+        impl From<&$bitcoin> for &$t {
+            #[inline]
+            fn from(value: &$bitcoin) -> Self {
+                // SAFETY: same layout (see the layout assertion).
+                unsafe { ::std::mem::transmute(value) }
+            }
+        }
+
+        impl From<$t> for $bitcoin {
+            #[inline]
+            fn from(value: $t) -> Self {
+                ::bitcoin::hashes::Hash::from_byte_array(value.0)
+            }
+        }
+
+        impl From<&$t> for $bitcoin {
+            #[inline]
+            fn from(value: &$t) -> Self {
+                ::bitcoin::hashes::Hash::from_byte_array(value.0)
+            }
+        }
+
+        impl From<&$t> for &$bitcoin {
+            #[inline]
+            fn from(value: &$t) -> Self {
+                // SAFETY: same layout (see the layout assertion).
+                unsafe { ::std::mem::transmute(value) }
+            }
+        }
+
+        impl ::std::fmt::Display for $t {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                f.write_str(::std::str::from_utf8(&self.hex()).unwrap())
+            }
+        }
+
+        impl ::serde::Serialize for $t {
+            fn serialize<S: ::serde::Serializer>(
+                &self,
+                serializer: S,
+            ) -> ::std::result::Result<S::Ok, S::Error> {
+                serializer.serialize_str(::std::str::from_utf8(&self.hex()).unwrap())
+            }
+        }
+
+        impl<'de> ::serde::Deserialize<'de> for $t {
+            fn deserialize<D: ::serde::Deserializer<'de>>(
+                deserializer: D,
+            ) -> ::std::result::Result<Self, D::Error> {
+                struct Visitor;
+
+                impl ::serde::de::Visitor<'_> for Visitor {
+                    type Value = $t;
+
+                    fn expecting(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                        f.write_str($expecting)
+                    }
+
+                    fn visit_str<E: ::serde::de::Error>(
+                        self,
+                        value: &str,
+                    ) -> ::std::result::Result<$t, E> {
+                        value.parse().map_err(E::custom)
+                    }
+                }
+
+                deserializer.deserialize_str(Visitor)
+            }
+        }
+
+        #[cfg(feature = "storage")]
+        impl ::vecdb::Formattable for $t {
+            fn write_to(&self, buf: &mut Vec<u8>) {
+                buf.extend_from_slice(&self.hex());
+            }
+
+            fn fmt_json(&self, buf: &mut Vec<u8>) {
+                buf.push(b'"');
+                self.write_to(buf);
+                buf.push(b'"');
+            }
+        }
+    };
+}
+
+pub(crate) use impl_hash32;

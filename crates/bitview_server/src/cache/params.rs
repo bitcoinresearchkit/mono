@@ -3,7 +3,7 @@ use bitview_primitives::BlockHashPrefix;
 #[cfg(feature = "chain")]
 use bitview_query::RepresentationId;
 #[cfg(feature = "series")]
-use bitview_query::SeriesAnchor;
+use bitview_query::{ResolvedQuery, SeriesAnchor};
 use brk_types::Version;
 
 use super::mode::CdnCacheMode;
@@ -119,17 +119,12 @@ impl CacheParams {
     ///   cover: stable across appends, changed by any reorg replacing those rows.
     /// - tip: `s{v}-t{tip_hash:x}`. Invalidates per block, reorg-safe.
     #[cfg(feature = "series")]
-    pub fn series(
-        version: Version,
-        start: usize,
-        end: usize,
-        anchor: SeriesAnchor,
-        cdn_cache_mode: CdnCacheMode,
-    ) -> Self {
-        let v = u32::from(version);
-        match anchor {
+    pub fn series(query: &ResolvedQuery, cdn_cache_mode: CdnCacheMode) -> Self {
+        let v = u32::from(query.version());
+        let range = query.range();
+        match query.anchor() {
             SeriesAnchor::Historical(hash) => Self {
-                etag: format!("s{v}-r{start}-{end}-{:x}", *hash).into(),
+                etag: format!("s{v}-r{}-{}-{:x}", range.start, range.end, *hash).into(),
                 cache_control: CC,
                 cdn_cache_control: Self::cdn_cache_control(cdn_cache_mode),
             },

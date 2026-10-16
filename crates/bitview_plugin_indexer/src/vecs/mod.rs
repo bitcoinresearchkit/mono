@@ -75,6 +75,7 @@ impl Vecs {
         Ok(this)
     }
 
+    /// Truncates every stored vec to `starting_lengths`, stamped as of the block before them.
     pub fn rollback_if_needed(&mut self, starting_lengths: &Lengths) -> Result<()> {
         let saved_height = starting_lengths.last_height().unwrap_or_default();
         let stamp = Stamp::from(u64::from(saved_height));
@@ -106,6 +107,10 @@ impl Vecs {
             stamp,
         )?;
 
+        debug_assert!(
+            self.iter_any_stored_mut().all(|vec| vec.stamp() == stamp),
+            "a stored vec is missing from its truncation"
+        );
         Ok(())
     }
 
@@ -117,8 +122,16 @@ impl Vecs {
 
     pub fn stamped_write(&mut self, height: Height) -> Result<()> {
         self.blocks.compute_median_times()?;
-        self.par_iter_mut_any_stored_vec()
-            .try_for_each(|vec| vec.stamped_write(Stamp::from(height)))?;
+        let stamp = Stamp::from(height);
+        let vecs = self.iter_any_stored_mut().collect::<Vec<_>>();
+        let count = vecs.len();
+        vecs.into_par_iter()
+            .try_for_each(|vec| vec.stamped_write(stamp))?;
+        debug_assert_eq!(
+            self.iter_any_stored_vec().count(),
+            count,
+            "the stored vecs listed by reference differ from the struct's"
+        );
         Ok(())
     }
 
@@ -145,19 +158,6 @@ impl Vecs {
         let mut stamps = self.iter_any_stored_vec().map(|vec| vec.stamp());
         let first = stamps.next();
         stamps.all(|stamp| Some(stamp) == first)
-    }
-
-    fn par_iter_mut_any_stored_vec(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        self.blocks
-            .par_iter_mut_any()
-            .chain(self.transactions.par_iter_mut_any())
-            .chain(self.inputs.par_iter_mut_any())
-            .chain(self.outputs.par_iter_mut_any())
-            .chain(self.addrs.par_iter_mut_any())
-            .chain(self.scripts.par_iter_mut_any())
-            .chain(self.op_return.par_iter_mut_any())
     }
 
     fn iter_any_stored_vec(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

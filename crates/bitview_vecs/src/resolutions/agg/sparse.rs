@@ -2,7 +2,7 @@ use rangeindex::{Pages, RangeMap};
 
 use vecdb::{ReadableVec, VecIndex, VecValue};
 
-use super::AggFold;
+use super::{AggFold, read_sorted_optional};
 
 /// Sparse aggregation: emits `Option<T>` per output index.
 ///
@@ -40,29 +40,16 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
         from: usize,
         to: usize,
         init: B,
-        mut f: F,
+        f: F,
     ) -> Result<B, E> {
         let source_len = source.visible_len();
         let mapping = mapping.starts();
-
-        let mut indices: Vec<usize> = Vec::with_capacity(to - from);
-        let mut slot_map: Vec<Option<u32>> = Vec::with_capacity(to - from);
-
-        (from..to).for_each(|idx| {
-            if let Some(index) = Self::source_index(mapping, idx, source_len) {
-                slot_map.push(Some(indices.len() as u32));
-                indices.push(index);
-            } else {
-                slot_map.push(None);
-            }
-        });
-
-        let values = source.read_sorted_at(&indices);
-
-        slot_map.iter().try_fold(init, |acc, slot| match slot {
-            None => f(acc, None),
-            &Some(vi) => f(acc, Some(values[vi as usize].clone())),
-        })
+        read_sorted_optional(
+            source,
+            (from..to).map(|index| Self::source_index(mapping, index, source_len)),
+            false,
+        )
+        .try_fold(init, f)
     }
 
     #[inline]
@@ -92,23 +79,12 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, T> for Sparse {
         }
         let source_len = source.visible_len();
         let mapping = mapping.starts();
-        let mut requested = Vec::with_capacity(indices.len());
-        let slots: Vec<_> = indices
-            .iter()
-            .map(|index| {
-                Self::source_index(mapping, *index, source_len).map(|index| {
-                    if requested.last() != Some(&index) {
-                        requested.push(index);
-                    }
-                    requested.len() - 1
-                })
-            })
-            .collect();
-        let values = source.read_sorted_at(&requested);
-        out.extend(
-            slots
-                .into_iter()
-                .map(|slot| slot.map(|slot| values[slot].clone())),
-        );
+        out.extend(read_sorted_optional(
+            source,
+            indices
+                .iter()
+                .map(|&index| Self::source_index(mapping, index, source_len)),
+            true,
+        ));
     }
 }

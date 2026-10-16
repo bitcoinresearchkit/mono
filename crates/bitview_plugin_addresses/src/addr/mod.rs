@@ -6,9 +6,9 @@ mod state_vecs;
 
 pub use member::{AddressVecs, ImportContext};
 pub use shard::{SHARDS, shard_of};
-pub use sourced_data::SourcedAddrData;
+pub use sourced_data::{AddrOrigin, SourcedAddrData};
 pub use state::{
-    AddrMetricsState, AddrReceivePreState, AddrReceiveStatus, AddrSendPreState,
-    BlockActivityCounts, ExposedState, MemberState, ReuseState,
+    AddrMetricsState, AddrPreState, AddrReceivePreState, AddrReceiveStatus, BlockActivityCounts,
+    ExposedState, MemberState, ReuseState,
 };
 pub use state_vecs::{AddrStateRead, AddrStateVecs, Changed, Stable};

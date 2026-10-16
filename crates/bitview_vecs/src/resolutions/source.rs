@@ -2,10 +2,10 @@ use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{AnyVec, ReadOnlyClone, ReadableCloneableVec, VecValue};
+use vecdb::{ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, VecValue};
 
 use crate::{
-    CoarserIndex, IndexSources, LazyAggVec, shapes::PerResolution, with_resolution_fields,
+    AggFold, CoarserIndex, IndexSources, LazyAggVec, shapes::PerResolution, with_resolution_fields,
 };
 
 macro_rules! define_resolutions {
@@ -38,21 +38,44 @@ macro_rules! define_resolutions {
             ) -> Self {
                 let height_source = height_source.read_only_boxed_clone();
 
-                macro_rules! res {
-                    ($mapping:expr) => {{
-                        LazyAggVec::new(
-                            name,
-                            version + $mapping.version(),
-                            height_source.clone(),
-                            $mapping.mapping().clone(),
-                        )
-                    }};
-                }
-
                 Self(PerResolution {
-                    $($field: res!(indexes.first_height.$field),)*
-                    $($epoch: res!(indexes.first_height.$epoch),)*
+                    $($field: LazyAggVec::new(
+                        name, version, height_source.clone(), &indexes.first_height.$field,
+                    ),)*
+                    $($epoch: LazyAggVec::new(
+                        name, version, height_source.clone(), &indexes.first_height.$epoch,
+                    ),)*
                 })
+            }
+        }
+
+        /// One aggregation of a height source per resolution, every one by strategy `Strat`.
+        pub type AggResolutions<O, S, Strat> = PerResolution<
+            $(LazyAggVec<$index, O, Height, S, Strat>,)*
+            $(LazyAggVec<$epoch_index, O, Height, S, Strat>,)*
+        >;
+
+        impl<O, S, Strat> AggResolutions<O, S, Strat>
+        where
+            O: VecValue,
+            S: VecValue,
+            Strat: AggFold<O, Height, S>,
+        {
+            /// Uncached views sharing the `source` reader.
+            pub fn aggregate(
+                name: &str,
+                version: Version,
+                source: &ReadableBoxedVec<Height, S>,
+                indexes: &IndexSources,
+            ) -> Self {
+                Self {
+                    $($field: LazyAggVec::new(
+                        name, version, source.clone(), &indexes.first_height.$field,
+                    ),)*
+                    $($epoch: LazyAggVec::new(
+                        name, version, source.clone(), &indexes.first_height.$epoch,
+                    ),)*
+                }
             }
         }
     };

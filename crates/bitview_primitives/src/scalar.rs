@@ -48,6 +48,11 @@ macro_rules! scalar {
         impl $name {
             /// The undefined value, served as null.
             pub const NAN: Self = Self(<$repr>::MIN);
+
+            #[inline]
+            pub fn is_nan(self) -> bool {
+                self == Self::NAN
+            }
         }
 
         /// NaN is the undefined value; a finite value must fit (checked in dev builds).
@@ -69,36 +74,11 @@ macro_rules! scalar {
         impl From<$name> for f64 {
             #[inline]
             fn from(value: $name) -> Self {
-                if value == $name::NAN { f64::NAN } else { value.0 as f64 }
+                if value.is_nan() { f64::NAN } else { value.0 as f64 }
             }
         }
 
-        impl ::std::fmt::Display for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                f.write_str(::itoa::Buffer::new().format(self.0))
-            }
-        }
-
-        #[cfg(feature = "storage")]
-        impl ::vecdb::Formattable for $name {
-            const UNDEFINED: bool = true;
-
-            #[inline(always)]
-            fn write_to(&self, buf: &mut Vec<u8>) {
-                if *self != Self::NAN {
-                    buf.extend_from_slice(::itoa::Buffer::new().format(self.0).as_bytes());
-                }
-            }
-
-            #[inline(always)]
-            fn fmt_json(&self, buf: &mut Vec<u8>) {
-                if *self == Self::NAN {
-                    buf.extend_from_slice(b"null");
-                } else {
-                    self.write_to(buf);
-                }
-            }
-        }
+        ::brk_types::impl_int_format!($name, nullable);
     };
 
     (@int $(#[$meta:meta])* $name:ident($repr:ty)) => {

@@ -1,3 +1,4 @@
+use brk_logger::LEVEL_NAMES;
 use jiff::civil::DateTime;
 
 #[derive(Clone)]
@@ -19,7 +20,7 @@ impl Record {
         let Some(level) = fields.next() else {
             return Ok(None);
         };
-        if !["info", "debug", "error", "warn", "trace"].contains(&level) {
+        if !LEVEL_NAMES.contains(&level) {
             return Ok(None);
         }
         let Some(status) = fields.next().and_then(|s| s.parse::<u16>().ok()) else {

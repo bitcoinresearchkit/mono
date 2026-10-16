@@ -1,21 +1,13 @@
-use std::{
-    fmt, mem,
-    str::{self, FromStr},
-};
+use std::str::FromStr;
 
-use bitcoin::{
-    Txid as BitcoinTxid,
-    hashes::{Hash, hex::HexToArrayError},
-};
+use bitcoin::{Txid as BitcoinTxid, hashes::hex::HexToArrayError};
 use derive_more::Deref;
 
-use crate::bytes::reversed_hex;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 #[cfg(feature = "storage")]
-use vecdb::{Bytes, Formattable};
+use vecdb::Bytes;
 
 /// Transaction ID (hash)
 #[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, Hash)]
@@ -33,6 +25,8 @@ use vecdb::{Bytes, Formattable};
 #[cfg_attr(feature = "schemars", schemars(transparent, with = "String"))]
 pub struct Txid([u8; 32]);
 
+crate::bytes::impl_hash32!(Txid, BitcoinTxid, expecting: "a transaction ID");
+
 impl Txid {
     /// Coinbase transaction "txid" - all zeros (used for coinbase inputs)
     pub const COINBASE: Self = Self([0u8; 32]);
@@ -46,119 +40,10 @@ impl Txid {
     }
 }
 
-// The reference casts between `Txid` and `bitcoin::Txid` rely on this. `bitcoin::Txid` wraps
-// `sha256d::Hash` (`repr(transparent)` over `[u8; 32]`) with the default representation, which
-// guarantees no layout by itself; but at 32 bytes and alignment 1 its one 32-byte field can only
-// sit at offset 0 with no padding. Both types then are 32 bytes valid for every bit pattern.
-const _: () = assert!(
-    size_of::<Txid>() == 32
-        && size_of::<BitcoinTxid>() == 32
-        && align_of::<Txid>() == 1
-        && align_of::<BitcoinTxid>() == 1
-);
-
-impl From<BitcoinTxid> for Txid {
-    #[inline]
-    fn from(value: BitcoinTxid) -> Self {
-        Self(value.to_byte_array())
-    }
-}
-
-impl From<&BitcoinTxid> for &Txid {
-    #[inline]
-    fn from(value: &BitcoinTxid) -> Self {
-        // SAFETY: same layout (see the layout assertion).
-        unsafe { mem::transmute(value) }
-    }
-}
-
-impl From<Txid> for BitcoinTxid {
-    #[inline]
-    fn from(value: Txid) -> Self {
-        Self::from_byte_array(value.0)
-    }
-}
-
-impl From<&Txid> for BitcoinTxid {
-    #[inline]
-    fn from(value: &Txid) -> Self {
-        Self::from_byte_array(value.0)
-    }
-}
-
-impl From<&Txid> for &BitcoinTxid {
-    #[inline]
-    fn from(value: &Txid) -> Self {
-        // SAFETY: same layout (see the layout assertion).
-        unsafe { mem::transmute(value) }
-    }
-}
-
-impl Txid {
-    #[inline]
-    fn hex(&self) -> [u8; 64] {
-        reversed_hex(&self.0)
-    }
-}
-
-impl fmt::Display for Txid {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(str::from_utf8(&self.hex()).unwrap())
-    }
-}
-
 impl FromStr for Txid {
     type Err = HexToArrayError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         BitcoinTxid::from_str(s).map(Self::from)
-    }
-}
-
-impl Serialize for Txid {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(str::from_utf8(&self.hex()).unwrap())
-    }
-}
-
-impl<'de> Deserialize<'de> for Txid {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(TxidVisitor)
-    }
-}
-
-struct TxidVisitor;
-
-impl de::Visitor<'_> for TxidVisitor {
-    type Value = Txid;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("a transaction ID")
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        Txid::from_str(value).map_err(E::custom)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for Txid {
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        buf.extend_from_slice(&self.hex());
-    }
-
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        buf.push(b'"');
-        self.write_to(buf);
-        buf.push(b'"');
     }
 }

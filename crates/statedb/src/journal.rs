@@ -146,21 +146,26 @@ impl Journal {
             Ok(())
         }
     }
-    pub fn push(&mut self, bytes: &[u8]) -> Result<()> {
+    /// Runs one write; a failure leaves the files mid-update, so later use must reopen.
+    fn write(&mut self, f: impl FnOnce(&mut Self) -> Result<()>) -> Result<()> {
         if self._lock.is_none() {
             return Err(invalid("read-only journal"));
         }
         self.healthy()?;
+        let result = f(self);
+        self.poisoned = result.is_err();
+        result
+    }
+    pub fn push(&mut self, bytes: &[u8]) -> Result<()> {
         if bytes.len() > MAX_RECORD || self.len() >= u32::MAX as usize {
             return Err(invalid("origin record exceeds limits"));
         }
         let end = self.index.last().map_or(0, |&v| v) + bytes.len() as u64;
-        if let Err(error) = self.data.write_all(bytes) {
-            self.poisoned = true;
-            return Err(error);
-        }
-        self.index.push(end);
-        Ok(())
+        self.write(|this| {
+            this.data.write_all(bytes)?;
+            this.index.push(end);
+            Ok(())
+        })
     }
     fn bounds(&self, height: usize) -> Result<(u64, u64)> {
         self.healthy()?;
@@ -267,30 +272,22 @@ impl Journal {
         self.commit_inner(false)
     }
     fn commit_inner(&mut self, force: bool) -> Result<()> {
-        if self._lock.is_none() {
-            return Err(invalid("read-only journal"));
-        }
-        self.healthy()?;
-        if !force && self.index.len() == self.committed {
-            return Ok(());
-        }
-        let result = (|| {
-            self.data.flush()?;
-            let mut bytes = Vec::with_capacity((self.index.len() - self.committed) * INDEX_BYTES);
-            for &end in &self.index[self.committed..] {
+        self.write(|this| {
+            if !force && this.index.len() == this.committed {
+                return Ok(());
+            }
+            this.data.flush()?;
+            let mut bytes = Vec::with_capacity((this.index.len() - this.committed) * INDEX_BYTES);
+            for &end in &this.index[this.committed..] {
                 bytes.extend_from_slice(&end.to_le_bytes());
             }
-            self.index_file
-                .seek(SeekFrom::Start((self.committed * INDEX_BYTES) as u64))?;
-            self.index_file.write_all(&bytes)?;
-            self.publish(self.index.len())?;
-            self.committed = self.index.len();
+            this.index_file
+                .seek(SeekFrom::Start((this.committed * INDEX_BYTES) as u64))?;
+            this.index_file.write_all(&bytes)?;
+            this.publish(this.index.len())?;
+            this.committed = this.index.len();
             Ok(())
-        })();
-        if result.is_err() {
-            self.poisoned = true;
-        }
-        result
+        })
     }
     fn publish(&self, count: usize) -> Result<()> {
         let mut bytes = MAGIC.to_vec();
@@ -305,10 +302,6 @@ impl Journal {
         atomic_write(&self.path.join("commit"), &bytes)
     }
     pub fn truncate(&mut self, height: usize) -> Result<()> {
-        if self._lock.is_none() {
-            return Err(invalid("read-only journal"));
-        }
-        self.healthy()?;
         if height > self.index.len() {
             return Err(invalid("invalid origin truncate"));
         }
@@ -320,34 +313,28 @@ impl Journal {
         if n > self.committed {
             self.commit()?;
         }
-        let result = (|| {
-            self.data.flush()?;
-            self.publish(n)?;
-            let end = if n == 0 { 0 } else { self.index[n - 1] };
-            self.data.get_mut().set_len(end)?;
-            self.data.get_mut().seek(SeekFrom::Start(end))?;
-            self.index_file.set_len((n * INDEX_BYTES) as u64)?;
-            self.index_file
+        self.write(|this| {
+            this.data.flush()?;
+            this.publish(n)?;
+            let end = if n == 0 { 0 } else { this.index[n - 1] };
+            this.data.get_mut().set_len(end)?;
+            this.data.get_mut().seek(SeekFrom::Start(end))?;
+            this.index_file.set_len((n * INDEX_BYTES) as u64)?;
+            this.index_file
                 .seek(SeekFrom::Start((n * INDEX_BYTES) as u64))?;
-            self.index.truncate(n);
-            self.committed = n;
+            this.index.truncate(n);
+            this.committed = n;
             Ok(())
-        })();
-        if result.is_err() {
-            self.poisoned = true;
-        }
-        result
+        })
     }
     pub fn validate_version(&mut self, version: u64) -> Result<()> {
-        if self._lock.is_none() {
-            return Err(invalid("read-only journal"));
-        }
-        self.healthy()?;
-        if version != self.version {
-            self.truncate(0)?;
-            self.version = version;
-            self.commit_inner(true)?;
-        }
-        Ok(())
+        self.write(|this| {
+            if version != this.version {
+                this.truncate(0)?;
+                this.version = version;
+                this.commit_inner(true)?;
+            }
+            Ok(())
+        })
     }
 }

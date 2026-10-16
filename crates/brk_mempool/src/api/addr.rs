@@ -24,8 +24,7 @@ pub struct PendingUtxos {
 impl ReadOnlyState {
     /// Statistics from a completed publication anchored to the requested chain.
     pub fn addr_stats(&self, addr: &AddressBytes, tip: &BlockHash) -> Result<AddressMempoolStats> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         Ok(state
             .addrs
             .get(addr)
@@ -35,8 +34,7 @@ impl ReadOnlyState {
 
     /// The address's pending spends and unspent pending outputs.
     pub fn addr_pending_utxos(&self, addr: &AddressBytes, tip: &BlockHash) -> Result<PendingUtxos> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         let mut pending = PendingUtxos::default();
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(pending);
@@ -79,8 +77,7 @@ impl ReadOnlyState {
         limit: usize,
         tip: &BlockHash,
     ) -> Result<Vec<PublishedTx>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(Vec::new());
         };
@@ -111,7 +108,7 @@ impl ReadOnlyState {
             .into_sorted_vec()
             .into_iter()
             .filter_map(|Reverse((_, _, key))| state.txs.record_by_key(&key))
-            .map(PublishedTx::live)
+            .map(PublishedTx::from_record)
             .collect();
         Ok(transactions)
     }

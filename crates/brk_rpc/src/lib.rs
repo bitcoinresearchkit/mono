@@ -5,6 +5,7 @@ mod auth;
 pub use async_client::AsyncClient;
 mod block_template_tx;
 mod connect_args;
+mod endpoint;
 mod rpc_client;
 #[cfg(feature = "async")]
 mod rpc_response;

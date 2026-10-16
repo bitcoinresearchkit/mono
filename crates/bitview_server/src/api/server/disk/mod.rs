@@ -2,7 +2,10 @@ use axum::{http::HeaderMap, response::Response};
 use bitview_types::DiskUsage;
 use rayon::join;
 
-use crate::{CacheParams, Error, error::Result, params::Empty, request_state::RequestState};
+use crate::{
+    CacheParams, Error, error::Result, extended::ResponseExtended, params::Empty,
+    request_state::RequestState,
+};
 
 mod cancellation;
 mod walk;
@@ -35,11 +38,11 @@ pub async fn get(
             Ok((brk_bytes?, bitcoin_bytes?))
         })
         .await?;
-    Ok(
-        state.respond_json_immediate(&headers, params(brk_bytes, bitcoin_bytes), || {
-            DiskUsage::new(brk_bytes, bitcoin_bytes)
-        }),
-    )
+    Ok(Response::cached_json(
+        &headers,
+        &params(brk_bytes, bitcoin_bytes),
+        || DiskUsage::new(brk_bytes, bitcoin_bytes),
+    ))
 }
 
 fn params(brk_bytes: u64, bitcoin_bytes: u64) -> CacheParams {

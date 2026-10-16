@@ -143,15 +143,8 @@ fn encode_ans_in_reverse(
   ans_final_states: &mut [AnsState; ANS_INTERLEAVING],
   dst: &mut [Symbol],
 ) {
-  if encoder.size_log() == 0 {
-    // trivial case: there's only one symbol. ANS values and states don't
-    // matter.
-    for (val, bits) in ans_vals.iter_mut().zip(ans_bits.iter_mut()) {
-      val.write(0);
-      bits.write(0);
-    }
-    return;
-  }
+  // Single-bin latent variables need no ANS, so the table has several symbols.
+  debug_assert!(encoder.size_log() > 0);
 
   let final_base_i = (ans_vals.len() / ANS_INTERLEAVING) * ANS_INTERLEAVING;
   let final_j = ans_vals.len() % ANS_INTERLEAVING;

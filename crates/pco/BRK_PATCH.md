@@ -33,6 +33,10 @@ Upstream fixes kept small and local:
   reference-enum constructors do not tie the input lifetime to the enum's, so
   outside code could keep a reference past its storage. The match macros stay
   exported.
+- `wrapped/page_decompressor.rs`: page setup sizes each latent stream's body
+  by its own delta encoding (it used the primary's for all), so a secondary
+  stream without delta and without bins is rejected as corrupt instead of
+  decoding zeros.
 - `describers.rs`: float types describe `Dict` mode chunks (they panicked).
 - `standalone/decompressor.rs`: `FileDecompressor::simple_decompress` is public
   so `with_max_prealloc` reaches a public entry point.

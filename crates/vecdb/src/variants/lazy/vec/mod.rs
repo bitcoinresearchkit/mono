@@ -8,7 +8,7 @@ pub mod typed;
 
 pub use transform::*;
 
-use crate::{READ_CHUNK_SIZE, ReadableBoxedVec, ReadableVec, VecIndex, VecValue, Version};
+use crate::{ReadableBoxedVec, ReadableVec, VecIndex, VecValue, Version};
 
 /// Lazily computed vector deriving values on-the-fly from one source vector.
 ///
@@ -74,22 +74,8 @@ where
                 });
             },
             visit: |this, from, to, f| {
-                let mut output = Vec::new();
-                let chunk_size = this.source.cursor_chunk_size().clamp(1, READ_CHUNK_SIZE);
-                this.source.for_each_chunk_at(from, to, &mut |at, values| {
-                    let mut at = at;
-                    for values in values.chunks(chunk_size) {
-                        output.clear();
-                        output.extend(
-                            values
-                                .iter()
-                                .cloned()
-                                .enumerate()
-                                .map(|(offset, value)| (this.compute)(I::from(at + offset), value)),
-                        );
-                        f(at, &output);
-                        at += values.len();
-                    }
+                transform::for_each_mapped_chunk(&this.source, from, to, f, |index, value| {
+                    (this.compute)(I::from(index), value)
                 });
             },
         }

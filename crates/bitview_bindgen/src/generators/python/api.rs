@@ -3,13 +3,18 @@
 use std::fmt::Write;
 
 use crate::{
-    Endpoint, Parameter, escape_python_keyword,
+    Endpoint, Parameter, Ty, escape_python_keyword,
     generators::{normalize_return_type, write_description},
     to_snake_case,
 };
 
 use super::client::generate_class_constants;
-use super::types::js_type_to_python;
+use super::types::python_type;
+
+/// A parameter or return type: endpoints quote no reference.
+fn api_type(ty: &Ty) -> String {
+    python_type(ty, &|_| false)
+}
 
 /// Generate the main client class
 pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
@@ -117,16 +122,11 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
         }
 
         let method_name = endpoint_to_method_name(endpoint);
-        let base_return_type = if endpoint.returns_binary() {
-            "bytes".to_string()
-        } else {
-            normalize_return_type(
-                &endpoint
-                    .schema_name()
-                    .map(js_type_to_python)
-                    .unwrap_or_else(|| "str".to_string()),
-            )
-        };
+        let response = endpoint.response_kind.ty();
+        let base_return_type = response.map_or_else(
+            || "bytes".to_owned(),
+            |ty| normalize_return_type(&api_type(ty)),
+        );
 
         let return_type = if endpoint.supports_csv {
             format!("Union[{}, str]", base_return_type)
@@ -202,9 +202,9 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
         // Series data gets the same helpers however it is fetched.
         let (wrap_prefix, wrap_suffix) = if endpoint.response_kind.text_is_numeric() {
             ("int(", ")")
-        } else if endpoint.schema_name() == Some("SeriesData") {
+        } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
             ("_series_data(", ")")
-        } else if endpoint.schema_name() == Some("SeriesData[]") {
+        } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
             ("[_series_data(raw) for raw in ", "]")
         } else {
             ("", "")
@@ -231,8 +231,7 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             for param in &endpoint.query_params {
                 // Use safe name for Python variable, original name for API query parameter
                 let safe_name = escape_python_keyword(&param.name);
-                let is_array = param.param_type.ends_with("[]");
-                if is_array {
+                if matches!(param.ty, Ty::List(_)) {
                     writeln!(
                         output,
                         "        for _v in {}: params.append(('{}', _v))",
@@ -288,26 +287,26 @@ fn build_method_params(endpoint: &Endpoint) -> String {
     // Path params are always required
     for param in &endpoint.path_params {
         let safe_name = escape_python_keyword(&param.name);
-        let py_type = js_type_to_python(&param.param_type);
+        let py_type = api_type(&param.ty);
         write!(params, ", {}: {}", safe_name, py_type).unwrap();
     }
     // Required query params must come before optional ones (Python syntax requirement)
     for param in &endpoint.query_params {
         if param.required {
             let safe_name = escape_python_keyword(&param.name);
-            let py_type = js_type_to_python(&param.param_type);
+            let py_type = api_type(&param.ty);
             write!(params, ", {}: {}", safe_name, py_type).unwrap();
         }
     }
     for param in &endpoint.query_params {
         if !param.required {
             let safe_name = escape_python_keyword(&param.name);
-            let py_type = js_type_to_python(&param.param_type);
+            let py_type = api_type(&param.ty);
             write!(params, ", {}: Optional[{}] = None", safe_name, py_type).unwrap();
         }
     }
     if let Some(body) = &endpoint.request_body {
-        let py_type = js_type_to_python(&body.body_type);
+        let py_type = api_type(&body.ty);
         if body.required {
             write!(params, ", body: {}", py_type).unwrap();
         } else {

@@ -37,17 +37,9 @@ impl ComputePlugin for Vecs {
             dependencies.urpd,
             &weights,
             &supplies,
+            &dependencies.price.spot.cents.height,
             context.exit(),
-        )?;
-        let from = dependencies.indexer.compute_start().height;
-        let spot = &dependencies.price.spot.cents.height;
-        for cohort in self.aggregate.cohorts.iter_mut() {
-            cohort
-                .mobile
-                .cost_basis
-                .compute_ratios(from, spot, context.exit())?;
-        }
-        Ok(())
+        )
     }
 }
 

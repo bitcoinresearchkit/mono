@@ -10,7 +10,7 @@ use pco::{
 };
 
 use super::{super::inner::CompressionStrategy, value::PcoVecValue};
-use crate::{EncodedChunk, Error, Result, likely};
+use crate::{EncodedChunk, Error, Format, Result, likely};
 
 /// Pcodec compression strategy for numerical data.
 #[derive(Debug, Clone, Copy)]
@@ -102,6 +102,8 @@ where
     /// The current chunk's decompressor and a number scratch buffer.
     type Decoder = (Option<ChunkDecompressor<T::NumberType>>, Vec<T::NumberType>);
 
+    const FORMAT: Format = Format::Pco;
+
     const MAX_UNCOMPRESSED_CHUNK_SIZE: usize = 128 * 1024;
 
     fn compress_chunk(values: &[T], values_per_page: usize) -> Result<EncodedChunk> {
@@ -148,30 +150,6 @@ where
             return Err(Error::InvalidArgument("trailing PCO chunk header bytes"));
         }
         decoder.0 = Some(chunk);
-        Ok(())
-    }
-
-    #[inline]
-    fn decompress_page_into(
-        decoder: &mut Self::Decoder,
-        body: &[u8],
-        expected_len: usize,
-        dst: &mut Vec<T>,
-    ) -> Result<()> {
-        let (Some(decompressor), numbers) = decoder else {
-            unreachable!("pages decode after their chunk's reset");
-        };
-        if T::IS_TRANSPARENT {
-            dst.clear();
-            return Self::decode_transparent_append(decompressor, body, expected_len, dst);
-        }
-
-        Self::decode_numbers(decompressor, body, expected_len, numbers)?;
-        dst.clear();
-        dst.reserve(expected_len);
-        for &number in numbers.iter() {
-            dst.push(T::from_number(number)?);
-        }
         Ok(())
     }
 

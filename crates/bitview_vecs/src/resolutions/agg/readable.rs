@@ -1,5 +1,3 @@
-use std::result::Result;
-
 use super::{AggFold, LazyAggVec};
 use vecdb::{ReadableVec, VecIndex, VecValue};
 
@@ -28,19 +26,6 @@ where
             return;
         }
         Strat::fold(&*self.source, &mapping, from, to, (), |(), v| f(v));
-    }
-
-    #[inline]
-    fn fold_range_at<B, F: FnMut(B, O) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B
-    where
-        Self: Sized,
-    {
-        let mapping = self.mapping.load();
-        let to = to.min(mapping.len());
-        if from >= to {
-            return init;
-        }
-        Strat::fold(&*self.source, &mapping, from, to, init, f)
     }
 
     #[inline]

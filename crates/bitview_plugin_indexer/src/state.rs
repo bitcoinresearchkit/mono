@@ -13,6 +13,7 @@ use crate::{SafeLengths, stores::AddrUnspentViews};
 /// What readers see: the indexed lengths every plugin has computed to, the tip block they end
 /// with, and how many publications came before. Rows below these lengths only change in a
 /// rollback.
+#[derive(Default)]
 pub(crate) struct Published {
     pub(crate) lengths: Lengths,
     pub(crate) revision: u64,
@@ -27,6 +28,7 @@ pub(crate) struct Published {
 
 /// One writer publishes complete bounds; pins never wait, and only a rollback waits for the pins
 /// of the publications before it.
+#[derive(Default)]
 pub struct State {
     published: ArcSwap<Published>,
     /// Serializes lowerings: plugins computing side by side may each lower the publication.
@@ -34,19 +36,6 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> Self {
-        Self {
-            published: ArcSwap::from_pointee(Published {
-                lengths: Lengths::default(),
-                revision: 0,
-                tip: BlockHash::default(),
-                unspent: None,
-                era: Arc::default(),
-            }),
-            lowering: Mutex::default(),
-        }
-    }
-
     pub fn pin(&self) -> SafeLengths {
         SafeLengths::new(self.published.load_full())
     }
@@ -99,11 +88,5 @@ impl State {
         while Arc::strong_count(&era) > 1 {
             thread::sleep(Duration::from_millis(1));
         }
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::new()
     }
 }

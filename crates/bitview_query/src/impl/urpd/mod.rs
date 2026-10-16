@@ -10,7 +10,7 @@ use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
 mod entries;
 
-use entries::UrpdEntries;
+use entries::UrpdHeader;
 
 /// A URPD request resolved under one pin to the block it answers for: its identity, without
 /// reconstructing the distribution, which [`Query::urpd_resolved`] does under the same pin.
@@ -263,29 +263,21 @@ impl Query {
             .monotonic
             .collect_range_at(0, end);
         let source = OriginUrpd::new(&state, &prices, &timestamps)?;
-        let entries = if weight == UrpdWeight::Raw {
-            source
-                .project(&[], [ages])
-                .map(|b| (b.price, b.raw[0]))
-                .collect()
-        } else {
-            source
-                .project(&[Some(&weights)], [ages])
-                .filter_map(|b| {
-                    let sats = b.weighted[0][0];
-                    (sats != Sats::ZERO).then_some((b.price, sats))
-                })
-                .collect()
-        };
-        UrpdEntries {
+        let header = UrpdHeader {
             cohort,
             height,
             date: Date::from(timestamps[end - 1]),
             weight,
             aggregation,
             close: prices[end - 1],
-            entries,
+        };
+        if weight == UrpdWeight::Raw {
+            header.build(source.project(&[], [ages]).map(|b| (b.price, b.raw[0])))
+        } else {
+            header.build(source.project(&[Some(&weights)], [ages]).filter_map(|b| {
+                let sats = b.weighted[0][0];
+                (sats != Sats::ZERO).then_some((b.price, sats))
+            }))
         }
-        .build()
     }
 }

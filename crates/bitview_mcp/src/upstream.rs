@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, PercentEncode, utf8_percent_encode};
 use serde_json::Value;
 use ureq::{Agent, Body, http::Response};
 
@@ -55,15 +56,15 @@ impl Upstream {
                     }
                     path = path.replace(
                         &format!("{{{}}}", parameter.name),
-                        &encode_component(&values[0]),
+                        &encode_component(&values[0]).to_string(),
                     );
                 }
                 ParameterLocation::Query => {
                     for value in values {
                         query.push(if query.is_empty() { '?' } else { '&' });
-                        query.push_str(&encode_component(&parameter.name));
+                        query.extend(encode_component(&parameter.name));
                         query.push('=');
-                        query.push_str(&encode_component(&value));
+                        query.extend(encode_component(&value));
                     }
                 }
             }
@@ -159,17 +160,13 @@ fn parameter_values(value: &Value) -> Result<Vec<String>, String> {
     }
 }
 
-fn encode_component(value: &str) -> String {
-    const HEX: &[u8; 16] = b"0123456789ABCDEF";
-    let mut encoded = String::with_capacity(value.len());
-    for byte in value.bytes() {
-        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-            encoded.push(char::from(byte));
-        } else {
-            encoded.push('%');
-            encoded.push(char::from(HEX[(byte >> 4) as usize]));
-            encoded.push(char::from(HEX[(byte & 0x0f) as usize]));
-        }
-    }
-    encoded
+/// Every byte but RFC 3986's unreserved characters is percent-encoded.
+const ESCAPED: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'~');
+
+fn encode_component(value: &str) -> PercentEncode<'_> {
+    utf8_percent_encode(value, ESCAPED)
 }

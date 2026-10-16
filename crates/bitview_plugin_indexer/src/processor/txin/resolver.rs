@@ -58,7 +58,7 @@ impl InputResolver {
                     }
                     UnresolvedInput::PreviousBlock { prefix, vout } => {
                         let key = UtxoKey::new(prefix, vout);
-                        let Some(utxo) = processor.stores.utxo(&key)? else {
+                        let Some(utxo) = processor.stores.utxos().get(&key)? else {
                             error!("Spent output not in the UTXO store: prefix={prefix:?}, vout={vout:?}");
                             return Err(Error::Internal("Spent output not in the UTXO store"));
                         };
@@ -80,7 +80,7 @@ impl InputResolver {
                             output_type,
                             legacy_sigops,
                             type_index,
-                            value: processor.stores.utxo_value(&key, &utxo)?,
+                            value: processor.stores.utxos().value(&key, &utxo)?,
                         };
                         Ok(())
                     }

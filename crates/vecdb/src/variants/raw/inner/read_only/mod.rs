@@ -1,11 +1,7 @@
-use std::result::Result;
-
 use rawdb::Region;
 
 use super::{RawStrategy, ReadOnlyRawVec};
-use crate::{
-    HEADER_OFFSET, RawIoSource, RawMmapSource, VecIndex, VecReader, VecValue, cache::CachePolicy,
-};
+use crate::{VecIndex, VecReader, VecValue, cache::CachePolicy};
 
 pub mod any_vec;
 pub mod readable;
@@ -26,24 +22,5 @@ where
     }
     pub(crate) fn stored_len(&self) -> usize {
         self.base.stored_len()
-    }
-    #[inline(always)]
-    fn try_fold_source<B, E, F: FnMut(B, T) -> Result<B, E>>(
-        &self,
-        from: usize,
-        to: usize,
-        len: usize,
-        init: B,
-        f: F,
-    ) -> Result<B, E> {
-        let offset = HEADER_OFFSET + from * size_of::<T>();
-        let bytes = (to - from) * size_of::<T>();
-        if self.base.region().prefers_mmap(offset, bytes) {
-            RawMmapSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
-                .try_fold(init, f)
-        } else {
-            RawIoSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
-                .try_fold(init, f)
-        }
     }
 }

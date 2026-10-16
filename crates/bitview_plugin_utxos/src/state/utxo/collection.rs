@@ -6,17 +6,10 @@ use vecdb::ReadableVec;
 
 use crate::{metrics::CohortMetrics, state::MinimalRealizedState};
 
+#[derive(Default)]
 pub struct UTXOStates {
     pub amount_range: AmountRange<UTXOCohortState<MinimalRealizedState, ()>>,
     pub type_: SpendableType<UTXOCohortState<MinimalRealizedState, ()>>,
-}
-impl Default for UTXOStates {
-    fn default() -> Self {
-        Self {
-            amount_range: AmountRange::from_fn(|_| UTXOCohortState::default()),
-            type_: SpendableType::from_fn(|_| UTXOCohortState::default()),
-        }
-    }
 }
 
 impl UTXOStates {

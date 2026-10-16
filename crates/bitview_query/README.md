@@ -47,7 +47,7 @@ let stats = query.addr(address)?;
 |--------|---------|
 | Series | `search_series`, `resolve`, `format`, `series_count`, `series_list`, `series_catalog`, `series_info` |
 | Blocks | `resolve_block_hash`, `resolve_block_v1`, `resolve_blocks`, `resolve_block_by_timestamp`, `block_status` |
-| Transactions | `resolve_transaction`, `resolve_raw_transaction`, `resolve_confirmed_tx`, `transaction_status`, `outspend_json`, `outspends_json` |
+| Transactions | `resolve_transaction`, `resolve_confirmed_tx`, `transaction_status`, `outspend_json`, `outspends_json` |
 | Addresses | `addr`, `resolve_addr_txs`, `resolve_addr_utxos`, `resolve_addr_mempool_txs`, `addr_hash_prefix_matches` |
 | Mining | `difficulty_adjustments`, `hashrate`, `mining_pools`, `reward_stats` |
 | Mempool | `mempool_info_json`, `recommended_fees`, `precise_fees`, `mempool_blocks` |
@@ -95,9 +95,9 @@ finds the exact source and returns a token carrying its representation identity,
 revalidation can answer before any body is built. The matching `*_resolved` method (or
 `format` for series) then builds the body.
 
-Transaction tokens (`resolve_transaction`, `resolve_raw_transaction`, `resolve_confirmed_tx`,
-`resolve_cpfp`) hold no pin: a mempool body travels with the token, and a confirmed one is
-named by its position and block hash. Consuming it (`transaction_json_resolved`,
+Transaction tokens (`resolve_transaction`, `resolve_confirmed_tx`, `resolve_cpfp`) hold no
+pin: a mempool body travels with the token, and a confirmed one is named by its position and
+block hash. Consuming it (`transaction_json_resolved`,
 `transaction_raw_resolved`, `transaction_hex_resolved`, `merkle_proof_resolved`,
 `merkleblock_proof_resolved`, `cpfp_json_resolved`) takes one new `ReadPin`, checks that the
 block is still at that height (a token from a replaced block answers `UnknownTxid`, or

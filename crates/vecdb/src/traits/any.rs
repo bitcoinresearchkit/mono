@@ -1,4 +1,4 @@
-use crate::{Stamp, Version, read_bounds};
+use crate::{Version, read_bounds};
 
 /// Converts an i64 index to usize, supporting negative indexing.
 /// Negative indices count from the end.
@@ -42,23 +42,6 @@ pub trait AnyVec: Send + Sync {
     fn value_type_to_size_of(&self) -> usize;
     /// Returns the short type name of the value type (e.g., "Sats", "Ratio").
     fn value_type_to_string(&self) -> &'static str;
-    /// Generates an ETag for this vector based on stamp and optional end index.
-    fn etag(&self, stamp: Stamp, to: Option<i64>) -> String {
-        let len = self.len();
-        format!(
-            "{}-{}-{}",
-            to.map_or(len, |to| {
-                if to.is_negative() {
-                    len.saturating_sub(to.unsigned_abs() as usize)
-                } else {
-                    to as usize
-                }
-            }),
-            usize::from(self.version()),
-            u64::from(stamp),
-        )
-    }
-
     /// Converts an i64 index to usize, supporting negative indexing (Python-style).
     #[inline]
     fn i64_to_usize(&self, i: i64) -> usize {

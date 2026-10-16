@@ -3,10 +3,9 @@ pub mod op_return;
 pub mod processed;
 
 pub use address::BlockAddresses;
-pub use processed::ProcessedOutput;
-pub use processed::ProcessedOutputData;
+pub use processed::{ProcessedOutput, ProcessedOutputData, is_single_sig};
 
-use bitcoin::{Script, constants::WITNESS_SCALE_FACTOR};
+use bitcoin::constants::WITNESS_SCALE_FACTOR;
 use bitview_primitives::{
     AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, Index40, TxOutIndex, TypeIndex,
 };
@@ -22,7 +21,7 @@ use super::{
 use crate::{
     AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs,
     constants::overwritten_tx_index,
-    stores::{Utxo, UtxoKey},
+    stores::{UtxoKey, Utxos},
 };
 
 /// Consensus's script size limit: Core treats a larger locking script as unspendable.
@@ -32,61 +31,52 @@ impl<'a> BlockProcessor<'a> {
     /// Classifies the block's outputs into `outputs`, cleared first.
     pub fn process_outputs(
         &self,
+        txs: &[ComputedTx],
         addresses: &mut BlockAddresses,
         outputs: &mut Vec<ProcessedOutput>,
     ) -> Result<()> {
         outputs.clear();
         // Start address lookups without a temporary pointer list or another parallel barrier.
-        outputs.extend(
-            self.block
-                .txdata
-                .iter()
-                .flat_map(|tx| &tx.output)
-                .map(|txout| {
-                    let script = &txout.script_pubkey;
-                    let output_type = OutputType::from(script);
-                    // Core leaves larger scripts out of its UTXO set as unspendable; none exist,
-                    // which keeps the UTXO set's totals equal to Core's.
-                    debug_assert!(
-                        output_type == OutputType::OpReturn || script.len() <= MAX_SCRIPT_SIZE,
-                        "unspendable {}-byte script outside Core's UTXO set",
-                        script.len()
-                    );
-                    let legacy_sigops = executed_legacy_sigops_for_output(output_type, script);
-                    let data = if output_type.is_addr() {
-                        ProcessedOutputData::Address(
-                            AddrHash::from_script(script, output_type).unwrap(),
-                        )
-                    } else if likely(output_type == OutputType::OpReturn) {
-                        ProcessedOutputData::OpReturn(op_return::analyze(script))
-                    } else {
-                        ProcessedOutputData::None
-                    };
+        outputs.extend(txs.iter().flat_map(|ct| &ct.tx.output).map(|txout| {
+            let script = &txout.script_pubkey;
+            let output_type = OutputType::from(script);
+            // Core leaves larger scripts out of its UTXO set as unspendable; none exist,
+            // which keeps the UTXO set's totals equal to Core's.
+            debug_assert!(
+                output_type == OutputType::OpReturn || script.len() <= MAX_SCRIPT_SIZE,
+                "unspendable {}-byte script outside Core's UTXO set",
+                script.len()
+            );
+            // With the accurate sigop count a spend executes; the legacy count, for the
+            // transaction's total, stays in the data (see `script_legacy_sigops`). A P2MS script
+            // can hold extra signature opcodes before its CHECKMULTISIG and an unknown one
+            // anything, so both are counted.
+            let (data, executed) = if output_type.is_addr() {
+                let hash = AddrHash::from_script(script, output_type).unwrap();
+                let single_sig = usize::from(is_single_sig(output_type));
+                (ProcessedOutputData::Address(hash), single_sig)
+            } else if likely(output_type == OutputType::OpReturn) {
+                (ProcessedOutputData::OpReturn(op_return::analyze(script)), 0)
+            } else if output_type == OutputType::Empty {
+                (ProcessedOutputData::None, 0)
+            } else {
+                let count = SigOpCount::of(script);
+                let legacy_sigops = count.legacy as u32;
+                (
+                    ProcessedOutputData::Script { legacy_sigops },
+                    count.accurate,
+                )
+            };
 
-                    ProcessedOutput {
-                        output_type,
-                        legacy_sigops,
-                        data,
-                    }
-                }),
-        );
+            ProcessedOutput {
+                output_type,
+                legacy_sigops: SigOps32::from(executed.saturating_mul(WITNESS_SCALE_FACTOR)),
+                data,
+            }
+        }));
 
-        addresses.resolve(self, outputs)
+        addresses.resolve(self, txs, outputs)
     }
-}
-
-pub fn executed_legacy_sigops_for_output(
-    output_type: OutputType,
-    script_pubkey: &Script,
-) -> SigOps32 {
-    SigOps32::from(
-        match output_type {
-            OutputType::P2PKH | OutputType::P2PK33 | OutputType::P2PK65 => 1,
-            OutputType::P2MS | OutputType::Unknown => SigOpCount::of(script_pubkey).accurate,
-            _ => 0,
-        }
-        .saturating_mul(WITNESS_SCALE_FACTOR),
-    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -101,38 +91,29 @@ pub fn finalize_outputs(
     addr_hash_stores: &mut ByAddrType<Store<AddrHash, TypeIndex>>,
     addr_tx_index_stores: &mut ByAddrType<Store<AddrIndexTxIndex, Unit>>,
     addr_outpoint_stores: &mut ByAddrType<Store<AddrIndexOutPoint, Unit>>,
-    utxos: &mut Store<UtxoKey, Utxo>,
-    utxo_values: &mut Store<UtxoKey, Sats>,
+    utxos: &mut Utxos,
     txouts: &mut [ProcessedOutput],
     addresses: &mut BlockAddresses,
 ) {
     let base_txout_index = lengths.txout_index;
-    let mut output_offset = 0;
     for ct in txs {
-        let tx = ct.tx;
         let tx_index = ct.tx_index;
         let txid_prefix = ct.txid_prefix();
         let overwritten = overwritten_tx_index(tx_index);
-        let next_output_offset = output_offset + tx.output.len();
+        let first_txout = base_txout_index + TxOutIndex::from(ct.output_offset);
+        // Every transaction has an output.
+        first_txout_index.debug_checked_push(tx_index, Index40::new(first_txout));
 
-        for (vout, (txout, processed)) in tx
-            .output
-            .iter()
-            .zip(&mut txouts[output_offset..next_output_offset])
-            .enumerate()
+        for (vout, (txout, processed)) in
+            ct.tx.output.iter().zip(ct.outputs_mut(txouts)).enumerate()
         {
-            let block_txout_index = output_offset + vout;
-            let txout_index = base_txout_index + TxOutIndex::from(block_txout_index);
+            let txout_index = first_txout + TxOutIndex::from(vout);
             let vout_index = vout as u32;
             let vout = Vout::from(vout);
             let output_type = processed.output_type;
             let legacy_sigops = processed.legacy_sigops;
             let data = processed.data;
             let sats = Sats::from(txout.value);
-
-            if vout_index == 0 {
-                first_txout_index.debug_checked_push(tx_index, Index40::new(txout_index));
-            }
 
             let type_index = match data {
                 ProcessedOutputData::Address(addr_hash) => {
@@ -169,7 +150,8 @@ pub fn finalize_outputs(
                         .debug_checked_push(op_return_index, op_return.post_op_return_bytes);
                     lengths.op_return_index.copy_then_increment()
                 }
-                ProcessedOutputData::None => match output_type {
+                ProcessedOutputData::None | ProcessedOutputData::Script { .. } => match output_type
+                {
                     OutputType::P2MS => {
                         let index = lengths.p2ms_output_index;
                         scripts.p2ms.to_tx_index.debug_checked_push(index, tx_index);
@@ -215,14 +197,14 @@ pub fn finalize_outputs(
             // OP_RETURN outputs can never be spent. A BIP30 duplicate coinbase (two, in 2010)
             // replaces its original's entry, as in Bitcoin Core.
             if !output_type.is_unspendable() {
-                let key = UtxoKey::new(txid_prefix, vout_index);
                 utxos.insert(
-                    key,
-                    Utxo::new(tx_index, txout_index, output_type, type_index, sats),
+                    UtxoKey::new(txid_prefix, vout_index),
+                    tx_index,
+                    txout_index,
+                    output_type,
+                    type_index,
+                    sats,
                 );
-                if Utxo::is_large(sats) {
-                    utxo_values.insert(key, sats);
-                }
             }
 
             if likely(output_type.is_addr()) {
@@ -247,7 +229,5 @@ pub fn finalize_outputs(
                 }
             }
         }
-
-        output_offset = next_output_offset;
     }
 }

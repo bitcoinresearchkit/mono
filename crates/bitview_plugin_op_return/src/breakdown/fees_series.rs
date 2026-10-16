@@ -6,9 +6,8 @@ use bitview_vecs::{
     ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+use brk_types::{Height, Sats, Version};
+use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct FeesSeries<M: StorageMode = Rw> {
@@ -49,22 +48,5 @@ impl FeesSeries {
         );
 
         Ok(Self { fees, chain_share })
-    }
-
-    pub fn push_block(&mut self, value: Sats) {
-        self.fees.push_sats(value);
-    }
-
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        &mut self.fees.cumulative.sats.height
-    }
-
-    pub fn compute_cents(
-        &mut self,
-        max_from: Height,
-        price_cents: &impl ReadableVec<Height, Cents>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.fees.compute_cents(max_from, price_cents, exit)
     }
 }

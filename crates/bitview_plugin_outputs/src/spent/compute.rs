@@ -1,6 +1,7 @@
 use std::iter::repeat_n;
 
 use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
@@ -12,7 +13,12 @@ use super::{Vecs, bootstrap};
 use bitview_compute::{undo_chunks, undo_tail_start};
 
 impl Vecs {
-    pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        mappings: &MappingsVecs,
+        exit: &Exit,
+    ) -> Result<()> {
         let starting_lengths = indexer.compute_start();
 
         let dep_version = indexer.vecs().inputs.txout_index.version()
@@ -65,32 +71,17 @@ impl Vecs {
             min_txout_index
         };
 
-        // The block holding output `min_txout_index`: the last height whose first output is at
-        // or below it (first_txout_index never decreases). Below the starting lengths it lies
-        // under the starting height, whose first output (`starting_lengths.txout_index`) is past
-        // it, so the search never reads that height, which may not be indexed.
+        // The block holding output `min_txout_index`. Below the starting lengths it lies under
+        // the starting height, in the prefix a reorg keeps, which the mappings already resolve.
         let first_txout_index_vec = &indexer.vecs().outputs.first_txout_index;
-        let min_height = if min_txout_index == 0 {
-            0
-        } else if min_txout_index >= starting_lengths.txout_index.to_usize() {
+        let min_height = if min_txout_index >= starting_lengths.txout_index.to_usize() {
             starting_lengths.height.to_usize()
         } else {
-            let mut lo = 0usize;
-            let mut hi = starting_lengths.height.to_usize();
-            while lo < hi {
-                let mid = lo + (hi - lo) / 2;
-                if first_txout_index_vec
-                    .collect_one_at(mid)
-                    .unwrap()
-                    .to_usize()
-                    <= min_txout_index
-                {
-                    lo = mid + 1;
-                } else {
-                    hi = mid;
-                }
-            }
-            lo.saturating_sub(1)
+            mappings
+                .output_heights
+                .get_shared(TxOutIndex::from(min_txout_index))
+                .unwrap()
+                .to_usize()
         };
         debug_assert!(
             min_height <= starting_lengths.height.to_usize(),

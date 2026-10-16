@@ -26,7 +26,7 @@ use brk_rpc::Client;
 use brk_types::{BlockHash, Height, TxOut, Txid, Vout};
 use rustc_hash::FxHashMap;
 #[cfg(any(feature = "series", feature = "price"))]
-use vecdb::{ReadBounds, ReadScope};
+use vecdb::{PrintableIndex, ReadBounds, ReadScope};
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 mod r#async;
@@ -54,7 +54,7 @@ pub use r#impl::{
     BlockTemplateSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs,
     ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedBlockTemplateDiff, ResolvedBlockTimestamp,
     ResolvedBlocks, ResolvedBlocksV1, ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks,
-    ResolvedRawTransaction, ResolvedRbf, ResolvedTransaction, UtxoSetPoint,
+    ResolvedRbf, ResolvedTransaction, UtxoSetPoint,
 };
 #[cfg(feature = "series")]
 pub use r#impl::{ResolvedQuery, SeriesAnchor, SeriesRead};
@@ -261,34 +261,17 @@ impl Query {
             safe.empty_output_index.into(),
         );
         bounds.set(Index::OpReturnIndex.name(), safe.op_return_index.into());
-        bounds.set(Index::P2AAddressIndex.name(), safe.p2a_addr_index.into());
         bounds.set(Index::P2MSOutputIndex.name(), safe.p2ms_output_index.into());
-        bounds.set(
-            Index::P2PK33AddressIndex.name(),
-            safe.p2pk33_addr_index.into(),
-        );
-        bounds.set(
-            Index::P2PK65AddressIndex.name(),
-            safe.p2pk65_addr_index.into(),
-        );
-        bounds.set(
-            Index::P2PKHAddressIndex.name(),
-            safe.p2pkh_addr_index.into(),
-        );
-        bounds.set(Index::P2SHAddressIndex.name(), safe.p2sh_addr_index.into());
-        bounds.set(Index::P2TRAddressIndex.name(), safe.p2tr_addr_index.into());
-        bounds.set(
-            Index::P2WPKHAddressIndex.name(),
-            safe.p2wpkh_addr_index.into(),
-        );
-        bounds.set(
-            Index::P2WSHAddressIndex.name(),
-            safe.p2wsh_addr_index.into(),
-        );
         bounds.set(
             Index::UnknownOutputIndex.name(),
             safe.unknown_output_index.into(),
         );
+        macro_rules! addr_bounds {
+            ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
+                $(bounds.set(<$index as PrintableIndex>::to_string(), safe.$length.into());)+
+            };
+        }
+        bitview_primitives::with_address_storage_types!(addr_bounds);
 
         let tip = safe.last_height();
         bounds.set(

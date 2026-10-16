@@ -11,11 +11,10 @@ use crate::{
     compaction::{
         Choice, Input, leveled::Strategy, state::CompactionState, stream::CompactionStream,
     },
-    config::FilterPolicyEntry,
     file::TABLES_FOLDER,
     merge::ForwardMerger,
     run_scanner::RunScanner,
-    table::{filter::BloomConstructionPolicy, multi_writer::MultiWriter},
+    table::{multi_writer::MultiWriter, writer::WriterOptions},
     version::{Level, Version},
 };
 
@@ -77,7 +76,7 @@ impl Tree {
         let start = Instant::now();
         let is_last_level = usize::from(input.dest_level) + 1 == version.level_count();
         let mut stream = stream.evict_tombstones(is_last_level);
-        let mut writer = self.prepare_writer::<K, V>(version, input)?;
+        let mut writer = self.prepare_writer::<K, V>(input, is_last_level)?;
 
         state.hidden_set_mut().hide(input.table_ids.iter().copied());
         drop(state);
@@ -130,44 +129,23 @@ impl Tree {
 
     fn prepare_writer<K: RecordBytes, V: RecordBytes>(
         &self,
-        version: &Version,
         input: &Input,
+        is_last_level: bool,
     ) -> Result<MultiWriter<K, V>> {
-        let level = usize::from(input.canonical_level);
-        let mut writer = MultiWriter::new(
+        // The filter follows the destination level; the block layout, the canonical one.
+        let bloom = if is_last_level && self.config.expect_point_read_hits {
+            None
+        } else {
+            self.config
+                .filter_policy
+                .bloom_at(usize::from(input.dest_level))
+        };
+        let writer = MultiWriter::new(
             self.config.path.join(TABLES_FOLDER),
             self.table_id_counter.clone(),
             input.target_size,
+            WriterOptions::new(&self.config, input.canonical_level.into(), bloom),
         )?;
-
-        let is_last_level = usize::from(input.dest_level) + 1 == version.level_count();
-        let bloom_policy = if is_last_level && self.config.expect_point_read_hits {
-            BloomConstructionPolicy::BitsPerKey(0.0)
-        } else {
-            match self
-                .config
-                .filter_policy
-                .at_level(usize::from(input.dest_level))
-            {
-                FilterPolicyEntry::Bloom(policy) => policy,
-                FilterPolicyEntry::None => BloomConstructionPolicy::BitsPerKey(0.0),
-            }
-        };
-        // The final policy goes first so partitioned filters size themselves once.
-        writer = writer
-            .use_bloom_policy(bloom_policy)
-            .use_data_block_restart_interval(
-                self.config
-                    .data_block_restart_interval_policy
-                    .at_level(level),
-            );
-
-        if self.config.index_block_partitioning_policy.at_level(level) {
-            writer = writer.use_partitioned_index();
-        }
-        if self.config.filter_block_partitioning_policy.at_level(level) {
-            writer = writer.use_partitioned_filter();
-        }
 
         debug!(
             "Compacting tables {:?} into L{} (canonical L{}), target_size={}",

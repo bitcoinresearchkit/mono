@@ -72,35 +72,37 @@ pub trait AnyStoredVec: AnyVec {
         guard.finish(Ok(()))
     }
 
-    /// Flushes with the given stamp, saving changes to enable rollback.
-    /// Prefixed with `any_` to avoid conflict with `WritableVec::stamped_write_with_changes`.
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()>;
-
-    /// Advances the in-memory rollback baseline to the current stored state.
+    /// Saves the undo record at `stamp` of everything since the last checkpoint. Only called
+    /// with saved stamped changes, before the checkpoint's write overwrites anything.
     #[doc(hidden)]
-    fn any_save_rollback_state(&mut self);
+    fn any_save_changes(&self, stamp: Stamp) -> Result<()>;
+
+    /// Writes the checkpoint's data, stamp and header without reading back values for undo
+    /// records, then (with saved stamped changes) advances the rollback baseline to it.
+    #[doc(hidden)]
+    fn any_write_checkpoint(&mut self, stamp: Stamp) -> Result<()>;
 
     /// Removes the change files above `stamp`, the stamp a write without undo starts from.
     #[doc(hidden)]
     fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()>;
 
-    /// Flushes with the given stamp, optionally saving changes for rollback.
-    #[inline]
+    /// Writes a checkpoint at `stamp`. With changes (and saved stamped changes), its undo record
+    /// is saved first; without, the change files above the current stamp, which undo states the
+    /// write replaces, are removed. Either way the rollback baseline advances to the written state.
     fn any_stamped_write_maybe_with_changes(
         &mut self,
         stamp: Stamp,
         with_changes: bool,
     ) -> Result<()> {
-        if with_changes {
-            self.any_stamped_write_with_changes(stamp)
-        } else {
+        if !with_changes {
             self.any_remove_changes_above(self.stamp())?;
-            self.stamped_write(stamp)?;
-            if self.saved_stamped_changes() > 0 {
-                self.any_save_rollback_state();
-            }
-            Ok(())
         }
+        let guard = self.header().begin_write()?;
+        if with_changes && self.saved_stamped_changes() > 0 {
+            self.any_save_changes(stamp)?;
+        }
+        self.any_write_checkpoint(stamp)?;
+        guard.finish(Ok(()))
     }
 
     fn serialize_changes(&self) -> Result<Vec<u8>>;

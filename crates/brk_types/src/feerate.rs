@@ -140,7 +140,7 @@ impl From<(Sats, VSize)> for FeeRate {
 impl From<(Sats, Weight)> for FeeRate {
     #[inline]
     fn from((sats, weight): (Sats, Weight)) -> Self {
-        Self::from((sats, VSize::from(weight.to_vbytes_ceil())))
+        Self::from((sats, VSize::from(weight)))
     }
 }
 

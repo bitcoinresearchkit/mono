@@ -79,7 +79,6 @@ mod range;
 mod table;
 
 mod seqno;
-mod slice;
 
 mod tree;
 
@@ -102,8 +101,10 @@ pub use {
     config::Config,
     descriptor_table::DescriptorTable,
     error::{Error, Result},
-    slice::Slice,
     tree::{ReadView, Tree, ingest::Ingestion},
 };
+
+/// An immutable byte slice that can be cloned without additional heap allocation.
+pub use byteview::ByteView as Slice;
 
 use seqno::SequenceNumberCounter;

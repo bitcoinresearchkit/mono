@@ -14,7 +14,6 @@ use crate::{Lengths, Readers, Stores, Vecs};
 pub struct BlockProcessor<'a> {
     pub block: &'a Block,
     pub height: Height,
-    pub check_collisions: bool,
     pub lengths: &'a mut Lengths,
     pub vecs: &'a mut Vecs,
     pub stores: &'a mut Stores,

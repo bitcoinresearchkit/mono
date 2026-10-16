@@ -38,10 +38,11 @@ where
     }
 
     for (txid, fills) in in_mempool.into_iter().chain(external) {
-        let key = TxKey::from(&txid);
-        for prevout in state.txs.apply_fills(&key, fills) {
-            state.addrs.add_input(&txid, &prevout);
-        }
+        state
+            .txs
+            .apply_fills(&TxKey::from(&txid), fills, |prevout| {
+                state.addrs.add_input(&txid, prevout)
+            });
     }
 }
 
@@ -111,7 +112,7 @@ fn gather(
             if let Some(parent) = txs.get(&txin.txid).or_else(|| {
                 graveyard
                     .get_vanished(&txin.txid)
-                    .map(|tomb| tomb.tx.as_ref())
+                    .map(|tomb| tomb.record.tx.as_ref())
             }) && let Some(out) = parent.output.get(usize::from(txin.vout))
             {
                 tx_fills.push((vin, out.clone()));

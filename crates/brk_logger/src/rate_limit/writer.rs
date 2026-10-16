@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use tracing::Level;
 
-use super::{Inner, LEVEL_SUFFIX, level_index, today};
+use super::{Inner, LEVEL_NAMES, level_index, today};
 
 pub struct FileWriter<'a> {
     pub(super) inner: &'a Inner,
@@ -33,7 +33,7 @@ impl Write for FileWriter<'_> {
 
         if let Some((i, slot)) = &mut level {
             slot.file.write(dir, &date, buf, || {
-                dir.join(format!("{date}_{}.txt", LEVEL_SUFFIX[*i]))
+                dir.join(format!("{date}_{}.txt", LEVEL_NAMES[*i]))
             })?;
         }
 

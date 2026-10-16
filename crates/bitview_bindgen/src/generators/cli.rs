@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeSet, fmt::Write, io, path::Path};
 
-use crate::{Endpoint, Parameter, generators::write_if_changed};
+use crate::{Endpoint, Parameter, Ty, generators::write_if_changed};
 
 /// Generate the OpenAPI-derived command catalog used by `bitview-cli`.
 pub(crate) fn generate_cli(endpoints: &[Endpoint], output_path: &Path) -> io::Result<()> {
@@ -45,7 +45,7 @@ pub(crate) fn generate_cli(endpoints: &[Endpoint], output_path: &Path) -> io::Re
             Some(body) => writeln!(
                 output,
                 "        request_body: Some(RequestBody {{ value_name: {:?}, required: {}, content_type: {:?} }}),",
-                body.body_type, body.required, body.content_type
+                body.ty.to_string(), body.required, body.content_type
             )
             .unwrap(),
             None => writeln!(output, "        request_body: None,").unwrap(),
@@ -66,8 +66,8 @@ fn write_parameters(output: &mut String, field: &str, parameters: &[Parameter]) 
             parameter.name,
             to_kebab_case(&parameter.name),
             parameter.required,
-            parameter.param_type,
-            parameter.param_type.ends_with("[]"),
+            parameter.ty.to_string(),
+            matches!(parameter.ty, Ty::List(_)),
             parameter.description
         )
         .unwrap();

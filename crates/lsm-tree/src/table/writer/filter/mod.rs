@@ -6,7 +6,7 @@ use std::{fs::File, io::BufWriter};
 
 use sfa::Writer;
 
-use crate::{InternalValue, RecordBytes, Result, Slice, config::BloomConstructionPolicy};
+use crate::{InternalValue, RecordBytes, Result, Slice};
 
 mod full;
 mod partitioned;
@@ -23,9 +23,4 @@ pub trait FilterWriter<K: RecordBytes, V: RecordBytes> {
         file_writer: &mut Writer<BufWriter<File>>,
         _last_key: &Slice,
     ) -> Result<()>;
-
-    fn set_filter_policy(
-        self: Box<Self>,
-        policy: BloomConstructionPolicy,
-    ) -> Box<dyn FilterWriter<K, V>>;
 }

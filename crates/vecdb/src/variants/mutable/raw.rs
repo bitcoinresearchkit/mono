@@ -2,7 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::MutableVec;
 use crate::{
-    AnyStoredVec, ImportOptions, ImportableVec, Result, Stamp, StoredVec, VecIndex, WritableVec,
+    AnyStoredVec, ChangeData, ImportOptions, ImportableVec, Result, Stamp, StoredVec, VecIndex,
+    WritableVec,
 };
 
 pub trait MutableRawVec: StoredVec + ImportableVec + WritableVec<Self::I, Self::T> + Sized {
@@ -27,7 +28,12 @@ pub trait MutableRawVec: StoredVec + ImportableVec + WritableVec<Self::I, Self::
         previous: &BTreeMap<usize, Self::T>,
         bytes: &mut Vec<u8>,
     );
-    fn parse_mutable_changes(bytes: &[u8]) -> Result<(Vec<(usize, Self::T)>, BTreeSet<usize>)>;
+    /// The base change record, the previous values of updated indexes and the previous holes.
+    fn parse_mutable_changes(
+        bytes: &[u8],
+    ) -> Result<(ChangeData<Self::T>, Vec<(usize, Self::T)>, BTreeSet<usize>)>;
+    /// Undoes the base change record of [`Self::parse_mutable_changes`].
+    fn rollback_change(&mut self, change: ChangeData<Self::T>) -> Result<()>;
     fn save_change_file(&self, stamp: Stamp, bytes: &[u8]) -> Result<()>;
     fn read_current_change_file(&self) -> Result<Vec<u8>>;
     fn save_previous(&mut self);

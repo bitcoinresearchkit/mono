@@ -68,7 +68,7 @@ error; valid-looking data corruption cannot be detected by rawdb.
 
 ## Concurrency and lifetimes
 
-- A `Reader`, `with_read_bytes` callback, or `read_lock` guard keeps its region
+- A `Reader`, `with_read_range` callback, or `read_lock` guard keeps its region
   stable. Appends within the region's reservation go past every reader's bounds
   and do not wait; other writes, truncation, and relocation wait for readers.
 - Readers expose only their region's logical bytes, and borrow only the bytes

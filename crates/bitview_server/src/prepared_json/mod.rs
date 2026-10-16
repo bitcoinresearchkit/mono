@@ -22,7 +22,9 @@ impl PreparedJson {
     }
 
     pub fn respond(&self, headers: &HeaderMap) -> Response {
-        Response::json_bytes(headers, &self.params, || self.bytes.clone())
+        Response::cached_bytes(headers, &self.params, "application/json", || {
+            self.bytes.clone()
+        })
     }
 
     #[cfg(feature = "series")]
