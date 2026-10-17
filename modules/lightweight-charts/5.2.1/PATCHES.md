@@ -274,3 +274,15 @@ frame), on any scale: three methods.
   `bvRange()` says it; a log scale's formula may change with it, and prices stay prices).
 
 `tests.html` doesn't use them. Checked in Studio: a log scale, a linear one, a percentage one, glided between ranges.
+
+## 17. Markers let go of their series
+
+The series markers plugin (`createSeriesMarkers`) listens to its series' data as it's attached, by a callback of its own
+made there and not kept, while its `detached()` lets go of one it keeps (`this.lx`, never set): detached, it listens on,
+the series holding it and its markers (Studio detaches one each time a signal's marks move to another series). The
+callback is now kept as it's subscribed, and let go of on detach.
+
+- `class Fr` (the markers primitive), `attached(t)`: `this.lx=t=>this.QM(t),this.Te.subscribeDataChanged(this.lx)` for
+  `this.Te.subscribeDataChanged((t=>this.QM(t)))`.
+
+`tests.html` doesn't use markers. Checked in Studio: marks moved from series to series, a series' data set after.

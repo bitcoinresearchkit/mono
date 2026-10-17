@@ -8634,6 +8634,7 @@
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
             <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
+            <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns true (0 is false, anything else true; > < >= <= are 1 or 0, joined with &amp; and |): "place", "below" or "on" (above if none).</li>
             <li>{"cloud": ["B", "C"]}: filled between those two layers, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them); "color" alone, that one all along; "color" and "colorBelow", those two (where B is over, where C is). Either of the two (or both) can be "top" or "bottom", its pane's edge: from the layer up to the pane's top, or from its bottom up to it, in one color: {"cloud": ["A", "top"]}. Two exactly: for more layers, formulas first, {"formula": "max(B, max(C, D))"} and {"formula": "min(B, min(C, D))"}, then a cloud between those two.</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (a candle's wick counts); width and dash as a line's.</li>
           </ul>
@@ -9201,6 +9202,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toTop: svg('<path d="M3 2.5h10M8 13.5V6M4.5 9.5 8 6l3.5 3.5"/>'),
         toBottom: svg('<path d="M3 13.5h10M8 2.5V10M4.5 6.5 8 10l3.5-3.5"/>'),
         cloud: svg('<path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4v5c-2.1 2.4-3.9 2.4-6 1.4s-3.9-.6-6 1.3Z" fill="currentColor" fill-opacity=".4" stroke="none"/><path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4M2 11.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4"/>'),
+        // (A signal: a mark pointing down onto a line.)
+        signal: svg('<path d="M1.5 13.5c2.4-1.6 4-3.6 6.5-3.6s4 1.7 6.5.9" stroke-opacity=".45"/><path d="M8 2.2v5M5.9 5.1 8 7.2l2.1-2.1"/>'),
         riding: svg('<path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4M2 11.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4" stroke-opacity=".35"/><path d="M2 11.2c2.1-1.9 3.9-2.3 6-1.3M8 4.9c2.1 1 3.9 1 6-1.4" stroke-width="1.9"/>'),
         brush: svg('<path d="M13.6 2.4a1.15 1.15 0 0 1 0 1.65L8.9 8.75 7.25 7.1l4.7-4.7a1.15 1.15 0 0 1 1.65 0Z"/><path d="M6.9 9.1C5.3 8.6 3.9 9.4 3.7 11c-.15 1.2-.7 1.9-1.7 2.3 2.4.9 4.9.3 5.4-1.6.2-.9.05-1.8-.5-2.6Z"/>'),
       };
@@ -9268,9 +9271,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           histogram: '<rect x="1" y="6" width="2" height="5" rx=".5" fill="currentColor"/><rect x="5" y="2" width="2" height="9" rx=".5" fill="currentColor"/><rect x="9" y="5" width="2" height="6" rx=".5" fill="currentColor"/><rect x="13" y="3" width="2" height="8" rx=".5" fill="currentColor"/>',
           baseline: '<path d="M1 6.5h14" stroke="currentColor" stroke-dasharray="2 2" opacity=".5"/><path d="M1.5 4.5l3-2.5 4 5.5 2.5 2 3.5-1.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
           candles: '<path d="M4.5 3v8M11.5 1v2.5M11.5 8.5V10" stroke="currentColor"/><rect x="2" y="5" width="5" height="5" rx=".5" fill="currentColor"/><rect x="9.5" y="3.5" width="4" height="5" rx=".5" fill="none" stroke="currentColor"/>',
-        }[type] ?? "";
+        }[type] ?? (type === "signal" ? markBody("above", "currentColor") : "");
         return glyphSvg(body);
       };
+      /** A signal's mark, drawn at 16×12 as the chart has it: an arrow down onto its layer, up to it, or a dot on it. */
+      const markBody = (/** @type {string | undefined} */ place, /** @type {string} */ color) => (place === "on" ? `<circle cx="8" cy="6" r="3.2" fill="${color}"/>` : place === "below" ? `<path d="M8 2 12.5 7H9.6v3.5H6.4V7H3.5Z" fill="${color}"/>` : `<path d="M8 10 3.5 5h2.9V1.5h3.2V5h2.9Z" fill="${color}"/>`);
       /** A line shape, drawn on whole pixels at 16×12. */
       const shapeGlyph = (shape) => glyphSvg(`<path d="${{ straight: "M1.5 9.5l4-4 3 3 6-6", steps: "M1.5 9.5h3v-4h4v3h3v-6h3", curved: "M1.5 9.5C4 9.5 4 5 6.5 5s2.5 3.5 5 3.5 2-6 3-6" }[shape]}" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
       /** A line style, its dashes drawn on whole pixels at 16×12. */
@@ -9471,13 +9476,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const FROM_TYPES = [["cloud", "Cloud"], ["trend", "Trend"]];
       /** What a trend makes of its layers, said. */
       const TREND_SAYS = "On the lowest of them until its reference touches it, then on the highest until it touches that";
+      /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc @param {Layer} signal */
+      const markable = (doc, signal) => doc.layers.filter((other) => other !== signal && other.type !== "cloud" && other.type !== "signal");
+      /** Where a signal's marks go: over its layer (pointing down at it), under it (pointing up), on it. */
+      const MARK_PLACES = /** @type {[string, string, string, string][]} */ ([["above", "Above", "aboveBar", "arrowDown"], ["below", "Below", "belowBar", "arrowUp"], ["on", "On it", "inBar", "circle"]]);
       /** What can flip a trend: a layer of one value (not made from layers), not one of those it's made from. @param {Chart} doc @param {Layer} trend */
-      const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
+      const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && layer.type !== "signal" && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
       /** A trend's reference by default: a price in its pane (candles, a series named so), else the first of those there, else the first. @param {Chart} doc @param {Layer} trend */
       const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.pane === trend.pane && (layer.type === "candles" || /^price/.test(layer.series ?? ""))) ?? refs.find((layer) => layer.pane === trend.pane) ?? refs[0])?.id)(refsFor(doc, trend));
       /** A type's name: a series' or a formula's, or one made from layers. */
       /** An unnamed formula's line (its name is its formula): what it is, in what once known. @param {Layer} layer */
-      const formulaLine = (layer) => ((result) => (result?.shown ? `Formula · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}` : "Formula"))(resolved?.results.get(layer.id));
+      const formulaLine = (layer) => (layer.type === "signal" ? signalLine(layer) : ((result) => (result?.shown ? `Formula · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}` : "Formula"))(resolved?.results.get(layer.id)));
+      /** Where a signal turns true in its values: each point's index. @param {ArrayLike<number> | undefined} values */
+      const turnsOf = (values) => {
+        const at = [];
+        let was = NaN;
+        for (let i = 0; i < (values?.length ?? 0); i++) {
+          const value = /** @type {ArrayLike<number>} */ (values)[i];
+          if (value !== value) continue;
+          if (value && was === 0) at.push(i);
+          was = value ? 1 : 0;
+        }
+        return at;
+      };
+      /** A signal, said: the layer its marks are on, how many there are. @param {Layer} layer */
+      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(turnsOf(values).length, "mark")}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.shown);
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES].find(([id]) => id === type)?.[1] ?? type;
       /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
@@ -9496,7 +9519,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * candles' their one (rising hollow).
        * @type {Record<string, string[]>}
        */
-      const COLOR_MODES = { line: ["one", "levels", "from"], dots: ["one", "levels", "from"], area: ["one", "levels", "from"], histogram: ["one", "sides", "momentum", "levels", "from"], baseline: ["sides"], trend: ["one", "sides", "from"], cloud: ["layers", "one", "sides", "from"], candles: ["one"] };
+      const COLOR_MODES = { line: ["one", "levels", "from"], dots: ["one", "levels", "from"], area: ["one", "levels", "from"], histogram: ["one", "sides", "momentum", "levels", "from"], baseline: ["sides"], trend: ["one", "sides", "from"], cloud: ["layers", "one", "sides", "from"], candles: ["one"], signal: ["one"] };
       /** The types that can take their colors from another layer, and those that can be colored by their levels. */
       const COLORED_FROM = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("from")));
       const BY_LEVELS = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("levels")));
@@ -9699,6 +9722,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return `${sign}${whole >= 1e4 ? compact(abs) : trim(abs, 3)}%`;
           case "ratio":
             return `${sign}${whole >= 1e4 ? compact(abs) : trim(abs, 3)}×`;
+          // (A signal's: true, anything but 0.)
+          case "signal":
+            return value ? "Yes" : "No";
           case "bps":
             return `${sign}${compact(abs)} bp`;
           case "hashrate":
@@ -10104,7 +10130,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       const hasFunction = (name) => Object.hasOwn(FUNCTIONS, name);
 
-      const TOKEN = /\s*(?:(\d+\.?\d*(?:e[+-]?\d+)?|\.\d+)([a-z]\w*)?|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([-+*/^(),]))/y;
+      const TOKEN = /\s*(?:(\d+\.?\d*(?:e[+-]?\d+)?|\.\d+)([a-z]\w*)?|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>]=?|[-+*/^(),&|]))/y;
       /** A formula that only isn't finished yet (more to type, not a mistake). */
       const unfinished = (/** @type {string} */ message) => Object.assign(new Error(message), { unfinished: true });
       function tokenize(source) {
@@ -10126,11 +10152,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return tokens;
       }
 
-      const BINARY = { "+": 10, "-": 10, "*": 20, "/": 20, "^": 30 };
+      /** The comparisons, each 1 where true, 0 where false. */
+      const COMPARES = new Set(["<", ">", "<=", ">="]);
+      /** Each operator's precedence: or, and, a comparison (true 1, false 0), then the arithmetic. */
+      const BINARY = { "|": 2, "&": 4, "<": 6, ">": 6, "<=": 6, ">=": 6, "+": 10, "-": 10, "*": 20, "/": 20, "^": 30 };
       /** A formula on a series by its name, the way a new formula on an empty chart starts. */
       const EXAMPLE = `sma(${tree.price.split.close.usd.name}, 200d)`;
 
-      const plainOperators = (source) => source.replace(/[×·]/g, "*").replace(/÷/g, "/").replace(/[−–]/g, "-");
+      const plainOperators = (source) => source.replace(/[×·]/g, "*").replace(/÷/g, "/").replace(/[−–]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=");
       /** @returns {Node} */
       function parse(source) {
         const tokens = tokenize(plainOperators(source));
@@ -10183,6 +10212,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const precedence = token?.t === "op" ? BINARY[token.v] : undefined;
             if (precedence === undefined || precedence < min) return left;
             at++;
+            // (Two comparisons in a row say nothing: 1 < A < 3 is (1 < A) < 3, a 0 or 1 under 3. Joined, they do.)
+            if (COMPARES.has(String(token.v)) && left.k === "bin" && COMPARES.has(left.op)) throw new Error("Join comparisons with & or |: A > 1 & A < 3");
             left = { k: "bin", op: token.v, a: left, b: expression(token.v === "^" ? precedence : precedence + 1) };
           }
         }
@@ -10280,7 +10311,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           case "bin": {
             const a = sub(node.a), b = sub(node.b);
-            const op = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y }[node.op];
+            // (A comparison, or two joined, is 1 where true, 0 where false; where either has no value, none.)
+            const either = (/** @type {(x: number, y: number) => boolean} */ test) => (/** @type {number} */ x, /** @type {number} */ y) => (x !== x || y !== y ? NaN : Number(test(x, y)));
+            const op = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y, "<": either((x, y) => x < y), ">": either((x, y) => x > y), "<=": either((x, y) => x <= y), ">=": either((x, y) => x >= y), "&": either((x, y) => Boolean(x && y)), "|": either((x, y) => Boolean(x || y)) }[node.op];
             return lift(a, b, op);
           }
           case "call": {
@@ -10321,7 +10354,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * letter with no layer, an unknown function or a series Bitview doesn't have (`missing`) marked.
        */
       function highlightFormula(source, colorOf, missing = (_name) => false) {
-        const pattern = /((?:\d+\.?\d*(?:e[+-]?\d+)?|\.\d+)(?:(?:mo|[hdwy])(?![a-z0-9_]))?)|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([-+*/^(),×·÷−–])/g;
+        const pattern = /((?:\d+\.?\d*(?:e[+-]?\d+)?|\.\d+)(?:(?:mo|[hdwy])(?![a-z0-9_]))?)|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>≥≤]=?|[-+*/^(),×·÷−–&|])/g;
         let html = "", last = 0;
         for (const match of source.matchAll(pattern)) {
           html += escape(source.slice(last, match.index));
@@ -10346,12 +10379,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
-       *   shape?: string, levels?: Level[], fill?: string, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean }} Layer
+       *   shape?: string, levels?: Level[], fill?: string, place?: string, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
        *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
        *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
        *   or the highest, flipping when its reference (`ref`: a layer's id, one of one value, not one of them) touches it
        *   (see trendOf). Short of what it needs, it says so.
+       *   A signal ("signal"): a formula read as true (not 0) or false (0), marked on another layer (`ref`, the first that
+       *   can carry marks if none) where it turns true, `place` (above it, unset; below; on it), in its own color.
        *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
        *   bars', a cloud's or a trend's (not a baseline's, nor candles').
        *   `byLevels`: colored by its levels instead, date by date: above each, that level's color; under them all, its own
@@ -10495,7 +10530,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const EDGE_NAMES = /** @type {Record<string, string>} */ ({ top: "The pane's top", bottom: "The pane's bottom" });
       const edgeIcon = (/** @type {string} */ edge) => (edge === "top" ? ICONS.toTop : ICONS.toBottom);
       /** Members as given that can be: layers there, none made from layers (a cloud's edges too), each once. @param {Chart} doc @param {Iterable<string>} members */
-      const membersOf = (doc, members, cloud = false) => [...new Set(members)].filter((id) => (cloud && EDGES.includes(id)) || doc.layers.some((item) => item.id === id && !item.from));
+      const membersOf = (doc, members, cloud = false) => [...new Set(members)].filter((id) => (cloud && EDGES.includes(id)) || doc.layers.some((item) => item.id === id && !item.from && item.type !== "signal"));
       /**
        * What it's made from, as kept (membersOf): a cloud's first two as given (its colors say which one's over), a
        * trend's in the chart's order. @param {Chart} doc @param {Iterable<string>} members
@@ -10513,7 +10548,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const fromShort = (layer, doc = chart) => ((layer.from?.length ?? 0) < 2 ? (layer.type === "cloud" ? "Pick what it's between" : "Select two layers") : layer.type !== "trend" || doc?.layers.some((other) => !other.from && !layer.from?.includes(other.id)) ? "" : TREND_FLIP);
       const TREND_FLIP = "Needs a third layer, a price, to flip it";
       /** A trend's room on the chart: three layers not made from layers (two it rides, one to flip it), else why not. */
-      const trendShort = () => (chart.layers.filter((layer) => !layer.from).length >= 3 ? "" : "Needs three layers: two it rides, a third to flip it");
+      const trendShort = () => (chart.layers.filter((layer) => !layer.from && layer.type !== "signal").length >= 3 ? "" : "Needs three layers: two it rides, a third to flip it");
       /**
        * Why a layer made from layers isn't drawn in its pane, if it isn't: it's its layers' values side by side, not a
        * stack's running totals; a cloud's, not their changes from where each starts (a percent or indexed scale: a trend
@@ -10607,7 +10642,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (How many colors: bars' one or four, a trend's or a cloud's one with a second kept; the colors picked kept,
         // whatever's used.)
         for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
-        for (const layer of doc.layers) if (layer.ref && (layer.type !== "trend" || !refsFor(doc, layer).some((other) => other.id === layer.ref))) delete layer.ref;
+        for (const layer of doc.layers) if (layer.ref && !(layer.type === "trend" ? refsFor(doc, layer) : layer.type === "signal" ? markable(doc, layer) : []).some((other) => other.id === layer.ref)) delete layer.ref;
+        // A signal: marks on its layer, in its pane, on its side (its layer gone, none till another's picked: never moved
+        // to another on its own); nothing of a line's look.
+        for (const layer of doc.layers) {
+          if (layer.type !== "signal") continue;
+          const on = doc.layers.find((other) => other.id === layer.ref);
+          if (on) Object.assign(layer, { pane: on.pane, side: on.side });
+          for (const key of ["shape", "levels", "colorFrom", "byLevels", "colors", "colorBelow", "priceLine", "base", "format", "fill", "baseLine", "underName"]) delete layer[key];
+          if (layer.place === "above" || !MARK_PLACES.some(([place]) => place === layer.place)) delete layer.place;
+        }
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
         const ids = new Set(doc.panes.map((pane) => pane.id));
         for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
@@ -10685,12 +10729,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The library's shape, as this Studio writes it (raised with what `validate` learns to read, and with what's kept:
        * 5, the deletions, so a Studio that doesn't record them can't save over them; 6, folders in folders, so one that
        * reads them flat can't save them so; 7, the presets as edited, so one that doesn't keep them can't drop them; 8, a chart's interval Auto, so one that
-       * doesn't know it can't save it as one interval for good): one
+       * doesn't know it can't save it as one interval for good; 9, signals, so one that doesn't know them can't save them
+       * as lines): one
        * saved by a newer
        * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
        * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
        */
-      const SCHEMA = 8;
+      const SCHEMA = 9;
       let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && (() => {
         try {
           return localStorage.getItem(STORE) !== null;
@@ -12502,7 +12547,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const cssColor = (color) => (color === "ink" ? "var(--ink)" : ink(color));
       const alpha = (color, a) => `${color}${Math.round(a * 255).toString(16).padStart(2, "0")}`;
       /** The unit a layer displays in: its chosen format, else its data's. */
-      const unitFor = (layer, result) => (layer.format ? layer.format : result?.unit ?? (layer.series ? units.get(layer.series) : "number") ?? "number");
+      const unitFor = (layer, result) => (layer.type === "signal" ? "signal" : layer.format ? layer.format : result?.unit ?? (layer.series ? units.get(layer.series) : "number") ?? "number");
       /** A baseline's or bars' base: its own, else zero (as the website's). @param {Layer} layer */
       const baseOf = (layer) => layer.base ?? 0;
 
@@ -12738,6 +12783,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const closes = new Map();
       let candlesFit = true;
+      /** Each series' marks (the signals on its layer), by the library's markers. @type {Map<any, any>} */
+      const markers = new Map();
+      /** What the marks were last made from: made again where candles turn into their line, or back. @type {{ doc: Chart, data: Resolved, drawn: Map<string, any> } | null} */
+      let marksMade = null;
       function fitCandles() {
         const range = view.timeScale().getVisibleLogicalRange();
         // A rebuild empties the chart for a moment: no range then, and nothing to decide.
@@ -12749,6 +12798,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           close.candles.applyOptions({ visible: !layerById(id)?.hidden && fit });
           close.series.applyOptions({ lineVisible: !fit, crosshairMarkerVisible: !fit });
         }
+        // (A signal on candles: its marks on what's seen of them now.)
+        if (marksMade?.doc.layers.some((layer) => layer.type === "signal" && layer.ref && closes.has(layer.ref))) markSignals(marksMade.doc, marksMade.data, marksMade.drawn, []);
       }
       /**
        * Dots as on Bitview: their radius follows the zoom, 1px when points crowd to 3px with room around them (by pixels
@@ -12930,6 +12981,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return true;
       }
+      /**
+       * The signals' marks, each on its layer's series, where it turns true (false before it, its value nothing between:
+       * not at its first, nothing turned): all of a layer's in time's order. Those on a series let go of (`old`), or no
+       * longer marked, cleared.
+       * @param {Chart} doc @param {Resolved} data @param {Map<string, any>} drawn @param {any[]} old
+       */
+      function markSignals(doc, data, drawn, old) {
+        marksMade = { doc, data, drawn };
+        const marked = new Map();
+        for (const layer of doc.layers) {
+          // (Candles zoomed out to their close line: on the line, the candles unseen.)
+          const close = layer.ref ? closes.get(layer.ref) : null;
+          const on = layer.type === "signal" && !layer.hidden && layer.ref ? (close && !candlesFit ? close.series : drawn.get(layer.ref)) : null, values = data.results.get(layer.id)?.shown;
+          // (Only where its layer has a value drawn: a mark in a gap would sit on another date.)
+          const target = doc.layers.find((item) => item.id === layer.ref), own = data.results.get(layer.ref ?? "")?.shown, log = target ? modeOf(doc, target) === 1 : false;
+          if (!on || !values || !own) continue;
+          const [, , position, shape] = MARK_PLACES.find(([place]) => place === (layer.place ?? "above")) ?? MARK_PLACES[0], op = opacityOf(layer);
+          const color = op < 1 ? alpha(ink(layer.color), op) : ink(layer.color), list = marked.get(on) ?? marked.set(on, []).get(on);
+          for (const i of turnsOf(values)) if (Number.isFinite(own[i]) && (!log || own[i] > 0)) list.push({ time: data.times[i], position, shape, color, id: layer.id });
+        }
+        for (const [series, plugin] of markers) {
+          if (marked.has(series) && !old.includes(series)) continue;
+          plugin.detach();
+          markers.delete(series);
+        }
+        for (const [series, list] of marked) {
+          list.sort((a, b) => a.time - b.time);
+          const plugin = markers.get(series) ?? markers.set(series, LC.createSeriesMarkers(series, [], { zOrder: "aboveSeries" })).get(series);
+          plugin.setMarkers(list);
+        }
+      }
       function build(doc, data, refit) {
         // (A scale gliding follows the plot again: the scales are set anew.)
         endScaleGlide();
@@ -13001,11 +13083,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Stacked: drawn as it is, at its running total (its tag and price line would say that total, not its value: the
           // legend says that); the scale from zero (the stack's foot), a 100% one's from 0 to 100.
           const stack = stacked.get(layer.id);
+          // (A signal's own series is never seen: its marks are on its layer's, see below. It's there as any layer's is, for
+          // its values: the legend's, the crosshair's.)
+          const signal = layer.type === "signal";
           const common = {
             priceScaleId: layer.side,
-            visible: !layer.hidden,
-            priceLineVisible: Boolean(layer.priceLine) && !stack,
-            lastValueVisible: !layer.hidden && !stack,
+            visible: !layer.hidden && !signal,
+            priceLineVisible: Boolean(layer.priceLine) && !stack && !signal,
+            lastValueVisible: !layer.hidden && !stack && !signal,
             ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
             // (Its ticks short; its latest's tag and the crosshair's, a digit or so more: see axisPrecise.)
@@ -13141,6 +13226,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const priceLine = carrierOf.get(key).createPriceLine({ price: first.value, color: shared ? ink("gray") : first.color, lineWidth: 1, lineStyle: /** @type {any} */ (first.dash), lineVisible: shown, axisLabelVisible: label, title: "" });
           if (shown) levelTags.push({ line: priceLine, layers: new Set(group.map((line) => line.layer.id)), color: priceLine.options().color, label, faint: false });
         }
+        markSignals(doc, data, drawn, old);
         for (const series of old) view.removeSeries(series);
         // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
         // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first.
@@ -13272,7 +13358,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * names, there to be shown again; showing one opens it as tall as it was.
        */
       function foldedPanes(/** @type {Chart} */ doc) {
-        const showing = new Set(doc.layers.filter((layer) => !layer.hidden).map((layer) => layer.pane));
+        // (A signal shows nothing of its own: its marks are its layer's.)
+        const showing = new Set(doc.layers.filter((layer) => !layer.hidden && layer.type !== "signal").map((layer) => layer.pane));
         return new Set(showing.size ? doc.panes.filter((pane) => !showing.has(pane.id)).map((pane) => pane.id) : []);
       }
       /** Each pane's share of the height: as kept (else the first tall, the others shorter); a folded one's, its legend's height in pixels. */
@@ -13796,6 +13883,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * the view, else as a difference, the same way for every point of a view. Null where there's no value.
        */
       function changeOver(layer, point) {
+        // (A signal's a yes or a no: no change to say.)
+        if (layer.type === "signal") return null;
         const span = changeWindow(layer);
         if (!span) return null;
         const { values, a, base, relative, unit } = span;
@@ -13945,7 +14034,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function keyPoint(/** @type {number} */ i) {
         const at = (/** @type {Layer} */ item) => built.get(item.id)?.shown?.[i] ?? NaN;
-        const layer = placing?.host ?? [layerById(selected), ...chart.layers].find((item) => item && !item.hidden && drawn.get(item.id) && Number.isFinite(at(item)));
+        const layer = placing?.host ?? [layerById(selected), ...chart.layers].find((item) => item && !item.hidden && item.type !== "signal" && drawn.get(item.id) && Number.isFinite(at(item)));
         const value = !layer ? NaN : tool && keyValue?.layer === layer.id ? keyValue.value : Number.isFinite(at(layer)) ? at(layer) : placing ? (draft?.points.at(-1)?.[1] ?? NaN) : NaN;
         return layer && Number.isFinite(value) ? { layer, value } : null;
       }
@@ -14221,7 +14310,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function overviewSource() {
         if (!resolved || !chart) return null;
         const first = chart.panes[0];
-        const layer = chart.layers.find((item) => item.pane === first?.id && !item.hidden && resolved.results.get(item.id)?.shown) ?? chart.layers.find((item) => resolved.results.get(item.id)?.shown);
+        // (Never a signal's: its values are its marks', 0 and 1.)
+        const drawnHere = (/** @type {Layer} */ item) => item.type !== "signal" && resolved?.results.get(item.id)?.shown;
+        const layer = chart.layers.find((item) => item.pane === first?.id && !item.hidden && drawnHere(item)) ?? chart.layers.find(drawnHere);
         return layer ? { layer, values: resolved.results.get(layer.id).shown, log: modeOf(chart, layer) === 1 } : null;
       }
       /**
@@ -16237,7 +16328,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The layer drawn on in a pane: the selected one, if it's there and shown; else its first shown (its first, every one hidden). */
       function hostIn(index) {
-        const id = chart.panes[index]?.id, mates = chart.layers.filter((layer) => layer.pane === id && drawn.has(layer.id));
+        // (Never a signal: its own series isn't seen, its marks are its layer's.)
+        const id = chart.panes[index]?.id, mates = chart.layers.filter((layer) => layer.pane === id && layer.type !== "signal" && drawn.has(layer.id));
         return mates.find((layer) => layer.id === selected && !layer.hidden) ?? mates.find((layer) => !layer.hidden) ?? mates[0] ?? null;
       }
       /**
@@ -16921,7 +17013,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!pane.stack) continue;
           const shares = pane.stack === "percent";
           for (const side of ["left", "right"]) {
-            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && data.results.get(layer.id)?.shown);
+            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && layer.type !== "signal" && data.results.get(layer.id)?.shown);
             if (!layers.length) continue;
             const n = data.results.get(layers[0].id).shown.length, total = new Float64Array(n);
             for (const layer of pane.reverse ? [...layers].reverse() : layers) {
@@ -17221,8 +17313,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const start = rangeStart(doc, data.times);
         for (const layer of doc.layers) {
           const all = gapped(data.results.get(layer.id)?.shown, data.results.get(layer.id)), values = all && start ? Array.prototype.slice.call(all, start) : all, highAll = stacked.get(layer.id)?.values, high = highAll && start ? Array.prototype.slice.call(highAll, start) : highAll, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
-          // (A chart's mark is its lines: a cloud, a range, isn't one.)
-          if (!values || layer.type === "cloud") continue;
+          // (A chart's mark is its lines: a cloud, a range, isn't one; a signal's marks neither.)
+          if (!values || layer.type === "cloud" || layer.type === "signal") continue;
           const base = baseOf(layer);
           own.set(layer.id, shapeOf(values, modeOf(doc, layer), bars, base));
           shapes.set(layer.id, high ? shapeOf(high, modeOf(doc, layer), bars, base) : own.get(layer.id));
@@ -17436,7 +17528,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const zOf = new Map((pane.reverse ? inPaneOrder : [...inPaneOrder].reverse()).map((layer, z) => [layer.id, z]));
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
-            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && data.results.get(layer.id)?.shown && !fromUnfit(doc, layer)).map((layer) => {
+            // (A signal's marks aren't drawn this small.)
+            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal" && data.results.get(layer.id)?.shown && !fromUnfit(doc, layer)).map((layer) => {
               const values = gapped(stacked.get(layer.id)?.values ?? data.results.get(layer.id).shown, data.results.get(layer.id)), mode = modeOf(doc, layer);
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
@@ -18992,6 +19085,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
         // A cloud's, a band in its color.
         if (layer.type === "cloud") body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
+        // (A signal's, its mark.)
+        else if (layer.type === "signal") body = markBody(layer.place, color);
         else if (ys && layer.type === "histogram" && modeOf(chart, layer) === 0) {
           // Six bars from its base: above it in its color, under it in the other.
           body = barsOf(ys, 6, level, (k, value) => `<rect x="${(0.5 + k * 2.6).toFixed(1)}" y="${Math.min(y(value), y(level)).toFixed(1)}" width="1.8" height="${Math.max(1.2, Math.abs(y(value) - y(level))).toFixed(1)}" rx=".4" fill="${value >= level ? color : below}"/>`);
@@ -19022,7 +19117,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const titleOf = (doc) => doc.title || derivedTitle(doc);
       const derivedTitle = (/** @type {Chart} */ doc) => {
-        const names = (doc.layers ?? []).map(labelOf);
+        const names = (doc.layers ?? []).filter((layer) => layer.type !== "signal").map(labelOf);
         return !names.length ? "Untitled chart" : names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} & ${names[1]}` : `${names[0]} & ${names.length - 1} more`;
       };
       /**
@@ -21084,7 +21179,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
                   ${letterChip(layer)}
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
-                  <span class="row-figures"${layer.type === "cloud" && result?.low ? ` style="min-width: ${valueSlot(layer, 12, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
+                  <span class="row-figures"${layer.type === "cloud" && result?.low ? ` style="min-width: ${valueSlot(layer, 12, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
                 <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"} ${keyText("(⌥-click: alone in its pane)")}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
@@ -21256,7 +21351,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toggle.dataset.tip = hide ? "Hide" : "Show";
         /** @type {HTMLButtonElement} */ (bar.querySelector('[data-layers-batch="duplicate"]')).disabled = chart.layers.length + layers.length > MAX_LAYERS;
         // (A cloud of two only: with more, or fewer, a tap says why.)
-        const cloud = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="cloud"]')), two = layers.filter((layer) => !layer.from).length === 2;
+        const cloud = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="cloud"]')), two = layers.filter((layer) => !layer.from && layer.type !== "signal").length === 2;
         cloud.setAttribute("aria-disabled", String(!two));
         cloud.dataset.tip = two ? "A cloud between them" : "A cloud is between two layers";
       }
@@ -21334,13 +21429,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What the picked layers do together (a right-click on one of them). @returns {Action[]} */
       function layersActions() {
         const layers = pickedLayers(), n = plural(layers.length, "layer"), hide = layers.some((layer) => !layer.hidden);
-        const two = layers.filter((layer) => !layer.from).length >= 2 ? {} : { disabled: "Two layers at least, not made from layers" };
+        const two = layers.filter((layer) => !layer.from && layer.type !== "signal").length >= 2 ? {} : { disabled: "Two layers at least, not made from layers" };
         return [
           { key: "hide", icon: hide ? ICONS.eyeOff : ICONS.eye, label: `${hide ? "Hide" : "Show"} ${n}`, kbd: "H", run: () => layersBatch("hide") },
           { key: "duplicate", icon: ICONS.duplicate, label: `Duplicate ${n}`, kbd: "⌘D", ...(chart.layers.length + layers.length > MAX_LAYERS ? { disabled: `A chart holds ${MAX_LAYERS} layers at most` } : {}), run: () => layersBatch("duplicate") },
           { key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices(layers.map((layer) => layer.id))) },
-          { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", ...(layers.filter((layer) => !layer.from).length === 2 ? {} : { disabled: "A cloud is between two layers, not made from layers" }), run: () => layersBatch("cloud") },
-          { key: "trend", icon: ICONS.riding, label: "A trend between them", ...(Object.keys(two).length ? two : ((why) => (why ? { disabled: why } : {}))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from).map((layer) => layer.id) }))), run: () => layersBatch("trend") },
+          { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length === 2 ? {} : { disabled: "A cloud is between two layers, not made from layers" }), run: () => layersBatch("cloud") },
+          { key: "trend", icon: ICONS.riding, label: "A trend between them", ...(Object.keys(two).length ? two : ((why) => (why ? { disabled: why } : {}))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))), run: () => layersBatch("trend") },
           { key: "remove", icon: ICONS.trash, label: `Remove ${n}`, kbd: "⌫", danger: true, run: () => layersBatch("remove") },
         ];
       }
@@ -21433,7 +21528,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         inspectedLevels = (layer.levels ?? []).length;
         const result = resolved?.results.get(layer.id);
         const meta = result?.info;
-        const isFormula = layer.formula !== undefined;
+        const isFormula = layer.formula !== undefined, signal = layer.type === "signal";
         const unit = unitFor(layer, result);
         const layerPane = /** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane)), stackOfPane = layerPane?.stack ?? "", ordered = chart.layers.filter((item) => item.pane === layer.pane).length > 1;
         // (Under one made from layers: what it lacks, else a trend's way, and why it isn't drawn here.)
@@ -21443,13 +21538,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ? `<section>
               <h3>${typeName(layer.type)}</h3>
               ${layer.type === "cloud" ? ["Between", "And"].map((name, k) => ((member) => `<div class="field"><span>${name}</span><button type="button" class="preset" data-cloud-of="${k}" aria-haspopup="menu" aria-label="${name}: ${escape(member?.label ?? "none")}">${member ? `${member.icon}<span class="name">${escape(member.label)}</span>` : `<span class="name">Pick one</span>`}${CHEVRON}</button></div>`)(memberShown(layer.from?.[k]))).join("")
-                : `<div class="field"><span>Between<span class="color-now">${plural(fromLetters(layer, chart).length, "layer")}</span></span><div class="trend-of" role="group" aria-label="What it's on">${chart.layers.filter((item) => !item.from && item.id !== layer.ref).map((item) => ((on) => `<button type="button" data-trend-of="${item.id}" aria-pressed="${on}">${letterChip(item)}<span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.from?.includes(item.id)))).join("")}</div></div>
+                : `<div class="field"><span>Between<span class="color-now">${plural(fromLetters(layer, chart).length, "layer")}</span></span><div class="trend-of" role="group" aria-label="What it's on">${chart.layers.filter((item) => !item.from && item.type !== "signal" && item.id !== layer.ref).map((item) => ((on) => `<button type="button" data-trend-of="${item.id}" aria-pressed="${on}">${letterChip(item)}<span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.from?.includes(item.id)))).join("")}</div></div>
               <div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer whose touching it flips it (a candle's wick counts)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
               ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalize(fromSays)}.`)}</p>` : ""}
             </section>`
           : isFormula
           ? `<section>
-              <h3>Formula</h3>
+              <h3>${signal ? "Signal" : "Formula"}</h3>
               <div class="formula-editor" id="formula-editor">
                 <pre id="formula-mirror" aria-hidden="true"></pre>
                 <textarea id="formula" rows="1" aria-controls="suggest" aria-autocomplete="list" maxlength="500" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(layer.formula)}</textarea>
@@ -21462,8 +21557,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <p id="formula-status" class="formula-status"></p>
               <details class="help"><summary>Functions and how letters work</summary>
                 <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escape(signature)}</b><span>${escape(what)}</span></button>`).join("")}</div>
-                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.split.close.usd.name)}) is the series itself. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is all of history so far.</p>
+                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.split.close.usd.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is all of history so far.</p>
               </details>
+              ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
+              <div class="field"><span>Marks</span><div class="tabs glyphs" role="group" aria-label="Where its marks are">${MARK_PLACES.map(([place, text]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${text}" data-tip="${text === "On it" ? "On the layer" : `${text} the layer`}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>` : ""}
             </section>`
           : `<section>
               <h3>Series</h3>
@@ -21485,20 +21582,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ${sourceSection}
           <section>
             <h3>Style</h3>
-            ${layer.from ? "" : `<div class="field"><span>Type<span class="color-now">${escape(TYPES.find(([type]) => type === layer.type)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`}
+            ${layer.from || signal ? "" : `<div class="field"><span>Type<span class="color-now">${escape(TYPES.find(([type]) => type === layer.type)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !result?.ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`}
             ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></span></span></div>` : ""}
             ${colorPicker(layer)}
             <div class="field"><span>Opacity${resetFor("opacity", layer)}</span>${slider("opacity", layer)}</div>
-            ${layer.type !== "histogram" && layer.type !== "cloud" ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
+            ${layer.type !== "histogram" && layer.type !== "cloud" && !signal ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
             ${LINED.has(layer.type) ? `<div class="field"><span>Line</span><div class="pair">
               <div class="tabs glyphs" role="group" aria-label="Line style" style="flex: ${DASHES.length}">${DASHES.map(([dash, text, length, gap]) => `<button type="button" data-dash="${dash}" aria-pressed="${layer.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`).join("")}</div>
               ${layer.type === "trend" ? "" : `<div class="tabs glyphs" role="group" aria-label="Line shape" style="flex: ${SHAPES.length}">${SHAPES.map(([shape, text]) => `<button type="button" data-shape="${shape}" aria-pressed="${(layer.shape ?? "straight") === shape}" aria-label="${text}" data-tip="${shape === "steps" ? "Steps: each value held until the next" : text}">${shapeGlyph(shape)}</button>`).join("")}</div>`}
             </div></div>` : ""}
             ${layer.type === "area" ? `<div class="field"><span>Fill</span><div class="tabs" role="group" aria-label="Fill">${[["below", "Below", "Filled from the line down"], ["above", "Above", "Filled from the line up"]].map(([fill, text, tip]) => `<button type="button" data-fill="${fill}" aria-pressed="${(layer.fill ?? "below") === fill}" data-tip="${tip}">${text}</button>`).join("")}</div></div>` : ""}
-            ${layer.type === "cloud" ? "" : `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`}
-            ${layer.from ? "" : levelsField(layer, unit, result)}
+            ${layer.type === "cloud" || signal ? "" : `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`}
+            ${layer.from || signal ? "" : levelsField(layer, unit, result)}
           </section>
-          <section>
+          ${signal ? "" : `<section>
             <h3>Layout</h3>
             <div class="field"><span>Pane</span><button type="button" id="pane" class="preset" data-action="pane-menu" aria-haspopup="menu" aria-label="Pane: ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}"><span class="name">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}</span>${CHEVRON}</button></div>
             <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>
@@ -21507,7 +21604,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${mode < 2 ? `${tip} scale` : tip}" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${chip}</button>`).join("")}</div></div>
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
-          </section>
+          </section>`}
           ${(actionsShown = actionsOf(layer))}`;
         // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: those
         // of this layer whose stop changes alone (reading one lays the page's style out first: an edit elsewhere, none read).
@@ -21882,7 +21979,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const colorSlot = new Map();
       const slotNow = (/** @type {Layer} */ layer) => ((places) => ((chosenSlot) => (places.some(([key]) => key === chosenSlot) ? /** @type {string} */ (chosenSlot) : places[0]?.[0] ?? "color"))(colorSlot.get(layer.id)))(colorSlots(layer));
       /** What a layer can take its colors from: another layer, none taking its own (no loop of two). @param {Layer} layer */
-      const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id);
+      const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id && other.type !== "signal");
       /** What each way of coloring does, said beside it. */
       const MODE_ASIDES = { one: "The same all along", sides: "Above and below its base", momentum: "Growing and fading", levels: "Each level's color above it", layers: "Each one's own, where it's over", from: "Another layer's, by date" };
       /** What each way of coloring is found by in ⌘K (a type's own ways only). */
@@ -22314,7 +22411,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (message || !node) status.textContent = message;
         else {
           const uses = usesOf(node);
-          status.textContent = `${uses.length ? `Uses ${uses.join(", ")}` : "A constant"} · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}`;
+          status.textContent = `${uses.length ? `Uses ${uses.join(", ")}` : "A constant"} · ${layer.type === "signal" ? plural(turnsOf(result?.shown).length, "mark") : UNIT_NAMES[unitFor(layer, result)] ?? "Number"}`;
         }
         status.classList.toggle("error", Boolean(message));
         $("formula-editor").classList.toggle("invalid", Boolean(message));
@@ -22562,7 +22659,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** ⌘K's formula line, outside of a call: how a formula reads. */
-      const FORMULA_GUIDE = `<p class="call-what">Layers by their letter, series by their name, numbers, + − × ÷ ^ and functions.</p><p class="call-what">Inside a function's parentheses, its help shows here.</p>`;
+      const FORMULA_GUIDE = `<p class="call-what">Layers by their letter, series by their name, numbers, + − × ÷ ^, comparisons (&gt; &lt;, &amp; and |) and functions.</p><p class="call-what">Inside a function's parentheses, its help shows here.</p>`;
       /**
        * The helper at the field being typed in, as the caret moves: under the inspector's formula, floating, over what
        * fits or completes the argument (one popover: nothing below it moves); in ⌘K, a line under the field for as long
@@ -22841,7 +22938,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, side, priceLine, action, insert, index, reset, colorSelect, replace, removeLevel, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
+        const { type, dash, shape, fill, place, side, priceLine, action, insert, index, reset, colorSelect, replace, removeLevel, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
         const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
         if (index) switchInterval(index);
         else if (slot) colorSlot.set(selected, slot), renderInspector();
@@ -22863,7 +22960,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (row.key === "remove") (all$(".layer-row .row-main", $("layer-list"))[Math.min(at, chart.layers.length - 1)] ?? /** @type {HTMLElement | null} */ (document.querySelector("#empty [data-action='add-series']")))?.focus();
         }
         else if (action === "pane-menu") paneMenu(button, [selected], undefined, () => refocus("#pane"));
-        else if (button.id === "trend-ref") refMenu(button, selected);
+        else if (button.id === "trend-ref" || button.id === "signal-ref") refMenu(button, selected);
+        else if (place) editLayer((layer) => (layer.place = place === "above" ? undefined : place));
         else if (action === "format-menu") formatMenu(button);
         else if (action === "color-mode") menuOf(button, colorModeChoices(selected));
         else if (action === "color-from") menuOf(button, fromChoices(selected));
@@ -23124,15 +23222,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rows = [
           ...(where === "panel" ? [] : [{ key: "panel", icon: ICONS.sliders, label: "Settings", aside: inPalette ? "In the panel" : undefined, verb: "Open", run: () => select(id) }]),
           ...(menu && layer.series ? [{ key: "replace", icon: ICONS.swap, label: "Replace series", run: () => changeSeries(id) }] : []),
-          ...(layer.type === "cloud" ? [] : [{ key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: inPalette ? "An average, bands, a percentile…" : undefined, page: () => listPage(`New formula from ${layer.letter}`, () => deriveChoices(id), "Add") }]),
-          ...(layer.from ? []
+          ...(layer.type === "cloud" || layer.type === "signal" ? [] : [{ key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: inPalette ? "An average, bands, a percentile…" : undefined, page: () => listPage(`New formula from ${layer.letter}`, () => deriveChoices(id), "Add") }]),
+          ...(layer.from || layer.type === "signal" ? []
             : layer.series ? [{ key: "to-formula", icon: ICONS.formula, label: "Turn into a formula", aside: inPalette ? "Of its series, to write around it" : undefined, verb: "Turn", run: () => toFormula(id) }]
             : named.length === 1 ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? named[0] : undefined, mono: true, verb: "Turn", run: () => toSeries(id, named[0]) }]
             : named.length ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? `${named.length} series` : undefined, page: () => listPage("Turn into a series", () => seriesChoices(id), "Turn") }]
             : []),
           // (Its settings', by its name: its eye there.)
           ...(where === "panel" ? [] : [{ key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", stay: true, run: () => toggleHidden(id) }]),
-          ...(chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show only this in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
+          ...(layer.type !== "signal" && chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show only this in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
           // (Its right-click beside others picked: its copy alone, the picks as they are.)
           { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", ...(chart.layers.length < MAX_LAYERS ? {} : { disabled: `A chart holds ${MAX_LAYERS} layers at most` }), run: () => (menu && layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id)) },
           ...(menu ? [{ key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices([id])) }] : []),
@@ -23272,6 +23370,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const letters = chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter);
         openPalette({ formula: true, into, query: letters.length >= 2 ? `${letters[0]} / ${letters[1]}` : letters.length ? `sma(${letters[0]}, 200d)` : EXAMPLE });
       }
+      /** Adding a signal: its formula written in ⌘K's formula page, as a formula's is, started on one to change (its layer over its 200-day average). */
+      function addSignal() {
+        const on = markable(chart, /** @type {any} */ ({}))[0];
+        if (!on) return notice("A signal marks a layer: add one first");
+        if (!roomFor(chart)) return;
+        openPalette({ formula: true, signal: true, query: `${on.letter} > sma(${on.letter}, 200d)` });
+      }
+      /** A signal as a layer: marked on the first layer that can be (another picked in its panel), selected. */
+      function addSignalLayer(/** @type {string} */ formula) {
+        if (!roomFor(chart)) return;
+        /** @type {Layer | undefined} */
+        let added;
+        commit((doc) => {
+          added = makeLayer({ formula, type: "signal", ref: markable(doc, /** @type {any} */ ({}))[0]?.id }, doc);
+          doc.layers.push(added);
+        });
+        if (!added) return;
+        select(added.id, false);
+        toast(`Added ${formula} as ${added.letter}, marked on ${((on) => (on ? labelOf(on) : "no layer"))(layerById(added.ref ?? ""))}`, editAdded(added));
+      }
       /** A formula as a layer, in a new pane (or `pane`), selected. @param {string | null} [pane] */
       function addFormulaLayer(formula, pane = null) {
         if (!roomFor(chart)) return;
@@ -23286,7 +23404,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** Whether a trend is offered here: a layer that isn't made from layers (short of more, it says why: trendShort). */
-      const cloudable = () => chart.layers.some((layer) => !layer.from);
+      const cloudable = () => chart.layers.some((layer) => !layer.from && layer.type !== "signal");
       /**
        * A layer made from layers (none made from layers: a cloud's two, its pane's edges among them maybe, a trend's two or
        * more), in the first one's pane, on its side; a cloud colored by them (each one's own where it's over); opened in
@@ -23324,7 +23442,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {{ key: string, icon: string, label: string, group: string, words?: string, preview?: (panel: HTMLElement) => void }[]}
        */
       const cloudMembers = (except = "") => [
-        ...chart.layers.filter((layer) => !layer.from && layer.id !== except).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id) })),
+        ...chart.layers.filter((layer) => !layer.from && layer.type !== "signal" && layer.id !== except).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id) })),
         ...EDGES.filter((edge) => edge !== except).map((edge) => ({ key: edge, icon: edgeIcon(edge), label: EDGE_NAMES[edge], words: "edge pane", group: "Edges" })),
       ];
       /** One of a cloud's two, as its fields say it: a layer by its letter and name, an edge by its icon and name; none, null. */
@@ -23360,7 +23478,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const ticked = new Set();
         return { title: id ? "Between" : "Add a trend", placeholder: "Search the layers", rows: () => {
           // (A trend's reference isn't one of them: it's what flips it.)
-          const made = id ? layerById(id) : null, layers = chart.layers.filter((layer) => !layer.from && layer.id !== made?.ref), has = (/** @type {string} */ member) => (made ? Boolean(made.from?.includes(member)) : ticked.has(member));
+          const made = id ? layerById(id) : null, layers = chart.layers.filter((layer) => !layer.from && layer.type !== "signal" && layer.id !== made?.ref), has = (/** @type {string} */ member) => (made ? Boolean(made.from?.includes(member)) : ticked.has(member));
           const members = layers.map((layer) => layer.id), short = fromShort({ type: "trend", from: fromOf(chart, ticked) });
           /** @param {string[]} ids */
           const put = (ids) => {
@@ -23394,7 +23512,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function refChoices(/** @type {string} */ id) {
         const trend = layerById(id);
         if (!trend) return [];
-        return refsFor(chart, trend).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
+        return (trend.type === "signal" ? markable(chart, trend) : refsFor(chart, trend)).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
       }
       /**
        * Formulas from a layer: the starters (each its first formula, on its letter), or one's own.
@@ -23758,7 +23876,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What ⌘K's doing: browsing everything; adding a series (`into` a pane chosen beforehand: its id, or "new", each into a
        * new one); replacing a `layer`'s series; a formula, added (`into` a pane) or a layer's own, `editing`.
-       * @typedef {{ kind: "browse" } | { kind: "add", into: string | null } | { kind: "replace", layer: string } | { kind: "formula", editing: string | null, into: string | null }} PaletteOp
+       * @typedef {{ kind: "browse" } | { kind: "add", into: string | null } | { kind: "replace", layer: string } | { kind: "formula", editing: string | null, into: string | null, signal?: boolean }} PaletteOp
        */
       const palette = {
         path: /** @type {string[]} */ ([]),
@@ -23782,6 +23900,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** A formula: the query is the formula, the rows what completes it. */
         get formula() {
           return this.op.kind === "formula";
+        },
+        /** A signal's formula: marks where it's true, on a layer (else a formula's, drawn as a layer of its own). */
+        get signal() {
+          return this.op.kind === "formula" && Boolean(this.op.signal);
         },
         /** The formula layer being edited (else one's being added). */
         get editing() {
@@ -23850,7 +23972,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * swapped; `formula`: a formula to add (`into` a pane) or, `editing`, a formula layer's own; `query` starts the
        * search, `path` the folder it opens on and `landOn` the row; `resume`: back where it was put away, if it can be.
        */
-      function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false } = {}) {
+      function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false, signal = false } = {}) {
         // (Resumed only where it was browsing: adding, replacing or a formula start again.)
         const spot = resume && putAway?.browsing && (putAway.anywhere ? Date.now() - putAway.at < 600_000 : putAway.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000) ? putAway.state : null;
         // (Adding to a chart with no room: said now, not once a series is picked.)
@@ -23861,7 +23983,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Opened afresh, it starts at the search (or where adding a series last added from, on this chart).
         const back = add && !query && addedFrom?.chart === chart.id ? addedFrom : null;
         Object.assign(palette, spot ?? { pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
-        palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into } : add ? { kind: "add", into } : { kind: "browse" };
+        palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal } : add ? { kind: "add", into } : { kind: "browse" };
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) (trailDrawn = ""), dialog.removeAttribute("data-half");
         // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped. Opened by a tap on a search
@@ -23905,7 +24027,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const replacing = palette.replacing && layerById(palette.replacing)?.series;
         chip.hidden = (!palette.adding && !palette.formula && !replacing) || palette.pages.length > 0;
         const into = palette.into === "new" ? " · new pane" : palette.into ? ` · pane ${paneNumber(palette.into)}` : "";
-        chip.textContent = replacing ? `Replace ${layerById(palette.replacing)?.letter ?? ""}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : `Formula${into}`) : `Layer${into}`;
+        chip.textContent = replacing ? `Replace ${layerById(palette.replacing)?.letter ?? ""}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : palette.signal ? "Signal" : `Formula${into}`) : `Layer${into}`;
         $("palette").dataset.mode = palette.formula ? "formula" : "";
         chip.disabled = Boolean(replacing);
         if (replacing) delete chip.dataset.tip;
@@ -23914,7 +24036,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (palette.formula) input.maxLength = 500;
         else input.removeAttribute("maxlength");
         input.setAttribute("aria-label", replacing ? "Replace series" : palette.formula ? "Formula" : palette.adding ? "Search series" : "Search series, charts and commands");
-        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (seriesCount ? `Search ${grouped.format(seriesCount)} series` : "Search every series") : "Search series, charts and commands";
+        input.placeholder = replacing ? "A series to use instead" : palette.signal ? "When it's true, like A > sma(A, 200d)" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (seriesCount ? `Search ${grouped.format(seriesCount)} series` : "Search every series") : "Search series, charts and commands";
         $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
       }
       /**
@@ -24024,6 +24146,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ] : []),
           ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a pane of its own, under the others.", words: "new pane add series separate own below", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
+          ...(chart.layers.some((layer) => layer.type !== "cloud" && layer.type !== "signal") ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns true, like A > sma(A, 200d).", words: "signal mark marker when condition cross crosses above below event alert", icon: "signal", run: addSignal, keepOpen: true }] : []),
           ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link copy qr code scan phone", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
           ...(!isYours(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${chart.folder ? folderPath(chart.folder) : "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
@@ -24056,7 +24179,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: `Duplicate ${n}`, text: "Each copy under its original.", words: "selected picked layers copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
             ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), words: "selected picked layers move pane", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
             ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", words: "selected picked layers move pane new", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
-            ...(layers.filter((layer) => !layer.from).length > 1 ? [{ title: "A cloud between them", ...(layers.filter((layer) => !layer.from).length === 2 ? { text: "Filled between the two, in the color of the one over.", run: () => layersBatch("cloud"), suggested: true } : { text: "A cloud is between two layers." }), words: "selected picked layers cloud band envelope fill between shade cross", icon: "cloud" }, ((why) => ({ title: "A trend between them", text: why ? `${why}.` : "On the lowest of them until a price touches it, then on the highest until it touches that.", words: "selected picked layers trend support resistance bound ride", icon: "riding", ...(why ? {} : { run: () => layersBatch("trend") }) }))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from).map((layer) => layer.id) }))] : []),
+            ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length > 1 ? [{ title: "A cloud between them", ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length === 2 ? { text: "Filled between the two, in the color of the one over.", run: () => layersBatch("cloud"), suggested: true } : { text: "A cloud is between two layers." }), words: "selected picked layers cloud band envelope fill between shade cross", icon: "cloud" }, ((why) => ({ title: "A trend between them", text: why ? `${why}.` : "On the lowest of them until a price touches it, then on the highest until it touches that.", words: "selected picked layers trend support resistance bound ride", icon: "riding", ...(why ? {} : { run: () => layersBatch("trend") }) }))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))] : []),
             { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
             { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
           ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
@@ -24290,15 +24413,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** A formula that reads, of at least one layer of this chart, every layer it names there. */
       function isOwnFormula(/** @type {string} */ text) {
-        if (!/[-+*/()^]/.test(plainOperators(text))) return false;
+        if (!/[-+*/()^<>&|]/.test(plainOperators(text))) return false;
         let letters;
         try {
           letters = [...refsOf(parse(text))];
         } catch {
           return false;
         }
-        return letters.length > 0 && letters.every((letter) => chart.layers.some((layer) => layer.letter === letter));
+        if (!letters.every((letter) => chart.layers.some((layer) => layer.letter === letter))) return false;
+        // (A condition on series by their names, mvrv > 3.5, too: a signal of them.)
+        return letters.length > 0 || (isCondition(text) && markable(chart, /** @type {any} */ ({})).length > 0 && seriesNamed(text).some((name) => isSeriesName(name) && (!catalogIndex || catalogIndex.has(name))));
       }
+      /** Whether a formula is a condition (a comparison, or two joined): typed in ⌘K, it's added as a signal. */
+      const isCondition = (/** @type {string} */ text) => {
+        try {
+          const node = parse(text);
+          return node.k === "bin" && (COMPARES.has(node.op) || node.op === "&" || node.op === "|");
+        } catch {
+          return false;
+        }
+      };
+      /** Whether the formula typed is added as a signal: on its page, or a condition typed anywhere else in ⌘K. */
+      const asSignal = (/** @type {string} */ text) => palette.signal || (!palette.formula && isCondition(text));
       /** Why a formula doesn't read, or "" when it does. */
       const parseError = (/** @type {string} */ text) => {
         try {
@@ -24334,7 +24470,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (item.kind === "formula") {
           const text = palette.query.trim(), kept = formulaProblem.text === text && formulaProblem.editing === palette.editing ? formulaProblem.problem : "";
           const editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || kept;
-          return `${ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
+          return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escape(on.letter)}` : ""))(markable(chart, /** @type {any} */ ({}))[0]) : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
         }
         const layer = item.layer ? layerById(item.layer) : null;
         const icon = layer ? `<i class="dot" style="--c:${escape(ink(layer.color))}"></i>` : item.series ? ICONS.series : item.group === "Spans" ? ICONS.recent : item.group === "Percents" ? ICONS.ruler : ICONS.formula;
@@ -24356,7 +24492,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function addFromPalette(pane = palette.into, keep = false) {
         const text = palette.query.trim(), problem = formulaError(text);
         if (problem) return notice(problem);
-        if (keep && !palette.editing) {
+        if (keep && !palette.editing && !asSignal(text)) {
           // Added, and the formula stays, selected, to write the next one.
           addFormulaLayer(text, pane === "new" ? null : pane);
           paletteKeys(true);
@@ -24364,12 +24500,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         $("palette").close();
         if (palette.editing) editById(palette.editing, (layer) => (layer.formula = text));
+        else if (asSignal(text)) addSignalLayer(text);
         else addFormulaLayer(text, pane === "new" ? null : pane);
       }
       /** A layer's formula, in ⌘K's formula page: previewed as it's changed, applied with ↵. */
       function editFormula(id) {
         const layer = layerById(id);
-        if (layer?.formula !== undefined) openPalette({ formula: true, editing: id, query: layer.formula });
+        if (layer?.formula !== undefined) openPalette({ formula: true, editing: id, query: layer.formula, signal: layer.type === "signal" });
       }
       let formulaRun = 0;
       /**
@@ -24391,6 +24528,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Edited, the layer itself with the new formula; added, a new layer in a new pane.
           let layer = palette.editing ? doc.layers.find((item) => item.id === palette.editing) : null;
           if (layer) layer.formula = text;
+          else if (asSignal(text)) doc.layers.push((layer = makeLayer({ formula: text, type: "signal", ref: markable(doc, /** @type {any} */ ({}))[0]?.id }, doc)));
           else doc.layers.push((layer = makeLayer({ formula: text, pane: palette.into ?? newPaneIn(doc).id }, doc)));
           const editing = palette.editing !== null;
           const data = await resolve(doc).catch(() => null);
@@ -24412,6 +24550,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (formulaProblem.text === text) formulaProblem = { text: "", editing: null, problem: "" };
           const uses = usesOf(node);
           const unit = unitFor(layer, result);
+          // (A signal: where its marks are, and how many; its 0s and 1s aren't a line to look at.)
+          if (layer.type === "signal") {
+            const on = doc.layers.find((item) => item.id === layer?.ref);
+            return void (panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
+              <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}. Marks where it turns true.</p>
+              <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
+                <div><dt>Marked on</dt><dd>${on ? escape(labelOf(on)) : "No layer"}</dd></div>
+                <div><dt>Marks</dt><dd>${grouped.format(turnsOf(result.shown).length)}</dd></div>
+                <div><dt>Now</dt><dd>${escape(format(Array.prototype.findLast.call(result.shown, (value) => Number.isFinite(value)) ?? NaN, unit))}</dd></div>
+              </dl></div>`);
+          }
           panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
             <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}.</p>
             <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -25210,6 +25359,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(chart.layers.length ? [
             { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", words: "cloud band fill area between range cross edge", group: "Other layers", other: true, verb: "Add", page: () => cloudPage() },
           ] : []),
+          ...(markable(chart, /** @type {any} */ ({})).length ? [
+            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns true", words: "signal mark marker when condition cross crosses above below event alert", group: "Other layers", other: true, verb: "Add", run: () => addSignal() },
+          ] : []),
           ...(cloudable() ? [
             { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", words: "trend riding above below support resistance", group: "Other layers", other: true, verb: "Add", page: () => trendPage(), ...(trendShort() ? { disabled: trendShort() } : {}) },
           ] : []),
@@ -25351,7 +25503,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } });
           const now = () => layerById(id) ?? layer;
           // Grouped as the inspector's sections are, named as they are.
-          const first = layer.series ? "Series" : "Formula";
+          const first = layer.series ? "Series" : layer.type === "signal" ? "Signal" : "Formula";
           const style = dashOf(layer.dash);
           // A choice of its colors (a color, a way of coloring) previewed as it would draw: its look on a copy, its colors date by date.
           const lookOfChoice = (/** @type {HTMLElement} */ panel, /** @type {Action} */ option) => {
@@ -25377,6 +25529,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : layer.series ? [{ key: "series", icon: ICONS.series, label: "Replace series", aside: layer.series, mono: true, verb: "Replace", group: first, leads: true, stay: true, run: () => changeSeries(id) }]
               : [{ key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: first, leads: true, stay: true, run: () => editFormula(id) }]),
             ...(layer.type === "trend" ? [{ key: "ref", icon: ICONS.riding, label: "Flips when it touches", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: "Trend", page: () => choicePage("Flips when it touches", () => refChoices(id)) }] : []),
+            ...(layer.type === "signal" ? [
+              { key: "ref", icon: ICONS.signal, label: "Marked on", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: first, page: () => choicePage("Marked on", () => refChoices(id)) },
+              { key: "place", icon: glyphSvg(markBody(layer.place, "currentColor")), label: "Marks", aside: MARK_PLACES.find(([place]) => place === (layer.place ?? "above"))?.[1], group: first, page: () => choicePage("Marks", () => MARK_PLACES.map(([place, text]) => ({ key: place, icon: glyphSvg(markBody(place, "currentColor")), label: text === "On it" ? "On the layer" : `${text} the layer`, current: (now().place ?? "above") === place, run: set((item) => (item.place = place === "above" ? undefined : place)) }))) },
+            ] : []),
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
             ] : []),
@@ -25409,7 +25565,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ];
           // (One made from layers: what's a series' or a formula's isn't its; a cloud's, what's a line's either.)
           const NOT_ITS = new Set(["type", "fill", "base", "levels", "to-formula", "to-series", "shape", ...(layer.type === "cloud" ? ["width", "dash", "price-line", "derive"] : [])]);
-          return (layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
+          // (A signal: its formula, where its marks are, its color; no line's look, nor a place of its own: its layer's.)
+          const NOT_A_SIGNAL = new Set(["type", "fill", "base", "levels", "to-series", "shape", "colors", "color-from", "width", "dash", "price-line", "pane", "side", "scale", "stack", "order", "up", "down", "format"]);
+          return (layer.type === "signal" ? rows.filter((row) => !NOT_A_SIGNAL.has(row.key)) : layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
       }
       const swatchOf = (color) => `<i class="swatch" style="--c:${escape(cssColor(color))}"></i>`;
@@ -27192,7 +27350,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : { formula: currentFormula(String(layer.formula ?? "").slice(0, 1000)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
             color: isColor(layer.color) ? layer.color : undefined,
-            type: made ?? (TYPES.some(([type]) => type === layer.type) ? layer.type : "line"),
+            type: made ?? (TYPES.some(([type]) => type === layer.type) || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
             width: WIDTHS.includes(layer.width) ? layer.width : 1.5,
             dash: DASHES.some(([style]) => style === layer.dash) ? layer.dash : 0,
             pane: paneFor(layer.pane),
@@ -27209,7 +27367,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(Number.isFinite(layer.base) ? { base: layer.base } : {}),
             ...(SHAPES.some(([id]) => id !== "straight" && id === layer.shape) ? { shape: layer.shape } : {}),
             ...(layer.fill === "above" ? { fill: "above" } : {}),
-            ...(made === "trend" && typeof layer.ref === "string" ? { ref: layer.ref } : {}),
+            ...((made === "trend" || (!made && layer.type === "signal")) && typeof layer.ref === "string" ? { ref: layer.ref } : {}),
+            ...(MARK_PLACES.some(([place]) => place !== "above" && place === layer.place) ? { place: layer.place } : {}),
             ...(typeof layer.colorFrom === "string" ? { colorFrom: layer.colorFrom } : {}),
             ...(layer.byLevels === true ? { byLevels: true } : {}),
             ...(layer.byLayers === true ? { byLayers: true } : {}),
@@ -27235,6 +27394,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // What layers are made from, by their ids here, and a cloud's edges (normalize leaves out what's not a layer).
         for (const layer of doc.layers) if (layer.ref) layer.ref = layerIds.get(layer.ref);
+        // (A signal said without its layer: marked on the first that can be.)
+        for (const layer of doc.layers) if (layer.type === "signal" && !layer.ref) layer.ref = markable(doc, layer)[0]?.id;
         for (const layer of doc.layers) if (layer.colorFrom) layer.colorFrom = layerIds.get(layer.colorFrom);
         for (const layer of doc.layers) if (layer.from) layer.from = layer.from.flatMap((id) => (EDGES.includes(id) ? [id] : layerIds.has(id) ? [/** @type {string} */ (layerIds.get(id))] : []));
         // Drawings: each on a layer read, its points numbers (as many as its kind takes), its look where valid.
