@@ -8615,7 +8615,7 @@
           <ul>
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
             <li>"title".</li>
-            <li>"index": its interval: "auto" (the interval follows the zoom: weeks over years, hours over days; also if none), or one fixed: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10.</li>
+            <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none), or "auto" (the interval follows the zoom: weeks over years, hours over days).</li>
             <li>"range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
             <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
             <li>"halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).</li>
@@ -10535,7 +10535,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** @returns {Chart} */
       function blankChart(title = "") {
-        return { id: uid(), title, index: "day1", auto: true, range: DEFAULT_RANGE, panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
+        return { id: uid(), title, index: "day1", auto: false, range: DEFAULT_RANGE, panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
       }
       /** Charts started empty in their stead, nothing else there (a first visit, the last one deleted): the person's own from their first edit (a link's preview is kept only by Keep). */
       const drafts = new WeakSet();
@@ -10628,7 +10628,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function fromTemplate(template) {
         const doc = blankChart(template.title);
         doc.index = template.index;
-        doc.auto = template.index === "day1";
         doc.panes = template.panes.map((pane) => ({ id: uid(), ...pane }));
         for (const spec of template.layers) {
           const { pane = 0, ...rest } = spec;
@@ -17706,12 +17705,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // shown one's.)
         return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}">${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
       }
+      /** A tile's interval, where it isn't a day's: Auto, or the one it's at. @param {Chart} doc */
+      const tileIndexHtml = (doc) => (doc.auto ? `<span class="tile-index">Auto</span>` : doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
       /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
       function tileHtml(doc) {
         const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
         return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}">
-            <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${doc.auto ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
+            <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button>
             ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" ${on ? "checked" : ""} />`}
           </div>`;
@@ -17970,7 +17971,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
         const title = escape(titleOf(doc));
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
-        return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span></span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`;
+        return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`;
       }
       /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
       let listsDrawn = 0;
@@ -20609,10 +20610,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!doc.base) return false;
         const seen = pristineSeen.get(doc);
         if (seen?.at === doc.updated) return seen.as;
-        let as = contentHash(doc) === doc.base;
-        // (A preset kept before Auto, untouched: its fingerprint is of 1D, Auto now. It's untouched still, its fingerprint
-        // of Auto from now on. A fingerprint of 1D is never made since, a preset of 1D is Auto: no other's taken for it.)
-        if (!as && doc.auto && doc.base === hashOf(contentOf({ ...doc, auto: false, index: "day1", range: "" }))) (doc.base = contentHash(doc)), (as = true);
+        const as = contentHash(doc) === doc.base;
         pristineSeen.set(doc, { at: doc.updated, as });
         return as;
       }
@@ -26849,8 +26847,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const kept = leftView(doc.id);
         return {
           ...(doc.title ? { title: doc.title } : {}),
-          // (Auto, none (a link's default); a fixed one, said, 1D too.)
-          ...(doc.auto ? {} : { index: doc.index }),
+          // (Auto, said; a fixed one, but 1D, a link's default.)
+          ...(doc.auto ? { index: "auto" } : doc.index !== "day1" ? { index: doc.index } : {}),
           ...(doc.range !== DEFAULT_RANGE ? { range: doc.range } : {}),
           ...(doc.halvings ? { halvings: true } : {}),
           ...(doc.legend ? { legend: doc.legend } : {}),
@@ -27103,9 +27101,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!input || !Array.isArray(input.layers) || !Array.isArray(input.panes) || !input.panes.length) throw new Error("Not a studio chart");
         const doc = blankChart(String(input.title ?? "").slice(0, 120));
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
-        // (Auto: "auto", or none (a link's default); kept with Auto said, as said. A record from before Auto (a stored chart,
-        // stamped; a v2 file) at 1D, the default it had then (rarely chosen): Auto. Any interval said, as chosen.)
-        doc.auto = typeof input.auto === "boolean" ? input.auto : input.index === "auto" || !Object.hasOwn(INTERVAL_LABEL, input.index) || (doc.index === "day1" && (Number.isFinite(input.updated) || input.v === 2));
+        // (Auto, as said: "auto", or kept with Auto said. None, 1D.)
+        doc.auto = typeof input.auto === "boolean" ? input.auto : input.index === "auto";
         doc.range = RANGES.some(([id]) => id === input.range) ? input.range : DEFAULT_RANGE;
         if (input.halvings === true) doc.halvings = true;
         if (input.legend === "off") doc.legend = "off";
