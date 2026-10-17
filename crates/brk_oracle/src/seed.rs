@@ -6,7 +6,9 @@ use crate::config::START_HEIGHT_SLOW;
 /// the first exchange price.
 pub const FIRST_PRICE_HEIGHT: usize = 74_641;
 
-/// Pre-oracle dollar prices, one per line, heights 0..START_HEIGHT_SLOW.
+/// Pre-oracle dollar prices at each block's time, one per line, heights 0..START_HEIGHT_SLOW; from
+/// height 337,525 (2015-01-05, Bitstamp's halt) Bitfinex minute closes, except the oracle's seed
+/// (339,999), which keeps the price its measured path starts from.
 const PRICES: &str = include_str!("prices.txt");
 
 /// Baked pre-oracle prices starting at `start_height`, as a one-pass iterator.

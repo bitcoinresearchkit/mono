@@ -882,6 +882,13 @@ has to be deleted by hand.
 
 #### Series values (recomputed on upgrade)
 
+- Prices from 2015-01-05 to the oracle's start (heights 337,525 to 339,998) are Bitfinex's minute closes at each
+  block's time: the baked source went stale when Bitstamp halted after its hack and stayed thin until the oracle's
+  start, so the tape sat flat for days (281, 300, then 288.99 for four days) and then jumped between a few stale
+  prints (a false year low of $117.81 on January 14 and a +76.6% daily return; 2015's low is now $174.00). The
+  oracle's seed (block 339,999, $246.62, 6% above Bitfinex's $232.04) keeps its value: seeding from the corrected
+  price made the oracle's first ten days slightly worse. Every oracle price is unchanged. `brk_oracle::VERSION` is 6,
+  so every price-derived series recomputes
 - Creation prices in cost-basis statistics are rounded to four significant digits of the price in cents (were whole
   dollars, then five digits: under $10,000 that is fewer than five, and under $1 every coin was at $0 or $1): exact
   cents under $100, then steps of at most 0.1% (10 cents to $1,000, $1 to $10,000, $10 to $100,000, $100 above; were
@@ -988,7 +995,7 @@ has to be deleted by hand.
 - Oracle prices store the oracle's exact reference bin, so the node resumes the oracle where it stopped: each update
   rebuilt it from the price rounded to cents (and a restart in the slow regime from a reset shape profile), so
   block-by-block updates could drift from a full rebuild. A block window without round-dollar evidence keeps the
-  price (it stepped to the edge of the search range, about 15%). Prices recompute (oracle version 5)
+  price (it stepped to the edge of the search range, about 15%). Prices recompute
 - CPFP chunks come from an ancestor-set linearization chunked so feerates never increase: a later, richer chunk joins
   the one before it (two chunks could come out at 0.7 then 0.867 sat/vB). Effective fee rates, their statistics and
   the CPFP parent and child counts recompute

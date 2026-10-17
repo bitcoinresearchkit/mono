@@ -1,6 +1,6 @@
 # brk_oracle
 
-**Version 5**
+**Version 6**
 
 Pure on-chain BTC/USD price oracle. No exchange feeds, no external APIs. Derives the bitcoin price from transaction data alone. Tracks block by block from height 340,000 (January 2015) onward.
 
@@ -124,7 +124,7 @@ The oracle consumes one pre-built histogram per block via `process_histogram(&hi
 
 The caller filters as it builds the histogram, applying the [step 1](#1-filter-outputs) rules. `PaymentFilter::for_height(height).histogram(txs)` builds a fresh block histogram from non-coinbase transaction outputs. Incremental live callers use `PaymentFilter::MODERN.for_each_bin(outputs, emit)`, which applies the modern fan-out cap without requiring a height. The transaction-level rules include the OP_RETURN drop, the >100 transaction-output fan-out cap below height 630,000, and the >250 cap from height 630,000 onward.
 
-The initial seed must be close to the real price at the starting height. The crate includes typed pre-oracle helpers for exchange prices at heights 0..340,000.
+The initial seed must be close to the real price at the starting height. The crate includes typed pre-oracle helpers for exchange prices at heights 0..340,000 (from height 337,525, 2015-01-05, when the original source went stale after Bitstamp's halt: Bitfinex minute closes at each block's time, except the seed at 339,999, which keeps the price the measured path below starts from).
 
 ## Configuration
 
@@ -167,6 +167,8 @@ the default build does not depend on `schemars`.
 ## Accuracy
 
 Tested over 596,251 exchange-covered blocks after running the oracle from height 340,000 through height 952,314. Error is measured per block as distance from the oracle estimate to the exchange high/low range at that height. If the oracle falls within the range, the error is zero.
+
+Measured with version 5. Version 6 only corrects pre-oracle prices (heights 337,525 to 339,998), so its oracle prices are identical. Seeding from the corrected price at 339,999 ($232.04) was tried and rejected: it changed 156 blocks of the first ten days for slightly worse (mean error against Bitfinex closes 1.30%, was 1.23%; block 340,000 at $203.00).
 
 ### Per-block
 

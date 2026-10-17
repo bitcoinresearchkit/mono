@@ -47,7 +47,7 @@ pub type HistogramEmaCompact = Histogram<u16, NUM_BINS>;
 
 /// Oracle algorithm version. Bump on any change that alters computed prices
 /// so downstream consumers can invalidate cached results.
-pub const VERSION: u32 = 5;
+pub const VERSION: u32 = 6;
 
 #[derive(Clone)]
 pub struct Oracle {
