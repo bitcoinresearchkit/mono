@@ -11550,7 +11550,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         leaveField();
         saveView();
         // This tab's place, for a reload and for Back: the chart it shows now (a step from the grid stays one).
-        if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id, ...(history.state.place ? { place: history.state.place } : {}) }, "");
+        // (In the step it opens in: from the Charts page if that one was, Back going there still.)
+        if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id, ...(history.state.fromHome ? { fromHome: true } : {}), ...(history.state.place ? { place: history.state.place } : {}) }, "");
         // (An empty preview left has nothing to come back to (nor kept aside); a link that couldn't be read, left behind.)
         for (const item of previewCharts) if (item !== doc && !item.layers.length) (dropPreview(item), forgetPreview(item));
         brokenLink = "";
@@ -18525,6 +18526,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it, left so, goes: see emptyYours).
        * `push`: a step of the browser's history (not when going back to it).
        */
+      /** The open chart, deleted on a phone: the Charts page comes back without it, another under it (see deleteChart). */
+      let deletedOpen = "";
       function showHome(push = true, /** @type {{ top: number, rows: Record<string, number> } | null} */ place = null) {
         stopCarrying();
         delete document.body.dataset.sheet;
@@ -18541,9 +18544,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           previews.set(chart.id, { key: previewKey(chart), ...previewOf(chart, resolved) });
           savePreviews();
         }
-        // (A draft taken back only when Cancel (or esc) is the way there; one of yours never filled, whichever way.)
-        const draft = (cancelling === chart.id && previousChart()) || emptyYours(chart) ? chart : null;
-        cancelling = "";
+        // (A draft taken back only when Cancel (or esc) is the way there; one of yours never filled, whichever way; one
+        // deleted, gone (nothing to shrink into).)
+        const draft = deletedOpen === chart.id || (cancelling === chart.id && previousChart()) || emptyYours(chart) ? chart : null;
+        cancelling = deletedOpen = "";
         hideMenu();
         putDown();
         hideTip();
@@ -18560,6 +18564,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (An empty preview left simply goes.)
           if (draft) openChart(previousChart() ?? newDraft());
           document.body.toggleAttribute("data-home", true);
+          // (A toast up stays, where it shows on this page: over its foot, not the chart's.)
+          if ($("toast").classList.contains("visible")) placeToast();
           refresh("none");
           // (Back to the page from a chart opened from it: where it was, else where the chart's card is.)
           const card = cardOf(chart.id);
@@ -18594,6 +18600,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Pressed as it was tapped, see go: as it grows, as it is.)
           before?.classList.remove("opening");
           document.body.removeAttribute("data-home");
+          if ($("toast").classList.contains("visible")) placeToast();
           refresh("none");
           // (A block came while it was away: its data comes again, as it would have.)
           if (blockAtHome) (blockAtHome = false), void draw(false, true);
@@ -19921,29 +19928,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const tile = onPage ? cardOf(doc.id) : null, beside = /** @type {HTMLElement | null | undefined} */ (tile?.nextElementSibling?.matches(".tile[data-home-card]") ? tile.nextElementSibling : tile?.previousElementSibling?.matches(".tile[data-home-card]") ? tile.previousElementSibling : null)?.dataset.homeCard;
         keepFocus(null, () => (beside ? tileOpen(beside) : null), () => (kept() ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(/** @type {Chart} */ (neighbor).id)}"]`) : null), () => $("new-chart"), () => $("charts-nav"));
         discard(doc);
+        // On a phone, the open one deleted: back to the Charts page, its list (as Back, where it was opened from there),
+        // another chart under it (see showHome); elsewhere, the next one open in its place.
+        const away = wasOpen && phone.matches && !home;
+        if (away) {
+          deletedOpen = doc.id;
+          // (Else its step in the history the Charts page's, not one more: Back from there goes where it went before.)
+          if (history.state?.fromHome === true && history.state.chart === doc.id) history.back();
+          else (showHome(false, leftPlace), history.replaceState(homeState(), ""));
+        }
         // The last chart gone (the open one), the preview there is stands in, else a blank one.
-        const standIn = wasOpen && !library.charts.length ? previewCharts[0] ?? newDraft() : null;
-        if (wasOpen) openChart(standIn ?? (next && library.charts.includes(next) ? next : library.charts[Math.min(index, library.charts.length - 1)]));
+        const standIn = wasOpen && !away && !library.charts.length ? previewCharts[0] ?? newDraft() : null;
+        if (wasOpen && !away) openChart(standIn ?? (next && library.charts.includes(next) ? next : library.charts[Math.min(index, library.charts.length - 1)]));
         save();
         renderCharts();
-        toast(`Deleted “${titleOf(doc)}”`, {
+        // (Gone back to the Charts page: said once another chart's under it, its Undo the page's last step then.)
+        const say = () => toast(`Deleted “${titleOf(doc)}”`, {
           label: "Undo",
           run: () => {
             if (library.charts.some((other) => other.id === doc.id)) return;
             recover(doc);
             library.charts.splice(Math.min(index, library.charts.length), 0, doc);
             save();
-            if (!wasOpen) renderCharts();
-            else {
+            const reopen = () => {
               openChart(doc);
               edits.past = undoable.past;
               edits.future = undoable.future;
               refresh("none");
-            }
+            };
+            if (!wasOpen) renderCharts();
+            // (Gone back to the Charts page for it: back into it.)
+            else if (away && home) void leaveHome(reopen);
+            else reopen();
             return () => library.charts.includes(doc) && deleteChart(doc);
           },
           undone: `“${titleOf(doc)}” is back`,
         });
+        if (away) void until(() => chart !== doc, 4000).then(say);
+        else say();
       }
       /**
        * A blank chart, where to start from (series, a preset, a file): yours at once, first in your charts (on a folder's
