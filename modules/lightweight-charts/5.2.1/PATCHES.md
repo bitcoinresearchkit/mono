@@ -286,3 +286,17 @@ callback is now kept as it's subscribed, and let go of on detach.
   `this.Te.subscribeDataChanged((t=>this.QM(t)))`.
 
 `tests.html` doesn't use markers. Checked in Studio: marks moved from series to series, a series' data set after.
+
+## 18. A month's label not taken by a day's
+
+The time axis's marks are placed by weight (years, then months, then days…), each where it's as far from those placed as
+the widest label takes, in whole bars (rounded up). Months aren't as long as each other: at some zooms February's 28
+days fall a bar short of that, so March's mark isn't placed, and a day's, the 2nd, a bar further, is, in its place
+(the axis read "Feb 2 Apr"). Marks of a month or more (weight 60 up: months, years, of calendar lengths) now need nine
+tenths of that room: 28 days of 31 are more than nine tenths; days and finer, all alike, need it all, as before.
+
+- `class` of the tick marks (`Vu`, its marks by weight), its build's loop over weights: `bvNeed=i>=60?.9*t:t` with the
+  weight's marks, and their test `_-o>=bvNeed&&o-u>=bvNeed` for `_-o>=t&&o-u>=t`.
+
+`tests.html` leaves the axes out of its pictures. Checked in Studio: daily data from 7 Sep 2017 to 4 May 2018, its
+axis "Feb Mar Apr" (was "Feb 2 Apr"); other zooms and intervals read as before.
