@@ -3038,7 +3038,7 @@
         background: var(--card);
       }
 
-      :is(.empty-inner, .home-inner) > h1 {
+      .empty-inner > h1 {
         margin: 0;
         color: var(--ink);
         font-size: 28px;
@@ -7063,16 +7063,23 @@
           bottom: var(--bar-room);
         }
 
-        /* The header: the title, Undo (Keep in its place for a preview), Draw, Share (its icon), ⋯ (Redo in it); "Saved"
-           said elsewhere, taking no room from the title. */
+        /* The header: the title, Undo (Keep in its place for a preview, Copy for a preset, till it's edited), Draw, Share
+           (its icon), ⋯ (Redo in it, a preset's Reset); "Saved" said elsewhere, taking no room from the title. */
         #saved,
-        #preset-note,
-        .head-actions:has(#preview-note:not([hidden])):not(:has(#keep.edited)) #undo {
+        #preset-reset,
+        .head-actions:has(#preview-note:not([hidden])):not(:has(#keep.edited)) #undo,
+        .head-actions:has(#preset-note:not([hidden])):has(#preset-reset[hidden]) #undo {
           display: none;
         }
 
-        /* (Share by its icon, as the others are: the title keeps the room.) */
-        #share {
+        /* (Share by its icon, as the others are, a preset's Copy too: the title keeps the room. Edited, a preset's Undo is
+           back in its place, its Copy in ⋯.) */
+        #preset-note:has(#preset-reset:not([hidden])) {
+          display: none;
+        }
+
+        #share,
+        #preset-copy {
           justify-content: center;
           width: 28px;
           height: 28px;
@@ -8656,12 +8663,12 @@
           <ul>
             <li>await studio.open(chart): a chart as a link writes it (an object, or its JSON), opened as its link opens it; rejected with why if it can't be read.</li>
             <li>await studio.ready(): once the chart open is drawn whole (its data in, its reveal and fades at their end: a screenshot then shows all of it); rejected with why not (no chart, no layers, still loading after a minute).</li>
-            <li>await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL ("data:image/png;base64," and its base64), in one result, the same whatever the window. If your tool says the output was too long and saved it to a file, decode the base64 from that file: that's the picture, no need to retype it. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0 to 1 (0.9 if none); part, only if long output gets cut off and nothing is saved: 0, 1 and so on, each call with part 0's options, the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.</li>
+            <li>await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL ("data:image/png;base64," and its base64), in one result, the same whatever the window. If your tool says the output was too long and saved it to a file, decode the base64 from that file: that's the picture, no need to retype it. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0.01 to 1 (0.9 if none); part, only if long output gets cut off and nothing is saved: 0, 1 and so on, each call with part 0's options, the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.</li>
             <li>studio.chart(): the chart open, as a link writes it.</li>
             <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.</li>
             <li>await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; words as people say them do: "200 day moving average", "transaction count"). No browsing needed: the page knows the catalog, and asks bitview.space only for its first seconds, until its own search is up. It answers within a few seconds, the page shown or not, else it's rejected with why.</li>
           </ul>
-          <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or max.</p>
+          <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or 8y.</p>
           <pre>await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
 await studio.ready();
 const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
@@ -8683,7 +8690,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <div class="head-actions">
             <span id="saved" class="saved"></span>
             <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Keep puts it in your Library, as it is" data-kbd="⌘ S"><span data-icon="keep"></span>Keep</button></span>
-            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn small ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn small" type="button" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span>Copy</button></span>
+            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn small ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn small" type="button" aria-label="Copy" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span><span class="label">Copy</span></button></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
             <span class="divider"></span>
@@ -8725,7 +8732,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <div class="empty-inner">
                   <h1>Start a chart</h1>
                   <p>Overlay any of Bitview's series, stack them in panes, and derive new ones with formulas.</p>
-                  <button class="search-cta" type="button" data-action="add-series">
+                  <button class="search-cta" type="button" data-action="add-series" data-typing>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
                     <span id="cta-label">Search every series</span><kbd>A</kbd>
                   </button>
@@ -8822,7 +8829,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       <nav class="mobile-bar" aria-label="Studio">
         <button id="mobile-charts" class="tab" type="button" data-action="home"><span data-icon="grid"></span><span>Charts</span></button>
-        <button class="tab" type="button" data-action="palette"><span data-icon="browse"></span><span>Search</span></button>
+        <button class="tab" type="button" data-action="palette" data-typing><span data-icon="browse"></span><span>Search</span></button>
         <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label">Add</span></button>
         <button id="mobile-layers" class="tab" type="button" data-sheet="panel" aria-expanded="false"><span data-icon="panel"></span><span>Layers</span></button>
       </nav>
@@ -11077,11 +11084,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const written = JSON.stringify({ ...library, charts: library.charts.filter((doc) => !isDeleted(doc)), presets: library.presets.filter((doc) => !isDeleted(doc)), schema: SCHEMA });
         // (Edited previews, with it: never in the list, never lost. Only those changed here written, each over its copy
         // there if that's older: another tab's kept aside as they are.)
+        // (Storage full: the caches let go of first, then again; not written, not saved, and said.)
         const mine = previewCharts.filter((doc) => asideDirty.has(doc) && !drafts.has(doc));
+        let aside = true;
         if (mine.length) {
           const merged = new Map(previewsAside().map((doc) => [doc.id, doc]));
           for (const doc of mine) if (!((merged.get(doc.id)?.updated ?? -Infinity) > doc.updated)) merged.set(doc.id, doc);
-          if (storage.set(PREVIEW_ASIDE, [...merged.values()])) for (const doc of mine) asideDirty.delete(doc);
+          aside = storage.set(PREVIEW_ASIDE, [...merged.values()]) || (storage.drop(PREVIEWS, THUMBS), storage.set(PREVIEW_ASIDE, [...merged.values()]));
+          if (aside) for (const doc of mine) asideDirty.delete(doc);
         }
         const write = () => {
           try {
@@ -11092,7 +11102,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return false;
           }
         };
-        return write() || (storage.drop(PREVIEWS, THUMBS), write());
+        const ok = write() || (storage.drop(PREVIEWS, THUMBS), write());
+        // (Previews kept: let go of aside only once they're saved with your charts, never before.)
+        if (ok && keptPreviews.size) {
+          const left = previewsAside().filter((item) => !keptPreviews.has(item.id));
+          if (left.length) storage.set(PREVIEW_ASIDE, left);
+          else storage.drop(PREVIEW_ASIDE);
+          keptPreviews.clear();
+        }
+        return ok && aside;
       }
       let readOnlyTold = false;
       /** What's being typed where it shows (a drawing's text or label, a name), kept now: before a save, a page left. */
@@ -11292,6 +11310,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         Object.assign(chart, was, { range: chart.range, id: chart.id });
         // (Auto then and now: the interval it's at stays, the view's, not a step's.)
         if (auto && was.auto) chart.index = at;
+        // (A preview's step, kept aside as its edits are: reloaded, it's as it is now.)
+        if (isPreview(chart)) asideDirty.add(chart);
         if (folder) chart.folder = folder;
         else delete chart.folder;
         // (Once something's been in it, a chart for good: not blank again, whichever step.)
@@ -11343,6 +11363,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** The chart to go back to from this one: the last one opened before it. */
       const previousChart = () => viewed().map(chartById).find((doc) => doc && doc !== chart) ?? library.charts.find((doc) => doc !== chart) ?? previewCharts.find((doc) => doc !== chart) ?? null;
+      /** The one opened last before this one, if it's a preset left as it was (let go of: its index, opened as it's made). */
+      const previousPreset = () => {
+        const id = viewed().find((other) => other !== chart?.id);
+        return id && !chartById(id) ? presetById(id) : -1;
+      };
       /**
        * Where each chart was left, zoomed or panned off its preset, kept across reloads: each edge of the view as a point's
        * time and how many bars it lies from that point, so it holds as new points come in, and past either end of the data.
@@ -11456,8 +11481,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Charts opened, and the grid (a link, a script, a click): a picture made meanwhile, of the one before, dropped. */
       let navigations = 0;
       /** @param {Chart} doc */
+      /** A block came while the Charts page was over the chart (see checkLive). */
+      let blockAtHome = false;
       function openChart(doc) {
         navigations++;
+        // (Opened afresh: a block come meanwhile is in its data already.)
+        blockAtHome = false;
         lastOpen = "";
         // (Another chart opened over Quick Look (⌘K's pick, a link, a script): the look's put away first.)
         quickHide();
@@ -11513,9 +11542,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           cancelledNew = leaving;
           return history.back();
         }
-        const back = previousChart();
+        const back = previousChart(), preset = previousPreset();
         if (!(isPreview(chart) || emptyYours(chart)) || chart.layers.length) return;
         cancelledNew = leaving;
+        // (A preset left as it was: itself again, as opened.)
+        if (preset >= 0) {
+          keepFocus(null, () => $("plot-keys"));
+          return openChart(presetChart(preset));
+        }
         // (No chart to go back to (a preset opened, let go of as it was): the Charts page, where it was left.)
         if (!back) {
           cancelling = chart.id;
@@ -11588,7 +11622,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let closedToast = null;
       /** The previews kept aside, this tab's and others'. @returns {Chart[]} */
       const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored : []))(storage.get(PREVIEW_ASIDE, null));
-      /** A preview let go of (kept, closed): no longer kept aside. */
+      /** Previews kept, by their ids aside: let go of there once saved with your charts (see persist). */
+      const keptPreviews = new Set();
+      /** A preview let go of (closed): no longer kept aside. */
       const forgetPreview = (/** @type {Chart} */ doc) => {
         asideDirty.delete(doc);
         const left = previewsAside().filter((item) => item.id !== doc.id);
@@ -11601,7 +11637,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function keepPreview(announce = true, doc = chart) {
         if (!isPreview(doc)) return;
-        forgetPreview(doc);
+        // (Its copy aside stays till it's saved with your charts: see persist.)
+        asideDirty.delete(doc);
+        keptPreviews.add(doc.id);
         // (Its id another's, listed or deleted: a new one.)
         if (library.charts.some((other) => other.id === doc.id) || Object.hasOwn(library.deleted, doc.id)) rekey(doc, uid());
         // (Kept by its button, which goes: the focus on the chart's ⋯ beside it, not into a field where the next key would type.)
@@ -17173,7 +17211,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @returns {Promise<Thumb | null>} null when a fetch failed */
       async function drawThumb(doc) {
-        const index = sampleIndex(doc, "month1", THUMB_POINTS);
+        const index = await sampleable(doc, sampleIndex(doc, "month1", THUMB_POINTS));
         const data = await resolve({ ...doc, index });
         if (retryFailed(doc, data, index)) return null;
         /** @type {Map<string, ReturnType<typeof shapeOf>>} */
@@ -17662,6 +17700,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Asked again while it's being drawn (⌘K's highlight, the grid), the same drawing answers.
         const ask = JSON.stringify([doc.id, key, index]);
         if (!plotsDrawing.has(ask)) plotsDrawing.set(ask, (async () => {
+          index = await sampleable(doc, index);
           const copy = { ...structuredClone(doc), index };
           const data = await resolve(copy).catch(() => null);
           if (!data || retryFailed(copy, data, index) || previewKey(doc) !== key) return null;
@@ -17682,6 +17721,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Chart} doc
        */
       const autoOwn = (doc) => (doc.auto ? ((ids) => (ids.includes("day1") || !ids.length ? "day1" : /** @type {string} */ (ids.at(-1))))(autoIntervals(doc)) : doc.index);
+      /**
+       * A picture's interval as asked for, else the chart's own (a series without it: one only by the day), its series'
+       * intervals known first. @param {Chart} doc @param {string} index
+       */
+      async function sampleable(doc, index) {
+        await Promise.allSettled(seriesIn(doc).map(info));
+        return supportedIntervals(doc)(index) ? index : autoOwn(doc);
+      }
       /** A website chart's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
       const previewIndex = (/** @type {Chart} */ doc) => sampleIndex(doc, "week1", 100);
       /**
@@ -17830,12 +17877,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const previewed = listedPreviews(), all = listed();
           if (previewed.length) parts.push({ kind: "shelf", name: "Previews", place: { previews: true }, docs: previewed.slice(0, SHELF), count: previewed.length, previews: true });
           // (None yet, its shelf all the same, named as the presets' is: what's empty, and how to fill it, in it.)
-          parts.push({ kind: "shelf", name: "Library", place: { folder: "" }, folder: "", docs: all.slice(0, SHELF), count: all.length, ...(all.length || library.folders.length ? {} : { empty: `<div class="shelf-empty library-empty"><p>${previewed.length ? "None saved yet: Keep a preview to have it here." : "No charts yet. Start a new chart, or open a preset and copy it."}</p>${previewed.length ? "" : `<div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`}</div>` }) });
+          parts.push({ kind: "shelf", name: "Library", place: { folder: "" }, folder: "", docs: [...all.filter((doc) => !doc.folder), ...all.filter((doc) => doc.folder)].slice(0, SHELF), count: all.length, ...(all.length || library.folders.length ? {} : { empty: `<div class="shelf-empty library-empty"><p>${previewed.length ? "None saved yet: Keep a preview to have it here." : "No charts yet. Start a new chart, or open a preset and copy it."}</p>${previewed.length ? "" : `<div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`}</div>` }) });
         } else if (!grid.hidden) {
           const items = childrenOf(folderId), counts = chartCounts();
           const own = items.flatMap((item) => ("layers" in item ? [item] : []));
-          if (own.length) parts.push({ kind: "grid", docs: own });
+          // (Its folders first, as the sidebar has them; then its own charts.)
           for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, place: { folder: folder.id }, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
+          if (own.length) parts.push({ kind: "grid", docs: own });
           if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet: drag charts onto it in the sidebar, or move them from their menu"}</p>` : `<p>No charts yet. Start a new chart, or open a preset and copy it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
         }
         const visible = parts.flatMap((part) => (part.kind === "grid" || part.kind === "shelf" ? part.docs : []));
@@ -18437,6 +18485,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           before?.classList.remove("opening");
           document.body.removeAttribute("data-home");
           refresh("none");
+          // (A block came while it was away: its data comes again, as it would have.)
+          if (blockAtHome) (blockAtHome = false), void draw(false, true);
           const row = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${chart.id}"]`));
           if (focused && row?.checkVisibility()) row.focus({ preventScroll: true });
           // Drawn first (its data is usually at hand, from its tile), to grow into itself.
@@ -19317,7 +19367,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           head = find();
           if (!head) return;
         }
-        const folds = rowsUnder(head).map((element) => fold(element, closing, shown.get(rowKey(element))));
+        const folds = foldRows(rowsUnder(head), closing, (row) => shown.get(rowKey(row)));
         // (On the rail, its own slice of their surface fades with them: a fade under way, from its closing, goes first.)
         for (const animation of head.getAnimations({ subtree: true })) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.pseudoElement === "::before") animation.cancel();
         if (!head.classList.contains("in-folder") && !group) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
@@ -19422,24 +19472,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
       let closings = 0;
       /**
-       * A row unfolding from nothing, or folding to it: clipped as it goes, sliding out from under the one above and
-       * fading. One under way turns back from where it is.
+       * Rows unfolding from nothing, or folding to it: clipped as they go, sliding out from under the one above and fading.
+       * One under way turns back from where it is. All measured first, then all moved (a long folder: one layout, not one
+       * a row). `was`: a row's height as shown before it was drawn anew.
+       * @param {HTMLElement[]} elements @param {boolean} closing @param {(row: HTMLElement) => number | undefined} was
        */
-      function fold(/** @type {HTMLElement} */ element, /** @type {boolean} */ closing, /** @type {number | undefined} */ was = undefined) {
-        const moving = element.getAnimations().length > 0, now = element.getBoundingClientRect().height;
-        for (const animation of element.getAnimations()) animation.cancel();
-        const full = element.offsetHeight, from = was ?? (moving ? now : closing ? full : 0), shown = full ? from / full : 1;
-        Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: "flex-end" });
-        element.inert = closing;
-        // (Its gap from the one above, as wide as its list has it, goes and comes with it.)
-        const gap = `-${parseFloat(getComputedStyle(/** @type {HTMLElement} */ (element.parentElement)).rowGap) || 0}px`;
-        const animation = element.animate({
-          height: [`${from}px`, `${closing ? 0 : full}px`],
-          marginTop: closing ? ["0px", gap] : [gap, "0px"],
-          opacity: [shown, closing ? 0 : 1],
-        }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
-        if (!closing) animation.finished.then(() => Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), () => {});
-        return animation;
+      function foldRows(elements, closing, was = () => undefined) {
+        const now = elements.map((element) => (element.getAnimations().length ? element.getBoundingClientRect().height : undefined));
+        for (const element of elements) for (const animation of element.getAnimations()) animation.cancel();
+        // (Its gap from the one above, as wide as its list has it, goes and comes with it: a list's, read once.)
+        const gaps = new Map();
+        const measured = elements.map((element) => {
+          const list = /** @type {HTMLElement} */ (element.parentElement);
+          if (!gaps.has(list)) gaps.set(list, `-${parseFloat(getComputedStyle(list).rowGap) || 0}px`);
+          return { full: element.offsetHeight, gap: gaps.get(list) };
+        });
+        return elements.map((element, i) => {
+          const { full, gap } = measured[i], from = was(element) ?? now[i] ?? (closing ? full : 0), shown = full ? from / full : 1;
+          Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: "flex-end" });
+          element.inert = closing;
+          const animation = element.animate({
+            height: [`${from}px`, `${closing ? 0 : full}px`],
+            marginTop: closing ? ["0px", gap] : [gap, "0px"],
+            opacity: [shown, closing ? 0 : 1],
+          }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
+          if (!closing) animation.finished.then(() => Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), () => {});
+          return animation;
+        });
       }
       /**
        * A folder's name typed in place (on the page: its head, on its own page, else its shelf's; else the sidebar's row):
@@ -22226,10 +22285,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         textarea.style.height = "auto";
         textarea.style.height = `${textarea.scrollHeight}px`;
       });
+      /** The formula editor watched for its width (one at a time: one replaced, let go of). @type {Element | null} */
+      let formulaFitted = null;
       function updateFormula(layer) {
         const textarea = $("formula");
         if (!textarea) return;
-        formulaFit.observe(textarea);
+        if (formulaFitted !== textarea) {
+          if (formulaFitted) formulaFit.unobserve(formulaFitted);
+          formulaFit.observe((formulaFitted = textarea));
+        }
         const colorOf = (letter) => {
           const target = chart.layers.find((item) => item.letter === letter);
           return target && target !== layer ? ink(target.color) : null;
@@ -23786,7 +23850,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * swapped; `formula`: a formula to add (`into` a pane) or, `editing`, a formula layer's own; `query` starts the
        * search, `path` the folder it opens on and `landOn` the row; `resume`: back where it was put away, if it can be.
        */
-      function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false } = {}) {
+      function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false } = {}) {
         // (Resumed only where it was browsing: adding, replacing or a formula start again.)
         const spot = resume && putAway?.browsing && (putAway.anywhere ? Date.now() - putAway.at < 600_000 : putAway.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000) ? putAway.state : null;
         // (Adding to a chart with no room: said now, not once a series is picked.)
@@ -23800,8 +23864,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into } : add ? { kind: "add", into } : { kind: "browse" };
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) (trailDrawn = ""), dialog.removeAttribute("data-half");
-        // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped.)
-        if (!dialog.open) (input.inert = TOUCH && !byKeys), dialog.showModal(), (input.inert = false), TOUCH && !byKeys && dialog.focus();
+        // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped. Opened by a tap on a search
+        // field, or Search, its field at once: the keyboard with it, as that tap asked, in it for iOS to allow it.)
+        const keys = !TOUCH || byKeys || typing;
+        if (!dialog.open) (input.inert = !keys), dialog.showModal(), (input.inert = false), !keys && dialog.focus();
+        if (typing && TOUCH) input.focus();
         applyScope();
         input.value = palette.query;
         paletteKeys(true);
@@ -23847,7 +23914,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (palette.formula) input.maxLength = 500;
         else input.removeAttribute("maxlength");
         input.setAttribute("aria-label", replacing ? "Replace series" : palette.formula ? "Formula" : palette.adding ? "Search series" : "Search series, charts and commands");
-        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (TOUCH && seriesCount ? `Search ${grouped.format(seriesCount)} series` : "Search every series") : phone.matches ? "Search series, charts, commands" : "Search series, your Library and commands";
+        input.placeholder = replacing ? "A series to use instead" : palette.formula ? `A formula, like A / B or ${EXAMPLE}` : palette.adding ? (seriesCount ? `Search ${grouped.format(seriesCount)} series` : "Search every series") : "Search series, charts and commands";
         $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
       }
       /**
@@ -24025,7 +24092,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ]),
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
-          ...(chart.preset !== undefined ? [] : [{ title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") }]),
+          ...(!isYours(chart) ? [] : [{ title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") }]),
           ...(!isYours(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
           ...(chart.preset === undefined || presetIndex(chart) < 0 ? [] : [
             { title: "Copy this preset", text: `${titleOf(chart)}: a copy of it, as it is, in your Library, opened.`, words: "copy preset save keep mine duplicate", icon: "duplicate", run: () => copyPreset(presetIndex(chart)) },
@@ -24990,7 +25057,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function numberPage({ title, value, fallback, apply }) {
         const read = (text) => {
-          const n = text ? Number(text) : fallback;
+          const n = text ? readNumber(text) : fallback;
           return n !== undefined && Number.isFinite(n) ? n : null;
         };
         return inputPage({
@@ -25088,7 +25155,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const many = words.length > 6;
         // (The value after the setting's words, the most of them first; then before them; then between.)
-        const runs = words.flatMap((_, from) => words.map((__, to) => /** @type {[number, number]} */ ([from, to + 1]))).filter(([from, to]) => from < to && to - from < words.length);
+        // (Many words, only a value at their end, after four words at most: those alone, not every run, a pasted page's.)
+        const runs = many ? [1, 2, 3, 4].map((from) => /** @type {[number, number]} */ ([from, words.length])) : words.flatMap((_, from) => words.map((__, to) => /** @type {[number, number]} */ ([from, to + 1]))).filter(([from, to]) => from < to && to - from < words.length);
         const where = ([from, to]) => (to === words.length ? 0 : from === 0 ? 1 : 2);
         // (A value not at the end is one a choice is called by, as typed or its start: "left axis", never "pane 2 log".)
         const splits = runs.sort((a, b) => where(a) - where(b) || (where(a) === 1 ? a[1] - b[1] : b[0] - a[0])).map((run) => /** @type {[string[], string[], boolean]} */ ([[...words.slice(0, run[0]), ...words.slice(run[1])], words.slice(run[0], run[1]), where(run) > 0]));
@@ -26711,9 +26779,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 return [];
               }
             }));
-            if (!docs.length && !edits.length && already) return toast(`${already === 1 ? "That chart is" : `All ${grouped.format(already)} charts are`} here already`);
-            if (!docs.length && !edits.length) throw new Error("No charts in it");
-            library.presets = [...library.presets.filter((other) => !edits.some((doc) => doc.preset === other.preset)), ...edits];
             // (In the folders made for theirs; then those with charts in them, and empty ones not here by name: none made for
             // charts left out, what was in one of those a level up.)
             const made = new Map([...folders.values()].map((folder) => [folder.id, folder]));
@@ -26741,6 +26806,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               while (parent && !kept.has(parent)) parent = made.get(parent)?.parent;
               parent ? (folder.parent = parent) : delete folder.parent;
             }
+            // (Nothing new, charts nor folders: said, nothing changed.)
+            if (!docs.length && !edits.length && !folders.size && already) return toast(`${already === 1 ? "That chart is" : `All ${grouped.format(already)} charts are`} here already`);
+            if (!docs.length && !edits.length && !folders.size) throw new Error("No charts in it");
+            library.presets = [...library.presets.filter((other) => !edits.some((doc) => doc.preset === other.preset)), ...edits];
             const before = treeOf().map(({ item }) => sideKey(item)), among = library.charts.length > 0;
             const order = orderOf(parsed.order).flatMap((key) => {
               const folder = key[0] === "f" ? folders.get(key.slice(2)) : undefined, doc = key[0] === "c" ? byId.get(key.slice(2)) : undefined;
@@ -27209,11 +27278,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const keptAside = () => ((aside) => (Array.isArray(aside) ? aside : []))(storage.get(UNREAD, []));
       const asideCount = () => keptAside().length;
       /** Whether there's anything Download all would take: your charts, the presets as edited, those kept aside. */
-      const anythingKept = () => library.charts.length > 0 || library.presets.some(presetEdited) || asideCount() > 0;
+      const anythingKept = () => library.charts.length > 0 || library.folders.length > 0 || library.presets.some(presetEdited) || asideCount() > 0;
       /** All the charts in one file, every folder with them (an empty one too), the presets as edited, and those kept aside, as they were. */
       function downloadAll() {
         const aside = keptAside(), edited = library.presets.filter(presetEdited);
-        if (!library.charts.length && !aside.length && !edited.length) return notice("No charts yet");
+        if (!library.charts.length && !library.folders.length && !aside.length && !edited.length) return notice("No charts yet");
         download(`bitview-charts-${new Date().toLocaleDateString("en-CA")}.json`, chartsFile(library.charts, library.folders, aside, edited));
         toast(`Downloaded ${plural(library.charts.length, "chart")}${library.folders.length ? ` and ${plural(library.folders.length, "folder")}` : ""}${edited.length ? `, ${plural(edited.length, "edited preset")}` : ""}${aside.length ? `, and ${aside.length} kept aside` : ""}, in one file`);
       }
@@ -27862,7 +27931,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("all-hidden").hidden = !unseen;
         $("chart").classList.toggle("unseen", unseen);
         // A new chart, empty, can be left with Escape (or Cancel), for the chart before it: taken back.
-        const back = chart.layers.length ? null : previousChart();
+        const back = chart.layers.length ? null : ((i) => (i >= 0 ? presetDoc(i) : previousChart()))(previousPreset());
         $("leave-empty").hidden = !(isPreview(chart) || emptyYours(chart));
         if (backToHome()) $("leave-empty").dataset.tip = `Back to ${$("home-title").textContent}`;
         else $("leave-empty").dataset.tip = back ? `Back to ${titleOf(back)}` : "Back to Charts";
@@ -27936,12 +28005,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (paneMode) setPaneMode(paneMode, Number(mode));
         else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
         else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
-        else if (action === "palette") openPalette({ resume: true });
+        else if (action === "palette") openPalette({ resume: true, typing: target.hasAttribute("data-typing") });
         else if (action === "new-chart") newChart();
         else if (action === "close-preview") closePreview(chartById(target.dataset.preview ?? "") ?? chart);
         // (From a chart, the page as it was left, where it was; on the page, its top: the phone's Charts as the sidebar's.)
         else if (action === "home") home ? goTo({ top: true }) : showHome(true, leftPlace);
-        else if (action === "add-series") openPalette({ add: true });
+        else if (action === "add-series") openPalette({ add: true, typing: target.hasAttribute("data-typing") });
         else if (action === "leave-empty") leaveEmpty();
         else if (action === "import") $("import-file").click();
         else if (action === "download-all") downloadAll();
@@ -28336,7 +28405,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         live.classList.remove("block");
         void live.offsetWidth;
         live.classList.add("block");
-        if (chart && seriesIn(chart).length) draw(false, true);
+        // (Under the Charts page, the chart isn't drawn again for it: once it's back, see leaveHome.)
+        if (chart && seriesIn(chart).length) home ? (blockAtHome = true) : draw(false, true);
       }
       setInterval(checkLive, 15_000);
       // (The device's network gone: said at once, not a minute on; back, asked at once. Nothing said before the first
@@ -28589,7 +28659,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const lost = lostDrawings ? `; ${plural(lostDrawings, "drawing")} couldn't be read` : "";
           // (From the address bar: read, it goes, its step in the history this chart's (on the grid, the grid's: opening
           // the chart steps on from it).)
-          if (shared !== null && !picturing) history.replaceState(home ? { home: true } : { chart: (twin ?? doc).id }, "", `${location.pathname}${location.search}`);
+          if (shared !== null && !picturing) history.replaceState(home ? { ...(history.state?.home ? history.state : {}), ...homeState() } : { chart: (twin ?? doc).id }, "", `${location.pathname}${location.search}`);
           if (shared !== null) reading.hash = "";
           if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: Keep it to have it in your Library${lost}`), (toastOfPreview = twin ? null : doc);
           return twin ?? doc;
@@ -28904,7 +28974,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (made) quickPictures.delete(key);
         else made = (async () => {
           // (At an interval with as many points as it has room for, no finer: a week's for years, the chart's own for weeks.)
-          const index = sampleIndex(doc, "week1", QUICK_PICTURE.points), copy = { ...structuredClone(doc), index };
+          const index = await sampleable(doc, sampleIndex(doc, "week1", QUICK_PICTURE.points)), copy = { ...structuredClone(doc), index };
           const data = await resolve(copy).catch(() => null);
           // (Not drawn, or some of it missing: not kept, asked again next time.)
           if (!data || retryFailed(copy, data, index)) return void quickPictures.delete(key), null;
