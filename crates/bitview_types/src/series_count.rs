@@ -1,7 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Series count statistics
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SeriesCount {
     /// Number of unique series available (e.g., realized_price, market_cap)

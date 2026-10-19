@@ -12,7 +12,7 @@ pub trait IndexerLengths: Sized {
     fn push(&self, vecs: &mut Vecs);
     fn from_local(vecs: &Vecs, stores: &Stores) -> Result<Option<Self>>;
     fn resume_at(required_height: Height, vecs: &Vecs, stores: &Stores) -> Result<Option<Self>>;
-    /// Lengths at a local `height`. `None` pre-genesis.
+    /// Local lengths before `height`; `None` at height zero or when a boundary is missing.
     fn at(height: Height, vecs: &Vecs) -> Option<Self>;
 }
 
@@ -39,45 +39,15 @@ impl IndexerLengths for Lengths {
         vecs.op_return
             .first_index
             .debug_checked_push(height, self.op_return_index);
-        vecs.addrs
-            .p2a
-            .first_index
-            .debug_checked_push(height, self.p2a_addr_index);
         vecs.scripts
             .unknown
             .first_index
             .debug_checked_push(height, self.unknown_output_index);
-        vecs.addrs
-            .p2pk33
-            .first_index
-            .debug_checked_push(height, self.p2pk33_addr_index);
-        vecs.addrs
-            .p2pk65
-            .first_index
-            .debug_checked_push(height, self.p2pk65_addr_index);
-        vecs.addrs
-            .p2pkh
-            .first_index
-            .debug_checked_push(height, self.p2pkh_addr_index);
-        vecs.addrs
-            .p2sh
-            .first_index
-            .debug_checked_push(height, self.p2sh_addr_index);
-        vecs.addrs
-            .p2tr
-            .first_index
-            .debug_checked_push(height, self.p2tr_addr_index);
-        vecs.addrs
-            .p2wpkh
-            .first_index
-            .debug_checked_push(height, self.p2wpkh_addr_index);
-        vecs.addrs
-            .p2wsh
-            .first_index
-            .debug_checked_push(height, self.p2wsh_addr_index);
+        push_addr_first_indexes(self, vecs);
     }
 
-    /// Read current local lengths. `None` pre-genesis.
+    /// Current local lengths; `None` at height zero, for absent or mismatched checkpoints, or when
+    /// a boundary is missing.
     fn from_local(vecs: &Vecs, stores: &Stores) -> Result<Option<Self>> {
         let Some(height) = matching_height(vecs.next_height(), stores.next_height()?) else {
             return Ok(None);
@@ -85,10 +55,9 @@ impl IndexerLengths for Lengths {
         Ok(collect_at(height, vecs))
     }
 
-    /// Read lengths to resume at `required_height`. Reorg-aware:
-    /// - if vector and store checkpoints differ, return `None` (full reset);
-    /// - if local is ahead, clamp down to `required_height`;
-    /// - if local is behind, return `None` (caller must full-reset).
+    /// Lengths before `required_height`, which a reorg puts below the local height; `None` for
+    /// absent or mismatched checkpoints, a local height below `required_height`, height zero, or a
+    /// missing boundary.
     fn resume_at(required_height: Height, vecs: &Vecs, stores: &Stores) -> Result<Option<Self>> {
         let Some(local) = matching_height(vecs.next_height(), stores.next_height()?) else {
             return Ok(None);
@@ -111,7 +80,7 @@ impl IndexerLengths for Lengths {
 }
 
 fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
-    Some(Lengths {
+    let mut lengths = Lengths {
         empty_output_index: next_index(
             &vecs.scripts.empty.first_index,
             &vecs.scripts.empty.to_tx_index,
@@ -128,48 +97,49 @@ fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
             &vecs.op_return.to_tx_index,
             height,
         )?,
-        p2pk33_addr_index: next_index(
-            &vecs.addrs.p2pk33.first_index,
-            &vecs.addrs.p2pk33.bytes,
-            height,
-        )?,
-        p2pk65_addr_index: next_index(
-            &vecs.addrs.p2pk65.first_index,
-            &vecs.addrs.p2pk65.bytes,
-            height,
-        )?,
-        p2pkh_addr_index: next_index(
-            &vecs.addrs.p2pkh.first_index,
-            &vecs.addrs.p2pkh.bytes,
-            height,
-        )?,
-        p2sh_addr_index: next_index(&vecs.addrs.p2sh.first_index, &vecs.addrs.p2sh.bytes, height)?,
-        p2tr_addr_index: next_index(&vecs.addrs.p2tr.first_index, &vecs.addrs.p2tr.bytes, height)?,
-        p2wpkh_addr_index: next_index(
-            &vecs.addrs.p2wpkh.first_index,
-            &vecs.addrs.p2wpkh.bytes,
-            height,
-        )?,
-        p2wsh_addr_index: next_index(
-            &vecs.addrs.p2wsh.first_index,
-            &vecs.addrs.p2wsh.bytes,
-            height,
-        )?,
-        p2a_addr_index: next_index(&vecs.addrs.p2a.first_index, &vecs.addrs.p2a.bytes, height)?,
         tx_index: next_index(
             &vecs.transactions.first_tx_index,
             &vecs.transactions.txid,
             height,
         )?,
-        txin_index: next_index(&vecs.inputs.first_txin_index, &vecs.inputs.outpoint, height)?,
+        txin_index: next_index(
+            &vecs.inputs.first_txin_index,
+            &*vecs.inputs.outpoint,
+            height,
+        )?,
         txout_index: next_index(&vecs.outputs.first_txout_index, &vecs.outputs.value, height)?,
         unknown_output_index: next_index(
             &vecs.scripts.unknown.first_index,
             &vecs.scripts.unknown.to_tx_index,
             height,
         )?,
-    })
+        ..Lengths::default()
+    };
+    collect_addr_indexes(&mut lengths, vecs)?;
+    Some(lengths)
 }
+
+macro_rules! addr_lengths {
+    ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
+        fn push_addr_first_indexes(lengths: &Lengths, vecs: &mut Vecs) {
+            $(vecs.addrs
+                .$field
+                .first_index
+                .debug_checked_push(lengths.height, lengths.$length);)+
+        }
+
+        fn collect_addr_indexes(lengths: &mut Lengths, vecs: &Vecs) -> Option<()> {
+            $(lengths.$length = next_index(
+                &vecs.addrs.$field.first_index,
+                &vecs.addrs.$field.bytes,
+                lengths.height,
+            )?;)+
+            Some(())
+        }
+    };
+}
+
+bitview_primitives::with_address_storage_types!(addr_lengths);
 
 fn matching_height(vec_height: Height, store_height: Option<Height>) -> Option<Height> {
     let store_height = store_height?;
@@ -177,17 +147,18 @@ fn matching_height(vec_height: Height, store_height: Option<Height>) -> Option<H
         Some(vec_height)
     } else {
         debug!(
-            "Indexer checkpoint mismatch: vectors at {}, stores at {}; full reset required",
+            "Indexer checkpoint mismatch: vectors at {}, stores at {}",
             vec_height, store_height
         );
         None
     }
 }
 
-/// Per-type next-to-write counter at `next_height`. `None` pre-genesis.
+/// Per-type next index before `next_height`; `None` at height zero or when the boundary is
+/// missing.
 fn next_index<I, T>(
     height_to_index: &PcoVec<Height, I, impl CachePolicy>,
-    index_to_else: &impl ReadableVec<I, T>,
+    values: &impl ReadableVec<I, T>,
     next_height: Height,
 ) -> Option<I>
 where
@@ -198,7 +169,7 @@ where
     if next_height.is_zero() {
         None
     } else if h.incremented() == next_height {
-        Some(I::from(index_to_else.len()))
+        Some(I::from(values.len()))
     } else {
         height_to_index.collect_one(next_height)
     }

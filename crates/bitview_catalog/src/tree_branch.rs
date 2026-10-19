@@ -1,24 +1,30 @@
-use std::ops::{Deref, DerefMut};
-
-use indexmap::{IndexMap, map};
+use derive_more::{Deref, DerefMut, From, IntoIterator};
+use indexmap::IndexMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::TreeNode;
 
-// Catalog children, merged by key.
-// Keep the schema transparent too: schema documentation belongs to TreeNode,
-// not this wrapper, so its schema identity stays identical to the original map.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+// Catalog children, merged by key. A plain comment: a doc comment would add schema metadata,
+// and this wrapper's schema stays identical to the bare map's.
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    JsonSchema,
+    From,
+    Deref,
+    DerefMut,
+    IntoIterator,
+)]
 #[serde(transparent)]
+#[into_iterator(owned, ref, ref_mut)]
 pub struct TreeBranch {
     pub children: IndexMap<String, TreeNode>,
-}
-
-impl From<IndexMap<String, TreeNode>> for TreeBranch {
-    fn from(children: IndexMap<String, TreeNode>) -> Self {
-        Self { children }
-    }
 }
 
 impl TreeBranch {
@@ -27,7 +33,6 @@ impl TreeBranch {
         TreeNode::merge_node(&mut self.children, key, node);
     }
 
-    /// Lift another branch's children into this one.
     pub fn merge_fields(&mut self, other: Self) {
         for (key, child) in other.children {
             self.merge_field(key, child);
@@ -38,46 +43,5 @@ impl TreeBranch {
 impl FromIterator<(String, TreeNode)> for TreeBranch {
     fn from_iter<T: IntoIterator<Item = (String, TreeNode)>>(iter: T) -> Self {
         Self::from(iter.into_iter().collect::<IndexMap<_, _>>())
-    }
-}
-
-impl Deref for TreeBranch {
-    type Target = IndexMap<String, TreeNode>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.children
-    }
-}
-
-impl DerefMut for TreeBranch {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.children
-    }
-}
-
-impl IntoIterator for TreeBranch {
-    type Item = (String, TreeNode);
-    type IntoIter = map::IntoIter<String, TreeNode>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.children.into_iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a TreeBranch {
-    type Item = (&'a String, &'a TreeNode);
-    type IntoIter = map::Iter<'a, String, TreeNode>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.children.iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a mut TreeBranch {
-    type Item = (&'a String, &'a mut TreeNode);
-    type IntoIter = map::IterMut<'a, String, TreeNode>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.children.iter_mut()
     }
 }

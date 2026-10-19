@@ -4,11 +4,11 @@ use derive_more::Deref;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-/// Maximum number of results to return. Defaults to 100 if not specified.
+/// Maximum number of results to return; each parameter states what omitting it means.
 #[derive(Debug, Clone, Copy, Deref, Deserialize, JsonSchema)]
 #[serde(transparent)]
 #[allow(clippy::duplicated_attributes)]
-#[schemars(default, example = 1, example = 10, example = 100)]
+#[schemars(example = 1, example = 10, example = 100)]
 pub struct Limit(usize);
 
 impl Limit {

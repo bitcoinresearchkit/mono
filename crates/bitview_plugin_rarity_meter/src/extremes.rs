@@ -1,58 +1,42 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::Percent;
+use bitview_primitives::Ratio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Dollars, Height, Version};
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
-use super::extreme::Extreme;
+use super::extreme::{COINS_IN_LOSS, Extreme, REALIZED, SELL_SIDE_RISK};
 
 const VERSION: Version = Version::new(7);
 
 #[derive(Traversable)]
 pub struct Extremes<M: StorageMode = Rw> {
-    /// Measures how unusually large the total all-chain supply in loss is. The
-    /// source is BTC whose creation price exceeds spot; its upper-tail share is
-    /// the fraction of accepted history at least this high, so a smaller share
-    /// means a rarer event. Uses all prior finite positive observations and
-    /// requires 210,000 of them. Thresholds exclude the represented block; the
-    /// reported tail share includes it as one observation.
-    pub coins_in_loss: Extreme<Bitcoin, M>,
-    /// Measures how unusually large trailing-24-hour all-chain realized profit
-    /// is in USD. Its upper-tail share is the fraction of accepted history at
-    /// least this high, so a smaller share means rarer profit taking. Uses all
-    /// prior finite observations and requires 210,000 of them. Thresholds
-    /// exclude the represented block; the reported tail share includes it as
-    /// one observation.
-    pub profit_taking: Extreme<Dollars, M>,
-    /// Measures how unusually large trailing-24-hour all-chain realized loss is
-    /// in USD. Its upper-tail share is the fraction of accepted history at least
-    /// this high, so a smaller share means rarer capitulation. Uses all prior
-    /// finite observations and requires 210,000 of them. Thresholds exclude the
-    /// represented block; the reported tail share includes it as one
-    /// observation.
-    pub capitulation: Extreme<Dollars, M>,
-    /// Measures how unusually large trailing-24-hour all-chain realized peak
-    /// regret is in USD. Peak regret is the value sellers forgo relative to each
+    /// How unusually large all-chain supply in loss is: BTC whose creation price
+    /// exceeds spot, in the upper tail of all prior finite positive
+    /// observations, requiring 210,000 of them.
+    pub supply_in_loss: Extreme<Bitcoin, M>,
+    /// How unusually large trailing-24-hour all-chain realized profit is, in
+    /// USD, in the upper tail of all prior finite observations, requiring
+    /// 210,000 of them.
+    pub realized_profit_24h: Extreme<Dollars, M>,
+    /// How unusually large trailing-24-hour all-chain realized loss is, in USD,
+    /// in the upper tail of all prior finite observations, requiring 210,000 of
+    /// them.
+    pub realized_loss_24h: Extreme<Dollars, M>,
+    /// How unusually large trailing-24-hour all-chain realized peak regret is, in
+    /// USD, in the upper tail of all prior finite observations, requiring
+    /// 210,000 of them. Peak regret is the value sellers forgo relative to each
     /// spent output's highest spot price from its creation block through its
-    /// spending block. The upper-tail share is the fraction of accepted history
-    /// at least this high, so a smaller share means a rarer event. Uses all prior
-    /// finite observations and requires 210,000 of them. Thresholds exclude the
-    /// represented block; the reported tail share includes it as one
-    /// observation.
-    pub peak_regret: Extreme<Dollars, M>,
-    /// Measures how unusually low the trailing-24-hour all-chain sell-side risk
-    /// ratio is, in percent. That ratio is gross realized profit and loss divided by
-    /// realized capitalization; unusually low values indicate little realized
-    /// profit or loss relative to invested value. The lower-tail share is the
-    /// fraction of accepted history at or below the source value, so a smaller
-    /// share means stronger seller exhaustion. Uses the most recent 210,000
-    /// finite positive observations and requires a full window. Thresholds
-    /// exclude the represented block; the reported tail share includes it as
-    /// one observation.
-    pub seller_exhaustion: Extreme<Percent, M>,
+    /// spending block.
+    pub realized_peak_regret_24h: Extreme<Dollars, M>,
+    /// How unusually low the trailing-24-hour all-chain sell-side risk ratio
+    /// (gross realized profit and loss divided by realized capitalization) is,
+    /// in the lower tail of the most recent 210,000 finite positive
+    /// observations, requiring a full window. Unusually low values indicate
+    /// little realized profit or loss relative to invested value.
+    pub sell_side_risk_ratio_24h: Extreme<Ratio, M>,
 }
 
 impl Extremes {
@@ -63,14 +47,29 @@ impl Extremes {
     ) -> Result<Self> {
         let version = parent_version + VERSION;
         Ok(Extremes {
-            coins_in_loss: Extreme::import(db, "rarity_meter_coins_in_loss", version, mappings)?,
-            profit_taking: Extreme::import(db, "rarity_meter_profit_taking", version, mappings)?,
-            capitulation: Extreme::import(db, "rarity_meter_capitulation", version, mappings)?,
-            peak_regret: Extreme::import(db, "rarity_meter_peak_regret", version, mappings)?,
-            seller_exhaustion: Extreme::import(
+            supply_in_loss: Extreme::import(db, "rarity_meter_supply_in_loss", version, mappings)?,
+            realized_profit_24h: Extreme::import(
                 db,
-                "rarity_meter_seller_exhaustion",
+                "rarity_meter_realized_profit_24h",
                 version,
+                mappings,
+            )?,
+            realized_loss_24h: Extreme::import(
+                db,
+                "rarity_meter_realized_loss_24h",
+                version,
+                mappings,
+            )?,
+            realized_peak_regret_24h: Extreme::import(
+                db,
+                "rarity_meter_realized_peak_regret_24h",
+                version,
+                mappings,
+            )?,
+            sell_side_risk_ratio_24h: Extreme::import(
+                db,
+                "rarity_meter_sell_side_risk_ratio_24h",
+                version + Version::ONE,
                 mappings,
             )?,
         })
@@ -84,19 +83,19 @@ impl Extremes {
         realized_profit: &impl ReadableVec<Height, Dollars>,
         realized_loss: &impl ReadableVec<Height, Dollars>,
         peak_regret: &impl ReadableVec<Height, Dollars>,
-        seller_exhaustion: &impl ReadableVec<Height, Percent>,
+        sell_side_risk: &impl ReadableVec<Height, Ratio>,
         exit: &Exit,
     ) -> Result<()> {
-        self.coins_in_loss
-            .compute_coins_in_loss(indexer, coins_in_loss, exit)?;
-        self.profit_taking
-            .compute_realized(indexer, realized_profit, exit)?;
-        self.capitulation
-            .compute_realized(indexer, realized_loss, exit)?;
-        self.peak_regret
-            .compute_realized(indexer, peak_regret, exit)?;
-        self.seller_exhaustion
-            .compute_seller_exhaustion(indexer, seller_exhaustion, exit)?;
-        Ok(())
+        let from = indexer.compute_start().height;
+        self.supply_in_loss
+            .compute(from, coins_in_loss, COINS_IN_LOSS, exit)?;
+        self.realized_profit_24h
+            .compute(from, realized_profit, REALIZED, exit)?;
+        self.realized_loss_24h
+            .compute(from, realized_loss, REALIZED, exit)?;
+        self.realized_peak_regret_24h
+            .compute(from, peak_regret, REALIZED, exit)?;
+        self.sell_side_risk_ratio_24h
+            .compute(from, sell_side_risk, SELL_SIDE_RISK, exit)
     }
 }

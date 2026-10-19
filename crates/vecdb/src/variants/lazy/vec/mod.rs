@@ -8,52 +8,39 @@ pub mod typed;
 
 pub use transform::*;
 
-use crate::{READ_CHUNK_SIZE, ReadableBoxedVec, ReadableVec, VecIndex, VecValue, Version};
+use crate::{ReadableBoxedVec, ReadableVec, VecIndex, VecValue, Version};
 
-/// Lazily computed vector deriving values on-the-fly from one source vector.
+/// A view mapping each value of one source vector on read; nothing is stored on disk. Persist
+/// with `ComputeVec` instead when recomputing costs more than reading.
 ///
-/// Unlike `EagerVec`, no data is stored on disk. Values are computed during
-/// iteration by applying a function to the source vector's elements. Use when:
-/// - Storage space is limited
-/// - Computation is cheap relative to disk I/O
-/// - Values are only accessed once or infrequently
-///
-/// For frequently accessed derived data, prefer `EagerVec` for better performance.
+/// The source must be dense: every index below its length holds a value, so each value pairs
+/// with its index. Reads cannot check it: a source may grow or be truncated while read.
 #[derive(Clone)]
-pub struct LazyVec<I, T, S1I, S1T>
+pub struct LazyVec<I, T, S>
 where
-    S1I: VecIndex,
-    S1T: VecValue,
+    I: VecIndex,
+    S: VecValue,
 {
     name: Arc<str>,
     base_version: Version,
-    source: ReadableBoxedVec<S1I, S1T>,
-    compute: fn(I, S1T) -> T,
+    source: ReadableBoxedVec<I, S>,
+    compute: fn(I, S) -> T,
     read: fn(&Self, usize, usize, &mut Vec<T>),
     visit: fn(&Self, usize, usize, &mut dyn FnMut(usize, &[T])),
 }
 
-impl<I, T, S1I, S1T> LazyVec<I, T, S1I, S1T>
+impl<I, T, S> LazyVec<I, T, S>
 where
     I: VecIndex,
     T: VecValue,
-    S1I: VecIndex,
-    S1T: VecValue,
+    S: VecValue,
 {
-    pub fn init(
+    pub fn new(
         name: &str,
         version: Version,
-        source: ReadableBoxedVec<S1I, S1T>,
-        compute: fn(I, S1T) -> T,
+        source: ReadableBoxedVec<I, S>,
+        compute: fn(I, S) -> T,
     ) -> Self {
-        assert_eq!(
-            I::to_string(),
-            S1I::to_string(),
-            "LazyVec index type mismatch: expected {}, got {}",
-            I::to_string(),
-            S1I::to_string()
-        );
-
         Self {
             name: Arc::from(name),
             base_version: version,
@@ -71,42 +58,19 @@ where
                 });
             },
             visit: |this, from, to, f| {
-                let mut output = Vec::new();
-                let chunk_size = this.source.cursor_chunk_size().clamp(1, READ_CHUNK_SIZE);
-                this.source.for_each_chunk_at(from, to, &mut |at, values| {
-                    let mut at = at;
-                    for values in values.chunks(chunk_size) {
-                        output.clear();
-                        output.extend(
-                            values
-                                .iter()
-                                .cloned()
-                                .enumerate()
-                                .map(|(offset, value)| (this.compute)(I::from(at + offset), value)),
-                        );
-                        f(at, &output);
-                        at += values.len();
-                    }
+                transform::for_each_mapped_chunk(&this.source, from, to, f, |index, value| {
+                    (this.compute)(I::from(index), value)
                 });
             },
         }
     }
-}
 
-impl<I, T, S1T> LazyVec<I, T, I, S1T>
-where
-    I: VecIndex,
-    T: VecValue,
-    S1T: VecValue,
-{
-    /// Create a lazy vec with a generic transform.
-    /// Usage: `LazyVec::transformed::<Ident>(name, v, source)`
-    pub fn transformed<F: UnaryTransform<S1T, T>>(
+    pub fn transformed<F: UnaryTransform<S, T>>(
         name: &str,
         version: Version,
-        source: ReadableBoxedVec<I, S1T>,
+        source: ReadableBoxedVec<I, S>,
     ) -> Self {
-        let mut vec = Self::init(name, version, source, |_, v| F::apply(v));
+        let mut vec = Self::new(name, version, source, |_, v| F::apply(v));
         vec.read = |this, from, to, out| F::read_into(&this.source, from, to, out);
         vec.visit = |this, from, to, f| F::for_each_chunk(&this.source, from, to, f);
         vec

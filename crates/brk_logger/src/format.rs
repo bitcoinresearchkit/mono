@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display, Result, Write};
 
 use jiff::{Timestamp, tz};
-use owo_colors::OwoColorize;
+use owo_colors::{AnsiColors, OwoColorize};
 use tracing::{
     Event, Level, Subscriber,
     field::{Field, Visit},
@@ -11,9 +11,8 @@ use tracing_subscriber::{
     registry::LookupSpan,
 };
 
-// Don't remove, used to know the target of unwanted logs
+// Don't remove: set to true to print each event's target, to find the source of unwanted logs.
 const WITH_TARGET: bool = false;
-// const WITH_TARGET: bool = true;
 
 const fn level_str(level: Level) -> &'static str {
     match level {
@@ -40,49 +39,54 @@ where
     ) -> Result {
         let ts = Timestamp::now()
             .to_zoned(tz::TimeZone::system())
-            .strftime("%Y-%m-%d %H:%M:%S")
-            .to_string();
+            .strftime("%Y-%m-%d %H:%M:%S");
 
         let level = *event.metadata().level();
         let level_str = level_str(level);
 
         if ANSI {
-            let level_colored = match level {
-                Level::ERROR => level_str.red().to_string(),
-                Level::WARN => level_str.yellow().to_string(),
-                Level::INFO => level_str.green().to_string(),
-                Level::DEBUG => level_str.blue().to_string(),
-                Level::TRACE => level_str.cyan().to_string(),
-            };
+            write!(writer, "{} ", ts.bright_black())?;
             if WITH_TARGET {
-                write!(
-                    writer,
-                    "{} {} {} {level_colored} ",
-                    ts.bright_black(),
-                    event.metadata().target(),
-                    "-".bright_black(),
-                )?;
-            } else {
-                write!(
-                    writer,
-                    "{} {} {level_colored} ",
-                    ts.bright_black(),
-                    "-".bright_black()
-                )?;
+                write!(writer, "{} ", event.metadata().target())?;
             }
+            write!(
+                writer,
+                "{} {} ",
+                "-".bright_black(),
+                level_str.color(level_color(level))
+            )?;
         } else if WITH_TARGET {
             write!(writer, "{ts} {} - {level_str} ", event.metadata().target())?;
         } else {
             write!(writer, "{ts} - {level_str} ")?;
         }
 
-        let mut visitor = FieldVisitor::<ANSI>::new();
+        let mut visitor = FieldVisitor::<ANSI>::default();
         event.record(&mut visitor);
-        write!(writer, "{}", visitor.finish())?;
+        visitor.write_to(&mut writer)?;
         writeln!(writer)
     }
 }
 
+const fn level_color(level: Level) -> AnsiColors {
+    match level {
+        Level::ERROR => AnsiColors::Red,
+        Level::WARN => AnsiColors::Yellow,
+        Level::INFO => AnsiColors::Green,
+        Level::DEBUG => AnsiColors::Blue,
+        Level::TRACE => AnsiColors::Cyan,
+    }
+}
+
+const fn status_color(status: u64) -> AnsiColors {
+    match status {
+        200..=299 => AnsiColors::Green,
+        300..=399 => AnsiColors::BrightBlack,
+        _ => AnsiColors::Red,
+    }
+}
+
+#[derive(Default)]
 struct FieldVisitor<const ANSI: bool> {
     message: String,
     fields: String,
@@ -93,75 +97,53 @@ struct FieldVisitor<const ANSI: bool> {
 }
 
 impl<const ANSI: bool> FieldVisitor<ANSI> {
-    fn new() -> Self {
-        Self {
-            message: String::new(),
-            fields: String::new(),
-            method: None,
-            status: None,
-            uri: None,
-            latency: None,
-        }
-    }
-
-    fn finish(self) -> String {
+    /// Access events (with `status`) print `status [uri] [latency]`; others print
+    /// `message — fields`, with method/uri/latency appended as plain fields.
+    fn write_to(self, w: &mut impl Write) -> Result {
         if let Some(status) = self.status {
-            let status_str = if ANSI {
-                match status {
-                    200..=299 => status.green().to_string(),
-                    300..=399 => status.bright_black().to_string(),
-                    _ => status.red().to_string(),
-                }
+            if ANSI {
+                write!(w, "{}", status.color(status_color(status)))?;
             } else {
-                status.to_string()
-            };
-
-            let mut parts = Vec::with_capacity(3);
-            parts.push(status_str);
+                write!(w, "{status}")?;
+            }
             if let Some(uri) = self.uri {
-                parts.push(uri);
+                write!(w, " {uri}")?;
             }
             if let Some(latency) = self.latency {
-                parts.push(if ANSI {
-                    latency.bright_black().to_string()
+                if ANSI {
+                    write!(w, " {}", latency.bright_black())?;
                 } else {
-                    latency
-                });
+                    write!(w, " {latency}")?;
+                }
             }
+            return Ok(());
+        }
 
-            parts.join(" ")
-        } else {
-            let mut fields = self.fields;
-            if let Some(method) = self.method {
-                push_field(&mut fields, "method", method);
-            }
-            if let Some(uri) = self.uri {
-                push_field(&mut fields, "uri", uri);
-            }
-            if let Some(latency) = self.latency {
-                push_field(&mut fields, "latency", latency);
-            }
-
-            if self.message.is_empty() {
-                fields
-            } else if fields.is_empty() {
-                self.message
-            } else {
-                format!("{} — {fields}", self.message)
+        w.write_str(&self.message)?;
+        let mut sep = if self.message.is_empty() { "" } else { " — " };
+        if !self.fields.is_empty() {
+            write!(w, "{sep}{}", self.fields)?;
+            sep = " ";
+        }
+        for (name, value) in [
+            ("method", self.method),
+            ("uri", self.uri),
+            ("latency", self.latency),
+        ] {
+            if let Some(value) = value {
+                write!(w, "{sep}{name}={value}")?;
+                sep = " ";
             }
         }
+        Ok(())
     }
 
     fn record_field(&mut self, name: &str, value: impl Display) {
-        push_field(&mut self.fields, name, value);
+        if !self.fields.is_empty() {
+            self.fields.push(' ');
+        }
+        let _ = write!(self.fields, "{name}={value}");
     }
-}
-
-fn push_field(fields: &mut String, name: &str, value: impl Display) {
-    if !fields.is_empty() {
-        fields.push(' ');
-    }
-    let _ = write!(fields, "{name}={value}");
 }
 
 impl<const ANSI: bool> Visit for FieldVisitor<ANSI> {

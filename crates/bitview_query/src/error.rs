@@ -2,10 +2,10 @@ use std::{borrow::Cow, fmt, result::Result as StdResult};
 
 use thiserror::Error as ThisError;
 
-/// Result of a query.
 pub type Result<T> = StdResult<T, Error>;
 
-/// What a query can answer besides data: the API's error vocabulary.
+/// The API's error vocabulary: invalid requests, missing data, temporary unavailability and
+/// internal failures.
 ///
 /// Failures from lower layers (storage, RPC, parsing of stored data) arrive as
 /// [`Error::Lower`] and are always internal. The few conditions those layers name on
@@ -13,9 +13,9 @@ pub type Result<T> = StdResult<T, Error>;
 /// invalid address input and a date outside the indexes.
 #[derive(Debug, ThisError)]
 pub enum Error {
-    // The request cannot be answered as asked.
-    #[error("The provided address appears to be invalid")]
-    InvalidAddr,
+    // Invalid requests.
+    #[error("Invalid address")]
+    InvalidAddress,
     #[error("Invalid network")]
     InvalidNetwork,
     #[error("{0}")]
@@ -31,10 +31,10 @@ pub enum Error {
     #[error("Too many unspent transaction outputs (more than {max})")]
     TooManyUtxos { max: usize },
 
-    // Nothing to answer with.
-    #[error("Address not found in the blockchain (no transaction history)")]
-    UnknownAddr,
-    #[error("Failed to find the TXID in the blockchain")]
+    // Missing data.
+    #[error("Address has no confirmed transactions")]
+    UnknownAddress,
+    #[error("Transaction not found")]
     UnknownTxid,
     #[error("{0}")]
     NotFound(String),
@@ -47,15 +47,15 @@ pub enum Error {
     #[error("{0}")]
     SeriesNotFound(SeriesNotFound),
 
-    // Try again later.
+    // Temporarily unavailable.
     #[error("Mempool data is not available")]
     MempoolNotAvailable,
     #[error("State is updating")]
     StateUpdating,
-    #[error("Read timed out waiting for published data")]
+    #[error("Read exceeded its time limit")]
     ReadTimeout,
 
-    // Failures.
+    // Internal failures.
     #[error("Internal error: {0}")]
     Internal(&'static str),
     #[error(transparent)]
@@ -74,7 +74,7 @@ impl From<brk_error::Error> for Error {
         use brk_error::Error as Lower;
         match error {
             Lower::StateUpdating => Self::StateUpdating,
-            Lower::InvalidAddr => Self::InvalidAddr,
+            Lower::InvalidAddress => Self::InvalidAddress,
             Lower::InvalidNetwork => Self::InvalidNetwork,
             Lower::UnindexableDate => Self::UnindexableDate,
             error => Self::Lower(error),
@@ -171,7 +171,7 @@ impl fmt::Display for SeriesNotFound {
         }
         f.write_str("?")?;
 
-        let remaining = self.total_matches.saturating_sub(self.suggestions.len());
+        let remaining = self.total_matches - self.suggestions.len();
         if remaining > 0 {
             write!(
                 f,

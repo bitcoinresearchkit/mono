@@ -1,8 +1,8 @@
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::TypeIndex;
-use brk_types::{Addr, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
+use brk_types::{Address, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
-use crate::{Query, Result};
+use crate::{Query, ReadPin, Result, r#impl::addr::parse_addr};
 
 /// A confirmed address transaction page resolved against one best-chain view.
 #[derive(Debug)]
@@ -21,16 +21,26 @@ impl ResolvedAddrChainTxs {
 }
 
 impl Query {
-    /// Resolve an address page once before body loading.
+    /// Resolve an address page once before body loading. A never-confirmed address has an
+    /// empty page, anchored at the tip.
     pub fn resolve_addr_chain_txs(
         &self,
-        addr: &Addr,
+        addr: &Address,
         after_txid: Option<Txid>,
         limit: usize,
     ) -> Result<ResolvedAddrChainTxs> {
+        let bytes = parse_addr(addr)?;
         let pin = self.pin_safe_lengths()?;
-        let (output_type, type_index) = self.resolve_addr(addr)?;
-        self.resolve_addr_chain_txs_for(output_type, type_index, after_txid, limit, &pin)
+        match self.find_addr_bytes(&bytes, &pin)? {
+            Some((output_type, type_index)) => {
+                self.resolve_addr_chain_txs_for(output_type, type_index, after_txid, limit, &pin)
+            }
+            None => Ok(ResolvedAddrChainTxs {
+                txindices: Vec::new(),
+                anchor_height: None,
+                activity_anchor: pin.tip(),
+            }),
+        }
     }
 
     /// Load a previously resolved page after confirming its chain anchor survived.
@@ -38,35 +48,30 @@ impl Query {
         &self,
         resolved: ResolvedAddrChainTxs,
     ) -> Result<Vec<Transaction>> {
-        self.addr_txs_chain_at(resolved)
+        self.addr_txs_chain_pinned(resolved, &self.pin_safe_lengths()?)
     }
 
-    fn addr_txindices_for(
+    /// The confirmed transactions of an address `pin` holds, oldest first: those before the
+    /// `before` cursor, or all of them.
+    pub(crate) fn addr_tx_history(
         &self,
         output_type: OutputType,
         type_index: TypeIndex,
-        after_txid: Option<Txid>,
-        limit: usize,
+        before: Option<&Txid>,
         pin: &SafeLengths,
-    ) -> Result<Vec<TxIndex>> {
-        let stores = self.indexer().stores();
-        let safe = pin.lengths();
-        if type_index >= safe.to_type_index(output_type) {
-            return Err(self.missing_addr());
-        }
-        let tx_index_len = safe.tx_index;
-
-        let before = after_txid
-            .as_ref()
-            .map(|txid| self.resolve_tx_index_bounded(txid))
-            .transpose()?
-            .unwrap_or(tx_index_len)
-            .min(tx_index_len);
-        Ok(stores
-            .addr_tx_indexes_before(output_type, type_index, before)?
-            .rev()
-            .take(limit)
-            .collect())
+    ) -> Result<impl DoubleEndedIterator<Item = brk_error::Result<TxIndex>> + '_> {
+        debug_assert!(
+            type_index < pin.lengths().to_type_index(output_type),
+            "a found address is published"
+        );
+        let before = match before {
+            Some(txid) => self.resolve_tx_index_bounded(txid, pin)?,
+            None => pin.lengths().tx_index,
+        };
+        Ok(self
+            .indexer()
+            .stores()
+            .addr_tx_indexes_before(output_type, type_index, before)?)
     }
 
     pub(crate) fn resolve_addr_chain_txs_for(
@@ -75,9 +80,13 @@ impl Query {
         type_index: TypeIndex,
         after_txid: Option<Txid>,
         limit: usize,
-        pin: &SafeLengths,
+        pin: &ReadPin,
     ) -> Result<ResolvedAddrChainTxs> {
-        let txindices = self.addr_txindices_for(output_type, type_index, after_txid, limit, pin)?;
+        let txindices = self
+            .addr_tx_history(output_type, type_index, after_txid.as_ref(), pin)?
+            .rev()
+            .take(limit)
+            .collect::<brk_error::Result<Vec<_>>>()?;
         let anchor = txindices
             .first()
             .map(|txindex| -> Result<_> {
@@ -88,7 +97,7 @@ impl Query {
             .transpose()?;
         let activity_anchor = match anchor {
             Some((_, hash)) => hash,
-            None => self.tip_blockhash_at(pin)?,
+            None => pin.tip(),
         };
 
         Ok(ResolvedAddrChainTxs {
@@ -98,16 +107,10 @@ impl Query {
         })
     }
 
-    /// Revalidate the selected prefix under rollback protection before reading.
-    fn addr_txs_chain_at(&self, resolved: ResolvedAddrChainTxs) -> Result<Vec<Transaction>> {
-        let guard = self.pin_safe_lengths()?;
-        self.addr_txs_chain_pinned(resolved, &guard)
-    }
-
     pub(crate) fn addr_txs_chain_pinned(
         &self,
         resolved: ResolvedAddrChainTxs,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Vec<Transaction>> {
         if let Some(height) = resolved.anchor_height {
             self.validate_block_at_height(&resolved.activity_anchor, height, guard)?;

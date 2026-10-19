@@ -1,10 +1,9 @@
 use bitview_plugin_indexer::SafeLengths;
-use bitview_primitives::Lengths;
 use bitview_types::{BlockInfo, BlockTxIndex};
 use brk_types::{BlockHash, Height, Transaction, Txid};
 use vecdb::ReadableVec;
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
 /// An immutable block range pinned at the published safe lengths.
 pub struct ResolvedBlocks {
@@ -25,7 +24,7 @@ impl ResolvedBlocks {
     }
 
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfo>> {
-        query.blocks_range_at(self.begin, self.end, &self.guard)
+        query.blocks_range_at(self.begin, self.end, &self.read_pin(query))
     }
 
     fn anchor_height(&self) -> Result<Height> {
@@ -41,7 +40,7 @@ impl ResolvedBlocks {
 
     /// Validate an in-block offset before HTTP conditional short-circuiting.
     pub fn validate_tx_index(&self, query: &Query, index: BlockTxIndex) -> Result<()> {
-        let (_, count) = query.block_tx_range(self.anchor_height()?, &self.guard)?;
+        let (_, count) = query.block_tx_range(self.anchor_height()?, &self.read_pin(query))?;
         if usize::from(index) >= count {
             return Err(Error::OutOfRange("Transaction index out of range".into()));
         }
@@ -49,11 +48,15 @@ impl ResolvedBlocks {
     }
 
     pub fn anchor_txids(self, query: &Query) -> Result<Vec<Txid>> {
-        query.block_txids_by_height(self.anchor_height()?, &self.guard)
+        query.block_txids_by_height(self.anchor_height()?, &self.read_pin(query))
     }
 
     pub fn anchor_txid(self, query: &Query, index: BlockTxIndex) -> Result<Txid> {
-        query.block_txid_at_index_by_height(self.anchor_height()?, index.into(), &self.guard)
+        query.block_txid_at_index_by_height(
+            self.anchor_height()?,
+            index.into(),
+            &self.read_pin(query),
+        )
     }
 
     pub fn anchor_txs(
@@ -62,31 +65,36 @@ impl ResolvedBlocks {
         start: BlockTxIndex,
         count: u32,
     ) -> Result<Vec<Transaction>> {
-        query.block_txs_at_height(self.anchor_height()?, start, count, &self.guard)
+        query.block_txs_at_height(self.anchor_height()?, start, count, &self.read_pin(query))
     }
 
-    /// Read the anchor's verified header while retaining publication exclusion.
+    /// Read the anchor's verified header while retaining the pin.
     /// Exact-hash callers resolve a single-row snapshot before using this.
     pub fn anchor_header_hex(self, query: &Query) -> Result<String> {
         let (height, hash) = self.anchor_pair()?;
-        query.block_header_hex_at_height(height, &hash, &self.guard)
+        query.block_header_hex_at_height(height, &hash, &self.read_pin(query))
     }
 
-    /// Read the anchor's raw block while retaining publication exclusion.
+    /// Read the anchor's raw block while retaining the pin.
     pub fn anchor_raw(self, query: &Query) -> Result<Vec<u8>> {
         let (height, hash) = self.anchor_pair()?;
-        query.block_raw_at_height(height, &hash, &self.guard)
+        query.block_raw_at_height(height, &hash, &self.read_pin(query))
     }
 
     /// Return the framed raw length after verifying the anchor header.
     /// This does not read or validate transaction payload bytes.
     pub fn anchor_raw_size(self, query: &Query) -> Result<u64> {
         let (height, hash) = self.anchor_pair()?;
-        query.block_raw_size_at_height(height, &hash, &self.guard)
+        query.block_raw_size_at_height(height, &hash, &self.read_pin(query))
     }
 
-    pub(crate) fn range(&self) -> (usize, usize, Lengths) {
-        (self.begin, self.end, self.guard.lengths())
+    pub(crate) fn range(&self) -> (usize, usize) {
+        (self.begin, self.end)
+    }
+
+    /// Bounds this thread's reads by the blocks' pin while the returned pin lives.
+    pub(crate) fn read_pin(&self, query: &Query) -> ReadPin {
+        query.read_pin(self.guard.clone())
     }
 }
 
@@ -98,16 +106,14 @@ impl Query {
         hash: &BlockHash,
         height_hint: Height,
     ) -> Result<Option<ResolvedBlocks>> {
-        let Some(blocks) = self.try_resolve_blocks(Some(height_hint), 1)? else {
-            return Ok(None);
-        };
+        let blocks = self.blocks_window(Some(height_hint), 1)?;
         if blocks.last_height() != Some(height_hint) || blocks.anchor() != Some(*hash) {
             return Ok(None);
         }
         Ok(Some(blocks))
     }
 
-    /// Resolve an exact canonical hash and retain publication exclusion until
+    /// Resolve an exact canonical hash and retain the pin until
     /// the selected row is consumed. The prefix-store lookup may perform I/O.
     pub fn resolve_block_snapshot(&self, hash: &BlockHash) -> Result<ResolvedBlocks> {
         let guard = self.pin_safe_lengths()?;
@@ -115,19 +121,23 @@ impl Query {
         self.blocks_snapshot(Some(height), 1, guard)
     }
 
-    /// Returns `None` during publication; callers may retry on a blocking worker.
-    pub fn try_resolve_blocks(
+    /// Esplora's block list: `count` blocks down from `start_height` (default the tip), which
+    /// must be published.
+    pub fn resolve_blocks(
         &self,
         start_height: Option<Height>,
         count: u32,
-    ) -> Result<Option<ResolvedBlocks>> {
-        self.indexer()
-            .try_pin_safe_lengths()
-            .map(|guard| self.blocks_snapshot(start_height, count, guard))
-            .transpose()
+    ) -> Result<ResolvedBlocks> {
+        let blocks = self.blocks_window(start_height, count)?;
+        if start_height.is_some_and(|height| blocks.last_height() != Some(height)) {
+            return Err(Error::NotFound("Block not found".into()));
+        }
+        Ok(blocks)
     }
 
-    pub fn resolve_blocks(
+    /// The published blocks among the `count` heights ending at `start_height` (default the
+    /// tip): fewer past the tip, as mempool.space's block lists.
+    pub(crate) fn blocks_window(
         &self,
         start_height: Option<Height>,
         count: u32,
@@ -139,8 +149,11 @@ impl Query {
         &self,
         start_height: Option<Height>,
         count: u32,
-        guard: SafeLengths,
+        guard: ReadPin,
     ) -> Result<ResolvedBlocks> {
+        if let Some(start) = start_height {
+            check_bound(&guard, start, guard.lengths().height)?;
+        }
         let (begin, end) = Self::resolve_block_range(start_height, count, guard.lengths().height);
         let anchor = end
             .checked_sub(1)
@@ -154,7 +167,7 @@ impl Query {
             })
             .transpose()?;
         Ok(ResolvedBlocks {
-            guard,
+            guard: guard.into_inner(),
             begin,
             end,
             anchor,

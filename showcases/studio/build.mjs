@@ -193,11 +193,13 @@ if (served) {
 if (served?.differs) {
   if (/\.(?:dates|dateEntries|toDateMap)\(\)/.test(html)) throw new Error("The page dates points through a response's helpers: the replaced two don't cover it");
   const source = String(input(join(SHOWCASES, "modules/bitview-client/index.js"), "utf8"));
-  const from = source.indexOf("// Date conversion constants and helpers"), to = source.indexOf("/**\n * Wrap raw series data");
-  if (from < 0 || to < from) throw new Error("This repo's client's date helpers moved: the build can't find them");
+  // (The helpers and the calendars they read: each date index's unit, size and phase.)
+  const calendars = source.indexOf("const _CALENDARS = new Map(["), calendarsEnd = source.indexOf("]);\n", calendars) + 4;
+  const from = source.indexOf("// Date conversion, mirroring the server's indexes"), to = source.indexOf("/**\n * @template T\n * @param {SeriesData<T>} raw", from);
+  if (calendars < 0 || calendarsEnd < calendars || from < 0 || to < from) throw new Error("This repo's client's date helpers moved: the build can't find them");
   // (Only while the client that needed them is the one live: one released since dates its server's points itself.)
   const when = `if (client.VERSION === ${JSON.stringify(served.version)}) `;
-  html = html.replace(/\n( *)const client = new BitviewClient\([^\n]*\);\n/, (line, indent) => `${line}${indent}// ${SERVER}'s client dates points unlike its server: this repo's helpers instead (the next release's).\n${indent}${when}{\n${source.slice(from, to)}\nclient.indexToDate = indexToDate;\nclient.dateToIndex = dateToIndex;\n${indent}}\n`);
+  html = html.replace(/\n( *)const client = new BitviewClient\([^\n]*\);\n/, (line, indent) => `${line}${indent}// ${SERVER}'s client dates points unlike its server: this repo's helpers instead (the next release's).\n${indent}${when}{\n${source.slice(calendars, calendarsEnd)}${source.slice(from, to)}\nclient.indexToDate = indexToDate;\nclient.dateToIndex = dateToIndex;\n${indent}}\n`);
   if (!html.includes("client.indexToDate = indexToDate;")) throw new Error("The page's client moved: the build can't give it the date helpers");
   console.log(`${SERVER}'s client dates points unlike this repo's: the page takes this repo's date helpers`);
 } else console.log(served ? `${SERVER}'s client dates points as this repo's does` : `${SERVER}'s client unread: the page dates points as it does`);

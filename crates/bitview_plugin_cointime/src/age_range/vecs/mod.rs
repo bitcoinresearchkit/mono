@@ -1,7 +1,5 @@
-mod activity_series;
 mod collection;
-mod supply;
+mod side;
 
-pub use activity_series::ActivitySeries;
-pub use collection::Vecs;
-pub use supply::SupplyVecs;
+pub use collection::{RangeVecs, Vecs};
+pub use side::SideVecs;

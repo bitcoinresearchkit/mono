@@ -1,6 +1,6 @@
 use std::{ops::Deref, sync::Arc};
 
-use super::{Account, Charge, Value};
+use super::{Account, Charge, Value, plan};
 
 /// Sorted, non-overlapping retained spans. Single values live inline.
 #[derive(Debug)]
@@ -24,17 +24,11 @@ impl<T: Clone> Table<T> {
     }
 
     pub(super) fn first(&self, from: usize) -> usize {
-        self.entries
-            .partition_point(|(at, value)| *at + value.len() <= from)
+        plan::first_ending_after(&self.entries, from)
     }
 
     pub(super) fn at(&self, index: usize) -> Option<(usize, &Value<T>)> {
-        let at = self
-            .entries
-            .partition_point(|(at, _)| *at <= index)
-            .checked_sub(1)?;
-        let (start, value) = &self.entries[at];
-        (index - start < value.len()).then_some((*start, value))
+        plan::containing(&self.entries, index)
     }
 
     fn reserve(&mut self, len: usize, account: &Arc<Account>) -> bool {

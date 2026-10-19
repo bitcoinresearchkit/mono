@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -7,7 +6,8 @@ use derive_more::{Deref, DerefMut};
 use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 use crate::{
-    IndexSources, RollingDistributionValuePerBlock, ValuePerBlockCumulativeRolling, WindowStarts,
+    IndexSources, LazyRollingAvgsAmountFromHeight, RollingDistributionValuePerBlock,
+    ValuePerBlockCumulativeRolling, WindowStarts, shapes::Windows,
 };
 
 #[derive(Deref, DerefMut, Traversable)]
@@ -16,6 +16,7 @@ pub struct ValuePerBlockFull<M: StorageMode = Rw> {
     #[deref_mut]
     #[traversable(flatten)]
     inner: ValuePerBlockCumulativeRolling<M>,
+    avg: LazyRollingAvgsAmountFromHeight,
     #[traversable(flatten)]
     distribution: RollingDistributionValuePerBlock<M>,
 }
@@ -42,10 +43,6 @@ impl ValuePerBlockFull {
         )
     }
 
-    pub fn cumulative_sats_source(&self) -> &(impl ReadableCloneableVec<Height, Sats> + use<>) {
-        self.cumulative.sats.resolutions.height_source()
-    }
-
     pub fn import(
         db: &Database,
         name: &str,
@@ -56,11 +53,20 @@ impl ValuePerBlockFull {
         let full_version = version + VERSION;
         let inner =
             ValuePerBlockCumulativeRolling::import(db, name, full_version, indexes, window_starts)?;
+        let avg = LazyRollingAvgsAmountFromHeight::new(
+            &format!("{name}_avg"),
+            full_version,
+            inner.cumulative.sats.resolutions.height_source(),
+            inner.cumulative.cents.resolutions.height_source(),
+            window_starts,
+            indexes,
+        );
         let distribution =
             RollingDistributionValuePerBlock::import(db, name, full_version, indexes)?;
 
         Ok(Self {
             inner,
+            avg,
             distribution,
         })
     }

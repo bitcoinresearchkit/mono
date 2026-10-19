@@ -11,11 +11,7 @@ impl<T: VecValue> Cache<T> {
         let mut admitted = Vec::with_capacity(offers.len());
         let limit = MERGE_BYTES / size_of::<T>().max(1);
         for (start, mut value) in offers {
-            if value
-                .allocation_bytes()
-                .and_then(|bytes| bytes.checked_add(Table::<T>::charge_for(1)))
-                .is_none_or(|bytes| bytes > self.account.budget.limit())
-            {
+            if value.allocation_bytes() + Table::<T>::charge_for(1) > self.account.budget.limit() {
                 continue;
             }
             let last = admitted.last_mut().or_else(|| table.entries.last_mut());

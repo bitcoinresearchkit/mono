@@ -1,6 +1,6 @@
-use std::ops::ControlFlow;
+use std::{fs::File, io, ops::ControlFlow, os::unix::fs::FileExt};
 
-use brk_types::{BlkMetadata, BlkPosition};
+use brk_types::BlkPosition;
 
 use crate::{XORBytes, XORIndex, xor_bytes::XOR_LEN};
 
@@ -42,26 +42,17 @@ pub fn find_magic(bytes: &[u8], xor_i: &mut XORIndex, xor_bytes: XORBytes) -> Op
     None
 }
 
-pub struct ScanResult {
-    pub first_magic: Option<usize>,
-}
-
-/// Scans `buf` for blocks and calls `on_block` for each. `file_offset`
-/// is the absolute file position of `buf[0]`, used to seed the XOR
-/// phase and to report absolute `BlkPosition`s.
+/// Scans a whole blk file's bytes for blocks and calls `on_block` for each.
 pub fn scan_bytes(
     buf: &mut [u8],
     blk_index: u16,
-    file_offset: usize,
     xor_bytes: XORBytes,
-    mut on_block: impl FnMut(BlkMetadata, &mut [u8], XORIndex) -> ControlFlow<()>,
-) -> ScanResult {
-    let mut xor_i = XORIndex::at_offset(file_offset);
-    let mut first_magic: Option<usize> = None;
+    mut on_block: impl FnMut(BlkPosition, &mut [u8], XORIndex) -> ControlFlow<()>,
+) {
+    let mut xor_i = XORIndex::default();
     let mut i = 0;
 
     while let Some(off) = find_magic(&buf[i..], &mut xor_i, xor_bytes) {
-        first_magic.get_or_insert(i + off - MAGIC_BYTES.len());
         i += off;
         if i + 4 > buf.len() {
             break;
@@ -73,13 +64,40 @@ pub fn scan_bytes(
         if i + len > buf.len() {
             break;
         }
-        let metadata = BlkMetadata::new(BlkPosition::new(blk_index, (file_offset + i) as u32));
-        if on_block(metadata, &mut buf[i..i + len], xor_i).is_break() {
+        let position = BlkPosition::new(blk_index, i as u32);
+        if on_block(position, &mut buf[i..i + len], xor_i).is_break() {
             break;
         }
         i += len;
         xor_i.add_assign(len);
     }
+}
 
-    ScanResult { first_magic }
+/// Each block's payload offset and length in a blk file, hopping from frame to frame from
+/// `start`, a frame boundary (the file's start or a known frame's end): a scan from an arbitrary
+/// offset could take magic bytes inside a transaction for a frame. Stops at the first gap: the
+/// preallocated zero tail, or the file's end once Core trims that tail on rollover.
+pub fn frames(file: &File, xor_bytes: XORBytes, start: usize) -> io::Result<Vec<(usize, usize)>> {
+    let file_len = file.metadata()?.len() as usize;
+    let mut frames = Vec::new();
+    let mut offset = start;
+    let mut head = [0u8; 8];
+    while offset + head.len() <= file_len {
+        match file.read_exact_at(&mut head, offset as u64) {
+            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => break,
+            result => result?,
+        }
+        XORIndex::at_offset(offset).bytes(&mut head, xor_bytes);
+        if head[..4] != MAGIC_BYTES {
+            break;
+        }
+        let len = u32::from_le_bytes([head[4], head[5], head[6], head[7]]) as usize;
+        let payload = offset + head.len();
+        if len == 0 || payload + len > file_len {
+            break;
+        }
+        frames.push((payload, len));
+        offset = payload + len;
+    }
+    Ok(frames)
 }

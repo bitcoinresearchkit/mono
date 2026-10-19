@@ -15,20 +15,22 @@ full-api = ["chain", "series", "urpd", "bitview_server/full-api"]
 chain = ["price", "bitview_server/chain"]
 series = ["bitview_server/series"]
 urpd = ["price", "bitview_server/urpd"]
-price = ["bitview_server/price"]
+price = ["dep:brk_mempool", "bitview_server/price"]
 
 [dependencies]
+brk_alloc = { workspace = true }
 brk_exit = { workspace = true }
+bitview_plugin = { workspace = true }
 bitview_query = { workspace = true }
-bitview_runtime = { workspace = true }
 bitview_server = { workspace = true }
 brk_error = { workspace = true, features = ["tokio", "vecdb"] }
 brk_logger = { workspace = true }
-brk_mempool = { workspace = true }
+brk_mempool = { workspace = true, optional = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 lexopt = "0.3"
 owo-colors = { workspace = true }
+rlimit = "0.11.0"
 serde = { workspace = true }
 tokio = { workspace = true }
 toml = "1.1.6"

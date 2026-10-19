@@ -1,26 +1,18 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Range};
 
-use crate::RangeMapCursor;
+use crate::{Pages, RangeMapCursor};
 
-/// Maps ranges of indices to values for efficient reverse lookups.
-///
-/// Stores first_index values in a sorted Vec and uses binary search
-/// to find the value for any index. The value is derived from the position.
+/// Sorted range starts in shared pages: an index maps to `V::from(position)` of the last start
+/// at or below it.
 pub struct RangeMap<I, V> {
-    first_indexes: Vec<I>,
+    first_indexes: Pages<I>,
     value: PhantomData<fn() -> V>,
 }
 
-impl<I: Clone, V> Clone for RangeMap<I, V> {
+impl<I, V> Clone for RangeMap<I, V> {
     fn clone(&self) -> Self {
-        Self::from(self.first_indexes.clone())
-    }
-}
-
-impl<I, V> From<Vec<I>> for RangeMap<I, V> {
-    fn from(first_indexes: Vec<I>) -> Self {
         Self {
-            first_indexes,
+            first_indexes: self.first_indexes.clone(),
             value: PhantomData,
         }
     }
@@ -28,48 +20,55 @@ impl<I, V> From<Vec<I>> for RangeMap<I, V> {
 
 impl<I, V> Default for RangeMap<I, V> {
     fn default() -> Self {
-        Self::from(Vec::new())
+        Self {
+            first_indexes: Pages::default(),
+            value: PhantomData,
+        }
     }
 }
 
 impl<I, V> RangeMap<I, V> {
     /// Number of ranges stored.
     #[allow(clippy::len_without_is_empty)]
+    #[inline]
     pub fn len(&self) -> usize {
         self.first_indexes.len()
     }
 
     /// Forward mapping: the first index of each range, in value order.
-    pub fn as_slice(&self) -> &[I] {
+    #[inline]
+    pub fn starts(&self) -> &Pages<I> {
         &self.first_indexes
     }
+}
 
-    /// Truncate to `new_len` ranges.
-    pub fn truncate(&mut self, new_len: usize) {
-        self.first_indexes.truncate(new_len);
+impl<I: Copy + Into<usize>, V> RangeMap<I, V> {
+    /// Range `index`'s indexes below `len`: from its first index up to the next range's (to
+    /// `len` for the last range); empty when it starts at or past `len`.
+    #[inline]
+    pub fn range(&self, index: usize, len: usize) -> Range<usize> {
+        let end = self
+            .first_indexes
+            .get(index + 1)
+            .map_or(len, |&next| next.into().min(len));
+        self.first_indexes[index].into().min(end)..end
     }
 }
 
 impl<I: Ord + Copy, V> RangeMap<I, V> {
-    /// Push a new first_index. Value is implicitly the current length.
-    /// Must be called in order (first_index must be >= all previous).
-    #[inline]
-    fn push(&mut self, first_index: I) {
-        debug_assert!(
-            self.first_indexes
-                .last()
-                .is_none_or(|&last| first_index >= last),
-            "RangeMap: first_index must be monotonically increasing"
-        );
-        self.first_indexes.push(first_index);
+    /// Truncate to `new_len` ranges.
+    pub fn truncate(&mut self, new_len: usize) {
+        self.first_indexes.truncate(new_len);
     }
 
-    /// Extend an ordered suffix without rebuilding the unchanged prefix.
-    pub fn extend(&mut self, values: impl IntoIterator<Item = I>) {
-        let values = values.into_iter();
-        self.first_indexes.reserve(values.size_hint().0);
-        for value in values {
-            self.push(value);
+    /// Extend an ordered suffix without copying the unchanged prefix.
+    pub fn extend(&mut self, starts: impl IntoIterator<Item = I>) {
+        for start in starts {
+            debug_assert!(
+                self.first_indexes.last().is_none_or(|&last| start >= last),
+                "RangeMap starts must be nondecreasing"
+            );
+            self.first_indexes.push(start);
         }
     }
 }
@@ -83,15 +82,10 @@ impl<I: Ord + Copy, V: From<usize>> RangeMap<I, V> {
 
     /// Floor lookup by binary search.
     #[inline]
-    pub fn get_shared(&self, index: I) -> Option<V> {
-        if self.first_indexes.is_empty() {
-            return None;
-        }
-        let pos = self.first_indexes.partition_point(|&first| first <= index);
-        if pos > 0 {
-            Some(V::from(pos - 1))
-        } else {
-            None
-        }
+    pub fn get(&self, index: I) -> Option<V> {
+        self.first_indexes
+            .partition_point(|&first| first <= index)
+            .checked_sub(1)
+            .map(V::from)
     }
 }

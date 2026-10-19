@@ -1,6 +1,6 @@
 [package]
 name = "brk_oracle"
-description = "Pure on-chain BTC/USD price oracle algorithm"
+description = "BTC/USD price tracking from round-dollar transaction-output patterns"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,10 +8,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [features]
-schemars = ["dep:schemars", "brk_types/schemars"]
+schemars = ["brk_types/schemars"]
 
 [dependencies]
 brk_types = { workspace = true }
-derive_more = { workspace = true }
-schemars = { workspace = true, optional = true }
-serde = { workspace = true }

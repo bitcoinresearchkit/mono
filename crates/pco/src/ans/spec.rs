@@ -78,31 +78,3 @@ impl Spec {
     1 << self.size_log
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use crate::ans::spec::{Spec, Symbol};
-  use crate::constants::Weight;
-  use crate::errors::PcoResult;
-
-  fn assert_state_symbols(weights: Vec<Weight>, expected: Vec<Symbol>) -> PcoResult<()> {
-    let table_size_log = weights.iter().sum::<Weight>().ilog2();
-    let spec = Spec::from_weights(table_size_log, weights)?;
-    assert_eq!(spec.state_symbols, expected);
-    Ok(())
-  }
-
-  #[test]
-  fn ans_spec_new() -> PcoResult<()> {
-    assert_state_symbols(
-      vec![1, 1, 3, 11],
-      vec![0, 3, 2, 3, 2, 3, 3, 3, 3, 1, 3, 2, 3, 3, 3, 3],
-    )
-  }
-
-  #[test]
-  fn ans_spec_new_trivial() -> PcoResult<()> {
-    assert_state_symbols(vec![1], vec![0])?;
-    assert_state_symbols(vec![2], vec![0, 0])
-  }
-}

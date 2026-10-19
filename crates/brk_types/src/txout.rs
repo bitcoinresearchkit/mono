@@ -10,16 +10,12 @@ use serde_json::json;
 
 #[cfg(feature = "schemars")]
 use crate::OutputTypeNormalized;
-use crate::{Addr, AddrBytes, OutputType, Sats};
+use crate::{Address, AddressBytes, OutputType, Sats, bytes::DisplayStr};
 
-/// Transaction output
 #[derive(Debug, Clone, Deserialize)]
 pub struct TxOut {
-    /// Script pubkey (locking script)
     #[serde(rename = "scriptpubkey")]
     pub script_pubkey: ScriptBuf,
-
-    /// Value of the output in satoshis
     pub value: Sats,
 }
 
@@ -36,9 +32,9 @@ struct TxOutSchema {
     /// Esplora/mempool.space script type.
     #[schemars(example = &"v0_p2wpkh")]
     scriptpubkey_type: OutputTypeNormalized,
-    /// Bitcoin address, omitted for scripts without an address.
+    /// Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
     #[schemars(example = &"bc1q8vryck26jhuh0uqr2ttwj96szfnu4nwxfmu39y")]
-    scriptpubkey_address: Addr,
+    scriptpubkey_address: Address,
     /// Value of the output in satoshis.
     #[schemars(example = Sats::new(7782))]
     value: Sats,
@@ -66,20 +62,12 @@ impl JsonSchema for TxOut {
 }
 
 impl TxOut {
-    fn addr(&self) -> Option<Addr> {
-        Addr::try_from(&self.script_pubkey).ok()
+    pub fn addr_bytes(&self) -> Option<AddressBytes> {
+        AddressBytes::try_from(&self.script_pubkey).ok()
     }
 
-    pub fn addr_bytes(&self) -> Option<AddrBytes> {
-        AddrBytes::try_from(&self.script_pubkey).ok()
-    }
-
-    pub fn type_(&self) -> OutputType {
+    pub fn output_type(&self) -> OutputType {
         OutputType::from(&self.script_pubkey)
-    }
-
-    fn script_pubkey_asm(&self) -> String {
-        self.script_pubkey.to_asm_string()
     }
 }
 
@@ -118,12 +106,22 @@ impl Serialize for TxOut {
     where
         S: Serializer,
     {
-        let output_type = self.type_();
-        let addr = self.addr();
+        let output_type = self.output_type();
+        // As Esplora, P2PK has no address here; the pubkey hex stands for one only in the
+        // address endpoints.
+        let addr = (!matches!(output_type, OutputType::P2PK65 | OutputType::P2PK33))
+            .then(|| Address::try_from((&self.script_pubkey, output_type)).ok())
+            .flatten();
         let field_count = if addr.is_some() { 5 } else { 4 };
         let mut state = serializer.serialize_struct("TxOut", field_count)?;
-        state.serialize_field("scriptpubkey", &self.script_pubkey.to_hex_string())?;
-        state.serialize_field("scriptpubkey_asm", &self.script_pubkey_asm())?;
+        state.serialize_field(
+            "scriptpubkey",
+            &DisplayStr(format_args!("{:x}", self.script_pubkey)),
+        )?;
+        state.serialize_field(
+            "scriptpubkey_asm",
+            &DisplayStr(self.script_pubkey.as_script()),
+        )?;
         state.serialize_field("scriptpubkey_type", &output_type.normalized())?;
         if let Some(addr) = &addr {
             state.serialize_field("scriptpubkey_address", addr)?;

@@ -1,15 +1,18 @@
 use std::str::FromStr;
 
-use bitcoin::{Address, Network, PublicKey, ScriptBuf, opcodes, script::Builder};
+use bitcoin::{Address, Network, ScriptBuf, opcodes, script::Builder};
 use brk_error::Error;
+use derive_more::From;
+
+use crate::bytes::parse_hex;
 
 use super::{
     OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes, P2WPKHBytes,
     P2WSHBytes,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum AddrBytes {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, From)]
+pub enum AddressBytes {
     P2PK65(P2PK65Bytes), // 65
     P2PK33(P2PK33Bytes), // 33
     P2PKH(P2PKHBytes),   // 20
@@ -20,21 +23,21 @@ pub enum AddrBytes {
     P2A(P2ABytes),       // 2
 }
 
-impl AddrBytes {
+impl AddressBytes {
     pub fn as_slice(&self) -> &[u8] {
         match self {
-            AddrBytes::P2PK65(bytes) => &bytes[..],
-            AddrBytes::P2PK33(bytes) => &bytes[..],
-            AddrBytes::P2PKH(bytes) => &bytes[..],
-            AddrBytes::P2SH(bytes) => &bytes[..],
-            AddrBytes::P2WPKH(bytes) => &bytes[..],
-            AddrBytes::P2WSH(bytes) => &bytes[..],
-            AddrBytes::P2TR(bytes) => &bytes[..],
-            AddrBytes::P2A(bytes) => &bytes[..],
+            AddressBytes::P2PK65(bytes) => &bytes[..],
+            AddressBytes::P2PK33(bytes) => &bytes[..],
+            AddressBytes::P2PKH(bytes) => &bytes[..],
+            AddressBytes::P2SH(bytes) => &bytes[..],
+            AddressBytes::P2WPKH(bytes) => &bytes[..],
+            AddressBytes::P2WSH(bytes) => &bytes[..],
+            AddressBytes::P2TR(bytes) => &bytes[..],
+            AddressBytes::P2A(bytes) => &bytes[..],
         }
     }
 
-    /// The address payload inside `script` (what `AddrBytes` and address hashes cover).
+    /// The address payload inside `script` (what `AddressBytes` and address hashes cover).
     pub fn script_payload(script: &ScriptBuf, output_type: OutputType) -> Result<&[u8], Error> {
         let bytes = script.as_bytes();
         match output_type {
@@ -63,45 +66,58 @@ impl AddrBytes {
         }
     }
 
-    /// Reconstruct the script_pubkey from the address bytes
     pub fn to_script_pubkey(&self) -> ScriptBuf {
         match self {
-            AddrBytes::P2PK65(b) => Builder::new()
-                .push_slice(***b)
+            AddressBytes::P2PK65(b) => Builder::new()
+                .push_slice(**b)
                 .push_opcode(opcodes::all::OP_CHECKSIG)
                 .into_script(),
-            AddrBytes::P2PK33(b) => Builder::new()
-                .push_slice(***b)
+            AddressBytes::P2PK33(b) => Builder::new()
+                .push_slice(**b)
                 .push_opcode(opcodes::all::OP_CHECKSIG)
                 .into_script(),
-            AddrBytes::P2PKH(b) => Builder::new()
+            AddressBytes::P2PKH(b) => Builder::new()
                 .push_opcode(opcodes::all::OP_DUP)
                 .push_opcode(opcodes::all::OP_HASH160)
-                .push_slice(***b)
+                .push_slice(**b)
                 .push_opcode(opcodes::all::OP_EQUALVERIFY)
                 .push_opcode(opcodes::all::OP_CHECKSIG)
                 .into_script(),
-            AddrBytes::P2SH(b) => Builder::new()
+            AddressBytes::P2SH(b) => Builder::new()
                 .push_opcode(opcodes::all::OP_HASH160)
-                .push_slice(***b)
+                .push_slice(**b)
                 .push_opcode(opcodes::all::OP_EQUAL)
                 .into_script(),
-            AddrBytes::P2WPKH(b) => Builder::new().push_int(0).push_slice(***b).into_script(),
-            AddrBytes::P2WSH(b) => Builder::new().push_int(0).push_slice(***b).into_script(),
-            AddrBytes::P2TR(b) => Builder::new().push_int(1).push_slice(***b).into_script(),
-            AddrBytes::P2A(b) => Builder::new().push_int(1).push_slice(***b).into_script(),
+            AddressBytes::P2WPKH(b) => Builder::new().push_int(0).push_slice(**b).into_script(),
+            AddressBytes::P2WSH(b) => Builder::new().push_int(0).push_slice(**b).into_script(),
+            AddressBytes::P2TR(b) => Builder::new().push_int(1).push_slice(**b).into_script(),
+            AddressBytes::P2A(b) => Builder::new().push_int(1).push_slice(**b).into_script(),
+        }
+    }
+
+    /// Parse an address string to a ScriptBuf. A P2PK "address" is its 33- or 65-byte key field
+    /// in hex, as the index keeps it: P2PK-shaped, not necessarily a valid public key.
+    pub fn addr_to_script(addr: &str) -> Result<ScriptBuf, Error> {
+        if let Ok(addr) = Address::from_str(addr) {
+            if !addr.is_valid_for_network(Network::Bitcoin) {
+                return Err(Error::InvalidNetwork);
+            }
+            let addr = addr.assume_checked();
+            Ok(addr.script_pubkey())
+        } else {
+            p2pk_script(addr).ok_or(Error::InvalidAddress)
         }
     }
 }
 
-impl TryFrom<&ScriptBuf> for AddrBytes {
+impl TryFrom<&ScriptBuf> for AddressBytes {
     type Error = Error;
     fn try_from(script: &ScriptBuf) -> Result<Self, Self::Error> {
         Self::try_from((script, OutputType::from(script)))
     }
 }
 
-impl TryFrom<(&ScriptBuf, OutputType)> for AddrBytes {
+impl TryFrom<(&ScriptBuf, OutputType)> for AddressBytes {
     type Error = Error;
     fn try_from(tuple: (&ScriptBuf, OutputType)) -> Result<Self, Self::Error> {
         let (script, output_type) = tuple;
@@ -123,80 +139,7 @@ impl TryFrom<(&ScriptBuf, OutputType)> for AddrBytes {
     }
 }
 
-impl From<P2PK65Bytes> for AddrBytes {
-    #[inline]
-    fn from(value: P2PK65Bytes) -> Self {
-        Self::P2PK65(value)
-    }
-}
-
-impl From<P2PK33Bytes> for AddrBytes {
-    #[inline]
-    fn from(value: P2PK33Bytes) -> Self {
-        Self::P2PK33(value)
-    }
-}
-
-impl From<P2PKHBytes> for AddrBytes {
-    #[inline]
-    fn from(value: P2PKHBytes) -> Self {
-        Self::P2PKH(value)
-    }
-}
-
-impl From<P2SHBytes> for AddrBytes {
-    #[inline]
-    fn from(value: P2SHBytes) -> Self {
-        Self::P2SH(value)
-    }
-}
-
-impl From<P2WPKHBytes> for AddrBytes {
-    #[inline]
-    fn from(value: P2WPKHBytes) -> Self {
-        Self::P2WPKH(value)
-    }
-}
-
-impl From<P2WSHBytes> for AddrBytes {
-    #[inline]
-    fn from(value: P2WSHBytes) -> Self {
-        Self::P2WSH(value)
-    }
-}
-
-impl From<P2TRBytes> for AddrBytes {
-    #[inline]
-    fn from(value: P2TRBytes) -> Self {
-        Self::P2TR(value)
-    }
-}
-
-impl From<P2ABytes> for AddrBytes {
-    #[inline]
-    fn from(value: P2ABytes) -> Self {
-        Self::P2A(value)
-    }
-}
-
-impl AddrBytes {
-    /// Parse an address string to a ScriptBuf
-    pub fn addr_to_script(addr: &str) -> Result<ScriptBuf, Error> {
-        if let Ok(addr) = Address::from_str(addr) {
-            if !addr.is_valid_for_network(Network::Bitcoin) {
-                return Err(Error::InvalidNetwork);
-            }
-            let addr = addr.assume_checked();
-            Ok(addr.script_pubkey())
-        } else if let Ok(pubkey) = PublicKey::from_str(addr) {
-            Ok(ScriptBuf::new_p2pk(&pubkey))
-        } else {
-            Err(Error::InvalidAddr)
-        }
-    }
-}
-
-impl FromStr for AddrBytes {
+impl FromStr for AddressBytes {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -204,4 +147,14 @@ impl FromStr for AddrBytes {
         let output_type = OutputType::from(&script);
         Self::try_from((&script, output_type))
     }
+}
+
+/// `PUSH<len> <key field> OP_CHECKSIG` for a 33- or 65-byte key field in hex.
+fn p2pk_script(hex: &str) -> Option<ScriptBuf> {
+    let builder = match hex.len() {
+        66 => Builder::new().push_slice(parse_hex::<33>(hex)?),
+        130 => Builder::new().push_slice(parse_hex::<65>(hex)?),
+        _ => return None,
+    };
+    Some(builder.push_opcode(opcodes::all::OP_CHECKSIG).into_script())
 }

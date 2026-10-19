@@ -110,13 +110,6 @@ impl HeaderInner {
     }
 
     fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        let len = bytes.len();
-        if len < HEADER_OFFSET {
-            return Err(Error::WrongLength {
-                expected: HEADER_OFFSET,
-                received: len,
-            });
-        }
         // Another header version may lay out the remaining bytes differently: check it first.
         let header_version = Version::from_bytes(&bytes[0..4])?;
         if header_version != HEADER_VERSION {

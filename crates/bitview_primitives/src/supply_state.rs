@@ -1,6 +1,4 @@
 #[cfg(feature = "storage")]
-use std::fmt::Result;
-#[cfg(feature = "storage")]
 use vecdb::Result as VecdbResult;
 
 use std::{
@@ -11,16 +9,14 @@ use std::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::FundedAddrData;
-use brk_types::{CheckedSub, Sats};
+use crate::FundedAddressData;
+use brk_types::Sats;
 
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
 
-/// Current supply state tracking UTXO count and total value
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct SupplyState {
-    /// Number of unspent transaction outputs
     pub utxo_count: u64,
     /// Total value in satoshis
     pub value: Sats,
@@ -50,32 +46,20 @@ impl AddAssign<&SupplyState> for SupplyState {
 }
 
 impl SubAssign<&SupplyState> for SupplyState {
+    #[inline]
     fn sub_assign(&mut self, rhs: &Self) {
-        self.utxo_count = self
-            .utxo_count
-            .checked_sub(rhs.utxo_count)
-            .unwrap_or_else(|| {
-                panic!(
-                    "SupplyState underflow: cohort utxo_count {} < addr utxo_count {}. \
-                This indicates a desync between cohort state and addr data. \
-                Try deleting the compute cache and restarting fresh.",
-                    self.utxo_count, rhs.utxo_count
-                )
-            });
-        self.value = self.value.checked_sub(rhs.value).unwrap_or_else(|| {
-            panic!(
-                "SupplyState underflow: cohort value {} < addr value {}. \
-                This indicates a desync between cohort state and addr data. \
-                Try deleting the compute cache and restarting fresh.",
-                self.value, rhs.value
-            )
-        });
+        debug_assert!(
+            self.utxo_count >= rhs.utxo_count && self.value >= rhs.value,
+            "SupplyState underflow: {self} - {rhs}"
+        );
+        self.utxo_count -= rhs.utxo_count;
+        self.value = self.value - rhs.value;
     }
 }
 
-impl From<&FundedAddrData> for SupplyState {
+impl From<&FundedAddressData> for SupplyState {
     #[inline]
-    fn from(value: &FundedAddrData) -> Self {
+    fn from(value: &FundedAddressData) -> Self {
         Self {
             utxo_count: value.utxo_count() as u64,
             value: value.balance(),
@@ -96,14 +80,10 @@ impl Formattable for SupplyState {
         write!(buf, "{self}").unwrap();
     }
 
-    fn fmt_csv(&self, f: &mut String) -> Result {
-        let start = f.len();
-        self.fmt_into(f);
-        if f.as_bytes()[start..].contains(&b',') {
-            f.insert(start, '"');
-            f.push('"');
-        }
-        Ok(())
+    fn fmt_csv(&self, buf: &mut Vec<u8>) {
+        let start = buf.len();
+        self.write_to(buf);
+        vecdb::escape_csv_cell(buf, start);
     }
 
     fn fmt_json(&self, buf: &mut Vec<u8>) {
@@ -114,7 +94,9 @@ impl Formattable for SupplyState {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for SupplyState {
+// SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
+// value the contract requires; the values are encoded, not in native layout.
+unsafe impl Bytes for SupplyState {
     type Array = [u8; size_of::<Self>()];
 
     fn to_bytes(&self) -> Self::Array {

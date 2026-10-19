@@ -1,36 +1,39 @@
-use std::{
-    io::{self, Write},
-    sync::Arc,
-};
+use std::io::{self, Write};
+
 use tracing::Level;
 
-use super::{Inner, LEVEL_SUFFIX, level_index, today};
+use super::{LEVEL_NAMES, RateLimitedFile, level_index, today};
 
-pub struct FileWriter {
-    pub(super) inner: Arc<Inner>,
+pub struct FileWriter<'a> {
+    pub(super) files: &'a RateLimitedFile,
     pub(super) level: Option<Level>,
 }
 
-impl Write for FileWriter {
+impl Write for FileWriter<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let level_idx = self.level.map(level_index);
+        let dir = &self.files.dir;
 
-        if let Some(i) = level_idx
-            && !self.inner.level_limits[i].can_write()
-        {
+        // Admission is decided once, before either destination is written; the
+        // level slot stays locked so both files see this level's events in order.
+        let mut level = self.level.map(|level| {
+            let i = level_index(level);
+            (i, self.files.levels[i].lock().unwrap())
+        });
+        if level.as_mut().is_some_and(|(_, slot)| !slot.admit()) {
             return Ok(buf.len());
         }
 
         let date = today();
-        let dir = &self.inner.dir;
 
-        self.inner
-            .combined_slot
+        self.files
+            .combined
+            .lock()
+            .unwrap()
             .write(dir, &date, buf, || dir.join(format!("{date}.txt")))?;
 
-        if let Some(i) = level_idx {
-            self.inner.level_slots[i].write(dir, &date, buf, || {
-                dir.join(format!("{date}_{}.txt", LEVEL_SUFFIX[i]))
+        if let Some((i, slot)) = &mut level {
+            slot.file.write(dir, &date, buf, || {
+                dir.join(format!("{date}_{}.txt", LEVEL_NAMES[*i]))
             })?;
         }
 

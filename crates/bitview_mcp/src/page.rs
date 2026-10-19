@@ -1,7 +1,14 @@
-use std::{future, sync::Arc};
+use std::{
+    future,
+    hash::{DefaultHasher, Hash, Hasher},
+};
 
 use axum::{
-    http::{HeaderValue, header::CACHE_CONTROL},
+    body::Bytes,
+    http::{
+        HeaderMap, HeaderValue,
+        header::{CACHE_CONTROL, ETAG},
+    },
     response::{Html, IntoResponse, Response},
     routing::{MethodRouter, get},
 };
@@ -9,124 +16,77 @@ use axum::{
 const HTML: &str = include_str!("../assets/index.html");
 
 pub struct Pages {
-    home: Arc<str>,
-    privacy: Arc<str>,
-    terms: Arc<str>,
-    support: Arc<str>,
+    pub(crate) home: Bytes,
+    pub(crate) privacy: Bytes,
+    pub(crate) terms: Bytes,
+    pub(crate) support: Bytes,
 }
 
 impl Pages {
     pub fn render(display_name: &str, public_url: &str, api_url: &str) -> Self {
+        let render = |page: &str, title: &str, description: &str| {
+            let canonical_url = match page {
+                "home" => public_url.to_owned(),
+                page => format!("{public_url}{page}"),
+            };
+            Bytes::from(render_template(&[
+                ("PAGE", &escape_html(page)),
+                ("PAGE_TITLE", &escape_html(title)),
+                ("PAGE_DESCRIPTION", &escape_html(description)),
+                ("CANONICAL_URL", &escape_html(&canonical_url)),
+                ("PUBLIC_URL", &escape_html(public_url)),
+                ("API_URL", &escape_html(api_url)),
+                ("DISPLAY_NAME", &escape_html(display_name)),
+                ("LOGO_PATH", &escape_html(crate::logo::PATH)),
+            ]))
+        };
         Self {
-            home: render_home(display_name, public_url, api_url).into(),
-            privacy: render_privacy(display_name, public_url, api_url).into(),
-            terms: render_terms(display_name, public_url, api_url).into(),
-            support: render_support(display_name, public_url, api_url).into(),
+            home: render(
+                "home",
+                &format!("{display_name} MCP — Bitcoin data for AI"),
+                &format!(
+                    "Free, read-only Bitcoin data for AI through the {display_name} MCP server."
+                ),
+            ),
+            privacy: render(
+                "privacy",
+                &format!("Privacy — {display_name} MCP"),
+                &format!("Privacy policy for the {display_name} MCP server."),
+            ),
+            terms: render(
+                "terms",
+                &format!("Terms — {display_name} MCP"),
+                &format!("Terms of use for the {display_name} MCP server."),
+            ),
+            support: render(
+                "support",
+                &format!("Support — {display_name} MCP"),
+                &format!("Support information for the {display_name} MCP server."),
+            ),
         }
     }
-
-    pub fn home(&self) -> Arc<str> {
-        self.home.clone()
-    }
-
-    pub fn privacy(&self) -> Arc<str> {
-        self.privacy.clone()
-    }
-
-    pub fn terms(&self) -> Arc<str> {
-        self.terms.clone()
-    }
-
-    pub fn support(&self) -> Arc<str> {
-        self.support.clone()
-    }
 }
 
-fn render_home(display_name: &str, public_url: &str, api_url: &str) -> String {
-    render(
-        "home",
-        &format!("{display_name} MCP — Bitcoin data for AI"),
-        &format!("Free, read-only Bitcoin data for AI through the {display_name} MCP server."),
-        public_url,
-        display_name,
-        public_url,
-        api_url,
-    )
+/// Serves a rendered page under a content ETag: a second of reuse, then a cheap `304`.
+pub fn route(html: Bytes) -> MethodRouter {
+    let mut hasher = DefaultHasher::new();
+    html.hash(&mut hasher);
+    let tag = format!("{:x}", hasher.finish());
+    let etag =
+        HeaderValue::try_from(format!("\"{tag}\"")).expect("a hex ETag is a valid header value");
+    get(move |headers: HeaderMap| future::ready(response(html.clone(), &tag, &etag, &headers)))
 }
 
-fn render_privacy(display_name: &str, public_url: &str, api_url: &str) -> String {
-    render(
-        "privacy",
-        &format!("Privacy — {display_name} MCP"),
-        &format!("Privacy policy for the {display_name} MCP server."),
-        &format!("{public_url}privacy"),
-        display_name,
-        public_url,
-        api_url,
-    )
-}
-
-fn render_terms(display_name: &str, public_url: &str, api_url: &str) -> String {
-    render(
-        "terms",
-        &format!("Terms — {display_name} MCP"),
-        &format!("Terms of use for the {display_name} MCP server."),
-        &format!("{public_url}terms"),
-        display_name,
-        public_url,
-        api_url,
-    )
-}
-
-fn render_support(display_name: &str, public_url: &str, api_url: &str) -> String {
-    render(
-        "support",
-        &format!("Support — {display_name} MCP"),
-        &format!("Support information for the {display_name} MCP server."),
-        &format!("{public_url}support"),
-        display_name,
-        public_url,
-        api_url,
-    )
-}
-
-fn render(
-    page: &str,
-    title: &str,
-    description: &str,
-    canonical_url: &str,
-    display_name: &str,
-    public_url: &str,
-    api_url: &str,
-) -> String {
-    let page = escape_html(page);
-    let title = escape_html(title);
-    let description = escape_html(description);
-    let canonical_url = escape_html(canonical_url);
-    let display_name = escape_html(display_name);
-    let public_url = escape_html(public_url);
-    let api_url = escape_html(api_url);
-
-    render_template(&[
-        ("PAGE", &page),
-        ("PAGE_TITLE", &title),
-        ("PAGE_DESCRIPTION", &description),
-        ("CANONICAL_URL", &canonical_url),
-        ("PUBLIC_URL", &public_url),
-        ("API_URL", &api_url),
-        ("DISPLAY_NAME", &display_name),
-    ])
-}
-
-pub fn route(html: Arc<str>) -> MethodRouter {
-    get(move || future::ready(response(html.clone())))
-}
-
-fn response(html: Arc<str>) -> Response {
-    let mut response = Html(html.to_string()).into_response();
+fn response(html: Bytes, tag: &str, etag: &HeaderValue, request: &HeaderMap) -> Response {
+    let mut response = if bitview_http::if_none_match(request, Some(tag.as_bytes())) {
+        bitview_http::not_modified()
+    } else {
+        Html(html).into_response()
+    };
+    response.headers_mut().insert(ETAG, etag.clone());
     response.headers_mut().insert(
         CACHE_CONTROL,
-        HeaderValue::from_static("public, max-age=300"),
+        HeaderValue::from_static("public, max-age=1, must-revalidate"),
     );
     response.headers_mut().insert(
         "content-security-policy",

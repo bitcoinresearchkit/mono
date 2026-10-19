@@ -7,6 +7,6 @@ license.workspace = true
 publish = false
 
 [dependencies]
+brk_logger = { workspace = true }
 jiff = { workspace = true }
-bitview = { workspace = true }
 tempfile = { workspace = true }

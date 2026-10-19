@@ -1,45 +1,42 @@
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
-
-use std::thread;
-
-use bitview_plugin::{ComputePlugin, UpdateContext};
-use vecdb::Database;
+use rayon::join;
 
 use super::Vecs;
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        let Dependencies { indexer } = dependencies;
+        let Dependencies { indexer, mappings } = dependencies;
         let exit = context.exit();
+        let starting_height = indexer.compute_start().height;
+        let window_starts = mappings.lookback.window_starts();
+        let blocks = &indexer.vecs().blocks;
 
         // Interval, size and weight are independent.
         let Vecs {
-            lookback,
             interval,
             size,
             weight,
             ..
         } = self;
-        thread::scope(|s| -> Result<()> {
-            let interval = s.spawn(|| interval.compute(indexer, exit));
-            let size = s.spawn(|| size.compute(indexer, &*lookback, exit));
-            weight.compute(indexer, &*lookback, exit)?;
-            interval.join().unwrap()?;
-            size.join().unwrap()?;
-            Ok(())
-        })?;
-
-        Ok(())
+        let (interval, (size, weight)) = join(
+            || interval.compute(indexer, exit),
+            || {
+                join(
+                    || size.compute(starting_height, &window_starts, &*blocks.size, exit),
+                    || weight.compute(starting_height, &window_starts, &*blocks.weight, exit),
+                )
+            },
+        );
+        interval?;
+        size?;
+        weight
     }
 }

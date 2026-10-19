@@ -1,27 +1,24 @@
-use brk_cpfp::{ChunkInput, find_seed_chunk, linearize};
+use brk_cpfp::Cluster;
 use brk_types::{
-    CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, FeeRate,
-    Height, Sats, SigOps, TxIndex, Txid, VSize, Weight,
+    CPFP_CHAIN_LIMIT, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, Height, SigOps, TxIndex, Txid,
+    VSize, Weight,
 };
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use vecdb::{ReadableVec, VecIndex};
+
+use bitview_plugin_indexer::SafeLengths;
 
 use crate::{OptionData, Query, ResolvedConfirmedTx, Result};
 
 struct WalkResult {
-    members: Vec<(TxIndex, SmallVec<[CpfpClusterTxIndex; 2]>)>,
+    graph: Cluster,
+    /// Each `graph` member's txid and weight, by local index.
+    members: Vec<(Txid, Weight)>,
     seed_local: CpfpClusterTxIndex,
-    ancestors: Vec<TxIndex>,
-    descendants: Vec<TxIndex>,
-}
-
-struct Member {
-    txid: Txid,
-    fee: Sats,
-    weight: Weight,
-    vsize: VSize,
-    parents: SmallVec<[CpfpClusterTxIndex; 2]>,
+    ancestors: Vec<CpfpEntry>,
+    descendants: Vec<CpfpEntry>,
+    seed_sigops: SigOps,
 }
 
 impl Query {
@@ -29,97 +26,43 @@ impl Query {
         &self,
         transaction: ResolvedConfirmedTx,
     ) -> Result<CpfpInfo> {
-        let publication = self.read_publication()?;
         let read = self.read_indexer()?;
         let (_, seed, height) = read.revalidate_confirmed_tx(transaction)?;
-        let walk = self.walk_same_block_cluster(seed, height)?;
-        let members = self.resolve_members(&walk.members)?;
-        let ancestors = self.resolve_entries(&walk.ancestors)?;
-        let descendants = self.resolve_entries(&walk.descendants)?;
-        let sigops = self
-            .indexer()
-            .vecs()
-            .transactions
-            .total_sigop_cost
-            .collect_one(seed)
-            .data()?;
+        // Count views end at their source's visible length, bounded by the read's pin.
+        let mut walk = self.walk_same_block_cluster(seed, height, read.pin())?;
         drop(read);
-        drop(publication);
 
-        Ok(build_cpfp_info(
-            &members,
-            walk.seed_local,
-            ancestors,
-            descendants,
-            sigops,
+        let seed_position = u32::from(walk.seed_local) as usize;
+        Ok(CpfpInfo::new(
+            walk.ancestors,
+            walk.descendants,
+            walk.graph.fee(seed_position),
+            walk.members[seed_position].1,
+            walk.seed_sigops,
+            walk.graph
+                .project(walk.seed_local, |local| walk.members[local]),
         ))
     }
 
-    fn resolve_members(
+    fn walk_same_block_cluster(
         &self,
-        members: &[(TxIndex, SmallVec<[CpfpClusterTxIndex; 2]>)],
-    ) -> Result<Vec<Member>> {
+        seed: TxIndex,
+        height: Height,
+        pin: &SafeLengths,
+    ) -> Result<WalkResult> {
         let indexer = self.indexer();
         let plugins = self.plugins();
-        let mut weight = indexer.vecs().transactions.weight.cursor();
-        let mut fee = plugins.transactions.fees.fee.tx_index.cursor();
-        let txid = indexer.vecs().transactions.txid.reader();
-
-        members
-            .iter()
-            .map(|(index, parents)| {
-                let position = index.to_usize();
-                let weight = weight.get(position).data()?;
-                Ok(Member {
-                    txid: txid.get(*index),
-                    fee: fee.get(position).data()?,
-                    weight,
-                    vsize: VSize::from(weight),
-                    parents: parents.clone(),
-                })
-            })
-            .collect()
-    }
-
-    fn resolve_entries(&self, indexes: &[TxIndex]) -> Result<Vec<CpfpEntry>> {
-        let indexer = self.indexer();
-        let plugins = self.plugins();
-        let mut weight = indexer.vecs().transactions.weight.cursor();
-        let mut fee = plugins.transactions.fees.fee.tx_index.cursor();
-        let txid = indexer.vecs().transactions.txid.reader();
-
-        indexes
-            .iter()
-            .map(|index| {
-                let position = index.to_usize();
-                Ok(CpfpEntry {
-                    txid: txid.get(*index),
-                    fee: fee.get(position).data()?,
-                    weight: weight.get(position).data()?,
-                })
-            })
-            .collect()
-    }
-
-    fn walk_same_block_cluster(&self, seed: TxIndex, height: Height) -> Result<WalkResult> {
-        let indexer = self.indexer();
-        let plugins = self.plugins();
-        let safe = self.safe_lengths();
-        let first_tx = &indexer.vecs().transactions.first_tx_index;
-        let block_first = first_tx.collect_one(height).data()?;
-        let next_height = height.incremented();
-        let block_end = if next_height < safe.height {
-            first_tx.collect_one(next_height).data()?
-        } else {
-            safe.tx_index
-        };
+        let safe = pin.lengths();
+        let (first, count) = self.block_tx_range(height, pin)?;
+        let block_first = TxIndex::from(first);
+        let block_end = TxIndex::from(first + count);
 
         let mut first_txin = indexer.vecs().transactions.first_txin_index.cursor();
         let mut input_count = plugins.mappings.tx_index.input_count.cursor();
         let mut outpoint = indexer.vecs().inputs.outpoint.cursor();
         let first_txout = indexer.vecs().transactions.first_txout_index.reader();
         let mut output_count = plugins.mappings.tx_index.output_count.cursor();
-        let spent = plugins.outputs.spent.txin_index.reader();
+        let spent = plugins.outputs.spent.spending_txin_index.reader();
         let mut spending_tx = indexer.vecs().inputs.tx_index.cursor();
 
         let mut parents_of = |tx: TxIndex| -> Result<SmallVec<[TxIndex; 2]>> {
@@ -143,12 +86,13 @@ impl Query {
 
         let mut children_of = |tx: TxIndex| -> Result<SmallVec<[TxIndex; 2]>> {
             let position = tx.to_usize();
-            let first = usize::from(first_txout.try_get_at(position).data()?);
+            let first = usize::from(first_txout.try_get_at(position).data()?.get());
             let count = u64::from(output_count.get(position).data()?) as usize;
             let mut children = SmallVec::new();
             for output in first..first + count {
-                let input = spent.try_get_at(output).data()?;
-                if input.is_unspent() {
+                let input = spent.try_get_at(output).data()?.get();
+                // The spend index changes in place: unpublished spends read as unspent.
+                if input.is_unspent() || input >= safe.txin_index {
                     continue;
                 }
                 let child = spending_tx.get(usize::from(input)).data()?;
@@ -161,144 +105,117 @@ impl Query {
             Ok(children)
         };
 
-        let block_tx_count = block_end.to_usize() - block_first.to_usize();
-        let mut component =
-            walk_component(seed, &mut parents_of, &mut children_of, block_tx_count)?;
-        component.sort_unstable();
-        let ancestors = walk_direction(seed, &mut parents_of, CPFP_CHAIN_LIMIT)?;
-        let descendants = walk_direction(seed, &mut children_of, CPFP_CHAIN_LIMIT)?;
+        let component = walk_component(seed, &mut parents_of, &mut children_of)?;
+        let ancestors = walk_direction(seed, |tx| &component[&tx].parents);
+        let descendants = walk_direction(seed, |tx| &component[&tx].children);
 
-        let local_of: FxHashMap<TxIndex, CpfpClusterTxIndex> = component
-            .iter()
-            .enumerate()
-            .map(|(local, &tx)| (tx, CpfpClusterTxIndex::from(local as u32)))
-            .collect();
-        let seed_local = local_of[&seed];
-        let members = component
-            .into_iter()
-            .map(|tx| {
-                let parents = parents_of(tx)?
-                    .iter()
-                    .filter_map(|parent| local_of.get(parent).copied())
-                    .collect();
-                Ok((tx, parents))
-            })
-            .collect::<Result<_>>()?;
+        // Same-block parents precede their children, so the sorted component is topological
+        // and a member's local index is its sorted position.
+        let mut sorted: Vec<TxIndex> = component.keys().copied().collect();
+        sorted.sort_unstable();
+        let seed_local = CpfpClusterTxIndex::from(sorted.partition_point(|&tx| tx < seed) as u32);
+        let mut weight = indexer.vecs().transactions.weight.cursor();
+        let mut sigops = indexer.vecs().transactions.total_sigop_cost.cursor();
+        let mut fee = plugins.transactions.fees.fee.tx.cursor();
+        let txid = indexer.vecs().transactions.txid.reader();
+        let mut graph = Cluster::default();
+        let mut members = Vec::with_capacity(sorted.len());
+        let mut seed_sigops = SigOps::ZERO;
+        for &tx in &sorted {
+            let position = tx.to_usize();
+            let tx_weight = Weight::from(weight.get(position).data()?);
+            let tx_sigops = SigOps::from(sigops.get(position).data()?);
+            if tx == seed {
+                seed_sigops = tx_sigops;
+            }
+            // Rates over the policy-adjusted size, as the mempool's.
+            graph.push(
+                fee.get(position).data()?,
+                tx_sigops.adjust_vsize(VSize::from(tx_weight)),
+                component[&tx].parents.iter().map(|parent| {
+                    let local = sorted
+                        .binary_search(parent)
+                        .expect("a member's parent is in its component");
+                    CpfpClusterTxIndex::from(local as u32)
+                }),
+            );
+            members.push((txid.get(tx), tx_weight));
+        }
+        // Ancestors and descendants are members: their entries come from what was just read.
+        let entries = |txs: Vec<TxIndex>| -> Vec<CpfpEntry> {
+            txs.into_iter()
+                .map(|tx| {
+                    let local = sorted
+                        .binary_search(&tx)
+                        .expect("a relative is a component member");
+                    let (txid, weight) = members[local];
+                    CpfpEntry {
+                        txid,
+                        fee: graph.fee(local),
+                        weight,
+                    }
+                })
+                .collect()
+        };
 
         Ok(WalkResult {
+            ancestors: entries(ancestors),
+            descendants: entries(descendants),
+            graph,
             members,
             seed_local,
-            ancestors,
-            descendants,
+            seed_sigops,
         })
     }
 }
 
+/// A member's same-block neighbors.
+struct Edges {
+    parents: SmallVec<[TxIndex; 2]>,
+    children: SmallVec<[TxIndex; 2]>,
+}
+
+/// The seed's same-block dependency component, each member's edges read once.
 fn walk_component(
     seed: TxIndex,
     parents: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
     children: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
-    limit: usize,
-) -> Result<Vec<TxIndex>> {
-    let mut visited = FxHashSet::with_capacity_and_hasher(limit, FxBuildHasher);
-    visited.insert(seed);
-    let mut members = Vec::with_capacity(limit);
-    members.push(seed);
+) -> Result<FxHashMap<TxIndex, Edges>> {
+    let mut component = FxHashMap::default();
     let mut stack = vec![seed];
-
     while let Some(tx) = stack.pop() {
-        for neighbor in parents(tx)?.into_iter().chain(children(tx)?) {
-            if visited.insert(neighbor) {
-                if members.len() == limit {
-                    return Ok(members);
-                }
-                members.push(neighbor);
-                stack.push(neighbor);
-            }
+        if component.contains_key(&tx) {
+            continue;
         }
+        let edges = Edges {
+            parents: parents(tx)?,
+            children: children(tx)?,
+        };
+        stack.extend(edges.parents.iter().chain(&edges.children).copied());
+        component.insert(tx, edges);
     }
-    Ok(members)
+    Ok(component)
 }
 
-fn walk_direction(
+/// Up to [`CPFP_CHAIN_LIMIT`] transactions reachable from `seed` through `next`.
+fn walk_direction<'a>(
     seed: TxIndex,
-    next: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
-    limit: usize,
-) -> Result<Vec<TxIndex>> {
-    let mut visited = FxHashSet::with_capacity_and_hasher(limit + 1, FxBuildHasher);
+    next: impl Fn(TxIndex) -> &'a SmallVec<[TxIndex; 2]>,
+) -> Vec<TxIndex> {
+    let mut visited = FxHashSet::default();
     visited.insert(seed);
-    let mut members = Vec::with_capacity(limit);
-    let mut stack = next(seed)?.into_vec();
+    let mut members = Vec::new();
+    let mut stack = next(seed).to_vec();
 
     while let Some(tx) = stack.pop() {
         if !visited.insert(tx) {
             continue;
         }
         members.push(tx);
-        if members.len() == limit {
+        if members.len() == CPFP_CHAIN_LIMIT {
             break;
         }
-        stack.extend(next(tx)?);
+        stack.extend_from_slice(next(tx));
     }
-    Ok(members)
-}
-
-fn build_cpfp_info(
-    members: &[Member],
-    seed_local: CpfpClusterTxIndex,
-    ancestors: Vec<CpfpEntry>,
-    descendants: Vec<CpfpEntry>,
-    sigops: SigOps,
-) -> CpfpInfo {
-    let seed_position = u32::from(seed_local) as usize;
-    let seed = &members[seed_position];
-    let raw_rate = FeeRate::from((seed.fee, seed.vsize));
-    let best_descendant = descendants
-        .iter()
-        .max_by_key(|entry| FeeRate::from((entry.fee, entry.weight)))
-        .cloned();
-
-    let (cluster, effective_fee_per_vsize) = if members.len() == 1 {
-        (None, raw_rate)
-    } else {
-        let inputs: Vec<ChunkInput<'_>> = members
-            .iter()
-            .map(|member| ChunkInput {
-                fee: member.fee,
-                vsize: member.vsize,
-                parents: member.parents.as_slice(),
-            })
-            .collect();
-        let chunks = linearize(&inputs);
-        let (chunk_index, rate) = find_seed_chunk(&chunks, seed_local, raw_rate);
-        let txs = members
-            .iter()
-            .map(|member| CpfpClusterTx {
-                txid: member.txid,
-                weight: member.weight,
-                fee: member.fee,
-                parents: member.parents.iter().copied().collect(),
-            })
-            .collect();
-        (
-            Some(CpfpCluster {
-                txs,
-                chunks,
-                chunk_index,
-            }),
-            rate,
-        )
-    };
-
-    CpfpInfo {
-        ancestors,
-        best_descendant,
-        descendants,
-        effective_fee_per_vsize,
-        sigops,
-        fee: seed.fee,
-        vsize: seed.vsize,
-        adjusted_vsize: sigops.adjust_vsize(seed.vsize),
-        cluster,
-    }
+    members
 }

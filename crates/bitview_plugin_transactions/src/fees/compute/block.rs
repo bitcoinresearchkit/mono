@@ -1,8 +1,10 @@
 use bitview_primitives::TxInIndex;
-use brk_cpfp::{ChunkInput, linearize};
+use brk_cpfp::Cluster;
 use brk_types::{CpfpClusterTxIndex, FeeRate, OutPoint, Sats, VSize};
 use smallvec::SmallVec;
-use vecdb::{VecIndex, unlikely};
+use vecdb::VecIndex;
+
+use crate::distribution::{Stats, counted, weighted};
 
 #[derive(Default)]
 pub struct Block {
@@ -18,7 +20,13 @@ pub struct Block {
     pub vsizes: Vec<VSize>,
     pub txin_starts: Vec<TxInIndex>,
     pub outpoints: Vec<OutPoint>,
-    cluster: Cluster,
+    /// Distribution statistics of the non-coinbase fees, the non-coinbase effective rates
+    /// weighted by vsize, and every transaction's vsize.
+    pub fee_stats: Stats<Sats>,
+    pub rate_stats: Stats<FeeRate>,
+    pub vsize_stats: Stats<VSize>,
+    sorted_fees: Vec<Sats>,
+    weighted_rates: Vec<(FeeRate, VSize)>,
 }
 
 impl Block {
@@ -35,46 +43,32 @@ impl Block {
         self.outpoints.clear();
     }
 
-    pub fn compute(&mut self) {
-        debug_assert_eq!(self.input_values.len(), self.output_values.len());
-        debug_assert_eq!(self.input_values.len(), self.vsizes.len());
-        debug_assert_eq!(self.input_values.len(), self.txin_starts.len());
+    /// `components`: scratch reused across blocks, one per worker.
+    pub fn compute(&mut self, components: &mut Components) {
+        let n = self.input_values.len();
+        debug_assert_eq!(n, self.output_values.len());
+        debug_assert_eq!(n, self.vsizes.len());
+        debug_assert_eq!(n, self.txin_starts.len());
+        // The coinbase spends nothing: its single input carries the `Sats::MAX` sentinel.
+        debug_assert!(self.input_values[0].is_max());
 
-        self.fees.reserve(self.input_values.len());
-        self.fee_rates.reserve(self.input_values.len());
-        for ((&input, &output), &vsize) in self
-            .input_values
+        self.fees.reserve(n);
+        self.fee_rates.reserve(n);
+        self.fees.push(Sats::ZERO);
+        self.fee_rates
+            .push(FeeRate::from((Sats::ZERO, self.vsizes[0])));
+        for ((&input, &output), &vsize) in self.input_values[1..]
             .iter()
-            .zip(&self.output_values)
-            .zip(&self.vsizes)
+            .zip(&self.output_values[1..])
+            .zip(&self.vsizes[1..])
         {
-            let fee = if unlikely(input.is_max()) {
-                Sats::ZERO
-            } else {
-                self.transfer_volume += input;
-                input - output
-            };
+            let fee = input - output;
+            self.transfer_volume += input;
             self.total_fee += fee;
             self.fees.push(fee);
             self.fee_rates.push(FeeRate::from((fee, vsize)));
         }
-        self.compute_cluster();
-    }
-
-    /// Repair rates/CPFP from valid fees without decoding monetary inputs again.
-    pub fn compute_from_fees(&mut self) {
-        self.fee_rates.clear();
-        self.fee_rates.extend(
-            self.fees
-                .iter()
-                .zip(&self.vsizes)
-                .map(|(&fee, &size)| FeeRate::from((fee, size))),
-        );
-        self.compute_cluster();
-    }
-
-    fn compute_cluster(&mut self) {
-        self.cluster.compute(
+        components.compute(
             &self.txin_starts,
             &self.outpoints,
             self.input_begin,
@@ -84,20 +78,35 @@ impl Block {
             &self.fee_rates,
             &mut self.effective_fee_rates,
         );
+
+        self.sorted_fees.clear();
+        self.sorted_fees.extend_from_slice(&self.fees[1..]);
+        self.fee_stats = counted(&mut self.sorted_fees);
+        self.weighted_rates.clear();
+        self.weighted_rates.extend(
+            self.effective_fee_rates[1..]
+                .iter()
+                .copied()
+                .zip(self.vsizes[1..].iter().copied()),
+        );
+        self.rate_stats = weighted(&mut self.weighted_rates);
+        // Last use of the block-order vsizes: sorted in place.
+        self.vsize_stats = counted(&mut self.vsizes);
     }
 }
 
+/// A block's same-block dependency components, linearized one at a time.
 #[derive(Default)]
-struct Cluster {
+pub struct Components {
     parents: Vec<SmallVec<[usize; 2]>>,
     roots: Vec<usize>,
     members: Vec<(usize, usize)>,
-    local_index: Vec<usize>,
-    local_parents: Vec<SmallVec<[CpfpClusterTxIndex; 2]>>,
+    local_index: Vec<u32>,
+    cluster: Cluster,
 }
 
-impl Cluster {
-    /// Computes SFL chunk rates for each same-block dependency component.
+impl Components {
+    /// Computes chunk rates for each same-block dependency component.
     #[allow(clippy::too_many_arguments)]
     fn compute(
         &mut self,
@@ -158,7 +167,7 @@ impl Cluster {
                 vsizes,
                 effective_fee_rates,
                 &mut self.local_index,
-                &mut self.local_parents,
+                &mut self.cluster,
             );
             start = end;
         }
@@ -171,36 +180,29 @@ impl Cluster {
         fees: &[Sats],
         vsizes: &[VSize],
         rates: &mut [FeeRate],
-        local_index: &mut [usize],
-        local_parents: &mut Vec<SmallVec<[CpfpClusterTxIndex; 2]>>,
+        local_index: &mut [u32],
+        cluster: &mut Cluster,
     ) {
         for (local, &(_, tx)) in members.iter().enumerate() {
-            local_index[tx] = local;
+            local_index[tx] = local as u32;
         }
 
-        local_parents.clear();
-        local_parents.extend(members.iter().map(|&(_, tx)| {
-            parents[tx]
-                .iter()
-                .map(|&parent| CpfpClusterTxIndex::from(local_index[parent] as u32))
-                .collect()
-        }));
+        cluster.clear();
+        for &(_, tx) in members {
+            cluster.push(
+                fees[tx],
+                vsizes[tx],
+                parents[tx]
+                    .iter()
+                    .map(|&parent| CpfpClusterTxIndex::from(local_index[parent])),
+            );
+        }
 
-        let inputs: Vec<ChunkInput<'_>> = members
-            .iter()
-            .enumerate()
-            .map(|(local, &(_, tx))| ChunkInput {
-                fee: fees[tx],
-                vsize: vsizes[tx],
-                parents: local_parents[local].as_slice(),
-            })
-            .collect();
-
-        for chunk in linearize(&inputs) {
-            for local in chunk.txs {
-                rates[members[u32::from(local) as usize].1] = chunk.feerate;
+        cluster.linearize(|txs, feerate| {
+            for &local in txs {
+                rates[members[u32::from(local) as usize].1] = feerate;
             }
-        }
+        });
     }
 
     fn union(roots: &mut [usize], left: usize, right: usize) {

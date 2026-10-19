@@ -1,14 +1,10 @@
-use std::mem;
-
-use brk_types::{OutPoint, StoreValue, TxIndex, Vout};
+use brk_types::{OutPoint, TxIndex, Vout};
 use serde::Serialize;
 
 use crate::TypeIndex;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Hash)]
 pub struct AddrIndexOutPoint([u8; 10]);
-
-const _: () = assert!(mem::size_of::<AddrIndexOutPoint>() == 10);
 
 impl AddrIndexOutPoint {
     #[inline]
@@ -30,21 +26,14 @@ impl From<(TypeIndex, OutPoint)> for AddrIndexOutPoint {
         let mut bytes = [0; 10];
         bytes[..4].copy_from_slice(&u32::from(addr_index).to_be_bytes());
         bytes[4..8].copy_from_slice(&u32::from(outpoint.tx_index()).to_be_bytes());
-        bytes[8..].copy_from_slice(&outpoint.vout().to_be_bytes());
+        let vout = u32::from(outpoint.vout());
+        debug_assert!(
+            vout <= u16::MAX as u32,
+            "address outpoint vout {vout} exceeds u16"
+        );
+        bytes[8..].copy_from_slice(&(vout as u16).to_be_bytes());
         Self(bytes)
     }
 }
 
-impl StoreValue for AddrIndexOutPoint {
-    type Bytes = [u8; 10];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(bytes)
-    }
-}
+brk_types::impl_store_value!(AddrIndexOutPoint, [u8; 10]);

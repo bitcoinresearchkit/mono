@@ -1,11 +1,12 @@
-use bitview_collections::Windows;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
-use crate::{IndexSources, RollingAmountTotals, ValuePerBlockCumulative};
+use crate::{
+    IndexSources, LazyRollingSumsAmountFromHeight, ValuePerBlockCumulative, shapes::Windows,
+};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct ValuePerBlockCumulativeRolling<M: StorageMode = Rw> {
@@ -13,8 +14,7 @@ pub struct ValuePerBlockCumulativeRolling<M: StorageMode = Rw> {
     #[deref_mut]
     #[traversable(flatten)]
     inner: ValuePerBlockCumulative<M>,
-    #[traversable(flatten)]
-    pub rolling: RollingAmountTotals,
+    pub sum: LazyRollingSumsAmountFromHeight,
 }
 
 const VERSION: Version = Version::TWO;
@@ -30,8 +30,8 @@ impl ValuePerBlockCumulativeRolling {
         let v = version + VERSION;
 
         let inner = ValuePerBlockCumulative::import(db, name, v, indexes)?;
-        let rolling = RollingAmountTotals::new(
-            name,
+        let sum = LazyRollingSumsAmountFromHeight::new(
+            &format!("{name}_sum"),
             v,
             inner.cumulative.sats.resolutions.height_source(),
             inner.cumulative.cents.resolutions.height_source(),
@@ -39,6 +39,6 @@ impl ValuePerBlockCumulativeRolling {
             indexes,
         );
 
-        Ok(Self { inner, rolling })
+        Ok(Self { inner, sum })
     }
 }

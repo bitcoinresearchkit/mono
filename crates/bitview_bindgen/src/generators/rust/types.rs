@@ -1,20 +1,28 @@
-//! Rust type conversion utilities.
+use crate::Ty;
 
-/// Convert JS-style type to Rust type.
-pub fn js_type_to_rust(js_type: &str) -> String {
-    if let Some(inner) = js_type.strip_suffix("[]") {
-        format!("Vec<{}>", js_type_to_rust(inner))
-    } else {
-        match js_type {
-            // API consumers read the version value; they do not need vecdb's
-            // persisted-version arithmetic or file operations.
-            "Version" => "u32".to_string(),
-            "string" => "String".to_string(),
-            "integer" => "i64".to_string(),
-            "number" => "f64".to_string(),
-            "boolean" => "bool".to_string(),
-            "*" | "Object" => "serde_json::Value".to_string(),
-            other => other.to_string(),
-        }
+pub(crate) fn rust_type(ty: &Ty) -> String {
+    match ty {
+        Ty::List(item) => format!("Vec<{}>", rust_type(item)),
+        // API consumers read the version value; they do not need vecdb's
+        // persisted-version arithmetic or file operations.
+        Ty::Ref(name) if name == "Version" => "u32".to_owned(),
+        Ty::Ref(name) => name.clone(),
+        Ty::String | Ty::Literals(_) => "String".to_owned(),
+        Ty::Integer => "i64".to_owned(),
+        Ty::Number => "f64".to_owned(),
+        Ty::Boolean => "bool".to_owned(),
+        _ => "serde_json::Value".to_owned(),
+    }
+}
+
+/// A parameter's Rust type, borrowed where it can be.
+pub(crate) fn rust_param_type(ty: &Ty) -> String {
+    match ty {
+        Ty::List(item) => format!("&[{}]", rust_param_type(item)),
+        Ty::Ref(name) => name.clone(),
+        Ty::Integer => "i64".to_owned(),
+        Ty::Number => "f64".to_owned(),
+        Ty::Boolean => "bool".to_owned(),
+        _ => "&str".to_owned(),
     }
 }

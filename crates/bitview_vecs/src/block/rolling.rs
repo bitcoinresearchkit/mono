@@ -1,6 +1,5 @@
 //! Stored cumulative source and rolling statistics for externally supplied block values.
 
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -8,10 +7,11 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{
-    Database, ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
+    ComputeVec, Database, ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
+    VecValue,
 };
 
-use crate::{IndexSources, PerBlock, RollingComplete, WindowStarts};
+use crate::{IndexSources, PerBlock, RollingComplete, WindowStarts, shapes::Windows};
 
 #[derive(Traversable)]
 pub struct PerBlockRolling<T, M: StorageMode = Rw>
@@ -20,9 +20,9 @@ where
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    pub(crate) cumulative: PerBlock<T::Sum, M>,
+    cumulative: PerBlock<T::Sum, M>,
     #[traversable(flatten)]
-    pub(crate) rolling: RollingComplete<T, M>,
+    rolling: RollingComplete<T, M>,
 }
 
 impl<T> PerBlockRolling<T>

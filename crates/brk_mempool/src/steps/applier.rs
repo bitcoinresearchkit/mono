@@ -1,123 +1,66 @@
 use std::sync::Arc;
 
-use brk_types::{Transaction, TxidPrefix};
+use brk_types::Transaction;
 
 use crate::{
     Snapshot, TxRemoval,
-    cycle::{AddrTransitions, CycleDiff, TxAdded, TxRemoved},
+    key::TxKey,
     state::{State, TxEntry},
-    steps::preparer::{TxAddition, TxsPulled},
+    steps::preparer::{PoolDiff, TxAddition},
 };
 
-/// Applies a prepared diff to private working state: bury removals, insert
-/// additions, then evict old tombstones. Events go into [`CycleDiff`].
-/// `prev_snapshot` supplies the previous cycle's snapshot. Burial
-/// reads each tomb's `chunk_rate` from it (always-fresh,
-/// package-aware via local linearization). The fallback to
-/// `entry.fee_rate()` is unreachable in steady state - every burial
-/// target was alive at the previous tick, so the snapshot has it.
-pub fn apply(state: &mut State, prev_snapshot: &Snapshot, pulled: TxsPulled, diff: &mut CycleDiff) {
-    let TxsPulled {
+/// Applies a prepared diff to private working state: re-assert promoted
+/// spends, bury removals, insert additions, then evict old tombstones. A
+/// burial keeps its chunk rate from the previous cycle's graph, or its own fee
+/// rate if that graph lacks it.
+pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff) {
+    let PoolDiff {
         live_len,
         added,
+        promoted,
         removed,
-    } = pulled;
+    } = diff;
     let additional = live_len.saturating_sub(state.txs.len());
     state.txs.reserve(additional);
-    bury_removals(
-        state,
-        prev_snapshot,
-        &mut diff.addrs,
-        &mut diff.removed,
-        removed,
-    );
-    insert_additions(state, &mut diff.addrs, &mut diff.added, added);
+    // Before burials, so a leaving listed spender never drops their mapping.
+    // `prepare` kept only pooled promoted keys and pooled removals, from this same state.
+    for key in promoted {
+        let record = state
+            .txs
+            .record_by_key(&key)
+            .expect("promoted tx is pooled");
+        state.outpoint_spends.insert_spends(&record.tx, key, true);
+    }
+    for (key, reason) in removed {
+        bury_one(state, prev_snapshot, &key, reason);
+    }
+    for TxAddition { tx, entry, listed } in added {
+        state.graveyard.exhume(&entry.txid);
+        insert_one(state, tx, entry, listed);
+    }
     state.graveyard.evict_old();
 }
 
-fn bury_removals(
-    state: &mut State,
-    snapshot: &Snapshot,
-    transitions: &mut AddrTransitions,
-    events: &mut Vec<TxRemoved>,
-    removed: Vec<(TxidPrefix, TxRemoval)>,
-) {
-    events.reserve(removed.len());
-    for (prefix, reason) in removed {
-        if let Some(ev) = bury_one(state, snapshot, transitions, &prefix, reason) {
-            events.push(ev);
-        }
-    }
-}
-
-fn bury_one(
-    state: &mut State,
-    prev_snapshot: &Snapshot,
-    transitions: &mut AddrTransitions,
-    prefix: &TxidPrefix,
-    reason: TxRemoval,
-) -> Option<TxRemoved> {
-    let record = state.txs.remove_by_prefix(prefix)?;
+fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {
+    let record = state.txs.remove_by_key(key).expect("removed tx is pooled");
     let txid = record.entry.txid;
     let chunk_rate = prev_snapshot
         .chunk_rate_for(&txid)
         .unwrap_or_else(|| record.entry.fee_rate());
     state.info.remove(&record.tx, record.entry.fee);
-    state.addrs.remove_tx(transitions, &record.tx);
-    state.outpoint_spends.remove_spends(&record.tx, *prefix);
-    state
-        .graveyard
-        .bury(record.tx, record.entry, chunk_rate, reason);
-    Some(TxRemoved {
-        txid,
-        reason,
-        chunk_rate,
-    })
+    state.addrs.remove_tx(&record.tx);
+    state.outpoint_spends.remove_spends(&record.tx, *key);
+    state.graveyard.bury(record, chunk_rate, reason);
 }
 
-fn insert_additions(
-    state: &mut State,
-    transitions: &mut AddrTransitions,
-    events: &mut Vec<TxAdded>,
-    added: Vec<TxAddition>,
-) {
-    events.reserve(added.len());
-    for addition in added {
-        if let Some((tx, entry)) = resolve_addition(state, addition) {
-            events.push(TxAdded {
-                txid: entry.txid,
-                fee: entry.fee,
-                vsize: entry.vsize,
-                fee_rate: entry.fee_rate(),
-                first_seen: entry.first_seen,
-            });
-            insert_one(state, transitions, tx, entry);
-        }
-    }
-}
-
-fn resolve_addition(
-    state: &mut State,
-    addition: TxAddition,
-) -> Option<(Arc<Transaction>, TxEntry)> {
-    match addition {
-        TxAddition::Fresh { tx, entry } => Some((Arc::new(tx), entry)),
-        TxAddition::Revived { entry } => {
-            let tomb = state.graveyard.exhume(&entry.txid)?;
-            Some((tomb.tx, entry))
-        }
-    }
-}
-
-fn insert_one(
-    state: &mut State,
-    transitions: &mut AddrTransitions,
-    tx: Arc<Transaction>,
-    entry: TxEntry,
-) {
-    let prefix = entry.txid_prefix();
+/// A listed tx owns its outpoints. A template-only one only claims free ones:
+/// any other pooled spender is listed (the template is conflict-free), and a
+/// stale template tx must not hide it, nor take its outpoints when leaving.
+fn insert_one(state: &mut State, tx: Transaction, entry: TxEntry, listed: bool) {
+    let tx = Arc::new(tx);
+    let key = entry.key();
     state.info.add(&tx, entry.fee);
-    state.addrs.add_tx(transitions, &tx);
-    state.outpoint_spends.insert_spends(&tx, prefix);
+    state.addrs.add_tx(&tx);
+    state.outpoint_spends.insert_spends(&tx, key, listed);
     state.txs.insert(tx, entry);
 }

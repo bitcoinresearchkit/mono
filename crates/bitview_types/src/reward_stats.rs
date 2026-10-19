@@ -1,6 +1,8 @@
+use std::fmt::Display;
+
 use brk_types::{Height, Sats};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
 
 /// Block reward statistics over a range of blocks
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -11,29 +13,35 @@ pub struct RewardStats {
     /// Last block in the range
     pub end_block: Height,
     /// Total coinbase rewards (subsidy + fees) in sats
-    #[serde(serialize_with = "sats_as_string")]
+    #[serde(with = "decimal_string")]
     #[schemars(with = "String")]
     pub total_reward: Sats,
     /// Total transaction fees in sats
-    #[serde(serialize_with = "sats_as_string")]
+    #[serde(with = "decimal_string")]
     #[schemars(with = "String")]
     pub total_fee: Sats,
-    /// Total number of transactions
-    #[serde(serialize_with = "u64_as_string")]
+    #[serde(with = "decimal_string")]
     #[schemars(with = "String")]
     pub total_tx: u64,
 }
 
-fn sats_as_string<S>(value: &Sats, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&value.to_string())
-}
+/// An unsigned integer written as a decimal string.
+mod decimal_string {
+    use super::*;
 
-fn u64_as_string<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&value.to_string())
+    pub fn serialize<T: Display, S: Serializer>(
+        value: &T,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(value)
+    }
+
+    pub fn deserialize<'de, T: From<u64>, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<T, D::Error> {
+        String::deserialize(deserializer)?
+            .parse::<u64>()
+            .map(T::from)
+            .map_err(D::Error::custom)
+    }
 }

@@ -1,10 +1,12 @@
 use owo_colors::{OwoColorize, Stream};
 
+use crate::fields::{self, Fields};
+
 const SEL_W: usize = 5; // longest selector token: "tip-N"
 const LABEL_W: usize = 28; // longest label across OUTPUT/OPTIONS/EXAMPLES (= example cmd "blk 800000 tx.0.vout.0.value")
 const FLAG_W: usize = 15; // longest flag: "--rpccookiefile"
 const PH_W: usize = LABEL_W - FLAG_W - 1; // placeholder column width so flag+ph total = LABEL_W
-const GAP: usize = 4;
+const NAMES_W: usize = 60;
 
 pub fn print() {
     println!("{} - inspect a Bitcoin Core block", bold("blk"));
@@ -36,32 +38,22 @@ pub fn print() {
     );
     println!();
     group("block");
-    fields(&[
-        "height, hash, time, version, version_hex, bits, nonce,",
-        "prev, merkle, difficulty, txs, n_inputs, n_outputs,",
-        "witness_txs, size, strippedsize, weight, subsidy,",
-        "coinbase, coinbase_hex, header_hex, hex",
-    ]);
+    names(fields::BLOCK);
     println!();
     group_note("tx.i", "omit i for all txs");
-    fields(&[
-        "txid, wtxid, version, locktime, size, base_size, vsize,",
-        "weight, inputs, outputs, is_coinbase, has_witness, is_rbf,",
-        "total_out, hex",
-    ]);
+    names(fields::TX);
     println!();
     group_note("tx.i.vin.j", "omit j for all inputs");
-    fields(&[
-        "prev_txid, prev_vout, sequence, script_sig, script_sig_asm,",
-        "witness, has_witness, is_rbf, coinbase",
-    ]);
+    names(fields::VIN);
     println!();
     group_note("tx.i.vout.j", "omit j for all outputs");
-    fields(&["value, script_pubkey, script_pubkey_asm, type, address"]);
+    names(fields::VOUT);
     println!();
     println!(
         "    {}",
-        dim("Naked tx / tx.i / vin / vout returns the whole sub-object as JSON.")
+        dim(
+            "A path ending at tx, tx.i, tx.i.vin or tx.i.vout returns the whole sub-object as JSON."
+        )
     );
     println!();
 
@@ -69,7 +61,10 @@ pub fn print() {
     out("no fields", "full block JSON object, one per line (NDJSON)");
     out("1 field", "bare value, one per line");
     out("2+ fields", "JSON object, one per line (NDJSON)");
-    out("-p, --pretty", "pretty JSON object instead");
+    out(
+        "-p, --pretty",
+        "pretty-print JSON values; strings stay bare",
+    );
     out(
         "-c, --compact",
         "tab-separated values, no field names (TSV)",
@@ -89,7 +84,7 @@ pub fn print() {
         "Blocks directory",
         Some("[<bitcoindir>/blocks]"),
     );
-    opt("--rpcconnect", "<IP>", "RPC host", Some("[localhost]"));
+    opt("--rpcconnect", "<HOST>", "RPC host", Some("[localhost]"));
     opt("--rpcport", "<PORT>", "RPC port", Some("[8332]"));
     opt(
         "--rpccookiefile",
@@ -130,41 +125,35 @@ fn group_note(name: &str, note: &str) {
     );
 }
 
-fn fields(lines: &[&str]) {
-    for line in lines {
-        println!("    {line}");
+/// The field names, comma-separated and wrapped at `NAMES_W`.
+fn names<F>(fields: Fields<F>) {
+    let mut line = String::new();
+    for (i, (name, _)) in fields.iter().enumerate() {
+        let comma = if i + 1 < fields.len() { "," } else { "" };
+        if !line.is_empty() && line.len() + 1 + name.len() + comma.len() > NAMES_W {
+            println!("    {line}");
+            line.clear();
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(name);
+        line.push_str(comma);
     }
+    println!("    {line}");
 }
 
-fn pad(s: &str, width: usize) -> String {
-    " ".repeat(width.saturating_sub(s.len()))
-}
-
+// Plain text is padded before coloring, so escape codes never count toward a column width.
 fn sel(token: &str, desc: &str) {
-    println!(
-        "    {}{}{}{desc}",
-        dim(token),
-        pad(token, SEL_W),
-        " ".repeat(GAP),
-    );
+    println!("    {}    {desc}", dim(&format!("{token:SEL_W$}")));
 }
 
 fn out(label: &str, desc: &str) {
-    println!(
-        "    {label}{}{}{desc}",
-        pad(label, LABEL_W),
-        " ".repeat(GAP)
-    );
+    println!("    {label:LABEL_W$}    {desc}");
 }
 
 fn opt(flag: &str, ph: &str, desc: &str, default: Option<&str>) {
-    let head = format!(
-        "    {flag}{} {}{}{}",
-        pad(flag, FLAG_W),
-        dim(ph),
-        pad(ph, PH_W),
-        " ".repeat(GAP),
-    );
+    let head = format!("    {flag:FLAG_W$} {}    ", dim(&format!("{ph:PH_W$}")));
     match default {
         Some(d) => println!("{head}{desc} {}", dim(d)),
         None => println!("{head}{desc}"),
@@ -172,12 +161,7 @@ fn opt(flag: &str, ph: &str, desc: &str, default: Option<&str>) {
 }
 
 fn ex(cmd: &str, note: &str) {
-    println!(
-        "    {cmd}{}{}{}",
-        pad(cmd, LABEL_W),
-        " ".repeat(GAP),
-        dim(&format!("# {note}"))
-    );
+    println!("    {cmd:LABEL_W$}    {}", dim(&format!("# {note}")));
 }
 
 fn bold(s: &str) -> String {

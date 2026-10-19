@@ -1,5 +1,4 @@
-//! Read-side accessors on [`crate::Mempool`]. Each submodule groups a
-//! cohesive method set. Types flow back through `pub use`.
+//! Read accessors on [`crate::ReadOnlyState`], each answering from one loaded publication.
 
 use std::sync::Arc;
 
@@ -9,10 +8,13 @@ pub mod addr;
 pub mod block_template;
 pub mod fees;
 pub mod histogram;
+pub mod published_tx;
 pub mod rbf;
 pub mod tx;
 
+pub use addr::PendingUtxos;
 pub use block_template::BlockTemplateSource;
+pub use published_tx::PublishedTx;
 pub use rbf::{RbfForTx, RbfNode};
 
 /// A validated historical template captured for one diff request.

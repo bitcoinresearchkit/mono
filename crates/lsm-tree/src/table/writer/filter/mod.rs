@@ -6,9 +6,7 @@ use std::{fs::File, io::BufWriter};
 
 use sfa::Writer;
 
-use crate::{
-    CompressionType, InternalValue, RecordBytes, Result, Slice, config::BloomConstructionPolicy,
-};
+use crate::{InternalValue, RecordBytes, Result, Slice};
 
 mod full;
 mod partitioned;
@@ -25,16 +23,4 @@ pub trait FilterWriter<K: RecordBytes, V: RecordBytes> {
         file_writer: &mut Writer<BufWriter<File>>,
         _last_key: &Slice,
     ) -> Result<()>;
-
-    fn set_filter_policy(
-        self: Box<Self>,
-        policy: BloomConstructionPolicy,
-    ) -> Box<dyn FilterWriter<K, V>>;
-
-    fn use_tli_compression(
-        self: Box<Self>,
-        compression: CompressionType,
-    ) -> Box<dyn FilterWriter<K, V>>;
-
-    fn use_partition_size(self: Box<Self>, size: u32) -> Box<dyn FilterWriter<K, V>>;
 }

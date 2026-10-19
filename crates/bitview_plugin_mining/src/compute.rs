@@ -1,16 +1,11 @@
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
-use vecdb::Database;
 
 use super::Vecs;
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
@@ -19,23 +14,22 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies {
             indexer,
+            mappings,
             blocks,
             transactions,
             price: prices,
         } = dependencies;
         let exit = context.exit();
 
-        // Block rewards (coinbase, subsidy, fee_dominance, etc.)
         self.rewards
-            .compute(indexer, &blocks.lookback, transactions, prices, exit)?;
+            .compute(indexer, &mappings.lookback, transactions, prices, exit)?;
 
         self.hashrate.compute(
             indexer,
-            &blocks.count,
-            &blocks.lookback,
+            &mappings.lookback,
             &blocks.difficulty,
-            &self.rewards.coinbase.rolling.sum._24h.sats.height,
-            &self.rewards.coinbase.rolling.sum._24h.usd.height,
+            &self.rewards.coinbase.sum._24h.sats.height,
+            &self.rewards.coinbase.sum._24h.usd.height,
             exit,
         )?;
 

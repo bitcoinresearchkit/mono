@@ -1,11 +1,42 @@
 use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
-use bitview_traversable::Traversable;
+use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
-use brk_types::{Height, OutPoint, OutputType, TxIndex, Version};
-use rayon::prelude::*;
+use brk_types::{Height, OutPoint, OutputType, Sats, TxIndex, Version};
 use vecdb::{
-    AnyStoredVec, Budgeted, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,
+    AnyStoredVec, Budgeted, Database, ImportableVec, PcoVec, Rw, StorageMode, UnaryTransform,
 };
+
+/// A coinbase input spends no output: it publishes 0, not the `Sats::MAX` it is stored as, and
+/// none of its relations to one (null, not their maximum-value markers).
+struct CoinbaseSpendsNothing;
+
+impl UnaryTransform<OutPoint, Option<OutPoint>> for CoinbaseSpendsNothing {
+    #[inline]
+    fn apply(value: OutPoint) -> Option<OutPoint> {
+        value.is_not_coinbase().then_some(value)
+    }
+}
+
+impl UnaryTransform<TxOutIndex, Option<TxOutIndex>> for CoinbaseSpendsNothing {
+    #[inline]
+    fn apply(value: TxOutIndex) -> Option<TxOutIndex> {
+        (value != TxOutIndex::COINBASE).then_some(value)
+    }
+}
+
+impl UnaryTransform<TypeIndex, Option<TypeIndex>> for CoinbaseSpendsNothing {
+    #[inline]
+    fn apply(value: TypeIndex) -> Option<TypeIndex> {
+        (value != TypeIndex::COINBASE).then_some(value)
+    }
+}
+
+impl UnaryTransform<Sats, Sats> for CoinbaseSpendsNothing {
+    #[inline]
+    fn apply(value: Sats) -> Sats {
+        if value.is_max() { Sats::ZERO } else { value }
+    }
+}
 
 #[derive(Traversable)]
 pub struct InputsVecs<M: StorageMode = Rw> {
@@ -15,18 +46,14 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     /// transaction's first input.
     pub first_txin_index: M::Stored<PcoVec<Height, TxInIndex, Budgeted>>,
     /// Previous-output reference encoded as the global transaction index and
-    /// zero-based output position within that transaction. Coinbase inputs use
-    /// the maximum of each component (`tx_index: 4294967295, vout: 65535`).
-    pub outpoint: M::Stored<PcoVec<TxInIndex, OutPoint>>,
-    /// Global zero-based transaction-output index in canonical blockchain order.
-    /// At `txout_index`, this is the identity value; at `txin_index`, it
-    /// identifies the previous output spent by the input, with `u64::MAX`
-    /// representing a coinbase input.
-    pub txout_index: M::Stored<PcoVec<TxInIndex, TxOutIndex>>,
-    /// Global zero-based index of a transaction in canonical blockchain order.
-    /// At `tx_index`, this is the identity value; at `txin_index`, it identifies
-    /// the transaction containing the input; at type-specific output indexes,
-    /// it identifies the transaction containing that output.
+    /// zero-based output position within that transaction; null for a coinbase
+    /// input, which spends none.
+    // Stored as the maximum of each component for a coinbase input.
+    pub outpoint: Compact<PcoVec<TxInIndex, OutPoint>, Option<OutPoint>, M>,
+    /// The output the input spends; null for a coinbase input.
+    // Stored as `u64::MAX` for a coinbase input.
+    pub txout_index: Compact<PcoVec<TxInIndex, TxOutIndex>, Option<TxOutIndex>, M>,
+    /// The transaction containing the input.
     pub tx_index: M::Stored<PcoVec<TxInIndex, TxIndex>>,
     /// BRK locking-script classification of an output. At `txout_index`, this
     /// classifies the indexed output; at `txin_index`, it classifies the
@@ -34,68 +61,51 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     pub output_type: M::Stored<PcoVec<TxInIndex, OutputType>>,
     /// Zero-based index within the output's BRK type-specific collection. At
     /// `txout_index`, this identifies the indexed output; at `txin_index`, it
-    /// identifies the previous output spent by the input. Address types index
-    /// distinct addresses, while other types index outputs in canonical order.
-    /// Coinbase inputs use `u32::MAX`.
-    pub type_index: M::Stored<PcoVec<TxInIndex, TypeIndex>>,
+    /// identifies the previous output spent by the input, null for a coinbase
+    /// input. Address types index distinct addresses, while other types index
+    /// outputs in canonical order.
+    // Stored as `u32::MAX` for a coinbase input.
+    pub type_index: Compact<PcoVec<TxInIndex, TypeIndex>, Option<TypeIndex>, M>,
+    /// Value of the output the input spends, in satoshis; 0 for a coinbase input, which
+    /// spends none.
+    // Stored as `Sats::MAX` for a coinbase input, which the stored vec's readers rely on.
+    pub value: Compact<PcoVec<TxInIndex, Sats>, Sats, M>,
 }
 
 impl InputsVecs {
     pub fn import(db: &Database, version: Version) -> Result<Self> {
-        let (first_txin_index, outpoint, txout_index, tx_index, output_type, type_index) = parallel_import! {
+        let (first_txin_index, outpoint, txout_index, tx_index, output_type, type_index, value) = parallel_import! {
             first_txin_index = PcoVec::import(db, "first_txin_index", version),
             outpoint = PcoVec::import(db, "outpoint", version),
-            txout_index = PcoVec::import(db, "txout_index", version),
-            tx_index = PcoVec::import(db, "tx_index", version),
+            txout_index = PcoVec::import(db, "spent_txout_index", version),
+            tx_index = PcoVec::import(db, "input_tx_index", version),
             output_type = PcoVec::import(db, "output_type", version),
             type_index = PcoVec::import(db, "type_index", version),
+            value = PcoVec::import(db, "input_value", version),
         };
         Ok(Self {
             first_txin_index,
-            outpoint,
-            txout_index,
+            outpoint: Compact::named_with::<CoinbaseSpendsNothing>(outpoint, "outpoint"),
+            txout_index: Compact::named_with::<CoinbaseSpendsNothing>(
+                txout_index,
+                "spent_txout_index",
+            ),
             tx_index,
             output_type,
-            type_index,
+            type_index: Compact::named_with::<CoinbaseSpendsNothing>(type_index, "type_index"),
+            value: Compact::named_with::<CoinbaseSpendsNothing>(value, "input_value"),
         })
-    }
-
-    pub fn truncate(&mut self, height: Height, txin_index: TxInIndex, stamp: Stamp) -> Result<()> {
-        self.first_txin_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.outpoint
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.txout_index
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.tx_index
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.output_type
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        self.type_index
-            .truncate_if_needed_with_stamp(txin_index, stamp)?;
-        Ok(())
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.first_txin_index as &mut dyn AnyStoredVec,
-            &mut self.outpoint,
-            &mut self.txout_index,
-            &mut self.tx_index,
-            &mut self.output_type,
-            &mut self.type_index,
-        ]
-        .into_par_iter()
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
         [
             &self.first_txin_index as &dyn AnyStoredVec,
-            &self.outpoint,
-            &self.txout_index,
+            &*self.outpoint,
+            &*self.txout_index,
             &self.tx_index,
             &self.output_type,
-            &self.type_index,
+            &*self.type_index,
+            &*self.value,
         ]
         .into_iter()
     }

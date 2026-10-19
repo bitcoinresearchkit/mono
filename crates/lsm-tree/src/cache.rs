@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-#[derive(Eq, std::hash::Hash, PartialEq)]
+#[derive(Clone, Eq, std::hash::Hash, PartialEq)]
 struct CacheKey(GlobalTableId, u64);
 
 impl CacheKey {
@@ -94,27 +94,20 @@ impl Cache {
         )
     }
 
-    #[must_use]
-    pub(crate) fn get_block(
+    /// Returns the cached block, loading it once on a miss: concurrent misses wait for that
+    /// load instead of repeating it.
+    pub(crate) fn get_or_load(
         &self,
         id: GlobalTableId,
         offset: BlockOffset,
         block_type: BlockType,
-    ) -> Option<Block> {
-        let key = CacheKey::from_id(id, offset);
-        self.cache_for(block_type).get(&key)
-    }
-
-    fn cache_for(&self, block_type: BlockType) -> &BlockCache {
-        if block_type == BlockType::Data {
+        load: impl FnOnce() -> crate::Result<Block>,
+    ) -> crate::Result<Block> {
+        let cache = if block_type == BlockType::Data {
             &self.data
         } else {
             &self.metadata
-        }
-    }
-
-    pub(crate) fn insert_block(&self, id: GlobalTableId, offset: BlockOffset, block: Block) {
-        self.cache_for(block.header.block_type)
-            .insert(CacheKey::from_id(id, offset), block);
+        };
+        cache.get_or_insert_with(&CacheKey::from_id(id, offset), load)
     }
 }

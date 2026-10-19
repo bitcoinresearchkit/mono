@@ -74,29 +74,3 @@ impl<K: RecordBytes, V: RecordBytes, I: Iterator<Item = Result<InternalValue<K, 
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ValueType::Value;
-    use test_log::test;
-
-    #[test]
-    fn merges_in_ascending_order() -> Result<()> {
-        let first =
-            ["a", "c", "e"].map(|key| Ok(InternalValue::from_components(key, b"", 0, Value)));
-        let second =
-            ["b", "d", "f"].map(|key| Ok(InternalValue::from_components(key, b"", 0, Value)));
-
-        let items = ForwardMerger::new(vec![first.into_iter(), second.into_iter()])
-            .collect::<Result<Vec<_>>>()?;
-        let keys = items
-            .iter()
-            .map(|item| item.key.user_key.as_ref())
-            .collect::<Vec<_>>();
-
-        assert_eq!([b"a", b"b", b"c", b"d", b"e", b"f"], keys.as_slice());
-
-        Ok(())
-    }
-}

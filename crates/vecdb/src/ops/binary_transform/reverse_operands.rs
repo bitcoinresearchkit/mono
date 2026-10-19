@@ -2,7 +2,6 @@ use std::marker::PhantomData;
 
 use crate::BinaryTransform;
 
-/// Apply a binary transform with the input order reversed.
 pub struct ReverseOperands<F>(PhantomData<F>);
 
 impl<S, D, T, F> BinaryTransform<S, D, T> for ReverseOperands<F>

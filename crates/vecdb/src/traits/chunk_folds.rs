@@ -1,4 +1,36 @@
-use crate::{ReadableVec, VecIndex, VecValue};
+use crate::{READ_CHUNK_SIZE, ReadableVec, VecIndex, VecValue};
+
+/// Values per bounded bulk-read batch.
+const BATCH_SIZE: usize = 16 * READ_CHUNK_SIZE;
+
+/// End of the chunk read from `at`: the next multiple of `chunk_size` (so every read after the
+/// first starts on a source page boundary), capped at `to`.
+#[inline]
+pub(crate) fn chunk_end(at: usize, chunk_size: usize, to: usize) -> usize {
+    at.saturating_add(chunk_size - at % chunk_size).min(to)
+}
+
+/// Splits `[from, to)` into batches of about 64Ki values made of whole source chunks
+/// (`chunk_size` is the source's `cursor_chunk_size`): after the first, every batch starts on a
+/// source page boundary, so no page is decoded twice, while scratch scales with a batch instead
+/// of the whole request.
+pub fn read_batches(
+    from: usize,
+    to: usize,
+    chunk_size: usize,
+) -> impl Iterator<Item = (usize, usize)> {
+    let chunk_size = chunk_size.max(1);
+    let size = chunk_size * (BATCH_SIZE / chunk_size).max(1);
+    let mut at = from;
+    std::iter::from_fn(move || {
+        (at < to).then(|| {
+            let end = chunk_end(at, size, to);
+            let batch = (at, end);
+            at = end;
+            batch
+        })
+    })
+}
 
 pub(crate) fn for_each_chunk<I: VecIndex, T: VecValue>(
     source: &(impl ReadableVec<I, T> + ?Sized),
@@ -12,7 +44,7 @@ pub(crate) fn for_each_chunk<I: VecIndex, T: VecValue>(
     let mut at = from;
     let mut emitted_at = from;
     while at < to {
-        let end = at.saturating_add(chunk_size - at % chunk_size).min(to);
+        let end = chunk_end(at, chunk_size, to);
         values.clear();
         source.read_into_at(at, end, &mut values);
         if !values.is_empty() {
@@ -56,7 +88,7 @@ pub(crate) fn try_fold<I: VecIndex, T: VecValue, B, E>(
 
     let mut start = from;
     while start < to {
-        let end = start.saturating_add(chunk_size).min(to);
+        let end = chunk_end(start, chunk_size, to);
         source.read_into_at(start, end, &mut buf);
         for value in buf.drain(..) {
             acc = f(acc, value)?;

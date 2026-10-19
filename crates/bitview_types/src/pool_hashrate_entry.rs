@@ -4,7 +4,6 @@ use brk_types::Timestamp;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// A single pool hashrate data point.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PoolHashrateEntry {
     /// Unix timestamp
@@ -16,7 +15,6 @@ pub struct PoolHashrateEntry {
     /// Pool's share of total network hashrate (0.0 - 1.0)
     #[schemars(example = 0.30)]
     pub share: f64,
-    /// Pool name
     #[serde(rename = "poolName")]
     #[schemars(example = &"Foundry USA")]
     pub pool_name: Cow<'static, str>,

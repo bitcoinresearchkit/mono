@@ -123,26 +123,29 @@ pub(crate) fn match_int_modes<L: Latent>(
         secondary: Some(secondary),
       })
     }
-    Mode::Dict(_) => {
-      let primary = if matches!(meta.delta_encoding, DeltaEncoding::NoOp) {
-        Box::new(IntDescriber {
-          description: "index".to_string(),
-          units: "".to_string(),
-          center: 0_u32,
-          is_signed: false,
-        })
-      } else {
-        centered_delta_describer::<u32>("index delta".to_string(), "".to_string())
-      };
-
-      Some(PerLatentVar {
-        delta: delta_latent_describer(&meta.delta_encoding),
-        primary,
-        secondary: None,
-      })
-    }
+    Mode::Dict(_) => match_dict_mode(meta),
     _ => None,
   }
+}
+
+// Dict indices are u32 latents regardless of the number type.
+fn match_dict_mode(meta: &ChunkMeta) -> Option<PerLatentVar<LatentDescriber>> {
+  let primary = if matches!(meta.delta_encoding, DeltaEncoding::NoOp) {
+    Box::new(IntDescriber {
+      description: "index".to_string(),
+      units: "".to_string(),
+      center: 0_u32,
+      is_signed: false,
+    })
+  } else {
+    centered_delta_describer::<u32>("index delta".to_string(), "".to_string())
+  };
+
+  Some(PerLatentVar {
+    delta: delta_latent_describer(&meta.delta_encoding),
+    primary,
+    secondary: None,
+  })
 }
 
 pub(crate) fn match_float_modes<F: Float>(
@@ -225,6 +228,7 @@ pub(crate) fn match_float_modes<F: Float>(
         secondary: Some(secondary),
       })
     }
+    Mode::Dict(_) => match_dict_mode(meta),
     _ => None,
   }
 }

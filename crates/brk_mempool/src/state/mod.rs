@@ -7,6 +7,7 @@ pub mod tx_entry;
 use brk_types::{MempoolInfo, Txid};
 pub(crate) use pool::Pool;
 pub use read_only::ReadOnlyState;
+use rustc_hash::FxHashSet;
 pub use tx_entry::TxEntry;
 
 use crate::stores::{AddrTracker, OutpointSpends, TxGraveyard, TxStore};
@@ -18,6 +19,10 @@ pub struct State {
     pub addrs: AddrTracker,
     pub outpoint_spends: OutpointSpends,
     pub graveyard: TxGraveyard,
+    /// The last applied poll's template txids absent from the raw listing.
+    /// One still pooled and listed now reclaims its outpoints. Empty at every
+    /// pool publication, so a restored state starts it empty.
+    pub template_only: FxHashSet<Txid>,
 }
 
 impl State {

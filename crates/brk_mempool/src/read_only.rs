@@ -5,7 +5,6 @@ use arc_swap::ArcSwap;
 use crate::ReadOnlyState;
 
 /// Cheap reader handle. Each load acquires one complete publication.
-///
 #[derive(Clone)]
 pub struct ReadOnlyMempool {
     pub(crate) current: Arc<ArcSwap<ReadOnlyState>>,

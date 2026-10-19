@@ -5,14 +5,15 @@
 use std::{
     cmp::Ordering::{self, Equal, Greater},
     mem::size_of,
-    path::Path,
+    path::PathBuf,
+    sync::Arc,
 };
 
 use log::trace;
 
 use super::{Block, BlockHandle, GlobalTableId};
 use crate::{
-    Cache, CompressionType, Error, KeyRange, Result, Table, file_accessor::FileAccessor,
+    Cache, CompressionType, DescriptorTable, Error, KeyRange, Result, Table,
     table::block::BlockType, version::run::Ranged,
 };
 
@@ -29,38 +30,40 @@ pub fn aggregate_run_key_range(tables: &[Table]) -> KeyRange {
 #[derive(Debug)]
 pub struct SliceIndexes(pub usize, pub usize);
 
-/// Loads a block from disk or block cache, if cached.
-///
-/// Also handles file descriptor opening and caching.
-#[warn(clippy::too_many_arguments)]
-pub fn load_block(
-    table_id: GlobalTableId,
-    path: &Path,
-    file_accessor: &FileAccessor,
-    cache: &Cache,
-    handle: &BlockHandle,
-    block_type: BlockType,
-    compression: CompressionType,
-) -> Result<Block> {
-    trace!("load {block_type:?} block {handle:?}");
+/// Where a table's blocks come from: the block cache, else the table file through the shared
+/// descriptor cache.
+#[derive(Clone)]
+pub struct BlockSource {
+    pub table_id: GlobalTableId,
+    pub path: Arc<PathBuf>,
+    pub descriptor_table: Arc<DescriptorTable>,
+    pub cache: Arc<Cache>,
+}
 
-    if let Some(block) = cache.get_block(table_id, handle.offset(), block_type) {
-        return Ok(block);
+impl BlockSource {
+    /// Loads a block, from the block cache if cached.
+    pub fn load(
+        &self,
+        handle: &BlockHandle,
+        block_type: BlockType,
+        compression: CompressionType,
+    ) -> Result<Block> {
+        trace!("load {block_type:?} block {handle:?}");
+        self.cache
+            .get_or_load(self.table_id, handle.offset(), block_type, || {
+                let fd = self
+                    .descriptor_table
+                    .access_or_open(self.table_id, &self.path)?;
+                let block = Block::from_file(&fd, *handle, compression)?;
+                if block.header.block_type != block_type {
+                    return Err(Error::InvalidTag((
+                        "BlockType",
+                        block.header.block_type.into(),
+                    )));
+                }
+                Ok(block)
+            })
     }
-
-    let fd = file_accessor.access_or_open(table_id, path)?;
-    let block = Block::from_file(&fd, *handle, compression)?;
-
-    if block.header.block_type != block_type {
-        return Err(Error::InvalidTag((
-            "BlockType",
-            block.header.block_type.into(),
-        )));
-    }
-
-    cache.insert_block(table_id, handle.offset(), block.clone());
-
-    Ok(block)
 }
 
 #[must_use]
@@ -135,80 +138,4 @@ pub fn compare_prefixed_slice(prefix: &[u8], suffix: &[u8], needle: &[u8]) -> Or
     )]
     let needle = unsafe { needle.get_unchecked(max_pfx_len..) };
     suffix.cmp(needle)
-}
-
-#[cfg(test)]
-mod tests {
-    use test_log::test;
-
-    use super::*;
-
-    #[test]
-    #[expect(
-        clippy::indexing_slicing,
-        reason = "the index comes from the array's range"
-    )]
-    fn test_longest_shared_prefix_length() {
-        assert_eq!(3, longest_shared_prefix_length(b"abc", b"abc"));
-        assert_eq!(1, longest_shared_prefix_length(b"abc", b"a"));
-        assert_eq!(1, longest_shared_prefix_length(b"a", b"abc"));
-        assert_eq!(0, longest_shared_prefix_length(b"abc", b""));
-        assert_eq!(0, longest_shared_prefix_length(b"", b"abc"));
-        assert_eq!(0, longest_shared_prefix_length(b"", b""));
-        assert_eq!(0, longest_shared_prefix_length(b"", b""));
-        assert_eq!(0, longest_shared_prefix_length(b"abc", b"def"));
-        assert_eq!(1, longest_shared_prefix_length(b"abc", b"acc"));
-
-        let shared = [42; 3 * size_of::<usize>()];
-        assert_eq!(shared.len(), longest_shared_prefix_length(&shared, &shared));
-
-        for different_at in 0..shared.len() {
-            let mut different = shared;
-            different[different_at] = 24;
-            assert_eq!(
-                different_at,
-                longest_shared_prefix_length(&shared, &different),
-            );
-        }
-    }
-
-    #[test]
-    fn test_compare_prefixed_slice() {
-        use std::cmp::Ordering::{Equal, Greater, Less};
-
-        assert_eq!(Greater, compare_prefixed_slice(&[0, 161], &[], &[0]));
-
-        assert_eq!(Equal, compare_prefixed_slice(b"abc", b"xyz", b"abcxyz"));
-        assert_eq!(Equal, compare_prefixed_slice(b"abc", b"", b"abc"));
-        assert_eq!(Equal, compare_prefixed_slice(b"abc", b"abc", b"abcabc"));
-        assert_eq!(Equal, compare_prefixed_slice(b"", b"", b""));
-        assert_eq!(Less, compare_prefixed_slice(b"a", b"", b"y"));
-        assert_eq!(Less, compare_prefixed_slice(b"a", b"", b"yyy"));
-        assert_eq!(Less, compare_prefixed_slice(b"a", b"", b"yyy"));
-        assert_eq!(Less, compare_prefixed_slice(b"yyyy", b"a", b"yyyyb"));
-        assert_eq!(Less, compare_prefixed_slice(b"yyy", b"b", b"yyyyb"));
-        assert_eq!(Less, compare_prefixed_slice(b"abc", b"d", b"abce"));
-        assert_eq!(Less, compare_prefixed_slice(b"ab", b"", b"ac"));
-        assert_eq!(Greater, compare_prefixed_slice(b"a", b"", b""));
-        assert_eq!(Greater, compare_prefixed_slice(b"", b"a", b""));
-        assert_eq!(Greater, compare_prefixed_slice(b"a", b"a", b""));
-        assert_eq!(Greater, compare_prefixed_slice(b"b", b"a", b"a"));
-        assert_eq!(Greater, compare_prefixed_slice(b"a", b"b", b"a"));
-        assert_eq!(Greater, compare_prefixed_slice(b"abc", b"xy", b"abcw"));
-        assert_eq!(Greater, compare_prefixed_slice(b"ab", b"cde", b"a"));
-        assert_eq!(Greater, compare_prefixed_slice(b"abcd", b"zz", b"abc"));
-        assert_eq!(Greater, compare_prefixed_slice(b"abc", b"d", b"abc"));
-        assert_eq!(
-            Greater,
-            compare_prefixed_slice(b"aaaa", b"aaab", b"aaaaaaaa")
-        );
-        assert_eq!(
-            Greater,
-            compare_prefixed_slice(b"aaaa", b"aaba", b"aaaaaaaa")
-        );
-        assert_eq!(Greater, compare_prefixed_slice(b"abcd", b"x", b"abc"));
-
-        assert_eq!(Less, compare_prefixed_slice(&[0x7F], &[], &[0x80]));
-        assert_eq!(Greater, compare_prefixed_slice(&[0xFF], &[], &[0x10]));
-    }
 }

@@ -1,11 +1,8 @@
 use std::{marker::PhantomData, sync::Arc};
 
-use rangeindex::SharedRangeMap;
-
 pub mod any_vec;
 pub mod clone;
 pub mod fold;
-pub mod open;
 pub mod readable;
 pub mod sparse;
 mod traversable;
@@ -15,6 +12,8 @@ pub use fold::*;
 use sparse::Sparse;
 
 use vecdb::{ReadableBoxedVec, VecIndex, VecValue, Version};
+
+use crate::RangeMapVec;
 
 /// Lazy aggregation vector that maps coarser output indices to ranges in a finer source.
 ///
@@ -29,8 +28,7 @@ where
     name: Arc<str>,
     version: Version,
     source: ReadableBoxedVec<S1I, S1T>,
-    mapping: SharedRangeMap<S1I, I>,
-    #[allow(clippy::type_complexity)]
+    mapping: RangeMapVec<I, S1I>,
     _phantom: PhantomData<fn() -> (I, O, Strat)>,
 }
 
@@ -41,23 +39,22 @@ where
     S1I: VecIndex,
     S1T: VecValue,
 {
-    /// The shared source read by this aggregation view.
     pub(crate) fn source(&self) -> &ReadableBoxedVec<S1I, S1T> {
         &self.source
     }
 
-    /// `version` includes the boundary mapping's schema version.
+    /// The view's version is `version` plus the source's and the boundary mapping's.
     pub(crate) fn new(
         name: &str,
         version: Version,
         source: ReadableBoxedVec<S1I, S1T>,
-        mapping: SharedRangeMap<S1I, I>,
+        mapping: &RangeMapVec<I, S1I>,
     ) -> Self {
         Self {
             name: Arc::from(name),
             version,
             source,
-            mapping,
+            mapping: mapping.clone(),
             _phantom: PhantomData,
         }
     }

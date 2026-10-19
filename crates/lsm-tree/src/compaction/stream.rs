@@ -25,17 +25,55 @@ impl<K: RecordBytes, V: RecordBytes, I: Iterator<Item = Result<InternalValue<K, 
         self.evict_tombstones = evict;
         self
     }
+}
 
-    fn drain_key(&mut self, key: &K) -> Result<()> {
-        loop {
-            let Some(next) = self.inner.next_if(|item| match item {
-                Ok(item) => item.key.user_key == *key,
-                Err(_) => true,
-            }) else {
-                return Ok(());
-            };
+/// What the versions of one key in a merge leave for the levels below the merge.
+#[derive(Clone, Copy)]
+enum Outcome {
+    Nothing,
+    Value,
+    /// A value, with a weak tombstone pending for the next older value below the merge.
+    ValueOverWeak,
+    Weak,
+    Tombstone,
+}
 
-            next?;
+impl Outcome {
+    const ALL: [Self; 5] = [
+        Self::Nothing,
+        Self::Value,
+        Self::ValueOverWeak,
+        Self::Weak,
+        Self::Tombstone,
+    ];
+
+    /// Reads `table` (laid out like `ALL`) at `self`.
+    fn apply(self, table: [Self; 5]) -> Self {
+        let [nothing, value, value_over_weak, weak, tombstone] = table;
+        match self {
+            Self::Nothing => nothing,
+            Self::Value => value,
+            Self::ValueOverWeak => value_over_weak,
+            Self::Weak => weak,
+            Self::Tombstone => tombstone,
+        }
+    }
+
+    /// The outcome once a newer version of the key goes on top of `self`.
+    fn push(self, value_type: ValueType) -> Self {
+        match (value_type, self) {
+            (ValueType::Tombstone, _) => Self::Tombstone,
+            // A weak tombstone cancels the value under it; with none in the merge it still cancels the
+            // next older value below.
+            (ValueType::WeakTombstone, Self::Value) => Self::Nothing,
+            (ValueType::WeakTombstone, _) => Self::Weak,
+            // A value hides what is under it, but keeps a pending weak tombstone for the levels below.
+            (
+                ValueType::Value | ValueType::ValueOverWeakTombstone,
+                Self::ValueOverWeak | Self::Weak,
+            )
+            | (ValueType::ValueOverWeakTombstone, Self::Nothing) => Self::ValueOverWeak,
+            (ValueType::Value | ValueType::ValueOverWeakTombstone, _) => Self::Value,
         }
     }
 }
@@ -47,33 +85,29 @@ impl<K: RecordBytes, V: RecordBytes, I: Iterator<Item = Result<InternalValue<K, 
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let head = fail_iter!(self.inner.next()?);
+            let mut head = fail_iter!(self.inner.next()?);
 
-            if let Some(next) = self.inner.peek() {
-                let Ok(next) = next else {
-                    return self.inner.next();
-                };
-
-                if next.key.user_key == head.key.user_key {
-                    if head.key.value_type == ValueType::Tombstone && self.evict_tombstones {
-                        fail_iter!(self.drain_key(&head.key.user_key));
-                        continue;
-                    }
-
-                    let drop_weak_tombstone = next.key.value_type == ValueType::Value
-                        && head.key.value_type == ValueType::WeakTombstone;
-                    fail_iter!(self.drain_key(&head.key.user_key));
-
-                    if drop_weak_tombstone {
-                        continue;
-                    }
-                } else if head.is_tombstone() && self.evict_tombstones {
-                    continue;
-                }
-            } else if head.is_tombstone() && self.evict_tombstones {
-                continue;
+            // The older versions of the key, folded oldest first: compose their pushes newest first
+            // (`below`, read at `o`, is the outcome of pushing them all, oldest first, onto `o`).
+            let mut below = Outcome::ALL;
+            while let Some(next) = self.inner.next_if(|item| match item {
+                Ok(item) => item.key.user_key == head.key.user_key,
+                Err(_) => true,
+            }) {
+                let value_type = fail_iter!(next).key.value_type;
+                below = Outcome::ALL.map(|outcome| outcome.push(value_type).apply(below));
             }
 
+            head.key.value_type = match Outcome::Nothing.apply(below).push(head.key.value_type) {
+                Outcome::Nothing => continue,
+                Outcome::Value => ValueType::Value,
+                // Nothing lies below the last level.
+                Outcome::ValueOverWeak if self.evict_tombstones => ValueType::Value,
+                Outcome::ValueOverWeak => ValueType::ValueOverWeakTombstone,
+                Outcome::Weak | Outcome::Tombstone if self.evict_tombstones => continue,
+                Outcome::Weak => ValueType::WeakTombstone,
+                Outcome::Tombstone => ValueType::Tombstone,
+            };
             return Some(Ok(head));
         }
     }

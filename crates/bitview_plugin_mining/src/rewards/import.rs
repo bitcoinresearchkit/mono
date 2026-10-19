@@ -1,14 +1,14 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
-use bitview_transforms::{OneMinusPpm, Quotient};
+use bitview_primitives::PartsPerMillion32;
 use bitview_vecs::{
-    LazyFixedRatioCumulativeRolling, LazyFixedRatioRollingWindows, LazyWindowStartVec,
-    ValuePerBlockCumulative, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
+    LazyPercentCumulativeRolling, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
+    ValuePerBlockFull,
+    ops::{OneMinusPpm, Quotient},
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Sats, Version};
-use vecdb::{Database, EagerVec, ImportableVec};
+use vecdb::{Database, ReverseOperands};
 
 use super::Vecs;
 
@@ -34,47 +34,39 @@ impl Vecs {
             window_starts,
         )?;
         let fees = ValuePerBlockFull::import(db, "fees", version, mappings, window_starts)?;
-        let fees_source = fees.cumulative_sats_source();
 
-        let fee_dominance = LazyFixedRatioCumulativeRolling::from_cumulative_ratio_with_numerator::<
+        // Claimed subsidy over coinbase, so an underclaimed coinbase stays within 0..=100%;
+        // the coinbase is read first.
+        let subsidy_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Sats,
             Sats,
-            Quotient<PartsPerMillion32>,
+            ReverseOperands<Quotient<PartsPerMillion32>>,
         >(
-            "fee_dominance",
+            "subsidy_share",
             version,
-            fees_source,
             coinbase.cumulative.sats.resolutions.height_source(),
-            window_starts,
-            mappings,
-        );
-        let subsidy_dominance = LazyFixedRatioCumulativeRolling::from_lazy_source::<OneMinusPpm>(
-            "subsidy_dominance",
-            version,
-            &fee_dominance,
-        );
-        let fee_to_subsidy = LazyFixedRatioRollingWindows::from_cumulative_ratio_with_numerator::<
-            Sats,
-            Sats,
-            Quotient<PartsPerMillion64>,
-        >(
-            "fee_to_subsidy",
-            version + Version::ONE,
-            fees_source,
             subsidy.cumulative.sats.resolutions.height_source(),
             window_starts,
             mappings,
         );
-
+        let fee_share = LazyPercentCumulativeRolling::from_lazy_source::<OneMinusPpm>(
+            "fee_share",
+            version,
+            &subsidy_share,
+        );
         Ok(Vecs {
             coinbase,
             subsidy,
             fees,
-            output_volume: EagerVec::import(db, "output_volume", version)?,
-            unclaimed: ValuePerBlockCumulative::import(db, "unclaimed_rewards", version, mappings)?,
-            fee_dominance,
-            subsidy_dominance,
-            fee_to_subsidy,
+            unclaimed: ValuePerBlockCumulativeRolling::import(
+                db,
+                "unclaimed_rewards",
+                version,
+                mappings,
+                window_starts,
+            )?,
+            fee_share,
+            subsidy_share,
         })
     }
 }

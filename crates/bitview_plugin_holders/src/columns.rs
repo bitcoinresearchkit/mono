@@ -1,0 +1,214 @@
+use bitview_cohort::AgeAggregateId;
+use bitview_primitives::{CoinDays, Count, PartsPerMillionSigned32};
+use bitview_traversable::Traversable;
+use bitview_vecs::{CachedSeries, CumulativeState, import_cached, ops::Quotient};
+use brk_error::Result;
+use brk_types::{Cents, CentsSigned, Height, Sats, Version};
+use vecdb::{AnyVec, BinaryTransform, Database, ReadableVec, Rw, StorageMode, WritableVec};
+
+use crate::accounting::AccountingTotals;
+
+#[derive(Traversable)]
+pub(crate) struct Columns<M: StorageMode = Rw> {
+    pub supply: CachedSeries<Height, Sats, M>,
+    pub count: CachedSeries<Height, Count, M>,
+    pub spent_count: CachedSeries<Height, Count, M>,
+    pub volume_sats: CachedSeries<Height, Sats, M>,
+    pub volume_cents: CachedSeries<Height, Cents, M>,
+    pub volume_profit_sats: CachedSeries<Height, Sats, M>,
+    pub volume_profit_cents: CachedSeries<Height, Cents, M>,
+    pub volume_loss_sats: CachedSeries<Height, Sats, M>,
+    pub volume_loss_cents: CachedSeries<Height, Cents, M>,
+    pub adjusted_volume: CachedSeries<Height, Cents, M>,
+    pub adjusted_value_destroyed: CachedSeries<Height, Cents, M>,
+    pub cdd: CachedSeries<Height, CoinDays, M>,
+    pub cap: CachedSeries<Height, Cents, M>,
+    pub profit: CachedSeries<Height, Cents, M>,
+    pub loss: CachedSeries<Height, Cents, M>,
+    pub net_pnl: CachedSeries<Height, CentsSigned, M>,
+    pub value_destroyed: CachedSeries<Height, Cents, M>,
+    pub unrealized_profit: CachedSeries<Height, Cents, M>,
+    pub unrealized_loss: CachedSeries<Height, Cents, M>,
+    pub supply_profit: CachedSeries<Height, Sats, M>,
+    pub supply_loss: CachedSeries<Height, Sats, M>,
+    pub price: CachedSeries<Height, Cents, M>,
+    pub capitalized_price: CachedSeries<Height, Cents, M>,
+    pub gross_pnl: CachedSeries<Height, Cents, M>,
+    pub peak_regret: CachedSeries<Height, Cents, M>,
+    pub unrealized_net_pnl: CachedSeries<Height, CentsSigned, M>,
+    pub nupl: CachedSeries<Height, PartsPerMillionSigned32, M>,
+    pub unrealized_gross_pnl: CachedSeries<Height, Cents, M>,
+    pub cap_profit: CachedSeries<Height, Cents, M>,
+    pub cap_loss: CachedSeries<Height, Cents, M>,
+    peak: M::WriteOnly<CumulativeState<Cents>>,
+}
+impl Columns {
+    pub fn import(db: &Database, id: AgeAggregateId, version: Version) -> Result<Self> {
+        Ok(Self {
+            supply: import_cached(db, &id.metric_name("supply_sats"), version)?,
+            count: import_cached(db, &id.metric_name("utxo_count"), version)?,
+            spent_count: import_cached(
+                db,
+                &id.metric_name("spent_utxo_count_cumulative"),
+                version,
+            )?,
+            volume_sats: import_cached(
+                db,
+                &id.metric_name("transfer_volume_cumulative_sats"),
+                version,
+            )?,
+            volume_cents: import_cached(
+                db,
+                &id.metric_name("transfer_volume_cumulative_cents"),
+                version,
+            )?,
+            volume_profit_sats: import_cached(
+                db,
+                &id.metric_name("transfer_volume_in_profit_cumulative_sats"),
+                version,
+            )?,
+            volume_profit_cents: import_cached(
+                db,
+                &id.metric_name("transfer_volume_in_profit_cumulative_cents"),
+                version,
+            )?,
+            volume_loss_sats: import_cached(
+                db,
+                &id.metric_name("transfer_volume_in_loss_cumulative_sats"),
+                version,
+            )?,
+            volume_loss_cents: import_cached(
+                db,
+                &id.metric_name("transfer_volume_in_loss_cumulative_cents"),
+                version,
+            )?,
+            adjusted_volume: import_cached(
+                db,
+                &id.metric_name("adjusted_value_created_cumulative_cents"),
+                version,
+            )?,
+            adjusted_value_destroyed: import_cached(
+                db,
+                &id.metric_name("adjusted_value_destroyed_cumulative_cents"),
+                version,
+            )?,
+            cdd: import_cached(
+                db,
+                &id.metric_name("coindays_destroyed_cumulative"),
+                version,
+            )?,
+            cap: import_cached(db, &id.metric_name("realized_cap_cents"), version)?,
+            profit: import_cached(
+                db,
+                &id.metric_name("realized_profit_cumulative_cents"),
+                version,
+            )?,
+            loss: import_cached(
+                db,
+                &id.metric_name("realized_loss_cumulative_cents"),
+                version,
+            )?,
+            net_pnl: import_cached(
+                db,
+                &id.metric_name("net_realized_pnl_cumulative_cents"),
+                version,
+            )?,
+            value_destroyed: import_cached(
+                db,
+                &id.metric_name("value_destroyed_cumulative_cents"),
+                version,
+            )?,
+            unrealized_profit: import_cached(
+                db,
+                &id.metric_name("unrealized_profit_cents"),
+                version,
+            )?,
+            unrealized_loss: import_cached(db, &id.metric_name("unrealized_loss_cents"), version)?,
+            supply_profit: import_cached(db, &id.metric_name("supply_in_profit_sats"), version)?,
+            supply_loss: import_cached(db, &id.metric_name("supply_in_loss_sats"), version)?,
+            price: import_cached(
+                db,
+                &id.metric_name("cost_basis_per_coin_avg_cents"),
+                version,
+            )?,
+            capitalized_price: import_cached(
+                db,
+                &id.metric_name("cost_basis_per_dollar_avg_cents"),
+                version,
+            )?,
+            gross_pnl: import_cached(
+                db,
+                &id.metric_name("gross_realized_pnl_cumulative_cents"),
+                version,
+            )?,
+            peak_regret: import_cached(
+                db,
+                &id.metric_name("realized_peak_regret_cumulative_cents"),
+                version,
+            )?,
+            unrealized_net_pnl: import_cached(
+                db,
+                &id.metric_name("net_unrealized_pnl_cents"),
+                version,
+            )?,
+            nupl: import_cached(db, &id.metric_name("nupl_ppm"), version + Version::ONE)?,
+            unrealized_gross_pnl: import_cached(
+                db,
+                &id.metric_name("gross_unrealized_pnl_cents"),
+                version,
+            )?,
+            cap_profit: import_cached(
+                db,
+                &id.metric_name("realized_cap_in_profit_cents"),
+                version,
+            )?,
+            cap_loss: import_cached(db, &id.metric_name("realized_cap_in_loss_cents"), version)?,
+            peak: Default::default(),
+        })
+    }
+    pub fn push(&mut self, d: &AccountingTotals, spot: Cents) {
+        let peak = self.peak.accumulate(
+            self.peak_regret.len(),
+            || self.peak_regret.collect_last(),
+            |v| *v += d.peak_regret_raw.to_cents(),
+        );
+        self.supply.push(d.supply);
+        self.count.push(d.count);
+        self.spent_count.push(d.spent_count);
+        self.volume_sats.push(d.volume_sats);
+        self.volume_cents.push(d.volume_cents);
+        self.volume_profit_sats.push(d.volume_profit_sats);
+        self.volume_profit_cents.push(d.volume_profit_cents);
+        self.volume_loss_sats.push(d.volume_loss_sats);
+        self.volume_loss_cents.push(d.volume_loss_cents);
+        self.adjusted_volume.push(d.adjusted_volume);
+        self.adjusted_value_destroyed
+            .push(d.adjusted_value_destroyed);
+        self.cdd.push(d.cdd);
+        // From the exact sum, rounded once (the bands' rounded caps would add their errors).
+        self.cap.push(d.cap_raw.to_cents());
+        self.profit.push(d.profit);
+        self.loss.push(d.loss);
+        self.net_pnl.push(d.net_pnl);
+        self.value_destroyed.push(d.value_destroyed);
+        self.unrealized_profit.push(d.unrealized_profit);
+        self.unrealized_loss.push(d.unrealized_loss);
+        self.supply_profit.push(d.supply_profit);
+        self.supply_loss.push(d.supply_loss);
+        self.price.push(d.cap_raw.realized_price(d.supply));
+        self.capitalized_price
+            .push(d.capitalized_cap_raw.capitalized_price(d.cap_raw));
+        self.gross_pnl.push(d.profit + d.loss);
+        self.peak_regret.push(peak);
+        let net_pnl =
+            CentsSigned::new(d.unrealized_profit.inner() as i64 - d.unrealized_loss.inner() as i64);
+        self.unrealized_net_pnl.push(net_pnl);
+        self.nupl
+            .push(Quotient::apply(net_pnl, d.supply.value_at(spot)));
+        self.unrealized_gross_pnl
+            .push(d.unrealized_profit + d.unrealized_loss);
+        // The bands' capitals, each rounded once from its exact sum.
+        self.cap_profit.push(d.capital_profit);
+        self.cap_loss.push(d.capital_loss);
+    }
+}

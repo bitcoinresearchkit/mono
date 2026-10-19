@@ -1,12 +1,3 @@
-//! Code generators for client libraries.
-//!
-//! Each client has its own submodule. Language clients use focused files:
-//! - `types.rs` - Type definitions
-//! - `client.rs` - Base client and leaf accessors
-//! - `tree.rs` - Series tree, rendered from the shared model
-//! - `api.rs` - API method generation
-//! - `mod.rs` - Entry point
-
 use std::{fmt::Write, fs, io, path::Path};
 
 mod cli;
@@ -46,13 +37,16 @@ pub(crate) fn normalize_return_type(return_type: &str) -> String {
     result
 }
 
-/// Write content to a file only if it differs from existing content.
-/// Preserves mtime when unchanged, avoiding unnecessary cargo rebuilds.
+/// Write `content` to `path`, creating its parent directories, unless the file already holds it:
+/// an unchanged file keeps its mtime, avoiding needless cargo rebuilds.
 pub(crate) fn write_if_changed(path: &Path, content: &str) -> io::Result<()> {
     if let Ok(existing) = fs::read_to_string(path)
         && existing == content
     {
         return Ok(());
+    }
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
     }
     fs::write(path, content)
 }

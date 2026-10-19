@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use bitview_compute::prepare_computed;
+use bitview_plugin_indexer::overwritten_output;
 use bitview_primitives::{SupplyState, TxOutIndex};
 use bitview_vecs::CachedSeries;
 use brk_error::{OptionData, Result};
@@ -11,7 +12,7 @@ use vecdb::{
     AnyStoredVec, AnyVec, Bytes, BytesVec, OverflowVec, ReadableVec, VecIndex, WritableVec,
 };
 
-use crate::overwritten_output;
+use crate::STORAGE;
 
 pub(crate) fn compute_sats(
     target: &mut CachedSeries<Height, Sats>,
@@ -26,27 +27,30 @@ pub(crate) fn compute_sats(
     exit: &Exit,
 ) -> Result<()> {
     let (output_types, values) = output_data;
-    let version = first_txout.version() + output_types.version() + values.version();
-    let end = range.end.min(first_txout.len());
+    // The producer's own version and its inputs': a bump of either rebuilds the journal.
+    let version = STORAGE.schema_version()
+        + first_txout.version()
+        + output_types.version()
+        + values.version();
+    let end = range.end;
     let start = {
         let _lock = exit.lock();
         created.validate_version(u32::from(version).into())?;
         let start = prepare_computed(
             [target as &mut dyn AnyStoredVec],
             version,
-            range.start.min(end).min(created.end()),
+            range.start.min(created.end()),
             exit,
         )?;
         created.truncate(start)?;
         start
     };
     if start < end {
-        let mut first_txout = first_txout.cursor();
-        first_txout.advance(start);
+        // Bounded reads: an update of a few blocks reads only their boundaries and values.
+        let mut first_txout = first_txout.bounded_cursor_at(start, end + 1);
         let mut output_index = first_txout.next().data()?.to_usize();
         let value_len = values.len();
-        let mut values = values.cursor();
-        values.advance(output_index);
+        let mut values = values.bounded_cursor_at(output_index, value_len);
         let mut output_types = output_types.range_cursor_at(output_index, value_len);
         let mut cumulative = target.collect_last().unwrap_or_default();
         for h in start..end {

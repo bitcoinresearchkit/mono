@@ -1,0 +1,34 @@
+use bitview_compute::FixedRatio;
+use bitview_primitives::Percent;
+use bitview_traversable::Traversable;
+use brk_types::{Height, Version};
+use derive_more::{Deref, DerefMut};
+use vecdb::{LazyVec, ReadableCloneableVec, VecValue};
+
+use crate::{ops::FixedToPercent, shapes::PercentViews};
+
+/// Height-indexed fixed-point and percentage views without derived resolutions.
+#[derive(Clone, Deref, DerefMut, Traversable)]
+pub struct LazyPercentVec<B: FixedRatio, S: VecValue>(
+    pub PercentViews<LazyVec<Height, B, S>, LazyVec<Height, Percent, B>>,
+);
+
+impl<B: FixedRatio, S: VecValue> LazyPercentVec<B, S> {
+    pub fn from_indexed_source(
+        name: &str,
+        version: Version,
+        source: &impl ReadableCloneableVec<Height, S>,
+        compute: fn(Height, S) -> B,
+    ) -> Self {
+        let fixed = LazyVec::new(
+            &format!("{name}_{}", B::SUFFIX),
+            version,
+            source.read_only_boxed_clone(),
+            compute,
+        );
+        let percent =
+            LazyVec::transformed::<FixedToPercent>(name, version, fixed.read_only_boxed_clone());
+
+        Self(PercentViews { fixed, percent })
+    }
+}

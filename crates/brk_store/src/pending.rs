@@ -40,23 +40,12 @@ where
                 None
             }
             Self::Sequential(changes) => {
-                let mut pending = None;
-                for change in changes {
+                Item::reduce(changes.iter().filter(|change| change.key() == key)).map(|change| {
                     match change {
-                        Item::Value {
-                            key: change_key,
-                            value,
-                        } if change_key == key => pending = Some(Some(value)),
-                        Item::Tomb(change_key) if change_key == key => {
-                            pending = match pending {
-                                Some(Some(_)) => None,
-                                _ => Some(None),
-                            };
-                        }
-                        _ => {}
+                        Item::Value { value, .. } => Some(value),
+                        Item::Tomb(_) => None,
                     }
-                }
-                pending
+                })
             }
         }
     }
@@ -65,7 +54,12 @@ where
     pub fn insert(&mut self, key: K, value: V) {
         match self {
             Self::Hashed { puts, dels } => {
-                let _ = dels.is_empty() || dels.remove(&key);
+                // A key deleted and put again in one batch would be a plain value over the stored one,
+                // which a later weak delete would bring back; callers never do it (ingest rejects it).
+                debug_assert!(
+                    dels.is_empty() || !dels.contains(&key),
+                    "put after a deletion in pending store changes"
+                );
                 puts.insert(key, value);
             }
             Self::Sequential(changes) => changes.push(Item::Value { key, value }),

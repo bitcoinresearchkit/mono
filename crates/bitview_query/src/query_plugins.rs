@@ -1,15 +1,13 @@
 #[cfg(feature = "chain")]
+use bitview_plugin_addresses::{HasAddresses, Vecs as Addresses};
+#[cfg(feature = "urpd")]
+use bitview_plugin_age::{HasAge, Vecs as Age};
+#[cfg(feature = "chain")]
 use bitview_plugin_blocks::{HasBlocks, Vecs as Blocks};
 #[cfg(feature = "urpd")]
 use bitview_plugin_coinflow::{HasCoinflow, Vecs as Coinflow};
 #[cfg(feature = "urpd")]
 use bitview_plugin_cointime::{HasCointime, Vecs as Cointime};
-#[cfg(feature = "chain")]
-use bitview_plugin_distribution_addresses::{
-    HasDistributionAddresses, Vecs as DistributionAddresses,
-};
-#[cfg(feature = "urpd")]
-use bitview_plugin_distribution_age::{HasDistributionAge, Vecs as DistributionAge};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 #[cfg(feature = "chain")]
 use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
@@ -26,17 +24,17 @@ use bitview_plugin_price::{HasPrice, Vecs as Price};
 #[cfg(feature = "chain")]
 use bitview_plugin_transactions::{HasTransactions, Vecs as Transactions};
 #[cfg(any(feature = "chain", feature = "urpd"))]
-use bitview_plugin_utxo_history::{HasUtxoHistory, Vecs as UtxoHistory};
+use bitview_plugin_utxo_set::{HasUtxoSet, Vecs as UtxoSet};
 use vecdb::Ro;
 
 use crate::QueryPluginSet;
 
 pub struct QueryPlugins<'a> {
     #[cfg(feature = "chain")]
-    pub(crate) distribution_addresses: &'a DistributionAddresses<Ro>,
+    pub(crate) addresses: &'a Addresses<Ro>,
     pub(crate) indexer: &'a Indexer<Ro>,
     #[cfg(feature = "urpd")]
-    pub(crate) distribution_age: &'a DistributionAge<Ro>,
+    pub(crate) age: &'a Age<Ro>,
     #[cfg(any(feature = "series", feature = "price"))]
     pub(crate) mappings: &'a Mappings<Ro>,
     #[cfg(feature = "chain")]
@@ -48,7 +46,7 @@ pub struct QueryPlugins<'a> {
     #[cfg(feature = "chain")]
     pub(crate) outputs: &'a Outputs<Ro>,
     #[cfg(any(feature = "chain", feature = "urpd"))]
-    pub(crate) utxo_history: &'a UtxoHistory<Ro>,
+    pub(crate) utxo_set: &'a UtxoSet<Ro>,
     #[cfg(feature = "chain")]
     pub(crate) pools: &'a Pools<Ro>,
     #[cfg(feature = "price")]
@@ -71,9 +69,9 @@ impl<'a> QueryPlugins<'a> {
         Self {
             indexer: plugins.indexer(),
             #[cfg(feature = "chain")]
-            distribution_addresses: plugins.distribution_addresses(),
+            addresses: plugins.addresses(),
             #[cfg(feature = "urpd")]
-            distribution_age: plugins.distribution_age(),
+            age: plugins.age(),
             #[cfg(any(feature = "series", feature = "price"))]
             mappings: plugins.mappings(),
             #[cfg(feature = "chain")]
@@ -85,7 +83,7 @@ impl<'a> QueryPlugins<'a> {
             #[cfg(feature = "chain")]
             outputs: plugins.outputs(),
             #[cfg(any(feature = "chain", feature = "urpd"))]
-            utxo_history: plugins.utxo_history(),
+            utxo_set: plugins.utxo_set(),
             #[cfg(feature = "chain")]
             pools: plugins.pools(),
             #[cfg(feature = "price")]

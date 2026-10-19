@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 /// First height the oracle computes on-chain, with the slow cold-start EMA
-/// ([`slow`](Config::slow)). Below it, prices come from
+/// ([`Config::for_height`]). Below it, prices come from
 /// [`pre_oracle_prices_from`](crate::pre_oracle_prices_from).
 pub const START_HEIGHT_SLOW: usize = 340_000;
 
@@ -15,7 +15,7 @@ pub const START_HEIGHT_FAST: usize = 508_000;
 pub struct Config {
     /// EMA decay: 2/(N+1) where N is span in blocks. 2/7 = 6-block span.
     pub(crate) alpha: f64,
-    /// Ring buffer depth. 12 blocks for deterministic convergence at any start height.
+    /// Ring buffer depth: the EMA depends on these last blocks only (12 by default).
     pub window_size: usize,
     /// Search window bins below/above previous estimate. Asymmetric for log-scale.
     pub(crate) search_below: usize,
@@ -55,7 +55,7 @@ impl Config {
         }
     }
 
-    /// Config for `height`: [`slow`](Self::slow) below [`START_HEIGHT_FAST`], else
+    /// Config for `height`: the slow cold-start config below [`START_HEIGHT_FAST`], else
     /// [`default`](Self::default).
     pub fn for_height(height: usize) -> Self {
         if height < START_HEIGHT_FAST {

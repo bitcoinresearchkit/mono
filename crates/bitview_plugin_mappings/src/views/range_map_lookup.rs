@@ -20,11 +20,11 @@ pub struct RangeMapLookupVec<I: VecIndex, T: VecIndex + VecValue> {
 
 impl<I: VecIndex, T: VecIndex + VecValue> RangeMapLookupVec<I, T> {
     pub(crate) fn new(
-        mapping: &SharedRangeMap<I, T>,
+        mapping: SharedRangeMap<I, T>,
         source: &(impl ReadableCloneableVec<I, T> + ?Sized),
     ) -> Self {
         Self {
-            mapping: mapping.clone(),
+            mapping,
             source: source.read_only_boxed_clone(),
         }
     }
@@ -36,7 +36,7 @@ impl<I: VecIndex, T: VecIndex + VecValue> RangeMapLookupVec<I, T> {
         mut fold: impl FnMut(B, T) -> Result<B, E>,
     ) -> Result<B, E> {
         let len = self.visible_len();
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let mut cursor = mapping.cursor();
         indices
             .into_iter()
@@ -63,24 +63,24 @@ impl<I: VecIndex, T: VecIndex + VecValue> AnyVec for RangeMapLookupVec<I, T> {
         self.source.len()
     }
 
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable()
+    }
+
     fn visible_len(&self) -> usize {
         self.source.visible_len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        self.source.index_type_to_string()
+    fn index_type_name(&self) -> &'static str {
+        self.source.index_type_name()
     }
 
-    fn value_type_to_size_of(&self) -> usize {
-        self.source.value_type_to_size_of()
+    fn value_size(&self) -> usize {
+        self.source.value_size()
     }
 
-    fn value_type_to_string(&self) -> &'static str {
-        self.source.value_type_to_string()
-    }
-
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
+    fn value_type_name(&self) -> &'static str {
+        self.source.value_type_name()
     }
 }
 
@@ -99,21 +99,6 @@ impl<I: VecIndex, T: VecIndex + VecValue> ReadableVec<I, T> for RangeMapLookupVe
         self.fold_range_at(from, to, (), |(), value| each(value));
     }
 
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        match self.try_fold_indices(from..to, init, |acc, value| {
-            Ok::<_, Infallible>(fold(acc, value))
-        }) {
-            Ok(acc) => acc,
-            Err(error) => match error {},
-        }
-    }
-
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,
@@ -128,7 +113,7 @@ impl<I: VecIndex, T: VecIndex + VecValue> ReadableVec<I, T> for RangeMapLookupVe
         if index >= self.visible_len() {
             return None;
         }
-        self.mapping.read().get_shared(I::from(index))
+        self.mapping.load().get(I::from(index))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {

@@ -1,9 +1,8 @@
 use bitview_compute::NumericValue;
-use bitview_transforms::Convert;
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, Dollars, Sats, SatsSigned, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, Rw};
+use vecdb::{Convert, Database, Rw};
 
 use crate::{IndexSources, LazyPerBlock, PerBlock, Value};
 

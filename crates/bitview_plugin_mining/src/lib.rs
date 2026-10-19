@@ -16,23 +16,15 @@ use vecdb::{Database, Rw, StorageMode};
 use hashrate::Vecs as HashrateVecs;
 use rewards::Vecs as RewardsVecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mining"), Version::new(10));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mining"), Version::new(11));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
     pub rewards: RewardsVecs<M>,
     pub hashrate: HashrateVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
 }

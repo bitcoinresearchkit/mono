@@ -19,7 +19,7 @@ no per-state projection implementation is needed.
 
 The crate implements traversal for vecdb's stored, mutable,
 overflow, cached, and lazy vector families, plus common containers such as
-`Box`, `Option`, and `BTreeMap`. Backend-specific implementations
+`Box` and `BTreeMap`. Backend-specific implementations
 are enabled with the matching `pco`, `zerocopy`, `lz4`, or `zstd` feature.
 
 See [`bitview_traversable_derive`](../bitview_traversable_derive) for supported

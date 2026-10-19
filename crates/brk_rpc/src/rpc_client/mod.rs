@@ -1,10 +1,10 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 #[cfg(feature = "async")]
 use brk_error::Error;
 use brk_error::Result;
 #[cfg(feature = "async")]
-use corepc_jsonrpc::error::Error as ErrorError;
+use corepc_jsonrpc::error::Error as JsonRpcError;
 
 use crate::Auth;
 
@@ -12,6 +12,7 @@ use crate::Auth;
 use crate::AsyncClient;
 
 mod block_template;
+mod http;
 mod inner;
 mod mempool_entry;
 mod mempool_state;
@@ -26,7 +27,7 @@ pub use mempool_state::MempoolState;
 /// infrastructure error whose submission outcome may be unknown.
 #[cfg(feature = "async")]
 pub fn transaction_error(error: Error) -> Error {
-    if let Error::CorepcRPC(ErrorError::Rpc(rpc)) = &error
+    if let Error::CorepcRPC(JsonRpcError::Rpc(rpc)) = &error
         && matches!(rpc.code, -22 | -25 | -26 | -27)
     {
         return Error::TxRejected(rpc.message.clone());
@@ -44,11 +45,6 @@ impl Client {
         self.0.asynchronous()
     }
     pub fn new(url: &str, auth: Auth) -> Result<Self> {
-        Ok(Self(Arc::new(ClientInner::new(
-            url,
-            auth,
-            1_000_000,
-            Duration::from_secs(1),
-        )?)))
+        Ok(Self(Arc::new(ClientInner::new(url, auth)?)))
     }
 }

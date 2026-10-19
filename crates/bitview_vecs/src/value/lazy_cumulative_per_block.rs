@@ -1,6 +1,5 @@
-use bitview_transforms::Convert;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
-use vecdb::{Ident, ReadableCloneableVec};
+use vecdb::{Convert, Ident, ReadableCloneableVec};
 
 use crate::{IndexSources, LazyPerBlock, Value};
 
@@ -12,7 +11,7 @@ pub type LazyCumulativeValuePerBlock = Value<
 >;
 
 impl LazyCumulativeValuePerBlock {
-    pub(crate) fn from_sources(
+    pub fn from_sources(
         name: &str,
         version: Version,
         cumulative_sats: &(impl ReadableCloneableVec<Height, Sats> + ?Sized),

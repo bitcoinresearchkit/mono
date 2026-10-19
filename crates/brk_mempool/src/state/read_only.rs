@@ -62,13 +62,18 @@ impl ReadOnlyState {
         Some(next)
     }
 
+    /// The chain tip the published pool is anchored to, once one is published.
+    pub fn tip(&self) -> Option<BlockHash> {
+        self.pool.as_ref().map(|pool| pool.tip)
+    }
+
     pub(crate) fn pool(&self) -> Result<&Pool> {
         self.pool.as_deref().ok_or(Error::StateUpdating)
     }
 
     /// Last valid template projection; its source may be newer than retained membership.
-    pub(crate) fn snapshot(&self) -> Arc<Snapshot> {
-        self.projection.clone()
+    pub(crate) fn snapshot(&self) -> &Arc<Snapshot> {
+        &self.projection
     }
 
     pub(crate) fn historical_block0(&self, hash: NextBlockHash) -> Option<Arc<[Arc<Transaction>]>> {

@@ -98,16 +98,6 @@ Get keys as index numbers (alias for indexes)
 
 ***
 
-### stamp
-
-> **stamp**: `string`
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:1691](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1691)
-
-ISO 8601 timestamp of when the response was generated
-
-***
-
 ### start
 
 > **start**: `number`

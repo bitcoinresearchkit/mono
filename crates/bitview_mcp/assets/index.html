@@ -10,7 +10,7 @@
       content="{{PAGE_DESCRIPTION}}"
     />
     <link rel="canonical" href="{{CANONICAL_URL}}" />
-    <link rel="icon" href="{{PUBLIC_URL}}logo.png" type="image/png" sizes="512x512" />
+    <link rel="icon" href="{{PUBLIC_URL}}{{LOGO_PATH}}" type="image/png" sizes="512x512" />
     <title>{{PAGE_TITLE}}</title>
     <style>
       @font-face {
@@ -506,10 +506,6 @@
           grid-template-columns: 1fr;
         }
 
-        .section-index {
-          position: static;
-        }
-
         .steps li {
           grid-template-columns: 2.5rem minmax(0, 1fr);
         }
@@ -607,8 +603,6 @@
           <h2 id="connect-title">Give your AI one URL.</h2>
           <p class="section-intro">
             Add {{DISPLAY_NAME}} as a remote MCP server in any compatible client.
-            There is no account to create, key to store, or authentication flow
-            to run.
           </p>
           <ol class="steps">
             <li>
@@ -664,7 +658,7 @@
             </li>
             <li>
               <h3>Market</h3>
-              <p>Current and historical Bitcoin prices across supported currencies.</p>
+              <p>Current and historical Bitcoin prices in USD.</p>
             </li>
             <li>
               <h3>On-chain</h3>
@@ -733,9 +727,7 @@
               <h3>Stability</h3>
               <p>
                 Deprecated routes identify their replacements and sunset dates.
-                Series names may change during active development. A series
-                response's <code>stamp</code> is its generation time, not the
-                time represented by its final value.
+                Series names may change during active development.
               </p>
             </li>
           </ul>
@@ -759,9 +751,8 @@
         <div class="section-body">
           <h2 id="resources-title">Open infrastructure.</h2>
           <p class="section-intro">
-            Bitview is the open-source, self-hostable product behind this MCP
-            server, REST API, and its generated clients. It is built from
-            Bitcoin Research Kit's lower-level Bitcoin data primitives.
+            Bitview can be self-hosted and provides generated Rust, JavaScript,
+            and Python clients.
           </p>
           <nav class="resources" aria-label="Developer resources">
             <a href="{{API_URL}}/api">API documentation</a>
@@ -786,7 +777,7 @@
         <header class="policy-header">
           <p class="eyebrow">Policy</p>
           <h1 id="privacy-title">Privacy.</h1>
-          <p class="policy-meta">Last updated August 15, 2026</p>
+          <p class="policy-meta">Last updated October 19, 2026</p>
         </header>
 
         <div class="policy-body">
@@ -814,9 +805,9 @@
           <section>
             <h2>Application logs</h2>
             <p>
-              At the default production log level, startup logs contain the local
-              bind address and tool count. Successful tool calls log the requested
-              MCP tool name and upstream cache status and age. The <code>bitview_mcp</code>
+              At the default log level, startup logs contain the local bind address
+              and tool count; tool calls are not logged. At debug level, each tool
+              call logs its MCP tool name and upstream cache status and age. The <code>bitview_mcp</code>
               application does not log tool arguments, request bodies, response
               bodies, IP addresses, cookies, or user identifiers during normal
               successful request processing.
@@ -841,8 +832,7 @@
               Tool calls are translated into read-only HTTP GET requests to the
               configured Bitview REST API at <a href="{{API_URL}}">{{API_URL}}</a>.
               The API receives those requests and may maintain its own operational
-              logs. The MCP service cannot sign or broadcast transactions, control
-              wallets, trade, or transfer bitcoin.
+              logs.
             </p>
           </section>
 

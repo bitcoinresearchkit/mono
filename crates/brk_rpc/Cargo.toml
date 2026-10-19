@@ -1,6 +1,6 @@
 [package]
 name = "brk_rpc"
-description = "A thin wrapper around Bitcoin Core's JSON-RPC"
+description = "Bitcoin Core JSON-RPC clients with retries and cookie refresh"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,10 +8,10 @@ homepage.workspace = true
 repository.workspace = true
 
 [features]
-async = ["dep:base64", "dep:http-body-util", "dep:hyper", "dep:hyper-util", "dep:tokio"]
+async = ["dep:http-body-util", "dep:hyper", "dep:hyper-util", "dep:tokio"]
 
 [dependencies]
-base64 = { version = "0.23", optional = true }
+base64 = "0.23"
 http-body-util = { version = "0.1", optional = true }
 hyper = { version = "1", features = ["client", "http1"], optional = true }
 hyper-util = { version = "0.1", features = ["tokio"], optional = true }

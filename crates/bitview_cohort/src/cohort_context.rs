@@ -1,19 +1,18 @@
 use super::CohortId;
 
-/// Context for cohort naming - determines whether a prefix is needed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CohortContext {
     /// UTXO-based cohorts: uses "utxos_" prefix for age/amount cohorts.
     Utxo,
-    /// Address-based cohorts: uses "addrs_" prefix for amount cohorts.
-    Addr,
+    /// Address balance cohorts: uses "balance_" prefix for amount cohorts.
+    Balance,
 }
 
 impl CohortContext {
     pub(crate) fn prefix(&self) -> &'static str {
         match self {
             CohortContext::Utxo => "utxos",
-            CohortContext::Addr => "addrs",
+            CohortContext::Balance => "balance",
         }
     }
 
@@ -21,11 +20,8 @@ impl CohortContext {
         format!("{}_{}", self.prefix(), name)
     }
 
-    /// Build the canonical name, adding a context prefix only for age/amount cohorts.
-    ///
-    /// Prefix rules:
-    /// - No prefix: `All`, `Term`, `Epoch`, `Class`, `Entry`, `Type`
-    /// - Context prefix: `Age`, `Amount`
+    /// The canonical name: `Age` and `Amount` cohorts get the context prefix, others use their bare
+    /// names.
     pub fn full_name(&self, id: CohortId) -> String {
         match id {
             CohortId::Age(_) | CohortId::Amount(_) => self.prefixed(id.name()),
@@ -34,9 +30,9 @@ impl CohortContext {
     }
 
     pub fn metric_name(&self, id: CohortId, metric: &str) -> String {
-        if id.is_all() {
-            return metric.to_owned();
+        match id {
+            CohortId::All => metric.to_owned(),
+            _ => format!("{}_{metric}", self.full_name(id)),
         }
-        format!("{}_{metric}", self.full_name(id))
     }
 }

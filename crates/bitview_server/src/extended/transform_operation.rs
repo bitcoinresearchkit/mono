@@ -8,30 +8,8 @@ use schemars::JsonSchema;
 #[cfg(feature = "chain")]
 use crate::extended::TypedText;
 
-pub trait TransformResponseExtended<'t> {
+pub trait TransformResponseExtended {
     fn error_response<const STATUS: u16>(self, description: &str) -> Self;
-    #[cfg(feature = "chain")]
-    fn general_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn addrs_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn blocks_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn mining_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn fees_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn mempool_tag(self) -> Self;
-    #[cfg(feature = "price")]
-    fn oracle_tag(self) -> Self;
-    #[cfg(feature = "chain")]
-    fn transactions_tag(self) -> Self;
-    fn server_tag(self) -> Self;
-    #[cfg(feature = "series")]
-    fn series_tag(self) -> Self;
-    #[cfg(feature = "urpd")]
-    fn urpd_tag(self) -> Self;
-
     /// Keep the REST operation public while excluding it from generated MCP tools.
     fn mcp_ignore(self) -> Self;
 
@@ -55,9 +33,6 @@ pub trait TransformResponseExtended<'t> {
     /// 200 with text/csv content type (adds CSV as alternative response format)
     #[cfg(feature = "series")]
     fn csv_response(self) -> Self;
-    /// 400
-    fn bad_request(self) -> Self;
-    /// 404
     #[cfg(any(
         feature = "chain",
         feature = "price",
@@ -65,17 +40,14 @@ pub trait TransformResponseExtended<'t> {
         feature = "urpd"
     ))]
     fn not_found(self) -> Self;
-    /// 304
     fn not_modified(self) -> Self;
-    /// 500
-    fn server_error(self) -> Self;
-    /// 504
-    fn gateway_timeout(self) -> Self;
-    /// 500, 503, 504
-    fn server_errors(self) -> Self;
+    /// 400, 500, 503, 504: every operation can reject its parameters (path-only ones reject any
+    /// query string), fail internally, be briefly unavailable (an updating state, an overload)
+    /// and run past the request deadline.
+    fn universal_errors(self) -> Self;
 }
 
-impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
+impl<'t> TransformResponseExtended for TransformOperation<'t> {
     fn error_response<const STATUS: u16>(self, description: &str) -> Self {
         self.response_with::<STATUS, Json<ErrorBody>, _>(|mut response| {
             if let Some(schema) = response.inner().content.shift_remove("application/json") {
@@ -86,60 +58,6 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
             }
             response.description(description)
         })
-    }
-
-    #[cfg(feature = "chain")]
-    fn general_tag(self) -> Self {
-        self.tag("General")
-    }
-
-    #[cfg(feature = "chain")]
-    fn addrs_tag(self) -> Self {
-        self.tag("Addresses")
-    }
-
-    #[cfg(feature = "chain")]
-    fn blocks_tag(self) -> Self {
-        self.tag("Blocks")
-    }
-
-    #[cfg(feature = "chain")]
-    fn mining_tag(self) -> Self {
-        self.tag("Mining")
-    }
-
-    #[cfg(feature = "chain")]
-    fn fees_tag(self) -> Self {
-        self.tag("Fees")
-    }
-
-    #[cfg(feature = "chain")]
-    fn mempool_tag(self) -> Self {
-        self.tag("Mempool")
-    }
-
-    #[cfg(feature = "price")]
-    fn oracle_tag(self) -> Self {
-        self.tag("Oracle")
-    }
-
-    #[cfg(feature = "chain")]
-    fn transactions_tag(self) -> Self {
-        self.tag("Transactions")
-    }
-
-    fn server_tag(self) -> Self {
-        self.tag("Server")
-    }
-
-    #[cfg(feature = "series")]
-    fn series_tag(self) -> Self {
-        self.tag("Series")
-    }
-
-    #[cfg(feature = "urpd")]
-    fn urpd_tag(self) -> Self {
-        self.tag("URPD")
     }
 
     fn json_response<R>(self) -> Self
@@ -179,7 +97,6 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
 
     #[cfg(feature = "series")]
     fn csv_response(mut self) -> Self {
-        // Add text/csv content type to existing 200 response
         if let Some(responses) = &mut self.inner_mut().responses
             && let Some(ReferenceOr::Item(response)) =
                 responses.responses.get_mut(&StatusCode::Code(200))
@@ -189,10 +106,6 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
                 .insert("text/csv".into(), MediaType::default());
         }
         self
-    }
-
-    fn bad_request(self) -> Self {
-        self.error_response::<400>("Invalid request parameters")
     }
 
     #[cfg(any(
@@ -207,21 +120,16 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
 
     fn not_modified(self) -> Self {
         self.response_with::<304, (), _>(|res| {
-            res.description("Not modified - content unchanged since last request")
+            res.description(
+                "Not modified: the request's validator matches the current representation",
+            )
         })
     }
 
-    fn server_error(self) -> Self {
-        self.error_response::<500>("Internal server error")
-    }
-
-    fn gateway_timeout(self) -> Self {
-        self.error_response::<504>("Request deadline exceeded")
-    }
-
-    fn server_errors(self) -> Self {
-        self.server_error()
+    fn universal_errors(self) -> Self {
+        self.error_response::<400>("Invalid request parameters")
+            .error_response::<500>("Internal server error")
             .error_response::<503>("Service temporarily unavailable")
-            .gateway_timeout()
+            .error_response::<504>("Request deadline exceeded")
     }
 }

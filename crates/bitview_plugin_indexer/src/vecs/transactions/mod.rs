@@ -1,19 +1,19 @@
-use bitview_primitives::{Boolean, Bytes32, TxInIndex, TxOutIndex, TxVersion};
-use bitview_traversable::Traversable;
+use bitview_primitives::{Bytes, Bytes32, Index40, TxInIndex, TxOutIndex, TxVersion};
+use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
-use brk_types::{BlkPosition, Height, RawLockTime, SigOps, TxIndex, Txid, Version, Weight};
-use rayon::prelude::*;
-use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode,
-    WritableVec,
+use brk_types::{
+    BlkPosition, Height, RawLockTime, SigOps, SigOps32, TxIndex, Txid, Version, Weight, Weight32,
 };
+use vecdb::{AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
 
 pub mod features;
 pub mod metadata;
+pub mod versions;
 
 pub use features::TransactionFeaturesVecs;
-pub use features::{TransactionCounts, TxFeatureFlags};
+pub use features::{BlockCount, FeatureVecs, FlagView, TransactionCounts, TxFeatureFlags};
 pub use metadata::TxMetadataVecs;
+pub use versions::VersionCountVecs;
 
 #[derive(Traversable)]
 pub struct TransactionsVecs<M: StorageMode = Rw> {
@@ -29,39 +29,28 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     /// versions; 255 represents every other version. The series includes
     /// coinbase transactions. Use individual raw transaction data to inspect
     /// the original version when this value is 255.
+    #[traversable(rename = "version")]
     pub tx_version: M::Stored<PcoVec<TxIndex, TxVersion>>,
     /// Raw transaction `nLockTime`. Values below 500,000,000 represent block
     /// heights and values at or above it represent Unix timestamps; zero
     /// disables absolute locktime. This does not account for whether input
     /// sequence numbers make the locktime effective.
+    #[traversable(rename = "locktime")]
     pub raw_locktime: M::Stored<PcoVec<TxIndex, RawLockTime>>,
     /// BIP-141 transaction weight in weight units: non-witness bytes count as
-    /// four weight units and witness bytes count as one. The transaction-index
-    /// series gives each transaction's value. Distribution series count every
-    /// transaction equally and include coinbase, either in the represented
-    /// block or the six-block window ending there; time-period indexes take the
-    /// value from the period's final block.
-    pub weight: M::Stored<PcoVec<TxIndex, Weight>>,
-    /// Total serialized size in bytes, including witness data. At `tx_index`,
-    /// this is the byte length of the transaction's consensus serialization. At
-    /// `height`, this is the entire block: its 80-byte header, transaction-count
-    /// CompactSize, and every serialized transaction.
-    pub total_size: M::Stored<PcoVec<TxIndex, Bytes32>>,
-    /// BIP-141 signature-operation cost. At `tx_index`, this is the indexed
-    /// transaction's cost; at `height`, it is the block total including
-    /// coinbase. Legacy scriptPubKey, scriptSig, and P2SH redeem-script sigops
-    /// cost four units; P2WPKH and P2WSH sigops cost one. This is a static count,
-    /// not the number of signatures executed. Tapscript sigops are excluded
-    /// because BIP-342 uses a separate per-input budget. The post-SegWit block
-    /// limit is 80,000 cost units.
-    pub total_sigop_cost: M::Stored<PcoVec<TxIndex, SigOps>>,
-    /// Whether at least one input has a sequence number below `0xfffffffe`, the
-    /// explicit opt-in RBF signal defined by BIP 125. This is a mechanical
-    /// sequence signal: it does not prove the transaction was replaceable or
-    /// replaced, does not include inherited signaling, and does not account for
-    /// full-RBF policy. Coinbase transactions are evaluated by the same sequence
-    /// rule.
-    pub is_explicitly_rbf: M::Stored<PcoVec<TxIndex, Boolean>>,
+    /// four weight units and witness bytes count as one.
+    pub weight: Compact<PcoVec<TxIndex, Weight32>, Weight, M>,
+    /// Serialized size in bytes, including witness data: the byte length of the
+    /// transaction's consensus serialization.
+    #[traversable(rename = "size")]
+    pub total_size: Compact<PcoVec<TxIndex, Bytes32>, Bytes, M>,
+    /// BIP-141 signature-operation cost: legacy scriptPubKey, scriptSig, and
+    /// P2SH redeem-script sigops cost four units; P2WPKH and P2WSH sigops cost
+    /// one. This is a static count, not the number of signatures executed.
+    /// Tapscript sigops are excluded because BIP-342 uses a separate per-input
+    /// budget.
+    #[traversable(rename = "sigop_cost")]
+    pub total_sigop_cost: Compact<PcoVec<TxIndex, SigOps32>, SigOps, M>,
     /// Global zero-based transaction-input index in canonical blockchain order.
     /// At `height`, this is where the block begins and equals the number of
     /// inputs in preceding blocks; at `tx_index`, it identifies the
@@ -71,7 +60,12 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     /// order. At `height`, this is where the block begins and equals the number
     /// of outputs in preceding blocks; at `tx_index`, it identifies the
     /// transaction's first output.
-    pub first_txout_index: M::Stored<BytesVec<TxIndex, TxOutIndex>>,
+    // Stored in 5 bytes per transaction.
+    pub first_txout_index: Compact<BytesVec<TxIndex, Index40<TxOutIndex>>, TxOutIndex, M>,
+    pub features: TransactionFeaturesVecs<M>,
+    /// Counts every transaction, including coinbase, by its signed 32-bit
+    /// Bitcoin transaction version.
+    pub versions: VersionCountVecs<M>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<TxIndex, BlkPosition>>,
 }
@@ -80,12 +74,12 @@ impl TransactionsVecs {
     pub fn split_for_finalize(
         &mut self,
     ) -> (
-        &mut BytesVec<TxIndex, TxOutIndex>,
+        &mut BytesVec<TxIndex, Index40<TxOutIndex>>,
         &mut PcoVec<TxIndex, TxInIndex>,
         TxMetadataVecs<'_>,
     ) {
         (
-            &mut self.first_txout_index,
+            &mut *self.first_txout_index,
             &mut self.first_txin_index,
             TxMetadataVecs {
                 tx_version: &mut self.tx_version,
@@ -94,7 +88,8 @@ impl TransactionsVecs {
                 weight: &mut self.weight,
                 total_size: &mut self.total_size,
                 total_sigop_cost: &mut self.total_sigop_cost,
-                is_explicitly_rbf: &mut self.is_explicitly_rbf,
+                features: &mut self.features,
+                versions: &mut self.versions,
             },
         )
     }
@@ -108,21 +103,23 @@ impl TransactionsVecs {
             weight,
             total_size,
             total_sigop_cost,
-            is_explicitly_rbf,
             first_txin_index,
             first_txout_index,
+            features,
+            versions,
             position,
         ) = parallel_import! {
             first_tx_index = PcoVec::import(db, "first_tx_index", version),
             txid = BytesVec::import(db, "txid", version),
             tx_version = PcoVec::import(db, "tx_version", version),
-            raw_locktime = PcoVec::import(db, "raw_locktime", version),
-            weight = PcoVec::import(db, "tx_weight", version),
-            total_size = PcoVec::import(db, "total_size", version),
-            total_sigop_cost = PcoVec::import(db, "total_sigop_cost", version),
-            is_explicitly_rbf = PcoVec::import(db, "is_explicitly_rbf", version),
+            raw_locktime = PcoVec::import(db, "tx_locktime", version),
+            weight = PcoVec::import(db, "tx_weight", version).map(Compact::new),
+            total_size = PcoVec::import(db, "tx_size", version).map(Compact::new),
+            total_sigop_cost = PcoVec::import(db, "tx_sigop_cost", version).map(Compact::new),
             first_txin_index = PcoVec::import(db, "first_txin_index", version),
-            first_txout_index = BytesVec::import(db, "first_txout_index", version),
+            first_txout_index = BytesVec::import(db, "first_txout_index", version).map(Compact::new),
+            features = TransactionFeaturesVecs::import(db, version),
+            versions = VersionCountVecs::import(db, version),
             position = PcoVec::import(db, "tx_position", version),
         };
         Ok(Self {
@@ -133,52 +130,12 @@ impl TransactionsVecs {
             weight,
             total_size,
             total_sigop_cost,
-            is_explicitly_rbf,
             first_txin_index,
             first_txout_index,
+            features,
+            versions,
             position,
         })
-    }
-
-    pub fn truncate(&mut self, height: Height, tx_index: TxIndex, stamp: Stamp) -> Result<()> {
-        self.first_tx_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.txid.truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.tx_version
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.raw_locktime
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.weight.truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.total_size
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.total_sigop_cost
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.is_explicitly_rbf
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.first_txin_index
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.first_txout_index
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        self.position
-            .truncate_if_needed_with_stamp(tx_index, stamp)?;
-        Ok(())
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.first_tx_index as &mut dyn AnyStoredVec,
-            &mut self.txid,
-            &mut self.tx_version,
-            &mut self.raw_locktime,
-            &mut self.weight,
-            &mut self.total_size,
-            &mut self.total_sigop_cost,
-            &mut self.is_explicitly_rbf,
-            &mut self.first_txin_index,
-            &mut self.first_txout_index,
-            &mut self.position,
-        ]
-        .into_par_iter()
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
@@ -187,14 +144,15 @@ impl TransactionsVecs {
             &self.txid,
             &self.tx_version,
             &self.raw_locktime,
-            &self.weight,
-            &self.total_size,
-            &self.total_sigop_cost,
-            &self.is_explicitly_rbf,
+            &*self.weight,
+            &*self.total_size,
+            &*self.total_sigop_cost,
             &self.first_txin_index,
-            &self.first_txout_index,
+            &*self.first_txout_index,
             &self.position,
         ]
         .into_iter()
+        .chain(self.features.iter_any())
+        .chain(self.versions.iter_any())
     }
 }

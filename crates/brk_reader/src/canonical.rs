@@ -12,24 +12,25 @@ pub struct CanonicalRange {
 }
 
 impl CanonicalRange {
-    pub fn walk(client: &Client, anchor: Option<&BlockHash>, tip: Height) -> Result<Self> {
+    /// `None` when `anchor` is off the best chain: even an empty range
+    /// (an orphan at the tip's height) must report the chain break.
+    pub fn walk(client: &Client, anchor: Option<&BlockHash>, tip: Height) -> Result<Option<Self>> {
         let start = match anchor {
-            Some(hash) => Height::from((client.get_block_header_info(hash)?.height + 1) as u64),
+            Some(hash) => {
+                let info = client.get_block_header_info(hash)?;
+                if info.confirmations <= 0 {
+                    return Ok(None);
+                }
+                Height::from((info.height + 1) as u64)
+            }
             None => Height::ZERO,
         };
         let mut range = Self::between(client, start, tip)?;
         range.anchor = anchor.cloned();
-        Ok(range)
+        Ok(Some(range))
     }
 
     pub fn between(client: &Client, start: Height, end: Height) -> Result<Self> {
-        if start > end {
-            return Ok(Self {
-                start,
-                anchor: None,
-                by_hash: FxHashMap::default(),
-            });
-        }
         let by_hash = client
             .get_block_hashes_range(*start, *end)?
             .into_iter()
@@ -41,6 +42,11 @@ impl CanonicalRange {
             anchor: None,
             by_hash,
         })
+    }
+
+    /// The block before the range, when it was resolved from one.
+    pub fn anchor(&self) -> Option<&BlockHash> {
+        self.anchor.as_ref()
     }
 
     pub fn len(&self) -> usize {

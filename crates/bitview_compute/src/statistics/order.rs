@@ -1,4 +1,15 @@
-use std::{array, mem};
+use std::mem;
+
+/// The 0-based rank of percentile `p` (0.0-1.0) among `len` sorted values: the nearest rank
+/// `max(0, ceil(len * p) - 1)`, the smallest value with at least `p` of the values at or below
+/// it, as the cost-basis percentiles take it. `p` counts in whole parts per million, so a
+/// product that lands on an integer stays exact.
+#[inline]
+pub fn nearest_rank(len: usize, p: f64) -> usize {
+    const PPM: u64 = 1_000_000;
+    let ppm = (p * PPM as f64).round() as u64;
+    ((len as u64 * ppm).div_ceil(PPM) as usize).saturating_sub(1)
+}
 
 /// Exact order-statistics multiset backed by sqrt-decomposed sorted blocks.
 ///
@@ -46,12 +57,8 @@ impl ExactOrderStats {
         stats
     }
 
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
     }
 
     pub fn insert(&mut self, value: f64) {
@@ -112,74 +119,13 @@ impl ExactOrderStats {
         true
     }
 
-    /// Extract a percentile (0.0-1.0) using linear interpolation.
-    #[inline]
-    pub(crate) fn percentile(&self, p: f64) -> f64 {
-        let len = self.len();
-        if len == 0 {
-            return 0.0;
-        }
-        if len == 1 {
-            return self.kth(0);
-        }
-        let rank = p * (len - 1) as f64;
-        let lo = rank.floor() as usize;
-        let hi = rank.ceil() as usize;
-        if lo == hi {
-            self.kth(lo)
-        } else {
-            let frac = rank - lo as f64;
-            self.kth(lo) * (1.0 - frac) + self.kth(hi) * frac
-        }
-    }
-
-    /// Extract multiple percentiles in a single pass through the sorted blocks.
-    /// Percentiles must be sorted ascending. Returns interpolated values.
-    pub fn percentiles(&self, ps: &[f64; 5]) -> [f64; 5] {
-        let len = self.len();
-        if len == 0 {
-            return [0.0; 5];
-        }
-        if len == 1 {
-            return [self.kth(0); 5];
-        }
-
-        let last = (len - 1) as f64;
-        let mut requests = [(0, 0); 10];
-        let mut fractions = [0.0; 5];
-
-        for (i, &p) in ps.iter().enumerate() {
-            let rank = p * last;
-            let lo = rank.floor() as usize;
-            let hi = rank.ceil() as usize;
-            requests[2 * i] = (lo, 2 * i);
-            requests[2 * i + 1] = (hi, 2 * i + 1);
-            fractions[i] = rank - lo as f64;
-        }
-        requests.sort_unstable_by_key(|request| request.0);
-
-        let ranks = requests.map(|request| request.0);
-        let mut sorted_values = [0.0; 10];
-        self.values_at(&ranks, &mut sorted_values);
-
-        let mut values = [0.0; 10];
-        for ((_, destination), value) in requests.into_iter().zip(sorted_values) {
-            values[destination] = value;
-        }
-        array::from_fn(|i| {
-            let fraction = fractions[i];
-            values[2 * i] * (1.0 - fraction) + values[2 * i + 1] * fraction
-        })
-    }
-
-    pub fn kth(&self, mut index: usize) -> f64 {
-        for block in &self.blocks {
-            if index < block.len() {
-                return block[index];
-            }
-            index -= block.len();
-        }
-        unreachable!("order-statistics index out of bounds")
+    /// Percentiles (0.0-1.0, ascending) at the nearest rank ([`nearest_rank`]),
+    /// resolved in one pass. The set must not be empty.
+    pub fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
+        let ranks = ps.map(|p| nearest_rank(self.len, p));
+        let mut out = [0.0; N];
+        self.values_at(&ranks, &mut out);
+        out
     }
 
     /// Resolve sorted ranks in one pass through the underlying blocks.

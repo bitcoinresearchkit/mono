@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_cointime"
-description = "The cointime analytics plugin for Bitview"
+description = "Cointime metrics: coinblocks, liveliness, active and vaulted supply, caps and prices"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,18 +8,15 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
-bitview_plugin_distribution_common = { workspace = true }
+bitview_distribution = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_urpd = { workspace = true }
-bitview_transforms = { workspace = true }
-bitview_collections = { workspace = true, features = ["storage"] }
 bitview_vecs = { workspace = true }
 brk_exit = { workspace = true }
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
-bitview_plugin_blocks = { workspace = true }
-bitview_plugin_distribution_aggregated = { workspace = true }
-bitview_plugin_distribution_age = { workspace = true }
+bitview_plugin_holders = { workspace = true }
+bitview_plugin_age = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_price = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }

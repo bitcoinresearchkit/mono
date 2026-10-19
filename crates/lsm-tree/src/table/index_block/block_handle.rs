@@ -2,7 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::io::{Cursor, Read, Seek, Write};
+use std::io::{Cursor, Read, Write};
 
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use varint_rs::{VarintReader, VarintWriter};
@@ -11,7 +11,7 @@ use crate::{
     Result, Slice,
     coding::{Decode, Encode},
     table::{
-        block::{BlockOffset, Decodable, Encodable, TRAILER_START_MARKER},
+        block::{BlockOffset, Decodable, Encodable, TRAILER_START_MARKER, read_key},
         index_block::IndexBlockParsedItem,
         util::SliceIndexes,
     },
@@ -125,13 +125,6 @@ impl KeyedBlockHandle {
     }
 }
 
-#[cfg(test)]
-impl PartialEq for KeyedBlockHandle {
-    fn eq(&self, other: &Self) -> bool {
-        self.offset() == other.offset()
-    }
-}
-
 impl Encodable<BlockOffset> for KeyedBlockHandle {
     fn encode_full_into<W: Write>(
         &self,
@@ -192,25 +185,11 @@ impl Decodable<IndexBlockParsedItem> for KeyedBlockHandle {
 
         let handle = unwrap!(BlockHandle::decode_from(reader));
         let seqno = unwrap!(reader.read_u64_varint());
-
-        let key_len: usize =
-            fixed_key_len.map_or_else(|| unwrap!(reader.read_u16_varint()).into(), usize::from);
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks tend to be some megabytes in size at most, so position should fit into usize"
-        )]
-        let key_start = offset + reader.position() as usize;
-
-        #[expect(
-            clippy::cast_possible_wrap,
-            reason = "key_len is bounded by u16::MAX, no wrap expected"
-        )]
-        let offset_i64 = key_len as i64;
-        unwrap!(reader.seek_relative(offset_i64));
+        let end_key = read_key(reader, offset, fixed_key_len);
 
         Some(IndexBlockParsedItem {
             prefix: None,
-            end_key: SliceIndexes(key_start, key_start + key_len),
+            end_key,
             offset: handle.offset(),
             size: handle.size(),
             seqno,
@@ -233,25 +212,9 @@ impl Decodable<IndexBlockParsedItem> for KeyedBlockHandle {
         let _file_offset = unwrap!(reader.read_u64_varint());
         let _size = unwrap!(reader.read_u32_varint());
         let seqno = unwrap!(reader.read_u64_varint());
+        let SliceIndexes(start, end) = read_key(reader, offset, fixed_key_len);
 
-        let key_len: usize =
-            fixed_key_len.map_or_else(|| unwrap!(reader.read_u16_varint()).into(), usize::from);
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks tend to be some megabytes in size at most, so position should fit into usize"
-        )]
-        let key_start = offset + reader.position() as usize;
-
-        #[expect(
-            clippy::cast_possible_wrap,
-            reason = "key_len is bounded by u16::MAX, no wrap expected"
-        )]
-        let key_len_i64 = key_len as i64;
-        unwrap!(reader.seek_relative(key_len_i64));
-
-        data.get(key_start..)
-            .and_then(|s| s.get(..key_len))
-            .map(|k| (k, seqno))
+        data.get(start..end).map(|k| (k, seqno))
     }
 
     // TODO: see https://github.com/fjall-rs/lsm-tree/issues/184

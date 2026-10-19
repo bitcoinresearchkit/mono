@@ -6,7 +6,6 @@ edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-exclude = ["src/api/scalar.js"]
 
 [features]
 default = ["full-api"]
@@ -28,16 +27,17 @@ brk_oracle = { workspace = true, features = ["schemars"] }
 bitview_query = { workspace = true, default-features = false }
 bitview_types = { workspace = true }
 bitview_catalog = { workspace = true }
+bitview_http = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 bitview_website = { workspace = true }
-derive_more = { workspace = true }
+derive_more = { workspace = true, features = ["display", "from", "from_str", "into"] }
 jiff = { workspace = true }
-parking_lot = { workspace = true }
 rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true, features = ["rc"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
+tower = { workspace = true }
 tower-http = { workspace = true, features = ["limit"] }
 tower-layer = { workspace = true }

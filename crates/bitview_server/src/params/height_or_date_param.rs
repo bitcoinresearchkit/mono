@@ -5,9 +5,6 @@ use serde::Deserialize;
 
 use crate::Error;
 
-/// Path parameter accepting either a block height (`840000`) or a calendar date
-/// (`YYYY-MM-DD`). The handler resolves it and dispatches to the per-height or
-/// per-day variant, choosing the matching cache strategy.
 #[derive(Deserialize, JsonSchema)]
 pub struct HeightOrDateParam {
     /// Confirmed block height as decimal digits (`840000`) or calendar date in
@@ -16,7 +13,7 @@ pub struct HeightOrDateParam {
     pub point: String,
 }
 
-/// A resolved [`HeightOrDateParam`]: a confirmed block height or a calendar day.
+/// A parsed [`HeightOrDateParam`]: a block height or a calendar day.
 #[derive(Clone, Copy)]
 pub enum HeightOrDate {
     Height(Height),
@@ -24,9 +21,7 @@ pub enum HeightOrDate {
 }
 
 impl HeightOrDateParam {
-    /// Parses the raw `point`: a `YYYY-MM-DD` string is a [`Date`], an all-digit
-    /// string is a [`Height`], anything else is a 400. Dates are tried first
-    /// because their dashes keep them from parsing as a height.
+    /// Parses `point` as a `YYYY-MM-DD` date or a `u32` block height; anything else is a 400.
     pub fn resolve(&self) -> Result<HeightOrDate, Error> {
         if let Ok(date) = self.point.parse::<Date>() {
             Ok(HeightOrDate::Date(date))

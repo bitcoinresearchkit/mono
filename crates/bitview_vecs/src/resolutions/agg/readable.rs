@@ -1,5 +1,3 @@
-use std::result::Result;
-
 use super::{AggFold, LazyAggVec};
 use vecdb::{ReadableVec, VecIndex, VecValue};
 
@@ -12,7 +10,7 @@ where
     Strat: AggFold<O, S1I, S1T>,
 {
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<O>) {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let to = to.min(mapping.len());
         if from >= to {
             return;
@@ -22,25 +20,12 @@ where
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(O)) {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let to = to.min(mapping.len());
         if from >= to {
             return;
         }
         Strat::fold(&*self.source, &mapping, from, to, (), |(), v| f(v));
-    }
-
-    #[inline]
-    fn fold_range_at<B, F: FnMut(B, O) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B
-    where
-        Self: Sized,
-    {
-        let mapping = self.mapping.read();
-        let to = to.min(mapping.len());
-        if from >= to {
-            return init;
-        }
-        Strat::fold(&*self.source, &mapping, from, to, init, f)
     }
 
     #[inline]
@@ -54,7 +39,7 @@ where
     where
         Self: Sized,
     {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let to = to.min(mapping.len());
         if from >= to {
             return Ok(init);
@@ -64,7 +49,7 @@ where
 
     #[inline]
     fn collect_one_at(&self, index: usize) -> Option<O> {
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         if index >= mapping.len() {
             return None;
         }
@@ -75,7 +60,7 @@ where
         if indices.is_empty() {
             return;
         }
-        let mapping = self.mapping.read();
+        let mapping = self.mapping.load();
         let indices = &indices[..indices.partition_point(|&index| index < mapping.len())];
         if indices.is_empty() {
             return;

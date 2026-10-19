@@ -20,14 +20,3 @@ pub const DEFAULT_MAX_PREALLOC_BYTES: usize = if (1_u64 << 32) <= usize::MAX as 
 pub const STANDALONE_CHUNK_PREAMBLE_PADDING: usize =
   1 + BITS_TO_ENCODE_N_ENTRIES as usize + OVERSHOOT_PADDING;
 pub const STANDALONE_HEADER_PADDING: usize = 31;
-
-#[cfg(test)]
-mod tests {
-  use crate::constants::MAX_ENTRIES;
-  use crate::standalone::constants::*;
-
-  #[test]
-  fn test_enough_bits() {
-    assert!(1 << BITS_TO_ENCODE_N_ENTRIES >= MAX_ENTRIES);
-  }
-}

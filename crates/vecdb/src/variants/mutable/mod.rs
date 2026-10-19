@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
+    mem,
     ops::Deref,
     sync::Arc,
 };
@@ -9,8 +10,7 @@ use parking_lot::RwLock;
 use log::debug;
 
 use crate::{
-    AnyStoredVec, AnyVec, Bytes, Error, Result, Stamp, TypedVec, VecIndex, WithPrev,
-    vec_region_name_with,
+    AnyStoredVec, AnyVec, Bytes, Error, Result, TypedVec, VecIndex, WithPrev, vec_region_name_with,
 };
 
 pub mod any_stored_vec;
@@ -25,12 +25,12 @@ pub mod writable;
 use raw::MutableRawVec;
 pub use read_only::ReadOnlyMutableVec;
 
-/// Stored raw vector whose existing values may be replaced during an update.
+/// Stored raw vector whose existing values may be replaced or deleted during an update.
 ///
-/// Mutation state lives here, leaving the wrapped raw vector lean and
-/// append-only. The wrapped vector remains directly available for reads.
+/// The mutation state (holes, pending updates) lives here: the wrapped raw vector stays
+/// append-only and is reachable through `Deref`.
 #[derive(Debug)]
-#[must_use = "Vector should be stored to keep data accessible"]
+#[must_use]
 pub struct MutableVec<V>
 where
     V: TypedVec,
@@ -46,11 +46,6 @@ impl<V> MutableVec<V>
 where
     V: TypedVec,
 {
-    #[inline]
-    fn new(vec: V) -> Self {
-        Self::from_parts(vec, BTreeSet::new(), false)
-    }
-
     fn from_parts(vec: V, holes: BTreeSet<usize>, has_stored_holes: bool) -> Self {
         let holes = Arc::new(holes);
         Self {
@@ -63,54 +58,36 @@ where
     }
 
     #[inline(always)]
-    fn current_holes(&self) -> &BTreeSet<usize> {
-        self.holes.current()
+    pub(crate) fn holes(&self) -> &BTreeSet<usize> {
+        &self.holes.current
     }
 
     #[inline]
     fn mut_holes(&mut self) -> &mut BTreeSet<usize> {
-        Arc::make_mut(self.holes.current_mut())
-    }
-
-    #[inline(always)]
-    fn current_updated(&self) -> &BTreeMap<usize, V::T> {
-        self.updated.current()
-    }
-
-    #[inline]
-    fn mut_updated(&mut self) -> &mut BTreeMap<usize, V::T> {
-        self.updated.current_mut()
-    }
-
-    #[inline(always)]
-    fn previous_updated(&self) -> &BTreeMap<usize, V::T> {
-        self.updated.previous()
+        Arc::make_mut(&mut self.holes.current)
     }
 
     #[inline]
     fn holes_changed(&self) -> bool {
         let published = self.published_holes.read();
-        !Arc::ptr_eq(self.holes.current(), &published) && self.current_holes() != published.as_ref()
+        !Arc::ptr_eq(&self.holes.current, &published) && self.holes() != published.as_ref()
     }
 
     fn publish_holes(&self) {
-        *self.published_holes.write() = Arc::clone(self.holes.current());
+        *self.published_holes.write() = Arc::clone(&self.holes.current);
     }
 
     fn truncate_mutations_at(&mut self, index: usize) {
-        if self
-            .current_holes()
-            .last()
-            .is_some_and(|&hole| hole >= index)
-        {
-            Arc::make_mut(self.holes.current_mut()).split_off(&index);
+        if self.holes().last().is_some_and(|&hole| hole >= index) {
+            self.mut_holes().split_off(&index);
         }
         if self
-            .current_updated()
+            .updated
+            .current
             .last_key_value()
             .is_some_and(|(&updated, _)| updated >= index)
         {
-            self.mut_updated().split_off(&index);
+            self.updated.current.split_off(&index);
         }
     }
 
@@ -137,41 +114,85 @@ where
             self.vec.pushed_mut()[index - stored_len] = value;
         }
 
-        if self.current_updated().is_empty() {
-            *self.updated.current_mut() = updates;
+        if self.updated.current.is_empty() {
+            self.updated.current = updates;
         } else {
-            self.mut_updated().append(&mut updates);
+            self.updated.current.append(&mut updates);
         }
     }
 
-    /// Applies a batch of replacements. Sorted input lets `BTreeMap` build the
-    /// mutation tree in linear time.
+    /// Replaces existing values: `IndexTooHigh` for an index past the length. Sorted input lets
+    /// `BTreeMap` build the mutation tree in linear time.
     pub fn update_many(&mut self, updates: impl IntoIterator<Item = (V::I, V::T)>) -> Result<()> {
+        let updates = self.checked_updates(updates)?;
+        self.apply_updates(updates);
+        Ok(())
+    }
+
+    /// [`Self::update_many`] for replacements whose stored values all equal `previous`: their
+    /// undo records take it instead of reading storage.
+    pub fn update_many_with_previous(
+        &mut self,
+        updates: impl IntoIterator<Item = (V::I, V::T)>,
+        previous: V::T,
+    ) -> Result<()>
+    where
+        V::T: PartialEq,
+    {
+        let updates = self.checked_updates(updates)?;
+        if self.saved_stamped_changes() > 0 {
+            let rollback_len = self.vec.rollback_len();
+            for &index in updates.keys().take_while(|&&index| index < rollback_len) {
+                // Pending updates and holes leave storage unknown: the write reads it.
+                if self.updated.current.contains_key(&index) || self.holes().contains(&index) {
+                    continue;
+                }
+                debug_assert!(
+                    V::read_stored(&self.vec.reader(), index) == previous,
+                    "{}: stored value at {index} differs from the given previous value",
+                    self.vec.name()
+                );
+                self.updated
+                    .previous
+                    .entry(index)
+                    .or_insert_with(|| previous.clone());
+            }
+        }
+        self.apply_updates(updates);
+        Ok(())
+    }
+
+    fn checked_updates(
+        &self,
+        updates: impl IntoIterator<Item = (V::I, V::T)>,
+    ) -> Result<BTreeMap<usize, V::T>> {
         self.header().check_writable()?;
         let updates: BTreeMap<_, _> = updates
             .into_iter()
             .map(|(index, value)| (index.to_usize(), value))
             .collect();
-        let Some((&last, _)) = updates.last_key_value() else {
-            return Ok(());
-        };
-        let len = self.vec.len();
-        if last >= len {
+        if let Some((&last, _)) = updates.last_key_value()
+            && last >= self.vec.len()
+        {
             return Err(Error::IndexTooHigh {
                 index: last,
-                len,
+                len: self.vec.len(),
                 name: self.vec.name().to_string(),
             });
         }
+        Ok(updates)
+    }
 
-        if !self.current_holes().is_empty() {
+    fn apply_updates(&mut self, updates: BTreeMap<usize, V::T>) {
+        // Unshare the holes only when a replacement fills one.
+        let holes = self.holes();
+        if !holes.is_empty() && updates.keys().any(|index| holes.contains(index)) {
             let holes = self.mut_holes();
             for index in updates.keys() {
                 holes.remove(index);
             }
         }
         self.install_updates(updates);
-        Ok(())
     }
 
     /// Fills the lowest available indexes, then appends the remaining values.
@@ -180,7 +201,7 @@ where
         mut values: impl ExactSizeIterator<Item = V::T>,
     ) -> Vec<V::I> {
         self.header().assert_writable();
-        let hole_count = self.current_holes().len().min(values.len());
+        let hole_count = self.holes().len().min(values.len());
         let mut indices = Vec::with_capacity(values.len());
         if hole_count > 0 {
             let holes = self.mut_holes();
@@ -210,30 +231,30 @@ where
         let guard = self.header().begin_write()?;
         let mut changed = self.vec.write()?;
 
-        if !self.current_updated().is_empty() {
-            let updated = self.updated.take_current();
+        if !self.updated.current.is_empty() {
+            let updated = mem::take(&mut self.updated.current);
             if preserve_rollback_values && self.vec.saved_stamped_changes() > 0 {
                 let rollback_len = self.vec.rollback_len();
                 let reader = self.vec.reader();
-                let previous = self.updated.previous_mut();
+                let previous = &mut self.updated.previous;
                 for &index in updated.keys().take_while(|&&index| index < rollback_len) {
                     previous
                         .entry(index)
                         .or_insert_with(|| V::read_stored(&reader, index));
                 }
             }
-            self.vec.write_updates(updated);
+            self.vec.write_updates(updated)?;
             changed = true;
         }
 
         if self.holes_changed() {
-            if !self.current_holes().is_empty() {
+            if !self.holes().is_empty() {
                 let region = self
                     .vec
                     .db()
                     .create_region_if_needed(&self.holes_region_name())?;
-                let mut bytes = Vec::with_capacity(self.current_holes().len() * size_of::<usize>());
-                for index in self.current_holes() {
+                let mut bytes = Vec::with_capacity(self.holes().len() * size_of::<usize>());
+                for index in self.holes() {
                     bytes.extend(index.to_bytes());
                 }
                 region.truncate_write(0, &bytes)?;
@@ -253,29 +274,7 @@ where
         guard.finish(Ok(changed))
     }
 
-    pub(super) fn save_changes(&self, stamp: Stamp) -> Result<()> {
-        self.header().check_writable()?;
-        if self.saved_stamped_changes() > 0 {
-            self.vec
-                .save_change_file(stamp, &self.serialize_changes()?)?;
-        }
-        Ok(())
-    }
-
-    pub(super) fn write_saved_changes(&mut self, stamp: Stamp) -> Result<()> {
-        let guard = self.header().begin_write()?;
-        self.write_inner(false)?;
-        self.update_stamp(stamp);
-        self.write_inner(false)?;
-        if self.saved_stamped_changes() > 0 {
-            self.vec.save_previous();
-            self.holes.save();
-            self.updated.clear_previous();
-        }
-        guard.finish(Ok(()))
-    }
-
-    fn update_value_at(&mut self, index: usize, value: V::T) -> Result<()> {
+    pub(crate) fn update_at(&mut self, index: usize, value: V::T) -> Result<()> {
         self.header().check_writable()?;
         let stored_len = self.vec.stored_len();
         if index >= stored_len {
@@ -290,10 +289,10 @@ where
             return Ok(());
         }
 
-        if self.current_holes().contains(&index) {
+        if self.holes().contains(&index) {
             self.mut_holes().remove(&index);
         }
-        self.mut_updated().insert(index, value);
+        self.updated.current.insert(index, value);
         Ok(())
     }
 }

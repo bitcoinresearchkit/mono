@@ -1,134 +1,107 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_plugin_blocks::{CountVecs, DifficultyVecs, LookbackVecs, ONE_TERA_HASH};
+use bitview_plugin_blocks::DifficultyVecs;
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{Float32, Hashrate, PartsPerMillionSigned32};
-use bitview_transforms::RatioDiffFloat32;
+use bitview_plugin_mappings::LookbackVecs;
+use bitview_plugin_price::is_priced;
+use bitview_primitives::{HashPrice, HashValue, Hashrate, PartsPerMillionSigned32};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Dollars, Height, Sats, TARGET_BLOCKS_PER_DAY_F64};
-use vecdb::ReadableVec;
+use vecdb::{AnyVec, ComputeVec, LazyVec, ReadableCloneableVec, ReadableVec};
 
 use super::Vecs;
 
-#[inline]
-fn estimated_network_hash_rate(block_count_24h: f64, difficulty_hash_rate: f64) -> f64 {
-    (block_count_24h / TARGET_BLOCKS_PER_DAY_F64) * difficulty_hash_rate
-}
+const ONE_PETA_HASH: f64 = 1_000_000_000_000_000.0;
 
+/// Daily reward per PH/s. Every block proves positive work, so the hash rate is positive.
 #[inline]
-fn reward_per_ths(reward_24h: f64, hash_rate: f64) -> Float32 {
-    let hash_rate_ths = hash_rate / ONE_TERA_HASH;
-    if hash_rate_ths == 0.0 {
-        Float32::NAN
-    } else {
-        Float32::from(reward_24h / hash_rate_ths)
-    }
+fn reward_per_phs(reward_24h: f64, hash_rate: f64) -> f64 {
+    reward_24h / (hash_rate / ONE_PETA_HASH)
 }
 
 impl Vecs {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        count_vecs: &CountVecs,
         lookback: &LookbackVecs,
         difficulty_vecs: &DifficultyVecs,
         coinbase_sats_24h_sum: &impl ReadableVec<Height, Sats>,
         coinbase_usd_24h_sum: &impl ReadableVec<Height, Dollars>,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
-        self.rate.base.height.compute_transform2(
+        // Each block's share of a day's work at the ten-minute target, summed over 24 hours.
+        let daily_share = LazyVec::new(
+            "difficulty_hashrate_daily_share",
+            difficulty_vecs.hashrate.height.version(),
+            difficulty_vecs.hashrate.height.read_only_boxed_clone(),
+            |_, hashrate: Hashrate| Hashrate::from(f64::from(hashrate) / TARGET_BLOCKS_PER_DAY_F64),
+        );
+        self.rate.block.height.compute_rolling_sum(
             starting_height,
-            &count_vecs.total.sum._24h.height,
-            &difficulty_vecs.hashrate.height,
-            |(i, block_count_sum, difficulty_as_hash, ..)| {
-                (
-                    i,
-                    Hashrate::from(estimated_network_hash_rate(
-                        f64::from(block_count_sum),
-                        f64::from(difficulty_as_hash),
-                    )),
-                )
-            },
+            lookback.start_vec(1),
+            &daily_share,
             exit,
         )?;
 
-        let hash_rate = &self.rate.base.height;
-        for (sma, window) in [
-            (&mut self.rate.sma._1w.height, lookback.start_vec(7)),
-            (&mut self.rate.sma._1m.height, lookback.start_vec(30)),
-            (&mut self.rate.sma._2m.height, lookback.start_vec(60)),
-            (&mut self.rate.sma._1y.height, lookback.start_vec(365)),
+        let hash_rate = &self.rate.block.height;
+        let sma = &mut self.rate.sma;
+        let [week, month, two_months, year] = &mut sma.windows;
+        for (sma, window, retained) in [
+            (&mut sma._1w.height, lookback.start_vec(7), week),
+            (&mut sma._1m.height, lookback.start_vec(30), month),
+            (&mut sma._2m.height, lookback.start_vec(60), two_months),
+            (&mut sma._1y.height, lookback.start_vec(365), year),
         ] {
-            sma.compute_rolling_average(starting_height, window, hash_rate, exit)?;
+            sma.compute_rolling_average(starting_height, window, hash_rate, retained, exit)?;
         }
 
         self.rate.ath.height.compute_all_time_high(
             starting_height,
-            &self.rate.base.height,
+            &self.rate.block.height,
             exit,
         )?;
 
-        self.rate.drawdown.compute_drawdown(
+        self.rate.drawdown.fixed.height.compute_transform2(
             starting_height,
-            &self.rate.base.height,
+            &self.rate.block.height,
             &self.rate.ath.height,
+            |(_, current, ath, ..)| {
+                let ath = f64::from(ath);
+                PartsPerMillionSigned32::from((f64::from(current) - ath) / ath)
+            },
             exit,
         )?;
 
-        self.price.ths.height.compute_transform2(
+        // NaN until the 24-hour window is fully priced: a partly priced sum would set a false low.
+        self.price.block.height.compute_transform3(
             starting_height,
             coinbase_usd_24h_sum,
-            &self.rate.base.height,
-            |(i, coinbase_sum, hashrate, ..)| {
-                (
-                    i,
-                    reward_per_ths(f64::from(coinbase_sum), f64::from(hashrate)),
-                )
+            &self.rate.block.height,
+            lookback.start_vec(1),
+            |(_, coinbase_sum, hashrate, start, ..)| {
+                if is_priced(usize::from(start)) {
+                    HashPrice::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)))
+                } else {
+                    HashPrice::NAN
+                }
             },
             exit,
         )?;
 
-        self.value.ths.height.compute_transform2(
+        self.value.block.height.compute_transform2(
             starting_height,
             coinbase_sats_24h_sum,
-            &self.rate.base.height,
-            |(i, coinbase_sum, hashrate, ..)| {
-                (
-                    i,
-                    reward_per_ths(f64::from(coinbase_sum), f64::from(hashrate)),
-                )
+            &self.rate.block.height,
+            |(_, coinbase_sum, hashrate, ..)| {
+                HashValue::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)))
             },
             exit,
         )?;
 
-        for (min_vec, src_vec) in [
-            (&mut self.price.ths_min.height, &self.price.ths.height),
-            (&mut self.value.ths_min.height, &self.value.ths.height),
-        ] {
-            min_vec.compute_all_time_low(starting_height, src_vec, exit, true)?;
-        }
-
         self.price
-            .rebound
-            .compute_binary::<Float32, Float32, RatioDiffFloat32<PartsPerMillionSigned32>>(
-                starting_height,
-                &self.price.phs.height,
-                &self.price.phs_min.height,
-                exit,
-            )?;
-
-        self.value
-            .rebound
-            .compute_binary::<Float32, Float32, RatioDiffFloat32<PartsPerMillionSigned32>>(
-                starting_height,
-                &self.value.phs.height,
-                &self.value.phs_min.height,
-                exit,
-            )?;
-
-        Ok(())
+            .compute_floor_and_rebound(starting_height, exit)?;
+        self.value.compute_floor_and_rebound(starting_height, exit)
     }
 }

@@ -1,37 +1,68 @@
 use bitview_traversable::Traversable;
 
-#[derive(Clone, Traversable)]
-pub struct EmaVecs<T> {
+/// Declares every EMA period once: field, id suffix and span in days.
+macro_rules! ema_periods {
+    ($($(#[$doc:meta])* $field:ident: $suffix:literal = $days:expr,)*) => {
+        #[derive(Clone, Traversable)]
+        pub struct EmaVecs<T> {
+            $($(#[$doc])* pub $field: T,)*
+        }
+
+        impl<T> EmaVecs<T> {
+            /// One value per period from its id suffix and span in days.
+            pub fn try_from_fn<E>(
+                mut create: impl FnMut(&'static str, usize) -> Result<T, E>,
+            ) -> Result<Self, E> {
+                Ok(Self {
+                    $($field: create($suffix, $days)?,)*
+                })
+            }
+
+            /// One value per period from its id suffix and this period's value.
+            pub fn try_map<U, E>(
+                &self,
+                mut map: impl FnMut(&'static str, &T) -> Result<U, E>,
+            ) -> Result<EmaVecs<U>, E> {
+                Ok(EmaVecs {
+                    $($field: map($suffix, &self.$field)?,)*
+                })
+            }
+
+            /// Each period's span in days and value.
+            pub fn iter_mut(&mut self) -> impl Iterator<Item = (usize, &mut T)> {
+                [$(($days, &mut self.$field),)*].into_iter()
+            }
+        }
+    };
+}
+
+ema_periods! {
     /// Uses a trailing 7-day span.
-    pub _1w: T,
+    _1w: "1w" = 7,
     /// Uses a trailing 8-day span.
-    pub _8d: T,
-    /// Uses a trailing 12-day span.
-    pub _12d: T,
+    _8d: "8d" = 8,
     /// Uses a trailing 13-day span.
-    pub _13d: T,
+    _13d: "13d" = 13,
     /// Uses a trailing 21-day span.
-    pub _21d: T,
-    /// Uses a trailing 26-day span.
-    pub _26d: T,
+    _21d: "21d" = 21,
     /// Uses a trailing 30-day span.
-    pub _1m: T,
+    _1m: "1m" = 30,
     /// Uses a trailing 34-day span.
-    pub _34d: T,
+    _34d: "34d" = 34,
     /// Uses a trailing 55-day span.
-    pub _55d: T,
+    _55d: "55d" = 55,
     /// Uses a trailing 89-day span.
-    pub _89d: T,
+    _89d: "89d" = 89,
     /// Uses a trailing 144-day span.
-    pub _144d: T,
+    _144d: "144d" = 144,
     /// Uses a trailing 200-day span.
-    pub _200d: T,
+    _200d: "200d" = 200,
     /// Uses a trailing 365-day span.
-    pub _1y: T,
+    _1y: "1y" = 365,
     /// Uses a trailing 730-day span.
-    pub _2y: T,
+    _2y: "2y" = 2 * 365,
     /// Uses a trailing 1,400-day span.
-    pub _200w: T,
+    _200w: "200w" = 200 * 7,
     /// Uses a trailing 1,460-day span.
-    pub _4y: T,
+    _4y: "4y" = 4 * 365,
 }

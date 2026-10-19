@@ -3,12 +3,11 @@ use crate::{AnyVec, ReadableVec, VecIndex, VecValue};
 
 use super::LazyVec;
 
-impl<I, T, S1I, S1T> ReadableVec<I, T> for LazyVec<I, T, S1I, S1T>
+impl<I, T, S> ReadableVec<I, T> for LazyVec<I, T, S>
 where
     I: VecIndex,
     T: VecValue,
-    S1I: VecIndex,
-    S1T: VecValue,
+    S: VecValue,
 {
     #[inline]
     fn cursor_chunk_size(&self) -> usize {
@@ -57,19 +56,17 @@ where
     where
         Self: Sized,
     {
-        let to = to.min(self.len());
-        if from >= to {
-            return Ok(init);
-        }
-        // Preserve early-exit semantics: do not evaluate this transform for
-        // values after the first error. Infallible reads use the bulk path.
+        // Preserve early-exit semantics: do not evaluate this transform for values after the
+        // first error, nor read past its chunk. Infallible reads use the bulk path.
         let compute = self.compute;
-        let buf = self.source.collect_range_dyn(from, to);
-        buf.into_iter()
-            .enumerate()
-            .try_fold(init, |acc, (local, v)| {
-                f(acc, compute(I::from(from + local), v))
-            })
+        chunk_folds::try_fold(
+            &*self.source,
+            from,
+            to,
+            (init, from),
+            |(acc, index), value| Ok((f(acc, compute(I::from(index), value))?, index + 1)),
+        )
+        .map(|(acc, _)| acc)
     }
 
     #[inline]
@@ -80,6 +77,7 @@ where
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
         let compute = self.compute;
+        // The source is dense, so its values pair with the leading indices.
         let source_vals = self.source.read_sorted_at(indices);
         out.reserve(source_vals.len());
         indices

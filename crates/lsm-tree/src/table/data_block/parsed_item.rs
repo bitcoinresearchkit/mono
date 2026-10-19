@@ -24,14 +24,17 @@ pub struct DataBlockParsedItem {
 }
 
 impl ParsedItem<InternalValue> for DataBlockParsedItem {
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "a corrupt record extent panics instead of reading out of bounds"
+    )]
     fn compare_key(&self, needle: &[u8], bytes: &[u8]) -> Ordering {
         if let Some(prefix) = &self.prefix {
-            let prefix = unsafe { bytes.get_unchecked(prefix.0..prefix.1) };
-            let rest_key = unsafe { bytes.get_unchecked(self.key.0..self.key.1) };
+            let prefix = &bytes[prefix.0..prefix.1];
+            let rest_key = &bytes[self.key.0..self.key.1];
             compare_prefixed_slice(prefix, rest_key, needle)
         } else {
-            let key = unsafe { bytes.get_unchecked(self.key.0..self.key.1) };
-            key.cmp(needle)
+            bytes[self.key.0..self.key.1].cmp(needle)
         }
     }
 

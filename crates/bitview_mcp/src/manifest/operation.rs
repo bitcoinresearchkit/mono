@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 use super::HttpOperation;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Operation {
     pub tool: Tool,
     pub http: HttpOperation,

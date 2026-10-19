@@ -2,10 +2,9 @@ use brk_types::Timestamp;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// A single hashrate data point.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct HashrateEntry {
-    /// Unix timestamp
+    /// End of the day the hashrate covers (Unix timestamp), as mempool.space stamps it
     pub timestamp: Timestamp,
     /// Average hashrate (H/s)
     #[serde(rename = "avgHashrate")]

@@ -1,41 +1,35 @@
-//! JavaScript API method generation.
-
 use std::fmt::Write;
 
 use crate::{
-    Endpoint, Parameter,
-    generators::{javascript::types::jsdoc_normalize, normalize_return_type, write_description},
+    Endpoint, Parameter, Ty,
+    generators::{javascript::types::js_type, normalize_return_type, write_description},
     to_camel_case,
 };
 
-/// Generate API methods for the BitviewClient class.
 pub fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
-    for endpoint in endpoints {
-        if !endpoint.should_generate() {
-            continue;
-        }
-        match endpoint.method.as_str() {
-            "GET" => generate_get_method(output, endpoint),
-            "POST" => generate_post_method(output, endpoint),
-            _ => continue,
-        }
+    for endpoint in endpoints
+        .iter()
+        .filter(|endpoint| endpoint.should_generate())
+    {
+        generate_method(output, endpoint);
     }
 }
 
-fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
-    let method_name = endpoint_to_method_name(endpoint);
+fn generate_method(output: &mut String, endpoint: &Endpoint) {
+    let post = endpoint.method == "POST";
+    let body = endpoint.request_body.as_ref().filter(|_| post);
     let return_type = build_return_type(endpoint);
 
     write_method_doc(output, endpoint);
     for param in &endpoint.path_params {
         let desc = format_param_desc(param.description.as_deref());
-        let ty = jsdoc_normalize(&param.param_type);
+        let ty = js_type(&param.ty);
         writeln!(output, "   * @param {{{}}} {}{}", ty, param.name, desc).unwrap();
     }
     for param in &endpoint.query_params {
         let optional = if param.required { "" } else { "=" };
         let desc = format_param_desc(param.description.as_deref());
-        let ty = jsdoc_normalize(&param.param_type);
+        let ty = js_type(&param.ty);
         let ident = sanitize_ident(&param.name);
         let name_decl = if param.required {
             ident
@@ -49,40 +43,72 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
         )
         .unwrap();
     }
-    writeln!(
-        output,
-        "   * @param {{{{ signal?: AbortSignal, onValue?: (value: {}) => void, cache?: boolean, memCache?: boolean }}}} [options]",
-        return_type
-    )
-    .unwrap();
+    if let Some(body) = body {
+        let optional = if body.required { "" } else { "=" };
+        let ty = js_type(&body.ty);
+        writeln!(output, "   * @param {{{ty}{optional}}} body").unwrap();
+    }
+    if post {
+        writeln!(
+            output,
+            "   * @param {{{{ signal?: AbortSignal }}}} [options]"
+        )
+        .unwrap();
+    } else {
+        writeln!(
+            output,
+            "   * @param {{{{ signal?: AbortSignal, onValue?: (value: {}) => void, cache?: boolean, memCache?: boolean }}}} [options]",
+            return_type
+        )
+        .unwrap();
+    }
     writeln!(output, "   * @returns {{Promise<{}>}}", return_type).unwrap();
     writeln!(output, "   */").unwrap();
 
-    let params = build_method_params(endpoint);
-    let params_with_opts = if params.is_empty() {
-        "{ signal, onValue, cache, memCache } = {}".to_string()
+    let mut params = build_method_params(endpoint);
+    if body.is_some() {
+        if !params.is_empty() {
+            params.push_str(", ");
+        }
+        params.push_str("body");
+    }
+    let options = if post {
+        "{ signal }"
     } else {
-        format!("{}, {{ signal, onValue, cache, memCache }} = {{}}", params)
+        "{ signal, onValue, cache, memCache }"
     };
-    writeln!(output, "  async {}({}) {{", method_name, params_with_opts).unwrap();
+    let name = to_camel_case(&endpoint.operation_id);
+    if params.is_empty() {
+        writeln!(output, "  async {name}({options} = {{}}) {{").unwrap();
+    } else {
+        writeln!(output, "  async {name}({params}, {options} = {{}}) {{").unwrap();
+    }
 
-    let path = build_path_template(&endpoint.path, &endpoint.path_params);
-
+    let (verb, args) = if post {
+        let body_arg = if body.is_some() { "body" } else { "''" };
+        ("post", format!("path, {body_arg}, {options}"))
+    } else {
+        ("get", format!("path, {options}"))
+    };
     // Series data gets the same helpers however it is fetched.
-    let fetch_call: String = if endpoint.returns_binary() {
-        "this.getBytes(path, { signal, onValue, cache, memCache })".to_string()
-    } else if endpoint.schema_name() == Some("SeriesData") {
+    let response = endpoint.response_kind.ty();
+    let fetch_call = if endpoint.returns_binary() {
+        format!("this.{verb}Bytes({args})")
+    } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
         "_wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }))".to_string()
-    } else if endpoint.schema_name() == Some("SeriesData[]") {
+    } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
         "(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData)".to_string()
     } else if endpoint.returns_json() {
-        "this.getJson(path, { signal, onValue, cache, memCache })".to_string()
+        format!("this.{verb}Json({args})")
+    } else if endpoint.response_kind.text_is_numeric() && post {
+        format!("Number(await this.postText({args}))")
     } else if endpoint.response_kind.text_is_numeric() {
         "Number(await this.getText(path, { signal, cache, memCache, onValue: onValue ? (v) => onValue(Number(v)) : undefined }))".to_string()
     } else {
-        "this.getText(path, { signal, onValue, cache, memCache })".to_string()
+        format!("this.{verb}Text({args})")
     };
 
+    let path = build_path_template(&endpoint.path, &endpoint.path_params);
     write_path_assignment(output, endpoint, &path);
 
     if endpoint.supports_csv {
@@ -96,93 +122,11 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
     writeln!(output, "  }}\n").unwrap();
 }
 
-fn generate_post_method(output: &mut String, endpoint: &Endpoint) {
-    let method_name = endpoint_to_method_name(endpoint);
-    let return_type = build_return_type(endpoint);
-
-    write_method_doc(output, endpoint);
-    for param in &endpoint.path_params {
-        let desc = format_param_desc(param.description.as_deref());
-        let ty = jsdoc_normalize(&param.param_type);
-        writeln!(output, "   * @param {{{}}} {}{}", ty, param.name, desc).unwrap();
-    }
-    for param in &endpoint.query_params {
-        let optional = if param.required { "" } else { "=" };
-        let desc = format_param_desc(param.description.as_deref());
-        let ty = jsdoc_normalize(&param.param_type);
-        writeln!(
-            output,
-            "   * @param {{{}{}}} [{}]{}",
-            ty, optional, param.name, desc
-        )
-        .unwrap();
-    }
-    if let Some(body) = &endpoint.request_body {
-        let optional = if body.required { "" } else { "=" };
-        let ty = jsdoc_normalize(&body.body_type);
-        writeln!(
-            output,
-            "   * @param {{{}{}}} body - Request body",
-            ty, optional
-        )
-        .unwrap();
-    }
-    writeln!(
-        output,
-        "   * @param {{{{ signal?: AbortSignal }}}} [options]"
-    )
-    .unwrap();
-    writeln!(output, "   * @returns {{Promise<{}>}}", return_type).unwrap();
-    writeln!(output, "   */").unwrap();
-
-    let mut params = build_method_params(endpoint);
-    if endpoint.request_body.is_some() {
-        if !params.is_empty() {
-            params.push_str(", ");
-        }
-        params.push_str("body");
-    }
-    let params_with_opts = if params.is_empty() {
-        "{ signal } = {}".to_string()
-    } else {
-        format!("{}, {{ signal }} = {{}}", params)
-    };
-    writeln!(output, "  async {}({}) {{", method_name, params_with_opts).unwrap();
-
-    let path = build_path_template(&endpoint.path, &endpoint.path_params);
-    let body_arg = if endpoint.request_body.is_some() {
-        "body"
-    } else {
-        "''"
-    };
-
-    let fetch_call: String = if endpoint.returns_binary() {
-        format!("this.postBytes(path, {}, {{ signal }})", body_arg)
-    } else if endpoint.returns_json() {
-        format!("this.postJson(path, {}, {{ signal }})", body_arg)
-    } else if endpoint.response_kind.text_is_numeric() {
-        format!(
-            "Number(await this.postText(path, {}, {{ signal }}))",
-            body_arg
-        )
-    } else {
-        format!("this.postText(path, {}, {{ signal }})", body_arg)
-    };
-
-    write_path_assignment(output, endpoint, &path);
-
-    writeln!(output, "    return {};", fetch_call).unwrap();
-    writeln!(output, "  }}\n").unwrap();
-}
-
 fn build_return_type(endpoint: &Endpoint) -> String {
-    let base = if endpoint.returns_binary() {
-        "Uint8Array".to_string()
-    } else {
-        jsdoc_normalize(&normalize_return_type(
-            endpoint.schema_name().unwrap_or("*"),
-        ))
-    };
+    let base = endpoint.response_kind.ty().map_or_else(
+        || "Uint8Array".to_owned(),
+        |ty| normalize_return_type(&js_type(ty)),
+    );
     if endpoint.supports_csv {
         format!("{} | string", base)
     } else {
@@ -205,8 +149,7 @@ fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
     writeln!(
         output,
         "   * Endpoint: `{} {}`",
-        endpoint.method.to_uppercase(),
-        endpoint.path
+        endpoint.method, endpoint.path
     )
     .unwrap();
 
@@ -223,8 +166,7 @@ fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
         writeln!(output, "    const params = new URLSearchParams();").unwrap();
         for param in &endpoint.query_params {
             let ident = sanitize_ident(&param.name);
-            let is_array = param.param_type.ends_with("[]");
-            if is_array {
+            if matches!(param.ty, Ty::List(_)) {
                 if param.required {
                     writeln!(
                         output,
@@ -266,10 +208,6 @@ fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
     }
 }
 
-fn endpoint_to_method_name(endpoint: &Endpoint) -> String {
-    to_camel_case(&endpoint.operation_name())
-}
-
 fn build_method_params(endpoint: &Endpoint) -> String {
     let mut params = String::new();
     for (index, param) in endpoint
@@ -286,16 +224,17 @@ fn build_method_params(endpoint: &Endpoint) -> String {
     params
 }
 
-/// Strip characters invalid in JS identifiers (e.g. `[]` from `txId[]`).
+/// Drop `[` and `]` (as in `txId[]`).
 fn sanitize_ident(name: &str) -> String {
     name.replace(['[', ']'], "")
 }
 
+/// The path as a template literal, each parameter percent-encoded as one segment.
 fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
     let mut result = path.to_string();
     for param in path_params {
         let placeholder = format!("{{{}}}", param.name);
-        let interpolation = format!("${{{}}}", param.name);
+        let interpolation = format!("${{encodeURIComponent({})}}", param.name);
         result = result.replace(&placeholder, &interpolation);
     }
     result

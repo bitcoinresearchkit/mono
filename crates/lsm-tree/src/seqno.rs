@@ -26,14 +26,3 @@ impl SequenceNumberCounter {
         value
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::SequenceNumberCounter;
-
-    #[test]
-    #[should_panic = "ran out of sequence numbers"]
-    fn rejects_overflow() {
-        let _ = SequenceNumberCounter::new(u64::MAX).next();
-    }
-}

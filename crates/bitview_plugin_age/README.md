@@ -1,0 +1,20 @@
+# Age
+
+Consumes the published UTXO Set plus block prices and monotonic timestamps.
+It owns disjoint age bands and fixed creation-year and epoch cohorts, including
+their supply, activity, maturation and profit/loss accounting. Derived price maps remain in memory;
+restart reconstructs them from canonical history. Append updates retain
+validated state. Reorgs and failed updates rebuild it.
+
+The overlapping all/STH/LTH and four/six-month filters, cost-basis percentiles,
+density and aggregate-relative metrics belong to Holders.
+Age publishes exact disjoint raw capital products so consumers can combine
+bands before rounding weighted prices. These intermediate products stay out of
+the public catalogue. Age exposes total realized cap, each cohort's realized
+price (its exact raw product over its supply, stored) and every band's and
+cohort's capital change (`capital.delta.absolute` and `capital.delta.rate`).
+
+Age owns no address state and stores no URPD files. Block-based URPD models and
+queries reconstruct distributions through `bitview_urpd`. Entry-price
+classification and detailed percentage-profitability bands belong to the Entry
+and Profitability plugins.

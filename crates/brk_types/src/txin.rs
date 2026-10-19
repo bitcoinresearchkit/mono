@@ -1,93 +1,81 @@
-use bitcoin::{Script, ScriptBuf, Sequence, TxIn as BitcoinTxIn, transaction::OutPoint};
 #[cfg(feature = "schemars")]
-use schemars::{JsonSchema, Schema};
+use std::borrow::Cow;
+
+use bitcoin::{Script, ScriptBuf, Sequence, TxIn as BitcoinTxIn, Witness, transaction::OutPoint};
+#[cfg(feature = "schemars")]
+use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "schemars")]
-use serde_json::{Value, json};
+use serde_json::json;
 
-use crate::{TxOut, Txid, Vout, Witness};
+use crate::{TxOut, Txid, Vout, bytes::DisplayStr, tx::p2sh_redeem_script};
 
-/// Transaction input
 #[derive(Debug, Clone, Deserialize)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
-#[cfg_attr(feature = "schemars", schemars(transform = txin_wire_schema))]
 pub struct TxIn {
-    /// Transaction ID of the output being spent
-    #[cfg_attr(
-        feature = "schemars",
-        schemars(example = "0000000000000000000000000000000000000000000000000000000000000000")
-    )]
     pub txid: Txid,
-
-    /// Output index being spent (u16: coinbase is 65535, mempool.space uses u32: 4294967295)
-    #[cfg_attr(feature = "schemars", schemars(example = 0))]
     pub vout: Vout,
-
-    /// Information about the previous output being spent
     pub prevout: Option<TxOut>,
-
-    /// Signature script (hex, for non-SegWit inputs)
-    #[cfg_attr(feature = "schemars", schemars(rename = "scriptsig", with = "String"))]
+    #[serde(rename = "scriptsig")]
     pub script_sig: ScriptBuf,
-
-    /// Signature script in assembly format
-    #[cfg_attr(
-        feature = "schemars",
-        schemars(rename = "scriptsig_asm", with = "String")
-    )]
-    pub script_sig_asm: (),
-
-    /// Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
+    #[serde(default)]
     pub witness: Witness,
-
-    /// Whether this input is a coinbase (block reward) input
-    #[cfg_attr(feature = "schemars", schemars(example = false))]
     pub is_coinbase: bool,
-
-    /// Input sequence number
-    #[cfg_attr(feature = "schemars", schemars(example = 4294967293_u32))]
     pub sequence: u32,
-
-    /// Inner redeemscript in assembly (for P2SH-wrapped SegWit: scriptsig + witness both present)
-    #[cfg_attr(
-        feature = "schemars",
-        schemars(rename = "inner_redeemscript_asm", with = "String")
-    )]
-    pub inner_redeem_script_asm: (),
-
-    /// Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
-    #[cfg_attr(
-        feature = "schemars",
-        schemars(rename = "inner_witnessscript_asm", with = "String")
-    )]
-    pub inner_witness_script_asm: (),
 }
 
 #[cfg(feature = "schemars")]
-fn txin_wire_schema(schema: &mut Schema) {
-    let Some(required) = schema.get_mut("required").and_then(Value::as_array_mut) else {
-        return;
-    };
+#[allow(dead_code)]
+#[derive(JsonSchema)]
+struct TxInSchema {
+    /// Transaction ID of the output being spent
+    #[schemars(example = "0000000000000000000000000000000000000000000000000000000000000000")]
+    txid: Txid,
+    /// Output index being spent (coinbase: 4294967295)
+    #[schemars(example = 0)]
+    vout: Vout,
+    /// The output being spent
+    prevout: Option<TxOut>,
+    /// Signature script in hex (empty for native SegWit inputs)
+    scriptsig: String,
+    /// Signature script in assembly format
+    scriptsig_asm: String,
+    /// Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
+    #[schemars(with = "Vec<String>")]
+    witness: Witness,
+    #[schemars(example = false)]
+    is_coinbase: bool,
+    #[schemars(example = 4294967293_u32)]
+    sequence: u32,
+    /// Inner redeemscript in assembly (P2SH inputs)
+    inner_redeemscript_asm: String,
+    /// Inner witnessscript in assembly (P2WSH and P2SH-P2WSH: the witness script; P2TR script path: the leaf script)
+    inner_witnessscript_asm: String,
+}
 
-    required.retain(|field| {
-        !matches!(
-            field.as_str(),
-            Some("witness" | "inner_redeemscript_asm" | "inner_witnessscript_asm")
-        )
-    });
+#[cfg(feature = "schemars")]
+impl JsonSchema for TxIn {
+    fn schema_name() -> Cow<'static, str> {
+        "TxIn".into()
+    }
 
-    if !required.iter().any(|field| field == "prevout") {
-        let index = required
-            .iter()
-            .position(|field| field == "vout")
-            .map_or(required.len(), |index| index + 1);
-        required.insert(index, json!("prevout"));
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        let mut schema = TxInSchema::json_schema(generator);
+        schema.insert(
+            "required".to_owned(),
+            json!([
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+            ]),
+        );
+        schema
     }
 }
 
-/// Reconstruct a canonical `bitcoin::TxIn` from the stored brk shape.
-/// Mempool txs are never coinbase, so `vout` (u16 in brk) always fits
-/// the bitcoin protocol's u32 vout field via widening.
 impl From<&TxIn> for BitcoinTxIn {
     #[inline]
     fn from(txin: &TxIn) -> Self {
@@ -98,7 +86,7 @@ impl From<&TxIn> for BitcoinTxIn {
             },
             script_sig: txin.script_sig.clone(),
             sequence: Sequence(txin.sequence),
-            witness: (&txin.witness).into(),
+            witness: txin.witness.clone(),
         }
     }
 }
@@ -109,63 +97,49 @@ impl Serialize for TxIn {
         S: Serializer,
     {
         let has_witness = !self.witness.is_empty();
-        let has_scriptsig = !self.script_sig.is_empty();
+        let prevout_script = self.prevout.as_ref().map(|p| p.script_pubkey.as_script());
 
-        // P2SH / P2SH-wrapped SegWit: extract redeemscript from scriptsig
-        let is_p2sh = self
-            .prevout
-            .as_ref()
-            .is_some_and(|p| p.script_pubkey.is_p2sh());
-        let inner_redeem = if has_scriptsig && is_p2sh && !self.is_coinbase {
-            self.script_sig
-                .redeem_script()
-                .map(|s| s.to_asm_string())
-                .unwrap_or_default()
-        } else {
-            String::new()
-        };
+        let is_p2sh = !self.is_coinbase && prevout_script.is_some_and(Script::is_p2sh);
+        let redeem_script = is_p2sh
+            .then(|| p2sh_redeem_script(&self.script_sig))
+            .flatten();
 
-        // P2WSH/P2SH-P2WSH: last witness item is the witnessScript
-        // P2TR script path: second-to-last is the script, last is the control block
-        let is_p2tr = self
-            .prevout
-            .as_ref()
-            .is_some_and(|p| p.script_pubkey.is_p2tr());
-        let inner_witness = if has_witness && self.witness.len() > 2 {
-            let script_bytes = if is_p2tr {
-                self.witness.second_to_last()
+        let inner_witness = prevout_script.and_then(|spk| {
+            if spk.is_p2wsh() || redeem_script.is_some_and(Script::is_p2wsh) {
+                self.witness.witness_script()
+            } else if spk.is_p2tr() {
+                self.witness.taproot_leaf_script().map(|leaf| leaf.script)
             } else {
-                self.witness.last()
-            };
-            script_bytes
-                .map(|b| Script::from_bytes(b).to_asm_string())
-                .unwrap_or_default()
-        } else {
-            String::new()
-        };
+                None
+            }
+        });
 
-        let has_inner_redeem = is_p2sh && !self.is_coinbase;
-        let has_inner_witness = !inner_witness.is_empty();
         let field_count =
-            7 + has_witness as usize + has_inner_redeem as usize + has_inner_witness as usize;
+            7 + has_witness as usize + is_p2sh as usize + inner_witness.is_some() as usize;
 
         let mut state = serializer.serialize_struct("TxIn", field_count)?;
 
         state.serialize_field("txid", &self.txid)?;
         state.serialize_field("vout", &self.vout)?;
         state.serialize_field("prevout", &self.prevout)?;
-        state.serialize_field("scriptsig", &self.script_sig.to_hex_string())?;
-        state.serialize_field("scriptsig_asm", &self.script_sig.to_asm_string())?;
+        state.serialize_field(
+            "scriptsig",
+            &DisplayStr(format_args!("{:x}", self.script_sig)),
+        )?;
+        state.serialize_field("scriptsig_asm", &DisplayStr(self.script_sig.as_script()))?;
         if has_witness {
             state.serialize_field("witness", &self.witness)?;
         }
         state.serialize_field("is_coinbase", &self.is_coinbase)?;
         state.serialize_field("sequence", &self.sequence)?;
-        if has_inner_redeem {
-            state.serialize_field("inner_redeemscript_asm", &inner_redeem)?;
+        if is_p2sh {
+            state.serialize_field(
+                "inner_redeemscript_asm",
+                &DisplayStr(redeem_script.unwrap_or(Script::new())),
+            )?;
         }
-        if has_inner_witness {
-            state.serialize_field("inner_witnessscript_asm", &inner_witness)?;
+        if let Some(script) = inner_witness {
+            state.serialize_field("inner_witnessscript_asm", &DisplayStr(script))?;
         }
 
         state.end()

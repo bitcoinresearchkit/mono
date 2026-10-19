@@ -239,7 +239,7 @@
           }
         }
         // Copy only data fields; generated client convenience methods are not cloneable.
-        return { data: { start: data.start, end: data.end, type: data.type, index: data.index, stamp: data.stamp, data: data.data }, info, timestamps, warning };
+        return { data: { start: data.start, end: data.end, type: data.type, index: data.index, data: data.data }, info, timestamps, warning };
       }
 
       self.onmessage = async ({ data: { id, type, args } }) => {
@@ -647,7 +647,7 @@
           <div id="chart-view" ${activeTab === 'chart' ? '' : 'hidden'}><div id="chart" ${plotted.points.length ? '' : 'hidden'} role="img" aria-label="${escape(humanize(currentNode.name))} chart. Exact values are available in the table."></div><div id="chart-message" ${plotted.points.length ? 'hidden' : ''}>${escape(plotted.reason)}</div>
             <div class="chart-footer"><span>${number.format(data.data.length)} values</span><span class="range-note">${escape(dateRange)}</span><button id="fit-chart" ${plotted.points.length ? '' : 'hidden'}>Reset view</button></div></div>
           <div id="table-view" ${activeTab === 'table' ? '' : 'hidden'}></div></section>
-          <details class="data-details"><summary>Series details</summary><dl><dt>API name</dt><dd>${escape(currentNode.name)}</dd><dt>Value type</dt><dd>${escape(type)}</dd><dt>Index</dt><dd>${escape(data.index)}</dd><dt>Values</dt><dd>${number.format(data.data.length)}${data.data.length ? ` · indexes ${number.format(data.start)}–${number.format(data.end - 1)}` : ''}</dd>${data.stamp ? `<dt>Response time</dt><dd>${escape(data.stamp)} · UTC</dd>` : ''}</dl><div class="detail-actions"><a id="api-link" href="${escape(api.href)}" target="_blank" rel="noopener">View API response ↗</a><button id="copy-api" class="text-button">Copy API URL</button></div></details>`;
+          <details class="data-details"><summary>Series details</summary><dl><dt>API name</dt><dd>${escape(currentNode.name)}</dd><dt>Value type</dt><dd>${escape(type)}</dd><dt>Index</dt><dd>${escape(data.index)}</dd><dt>Values</dt><dd>${number.format(data.data.length)}${data.data.length ? ` · indexes ${number.format(data.start)}–${number.format(data.end - 1)}` : ''}</dd></dl><div class="detail-actions"><a id="api-link" href="${escape(api.href)}" target="_blank" rel="noopener">View API response ↗</a><button id="copy-api" class="text-button">Copy API URL</button></div></details>`;
         updateReadout(); renderTable();
         for (const name of ['chart', 'table']) {
           $(`${name}-tab`).disabled = false;

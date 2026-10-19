@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 bitview_primitives = { workspace = true }
+derive_more = { workspace = true, features = ["from", "into_iterator"] }
 indexmap = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true, features = ["rc"] }

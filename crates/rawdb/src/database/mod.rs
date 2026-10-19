@@ -1,5 +1,5 @@
 mod background_tasks;
-mod data_file;
+pub(crate) mod data_file;
 mod hole_punch;
 mod inner;
 mod layout;
@@ -14,14 +14,17 @@ use std::{
     fmt,
     fs::{self, File},
     path::Path,
-    sync::{Arc, atomic::Ordering},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     time::{Duration, Instant},
 };
 
 use log::debug;
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{Error, PAGE_SIZE, Region, RegionMetadata, Result, dirty_ranges::DirtyRanges};
+use crate::{Error, PAGE_SIZE, Region, RegionMetadata, Result};
 
 use self::{
     background_tasks::BackgroundTasks, data_file::DataFile, inner::DatabaseInner, layout::Layout,
@@ -30,7 +33,7 @@ use self::{
 
 /// Memory-mapped database with region-based storage and hole punching.
 #[derive(Clone)]
-#[must_use = "Database should be stored to keep the database open"]
+#[must_use]
 pub struct Database {
     pub(crate) inner: Arc<DatabaseOwner>,
 }
@@ -51,6 +54,8 @@ impl Database {
                 regions: RwLock::new(regions),
                 data,
                 tasks: BackgroundTasks::default(),
+                // The file past the layout and its gaps may hold data from before opening.
+                reclaim_pending: AtomicBool::new(true),
             });
             let background = Arc::new(DatabaseOwner {
                 storage: storage.clone(),
@@ -72,7 +77,7 @@ impl Database {
     }
 
     /// Cached mapped file length (no syscall).
-    pub(crate) fn file_len(&self) -> usize {
+    fn file_len(&self) -> usize {
         self.inner.data.len()
     }
 
@@ -81,7 +86,7 @@ impl Database {
         if len <= self.file_len() {
             return Ok(());
         }
-        self.inner.data.ensure_len(len, &self.inner.writes)
+        self.inner.data.ensure_len(len)
     }
 
     /// Identifiers of every region in the database, sorted.
@@ -91,7 +96,7 @@ impl Database {
         ids
     }
 
-    pub fn get_region(&self, id: &str) -> Option<Region> {
+    pub fn region(&self, id: &str) -> Option<Region> {
         let region = self.regions().get(id).cloned();
         if let Some(region) = &region {
             region.0.mark_accessed();
@@ -100,41 +105,32 @@ impl Database {
     }
 
     pub fn create_region_if_needed(&self, id: &str) -> Result<Region> {
-        if let Some(region) = self.get_region(id) {
+        if let Some(region) = self.region(id) {
             return Ok(region);
         }
         RegionMetadata::validate_id(id)?;
-        loop {
-            let writes = self.inner.writes.read();
-            let mut layout = self.layout_mut();
-            let mut regions = self.regions_mut();
-            if let Some(region) = regions.get(id).cloned() {
-                region.0.mark_accessed();
-                return Ok(region);
-            }
-            let hole = layout.find_smallest_adequate_hole(PAGE_SIZE);
-            let start = hole.unwrap_or_else(|| layout.end());
-            let end = start
-                .checked_add(PAGE_SIZE)
-                .ok_or(Error::FileSizeOverflow { requested: start })?;
-            if end > self.file_len() {
-                // Readers can still inspect the registry or flush while a
-                // remap waits for them. Recheck allocation after growing.
-                drop(regions);
-                drop(layout);
-                drop(writes);
-                self.inner.data.ensure_len(end, &self.inner.writes)?;
-                continue;
-            }
-            let region = regions.create(self, Arc::from(id), start)?;
-            if hole.is_some() {
-                layout.consume_hole(start, PAGE_SIZE);
-                region.0.tail_needs_punch.store(true, Ordering::Relaxed);
-            }
-            layout.insert_region(start, &region);
+        let _writes = self.inner.writes.read();
+        let mut layout = self.layout_mut();
+        let mut regions = self.regions_mut();
+        if let Some(region) = regions.get(id).cloned() {
             region.0.mark_accessed();
             return Ok(region);
         }
+        let hole = layout.find_smallest_adequate_hole(PAGE_SIZE);
+        let start = hole.unwrap_or_else(|| layout.end());
+        let end = start
+            .checked_add(PAGE_SIZE)
+            .ok_or(Error::FileSizeOverflow { requested: start })?;
+        // Growth stays inside the mapping: it waits for no one.
+        self.inner.data.ensure_len(end)?;
+        let region = regions.create(self, Arc::from(id), start)?;
+        if hole.is_some() {
+            layout.consume_hole(start, PAGE_SIZE);
+            region.mark_tail_punch(self);
+        }
+        layout.insert_region(start, &region);
+        region.0.mark_accessed();
+        Ok(region)
     }
 
     pub fn remove_region_if_exists(&self, id: &str) -> Result<()> {
@@ -145,13 +141,13 @@ impl Database {
     }
 
     pub fn remove_region(&self, id: &str) -> Result<()> {
-        let Some(region) = self.get_region(id) else {
+        let Some(region) = self.region(id) else {
             return Err(Error::RegionNotFound);
         };
         region.remove()
     }
 
-    /// Removes every region that has not been returned by [`Self::get_region`]
+    /// Removes every region that has not been returned by [`Self::region`]
     /// or [`Self::create_region_if_needed`] since this database was opened.
     pub fn retain_accessed_regions(&self) -> Result<()> {
         let layout = self.inner.layout.read();
@@ -171,49 +167,24 @@ impl Database {
         }
         let _writes = self.inner.writes.write();
         self.regions_mut().shrink_to_fit()?;
-        self.flush_inner(&_writes).map(|_| ())
+        self.flush_inner(&_writes);
+        Ok(())
     }
 
-    /// Opens the data file read-only (for external consumers like mmap readers).
     pub(crate) fn open_read_only_file(&self) -> Result<File> {
         File::open(self.path().join("data")).map_err(Error::from)
     }
 
-    /// Flushes all dirty data and metadata to disk.
-    /// Returns the number of regions whose data was flushed.
-    pub fn flush(&self) -> Result<usize> {
+    /// Makes freed space reusable. Writes reach the OS page cache or the file directly, so they are
+    /// visible to the next open (soft quits included) without syncing; power loss is out of scope.
+    pub fn flush(&self) {
         let _writes = self.inner.writes.write();
-        self.flush_inner(&_writes).map(|(regions, _)| regions)
+        self.flush_inner(&_writes);
     }
 
-    fn flush_inner(&self, _writes: &RwLockWriteGuard<'_, ()>) -> Result<(usize, bool)> {
-        // The caller holds the mutation barrier, so dirty state stays stable.
-        // Leave it intact until both files are durable; errors need no rollback.
-        let mut layout = self.layout_mut();
-        let mut ranges = DirtyRanges::default();
-        let mut dirty_regions = Vec::new();
-        for region in layout.regions() {
-            // SAFETY: the exclusive mutation barrier keeps all dirty state stable.
-            if unsafe { region.0.append_dirty_ranges(&mut ranges) } {
-                dirty_regions.push(&region.0);
-            }
-        }
-        // SAFETY: the exclusive mutation barrier remains held.
-        unsafe { self.inner.data.flush(&ranges) }?;
-        let metadata_flushed = self.regions().flush()?;
-        let flushed = dirty_regions.len();
-        for region in dirty_regions {
-            // SAFETY: mutations remain excluded until both files are durable.
-            unsafe { region.clear_dirty_ranges() };
-        }
-
-        // Pending holes become reusable only after their metadata is durable.
-        layout.promote_pending_holes();
-        debug!(
-            "{}: flushed {} data regions (metadata: {})",
-            self, flushed, metadata_flushed
-        );
-        Ok((flushed, metadata_flushed))
+    fn flush_inner(&self, _writes: &RwLockWriteGuard<'_, ()>) {
+        // Pending holes become reusable once their metadata is written.
+        self.layout_mut().promote_pending_holes();
     }
 
     /// Cancellable wait for use inside `run_bg` closures. Returns
@@ -222,29 +193,28 @@ impl Database {
         self.inner.tasks.sleep(dur);
     }
 
-    /// Waits five seconds before compacting so the OS can write dirty mmap pages.
-    /// Intended for background tasks; `sync_bg_tasks` cuts the wait short.
-    pub fn compact_deferred_default(&self) -> Result<()> {
-        self.bg_sleep(Duration::from_secs(5));
-        self.compact()
+    /// Whether [`Self::compact`] has space to reclaim: false once it ran and nothing was freed
+    /// since, so callers can skip scheduling it.
+    pub fn needs_compaction(&self) -> bool {
+        self.inner.reclaim_pending.load(Ordering::Relaxed)
+    }
+
+    /// Callers hold the mutation barrier.
+    pub(crate) fn mark_reclaim_pending(&self) {
+        self.inner.reclaim_pending.store(true, Ordering::Relaxed);
     }
 
     /// Flushes, then punches holes to reclaim disk space.
     pub fn compact(&self) -> Result<()> {
         let _writes = self.inner.writes.write();
         let i = Instant::now();
-        self.flush_inner(&_writes)?;
-        let flush_time = i.elapsed();
-        let i = Instant::now();
+        self.flush_inner(&_writes);
         let r = self.punch_holes(&_writes);
-        let punch_time = i.elapsed();
-        debug!(
-            "{}: compact in {:?} (flush: {:?}, punch_holes: {:?})",
-            self,
-            flush_time + punch_time,
-            flush_time,
-            punch_time
-        );
+        // A failed punch keeps its marks: the next compaction retries.
+        self.inner
+            .reclaim_pending
+            .store(r.is_err(), Ordering::Relaxed);
+        debug!("{}: compact in {:?}", self, i.elapsed());
         r
     }
 
@@ -294,31 +264,18 @@ impl Database {
             region.0.tail_needs_punch.store(false, Ordering::Relaxed);
         }
 
-        if layout.holes_need_punch() {
-            // The layout write lock prevents holes from being allocated while
-            // they are punched. No per-region lock is needed for free space.
-            for (&start, &hole) in layout.start_to_hole() {
-                self.inner.data.punch_hole(start, hole)?;
-            }
-            punched += layout.start_to_hole().len();
-            // Removed trailing regions leave no metadata after reopening. Reclaim
-            // the unused file tail too, including any old allocated pages there.
-            let end = self.file_len() / PAGE_SIZE * PAGE_SIZE;
-            let start = layout.end();
-            if start < end {
-                self.inner.data.punch_hole(start, end - start)?;
-                punched += 1;
-            }
-            layout.mark_holes_punched();
-        }
+        // The layout write lock prevents holes from being allocated while they are punched. No
+        // per-region lock is needed for free space.
+        let file_end = self.file_len() / PAGE_SIZE * PAGE_SIZE;
+        punched += layout.reclaim(file_end, |start, len| {
+            self.inner.data.punch_hole(start, len)
+        })?;
 
         drop(layout);
 
         // KEEP_SIZE preserves file length; the kernel zeroes punched pages.
-        if punched > 0 {
-            debug!("{}: punch_holes syncing after {} punches", self, punched);
-        }
-        self.inner.data.sync(false)
+        debug!("{}: punched {} holes", self, punched);
+        Ok(())
     }
 
     pub(crate) fn regions(&self) -> RwLockReadGuard<'_, Regions> {

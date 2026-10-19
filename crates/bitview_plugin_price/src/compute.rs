@@ -1,20 +1,22 @@
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_compute::{prepare_computed, write_locked};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_plugin_indexer::Indexer;
-use brk_error::{Error, OptionData, Result};
+use bitview_primitives::Float64;
+use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_oracle::{
     Config, Oracle, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
     pre_oracle_prices_from,
 };
-use brk_types::Cents;
+use brk_types::Height;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
 use crate::{Dependencies, Vecs, feed_blocks_for_warmup, feed_blocks_with};
 
 impl Vecs {
     fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         let source_version = [
             indexer.vecs().transactions.txid.version(),
@@ -27,24 +29,35 @@ impl Vecs {
         .into_iter()
         .sum();
         let total_heights = indexer.vecs().blocks.timestamp.len();
-        {
-            let _lock = exit.lock();
-            self.spot
-                .cents
-                .height
-                .validate_computed_version_or_reset(source_version)?;
-
-            // Reorg: truncate to starting_lengths
-            self.spot
-                .cents
-                .height
-                .truncate_if_needed_at(starting_height.to_usize())?;
+        let committed = prepare_computed(
+            [
+                &mut self.spot.cents.height as &mut dyn AnyStoredVec,
+                &mut self.oracle_bin,
+            ],
+            source_version,
+            starting_height.to_usize(),
+            exit,
+        )?;
+        // The slow regime's shape profile is not stored, so resuming inside that regime
+        // replays it from its start, once readers have left the rows it rewrites.
+        if (START_HEIGHT_SLOW + 1..START_HEIGHT_FAST).contains(&committed) {
+            indexer.rewrite_from(Height::from(START_HEIGHT_SLOW), || {
+                let _lock = exit.lock();
+                self.spot
+                    .cents
+                    .height
+                    .truncate_if_needed_at(START_HEIGHT_SLOW)?;
+                self.oracle_bin.truncate_if_needed_at(START_HEIGHT_SLOW)?;
+                Ok(())
+            })?;
         }
 
         let seed_len = total_heights.min(START_HEIGHT_SLOW);
         let seed_start = self.spot.cents.height.len();
         for cents in pre_oracle_prices_from(seed_start).take(seed_len.saturating_sub(seed_start)) {
             self.spot.cents.height.push(cents);
+            self.oracle_bin
+                .push(Float64::from(cents_to_bin(f64::from(cents))));
         }
 
         if self.spot.cents.height.len() >= total_heights {
@@ -52,27 +65,22 @@ impl Vecs {
         }
 
         let committed = self.spot.cents.height.len();
-        let config = Config::for_height(committed);
-        let prev_cents = self
-            .spot
-            .cents
-            .height
-            .collect_one_at(committed - 1)
-            .data()?;
-        let seed_bin = cents_to_bin(
-            prev_cents
-                .finite_inner()
-                .ok_or(Error::Internal("Invalid oracle seed price"))? as f64,
-        );
-        let warmup = config.window_size.min(committed - START_HEIGHT_SLOW);
-        let mut warmed = Ok(());
-        let mut oracle = Oracle::from_checkpoint(seed_bin, config, |o| {
-            warmed = feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None);
-        });
-        warmed?;
+        // The retained oracle continues exactly where the stored prices end; otherwise rebuild it
+        // from the last stored bin and its warmup blocks (the same state: the EMA is a fold of
+        // the window, newest first).
+        let mut oracle = match self.oracle.take() {
+            Some((next, oracle)) if next == committed => oracle,
+            _ => {
+                let config = Config::for_height(committed);
+                let ref_bin = f64::from(self.oracle_bin.collect_one_at(committed - 1).data()?);
+                let warmup = config.window_size.min(committed - START_HEIGHT_SLOW);
+                Oracle::from_checkpoint(ref_bin, config, |o| {
+                    feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None)
+                })?
+            }
+        };
 
         let num_new = total_heights - committed;
-        info!("Computing {num_new} oracle prices ({warmup} warmup blocks)...");
 
         // Slow cold-start EMA up to START_HEIGHT_FAST, then switch to the fast
         // mature-market EMA. Steady-state runs start past START_HEIGHT_FAST and skip
@@ -81,10 +89,8 @@ impl Vecs {
             let mut processed = 0usize;
             let mut next_progress = 10u8;
             let mut push_ref_bin = |ref_bin| {
-                self.spot
-                    .cents
-                    .height
-                    .push(Cents::new(bin_to_cents(ref_bin)));
+                self.spot.cents.height.push(bin_to_cents(ref_bin));
+                self.oracle_bin.push(Float64::from(ref_bin));
 
                 processed += 1;
                 let progress = (processed * 100 / num_new) as u8;
@@ -94,44 +100,25 @@ impl Vecs {
                 }
             };
 
-            if committed < START_HEIGHT_FAST {
-                let slow_end = START_HEIGHT_FAST.min(total_heights);
-                feed_blocks_with(
-                    &mut oracle,
-                    indexer,
-                    committed..slow_end,
-                    None,
-                    |_, _, ref_bin| push_ref_bin(ref_bin),
-                )?;
-                if slow_end == START_HEIGHT_FAST {
+            for segment in Config::segments_for_range(committed..total_heights) {
+                let end = segment.end;
+                feed_blocks_with(&mut oracle, indexer, segment, None, |_, _, ref_bin| {
+                    push_ref_bin(ref_bin)
+                })?;
+                if end == START_HEIGHT_FAST {
                     oracle.reconfigure(Config::default());
                 }
             }
-
-            let fast_start = committed.max(START_HEIGHT_FAST);
-            if fast_start < total_heights {
-                feed_blocks_with(
-                    &mut oracle,
-                    indexer,
-                    fast_start..total_heights,
-                    None,
-                    |_, _, ref_bin| push_ref_bin(ref_bin),
-                )?;
-            }
         }
 
-        info!("Computed {num_new} oracle prices.");
+        self.oracle = Some((total_heights, oracle));
 
         Ok(())
     }
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
@@ -142,11 +129,12 @@ impl ComputePlugin for Vecs {
         let exit = context.exit();
 
         self.compute_prices(indexer, exit)?;
-        {
-            let _lock = exit.lock();
-            self.spot.cents.height.write()?;
-        }
-
-        Ok(())
+        write_locked(
+            [
+                &mut self.spot.cents.height as &mut dyn AnyStoredVec,
+                &mut self.oracle_bin,
+            ],
+            exit,
+        )
     }
 }

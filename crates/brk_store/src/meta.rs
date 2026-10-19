@@ -1,35 +1,39 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 use brk_error::{Error, Result};
 use brk_types::Version;
 use fjall::Keyspace;
 
-pub fn checked_open<F>(path: &Path, version: Version, open_partition_handle: F) -> Result<Keyspace>
-where
-    F: Fn() -> Result<Keyspace>,
-{
+/// Opens the keyspace and checks its version marker: a fresh keyspace gets one, an existing one
+/// must match it. An unreadable marker, or data without one, is an error.
+pub fn checked_open(
+    path: &Path,
+    version: Version,
+    open_keyspace: impl FnOnce() -> Result<Keyspace>,
+) -> Result<Keyspace> {
     fs::create_dir_all(path)?;
 
-    let partition = open_partition_handle()?;
+    let keyspace = open_keyspace()?;
+    let marker = path.join("version");
 
-    if let Ok(prev_version) = Version::try_from(version_path(path).as_path())
-        && version != prev_version
-    {
+    if !marker.try_exists()? {
+        if !keyspace.is_empty()? {
+            return Err(Error::MissingVersion {
+                path: path.to_path_buf(),
+            });
+        }
+        version.write(&marker)?;
+        return Ok(keyspace);
+    }
+
+    let found = Version::try_from(marker.as_path())?;
+    if found != version {
         return Err(Error::VersionMismatch {
             path: path.to_path_buf(),
             expected: usize::from(version),
-            found: usize::from(prev_version),
+            found: usize::from(found),
         });
     }
 
-    version.write(&version_path(path))?;
-
-    Ok(partition)
-}
-
-fn version_path(path: &Path) -> PathBuf {
-    path.join("version")
+    Ok(keyspace)
 }

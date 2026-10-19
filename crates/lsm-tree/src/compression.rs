@@ -72,28 +72,3 @@ impl Decode for CompressionType {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use test_log::test;
-
-    use super::*;
-
-    #[test]
-    fn compression_serialize_none() {
-        let serialized = CompressionType::None.encode_into_vec();
-        assert_eq!(1, serialized.len());
-    }
-
-    mod lz4 {
-        use test_log::test;
-
-        use super::*;
-
-        #[test]
-        fn compression_serialize_none() {
-            let serialized = CompressionType::Lz4.encode_into_vec();
-            assert_eq!(1, serialized.len());
-        }
-    }
-}

@@ -14,9 +14,6 @@ use super::{Sats, VSize, Weight};
 use crate::CheckedSub;
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco};
 
 const MILLIS_PER_SAT_VBYTE: u64 = 1_000;
@@ -49,7 +46,7 @@ impl FeeRate {
 
     #[inline]
     pub const fn from_milli(milli_sats_per_vbyte: u64) -> Self {
-        assert!(
+        debug_assert!(
             milli_sats_per_vbyte != u64::MAX,
             "u64::MAX is reserved as FeeRate::NAN"
         );
@@ -87,12 +84,6 @@ impl FeeRate {
         } else {
             Self::from_checked(self.0.checked_add(nearest.0 - remainder))
         }
-    }
-
-    /// Values are canonical milli-sat/vB already.
-    #[inline]
-    pub const fn round_milli(self) -> Self {
-        self
     }
 
     /// Arithmetic mean rounded to the nearest milli-sat/vB.
@@ -149,7 +140,7 @@ impl From<(Sats, VSize)> for FeeRate {
 impl From<(Sats, Weight)> for FeeRate {
     #[inline]
     fn from((sats, weight): (Sats, Weight)) -> Self {
-        Self::from((sats, VSize::from(weight.to_vbytes_ceil())))
+        Self::from((sats, VSize::from(weight)))
     }
 }
 
@@ -264,13 +255,6 @@ impl CheckedSub for FeeRate {
         } else {
             self.0.checked_sub(rhs.0).map(Self)
         }
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for FeeRate {
-    #[inline]
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
     }
 }
 

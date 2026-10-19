@@ -1,86 +1,133 @@
-use std::cell::OnceCell;
+use std::{cell::OnceCell, ops::Deref};
 
 use bitcoin::{
-    Address, Block, Network, ScriptBuf, Transaction, TxIn, TxOut, consensus::encode::serialize_hex,
+    Address, Block, Network, Transaction, TxIn, TxOut, Txid, consensus::encode::serialize_hex,
     hex::DisplayHex,
 };
 use brk_error::{Error, Result};
-use brk_types::ReadBlock;
+use brk_types::{OutputType, ReadBlock};
 use serde_json::{Map, Value, json};
 
 use crate::path::{Path, Step};
 
-// `hex` is intentionally absent: matches `bitcoin-cli getblock <hash> 2`
-// and keeps NDJSON dumps tractable. Still reachable explicitly via `blk N hex`.
-const BLOCK_FIELDS: &[&str] = &[
-    "height",
-    "hash",
-    "version",
-    "version_hex",
-    "merkle",
-    "time",
-    "nonce",
-    "bits",
-    "difficulty",
-    "prev",
-    "txs",
-    "n_inputs",
-    "n_outputs",
-    "witness_txs",
-    "size",
-    "strippedsize",
-    "weight",
-    "subsidy",
-    "coinbase",
-    "coinbase_hex",
-    "header_hex",
-    "tx",
+/// An object's leaf fields in output order, each with how it is read; nested objects (`tx`,
+/// `vin`, `vout`) follow them. The help lists these names.
+pub type Fields<F> = &'static [(&'static str, F)];
+
+/// `hex` is left out of the whole block: matches `bitcoin-cli getblock <hash> 2` and keeps
+/// NDJSON dumps tractable. Still reachable explicitly via `blk N hex`.
+pub const BLOCK: Fields<fn(&Ctx) -> Value> = &[
+    ("height", |c| json!(*c.height())),
+    ("hash", |c| json!(c.hash().to_string())),
+    ("version", |c| json!(c.header.version.to_consensus())),
+    ("version_hex", |c| {
+        json!(format!("{:08x}", c.header.version.to_consensus() as u32))
+    }),
+    ("merkle", |c| json!(c.header.merkle_root.to_string())),
+    ("time", |c| json!(c.header.time)),
+    ("nonce", |c| json!(c.header.nonce)),
+    ("bits", |c| {
+        json!(format!("{:08x}", c.header.bits.to_consensus()))
+    }),
+    ("difficulty", |c| json!(c.header.difficulty_float())),
+    ("prev", |c| json!(c.header.prev_blockhash.to_string())),
+    ("txs", |c| json!(c.txdata.len())),
+    ("n_inputs", |c| {
+        json!(c.txdata.iter().map(|tx| tx.input.len()).sum::<usize>())
+    }),
+    ("n_outputs", |c| {
+        json!(c.txdata.iter().map(|tx| tx.output.len()).sum::<usize>())
+    }),
+    ("witness_txs", |c| {
+        json!(c.txdata.iter().filter(|tx| tx_has_witness(tx)).count())
+    }),
+    ("size", |c| json!(c.size_and_weight().0)),
+    ("strippedsize", |c| {
+        let (size, weight) = c.size_and_weight();
+        json!((weight - size) / 3)
+    }),
+    ("weight", |c| json!(c.size_and_weight().1)),
+    ("subsidy", |c| json!(u64::from(c.height().subsidy()))),
+    ("coinbase", |c| json!(c.coinbase_tag().to_string())),
+    ("coinbase_hex", |c| {
+        debug_assert!(
+            !c.txdata.is_empty() && !c.txdata[0].input.is_empty(),
+            "consensus-valid block has a coinbase tx with at least one input"
+        );
+        json!(c.txdata[0].input[0].script_sig.to_hex_string())
+    }),
+    ("header_hex", |c| json!(serialize_hex(&c.header))),
+    ("hex", |c| json!(serialize_hex::<Block>(c))),
 ];
 
-const TX_FIELDS: &[&str] = &[
-    "txid",
-    "wtxid",
-    "version",
-    "locktime",
-    "size",
-    "base_size",
-    "vsize",
-    "weight",
-    "inputs",
-    "outputs",
-    "is_coinbase",
-    "has_witness",
-    "is_rbf",
-    "total_out",
-    "hex",
-    "vin",
-    "vout",
+pub const TX: Fields<fn(&Tx) -> Value> = &[
+    ("txid", |tx| json!(tx.id_and_sizes().0.to_string())),
+    ("wtxid", |tx| json!(tx.compute_wtxid().to_string())),
+    ("version", |tx| json!(tx.version.0)),
+    ("locktime", |tx| json!(tx.lock_time.to_consensus_u32())),
+    ("size", |tx| json!(tx.total_size())),
+    ("base_size", |tx| json!(tx.base_size())),
+    ("vsize", |tx| json!(tx.weight().div_ceil(4))),
+    ("weight", |tx| json!(tx.weight())),
+    ("inputs", |tx| json!(tx.input.len())),
+    ("outputs", |tx| json!(tx.output.len())),
+    ("is_coinbase", |tx| json!(tx.index == 0)),
+    ("has_witness", |tx| json!(tx_has_witness(tx))),
+    ("is_rbf", |tx| {
+        json!(tx.input.iter().any(|i| i.sequence.is_rbf()))
+    }),
+    ("total_out", |tx| {
+        json!(tx.output.iter().map(|o| o.value.to_sat()).sum::<u64>())
+    }),
+    ("hex", |tx| json!(serialize_hex(tx.tx))),
 ];
 
-const VIN_FIELDS: &[&str] = &[
-    "prev_txid",
-    "prev_vout",
-    "sequence",
-    "script_sig",
-    "script_sig_asm",
-    "witness",
-    "has_witness",
-    "is_rbf",
-    "coinbase",
+/// Read with whether the input is the coinbase input.
+pub const VIN: Fields<fn(&TxIn, bool) -> Value> = &[
+    ("prev_txid", |vin, _| {
+        json!(vin.previous_output.txid.to_string())
+    }),
+    ("prev_vout", |vin, _| json!(vin.previous_output.vout)),
+    ("sequence", |vin, _| json!(vin.sequence.0)),
+    ("script_sig", |vin, _| json!(vin.script_sig.to_hex_string())),
+    ("script_sig_asm", |vin, _| {
+        json!(vin.script_sig.to_asm_string())
+    }),
+    ("witness", |vin, _| vin.witness.iter().map(hex).collect()),
+    ("has_witness", |vin, _| json!(!vin.witness.is_empty())),
+    ("is_rbf", |vin, _| json!(vin.sequence.is_rbf())),
+    ("coinbase", |_, is_coinbase| json!(is_coinbase)),
 ];
 
-const VOUT_FIELDS: &[&str] = &[
-    "value",
-    "script_pubkey",
-    "script_pubkey_asm",
-    "type",
-    "address",
+pub const VOUT: Fields<fn(&TxOut, Network) -> Value> = &[
+    ("value", |vout, _| json!(vout.value.to_sat())),
+    ("script_pubkey", |vout, _| {
+        json!(vout.script_pubkey.to_hex_string())
+    }),
+    ("script_pubkey_asm", |vout, _| {
+        json!(vout.script_pubkey.to_asm_string())
+    }),
+    ("type", |vout, _| {
+        json!(OutputType::from(&vout.script_pubkey))
+    }),
+    ("address", |vout, network| {
+        Address::from_script(&vout.script_pubkey, network)
+            .map_or(Value::Null, |a| Value::String(a.to_string()))
+    }),
 ];
 
 pub struct Ctx<'a> {
     block: &'a ReadBlock,
     network: Network,
     size_weight: OnceCell<(usize, usize)>,
+}
+
+impl Deref for Ctx<'_> {
+    type Target = ReadBlock;
+
+    fn deref(&self) -> &ReadBlock {
+        self.block
+    }
 }
 
 impl<'a> Ctx<'a> {
@@ -93,7 +140,7 @@ impl<'a> Ctx<'a> {
     }
 
     pub fn resolve(&self, path: &Path) -> Result<Value> {
-        let (step, rest) = pop(&path.steps)?;
+        let (step, rest) = path.steps.split_first().expect("a parsed path has a step");
         self.block_field(&step.name, step.index, rest)
     }
 
@@ -105,214 +152,190 @@ impl<'a> Ctx<'a> {
     }
 
     pub fn full(&self) -> Value {
-        let mut obj = Map::with_capacity(BLOCK_FIELDS.len());
-        for &name in BLOCK_FIELDS {
-            obj.insert(
-                name.into(),
-                self.block_field(name, None, &[])
-                    .expect("known block field"),
-            );
-        }
-        Value::Object(obj)
+        let leaves = BLOCK.iter().filter(|&&(name, _)| name != "hex");
+        let mut block = object(BLOCK.len(), leaves, |field| field(self));
+        block.insert("tx".into(), self.txs(None, &[]).expect("whole txs"));
+        Value::Object(block)
     }
 
     fn size_and_weight(&self) -> (usize, usize) {
-        *self
-            .size_weight
-            .get_or_init(|| self.block.total_size_and_weight())
+        *self.size_weight.get_or_init(|| {
+            (
+                self.block.total_size(),
+                self.block.weight().to_wu() as usize,
+            )
+        })
     }
 
     fn block_field(&self, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
-        let b = self.block;
-        let raw: &Block = b;
-        let scalar = |v| scalar_leaf(v, name, index, rest);
         match name {
-            "height" => scalar(json!(*b.height())),
-            "hash" => scalar(json!(b.hash().to_string())),
-            "time" => scalar(json!(b.header.time)),
-            "version" => scalar(json!(b.header.version.to_consensus())),
-            "version_hex" => scalar(json!(format!(
-                "{:08x}",
-                b.header.version.to_consensus() as u32
-            ))),
-            "bits" => scalar(json!(format!("{:08x}", b.header.bits.to_consensus()))),
-            "nonce" => scalar(json!(b.header.nonce)),
-            "prev" => scalar(json!(b.header.prev_blockhash.to_string())),
-            "merkle" => scalar(json!(b.header.merkle_root.to_string())),
-            "difficulty" => scalar(json!(b.header.difficulty_float())),
-            "txs" => scalar(json!(b.txdata.len())),
-            "n_inputs" => scalar(json!(
-                b.txdata.iter().map(|tx| tx.input.len()).sum::<usize>()
-            )),
-            "n_outputs" => scalar(json!(
-                b.txdata.iter().map(|tx| tx.output.len()).sum::<usize>()
-            )),
-            "witness_txs" => scalar(json!(
-                b.txdata.iter().filter(|tx| tx_has_witness(tx)).count()
-            )),
-            "size" => scalar(json!(self.size_and_weight().0)),
-            "weight" => scalar(json!(self.size_and_weight().1)),
-            "strippedsize" => {
-                let (size, weight) = self.size_and_weight();
-                scalar(json!((weight - size) / 3))
-            }
-            "subsidy" => scalar(json!(subsidy_sats(*b.height()))),
-            "header_hex" => scalar(json!(serialize_hex(&b.header))),
-            "hex" => scalar(json!(serialize_hex(raw))),
-            "coinbase" => scalar(json!(b.coinbase_tag().as_str())),
-            "coinbase_hex" => {
-                debug_assert!(
-                    !b.txdata.is_empty() && !b.txdata[0].input.is_empty(),
-                    "consensus-valid block has a coinbase tx with at least one input"
-                );
-                scalar(json!(b.txdata[0].input[0].script_sig.to_hex_string()))
-            }
-            "tx" => pick(&b.txdata, name, index, |i, tx| {
-                self.resolve_tx(tx, i == 0, rest)
-            }),
-            other => Err(unknown("block", other)),
+            "tx" => self.txs(index, rest),
+            _ => leaf(lookup(BLOCK, "block", name)?(self), name, index, rest),
         }
     }
 
-    fn resolve_tx(&self, tx: &Transaction, is_coinbase: bool, steps: &[Step]) -> Result<Value> {
-        if steps.is_empty() {
-            let mut obj = Map::with_capacity(TX_FIELDS.len());
-            for &name in TX_FIELDS {
-                obj.insert(
-                    name.into(),
-                    self.tx_field(tx, is_coinbase, name, None, &[])
-                        .expect("known tx field"),
-                );
-            }
-            return Ok(Value::Object(obj));
-        }
-        let (step, rest) = pop(steps)?;
-        self.tx_field(tx, is_coinbase, &step.name, step.index, rest)
+    fn txs(&self, index: Option<usize>, rest: &[Step]) -> Result<Value> {
+        pick(&self.block.txdata, "tx", index, |i, tx| {
+            self.resolve_tx(&Tx::new(self.block, tx, i), rest)
+        })
     }
 
-    fn tx_field(
-        &self,
-        tx: &Transaction,
-        is_coinbase: bool,
-        name: &str,
-        index: Option<usize>,
-        rest: &[Step],
-    ) -> Result<Value> {
-        let scalar = |v| scalar_leaf(v, name, index, rest);
+    fn resolve_tx(&self, tx: &Tx, steps: &[Step]) -> Result<Value> {
+        let Some((step, rest)) = steps.split_first() else {
+            let mut whole = object(TX.len() + 2, TX, |field| field(tx));
+            for name in ["vin", "vout"] {
+                whole.insert(name.into(), self.tx_field(tx, name, None, &[])?);
+            }
+            return Ok(Value::Object(whole));
+        };
+        self.tx_field(tx, &step.name, step.index, rest)
+    }
+
+    fn tx_field(&self, tx: &Tx, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
         match name {
-            "txid" => scalar(json!(tx.compute_txid().to_string())),
-            "wtxid" => scalar(json!(tx.compute_wtxid().to_string())),
-            "version" => scalar(json!(tx.version.0)),
-            "locktime" => scalar(json!(tx.lock_time.to_consensus_u32())),
-            "size" => scalar(json!(tx.total_size())),
-            "base_size" => scalar(json!(tx.base_size())),
-            "vsize" => scalar(json!(tx.vsize())),
-            "weight" => scalar(json!(tx.weight().to_wu())),
-            "inputs" => scalar(json!(tx.input.len())),
-            "outputs" => scalar(json!(tx.output.len())),
-            "is_coinbase" => scalar(json!(is_coinbase)),
-            "has_witness" => scalar(json!(tx_has_witness(tx))),
-            "is_rbf" => scalar(json!(tx_is_rbf(tx))),
-            "total_out" => scalar(json!(tx_total_out(tx))),
-            "hex" => scalar(json!(serialize_hex(tx))),
-            "vin" => pick(&tx.input, name, index, |j, vin| {
-                resolve_vin(vin, is_coinbase && j == 0, rest)
+            "vin" => pick(&tx.input, name, index, |j, vin| match rest.split_first() {
+                Some((step, rest)) if step.name == "witness" => witness(vin, step.index, rest),
+                _ => resolve_leaves(VIN, "vin", rest, |field| {
+                    field(vin, tx.index == 0 && j == 0)
+                }),
             }),
             "vout" => pick(&tx.output, name, index, |_, vout| {
-                self.resolve_vout(vout, rest)
+                resolve_leaves(VOUT, "vout", rest, |field| field(vout, self.network))
             }),
-            other => Err(unknown("tx", other)),
+            _ => leaf(lookup(TX, "tx", name)?(tx), name, index, rest),
         }
-    }
-
-    fn resolve_vout(&self, vout: &TxOut, steps: &[Step]) -> Result<Value> {
-        if steps.is_empty() {
-            let mut obj = Map::with_capacity(VOUT_FIELDS.len());
-            for &name in VOUT_FIELDS {
-                obj.insert(
-                    name.into(),
-                    self.vout_field(vout, name, None, &[])
-                        .expect("known vout field"),
-                );
-            }
-            return Ok(Value::Object(obj));
-        }
-        let (step, rest) = pop(steps)?;
-        self.vout_field(vout, &step.name, step.index, rest)
-    }
-
-    fn vout_field(
-        &self,
-        vout: &TxOut,
-        name: &str,
-        index: Option<usize>,
-        rest: &[Step],
-    ) -> Result<Value> {
-        let scalar = |v| scalar_leaf(v, name, index, rest);
-        match name {
-            "value" => scalar(json!(vout.value.to_sat())),
-            "script_pubkey" => scalar(json!(vout.script_pubkey.to_hex_string())),
-            "script_pubkey_asm" => scalar(json!(vout.script_pubkey.to_asm_string())),
-            "type" => scalar(json!(script_type(&vout.script_pubkey))),
-            "address" => scalar(self.address_value(&vout.script_pubkey)),
-            other => Err(unknown("vout", other)),
-        }
-    }
-
-    fn address_value(&self, s: &ScriptBuf) -> Value {
-        Address::from_script(s, self.network)
-            .map(|a| Value::String(a.to_string()))
-            .unwrap_or(Value::Null)
     }
 }
 
-fn resolve_vin(vin: &TxIn, is_coinbase: bool, steps: &[Step]) -> Result<Value> {
-    if steps.is_empty() {
-        let mut obj = Map::with_capacity(VIN_FIELDS.len());
-        for &name in VIN_FIELDS {
-            obj.insert(
-                name.into(),
-                vin_field(vin, is_coinbase, name, None, &[]).expect("known vin field"),
-            );
-        }
-        return Ok(Value::Object(obj));
-    }
-    let (step, rest) = pop(steps)?;
-    vin_field(vin, is_coinbase, &step.name, step.index, rest)
+/// A block transaction whose txid is computed at most once, from the raw block
+/// bytes when available, with its sizes alongside; size-only queries skip the hash.
+pub struct Tx<'a> {
+    block: &'a ReadBlock,
+    tx: &'a Transaction,
+    index: usize,
+    id_and_sizes: OnceCell<(Txid, u32, u32)>,
 }
 
-fn vin_field(
-    vin: &TxIn,
-    is_coinbase: bool,
-    name: &str,
-    index: Option<usize>,
-    rest: &[Step],
+impl<'a> Tx<'a> {
+    fn new(block: &'a ReadBlock, tx: &'a Transaction, index: usize) -> Self {
+        Self {
+            block,
+            tx,
+            index,
+            id_and_sizes: OnceCell::new(),
+        }
+    }
+
+    /// Txid, base size and total size.
+    fn id_and_sizes(&self) -> (Txid, u32, u32) {
+        *self
+            .id_and_sizes
+            .get_or_init(|| self.block.compute_txid_and_sizes(self.index))
+    }
+
+    fn base_size(&self) -> u32 {
+        self.id_and_sizes.get().map_or_else(
+            || self.tx.base_size() as u32,
+            |&(_, base_size, _)| base_size,
+        )
+    }
+
+    fn total_size(&self) -> u32 {
+        self.id_and_sizes.get().map_or_else(
+            || self.tx.total_size() as u32,
+            |&(_, _, total_size)| total_size,
+        )
+    }
+
+    fn weight(&self) -> u32 {
+        3 * self.base_size() + self.total_size()
+    }
+}
+
+impl Deref for Tx<'_> {
+    type Target = Transaction;
+
+    fn deref(&self) -> &Transaction {
+        self.tx
+    }
+}
+
+fn object<'a, F: Copy + 'a>(
+    len: usize,
+    fields: impl IntoIterator<Item = &'a (&'static str, F)>,
+    read: impl Fn(F) -> Value,
+) -> Map<String, Value> {
+    let mut object = Map::with_capacity(len);
+    object.extend(
+        fields
+            .into_iter()
+            .map(|&(name, field)| (name.to_owned(), read(field))),
+    );
+    object
+}
+
+/// An object made of leaf fields only: whole, or the field the path names.
+fn resolve_leaves<F: Copy>(
+    fields: Fields<F>,
+    level: &str,
+    steps: &[Step],
+    read: impl Fn(F) -> Value,
 ) -> Result<Value> {
-    let scalar = |v| scalar_leaf(v, name, index, rest);
-    match name {
-        "prev_txid" => scalar(json!(vin.previous_output.txid.to_string())),
-        "prev_vout" => scalar(json!(vin.previous_output.vout)),
-        "sequence" => scalar(json!(vin.sequence.0)),
-        "script_sig" => scalar(json!(vin.script_sig.to_hex_string())),
-        "script_sig_asm" => scalar(json!(vin.script_sig.to_asm_string())),
-        "witness" => {
-            if !rest.is_empty() {
-                return Err(Error::Parse(
-                    "'witness' element has no fields to drill into".into(),
-                ));
-            }
-            let items: Vec<String> = vin
-                .witness
-                .iter()
-                .map(|w| w.to_lower_hex_string())
-                .collect();
-            pick(&items, name, index, |_, hex| Ok(Value::String(hex.clone())))
-        }
-        "has_witness" => scalar(json!(!vin.witness.is_empty())),
-        "is_rbf" => scalar(json!(vin.sequence.is_rbf())),
-        "coinbase" => scalar(json!(is_coinbase)),
-        other => Err(unknown("vin", other)),
+    match steps.split_first() {
+        None => Ok(Value::Object(object(fields.len(), fields, read))),
+        Some((step, rest)) => leaf(
+            read(lookup(fields, level, &step.name)?),
+            &step.name,
+            step.index,
+            rest,
+        ),
     }
+}
+
+fn lookup<F: Copy>(fields: Fields<F>, level: &str, name: &str) -> Result<F> {
+    fields
+        .iter()
+        .find(|&&(field, _)| field == name)
+        .map(|&(_, read)| read)
+        .ok_or_else(|| {
+            Error::Parse(format!(
+                "unknown {level} field '{name}' (run `blk --help` for the list)"
+            ))
+        })
+}
+
+/// A scalar leaf: no index, no fields to drill into.
+fn leaf(value: Value, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
+    if index.is_some() {
+        return Err(Error::Parse(format!("'{name}' is not an array")));
+    }
+    if !rest.is_empty() {
+        return Err(Error::Parse(format!(
+            "'{name}' has no fields to drill into"
+        )));
+    }
+    Ok(value)
+}
+
+/// The witness stack, or one element of it: only the elements returned are hex-encoded.
+fn witness(vin: &TxIn, index: Option<usize>, rest: &[Step]) -> Result<Value> {
+    if !rest.is_empty() {
+        return Err(Error::Parse(
+            "'witness' element has no fields to drill into".into(),
+        ));
+    }
+    match index {
+        Some(i) => vin
+            .witness
+            .nth(i)
+            .map(hex)
+            .ok_or_else(|| out_of_range("witness", i, vin.witness.len())),
+        None => Ok(vin.witness.iter().map(hex).collect()),
+    }
+}
+
+fn hex(bytes: &[u8]) -> Value {
+    Value::String(bytes.to_lower_hex_string())
 }
 
 fn pick<T>(
@@ -328,81 +351,18 @@ fn pick<T>(
                 .ok_or_else(|| out_of_range(name, i, items.len()))?;
             resolve(i, item)
         }
-        None => Ok(Value::Array(
-            items
-                .iter()
-                .enumerate()
-                .map(|(i, item)| resolve(i, item))
-                .collect::<Result<_>>()?,
-        )),
+        None => items
+            .iter()
+            .enumerate()
+            .map(|(i, item)| resolve(i, item))
+            .collect(),
     }
-}
-
-fn pop(steps: &[Step]) -> Result<(&Step, &[Step])> {
-    steps
-        .split_first()
-        .ok_or_else(|| Error::Parse("empty path segment".into()))
-}
-
-fn scalar_leaf(v: Value, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
-    if index.is_some() {
-        return Err(Error::Parse(format!("'{name}' is not an array")));
-    }
-    if !rest.is_empty() {
-        return Err(Error::Parse(format!(
-            "'{name}' has no fields to drill into"
-        )));
-    }
-    Ok(v)
 }
 
 fn out_of_range(name: &str, i: usize, len: usize) -> Error {
     Error::Parse(format!("{name}.{i} out of range (len {len})"))
 }
 
-fn unknown(level: &str, name: &str) -> Error {
-    Error::Parse(format!(
-        "unknown {level} field '{name}' (run `blk --help` for the list)"
-    ))
-}
-
 fn tx_has_witness(tx: &Transaction) -> bool {
     tx.input.iter().any(|i| !i.witness.is_empty())
-}
-
-fn tx_is_rbf(tx: &Transaction) -> bool {
-    tx.input.iter().any(|i| i.sequence.is_rbf())
-}
-
-fn tx_total_out(tx: &Transaction) -> u64 {
-    tx.output.iter().map(|o| o.value.to_sat()).sum()
-}
-
-fn subsidy_sats(height: u32) -> u64 {
-    let halvings = height / 210_000;
-    if halvings >= 64 {
-        0
-    } else {
-        (50 * 100_000_000u64) >> halvings
-    }
-}
-
-fn script_type(s: &ScriptBuf) -> &'static str {
-    if s.is_p2pkh() {
-        "p2pkh"
-    } else if s.is_p2sh() {
-        "p2sh"
-    } else if s.is_p2wpkh() {
-        "p2wpkh"
-    } else if s.is_p2wsh() {
-        "p2wsh"
-    } else if s.is_p2tr() {
-        "p2tr"
-    } else if s.is_op_return() {
-        "op_return"
-    } else if s.is_p2pk() {
-        "p2pk"
-    } else {
-        "unknown"
-    }
 }

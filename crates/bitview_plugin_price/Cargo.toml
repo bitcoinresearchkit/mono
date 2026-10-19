@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_price"
-description = "The price plugin for Bitview"
+description = "Bitcoin USD spot prices and OHLC candles from exchange history and an on-chain oracle"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,7 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+bitview_compute = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 brk_exit = { workspace = true }
 bitview_vecs = { workspace = true }
@@ -18,5 +19,8 @@ bitview_plugin_indexer = { workspace = true }
 brk_oracle = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
+derive_more = { workspace = true }
+rangeindex = { workspace = true }
+rayon = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }

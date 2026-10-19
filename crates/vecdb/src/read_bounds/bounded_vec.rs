@@ -31,12 +31,18 @@ impl<'a> BoundedVec<'a> {
         self.source.name()
     }
 
+    /// The bounds every operation installs: entering them once around many operations makes
+    /// theirs join that scope.
+    pub fn bounds(&self) -> &'a ReadBounds {
+        self.bounds
+    }
+
     pub fn version(&self) -> Version {
         self.source.version()
     }
 
-    pub fn value_type_to_string(&self) -> &'static str {
-        self.source.value_type_to_string()
+    pub fn value_type_name(&self) -> &'static str {
+        self.source.value_type_name()
     }
 
     pub fn visible_len(&self) -> usize {
@@ -56,17 +62,16 @@ impl<'a> BoundedVec<'a> {
         (from.min(to), to)
     }
 
-    pub fn range_count(&self, from: Option<i64>, to: Option<i64>) -> usize {
+    fn range_count(&self, from: Option<i64>, to: Option<i64>) -> usize {
         let (from, to) = self.signed_range(from, to);
         to - from
     }
 
     pub fn range_weight(&self, from: Option<i64>, to: Option<i64>) -> usize {
         self.range_count(from, to)
-            .saturating_mul(self.source.value_type_to_size_of())
+            .saturating_mul(self.source.value_size())
     }
 
-    #[cfg(feature = "serde")]
     pub fn write_json(
         &self,
         from: Option<usize>,
@@ -78,7 +83,6 @@ impl<'a> BoundedVec<'a> {
             .scope(|| self.source.write_json(Some(from), Some(to), buf))
     }
 
-    #[cfg(feature = "serde")]
     pub fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> Result<()> {
         if index >= self.visible_len() {
             return Ok(());
@@ -91,7 +95,7 @@ impl<'a> BoundedVec<'a> {
         &self,
         from: Option<usize>,
         to: Option<usize>,
-        buf: &mut String,
+        buf: &mut Vec<u8>,
     ) -> Result<()> {
         let (from, to) = self.range(from, to);
         self.bounds

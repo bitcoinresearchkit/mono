@@ -1,24 +1,142 @@
-//
 // https://docs.rs/schemars/latest/schemars/derive.JsonSchema.html
 //
 // Scalar:
 // - Documentation: https://guides.scalar.com/scalar/scalar-api-references
 // - Configuration: https://guides.scalar.com/scalar/scalar-api-references/configuration
-// - Examples:
-//   - https://docs.machines.dev/
-//   - https://tailscale.com/api
-//   - https://api.supabase.com/api/v1
-//
 
 mod compact;
-mod full;
 
 use aide::openapi::{Contact, Info, License, OpenApi, Tag};
-pub use compact::ApiJson;
-pub use full::OpenApiJson;
-use serde_json::Value;
+use axum::body::Bytes;
+use serde_json::{to_value, to_vec};
 
-use crate::VERSION;
+use crate::{VERSION, prepared_json::PreparedJson};
+
+/// The full spec and its compact form for LLMs, pre-serialized at startup with their validators.
+pub struct OpenApiBodies {
+    pub full: PreparedJson,
+    pub compact: PreparedJson,
+}
+
+impl OpenApiBodies {
+    pub fn new(openapi: &OpenApi) -> Self {
+        let json = |bytes: Vec<u8>| PreparedJson::from_bytes(Bytes::from(bytes));
+        Self {
+            full: json(to_vec(openapi).unwrap()),
+            compact: json(compact::compact_json(to_value(openapi).unwrap())),
+        }
+    }
+}
+
+pub mod tags {
+    pub const SERVER: &str = "Server";
+    pub const SERIES: &str = "Series";
+    pub const GENERAL: &str = "General";
+    pub const ADDRESSES: &str = "Addresses";
+    pub const BLOCKS: &str = "Blocks";
+    pub const MINING: &str = "Mining";
+    pub const FEES: &str = "Fees";
+    pub const MEMPOOL: &str = "Mempool";
+    pub const TRANSACTIONS: &str = "Transactions";
+    pub const ORACLE: &str = "Oracle";
+    pub const UTXO_SET: &str = "UTXO Set";
+    pub const URPD: &str = "URPD";
+}
+
+/// The tags in the spec's order, each with its description.
+const TAGS: [(&str, &str); 12] = [
+    (
+        tags::SERVER,
+        "API metadata, health monitoring, and OpenAPI specifications.",
+    ),
+    (
+        tags::SERIES,
+        "Thousands of historical Bitcoin series across calendar, block and entity indexes, as JSON \
+        or CSV. Series names may change between releases.",
+    ),
+    (
+        tags::GENERAL,
+        "Difficulty adjustments and BTC/USD price data.\n\n\
+        *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
+    ),
+    (
+        tags::ADDRESSES,
+        "Address balances, transaction history and UTXOs. Supports P2PKH, P2SH, P2WPKH, P2WSH, \
+        P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes).\n\n\
+        *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
+    ),
+    (
+        tags::BLOCKS,
+        "Blocks by hash or height: headers, transaction lists and raw block bytes.\n\n\
+        *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
+    ),
+    (
+        tags::MINING,
+        "Mining statistics including pool distribution, hashrate, difficulty adjustments, \
+        block rewards, and fee rates across configurable time periods.\n\n\
+        *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
+    ),
+    (
+        tags::FEES,
+        "Fee estimation and projected mempool blocks.\n\n\
+        *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
+    ),
+    (
+        tags::MEMPOOL,
+        "Mempool statistics, transaction IDs, fee histogram and recent transactions.\n\n\
+        *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
+    ),
+    (
+        tags::TRANSACTIONS,
+        "Transactions by txid: details, confirmation status, raw hex, merkle proofs and output \
+        spends.\n\n\
+        *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
+    ),
+    (
+        tags::ORACLE,
+        "On-chain BTC/USD price derived purely from round-dollar payment patterns in \
+        transaction outputs, with no external price feed. Payment activity is binned on a \
+        log scale, and a smoothed EMA over recent blocks locates the price.\n\n\
+        Histograms come in two flavors, each available at the live tip (mempool-blended) \
+        or at any confirmed height: `raw` bins every output by value with no filtering, \
+        while `ema` is the smoothed round-dollar window the price is read from. The live \
+        price is also at `/api/mempool/price`. Confirmed per-height price history is at \
+        `/api/series/price/height`.",
+    ),
+    (
+        tags::UTXO_SET,
+        "The UTXO set by creation height: what remains unspent of each block's outputs \
+        after a block or a UTC day, and what a block or a day changed. Reconstructed from \
+        the UTXO set's history on demand. Supplies are in BTC; a set plus the next diff \
+        gives the next set, exact when each supply is rounded to 8 decimals. A date \
+        covers the day's published blocks, by each block's monotonic timestamp (the \
+        running maximum of block times), like URPD.\n\n\
+        The set excludes `OP_RETURN` outputs and the genesis coinbase (unspendable), and \
+        the coinbases of blocks 91812 and 91722 once duplicates at 91842 and 91880 \
+        overwrite them; it includes zero-value outputs.",
+    ),
+    (
+        tags::URPD,
+        "UTXO Realized Price Distribution. For each (cohort, block) pair, supply is \
+        grouped by the price at which each UTXO was last moved. Distributions are \
+        reconstructed from the UTXO set's history on demand.\n\n\
+        Each bucket carries `supply` (BTC), `realized_cap` (USD, the sum of each coin's \
+        creation price times its supply, so not `price_floor * supply` once aggregated), \
+        and `unrealized_pnl` (USD, = `close * supply - realized_cap`, can be negative).\n\n\
+        Aggregate with the `agg` query parameter (alias `bucket`):\n\
+        - `raw`: one bucket per rounded price (default).\n\
+        - `lin200` / `lin500` / `lin1000`: linear buckets, $200 / $500 / $1000 wide.\n\
+        - `log10` / `log50` / `log100` / `log200`: logarithmic buckets, N bins per price decade.\n\n\
+        Weight supply with the `weight` query parameter:\n\
+        - `raw`: unweighted supply (default).\n\
+        - `cointime`: cointime-weighted supply.\n\
+        - `coinflow`: coinflow-weighted supply.\n\n\
+        Raw and weighted age-range, `all`, `sth`, and `lth` distributions share \
+        the same block state. Weights are evaluated at the requested block.\n\n\
+        Discovery flow: `GET /api/urpd` (cohorts), `GET /api/urpd/{cohort}` (latest), \
+        `GET /api/urpd/{cohort}/dates` (history), `GET /api/urpd/{cohort}/{point}` (specific).",
+    ),
+];
 
 pub fn create_openapi() -> OpenApi {
     let info = Info {
@@ -31,7 +149,7 @@ pub fn create_openapi() -> OpenApi {
 - **[Mempool.space](https://mempool.space/docs/api/rest) compatible**: Blocks, transactions, addresses, mining, fees, and mempool endpoints match the mempool.space REST API
 - **Series**: Thousands of on-chain time-series across multiple indexes (date, block height, etc.)
 - **Multiple formats**: JSON and CSV output
-- **LLM-optimized**: [`/llms.txt`](/llms.txt) for discovery, [`/api.json`](/api.json) compact OpenAPI spec for tool use (full spec at [`/openapi.json`](/openapi.json))
+- **For LLMs**: [`/llms.txt`](/llms.txt) for discovery, [`/api.json`](/api.json) a compact custom summary of this spec for reading (not OpenAPI); build tools from [`/openapi.json`](/openapi.json)
 - **MCP**: Stateless, read-only access to these operations at [mcp.bitview.space](https://mcp.bitview.space/), with no authentication required
 
 ### Quick start
@@ -45,7 +163,7 @@ curl -s https://bitview.space/api/series/search?q=price
 
 ### Errors
 
-All errors return structured JSON with a consistent format:
+Errors use `application/problem+json`:
 
 ```json
 {
@@ -59,9 +177,7 @@ All errors return structured JSON with a consistent format:
 ```
 
 - **`type`**: Error category, following the status — `invalid_request` (4xx other than 404), `not_found` (404), `unavailable` (503), `timeout` (504), or `internal` (other 5xx); see the `ErrorType` schema
-- **`code`**: Machine-readable error code (e.g. `invalid_addr`, `series_not_found`, `weight_exceeded`); see the `ErrorCode` schema
-- **`message`**: Human-readable description
-- **`doc_url`**: Link to API documentation
+- **`code`**: Machine-readable error code (e.g. `invalid_address`, `series_not_found`, `weight_exceeded`); see the `ErrorCode` schema
 
 ### Client Libraries
 
@@ -93,138 +209,14 @@ All errors return structured JSON with a consistent format:
         ..Info::default()
     };
 
-    let tags = vec![
-        Tag {
-            name: "Server".to_string(),
-            description: Some(
-                "API metadata, health monitoring, and OpenAPI specifications.".to_string(),
-            ),
+    let tags = TAGS
+        .iter()
+        .map(|&(name, description)| Tag {
+            name: name.to_owned(),
+            description: Some(description.to_owned()),
             ..Default::default()
-        },
-        Tag {
-            name: "Series".to_string(),
-            description: Some(
-                "Access thousands of Bitcoin network time-series data. Query historical statistics \
-                across various indexes (date, week, month, block height) with JSON or CSV output.\n\n\
-                **Note:** Series names are subject to change while the project is in active development."
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "General".to_string(),
-            description: Some(
-                "General Bitcoin network information including difficulty adjustments and price data.\n\n\
-                *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*"
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "Addresses".to_string(),
-            description: Some(
-                "Query Bitcoin address data including balances, transaction history, and UTXOs. \
-                Supports all address types: P2PKH, P2SH, P2WPKH, P2WSH, and P2TR.\n\n\
-                *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*"
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "Blocks".to_string(),
-            description: Some(
-                "Retrieve block data by hash or height. Access block headers, transaction lists, \
-                and raw block bytes.\n\n\
-                *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*"
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "Mining".to_string(),
-            description: Some(
-                "Mining statistics including pool distribution, hashrate, difficulty adjustments, \
-                block rewards, and fee rates across configurable time periods.\n\n\
-                *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*"
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "Fees".to_string(),
-            description: Some(
-                "Fee estimation and projected mempool blocks.\n\n\
-                *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*"
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "Mempool".to_string(),
-            description: Some(
-                "Monitor unconfirmed transactions. Get mempool statistics, \
-                transaction IDs, fee histogram, and recent transactions.\n\n\
-                *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*"
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "Transactions".to_string(),
-            description: Some(
-                "Retrieve transaction data by txid. Access full transaction details, confirmation \
-                status, raw hex, merkle proofs, and output spend information.\n\n\
-                *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*"
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "Oracle".to_string(),
-            description: Some(
-                "On-chain BTC/USD price derived purely from round-dollar payment patterns in \
-                transaction outputs, with no external price feed. Payment activity is binned on a \
-                log scale, and a smoothed EMA over recent blocks locates the price.\n\n\
-                Histograms come in two flavors, each available at the live tip (mempool-blended) \
-                or at any confirmed height: `raw` bins every output by value with no filtering, \
-                while `ema` is the smoothed round-dollar window the price is read from. The live \
-                price is also at `/api/mempool/price`. Confirmed per-height price history is at \
-                `/api/series/price/height`."
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "URPD".to_string(),
-            description: Some(
-                "UTXO Realized Price Distribution. For each (cohort, block) pair, supply is \
-                grouped by the price at which each UTXO was last moved. Distributions are \
-                reconstructed from UTXO history on demand.\n\n\
-                Each bucket carries `supply` (BTC), `realized_cap` (USD, = `price_floor * supply`), \
-                and `unrealized_pnl` (USD, = `(close - price_floor) * supply`, can be negative).\n\n\
-                Aggregate with the `agg` query parameter (alias `bucket`):\n\
-                - `raw`: one bucket per rounded price (default).\n\
-                - `lin200` / `lin500` / `lin1000`: linear buckets, $200 / $500 / $1000 wide.\n\
-                - `log10` / `log50` / `log100` / `log200`: logarithmic buckets, N bins per price decade.\n\n\
-                Weight supply with the `weight` query parameter:\n\
-                - `raw`: unweighted supply (default).\n\
-                - `cointime`: cointime-weighted supply.\n\
-                - `coinflow`: coinflow-weighted supply.\n\n\
-                Raw and weighted age-range, `all`, `sth`, and `lth` distributions share \
-                the same block state. Weights are evaluated at the requested block.\n\n\
-                Discovery flow: `GET /api/urpd` (cohorts), `GET /api/urpd/{cohort}` (latest), \
-                `GET /api/urpd/{cohort}/dates` (history), `GET /api/urpd/{cohort}/{point}` (specific)."
-                    .to_string(),
-            ),
-            ..Default::default()
-        },
-        Tag {
-            name: "Metrics".to_string(),
-            description: Some("Deprecated - use Series".to_string()),
-            extensions: [("deprecated".to_string(), Value::Bool(true))].into(),
-            ..Default::default()
-        },
-    ];
+        })
+        .collect();
 
     OpenApi {
         info,

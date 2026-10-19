@@ -30,7 +30,7 @@ pub trait RecordBytes: AsRef<[u8]> + Clone + Ord + Debug + Send + 'static {
 
 impl RecordBytes for Slice {
     fn empty() -> Self {
-        Self::empty()
+        Self::default()
     }
     fn from_block(bytes: &Slice, range: Range<usize>) -> Result<Self> {
         Ok(bytes.slice(range))

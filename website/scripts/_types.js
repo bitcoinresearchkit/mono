@@ -58,7 +58,7 @@
  * @typedef {Bitview.Transaction} Transaction
  * @typedef {Bitview.Txid} Txid
  * @typedef {Bitview.TxIndex} TxIndex
- * @typedef {Bitview.AddrStats} AddrStats
+ * @typedef {Bitview.AddressStats} AddressStats
  * @typedef {Bitview.TxIn} TxIn
  * @typedef {Bitview.TxOut} TxOut
  * @typedef {Bitview.BlockTemplate} BlockTemplate

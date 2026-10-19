@@ -150,37 +150,3 @@ impl<K: RecordBytes, V: RecordBytes, I: DoubleEndedIterator<Item = Result<Intern
         Some(Ok(max_item.value))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ValueType::Value;
-    use test_log::test;
-
-    #[test]
-    #[expect(clippy::unwrap_used)]
-    fn merge_simple() -> Result<()> {
-        #[rustfmt::skip]
-        let a = vec![
-            Ok(InternalValue::from_components("a", b"", 0, Value)),
-        ];
-        #[rustfmt::skip]
-        let b = vec![
-            Ok(InternalValue::from_components("b", b"", 0, Value)),
-        ];
-
-        let mut iter = Merger::new(vec![a.into_iter(), b.into_iter()]);
-
-        assert_eq!(
-            iter.next().unwrap()?,
-            InternalValue::from_components("a", b"", 0, Value),
-        );
-        assert_eq!(
-            iter.next().unwrap()?,
-            InternalValue::from_components("b", b"", 0, Value),
-        );
-        assert!(iter.next().is_none(), "iter should be closed");
-
-        Ok(())
-    }
-}

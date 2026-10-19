@@ -10,13 +10,14 @@ include = ["src/**/*", "website/**/*", "Cargo.toml", "README.md"]
 
 [dependencies]
 axum = { workspace = true }
+bitview_http = { workspace = true }
 include_dir = { workspace = true }
 importmap = { workspace = true, features = ["embedded"] }
 serde = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 
 [dev-dependencies]
 brk_logger = { workspace = true }
-tokio = { workspace = true }
 tower-http = { workspace = true }
 tower-layer = { workspace = true }

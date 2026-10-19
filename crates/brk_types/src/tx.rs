@@ -1,14 +1,15 @@
 use bitcoin::{
-    Script, Transaction as BitcoinTransaction, TxIn as BitcoinTxIn, TxOut as BitcoinTxOut,
-    consensus::Encodable, constants::WITNESS_SCALE_FACTOR,
+    Script, Transaction as BitcoinTransaction, TxIn as BitcoinTxIn, TxOut as BitcoinTxOut, Witness,
+    consensus::Encodable, constants::WITNESS_SCALE_FACTOR, opcodes::all::OP_PUSHNUM_16,
+    script::Instruction,
 };
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    CheckedSub, RawLockTime, Sats, SigOps, TxIn, TxIndex, TxOut, TxStatus, TxVersionRaw, Txid,
-    VSize, Weight, Witness,
+    CheckedSub, RawLockTime, Sats, SigOpCount, SigOps, TxIn, TxIndex, TxOut, TxStatus,
+    TxVersionRaw, Txid, VSize, Weight,
 };
 
 /// Transaction information compatible with mempool.space API format
@@ -19,7 +20,6 @@ pub struct Transaction {
     #[cfg_attr(feature = "schemars", schemars(example = TxIndex::new(0)))]
     pub index: Option<TxIndex>,
 
-    /// Transaction ID
     #[cfg_attr(
         feature = "schemars",
         schemars(example = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")
@@ -30,7 +30,6 @@ pub struct Transaction {
     #[cfg_attr(feature = "schemars", schemars(example = 2))]
     pub version: TxVersionRaw,
 
-    /// Transaction lock time
     #[cfg_attr(feature = "schemars", schemars(example = 0))]
     #[serde(rename = "locktime")]
     pub lock_time: RawLockTime,
@@ -48,11 +47,10 @@ pub struct Transaction {
     #[serde(rename = "size")]
     pub total_size: usize,
 
-    /// Transaction weight
     #[cfg_attr(feature = "schemars", schemars(example = 558))]
     pub weight: Weight,
 
-    /// Number of signature operations
+    /// BIP-141 signature-operation cost
     #[cfg_attr(feature = "schemars", schemars(example = SigOps::new(1)))]
     #[serde(rename = "sigops")]
     pub total_sigop_cost: SigOps,
@@ -61,7 +59,6 @@ pub struct Transaction {
     #[cfg_attr(feature = "schemars", schemars(example = Sats::new(31)))]
     pub fee: Sats,
 
-    /// Confirmation status (confirmed, block height/hash/time)
     pub status: TxStatus,
 }
 
@@ -80,12 +77,7 @@ impl Transaction {
         self.fee = Self::fee(self).unwrap_or_default();
     }
 
-    /// Re-encode to canonical Bitcoin protocol bytes via
-    /// `bitcoin::Transaction`. Lossless for mempool/confirmed txs
-    /// (verified bytewise round-trip against Core over a 1000-tx live
-    /// sample). Coinbase txs don't round-trip because brk's `Vout` is
-    /// `u16` while the protocol's coinbase vout is `0xFFFFFFFF` -
-    /// callers that may see coinbase shouldn't rely on this.
+    /// Canonical Bitcoin protocol bytes, via `bitcoin::Transaction`.
     pub fn encode_bytes(&self) -> Vec<u8> {
         let bitcoin_tx: BitcoinTransaction = self.into();
         let mut buf = Vec::with_capacity(self.total_size);
@@ -100,20 +92,14 @@ impl Transaction {
         VSize::from(self.weight)
     }
 
-    /// Recompute `total_sigop_cost` from current inputs/outputs and
-    /// write it back into the field. Cheaper than rebuilding the
-    /// transaction when prevouts arrive; the only mutator paired with
-    /// [`Self::total_sigop_cost`].
+    /// Recompute `total_sigop_cost` once prevouts are filled in, without rebuilding the
+    /// transaction.
     pub fn refresh_sigops(&mut self) {
         self.total_sigop_cost = self.total_sigop_cost();
     }
 
-    /// Total sigop cost (BIP-141 weight units).
-    ///
-    /// Mirrors `bitcoin::Transaction::total_sigop_cost`, but reads
-    /// prevouts from `TxIn.prevout` and uses bitcoin's public
-    /// `Script::redeem_script` (push-only check + last-push extraction
-    /// in one). Inputs whose `prevout` is `None` skip the P2SH and
+    /// Total sigop cost (BIP-141 weight units), counted as Core's `GetTransactionSigOpCost`,
+    /// reading prevouts from `TxIn.prevout`. Inputs whose `prevout` is `None` skip the P2SH and
     /// witness components - legacy script-sig sigops are still counted.
     fn total_sigop_cost(&self) -> SigOps {
         let mut legacy: usize = 0;
@@ -121,7 +107,7 @@ impl Transaction {
         let mut witness: usize = 0;
 
         for input in &self.input {
-            legacy = legacy.saturating_add(input.script_sig.count_sigops_legacy());
+            legacy += SigOpCount::of(&input.script_sig).legacy;
 
             let Some(prevout) = input.prevout.as_ref() else {
                 continue;
@@ -130,11 +116,11 @@ impl Transaction {
 
             let redeem_script = spk
                 .is_p2sh()
-                .then(|| input.script_sig.redeem_script())
+                .then(|| p2sh_redeem_script(&input.script_sig))
                 .flatten();
 
             if let Some(rs) = redeem_script {
-                redeem = redeem.saturating_add(rs.count_sigops());
+                redeem += SigOpCount::of(rs).accurate;
             }
 
             let witness_program: Option<&Script> = if spk.is_witness_program() {
@@ -144,22 +130,30 @@ impl Transaction {
             };
 
             if let Some(wp) = witness_program {
-                witness =
-                    witness.saturating_add(count_sigops_with_witness_program(&input.witness, wp));
+                witness += count_sigops_with_witness_program(&input.witness, wp);
             }
         }
 
         for output in &self.output {
-            legacy = legacy.saturating_add(output.script_pubkey.count_sigops_legacy());
+            legacy += SigOpCount::of(&output.script_pubkey).legacy;
         }
 
-        SigOps::from(
-            legacy
-                .saturating_mul(WITNESS_SCALE_FACTOR)
-                .saturating_add(redeem.saturating_mul(WITNESS_SCALE_FACTOR))
-                .saturating_add(witness),
-        )
+        SigOps::from((legacy + redeem) * WITNESS_SCALE_FACTOR + witness)
     }
+}
+
+/// Core's P2SH redeem script: the last push of a push-only script sig, whose `OP_n`s push no
+/// script (rust-bitcoin's `redeem_script` rejects them, missing spends like `<sig> OP_1 <redeem>`).
+pub(crate) fn p2sh_redeem_script(script_sig: &Script) -> Option<&Script> {
+    let mut last = None;
+    for instruction in script_sig.instructions() {
+        match instruction.ok()? {
+            Instruction::PushBytes(bytes) => last = Some(bytes.as_bytes()),
+            Instruction::Op(opcode) if opcode.to_u8() <= OP_PUSHNUM_16.to_u8() => last = None,
+            Instruction::Op(_) => return None,
+        }
+    }
+    last.map(Script::from_bytes)
 }
 
 fn count_sigops_with_witness_program(witness: &Witness, witness_program: &Script) -> usize {
@@ -167,22 +161,14 @@ fn count_sigops_with_witness_program(witness: &Witness, witness_program: &Script
         1
     } else if witness_program.is_p2wsh() {
         witness
-            .last()
-            .map(|bytes| Script::from_bytes(bytes).count_sigops())
-            .unwrap_or(0)
+            .witness_script()
+            .map_or(0, |script| SigOpCount::of(script).accurate)
     } else {
         0
     }
 }
 
-/// Re-encode a brk `Transaction` to a canonical `bitcoin::Transaction`.
-/// Lossless for mempool/confirmed txs (verified bytewise round-trip
-/// against Core's `getrawtransaction` over a 1000-tx live sample).
-///
-/// Coinbase round-trip is **not** byte-perfect because brk's `Vout` is
-/// a `u16` and coinbase encodes `vout = 0xFFFFFFFF` in the protocol;
-/// the reconstructed value is `u16::MAX` (65535). Mempool txs are
-/// never coinbase, and confirmed-tx callers don't go through this path.
+/// Lossless: the canonical `bitcoin::Transaction`.
 impl From<&Transaction> for BitcoinTransaction {
     #[inline]
     fn from(tx: &Transaction) -> Self {

@@ -1,23 +1,22 @@
 use std::iter;
 
 use bitview_cohort::AgeRange;
-use bitview_compute::{AgeBand, prepare_computed};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_compute::{Inputs, write_chunks, write_locked};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_traversable::Traversable;
+use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Timestamp, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
+use brk_types::Height;
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
-use crate::{Dependencies, Vecs, model::PrimaryBatch};
-
-const WRITE_INTERVAL: usize = 20_000;
+use crate::{
+    Dependencies, Vecs,
+    model::{AgeBand, PrimaryBatch},
+};
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
@@ -25,23 +24,22 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         self.compute_primary(dependencies, context.exit())?;
-        let supplies = dependencies
-            .distribution_age
-            .cohorts
-            .supply
-            .total
-            .age_supplies();
-        let weights = self.age_range.urpd_weight_sources();
-        self.urpd.compute(
-            dependencies.distribution_age.cohorts.all_supply().version()
-                + dependencies.urpd.timestamps.version(),
-            usize::from(dependencies.indexer.safe_lengths().height),
+        let supplies = dependencies.age.age_supplies();
+        let weights = self.age_ranges.urpd_weight_sources();
+        compute_cost_basis(
+            &mut self.urpd_replay,
+            self.aggregate
+                .cohorts
+                .as_array_mut()
+                .map(|cohort| &mut cohort.mobile.cost_basis),
+            dependencies.age.all_supply().version() + dependencies.urpd.timestamps.version(),
+            usize::from(dependencies.indexer.compute_start().height),
             dependencies.urpd,
             &weights,
             &supplies,
+            &dependencies.price.spot.cents.height,
             context.exit(),
-        )?;
-        Ok(())
+        )
     }
 }
 
@@ -51,98 +49,67 @@ impl Vecs {
             indexer,
             urpd: _,
             mappings,
-            distribution_age,
+            price: _,
+            age,
         } = dependencies;
-        let starting_lengths = indexer.safe_lengths();
+        let starting_lengths = indexer.compute_start();
         let transfer_volumes = AgeRange::from_fn(|id| {
-            &id.select(
-                &distribution_age
-                    .cohorts
-                    .activity
-                    .transfer_volume
-                    .cohorts
-                    .age,
-            )
-            .cumulative
-            .sats
-            .height
-        });
-        let accounting = distribution_age.accounting_sources();
-        let coindays_created = AgeRange::from_fn(|id| {
-            &id.select(&distribution_age.coindays_created)
+            &id.select(&age.ranges)
+                .activity
+                .transfer_volume
+                .value
                 .cumulative
+                .sats
                 .height
         });
+        let accounting = age.accounting_sources();
+        let coindays_created =
+            AgeRange::from_fn(|id| &id.select(&age.ranges).coindays_created.cumulative.height);
 
         let timestamps = &mappings.timestamp.monotonic;
-
-        let source_version = Version::combine_all(
-            iter::once(timestamps.version())
-                .chain(transfer_volumes.iter().map(|vec| vec.version()))
-                .chain(coindays_created.iter().map(|vec| vec.version()))
-                .chain(iter::once(accounting.version())),
+        let mut inputs = Inputs::new(
+            accounting.version(),
+            iter::once(timestamps as &dyn AnyVec)
+                .chain(transfer_volumes.iter().map(|vec| *vec as &dyn AnyVec))
+                .chain(coindays_created.iter().map(|vec| *vec as &dyn AnyVec)),
         );
-
-        let source_end = transfer_volumes
-            .iter()
-            .map(|vec| vec.len())
-            .chain(coindays_created.iter().map(|vec| vec.len()))
-            .chain(iter::once(accounting.min_len()))
-            .chain(iter::once(timestamps.len()))
-            .min()
-            .unwrap_or_default();
-
-        let start = prepare_computed(
+        inputs.len = inputs.len.min(accounting.min_len());
+        let range = inputs.prepare(
             self.primary_vecs_mut().collect::<Vec<_>>(),
-            source_version,
-            usize::from(starting_lengths.height).min(source_end),
+            usize::from(starting_lengths.height),
             exit,
         )?;
-
-        if source_end == 0 {
+        if range.end == 0 {
             return Ok(());
         }
 
         let genesis_timestamp = timestamps
             .collect_one(Height::ZERO)
-            .unwrap_or(Timestamp::ZERO);
+            .expect("timestamps cover the nonempty range");
         let bounds = AgeBand::all();
         let mut batch = PrimaryBatch::default();
-        let mut chunk_start = start;
-        while chunk_start < source_end {
-            let chunk_end = (chunk_start + WRITE_INTERVAL).min(source_end);
+        for chunk in write_chunks(range) {
             batch.collect_into(
                 timestamps,
                 &transfer_volumes,
                 &coindays_created,
                 &accounting,
-                chunk_start,
-                chunk_end,
+                chunk.start,
+                chunk.end,
             );
             for values in batch.primary_values_batch(genesis_timestamp, &bounds) {
-                self.age_range.push(
-                    &values.spending_rate,
-                    &values.spending_exposure,
-                    &values.mobility,
-                );
-                self.aggregate_sources.push(values);
+                self.age_ranges.push(&values);
+                self.aggregate.sources.push(&values.cohorts);
             }
-
-            {
-                let _lock = exit.lock();
-                for vec in self.primary_vecs_mut() {
-                    vec.write()?;
-                }
-            }
-            chunk_start = chunk_end;
+            write_locked(self.primary_vecs_mut(), exit)?;
         }
 
         Ok(())
     }
 
     fn primary_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.age_range
-            .stored_vecs_mut()
-            .chain(self.aggregate_sources.stored_vecs_mut())
+        self.age_ranges
+            .iter_any_stored_mut()
+            .chain(self.aggregate.sources.iter_any_stored_mut())
     }
 }

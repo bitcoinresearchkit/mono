@@ -15,7 +15,3 @@ brk_rpc = { workspace = true }
 brk_types = { workspace = true }
 owo-colors = { workspace = true, features = ["supports-colors"] }
 serde_json = { workspace = true }
-
-[[bin]]
-name = "blk"
-path = "src/main.rs"

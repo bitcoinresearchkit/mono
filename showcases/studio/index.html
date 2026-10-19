@@ -9878,7 +9878,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
       const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
       const humanize = (name) => capitalize(name.split("_").filter(Boolean).map(word).join(" "));
-      /** A catalog key: "utxoHistory" is UTXO history, "minute10" is Minute 10, "p2pkh" stays whole. */
+      /** A catalog key: "utxoSet" is UTXO set, "minute10" is Minute 10, "p2pkh" stays whole. */
       const humanizeKey = (key) => capitalize(key.replace(/^_/, "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
       function ago(time) {
         const minutes = Math.round((Date.now() - time) / 60000);
@@ -10227,7 +10227,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Each operator's precedence: or, and, a comparison (true 1, false 0), then the arithmetic. */
       const BINARY = { "|": 2, "&": 4, "<": 6, ">": 6, "<=": 6, ">=": 6, "+": 10, "-": 10, "*": 20, "/": 20, "^": 30 };
       /** A formula on a series by its name, the way a new formula on an empty chart starts. */
-      const EXAMPLE = `sma(${tree.price.split.close.usd.name}, 200d)`;
+      const EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
 
       const plainOperators = (source) => source.replace(/[×·]/g, "*").replace(/÷/g, "/").replace(/[−–]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=");
       /** @returns {Node} */
@@ -10744,7 +10744,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** The price as a website chart starts with it: candles, its latest lined across (formulas and values read its close). */
-      const price = { series: tree.price.ohlc.usd.name, label: "Price", type: "candles", color: "ink", priceLine: true };
+      const price = { series: tree.price.ohlc.name, label: "Price", type: "candles", color: "ink", priceLine: true };
 
       /** @returns {Chart} */
       function fromTemplate(template) {
@@ -11779,7 +11779,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       const remember = (name) => storage.set(RECENT, [name, ...recent().filter((other) => other !== name)].slice(0, 8));
       /** What adding a series offers first, after those added lately: the series most charts start from. */
-      const SUGGESTED = ["price", "realized_price", "mvrv", "market_cap", "supply_in_profit", "hash_rate"];
+      const SUGGESTED = ["price", "realized_price", "mvrv", "market_cap", "supply_in_profit", "hashrate"];
       /** The charts last opened, most recent first: kept on their own, so viewing reorders and edits nothing. */
       const VIEWED = "bitview-studio:viewed";
       const viewed = () => {
@@ -12155,7 +12155,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Series kept in memory at the coarse intervals past those the open chart shows (one at 1D is about 115 KB). */
       const KEPT_LOADS = 100;
-      /** @type {Map<string, Promise<{ start: number, data: any[], times: number[], stamp: string, version: number }>>} */
+      /** @type {Map<string, Promise<{ start: number, data: any[], times: number[], version: number }>>} */
       const loads = new Map();
       /**
        * The points at a series' end a new block can still change, by interval (the server's own margins: `cache_class`,
@@ -12171,7 +12171,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function refetchTail(endpoint, index, held, to = undefined) {
         if (!held?.data.length) return null;
         const tail = await endpoint.slice(Math.max(held.start, held.start + held.data.length - (MUTABLE[index] ?? 1)), to).fetch(), keep = tail.start - held.start;
-        return tail.version === held.version && keep >= 0 && keep <= held.data.length ? { tail, keep, start: held.start, data: [...held.data.slice(0, keep), ...tail.data], stamp: tail.stamp, version: tail.version } : null;
+        return tail.version === held.version && keep >= 0 && keep <= held.data.length ? { tail, keep, start: held.start, data: [...held.data.slice(0, keep), ...tail.data], version: tail.version } : null;
       }
       /** Fetch once by interval (fine ones by chunk); `fresh` refetches the tail, keeping cached data if that fails. */
       function load(name, index, fresh = false, span = /** @type {Span | null} */ (null)) {
@@ -12183,9 +12183,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const endpoint = client.seriesEndpoint(name, /** @type {"day1"} */ (index));
           const held = fresh && cached ? await cached.catch(() => null) : null;
           const joined = await refetchTail(endpoint, index, held);
-          if (joined && held) return { start: joined.start, data: joined.data, times: [...held.times.slice(0, joined.keep), ...times(joined.tail.start, joined.tail.data.length)], stamp: joined.stamp, version: joined.version };
+          if (joined && held) return { start: joined.start, data: joined.data, times: [...held.times.slice(0, joined.keep), ...times(joined.tail.start, joined.tail.data.length)], version: joined.version };
           const response = await endpoint.fetch();
-          return { start: response.start, data: response.data, times: times(response.start, response.data.length), stamp: response.stamp, version: response.version };
+          return { start: response.start, data: response.data, times: times(response.start, response.data.length), version: response.version };
         });
       }
       /**
@@ -12211,7 +12211,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const chunkAt = (index, time) => Math.floor(indexAt(index, time) / CHUNK);
       /** The chunk the latest points are in, by the clock. */
       const latestChunk = (index) => chunkAt(index, Date.now() / 1000);
-      /** @type {Map<string, Promise<{ start: number, data: any[], stamp: string, version: number }>>} */
+      /** @type {Map<string, Promise<{ start: number, data: any[], version: number }>>} */
       const chunks = new Map();
       /** Chunks that failed, asked for again when the view reaches for them (not at each redraw). */
       const failedChunks = new Set();
@@ -12222,7 +12222,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const endpoint = client.seriesEndpoint(name, /** @type {"minute10"} */ (index));
           const joined = await refetchTail(endpoint, index, fresh && cached ? await cached.catch(() => null) : null, (k + 1) * CHUNK);
           const response = joined ?? (await endpoint.slice(k * CHUNK, (k + 1) * CHUNK).fetch());
-          return { start: response.start, data: response.data, stamp: response.stamp, version: response.version };
+          return { start: response.start, data: response.data, version: response.version };
         }, () => failedChunks.add(key));
       }
       /** Each chart's span at each fine interval, kept as it grows (and once the chart is left). @type {Map<string, Span>} */
@@ -12274,7 +12274,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (newest.status === "rejected") throw newest.reason;
           let first = end;
           while (first > 0 && settled[first - 1].status === "fulfilled") first--;
-          const loaded = settled.slice(first, end + 1).map((part) => /** @type {PromiseFulfilledResult<{ start: number, data: any[], stamp: string, version: number }>} */ (part).value).filter((part) => part.data.length);
+          const loaded = settled.slice(first, end + 1).map((part) => /** @type {PromiseFulfilledResult<{ start: number, data: any[], version: number }>} */ (part).value).filter((part) => part.data.length);
           // Chunks of two computations of the series (the server's anew since the older came): all of it again, once; still
           // two (a cache can go on serving the older for a while), an error to retry, never one series of both.
           if (new Set(loaded.map((part) => part.version)).size > 1) {
@@ -12292,7 +12292,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const begin = timeAt(index, start), step = FINE_STEP[/** @type {keyof typeof FINE_STEP} */ (index)], times = new Array(data.length);
           if (data.length && timeAt(index, start + data.length - 1) === begin + (data.length - 1) * step) for (let i = 0; i < data.length; i++) times[i] = begin + i * step;
           else for (let i = 0; i < data.length; i++) times[i] = timeAt(index, start + i);
-          return { start, data, times, stamp: loaded.at(-1)?.stamp ?? "" };
+          return { start, data, times };
         });
         const held = holder();
         if (held(key)) spanned.set(key, { parts, value });
@@ -12321,7 +12321,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The date intervals a series has, in order. */
       const datedIntervals = (meta) => INTERVAL_ORDER.filter((id) => meta?.indexes?.includes(id));
       /** The names a series by block's day could have, likeliest first (as the search's worker has them too). */
-      const DAILY = (/** @type {string} */ name) => ((unit) => ["24h", "sum_24h", "average_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|cents|sats|btc)$/.exec(name));
+      const DAILY = (/** @type {string} */ name) => ((unit) => ["24h", "sum_24h", "avg_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|btc)$/.exec(name));
       /** Why a series by block isn't charted, said one way everywhere. */
       const BY_BLOCK = "By block only: Studio charts by date";
       /**
@@ -12335,7 +12335,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   `low`: a cloud's lows (its highs, its values); `breaks`: a trend's flips; `sides`: which it's on, a trend's (see
        *   trendOf), or a cloud's two is over (see cloudOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
-       * @typedef {{ times: number[], results: Map<string, Result>, stamp: string, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
+       * @typedef {{ times: number[], results: Map<string, Result>, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
        */
 
       /** The series a chart's formulas name, each once. @param {Chart} doc */
@@ -12392,29 +12392,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const added = datas.filter((data) => !frame?.datas.includes(data));
           if (added.length && added.every(fits)) {
             frame.datas = [...frame.datas, ...added];
-            for (const data of added) if (data.stamp > frame.stamp) frame.stamp = data.stamp;
           }
         }
         if (!frame || frame.datas.length !== datas.length || !datas.every((data) => frame?.datas.includes(data))) {
           // The timeline: every point any series has, by its index at this interval (shared by them all), in order; and
           // where each index lands on it. In flat arrays over the span of indexes: a Map per point is many times slower.
-          let lo = Infinity, hi = -Infinity, stamp = "";
+          let lo = Infinity, hi = -Infinity;
           for (const data of datas) {
             lo = Math.min(lo, data.start);
             hi = Math.max(hi, data.start + data.times.length);
-            if (data.stamp > stamp) stamp = data.stamp;
           }
           const timeOf = new Float64Array(Math.max(0, hi - lo)).fill(NaN), position = new Int32Array(timeOf.length).fill(-1);
           for (const data of datas) for (let k = 0; k < data.times.length; k++) timeOf[data.start - lo + k] = data.times[k];
           /** @type {number[]} */
           const times = [];
           for (let i = 0; i < timeOf.length; i++) if (!Number.isNaN(timeOf[i])) (position[i] = times.length), times.push(timeOf[i]);
-          frame = { id: ++frameCount, datas, lo, stamp, times, position, aligned: new Map(), series: new Map(), computed: new Map(), trimmed: null };
+          frame = { id: ++frameCount, datas, lo, times, position, aligned: new Map(), series: new Map(), computed: new Map(), trimmed: null };
           frames.set(frameKey, frame);
           // (By chart: the open one's kept, whatever the previews drawn meanwhile.)
           prune(frames, 8, (key) => Boolean(chart) && key.startsWith(`${chart.id}@`));
         }
-        const { lo, stamp, times, position } = frame, length = times.length;
+        const { lo, times, position } = frame, length = times.length;
         /** @type {Map<string, Result>} */
         const results = new Map();
         /** A series' data on the timeline: its values (a candle's close), and its candles when it has them (once a series, its layers and formulas sharing them, kept with the frame). */
@@ -12587,7 +12585,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         const failed = [...fetched].filter(([, { error }]) => error && !error.unavailable && error.status !== 404).map(([name]) => name);
-        if (first === 0 || first === length) return { times, results, stamp, failed };
+        if (first === 0 || first === length) return { times, results, failed };
         // Trimmed once a result and a start: kept the same, as the chart keeps its series.
         if (frame.trimmed?.first !== first) frame.trimmed = { first, times: times.slice(first) };
         for (const [id, result] of results) {
@@ -12602,7 +12600,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           trims.set(result, { first, out });
           results.set(id, out);
         }
-        return { times: frame.trimmed.times, results, stamp, failed };
+        return { times: frame.trimmed.times, results, failed };
       }
 
       // ── The chart ─────────────────────────────────────────────────────────────
@@ -21713,7 +21711,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <p id="formula-status" class="formula-status"></p>
               <details class="help"><summary>Functions and how letters work</summary>
                 <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escape(signature)}</b><span>${escape(what)}</span></button>`).join("")}</div>
-                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.split.close.usd.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is all of history so far.</p>
+                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is all of history so far.</p>
               </details>
               ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
               <div class="field"><span>Shown as</span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
@@ -23840,7 +23838,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             descriptionMatcher: new QuickMatch(descriptions),
             blocked: names.map((name) => byBlock.has(name)),
             // A series by block, by its day: its own over 24 hours, their sum, their average (before a unit it ends in).
-            daily: names.map((name) => (byBlock.has(name) ? ((unit) => ["24h", "sum_24h", "average_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|cents|sats|btc)$/.exec(name)).map((other) => ids.get(other) ?? -1).find((id) => id >= 0 && !byBlock.has(names[id])) ?? -1 : -1)),
+            daily: names.map((name) => (byBlock.has(name) ? ((unit) => ["24h", "sum_24h", "avg_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|btc)$/.exec(name)).map((other) => ids.get(other) ?? -1).find((id) => id >= 0 && !byBlock.has(names[id])) ?? -1 : -1)),
           };
         })();
         /** @param {Awaited<typeof index>} found @param {string} query @param {number} max @returns {string[]} */
@@ -28785,18 +28783,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Live price: between blocks, the price's own layers follow it ──────────
       // bitview.space's live price (round-dollar outputs of the last blocks and the mempool), read each second while the
-      // page is seen, as its own chart does: the live element says it, and each layer drawing the price itself (its candles, its close or its spot, in
-      // dollars, cents or sats; no stack) has its point for the interval the clock is in moved there, a
+      // page is seen, as its own chart does: the live element says it, and each layer drawing the price itself (its candles, its close or its spot,
+      // in dollars, or sats per dollar; no stack) has its point for the interval the clock is in moved there, a
       // candle's high or low pushed out. Between blocks, the server's latest interval (its latest block's) can be over:
       // a live bar then opens for the current one, from the last close. A formula of the price waits for
       // the next block, whose data takes over.
 
       /** The price's series, each with what the live price (in dollars) is in its unit. */
-      const usd = (/** @type {number} */ price) => price, cents = (/** @type {number} */ price) => price * 100, sats = (/** @type {number} */ price) => 1e8 / price;
+      const usd = (/** @type {number} */ price) => price, sats = (/** @type {number} */ price) => 1e8 / price;
       const LIVE = new Map([
-        [tree.price.ohlc.usd.name, usd], [tree.price.ohlc.cents.name, cents], [tree.price.ohlc.sats.name, sats],
-        [tree.price.split.close.usd.name, usd], [tree.price.split.close.cents.name, cents], [tree.price.split.close.sats.name, sats],
-        [tree.price.spot.usd.name, usd], [tree.price.spot.cents.name, cents], [tree.price.spot.sats.name, sats],
+        [tree.price.ohlc.name, usd], [tree.price.close.name, usd], [tree.price.spot.name, usd], [tree.price.satsPerDollar.name, sats],
       ]);
       /** The open chart's layers the live price moves: none on the grid, mid-draw, or with history alone loaded. */
       function liveLayers() {

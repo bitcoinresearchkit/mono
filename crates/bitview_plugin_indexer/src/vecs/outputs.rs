@@ -2,10 +2,8 @@ use bitview_primitives::{TxOutIndex, TypeIndex};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, OutputType, Sats, Version};
-use rayon::prelude::*;
 use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, OverflowVec, PcoVec, Rw, Stamp,
-    StorageMode, WritableVec,
+    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, OverflowVec, PcoVec, Rw, StorageMode,
 };
 
 #[derive(Traversable)]
@@ -15,10 +13,7 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     /// of outputs in preceding blocks; at `tx_index`, it identifies the
     /// transaction's first output.
     pub first_txout_index: M::Stored<PcoVec<Height, TxOutIndex, Budgeted>>,
-    /// Value in satoshis of the indexed transaction output. At `txout_index`,
-    /// this is the output's value; at `txin_index`, it is the value of the
-    /// previous output spent by the input. Coinbase inputs use `Sats::MAX`
-    /// because they have no previous output.
+    /// Value of the output, in satoshis.
     pub value: M::Stored<OverflowVec<TxOutIndex, Sats>>,
     /// BRK locking-script classification of an output. At `txout_index`, this
     /// classifies the indexed output; at `txin_index`, it classifies the
@@ -26,9 +21,9 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     pub output_type: M::Stored<BytesVec<TxOutIndex, OutputType>>,
     /// Zero-based index within the output's BRK type-specific collection. At
     /// `txout_index`, this identifies the indexed output; at `txin_index`, it
-    /// identifies the previous output spent by the input. Address types index
-    /// distinct addresses, while other types index outputs in canonical order.
-    /// Coinbase inputs use `u32::MAX`.
+    /// identifies the previous output spent by the input, null for a coinbase
+    /// input. Address types index distinct addresses, while other types index
+    /// outputs in canonical order.
     pub type_index: M::Stored<BytesVec<TxOutIndex, TypeIndex>>,
 }
 
@@ -36,7 +31,7 @@ impl OutputsVecs {
     pub fn import(db: &Database, version: Version) -> Result<Self> {
         let (first_txout_index, value, output_type, type_index) = parallel_import! {
             first_txout_index = PcoVec::import(db, "first_txout_index", version),
-            value = OverflowVec::import(db, "value", version),
+            value = OverflowVec::import(db, "output_value", version),
             output_type = BytesVec::import(db, "output_type", version),
             type_index = BytesVec::import(db, "type_index", version),
         };
@@ -46,33 +41,6 @@ impl OutputsVecs {
             output_type,
             type_index,
         })
-    }
-
-    pub fn truncate(
-        &mut self,
-        height: Height,
-        txout_index: TxOutIndex,
-        stamp: Stamp,
-    ) -> Result<()> {
-        self.first_txout_index
-            .truncate_if_needed_with_stamp(height, stamp)?;
-        self.value
-            .truncate_if_needed_with_stamp(txout_index, stamp)?;
-        self.output_type
-            .truncate_if_needed_with_stamp(txout_index, stamp)?;
-        self.type_index
-            .truncate_if_needed_with_stamp(txout_index, stamp)?;
-        Ok(())
-    }
-
-    pub fn par_iter_mut_any(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
-        [
-            &mut self.first_txout_index as &mut dyn AnyStoredVec,
-            &mut self.value,
-            &mut self.output_type,
-            &mut self.type_index,
-        ]
-        .into_par_iter()
     }
 
     pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {

@@ -1,36 +1,22 @@
-use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_indexer::Indexer;
+use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::Halving;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{CheckedSub, Height, Sats};
 use rayon::join;
-use vecdb::VecIndex;
 
 use super::Vecs;
 
-fn derived_subsidy(height: Height, coinbase: Sats, fees: Sats) -> Sats {
-    coinbase
-        .checked_sub(fees)
-        .unwrap_or_else(|| panic!("coinbase {coinbase:?} < fees {fees:?} at {height:?}"))
+/// Zero when the coinbase claims less than the fees: the unclaimed fees are burned.
+fn claimed_subsidy(_: Height, coinbase: Sats, fees: Sats) -> Sats {
+    coinbase.checked_sub(fees).unwrap_or(Sats::ZERO)
 }
 
-/// Bitcoin Core's `GetBlockSubsidy`: 50 BTC shifted right once per halving.
-fn scheduled_subsidy(height: Height) -> Sats {
-    let halvings = Halving::from(height).to_usize() as u32;
-    Sats::from(
-        u64::from(Sats::FIFTY_BTC)
-            .checked_shr(halvings)
-            .unwrap_or(0),
-    )
-}
-
-fn unclaimed_rewards(height: Height, subsidy: Sats) -> Sats {
-    scheduled_subsidy(height)
-        .checked_sub(subsidy)
-        .unwrap_or_else(|| panic!("derived subsidy {subsidy:?} exceeds schedule at {height:?}"))
+/// Consensus caps the coinbase at the scheduled subsidy plus fees.
+fn unclaimed_rewards(height: Height, coinbase: Sats, fees: Sats) -> Sats {
+    height.subsidy() + fees - coinbase
 }
 
 impl Vecs {
@@ -42,7 +28,7 @@ impl Vecs {
         prices: &PriceVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
 
         // coinbase and fees are independent — parallelize
         let window_starts = lookback.window_starts();
@@ -74,21 +60,15 @@ impl Vecs {
             &prices.spot.cents.height,
             &self.coinbase.block.sats,
             &self.fees.block.sats,
-            derived_subsidy,
+            claimed_subsidy,
             exit,
         )?;
 
-        self.output_volume.compute_subtract(
-            starting_height,
-            &transactions.volume.transfer_volume.block.sats,
-            &self.fees.block.sats,
-            exit,
-        )?;
-
-        self.unclaimed.compute_from(
+        self.unclaimed.compute_from_pair(
             starting_height,
             &prices.spot.cents.height,
-            &self.subsidy.block.sats,
+            &self.coinbase.block.sats,
+            &self.fees.block.sats,
             unclaimed_rewards,
             exit,
         )?;

@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Range};
+use std::ops::Range;
 
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortId, CohortName};
 
-/// Amount range bounds
 const AMOUNT_RANGE_BOUNDS: AmountRange<Range<Sats>> = AmountRange {
     _0sats: Sats::ZERO..Sats::_1,
     _1sat_to_10sats: Sats::_1..Sats::_10,
@@ -27,7 +26,6 @@ const AMOUNT_RANGE_BOUNDS: AmountRange<Range<Sats>> = AmountRange {
     over_100k_btc: Sats::_100K_BTC..Sats::MAX,
 };
 
-/// Amount range names
 pub const AMOUNT_RANGE_NAMES: AmountRange<CohortName> = AmountRange {
     _0sats: CohortName::new("0sats", "0 sats", "0 Sats"),
     _1sat_to_10sats: CohortName::new("1sat_to_10sats", "1-10 sats", "1-10 Sats"),
@@ -106,14 +104,6 @@ define_cohort_id!(
 );
 
 impl<T> AmountRange<T> {
-    pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|id| create(id.cohort()))
-    }
-
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
-        Self::try_from_fn(|id| create(id.cohort()))
-    }
-
     #[inline(always)]
     pub fn get_mut(&mut self, value: Sats) -> &mut T {
         AmountRangeId::from(value).select_mut(self)
@@ -124,55 +114,6 @@ impl<T> AmountRange<T> {
             .iter()
             .zip(self.iter())
             .map(|(bounds, value)| (bounds.start, value))
-    }
-}
-
-impl<T> Add for AmountRange<T>
-where
-    T: Add<Output = T>,
-{
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            _0sats: self._0sats + rhs._0sats,
-            _1sat_to_10sats: self._1sat_to_10sats + rhs._1sat_to_10sats,
-            _10sats_to_100sats: self._10sats_to_100sats + rhs._10sats_to_100sats,
-            _100sats_to_1k_sats: self._100sats_to_1k_sats + rhs._100sats_to_1k_sats,
-            _1k_sats_to_10k_sats: self._1k_sats_to_10k_sats + rhs._1k_sats_to_10k_sats,
-            _10k_sats_to_100k_sats: self._10k_sats_to_100k_sats + rhs._10k_sats_to_100k_sats,
-            _100k_sats_to_1m_sats: self._100k_sats_to_1m_sats + rhs._100k_sats_to_1m_sats,
-            _1m_sats_to_10m_sats: self._1m_sats_to_10m_sats + rhs._1m_sats_to_10m_sats,
-            _10m_sats_to_1btc: self._10m_sats_to_1btc + rhs._10m_sats_to_1btc,
-            _1btc_to_10btc: self._1btc_to_10btc + rhs._1btc_to_10btc,
-            _10btc_to_100btc: self._10btc_to_100btc + rhs._10btc_to_100btc,
-            _100btc_to_1k_btc: self._100btc_to_1k_btc + rhs._100btc_to_1k_btc,
-            _1k_btc_to_10k_btc: self._1k_btc_to_10k_btc + rhs._1k_btc_to_10k_btc,
-            _10k_btc_to_100k_btc: self._10k_btc_to_100k_btc + rhs._10k_btc_to_100k_btc,
-            over_100k_btc: self.over_100k_btc + rhs.over_100k_btc,
-        }
-    }
-}
-
-impl<T> AddAssign for AmountRange<T>
-where
-    T: AddAssign,
-{
-    fn add_assign(&mut self, rhs: Self) {
-        self._0sats += rhs._0sats;
-        self._1sat_to_10sats += rhs._1sat_to_10sats;
-        self._10sats_to_100sats += rhs._10sats_to_100sats;
-        self._100sats_to_1k_sats += rhs._100sats_to_1k_sats;
-        self._1k_sats_to_10k_sats += rhs._1k_sats_to_10k_sats;
-        self._10k_sats_to_100k_sats += rhs._10k_sats_to_100k_sats;
-        self._100k_sats_to_1m_sats += rhs._100k_sats_to_1m_sats;
-        self._1m_sats_to_10m_sats += rhs._1m_sats_to_10m_sats;
-        self._10m_sats_to_1btc += rhs._10m_sats_to_1btc;
-        self._1btc_to_10btc += rhs._1btc_to_10btc;
-        self._10btc_to_100btc += rhs._10btc_to_100btc;
-        self._100btc_to_1k_btc += rhs._100btc_to_1k_btc;
-        self._1k_btc_to_10k_btc += rhs._1k_btc_to_10k_btc;
-        self._10k_btc_to_100k_btc += rhs._10k_btc_to_100k_btc;
-        self.over_100k_btc += rhs.over_100k_btc;
     }
 }
 

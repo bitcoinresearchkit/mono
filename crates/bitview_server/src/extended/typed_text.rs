@@ -40,8 +40,9 @@ impl<T: JsonSchema> OperationOutput for TypedText<T> {
         ctx: &mut GenContext,
         operation: &mut Operation,
     ) -> Vec<(Option<StatusCode>, Response)> {
-        Self::operation_response(ctx, operation)
-            .map(|r| vec![(Some(StatusCode::Code(200)), r)])
-            .unwrap_or_default()
+        vec![(
+            Some(StatusCode::Code(200)),
+            Self::operation_response(ctx, operation).unwrap(),
+        )]
     }
 }

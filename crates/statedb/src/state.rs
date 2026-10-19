@@ -1,4 +1,4 @@
-use crate::{Amount, util::invalid};
+use crate::{Amount, BlockDiff, util::invalid};
 use std::io::Result;
 
 #[derive(Clone, Debug, Default)]
@@ -33,58 +33,29 @@ impl State {
     pub fn hash(&self) -> [u8; 32] {
         self.hash
     }
-    pub(crate) fn total(&self) -> Amount {
+    /// Every origin's amounts summed.
+    pub fn total(&self) -> Amount {
         self.total
     }
-    /// A failed block never changes the state.
-    pub(crate) fn apply(
-        &mut self,
-        hash: [u8; 32],
-        created: Amount,
-        rows: impl Iterator<Item = (u32, Amount)>,
-        removed_total: Amount,
-        scratch: &mut Vec<(usize, Amount)>,
-    ) -> Result<()> {
-        scratch.clear();
-        let total = self
-            .total
-            .checked_add(created)?
-            .checked_sub(removed_total)?;
-        // Apply provisionally, recording previous values. On failure undo in reverse order.
-        self.amounts.push(created);
-        let result = (|| {
-            let mut actual = Amount::default();
-            for (origin, removed) in rows {
-                if removed.count == 0 {
-                    return Err(invalid("removal without outputs"));
-                }
-                actual = actual.checked_add(removed)?;
-                let current = self
-                    .amounts
-                    .get_mut(origin as usize)
-                    .ok_or_else(|| invalid("origin exceeds current block"))?;
-                let old = *current;
-                let new = old.checked_sub(removed)?;
-                if new.count == 0 && new.sats != 0 {
-                    return Err(invalid("remaining sats without outputs"));
-                }
-                scratch.push((origin as usize, old));
-                *current = new;
-            }
-            if actual != removed_total {
-                return Err(invalid("origin total mismatch"));
-            }
-            Ok(())
-        })();
-        if let Err(error) = result {
-            for &(i, old) in scratch.iter().rev() {
-                self.amounts[i] = old;
-            }
-            self.amounts.pop();
-            return Err(error);
+    /// Applies one block of the validated producer chain: its rows were checked when produced.
+    pub(crate) fn apply(&mut self, diff: &BlockDiff) {
+        debug_assert_eq!(
+            diff.removed()
+                .fold(Amount::default(), |sum, (_, removed)| sum + removed),
+            diff.removed_total,
+            "origin total mismatch"
+        );
+        self.amounts.push(diff.created);
+        for (origin, removed) in diff.removed() {
+            debug_assert!(removed.count != 0, "removal without outputs");
+            let current = &mut self.amounts[origin as usize];
+            *current = *current - removed;
+            debug_assert!(
+                current.count != 0 || current.sats == 0,
+                "remaining sats without outputs"
+            );
         }
-        self.hash = hash;
-        self.total = total;
-        Ok(())
+        self.hash = diff.hash;
+        self.total = self.total + diff.created - diff.removed_total;
     }
 }

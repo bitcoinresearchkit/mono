@@ -10,9 +10,15 @@ pub struct BlockDiff<'a> {
     correction: Option<(u32, Amount)>,
 }
 impl<'a> BlockDiff<'a> {
-    fn spent(&self) -> impl ExactSizeIterator<Item = (u32, Amount)> + Clone + '_ {
+    /// Outputs spent by the block's inputs, per creation height.
+    pub fn spent(&self) -> impl ExactSizeIterator<Item = (u32, Amount)> + Clone + '_ {
         Spends::rows(self.rows)
     }
+    /// The output a BIP30 duplicate coinbase overwrote: it left the set without being spent.
+    pub fn correction(&self) -> Option<(u32, Amount)> {
+        self.correction
+    }
+    /// Everything that left the set: the spends and the correction.
     pub fn removed(&self) -> impl Iterator<Item = (u32, Amount)> + Clone + '_ {
         self.spent().chain(self.correction)
     }
@@ -22,11 +28,7 @@ impl<'a> BlockDiff<'a> {
         if hash != output_hash {
             return Err(invalid("origin producer chain mismatch"));
         }
-        let removed_total = if let Some((_, amount)) = correction {
-            total.checked_add(amount)?
-        } else {
-            total
-        };
+        let removed_total = correction.map_or(total, |(_, amount)| total + amount);
         Ok(Self {
             hash,
             created,

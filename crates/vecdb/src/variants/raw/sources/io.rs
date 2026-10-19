@@ -1,4 +1,5 @@
 use std::{
+    convert::Infallible,
     fs::File,
     io::{Error, ErrorKind, Read, Seek, SeekFrom},
     marker::PhantomData,
@@ -10,10 +11,8 @@ use libc::read as LibcRead;
 use parking_lot::RwLockReadGuard;
 use rawdb::Region;
 
-use super::super::{RawStrategy, ReadWriteRawVec};
-use crate::{
-    AnyStoredVec, BUFFER_SIZE, HEADER_OFFSET, VecIndex, VecValue, cache::CachePolicy, likely,
-};
+use super::super::RawStrategy;
+use crate::{BUFFER_SIZE, HEADER_OFFSET, VecValue, likely};
 
 /// Buffer size aligned to SIZE_OF_T for raw I/O reads.
 const fn aligned_buffer_size<T>() -> usize {
@@ -25,7 +24,7 @@ const fn aligned_buffer_size<T>() -> usize {
 ///
 /// Better than mmap for nonresident sequential scans. Uses a dedicated file
 /// handle with OS readahead. Only sees stored (persisted) values.
-pub struct RawIoSource<'a, I, T, S> {
+pub struct RawIoSource<'a, T, S> {
     file: File,
     buffer: Vec<u8>,
     buffer_pos: usize,
@@ -33,12 +32,11 @@ pub struct RawIoSource<'a, I, T, S> {
     file_offset: usize,
     end_offset: usize,
     _lock: RwLockReadGuard<'a, ()>,
-    _marker: PhantomData<(I, T, S)>,
+    _marker: PhantomData<(T, S)>,
 }
 
-impl<'a, I, T, S> RawIoSource<'a, I, T, S>
+impl<'a, T, S> RawIoSource<'a, T, S>
 where
-    I: VecIndex,
     T: VecValue,
     S: RawStrategy<T>,
 {
@@ -51,12 +49,7 @@ where
     }
 
     #[inline(always)]
-    fn cant_read_file(&self) -> bool {
-        self.file_offset >= self.end_offset
-    }
-
-    #[inline(always)]
-    fn remaining_file_bytes(&self) -> usize {
+    pub(crate) fn remaining_file_bytes(&self) -> usize {
         self.end_offset - self.file_offset
     }
 
@@ -68,29 +61,26 @@ where
         let buffer_len = self.remaining_file_bytes().min(Self::NORMAL_BUFFER_SIZE);
         self.file
             .read_exact(&mut self.buffer[..buffer_len])
-            .expect("Failed to read file buffer");
+            .expect("failed to read raw vector");
         self.file_offset += buffer_len;
         self.buffer_len = buffer_len;
         self.buffer_pos = 0;
     }
 
-    pub fn new<C: CachePolicy>(
-        vec: &'a ReadWriteRawVec<I, T, S, C>,
-        from: usize,
-        to: usize,
-    ) -> Self {
-        Self::new_from_parts(vec.region(), vec.stored_len(), from, to)
-    }
-
     pub fn new_from_parts(region: &'a Region, stored_len: usize, from: usize, to: usize) -> Self {
-        let file = region.open_db_read_only_file().expect("open file");
+        let file = region
+            .open_db_read_only_file()
+            .expect("failed to open raw vector");
         let access = region.read_lock();
         let region_meta = region.meta();
         let region_start = region_meta.start();
+        // Bounded by the bytes the lock now holds: `stored_len` may predate a truncation.
+        let to = to
+            .min(stored_len)
+            .min((region_meta.byte_len() - HEADER_OFFSET) / Self::SIZE_OF_T);
         drop(region_meta);
         let start_offset = region_start + HEADER_OFFSET;
-        let from = from.min(stored_len);
-        let to = to.min(stored_len);
+        let from = from.min(to);
 
         let from_offset = start_offset + from * Self::SIZE_OF_T;
         let end_offset = start_offset + to * Self::SIZE_OF_T;
@@ -109,14 +99,14 @@ where
         if likely(this.can_read_file()) {
             this.file
                 .seek(SeekFrom::Start(from_offset as u64))
-                .expect("Failed to seek");
+                .expect("failed to seek raw vector");
         }
 
         this
     }
 
     pub fn read_window(&mut self) -> Option<(*const u8, usize)> {
-        if self.cant_read_file() {
+        if !self.can_read_file() {
             return None;
         }
         self.refill_buffer();
@@ -127,14 +117,14 @@ where
         debug_assert!(bytes <= self.remaining_file_bytes());
         self.file
             .seek(SeekFrom::Current(bytes as i64))
-            .expect("skip raw range");
+            .expect("failed to skip raw vector bytes");
         self.file_offset += bytes;
         self.buffer_pos = self.buffer_len;
     }
 
     /// Appends stored values, reading native layouts directly into the allocation.
     pub fn read_into(self, output: &mut Vec<T>) {
-        if self.cant_read_file() {
+        if !self.can_read_file() {
             return;
         }
         let bytes = self.remaining_file_bytes();
@@ -142,7 +132,10 @@ where
         let values = bytes / Self::SIZE_OF_T;
         output.reserve(values);
         if !S::IS_NATIVE_LAYOUT {
-            self.fold((), |(), value| output.push(value));
+            let Ok(()) = self.try_fold((), |(), value| {
+                output.push(value);
+                Ok::<_, Infallible>(())
+            });
             return;
         }
         let old_len = output.len();
@@ -171,32 +164,11 @@ where
             }
         }
 
+        // SAFETY: the reads initialized `values` values: every bit pattern is a valid native-layout
+        // value (`ValueStrategy` contract).
         unsafe { output.set_len(old_len + values) };
     }
 
-    /// Fold all remaining elements — own implementation so LLVM can vectorize the inner loop.
-    #[inline(always)]
-    pub fn fold<B, F: FnMut(B, T) -> B>(mut self, init: B, mut f: F) -> B {
-        let mut accum = init;
-        loop {
-            let ptr = self.buffer.as_ptr();
-            let mut pos = self.buffer_pos;
-            let end = self.buffer_len;
-            while pos + Self::SIZE_OF_T <= end {
-                accum = f(accum, unsafe { S::read_from_ptr(ptr, pos) });
-                pos += Self::SIZE_OF_T;
-            }
-            self.buffer_pos = end;
-
-            if self.cant_read_file() {
-                break;
-            }
-            self.refill_buffer();
-        }
-        accum
-    }
-
-    /// Fallible fold with early exit on error.
     #[inline(always)]
     pub fn try_fold<B, E, F: FnMut(B, T) -> Result<B, E>>(
         mut self,
@@ -214,7 +186,7 @@ where
             }
             self.buffer_pos = end;
 
-            if self.cant_read_file() {
+            if !self.can_read_file() {
                 break;
             }
             self.refill_buffer();

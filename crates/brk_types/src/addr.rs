@@ -1,20 +1,20 @@
 use std::{fmt, str::FromStr};
 
-use bitcoin::{Address, Network, ScriptBuf};
+use bitcoin::{Address as BitcoinAddress, Network, ScriptBuf};
 use brk_error::Error;
-use derive_more::Deref;
+use derive_more::{Deref, From};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::OutputType;
-use crate::AddrBytes;
+use crate::AddressBytes;
 
 #[cfg(feature = "storage")]
 use vecdb::Formattable;
 
-/// Bitcoin address string
-#[derive(Debug, Clone, Deref, Serialize, Deserialize)]
+/// Bitcoin address, or the hex public key of a P2PK output.
+#[derive(Debug, Clone, Deref, Serialize, Deserialize, From)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
 #[cfg_attr(feature = "schemars", schemars(
@@ -22,44 +22,37 @@ use vecdb::Formattable;
     example = &"1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
     example = &"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
 ))]
-pub struct Addr(String);
+pub struct Address(String);
 
-impl From<String> for Addr {
-    #[inline]
-    fn from(addr: String) -> Self {
-        Self(addr)
-    }
-}
-
-impl TryFrom<&ScriptBuf> for Addr {
+impl TryFrom<&ScriptBuf> for Address {
     type Error = Error;
     fn try_from(script: &ScriptBuf) -> Result<Self, Self::Error> {
         Self::try_from((script, OutputType::from(script)))
     }
 }
 
-impl TryFrom<(&ScriptBuf, OutputType)> for Addr {
+impl TryFrom<(&ScriptBuf, OutputType)> for Address {
     type Error = Error;
     fn try_from((script, output_type): (&ScriptBuf, OutputType)) -> Result<Self, Self::Error> {
         match output_type {
             OutputType::P2PK65 | OutputType::P2PK33 => {
                 // P2PK has no standard address encoding, use raw pubkey hex
-                let bytes = AddrBytes::try_from((script, output_type))?;
+                let bytes = AddressBytes::try_from((script, output_type))?;
                 Ok(Self(bytes_to_hex(bytes.as_slice())))
             }
             _ if output_type.is_addr() => {
-                let addr = Address::from_script(script, Network::Bitcoin)
-                    .map_err(|_| Error::InvalidAddr)?;
+                let addr = BitcoinAddress::from_script(script, Network::Bitcoin)
+                    .map_err(|_| Error::InvalidAddress)?;
                 Ok(Self(addr.to_string()))
             }
-            _ => Err(Error::InvalidAddr),
+            _ => Err(Error::InvalidAddress),
         }
     }
 }
 
-impl TryFrom<&AddrBytes> for Addr {
+impl TryFrom<&AddressBytes> for Address {
     type Error = Error;
-    fn try_from(bytes: &AddrBytes) -> Result<Self, Self::Error> {
+    fn try_from(bytes: &AddressBytes) -> Result<Self, Self::Error> {
         Self::try_from(&bytes.to_script_pubkey())
     }
 }
@@ -70,17 +63,17 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
     String::from_utf8(hex).expect("hex is ASCII")
 }
 
-impl FromStr for Addr {
+impl FromStr for Address {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let _ = AddrBytes::addr_to_script(s)?;
+        AddressBytes::addr_to_script(s)?;
         Ok(Self(s.to_string()))
     }
 }
 
 #[cfg(feature = "storage")]
-impl Formattable for Addr {
+impl Formattable for Address {
     fn write_to(&self, buf: &mut Vec<u8>) {
         buf.extend_from_slice(self.0.as_bytes());
     }
@@ -92,7 +85,7 @@ impl Formattable for Addr {
     }
 }
 
-impl fmt::Display for Addr {
+impl fmt::Display for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
     }

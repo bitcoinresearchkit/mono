@@ -46,19 +46,18 @@ pub enum ErrorType {
     Internal,
 }
 
-/// Machine-readable error code.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
     NotFound,
-    InvalidAddr,
+    InvalidAddress,
     InvalidNetwork,
     UnsupportedType,
     NoSeries,
     SeriesUnsupportedIndex,
     WeightExceeded,
     TooManyUtxos,
-    UnknownAddr,
+    UnknownAddress,
     UnknownTxid,
     OutOfRange,
     UnindexableDate,

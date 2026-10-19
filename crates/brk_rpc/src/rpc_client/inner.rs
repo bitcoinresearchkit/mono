@@ -1,77 +1,46 @@
-use std::{fs::read_to_string, thread::sleep, time::Duration};
+use std::{thread::sleep, time::Duration};
 
 use brk_error::{Error, Result};
 use corepc_jsonrpc::{
     Client as JsonRpcClient, Request, Response,
     error::{Error as JsonRpcError, RpcError},
-    simple_http,
 };
-use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use serde_json::value::{RawValue, to_raw_value};
+use serde_json::{
+    from_str,
+    value::{RawValue, to_raw_value},
+};
 use tracing::{debug, info, warn};
 
-use super::rpc_call::RpcCall;
-use crate::{Auth, auth::cookie_error};
+use super::{
+    http::{Http, HttpError},
+    rpc_call::RpcCall,
+};
+use crate::Auth;
+
+/// Retries of a blocking single call before it gives up: about 11.6 days at one per second.
+const MAX_RETRIES: usize = 1_000_000;
+const RETRY_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Debug)]
 pub struct ClientInner {
+    /// Kept for [`ClientInner::asynchronous`].
+    #[cfg(feature = "async")]
     pub url: String,
+    #[cfg(feature = "async")]
     pub auth: Auth,
-    /// The client and the cookie it authenticates with (cookie auth only), swapped together.
-    client: RwLock<(JsonRpcClient, Option<String>)>,
-    max_retries: usize,
-    retry_delay: Duration,
+    client: JsonRpcClient,
 }
 
 impl ClientInner {
-    pub fn new(url: &str, auth: Auth, max_retries: usize, retry_delay: Duration) -> Result<Self> {
-        let (client, cookie) = Self::create_client(url, &auth)?;
+    pub fn new(url: &str, auth: Auth) -> Result<Self> {
         Ok(Self {
+            client: JsonRpcClient::with_transport(Http::new(url, &auth)?),
+            #[cfg(feature = "async")]
             url: url.to_string(),
+            #[cfg(feature = "async")]
             auth,
-            client: RwLock::new((client, cookie)),
-            max_retries,
-            retry_delay,
         })
-    }
-
-    /// Builds a `jsonrpc::Client` using the `simple_http` transport, which
-    /// keeps a single pooled TCP socket with reconnect-on-failure. The
-    /// upstream `corepc-client` hard-wires `bitreq_http` (one TCP connect
-    /// per request), which collapses under concurrent load.
-    fn create_client(url: &str, auth: &Auth) -> Result<(JsonRpcClient, Option<String>)> {
-        let builder = simple_http::Builder::new()
-            .url(url)
-            .map_err(|e| Error::Parse(format!("bad rpc url: {e}")))?
-            .timeout(Duration::from_secs(60));
-        let (builder, cookie) = match auth {
-            Auth::None => (builder, None),
-            Auth::UserPass(u, p) => (builder.auth(u.clone(), Some(p.clone())), None),
-            Auth::CookieFile(path) => {
-                let cookie = read_to_string(path).map_err(|error| cookie_error(path, error))?;
-                let cookie = cookie.trim().to_owned();
-                (builder.cookie_auth(&cookie), Some(cookie))
-            }
-        };
-        Ok((JsonRpcClient::with_transport(builder.build()), cookie))
-    }
-
-    fn recreate(&self) -> Result<()> {
-        *self.client.write() = Self::create_client(&self.url, &self.auth)?;
-        Ok(())
-    }
-
-    /// After `rejected` was refused, whether the node has a new cookie: Bitcoin Core writes it
-    /// before serving RPC and answers 503 (retried as a lost connection) before deleting it, so a
-    /// rejection with the cookie unchanged, or unreadable, is real. Passwords and missing auth
-    /// never change.
-    fn cookie_changed(&self, rejected: Option<&str>) -> Result<bool> {
-        let Auth::CookieFile(path) = &self.auth else {
-            return Ok(false);
-        };
-        let cookie = read_to_string(path).map_err(|error| cookie_error(path, error))?;
-        Ok(rejected != Some(cookie.trim()))
     }
 
     pub fn call_with_retry<T, P>(&self, method: &str, args: &P) -> Result<T>
@@ -81,53 +50,31 @@ impl ClientInner {
     {
         let raw = to_raw_value(args).map_err(Error::from)?;
 
-        for attempt in 0..=self.max_retries {
+        for attempt in 0..=MAX_RETRIES {
             if attempt > 0 {
-                debug!(
-                    "Trying to reconnect to Bitcoin Core (attempt {}/{})",
-                    attempt, self.max_retries
-                );
-                self.recreate().ok();
-                sleep(self.retry_delay);
+                debug!("Retrying Bitcoin Core RPC {method} (attempt {attempt}/{MAX_RETRIES})");
+                sleep(RETRY_DELAY);
             }
 
-            let (result, rejected_cookie) = {
-                let client = self.client.read();
-                let result = client.0.call::<T>(method, Some(&raw));
-                let rejected = match &result {
-                    Err(e) if is_auth_rejection(e) => client.1.clone(),
-                    _ => None,
-                };
-                (result, rejected)
-            };
-            match result {
+            match self.client.call::<T>(method, Some(&raw)) {
                 Ok(value) => {
                     if attempt > 0 {
-                        info!(
-                            "Successfully reconnected to Bitcoin Core after {} attempts",
-                            attempt
-                        );
+                        info!("Bitcoin Core RPC {method} succeeded after {attempt} retries");
                     }
                     return Ok(value);
                 }
-                Err(e) if is_auth_rejection(&e) => {
-                    if !self.cookie_changed(rejected_cookie.as_deref())? {
-                        return Err(Error::RpcAuthFailed);
-                    }
-                    warn!("Bitcoin Core rejected the RPC cookie; waiting for its new cookie...");
-                }
                 Err(e) if is_retriable(&e) => {
                     if attempt == 0 {
-                        warn!("Lost connection to Bitcoin Core; reconnecting...");
+                        warn!("Bitcoin Core RPC {method} failed: {e}; retrying");
                     }
                 }
-                Err(e) => return Err(refusal(&e).unwrap_or_else(|| e.into())),
+                Err(e) => return Err(refusal(e)),
             }
         }
 
         warn!(
-            "Could not reconnect to Bitcoin Core after {} attempts",
-            self.max_retries + 1
+            "Bitcoin Core RPC {method} failed after {} attempts",
+            MAX_RETRIES + 1
         );
         Err(JsonRpcError::Rpc(RpcError {
             code: -1,
@@ -137,33 +84,37 @@ impl ClientInner {
         .into())
     }
 
-    fn send_batch<P>(
+    /// One batch round-trip, responses in request order. Only the transport's own replays (a
+    /// changed cookie, a dead pooled connection), no reconnect loop: callers decide batch sizing
+    /// and failure semantics.
+    fn send_batch<'a>(
         &self,
-        method: &str,
+        label: &str,
+        calls: impl IntoIterator<Item = (&'a str, &'a RawValue)>,
+    ) -> Result<Vec<Option<Response>>> {
+        let requests: Vec<Request> = calls
+            .into_iter()
+            .map(|(method, params)| self.client.build_request(method, Some(params)))
+            .collect();
+        self.client
+            .send_batch(&requests)
+            .map_err(|error| match refusal(error) {
+                Error::CorepcRPC(error) => Error::Parse(format!("batch {label} failed: {error}")),
+                refused => refused,
+            })
+    }
+
+    fn serialize_args<P: Serialize>(
         batch_args: impl IntoIterator<Item = P>,
-    ) -> Result<Vec<Option<Response>>>
-    where
-        P: Serialize,
-    {
-        let params: Vec<Box<RawValue>> = batch_args
+    ) -> Result<Vec<Box<RawValue>>> {
+        batch_args
             .into_iter()
             .map(|args| to_raw_value(&args).map_err(Error::from))
-            .collect::<Result<Vec<_>>>()?;
-
-        let client = &self.client.read().0;
-        let requests: Vec<Request> = params
-            .iter()
-            .map(|params| client.build_request(method, Some(params)))
-            .collect();
-
-        client.send_batch(&requests).map_err(|error| {
-            refusal(&error)
-                .unwrap_or_else(|| Error::Parse(format!("batch {method} failed: {error}")))
-        })
+            .collect()
     }
 
     /// Send a batch of calls sharing `method`, one set of args per request.
-    /// No retry: the caller decides batch sizing and failure semantics.
+    /// Any failed item fails the whole batch.
     pub fn call_batch<T, P>(
         &self,
         method: &str,
@@ -173,37 +124,29 @@ impl ClientInner {
         T: for<'de> Deserialize<'de>,
         P: Serialize,
     {
-        self.send_batch(method, batch_args)?
+        let params = Self::serialize_args(batch_args)?;
+        self.send_batch(method, params.iter().map(|p| (method, &**p)))?
             .into_iter()
-            .map(|resp| {
-                let resp = resp.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
-                resp.result::<T>()
+            .map(|response| {
+                raw_result(response)
+                    .and_then(|raw| Ok(from_str(raw.get())?))
                     .map_err(|e| Error::Parse(format!("batch {method} result: {e}")))
             })
             .collect()
     }
 
-    /// Like `call_batch` but reports per-request success/failure independently,
-    /// so one bad item doesn't nuke an otherwise-healthy chunk. Per-item
-    /// failures preserve the underlying `JsonRpcError` so the caller can
-    /// pattern-match on the RPC error code. The outer `Result` still fails
-    /// if the HTTP round-trip itself fails.
-    pub fn call_batch_per_item<T, P>(
+    /// Like `call_batch`, but each item's raw result or RPC error (callers match on its code)
+    /// comes back on its own; only a failed round trip fails the outer `Result`.
+    pub fn call_batch_raw<P: Serialize>(
         &self,
         method: &str,
         batch_args: impl IntoIterator<Item = P>,
-    ) -> Result<Vec<Result<T>>>
-    where
-        T: for<'de> Deserialize<'de>,
-        P: Serialize,
-    {
+    ) -> Result<Vec<Result<Box<RawValue>>>> {
+        let params = Self::serialize_args(batch_args)?;
         Ok(self
-            .send_batch(method, batch_args)?
+            .send_batch(method, params.iter().map(|p| (method, &**p)))?
             .into_iter()
-            .map(|resp| {
-                let resp = resp.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
-                resp.result::<T>().map_err(Error::from)
-            })
+            .map(raw_result)
             .collect())
     }
 
@@ -212,23 +155,24 @@ impl ClientInner {
     /// caller using its own `T`. Outer `Result` fails on transport errors;
     /// inner `Result`s fail on per-item RPC errors.
     pub fn call_mixed_batch(&self, calls: &[RpcCall]) -> Result<Vec<Result<Box<RawValue>>>> {
-        let client = &self.client.read().0;
-        let requests: Vec<Request> = calls
-            .iter()
-            .map(|call| client.build_request(call.method, Some(&call.params)))
-            .collect();
-
-        let responses = client.send_batch(&requests).map_err(|e| {
-            refusal(&e).unwrap_or_else(|| Error::Parse(format!("mixed batch failed: {e}")))
-        })?;
-
-        Ok(responses
+        Ok(self
+            .send_batch(
+                "mixed",
+                calls.iter().map(|call| (call.method, &*call.params)),
+            )?
             .into_iter()
-            .map(|resp| {
-                let resp = resp.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
-                resp.result::<Box<RawValue>>().map_err(Error::from)
-            })
+            .map(raw_result)
             .collect())
+    }
+}
+
+/// Moves one batch item's result out of its response, instead of re-parsing
+/// and copying the raw JSON through `Response::result`.
+fn raw_result(response: Option<Response>) -> Result<Box<RawValue>> {
+    let response = response.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
+    match response.error {
+        Some(error) => Err(JsonRpcError::Rpc(error).into()),
+        None => Ok(response.result.unwrap_or_else(|| RawValue::NULL.to_owned())),
     }
 }
 
@@ -239,35 +183,28 @@ fn is_retriable(error: &JsonRpcError) -> bool {
     match error {
         // RPC_IN_WARMUP: the node is still loading.
         JsonRpcError::Rpc(e) => e.code == -28,
-        JsonRpcError::Transport(_) => match http_status(error) {
-            Some(408 | 429) | None => true,
-            Some(code) => !(400..500).contains(&code),
+        JsonRpcError::Transport(e) => match e.downcast_ref() {
+            Some(HttpError::Status(408 | 429)) => true,
+            Some(HttpError::Status(code)) => !(400..500).contains(code),
+            Some(HttpError::Cookie(_)) => false,
+            Some(HttpError::Malformed(_) | HttpError::Io(_)) | None => true,
         },
         _ => false,
     }
 }
 
-/// The node answered 401: it rejected the credentials.
-fn is_auth_rejection(error: &JsonRpcError) -> bool {
-    http_status(error) == Some(401)
-}
-
-/// The node refused the request itself, whatever its content.
-fn refusal(error: &JsonRpcError) -> Option<Error> {
-    match http_status(error)? {
-        401 => Some(Error::RpcAuthFailed),
-        403 => Some(Error::RpcForbidden),
-        _ => None,
-    }
-}
-
-/// The HTTP status of an answer without a JSON-RPC body.
-fn http_status(error: &JsonRpcError) -> Option<u16> {
-    match error {
-        JsonRpcError::Transport(e) => match e.downcast_ref() {
-            Some(simple_http::Error::HttpErrorCode(code)) => Some(*code),
-            _ => None,
+/// The node refused the request itself (credentials, `rpcallowip`), else the error as is.
+fn refusal(error: JsonRpcError) -> Error {
+    let JsonRpcError::Transport(boxed) = error else {
+        return error.into();
+    };
+    match boxed.downcast::<HttpError>() {
+        Ok(http) => match *http {
+            HttpError::Status(401) => Error::RpcAuthFailed,
+            HttpError::Status(403) => Error::RpcForbidden,
+            HttpError::Cookie(error) => Error::IO(error),
+            http => JsonRpcError::Transport(Box::new(http)).into(),
         },
-        _ => None,
+        Err(boxed) => JsonRpcError::Transport(boxed).into(),
     }
 }

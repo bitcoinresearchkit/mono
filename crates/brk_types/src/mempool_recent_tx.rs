@@ -8,7 +8,6 @@ use crate::{Sats, Transaction, Txid, VSize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct MempoolRecentTx {
-    /// Transaction ID
     pub txid: Txid,
     /// Transaction fee (sats)
     fee: Sats,

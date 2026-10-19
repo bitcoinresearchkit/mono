@@ -1,48 +1,49 @@
-use std::{iter, sync::Arc};
+use std::sync::Arc;
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
-use brk_types::Version;
-use rangeindex::SharedRangeMap;
+use arc_swap::Guard;
+use brk_types::{Height, Version};
+use rangeindex::{RangeMap, SharedRangeMap};
 use schemars::JsonSchema;
 use serde::Serialize;
-use vecdb::{
-    AnyExportableVec, AnyVec, Formattable, ReadableVec, TypedVec, VecIndex, VecValue,
-    short_type_name,
-};
+use vecdb::{AnyVec, Formattable, ReadableBoxedVec, ReadableVec, TypedVec, VecIndex, VecValue};
 
-/// Read-only vector view of a shared range map's first indexes.
-/// Updates belong to the map owner; this view adds series metadata and reads.
+/// Read-only vector view of a shared range map derived from the height mapping `source`, whose
+/// live version it carries (like a lazy view). Updates belong to the map owner; this view adds
+/// series metadata and reads.
 #[derive(Clone)]
-pub struct RangeMapVec<I, T> {
+pub struct RangeMapVec<I: VecIndex, T> {
     name: Arc<str>,
     version: Version,
+    source: ReadableBoxedVec<Height, I>,
     mapping: SharedRangeMap<T, I>,
 }
 
 impl<I: VecIndex, T: VecValue> RangeMapVec<I, T> {
-    pub fn new(name: &str, version: Version, mapping: SharedRangeMap<T, I>) -> Self {
+    /// The view's version is `version` plus `source`'s.
+    pub fn new(
+        name: &str,
+        version: Version,
+        source: ReadableBoxedVec<Height, I>,
+        mapping: SharedRangeMap<T, I>,
+    ) -> Self {
         Self {
             name: Arc::from(name),
             version,
+            source,
             mapping,
         }
     }
 
-    pub(crate) fn mapping(&self) -> &SharedRangeMap<T, I> {
-        &self.mapping
-    }
-
-    fn with_range<R>(&self, from: usize, to: usize, read: impl FnOnce(&[T]) -> R) -> R {
-        let index = self.mapping.read();
-        let values = index.as_slice();
-        let to = to.min(values.len());
-        read(&values[from.min(to)..to])
+    /// The latest published map; load it once per read.
+    #[inline]
+    pub(crate) fn load(&self) -> Guard<Arc<RangeMap<T, I>>> {
+        self.mapping.load()
     }
 }
 
 impl<I: VecIndex, T: VecValue> AnyVec for RangeMapVec<I, T> {
     fn version(&self) -> Version {
-        self.version
+        self.version + self.source.version()
     }
 
     fn name(&self) -> &str {
@@ -50,24 +51,15 @@ impl<I: VecIndex, T: VecValue> AnyVec for RangeMapVec<I, T> {
     }
 
     fn len(&self) -> usize {
-        self.mapping.read().len()
+        self.load().len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
+    /// The map only grows, but for a rollback rewriting it under the publication.
+    fn is_mutable(&self) -> bool {
+        false
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    vecdb::any_vec_type_methods!(I, T);
 }
 
 impl<I: VecIndex, T: VecValue> TypedVec for RangeMapVec<I, T> {
@@ -77,23 +69,21 @@ impl<I: VecIndex, T: VecValue> TypedVec for RangeMapVec<I, T> {
 
 impl<I: VecIndex, T: VecValue + Copy> ReadableVec<I, T> for RangeMapVec<I, T> {
     fn read_into_at(&self, from: usize, to: usize, out: &mut Vec<T>) {
-        self.with_range(from, to, |values| out.extend_from_slice(values));
+        let index = self.load();
+        for (_, values) in index.starts().chunks(from..to) {
+            out.extend_from_slice(values);
+        }
     }
 
     fn for_each_chunk_at(&self, from: usize, to: usize, each: &mut dyn FnMut(usize, &[T])) {
-        self.with_range(from, to, |values| {
-            if !values.is_empty() {
-                each(from, values);
-            }
-        });
+        let index = self.load();
+        for (start, values) in index.starts().chunks(from..to) {
+            each(start, values);
+        }
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(T)) {
-        self.with_range(from, to, |values| values.iter().copied().for_each(each));
-    }
-
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, fold: F) -> B {
-        self.with_range(from, to, |values| values.iter().copied().fold(init, fold))
+        self.fold_range_at(from, to, (), |(), value| each(value));
     }
 
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
@@ -103,37 +93,21 @@ impl<I: VecIndex, T: VecValue + Copy> ReadableVec<I, T> for RangeMapVec<I, T> {
         init: B,
         fold: F,
     ) -> Result<B, E> {
-        self.with_range(from, to, |values| {
-            values.iter().copied().try_fold(init, fold)
-        })
+        let index = self.load();
+        index.starts().iter(from..to).copied().try_fold(init, fold)
     }
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
-        self.mapping.read().as_slice().get(index).copied()
+        self.load().starts().get(index).copied()
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
-        let index = self.mapping.read();
-        let values = index.as_slice();
-        out.extend(
-            indices
-                .iter()
-                .copied()
-                .take_while(|&i| i < values.len())
-                .map(|i| values[i]),
-        );
+        let index = self.load();
+        let values = index.starts();
+        out.extend(indices.iter().map_while(|&i| values.get(i).copied()));
     }
 }
 
-impl<I: VecIndex, T> Traversable for RangeMapVec<I, T>
-where
+bitview_traversable::leaf!([I: VecIndex, T] RangeMapVec<I, T> where
     T: VecValue + Copy + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);

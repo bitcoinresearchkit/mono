@@ -8,42 +8,26 @@ use log::trace;
 use sfa::Writer;
 
 use crate::{
-    CompressionType, Result,
+    Result,
     table::{
-        Block, IndexBlock,
-        block::{BlockType, Header as BlockHeader},
         index_block::KeyedBlockHandle,
-        writer::index::BlockIndexWriter,
+        writer::index::{BlockIndexWriter, write_top_level_index},
     },
 };
 
 pub struct FullIndexWriter {
-    compression: CompressionType,
     block_handles: Vec<KeyedBlockHandle>,
 }
 
 impl FullIndexWriter {
     pub fn new() -> Self {
         Self {
-            compression: CompressionType::None,
             block_handles: Vec::new(),
         }
     }
 }
 
 impl BlockIndexWriter for FullIndexWriter {
-    fn use_partition_size(self: Box<Self>, _: u32) -> Box<dyn BlockIndexWriter> {
-        self
-    }
-
-    fn use_compression(
-        mut self: Box<Self>,
-        compression: CompressionType,
-    ) -> Box<dyn BlockIndexWriter> {
-        self.compression = compression;
-        self
-    }
-
     fn register_data_block(&mut self, block_handle: KeyedBlockHandle) -> Result<()> {
         trace!(
             "Registering block at {:?} with size {} [end_key={:?}]",
@@ -57,26 +41,6 @@ impl BlockIndexWriter for FullIndexWriter {
     }
 
     fn finish(self: Box<Self>, file_writer: &mut Writer<BufWriter<File>>) -> Result<()> {
-        file_writer.start("tli")?;
-
-        let mut bytes = vec![];
-        IndexBlock::encode_into(&mut bytes, &self.block_handles)?;
-
-        let header = Block::write_into(file_writer, &bytes, BlockType::Index, self.compression)?;
-
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "blocks never even approach u32 size"
-        )]
-        let bytes_written = BlockHeader::serialized_len() as u32 + header.data_length;
-
-        debug_assert!(bytes_written > 0, "Block index should never be empty");
-
-        trace!(
-            "Written top level index, with {} pointers ({bytes_written}B)",
-            self.block_handles.len(),
-        );
-
-        Ok(())
+        write_top_level_index(file_writer, "tli", &self.block_handles)
     }
 }

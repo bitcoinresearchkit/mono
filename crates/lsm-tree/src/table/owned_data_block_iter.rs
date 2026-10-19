@@ -12,34 +12,20 @@ self_cell!(
 );
 
 impl OwnedDataBlockIter {
-    fn seek_lower_inclusive(&mut self, needle: &[u8], _seqno: u64) -> bool {
-        self.with_dependent_mut(|_, iter| iter.seek(needle))
+    /// Skips the keys below `bound`.
+    pub fn seek_lower_bound(&mut self, bound: &Bound) {
+        self.with_dependent_mut(|_, iter| match bound {
+            Bound::Included(key) => iter.seek_lower::<true>(key),
+            Bound::Excluded(key) => iter.seek_lower::<false>(key),
+        });
     }
 
-    fn seek_upper_inclusive(&mut self, needle: &[u8], _seqno: u64) -> bool {
-        self.with_dependent_mut(|_, iter| iter.seek_upper(needle))
-    }
-
-    fn seek_lower_exclusive(&mut self, needle: &[u8], _seqno: u64) -> bool {
-        self.with_dependent_mut(|_, iter| iter.seek_exclusive(needle))
-    }
-
-    fn seek_upper_exclusive(&mut self, needle: &[u8], _seqno: u64) -> bool {
-        self.with_dependent_mut(|_, iter| iter.seek_upper_exclusive(needle))
-    }
-
-    pub fn seek_lower_bound(&mut self, bound: &Bound, seqno: u64) -> bool {
-        match bound {
-            Bound::Included(key) => self.seek_lower_inclusive(key, seqno),
-            Bound::Excluded(key) => self.seek_lower_exclusive(key, seqno),
-        }
-    }
-
-    pub fn seek_upper_bound(&mut self, bound: &Bound, seqno: u64) -> bool {
-        match bound {
-            Bound::Included(key) => self.seek_upper_inclusive(key, seqno),
-            Bound::Excluded(key) => self.seek_upper_exclusive(key, seqno),
-        }
+    /// Skips the keys above `bound`.
+    pub fn seek_upper_bound(&mut self, bound: &Bound) {
+        self.with_dependent_mut(|_, iter| match bound {
+            Bound::Included(key) => iter.seek_upper::<true>(key),
+            Bound::Excluded(key) => iter.seek_upper::<false>(key),
+        });
     }
 
     pub fn next_as<K: RecordBytes, V: RecordBytes>(

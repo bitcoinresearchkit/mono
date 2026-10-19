@@ -3,25 +3,21 @@ use brk_types::BlockHash;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Block header matching mempool.space's format.
-/// Contains the same fields as bitcoin::block::Header
-/// but serialized for the JSON API.
+/// Block header in mempool.space's format: the fields of `bitcoin::block::Header` except its
+/// timestamp.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BlockHeader {
     /// Block version, used for soft fork signaling
     pub version: u32,
 
-    /// Previous block hash
     #[serde(rename = "previousblockhash")]
     pub previous_block_hash: BlockHash,
 
-    /// Merkle root of the transaction tree
     pub merkle_root: String,
 
     /// Compact target (bits)
     pub bits: u32,
 
-    /// Nonce used to produce a valid block hash
     pub nonce: u32,
 }
 

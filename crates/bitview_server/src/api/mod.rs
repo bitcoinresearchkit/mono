@@ -1,6 +1,12 @@
-use aide::axum::{ApiRouter, routing::get_with};
+use std::sync::Arc;
+
+use aide::{
+    axum::{ApiRouter, routing::get_with},
+    transform::TransformOperation,
+};
 use axum::{
     Extension,
+    body::Bytes,
     http::HeaderMap,
     response::{Html, Redirect, Response},
     routing::get,
@@ -8,18 +14,16 @@ use axum::{
 use serde_json::Value;
 
 use super::AppState;
-#[cfg(feature = "series")]
-use crate::api::series::ApiSeriesRoutes;
-#[cfg(feature = "urpd")]
-use crate::api::urpd::ApiUrpdRoutes;
 use crate::{
-    Error,
-    api::server::ServerRoutes,
+    CacheParams, Error,
     extended::{ResponseExtended, TransformResponseExtended},
+    params::Empty,
 };
 
 #[cfg(feature = "chain")]
 mod addrs;
+#[cfg(feature = "chain")]
+mod block_template;
 #[cfg(feature = "chain")]
 mod blocks;
 #[cfg(feature = "chain")]
@@ -46,24 +50,10 @@ mod server;
 mod transactions;
 #[cfg(feature = "urpd")]
 mod urpd;
+#[cfg(feature = "chain")]
+mod utxo_set;
 
-#[cfg(feature = "chain")]
-use addrs::AddrRoutes;
-#[cfg(feature = "chain")]
-use blocks::BlockRoutes;
-#[cfg(feature = "chain")]
-use fees::FeesRoutes;
-#[cfg(feature = "chain")]
-use general::GeneralRoutes;
-#[cfg(feature = "chain")]
-use mempool::MempoolRoutes;
-#[cfg(feature = "chain")]
-use mining::MiningRoutes;
 pub use openapi::*;
-#[cfg(feature = "price")]
-use oracle::OracleRoutes;
-#[cfg(feature = "chain")]
-use transactions::TxRoutes;
 
 pub trait ApiRoutes {
     fn add_api_routes(self) -> Self;
@@ -71,71 +61,75 @@ pub trait ApiRoutes {
 
 impl ApiRoutes for ApiRouter<AppState> {
     fn add_api_routes(self) -> Self {
-        let router = self.add_server_routes();
+        let router = server::add_routes(self);
         #[cfg(feature = "series")]
-        let router = router.add_series_routes();
+        let router = series::add_routes(router);
         #[cfg(feature = "urpd")]
-        let router = router.add_urpd_routes();
+        let router = urpd::add_routes(router);
         #[cfg(feature = "chain")]
-        let router = router
-            .add_general_routes()
-            .add_addr_routes()
-            .add_block_routes()
-            .add_mining_routes()
-            .add_fees_routes()
-            .add_mempool_routes()
-            .add_tx_routes();
+        let router = [
+            general::add_routes,
+            addrs::add_routes,
+            blocks::add_routes,
+            mining::add_routes,
+            fees::add_routes,
+            mempool::add_routes,
+            transactions::add_routes,
+            utxo_set::add_routes,
+        ]
+        .into_iter()
+        .fold(router, |router, add| add(router));
         #[cfg(feature = "price")]
-        let router = router.add_oracle_routes();
+        let router = oracle::add_routes(router);
 
         router
             .api_route(
                 "/openapi.json",
                 get_with(
-                    async |headers: HeaderMap,
-                           Extension(api): Extension<OpenApiJson>|
-                           -> Response {
-                        Response::static_json_bytes(&headers, api.bytes())
+                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<Arc<OpenApiBodies>>| {
+                        api.full.respond(&headers)
                     },
                     |op| {
                         op.id("get_openapi")
-                            .server_tag()
+                            .tag(tags::SERVER)
                             .mcp_ignore()
                             .summary("OpenAPI specification")
-                            .description("Full OpenAPI 3.1 specification for this API.")
+                            .description("Full OpenAPI 3.1 specification for this API. Build tools from this document.")
+                            .json_response::<Value>()
+                            .not_modified()
                     },
                 ),
             )
             .api_route(
                 "/api.json",
                 get_with(
-                    async |headers: HeaderMap,
-                           Extension(api): Extension<ApiJson>|
-                           -> Response {
-                        Response::static_json_bytes(&headers, api.bytes())
+                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<Arc<OpenApiBodies>>| {
+                        api.compact.respond(&headers)
                     },
                     |op| {
                         op.id("get_api")
-                            .server_tag()
+                            .tag(tags::SERVER)
                             .mcp_ignore()
-                            .summary("Compact OpenAPI specification")
+                            .summary("Compact API summary")
                             .description(
-                                "Compact OpenAPI specification optimized for LLM consumption. \
-                                 Removes redundant fields while preserving essential API information. \
-                                 The full specification is available at `GET /openapi.json`.",
+                                "Compact custom summary of the OpenAPI specification for LLM reading: \
+                                 types instead of schemas, `returns` instead of responses, no examples; \
+                                 parameters keep their enum, default and bounds. Not valid OpenAPI: \
+                                 build tools from `GET /openapi.json`.",
                             )
                             .json_response::<Value>()
+                            .not_modified()
                     },
                 ),
             )
             .route("/api", get(Html::from(include_str!("./scalar.html"))))
-            // Pre-compressed with: brotli -c -q 11 scalar.js > scalar.js.br
+            // Encoded per request as the client accepts, by the compression layer.
             .route("/scalar.js", get(|headers: HeaderMap| async move {
-                Response::static_bytes(
+                Response::cached_bytes(
                     &headers,
-                    include_bytes!("./scalar.js.br").as_slice(),
+                    &CacheParams::deploy(),
                     "application/javascript",
-                    "br",
+                    || Bytes::from_static(include_bytes!("./scalar.js")),
                 )
             }))
             .route(
@@ -148,5 +142,13 @@ impl ApiRoutes for ApiRouter<AppState> {
                     Error::not_found("Unknown API endpoint. See /api for documentation.")
                 }),
             )
+            // Documented once for every operation instead of per route.
+            .with_path_items(|mut item| {
+                let path = item.inner_mut();
+                for operation in [&mut path.get, &mut path.post].into_iter().flatten() {
+                    let _ = TransformOperation::new(operation).universal_errors();
+                }
+                item
+            })
     }
 }

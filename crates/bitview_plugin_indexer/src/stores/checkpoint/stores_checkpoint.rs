@@ -14,7 +14,7 @@ use super::{PendingStoresCheckpoint, PersistedStoresCheckpoint};
 /// file means a commit was interrupted and the stores must not be resumed.
 #[derive(Debug, Clone)]
 pub struct StoresCheckpoint {
-    pub path: PathBuf,
+    path: PathBuf,
 }
 
 impl StoresCheckpoint {

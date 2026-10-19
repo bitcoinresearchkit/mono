@@ -6,9 +6,9 @@ use super::PersistedStoresCheckpoint;
 
 #[must_use = "dropping a pending checkpoint leaves the stores checkpoint invalid"]
 pub struct PendingStoresCheckpoint {
-    pub next_height: Height,
-    pub path: PathBuf,
-    pub pending_path: PathBuf,
+    pub(super) next_height: Height,
+    pub(super) path: PathBuf,
+    pub(super) pending_path: PathBuf,
 }
 
 impl PendingStoresCheckpoint {

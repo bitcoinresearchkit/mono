@@ -20,7 +20,7 @@ impl RollbackFloor {
     pub(crate) fn load(dir: &Path) -> Result<Self> {
         let path = dir.join("rollback_floor.dat");
         let height = match fs::read(&path) {
-            // An unreadable floor falls back to genesis, which is always safe.
+            // A malformed floor falls back to genesis, which is always safe.
             Ok(bytes) => Some(<[u8; 4]>::try_from(bytes).map_or(Height::ZERO, |bytes| {
                 Height::from(u32::from_le_bytes(bytes))
             })),

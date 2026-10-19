@@ -1,22 +1,20 @@
 use brk_types::{Sats, Timestamp};
 
-/// Represents the age of a UTXO or address balance.
-/// Encapsulates all age-related calculations in one type-safe struct.
+/// Age of a UTXO or address balance.
 #[derive(Debug, Clone, Copy)]
 pub struct Age {
     /// Age in hours (primary internal unit for cohort boundaries)
     hours: usize,
-    /// Age in days as float (for satdays_destroyed - established terminology)
+    /// Fractional age in days, for satoshi-days destroyed.
     days: f64,
 }
 
 impl Age {
-    /// Create from timestamps and block count
     #[inline]
     pub fn new(current_timestamp: Timestamp, prev_timestamp: Timestamp) -> Self {
         Self {
-            hours: current_timestamp.difference_in_hours_between(prev_timestamp),
-            days: current_timestamp.difference_in_days_between_float(prev_timestamp),
+            hours: current_timestamp.hours_since(prev_timestamp),
+            days: current_timestamp.days_since(prev_timestamp),
         }
     }
 
@@ -26,7 +24,7 @@ impl Age {
         self.hours
     }
 
-    /// Calculate satdays destroyed for given supply
+    /// Supply in satoshis times fractional age in days, rounded down.
     #[inline]
     pub fn satdays_destroyed(&self, supply: Sats) -> Sats {
         Sats::from((u64::from(supply) as f64 * self.days).floor() as u64)

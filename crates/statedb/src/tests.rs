@@ -1,307 +1,506 @@
-use crate::{Amount, Creations, History, Spends, View};
+//! One model-based end-to-end test: both producers, the history and its readers, against a plain
+//! in-memory chain replayed from genesis.
+use crate::{Amount, BlockDiff, Creations, History, SNAPSHOT_INTERVAL, Spends, State, View};
 use std::{
-    fs::{self},
+    collections::BTreeMap,
+    fs,
     io::{Error, Result},
+    path::{Path, PathBuf},
 };
-use tempfile::tempdir;
 
-fn amount(sats: u64, count: u64) -> Amount {
-    Amount { sats, count }
+const STEPS: usize = 600;
+
+type Hash = [u8; 32];
+type Versions = (u64, u64);
+/// A published snapshot's identity: length, hash of its last block, producer versions.
+type Snap = (usize, Hash, Versions);
+
+struct Rng(u64);
+impl Default for Rng {
+    fn default() -> Self {
+        Self(0x9E37_79B9_7F4A_7C15)
+    }
 }
-fn block(h: usize) -> [u8; 32] {
-    let mut hash = [0; 32];
-    hash[..8].copy_from_slice(&(h as u64).to_le_bytes());
-    hash
+impl Rng {
+    fn next(&mut self) -> u64 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 7;
+        self.0 ^= self.0 << 17;
+        self.0
+    }
+    fn below(&mut self, n: usize) -> usize {
+        (self.next() % n as u64) as usize
+    }
+    fn chance(&mut self, percent: u64) -> bool {
+        self.next() % 100 < percent
+    }
 }
 
-#[test]
-fn separate_producers_reconstruct_every_height_zero_value_outputs_and_same_block_spends() {
-    let root = tempdir().unwrap();
-    let inputs = root.path().join("inputs");
-    let outputs = root.path().join("outputs");
-    let snapshots = root.path().join("utxo_history");
-    let mut spends = Spends::open(&inputs).unwrap();
-    let mut created = Creations::open(&outputs).unwrap();
-    let mut history = History::open(&snapshots).unwrap();
-    history.set_snapshot_interval(7).unwrap();
-    let mut expected = Vec::<Vec<Amount>>::new();
-    let mut state = Vec::<Amount>::new();
-    for h in 0..100 {
-        state.push(amount(100, 2));
-        let mut rows = vec![(h as u32, amount(0, 1))];
-        state[h].count -= 1;
-        if h > 0 {
-            rows.push(((h - 1) as u32, amount(100, 1)));
-            state[h - 1] = Amount::default();
+struct Block {
+    hash: Hash,
+    created: Amount,
+    spent: Vec<(u32, Amount)>,
+    correction: Option<(u32, Amount)>,
+}
+
+struct Stores {
+    spends: Spends,
+    creations: Creations,
+    history: History,
+}
+impl Stores {
+    fn open(root: &Path) -> Result<Self> {
+        Ok(Self {
+            spends: Spends::open(&root.join("inputs"))?,
+            creations: Creations::open(&root.join("outputs"))?,
+            history: History::open(&root.join("utxo_set"))?,
+        })
+    }
+}
+
+#[derive(Default)]
+struct Model {
+    rng: Rng,
+    blocks: Vec<Block>,
+    /// The indexer's chain (block ids) with the state and per-block totals it reaches.
+    chain: Vec<usize>,
+    amounts: Vec<Amount>,
+    totals: Vec<Amount>,
+    /// The blocks each producer committed: spends, creations.
+    made: [Vec<usize>; 2],
+    versions: Versions,
+    /// The UTXO Set's persisted height.
+    consumer: usize,
+    /// What the history published, and the state its writer keeps warm.
+    tip: Option<Snap>,
+    prev: Option<Snap>,
+    retained: BTreeMap<usize, (Hash, Versions)>,
+    live: Option<Snap>,
+    /// Analytical state resumed by cursor across updates, like the age and URPD consumers'.
+    resident: Option<State>,
+    /// Open read-only views and the ceiling each reads at.
+    views: Vec<(View, usize)>,
+}
+impl Model {
+    fn hash(&self, chain: &[usize], len: usize) -> Hash {
+        if len == 0 {
+            [0; 32]
+        } else {
+            self.blocks[chain[len - 1]].hash
         }
-        spends.push(block(h), rows).unwrap();
-        created.push(block(h), amount(100, 2), None).unwrap();
-        expected.push(state.clone());
     }
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(0, 100, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    let files = [
-        (&inputs, "spends/data"),
-        (&inputs, "spends/index"),
-        (&inputs, "spends/commit"),
-        (&outputs, "creations/data"),
-        (&outputs, "creations/index"),
-        (&outputs, "creations/commit"),
-        (&snapshots, "snapshots/data"),
-        (&snapshots, "snapshots/pages"),
-    ]
-    .map(|(owner, file)| owner.join(file));
-    let original = files
-        .iter()
-        .map(fs::read)
-        .collect::<Result<Vec<_>>>()
-        .unwrap();
-    let view = View::open(&snapshots, &inputs, &outputs).unwrap();
-    let reader = view.reader().unwrap();
-    for (h, expected) in expected.iter().enumerate() {
-        assert_eq!(reader.state_at(h + 1).unwrap().amounts(), *expected);
-        assert_eq!(
-            history
-                .reader(&spends, &created)
-                .and_then(|reader| reader.state_at(h + 1))
-                .unwrap()
-                .amounts(),
-            *expected
-        );
+    fn snap(&self, len: usize) -> Snap {
+        (len, self.hash(&self.chain, len), self.versions)
     }
-    assert_eq!(
-        files
-            .iter()
-            .map(fs::read)
-            .collect::<Result<Vec<_>>>()
-            .unwrap(),
-        original
-    );
-    drop((history, spends, created));
-    let spends = Spends::open(&inputs).unwrap();
-    let created = Creations::open(&outputs).unwrap();
-    let history = History::open(&snapshots).unwrap();
-    assert_eq!(
-        history
-            .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(100))
-            .unwrap()
-            .amounts(),
-        expected[99]
-    );
-}
-
-#[test]
-fn reorg_rebuilds_from_ancestor_and_rejects_mixed_producer_chains() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    let mut history = History::open(root.path()).unwrap();
-    history.set_snapshot_interval(2).unwrap();
-    for h in 0..8 {
-        spends.push(block(h), []).unwrap();
-        created.push(block(h), amount(10, 1), None).unwrap();
+    /// The state after `chain`: its amounts and total.
+    fn walk(&self, chain: &[usize]) -> (Vec<Amount>, Amount) {
+        let mut amounts = Vec::with_capacity(chain.len());
+        let mut total = Amount::default();
+        for &id in chain {
+            let block = &self.blocks[id];
+            amounts.push(block.created);
+            total = total + block.created;
+            for &(origin, amount) in block.spent.iter().chain(&block.correction) {
+                amounts[origin as usize] = amounts[origin as usize] - amount;
+                total = total - amount;
+            }
+        }
+        (amounts, total)
     }
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(0, 8, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    spends.truncate(3).unwrap();
-    created.truncate(3).unwrap();
-    spends.push(block(1003), [(0, amount(10, 1))]).unwrap();
-    created.push(block(1003), amount(7, 1), None).unwrap();
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(3, 4, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    assert_eq!(
-        history
-            .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(4))
-            .unwrap()
-            .total(),
-        amount(27, 3)
-    );
-    let pages = fs::read(root.path().join("snapshots/pages")).unwrap();
-    assert!(
-        !pages[9..]
-            .as_chunks::<12>()
-            .0
-            .iter()
-            .any(|row| u32::from_le_bytes(row[..4].try_into().unwrap()) == 8)
-    );
-    assert!(
-        history
-            .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(5))
-            .is_err()
-    );
-    spends.push(block(4), []).unwrap();
-    created.push(block(1004), amount(1, 1), None).unwrap();
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    assert!(
-        history
-            .advance(4, 5, &spends, &created, |_, _| Ok(()))
-            .is_err()
-    );
-    assert_eq!(history.reader(&spends, &created).unwrap().len(), 4);
-}
-
-#[test]
-fn source_versions_invalidate_snapshots() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    let mut history = History::open(root.path()).unwrap();
-    spends.validate_version(7).unwrap();
-    created.validate_version(8).unwrap();
-    for height in 0..2 {
-        spends.push(block(height), []).unwrap();
-        created.push(block(height), amount(10, 1), None).unwrap();
+    /// Removes part of what `origin` holds now: spending its last output takes all its sats.
+    fn take(&mut self, origin: usize) -> Option<Amount> {
+        let held = self.amounts[origin];
+        if held.count == 0 {
+            return None;
+        }
+        let count = 1 + self.rng.below(held.count.min(3) as usize) as u64;
+        let sats = if count == held.count {
+            held.sats
+        } else {
+            self.rng.next() % (held.sats + 1)
+        };
+        self.amounts[origin] = held - Amount { sats, count };
+        Some(Amount { sats, count })
     }
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    history
-        .advance(0, 2, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    assert_eq!(
-        history
-            .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(2))
-            .unwrap()
-            .total(),
-        amount(20, 2)
-    );
-    spends.validate_version(9).unwrap();
-    assert_eq!(history.reader(&spends, &created).unwrap().len(), 0);
-    assert!(
-        history
-            .reader(&spends, &created)
-            .and_then(|reader| reader.state_at(2))
-            .is_err()
-    );
-}
-
-#[test]
-fn replaces_tip_without_accumulating_old_snapshots_and_can_rewind_to_periodic_tip() {
-    let root = tempdir().unwrap();
-    let mut spends = Spends::open(root.path()).unwrap();
-    let mut created = Creations::open(root.path()).unwrap();
-    let mut history = History::open(root.path()).unwrap();
-    history.set_snapshot_interval(10).unwrap();
-    for h in 0..29 {
-        spends.push(block(h), []).unwrap();
-        created.push(block(h), amount(10, 1), None).unwrap();
-    }
-    spends.commit().unwrap();
-    created.commit().unwrap();
-    for end in 1..30 {
-        history
-            .advance(end - 1, end, &spends, &created, |_, _| Ok(()))
-            .unwrap();
-        let size = fs::metadata(root.path().join("snapshots/data"))
-            .unwrap()
-            .len();
-        assert!(size < 2000, "obsolete tips accumulated: {size}");
-        let view = View::open(root.path(), root.path(), root.path()).unwrap();
-        let state = view.reader().unwrap().state_at(end).unwrap();
-        assert_eq!(state.total(), amount(end as u64 * 10, end as u64));
-    }
-    spends.truncate(10).unwrap();
-    created.truncate(10).unwrap();
-    history
-        .advance(10, 10, &spends, &created, |_, _| Ok(()))
-        .unwrap();
-    assert_eq!(history.reader(&spends, &created).unwrap().len(), 10);
-    assert_eq!(
-        View::open(root.path(), root.path(), root.path())
-            .unwrap()
-            .reader()
-            .unwrap()
-            .state_at(10)
-            .unwrap()
-            .total(),
-        amount(100, 10)
-    );
-}
-
-#[test]
-fn empty_rewind_reopens_and_accepts_a_replacement_chain() -> Result<()> {
-    let root = tempdir()?;
-    let mut spends = Spends::open(root.path())?;
-    let mut created = Creations::open(root.path())?;
-    let mut history = History::open(root.path())?;
-    spends.push(block(0), [])?;
-    created.push(block(0), amount(10, 1), None)?;
-    spends.commit()?;
-    created.commit()?;
-    history.advance(0, 1, &spends, &created, |_, _| Ok(()))?;
-    spends.truncate(0)?;
-    created.truncate(0)?;
-    history.advance(0, 0, &spends, &created, |_, _| Ok(()))?;
-    let empty = View::open(root.path(), root.path(), root.path())?
-        .reader()?
-        .state_at(0)?;
-    assert!(empty.is_empty());
-    assert_eq!(empty.total(), Amount::default());
-    spends.push(block(99), [])?;
-    created.push(block(99), amount(12, 1), None)?;
-    spends.commit()?;
-    created.commit()?;
-    history.advance(0, 1, &spends, &created, |_, _| Ok(()))?;
-    assert_eq!(
-        View::open(root.path(), root.path(), root.path())?
-            .reader()?
-            .state_at(1)?
-            .total(),
-        amount(12, 1)
-    );
-    Ok(())
-}
-
-#[test]
-fn a_failed_visit_after_a_checkpoint_leaves_a_reopenable_published_prefix() -> Result<()> {
-    let root = tempdir()?;
-    let mut spends = Spends::open(root.path())?;
-    let mut created = Creations::open(root.path())?;
-    let mut history = History::open(root.path())?;
-    history.set_snapshot_interval(3)?;
-    for h in 0..8 {
-        spends.push(block(h), [])?;
-        created.push(block(h), amount(10, 1), None)?;
-    }
-    spends.commit()?;
-    created.commit()?;
-    assert!(
-        history
-            .advance(0, 8, &spends, &created, |h, _| if h == 5 {
-                Err(Error::other("visit failed"))
+    /// Mines a block: zero-sat outputs, same-block and old spends, and BIP30-like overwrites.
+    fn grow(&mut self) {
+        let height = self.chain.len();
+        let count = self.rng.below(4) as u64;
+        let sats = if count > 0 && self.rng.chance(90) {
+            self.rng.next() >> 24
+        } else {
+            0
+        };
+        let created = Amount { sats, count };
+        self.amounts.push(created);
+        let mut spent: Vec<(u32, Amount)> = Vec::new();
+        for _ in 0..self.rng.below(5) {
+            let origin = if self.rng.chance(50) {
+                height.saturating_sub(self.rng.below(30))
             } else {
+                self.rng.below(height + 1)
+            };
+            if !spent.iter().any(|&(o, _)| o as usize == origin)
+                && let Some(amount) = self.take(origin)
+            {
+                spent.push((origin as u32, amount));
+            }
+        }
+        let correction = if height > 0 && self.rng.chance(5) {
+            let origin = self.rng.below(height);
+            self.take(origin).map(|amount| (origin as u32, amount))
+        } else {
+            None
+        };
+        let removed = spent
+            .iter()
+            .chain(&correction)
+            .fold(Amount::default(), |sum, &(_, amount)| sum + amount);
+        let total = self.totals.last().copied().unwrap_or_default();
+        self.totals.push(total + created - removed);
+        let mut hash = [0; 32];
+        for chunk in hash.chunks_mut(8) {
+            chunk.copy_from_slice(&self.rng.next().to_le_bytes());
+        }
+        self.chain.push(self.blocks.len());
+        self.blocks.push(Block {
+            hash,
+            created,
+            spent,
+            correction,
+        });
+    }
+    /// The indexer's next update: new blocks, a catch-up sync, a reorg, a deep rewind, or a
+    /// producer version bump (the producers validate versions first, rebuilding from genesis).
+    /// Returns whether the chain rewound.
+    fn change_chain(&mut self, s: &mut Stores) -> Result<bool> {
+        let len = self.chain.len();
+        let roll = self.rng.below(100);
+        let fork = match roll {
+            0..=14 => len.saturating_sub(1),
+            15..=24 => len.saturating_sub(2 + self.rng.below(5)),
+            25..=27 => self.rng.below(len + 1),
+            _ => len,
+        };
+        let grow = match roll {
+            _ if len < SNAPSHOT_INTERVAL => 300 + self.rng.below(3_000),
+            28..=32 if len < 11_000 => 300 + self.rng.below(3_000),
+            _ => len - fork + self.rng.below(4),
+        };
+        if roll == 33 {
+            let p = self.rng.below(2);
+            if p == 0 {
+                self.versions.0 += 1;
+            } else {
+                self.versions.1 += 1;
+            }
+            self.made[p].clear();
+            s.spends.validate_version(self.versions.0)?;
+            s.creations.validate_version(self.versions.1)?;
+            self.consumer = 0;
+            self.views.clear();
+        }
+        if fork < len {
+            self.chain.truncate(fork);
+            self.totals.truncate(fork);
+            self.amounts = self.walk(&self.chain).0;
+            self.consumer = self.consumer.min(fork);
+            self.views.retain(|&(_, ceiling)| ceiling <= fork);
+        }
+        for _ in 0..grow {
+            self.grow();
+        }
+        Ok(fork < len)
+    }
+    /// One producer's update: rewind to the indexer's chain, push and commit (sometimes midway).
+    /// Returns whether it quit before its final commit.
+    fn sync(&mut self, s: &mut Stores, p: usize) -> Result<bool> {
+        let common = self.made[p]
+            .iter()
+            .zip(&self.chain)
+            .take_while(|(a, b)| a == b)
+            .count();
+        if p == 0 {
+            s.spends.truncate(common)?;
+        } else {
+            s.creations.truncate(common)?;
+        }
+        self.made[p].truncate(common);
+        let quit = self.rng.chance(4);
+        let end = if quit {
+            common + self.rng.below(self.chain.len() - common + 1)
+        } else {
+            self.chain.len()
+        };
+        for height in common..end {
+            let block = &self.blocks[self.chain[height]];
+            if p == 0 {
+                s.spends.push(block.hash, block.spent.iter().copied())?;
+            } else {
+                s.creations
+                    .push(block.hash, block.created, block.correction)?;
+            }
+            if self.rng.chance(2) || height + 1 == end && !quit {
+                if p == 0 {
+                    s.spends.commit()?;
+                } else {
+                    s.creations.commit()?;
+                }
+                let n = self.made[p].len();
+                self.made[p].extend_from_slice(&self.chain[n..=height]);
+            }
+        }
+        Ok(quit)
+    }
+    /// The UTXO Set's update through both producers, sometimes rebuilding from genesis (its own
+    /// version bump) and sometimes with a visit failing after a retained checkpoint was written.
+    fn advance(&mut self, s: &mut Stores) -> Result<()> {
+        let end = self.made[0].len().min(self.made[1].len());
+        let start = if self.rng.chance(2) { 0 } else { self.consumer };
+        self.views.retain(|&(_, ceiling)| ceiling <= start);
+        let checkpoint = start.max(1).next_multiple_of(SNAPSHOT_INTERVAL);
+        let fail = (checkpoint < end && self.rng.chance(50))
+            .then(|| checkpoint + self.rng.below(end - checkpoint));
+        let mut visits = Vec::new();
+        let result = s
+            .history
+            .advance(start, end, &s.spends, &s.creations, |height, total| {
+                if Some(height) == fail {
+                    return Err(Error::other("visit failed"));
+                }
+                visits.push((height, total));
                 Ok(())
-            })
-            .is_err()
+            });
+        assert_eq!(result.is_ok(), fail.is_none(), "{result:?}");
+        let reached = fail.unwrap_or(end);
+        assert!(
+            visits
+                .into_iter()
+                .eq((start..reached).map(|h| (h, self.totals[h]))),
+            "visits {start}..{reached}"
+        );
+        // What the history publishes: an unchanged state at its newest snapshot is left alone.
+        let tip = [self.tip, self.prev]
+            .into_iter()
+            .flatten()
+            .filter(|tip| tip.2 == self.versions)
+            .max_by_key(|tip| tip.0);
+        let retained = self
+            .retained
+            .last_key_value()
+            .filter(|(_, (_, versions))| *versions == self.versions)
+            .map(|(&len, &(hash, versions))| (len, hash, versions));
+        let latest = match (tip, retained) {
+            (Some(tip), Some(retained)) if retained.0 > tip.0 => Some(retained),
+            (tip, retained) => tip.or(retained),
+        };
+        if start == end && (self.live == Some(self.snap(start)) || latest == Some(self.snap(end))) {
+            self.live = Some(self.snap(end));
+            self.consumer = end;
+            return Ok(());
+        }
+        self.retained.retain(|&len, _| len <= start);
+        for tip in [&mut self.tip, &mut self.prev] {
+            if tip.is_some_and(|tip| tip.0 > start) {
+                *tip = None;
+            }
+        }
+        for len in (checkpoint..=reached).step_by(SNAPSHOT_INTERVAL) {
+            let (_, hash, versions) = self.snap(len);
+            self.retained.entry(len).or_insert((hash, versions));
+        }
+        self.live = None;
+        if fail.is_none() {
+            self.prev = self.tip.or(self.prev);
+            self.tip = Some(self.snap(end));
+            self.live = self.tip;
+            self.consumer = end;
+        }
+        Ok(())
+    }
+    /// Whether both producers carry this snapshot.
+    fn carried(&self, (len, hash, versions): Snap) -> bool {
+        versions == self.versions
+            && self
+                .made
+                .iter()
+                .all(|made| len <= made.len() && hash == self.hash(made, len))
+    }
+    /// The end `History::reader` publishes: the newest carried tip, or a newer carried retained
+    /// snapshot.
+    fn reader_end(&self) -> usize {
+        let limit = self.made[0].len().min(self.made[1].len());
+        let tip = [self.tip, self.prev]
+            .into_iter()
+            .flatten()
+            .filter(|&tip| self.carried(tip))
+            .map(|tip| tip.0)
+            .max()
+            .unwrap_or(0);
+        self.retained
+            .range(..=limit)
+            .rev()
+            .take_while(|(len, _)| **len > tip)
+            .find(|&(&len, &(hash, versions))| self.carried((len, hash, versions)))
+            .map_or(tip, |(&len, _)| len)
+    }
+    fn assert_state(&self, state: &State, chain: &[usize]) {
+        let walked;
+        let (amounts, total) = if chain == self.chain {
+            (
+                &self.amounts,
+                self.totals.last().copied().unwrap_or_default(),
+            )
+        } else {
+            walked = self.walk(chain);
+            (&walked.0, walked.1)
+        };
+        let differs = state
+            .amounts()
+            .iter()
+            .zip(amounts)
+            .position(|(a, b)| a != b);
+        assert!(
+            state.amounts() == amounts.as_slice(),
+            "state of {} blocks: {} amounts, first difference at {differs:?}",
+            chain.len(),
+            state.len()
+        );
+        assert_eq!(state.total(), total);
+        assert_eq!(state.hash(), self.hash(chain, chain.len()));
+    }
+    fn assert_diff(&self, diff: &BlockDiff, id: usize) {
+        let block = &self.blocks[id];
+        assert_eq!(
+            (diff.hash, diff.created, diff.correction()),
+            (block.hash, block.created, block.correction)
+        );
+        assert!(diff.spent().eq(block.spent.iter().copied()));
+    }
+    /// Every read path against the model: the history's reader (tips, `prev` during a reorg,
+    /// retained snapshots, replays), a resident state's cursor, raw diffs, and the open views.
+    fn check(&mut self, s: &Stores) -> Result<()> {
+        assert_eq!(
+            (s.spends.end(), s.creations.end()),
+            (self.made[0].len(), self.made[1].len())
+        );
+        let reader = s.history.reader(&s.spends, &s.creations)?;
+        let end = self.reader_end();
+        assert_eq!((reader.len(), reader.versions()), (end, self.versions));
+        // Both producers carry the same blocks through the reader's end.
+        let chain = &self.made[0][..end];
+        self.assert_state(&reader.state_at(end)?, chain);
+        let h = self.rng.below(end + 1);
+        self.assert_state(&reader.state_at(h)?, &chain[..h]);
+
+        let mut state = match self.resident.take() {
+            Some(state) => state,
+            None => reader.state_at(self.rng.below(end + 1))?,
+        };
+        let carried = state.len() <= end && state.hash() == self.hash(chain, state.len());
+        assert_eq!(reader.matches(&state)?, carried);
+        if !carried {
+            assert!(reader.cursor(&mut state).is_err());
+            state = reader.state_at(self.rng.below(end + 1))?;
+        }
+        let mut height = state.len();
+        let mut cursor = reader.cursor(&mut state)?;
+        while let Some(diff) = cursor.advance()? {
+            self.assert_diff(&diff, chain[height]);
+            height += 1;
+        }
+        assert_eq!(height, end);
+        self.assert_state(cursor.state(), chain);
+        // A match cached for consumers resuming from one prefix never vouches for another.
+        let forged = State::new(state.amounts().to_vec(), [!0; 32])?;
+        assert!(reader.matches(&state)? && reader.matches(&forged)? == state.is_empty());
+        if !self.rng.chance(10) {
+            self.resident = Some(state);
+        }
+
+        let first = self.rng.below(end + 1);
+        let last = end.min(first + 50);
+        let mut diffs = reader.diffs(first)?;
+        for &id in &chain[first..last] {
+            self.assert_diff(&diffs.advance()?.unwrap(), id);
+        }
+        assert_eq!(diffs.hash(), (last > first).then(|| self.hash(chain, last)));
+
+        for (view, ceiling) in &self.views {
+            let reader = view.reader(*ceiling)?;
+            assert_eq!(reader.len(), *ceiling);
+            let h = self.rng.below(ceiling + 1);
+            self.assert_state(&reader.state_at(h)?, &self.chain[..h]);
+        }
+        Ok(())
+    }
+}
+
+/// Removes the test's directory, also when it fails.
+struct Dir(PathBuf);
+impl Drop for Dir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+#[test]
+fn model() -> Result<()> {
+    let dir = Dir(std::env::temp_dir().join(format!("statedb-model-{}", std::process::id())));
+    let root = &dir.0;
+    let _ = fs::remove_dir_all(root);
+    let mut s = Stores::open(root)?;
+    assert!(Spends::open(&root.join("inputs")).is_err(), "second writer");
+    assert!(
+        History::open(&root.join("utxo_set")).is_err(),
+        "second writer"
     );
-    assert_eq!(history.reader(&spends, &created)?.len(), 3);
-    assert_eq!(
-        View::open(root.path(), root.path(), root.path())?
-            .reader()?
-            .state_at(3)?
-            .total(),
-        amount(30, 3)
+    let row = Amount { sats: 1, count: 1 };
+    assert!(
+        s.spends.push([0; 32], [(1, row)]).is_err(),
+        "spend above its block"
     );
-    history.advance(3, 8, &spends, &created, |_, _| Ok(()))?;
-    assert_eq!(
-        View::open(root.path(), root.path(), root.path())?
-            .reader()?
-            .state_at(8)?
-            .total(),
-        amount(80, 8)
+    assert!(
+        s.creations.push([0; 32], row, Some((0, row))).is_err(),
+        "overwrite of its own block"
     );
+    let mut m = Model::default();
+    m.check(&s)?;
+    for _ in 0..STEPS {
+        let reorg = m.change_chain(&mut s)?;
+        for p in 0..2 {
+            // A soft quit mid-update: the next writer discards the uncommitted tail.
+            if m.sync(&mut s, p)? || m.rng.chance(5) {
+                drop(s);
+                s = Stores::open(root)?;
+                m.live = None;
+            }
+            // Readers between the producers, and before the consumer of a reorg: they read `prev`.
+            if m.rng.chance(15) || reorg && p == 1 {
+                m.check(&s)?;
+            }
+        }
+        m.advance(&mut s)?;
+        m.check(&s)?;
+        if m.views.len() < 3 && m.rng.chance(15) {
+            let ceiling = if m.rng.chance(50) {
+                m.consumer
+            } else {
+                m.rng.below(m.consumer + 1)
+            };
+            let view = View::open(
+                &root.join("utxo_set"),
+                &root.join("inputs"),
+                &root.join("outputs"),
+            )?;
+            m.views.push((view, ceiling));
+        }
+        if m.rng.chance(3) {
+            m.views.pop();
+        }
+    }
+    drop(s);
+    m.live = None;
+    m.check(&Stores::open(root)?)?;
     Ok(())
 }

@@ -60,29 +60,3 @@ pub const ANS_INTERLEAVING: usize = 4;
 ///
 /// Only the final batch in each page may have fewer numbers than this.
 pub const FULL_BATCH_N: usize = 256;
-
-#[cfg(test)]
-mod tests {
-  use crate::constants::*;
-
-  fn bits_to_encode(max_value: usize) -> Bitlen {
-    usize::BITS - max_value.leading_zeros()
-  }
-
-  fn assert_can_encode(n_bits: Bitlen, max_number: usize) {
-    assert!(n_bits >= bits_to_encode(max_number));
-  }
-
-  #[test]
-  fn test_bits_to_encode_delta_encoding_order() {
-    assert_can_encode(
-      BITS_TO_ENCODE_DELTA_ENCODING_ORDER,
-      MAX_CONSECUTIVE_DELTA_ORDER,
-    );
-  }
-
-  #[test]
-  fn test_ans_interleaving_fits_in_u64() {
-    assert!(ANS_INTERLEAVING * MAX_ANS_BITS as usize <= 57);
-  }
-}

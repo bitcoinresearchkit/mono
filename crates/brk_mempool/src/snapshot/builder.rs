@@ -1,42 +1,49 @@
-//! Build per-tx adjacency from the live `TxStore`, then run Single Fee
-//! Linearization over every multi-tx cluster.
+//! Build per-tx adjacency from the live `TxStore`, then linearize every
+//! multi-tx cluster.
 
 use std::mem;
 
-use brk_types::TxidPrefix;
-use derive_more::{Deref, DerefMut};
+use brk_cpfp::Cluster;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 
 use super::{SnapTx, Snapshot, TxIndex, cluster};
-use crate::{state::TxEntry, stores::TxStore};
+use crate::{key::TxKey, state::TxEntry, stores::TxStore};
 
-#[derive(Default, Deref, DerefMut)]
-pub struct PrefixIndex(FxHashMap<TxidPrefix, TxIndex>);
+pub type KeyIndex = FxHashMap<TxKey, TxIndex>;
 
 impl Snapshot {
-    pub(crate) fn build_txs(txs: &TxStore) -> (Vec<SnapTx>, PrefixIndex) {
+    pub(crate) fn build_txs(txs: &TxStore) -> (Vec<SnapTx>, KeyIndex) {
         let n = txs.len();
-        let mut prefix_to_idx = PrefixIndex(FxHashMap::with_capacity_and_hasher(n, FxBuildHasher));
-        for (i, (prefix, _)) in txs.records().enumerate() {
-            prefix_to_idx.insert(*prefix, TxIndex::from(i));
+        let mut key_to_idx = KeyIndex::with_capacity_and_hasher(n, FxBuildHasher);
+        for (i, (key, _)) in txs.records().enumerate() {
+            key_to_idx.insert(*key, TxIndex::from(i));
         }
         let mut snap_txs: Vec<SnapTx> = txs
             .records()
-            .map(|(_, record)| Self::live_tx(&record.entry, &prefix_to_idx))
+            .map(|(_, record)| Self::live_tx(&record.entry))
             .collect();
+        // Parents from the bodies' inputs, as the pool stands now (a parent can leave or
+        // return after its child arrived), each checked by its full txid.
+        for (i, (_, record)) in txs.records().enumerate() {
+            let mut parents: SmallVec<[TxIndex; 2]> = SmallVec::new();
+            for input in &record.tx.input {
+                if let Some(&parent) = key_to_idx.get(&TxKey::from(&input.txid))
+                    && snap_txs[parent.as_usize()].txid == input.txid
+                    && !parents.contains(&parent)
+                {
+                    parents.push(parent);
+                }
+            }
+            snap_txs[i].parents = parents;
+        }
 
         Self::mirror_children(&mut snap_txs);
         Self::refresh_chunk_rates(&mut snap_txs);
-        (snap_txs, prefix_to_idx)
+        (snap_txs, key_to_idx)
     }
 
-    fn live_tx(e: &TxEntry, prefix_to_idx: &PrefixIndex) -> SnapTx {
-        let parents: SmallVec<[TxIndex; 2]> = e
-            .depends
-            .iter()
-            .filter_map(|p| prefix_to_idx.get(p).copied())
-            .collect();
+    fn live_tx(e: &TxEntry) -> SnapTx {
         SnapTx {
             txid: e.txid,
             fee: e.fee,
@@ -44,7 +51,7 @@ impl Snapshot {
             weight: e.weight,
             size: e.size,
             chunk_rate: e.fee_rate(),
-            parents,
+            parents: SmallVec::new(),
             children: SmallVec::new(),
         }
     }
@@ -54,9 +61,7 @@ impl Snapshot {
             let child = TxIndex::from(i);
             let parents = mem::take(&mut txs[i].parents);
             for &p in &parents {
-                if let Some(t) = txs.get_mut(p.as_usize()) {
-                    t.children.push(child);
-                }
+                txs[p.as_usize()].children.push(child);
             }
             txs[i].parents = parents;
         }
@@ -64,10 +69,10 @@ impl Snapshot {
 
     /// Walk every multi-tx connected component once and overwrite each
     /// member's `chunk_rate` with the linearized chunk's feerate.
-    /// Visited bitmap ensures each cluster is linearized exactly once.
     fn refresh_chunk_rates(snap_txs: &mut [SnapTx]) {
         let n = snap_txs.len();
         let mut visited = vec![false; n];
+        let mut graph = Cluster::default();
         for seed in 0..n {
             if visited[seed] {
                 continue;
@@ -81,16 +86,14 @@ impl Snapshot {
             for &m in &component {
                 visited[m.as_usize()] = true;
             }
-            if component.len() <= 1 {
-                continue;
-            }
-            let (members, chunks) = cluster::linearize(snap_txs, &component);
-            for chunk in &chunks {
-                for &local in &chunk.txs {
+            debug_assert!(component.len() > 1);
+            let members = cluster::load(snap_txs, &component, &mut graph);
+            graph.linearize(|txs, feerate| {
+                for &local in txs {
                     let m = members[u32::from(local) as usize];
-                    snap_txs[m.as_usize()].chunk_rate = chunk.feerate;
+                    snap_txs[m.as_usize()].chunk_rate = feerate;
                 }
-            }
+            });
         }
     }
 }

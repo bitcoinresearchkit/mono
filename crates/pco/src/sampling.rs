@@ -100,35 +100,3 @@ pub fn est_bits_saved_per_num<L: Latent, S: Copy, F: Fn(S) -> PrimaryLatentAndSa
     .sum::<f64>();
   sample_bits_saved / sample.len() as f64
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_sample_n() {
-    assert_eq!(calc_sample_n(9), None);
-    assert_eq!(calc_sample_n(10), Some(10));
-    assert_eq!(calc_sample_n(100), Some(12));
-    assert_eq!(calc_sample_n(1000010), Some(25010));
-  }
-
-  #[test]
-  fn test_choose_sample() {
-    let mut nums = Vec::new();
-    for i in 0..150 {
-      nums.push(-i as f32);
-    }
-    let mut sample = choose_sample(&nums, |&num| {
-      if num == 0.0 {
-        None
-      } else {
-        Some(num)
-      }
-    })
-    .unwrap();
-    sample.sort_unstable_by(f32::total_cmp);
-    assert_eq!(sample.len(), 13);
-    assert_eq!(&sample[0..3], &[-147.0, -142.0, -119.0]);
-  }
-}

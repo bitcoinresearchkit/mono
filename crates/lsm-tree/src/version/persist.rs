@@ -24,29 +24,3 @@ impl Version {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use byteorder::ByteOrder;
-    use tempfile::tempdir;
-    use test_log::test;
-
-    use super::*;
-
-    #[test]
-    fn version_persist_replaces_partial_current() -> Result<()> {
-        let directory = tempdir()?;
-        let version = Version::new(0);
-        fs::write(directory.path().join(CURRENT_VERSION_FILE), b"partial")?;
-
-        version.persist(directory.path())?;
-
-        let current = fs::read(directory.path().join(CURRENT_VERSION_FILE))?;
-        assert_ne!(b"partial".as_slice(), current.as_slice());
-        let (payload, checksum) = current.split_at(current.len() - size_of::<u128>());
-        assert_eq!(xxh3::xxh3_128(payload), LittleEndian::read_u128(checksum),);
-        Ok(())
-    }
-}

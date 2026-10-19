@@ -27,7 +27,6 @@ use tracing::{Span, error, info};
 async fn main() -> Result<()> {
     let _ = init(None);
 
-    // cargo run -p bitview_website --example website -- showcases
     let website = match env::args_os().nth(1) {
         Some(path) => {
             let path = PathBuf::from(path);
@@ -41,11 +40,6 @@ async fn main() -> Result<()> {
         }
         None => Website::Default,
     };
-
-    if !website.is_enabled() {
-        eprintln!("Website is disabled");
-        return Ok(());
-    }
 
     website.log();
 
@@ -94,27 +88,14 @@ async fn main() -> Result<()> {
         ))
         .layer(CorsLayer::permissive());
 
-    let mut last_error = None;
-    let (port, listener) = {
-        let mut bound = None;
-
-        for port in [3110, 3111] {
-            match TcpListener::bind(("0.0.0.0", port)).await {
-                Ok(listener) => {
-                    bound = Some((port, listener));
-                    break;
-                }
-                Err(error) => {
-                    info!(port, ?error, "website server port unavailable");
-                    last_error = Some(error);
-                }
-            }
+    let listener = match TcpListener::bind(("0.0.0.0", 3110)).await {
+        Ok(listener) => listener,
+        Err(error) => {
+            info!(?error, "port 3110 unavailable, trying 3111");
+            TcpListener::bind(("0.0.0.0", 3111)).await?
         }
-
-        bound.ok_or_else(|| last_error.expect("at least one port was attempted"))?
     };
-
-    info!("website server listening on port {port}");
+    info!("website server listening on {}", listener.local_addr()?);
 
     let service = NormalizePathLayer::trim_trailing_slash().layer(app);
 

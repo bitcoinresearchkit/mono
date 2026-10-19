@@ -2,13 +2,19 @@ use std::{borrow::Cow, future::ready, sync::Arc, time::Duration};
 
 use axum::{
     Router,
-    body::Body,
-    http::{Method, Request, StatusCode, header::ORIGIN},
+    body::{Body, Bytes},
+    extract::State,
+    http::{
+        Method, Request, StatusCode,
+        header::{ORIGIN, RETRY_AFTER},
+        request::Parts,
+    },
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post_service},
 };
 use base64::{Engine as _, prelude::BASE64_STANDARD};
+use http_body_util::BodyExt;
 use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
     model::{
@@ -22,8 +28,12 @@ use rmcp::{
     },
 };
 use serde_json::{Value, from_slice, json};
-use tokio::{sync::Semaphore, task::spawn_blocking, time::timeout};
-use tracing::{debug, warn};
+use tokio::{
+    sync::{OwnedSemaphorePermit, Semaphore},
+    task::spawn_blocking,
+    time::timeout,
+};
+use tracing::debug;
 
 use crate::{
     logo, manifest::Catalog, page, page::Pages, upstream::Upstream,
@@ -41,36 +51,17 @@ static SUPPORTED_PROTOCOL_VERSIONS: [ProtocolVersion; 1] = [ProtocolVersion::V_2
 struct AppState {
     catalog: Catalog,
     upstream: Upstream,
-    concurrency: Arc<Semaphore>,
     display_name: String,
     public_url: String,
 }
 
 #[derive(Clone)]
-struct BrkMcp {
+struct BitviewMcp {
     state: Arc<AppState>,
 }
 
-impl AppState {
-    fn new(
-        api_bases: Vec<String>,
-        catalog: Catalog,
-        display_name: String,
-        public_url: String,
-    ) -> Self {
-        let upstream = Upstream::new(api_bases);
-        Self {
-            concurrency: Arc::new(Semaphore::new(MAX_CONCURRENCY)),
-            catalog,
-            upstream,
-            display_name,
-            public_url,
-        }
-    }
-}
-
 pub fn router(
-    api_bases: Vec<String>,
+    api_url: String,
     catalog: Catalog,
     display_name: String,
     public_url: String,
@@ -85,8 +76,13 @@ pub fn router(
         .with_max_request_body_bytes(MAX_REQUEST_BYTES)
         .with_stateless_protocol_metadata_required(true);
 
-    let state = Arc::new(AppState::new(api_bases, catalog, display_name, public_url));
-    let handler = BrkMcp {
+    let state = Arc::new(AppState {
+        catalog,
+        upstream: Upstream::new(api_url),
+        display_name,
+        public_url,
+    });
+    let handler = BitviewMcp {
         state: state.clone(),
     };
     let service = StreamableHttpService::new(
@@ -96,15 +92,20 @@ pub fn router(
     );
 
     Router::new()
-        .route("/", page::route(pages.home()).post_service(service))
+        .route(
+            "/",
+            page::route(pages.home).merge(post_service(service).layer(
+                middleware::from_fn_with_state(Arc::new(Semaphore::new(MAX_CONCURRENCY)), admit),
+            )),
+        )
         .route("/logo.png", get(logo::get))
-        .route("/privacy", page::route(pages.privacy()))
-        .route("/terms", page::route(pages.terms()))
-        .route("/support", page::route(pages.support()))
+        .route("/privacy", page::route(pages.privacy))
+        .route("/terms", page::route(pages.terms))
+        .route("/support", page::route(pages.support))
         .layer(middleware::from_fn(gateway_guard))
 }
 
-impl BrkMcp {
+impl BitviewMcp {
     fn server_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_protocol_version(ProtocolVersion::V_2026_07_28)
@@ -112,85 +113,22 @@ impl BrkMcp {
                 Implementation::new("bitview_mcp", env!("CARGO_PKG_VERSION"))
                     .with_title(&self.state.display_name)
                     .with_icons(vec![
-                        Icon::new(format!("{}logo.png", self.state.public_url))
+                        Icon::new(format!("{}{}", self.state.public_url, logo::PATH))
                             .with_mime_type("image/png")
                             .with_sizes(vec!["512x512".to_owned()]),
                     ])
                     .with_website_url(&self.state.public_url),
             )
             .with_instructions(
-                "Read-only Bitcoin analytics tools backed by Bitview REST GET endpoints. \
-                 Calls use the configured public Cloudflare-cached API and never mutate upstream state. \
-                 Tool descriptions preserve the OpenAPI documentation and identify their underlying \
-                 REST operation. Use available list, search, and info operations to discover \
+                "Read-only Bitcoin analytics tools backed by the Bitview REST API's GET endpoints; \
+                 calls never mutate upstream state. Use the list, search, and info tools to discover \
                  identifiers before querying dynamic datasets. Binary responses are returned as \
                  embedded MCP resources.",
             )
     }
-
-    fn tool_error(&self, message: impl Into<String>) -> CallToolResponse {
-        CallToolResult::error(vec![ContentBlock::text(message)])
-            .with_meta(Some(server_meta()))
-            .into()
-    }
-
-    fn render_upstream(
-        &self,
-        response: UpstreamResponse,
-        has_output_schema: bool,
-    ) -> CallToolResponse {
-        if !(200..300).contains(&response.status) {
-            let detail = String::from_utf8_lossy(
-                &response.body[..response.body.len().min(MAX_UPSTREAM_ERROR_BYTES)],
-            );
-            let detail = detail.trim();
-            let message = if detail.is_empty() {
-                format!("Bitview API returned HTTP {}", response.status)
-            } else {
-                format!("Bitview API returned HTTP {}: {detail}", response.status)
-            };
-            return self.tool_error(message);
-        }
-
-        let content_type = response
-            .content_type
-            .split(';')
-            .next()
-            .unwrap_or("application/octet-stream")
-            .trim()
-            .to_ascii_lowercase();
-        let meta = Some(upstream_meta(&response));
-
-        if content_type == "application/json" || content_type.ends_with("+json") {
-            return match from_slice::<Value>(&response.body) {
-                Ok(value) => CallToolResult::structured(value).with_meta(meta).into(),
-                Err(_) => self.tool_error("Bitview API returned invalid JSON"),
-            };
-        }
-
-        if content_type.starts_with("text/") {
-            return match String::from_utf8(response.body) {
-                Ok(text) => {
-                    let mut result =
-                        CallToolResult::success(vec![ContentBlock::text(text.clone())]);
-                    if has_output_schema {
-                        result.structured_content = Some(Value::String(text));
-                    }
-                    result.with_meta(meta).into()
-                }
-                Err(_) => self.tool_error("Bitview API returned invalid UTF-8 text"),
-            };
-        }
-
-        let resource = ResourceContents::blob(BASE64_STANDARD.encode(response.body), response.url)
-            .with_mime_type(content_type);
-        CallToolResult::success(vec![ContentBlock::resource(resource)])
-            .with_meta(meta)
-            .into()
-    }
 }
 
-impl ServerHandler for BrkMcp {
+impl ServerHandler for BitviewMcp {
     fn supported_protocol_versions(&self) -> Cow<'static, [ProtocolVersion]> {
         Cow::Borrowed(&SUPPORTED_PROTOCOL_VERSIONS)
     }
@@ -214,7 +152,7 @@ impl ServerHandler for BrkMcp {
     ) -> impl Future<Output = Result<ListToolsResult, McpError>> + Send + '_ {
         let result = if request.and_then(|request| request.cursor).is_some() {
             Err(McpError::invalid_params(
-                "This complete tool catalog does not accept a cursor",
+                "The tool catalog does not accept a cursor",
                 None,
             ))
         } else {
@@ -237,7 +175,7 @@ impl ServerHandler for BrkMcp {
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, McpError> {
         let name = request.name;
         let operation = self
@@ -245,61 +183,160 @@ impl ServerHandler for BrkMcp {
             .catalog
             .operation(&name)
             .ok_or_else(|| McpError::invalid_params("Unknown tool name", None))?;
-        let arguments = request.arguments.unwrap_or_default();
+        let arguments = Value::Object(request.arguments.unwrap_or_default());
         operation
             .validate_arguments(&arguments)
             .map_err(|error| McpError::invalid_params(error, None))?;
         let has_output_schema = operation.tool.output_schema.is_some();
-        let prepared = self
+        let url = self
             .state
             .upstream
             .prepare(operation, &arguments)
             .map_err(|error| McpError::invalid_params(error, None))?;
-        let permit = match timeout(
-            CONCURRENCY_WAIT,
-            self.state.concurrency.clone().acquire_owned(),
-        )
-        .await
-        {
-            Ok(Ok(permit)) => permit,
-            Ok(Err(_)) => return Ok(self.tool_error("MCP proxy is unavailable")),
-            Err(_) => {
-                return Ok(
-                    self.tool_error("MCP proxy is temporarily busy; retry this tool call shortly")
-                );
-            }
-        };
 
-        let upstream = self.state.upstream.clone();
-        let response = match spawn_blocking(move || {
+        let permit = context
+            .extensions
+            .get::<Parts>()
+            .and_then(|parts| parts.extensions.get::<Arc<OwnedSemaphorePermit>>())
+            .cloned();
+        debug_assert!(permit.is_some(), "MCP POSTs are admitted before dispatch");
+        let state = Arc::clone(&self.state);
+        Ok(spawn_blocking(move || {
             let _permit = permit;
-            upstream.fetch(prepared)
+            match state.upstream.fetch(url) {
+                Ok(response) => {
+                    log_cache_status(&name, &response);
+                    render(response, has_output_schema)
+                }
+                Err(error) => tool_error(error),
+            }
         })
         .await
-        {
-            Ok(Ok(response)) => response,
-            Ok(Err(error)) => return Ok(self.tool_error(error)),
-            Err(_) => return Ok(self.tool_error("Bitview API request task failed")),
-        };
-        if let Some(cache_status) = &response.cache_status {
-            debug!(
-                tool = name.as_ref(),
-                cache_status,
-                cache_age = response.cache_age.as_deref().unwrap_or(""),
-                "Bitview API response"
-            );
-        } else {
-            warn!(
-                tool = name.as_ref(),
-                "Bitview API response did not include CF-Cache-Status"
-            );
-        }
-        Ok(self.render_upstream(response, has_output_schema))
+        .unwrap_or_else(|_| tool_error("Bitview API request task failed")))
     }
 
     fn get_info(&self) -> ServerConfig {
         self.server_info()
     }
+}
+
+/// Admits each MCP POST under one of `MAX_CONCURRENCY` permits, held by the response body and by the request's
+/// blocking upstream work, so fetching, rendering, serialization and transmission stay bounded, cancelled requests
+/// included.
+async fn admit(
+    State(concurrency): State<Arc<Semaphore>>,
+    mut request: Request<Body>,
+    next: Next,
+) -> Response {
+    let Ok(Ok(permit)) = timeout(CONCURRENCY_WAIT, concurrency.acquire_owned()).await else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            [(RETRY_AFTER, "1")],
+            "MCP proxy is temporarily busy; retry shortly",
+        )
+            .into_response();
+    };
+    let permit = Arc::new(permit);
+    request.extensions_mut().insert(permit.clone());
+    // Every data frame co-owns the permit: Hyper may still be writing the last one after the body is dropped.
+    next.run(request).await.map(|body| {
+        Body::new(body.map_frame(move |frame| {
+            let permit = permit.clone();
+            frame.map_data(|bytes| {
+                Bytes::from_owner(PermitBytes {
+                    bytes,
+                    _permit: permit,
+                })
+            })
+        }))
+    })
+}
+
+struct PermitBytes {
+    bytes: Bytes,
+    _permit: Arc<OwnedSemaphorePermit>,
+}
+
+impl AsRef<[u8]> for PermitBytes {
+    fn as_ref(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+fn tool_error(message: impl Into<String>) -> CallToolResponse {
+    CallToolResult::error(vec![ContentBlock::text(message)])
+        .with_meta(Some(server_meta()))
+        .into()
+}
+
+fn log_cache_status(tool: &str, response: &UpstreamResponse) {
+    if let Some(cache_status) = &response.cache_status {
+        debug!(
+            tool,
+            cache_status,
+            cache_age = response.cache_age.as_deref().unwrap_or(""),
+            "Bitview API response"
+        );
+    }
+}
+
+fn render(response: UpstreamResponse, has_output_schema: bool) -> CallToolResponse {
+    if !(200..300).contains(&response.status) {
+        let detail = String::from_utf8_lossy(
+            &response.body[..response.body.len().min(MAX_UPSTREAM_ERROR_BYTES)],
+        );
+        let detail = detail.trim();
+        let message = if detail.is_empty() {
+            format!("Bitview API returned HTTP {}", response.status)
+        } else {
+            format!("Bitview API returned HTTP {}: {detail}", response.status)
+        };
+        return tool_error(message);
+    }
+
+    let content_type = response
+        .content_type
+        .split(';')
+        .next()
+        .unwrap()
+        .trim()
+        .to_ascii_lowercase();
+    let meta = Some(upstream_meta(&response));
+
+    if content_type == "application/json" || content_type.ends_with("+json") {
+        // The text content is the upstream body itself, so integers beyond u64 (u128 hashrates) stay
+        // exact there. The structured `Value` holds those as f64: exact numbers would need serde_json's
+        // arbitrary_precision, which feature unification would leak into every workspace build.
+        return match (
+            from_slice::<Value>(&response.body),
+            String::from_utf8(response.body),
+        ) {
+            (Ok(value), Ok(text)) => {
+                let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
+                result.structured_content = Some(value);
+                result.with_meta(meta).into()
+            }
+            _ => tool_error("Bitview API returned invalid JSON"),
+        };
+    }
+
+    if content_type.starts_with("text/") {
+        return match String::from_utf8(response.body) {
+            Ok(text) => {
+                let structured = has_output_schema.then(|| Value::String(text.clone()));
+                let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
+                result.structured_content = structured;
+                result.with_meta(meta).into()
+            }
+            Err(_) => tool_error("Bitview API returned invalid UTF-8 text"),
+        };
+    }
+
+    let resource = ResourceContents::blob(BASE64_STANDARD.encode(response.body), response.url)
+        .with_mime_type(content_type);
+    CallToolResult::success(vec![ContentBlock::resource(resource)])
+        .with_meta(meta)
+        .into()
 }
 
 async fn gateway_guard(request: Request<Body>, next: Next) -> Response {

@@ -1,49 +1,89 @@
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_compute::{prepare_computed, write_chunks};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::TxOutIndex;
+use bitview_plugin_mining::Vecs as MiningVecs;
+use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
-use rayon::prelude::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
-use tracing::warn;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, VecIndex, Version, WritableVec};
+use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, Version, WritableVec};
 
-use crate::{Dependencies, Vecs};
+use crate::{Dependencies, Vecs, pool_heights::PoolSnapshot};
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        let Dependencies {
-            indexer,
-            price: prices,
-            mining,
-        } = dependencies;
+        let Dependencies { indexer, mining } = dependencies;
         let exit = context.exit();
 
-        self.compute_pool(indexer, exit)?;
-
-        self.major
-            .par_iter_mut()
-            .try_for_each(|(_, vecs)| vecs.compute(indexer, prices, mining, exit))?;
-
+        // Blocks and their totals publish together, once both are complete.
+        let mut snapshot = self.heights.stage();
+        self.compute_pool(indexer, exit, &mut snapshot)?;
+        self.fill_rewards(mining, &mut snapshot);
+        self.heights.publish(snapshot);
         Ok(())
     }
 }
 
 impl Vecs {
-    fn compute_pool(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+    /// Folds every new block's coinbase and fees into its pool's running totals.
+    fn fill_rewards(&self, mining: &MiningVecs, snapshot: &mut PoolSnapshot) {
+        let rewards = &mining.rewards;
+        let coinbase = &rewards.coinbase.block;
+        let fees = &rewards.fees.block;
+        let version = coinbase.sats.version()
+            + coinbase.cents.version()
+            + fees.sats.version()
+            + fees.cents.version();
+        let to = self
+            .pool
+            .len()
+            .min(coinbase.sats.len())
+            .min(coinbase.cents.len())
+            .min(fees.sats.len())
+            .min(fees.cents.len());
+        // A shorter source re-fills from its end, so no stale total survives.
+        let from = snapshot.resume_totals(version, to);
+        let (mut slugs, mut coinbase_sats, mut coinbase_cents, mut fee_sats, mut fee_cents) =
+            Default::default();
+        // Bounded chunks: long refills keep little scratch.
+        for chunk in write_chunks(from..to) {
+            let (start, end) = (chunk.start, chunk.end);
+            self.pool.collect_range_into_at(start, end, &mut slugs);
+            coinbase
+                .sats
+                .collect_range_into_at(start, end, &mut coinbase_sats);
+            coinbase
+                .cents
+                .collect_range_into_at(start, end, &mut coinbase_cents);
+            fees.sats.collect_range_into_at(start, end, &mut fee_sats);
+            fees.cents.collect_range_into_at(start, end, &mut fee_cents);
+            let blocks = (0..end - start).map(|i| {
+                (
+                    slugs[i],
+                    [
+                        u64::from(coinbase_sats[i]),
+                        u64::from(coinbase_cents[i]),
+                        u64::from(fee_sats[i]),
+                        u64::from(fee_cents[i]),
+                    ],
+                )
+            });
+            snapshot.append_totals(blocks);
+        }
+    }
 
+    fn compute_pool(
+        &mut self,
+        indexer: &Indexer,
+        exit: &Exit,
+        snapshot: &mut PoolSnapshot,
+    ) -> Result<()> {
         let dep_version: Version = [
             indexer.vecs().blocks.coinbase_tag.version(),
             indexer.vecs().transactions.first_tx_index.version(),
@@ -61,33 +101,19 @@ impl Vecs {
         ]
         .into_iter()
         .sum();
-        let pool_vec_version = self.pool.header().vec_version();
-        let pool_computed = self.pool.header().computed_version();
-        let expected = pool_vec_version + dep_version;
-        if expected != pool_computed {
-            warn!(
-                "Pool version mismatch: vec_version={pool_vec_version:?} + dep={dep_version:?} = {expected:?}, stored computed={pool_computed:?}, len={}",
-                self.pool.len()
-            );
-        }
-        {
-            let _lock = exit.lock();
-            self.pool.validate_computed_version_or_reset(dep_version)?;
-        }
+        let min = prepare_computed(
+            [&mut self.pool],
+            dep_version,
+            indexer.compute_start().height.to_usize(),
+            exit,
+        )?;
 
         let first_txout_index = indexer.vecs().transactions.first_txout_index.reader();
         let output_type = indexer.vecs().outputs.output_type.reader();
         let type_index = indexer.vecs().outputs.type_index.reader();
         let addr_readers = indexer.vecs().addrs.addr_readers();
 
-        let unknown = self.pools.get_unknown();
-
-        let min = starting_height.to_usize().min(self.pool.len());
-
-        {
-            let _lock = exit.lock();
-            self.pool.truncate_if_needed_at(min)?;
-        }
+        let unknown = self.pools.unknown();
 
         let len = indexer.vecs().blocks.coinbase_tag.len();
         let coinbase_tags = indexer.vecs().blocks.coinbase_tag.reader();
@@ -101,10 +127,10 @@ impl Vecs {
             .into_par_iter()
             .enumerate()
             .map(|(offset, tx_index)| {
-                let out_start = first_txout_index.get(tx_index);
+                let out_start = first_txout_index.get(tx_index).get();
                 let out_end = first_txout_index
                     .try_get(tx_index.incremented())
-                    .unwrap_or_else(|| TxOutIndex::from(output_len));
+                    .map_or_else(|| TxOutIndex::from(output_len), Index40::get);
                 let coinbase_tag = coinbase_tags.get_at(min + offset);
 
                 (*out_start..*out_end)
@@ -114,7 +140,7 @@ impl Vecs {
                             .get(output_type.get(txout_index), type_index.get(txout_index))
                             .and_then(|addr| self.pools.find_from_addr(&addr))
                     })
-                    .or_else(|| self.pools.find_from_coinbase_tag(&coinbase_tag.as_str()))
+                    .or_else(|| self.pools.find_from_coinbase_tag(&coinbase_tag.to_string()))
                     .unwrap_or(unknown)
                     .slug
             })
@@ -126,7 +152,7 @@ impl Vecs {
 
         let _lock = exit.lock();
         self.pool.write()?;
-        self.heights.update(min, self.pool.version(), &pool_slugs);
+        snapshot.update(min, self.pool.version(), &pool_slugs);
         Ok(())
     }
 }

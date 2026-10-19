@@ -1,0 +1,18 @@
+version=0.12.2
+revision=1298e3abb06ed3799a160a086173b27fe8e3ec4c
+dirty=false
+profile=release
+rustc=rustc 1.98.1 (48a229cea 2026-09-01)
+rustflags=-C target-cpu=native -C target-cpu=native
+target=aarch64-apple-darwin
+hostname=minis-Mac-Mini-2.local
+cpu=Apple M6
+ram_bytes=17179869184
+storage=external-tb WD_BLACK SN850X 2000GB
+blocks_storage=external-tb WD_BLACK SN850X 2000GB
+parallelism=12
+started_at_unix=1792061903
+chain_height=971557
+blocks_path=/Volumes/External/bitcoin/blocks
+data_path=/Volumes/External/perf-final/data
+cache_budget=2147483648

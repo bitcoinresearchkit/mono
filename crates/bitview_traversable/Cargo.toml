@@ -1,6 +1,6 @@
 [package]
 name = "bitview_traversable"
-description = "Traits for Vecs structs throughout Bitview"
+description = "Traversal of Bitview's stored vectors and public series catalog"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

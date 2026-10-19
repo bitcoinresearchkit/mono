@@ -5,33 +5,26 @@ use vecdb::{AnyVec, CheckedSub, ReadableVec, VecIndex, VecValue};
 use crate::{Error, OptionData, Query, Result};
 
 impl Query {
-    /// Reads coinbase rewards, fees, and tx counts over the last `block_count`
-    /// blocks from their cumulative sources. Errors `InvalidParam` if
-    /// `block_count` is zero, and `Internal` if any source is stamped short of
-    /// the tip.
+    /// Coinbase rewards, fees and transaction counts over the last `block_count` blocks (fewer
+    /// near genesis). `InvalidParam` for zero, `Internal` for incomplete published data.
     pub fn reward_stats(&self, block_count: usize) -> Result<RewardStats> {
         if block_count == 0 {
             return Err(Error::InvalidParam("block_count must be >= 1".into()));
         }
 
-        let _guard = self.read_publication()?;
-
+        let pin = self.pin_safe_lengths()?;
+        let end_block = Query::tip_height(&pin)?;
+        let start_block = Height::from(end_block.to_usize().saturating_sub(block_count - 1));
         let plugins = self.plugins();
-        let current_height = self.height();
-
-        let end_block = current_height;
-        let start_block = Height::from(current_height.to_usize().saturating_sub(block_count - 1));
 
         let coinbase_vec = &plugins.mining.rewards.coinbase.cumulative.sats.height;
         let fee_vec = &plugins.mining.rewards.fees.cumulative.sats.height;
-        let tx_count_vec = &plugins.transactions.count.total.cumulative.height;
+        let tx_count_vec = &plugins.transactions.count.cumulative.height;
 
         let end = end_block.to_usize() + 1;
 
         if coinbase_vec.len() < end || fee_vec.len() < end || tx_count_vec.len() < end {
-            return Err(Error::Internal(
-                "reward stats vecs lag the tip; retry once indexing catches up",
-            ));
+            return Err(Error::Internal("Incomplete published reward data"));
         }
 
         let total_reward = cumulative_delta(coinbase_vec, start_block, end_block)?;
@@ -63,9 +56,8 @@ where
         return cumulative.collect_one_at(end).data();
     }
 
-    let distance = end
-        .checked_sub(start)
-        .ok_or(Error::Internal("Reversed reward window"))?;
+    debug_assert!(start <= end);
+    let distance = end - start;
     if distance < cumulative.cursor_chunk_size() {
         let mut previous = None;
         let end_value = cumulative

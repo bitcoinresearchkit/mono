@@ -1,6 +1,5 @@
 use bitview_traversable::Traversable;
 
-/// Independent amount and fiat sources, composed without coupling their storage.
 #[derive(Clone, Traversable)]
 pub struct SatsCents<S, C> {
     /// Reported in satoshis.

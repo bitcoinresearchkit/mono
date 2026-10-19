@@ -1,0 +1,147 @@
+use bitview_cohort::AgeAggregateId;
+use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_primitives::{PartsPerMillion32, Ratio};
+use bitview_traversable::Traversable;
+use bitview_vecs::{
+    LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RatioRollingWindows, RollingWindows,
+    ops::Quotient, shapes::Windows,
+};
+use brk_error::Result;
+use brk_exit::Exit;
+use brk_types::{Cents, CentsSigned, Height, Version};
+use vecdb::{ComputeVec, Database, Rw, StorageMode};
+
+use crate::{activity::Activity, adjusted_sopr::AdjustedSopr, columns::Columns};
+
+#[derive(Traversable)]
+pub struct Realized<M: StorageMode = Rw> {
+    /// Profit realized by the cohort's outputs: spending value minus
+    /// creation-date value, counted only for profitable spends.
+    pub profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Loss realized by the cohort's outputs: creation-date value minus
+    /// spending value, counted only for losing spends.
+    pub loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Net realized profit and loss of the cohort's outputs when spent:
+    /// realized profit minus realized loss.
+    pub net_pnl: LazyFiatPerBlockCumulativeWithSums<CentsSigned>,
+    /// Gross realized profit and loss: realized profit plus realized loss.
+    pub gross_pnl: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Realized profit divided by realized loss over the window; undefined (null) when that
+    /// realized loss is zero.
+    pub profit_to_loss: RollingWindows<Ratio, M>,
+    /// Creation-time value of the outputs spent.
+    pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Peak regret: the value sellers forgo relative to each spent output's
+    /// highest spot price from its creation block through its spending block.
+    pub peak_regret: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    /// Spent output profit ratio (SOPR): spend-time value of the outputs spent over the
+    /// window divided by their creation-time value (value destroyed); undefined (null) when
+    /// that value is zero.
+    pub sopr: RollingWindows<Ratio, M>,
+    /// Adjusted SOPR (aSOPR): SOPR without the outputs spent within an hour of their creation.
+    pub adjusted_sopr: AdjustedSopr<M>,
+    /// Gross realized profit and loss over the window divided by the realized cap.
+    pub sell_side_risk_ratio: RatioRollingWindows<PartsPerMillion32, M>,
+}
+impl Realized {
+    pub(crate) fn import(
+        db: &Database,
+        id: AgeAggregateId,
+        v: Version,
+        c: &Columns,
+        mappings: &Mappings,
+        windows: &Windows<&LazyWindowStartVec>,
+    ) -> Result<Self> {
+        let flow = |metric: &str, source| {
+            LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
+                &id.metric_name(metric),
+                v,
+                source,
+                mappings,
+                windows,
+            )
+        };
+        Ok(Self {
+            profit: flow("realized_profit", &c.profit),
+            loss: flow("realized_loss", &c.loss),
+            net_pnl: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
+                &id.metric_name("net_realized_pnl"),
+                v,
+                &c.net_pnl,
+                mappings,
+                windows,
+            ),
+            gross_pnl: flow("gross_realized_pnl", &c.gross_pnl),
+            profit_to_loss: RollingWindows::import(
+                db,
+                &id.metric_name("realized_profit_to_loss"),
+                v,
+                mappings,
+            )?,
+            value_destroyed: flow("value_destroyed", &c.value_destroyed),
+            peak_regret: flow("realized_peak_regret", &c.peak_regret),
+            sopr: RollingWindows::import(db, &id.metric_name("sopr"), v, mappings)?,
+            adjusted_sopr: AdjustedSopr::import(db, id, v, c, mappings, windows)?,
+            sell_side_risk_ratio: RatioRollingWindows::import(
+                db,
+                &id.metric_name("sell_side_risk_ratio"),
+                v,
+                mappings,
+            )?,
+        })
+    }
+    pub(crate) fn compute(
+        &mut self,
+        from: Height,
+        c: &Columns,
+        activity: &Activity,
+        exit: &Exit,
+    ) -> Result<()> {
+        for ((target, profit), loss) in self
+            .profit_to_loss
+            .as_mut_array()
+            .into_iter()
+            .zip(self.profit.sum.as_array())
+            .zip(self.loss.sum.as_array())
+        {
+            target.height.compute_binary::<_, _, Quotient<Ratio>>(
+                from,
+                &profit.cents.height,
+                &loss.cents.height,
+                exit,
+            )?;
+        }
+        for ((target, created), destroyed) in self
+            .sopr
+            .as_mut_array()
+            .into_iter()
+            .zip(activity.transfer_volume.sum.0.as_array())
+            .zip(self.value_destroyed.sum.as_array())
+        {
+            target.height.compute_binary::<_, _, Quotient<Ratio>>(
+                from,
+                &created.cents.height,
+                &destroyed.cents.height,
+                exit,
+            )?;
+        }
+        self.adjusted_sopr.compute(from, exit)?;
+        for (target, pnl) in self
+            .sell_side_risk_ratio
+            .as_mut_array()
+            .into_iter()
+            .zip(self.gross_pnl.sum.as_array())
+        {
+            target
+                .fixed
+                .height
+                .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
+                    from,
+                    &pnl.cents.height,
+                    &c.cap,
+                    exit,
+                )?;
+        }
+        Ok(())
+    }
+}

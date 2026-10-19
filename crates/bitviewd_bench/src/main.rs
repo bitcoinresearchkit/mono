@@ -1,5 +1,5 @@
 use benchmark::Benchmark;
-use bitview::{Config, ImportContext, RunConfig, UpdateContext, bootstrap};
+use bitview::{Config, ImportContext, RunConfig, UpdateContext, bootstrap, raise_fd_limit};
 use bitview_default::DefaultPlugins;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -33,15 +33,16 @@ fn run() -> Result<()> {
     } = Config::import()?;
     Budgeted::init_global(cache_budget)?;
     init(Some(&server.logs_path()))?;
+    raise_fd_limit();
     let data_path = server.data_path;
     client.wait_for_synced_node()?;
 
     let chain_height = client.get_last_height()?;
     let benchmark = Benchmark::new(&data_path, &blocks_path, chain_height, cache_budget)?;
     info!("Benchmark results: {}", benchmark.path().display());
-    let reader = Reader::new(blocks_path, &client);
+    let reader = Reader::new(blocks_path, &client)?;
     let exit = Exit::new();
-    exit.set_ctrlc_handler();
+    exit.install_signal_handlers();
 
     let cleanup = benchmark.clone();
     exit.register_cleanup(move || {

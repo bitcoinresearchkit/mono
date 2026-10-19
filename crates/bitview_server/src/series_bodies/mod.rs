@@ -54,7 +54,7 @@ fn info_params<'a>(entries: impl IntoIterator<Item = (&'a str, SeriesInfo)>) -> 
         to_writer(&mut bytes, &info).expect("serializable series info");
         hash_bytes(&mut engine, &bytes);
     }
-    CacheParams::revalidate(format!("info1-{}", sha256::Hash::from_engine(engine)).into())
+    CacheParams::revalidate(format!("info1-{}", sha256::Hash::from_engine(engine)))
 }
 
 /// URI-scoped revision, not an assertion that different pages have equal bodies.
@@ -64,15 +64,12 @@ fn list_params(names: &[&str]) -> CacheParams {
     for name in names {
         hash_bytes(&mut engine, name.as_bytes());
     }
-    CacheParams::revalidate(
-        format!(
-            "list1-{}-{}-{}",
-            Pagination::DEFAULT_PER_PAGE,
-            Pagination::MAX_PER_PAGE,
-            sha256::Hash::from_engine(engine),
-        )
-        .into(),
-    )
+    CacheParams::revalidate(format!(
+        "list1-{}-{}-{}",
+        Pagination::DEFAULT_PER_PAGE,
+        Pagination::MAX_PER_PAGE,
+        sha256::Hash::from_engine(engine),
+    ))
 }
 
 /// URI-scoped search revision. Bump search2 for changes to matching, normalization,
@@ -84,14 +81,11 @@ fn search_params(catalog: &[u8], names: &[&str]) -> CacheParams {
     for name in names {
         hash_bytes(&mut engine, name.as_bytes());
     }
-    CacheParams::revalidate(
-        format!(
-            "search2-{}-{}",
-            Limit::DEFAULT,
-            sha256::Hash::from_engine(engine)
-        )
-        .into(),
-    )
+    CacheParams::revalidate(format!(
+        "search2-{}-{}",
+        Limit::DEFAULT,
+        sha256::Hash::from_engine(engine)
+    ))
 }
 
 fn hash_bytes(engine: &mut sha256::HashEngine, bytes: &[u8]) {

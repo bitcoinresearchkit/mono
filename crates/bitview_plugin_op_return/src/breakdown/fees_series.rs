@@ -1,48 +1,52 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::PartsPerMillion32;
-use bitview_transforms::Quotient;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFixedRatioCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling,
+    LazyPercentCumulativeRolling, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
+    ops::Quotient, shapes::Windows,
 };
+use brk_error::Result;
 use brk_types::{Height, Sats, Version};
-use derive_more::{Deref, DerefMut};
-use vecdb::{ReadableCloneableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
-#[derive(Deref, DerefMut, Traversable)]
+#[derive(Traversable)]
 pub struct FeesSeries<M: StorageMode = Rw> {
-    #[deref]
-    #[deref_mut]
     #[traversable(flatten)]
-    pub fees: PerBlockCumulativeRolling<Sats, M>,
-    /// Fees of transactions in a breakdown bucket divided by all transaction
-    /// fees over the same cumulative or trailing window.
-    pub fee_share: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
+    pub fees: ValuePerBlockCumulativeRolling<M>,
+    /// These fees divided by all transaction fees in the chain over the same
+    /// cumulative or trailing window.
+    pub chain_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }
 
 impl FeesSeries {
-    pub fn new(
+    pub fn import(
+        db: &Database,
         prefix: &str,
         version: Version,
-        fees: PerBlockCumulativeRolling<Sats>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
         window_starts: &Windows<&LazyWindowStartVec>,
         mappings: &MappingsVecs,
-    ) -> Self {
-        let fee_share = LazyFixedRatioCumulativeRolling::from_cumulative_ratio::<
+    ) -> Result<Self> {
+        let fees = ValuePerBlockCumulativeRolling::import(
+            db,
+            &format!("{prefix}_fees"),
+            version,
+            mappings,
+            window_starts,
+        )?;
+        let chain_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Sats,
             Sats,
             Quotient<PartsPerMillion32>,
         >(
-            &format!("{prefix}_fee_share"),
+            &format!("{prefix}_fee_chain_share"),
             version,
-            fees.cumulative.resolutions.height_source(),
+            fees.cumulative.sats.resolutions.height_source(),
             chain_fees,
             window_starts,
             mappings,
         );
 
-        Self { fees, fee_share }
+        Ok(Self { fees, chain_share })
     }
 }

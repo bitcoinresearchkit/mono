@@ -1,45 +1,39 @@
 # bitviewd_bench_visualizer
 
-SVG chart generation for benchmark visualization.
+SVG charts for `bitviewd_bench` runs.
 
-## What It Enables
+## Usage
 
-Turn benchmark CSV data into publication-ready SVG charts showing disk usage, memory (current/peak), progress, and I/O over time. Compare multiple runs side-by-side with automatic color coding.
-
-## Key Features
-
-- **Multi-run comparison**: Overlay multiple benchmark runs with distinct colors
-- **Dual-axis charts**: Memory charts show both current and peak usage (solid vs dashed lines)
-- **Smart scaling**: Automatic unit conversion for bytes (KB/MB/GB) and time (seconds/minutes/hours)
-- **Per-run trimming**: Aligns data by progress cutoffs for fair comparison
-- **Dark theme**: Clean, readable charts with monospace fonts
-
-## Core API
-
-```rust,ignore
-let viz = Visualizer::from_cargo_env()?;
-viz.generate()?;
-```
-
-To chart reports in a Bitview data directory, pass the same path used for
+To chart the runs in a Bitview data directory, pass the path used for
 `bitviewd_bench --bitviewdir`:
 
 ```sh
 cargo run --release -p bitviewd_bench_visualizer -- /Volumes/External/bitview
 ```
 
-With no argument, it still reads the source workspace's `benches/bitviewd/`
-collection, including historical runs. The equivalent API call is
-`Visualizer::new(bitviewdir).generate()?`.
+With no argument, it charts the workspace's `benches/` collection. The
+equivalent API call is `bitviewd_bench_visualizer::generate(bitviewdir)?`.
 
-## Chart Types
+Each directory of `benches/` is a machine (`apple-m6-16gb-external-tb`), and every directory
+below it that holds a `memory.csv` is one of its runs (`<revision>/<run-id>/`,
+`<revision>/` for older ones), labelled by that path. Files are read by column
+name, so runs recorded by older recorders chart what they have. A run whose files
+cannot be read, or without memory samples, is reported and skipped.
 
-- `disk.svg` - Storage consumption over time
-- `memory.svg` - Current + peak memory usage
-- `progress.svg` - Processing progress (e.g., blocks indexed)
-- `io_read.svg` / `io_write.svg` - I/O throughput
+## Charts
 
-## Input Format
+- `<run>/dashboard.svg`: one page per run, every panel on the same time axis with
+  the bootstrap cycles (indexing, compute, catch-up) shaded. It shows:
+  - a summary header (host, revision, status, duration, peak memory, I/O totals);
+  - a plugin timeline, one row per plugin (imports grey, computes coloured);
+  - the indexed height and memory (footprint, peak, resident, swap);
+  - CPU cores busy, disk read and write rates, and page-ins;
+  - the data-directory size, time per plugin, and the final size per component.
+- `<machine>/compare.svg`: the machine's complete runs side by side (runs of
+  different hardware do not compare).
+  - A summary table lists every run.
+  - Height, memory, CPU and I/O charts show the six most recent.
+  - A table gives compute time per plugin and run.
 
-Reads CSV files from `<bitviewdir>/benches/bitviewd/<run_id>/`:
-- `disk.csv`, `memory.csv`, `progress.csv`, `io.csv`
+Rates come from cumulative counters over exactly the trailing 60 seconds, so they start
+after the first minute; totals are the counters' growth over the run.

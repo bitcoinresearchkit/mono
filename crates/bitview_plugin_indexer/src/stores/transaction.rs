@@ -1,11 +1,13 @@
-use bitview_cohort::ByAddrType;
-use bitview_primitives::{AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, TypeIndex};
+use bitview_primitives::{AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, TypeIndex};
 use brk_store::Store;
 use brk_types::{TxIndex, TxidPrefix, Unit};
+
+use super::Utxos;
 
 pub struct TransactionStoresMut<'a> {
     pub addr_hashes: &'a mut ByAddrType<Store<AddrHash, TypeIndex>>,
     pub addr_tx_indexes: &'a mut ByAddrType<Store<AddrIndexTxIndex, Unit>>,
     pub addr_unspent_outpoints: &'a mut ByAddrType<Store<AddrIndexOutPoint, Unit>>,
     pub txid_prefixes: &'a mut Store<TxidPrefix, TxIndex>,
+    pub utxos: &'a mut Utxos,
 }

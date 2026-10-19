@@ -41,6 +41,6 @@ pub use {
     builder::Builder as DatabaseBuilder,
     database::Database,
     error::{Error, Result},
-    keyspace::{Keyspace, options::CreateOptions as KeyspaceCreateOptions},
+    keyspace::{Keyspace, ReadView, options::CreateOptions as KeyspaceCreateOptions},
     lsm_tree::{FORMAT_VERSION, RecordBytes},
 };

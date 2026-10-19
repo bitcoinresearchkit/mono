@@ -1,12 +1,10 @@
-use std::fmt::{Display, Formatter, Result};
-
 use bitcoin::absolute::LockTime;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -29,33 +27,4 @@ impl From<RawLockTime> for LockTime {
     }
 }
 
-impl Display for RawLockTime {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let lock_time = LockTime::from(*self);
-        write!(f, "{lock_time}")
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for RawLockTime {
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        use std::io::Write;
-        write!(buf, "{self}").unwrap();
-    }
-
-    fn fmt_csv(&self, f: &mut String) -> Result {
-        let start = f.len();
-        self.fmt_into(f);
-        if f.as_bytes()[start..].contains(&b',') {
-            f.insert(start, '"');
-            f.push('"');
-        }
-        Ok(())
-    }
-
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        buf.push(b'"');
-        self.write_to(buf);
-        buf.push(b'"');
-    }
-}
+crate::impl_int_format!(RawLockTime);

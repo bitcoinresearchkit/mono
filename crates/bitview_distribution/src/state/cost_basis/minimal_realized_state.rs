@@ -1,0 +1,99 @@
+use std::cmp::Ordering;
+
+use bitview_primitives::CentsSquaredSats;
+use brk_types::{Cents, CentsSats, Sats};
+
+use super::RealizedOps;
+
+/// Realized state used by minimal cohorts and address cohorts.
+#[derive(Debug, Default, Clone)]
+pub struct MinimalRealizedState {
+    cap_raw: u128,
+    profit_raw: u128,
+    loss_raw: u128,
+}
+
+impl MinimalRealizedState {
+    pub fn from_cap(cap: CentsSats) -> Self {
+        Self {
+            cap_raw: cap.inner(),
+            ..Self::default()
+        }
+    }
+
+    #[inline]
+    pub(crate) fn increment_cap(&mut self, cap: CentsSats) {
+        self.cap_raw += cap.inner();
+    }
+
+    #[inline]
+    pub(crate) fn decrement_cap(&mut self, cap: CentsSats) {
+        self.cap_raw -= cap.inner();
+    }
+
+    pub(crate) fn apply_spends(&mut self, previous: CentsSats, profit: CentsSats, loss: CentsSats) {
+        self.decrement_cap(previous);
+        self.profit_raw += profit.inner();
+        self.loss_raw += loss.inner();
+    }
+
+    #[inline]
+    pub(crate) fn realize_spend(&mut self, current: CentsSats, previous: CentsSats) {
+        match current.cmp(&previous) {
+            Ordering::Greater => self.profit_raw += (current - previous).inner(),
+            Ordering::Less => self.loss_raw += (previous - current).inner(),
+            Ordering::Equal => {}
+        }
+        self.decrement_cap(previous);
+    }
+}
+
+impl RealizedOps for MinimalRealizedState {
+    #[inline]
+    fn cap_raw(&self) -> CentsSats {
+        CentsSats::new(self.cap_raw)
+    }
+
+    #[inline]
+    fn profit(&self) -> Cents {
+        CentsSats::new(self.profit_raw).to_cents()
+    }
+
+    #[inline]
+    fn loss(&self) -> Cents {
+        CentsSats::new(self.loss_raw).to_cents()
+    }
+
+    #[inline]
+    fn reset_block(&mut self) {
+        self.profit_raw = 0;
+        self.loss_raw = 0;
+    }
+
+    #[inline]
+    fn increment(&mut self, price: Cents, sats: Sats) {
+        self.increment_cap(CentsSats::from_price_sats(price, sats));
+    }
+
+    #[inline]
+    fn increment_snapshot(&mut self, price_sats: CentsSats, _capitalized_cap: CentsSquaredSats) {
+        self.increment_cap(price_sats);
+    }
+
+    #[inline]
+    fn decrement_snapshot(&mut self, price_sats: CentsSats, _capitalized_cap: CentsSquaredSats) {
+        self.decrement_cap(price_sats);
+    }
+
+    #[inline]
+    fn send(
+        &mut self,
+        _sats: Sats,
+        current_ps: CentsSats,
+        prev_ps: CentsSats,
+        _ath_ps: CentsSats,
+        _prev_capitalized_cap: CentsSquaredSats,
+    ) {
+        self.realize_spend(current_ps, prev_ps);
+    }
+}

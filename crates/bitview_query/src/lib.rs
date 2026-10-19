@@ -1,41 +1,38 @@
 #![doc = include_str!("../README.md")]
-#![allow(clippy::module_inception)]
 #![allow(clippy::type_complexity)]
 
 use bitview_plugin_indexer::SafeLengths;
 
 use std::{
+    ops::Deref,
     path::Path,
     sync::Arc,
     time::{Duration, Instant},
 };
 
-use bitview_plugin::Publication;
-#[cfg(any(feature = "chain", feature = "series", feature = "price"))]
-use bitview_plugin::PublicationReadGuard;
+#[cfg(any(feature = "series", feature = "price"))]
+use arc_swap::ArcSwapOption;
 
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::BlockHashPrefix;
-#[cfg(any(feature = "chain", feature = "series", feature = "price"))]
-use bitview_primitives::Lengths;
-#[cfg(feature = "series")]
-use bitview_primitives::{Epoch, Halving, Index};
+#[cfg(any(feature = "series", feature = "price"))]
+use bitview_primitives::{Epoch, Halving, Index, Lengths};
 use bitview_types::SyncStatus;
 use brk_mempool::ReadOnlyMempool;
 #[cfg(any(feature = "chain", feature = "price"))]
 use brk_mempool::ReadOnlyState;
 use brk_reader::Reader;
 use brk_rpc::Client;
-use brk_types::{BlockHash, Height};
-#[cfg(feature = "series")]
-use vecdb::ReadBounds;
+use brk_types::{BlockHash, Height, TxOut, Txid, Vout};
+use rustc_hash::FxHashMap;
+#[cfg(any(feature = "series", feature = "price"))]
+use vecdb::{ReadBounds, ReadScope};
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 mod r#async;
 mod error;
-#[cfg(feature = "price")]
-mod live_oracle;
 mod output;
+#[cfg(feature = "price")]
+mod publication_cache;
 mod query_plugin_set;
 mod query_plugins;
 mod representation_id;
@@ -53,32 +50,28 @@ pub use r#impl::ResolvedUrpd;
 pub use r#impl::price::ResolvedHistoricalPrice;
 #[cfg(feature = "chain")]
 pub use r#impl::{
-    BlockTemplateSource, ResolvedAddrChainTxs, ResolvedAddrTxs, ResolvedAddrUtxos,
-    ResolvedBlockTemplateDiff, ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1,
-    ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks, ResolvedRawTransaction, ResolvedRbf,
-    ResolvedTransaction,
+    BlockTemplateSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs,
+    ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedBlockTemplateDiff, ResolvedBlockTimestamp,
+    ResolvedBlocks, ResolvedBlocksV1, ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks,
+    ResolvedRbf, ResolvedTransaction, UtxoSetPoint,
 };
 #[cfg(feature = "series")]
-pub use r#impl::{ResolvedQuery, SeriesRead};
+pub use r#impl::{ResolvedQuery, SeriesAnchor, SeriesRead};
 pub use output::*;
+#[cfg(feature = "price")]
+pub use publication_cache::PublicationCache;
 pub use query_plugin_set::{
-    QueryPluginSet, SupportsBlocks, SupportsCoinflow, SupportsCointime,
-    SupportsDistributionAddresses, SupportsDistributionAge, SupportsInputs, SupportsMappings,
-    SupportsMining, SupportsOutputs, SupportsPools, SupportsPrice, SupportsTransactions,
-    SupportsUtxoHistory,
+    QueryPluginSet, SupportsAddresses, SupportsAge, SupportsBlocks, SupportsCoinflow,
+    SupportsCointime, SupportsInputs, SupportsMappings, SupportsMining, SupportsOutputs,
+    SupportsPools, SupportsPrice, SupportsTransactions, SupportsUtxoSet,
 };
 pub use query_plugins::QueryPlugins;
 pub use representation_id::RepresentationId;
 #[cfg(feature = "series")]
-pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
+pub use vecs::{ResolvedSeriesInfo, SeriesEntry, SharedSeries, Vecs};
 
 /// Read-only queries whose resolved chain views pin the published prefix.
 /// Bare lengths and unguarded internal helpers cannot authorize chain reads.
-///
-///
-///
-///
-///
 #[derive(Clone)]
 pub struct Query(Arc<QueryInner<'static>>, Option<Instant>);
 struct QueryInner<'a> {
@@ -88,13 +81,67 @@ struct QueryInner<'a> {
     #[cfg(any(feature = "chain", feature = "price"))]
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "price")]
-    live_oracle: live_oracle::LiveOracle,
+    live_oracle: PublicationCache<brk_oracle::Oracle>,
+    /// Read bounds cached for the newest publication a pin asked for.
+    #[cfg(any(feature = "series", feature = "price"))]
+    bounds: ArcSwapOption<PublishedBounds>,
+}
+
+#[cfg(any(feature = "series", feature = "price"))]
+struct PublishedBounds {
+    revision: u64,
+    bounds: ReadBounds,
+}
+
+/// A pin that bounds this thread's reads, lazy calendar and count views included, by its
+/// publication until it drops, so no read under it can see past it. Not `Send`: a value carried
+/// to another thread keeps [`ReadPin::into_inner`]'s plain pin.
+pub(crate) struct ReadPin {
+    pin: SafeLengths,
+    #[cfg(feature = "series")]
+    bounds: ReadBounds,
+    #[cfg(any(feature = "series", feature = "price"))]
+    _scope: ReadScope,
+}
+
+impl ReadPin {
+    #[cfg(feature = "series")]
+    fn bounds(&self) -> &ReadBounds {
+        &self.bounds
+    }
+
+    /// The pin alone, without bounding this thread's reads.
+    #[cfg(any(feature = "series", feature = "price"))]
+    fn into_inner(self) -> SafeLengths {
+        self.pin
+    }
+}
+
+impl Deref for ReadPin {
+    type Target = SafeLengths;
+
+    fn deref(&self) -> &SafeLengths {
+        &self.pin
+    }
+}
+
+/// `StateUpdating` for a read targeting `index` at or past `bound` (its kind's exclusive bound in
+/// `pin`) while the pin is lowered: a rollback or rebuild is rewriting the canonical rows there,
+/// which are hidden, not missing. Otherwise `Ok`, and the caller treats it like any row past the
+/// tip (missing, or clamped); reads wholly inside the retained prefix proceed either way.
+#[cfg(any(feature = "series", feature = "price"))]
+pub(crate) fn check_bound<T: PartialOrd>(pin: &SafeLengths, index: T, bound: T) -> Result<()> {
+    if index >= bound && pin.is_lowered() {
+        return Err(Error::StateUpdating);
+    }
+    Ok(())
 }
 
 impl Query {
-    const UPDATE_WAIT_TIMEOUT: Duration = Duration::from_secs(4);
+    /// How long a read may wait for admission and run.
+    const READ_TIMEOUT: Duration = Duration::from_secs(4);
 
-    /// A cheap request-local view; shared data and publication guards are unchanged.
+    /// A cheap request-local view; shared data is unchanged.
     fn with_deadline(&self, deadline: Instant) -> Self {
         Self(Arc::clone(&self.0), Some(deadline))
     }
@@ -106,30 +153,54 @@ impl Query {
         Ok(())
     }
 
-    fn read_timeout(&self) -> Result<Duration> {
+    /// Pins the published state for one read: every plugin's rows below its lengths stay put
+    /// (only a rollback waits for the pin; pinning never waits), and this thread's reads stay
+    /// below them while the pin lives. Fails past the deadline, and while a rebuild lowered the
+    /// publication to genesis: the chain is updating, not empty.
+    fn pin_safe_lengths(&self) -> Result<ReadPin> {
         self.check_deadline()?;
-        Ok(self.1.map_or(Self::UPDATE_WAIT_TIMEOUT, |deadline| {
-            deadline.saturating_duration_since(Instant::now())
-        }))
+        let pin = self.indexer().pin();
+        if pin.is_lowered() && pin.lengths().height.is_zero() {
+            return Err(Error::StateUpdating);
+        }
+        Ok(self.read_pin(pin))
     }
 
-    #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
-    fn read_publication(&self) -> Result<PublicationReadGuard> {
-        self.indexer()
-            .publication()
-            .read_for(self.read_timeout()?)
-            .ok_or(Error::ReadTimeout)
+    /// Bounds this thread's reads by `pin` while the returned pin lives: how a value carried from
+    /// an earlier read resumes reading under its pin.
+    fn read_pin(&self, pin: SafeLengths) -> ReadPin {
+        #[cfg(any(feature = "series", feature = "price"))]
+        let bounds = self.publication_bounds(&pin);
+        ReadPin {
+            #[cfg(any(feature = "series", feature = "price"))]
+            _scope: bounds.enter(),
+            #[cfg(feature = "series")]
+            bounds,
+            pin,
+        }
     }
 
-    fn pin_safe_lengths(&self) -> Result<SafeLengths> {
-        self.indexer()
-            .pin_safe_lengths_for(self.read_timeout()?)
-            .ok_or(Error::ReadTimeout)
-    }
-
-    #[cfg(feature = "chain")]
-    fn try_read_publication(&self) -> Option<PublicationReadGuard> {
-        self.indexer().publication().try_read()
+    /// The read bounds of `pin`'s publication: cached for the newest one, built otherwise.
+    #[cfg(any(feature = "series", feature = "price"))]
+    fn publication_bounds(&self, pin: &SafeLengths) -> ReadBounds {
+        let cached = self.0.bounds.load();
+        if let Some(cached) = cached.as_deref()
+            && cached.revision == pin.revision()
+        {
+            return cached.bounds.clone();
+        }
+        drop(cached);
+        let bounds = self.read_bounds(pin.lengths());
+        let published = Arc::new(PublishedBounds {
+            revision: pin.revision(),
+            bounds: bounds.clone(),
+        });
+        // An older pin never replaces a newer publication's bounds.
+        self.0.bounds.rcu(|cached| match cached {
+            Some(cached) if cached.revision >= published.revision => Some(Arc::clone(cached)),
+            _ => Some(Arc::clone(&published)),
+        });
+        bounds
     }
 
     /// Builds the process-lifetime read-only query view.
@@ -157,59 +228,27 @@ impl Query {
                 mempool: _mempool,
                 #[cfg(feature = "price")]
                 live_oracle: Default::default(),
+                #[cfg(any(feature = "series", feature = "price"))]
+                bounds: ArcSwapOption::empty(),
             }),
             None,
         )
     }
 
-    /// Pipeline-safe ceiling: the highest height for which the complete
-    /// plugin set has committed durable data. Backed by
-    /// `Indexer::safe_lengths()`, advanced after each complete compute
-    /// pass and lowered before any rollback.
-    ///
-    /// Returns a height (the last fully-written block), not a length.
-    /// `safe_lengths().height` is a count: `N` means heights `0..N` are
-    /// committed, so the highest is `N-1`. Pre-genesis (`N == 0`) falls
-    /// back to `Height::default()` and clients treat it as "nothing
-    /// indexed yet".
+    /// The published tip height a pin reads at; `StateUpdating` while nothing is published.
     #[cfg(feature = "chain")]
-    fn height(&self) -> Height {
-        self.safe_lengths().last_height().unwrap_or_default()
+    fn tip_height(pin: &SafeLengths) -> Result<Height> {
+        pin.lengths().last_height().ok_or(Error::StateUpdating)
     }
 
-    /// Snapshot of the pipeline-safe `Lengths`. Hot paths that need
-    /// multiple bound fields should call this once at entry and reuse.
-    #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
-    fn safe_lengths(&self) -> Lengths {
-        self.indexer().safe_lengths()
-    }
-
-    #[cfg(feature = "series")]
+    #[cfg(any(feature = "series", feature = "price"))]
     fn index_read_bounds(safe: Lengths) -> ReadBounds {
         let mut bounds = ReadBounds::new();
-
-        bounds.set(Index::Height.name(), safe.height.into());
-        bounds.set(Index::TxIndex.name(), safe.tx_index.into());
-        bounds.set(Index::TxInIndex.name(), safe.txin_index.into());
-        bounds.set(Index::TxOutIndex.name(), safe.txout_index.into());
-        bounds.set(
-            Index::EmptyOutputIndex.name(),
-            safe.empty_output_index.into(),
-        );
-        bounds.set(Index::OpReturnIndex.name(), safe.op_return_index.into());
-        bounds.set(Index::P2AAddrIndex.name(), safe.p2a_addr_index.into());
-        bounds.set(Index::P2MSOutputIndex.name(), safe.p2ms_output_index.into());
-        bounds.set(Index::P2PK33AddrIndex.name(), safe.p2pk33_addr_index.into());
-        bounds.set(Index::P2PK65AddrIndex.name(), safe.p2pk65_addr_index.into());
-        bounds.set(Index::P2PKHAddrIndex.name(), safe.p2pkh_addr_index.into());
-        bounds.set(Index::P2SHAddrIndex.name(), safe.p2sh_addr_index.into());
-        bounds.set(Index::P2TRAddrIndex.name(), safe.p2tr_addr_index.into());
-        bounds.set(Index::P2WPKHAddrIndex.name(), safe.p2wpkh_addr_index.into());
-        bounds.set(Index::P2WSHAddrIndex.name(), safe.p2wsh_addr_index.into());
-        bounds.set(
-            Index::UnknownOutputIndex.name(),
-            safe.unknown_output_index.into(),
-        );
+        for index in Index::all() {
+            if let Some(len) = safe.get(index) {
+                bounds.set(index.name(), len);
+            }
+        }
 
         let tip = safe.last_height();
         bounds.set(
@@ -226,7 +265,7 @@ impl Query {
         bounds
     }
 
-    #[cfg(feature = "series")]
+    #[cfg(any(feature = "series", feature = "price"))]
     fn read_bounds(&self, safe: Lengths) -> ReadBounds {
         let mut bounds = Self::index_read_bounds(safe);
         let timestamp = safe.last_height().and_then(|height| {
@@ -247,16 +286,22 @@ impl Query {
         bounds
     }
 
+    /// Resolves the confirmed outputs mempool transactions spend, as published when called.
+    pub fn indexer_prevout_resolver(
+        &self,
+    ) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> + Send + Sync + use<> {
+        let query = self.clone();
+        // The reads check their own bounds: the pin alone, no calendar read bounds.
+        move |holes| {
+            let pin = query.indexer().pin();
+            query.indexer().prevouts(holes, pin.lengths())
+        }
+    }
+
     /// Tip block hash at the pipeline-safe ceiling.
     #[inline]
     pub fn tip_blockhash(&self) -> BlockHash {
         self.indexer().tip_blockhash()
-    }
-
-    /// Tip block hash prefix for cache etags.
-    #[inline]
-    pub fn tip_hash_prefix(&self) -> BlockHashPrefix {
-        BlockHashPrefix::from(&self.tip_blockhash())
     }
 
     /// Build sync status entirely from one safely published local snapshot.
@@ -314,13 +359,6 @@ impl Query {
         self.0.plugins.indexer
     }
 
-    /// Whether this query's mutable reads wait on `publication` (the indexer's gate).
-    #[inline]
-    pub fn reads_under(&self, publication: &Publication) -> bool {
-        self.indexer().publication().ptr_eq(publication)
-    }
-
-    /// The shared read-only plugin composition backing this query view.
     #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
     #[inline]
     fn plugins(&self) -> &QueryPlugins<'static> {
@@ -331,6 +369,31 @@ impl Query {
     #[inline]
     fn mempool(&self) -> Option<Arc<ReadOnlyState>> {
         self.0.mempool.as_ref().map(ReadOnlyMempool::load)
+    }
+
+    /// The mempool, then a pin: the pool never follows a block before the chain publishes it, so
+    /// loaded first it is at the pin's tip, behind it for the moment after blocks publish, or on
+    /// the branch a reorg is replacing.
+    #[cfg(any(feature = "chain", feature = "price"))]
+    fn mempool_then_pin(&self) -> Result<(Option<Arc<ReadOnlyState>>, ReadPin)> {
+        let mempool = self.mempool();
+        Ok((mempool, self.pin_safe_lengths()?))
+    }
+
+    /// `mempool` at its own tip, for a lookup the chain answers first: whatever the chain holds
+    /// answers before it, so the pool only adds what is still pending. Views adding the pool to
+    /// the chain's numbers need it at the pin's tip instead ([`anchored`] at `pin.tip()`).
+    ///
+    /// [`anchored`]: crate::r#impl::mempool::anchored
+    #[cfg(any(feature = "chain", feature = "price"))]
+    fn lookup_mempool(
+        mempool: Option<Arc<ReadOnlyState>>,
+    ) -> Option<(Arc<ReadOnlyState>, BlockHash)> {
+        mempool.map(|mempool| {
+            // Before its first publication the pool has no tip, and its reads answer that.
+            let tip = mempool.tip().unwrap_or_default();
+            (mempool, tip)
+        })
     }
 
     #[cfg(feature = "series")]

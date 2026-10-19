@@ -72,56 +72,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anstream"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "824a212faf96e9acacdbd09febd34438f8f711fb84e09a8916013cd7815ca28d"
-dependencies = [
- "anstyle",
- "anstyle-parse",
- "anstyle-query",
- "anstyle-wincon",
- "colorchoice",
- "is_terminal_polyfill",
- "utf8parse",
-]
-
-[[package]]
-name = "anstyle"
-version = "1.0.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000"
-
-[[package]]
-name = "anstyle-parse"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ce7f38b242319f7cabaa6813055467063ecdc9d355bbb4ce0c68908cd8130e"
-dependencies = [
- "utf8parse",
-]
-
-[[package]]
-name = "anstyle-query"
-version = "1.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
-dependencies = [
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "anstyle-wincon"
-version = "3.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
-dependencies = [
- "anstyle",
- "once_cell_polyfill",
- "windows-sys 0.61.2",
-]
-
-[[package]]
 name = "arc-swap"
 version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -255,12 +205,6 @@ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
 name = "base64"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
-
-[[package]]
-name = "base64"
 version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
@@ -376,9 +320,10 @@ checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
 name = "bitview"
 version = "0.12.2"
 dependencies = [
+ "bitview_plugin",
  "bitview_query",
- "bitview_runtime",
  "bitview_server",
+ "brk_alloc",
  "brk_error",
  "brk_exit",
  "brk_logger",
@@ -387,6 +332,7 @@ dependencies = [
  "brk_rpc",
  "lexopt",
  "owo-colors",
+ "rlimit",
  "serde",
  "tokio",
  "toml",
@@ -403,7 +349,6 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_primitives",
- "bitview_runtime",
  "bitview_traversable",
  "brk_alloc",
  "brk_error",
@@ -419,7 +364,7 @@ dependencies = [
  "bitview_catalog",
  "bitview_cohort",
  "bitview_primitives",
- "derive_more",
+ "brk_types",
  "oas3",
  "serde",
  "serde_json",
@@ -431,6 +376,7 @@ name = "bitview_catalog"
 version = "0.12.2"
 dependencies = [
  "bitview_primitives",
+ "derive_more",
  "indexmap",
  "schemars",
  "serde",
@@ -441,7 +387,7 @@ dependencies = [
 name = "bitview_cli"
 version = "0.12.2"
 dependencies = [
- "serde_json",
+ "percent-encoding",
  "ureq",
 ]
 
@@ -454,6 +400,7 @@ dependencies = [
  "bitview_primitives",
  "bitview_types",
  "brk_types",
+ "percent-encoding",
  "rapidhash",
  "serde",
  "serde_json",
@@ -470,15 +417,6 @@ dependencies = [
  "rayon",
  "schemars",
  "serde",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_collections"
-version = "0.12.2"
-dependencies = [
- "bitview_primitives",
- "bitview_traversable",
 ]
 
 [[package]]
@@ -486,8 +424,8 @@ name = "bitview_compute"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
- "bitview_collections",
  "bitview_primitives",
+ "bitview_traversable",
  "brk_error",
  "brk_exit",
  "brk_types",
@@ -501,19 +439,17 @@ dependencies = [
 name = "bitview_default"
 version = "0.12.2"
 dependencies = [
+ "bitview_distribution",
  "bitview_plugin",
+ "bitview_plugin_addresses",
+ "bitview_plugin_age",
  "bitview_plugin_bedrock",
  "bitview_plugin_blocks",
- "bitview_plugin_capital_sentiment",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
- "bitview_plugin_constants",
- "bitview_plugin_distribution_addresses",
- "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_aggregated",
- "bitview_plugin_distribution_utxos",
+ "bitview_plugin_entry",
+ "bitview_plugin_holders",
  "bitview_plugin_indexer",
- "bitview_plugin_indicators",
  "bitview_plugin_inputs",
  "bitview_plugin_mappings",
  "bitview_plugin_market",
@@ -522,13 +458,15 @@ dependencies = [
  "bitview_plugin_outputs",
  "bitview_plugin_pools",
  "bitview_plugin_price",
+ "bitview_plugin_profitability",
  "bitview_plugin_rarity_meter",
  "bitview_plugin_supply",
  "bitview_plugin_transactions",
- "bitview_plugin_utxo_history",
- "bitview_runtime",
+ "bitview_plugin_utxo_set",
+ "bitview_plugin_utxos",
  "bitview_traversable",
  "bitview_urpd",
+ "bitview_vecs",
  "brk_alloc",
  "brk_error",
  "brk_reader",
@@ -543,20 +481,13 @@ version = "0.12.2"
 dependencies = [
  "aide",
  "axum",
+ "bitview",
  "bitview_bindgen",
  "bitview_catalog",
  "bitview_default",
  "bitview_plugin",
- "bitview_plugin_blocks",
- "bitview_plugin_distribution_aggregated",
- "bitview_plugin_distribution_entry",
- "bitview_plugin_distribution_profitability",
- "bitview_plugin_mappings",
- "bitview_plugin_price",
  "bitview_query",
- "bitview_runtime",
  "bitview_server",
- "bitview_traversable",
  "brk_error",
  "brk_exit",
  "brk_reader",
@@ -570,12 +501,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitview_distribution"
+version = "0.12.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_compute",
+ "bitview_plugin_indexer",
+ "bitview_plugin_mappings",
+ "bitview_primitives",
+ "bitview_traversable",
+ "bitview_urpd",
+ "bitview_vecs",
+ "brk_error",
+ "brk_exit",
+ "brk_types",
+ "derive_more",
+ "rayon",
+ "rustc-hash",
+ "schemars",
+ "statedb",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_http"
+version = "0.12.2"
+dependencies = [
+ "axum",
+ "http-body",
+]
+
+[[package]]
 name = "bitview_mcp"
 version = "0.12.2"
 dependencies = [
  "axum",
  "base64 0.23.1",
+ "bitview_http",
  "brk_logger",
+ "http-body-util",
+ "percent-encoding",
  "rmcp",
  "serde",
  "serde_json",
@@ -588,11 +553,59 @@ dependencies = [
 name = "bitview_plugin"
 version = "0.12.2"
 dependencies = [
+ "bitview_plugin_derive",
  "bitview_traversable",
  "brk_error",
  "brk_exit",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_addresses"
+version = "0.12.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_compute",
+ "bitview_distribution",
+ "bitview_plugin",
+ "bitview_plugin_indexer",
+ "bitview_plugin_mappings",
+ "bitview_plugin_price",
+ "bitview_primitives",
+ "bitview_traversable",
+ "bitview_vecs",
+ "brk_error",
+ "brk_exit",
  "brk_types",
+ "derive_more",
  "parking_lot",
+ "rayon",
+ "rustc-hash",
+ "smallvec",
+ "tracing",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_age"
+version = "0.12.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_compute",
+ "bitview_distribution",
+ "bitview_plugin",
+ "bitview_plugin_mappings",
+ "bitview_plugin_price",
+ "bitview_primitives",
+ "bitview_traversable",
+ "bitview_vecs",
+ "brk_error",
+ "brk_exit",
+ "brk_types",
+ "derive_more",
+ "rayon",
+ "statedb",
+ "tracing",
  "vecdb",
 ]
 
@@ -603,23 +616,19 @@ dependencies = [
  "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
+ "bitview_plugin_age",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
- "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_aggregated",
+ "bitview_plugin_holders",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_urpd",
  "bitview_vecs",
  "brk_error",
  "brk_types",
- "derive_more",
  "log",
- "schemars",
- "serde",
  "vecdb",
 ]
 
@@ -627,38 +636,19 @@ dependencies = [
 name = "bitview_plugin_blocks"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
  "brk_types",
  "derive_more",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_capital_sentiment"
-version = "0.12.2"
-dependencies = [
- "bitview_compute",
- "bitview_plugin",
- "bitview_plugin_distribution_aggregated",
- "bitview_plugin_indexer",
- "bitview_plugin_mappings",
- "bitview_plugin_market",
- "bitview_plugin_price",
- "bitview_primitives",
- "bitview_traversable",
- "bitview_vecs",
- "brk_error",
- "brk_exit",
- "brk_types",
+ "rayon",
+ "schemars",
  "vecdb",
 ]
 
@@ -668,20 +658,19 @@ version = "0.12.2"
 dependencies = [
  "bitview_cohort",
  "bitview_compute",
+ "bitview_distribution",
  "bitview_plugin",
- "bitview_plugin_distribution_age",
+ "bitview_plugin_age",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_urpd",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "rayon",
  "vecdb",
 ]
@@ -691,18 +680,15 @@ name = "bitview_plugin_cointime"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
- "bitview_collections",
  "bitview_compute",
+ "bitview_distribution",
  "bitview_plugin",
- "bitview_plugin_blocks",
- "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_aggregated",
- "bitview_plugin_distribution_common",
+ "bitview_plugin_age",
+ "bitview_plugin_holders",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_urpd",
  "bitview_vecs",
@@ -715,32 +701,44 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_plugin_constants"
+name = "bitview_plugin_derive"
 version = "0.12.2"
 dependencies = [
- "bitview_plugin",
- "bitview_primitives",
- "bitview_transforms",
- "bitview_traversable",
- "bitview_vecs",
- "brk_types",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
 ]
 
 [[package]]
-name = "bitview_plugin_distribution_addresses"
+name = "bitview_plugin_entry"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
- "bitview_collections",
+ "bitview_compute",
+ "bitview_distribution",
  "bitview_plugin",
- "bitview_plugin_distribution_common",
- "bitview_plugin_indexer",
- "bitview_plugin_inputs",
  "bitview_plugin_mappings",
- "bitview_plugin_outputs",
+ "bitview_primitives",
+ "bitview_traversable",
+ "bitview_vecs",
+ "brk_error",
+ "brk_types",
+ "statedb",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_holders"
+version = "0.12.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_compute",
+ "bitview_distribution",
+ "bitview_plugin",
+ "bitview_plugin_age",
+ "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -748,168 +746,7 @@ dependencies = [
  "brk_types",
  "derive_more",
  "rayon",
- "rustc-hash",
- "smallvec",
- "tracing",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_distribution_age"
-version = "0.12.2"
-dependencies = [
- "bitview_cohort",
- "bitview_collections",
- "bitview_compute",
- "bitview_plugin",
- "bitview_plugin_distribution_common",
- "bitview_plugin_mappings",
- "bitview_plugin_price",
- "bitview_primitives",
- "bitview_transforms",
- "bitview_traversable",
- "bitview_urpd",
- "bitview_vecs",
- "brk_error",
- "brk_exit",
- "brk_types",
- "rayon",
  "statedb",
- "tracing",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_distribution_aggregated"
-version = "0.12.2"
-dependencies = [
- "bitview_cohort",
- "bitview_collections",
- "bitview_compute",
- "bitview_plugin",
- "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_common",
- "bitview_plugin_mappings",
- "bitview_plugin_price",
- "bitview_primitives",
- "bitview_transforms",
- "bitview_traversable",
- "bitview_vecs",
- "brk_error",
- "brk_exit",
- "brk_types",
- "statedb",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_distribution_common"
-version = "0.12.2"
-dependencies = [
- "bitview_cohort",
- "bitview_collections",
- "bitview_compute",
- "bitview_plugin_indexer",
- "bitview_plugin_mappings",
- "bitview_primitives",
- "bitview_transforms",
- "bitview_traversable",
- "bitview_urpd",
- "bitview_vecs",
- "brk_error",
- "brk_types",
- "derive_more",
- "rayon",
- "rustc-hash",
- "statedb",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_distribution_entry"
-version = "0.12.2"
-dependencies = [
- "bitview",
- "bitview_cohort",
- "bitview_collections",
- "bitview_compute",
- "bitview_default",
- "bitview_plugin",
- "bitview_plugin_blocks",
- "bitview_plugin_distribution_aggregated",
- "bitview_plugin_distribution_common",
- "bitview_plugin_indexer",
- "bitview_plugin_inputs",
- "bitview_plugin_mappings",
- "bitview_plugin_outputs",
- "bitview_plugin_price",
- "bitview_plugin_utxo_history",
- "bitview_primitives",
- "bitview_runtime",
- "bitview_transforms",
- "bitview_traversable",
- "bitview_vecs",
- "brk_alloc",
- "brk_error",
- "brk_exit",
- "brk_reader",
- "brk_types",
- "statedb",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_distribution_profitability"
-version = "0.12.2"
-dependencies = [
- "bitview",
- "bitview_cohort",
- "bitview_collections",
- "bitview_compute",
- "bitview_default",
- "bitview_plugin",
- "bitview_plugin_blocks",
- "bitview_plugin_distribution_common",
- "bitview_plugin_indexer",
- "bitview_plugin_inputs",
- "bitview_plugin_mappings",
- "bitview_plugin_outputs",
- "bitview_plugin_price",
- "bitview_plugin_utxo_history",
- "bitview_primitives",
- "bitview_runtime",
- "bitview_traversable",
- "bitview_vecs",
- "brk_alloc",
- "brk_error",
- "brk_exit",
- "brk_reader",
- "brk_types",
- "statedb",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_distribution_utxos"
-version = "0.12.2"
-dependencies = [
- "bitview_cohort",
- "bitview_collections",
- "bitview_plugin",
- "bitview_plugin_distribution_common",
- "bitview_plugin_indexer",
- "bitview_plugin_mappings",
- "bitview_plugin_outputs",
- "bitview_plugin_price",
- "bitview_primitives",
- "bitview_transforms",
- "bitview_traversable",
- "bitview_vecs",
- "brk_error",
- "brk_exit",
- "brk_types",
- "rayon",
- "tracing",
  "vecdb",
 ]
 
@@ -919,7 +756,6 @@ version = "0.12.2"
 dependencies = [
  "arc-swap",
  "bitcoin",
- "bitview_cohort",
  "bitview_plugin",
  "bitview_primitives",
  "bitview_traversable",
@@ -929,7 +765,7 @@ dependencies = [
  "brk_reader",
  "brk_store",
  "brk_types",
- "parking_lot",
+ "crossbeam",
  "rayon",
  "rustc-hash",
  "schemars",
@@ -939,39 +775,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_plugin_indicators"
-version = "0.12.2"
-dependencies = [
- "bitview_cohort",
- "bitview_plugin",
- "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_aggregated",
- "bitview_plugin_distribution_common",
- "bitview_plugin_distribution_utxos",
- "bitview_plugin_indexer",
- "bitview_plugin_mappings",
- "bitview_plugin_market",
- "bitview_plugin_mining",
- "bitview_plugin_transactions",
- "bitview_primitives",
- "bitview_transforms",
- "bitview_traversable",
- "bitview_vecs",
- "brk_error",
- "brk_exit",
- "brk_types",
- "rayon",
- "vecdb",
-]
-
-[[package]]
 name = "bitview_plugin_inputs"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
- "bitview_collections",
+ "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_blocks",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_primitives",
@@ -980,7 +789,6 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "rayon",
  "rustc-hash",
  "statedb",
@@ -992,7 +800,7 @@ dependencies = [
 name = "bitview_plugin_mappings"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
+ "arc-swap",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_primitives",
@@ -1002,7 +810,6 @@ dependencies = [
  "brk_exit",
  "brk_types",
  "derive_more",
- "parking_lot",
  "rangeindex",
  "schemars",
  "serde",
@@ -1013,21 +820,17 @@ dependencies = [
 name = "bitview_plugin_market"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_blocks",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "rayon",
  "vecdb",
 ]
@@ -1036,7 +839,6 @@ dependencies = [
 name = "bitview_plugin_mining"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_blocks",
@@ -1045,13 +847,13 @@ dependencies = [
  "bitview_plugin_price",
  "bitview_plugin_transactions",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
  "brk_types",
  "rayon",
+ "schemars",
  "vecdb",
 ]
 
@@ -1059,13 +861,13 @@ dependencies = [
 name = "bitview_plugin_op_return"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
+ "bitview_plugin_price",
  "bitview_plugin_transactions",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -1080,10 +882,8 @@ name = "bitview_plugin_outputs"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
- "bitview_collections",
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_blocks",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
@@ -1093,7 +893,6 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "rayon",
  "statedb",
  "tempfile",
@@ -1105,24 +904,21 @@ dependencies = [
 name = "bitview_plugin_pools"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
+ "arc-swap",
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_mining",
- "bitview_plugin_price",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
- "parking_lot",
+ "rangeindex",
  "rayon",
  "rustc-hash",
- "tracing",
  "vecdb",
 ]
 
@@ -1130,6 +926,7 @@ dependencies = [
 name = "bitview_plugin_price"
 version = "0.12.2"
 dependencies = [
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
@@ -1140,7 +937,28 @@ dependencies = [
  "brk_exit",
  "brk_oracle",
  "brk_types",
+ "derive_more",
+ "rangeindex",
+ "rayon",
  "tracing",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_profitability"
+version = "0.12.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_compute",
+ "bitview_distribution",
+ "bitview_plugin",
+ "bitview_plugin_mappings",
+ "bitview_primitives",
+ "bitview_traversable",
+ "bitview_vecs",
+ "brk_error",
+ "brk_types",
+ "statedb",
  "vecdb",
 ]
 
@@ -1148,18 +966,15 @@ dependencies = [
 name = "bitview_plugin_rarity_meter"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_bedrock",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
- "bitview_plugin_distribution_aggregated",
+ "bitview_plugin_holders",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
@@ -1175,11 +990,9 @@ dependencies = [
 name = "bitview_plugin_supply"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
+ "bitview_distribution",
  "bitview_plugin",
- "bitview_plugin_cointime",
- "bitview_plugin_distribution_aggregated",
- "bitview_plugin_distribution_common",
+ "bitview_plugin_holders",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_mining",
@@ -1187,11 +1000,9 @@ dependencies = [
  "bitview_plugin_price",
  "bitview_plugin_transactions",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
- "brk_exit",
  "brk_types",
  "vecdb",
 ]
@@ -1200,16 +1011,12 @@ dependencies = [
 name = "bitview_plugin_transactions"
 version = "0.12.2"
 dependencies = [
- "bitview_collections",
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_blocks",
  "bitview_plugin_indexer",
- "bitview_plugin_inputs",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "bitview_vecs",
  "brk_cpfp",
@@ -1219,13 +1026,14 @@ dependencies = [
  "derive_more",
  "rayon",
  "rustc-hash",
+ "schemars",
  "smallvec",
  "tracing",
  "vecdb",
 ]
 
 [[package]]
-name = "bitview_plugin_utxo_history"
+name = "bitview_plugin_utxo_set"
 version = "0.12.2"
 dependencies = [
  "bitview_compute",
@@ -1241,6 +1049,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitview_plugin_utxos"
+version = "0.12.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_compute",
+ "bitview_distribution",
+ "bitview_plugin",
+ "bitview_plugin_indexer",
+ "bitview_plugin_mappings",
+ "bitview_plugin_price",
+ "bitview_primitives",
+ "bitview_traversable",
+ "bitview_vecs",
+ "brk_error",
+ "brk_exit",
+ "brk_types",
+ "derive_more",
+ "rayon",
+ "tracing",
+ "vecdb",
+]
+
+[[package]]
 name = "bitview_primitives"
 version = "0.12.2"
 dependencies = [
@@ -1251,8 +1082,8 @@ dependencies = [
  "itoa",
  "jiff",
  "rapidhash",
+ "rayon",
  "rustc-hash",
- "ryu",
  "schemars",
  "serde",
  "serde_json",
@@ -1264,15 +1095,16 @@ dependencies = [
 name = "bitview_query"
 version = "0.12.2"
 dependencies = [
+ "arc-swap",
  "bitcoin",
  "bitview_catalog",
  "bitview_cohort",
  "bitview_plugin",
+ "bitview_plugin_addresses",
+ "bitview_plugin_age",
  "bitview_plugin_blocks",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
- "bitview_plugin_distribution_addresses",
- "bitview_plugin_distribution_age",
  "bitview_plugin_indexer",
  "bitview_plugin_inputs",
  "bitview_plugin_mappings",
@@ -1281,9 +1113,8 @@ dependencies = [
  "bitview_plugin_pools",
  "bitview_plugin_price",
  "bitview_plugin_transactions",
- "bitview_plugin_utxo_history",
+ "bitview_plugin_utxo_set",
  "bitview_primitives",
- "bitview_runtime",
  "bitview_traversable",
  "bitview_types",
  "bitview_urpd",
@@ -1308,26 +1139,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_runtime"
-version = "0.12.2"
-dependencies = [
- "bitview_plugin",
- "bitview_runtime_derive",
- "brk_alloc",
- "brk_error",
- "tracing",
-]
-
-[[package]]
-name = "bitview_runtime_derive"
-version = "0.12.2"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 3.0.6",
-]
-
-[[package]]
 name = "bitview_server"
 version = "0.12.2"
 dependencies = [
@@ -1335,6 +1146,7 @@ dependencies = [
  "axum",
  "bitcoin",
  "bitview_catalog",
+ "bitview_http",
  "bitview_primitives",
  "bitview_query",
  "bitview_types",
@@ -1346,24 +1158,15 @@ dependencies = [
  "derive_more",
  "http-body",
  "jiff",
- "parking_lot",
  "rayon",
  "schemars",
  "serde",
  "serde_json",
  "tokio",
+ "tower",
  "tower-http",
  "tower-layer",
  "tracing",
-]
-
-[[package]]
-name = "bitview_transforms"
-version = "0.12.2"
-dependencies = [
- "bitview_primitives",
- "brk_types",
- "vecdb",
 ]
 
 [[package]]
@@ -1427,11 +1230,9 @@ dependencies = [
 name = "bitview_vecs"
 version = "0.12.2"
 dependencies = [
- "bitview_cohort",
- "bitview_collections",
+ "arc-swap",
  "bitview_compute",
  "bitview_primitives",
- "bitview_transforms",
  "bitview_traversable",
  "brk_error",
  "brk_exit",
@@ -1441,7 +1242,6 @@ dependencies = [
  "rayon",
  "schemars",
  "serde",
- "tracing",
  "vecdb",
 ]
 
@@ -1450,6 +1250,7 @@ name = "bitview_website"
 version = "0.12.2"
 dependencies = [
  "axum",
+ "bitview_http",
  "brk_logger",
  "importmap",
  "include_dir",
@@ -1481,6 +1282,7 @@ dependencies = [
  "brk_logger",
  "brk_reader",
  "brk_types",
+ "libc",
  "libproc",
  "parking_lot",
  "tracing",
@@ -1491,7 +1293,6 @@ dependencies = [
 name = "bitviewd_bench_visualizer"
 version = "0.12.2"
 dependencies = [
- "derive_more",
  "plotters",
 ]
 
@@ -1499,7 +1300,7 @@ dependencies = [
 name = "bitviewd_latency"
 version = "0.12.2"
 dependencies = [
- "bitview",
+ "brk_logger",
  "jiff",
  "tempfile",
 ]
@@ -1575,7 +1376,6 @@ dependencies = [
  "brk_lsm_tree",
  "flume",
  "log",
- "tempfile",
 ]
 
 [[package]]
@@ -1599,15 +1399,12 @@ dependencies = [
  "interval-heap",
  "log",
  "lz4_flex",
- "nanoid",
  "quick_cache",
  "rustc-hash",
  "rustix",
  "self_cell",
  "sfa",
- "strum",
  "tempfile",
- "test-log",
  "varint-rs",
  "xxhash-rust",
 ]
@@ -1626,6 +1423,7 @@ dependencies = [
  "derive_more",
  "indexmap",
  "rustc-hash",
+ "serde",
  "serde_json",
  "smallvec",
  "tracing",
@@ -1636,9 +1434,6 @@ name = "brk_oracle"
 version = "0.12.2"
 dependencies = [
  "brk_types",
- "derive_more",
- "schemars",
- "serde",
 ]
 
 [[package]]
@@ -1648,7 +1443,6 @@ dependencies = [
  "better_io",
  "dtype_dispatch",
  "half",
- "rand 0.10.3",
  "rand_xoshiro",
 ]
 
@@ -1656,6 +1450,7 @@ dependencies = [
 name = "brk_reader"
 version = "0.12.2"
 dependencies = [
+ "arc-swap",
  "bitcoin",
  "brk_error",
  "brk_rpc",
@@ -1664,7 +1459,6 @@ dependencies = [
  "derive_more",
  "libc",
  "parking_lot",
- "rlimit",
  "rustc-hash",
  "tracing",
 ]
@@ -1698,7 +1492,6 @@ dependencies = [
  "brk_fjall",
  "brk_types",
  "rustc-hash",
- "tempfile",
 ]
 
 [[package]]
@@ -1805,7 +1598,7 @@ checksum = "65c35e4b699c7e15ccbe7ee35c005e4fc0a278d22238a2857e6ce2dadeda1b06"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "rand_core 0.10.1",
+ "rand_core",
 ]
 
 [[package]]
@@ -1865,12 +1658,6 @@ name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
-
-[[package]]
-name = "colorchoice"
-version = "1.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 
 [[package]]
 name = "compare"
@@ -2255,28 +2042,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34"
 
 [[package]]
-name = "env_filter"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "900d271a03799a1ee8d1ca9b19893b48ca674a9284fefcfb85f05e74ed314217"
-dependencies = [
- "log",
- "regex",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.11.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de671bd27a75a797dc9ae289ba1e77276e75e2026408aab65185384e2d5cd3f6"
-dependencies = [
- "anstream",
- "anstyle",
- "env_filter",
- "log",
-]
-
-[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2523,26 +2288,14 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
-dependencies = [
- "cfg-if",
- "libc",
- "r-efi 5.3.0",
- "wasip2",
-]
-
-[[package]]
-name = "getrandom"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
 dependencies = [
  "cfg-if",
  "libc",
- "r-efi 6.0.0",
- "rand_core 0.10.1",
+ "r-efi",
+ "rand_core",
 ]
 
 [[package]]
@@ -2924,12 +2677,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7655c9839580ee829dfacba1d1278c2b7883e50a277ff7541299489d6bdfdc45"
 
 [[package]]
-name = "is_terminal_polyfill"
-version = "1.70.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
-
-[[package]]
 name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3015,7 +2762,6 @@ version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "629d2b4ae586d04b6bae3c75879d7ddd39325c2b67a9c87634f4ec88a488dc65"
 dependencies = [
- "base64 0.22.1",
  "serde",
  "serde_json",
 ]
@@ -3118,15 +2864,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ef0d4ed8669f8f8826eb00dc878084aa8f253506c4fd5e8f58f5bce72ddb97e"
 
 [[package]]
-name = "matchers"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1525a2a28c7f4fa0fc98bb91ae755d1e2d1505079e05539e35bc876b5d65ae9"
-dependencies = [
- "regex-automata",
-]
-
-[[package]]
 name = "matchit"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3213,15 +2950,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nanoid"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8628de41fe064cc3f0cf07f3d299ee3e73521adaff72278731d5c8cae3797873"
-dependencies = [
- "rand 0.9.5",
-]
-
-[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3229,15 +2957,6 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
-]
-
-[[package]]
-name = "nu-ansi-term"
-version = "0.50.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
-dependencies = [
- "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3287,12 +3006,6 @@ name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
-
-[[package]]
-name = "once_cell_polyfill"
-version = "1.70.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "option-ext"
@@ -3466,15 +3179,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 
 [[package]]
-name = "ppv-lite86"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
-dependencies = [
- "zerocopy",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3511,25 +3215,9 @@ dependencies = [
 
 [[package]]
 name = "r-efi"
-version = "5.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
-
-[[package]]
-name = "r-efi"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
-
-[[package]]
-name = "rand"
-version = "0.9.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9ef1d0d795eb7d84685bca4f72f3649f064e6641543d3a8c415898726a57b41"
-dependencies = [
- "rand_chacha",
- "rand_core 0.9.5",
-]
 
 [[package]]
 name = "rand"
@@ -3539,26 +3227,7 @@ checksum = "65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af"
 dependencies = [
  "chacha20",
  "getrandom 0.4.3",
- "rand_core 0.10.1",
-]
-
-[[package]]
-name = "rand_chacha"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
-dependencies = [
- "ppv-lite86",
- "rand_core 0.9.5",
-]
-
-[[package]]
-name = "rand_core"
-version = "0.9.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c"
-dependencies = [
- "getrandom 0.3.4",
+ "rand_core",
 ]
 
 [[package]]
@@ -3573,14 +3242,14 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "662effc7698e08ea324d3acccf8d9d7f7bf79b9785e270a174ea36e56900c91d"
 dependencies = [
- "rand_core 0.10.1",
+ "rand_core",
 ]
 
 [[package]]
 name = "rangeindex"
 version = "0.12.2"
 dependencies = [
- "parking_lot",
+ "arc-swap",
 ]
 
 [[package]]
@@ -3601,7 +3270,6 @@ dependencies = [
  "memmap2",
  "parking_lot",
  "rustc-hash",
- "tempfile",
  "thiserror",
 ]
 
@@ -3733,7 +3401,7 @@ dependencies = [
  "indexmap",
  "pastey",
  "pin-project-lite",
- "rand 0.10.3",
+ "rand",
  "schemars",
  "serde",
  "serde_json",
@@ -4106,7 +3774,6 @@ name = "statedb"
 version = "0.12.2"
 dependencies = [
  "brk_pco",
- "tempfile",
  "zerocopy",
 ]
 
@@ -4206,38 +3873,6 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "test-log"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b9c218384242b5c89b68303ab6f6fc53a312d923f0c14dc6bb860c6aeee40f1"
-dependencies = [
- "env_logger",
- "test-log-macros",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "test-log-core"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c26ef8b00e4d382e59f6a8ddb3cd790b3a5bb29f21a358a9a69ea2f29f13f27b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "test-log-macros"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "944ad38adcbb71eaa682c56bceeb079e4ca82b4b3edc2a0fde5cb297b77dac8d"
-dependencies = [
- "syn 2.0.119",
- "test-log-core",
 ]
 
 [[package]]
@@ -4509,15 +4144,9 @@ version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
 dependencies = [
- "matchers",
- "nu-ansi-term",
- "once_cell",
- "regex-automata",
  "sharded-slab",
  "thread_local",
- "tracing",
  "tracing-core",
- "tracing-log",
 ]
 
 [[package]]
@@ -4620,12 +4249,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
-name = "utf8parse"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
-
-[[package]]
 name = "uuid"
 version = "1.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4664,7 +4287,6 @@ dependencies = [
  "ryu",
  "schemars",
  "serde",
- "tempfile",
  "thiserror",
  "vecdb_derive",
  "zerocopy",
@@ -4709,15 +4331,6 @@ name = "wasi"
 version = "0.11.1+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
-
-[[package]]
-name = "wasip2"
-version = "1.0.4+wasi-0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b67efb37e106e55ce722a510d6b5f9c17f083e5fc79afc2badeb12cc313d9487"
-dependencies = [
- "wit-bindgen",
-]
 
 [[package]]
 name = "wasm-bindgen"
@@ -4975,12 +4588,6 @@ checksum = "5d129932f4644ac2396cb456385cbf9e63b5b30c6e8dc4820bdca4eb082037a5"
 dependencies = [
  "winapi",
 ]
-
-[[package]]
-name = "wit-bindgen"
-version = "0.57.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "writeable"

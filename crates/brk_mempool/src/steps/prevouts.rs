@@ -1,50 +1,44 @@
-//! Prevout fill plumbing.
-//!
-//! A fresh tx can land in the store with `prevout: None` on some
-//! inputs when the Preparer can't see the parent (parent arrived in
-//! the same cycle as the child, or parent is confirmed and we don't
-//! have an indexer hooked up). [`fill`] runs after each
-//! successful [`super::applier::apply`] and closes both gaps in one pass:
-//!
-//! Gather unresolved inputs from private state, resolve external parents, then
-//! apply fills and address changes. Published transaction bodies remain immutable
-//! through `Arc::make_mut`; retries fill only missing inputs.
+//! A fresh tx can land in the store with `prevout: None` on some inputs: its
+//! parent arrived in the same cycle, or is confirmed. [`fill`] runs after each
+//! [`super::applier::apply`] and resolves both, confirmed parents through the
+//! caller's resolver, then applies the fills and address changes. Published
+//! transaction bodies remain immutable through `Arc::make_mut`; retries fill
+//! only missing inputs.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+#![allow(clippy::type_complexity)]
 
 use brk_rpc::Client;
-use brk_types::{TxOut, Txid, TxidPrefix, Vin, Vout};
+use brk_types::{TxOut, Txid, Vin, Vout};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::warn;
 
-use crate::{cycle::CycleDiff, state::State, stores::TxStore};
+use crate::{
+    key::TxKey,
+    state::State,
+    stores::{TxGraveyard, TxStore},
+};
 
 /// Fill every unfilled prevout the cycle can resolve. Same-cycle
 /// in-mempool parents are filled directly. The remainder go through
 /// `resolver` in one batched call.
-pub fn fill<F>(state: &mut State, diff: &mut CycleDiff, resolver: F)
+pub fn fill<F>(state: &mut State, resolver: F)
 where
     F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
 {
-    let (in_mempool, holes) = gather(&state.txs);
+    let (in_mempool, holes) = gather(&state.txs, &state.graveyard);
     let external = resolve_external(holes, resolver);
-
-    if in_mempool.is_empty() && external.is_empty() {
-        return;
-    }
-
     for (txid, fills) in in_mempool.into_iter().chain(external) {
-        let prefix = TxidPrefix::from(&txid);
-        for prevout in state.txs.apply_fills(&prefix, fills) {
-            state.addrs.add_input(&mut diff.addrs, &txid, &prevout);
-        }
+        state
+            .txs
+            .apply_fills(&TxKey::from(&txid), fills, |prevout| {
+                state.addrs.add_input(&txid, prevout)
+            });
     }
 }
 
-/// Default resolver: one batched `getrawtransaction` per cycle,
-/// deduped by parent txid. Requires bitcoind with `txindex=1`.
+/// Default resolver: `getrawtransaction` once per parent txid, batched by the
+/// RPC client. Requires bitcoind with `txindex=1`.
 pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> {
-    let warned = AtomicBool::new(false);
     move |holes: &[(Txid, Vout)]| {
         if holes.is_empty() {
             return FxHashMap::default();
@@ -55,16 +49,9 @@ pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Tx
             .filter_map(|(txid, _)| seen.insert(*txid).then_some(*txid))
             .collect();
         let parents = match client.get_raw_transactions(&unique) {
-            Ok(map) => {
-                warned.store(false, Ordering::Relaxed);
-                map
-            }
-            Err(_) => {
-                if !warned.swap(true, Ordering::Relaxed) {
-                    warn!(
-                        "mempool: getrawtransaction batch failed; ensure bitcoind is running with txindex=1"
-                    );
-                }
+            Ok(map) => map,
+            Err(error) => {
+                warn!("mempool prevout fetch failed: {error}");
                 return FxHashMap::default();
             }
         };
@@ -80,20 +67,20 @@ pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Tx
 }
 
 /// Single pass over `txs.unresolved()`: bucket each hole into a
-/// same-cycle in-mempool fill (parent is live) or an external hole
-/// (parent is confirmed or unknown).
+/// same-cycle fill (the parent is live, or a retained vanished one) or an
+/// external hole (parent is confirmed or unknown). Retained parents let the
+/// children of a just-mined parent resolve before the chain publishes its block.
 fn gather(
     txs: &TxStore,
+    graveyard: &TxGraveyard,
 ) -> (
     Vec<(Txid, Vec<(Vin, TxOut)>)>,
     Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
 ) {
     let mut filled: Vec<(Txid, Vec<(Vin, TxOut)>)> = Vec::new();
     let mut holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)> = Vec::new();
-    for prefix in txs.unresolved() {
-        let Some(record) = txs.record_by_prefix(prefix) else {
-            continue;
-        };
+    for key in txs.unresolved() {
+        let record = txs.record_by_key(key).expect("unresolved tx is pooled");
         let mut tx_fills: Vec<(Vin, TxOut)> = Vec::new();
         let mut tx_holes: Vec<(Vin, Txid, Vout)> = Vec::new();
         for (i, txin) in record.tx.input.iter().enumerate() {
@@ -101,8 +88,11 @@ fn gather(
                 continue;
             }
             let vin = Vin::from(i);
-            if let Some(parent) = txs.get(&txin.txid)
-                && let Some(out) = parent.output.get(usize::from(txin.vout))
+            if let Some(parent) = txs.get(&txin.txid).or_else(|| {
+                graveyard
+                    .get_vanished(&txin.txid)
+                    .map(|tomb| tomb.record.tx.as_ref())
+            }) && let Some(out) = parent.output.get(usize::from(txin.vout))
             {
                 tx_fills.push((vin, out.clone()));
             } else {
@@ -122,9 +112,7 @@ fn gather(
 
 /// Flatten holes into one `(prev_txid, vout)` slice, invoke the
 /// resolver once, then re-attribute resolved entries to their
-/// consumer txs. Mempool double-spend rules guarantee every
-/// `(prev_txid, vout)` key is unique across the batch, so no
-/// dedup is needed before calling.
+/// consumer txs.
 fn resolve_external<F>(
     holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
     resolver: F,

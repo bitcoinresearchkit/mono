@@ -1,7 +1,6 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::BoundedToRatio;
-use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached};
+use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached, ops::FixedToPercent};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -15,19 +14,22 @@ impl ModeVecs {
         version: Version,
         mappings: &IndexSources,
     ) -> Result<Self> {
-        let version = version + Version::new(3);
-        let supply_in_loss_threshold_stored = Percentiles::try_from_fn(|id| {
+        let version = version + Version::new(4);
+        let supply_in_loss_share_threshold_stored = Percentiles::try_from_fn(|id| {
             import_cached(
                 db,
-                &format!("{name}_supply_in_loss_threshold_{}_bounded", id.suffix()),
+                &format!(
+                    "{name}_supply_in_loss_share_threshold_{}_bounded",
+                    id.name()
+                ),
                 version,
             )
         })?;
-        let supply_in_loss_threshold = Percentiles::from_fn(|id| {
-            LazyPerBlock::from_height_source::<BoundedToRatio>(
-                &format!("{name}_supply_in_loss_threshold_{}_ratio", id.suffix()),
+        let supply_in_loss_share_threshold = Percentiles::from_fn(|id| {
+            LazyPerBlock::from_height_source::<FixedToPercent>(
+                &format!("{name}_supply_in_loss_share_threshold_{}", id.name()),
                 version,
-                id.select(&supply_in_loss_threshold_stored),
+                supply_in_loss_share_threshold_stored.select(id),
                 mappings,
             )
         });
@@ -38,14 +40,14 @@ impl ModeVecs {
             Price::from_height_source(
                 &format!("{name}_{}", id.suffix()),
                 version,
-                id.select(&prices_stored),
+                prices_stored.select(id),
                 mappings,
             )
         });
         Ok(Self {
-            supply_in_loss_threshold,
+            supply_in_loss_share_threshold,
             prices,
-            supply_in_loss_threshold_stored,
+            supply_in_loss_share_threshold_stored,
             prices_stored,
         })
     }

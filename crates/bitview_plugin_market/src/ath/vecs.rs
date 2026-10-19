@@ -1,6 +1,6 @@
-use bitview_primitives::{Days, PartsPerMillionSigned32, Seconds, Years};
+use bitview_primitives::{Days, PartsPerMillionSigned32, Seconds};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFixedRatioPerBlock, LazyPerBlock, PerBlock, Price};
+use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, PerBlock, Price};
 use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
@@ -11,21 +11,18 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub high: Price<PerBlock<Cents, M>>,
     /// Bitcoin spot price divided by its running all-time high, minus one. Zero
     /// marks an all-time high; negative values measure the drawdown below it.
-    pub drawdown: LazyFixedRatioPerBlock<PartsPerMillionSigned32>,
+    /// Null while the all-time high is zero.
+    pub drawdown: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Exact elapsed seconds preserve the ATH timestamp across incremental updates.
     #[traversable(hidden)]
     pub(super) seconds_since: PerBlock<Seconds, M>,
     /// Fractional days, using monotonic block time, since the latest block whose
     /// spot price equaled the running all-time high. Resets to zero at equality.
+    /// Null before the first price.
     pub days_since: LazyPerBlock<Days, Seconds>,
-    /// Fractional years since the latest Bitcoin spot-price all-time high,
-    /// equal to fractional days since that high divided by 365.
-    pub years_since: LazyPerBlock<Years, Days>,
-    /// Longest fractional-day interval since a Bitcoin spot-price all-time high
-    /// observed through the represented block, including the ongoing interval.
+    /// Longest fractional-day interval between consecutive Bitcoin spot-price
+    /// all-time highs through the represented block, including the ongoing
+    /// interval since the latest one. Null before the first price, the first
+    /// all-time high.
     pub max_days_between: PerBlock<Days, M>,
-    /// Longest fractional-year interval since a Bitcoin spot-price all-time
-    /// high observed through the represented block, equal to the longest
-    /// fractional-day interval divided by 365.
-    pub max_years_between: LazyPerBlock<Years, Days>,
 }

@@ -8,7 +8,6 @@ pub struct MempoolEntry {
     weight: Weight,
     time: Timestamp,
     fees: MempoolFees,
-    depends: Vec<Txid>,
 }
 
 impl MempoolEntry {
@@ -19,7 +18,6 @@ impl MempoolEntry {
             weight: self.weight,
             fee: Sats::from(self.fees.base),
             first_seen: self.time,
-            depends: self.depends,
         }
     }
 }

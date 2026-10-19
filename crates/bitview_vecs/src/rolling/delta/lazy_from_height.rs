@@ -1,10 +1,10 @@
+use bitview_compute::NumericValue;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{DeltaOp, LazyDeltaVec, ReadableCloneableVec, VecValue};
 
 use crate::{IndexSources, Resolutions};
-use bitview_compute::NumericValue;
 
 #[derive(Clone, Traversable)]
 #[traversable(merge)]
@@ -20,24 +20,10 @@ where
 
 impl<S, T, Op> LazyDeltaFromHeight<S, T, Op>
 where
-    S: VecValue,
+    S: VecValue + Default,
     T: NumericValue + JsonSchema,
     Op: DeltaOp<S, T>,
 {
-    fn new(
-        name: &str,
-        version: Version,
-        height: LazyDeltaVec<Height, S, T, Op>,
-        indexes: &IndexSources,
-    ) -> Self {
-        let resolutions = Resolutions::from_source(name, &height, version, indexes);
-
-        Self {
-            height,
-            resolutions: Box::new(resolutions),
-        }
-    }
-
     pub(crate) fn from_source(
         name: &str,
         version: Version,
@@ -47,6 +33,10 @@ where
     ) -> Self {
         let window_start = window_start.read_only_boxed_clone();
         let height = LazyDeltaVec::new(name, version, source.read_only_boxed_clone(), window_start);
-        Self::new(name, version, height, indexes)
+        let resolutions = Resolutions::from_source(name, &height, version, indexes);
+        Self {
+            height,
+            resolutions: Box::new(resolutions),
+        }
     }
 }

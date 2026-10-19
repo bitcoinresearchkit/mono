@@ -1,45 +1,31 @@
 # brk_logger
 
-Colorized, timestamped logging with optional file output and hooks.
+Tracing setup: colorized console output with local timestamps, plus optional daily log files.
 
-## What It Enables
+With a directory, `init` also writes `YYYY-MM-DD.txt` (combined) and `YYYY-MM-DD_<level>.txt`
+files into it. Each level admits at most 100 writes per second, so a chatty level cannot starve
+the others; the combined file gets exactly the admitted writes. On startup, log files modified more
+than seven days ago are removed.
 
-Drop-in logging initialization that silences noisy dependencies (bitcoin, fjall, rolldown, ...) while keeping your logs readable with color-coded levels and local timestamps.
+Default filters turn off bitcoin, corepc, tracing, aide, fjall, lsm_tree and tower_http, and limit
+rmcp to warnings. `register_hook` installs the process's single hook, which receives every event
+the filter admits.
 
-## Key Features
+## Environment variables
 
-- **Dual output**: Console (colorized) + optional file logging with daily rotation
-- **Per-level files**: One combined log plus one file per tracing level (error/warn/info/debug/trace)
-- **Per-level rate limit**: 100 writes/sec per level so a chatty level can't starve the others; combined file mirrors what the per-level files accept
-- **Auto-cleanup**: `*.txt` files older than 7 days are pruned on startup
-- **Log hooks**: Register callbacks to intercept log messages programmatically
-- **Sensible defaults**: Pre-configured filters silence common verbose libraries,
-  including RMCP transport lifecycle messages
-- **Timestamp formatting**: Uses system timezone via jiff
-
-## Environment Variables
-
-- `LOG` - Set log level (default: `info` in release, `debug` in dev). Example: `LOG=debug bitviewd`
-- `RUST_LOG` - Full control over filtering (overrides all defaults)
-
-## Core API
-
-```rust,ignore
-brk_logger::init(Some(Path::new("logs")))?;  // Console + files in logs/
-brk_logger::init(None)?;                      // Console only
-
-brk_logger::register_hook(|msg| {
-    // React to log messages
-})?;
-```
+- `LOG` - log level (default: `info` in release, `debug` in dev). Example: `LOG=debug bitviewd`
+- `RUST_LOG` - comma-separated `target=level` directives with an optional default level; replaces
+  `LOG` and every default filter
 
 ## Usage
 
 ```rust,ignore
+use std::path::Path;
+
 use tracing::info;
 
 fn main() -> std::io::Result<()> {
-    brk_logger::init(None)?;
+    brk_logger::init(Some(Path::new("logs")))?; // `None`: console only
     info!("Ready");
     Ok(())
 }

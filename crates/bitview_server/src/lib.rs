@@ -17,6 +17,8 @@ use axum::{
     routing::get,
     serve,
 };
+#[cfg(feature = "series")]
+use bitview_query::SharedSeries;
 use bitview_query::{AsyncQuery, Result};
 use bitview_website::router as WebsiteRouter;
 use jiff::Timestamp;
@@ -34,7 +36,7 @@ use tower_layer::Layer;
 use tracing::info;
 
 use api::*;
-use cache::{CacheParams, CacheStrategy};
+use cache::CacheParams;
 use response_size_above::ResponseSizeAbove;
 use state::*;
 
@@ -46,12 +48,9 @@ mod config;
 mod error;
 mod etag;
 mod extended;
-#[cfg(feature = "chain")]
-mod historical_price_cache;
 mod json_error;
 mod params;
 mod port;
-#[cfg(any(feature = "series", feature = "chain"))]
 mod prepared_json;
 #[cfg(any(feature = "chain", feature = "urpd"))]
 mod raw_body;
@@ -62,8 +61,7 @@ mod response_time;
 #[cfg(feature = "series")]
 mod series_bodies;
 mod state;
-#[cfg(feature = "urpd")]
-mod urpd_input;
+mod unacceptable_encoding;
 
 pub use api::ApiRoutes;
 
@@ -118,6 +116,9 @@ impl Server {
         let listener = TcpListener::bind(address).await?;
 
         config.website.log();
+        #[cfg(feature = "series")]
+        query
+            .sync(|q| log_shared_series(q.vecs().shared_series(), q.vecs().value_type_conflicts()));
 
         Ok(Self {
             app: app(query, config).await?,
@@ -150,8 +151,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         query.sync(|query| query.all_pools()),
     ));
 
-    let state = AppState {
-        query: query.clone(),
+    let shared = SharedState {
         sync_query: Arc::new(Semaphore::new(1)),
         disk_query: Arc::new(Semaphore::new(1)),
         #[cfg(feature = "chain")]
@@ -163,12 +163,22 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         #[cfg(feature = "chain")]
         mempool_txid_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "chain")]
+        block_template_bodies: Arc::new(Semaphore::new(2)),
+        #[cfg(feature = "chain")]
+        block_template_diff_bodies: Arc::new(Semaphore::new(2)),
+        #[cfg(feature = "chain")]
         broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
+        #[cfg(feature = "chain")]
+        chain_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
         node: query
             .run(|query| Ok(query.client().asynchronous()?))
             .await?,
         #[cfg(feature = "series")]
         series_bodies,
+        #[cfg(feature = "chain")]
+        utxo_set_query: Arc::new(Semaphore::new(2)),
+        #[cfg(feature = "chain")]
+        utxo_set_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "urpd")]
         urpd_query: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "urpd")]
@@ -183,19 +193,20 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         max_utxos: config.max_utxos,
         cdn_cache_mode: config.cdn_cache_mode,
     };
+    let state = AppState::new(query.clone(), shared);
 
     let website_router = WebsiteRouter(state.website.clone());
-    let mut router = ApiRouter::new()
-        .add_api_routes()
-        .layer(from_fn(request_deadline::apply));
+    let mut router = ApiRouter::new().add_api_routes();
     if !state.website.is_enabled() {
         router = router.route("/", get(Redirect::temporary("/api")));
     }
     let router = router
         .with_state(state)
         .merge(website_router)
+        .layer(from_fn(request_deadline::apply))
         .layer(from_fn(json_error::respond))
         .layer(compression_layer())
+        .layer(from_fn(unacceptable_encoding::reject))
         .layer(CorsLayer::permissive())
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
             let msg = panic
@@ -209,19 +220,40 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
 
     let (router, openapi) = finish_openapi(router);
 
-    let router = router
-        .layer(Extension(OpenApiJson::new(&openapi)))
-        .layer(Extension(ApiJson::new(&openapi)));
+    let router = router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi))));
 
     // NormalizePath must wrap the router (not be a layer) to run before route matching
     Ok(NormalizePathLayer::trim_trailing_slash().layer(router))
 }
 
-/// Finalize a router and extract the OpenAPI spec.
 pub fn finish_openapi<S: Clone + Send + Sync + 'static>(
     router: ApiRouter<S>,
 ) -> (Router<S>, OpenApi) {
     let mut openapi = create_openapi();
     let router = router.finish_api(&mut openapi);
     (router, openapi)
+}
+
+/// A composition may publish one id from several plugins: say which plugin serves it.
+#[cfg(feature = "series")]
+fn log_shared_series(shared: &[SharedSeries], value_type_conflicts: &[&str]) {
+    for series in shared {
+        for (plugin, matches) in &series.also {
+            if *matches {
+                info!(
+                    "Series {} is published by {} and {plugin}; {} serves it",
+                    series.name, series.served_by, series.served_by
+                );
+            } else {
+                tracing::warn!(
+                    "Series {} from {plugin} has another value type than {}'s and is left out",
+                    series.name,
+                    series.served_by
+                );
+            }
+        }
+    }
+    for series in value_type_conflicts {
+        tracing::warn!("Series {series} is published with more than one value type");
+    }
 }

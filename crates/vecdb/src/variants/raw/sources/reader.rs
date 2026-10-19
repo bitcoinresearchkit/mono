@@ -7,18 +7,22 @@ use crate::{AnyStoredVec, HEADER_OFFSET, ReadOnlyRawVec, VecIndex, VecValue, cac
 
 /// Read-only random-access handle into a raw vector's stored data.
 ///
-/// Created via `raw_vec.reader()` (available on BytesVec/ZeroCopyVec via Deref).
+/// Created via `raw_vec.reader()` on a `BytesVec` or `ZeroCopyVec`.
 /// Provides O(1) point reads directly from the memory-mapped file.
 ///
 /// Only sees **stored** (persisted) values, not pushed values. A
 /// [`MutableVec`](crate::MutableVec) applies its update and hole overlays around
 /// this reader.
 ///
-/// The reader holds the current mmap generation alive. Drop long-lived readers
-/// before writes that may grow the database and remap the file.
+/// The reader keeps its region's bytes in place: drop long-lived readers before
+/// writes that rewrite, truncate or move the region. Appends within its
+/// reserved capacity do not wait for them; ones that must grow it do.
 pub struct VecReader<I, T, S> {
+    // SAFETY: `_reader` holds the region's shared access and its database handle keeps the fixed
+    // mapping alive. `data` points into that mapping and has no destructor, so `_reader` outlives
+    // every use of it; the bytes stay in place and unchanged while it holds that access.
     _reader: Reader,
-    data: *const u8,
+    pub(super) data: *const u8,
     stored_len: usize,
     _marker: PhantomData<(I, T, S)>,
 }
@@ -76,15 +80,17 @@ where
         Some(unsafe { S::read_from_ptr(self.data, index * Self::SIZE_OF_T) })
     }
 
-    /// Returns the number of stored values.
     #[inline(always)]
-    pub fn stored_len(&self) -> usize {
+    pub(crate) fn stored_len(&self) -> usize {
         self.stored_len
     }
 
-    fn from_region(region: &Region, stored_len: usize) -> Self {
+    /// `stored_len` was read before the region's shared access was taken: it is bounded by the
+    /// bytes the reader now holds, so a truncation in between never leaves rows past them.
+    pub(crate) fn from_region(region: &Region, stored_len: usize) -> Self {
         let reader = region.create_reader();
         let slice = reader.read_from(HEADER_OFFSET);
+        let stored_len = stored_len.min(slice.len() / Self::SIZE_OF_T);
         let ptr = slice.as_ptr();
 
         Self {

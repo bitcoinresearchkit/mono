@@ -7,5 +7,5 @@ use brk_types::Cents;
 pub struct Band {
     #[traversable(flatten)]
     pub ratio: LazyRatioPerBlock<PartsPerMillion32>,
-    pub price: Price<LazyPerBlock<Cents>>,
+    pub band: Price<LazyPerBlock<Cents>>,
 }

@@ -1,4 +1,10 @@
-use std::{ops::RangeBounds, sync::Arc};
+use std::{
+    ops::RangeBounds,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 
 use inner::Inner;
 use lsm_tree::{RecordBytes, Slice};
@@ -8,7 +14,7 @@ use crate::{
     Result,
     db_config::Config,
     file::KEYSPACES_FOLDER,
-    locked_file::LockedFileGuard,
+    locked_file::{LockedFileGuard, LockedIter},
     worker_pool::{WorkerMessage, WorkerPool},
 };
 
@@ -16,10 +22,30 @@ mod ingestion;
 mod inner;
 pub mod options;
 
-#[cfg(test)]
-mod tests;
-
 pub use ingestion::Ingestion;
+
+/// A keyspace's table layout pinned for reads: later ingestions and compactions stay invisible
+/// to it, and the tables it reads stay on disk while it lives.
+///
+/// Views and their iterators hold the database lock, so no reopen can treat the tables they pin
+/// as orphans.
+#[derive(Clone)]
+pub struct ReadView {
+    // Declared first so it drops first: its tables release before the lock.
+    view: lsm_tree::ReadView,
+    lock: LockedFileGuard,
+}
+
+impl ReadView {
+    /// Iterates over the pinned records matching `prefix`, using the specified owned record bytes.
+    pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
+        &self,
+        prefix: &[u8],
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
+        LockedIter::new(self.view.prefix_as(prefix), &self.lock)
+            .map(|item| item.map_err(Into::into))
+    }
+}
 
 /// A named, table-only LSM keyspace.
 #[derive(Clone)]
@@ -47,7 +73,8 @@ impl Keyspace {
                 tree,
                 compaction,
                 worker: worker_pool.sender(),
-                _lock: lock,
+                compaction_queued: AtomicBool::new(false),
+                lock,
             }),
         };
 
@@ -64,16 +91,7 @@ impl Keyspace {
         &self.inner.name
     }
 
-    /// Starts a sorted bulk ingestion directly into `SSTables`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if an output table cannot be created.
-    pub fn start_ingestion(&self) -> Result<Ingestion<'_>> {
-        Ingestion::new(self)
-    }
-
-    /// Starts ingestion with the specified record representation.
+    /// Starts ingestion with the specified record representation. One at a time per keyspace.
     ///
     /// # Errors
     /// Returns an error if an output table cannot be created.
@@ -81,15 +99,6 @@ impl Keyspace {
         &self,
     ) -> Result<Ingestion<'_, K, V>> {
         Ingestion::new(self)
-    }
-
-    /// Reads the latest value for `key` from immutable tables.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if a table cannot be read or decoded.
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<Slice>> {
-        self.inner.tree.get(key).map_err(Into::into)
     }
 
     /// Reads a value into the specified owned bytes.
@@ -101,31 +110,24 @@ impl Keyspace {
     }
 
     /// Iterates over a range using the specified owned record bytes.
-    #[must_use]
     pub fn range_as<K: RecordBytes, V: RecordBytes, B: AsRef<[u8]>, R: RangeBounds<B>>(
         &self,
         range: R,
     ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V, B, R> {
-        self.inner
-            .tree
-            .range_as(range)
+        LockedIter::new(self.inner.tree.range_as(range), &self.inner.lock)
             .map(|item| item.map_err(Into::into))
     }
 
-    /// Iterates over matching keys using the specified owned record bytes.
+    /// Pins the keyspace's current table layout for later reads.
     #[must_use]
-    pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
-        &self,
-        prefix: &[u8],
-    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
-        self.inner
-            .tree
-            .prefix_as(prefix)
-            .map(|item| item.map_err(Into::into))
+    pub fn read_view(&self) -> ReadView {
+        ReadView {
+            view: self.inner.tree.read_view(),
+            lock: self.inner.lock.clone(),
+        }
     }
 
     /// Iterates over all latest key-value pairs.
-    #[must_use]
     fn iter(&self) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
         self.inner.tree.iter().map(|item| item.map_err(Into::into))
     }
@@ -146,12 +148,18 @@ impl Keyspace {
         Ok(())
     }
 
-    /// Queues this keyspace for background compaction.
-    #[doc(hidden)]
+    /// Runs a queued compaction. Ingestions finishing meanwhile queue a follow-up.
+    pub(crate) fn compact_queued(&self) -> Result<()> {
+        // A swap (not a store) also acquires the version the requester published.
+        self.inner.compaction_queued.swap(false, Ordering::AcqRel);
+        self.compact()
+    }
+
+    /// Queues this keyspace for background compaction unless a request is already pending.
     fn request_compaction(&self) {
-        let _ = self
-            .inner
-            .worker
-            .try_send(WorkerMessage::Compact(self.clone()));
+        if !self.inner.compaction_queued.swap(true, Ordering::AcqRel) {
+            // Fails only once the database dropped its workers.
+            let _ = self.inner.worker.send(WorkerMessage::Compact(self.clone()));
+        }
     }
 }

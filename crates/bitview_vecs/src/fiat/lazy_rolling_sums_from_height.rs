@@ -1,16 +1,14 @@
-use bitview_collections::Windows;
-use bitview_transforms::Convert;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::ReadableCloneableVec;
+use vecdb::{Convert, ReadableCloneableVec};
 
 use crate::{
     FiatType, IndexSources, LazyPerBlock, LazyRollingSumFiatFromHeight, LazyRollingSumFromHeight,
+    shapes::Windows,
 };
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyRollingSumsFiatFromHeight<C: FiatType>(
     /// Total of the per-block values over the trailing window ending at the
     /// represented block. At time-period indexes, the value is taken at the

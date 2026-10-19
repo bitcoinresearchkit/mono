@@ -1,13 +1,12 @@
 # bitview_compute
 
-Stateful and range-based calculations shared by Bitview plugins: rolling
-statistics, drawdowns, weighted cohort state, age-band math and resume
-preparation. The `statistics` family contains rolling algorithms and the
-order-statistics structures they use.
+Rolling statistics, weighted cohort accounting, and computation resume/write helpers shared
+by Bitview plugins. The `statistics` module contains rolling algorithms and their
+order-statistics structures.
 
-Stateless value transforms live in `bitview_transforms`; result shapes live in
-`bitview_collections`; metric vector ownership and view composition live in
-`bitview_vecs`. Storage primitives, shared cache accounting, and stored-version
+`DistributionStats` is the seven-statistic shape the rolling distribution writes.
+Stateless value transforms (`ops`), other typed shapes (`shapes`), metric vector
+ownership and view composition live in `bitview_vecs`. Storage primitives, shared cache accounting, and stored-version
 validation belong to vecdb.
 
 `ComputedVecValue`, `NumericValue`, and `FixedRatio` describe calculation/storage

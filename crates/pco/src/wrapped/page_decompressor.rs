@@ -6,14 +6,14 @@ use better_io::BetterBufRead;
 
 use crate::bit_reader::BitReaderBuilder;
 use crate::chunk_latent_decompressor::DynChunkLatentDecompressor;
-use crate::constants::{FULL_BATCH_N, MAX_BATCH_LATENT_VAR_SIZE, OVERSHOOT_PADDING};
+use crate::constants::{FULL_BATCH_N, OVERSHOOT_PADDING};
 use crate::data_types::number_priv::NumberPriv;
 use crate::data_types::Number;
 use crate::dyn_slices::{DynLatentSlice, DynNumberSliceMut};
 use crate::errors::{PcoError, PcoResult};
 use crate::macros::{match_latent_enum, match_number_enum};
 use crate::metadata::page::PageMeta;
-use crate::metadata::per_latent_var::PerLatentVar;
+use crate::metadata::per_latent_var::{LatentVarKey, PerLatentVar};
 use crate::page_latent_decompressor::{DynPageLatentDecompressor, PageLatentDecompressor};
 use crate::progress::Progress;
 use crate::wrapped::chunk_decompressor::ChunkDecompressorInner;
@@ -36,11 +36,11 @@ fn make_latent_decompressors(
   page_meta: &PageMeta,
   n: usize,
 ) -> PcoResult<PerLatentVar<DynPageLatentDecompressor>> {
-  let n_in_body = n.saturating_sub(cd.n_latents_per_delta_state());
+  let primary_n_in_body = n.saturating_sub(cd.n_latents_per_delta_state());
   cd.per_latent_var
     .as_ref()
     .zip_exact(page_meta.per_latent_var.as_ref())
-    .map_result(|_key, (dyn_cld, page_latent_var_meta)| {
+    .map_result(|key, (dyn_cld, page_latent_var_meta)| {
       let state = match_latent_enum!(
         &dyn_cld,
         DynChunkLatentDecompressor<L>(cld) => {
@@ -50,6 +50,14 @@ fn make_latent_decompressors(
             .unwrap()
             .clone();
 
+          // BRK: each stream's body length follows its own delta encoding; delta
+          // latents line up with the primary's pre-delta length.
+          let n_in_body = match key {
+            LatentVarKey::Delta => primary_n_in_body,
+            LatentVarKey::Primary | LatentVarKey::Secondary => {
+              n.saturating_sub(cld.delta_encoding.n_latents_per_state())
+            }
+          };
           if cld.n_bins == 0 && n_in_body > 0 {
             return Err(PcoError::corruption(format!(
               "unable to decompress chunk with no bins and {} latents",
@@ -95,7 +103,7 @@ fn read_primary_or_secondary<'a, R: BetterBufRead>(
   dyn_cld: &'a mut DynChunkLatentDecompressor,
   dyn_pld: &'a mut DynPageLatentDecompressor,
 ) -> PcoResult<DynLatentSlice<'a>> {
-  reader_builder.with_reader(MAX_BATCH_LATENT_VAR_SIZE, |reader| unsafe {
+  reader_builder.with_reader(dyn_cld.batch_read_size(), |reader| unsafe {
     match_latent_enum!(
       dyn_pld,
       DynPageLatentDecompressor<L>(pld) => {
@@ -128,9 +136,10 @@ impl<R: BetterBufRead> PageDecompressorState<R> {
         n_remaining.saturating_sub(cd.n_latents_per_delta_state()),
         batch_n,
       );
+      let read_size = cd.per_latent_var.delta.as_ref().unwrap().batch_read_size();
       self
         .reader_builder
-        .with_reader(MAX_BATCH_LATENT_VAR_SIZE, |reader| unsafe {
+        .with_reader(read_size, |reader| unsafe {
           match_latent_enum!(
             dyn_pld,
             DynPageLatentDecompressor<L>(pld) => {
@@ -219,6 +228,10 @@ impl<R: BetterBufRead> PageDecompressorState<R> {
       n_processed,
       finished: self.n_remaining == 0,
     })
+  }
+
+  pub(crate) fn n_remaining(&self) -> usize {
+    self.n_remaining
   }
 
   pub fn into_src(self) -> R {

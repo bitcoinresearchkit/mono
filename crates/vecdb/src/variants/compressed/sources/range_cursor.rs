@@ -3,24 +3,25 @@ use std::{ptr::NonNull, sync::Arc};
 use parking_lot::RwLock;
 use rawdb::Region;
 
-use crate::{Pages, VecIndex, VecValue, unlikely};
+use crate::{Pages, VecValue, unlikely};
 
 use super::super::inner::{COMPRESSED_PAGE_SIZE, CompressionStrategy, ReadWriteCompressedVec};
 use super::{CompressedIoSource, CompressedMmapSource};
 
-enum Owner<'a, I, T, S>
+enum Owner<'a, T, S>
 where
     T: VecValue,
     S: CompressionStrategy<T>,
 {
-    Mmap(CompressedMmapSource<'a, I, T, S>),
-    Io(CompressedIoSource<'a, I, T, S>),
+    Mmap(CompressedMmapSource<'a, T, S>),
+    Io(CompressedIoSource<'a, T, S>),
 }
 
 struct CursorState<T> {
     position: usize,
     end: usize,
-    page_index: usize,
+    /// The page `page` points into.
+    decoded_page: usize,
     page: *const T,
     page_len: usize,
 }
@@ -33,15 +34,10 @@ impl<T: VecValue> CursorState<T> {
         Self {
             position,
             end,
-            page_index: Self::NO_PAGE,
+            decoded_page: Self::NO_PAGE,
             page: NonNull::dangling().as_ptr(),
             page_len: 0,
         }
-    }
-
-    #[inline]
-    fn advance(&mut self, n: usize) {
-        self.position = self.position.saturating_add(n).min(self.end);
     }
 
     #[inline(always)]
@@ -51,19 +47,19 @@ impl<T: VecValue> CursorState<T> {
 
     #[inline(always)]
     fn has_page(&self, page_index: usize) -> bool {
-        self.page_index == page_index
+        self.decoded_page == page_index
     }
 
     #[inline(always)]
     fn set_page(&mut self, page_index: usize, page: *const T, page_len: usize) {
-        self.page_index = page_index;
+        self.decoded_page = page_index;
         self.page = page;
         self.page_len = page_len;
     }
 
     #[inline(always)]
     fn next(&mut self) -> T {
-        let local = self.position - self.page_index * Self::PER_PAGE;
+        let local = self.position - self.decoded_page * Self::PER_PAGE;
         debug_assert!(local < self.page_len);
         // SAFETY: the cursor refreshes this pointer before entering a new page.
         let value = unsafe { (&*self.page.add(local)).clone() };
@@ -73,10 +69,10 @@ impl<T: VecValue> CursorState<T> {
 
     #[inline(always)]
     fn contains_until(&self, end: usize) -> bool {
-        if self.page_index == Self::NO_PAGE {
+        if self.decoded_page == Self::NO_PAGE {
             return false;
         }
-        let page_start = self.page_index * Self::PER_PAGE;
+        let page_start = self.decoded_page * Self::PER_PAGE;
         self.position >= page_start && end <= page_start + self.page_len
     }
 
@@ -87,7 +83,7 @@ impl<T: VecValue> CursorState<T> {
         mut value: B,
         fold: &mut impl FnMut(B, T) -> B,
     ) -> B {
-        let page_start = self.page_index * Self::PER_PAGE;
+        let page_start = self.decoded_page * Self::PER_PAGE;
         debug_assert!(self.position >= page_start);
         debug_assert!(end >= self.position);
         debug_assert!(end - page_start <= self.page_len);
@@ -137,18 +133,17 @@ impl<T: VecValue> CursorState<T> {
 ///
 /// The declared range lets the cursor choose once between mmap for resident
 /// pages and buffered file I/O for a cold sequential scan.
-pub struct CompressedRangeCursor<'a, I, T, S>
+pub struct CompressedRangeCursor<'a, T, S>
 where
     T: VecValue,
     S: CompressionStrategy<T>,
 {
-    owner: Owner<'a, I, T, S>,
+    owner: Owner<'a, T, S>,
     state: CursorState<T>,
 }
 
-impl<'a, I, T, S> CompressedRangeCursor<'a, I, T, S>
+impl<'a, T, S> CompressedRangeCursor<'a, T, S>
 where
-    I: VecIndex,
     T: VecValue,
     S: CompressionStrategy<T>,
 {
@@ -161,7 +156,7 @@ where
     /// Advances within the declared range without decoding values.
     #[inline]
     pub fn advance(&mut self, n: usize) {
-        self.state.advance(n);
+        self.state.position = self.state.position.saturating_add(n).min(self.state.end);
     }
 
     #[inline(always)]
@@ -177,7 +172,6 @@ where
         Some(())
     }
 
-    /// Returns the next value and advances the position.
     #[inline(always)]
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<T> {
@@ -238,17 +232,24 @@ where
     /// Consume a sorted request directly from decoded pages, without copying
     /// each page through the generic Cursor buffer. Consumes this cursor so no
     /// buffered pointer survives a decoder refill performed by this method.
+    /// Stops at the first index past the published length: a truncation can land after the
+    /// caller chose its indices.
     pub(crate) fn read_sorted_into(mut self, mut indices: &[usize], out: &mut Vec<T>) {
         while let Some(&first) = indices.first() {
             let page_index = first / CursorState::<T>::PER_PAGE;
             let count = indices.partition_point(|&i| i / CursorState::<T>::PER_PAGE == page_index);
-            let page = match &mut self.owner {
+            let Some(page) = (match &mut self.owner {
                 Owner::Mmap(source) => source.decoded_page(page_index),
                 Owner::Io(source) => source.decoded_page(page_index),
-            }
-            .expect("requested compressed page must exist");
+            }) else {
+                return;
+            };
             let base = page_index * CursorState::<T>::PER_PAGE;
-            out.extend(indices[..count].iter().map(|&i| page[i - base].clone()));
+            let available = indices[..count].partition_point(|&i| i - base < page.len());
+            out.extend(indices[..available].iter().map(|&i| page[i - base].clone()));
+            if available < count {
+                return;
+            }
             indices = &indices[count..];
         }
     }
@@ -262,7 +263,8 @@ where
     ) -> Self {
         let from = from.min(stored_len);
         let to = to.min(stored_len).max(from);
-        let owner = if ReadWriteCompressedVec::<I, T, S>::prefers_mmap(region, pages, from, to) {
+        let owner = if ReadWriteCompressedVec::<usize, T, S>::prefers_mmap(region, pages, from, to)
+        {
             Owner::Mmap(CompressedMmapSource::new_from_parts(
                 region, pages, stored_len, from, to,
             ))

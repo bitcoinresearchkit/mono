@@ -20,7 +20,6 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    #[doc(hidden)]
     pub(crate) fn new(
         compact: &MutableVec<BytesVec<I, T::Compact>>,
         overflow: &MutableVec<BytesVec<usize, T>>,
@@ -31,14 +30,13 @@ where
         }
     }
 
-    #[doc(hidden)]
     pub(crate) fn from_read_only(
         compact: &ReadOnlyMutableVec<ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>>,
         overflow: &ReadOnlyMutableVec<ReadOnlyRawVec<usize, T, BytesStrategy<T>>>,
     ) -> Self {
         Self {
-            compact: BytesVecReader::new(compact.reader()),
-            overflow: BytesVecReader::new(overflow.reader()),
+            compact: compact.reader(),
+            overflow: overflow.reader(),
         }
     }
 
@@ -47,19 +45,10 @@ where
         decode::<T>(compact, |index| self.overflow.get_at(index))
     }
 
-    /// Returns the persisted value at `index`.
-    ///
-    /// # Panics
-    /// Panics if `index >= stored_len()`.
-    #[inline(always)]
-    pub fn get(&self, index: I) -> T {
-        self.get_at(index.to_usize())
-    }
-
     /// Returns the persisted value at raw `index`.
     ///
     /// # Panics
-    /// Panics if `index >= stored_len()`.
+    /// Panics if `index` is not persisted.
     #[inline(always)]
     pub fn get_at(&self, index: usize) -> T {
         self.decode(self.compact.get_at(index))
@@ -68,25 +57,12 @@ where
     /// Returns the persisted value at `index`, or `None` if out of bounds.
     #[inline(always)]
     pub fn try_get(&self, index: I) -> Option<T> {
-        self.try_get_at(index.to_usize())
-    }
-
-    /// Returns the persisted value at raw `index`, or `None` if out of bounds.
-    #[inline(always)]
-    fn try_get_at(&self, index: usize) -> Option<T> {
         self.compact
-            .try_get_at(index)
+            .try_get_at(index.to_usize())
             .map(|compact| self.decode(compact))
     }
 
-    /// Returns the number of persisted values.
     #[inline(always)]
-    pub fn stored_len(&self) -> usize {
-        self.compact.stored_len()
-    }
-
-    #[inline(always)]
-    #[doc(hidden)]
     pub(crate) fn compact(
         &self,
         vec: &MutableVec<BytesVec<I, T::Compact>>,
@@ -96,7 +72,6 @@ where
     }
 
     #[inline(always)]
-    #[doc(hidden)]
     pub(crate) fn overflow(&self, vec: &MutableVec<BytesVec<usize, T>>, index: usize) -> Option<T> {
         vec.get_with_reader_at(index, &self.overflow)
     }

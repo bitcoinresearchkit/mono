@@ -56,9 +56,10 @@ macro_rules! impl_cohort_collection {
                 self.as_array_mut().into_iter()
             }
 
+            #[cfg(feature = "storage")]
             pub fn par_iter_mut(&mut self) -> impl rayon::iter::ParallelIterator<Item = &mut T>
             where
-                T: Send + Sync,
+                T: Send,
             {
                 rayon::iter::IntoParallelIterator::into_par_iter(self.as_array_mut())
             }
@@ -73,49 +74,6 @@ macro_rules! impl_cohort_collection {
                 Ok(Self {
                     $($field: f($id::$variant)?),+
                 })
-            }
-        }
-        impl_collection_formattable!($collection { $($field),+ });
-    };
-}
-
-macro_rules! impl_collection_formattable {
-    (
-        $collection:ident {
-            $($field:ident),+ $(,)?
-        }
-    ) => {
-        #[cfg(feature = "storage")]
-        impl<T: vecdb::Formattable> vecdb::Formattable for $collection<T> {
-            fn write_to(&self, output: &mut Vec<u8>) {
-                output.push(b'{');
-                let mut first = true;
-                $(
-                    if !first {
-                        output.push(b',');
-                    }
-                    first = false;
-                    output.extend_from_slice(concat!("\"", stringify!($field), "\":").as_bytes());
-                    vecdb::Formattable::fmt_json(&self.$field, output);
-                )+
-                let _ = first;
-                output.push(b'}');
-            }
-
-            fn fmt_csv(&self, output: &mut String) -> std::fmt::Result {
-                let mut json = Vec::new();
-                vecdb::Formattable::write_to(self, &mut json);
-                let json = std::str::from_utf8(&json).map_err(|_| std::fmt::Error)?;
-
-                output.push('"');
-                for character in json.chars() {
-                    if character == '"' {
-                        output.push('"');
-                    }
-                    output.push(character);
-                }
-                output.push('"');
-                Ok(())
             }
         }
     };

@@ -1,22 +1,21 @@
-use super::DeltaOp;
+use crate::CheckedSub;
 
-/// Delta rate (growth): `(source[h] - source[start]) / source[start]` via f64.
+use super::{DeltaOp, exact_diff};
+
+/// Growth over a window: `(source[h] - source[start - 1]) / source[start - 1]`, from the value
+/// before the window (zero for a window from 0); undefined (NaN, or infinite) when that value is
+/// zero.
 #[derive(Clone, Copy)]
 pub struct DeltaRate;
 
 impl<S, B> DeltaOp<S, B> for DeltaRate
 where
-    S: Into<f64>,
+    S: CheckedSub + PartialOrd + Into<f64> + Clone,
     B: From<f64>,
 {
     #[inline]
-    fn combine(current: S, ago: S, _count: usize) -> B {
-        let current_f: f64 = current.into();
-        let ago_f: f64 = ago.into();
-        if ago_f == 0.0 {
-            B::from(0.0)
-        } else {
-            B::from((current_f - ago_f) / ago_f)
-        }
+    fn combine(current: S, before: S, _count: usize) -> B {
+        let base: f64 = before.clone().into();
+        B::from(exact_diff(current, before) / base)
     }
 }

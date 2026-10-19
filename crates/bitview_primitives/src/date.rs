@@ -2,8 +2,7 @@ use std::{borrow::Cow, fmt, str::FromStr};
 
 use brk_error::{Error, Result as ErrorResult};
 use brk_types::Timestamp;
-use itoa::Buffer;
-use jiff::{Span, Timestamp as JiffTimestamp, civil::Date as Date_, tz::TimeZone};
+use jiff::{Span, Timestamp as JiffTimestamp, civil::Date as JiffDate, tz::TimeZone};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
@@ -38,7 +37,7 @@ impl JsonSchema for Date {
 
 impl Date {
     const INDEX_ZERO: Self = Self(20090101);
-    pub(crate) const INDEX_ZERO_: Date_ = Date_::constant(2009, 1, 1);
+    pub(crate) const JIFF_INDEX_ZERO: JiffDate = JiffDate::constant(2009, 1, 1);
 
     pub fn new(year: u16, month: u8, day: u8) -> Self {
         Self(year as u32 * 1_00_00 + month as u32 * 1_00 + day as u32)
@@ -56,10 +55,42 @@ impl Date {
         (self.0 % 1_00) as u8
     }
 
+    /// `YYYY-MM-DD`, zero-padded.
+    fn to_ascii(self) -> DateAscii {
+        let year = self.year();
+        debug_assert!(year <= 9999, "year {year} has more than four digits");
+        let digit = |value: u16| b'0' + (value % 10) as u8;
+        let (month, day) = (self.month() as u16, self.day() as u16);
+        DateAscii([
+            digit(year / 1000),
+            digit(year / 100),
+            digit(year / 10),
+            digit(year),
+            b'-',
+            digit(month / 10),
+            digit(month),
+            b'-',
+            digit(day / 10),
+            digit(day),
+        ])
+    }
+
     /// Validate dates constructed directly or decoded from persisted values.
-    pub fn try_into_jiff(self) -> ErrorResult<Date_> {
+    pub fn try_into_jiff(self) -> ErrorResult<JiffDate> {
         let year = i16::try_from(self.0 / 10_000).map_err(|_| Error::UnindexableDate)?;
-        Date_::new(year, self.month() as i8, self.day() as i8).map_err(|_| Error::UnindexableDate)
+        JiffDate::new(year, self.month() as i8, self.day() as i8)
+            .map_err(|_| Error::UnindexableDate)
+    }
+}
+
+/// A date's `YYYY-MM-DD` bytes: ASCII digits and dashes only.
+struct DateAscii([u8; 10]);
+
+impl DateAscii {
+    #[inline]
+    fn as_str(&self) -> &str {
+        // SAFETY: built only by `Date::to_ascii`, from ASCII digits and dashes.
+        unsafe { std::str::from_utf8_unchecked(&self.0) }
     }
 }
 
@@ -69,14 +100,14 @@ impl Default for Date {
     }
 }
 
-impl From<Date_> for Date {
+impl From<JiffDate> for Date {
     #[inline]
-    fn from(value: Date_) -> Self {
+    fn from(value: JiffDate) -> Self {
         Self::new(value.year() as u16, value.month() as u8, value.day() as u8)
     }
 }
 
-impl From<Date> for Date_ {
+impl From<Date> for JiffDate {
     #[inline]
     fn from(value: Date) -> Self {
         Self::new(value.year() as i16, value.month() as i8, value.day() as i8).unwrap()
@@ -91,11 +122,25 @@ impl From<Date> for JiffTimestamp {
 }
 
 impl From<Timestamp> for Date {
+    /// The UTC calendar date, by integer civil-from-days arithmetic (H. Hinnant): hot loops convert
+    /// billions of timestamps, and a time-zone conversion costs far more.
     #[inline]
     fn from(value: Timestamp) -> Self {
-        Self::from(Date_::from(
-            JiffTimestamp::from(value).to_zoned(TimeZone::UTC),
-        ))
+        let days = (u64::from(value) / 86_400) as i64 + 719_468;
+        let era = days.div_euclid(146_097);
+        let day_of_era = days - era * 146_097;
+        let year_of_era =
+            (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+        let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+        let shifted_month = (5 * day_of_year + 2) / 153;
+        let day = day_of_year - (153 * shifted_month + 2) / 5 + 1;
+        let month = if shifted_month < 10 {
+            shifted_month + 3
+        } else {
+            shifted_month - 9
+        };
+        let year = year_of_era + era * 400 + i64::from(month <= 2);
+        Self::new(year as u16, month as u8, day as u8)
     }
 }
 
@@ -103,7 +148,7 @@ impl From<Day1> for Date {
     #[inline]
     fn from(value: Day1) -> Self {
         Self::from(
-            Self::INDEX_ZERO_
+            Self::JIFF_INDEX_ZERO
                 .checked_add(Span::new().days(i64::from(value)))
                 .unwrap(),
         )
@@ -115,7 +160,7 @@ impl From<Week1> for Date {
     fn from(value: Week1) -> Self {
         // Week i starts on the Monday `Week1` buckets from: ISO 2009-W01 (2008-12-29), plus i weeks
         Self::from(
-            Self::INDEX_ZERO_
+            Self::JIFF_INDEX_ZERO
                 .checked_add(Span::new().days(i64::from(u16::from(value)) * 7 - 3))
                 .unwrap(),
         )
@@ -127,7 +172,7 @@ impl From<Month1> for Date {
     fn from(value: Month1) -> Self {
         // Month 0 is January 2009, add i months
         Self::from(
-            Date_::constant(2009, 1, 1)
+            Self::JIFF_INDEX_ZERO
                 .checked_add(Span::new().months(i64::from(u16::from(value))))
                 .unwrap(),
         )
@@ -139,7 +184,7 @@ impl From<Year1> for Date {
     fn from(value: Year1) -> Self {
         // Year 0 is 2009
         let year = 2009i16 + usize::from(value) as i16;
-        Self::from(Date_::constant(year, 1, 1))
+        Self::from(JiffDate::constant(year, 1, 1))
     }
 }
 
@@ -148,7 +193,7 @@ impl From<Month3> for Date {
     fn from(value: Month3) -> Self {
         // Quarter 0 is Q1 2009, add i*3 months
         Self::from(
-            Date_::constant(2009, 1, 1)
+            Self::JIFF_INDEX_ZERO
                 .checked_add(Span::new().months(usize::from(value) as i64 * 3))
                 .unwrap(),
         )
@@ -160,7 +205,7 @@ impl From<Month6> for Date {
     fn from(value: Month6) -> Self {
         // Semester 0 is H1 2009, add i*6 months
         Self::from(
-            Date_::constant(2009, 1, 1)
+            Self::JIFF_INDEX_ZERO
                 .checked_add(Span::new().months(usize::from(value) as i64 * 6))
                 .unwrap(),
         )
@@ -176,7 +221,7 @@ impl From<Year10> for Date {
             0 => 2009,
             decade => 2000 + decade as i16 * 10,
         };
-        Self::from(Date_::constant(year, 1, 1))
+        Self::from(JiffDate::constant(year, 1, 1))
     }
 }
 
@@ -185,7 +230,7 @@ impl Serialize for Date {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        serializer.serialize_str(self.to_ascii().as_str())
     }
 }
 
@@ -217,28 +262,7 @@ impl<'de> Deserialize<'de> for Date {
 
 impl fmt::Display for Date {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut buf = Buffer::new();
-
-        let year = buf.format(self.year());
-        for _ in year.len()..4 {
-            f.write_str("0")?;
-        }
-        f.write_str(year)?;
-        f.write_str("-")?;
-
-        let month = self.month();
-        if month < 10 {
-            f.write_str("0")?;
-        }
-        f.write_str(buf.format(month))?;
-        f.write_str("-")?;
-
-        let day = self.day();
-        if day < 10 {
-            f.write_str("0")?;
-        }
-
-        f.write_str(buf.format(day))
+        f.write_str(self.to_ascii().as_str())
     }
 }
 
@@ -261,7 +285,7 @@ impl FromStr for Date {
         let year: u16 = s[0..4].parse().map_err(|_| "invalid year")?;
         let month: u8 = s[5..7].parse().map_err(|_| "invalid month")?;
         let day: u8 = s[8..10].parse().map_err(|_| "invalid day")?;
-        Date_::new(year as i16, month as i8, day as i8)
+        JiffDate::new(year as i16, month as i8, day as i8)
             .map(Self::from)
             .map_err(|_| "invalid calendar date")
     }
@@ -269,9 +293,9 @@ impl FromStr for Date {
 
 #[cfg(feature = "storage")]
 impl Formattable for Date {
+    #[inline]
     fn write_to(&self, buf: &mut Vec<u8>) {
-        use std::io::Write;
-        write!(buf, "{self}").unwrap();
+        buf.extend_from_slice(&self.to_ascii().0);
     }
 
     fn fmt_json(&self, buf: &mut Vec<u8>) {
@@ -285,7 +309,7 @@ impl From<Date> for Timestamp {
     #[inline]
     fn from(value: Date) -> Self {
         Self::from(
-            Date_::from(value)
+            JiffDate::from(value)
                 .to_zoned(TimeZone::UTC)
                 .unwrap()
                 .timestamp(),

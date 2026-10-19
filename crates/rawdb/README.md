@@ -2,21 +2,14 @@
 
 Non-transactional embedded storage engine with a filesystem-like API.
 
-It features:
-
 - Multiple named regions in one file
 - Automatic space reclamation via hole punching
 - Regions grow and move automatically as needed
 - Zero-copy mmap access
 - Concurrent reads and writes to independent regions
 - Page-aligned allocations (4KB)
-- Explicit synchronization of data and metadata
-- Foundation for higher-level abstractions (e.g., [`vecdb`](../vecdb/README.md))
-
-It is not:
-
-- A transactional database (no ACID, transactions, or rollback)
-- A query engine (no SQL, indexes, or schemas)
+- No device syncs: writes live in the OS page cache, which survives soft quits
+- Used by [`vecdb`](../vecdb/README.md)
 
 ## Install
 
@@ -32,7 +25,7 @@ let region = db.create_region_if_needed("blocks")?;
 region.write_at(b"hello", 0)?;
 let reader = region.create_reader();
 assert_eq!(reader.read(0, 5), b"hello");
-db.flush()?;
+db.flush();
 ```
 
 ## Sparse files
@@ -50,22 +43,17 @@ Each database directory contains a `data` file and a `regions` metadata file.
 Metadata uses fixed 4 KiB slots containing each region's ID, offset, length,
 and capacity. These slots are not guaranteed atomic disk writes.
 
-Writes become visible in process immediately. `Database::flush()` excludes
-mutations while it synchronizes dirty data and the data file's metadata, then
-synchronizes the region metadata. Only after that do old allocations from
-moves and removals become reusable. `Region::flush()` synchronizes its own data when metadata is unchanged. If
-metadata changed, it synchronizes all database data before the shared metadata.
+Writes go to the shared file mapping, except indexed batch writes (`Region::write_indexed`), which run in
+page-aligned chunks on a few threads: on macOS, where dirtying a cached page costs far more than the I/O, each
+chunk is patched in a buffer and written through a second, uncached descriptor; elsewhere chunks not in memory
+are read into the page cache in parallel before the values are stored through the mapping. Every write is
+visible in process immediately and to the next process that opens the database, across soft quits and process
+crashes. rawdb never syncs to the device. `Database::flush()` excludes mutations and makes old
+allocations from moves and removals reusable.
 
-Dirty tracking starts when the database is opened. Reopening alone does not
-request file synchronization; a flush without changes since opening is a no-op.
-It does not establish durability for pending writes left by a previous process.
-
-This is not a transaction or crash-recovery protocol. Both mappings can be
-written back by the OS before an explicit flush, and in-place writes can
-partially persist. A crash during unflushed operations or synchronization can
-leave inconsistent data or torn metadata; a previously flushed state is not
-preserved as a rollback point. There is no WAL or checksum-based repair. File
-synchronization guarantees also depend on the filesystem and storage device.
+This is not a transaction or crash-recovery protocol. Kernel panics, power loss and storage removal are out of
+scope: they can lose any write the OS had not yet written back and leave inconsistent data or torn metadata.
+There is no WAL or checksum-based repair.
 
 On open, rawdb validates metadata sizes, IDs, region bounds, and overlaps before
 rebuilding its lookup and allocation structures. Invalid metadata returns an
@@ -73,19 +61,23 @@ error; valid-looking data corruption cannot be detected by rawdb.
 
 ## Concurrency and lifetimes
 
-- A `Reader`, `with_read_bytes` callback, or `read_lock` guard keeps its region
-  stable. Writes, truncation, and relocation of that region wait for readers.
-- Readers expose only their region's logical bytes. `read` checks its range;
-  `read_from` returns bytes from an offset to the region's end.
-- Drop readers before mutating the same region. Mmap readers also prevent
-  remapping, so drop them before an operation that grows the database file.
-  `reserve_capacity` can arrange capacity before acquiring readers.
+- A `Reader`, `with_read_range` callback, or `read_lock` guard keeps its region
+  stable. Appends within the region's reservation go past every reader's bounds
+  and do not wait; other writes, truncation, and relocation wait for readers.
+- Readers expose only their region's logical bytes, and borrow only the bytes
+  they read. `read` checks its range; `read_from` returns bytes from an offset
+  to the region's end.
+- Drop readers before rewriting the same region. `reserve_capacity` can arrange
+  capacity before acquiring readers.
+- The data file maps a reserved address range once (four times its size at open,
+  at least 1 TiB): growing the file inside it never remaps. Growing past it fails
+  with `ReservationExhausted`; reopening reserves more.
 - Different regions can be written concurrently within the existing mapping.
   Allocation changes are serialized. Flush and compaction exclude mutations,
   while ordinary reads can continue.
-- Batch callbacks must not reenter their region or resize/flush the database.
-  They may read other regions while file growth waits. Written bytes remain
-  dirty if a callback panics.
+- Indexed batch write callbacks must not access the database. Indexed batch
+  writes go in no particular order; if a callback panics, the values and chunks
+  already written stay written.
 - Keep a `Database` alive while using region handles. A `Reader` owns the
   database and region handles needed for its own lifetime. Release metadata and
   read guards before requesting conflicting operations.

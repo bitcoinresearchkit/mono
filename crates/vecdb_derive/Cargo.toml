@@ -1,6 +1,6 @@
 [package]
 name = "vecdb_derive"
-description = "Derive for vecdb"
+description = "Bytes and Pco derive macros for vecdb newtypes"
 keywords = ["vec", "disk", "data"]
 categories = ["database"]
 version.workspace = true

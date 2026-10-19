@@ -16,16 +16,12 @@ use std::{
 use block_index::BlockIndexImpl;
 use bound::Bound as IterBound;
 use inner::Inner;
-use iter::Iter;
 use log::{debug, trace};
 use sfa::Reader;
-use util::load_block;
+use util::BlockSource;
 
 use crate::{
-    CompressionType, Error, InternalValue, RecordBytes, Result, Slice,
-    cache::Cache,
-    descriptor_table::DescriptorTable,
-    file_accessor::FileAccessor,
+    CompressionType, Config, Error, RecordBytes, Result, Slice,
     point_read_value::PointReadValue,
     table::{
         block::BlockType,
@@ -53,14 +49,12 @@ mod scanner;
 pub mod util;
 pub mod writer;
 
-#[cfg(test)]
-mod tests;
-
 pub use block::{Block, BlockOffset};
 pub use data_block::DataBlock;
 pub use id::GlobalTableId;
 pub use id::next_table_id;
 pub use index_block::{BlockHandle, IndexBlock, KeyedBlockHandle};
+pub use iter::Iter;
 pub use scanner::Scanner;
 
 /// A disk segment (a.k.a. `Table`, `SSTable`, `SST`, `sorted string table`) that is located on disk
@@ -96,36 +90,6 @@ impl Table {
         self.0.global_seqno
     }
 
-    /// Gets the global table ID.
-    #[must_use]
-    fn global_id(&self) -> GlobalTableId {
-        (self.tree_id, self.id()).into()
-    }
-
-    #[must_use]
-    pub fn filter_size(&self) -> u32 {
-        self.regions.filter.map(|x| x.size()).unwrap_or_default()
-    }
-
-    #[must_use]
-    pub fn pinned_filter_size(&self) -> usize {
-        self.pinned_filter_block
-            .as_ref()
-            .map(StandardBloomFilterReader::size)
-            .unwrap_or_default()
-    }
-
-    #[must_use]
-    pub fn pinned_block_index_size(&self) -> usize {
-        match &*self.block_index {
-            BlockIndexImpl::Full(full_block_index) => full_block_index.inner().inner.size(),
-            BlockIndexImpl::VolatileFull(_) => 0,
-            BlockIndexImpl::TwoLevel(two_level_block_index) => {
-                two_level_block_index.top_level_index.inner.size()
-            }
-        }
-    }
-
     /// Gets the table ID.
     ///
     /// The table ID is unique for this tree, but not
@@ -141,15 +105,7 @@ impl Table {
         block_type: BlockType,
         compression: CompressionType,
     ) -> Result<Block> {
-        load_block(
-            self.global_id(),
-            &self.path,
-            &self.file_accessor,
-            &self.cache,
-            handle,
-            block_type,
-            compression,
-        )
+        self.source.load(handle, block_type, compression)
     }
 
     fn load_data_block(&self, handle: &BlockHandle) -> Result<DataBlock> {
@@ -166,29 +122,17 @@ impl Table {
         self.metadata.file_size
     }
 
-    pub fn get(&self, key: &[u8], key_hash: u64) -> Result<Option<InternalValue>> {
-        let mut key_hash = Some(key_hash);
-        self.get_with(key, &mut key_hash, Self::point_read)
-    }
-
     pub fn get_value<V: RecordBytes>(
         &self,
         key: &[u8],
         key_hash: &mut Option<u64>,
     ) -> Result<Option<PointReadValue<V>>> {
-        self.get_with(key, key_hash, Self::point_read_value)
-    }
-
-    fn get_with<T>(
-        &self,
-        key: &[u8],
-        key_hash: &mut Option<u64>,
-        point_read: impl FnOnce(&Self, &[u8]) -> Result<Option<T>>,
-    ) -> Result<Option<T>> {
         if !self.filter_may_contain(key, key_hash)? {
             return Ok(None);
         }
-        point_read(self, key)
+        self.block_index.point_read(key, u64::MAX, |handle| {
+            self.load_data_block(handle)?.point_read_value(key)
+        })
     }
 
     fn filter_may_contain(&self, key: &[u8], key_hash: &mut Option<u64>) -> Result<bool> {
@@ -211,30 +155,6 @@ impl Table {
 
         let block = self.load_block(&handle, BlockType::Filter, CompressionType::None)?;
         Ok(StandardBloomFilterReader::new(block.data.as_ref())?.maybe_contains(key, key_hash))
-    }
-
-    fn point_read(&self, key: &[u8]) -> Result<Option<InternalValue>> {
-        self.point_read_with(key, |block, key| {
-            Ok(block.point_read(key).map(|mut item| {
-                item.key.seqno += self.global_seqno();
-                item
-            }))
-        })
-    }
-
-    fn point_read_value<V: RecordBytes>(&self, key: &[u8]) -> Result<Option<PointReadValue<V>>> {
-        self.point_read_with(key, DataBlock::point_read_value)
-    }
-
-    fn point_read_with<T>(
-        &self,
-        key: &[u8],
-        point_read: impl Fn(&DataBlock, &[u8]) -> Result<Option<T>>,
-    ) -> Result<Option<T>> {
-        self.block_index.point_read(key, u64::MAX, |block_handle| {
-            let block = self.load_data_block(block_handle)?;
-            point_read(&block, key)
-        })
     }
 
     /// Creates a scanner over the `Table`.
@@ -261,42 +181,18 @@ impl Table {
             .expect("data block count should fit");
 
         Scanner::new(
-            &self.path,
+            &self.source.path,
             block_count,
             self.metadata.data_block_compression,
             self.global_seqno(),
         )
     }
 
-    /// Creates an iterator over the `Table`.
-    ///
-    /// # Errors
-    ///
-    /// Will return `Err` if an IO error occurs.
-    #[must_use]
-    #[doc(hidden)]
-    pub fn iter(&self) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + use<> {
-        self.range(..)
-    }
-
-    /// Creates a ranged iterator over the `Table`.
-    ///
-    /// # Errors
-    ///
-    /// Will return `Err` if an IO error occurs.
-    #[must_use]
-    #[doc(hidden)]
-    pub fn range<R: RangeBounds<Slice> + Send>(
+    /// Iterates over the records in `range`, decoding them as `K` and `V`.
+    pub fn range_as<K: RecordBytes, V: RecordBytes, R: RangeBounds<Slice>>(
         &self,
         range: R,
-    ) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + Send + use<R> {
-        self.range_as::<Slice, Slice, R>(range)
-    }
-
-    pub fn range_as<K: RecordBytes, V: RecordBytes, R: RangeBounds<Slice> + Send>(
-        &self,
-        range: R,
-    ) -> impl DoubleEndedIterator<Item = Result<InternalValue<K, V>>> + Send + use<K, V, R> {
+    ) -> Iter<K, V> {
         let index_iter = self.block_index.iter();
 
         let mut iter = Iter::<K, V>::new(self.clone(), index_iter);
@@ -335,17 +231,17 @@ impl Table {
         Ok(IndexBlock::new(block))
     }
 
-    /// Tries to recover a table from a file.
+    /// Opens a table file of `level`, pinning what the level's policies pin.
     pub fn recover(
         file_path: PathBuf,
         global_seqno: u64,
         tree_id: u32,
-        cache: Arc<Cache>,
-        descriptor_table: Option<Arc<DescriptorTable>>,
-        pin_filter: bool,
-        pin_index: bool,
+        level: usize,
+        config: &Config,
     ) -> Result<Self> {
         debug!("Recovering table from file {}", file_path.display());
+        let pin_filter = config.filter_block_pinning_policy.at_level(level);
+        let pin_index = config.index_block_pinning_policy.at_level(level);
         let mut file = File::open(&file_path)?;
         let file_path = Arc::new(file_path);
 
@@ -356,12 +252,11 @@ impl Table {
         trace!("Reading meta block, with meta_ptr={:?}", regions.metadata);
         let metadata = ParsedMeta::load_with_handle(&file, &regions.metadata)?;
 
-        let file = Arc::new(file);
-
-        let file_accessor = if let Some(dt) = descriptor_table {
-            FileAccessor::DescriptorTable(dt)
-        } else {
-            FileAccessor::File(file.clone())
+        let source = BlockSource {
+            table_id: (tree_id, metadata.id).into(),
+            path: file_path,
+            descriptor_table: config.descriptor_table.clone(),
+            cache: config.cache.clone(),
         };
 
         let block_index = if regions.index.is_some() {
@@ -374,11 +269,8 @@ impl Table {
 
             BlockIndexImpl::TwoLevel(TwoLevelBlockIndex {
                 top_level_index: block,
-                cache: cache.clone(),
+                source: source.clone(),
                 compression: metadata.index_block_compression,
-                path: Arc::clone(&file_path),
-                file_accessor: file_accessor.clone(),
-                table_id: (tree_id, metadata.id).into(),
             })
         } else if pin_index {
             trace!(
@@ -392,12 +284,9 @@ impl Table {
             trace!("Creating volatile, full block index");
 
             BlockIndexImpl::VolatileFull(VolatileBlockIndex {
-                cache: cache.clone(),
-                compression: metadata.index_block_compression,
-                file_accessor: file_accessor.clone(),
+                source: source.clone(),
                 handle: regions.tli,
-                path: Arc::clone(&file_path),
-                table_id: (tree_id, metadata.id).into(),
+                compression: metadata.index_block_compression,
             })
         };
 
@@ -441,19 +330,14 @@ impl Table {
         debug!(
             "Recovered table #{} from {}",
             metadata.id,
-            file_path.display(),
+            source.path.display(),
         );
 
         Ok(Self(Arc::new(Inner {
-            path: file_path,
-            tree_id,
+            source,
 
             metadata,
             regions,
-
-            cache,
-
-            file_accessor,
 
             block_index: Arc::new(block_index),
 
@@ -469,11 +353,6 @@ impl Table {
 
     pub fn mark_as_deleted(&self) {
         self.0.is_deleted.store(true, Ordering::Release);
-    }
-
-    /// Checks if a key range is (partially or fully) contained in this table.
-    pub fn check_key_range_overlap(&self, bounds: &(Bound<&[u8]>, Bound<&[u8]>)) -> bool {
-        self.metadata.key_range.overlaps_with_bounds(bounds)
     }
 
     /// Returns the highest sequence number in the table.

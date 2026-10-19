@@ -1,10 +1,9 @@
-/// Request body shape for POST/PUT/PATCH endpoints.
+use crate::Ty;
+
 #[derive(Debug, Clone)]
 pub struct RequestBody {
-    /// Body content type as a name (e.g. "string" for text/plain, "Foo" for an `application/json` $ref).
-    pub(crate) body_type: String,
-    /// Media type selected from the OpenAPI request body content map.
+    /// The body's type: its schema's, else a string for `text/*` and an object otherwise.
+    pub(crate) ty: Ty,
     pub(crate) content_type: String,
-    /// Whether the body is required.
     pub(crate) required: bool,
 }

@@ -1,28 +1,21 @@
 use std::{
-    iter, mem,
+    mem,
     time::{Duration, Instant},
 };
 
 use bitview_cohort::AgeRange;
-use bitview_compute::{collect_cohort_weights, prepare_computed};
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_traversable::Traversable;
 use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
 use brk_error::Result;
-use brk_types::Version;
 use log::info;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec};
+use vecdb::{AnyVec, ReadableVec};
 
-use crate::{
-    BlockResult, Calibration, CumulativeBucket, Dependencies, ModeId, ModeVecs, Vecs,
-    WRITE_INTERVAL_BLOCKS, WeightedModeId, WeightedModes,
-};
+use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, Vecs};
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
@@ -32,47 +25,41 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             urpd,
             indexer,
-            mappings,
-            distribution_age,
-            distribution_aggregated: _,
+            age,
+            holders,
             cointime,
             coinflow,
         } = dependencies;
 
-        let cointime_wakefulness = cointime.age_range.urpd_weight_sources();
-        let age_supplies = distribution_age.cohorts.supply.total.age_supplies();
-        let coinflow_mobility = coinflow.age_range.urpd_weight_sources();
-        let raw_loss_share = dependencies.raw_loss_share();
-        let cointime_loss_share = dependencies.cointime_loss_share();
-        let coinflow_loss_share = dependencies.coinflow_loss_share();
-        let source_version = Version::combine_all(
-            iter::once(mappings.timestamp.monotonic.version() + URPD_COMPUTE_VERSION)
-                .chain(iter::once(urpd.prices.version()))
-                .chain(iter::once(distribution_age.cohorts.all_supply().version()))
-                .chain(iter::once(raw_loss_share.version()))
-                .chain(iter::once(cointime_loss_share.version()))
-                .chain(iter::once(coinflow_loss_share.version()))
-                .chain(age_supplies.iter().map(|vec| vec.version()))
-                .chain(cointime_wakefulness.iter().map(|vec| vec.version()))
-                .chain(coinflow_mobility.iter().map(|vec| vec.version())),
+        let cointime_wakefulness = cointime.age_ranges.urpd_weight_sources();
+        let age_supplies = age.age_supplies();
+        let coinflow_mobility = coinflow.age_ranges.urpd_weight_sources();
+        let raw_loss_share = &holders.cohorts.all.supply.in_loss.share.fixed.height;
+        let cointime_loss_share = cointime.all_awake_supply_in_loss_share();
+        let coinflow_loss_share = coinflow.all_mobile_supply_in_loss_share();
+        let mut inputs = Inputs::new(
+            urpd.timestamps.version() + URPD_COMPUTE_VERSION,
+            [
+                urpd.prices as &dyn AnyVec,
+                age.all_supply(),
+                raw_loss_share,
+                cointime_loss_share,
+                coinflow_loss_share,
+            ]
+            .into_iter()
+            .chain(age_supplies.iter().map(|vec| *vec as &dyn AnyVec))
+            .chain(cointime_wakefulness.iter().map(|vec| *vec as &dyn AnyVec))
+            .chain(coinflow_mobility.iter().map(|vec| *vec as &dyn AnyVec)),
         );
-        let end = iter::once(mappings.timestamp.monotonic.len())
-            .chain(iter::once(raw_loss_share.len()))
-            .chain(iter::once(cointime_loss_share.len()))
-            .chain(iter::once(coinflow_loss_share.len()))
-            .chain(age_supplies.iter().map(|vec| vec.len()))
-            .chain(cointime_wakefulness.iter().map(|vec| vec.len()))
-            .chain(coinflow_mobility.iter().map(|vec| vec.len()))
-            .min()
-            .unwrap_or_default();
-        let from = usize::from(indexer.safe_lengths().height).min(end);
-        let start = prepare_computed(
-            self.model_stored_vecs_mut().collect::<Vec<_>>(),
-            source_version,
-            from,
+        inputs.len = inputs.len.min(urpd.timestamps.len());
+        let source_version = inputs.version;
+        let range = inputs.prepare(
+            self.modes.iter_any_stored_mut().collect::<Vec<_>>(),
+            usize::from(indexer.compute_start().height),
             context.exit(),
         )?;
-        if end.saturating_sub(start) >= WRITE_INTERVAL_BLOCKS {
+        let (start, end) = (range.start, range.end);
+        if end - start >= WRITE_INTERVAL {
             info!(
                 "Computing Bedrock for {} blocks ({start}..={})...",
                 end - start,
@@ -95,9 +82,9 @@ impl ComputePlugin for Vecs {
         // Thresholds follow the stored loss shares alone, so one sequential pass fixes them
         // and the URPD evaluation can replay in parallel.
         let thresholds = {
-            let mut raw = raw_loss_share.cursor();
-            let mut cointime = cointime_loss_share.cursor();
-            let mut coinflow = coinflow_loss_share.cursor();
+            let mut raw = raw_loss_share.bounded_cursor_at(start, end);
+            let mut cointime = cointime_loss_share.bounded_cursor_at(start, end);
+            let mut coinflow = coinflow_loss_share.bounded_cursor_at(start, end);
             (start..end)
                 .map(|index| {
                     let shares = Calibration::loss_shares(
@@ -116,40 +103,47 @@ impl ComputePlugin for Vecs {
         replay.map(
             start..end,
             urpd,
-            || Worker {
-                supplies: AgeRange::from_fn(|age| age.select(&age_supplies).cursor()),
-                cointime: AgeRange::from_fn(|age| age.select(&cointime_wakefulness).cursor()),
-                coinflow: AgeRange::from_fn(|age| age.select(&coinflow_mobility).cursor()),
-                scratch: Vec::new(),
+            |blocks| {
+                let (from, to) = (blocks.start, blocks.end);
+                Worker {
+                    supplies: AgeRange::from_fn(|age| {
+                        age.select(&age_supplies).bounded_cursor_at(from, to)
+                    }),
+                    cointime: AgeRange::from_fn(|age| {
+                        age.select(&cointime_wakefulness)
+                            .bounded_cursor_at(from, to)
+                    }),
+                    coinflow: AgeRange::from_fn(|age| {
+                        age.select(&coinflow_mobility).bounded_cursor_at(from, to)
+                    }),
+                    scratch: Vec::new(),
+                }
             },
             |worker, height, _, source| {
                 let index = usize::from(height);
                 let thresholds = &thresholds[index - start];
                 let mut result = BlockResult::from_thresholds(thresholds);
                 if thresholds.iter().any(Option::is_some) {
-                    let supplies = AgeRange::try_from_fn(|age| {
-                        age.select_mut(&mut worker.supplies).get(index).ok_or(())
-                    })
-                    .ok();
-                    let ct_weights = supplies
-                        .as_ref()
-                        .and_then(|s| collect_cohort_weights(height, &mut worker.cointime, s));
-                    let cf_weights = supplies
-                        .as_ref()
-                        .and_then(|s| collect_cohort_weights(height, &mut worker.coinflow, s));
-                    let weights = WeightedModes::from_fn(|mode| match mode {
-                        WeightedModeId::Cointime => ct_weights.as_ref(),
-                        WeightedModeId::Coinflow => cf_weights.as_ref(),
+                    let supplies = AgeRange::from_fn(|age| {
+                        age.select_mut(&mut worker.supplies)
+                            .get(index)
+                            .expect("validated age supply range")
                     });
-                    result.evaluate(source, &weights, &mut worker.scratch);
+                    let ct_weights =
+                        collect_cohort_weights(height, &mut worker.cointime, &supplies);
+                    let cf_weights =
+                        collect_cohort_weights(height, &mut worker.coinflow, &supplies);
+                    result.evaluate(
+                        source,
+                        &[ct_weights.as_ref(), cf_weights.as_ref()],
+                        &mut worker.scratch,
+                    );
                 }
                 Ok(result)
             },
             |height, result| {
-                for mode in ModeId::ALL {
-                    self.modes
-                        .select_mut(mode)
-                        .push(result.by_mode.select(mode));
+                for (vecs, result) in self.modes.iter_mut().zip(result.iter()) {
+                    vecs.push(result);
                 }
                 let end_block = usize::from(height) + 1;
                 if end_block.is_multiple_of(1_000)
@@ -163,11 +157,8 @@ impl ComputePlugin for Vecs {
                     );
                     last_progress = Instant::now();
                 }
-                if end_block.is_multiple_of(WRITE_INTERVAL_BLOCKS) || end_block == end {
-                    let _lock = context.exit().lock();
-                    for vec in self.model_stored_vecs_mut() {
-                        vec.write()?;
-                    }
+                if end_block.is_multiple_of(WRITE_INTERVAL) || end_block == end {
+                    write_locked(self.modes.iter_any_stored_mut(), context.exit())?;
                 }
                 Ok(())
             },
@@ -184,10 +175,4 @@ struct Worker<S, T, F> {
     cointime: AgeRange<T>,
     coinflow: AgeRange<F>,
     scratch: Vec<CumulativeBucket>,
-}
-
-impl Vecs {
-    fn model_stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.modes.iter_mut().flat_map(ModeVecs::stored_vecs_mut)
-    }
 }

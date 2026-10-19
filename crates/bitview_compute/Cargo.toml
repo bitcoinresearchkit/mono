@@ -10,7 +10,7 @@ repository.workspace = true
 [dependencies]
 bitview_primitives = { workspace = true, features = ["storage"] }
 rayon = { workspace = true }
-bitview_collections = { workspace = true }
+bitview_traversable = { workspace = true }
 brk_exit = { workspace = true }
 bitview_cohort = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }

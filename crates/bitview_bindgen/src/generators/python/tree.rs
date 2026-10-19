@@ -44,6 +44,7 @@ def _builder(node: _Node, make: Any) -> Callable[[BitviewClient, str], Any]:
 
 
 def _at(make: Any, template: str) -> Any:
+    """A `_Child`, typed `Any` so that each child's annotation can name its type."""
     return _Child(make, template)
 
 
@@ -64,7 +65,6 @@ pub(crate) fn generate_tree(
     accessors: &[IndexSetPattern],
     undefined_types: &BTreeSet<String>,
 ) {
-    writeln!(output, "# Series tree\n").unwrap();
     output.push_str(RUNTIME);
     let max_params = model.params.iter().copied().max().unwrap_or(0);
     for p in 0..max_params {

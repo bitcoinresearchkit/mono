@@ -3,23 +3,18 @@ use bitview_primitives::Ratio64;
 use brk_types::{Height, Sats};
 use vecdb::{Cursor, ReadableVec};
 
-/// Empty cohorts may have no observation; populated cohorts require a finite one.
-fn resolve_cohort_value<T>(value: Option<T>, supply: Sats) -> Option<f64>
-where
-    f64: From<T>,
-{
-    match value.map(f64::from) {
-        Some(value) if value.is_finite() => Some(value),
-        _ if supply == Sats::ZERO => Some(0.0),
-        _ => None,
-    }
-}
-
+/// A populated cohort needs an observation; an empty one may have none. An undefined weight
+/// moves nothing (as in `WeightedCohortState::new`): its coins count on the unweighted side.
 pub fn resolve_cohort_weight<T>(value: Option<T>, supply: Sats) -> Option<f64>
 where
     f64: From<T>,
 {
-    resolve_cohort_value(value, supply).map(|value| value.clamp(0.0, 1.0))
+    match value.map(f64::from) {
+        Some(value) if value.is_finite() => Some(value.clamp(0.0, 1.0)),
+        Some(_) => Some(0.0),
+        None if supply == Sats::ZERO => Some(0.0),
+        None => None,
+    }
 }
 
 /// One block's cohort weights, read through cursors: a per-block loop decodes each page once

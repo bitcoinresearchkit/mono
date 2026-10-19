@@ -1,17 +1,13 @@
 use bitview_cohort::SpendableType;
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
-use bitview_vecs::{CountTotal, LazyWindowStartVec, import_cached};
+use bitview_vecs::{CumulativeSource, LazyWindowStartVec, count_and_share, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::Database;
+use vecdb::{Database, LazyVec, ReadableCloneableVec};
 
-use super::{Vecs, WithInputTypes};
-
-fn without_coinbase(height: Height, total: Count) -> Count {
-    total - Count::from(height.incremented())
-}
+use super::{InputTypeVecs, Vecs};
+use crate::import::without_coinbase;
 
 impl Vecs {
     pub(crate) fn import(
@@ -19,70 +15,60 @@ impl Vecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
+        inputs: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
         let version = version + Version::TWO;
-        let input_count_stored = SpendableType::try_new(|id| {
-            import_cached(
+        let count_stored = SpendableType::try_from_fn(|kind| {
+            CumulativeSource::import(
                 db,
-                &format!("{}_prevout_count_cumulative", id.name()),
+                &format!("{}_prevout_count_cumulative", kind.key()),
                 version,
             )
         })?;
-        let input_count = WithInputTypes::from_cumulative_sources(
-            CountTotal::from_source(
-                "input_count_bis",
-                version,
-                &mappings.input_count_source(),
-                mappings,
-                window_starts,
-            ),
-            |name| format!("{name}_prevout_count"),
-            version,
-            &input_count_stored,
-            mappings,
-            window_starts,
-        );
-        let input_share = input_count.lazy_shares(
-            version,
-            |name| format!("{name}_prevout_share"),
-            window_starts,
-            mappings,
-        );
-        let tx_count_stored = SpendableType::try_new(|id| {
-            import_cached(
+        let tx_count_stored = SpendableType::try_from_fn(|kind| {
+            CumulativeSource::import(
                 db,
-                &format!("tx_count_with_{}_prevout_cumulative", id.name()),
+                &format!("tx_count_with_{}_prevout_cumulative", kind.key()),
                 version,
             )
         })?;
-        let tx_count = WithInputTypes::from_cumulative_sources(
-            CountTotal::from_transformed_source(
-                "non_coinbase_tx_count",
+        // Coinbase transactions spend no outputs.
+        let txs = LazyVec::new(
+            "non_coinbase_tx_count_cumulative_source",
+            version,
+            mappings.transaction_count_source().read_only_boxed_clone(),
+            without_coinbase,
+        );
+        let version = version + Version::ONE;
+        let types = SpendableType::from_fn(|kind| {
+            let key = kind.key();
+            let (count, share) = count_and_share(
+                &format!("{key}_input"),
                 version,
-                &mappings.transaction_count_source(),
-                without_coinbase,
-                mappings,
+                kind.select(&count_stored).cumulative_source(),
+                inputs,
                 window_starts,
-            ),
-            |name| format!("tx_count_with_{name}_prevout"),
-            version,
-            &tx_count_stored,
-            mappings,
-            window_starts,
-        );
-        let tx_share = tx_count.lazy_shares(
-            version,
-            |name| format!("tx_share_with_{name}_prevout"),
-            window_starts,
-            mappings,
-        );
+                mappings,
+            );
+            let (tx_count, tx_share) = count_and_share(
+                &format!("{key}_input_tx"),
+                version,
+                kind.select(&tx_count_stored).cumulative_source(),
+                &txs,
+                window_starts,
+                mappings,
+            );
+            InputTypeVecs {
+                count,
+                share,
+                tx_count,
+                tx_share,
+            }
+        });
 
         Ok(Self {
-            input_count,
-            input_share,
-            tx_count,
-            tx_share,
-            input_count_stored,
+            types,
+            count_stored,
             tx_count_stored,
         })
     }

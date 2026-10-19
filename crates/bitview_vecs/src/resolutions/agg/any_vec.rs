@@ -1,4 +1,4 @@
-use vecdb::{AnyVec, VecIndex, VecValue, Version, short_type_name};
+use vecdb::{AnyVec, VecIndex, VecValue, Version};
 
 use super::LazyAggVec;
 
@@ -11,33 +11,20 @@ where
     Strat: 'static,
 {
     fn version(&self) -> Version {
-        self.version + self.source.version()
+        self.version + self.source.version() + self.mapping.version()
     }
 
     fn name(&self) -> &str {
         &self.name
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
     fn len(&self) -> usize {
-        self.mapping.read().len()
+        self.mapping.len()
     }
 
-    #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<O>()
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable()
     }
 
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<O>()
-    }
-
-    #[inline]
-    fn region_names(&self) -> Vec<String> {
-        vec![]
-    }
+    vecdb::any_vec_type_methods!(I, O);
 }

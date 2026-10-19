@@ -13,7 +13,6 @@ keywords = ["compression", "numerical", "delta"]
 categories = ["compression", "encoding"]
 include = [
   "src/**/*.rs",
-  "assets/*.pco",
   "Cargo.toml",
   "README.md",
   "BRK_PATCH.md",
@@ -25,12 +24,10 @@ build = "build.rs"
 [lib]
 name = "pco"
 path = "src/lib.rs"
+doctest = false
 
 [dependencies]
 better_io = "0.2.0"
 dtype_dispatch = "0.2.1"
 half = "2.7.1"
 rand_xoshiro = "0.8.1"
-
-[dev-dependencies]
-rand = "0.10.3"

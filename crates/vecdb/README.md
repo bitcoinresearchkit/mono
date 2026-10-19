@@ -19,13 +19,12 @@ key-value database or an ACID transaction layer.
 | `ZstdVec<I, T>` | Denser general-purpose compression |
 | `MutableVec<V>` | Updates and sparse deletions over a raw stored vector |
 | `OverflowVec<I, T>` | Compact common values with a stored overflow path |
-| `EagerVec<V>` | Incrementally computed results stored on disk |
-| `LazyVec<I, T, SI, ST>` | A cheap, read-only derivation from one source vector |
+| `LazyVec<I, T, S>` | A read-only derivation from one source vector |
 
-`BytesVec` is the default starting point. Choose another representation only
-when its layout or access behavior provides a concrete benefit. Lazy vectors
-have exactly one source; computations that require multiple inputs should have
-an explicit stored source of truth.
+`LazyVec` maps one source; `LazyDeltaVec` combines a source with a vector of
+window starts. Computations over several inputs are stored: any stored vector
+computes them incrementally through `ComputeVec` (`compute_to`,
+`compute_transform`, ...).
 
 ## Install
 
@@ -50,7 +49,7 @@ values.write()?;
 assert_eq!(values.collect_one(0), Some(42));
 ```
 
-The tuple `(database, name, version)` identifies stored data. `import` opens it,
+A vector is stored under its database, name and index type. `import` opens it,
 creating it if needed, and deletes it (with any sidecar regions and rollback history) when the
 stored version, format or value size differs, so the caller rebuilds it: bump the version whenever
 stored values change meaning. Compressed vectors also reset a corrupt layout;
@@ -60,15 +59,18 @@ other corruption is an error.
 
 - `push` appends to the in-memory write buffer.
 - `write` publishes buffered changes to the backing regions.
-- `flush` publishes the vector's changes and synchronizes its database.
-- `Database::flush` synchronizes all dirty data and shared metadata.
-- `reader` creates a read handle for repeated random access.
+- `flush` publishes the vector's changes and flushes its database.
+- `Database::flush` makes space freed by moves and removals reusable (no device syncs: written data lives in the
+  OS page cache, which survives soft quits).
+- `reader` (raw, mutable and overflow vectors) creates a handle for repeated random access;
+  `range_cursor_at` (raw and compressed vectors) scans a persisted range.
 - `collect`, `collect_range`, folds, and iterators provide sequential access.
 - `truncate_if_needed` removes a suffix without changing earlier indexes.
 
-Readers and cursors keep their backing regions stable. Drop them before writing
-or truncating those same regions, and before growing the database mapping.
-Writes within another region's existing capacity can proceed while readers
+Readers and cursors keep their backing regions stable. Drop them before
+rewriting, truncating or moving those same regions; an append within a region's
+reserved capacity goes past every reader and does not wait for them, while one
+that must grow the capacity does. Writes to other regions proceed while readers
 are alive. Buffered file readers use the same region lock as mmap readers.
 
 Wrap `BytesVec` or `ZeroCopyVec` in `MutableVec` when existing positions must be
@@ -83,20 +85,22 @@ undo history. The final update write saves changes; `rollback` and
 
 A failed or unwound write fences the writer, including failures in a mutable or
 overflow sidecar. Further writes return `WriteFailed`; infallible mutation
-methods panic. Resetting pending state cannot clear the fence. Discard the
+methods panic. `push` checks the fence only in debug builds on raw and
+compressed vectors (also through `MutableVec`), and in every build on
+`OverflowVec`. Resetting pending state cannot clear the fence. Discard the
 affected handles and validate or rebuild the data before continuing. In-place
-writes are not crash-atomic, and reopening does not itself repair a partial write.
+writes are not crash-atomic, and reopening does not itself repair a partial
+write.
 
 ## Range retention
 
-Stored vectors accept a cache policy as their third type parameter:
+The raw and compressed vectors (`BytesVec`, `ZeroCopyVec`, `PcoVec`, `LZ4Vec`,
+`ZstdVec`) take a cache policy as their third type parameter:
 
 - `NoCache` (the default) has no cache allocation or cache-side locking.
 - `Budgeted` shares one immutable, process-wide byte limit across sources.
 
-
-Read-only and type-erased clones share the source's ranges. Use ordinary point,
-range, sorted, and fold reads; there is no shared whole-vector snapshot API.
+Read-only and type-erased clones share the source's ranges.
 
 Cache retention is always evictable. Algorithms that need a working set own
 ordinary read results and pass references through their computation context.
@@ -119,7 +123,8 @@ Caller-owned results and decoder scratch are outside this
 retention budget. Lazy readers use their stored sources' caches without retaining
 another copy of derived values or requiring separate cache invalidation.
 Cache protection covers an individual source operation, not a transaction across
-multiple vectors: related reads still require the application's publication guard.
+multiple vectors: related reads still require the application's own consistency (Bitview bounds them by one
+published state).
 
 ## Value and index types
 

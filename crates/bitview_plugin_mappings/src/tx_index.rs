@@ -1,44 +1,42 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{TxInIndex, TxOutIndex};
+use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
 use bitview_traversable::Traversable;
 use brk_types::{TxIndex, Txid, Version};
-use vecdb::{LazyVec, ReadableCloneableVec};
+use vecdb::{IndexVec, ReadableBoxedVec, ReadableCloneableVec};
 
 use crate::LazyIndexCountVec;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
-    /// Global zero-based index of a transaction in canonical blockchain order.
-    /// At `tx_index`, this is the identity value; at `txin_index`, it identifies
-    /// the transaction containing the input; at type-specific output indexes,
-    /// it identifies the transaction containing that output.
-    pub identity: LazyVec<TxIndex, TxIndex, TxIndex, Txid>,
+    /// Global zero-based transaction index in canonical blockchain order. At `tx_index`,
+    /// returns the transaction index itself.
+    pub identity: IndexVec<TxIndex, TxIndex, ReadableBoxedVec<TxIndex, Txid>>,
     /// Number of inputs in the indexed transaction, including the coinbase
     /// transaction's single input.
     pub input_count: LazyIndexCountVec<TxIndex, TxInIndex>,
     /// Number of outputs in the indexed transaction.
-    pub output_count: LazyIndexCountVec<TxIndex, TxOutIndex>,
+    pub output_count: LazyIndexCountVec<TxIndex, Index40<TxOutIndex>>,
 }
 
 impl Vecs {
     pub fn new(version: Version, indexer: &Indexer) -> Self {
         Self {
-            identity: LazyVec::init(
+            identity: IndexVec::new(
                 "tx_index",
                 version,
                 indexer.vecs().transactions.txid.read_only_boxed_clone(),
-                |index, _| index,
+                |index| index,
             ),
             input_count: LazyIndexCountVec::new(
-                "input_count",
+                "tx_input_count",
                 version,
                 &indexer.vecs().transactions.first_txin_index,
-                &indexer.vecs().inputs.outpoint,
+                &*indexer.vecs().inputs.outpoint,
             ),
             output_count: LazyIndexCountVec::new(
-                "output_count",
+                "tx_output_count",
                 version,
-                &indexer.vecs().transactions.first_txout_index,
+                &*indexer.vecs().transactions.first_txout_index,
                 &indexer.vecs().outputs.value,
             ),
         }

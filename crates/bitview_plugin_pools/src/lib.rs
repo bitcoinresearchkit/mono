@@ -2,12 +2,12 @@ mod compute;
 mod dependencies;
 mod has;
 mod import;
-mod major;
-mod minor;
+mod pool;
 mod pool_heights;
 
 pub use dependencies::Dependencies;
 pub use has::HasPools;
+pub use pool::PoolVecs;
 
 use std::collections::BTreeMap;
 
@@ -22,7 +22,8 @@ use pool_heights::PoolHeights;
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("pools"), Version::new(13));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
@@ -35,15 +36,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub pool: M::Stored<BytesVec<Height, PoolSlug>>,
     #[traversable(skip)]
     pub heights: PoolHeights,
-    pub major: BTreeMap<PoolSlug, major::Vecs<M>>,
-    pub minor: BTreeMap<PoolSlug, minor::Vecs>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
+    // Each known mining pool, plus `unknown` for unattributed blocks.
+    #[traversable(flatten)]
+    pub by_slug: BTreeMap<PoolSlug, PoolVecs>,
 }

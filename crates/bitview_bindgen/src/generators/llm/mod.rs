@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write,
-    fs::create_dir_all,
     io,
     path::{Path, PathBuf},
 };
@@ -11,7 +10,7 @@ use oas3::Spec;
 use serde_json::Value;
 
 use super::write_if_changed;
-use crate::{Endpoint, ResponseKind, TypeSchemas};
+use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs};
 
 mod manifest;
 
@@ -26,68 +25,60 @@ pub(crate) fn generate_llm_clients(
     roots: &[PathBuf],
     manifest_path: Option<&Path>,
 ) -> io::Result<()> {
-    let metric_count = count_metrics(catalog);
-    let generated = endpoints
-        .iter()
-        .filter(|endpoint| endpoint.should_generate())
-        .collect::<Vec<_>>();
-    let llms = render_llms(
-        &spec.info.title,
-        &spec.info.version,
-        metric_count,
-        &generated,
-    );
-    let llms_full = render_llms_full(
-        &spec.info.title,
-        &spec.info.version,
-        metric_count,
-        &generated,
-        schemas,
-    );
-
-    for root in roots {
-        create_dir_all(root)?;
-        write_output(&root.join("llms.txt"), &llms)?;
-        write_output(&root.join("llms-full.txt"), &llms_full)?;
+    if !roots.is_empty() {
+        let metric_count = count_metrics(catalog);
+        let generated = endpoints
+            .iter()
+            .filter(|endpoint| endpoint.should_generate())
+            .collect::<Vec<_>>();
+        let llms = render_llms(
+            &spec.info.title,
+            &spec.info.version,
+            metric_count,
+            &generated,
+        );
+        let llms_full = render_llms_full(
+            &spec.info.title,
+            &spec.info.version,
+            metric_count,
+            &generated,
+            schemas,
+        );
+        for root in roots {
+            write_if_changed(&root.join("llms.txt"), &llms)?;
+            write_if_changed(&root.join("llms-full.txt"), &llms_full)?;
+        }
     }
     if let Some(path) = manifest_path {
-        if let Some(parent) = path.parent() {
-            create_dir_all(parent)?;
-        }
         manifest::generate_tool_manifest(endpoints, schemas, path)?;
     }
     Ok(())
 }
 
-fn write_output(path: &Path, content: &str) -> io::Result<()> {
-    if let Some(parent) = path.parent() {
-        create_dir_all(parent)?;
-    }
-    write_if_changed(path, content)
-}
-
+/// Distinct series ids: a series reached through several typed paths counts once.
 fn count_metrics(node: &TreeNode) -> usize {
-    match node {
-        TreeNode::Leaf(_) => 1,
-        TreeNode::Branch(children) => children.values().map(count_metrics).sum(),
-    }
+    let mut names = BTreeSet::new();
+    node.for_each_leaf(&mut |leaf| {
+        names.insert(&leaf.leaf.name);
+    });
+    names.len()
 }
 
 fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&Endpoint]) -> String {
     format!(
         "# {title} (BRK)\n\n\
-> Free, open-source Bitcoin analytics API and block explorer. {metric_count} on-chain time-series and {} API operations. No authentication required.\n\n\
+> Free, open-source Bitcoin analytics API and block explorer. {metric_count} on-chain time-series and {} API operations.\n\n\
 ## API\n\n\
 - Version: `{version}`\n\
 - Base URL: {BASE_URL}\n\
 - Authentication: None\n\
 - Browser access: Permissive CORS\n\
 - [Full plain-text reference]({BASE_URL}/llms-full.txt)\n\
-- [Compact OpenAPI]({BASE_URL}/api.json)\n\
+- [Compact API summary]({BASE_URL}/api.json)\n\
 - [Full OpenAPI]({BASE_URL}/openapi.json)\n\
 - [Series catalog]({BASE_URL}/api/series)\n\
 - [Interactive documentation]({BASE_URL}/api)\n\n\
-Use the compact OpenAPI document for tool construction. Use `llms-full.txt` only when a complete readable reference is needed.\n\n\
+Build tools from the full OpenAPI document; the compact summary is a smaller custom (non-OpenAPI) overview. Use `llms-full.txt` only when a complete readable reference is needed.\n\n\
 ## Series workflow\n\n\
 Never invent a series identifier.\n\n\
 1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.\n\
@@ -162,10 +153,7 @@ fn render_llms_full(
     if !referenced.is_empty() {
         writeln!(output, "## Schemas\n").unwrap();
         for name in referenced {
-            let Some(schema) = schemas.get(name) else {
-                continue;
-            };
-            render_schema(&mut output, name, schema);
+            render_schema(&mut output, name, &schemas[name]);
         }
     }
     output
@@ -236,7 +224,7 @@ fn render_endpoint(output: &mut String, endpoint: &Endpoint) {
             write!(
                 output,
                 "- `{}` ({location}, {}, {requirement})",
-                parameter.name, parameter.param_type
+                parameter.name, parameter.ty
             )
             .unwrap();
             if let Some(description) = parameter
@@ -255,7 +243,7 @@ fn render_endpoint(output: &mut String, endpoint: &Endpoint) {
         writeln!(
             output,
             "Request body: `{}` ({})\n",
-            body.body_type,
+            body.ty,
             if body.required {
                 "required"
             } else {
@@ -270,46 +258,14 @@ fn render_endpoint(output: &mut String, endpoint: &Endpoint) {
         response_label(&endpoint.response_kind)
     )
     .unwrap();
-    writeln!(output, "```bash").unwrap();
-    writeln!(output, "{}", curl_example(endpoint)).unwrap();
-    writeln!(output, "```\n").unwrap();
 }
 
 fn response_label(response: &ResponseKind) -> String {
     match response {
-        ResponseKind::Json(name) => format!("JSON `{name}`"),
-        ResponseKind::Text(Some(schema)) => format!("text `{}`", schema.name),
-        ResponseKind::Text(None) => "text".to_owned(),
+        ResponseKind::Json(ty) => format!("JSON `{ty}`"),
+        ResponseKind::Text { ty: Ty::String, .. } => "text".to_owned(),
+        ResponseKind::Text { ty, .. } => format!("text `{ty}`"),
         ResponseKind::Binary => "binary data".to_owned(),
-    }
-}
-
-fn curl_example(endpoint: &Endpoint) -> String {
-    let mut path = endpoint.path.clone();
-    for parameter in &endpoint.path_params {
-        path = path.replace(
-            &format!("{{{}}}", parameter.name),
-            &format!("<{}>", parameter.name),
-        );
-    }
-    if !endpoint.query_params.is_empty() {
-        path.push('?');
-        path.push_str(
-            &endpoint
-                .query_params
-                .iter()
-                .map(|parameter| format!("{}=<{}>", parameter.name, parameter.name))
-                .collect::<Vec<_>>()
-                .join("&"),
-        );
-    }
-    if let Some(body) = &endpoint.request_body {
-        format!(
-            "curl -s -X {} --data '<{}>' \"{BASE_URL}{path}\"",
-            endpoint.method, body.body_type
-        )
-    } else {
-        format!("curl -s \"{BASE_URL}{path}\"")
     }
 }
 
@@ -317,25 +273,31 @@ fn referenced_schemas<'a>(
     endpoints: &[&'a Endpoint],
     schemas: &'a TypeSchemas,
 ) -> BTreeSet<&'a str> {
+    // Roots: the schemas responses, parameters and request bodies reference, plus named text.
     let mut names = BTreeSet::new();
     for endpoint in endpoints {
-        if let Some(name) = endpoint.schema_name().filter(|name| *name != "*") {
-            names.insert(name);
+        if let Some(schema) = &endpoint.json_response_schema {
+            collect_schema_refs(schema, &mut names);
         }
-        if let Some(body) = &endpoint.request_body
-            && schemas.contains_key(&body.body_type)
+        if let ResponseKind::Text {
+            ty: Ty::Ref(name), ..
+        } = &endpoint.response_kind
         {
-            names.insert(body.body_type.as_str());
+            names.insert(name.as_str());
+        }
+        for parameter in endpoint.path_params.iter().chain(&endpoint.query_params) {
+            collect_schema_refs(&parameter.schema, &mut names);
+        }
+        if let Some(Ty::Ref(name)) = endpoint.request_body.as_ref().map(|body| &body.ty) {
+            names.insert(name.as_str());
         }
     }
+    names.retain(|name| schemas.contains_key(*name));
 
     let mut pending = names.iter().copied().collect::<Vec<_>>();
     while let Some(name) = pending.pop() {
-        let Some(schema) = schemas.get(name) else {
-            continue;
-        };
         let mut refs = BTreeSet::new();
-        collect_refs(schema, &mut refs);
+        collect_schema_refs(&schemas[name], &mut refs);
         for referenced in refs {
             if schemas.contains_key(referenced) && names.insert(referenced) {
                 pending.push(referenced);
@@ -343,27 +305,6 @@ fn referenced_schemas<'a>(
         }
     }
     names
-}
-
-fn collect_refs<'a>(value: &'a Value, refs: &mut BTreeSet<&'a str>) {
-    match value {
-        Value::Object(object) => {
-            if let Some(reference) = object.get("$ref").and_then(Value::as_str)
-                && let Some(name) = reference.rsplit('/').next()
-            {
-                refs.insert(name);
-            }
-            for child in object.values() {
-                collect_refs(child, refs);
-            }
-        }
-        Value::Array(values) => {
-            for child in values {
-                collect_refs(child, refs);
-            }
-        }
-        _ => {}
-    }
 }
 
 fn render_schema(output: &mut String, name: &str, schema: &Value) {
@@ -383,7 +324,7 @@ fn render_schema(output: &mut String, name: &str, schema: &Value) {
             write!(
                 output,
                 "- `{property}`: `{}`{}",
-                schema_type(shape),
+                Ty::parse(shape),
                 if required.contains(property.as_str()) {
                     " (required)"
                 } else {
@@ -401,60 +342,9 @@ fn render_schema(output: &mut String, name: &str, schema: &Value) {
             writeln!(output).unwrap();
         }
     } else {
-        writeln!(output, "`{}`", schema_type(schema)).unwrap();
+        writeln!(output, "`{}`", Ty::parse(schema)).unwrap();
     }
     writeln!(output).unwrap();
-}
-
-fn schema_type(schema: &Value) -> String {
-    // A boolean schema: `true` accepts any value.
-    if schema.is_boolean() {
-        return "value".to_owned();
-    }
-    if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
-        return reference.rsplit('/').next().unwrap_or(reference).to_owned();
-    }
-    if let Some(values) = schema.get("enum").and_then(Value::as_array) {
-        return values
-            .iter()
-            .map(|value| {
-                value
-                    .as_str()
-                    .map_or_else(|| value.to_string(), str::to_owned)
-            })
-            .collect::<Vec<_>>()
-            .join(" | ");
-    }
-    // `["integer", "null"]`: each type, joined.
-    if let Some(kinds) = schema.get("type").and_then(Value::as_array) {
-        return kinds
-            .iter()
-            .filter_map(Value::as_str)
-            .collect::<Vec<_>>()
-            .join(" | ");
-    }
-    if let Some(kind) = schema.get("type").and_then(Value::as_str) {
-        if kind == "array" {
-            return format!(
-                "{}[]",
-                schema
-                    .get("items")
-                    .map(schema_type)
-                    .unwrap_or_else(|| "value".to_owned())
-            );
-        }
-        return kind.to_owned();
-    }
-    for key in ["oneOf", "anyOf", "allOf"] {
-        if let Some(values) = schema.get(key).and_then(Value::as_array) {
-            return values
-                .iter()
-                .map(schema_type)
-                .collect::<Vec<_>>()
-                .join(" | ");
-        }
-    }
-    "object".to_owned()
 }
 
 fn one_line(value: &str) -> String {

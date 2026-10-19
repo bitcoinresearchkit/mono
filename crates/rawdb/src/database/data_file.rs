@@ -1,23 +1,34 @@
+#[cfg(target_os = "macos")]
+use std::os::fd::AsRawFd;
 use std::{
     fs::File,
     path::Path,
     ptr,
-    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+    sync::atomic::{AtomicUsize, Ordering},
 };
+#[cfg(unix)]
+use std::{io, os::unix::fs::FileExt};
 
-use memmap2::MmapRaw;
-use parking_lot::{RwLock, RwLockReadGuard};
+use memmap2::{MmapOptions, MmapRaw};
+use parking_lot::Mutex;
 
-use crate::{Error, PAGE_SIZE, Result, dirty_ranges::DirtyRanges};
+use crate::{Error, PAGE_SIZE, Result};
 
 use super::{hole_punch::punch_hole, locked_file::open_locked_file, mmap::write_to_mmap};
 
-/// Owns the data file, its mapping, and file-size durability.
+/// Owns the data file and its mapping, plus, on macOS, a second descriptor that bypasses the page cache.
 pub(crate) struct DataFile {
     file: File,
-    mmap: RwLock<MmapRaw>,
+    /// On macOS dirtying a cached page (through the mapping or pwrite) costs about 100 us per 16 KiB
+    /// page, while uncached reads and writes keep the SSD busy in parallel. An uncached write drops the
+    /// cached copy; uncached reads see unflushed writes through the mapping.
+    #[cfg(target_os = "macos")]
+    uncached: File,
+    /// Maps the file's reserved address space once: growing the file inside it needs no remap, so
+    /// the mapping never moves.
+    mmap: MmapRaw,
     len: AtomicUsize,
-    dirty: AtomicBool,
+    grow: Mutex<()>,
 }
 
 impl DataFile {
@@ -26,49 +37,62 @@ impl DataFile {
         let len = usize::try_from(file.metadata()?.len()).map_err(|_| Error::FileSizeOverflow {
             requested: usize::MAX,
         })?;
-        let mmap = MmapRaw::map_raw(&file)?;
+        let mmap = MmapOptions::new()
+            .len(Self::reservation(len))
+            .map_raw(&file)?;
+        #[cfg(target_os = "macos")]
+        let uncached = {
+            let uncached = File::options().read(true).write(true).open(path)?;
+            // SAFETY: an advisory flag on an open descriptor; a failure only leaves caching on.
+            unsafe { libc::fcntl(uncached.as_raw_fd(), libc::F_NOCACHE, 1) };
+            uncached
+        };
         Ok(Self {
             file,
-            mmap: RwLock::new(mmap),
+            #[cfg(target_os = "macos")]
+            uncached,
+            mmap,
             len: AtomicUsize::new(len),
-            dirty: AtomicBool::new(false),
+            grow: Mutex::default(),
         })
+    }
+
+    /// Address space reserved for a file of `len` bytes: four times its length, at least 1 TiB.
+    /// Pages past the file's end are mapped but never touched until the file grows over them.
+    fn reservation(len: usize) -> usize {
+        len.saturating_mul(4)
+            .max(1 << 40)
+            .next_multiple_of(PAGE_SIZE)
     }
 
     pub(crate) fn len(&self) -> usize {
         self.len.load(Ordering::Relaxed)
     }
 
-    #[inline]
-    pub(crate) fn read(&self) -> RwLockReadGuard<'_, MmapRaw> {
-        self.mmap.read_recursive()
-    }
-
-    pub(crate) fn ensure_len(&self, len: usize, writes: &RwLock<()>) -> Result<()> {
+    /// Grows the file to at least `len` bytes inside its reserved mapping, so it never waits for
+    /// readers: a writer may grow while holding locks readers wait on. Past the reservation (four
+    /// times the file at open, at least 1 TiB) it fails; reopening reserves more.
+    pub(crate) fn ensure_len(&self, len: usize) -> Result<()> {
         let len = Self::aligned_len(len)?;
         if self.len() >= len {
             return Ok(());
         }
-        let (mut mmap, _writes) = loop {
-            let mmap = self.mmap.write();
-            if let Some(writes) = writes.try_write() {
-                break (mmap, writes);
-            }
-            // A batch may hold the barrier while reading another region. Never
-            // hold the mapping lock while waiting for that batch to finish.
-            drop(mmap);
-            drop(writes.write());
-        };
+        let reserved = self.mmap.len();
+        if len > reserved {
+            return Err(Error::ReservationExhausted {
+                requested: len,
+                reserved,
+            });
+        }
+        let _grow = self.grow.lock();
         let current_len = self.len();
         if current_len >= len {
             return Ok(());
         }
         let target_len =
-            Self::aligned_len(len.max(current_len.saturating_mul(2)).max(1024 * 1024))?;
+            Self::aligned_len(len.max(current_len.saturating_mul(2)).max(1024 * 1024))?
+                .min(reserved);
         self.file.set_len(target_len as u64)?;
-        self.dirty.store(true, Ordering::Relaxed);
-        *mmap = MmapRaw::map_raw(&self.file)?;
-        // A failed remap leaves the old capacity usable; a later growth retries.
         self.len.store(target_len, Ordering::Relaxed);
         Ok(())
     }
@@ -79,57 +103,73 @@ impl DataFile {
             .ok_or(Error::FileSizeOverflow { requested: len })
     }
 
-    /// # Safety
-    /// Hold the database mutation barrier throughout use of this mapping.
-    pub(crate) unsafe fn mapping(&self) -> &MmapRaw {
-        // Remapping takes both the mapping lock and the exclusive mutation barrier.
-        unsafe { &*self.mmap.data_ptr() }
+    /// The file's mapping: it never moves while the file is open.
+    pub(crate) fn mapping(&self) -> &MmapRaw {
+        &self.mmap
     }
 
     /// # Safety
-    /// Hold the mutation barrier and exclusive access to the destination region.
+    /// Hold the mutation barrier and exclusive access to the destination bytes.
     pub(crate) unsafe fn write(&self, start: usize, bytes: &[u8]) {
-        unsafe { write_to_mmap(self.mapping(), start, bytes) };
+        unsafe { write_to_mmap(&self.mmap, start, bytes) };
     }
 
     /// # Safety
-    /// Hold the mutation barrier and exclusively own the source and destination.
+    /// Hold the mutation barrier and exclusively own the source and destination, two disjoint
+    /// ranges within the mapping.
     pub(crate) unsafe fn copy(&self, src: usize, dst: usize, len: usize) {
-        let mmap = unsafe { self.mapping() };
-        assert!(src <= mmap.len() && len <= mmap.len() - src);
-        assert!(dst <= mmap.len() && len <= mmap.len() - dst);
-        assert!(src + len <= dst || dst + len <= src);
+        let mmap = &self.mmap;
+        debug_assert!(src <= mmap.len() && len <= mmap.len() - src);
+        debug_assert!(dst <= mmap.len() && len <= mmap.len() - dst);
+        debug_assert!(src + len <= dst || dst + len <= src);
         // No shared reference over the entire mapping is formed.
         unsafe {
             ptr::copy_nonoverlapping(mmap.as_ptr().add(src), mmap.as_mut_ptr().add(dst), len)
         };
     }
 
-    /// # Safety
-    /// Hold the database mutation barrier exclusively.
-    pub(crate) unsafe fn flush(&self, ranges: &DirtyRanges) -> Result<()> {
-        if !ranges.is_empty() {
-            // SAFETY: flush holds the exclusive mutation barrier.
-            let mmap = unsafe { self.mapping() };
-            for range in ranges.iter() {
-                mmap.flush_async_range(range.start, range.len())?;
-            }
-        }
-        self.sync(!ranges.is_empty())
+    /// Reads through the uncached descriptor. Callers hold the mutation barrier and exclusive access to
+    /// the range.
+    #[cfg(target_os = "macos")]
+    pub(crate) fn read_uncached(&self, start: usize, buf: &mut [u8]) -> io::Result<()> {
+        self.uncached.read_exact_at(buf, start as u64)
     }
 
-    pub(crate) fn sync(&self, force: bool) -> Result<()> {
-        // Callers hold the exclusive mutation barrier. Leave dirty state intact
-        // on failure; a clean flush needs no atomic read-modify-write.
-        if force || self.dirty.load(Ordering::Relaxed) {
-            self.file.sync_all()?;
-            self.dirty.store(false, Ordering::Relaxed);
+    /// Writes through the uncached descriptor. Callers hold the mutation barrier and exclusive access to
+    /// the range.
+    #[cfg(target_os = "macos")]
+    pub(crate) fn write_uncached(&self, start: usize, buf: &[u8]) -> io::Result<()> {
+        self.uncached.write_all_at(buf, start as u64)
+    }
+
+    /// Reads through the cached descriptor, leaving the range in the page cache. Callers hold the
+    /// mutation barrier and exclusive access to the range.
+    #[cfg(unix)]
+    pub(crate) fn read_cached(&self, start: usize, buf: &mut [u8]) -> io::Result<()> {
+        self.file.read_exact_at(buf, start as u64)
+    }
+
+    /// Drops the cached pages of a page-aligned range, so the next access reads the file. Callers hold
+    /// the mutation barrier and exclusive access to the range, and no page in it is dirty.
+    #[cfg(target_os = "macos")]
+    pub(crate) fn invalidate(&self, start: usize, len: usize) -> io::Result<()> {
+        // SAFETY: the caller's range lies within the mapping, and invalidating clean pages only
+        // drops cached copies of what is on disk.
+        let result = unsafe {
+            libc::msync(
+                self.mmap.as_mut_ptr().add(start).cast(),
+                len,
+                libc::MS_INVALIDATE,
+            )
+        };
+        if result == 0 {
+            Ok(())
+        } else {
+            Err(io::Error::last_os_error())
         }
-        Ok(())
     }
 
     pub(crate) fn punch_hole(&self, start: usize, len: usize) -> Result<()> {
-        self.dirty.store(true, Ordering::Relaxed);
         punch_hole(&self.file, start, len)
     }
 }

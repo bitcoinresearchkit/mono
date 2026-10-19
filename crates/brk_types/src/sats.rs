@@ -1,28 +1,37 @@
-use std::{
-    fmt::{Display, Formatter, Result},
-    iter::Sum,
-    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
-};
+use std::ops::{Mul, SubAssign};
 
 use bitcoin::Amount;
-use derive_more::Deref;
-use itoa::Buffer;
+use derive_more::{Add, AddAssign, Deref, From, Into, Sub, Sum};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Bitcoin, Cents, Dollars, Height};
-use crate::CheckedSub;
+use super::{Bitcoin, Cents, CentsSats};
+use crate::{CheckedSub, unlikely};
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
-use vecdb::{Formattable, OverflowVecValue, Pco, SaturatingAdd, Version};
+use vecdb::{OverflowVecValue, Pco, SaturatingAdd, Version};
 
 /// Amount in satoshis (1 BTC = 100,000,000 sats)
 #[derive(
-    Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Deref, Default, Serialize, Deserialize, Hash,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Clone,
+    Copy,
+    Deref,
+    Default,
+    Serialize,
+    Deserialize,
+    Hash,
+    Add,
+    AddAssign,
+    Sub,
+    Sum,
+    From,
+    Into,
 )]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
@@ -58,10 +67,12 @@ impl OverflowVecValue for Sats {
 
     #[inline(always)]
     fn from_overflow_index(index: usize) -> Self::Compact {
-        assert!(index < 1 << 31, "overflow sidecar index is too large");
+        debug_assert!(index < 1 << 31, "overflow sidecar index is too large");
         (1 << 31) | index as u32
     }
 }
+
+crate::impl_store_value!(Sats, u64);
 
 #[allow(clippy::inconsistent_digit_grouping)]
 impl Sats {
@@ -105,49 +116,28 @@ impl Sats {
     pub fn is_max(&self) -> bool {
         *self == Self::MAX
     }
-}
 
-impl Add for Sats {
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl Sub for Sats {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl AddAssign for Sats {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
+    /// The amount's value at `price` (cents per BTC), rounded to the nearest cent; NaN at a NaN
+    /// price. Widens to u128 when the u64 product or its rounding offset overflows.
+    #[inline(always)]
+    pub fn value_at(self, price: Cents) -> Cents {
+        if unlikely(price.is_nan()) {
+            Cents::NAN
+        } else if let Some(value) = self
+            .0
+            .checked_mul(price.inner())
+            .and_then(|value| value.checked_add(Self::ONE_BTC_U64 / 2))
+        {
+            Cents::from(value / Self::ONE_BTC_U64)
+        } else {
+            CentsSats::from_price_sats(price, self).to_cents()
+        }
     }
 }
 
 impl CheckedSub for Sats {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         self.0.checked_sub(rhs.0).map(Self::from)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for Sats {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
-
-impl CheckedSub<usize> for Sats {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
-        self.0.checked_sub(rhs as u64).map(Self::from)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub<usize> for Sats {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
     }
 }
 
@@ -160,44 +150,8 @@ impl SaturatingAdd for Sats {
 
 impl SubAssign for Sats {
     fn sub_assign(&mut self, rhs: Self) {
-        *self = CheckedSub::checked_sub(*self, rhs).unwrap_or_else(|| {
-            panic!("Sats underflow: {} - {} would be negative", self, rhs);
-        });
-    }
-}
-
-impl Mul<Sats> for Sats {
-    type Output = Self;
-    fn mul(self, rhs: Sats) -> Self::Output {
-        Sats::from(self.0.checked_mul(rhs.0).unwrap())
-    }
-}
-
-impl Mul<usize> for Sats {
-    type Output = Self;
-    fn mul(self, rhs: usize) -> Self::Output {
-        Sats::from(self.0.checked_mul(rhs as u64).unwrap())
-    }
-}
-
-impl Mul<u8> for Sats {
-    type Output = Self;
-    fn mul(self, rhs: u8) -> Self::Output {
-        Sats::from(self.0.checked_mul(rhs as u64).unwrap())
-    }
-}
-
-impl Mul<u64> for Sats {
-    type Output = Self;
-    fn mul(self, rhs: u64) -> Self::Output {
-        Sats::from(self.0.checked_mul(rhs).unwrap())
-    }
-}
-
-impl Mul<Height> for Sats {
-    type Output = Self;
-    fn mul(self, rhs: Height) -> Self::Output {
-        Sats::from(self.0.checked_mul(u64::from(rhs)).unwrap())
+        debug_assert!(self.0 >= rhs.0, "Sats underflow: {self} - {rhs}");
+        self.0 -= rhs.0;
     }
 }
 
@@ -208,46 +162,10 @@ impl Mul<f64> for Sats {
     }
 }
 
-impl Sum for Sats {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let sats: u64 = iter.map(|sats| sats.0).sum();
-        Self::from(sats)
-    }
-}
-
-impl Div<Dollars> for Sats {
-    type Output = Self;
-    #[allow(
-        clippy::suspicious_arithmetic_impl,
-        reason = "cents-precision upscale before division"
-    )]
-    fn div(self, rhs: Dollars) -> Self::Output {
-        let raw_cents = u64::from(Cents::from(rhs));
-        (self.0 * 100)
-            .checked_div(raw_cents)
-            .map(Self)
-            .unwrap_or(Self::MAX)
-    }
-}
-
-impl Div<Sats> for Sats {
-    type Output = Self;
-    fn div(self, rhs: Sats) -> Self::Output {
-        Self(self.0.checked_div(rhs.0).unwrap_or(0))
-    }
-}
-
 impl From<u8> for Sats {
     #[inline]
     fn from(value: u8) -> Self {
         Self(value as u64)
-    }
-}
-
-impl From<u64> for Sats {
-    #[inline]
-    fn from(value: u64) -> Self {
-        Self(value)
     }
 }
 
@@ -306,19 +224,10 @@ impl From<Bitcoin> for Sats {
     }
 }
 
-impl From<Sats> for u64 {
-    #[inline]
-    fn from(value: Sats) -> Self {
-        value.0
-    }
-}
-
 impl From<u128> for Sats {
     #[inline]
     fn from(value: u128) -> Self {
-        if value > u64::MAX as u128 {
-            panic!("u128 bigger than u64")
-        }
+        debug_assert!(value <= u64::MAX as u128, "u128 value does not fit Sats");
         Self(value as u64)
     }
 }
@@ -330,26 +239,4 @@ impl From<Sats> for u128 {
     }
 }
 
-impl Mul<Sats> for usize {
-    type Output = Sats;
-    fn mul(self, rhs: Sats) -> Self::Output {
-        Self::Output::from(rhs.0 * self as u64)
-    }
-}
-
-impl Display for Sats {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for Sats {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(Sats);

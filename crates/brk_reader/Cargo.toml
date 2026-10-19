@@ -1,6 +1,6 @@
 [package]
 name = "brk_reader"
-description = "A very fast Bitcoin block parser and iterator built on top of bitcoin-rust"
+description = "Streams Bitcoin Core block files in canonical chain order"
 keywords = ["bitcoin", "block", "iterator"]
 categories = ["cryptography::cryptocurrencies", "encoding"]
 version.workspace = true
@@ -10,6 +10,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+arc-swap = { workspace = true }
 bitcoin = { workspace = true }
 brk_error = { workspace = true }
 brk_rpc = { workspace = true }
@@ -18,6 +19,5 @@ crossbeam = { version = "0.8.5", features = ["crossbeam-channel"] }
 derive_more = { workspace = true }
 libc = { workspace = true }
 parking_lot = { workspace = true }
-rlimit = "0.11.0"
 rustc-hash = { workspace = true }
 tracing = { workspace = true }

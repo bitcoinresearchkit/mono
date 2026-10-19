@@ -31,22 +31,17 @@ impl JsonSchema for Boolean {
 }
 
 impl Boolean {
-    pub const FALSE: Self = Self(0);
     const TRUE: Self = Self(1);
 
     pub fn is_true(&self) -> bool {
         *self == Self::TRUE
-    }
-
-    pub fn is_false(&self) -> bool {
-        *self == Self::FALSE
     }
 }
 
 impl From<bool> for Boolean {
     #[inline]
     fn from(value: bool) -> Self {
-        if value { Self(1) } else { Self(0) }
+        Self(u8::from(value))
     }
 }
 

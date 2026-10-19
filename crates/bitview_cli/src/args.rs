@@ -3,6 +3,8 @@ use std::{
     io::{self, Read},
 };
 
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, PercentEncode, utf8_percent_encode};
+
 use crate::command::Command;
 
 pub const BASE_URL_ENV: &str = "BITVIEW_URL";
@@ -100,41 +102,33 @@ impl Args {
         }
 
         let command = command.ok_or_else(|| "missing command".to_owned())?;
-        if help {
-            return Ok(Self {
-                command,
-                base_url,
-                path_values,
-                query,
-                body,
-                pretty,
-                help,
-            });
-        }
-
-        if path_values.len() != command.path_parameters.len() {
-            return Err(format!(
-                "{} expects {} path argument(s), received {}",
-                command.name,
-                command.path_parameters.len(),
-                path_values.len()
-            ));
-        }
-        for parameter in command.query_parameters {
-            if parameter.required
-                && !query
-                    .iter()
-                    .any(|(provided, _)| *provided == parameter.api_name)
-            {
-                return Err(format!("missing required option --{}", parameter.name));
+        if !help {
+            if path_values.len() != command.path_parameters.len() {
+                return Err(format!(
+                    "{} expects {} path argument(s), received {}",
+                    command.name,
+                    command.path_parameters.len(),
+                    path_values.len()
+                ));
             }
-        }
-        match (command.request_body, body.is_some()) {
-            (Some(body), false) if body.required => {
-                return Err("missing required --body or --body-file".to_owned());
+            for parameter in command.query_parameters {
+                if parameter.required
+                    && !query
+                        .iter()
+                        .any(|(provided, _)| *provided == parameter.api_name)
+                {
+                    return Err(format!("missing required option --{}", parameter.name));
+                }
             }
-            (None, true) => return Err(format!("{} does not accept a request body", command.name)),
-            _ => {}
+            match (command.request_body, body.is_some()) {
+                (Some(body), false) if body.required => {
+                    return Err("missing required --body or --body-file".to_owned());
+                }
+                (None, true) => {
+                    return Err(format!("{} does not accept a request body", command.name));
+                }
+                _ => {}
+            }
         }
 
         Ok(Self {
@@ -153,14 +147,14 @@ impl Args {
         for (parameter, value) in self.command.path_parameters.iter().zip(&self.path_values) {
             path = path.replace(
                 &format!("{{{}}}", parameter.api_name),
-                &encode_component(value),
+                &encode_component(value).to_string(),
             );
         }
         for (index, (name, value)) in self.query.iter().enumerate() {
             path.push(if index == 0 { '?' } else { '&' });
-            path.push_str(&encode_component(name));
+            path.extend(encode_component(name));
             path.push('=');
-            path.push_str(&encode_component(value));
+            path.extend(encode_component(value));
         }
         format!("{}{path}", self.base_url)
     }
@@ -193,16 +187,13 @@ fn read_body(path: &str) -> Result<Vec<u8>, String> {
     }
 }
 
-fn encode_component(value: &str) -> String {
-    use std::fmt::Write;
+/// Every byte but RFC 3986's unreserved characters is percent-encoded.
+const ESCAPED: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'~');
 
-    let mut encoded = String::with_capacity(value.len());
-    for byte in value.bytes() {
-        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-            encoded.push(char::from(byte));
-        } else {
-            write!(encoded, "%{byte:02X}").unwrap();
-        }
-    }
-    encoded
+fn encode_component(value: &str) -> PercentEncode<'_> {
+    utf8_percent_encode(value, ESCAPED)
 }

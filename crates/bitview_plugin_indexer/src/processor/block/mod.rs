@@ -3,7 +3,7 @@ use bitview_primitives::BlockHashPrefix;
 use brk_error::{Error, Result};
 use brk_types::Timestamp;
 use tracing::error;
-use vecdb::{WritableVec, unlikely};
+use vecdb::WritableVec;
 
 use super::{BlockProcessor, transaction::ComputedTx};
 use crate::lengths::IndexerLengths as _;
@@ -14,7 +14,7 @@ impl BlockProcessor<'_> {
         let blockhash = self.block.hash();
         let blockhash_prefix = BlockHashPrefix::from(blockhash);
 
-        if unlikely(self.check_collisions)
+        if cfg!(debug_assertions)
             && self
                 .stores
                 .block_height(&blockhash_prefix)?
@@ -48,8 +48,8 @@ impl BlockProcessor<'_> {
         Ok(())
     }
 
-    /// Push block total_size and weight, reusing per-tx sizes already computed in ComputedTx.
-    /// This avoids redundant tx serialization (base_size + total_size were already computed).
+    /// Pushes the block's size, weight and SegWit totals from the per-transaction sizes
+    /// [`ComputedTx`] already holds, without serializing the transactions again.
     pub fn push_block_size_and_weight(&mut self, txs: &[ComputedTx]) {
         let overhead = Header::SIZE + VarInt::from(txs.len()).size();
         let mut total_size = overhead;
@@ -70,10 +70,12 @@ impl BlockProcessor<'_> {
 
         let h = self.height;
         let blocks = &mut self.vecs.blocks;
-        blocks.total.debug_checked_push(h, total_size.into());
+        blocks.size.debug_checked_push(h, total_size.into());
         blocks.weight.debug_checked_push(h, weight.into());
-        blocks.segwit_txs.debug_checked_push(h, sw_txs.into());
-        blocks.segwit_size.debug_checked_push(h, sw_size.into());
-        blocks.segwit_weight.debug_checked_push(h, sw_weight.into());
+        blocks.segwit_tx_count.debug_checked_push(h, sw_txs.into());
+        blocks.segwit_tx_size.debug_checked_push(h, sw_size.into());
+        blocks
+            .segwit_tx_weight
+            .debug_checked_push(h, sw_weight.into());
     }
 }

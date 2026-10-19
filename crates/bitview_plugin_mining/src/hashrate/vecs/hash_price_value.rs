@@ -1,26 +1,50 @@
-use bitview_primitives::{Float32, PartsPerMillionSigned32};
+use bitview_compute::{ComputeRollingStats, ComputedVecValue};
+use bitview_primitives::PartsPerMillionSigned32;
 use bitview_traversable::Traversable;
-use bitview_vecs::{FixedRatioPerBlock, LazyPerBlock, PerBlock};
-use vecdb::{Rw, StorageMode};
+use bitview_vecs::{PerBlock, PercentPerBlock, ops::RelativeChange};
+use brk_error::Result;
+use brk_exit::Exit;
+use brk_types::Height;
+use schemars::JsonSchema;
+use vecdb::{ComputeVec, Rw, StorageMode};
 
 #[derive(Traversable)]
-pub struct HashPriceValueVecs<M: StorageMode = Rw> {
-    /// Reported per TH/s, where one TH/s is 10^12 hashes per second.
-    pub ths: PerBlock<Float32, M>,
-    /// Running all-time minimum of the per-TH/s series, where one TH/s is 10^12
-    /// hashes per second. Zero values are excluded; returns zero until the
-    /// first nonzero value exists.
-    pub ths_min: PerBlock<Float32, M>,
-    /// Reported per PH/s, where one PH/s is 10^15 hashes per second; exactly
-    /// 1,000 times the corresponding per-TH/s series.
-    pub phs: LazyPerBlock<Float32>,
-    /// Running all-time minimum of the per-PH/s series, where one PH/s is 10^15
-    /// hashes per second. It is exactly 1,000 times the corresponding per-TH/s
-    /// minimum and returns zero until the first nonzero value exists.
-    pub phs_min: LazyPerBlock<Float32>,
-    /// Per-PH/s value at the represented block divided by its running nonzero
-    /// all-time minimum, minus one. Zero marks the historical floor and positive
-    /// values measure the rebound above it. Returns zero before a nonzero
-    /// minimum exists.
-    pub rebound: FixedRatioPerBlock<PartsPerMillionSigned32, M>,
+pub struct HashPriceValueVecs<T, M: StorageMode = Rw>
+where
+    T: ComputedVecValue + JsonSchema,
+{
+    /// Per PH/s of hash rate per day, where one PH/s is 10^15 hashes per second.
+    pub block: PerBlock<T, M>,
+    /// Running all-time low of the per-PH/s series, skipping zero and null values;
+    /// null until the first positive value exists.
+    pub atl: PerBlock<T, M>,
+    /// Per-PH/s value at the represented block divided by its running all-time
+    /// low, minus one. Zero marks the historical floor and positive values
+    /// measure the rebound above it. Undefined (null) before a nonzero low exists.
+    pub rebound: PercentPerBlock<PartsPerMillionSigned32, M>,
+}
+
+impl<T> HashPriceValueVecs<T>
+where
+    T: ComputedVecValue + JsonSchema + Ord + Default + Into<f64>,
+{
+    pub(crate) fn compute_floor_and_rebound(
+        &mut self,
+        max_from: Height,
+        exit: &Exit,
+    ) -> Result<()> {
+        self.atl
+            .height
+            .compute_all_time_low::<T>(max_from, &self.block.height, exit)?;
+        self.rebound
+            .fixed
+            .height
+            .compute_binary::<T, T, RelativeChange<PartsPerMillionSigned32>>(
+                max_from,
+                &self.block.height,
+                &self.atl.height,
+                exit,
+            )?;
+        Ok(())
+    }
 }

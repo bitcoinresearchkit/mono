@@ -1,65 +1,37 @@
-use crate::{
-    Amount, BlockDiff, Creations, Spends, State, journal_reader::JournalReader, util::invalid,
-};
+use crate::{BlockDiff, Creations, Diffs, Spends, State};
 use std::io::Result;
 
-/// Sequential replay over one validated prefix, with bounded read windows and reusable rollback scratch.
+/// Sequential replay over one validated prefix, with bounded read windows.
 /// The caller owns the state; analytics borrow it instead of copying its amounts.
 pub struct Cursor<'a> {
     state: &'a mut State,
-    spends: JournalReader<'a>,
-    creations: JournalReader<'a>,
-    end: usize,
-    scratch: Vec<(usize, Amount)>,
+    diffs: Diffs<'a>,
 }
 
 impl<'a> Cursor<'a> {
+    /// `state` must continue the producers' chain: its blocks are not read back.
     pub(crate) fn new(
         state: &'a mut State,
         end: usize,
         spends: &'a Spends,
         creations: &'a Creations,
     ) -> Result<Self> {
-        if state.len() > end || end > spends.end().min(creations.end()) {
-            return Err(invalid("invalid replay range"));
-        }
-        if !state.is_empty()
-            && (state.hash() != spends.hash(state.len() - 1)?
-                || state.hash() != creations.hash(state.len() - 1)?)
-        {
-            return Err(invalid("replay state does not match producer chain"));
-        }
-        Ok(Self {
-            state,
-            spends: spends.cursor(end),
-            creations: creations.cursor(end),
-            end,
-            scratch: Vec::new(),
-        })
+        let hash = (!state.is_empty()).then(|| state.hash());
+        let diffs = Diffs::new(state.len(), hash, end, spends, creations)?;
+        Ok(Self { state, diffs })
     }
 
     pub fn state(&self) -> &State {
         self.state
     }
 
-    /// Applies one whole block atomically and returns its changes. None marks the published end.
+    /// Applies one whole block and returns its changes; an error leaves the state unchanged.
+    /// None marks the published end.
     pub fn advance(&mut self) -> Result<Option<BlockDiff<'_>>> {
-        if self.state.len() == self.end {
-            return Ok(None);
+        let diff = self.diffs.advance()?;
+        if let Some(diff) = &diff {
+            self.state.apply(diff);
         }
-        let height = self.state.len();
-        let diff = BlockDiff::decode(
-            height,
-            self.spends.read(height)?,
-            self.creations.read(height)?,
-        )?;
-        self.state.apply(
-            diff.hash,
-            diff.created,
-            diff.removed(),
-            diff.removed_total,
-            &mut self.scratch,
-        )?;
-        Ok(Some(diff))
+        Ok(diff)
     }
 }

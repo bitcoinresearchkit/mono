@@ -1,62 +1,48 @@
-use bitview_plugin_distribution_common::AllChainSources;
+use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{BoundedRatioPerBlock, LazySpotValuePerBlock};
-use brk_error::Result;
+use bitview_vecs::{LazyIndexedVec, LazySpotValuePerBlock};
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, ReadableBoxedVec};
+use vecdb::ReadableBoxedVec;
 
-use super::{super::activity, LazyBaseVecs, Vecs};
+use super::{super::activity, Vecs};
 
 impl Vecs {
-    pub(crate) fn import(
-        db: &Database,
-        version: Version,
-        mappings: &MappingsVecs,
-        spot_price: &ReadableBoxedVec<Height, Cents>,
-        activity: &activity::Vecs,
-        all_chain: &AllChainSources,
-    ) -> Result<Self> {
-        Ok(Vecs {
-            base: LazyBaseVecs::new(version, mappings, spot_price, activity, all_chain),
-            active_supply_in_loss_share: BoundedRatioPerBlock::import(
-                db,
-                "cointime_supply_in_loss_share",
-                version + Version::ONE,
-                mappings,
-            )?,
-        })
-    }
-}
-
-impl LazyBaseVecs {
-    fn new(
+    pub(crate) fn new(
         version: Version,
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
         activity: &activity::Vecs,
         all_chain: &AllChainSources,
     ) -> Self {
-        let vaulted = all_chain.with_supply(
+        let vaulted = LazyIndexedVec::new(
             "vaulted_supply_sats_source",
             Version::ZERO,
             &activity.vaultedness.height,
+            &all_chain.supply,
             |_, vaultedness, supply| supply * vaultedness,
         );
-        let active = all_chain.with_supply(
+        let active = LazyIndexedVec::new(
             "active_supply_sats_source",
             Version::ZERO,
             &activity.liveliness.height,
+            &all_chain.supply,
             |_, liveliness, supply| supply * liveliness,
         );
 
+        let vaulted = LazySpotValuePerBlock::from_sats_source(
+            "vaulted_supply",
+            version,
+            &vaulted,
+            mappings,
+            spot_price,
+        );
         Self {
-            vaulted: LazySpotValuePerBlock::from_sats_source(
-                "vaulted_supply",
+            hodled_or_lost: LazySpotValuePerBlock::identity(
+                "hodled_or_lost_supply",
                 version,
                 &vaulted,
-                mappings,
-                spot_price,
             ),
+            vaulted,
             active: LazySpotValuePerBlock::from_sats_source(
                 "active_supply",
                 version,

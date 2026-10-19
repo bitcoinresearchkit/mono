@@ -12,23 +12,13 @@ use crate::read_write_uint::ReadWriteUint;
 use crate::scratch_array::ScratchArray;
 use crate::{ans, bit_reader, bit_writer, bits, read_write_uint, FULL_BATCH_N};
 use std::io::Write;
+use std::mem::MaybeUninit;
 use std::ops::Range;
 
 #[derive(Clone, Debug)]
 pub struct ChunkLatentCompressorScratch<L: Latent> {
   lowers: ScratchArray<L>,
   symbols: ScratchArray<Symbol>,
-}
-
-// Safety: set_len before fill is technically UB, but all T here are non-Drop
-// integer/float types so no destructor runs on garbage if a panic occurs.
-// Fixing correctly would require threading &mut [MaybeUninit<T>] through
-// dissect_batch and its callees (dissect_bins, set_offsets,
-// encode_ans_in_reverse) — a significant refactor of a hot path.
-unsafe fn uninit_vec<T>(n: usize) -> Vec<T> {
-  let mut res = Vec::with_capacity(n);
-  res.set_len(n);
-  res
 }
 
 // This would be very hard to combine with write_uints because it makes use of
@@ -80,6 +70,59 @@ unsafe fn write_uints<U: ReadWriteUint, const MAX_U64S: usize>(
   (stale_byte_idx, bits_past_byte)
 }
 
+// Page buffers filled through their spare capacity (len 0) and only
+// exposed as initialized vecs once every element is written. ANS buffers stay
+// empty when the latent var doesn't need ANS: they are never written.
+struct UninitPageDissectedVar<L: Latent> {
+  ans_vals: Vec<AnsState>,
+  ans_bits: Vec<Bitlen>,
+  offsets: Vec<L>,
+  offset_bits: Vec<Bitlen>,
+  ans_final_states: [AnsState; ANS_INTERLEAVING],
+  needs_ans: bool,
+}
+
+impl<L: Latent> UninitPageDissectedVar<L> {
+  fn with_capacity(
+    n: usize,
+    needs_ans: bool,
+    ans_final_states: [AnsState; ANS_INTERLEAVING],
+  ) -> Self {
+    let ans_n = if needs_ans { n } else { 0 };
+    Self {
+      ans_vals: Vec::with_capacity(ans_n),
+      ans_bits: Vec::with_capacity(ans_n),
+      offsets: Vec::with_capacity(n),
+      offset_bits: Vec::with_capacity(n),
+      ans_final_states,
+      needs_ans,
+    }
+  }
+
+  // `n` must be the number of elements dissect_batch wrote to each buffer's
+  // spare capacity: its batches cover 0..n.
+  fn into_init(mut self, n: usize) -> PageDissectedVar {
+    debug_assert!(self.offsets.capacity() >= n && self.offset_bits.capacity() >= n);
+    // Safety: dissect_batch initialized every element below `n` (the ANS ones
+    // only when needed), within capacity.
+    unsafe {
+      self.offsets.set_len(n);
+      self.offset_bits.set_len(n);
+      if self.needs_ans {
+        self.ans_vals.set_len(n);
+        self.ans_bits.set_len(n);
+      }
+    }
+    PageDissectedVar {
+      ans_vals: self.ans_vals,
+      ans_bits: self.ans_bits,
+      offsets: DynLatents::new(self.offsets),
+      offset_bits: self.offset_bits,
+      ans_final_states: self.ans_final_states,
+    }
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct ChunkLatentCompressor<L: Latent> {
   table: CompressionTable<L>,
@@ -95,17 +138,13 @@ pub struct ChunkLatentCompressor<L: Latent> {
 #[inline(never)]
 fn encode_ans_in_reverse(
   encoder: &ans::Encoder,
-  ans_vals: &mut [AnsState],
-  ans_bits: &mut [Bitlen],
+  ans_vals: &mut [MaybeUninit<AnsState>],
+  ans_bits: &mut [MaybeUninit<Bitlen>],
   ans_final_states: &mut [AnsState; ANS_INTERLEAVING],
   dst: &mut [Symbol],
 ) {
-  if encoder.size_log() == 0 {
-    // trivial case: there's only one symbol. ANS values and states don't
-    // matter.
-    ans_bits.fill(0);
-    return;
-  }
+  // Single-bin latent variables need no ANS, so the table has several symbols.
+  debug_assert!(encoder.size_log() > 0);
 
   let final_base_i = (ans_vals.len() / ANS_INTERLEAVING) * ANS_INTERLEAVING;
   let final_j = ans_vals.len() % ANS_INTERLEAVING;
@@ -114,8 +153,11 @@ fn encode_ans_in_reverse(
   for j in (0..final_j).rev() {
     let i = final_base_i + j;
     let (new_state, bitlen) = encoder.encode(ans_final_states[j], dst[i]);
-    ans_vals[i] = bits::lowest_bits_fast(ans_final_states[j], bitlen);
-    ans_bits[i] = bitlen;
+    ans_vals[i].write(bits::lowest_bits_fast(
+      ans_final_states[j],
+      bitlen,
+    ));
+    ans_bits[i].write(bitlen);
     ans_final_states[j] = new_state;
   }
 
@@ -124,8 +166,11 @@ fn encode_ans_in_reverse(
     for j in (0..ANS_INTERLEAVING).rev() {
       let i = base_i + j;
       let (new_state, bitlen) = encoder.encode(ans_final_states[j], dst[i]);
-      ans_vals[i] = bits::lowest_bits_fast(ans_final_states[j], bitlen);
-      ans_bits[i] = bitlen;
+      ans_vals[i].write(bits::lowest_bits_fast(
+        ans_final_states[j],
+        bitlen,
+      ));
+      ans_bits[i].write(bitlen);
       ans_final_states[j] = new_state;
     }
   }
@@ -160,7 +205,7 @@ impl<L: Latent> ChunkLatentCompressor<L> {
   }
 
   #[inline(never)]
-  fn dissect_bins(&mut self, search_idxs: &[usize], dst_offset_bits: &mut [Bitlen]) {
+  fn dissect_bins(&mut self, search_idxs: &[usize], dst_offset_bits: &mut [MaybeUninit<Bitlen>]) {
     if self.table.is_trivial() {
       // trivial case: there's at most one bin. We've prepopulated the scratch
       // buffers with the correct values in this case.
@@ -169,7 +214,9 @@ impl<L: Latent> ChunkLatentCompressor<L> {
         .only_bin()
         .map(|info| info.offset_bits)
         .unwrap_or(0);
-      dst_offset_bits.fill(default_offset_bits);
+      for offset_bits in dst_offset_bits {
+        offset_bits.write(default_offset_bits);
+      }
       return;
     }
 
@@ -177,32 +224,34 @@ impl<L: Latent> ChunkLatentCompressor<L> {
       let info = &self.table.infos[search_idx];
       self.scratch.lowers[i] = info.lower;
       self.scratch.symbols[i] = info.symbol;
-      dst_offset_bits[i] = info.offset_bits;
+      dst_offset_bits[i].write(info.offset_bits);
     }
   }
 
   #[inline(never)]
-  fn set_offsets(&self, latents: &[L], offsets: &mut [L]) {
+  fn set_offsets(&self, latents: &[L], offsets: &mut [MaybeUninit<L>]) {
     for (offset, (&latent, &lower)) in offsets
       .iter_mut()
       .zip(latents.iter().zip(self.scratch.lowers.iter()))
     {
-      *offset = latent - lower;
+      offset.write(latent - lower);
     }
   }
 
+  // Fills `relative_batch_range` of each buffer's spare capacity.
   fn dissect_batch(
     &mut self,
     page_start: usize,
     relative_batch_range: Range<usize>,
-    dst: &mut PageDissectedVar,
+    dst: &mut UninitPageDissectedVar<L>,
   ) {
-    let PageDissectedVar {
+    let UninitPageDissectedVar {
       ans_vals,
       ans_bits,
       offsets,
       offset_bits,
       ans_final_states,
+      needs_ans,
     } = dst;
 
     let absolute_batch_range =
@@ -214,43 +263,34 @@ impl<L: Latent> ChunkLatentCompressor<L> {
 
     self.dissect_bins(
       &search_idxs[..batch_n],
-      &mut offset_bits[relative_batch_range.clone()],
+      &mut offset_bits.spare_capacity_mut()[relative_batch_range.clone()],
     );
 
-    let offsets = offsets.downcast_mut::<L>().unwrap();
     self.set_offsets(
       &self.latents[absolute_batch_range],
-      &mut offsets[relative_batch_range.clone()],
+      &mut offsets.spare_capacity_mut()[relative_batch_range.clone()],
     );
 
-    encode_ans_in_reverse(
-      &self.encoder,
-      &mut ans_vals[relative_batch_range.clone()],
-      &mut ans_bits[relative_batch_range],
-      ans_final_states,
-      &mut self.scratch.symbols.0,
-    );
-  }
-
-  unsafe fn uninit_page_dissected_var(&self, n: usize) -> PageDissectedVar {
-    let ans_final_states = [self.encoder.default_state(); ANS_INTERLEAVING];
-    PageDissectedVar {
-      ans_vals: uninit_vec(n),
-      ans_bits: uninit_vec(n),
-      offsets: DynLatents::new(uninit_vec::<L>(n)),
-      offset_bits: uninit_vec(n),
-      ans_final_states,
+    if *needs_ans {
+      encode_ans_in_reverse(
+        &self.encoder,
+        &mut ans_vals.spare_capacity_mut()[relative_batch_range.clone()],
+        &mut ans_bits.spare_capacity_mut()[relative_batch_range],
+        ans_final_states,
+        &mut self.scratch.symbols.0,
+      );
     }
   }
 
   pub fn dissect_page(&mut self, page_range: Range<usize>) -> PageDissectedVar {
+    let ans_final_states = [self.encoder.default_state(); ANS_INTERLEAVING];
     if self.is_trivial {
-      // safe because length of uninit elements is 0
-      return unsafe { self.uninit_page_dissected_var(0) };
+      return UninitPageDissectedVar::<L>::with_capacity(0, false, ans_final_states).into_init(0);
     }
 
     let page_n = page_range.len();
-    let mut page_dissected_var = unsafe { self.uninit_page_dissected_var(page_n) };
+    let mut page_dissected_var =
+      UninitPageDissectedVar::<L>::with_capacity(page_n, self.needs_ans, ans_final_states);
 
     // We go through in reverse for ANS!
     // Here page_dissected_var is indexed from 0..page_n, whereas latents are
@@ -266,7 +306,7 @@ impl<L: Latent> ChunkLatentCompressor<L> {
         &mut page_dissected_var,
       )
     }
-    page_dissected_var
+    page_dissected_var.into_init(page_n)
   }
 
   pub fn write_dissected_batch<W: Write>(

@@ -1,13 +1,10 @@
-use std::fmt::{Display, Formatter, Result};
-
 use bitcoin::transaction::Version;
 use derive_more::Deref;
-use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// Compact indexed transaction-version category. Values 1, 2, and 3 preserve
 /// those exact signed 32-bit Bitcoin transaction versions; 255 represents every
@@ -37,26 +34,4 @@ impl From<Version> for TxVersion {
     }
 }
 
-impl From<TxVersion> for Version {
-    #[inline]
-    fn from(value: TxVersion) -> Self {
-        Self(value.0 as i32)
-    }
-}
-
-impl Display for TxVersion {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for TxVersion {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+brk_types::impl_int_format!(TxVersion);

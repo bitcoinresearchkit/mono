@@ -1,213 +1,92 @@
 mod address;
-mod identity;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{
-    EmptyOutputIndex, OpReturnIndex, P2AAddrIndex, P2MSOutputIndex, P2PK33AddrIndex,
-    P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex,
-    UnknownOutputIndex,
+    EmptyOutputIndex, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
+    P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
+    P2WSHAddressIndex, UnknownOutputIndex,
 };
 use bitview_traversable::Traversable;
 use brk_types::{
-    Addr, AddrBytes, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes,
-    P2WPKHBytes, P2WSHBytes, TxIndex, Version,
+    P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes, P2TRBytes, P2WPKHBytes, P2WSHBytes,
+    TxIndex, Version,
 };
-use vecdb::{LazyVec, ReadableCloneableVec};
 
-use self::{address::AddressVecs, identity::IdentityVecs};
+use self::address::AddressVecs;
+use crate::identity::IdentityVecs;
 
+/// Address types: each address index and its textual address.
 #[derive(Clone, Traversable)]
 pub struct Vecs {
     /// P2PK-shaped outputs containing a 33-byte key field; the field is not
     /// required to be a valid compressed public key.
-    pub p2pk33: AddressVecs<P2PK33AddrIndex, P2PK33Bytes>,
+    pub p2pk33: AddressVecs<P2PK33AddressIndex, P2PK33Bytes>,
     /// P2PK-shaped outputs containing a 65-byte key field; the field is not
     /// required to be a valid uncompressed public key.
-    pub p2pk65: AddressVecs<P2PK65AddrIndex, P2PK65Bytes>,
+    pub p2pk65: AddressVecs<P2PK65AddressIndex, P2PK65Bytes>,
     /// Pay-to-public-key-hash outputs.
-    pub p2pkh: AddressVecs<P2PKHAddrIndex, P2PKHBytes>,
+    pub p2pkh: AddressVecs<P2PKHAddressIndex, P2PKHBytes>,
     /// Pay-to-script-hash outputs.
-    pub p2sh: AddressVecs<P2SHAddrIndex, P2SHBytes>,
+    pub p2sh: AddressVecs<P2SHAddressIndex, P2SHBytes>,
     /// Pay-to-Taproot outputs.
-    pub p2tr: AddressVecs<P2TRAddrIndex, P2TRBytes>,
+    pub p2tr: AddressVecs<P2TRAddressIndex, P2TRBytes>,
     /// Version-0 pay-to-witness-public-key-hash outputs.
-    pub p2wpkh: AddressVecs<P2WPKHAddrIndex, P2WPKHBytes>,
+    pub p2wpkh: AddressVecs<P2WPKHAddressIndex, P2WPKHBytes>,
     /// Version-0 pay-to-witness-script-hash outputs.
-    pub p2wsh: AddressVecs<P2WSHAddrIndex, P2WSHBytes>,
+    pub p2wsh: AddressVecs<P2WSHAddressIndex, P2WSHBytes>,
     /// Pay-to-Anchor outputs matching `OP_1 PUSHBYTES_2 0x4e73`.
-    pub p2a: AddressVecs<P2AAddrIndex, P2ABytes>,
+    pub p2a: AddressVecs<P2AAddressIndex, P2ABytes>,
+}
+
+/// Output types without an address: each type-specific output index, as an identity series.
+#[derive(Clone, Traversable)]
+pub struct OutputVecs {
     /// Bare multisig outputs recognized by Bitcoin script parsing.
+    /// Zero-based type-specific output index assigned in canonical chain order.
     pub p2ms: IdentityVecs<P2MSOutputIndex, TxIndex>,
     /// Outputs with an empty locking script.
+    /// Zero-based type-specific output index assigned in canonical chain order.
     pub empty: IdentityVecs<EmptyOutputIndex, TxIndex>,
     /// Outputs not matching another recognized locking-script type.
+    /// Zero-based type-specific output index assigned in canonical chain order.
     pub unknown: IdentityVecs<UnknownOutputIndex, TxIndex>,
     /// Outputs whose locking script begins with `OP_RETURN`.
+    /// Zero-based type-specific output index assigned in canonical chain order.
     pub op_return: IdentityVecs<OpReturnIndex, TxIndex>,
 }
 
 impl Vecs {
     pub fn new(version: Version, indexer: &Indexer) -> Self {
+        let addrs = &indexer.vecs().addrs;
         Self {
-            p2pk33: AddressVecs {
-                identity: LazyVec::init(
-                    "p2pk33_addr_index",
-                    version,
-                    indexer.vecs().addrs.p2pk33.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                addr: LazyVec::init(
-                    "p2pk33_addr",
-                    version,
-                    indexer.vecs().addrs.p2pk33.bytes.read_only_boxed_clone(),
-                    |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2pk65: AddressVecs {
-                identity: LazyVec::init(
-                    "p2pk65_addr_index",
-                    version,
-                    indexer.vecs().addrs.p2pk65.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                addr: LazyVec::init(
-                    "p2pk65_addr",
-                    version,
-                    indexer.vecs().addrs.p2pk65.bytes.read_only_boxed_clone(),
-                    |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2pkh: AddressVecs {
-                identity: LazyVec::init(
-                    "p2pkh_addr_index",
-                    version,
-                    indexer.vecs().addrs.p2pkh.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                addr: LazyVec::init(
-                    "p2pkh_addr",
-                    version,
-                    indexer.vecs().addrs.p2pkh.bytes.read_only_boxed_clone(),
-                    |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2sh: AddressVecs {
-                identity: LazyVec::init(
-                    "p2sh_addr_index",
-                    version,
-                    indexer.vecs().addrs.p2sh.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                addr: LazyVec::init(
-                    "p2sh_addr",
-                    version,
-                    indexer.vecs().addrs.p2sh.bytes.read_only_boxed_clone(),
-                    |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2tr: AddressVecs {
-                identity: LazyVec::init(
-                    "p2tr_addr_index",
-                    version,
-                    indexer.vecs().addrs.p2tr.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                addr: LazyVec::init(
-                    "p2tr_addr",
-                    version,
-                    indexer.vecs().addrs.p2tr.bytes.read_only_boxed_clone(),
-                    |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2wpkh: AddressVecs {
-                identity: LazyVec::init(
-                    "p2wpkh_addr_index",
-                    version,
-                    indexer.vecs().addrs.p2wpkh.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                addr: LazyVec::init(
-                    "p2wpkh_addr",
-                    version,
-                    indexer.vecs().addrs.p2wpkh.bytes.read_only_boxed_clone(),
-                    |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2wsh: AddressVecs {
-                identity: LazyVec::init(
-                    "p2wsh_addr_index",
-                    version,
-                    indexer.vecs().addrs.p2wsh.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                addr: LazyVec::init(
-                    "p2wsh_addr",
-                    version,
-                    indexer.vecs().addrs.p2wsh.bytes.read_only_boxed_clone(),
-                    |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2a: AddressVecs {
-                identity: LazyVec::init(
-                    "p2a_addr_index",
-                    version,
-                    indexer.vecs().addrs.p2a.bytes.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-                addr: LazyVec::init(
-                    "p2a_addr",
-                    version,
-                    indexer.vecs().addrs.p2a.bytes.read_only_boxed_clone(),
-                    |_, bytes| Addr::try_from(&AddrBytes::from(bytes)).unwrap(),
-                ),
-            },
-            p2ms: IdentityVecs {
-                identity: LazyVec::init(
-                    "p2ms_output_index",
-                    version,
-                    indexer
-                        .vecs()
-                        .scripts
-                        .p2ms
-                        .to_tx_index
-                        .read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-            },
-            empty: IdentityVecs {
-                identity: LazyVec::init(
-                    "empty_output_index",
-                    version,
-                    indexer
-                        .vecs()
-                        .scripts
-                        .empty
-                        .to_tx_index
-                        .read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-            },
-            unknown: IdentityVecs {
-                identity: LazyVec::init(
-                    "unknown_output_index",
-                    version,
-                    indexer
-                        .vecs()
-                        .scripts
-                        .unknown
-                        .to_tx_index
-                        .read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-            },
-            op_return: IdentityVecs {
-                identity: LazyVec::init(
-                    "op_return_index",
-                    version,
-                    indexer.vecs().op_return.to_tx_index.read_only_boxed_clone(),
-                    |index, _| index,
-                ),
-            },
+            p2pk33: AddressVecs::new("p2pk33", version, &addrs.p2pk33.bytes),
+            p2pk65: AddressVecs::new("p2pk65", version, &addrs.p2pk65.bytes),
+            p2pkh: AddressVecs::new("p2pkh", version, &addrs.p2pkh.bytes),
+            p2sh: AddressVecs::new("p2sh", version, &addrs.p2sh.bytes),
+            p2tr: AddressVecs::new("p2tr", version, &addrs.p2tr.bytes),
+            p2wpkh: AddressVecs::new("p2wpkh", version, &addrs.p2wpkh.bytes),
+            p2wsh: AddressVecs::new("p2wsh", version, &addrs.p2wsh.bytes),
+            p2a: AddressVecs::new("p2a", version, &addrs.p2a.bytes),
+        }
+    }
+}
+
+impl OutputVecs {
+    pub fn new(version: Version, indexer: &Indexer) -> Self {
+        let scripts = &indexer.vecs().scripts;
+        Self {
+            p2ms: IdentityVecs::new("p2ms_output_index", version, &scripts.p2ms.to_tx_index),
+            empty: IdentityVecs::new("empty_output_index", version, &scripts.empty.to_tx_index),
+            unknown: IdentityVecs::new(
+                "unknown_output_index",
+                version,
+                &scripts.unknown.to_tx_index,
+            ),
+            op_return: IdentityVecs::new(
+                "op_return_index",
+                version,
+                &indexer.vecs().op_return.to_tx_index,
+            ),
         }
     }
 }

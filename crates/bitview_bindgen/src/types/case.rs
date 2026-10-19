@@ -1,6 +1,5 @@
 use bitview_primitives::Index;
 
-/// Convert a string to PascalCase (e.g., "fee_rate" -> "FeeRate").
 pub(crate) fn to_pascal_case(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     for word in s.split(['-', '_']) {
@@ -58,7 +57,6 @@ pub(crate) fn python_field_name(key: &str) -> String {
     escape_python_keyword(&to_snake_case(key))
 }
 
-/// Convert a string to camelCase (e.g., "fee_rate" -> "feeRate").
 pub(crate) fn to_camel_case(s: &str) -> String {
     let mut result = to_pascal_case(s);
     if let Some(first) = result.chars().next() {
@@ -72,20 +70,17 @@ pub(crate) fn to_camel_case(s: &str) -> String {
         }
     }
 
-    // Prefix with _ if starts with digit
     if result.chars().next().is_some_and(|c| c.is_ascii_digit()) {
         result.insert(0, '_');
     }
     result
 }
 
-/// Convert an Index to a snake_case field name (e.g., Day1 -> day1).
 pub(crate) fn index_to_field_name(index: &Index) -> String {
     to_snake_case(index.name())
 }
 
-/// Escape Python reserved keywords by appending an underscore.
-/// Also prefixes names starting with digits with an underscore.
+/// Drops brackets (as in `txId[]`), prefixes a leading digit and suffixes Python keywords with `_`.
 pub(crate) fn escape_python_keyword(name: &str) -> String {
     const PYTHON_KEYWORDS: &[&str] = &[
         "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
@@ -94,15 +89,12 @@ pub(crate) fn escape_python_keyword(name: &str) -> String {
         "try", "while", "with", "yield",
     ];
 
-    // Strip characters invalid in identifiers (e.g. `[]` from `txId[]`)
     let mut name = name.replace(['[', ']'], "");
 
-    // Prefix with underscore if starts with digit
     if name.starts_with(|c: char| c.is_ascii_digit()) {
         name.insert(0, '_');
     }
 
-    // Append underscore if it's a keyword
     if PYTHON_KEYWORDS.contains(&name.as_str()) {
         name.push('_');
     }

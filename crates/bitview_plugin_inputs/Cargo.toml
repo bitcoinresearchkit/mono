@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_inputs"
-description = "The transaction inputs plugin for Bitview"
+description = "Input counts by spent output type and per-block spend journals by creation height for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,20 +8,18 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+bitview_compute = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 statedb = { workspace = true }
-bitview_collections = { workspace = true, features = ["storage"] }
 bitview_vecs = { workspace = true }
 brk_exit = { workspace = true }
 bitview_plugin = { workspace = true }
-bitview_plugin_blocks = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }
 brk_error = { workspace = true, features = ["vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
-derive_more = { workspace = true }
 rustc-hash = { workspace = true }
 rayon = { workspace = true }
 tracing = { workspace = true }

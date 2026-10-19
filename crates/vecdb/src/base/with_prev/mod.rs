@@ -1,12 +1,10 @@
-use std::mem;
-
 pub mod default;
 
 /// Tracks current and previous values for rollback support.
 #[derive(Debug, Clone)]
 pub struct WithPrev<T> {
-    current: T,
-    previous: T,
+    pub(crate) current: T,
+    pub(crate) previous: T,
 }
 
 impl<T> WithPrev<T> {
@@ -20,26 +18,6 @@ impl<T> WithPrev<T> {
         }
     }
 
-    #[inline(always)]
-    pub(crate) fn current(&self) -> &T {
-        &self.current
-    }
-
-    #[inline]
-    pub(crate) fn current_mut(&mut self) -> &mut T {
-        &mut self.current
-    }
-
-    #[inline(always)]
-    pub(crate) fn previous(&self) -> &T {
-        &self.previous
-    }
-
-    #[inline]
-    pub(crate) fn previous_mut(&mut self) -> &mut T {
-        &mut self.previous
-    }
-
     /// Copies current into previous.
     #[inline]
     pub(crate) fn save(&mut self)
@@ -49,12 +27,13 @@ impl<T> WithPrev<T> {
         self.previous.clone_from(&self.current);
     }
 
+    /// Copies previous into current.
     #[inline]
-    pub(crate) fn take_current(&mut self) -> T
+    pub(crate) fn restore(&mut self)
     where
-        T: Default,
+        T: Clone,
     {
-        mem::take(&mut self.current)
+        self.current.clone_from(&self.previous);
     }
 
     #[inline]
@@ -63,14 +42,6 @@ impl<T> WithPrev<T> {
         T: Default,
     {
         self.current = T::default();
-        self.previous = T::default();
-    }
-
-    #[inline]
-    pub(crate) fn clear_previous(&mut self)
-    where
-        T: Default,
-    {
         self.previous = T::default();
     }
 }

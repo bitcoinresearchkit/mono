@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_bedrock"
-description = "The Bedrock model plugin for Bitview"
+description = "Bitcoin price bands calibrated from historical supply-in-loss shares"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,21 +11,17 @@ repository.workspace = true
 bitview_compute = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_urpd = { workspace = true }
-bitview_transforms = { workspace = true }
 bitview_vecs = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_coinflow = { workspace = true }
 bitview_plugin_cointime = { workspace = true }
-bitview_plugin_distribution_aggregated = { workspace = true }
-bitview_plugin_distribution_age = { workspace = true }
+bitview_plugin_holders = { workspace = true }
+bitview_plugin_age = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }
 brk_error = { workspace = true, features = ["vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
-derive_more = { workspace = true }
 log = { workspace = true }
-schemars = { workspace = true }
-serde = { workspace = true }
 vecdb = { workspace = true }

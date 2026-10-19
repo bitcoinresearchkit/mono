@@ -1,52 +1,53 @@
 mod by_type;
 mod compute;
-mod correction;
-mod count;
 mod dependencies;
 mod has;
 mod import;
 mod spent;
 mod value;
 
-pub use by_type::Vecs as ByTypeVecs;
-pub use correction::overwritten_output;
+pub use by_type::{OutputTypeVecs, Vecs as TypesVecs};
 pub use dependencies::Dependencies;
 pub use has::HasOutputs;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::{Count, Count32};
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyPerSecondWindows;
+use bitview_vecs::{
+    LazyPerBlockCumulativeRolling, LazyPerSecondWindows, PerBlockFullFromCumulative,
+    ValuePerBlockCumulativeRolling,
+};
 use brk_types::Version;
 use statedb::Creations;
 use vecdb::{Database, Rw, StorageMode};
 
-use count::Vecs as CountVecs;
 use spent::Vecs as SpentVecs;
-use value::Vecs as ValueVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("outputs"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
 
-#[derive(Traversable)]
+#[derive(Traversable, Plugin)]
+#[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    #[traversable(skip)]
     pub creations: M::WriteOnly<Creations>,
+    #[traversable(flatten)]
     pub spent: SpentVecs<M>,
-    pub count: CountVecs<M>,
+    /// Number of transaction outputs, including coinbase outputs.
+    pub count: PerBlockFullFromCumulative<Count32, M>,
     /// Transaction-output rate, including coinbase outputs.
-    per_sec: LazyPerSecondWindows,
-    pub by_type: ByTypeVecs<M>,
-    pub value: ValueVecs<M>,
-}
-
-impl<M: StorageMode> Plugin for Vecs<M>
-where
-    Self: Traversable + Send + Sync,
-{
-    fn storage(&self) -> PluginStorage {
-        STORAGE
-    }
+    per_second: LazyPerSecondWindows,
+    /// Number of transaction outputs excluding `OP_RETURN` outputs, which are
+    /// provably unspendable. It still counts the other outputs that can never be
+    /// spent: the genesis coinbase output and the two earlier coinbase outputs the
+    /// BIP30 duplicate coinbases overwrote.
+    spendable_count: LazyPerBlockCumulativeRolling<Count>,
+    /// Transaction outputs by locking-script type, including coinbase outputs
+    /// and coinbase transactions.
+    types: TypesVecs<M>,
+    /// Total bitcoin value assigned to provably unspendable `OP_RETURN`
+    /// outputs.
+    pub op_return_value: ValuePerBlockCumulativeRolling<M>,
 }

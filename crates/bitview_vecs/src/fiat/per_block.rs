@@ -1,10 +1,9 @@
 use bitview_compute::{NumericValue, Quantity};
 use bitview_primitives::CentsFract;
-use bitview_transforms::Convert;
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Dollars, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, Rw};
+use vecdb::{Convert, Database, Rw};
 
 use crate::{Fiat, IndexSources, LazyPerBlock, PerBlock};
 
@@ -18,8 +17,7 @@ impl FiatType for Cents {}
 
 impl FiatType for CentsSigned {}
 
-/// Height-indexed fiat monetary value: cents (eager, integer) + usd (lazy, float).
-/// Generic over `C` to support both `Cents` (unsigned) and `CentsSigned` (signed).
+/// Stored cents with their lazy USD view.
 pub type FiatPerBlock<C, M = Rw> = Fiat<PerBlock<C, M>, LazyPerBlock<Dollars, C>>;
 
 impl<C: FiatType> FiatPerBlock<C> {

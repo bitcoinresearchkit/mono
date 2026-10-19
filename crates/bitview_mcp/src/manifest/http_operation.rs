@@ -2,9 +2,8 @@ use serde::Deserialize;
 
 use super::Parameter;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct HttpOperation {
-    pub method: String,
     pub path: String,
     pub parameters: Vec<Parameter>,
 }

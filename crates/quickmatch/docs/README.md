@@ -1,12 +1,9 @@
 # quickmatch
 
-Fast fuzzy string matching for Rust and JavaScript.
+Fuzzy string matching for Rust and JavaScript, for autocomplete, command palettes and
+search-as-you-type.
 
-Built for autocomplete, command palettes, and search-as-you-type interfaces.
-
-[![Crates.io](https://img.shields.io/crates/v/quickmatch.svg)](https://crates.io/crates/quickmatch)
-[![npm](https://img.shields.io/npm/v/quickmatch-js.svg)](https://www.npmjs.com/package/quickmatch-js)
-[![Documentation](https://docs.rs/quickmatch/badge.svg)](https://docs.rs/quickmatch)
+[crates.io](https://crates.io/crates/quickmatch) · [Rust API](https://docs.rs/quickmatch) · [npm](https://www.npmjs.com/package/quickmatch-js)
 
 ## Install
 
@@ -21,8 +18,8 @@ npm install quickmatch-js
 ## Usage
 
 Corpus items must be lowercase ASCII.
-Constructors enforce these programmer preconditions with diagnostic panics;
-normalize or validate dynamic input before building a matcher. Query text is
+This is a precondition, only checked in Rust debug builds: normalize or validate
+dynamic input before building a matcher. Query text is
 lowercased and non-ASCII query characters are ignored. This is not a Unicode
 search engine.
 
@@ -51,11 +48,10 @@ import { QuickMatch, QuickMatchConfig } from "quickmatch-js";
 const items = ["file_name", "file_size", "created_at", "updated_at"];
 const qm = new QuickMatch(items);
 
-qm.matches("file name");  // ["file_name", "file_size"]
-qm.matches("filename");   // ["file_name", "file_size"]  (compound match)
+qm.matches("file name");  // ["file_name"]
+qm.matches("filename");   // ["file_name"]  (compound match)
 qm.matches("filenme");    // ["file_name", "file_size"]  (trigram fuzzy)
 
-// Custom config
 const config = new QuickMatchConfig()
   .withLimit(5)
   .withTrigramBudget(10)
@@ -65,13 +61,19 @@ const qm2 = new QuickMatch(items, config);
 
 ## How it works
 
-Queries go through three matching stages:
+Query words match in any order through indexed word lists, including prefixes and joined
+adjacent words (`hashrate` matches `hash_rate`); a word of four letters or more also matches one a
+letter shorter (a plural, `prices` for `price`). Unknown words first try bounded adjacent-letter
+corrections against whole indexed words, then trigram matching: each unknown word of three letters
+or more must be a typo of a run of the item's adjacent words (one word, or several joined), within
+one edit of the whole run (a swap counts as one; two from seven letters) or, from five letters,
+within one edit of the run's start. Known words with no item in common skip typo matching. If typo
+matching yields nothing, results come from the known words' intersection, or their union with the
+union fallback.
 
-1. **Word match** — query is split by separators and looked up in a word index
-2. **Compound match** — adjacent words are indexed as compounds, so `hashrate` finds `hash_rate`
-3. **Trigram fallback** — unknown words are matched via character trigrams for fuzzy/typo tolerance; each one of three letters or more must then be a typo of a run of the item's adjacent words (one word, or several joined): within one edit of the whole run (a swap counts as one; two from seven letters), or, from five letters, within one edit of the run's start
-
-Query words match in any order, including prefixes and joined adjacent words; a word of four letters or more also matches one a letter shorter (a plural, "prices" for "price"). Bounded adjacent-letter corrections run before the trigram fallback and must match whole indexed words. Results rank by matched-word count, fuzzy score, how many query words match a word whole (not only as a prefix or a plural: "1" holds "1" before "13"), first match position, item length, text, then original index.
+Results rank by matched-word count, fuzzy score and how many query words match a word whole (not
+only as a prefix or a plural: `1` holds `1` before `13`), all descending, then first match
+position, item length, text and original index (ascending).
 
 ## Config
 

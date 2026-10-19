@@ -1,19 +1,41 @@
-use std::{convert::Infallible, iter, sync::Arc};
+use std::{convert::Infallible, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
+use arc_swap::ArcSwap;
 use brk_types::{Height, Timestamp, Version};
 use vecdb::{
-    AnyExportableVec, AnyVec, PrintableIndex, ReadOnlyClone, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableVec, TypedVec, short_type_name,
+    AnyVec, ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecIndex,
 };
 
-const HOUR_SECONDS: u64 = 60 * 60;
-const DAY_SECONDS: u64 = 24 * HOUR_SECONDS;
+use crate::shapes::Windows;
+
+const DAY_SECONDS: u64 = 24 * 60 * 60;
 /// First backward read when locating a window start; grows 4x per step.
 const WINDOW_READ_CHUNK: usize = 1 << 10;
 /// Sorted requests closer than this many heights share one contiguous
 /// timestamp read; farther ones are read separately.
 const MAX_BRIDGED_GAP: usize = 1 << 16;
+/// Latest heights whose window starts stay resident: an ordinary update and the
+/// height before it read only these.
+const TIP_HEIGHTS: usize = 8;
+/// Fewest timestamps read at a time while carrying a window start forward.
+const TIP_READ: usize = 64;
+
+/// Window starts of the latest heights, computed from timestamps of `version`.
+#[derive(Default)]
+struct Tip {
+    version: Version,
+    first: usize,
+    starts: Vec<Height>,
+}
+
+impl Tip {
+    fn get(&self, from: usize, to: usize) -> Option<&[Height]> {
+        self.starts
+            .get(from.checked_sub(self.first)?..to.checked_sub(self.first)?)
+    }
+}
+
+pub type WindowStarts<'a> = Windows<&'a LazyWindowStartVec>;
 
 /// A storage-free window-start vector backed by one monotonic timestamp source.
 ///
@@ -21,46 +43,112 @@ const MAX_BRIDGED_GAP: usize = 1 << 16;
 /// Point lookups into a compressed timestamp source decode a whole page per
 /// probe, which made per-day binary searches over full history cost hundreds
 /// of milliseconds. Range and sorted reads find the first window start once,
-/// then advance it monotonically.
+/// then advance it monotonically. The latest heights' starts are carried forward
+/// by [`Self::update`] and shared by every clone: an ordinary update reuses a
+/// resident start, rereads the retained tip's timestamps and scans forward in
+/// batches from that start.
 #[derive(Clone)]
 pub struct LazyWindowStartVec {
     name: Arc<str>,
     version: Version,
     duration_seconds: u64,
     timestamps: ReadableBoxedVec<Height, Timestamp>,
+    tip: Arc<ArcSwap<Tip>>,
 }
 
 impl LazyWindowStartVec {
-    pub fn hours(
-        name: &str,
-        version: Version,
-        hours: u64,
-        timestamps: &(impl ReadableCloneableVec<Height, Timestamp> + ?Sized),
-    ) -> Self {
-        Self::new(name, version, hours * HOUR_SECONDS, timestamps)
-    }
-
     pub fn days(
         name: &str,
         version: Version,
         days: u64,
         timestamps: &(impl ReadableCloneableVec<Height, Timestamp> + ?Sized),
     ) -> Self {
-        Self::new(name, version, days * DAY_SECONDS, timestamps)
-    }
-
-    fn new(
-        name: &str,
-        version: Version,
-        duration_seconds: u64,
-        timestamps: &(impl ReadableCloneableVec<Height, Timestamp> + ?Sized),
-    ) -> Self {
+        // A window holds at least its own height: its start is never past it.
+        debug_assert!(days > 0, "{name}: a window spans at least one day");
         Self {
             name: Arc::from(name),
             version,
-            duration_seconds,
+            duration_seconds: days * DAY_SECONDS,
             timestamps: timestamps.read_only_boxed_clone(),
+            tip: Arc::default(),
         }
+    }
+
+    /// Republishes the latest heights' starts after the timestamps changed from
+    /// `starting_height`; called by the timestamps' writer after each update.
+    /// Starts below the change carry forward; anything else is recomputed.
+    pub fn update(&self, starting_height: Height) {
+        let len = self.timestamps.len();
+        let version = self.timestamps.version();
+        let first = len.saturating_sub(TIP_HEIGHTS);
+        let tip = self.tip.load();
+        let unchanged = if tip.version == version {
+            (tip.first + tip.starts.len()).min(starting_height.to_usize())
+        } else {
+            0
+        };
+        let seed = first
+            .min(unchanged)
+            .checked_sub(1)
+            .and_then(|height| Some((height, tip.get(height, height + 1)?[0].to_usize())));
+        let mut starts = Vec::with_capacity(len - first);
+        let complete = match seed {
+            Some((height, start)) => self.advance(start, height + 1, len, first, &mut starts),
+            None if first < len => self.window_prefix(first).and_then(|(lo, values)| {
+                let start = self.prefix_start(lo, &values, first);
+                starts.push(Height::from(start));
+                self.advance(start, first + 1, len, first, &mut starts)
+            }),
+            None => Some(()),
+        };
+        if complete.is_none() {
+            starts.clear();
+        }
+        self.tip.store(Arc::new(Tip {
+            version,
+            first,
+            starts,
+        }));
+    }
+
+    /// Carries `start`, the window start of `from - 1`, through `[from, to)` and
+    /// pushes the starts from `keep` on. Reads the timestamps of `[from, to)`, and
+    /// from `start` on in forward batches.
+    fn advance(
+        &self,
+        mut start: usize,
+        from: usize,
+        to: usize,
+        keep: usize,
+        out: &mut Vec<Height>,
+    ) -> Option<()> {
+        let current = self.timestamps.collect_range_dyn(from, to);
+        if current.len() != to - from {
+            return None;
+        }
+        let mut passed = Vec::new();
+        let mut lo = start;
+        for (height, timestamp) in (from..).zip(current) {
+            while start < height {
+                if start == lo + passed.len() {
+                    let end = (start + (to - height).max(TIP_READ)).min(height);
+                    lo = start;
+                    passed.clear();
+                    self.timestamps.read_into_at(lo, end, &mut passed);
+                    if passed.len() != end - lo {
+                        return None;
+                    }
+                }
+                if !self.is_expired(timestamp, passed[start - lo]) {
+                    break;
+                }
+                start += 1;
+            }
+            if height >= keep {
+                out.push(Height::from(start));
+            }
+        }
+        Some(())
     }
 
     #[inline]
@@ -73,7 +161,7 @@ impl LazyWindowStartVec {
     ///
     /// Timestamps are monotonic, so expiry is a prefix property: once the
     /// first value of a backward chunk is expired, so is everything before
-    /// it. Each compressed page is decoded at most once per call.
+    /// it.
     fn window_prefix(&self, index: usize) -> Option<(usize, Vec<Timestamp>)> {
         let mut lo = (index + 1).saturating_sub(WINDOW_READ_CHUNK);
         let mut values = self.timestamps.collect_range_dyn(lo, index + 1);
@@ -97,7 +185,6 @@ impl LazyWindowStartVec {
     }
 
     /// Window start for `values[index - lo]` searched over `[0, index]`.
-    /// May return `index + 1` when the window is empty (zero duration).
     fn prefix_start(&self, lo: usize, values: &[Timestamp], index: usize) -> usize {
         let current = values[index - lo];
         lo + values[..=index - lo].partition_point(|&older| self.is_expired(current, older))
@@ -112,6 +199,9 @@ impl LazyWindowStartVec {
         let to = to.min(self.timestamps.len());
         if from >= to {
             return Ok(());
+        }
+        if let Some(starts) = self.tip.load().get(from, to) {
+            return starts.iter().try_for_each(|&start| each(start));
         }
 
         let Some((lo, mut values)) = self.window_prefix(from) else {
@@ -132,14 +222,45 @@ impl LazyWindowStartVec {
     }
 
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(Height)) {
-        let result = self.try_for_each_value(from, to, |value| {
+        let Ok(()) = self.try_for_each_value(from, to, |value| {
             each(value);
             Ok::<_, Infallible>(())
         });
-        match result {
-            Ok(()) => {}
-            Err(error) => match error {},
+    }
+
+    /// Window starts of sorted, present `indices`, searched in the timestamps; `None` once a read
+    /// comes up short.
+    fn search_sorted_into(&self, indices: &[usize], out: &mut Vec<Height>) -> Option<()> {
+        // Window starts never decrease, so one start is carried across a segment's indices,
+        // exactly as a linear scan would.
+        let mut rest = indices;
+        while let Some(&first) = rest.first() {
+            let mut end = 1;
+            while end < rest.len() && rest[end] - rest[end - 1] <= MAX_BRIDGED_GAP {
+                end += 1;
+            }
+            let (segment, next) = rest.split_at(end);
+            rest = next;
+
+            let (lo, mut values) = self.window_prefix(first)?;
+            let last = segment[segment.len() - 1];
+            values.extend(self.timestamps.collect_range_dyn(first + 1, last + 1));
+            let available = lo + values.len();
+
+            let mut start = self.prefix_start(lo, &values, first);
+            for &current in segment {
+                if current >= available {
+                    return None;
+                }
+                if start < current {
+                    let timestamp = values[current - lo];
+                    start += values[start - lo..current - lo]
+                        .partition_point(|&older| self.is_expired(timestamp, older));
+                }
+                out.push(Height::from(start));
+            }
         }
+        Some(())
     }
 }
 
@@ -156,21 +277,11 @@ impl AnyVec for LazyWindowStartVec {
         self.timestamps.len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        <Height as PrintableIndex>::to_string()
+    fn is_mutable(&self) -> bool {
+        self.timestamps.is_mutable()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<Height>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<Height>()
-    }
+    vecdb::any_vec_type_methods!(Height, Height);
 }
 
 impl TypedVec for LazyWindowStartVec {
@@ -179,47 +290,14 @@ impl TypedVec for LazyWindowStartVec {
 }
 
 impl ReadableVec<Height, Height> for LazyWindowStartVec {
-    fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<Height>) {
-        buf.reserve(to.min(self.len()).saturating_sub(from));
-        self.for_each_value(from, to, |value| buf.push(value));
-    }
-
-    fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(Height)) {
-        self.for_each_value(from, to, each);
-    }
-
-    fn fold_range_at<B, F: FnMut(B, Height) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        let mut acc = Some(init);
-        self.for_each_value(from, to, |value| {
-            acc = Some(fold(acc.take().unwrap(), value));
-        });
-        acc.unwrap()
-    }
-
-    fn try_fold_range_at<B, E, F: FnMut(B, Height) -> Result<B, E>>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> Result<B, E> {
-        let mut acc = Some(init);
-        self.try_for_each_value(from, to, |value| {
-            acc = Some(fold(acc.take().unwrap(), value)?);
-            Ok(())
-        })?;
-        Ok(acc.unwrap())
-    }
+    vecdb::visitor_read_methods!(Height, for_each_value, try_for_each_value);
 
     fn collect_one_at(&self, index: usize) -> Option<Height> {
         if index >= self.timestamps.len() {
             return None;
+        }
+        if let Some(&[start]) = self.tip.load().get(index, index + 1) {
+            return Some(start);
         }
         let (lo, values) = self.window_prefix(index)?;
         Some(Height::from(self.prefix_start(lo, &values, index)))
@@ -230,44 +308,19 @@ impl ReadableVec<Height, Height> for LazyWindowStartVec {
         let indices = &indices[..indices.partition_point(|&index| index < len)];
         out.reserve(indices.len());
 
-        // Window starts never decrease, so one start is carried across every
-        // requested index, exactly as a linear scan would.
-        let mut carried: Option<usize> = None;
-        let mut rest = indices;
-        while let Some(&first) = rest.first() {
-            let mut end = 1;
-            while end < rest.len() && rest[end] - rest[end - 1] <= MAX_BRIDGED_GAP {
-                end += 1;
-            }
-            let (segment, next) = rest.split_at(end);
-            rest = next;
-
-            let Some((lo, mut values)) = self.window_prefix(first) else {
-                return;
-            };
-            let last = segment[segment.len() - 1];
-            values.extend(self.timestamps.collect_range_dyn(first + 1, last + 1));
-            let available = lo + values.len();
-
-            let fresh = self.prefix_start(lo, &values, first);
-            // After a skipped gap, a linear scan would have stopped at `first`.
-            let mut start = match carried {
-                Some(_) => fresh.min(first),
-                None => fresh,
-            };
-            for &current in segment {
-                if current >= available {
-                    return;
-                }
-                if start < current {
-                    let timestamp = values[current - lo];
-                    start += values[start - lo..current - lo]
-                        .partition_point(|&older| self.is_expired(timestamp, older));
-                }
-                out.push(Height::from(start));
-            }
-            carried = Some(start);
+        // Sorted, the requests the resident tip covers form one run: only the others search.
+        let tip = self.tip.load();
+        let covered_from = indices.partition_point(|&index| index < tip.first);
+        let covered_to = indices.partition_point(|&index| index < tip.first + tip.starts.len());
+        let (covered, after) = indices[covered_from..].split_at(covered_to - covered_from);
+        if self
+            .search_sorted_into(&indices[..covered_from], out)
+            .is_none()
+        {
+            return;
         }
+        out.extend(covered.iter().map(|&index| tip.starts[index - tip.first]));
+        self.search_sorted_into(after, out);
     }
 }
 
@@ -279,12 +332,4 @@ impl ReadOnlyClone for LazyWindowStartVec {
     }
 }
 
-impl Traversable for LazyWindowStartVec {
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+bitview_traversable::leaf!([] LazyWindowStartVec);

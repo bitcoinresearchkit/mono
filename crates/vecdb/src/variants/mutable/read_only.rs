@@ -9,17 +9,10 @@ use crate::{
 
 use super::{MutableRawVec, MutableVec};
 
-/// Lean read-only view of a [`MutableVec`](super::MutableVec).
 #[derive(Debug, Clone)]
 pub struct ReadOnlyMutableVec<V> {
     vec: V,
     holes: Arc<RwLock<Arc<BTreeSet<usize>>>>,
-}
-
-impl<V> ReadOnlyMutableVec<V> {
-    fn new(vec: V, holes: Arc<RwLock<Arc<BTreeSet<usize>>>>) -> Self {
-        Self { vec, holes }
-    }
 }
 
 impl<V> StoredVec for MutableVec<V>
@@ -30,10 +23,10 @@ where
 
     #[inline]
     fn read_only_clone(&self) -> Self::ReadOnly {
-        ReadOnlyMutableVec::new(
-            self.vec.read_only_clone(),
-            Arc::clone(&self.published_holes),
-        )
+        ReadOnlyMutableVec {
+            vec: self.vec.read_only_clone(),
+            holes: Arc::clone(&self.published_holes),
+        }
     }
 }
 
@@ -43,7 +36,7 @@ where
 {
     #[inline]
     fn read_only_boxed_clone(&self) -> ReadableBoxedVec<V::I, V::T> {
-        ReadableBoxedVec::new(self.read_only_clone())
+        ReadableBoxedVec::from_read_only(self.read_only_clone())
     }
 }
 
@@ -58,7 +51,7 @@ impl<V> Deref for ReadOnlyMutableVec<V> {
 
 impl<V> AnyVec for ReadOnlyMutableVec<V>
 where
-    V: AnyVec + TypedVec,
+    V: TypedVec,
 {
     #[inline]
     fn version(&self) -> Version {
@@ -80,30 +73,17 @@ where
         true
     }
 
-    #[inline]
-    fn index_type_to_string(&self) -> &'static str {
-        self.vec.index_type_to_string()
-    }
+    crate::any_vec_type_methods!(V::I, V::T);
 
     fn region_names(&self) -> Vec<String> {
         let mut names = self.vec.region_names();
-        if !self.holes.read().is_empty() {
+        if !self.holes.read_recursive().is_empty() {
             names.push(format!(
                 "{}_holes",
                 vec_region_name_with::<V::I>(self.vec.name())
             ));
         }
         names
-    }
-
-    #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        self.vec.value_type_to_size_of()
-    }
-
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        self.vec.value_type_to_string()
     }
 }
 
@@ -123,7 +103,7 @@ where
 
     #[inline(always)]
     fn collect_one_at(&self, index: usize) -> Option<V::T> {
-        if self.holes.read().contains(&index) {
+        if self.holes.read_recursive().contains(&index) {
             None
         } else {
             self.vec.collect_one_at(index)
@@ -131,12 +111,27 @@ where
     }
 
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<V::T>) {
-        self.fold_range_at(from, to, (), |(), value| buf.push(value));
+        let to = to.min(self.vec.len());
+        if from >= to {
+            return;
+        }
+        let holes = self.holes.read_recursive();
+        let mut start = from;
+        buf.reserve(to - from);
+        for &hole in holes.range(from..to) {
+            if start < hole {
+                self.vec.read_into_at(start, hole, buf);
+            }
+            start = hole + 1;
+        }
+        if start < to {
+            self.vec.read_into_at(start, to, buf);
+        }
     }
 
     #[inline]
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<V::T>) {
-        let holes = self.holes.read();
+        let holes = self.holes.read_recursive();
         if holes.is_empty() {
             self.vec.read_sorted_into_at(indices, out);
             return;
@@ -175,34 +170,6 @@ where
         self.fold_range_at(from, to, (), |(), value| f(value));
     }
 
-    fn fold_range_at<B, F>(&self, from: usize, to: usize, init: B, mut f: F) -> B
-    where
-        Self: Sized,
-        F: FnMut(B, V::T) -> B,
-    {
-        let len = self.vec.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return init;
-        }
-
-        let holes = self.holes.read();
-        if holes.is_empty() {
-            return self.vec.fold_range_at(from, to, init, f);
-        }
-
-        let mut start = from;
-        let mut acc = init;
-        for &hole in holes.range(from..to) {
-            if start < hole {
-                acc = self.vec.fold_range_at(start, hole, acc, &mut f);
-            }
-            start = hole + 1;
-        }
-        self.vec.fold_range_at(start, to, acc, f)
-    }
-
     fn try_fold_range_at<B, E, F>(&self, from: usize, to: usize, init: B, mut f: F) -> Result<B, E>
     where
         Self: Sized,
@@ -215,7 +182,7 @@ where
             return Ok(init);
         }
 
-        let holes = self.holes.read();
+        let holes = self.holes.read_recursive();
         if holes.is_empty() {
             return self.vec.try_fold_range_at(from, to, init, f);
         }

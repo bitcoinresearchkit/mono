@@ -2,7 +2,6 @@ use brk_types::{Cents, CentsSats};
 
 use crate::{CentsSquaredSats, SupplyState};
 
-/// Snapshot of cost basis related state.
 #[derive(Clone, Debug)]
 pub struct CostBasisSnapshot {
     pub realized_price: Cents,

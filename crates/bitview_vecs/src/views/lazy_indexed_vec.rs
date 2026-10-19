@@ -1,45 +1,19 @@
-use std::{iter::once, sync::Arc};
+use std::{convert::Infallible, marker::PhantomData, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, TypedVec, VecIndex, VecValue, Version, short_type_name,
+    AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
+    TypedVec, VecIndex, VecValue, Version, read_batches,
 };
 
-/// One captured operation, dispatched once for each scalar read or whole chunk.
-trait IndexedTransform<I, S, M, T>: Send + Sync {
-    fn apply(&self, index: I, source: S, metadata: M) -> T;
-    fn append(&self, at: usize, source: &[S], metadata: &[M], out: &mut Vec<T>);
-}
-
-impl<I, S, M, T, F> IndexedTransform<I, S, M, T> for F
-where
-    I: VecIndex,
-    S: VecValue,
-    M: VecValue,
-    F: Fn(I, S, M) -> T + Send + Sync,
-{
-    fn apply(&self, index: I, source: S, metadata: M) -> T {
-        self(index, source, metadata)
-    }
-
-    fn append(&self, at: usize, source: &[S], metadata: &[M], out: &mut Vec<T>) {
-        // Validate the end once rather than checked addition per element.
-        let indices = at..at + source.len();
-        out.extend(
-            indices
-                .zip(source.iter().cloned())
-                .zip(metadata.iter().cloned())
-                .map(|((index, source), metadata)| self(I::from(index), source, metadata)),
-        );
-    }
-}
-
 /// Lazily transforms one metric source with aligned index metadata.
-/// Bounded metadata reads preserve its owner\'s cold-cache admission policy.
-pub struct LazyIndexedVec<I, S, M, T>
+/// Bounded metadata reads preserve its owner's cold-cache admission policy.
+///
+/// Both sources are dense: every index below their length holds a value (checked in dev
+/// builds), so values pair by position.
+#[derive(Clone)]
+pub struct LazyIndexedVec<I, S, M, T, F>
 where
     I: VecIndex,
     S: VecValue,
@@ -50,88 +24,101 @@ where
     base_version: Version,
     source: ReadableBoxedVec<I, S>,
     metadata: ReadableBoxedVec<I, M>,
-    compute: Arc<dyn IndexedTransform<I, S, M, T>>,
+    compute: F,
+    _marker: PhantomData<T>,
 }
 
-impl<I, S, M, T> LazyIndexedVec<I, S, M, T>
+impl<I, S, M, T, F> LazyIndexedVec<I, S, M, T, F>
 where
     I: VecIndex,
     S: VecValue,
     M: VecValue,
     T: VecValue,
+    F: Fn(I, S, M) -> T + Clone + Send + Sync + 'static,
 {
     pub fn new(
         name: &str,
         version: Version,
         source: &(impl ReadableCloneableVec<I, S> + ?Sized),
         metadata: &(impl ReadableCloneableVec<I, M> + ?Sized),
-        compute: impl Fn(I, S, M) -> T + Send + Sync + 'static,
+        compute: F,
     ) -> Self {
         Self {
             name: Arc::from(name),
             base_version: version,
             source: source.read_only_boxed_clone(),
             metadata: metadata.read_only_boxed_clone(),
-            compute: Arc::new(compute),
+            compute,
+            _marker: PhantomData,
         }
     }
 
-    fn try_fold_values<B, E>(
+    /// Visits `[from, to)` source chunk by source chunk with the aligned metadata, one bounded
+    /// batch at a time. Each batch's metadata read completes before source chunks are borrowed:
+    /// a source may hold a non-reentrant publication lock during its callback.
+    fn try_for_each_input<E>(
         &self,
         from: usize,
         to: usize,
-        init: B,
-        mut fold: impl FnMut(B, T) -> Result<B, E>,
-    ) -> Result<B, E> {
-        let to = to.min(self.len());
-        if from >= to {
-            return Ok(init);
+        mut each: impl FnMut(usize, &[S], &[M]) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let mut metadata = Vec::new();
+        for (at, end) in read_batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
+            metadata.clear();
+            self.metadata.read_into_at(at, end, &mut metadata);
+            let mut result = Ok(());
+            let mut next = at;
+            self.source
+                .for_each_chunk_at(at, at + metadata.len(), &mut |chunk_at, values| {
+                    debug_assert_eq!(chunk_at, next, "LazyIndexedVec sources are dense");
+                    next = chunk_at + values.len();
+                    if result.is_ok() {
+                        let offset = chunk_at - at;
+                        result = each(chunk_at, values, &metadata[offset..offset + values.len()]);
+                    }
+                });
+            result?;
+            debug_assert_eq!(
+                next,
+                at + metadata.len(),
+                "LazyIndexedVec sources are dense"
+            );
+            if metadata.len() < end - at {
+                break;
+            }
         }
-
-        let metadata = self.metadata.collect_range_dyn(from, to);
-        let source = self.source.collect_range_dyn(from, to);
-        source.into_iter().zip(metadata).enumerate().try_fold(
-            init,
-            |accumulator, (offset, (source, metadata))| {
-                fold(
-                    accumulator,
-                    self.compute.apply(I::from(from + offset), source, metadata),
-                )
-            },
-        )
+        Ok(())
     }
 
-    fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
-        self.for_each_chunk_at(from, to, &mut |_, values| {
-            values.iter().cloned().for_each(&mut each);
+    fn for_each_input(&self, from: usize, to: usize, mut each: impl FnMut(usize, &[S], &[M])) {
+        let Ok(()) = self.try_for_each_input(from, to, |at, source, metadata| {
+            each(at, source, metadata);
+            Ok::<_, Infallible>(())
         });
     }
-}
 
-impl<I, S, M, T> Clone for LazyIndexedVec<I, S, M, T>
-where
-    I: VecIndex,
-    S: VecValue,
-    M: VecValue,
-    T: VecValue,
-{
-    fn clone(&self) -> Self {
-        Self {
-            name: Arc::clone(&self.name),
-            base_version: self.base_version,
-            source: self.source.clone(),
-            metadata: self.metadata.clone(),
-            compute: Arc::clone(&self.compute),
-        }
+    fn values<'a>(
+        &'a self,
+        at: usize,
+        source: &'a [S],
+        metadata: &'a [M],
+    ) -> impl Iterator<Item = T> + 'a {
+        (at..)
+            .zip(source)
+            .zip(metadata)
+            .map(move |((index, source), metadata)| {
+                (self.compute)(I::from(index), source.clone(), metadata.clone())
+            })
     }
 }
 
-impl<I, S, M, T> AnyVec for LazyIndexedVec<I, S, M, T>
+impl<I, S, M, T, F> AnyVec for LazyIndexedVec<I, S, M, T, F>
 where
     I: VecIndex,
     S: VecValue,
     M: VecValue,
     T: VecValue,
+    F: Fn(I, S, M) -> T + Clone + Send + Sync + 'static,
 {
     fn version(&self) -> Version {
         self.base_version + self.source.version() + self.metadata.version()
@@ -141,124 +128,91 @@ where
         &self.name
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
     fn len(&self) -> usize {
         self.source.len().min(self.metadata.len())
     }
 
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable() || self.metadata.is_mutable()
     }
 
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
-
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
+    vecdb::any_vec_type_methods!(I, T);
 }
 
-impl<I, S, M, T> TypedVec for LazyIndexedVec<I, S, M, T>
+impl<I, S, M, T, F> TypedVec for LazyIndexedVec<I, S, M, T, F>
 where
     I: VecIndex,
     S: VecValue,
     M: VecValue,
     T: VecValue,
+    F: Fn(I, S, M) -> T + Clone + Send + Sync + 'static,
 {
     type I = I;
     type T = T;
 }
 
-impl<I, S, M, T> ReadableVec<I, T> for LazyIndexedVec<I, S, M, T>
+impl<I, S, M, T, F> ReadableVec<I, T> for LazyIndexedVec<I, S, M, T, F>
 where
     I: VecIndex,
     S: VecValue,
     M: VecValue,
     T: VecValue,
+    F: Fn(I, S, M) -> T + Clone + Send + Sync + 'static,
 {
     fn cursor_chunk_size(&self) -> usize {
         self.source.cursor_chunk_size()
     }
 
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<T>) {
-        let to = to.min(self.len());
-        if from >= to {
-            return;
-        }
-        let metadata = self.metadata.collect_range_dyn(from, to);
-        let to = from + metadata.len();
-        buf.reserve(to.saturating_sub(from));
-        self.source.for_each_chunk_at(from, to, &mut |at, values| {
-            self.compute.append(
-                at,
-                values,
-                &metadata[at - from..at - from + values.len()],
-                buf,
-            );
+        buf.reserve(to.min(self.len()).saturating_sub(from));
+        self.for_each_input(from, to, |at, source, metadata| {
+            buf.extend(self.values(at, source, metadata));
         });
     }
 
     fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
-        let to = to.min(self.len());
-        if from >= to {
-            return;
-        }
-        let metadata = self.metadata.collect_range_dyn(from, to);
-        let to = from + metadata.len();
         let mut output = Vec::new();
         let chunk_size = self.source.cursor_chunk_size().clamp(1, READ_CHUNK_SIZE);
-        self.source.for_each_chunk_at(from, to, &mut |at, values| {
-            let mut at = at;
-            for values in values.chunks(chunk_size) {
+        self.for_each_input(from, to, |at, source, metadata| {
+            for (offset, (source, metadata)) in (0..)
+                .step_by(chunk_size)
+                .zip(source.chunks(chunk_size).zip(metadata.chunks(chunk_size)))
+            {
                 output.clear();
-                self.compute.append(
-                    at,
-                    values,
-                    &metadata[at - from..at - from + values.len()],
-                    &mut output,
-                );
-                f(at, &output);
-                at += values.len();
+                output.extend(self.values(at + offset, source, metadata));
+                f(at + offset, &output);
             }
         });
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
-        self.for_each_value(from, to, f);
-    }
-
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        let mut acc = Some(init);
-        self.for_each_chunk_at(from, to, &mut |_, values| {
-            acc = Some(values.iter().cloned().fold(acc.take().unwrap(), &mut fold));
+        self.for_each_input(from, to, |at, source, metadata| {
+            self.values(at, source, metadata).for_each(&mut *f);
         });
-        acc.unwrap()
     }
 
-    fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
+    fn try_fold_range_at<B, E, G: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,
         to: usize,
         init: B,
-        fold: F,
+        mut fold: G,
     ) -> Result<B, E> {
-        self.try_fold_values(from, to, init, fold)
+        let mut accumulator = Some(init);
+        self.try_for_each_input(from, to, |at, source, metadata| {
+            accumulator = Some(
+                self.values(at, source, metadata)
+                    .try_fold(accumulator.take().unwrap(), &mut fold)?,
+            );
+            Ok(())
+        })?;
+        Ok(accumulator.unwrap())
     }
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
         let source = self.source.collect_one_at(index)?;
         let metadata = self.metadata.collect_one_at(index)?;
-        Some(self.compute.apply(I::from(index), source, metadata))
+        Some((self.compute)(I::from(index), source, metadata))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
@@ -266,26 +220,22 @@ where
         let indices = &indices[..indices.partition_point(|&index| index < len)];
         let source = self.source.read_sorted_at(indices);
         let metadata = self.metadata.read_sorted_at(indices);
+        debug_assert!(
+            source.len() == indices.len() && metadata.len() == indices.len(),
+            "LazyIndexedVec sources are dense"
+        );
 
         out.reserve(source.len());
         for ((&index, value), metadata) in indices.iter().zip(source).zip(metadata) {
-            out.push(self.compute.apply(I::from(index), value, metadata));
+            out.push((self.compute)(I::from(index), value, metadata));
         }
     }
 }
 
-impl<I, S, M, T> Traversable for LazyIndexedVec<I, S, M, T>
-where
+bitview_traversable::leaf!([I, S, M, T, F] LazyIndexedVec<I, S, M, T, F> where
     I: VecIndex,
     S: VecValue,
     M: VecValue,
     T: VecValue + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+    F: Fn(I, S, M) -> T + Clone + Send + Sync + 'static,
+);

@@ -15,6 +15,9 @@ pre-release-replacements = [
 [dependencies]
 axum = { workspace = true }
 base64 = "0.23.1"
+bitview_http = { workspace = true }
+http-body-util = "0.1.5"
+percent-encoding = "2.3.2"
 brk_logger = { workspace = true }
 rmcp = { version = "3.4.1", default-features = false, features = ["server", "transport-streamable-http-server"] }
 serde = { workspace = true, features = ["derive"] }

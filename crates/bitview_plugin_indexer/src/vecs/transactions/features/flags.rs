@@ -4,10 +4,27 @@ use brk_types::OutputType;
 pub struct TxFeatureFlags(u32);
 
 macro_rules! define_flags {
-    ($($(#[$attribute:meta])* $vector:ident: $flag:ident = $bit:literal $(, count: $count:ident $(, count_attr: $count_attr:meta)?)?;)+) => {
+    (
+        features { $($(#[$doc:meta])* $feature:ident: $vector:ident, $flag:ident = $bit:literal;)+ }
+        flags { $($(#[$flag_attribute:meta])* $flag_vector:ident: $flag_only:ident = $flag_bit:literal;)+ }
+    ) => {
         impl TxFeatureFlags {
             $(pub const $flag: u32 = 1 << $bit;)+
+            $(pub const $flag_only: u32 = 1 << $flag_bit;)+
         }
+
+        const _: () = {
+            let bits = [$($bit,)+ $($flag_bit,)+];
+            let mut i = 0;
+            while i < bits.len() {
+                let mut j = i + 1;
+                while j < bits.len() {
+                    assert!(bits[i] != bits[j], "two transaction features share a bit");
+                    j += 1;
+                }
+                i += 1;
+            }
+        };
     };
 }
 

@@ -1,12 +1,11 @@
 use bitview_cohort::ByType;
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{CountTotal, LazyWindowStartVec, import_cached};
+use bitview_vecs::{CumulativeSource, LazyWindowStartVec, count_and_share, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
 
-use super::{SpendableOutputCount, Vecs, WithOutputTypes};
+use super::{OutputTypeVecs, Vecs};
 
 impl Vecs {
     pub(crate) fn import(
@@ -16,73 +15,52 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::TWO;
-        let output_count_stored = ByType::try_new(|id| {
-            import_cached(
+        let count_stored = ByType::try_from_fn(|kind| {
+            CumulativeSource::import(
                 db,
-                &format!("{}_output_count_cumulative", id.name()),
+                &format!("{}_output_count_cumulative", kind.key()),
                 version,
             )
         })?;
-        let output_count = WithOutputTypes::from_cumulative_sources(
-            CountTotal::from_source(
-                "output_count_bis",
-                version,
-                &mappings.output_count_source(),
-                mappings,
-                window_starts,
-            ),
-            |name| format!("{name}_output_count"),
-            version,
-            &output_count_stored,
-            mappings,
-            window_starts,
-        );
-        let output_share = output_count.lazy_shares(
-            version,
-            |name| format!("{name}_output_share"),
-            window_starts,
-            mappings,
-        );
-        let tx_count_stored = ByType::try_new(|id| {
-            import_cached(
+        let tx_count_stored = ByType::try_from_fn(|kind| {
+            CumulativeSource::import(
                 db,
-                &format!("tx_count_with_{}_output_cumulative", id.name()),
+                &format!("tx_count_with_{}_output_cumulative", kind.key()),
                 version,
             )
         })?;
-        let tx_count = WithOutputTypes::from_cumulative_sources(
-            CountTotal::from_source(
-                "tx_count_bis",
+        let outputs = mappings.output_count_source();
+        let txs = mappings.transaction_count_source();
+        let types = ByType::from_fn(|kind| {
+            let key = kind.key();
+            let (count, share) = count_and_share(
+                &format!("{key}_output"),
                 version,
-                &mappings.transaction_count_source(),
-                mappings,
+                kind.select(&count_stored).cumulative_source(),
+                &outputs,
                 window_starts,
-            ),
-            |name| format!("tx_count_with_{name}_output"),
-            version,
-            &tx_count_stored,
-            mappings,
-            window_starts,
-        );
-        let tx_share = tx_count.lazy_shares(
-            version,
-            |name| format!("tx_share_with_{name}_output"),
-            window_starts,
-            mappings,
-        );
-
-        let op_return_count = &output_count.by_type.unspendable.op_return.cumulative.height;
-        let spendable_output_count =
-            SpendableOutputCount::new(version, op_return_count, mappings, window_starts);
+                mappings,
+            );
+            let (tx_count, tx_share) = count_and_share(
+                &format!("{key}_output_tx"),
+                version,
+                kind.select(&tx_count_stored).cumulative_source(),
+                &txs,
+                window_starts,
+                mappings,
+            );
+            OutputTypeVecs {
+                count,
+                share,
+                tx_count,
+                tx_share,
+            }
+        });
 
         Ok(Vecs {
-            output_count,
-            output_share,
-            tx_count,
-            tx_share,
-            output_count_stored,
+            types,
+            count_stored,
             tx_count_stored,
-            spendable_output_count,
         })
     }
 }

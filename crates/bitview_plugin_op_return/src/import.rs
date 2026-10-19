@@ -1,21 +1,21 @@
-use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
+use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Bytes;
-use bitview_vecs::LazyWindowStartVec;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
-use brk_types::{Height, Sats, Version};
+use brk_types::{Height, Sats};
 use vecdb::ReadableCloneableVec;
 
 use crate::{
     STORAGE, Vecs,
-    breakdown::{KindBreakdownVecs, PolicyBreakdownVecs},
-    total::Total,
+    breakdown::{BucketVecs, KindBreakdownVecs, PolicyBreakdownVecs},
 };
 
 impl Vecs {
     pub fn import(
         context: ImportContext<'_>,
+        indexer: &Indexer,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
         block_size: &impl ReadableCloneableVec<Height, Bytes>,
@@ -23,7 +23,7 @@ impl Vecs {
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 1_000_000)?;
         let version = STORAGE.schema_version();
-        let total = Total::import(
+        let total = BucketVecs::import(
             &db,
             "op_return",
             version,
@@ -32,34 +32,31 @@ impl Vecs {
             block_size,
             chain_fees,
         )?;
-        let breakdown_version = version + Version::ONE;
-        let total_data = total.data_bytes_source();
-        let by_kind = KindBreakdownVecs::import(
+        let protocols = KindBreakdownVecs::import(
             &db,
-            "op_return",
-            breakdown_version,
+            version,
             mappings,
             window_starts,
-            total_data,
             block_size,
             chain_fees,
         )?;
-        let policy = PolicyBreakdownVecs::import(
+        let policies = PolicyBreakdownVecs::import(
             &db,
-            "op_return_policy",
-            breakdown_version,
+            version,
             mappings,
             window_starts,
-            total_data,
             block_size,
             chain_fees,
         )?;
 
+        let flag = indexer.vecs().transactions.features.op_return.flag_view();
+
         let this = Self {
             db,
+            flag,
             total,
-            by_kind,
-            policy,
+            protocols,
+            policies,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

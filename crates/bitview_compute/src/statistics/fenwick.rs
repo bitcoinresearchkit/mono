@@ -1,35 +1,16 @@
-use std::ops::SubAssign;
+use std::ops::{AddAssign, SubAssign};
 
-/// Trait for types that can be stored in a Fenwick tree.
-pub trait FenwickNode: Clone + Copy + Default {
-    fn add_assign(&mut self, other: &Self);
-}
-
-impl FenwickNode for u32 {
-    #[inline(always)]
-    fn add_assign(&mut self, other: &Self) {
-        *self += other;
-    }
-}
-
-impl FenwickNode for f64 {
-    #[inline(always)]
-    fn add_assign(&mut self, other: &Self) {
-        *self += other;
-    }
-}
-
-/// Generic Fenwick tree (Binary Indexed Tree) over arbitrary node types.
+/// Fenwick (binary indexed) tree.
 ///
 /// Uses 0-indexed buckets externally; 1-indexed internally.
 /// Provides O(log N) point-update, prefix-sum, and kth walk-down.
 #[derive(Clone)]
-pub struct FenwickTree<N: FenwickNode> {
+pub struct FenwickTree<N> {
     /// 1-indexed tree array. Position 0 is unused.
     tree: Vec<N>,
 }
 
-impl<N: FenwickNode> FenwickTree<N> {
+impl<N: Copy + Default + for<'a> AddAssign<&'a N>> FenwickTree<N> {
     pub fn new(size: usize) -> Self {
         Self {
             tree: vec![N::default(); size + 1],
@@ -45,7 +26,7 @@ impl<N: FenwickNode> FenwickTree<N> {
     pub fn add(&mut self, bucket: usize, delta: &N) {
         let mut i = bucket + 1;
         while i < self.tree.len() {
-            self.tree[i].add_assign(delta);
+            self.tree[i] += delta;
             i += i.isolate_lowest_one();
         }
     }
@@ -54,9 +35,9 @@ impl<N: FenwickNode> FenwickTree<N> {
     pub fn prefix_sum(&self, bucket: usize) -> N {
         let mut result = N::default();
         let mut i = bucket + 1;
-        assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
+        debug_assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
         while i > 0 {
-            result.add_assign(&self.tree[i]);
+            result += &self.tree[i];
             i -= i.isolate_lowest_one();
         }
         result
@@ -97,7 +78,7 @@ impl<N: FenwickNode> FenwickTree<N> {
         F: Fn(usize, &N) -> V,
     {
         let len = self.tree.len();
-        assert!(len > 1, "cannot search an empty Fenwick tree");
+        debug_assert!(len > 1, "cannot search an empty Fenwick tree");
         let size = len - 1;
         let mut remaining = targets;
         let mut out = [[0; LEN]; QUERIES];
@@ -137,8 +118,8 @@ impl<N: FenwickNode> FenwickTree<N> {
     #[inline]
     pub fn add_raw(&mut self, bucket: usize, delta: &N) {
         let i = bucket + 1;
-        assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
-        self.tree[i].add_assign(delta);
+        debug_assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
+        self.tree[i] += delta;
     }
 
     /// Convert raw frequencies (written via [`Self::add_raw`]) into a valid Fenwick tree. O(size).
@@ -148,7 +129,7 @@ impl<N: FenwickNode> FenwickTree<N> {
             let parent = i + i.isolate_lowest_one();
             if parent < len {
                 let child = self.tree[i];
-                self.tree[parent].add_assign(&child);
+                self.tree[parent] += &child;
             }
         }
     }

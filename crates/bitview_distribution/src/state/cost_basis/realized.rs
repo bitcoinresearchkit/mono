@@ -1,0 +1,29 @@
+use bitview_primitives::CentsSquaredSats;
+use brk_types::{Cents, CentsSats, Sats};
+
+/// Trait for realized state operations, implemented by Minimal, Core, and Full variants.
+pub trait RealizedOps: Default + Clone + Send + Sync + 'static {
+    const TRACK_ACTIVITY: bool = false;
+    fn cap_raw(&self) -> CentsSats;
+    #[inline]
+    fn cap(&self) -> Cents {
+        self.cap_raw().to_cents()
+    }
+    fn profit(&self) -> Cents;
+    fn loss(&self) -> Cents;
+    fn value_destroyed(&self) -> Cents {
+        Cents::ZERO
+    }
+    fn reset_block(&mut self);
+    fn increment(&mut self, price: Cents, sats: Sats);
+    fn increment_snapshot(&mut self, price_sats: CentsSats, capitalized_cap: CentsSquaredSats);
+    fn decrement_snapshot(&mut self, price_sats: CentsSats, capitalized_cap: CentsSquaredSats);
+    fn send(
+        &mut self,
+        sats: Sats,
+        current_ps: CentsSats,
+        prev_ps: CentsSats,
+        ath_ps: CentsSats,
+        prev_capitalized_cap: CentsSquaredSats,
+    );
+}

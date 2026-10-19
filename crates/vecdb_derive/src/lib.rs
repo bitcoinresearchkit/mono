@@ -1,97 +1,16 @@
+#![doc = include_str!("../README.md")]
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Data, DataStruct, DeriveInput, Error, Fields, parse_macro_input, parse_quote};
 
-/// Derives the `Bytes` trait for single-field tuple structs.
-///
-/// This macro enables custom wrapper types to work with `BytesVec`, `LZ4Vec`, `ZstdVec`,
-/// and other vecdb vector types that require the `Bytes` trait.
-///
-/// # Requirements
-///
-/// - Must be a tuple struct with exactly one field
-/// - The inner type must implement `Bytes`
-/// - Supports generic type parameters
-///
-/// # Generated Implementation
-///
-/// The derive generates a `Bytes` implementation that delegates to the inner type:
-///
-/// ```rust,ignore
-/// impl Bytes for Wrapper<T> where T: Bytes {
-///     type Array = <T as Bytes>::Array;
-///
-///     fn to_bytes(&self) -> Self::Array {
-///         self.0.to_bytes()
-///     }
-///     fn from_bytes(bytes: &[u8]) -> Result<Self> {
-///         Ok(Self(<T>::from_bytes(bytes)?))
-///     }
-/// }
-/// ```
-///
-/// # Example
-///
-/// ```rust,ignore
-/// use vecdb::{Bytes, BytesVec};
-///
-/// #[derive(Bytes)]
-/// struct UserId(u64);
-///
-/// #[derive(Bytes)]
-/// struct Timestamp<T>(T); // Generic types supported
-/// ```
+/// Derives `Bytes` for a single-field tuple struct by delegating to its field.
 #[proc_macro_derive(Bytes)]
 pub fn derive_bytes(input: TokenStream) -> TokenStream {
     derive_wrapper(input, false)
 }
 
-/// Derives the `Pco` trait for single-field tuple structs containing numeric types.
-///
-/// This macro enables custom wrapper types to work with `PcoVec` for compressed storage
-/// of numeric data using Pcodec compression.
-///
-/// # Requirements
-///
-/// - Must be a tuple struct with exactly one field
-/// - The inner type must implement `Pco` (numeric types: u16-u64, i16-i64, f32, f64)
-/// - Supports generic type parameters
-///
-/// # Generated Implementation
-///
-/// The derive generates two trait implementations:
-///
-/// 1. `Bytes` - For serialization (same as `#[derive(Bytes)]`)
-/// 2. `Pco` - Specifies the numeric type for compression
-/// ```rust,ignore
-/// impl Pco for Wrapper<T> where T: Pco + Bytes {
-///     type NumberType = <T as Pco>::NumberType;
-///     // Conversion delegates to the wrapped value.
-/// }
-///
-/// impl Bytes for Wrapper<T> where T: Pco + Bytes {
-///     // ... same as Bytes derive
-/// }
-/// ```
-///
-/// The `NumberType` is automatically propagated from the inner type, ensuring the
-/// wrapper has the same compression characteristics.
-///
-/// # Example
-///
-/// ```rust,ignore
-/// use vecdb::{Pco, PcoVec};
-///
-/// #[derive(Pco)]
-/// struct Price(f64);
-///
-/// #[derive(Pco)]
-/// struct NumericWrapper<T>(T); // Generic types supported
-///
-/// // Nested generics work too
-/// #[derive(Pco)]
-/// struct Container<T>(NumericWrapper<T>);
-/// ```
+/// Derives `Bytes` and `Pco` for a numeric newtype.
 #[proc_macro_derive(Pco)]
 pub fn derive_pco(input: TokenStream) -> TokenStream {
     derive_wrapper(input, true)
@@ -139,7 +58,7 @@ fn derive_wrapper(input: TokenStream, pco: bool) -> TokenStream {
 
                 #[inline(always)]
                 fn to_number(self) -> Self::NumberType {
-                    self.0.to_number()
+                    <#inner_type as ::vecdb::Pco>::to_number(self.0)
                 }
 
                 #[inline(always)]
@@ -151,19 +70,28 @@ fn derive_wrapper(input: TokenStream, pco: bool) -> TokenStream {
     });
 
     quote! {
-        impl #impl_generics ::vecdb::Bytes for #struct_name #ty_generics #where_clause {
+        // SAFETY: the inner value's bytes have this wrapper's size (asserted); native layout
+        // only when the inner value has it and the wrapper matches its alignment too, so it is
+        // the same byte image.
+        unsafe impl #impl_generics ::vecdb::Bytes for #struct_name #ty_generics #where_clause {
             type Array = <#inner_type as ::vecdb::Bytes>::Array;
-            const IS_NATIVE_LAYOUT: bool =
+            // Every vector read and write evaluates this, so the size assertion fails the build
+            // for any stored wrapper whose rows would be wider than its serialized bytes.
+            const IS_NATIVE_LAYOUT: bool = {
+                ::core::assert!(
+                    ::core::mem::size_of::<Self>() == ::core::mem::size_of::<#inner_type>(),
+                    "a derived Bytes wrapper must have the size of its inner value",
+                );
                 <#inner_type as ::vecdb::Bytes>::IS_NATIVE_LAYOUT
-                && ::core::mem::size_of::<Self>() == ::core::mem::size_of::<#inner_type>()
-                && ::core::mem::align_of::<Self>() == ::core::mem::align_of::<#inner_type>();
+                    && ::core::mem::align_of::<Self>() == ::core::mem::align_of::<#inner_type>()
+            };
 
             fn to_bytes(&self) -> Self::Array {
-                self.0.to_bytes()
+                <#inner_type as ::vecdb::Bytes>::to_bytes(&self.0)
             }
 
             fn from_bytes(bytes: &[u8]) -> ::vecdb::Result<Self> {
-                Ok(Self(<#inner_type>::from_bytes(bytes)?))
+                Ok(Self(<#inner_type as ::vecdb::Bytes>::from_bytes(bytes)?))
             }
         }
 

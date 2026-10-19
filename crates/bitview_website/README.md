@@ -2,23 +2,16 @@
 
 Embedded and filesystem-backed website serving for Bitview.
 
-## Features
-
-- **Embedded assets**: Website files compiled into binary
-- **Filesystem mode**: Serve from custom path for development
-- **SPA support**: Routes without extensions fallback to index.html
-- **Standalone pages**: A folder with its own `index.html` is served at `/folder/`
-- **ImportMap**: Auto-generates import maps for hashed assets
+Routes without extensions fall back to `index.html`, and a folder with its own `index.html` is
+served as a standalone page. Release builds generate the root index's import map for hashed
+assets.
 
 ## Usage
 
 ```rust,ignore
 use bitview_website::{Website, router};
 
-// Create router for website
 let website_router = router(Website::Default);
-
-// Merge with your app
 let app = your_api_router.merge(website_router);
 ```
 
@@ -26,7 +19,7 @@ let app = your_api_router.merge(website_router);
 
 | Variant | Description |
 |---------|-------------|
-| `Default` | Filesystem in debug, embedded in release |
+| `Default` | `./website` in debug builds when it exists, embedded otherwise |
 | `Filesystem(path)` | Always serve from specified path |
 | `Disabled` | No routes registered |
 
@@ -45,9 +38,3 @@ cargo run -p bitview_website --example website -- showcases
 ```
 
 Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for the showcases gallery.
-
-## Dependencies
-
-- `axum` - HTTP routing
-- `include_dir` - embedded assets
-- `importmap` - asset hashing

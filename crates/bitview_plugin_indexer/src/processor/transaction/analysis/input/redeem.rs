@@ -1,5 +1,5 @@
 use bitcoin::{Script, WitnessVersion};
-use brk_types::OutputType;
+use brk_types::{OutputType, SigOpCount};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -35,7 +35,7 @@ impl Facts {
 
         Self {
             kind,
-            sigops: script.count_sigops(),
+            sigops: SigOpCount::of(script).accurate,
         }
     }
 

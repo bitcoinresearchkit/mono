@@ -1,26 +1,25 @@
 use std::time::Duration;
 
-use serde_json::{Map, Value};
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, PercentEncode, utf8_percent_encode};
+use serde_json::Value;
 use ureq::{Agent, Body, http::Response};
 
 use crate::{
     manifest::{Operation, ParameterLocation},
-    prepared_request::PreparedRequest,
     upstream_response::UpstreamResponse,
 };
 
 const MAX_UPSTREAM_URL_BYTES: usize = 32 * 1024;
-const MAX_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+const MAX_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
 const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(15);
 
-#[derive(Clone)]
 pub struct Upstream {
     agent: Agent,
-    api_bases: Vec<String>,
+    api_url: String,
 }
 
 impl Upstream {
-    pub fn new(api_bases: Vec<String>) -> Self {
+    pub fn new(api_url: String) -> Self {
         let config = Agent::config_builder()
             .timeout_global(Some(UPSTREAM_TIMEOUT))
             .http_status_as_error(false)
@@ -29,20 +28,17 @@ impl Upstream {
             .build();
         Self {
             agent: Agent::new_with_config(config),
-            api_bases,
+            api_url,
         }
     }
 
-    pub fn prepare(
-        &self,
-        operation: &Operation,
-        arguments: &Map<String, Value>,
-    ) -> Result<PreparedRequest, String> {
+    /// The encoded upstream URL, checked against the URL limit.
+    pub fn prepare(&self, operation: &Operation, arguments: &Value) -> Result<String, String> {
         let mut path = operation.http.path.clone();
         let mut query = String::new();
 
         for parameter in &operation.http.parameters {
-            let Some(value) = arguments.get(&parameter.name) else {
+            let Some(value) = arguments.get(parameter.name.as_str()) else {
                 continue;
             };
             if value.is_null() {
@@ -51,66 +47,53 @@ impl Upstream {
             let values = parameter_values(value)?;
             match parameter.location {
                 ParameterLocation::Path => {
-                    if values.len() != 1 {
+                    // Client input: schema validation does not cover every shape, so check here.
+                    let [value] = values.as_slice() else {
                         return Err(format!(
                             "path parameter {} must contain one scalar value",
                             parameter.name
                         ));
-                    }
+                    };
                     path = path.replace(
                         &format!("{{{}}}", parameter.name),
-                        &encode_component(&values[0]),
+                        &encode_component(value).to_string(),
                     );
                 }
                 ParameterLocation::Query => {
                     for value in values {
                         query.push(if query.is_empty() { '?' } else { '&' });
-                        query.push_str(&encode_component(&parameter.name));
+                        query.extend(encode_component(&parameter.name));
                         query.push('=');
-                        query.push_str(&encode_component(&value));
+                        query.extend(encode_component(&value));
                     }
                 }
             }
         }
 
-        if path.contains('{') || path.contains('}') {
+        if path.contains(['{', '}']) {
             return Err("a required path parameter is missing".to_string());
         }
-        path.push_str(&query);
-        let longest_base = self.api_bases.iter().map(String::len).max().unwrap_or(0);
-        if longest_base.saturating_add(path.len()) > MAX_UPSTREAM_URL_BYTES {
+        let url = format!("{}{path}{query}", self.api_url);
+        if url.len() > MAX_UPSTREAM_URL_BYTES {
             return Err(format!(
                 "upstream URL exceeds the {MAX_UPSTREAM_URL_BYTES}-byte limit"
             ));
         }
 
-        Ok(PreparedRequest { path })
+        Ok(url)
     }
 
-    pub fn fetch(&self, request: PreparedRequest) -> Result<UpstreamResponse, String> {
-        let PreparedRequest { path } = request;
-        let mut last_error = None;
-        for api_base in &self.api_bases {
-            let url = format!("{api_base}{path}");
-            let response = self
-                .agent
-                .get(&url)
-                .header(
-                    "Accept",
-                    "application/json, text/plain, text/csv, application/octet-stream",
-                )
-                .call();
-            match response {
-                Ok(response) => return self.read_response(url, response),
-                Err(error) => last_error = Some(error),
-            }
-        }
-        Err(format!(
-            "Bitview API request failed: {}",
-            last_error
-                .map(|error| error.to_string())
-                .unwrap_or_else(|| "no API base URL configured".to_string())
-        ))
+    pub fn fetch(&self, url: String) -> Result<UpstreamResponse, String> {
+        let response = self
+            .agent
+            .get(&url)
+            .header(
+                "Accept",
+                "application/json, text/plain, text/csv, application/octet-stream",
+            )
+            .call()
+            .map_err(|error| format!("Bitview API request failed: {error}"))?;
+        self.read_response(url, response)
     }
 
     fn read_response(
@@ -138,12 +121,11 @@ impl Upstream {
         let body = response
             .body_mut()
             .with_config()
-            .limit(u64::try_from(MAX_RESPONSE_BYTES).unwrap_or(u64::MAX))
+            .limit(MAX_RESPONSE_BYTES)
             .read_to_vec()
             .map_err(|error| {
                 format!(
-                    "Bitview API response could not be read within the {}-byte limit: {error}",
-                    MAX_RESPONSE_BYTES
+                    "Bitview API response read failed (limit {MAX_RESPONSE_BYTES} bytes): {error}"
                 )
             })?;
 
@@ -177,17 +159,13 @@ fn parameter_values(value: &Value) -> Result<Vec<String>, String> {
     }
 }
 
-fn encode_component(value: &str) -> String {
-    const HEX: &[u8; 16] = b"0123456789ABCDEF";
-    let mut encoded = String::with_capacity(value.len());
-    for byte in value.bytes() {
-        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-            encoded.push(char::from(byte));
-        } else {
-            encoded.push('%');
-            encoded.push(char::from(HEX[(byte >> 4) as usize]));
-            encoded.push(char::from(HEX[(byte & 0x0f) as usize]));
-        }
-    }
-    encoded
+/// Every byte but RFC 3986's unreserved characters is percent-encoded.
+const ESCAPED: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'~');
+
+fn encode_component(value: &str) -> PercentEncode<'_> {
+    utf8_percent_encode(value, ESCAPED)
 }

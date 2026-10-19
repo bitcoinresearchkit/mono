@@ -11,8 +11,6 @@ use parking_lot::Mutex;
 
 pub(super) trait Reclaim: Send + Sync {
     fn try_clear(&self);
-    #[cfg(test)]
-    fn clear(&self);
 }
 
 /// Shared limit for retained buffer and span-directory allocations.
@@ -38,7 +36,7 @@ impl CacheBudget {
         self.limit
     }
 
-    pub(crate) fn used(&self) -> usize {
+    fn used(&self) -> usize {
         self.used.load(Relaxed)
     }
 
@@ -52,27 +50,13 @@ impl CacheBudget {
         registry.push_back(cache);
     }
 
-    /// Evicts retained data without invalidating the underlying source generation.
-    #[cfg(test)]
-    pub(crate) fn clear(&self) {
-        let caches: Vec<_> = self
-            .registry
-            .lock()
-            .iter()
-            .filter_map(Weak::upgrade)
-            .collect();
-        for cache in caches {
-            cache.clear();
-        }
-    }
-
     pub(super) fn reserve(&self, bytes: usize) -> bool {
         if bytes > self.limit {
             return false;
         }
         let claim = || {
             self.used
-                .fetch_update(Relaxed, Relaxed, |used| {
+                .try_update(Relaxed, Relaxed, |used| {
                     used.checked_add(bytes).filter(|&next| next <= self.limit)
                 })
                 .is_ok()
@@ -84,7 +68,7 @@ impl CacheBudget {
         // Two bounded clock passes: a recently used owner gets one second chance.
         // Never wait on a busy cache or call it while holding the registry lock.
         let count = self.registry.lock().len();
-        for _ in 0..count.saturating_mul(2) {
+        for _ in 0..count * 2 {
             let cache = {
                 let mut registry = self.registry.lock();
                 let Some(owner) = registry.pop_front() else {

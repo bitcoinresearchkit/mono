@@ -5,12 +5,12 @@
       "tool": {
         "name": "get_address",
         "title": "Address information",
-        "description": "Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*\n\nREST operation: `GET /api/address/{address}`.",
+        "description": "Balance and transaction counts. Supports P2PKH, P2SH, P2WPKH, P2WSH, P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*\n\nREST operation: `GET /api/address/{address}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Addr"
+              "$ref": "#/$defs/Address"
             }
           },
           "additionalProperties": false,
@@ -19,8 +19,8 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
-              "description": "Bitcoin address string",
+            "Address": {
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
                 "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
@@ -31,13 +31,13 @@
           }
         },
         "outputSchema": {
-          "$ref": "#/$defs/AddrStats",
+          "$ref": "#/$defs/AddressStats",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
+            "Address": {
               "type": "string"
             },
-            "AddrChainStats": {
+            "AddressChainStats": {
               "required": [
                 "balance",
                 "funded_txo_count",
@@ -45,7 +45,6 @@
                 "spent_txo_count",
                 "spent_txo_sum",
                 "tx_count",
-                "type_index",
                 "realized_price"
               ],
               "type": "object",
@@ -87,9 +86,12 @@
                   "format": "uint32"
                 },
                 "type_index": {
-                  "allOf": [
+                  "anyOf": [
                     {
                       "$ref": "#/$defs/TypeIndex"
+                    },
+                    {
+                      "type": "null"
                     }
                   ]
                 },
@@ -102,7 +104,7 @@
                 }
               }
             },
-            "AddrMempoolStats": {
+            "AddressMempoolStats": {
               "required": [
                 "balance_delta",
                 "funded_txo_count",
@@ -151,10 +153,10 @@
                 }
               }
             },
-            "AddrStats": {
+            "AddressStats": {
               "required": [
                 "address",
-                "addr_type",
+                "address_type",
                 "chain_stats",
                 "mempool_stats",
                 "balance"
@@ -164,11 +166,11 @@
                 "address": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/Addr"
+                      "$ref": "#/$defs/Address"
                     }
                   ]
                 },
-                "addr_type": {
+                "address_type": {
                   "allOf": [
                     {
                       "$ref": "#/$defs/OutputType"
@@ -178,14 +180,14 @@
                 "chain_stats": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/AddrChainStats"
+                      "$ref": "#/$defs/AddressChainStats"
                     }
                   ]
                 },
                 "mempool_stats": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/AddrMempoolStats"
+                      "$ref": "#/$defs/AddressMempoolStats"
                     }
                   ]
                 },
@@ -262,7 +264,7 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Addr"
+              "$ref": "#/$defs/Address"
             }
           },
           "additionalProperties": false,
@@ -271,8 +273,8 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
-              "description": "Bitcoin address string",
+            "Address": {
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
                 "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
@@ -289,7 +291,7 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
+            "Address": {
               "type": "string"
             },
             "BlockHash": {
@@ -329,7 +331,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -421,24 +423,11 @@
                   ]
                 },
                 "status": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/TxStatus"
-                    }
-                  ]
+                  "$ref": "#/$defs/TxStatus"
                 }
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -472,19 +461,18 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
                 },
                 "sequence": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "inner_redeemscript_asm": {
                   "type": "string"
@@ -492,7 +480,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -518,7 +515,7 @@
                 "scriptpubkey_address": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/Addr"
+                      "$ref": "#/$defs/Address"
                     }
                   ]
                 },
@@ -538,9 +535,6 @@
               ]
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -576,7 +570,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "TxVersionRaw": {
               "format": "int32",
@@ -586,21 +583,14 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            },
-            "Weight": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
             },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
+            "Weight": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint64"
             }
           }
         },
@@ -631,7 +621,7 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Addr"
+              "$ref": "#/$defs/Address"
             },
             "after_txid": {
               "$ref": "#/$defs/Txid",
@@ -645,8 +635,8 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
-              "description": "Bitcoin address string",
+            "Address": {
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
                 "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
@@ -672,7 +662,7 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
+            "Address": {
               "type": "string"
             },
             "BlockHash": {
@@ -712,7 +702,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -804,24 +794,11 @@
                   ]
                 },
                 "status": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/TxStatus"
-                    }
-                  ]
+                  "$ref": "#/$defs/TxStatus"
                 }
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -855,19 +832,18 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
                 },
                 "sequence": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "inner_redeemscript_asm": {
                   "type": "string"
@@ -875,7 +851,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -901,7 +886,7 @@
                 "scriptpubkey_address": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/Addr"
+                      "$ref": "#/$defs/Address"
                     }
                   ]
                 },
@@ -921,9 +906,6 @@
               ]
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -959,7 +941,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "TxVersionRaw": {
               "format": "int32",
@@ -969,21 +954,14 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            },
-            "Weight": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
             },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
+            "Weight": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint64"
             }
           }
         },
@@ -1013,11 +991,11 @@
       "tool": {
         "name": "get_address_hash_prefix_matches",
         "title": "Address hash-prefix matches",
-        "description": "Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.\n\nREST operation: `GET /api/address/hash-prefix/{addr_type}/{prefix}`.",
+        "description": "Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.\n\nREST operation: `GET /api/address/hash-prefix/{address_type}/{prefix}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "addr_type": {
+            "address_type": {
               "$ref": "#/$defs/OutputType"
             },
             "prefix": {
@@ -1027,7 +1005,7 @@
           },
           "additionalProperties": false,
           "required": [
-            "addr_type",
+            "address_type",
             "prefix"
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1053,16 +1031,16 @@
           }
         },
         "outputSchema": {
-          "$ref": "#/$defs/AddrHashPrefixMatches",
+          "$ref": "#/$defs/AddressHashPrefixMatches",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
+            "Address": {
               "type": "string"
             },
-            "AddrHashPrefixMatches": {
+            "AddressHashPrefixMatches": {
               "type": "object",
               "properties": {
-                "addr_type": {
+                "address_type": {
                   "$ref": "#/$defs/OutputType"
                 },
                 "prefix": {
@@ -1074,12 +1052,12 @@
                 "addresses": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/Addr"
+                    "$ref": "#/$defs/Address"
                   }
                 }
               },
               "required": [
-                "addr_type",
+                "address_type",
                 "prefix",
                 "truncated",
                 "addresses"
@@ -1113,10 +1091,10 @@
       },
       "http": {
         "method": "GET",
-        "path": "/api/address/hash-prefix/{addr_type}/{prefix}",
+        "path": "/api/address/hash-prefix/{address_type}/{prefix}",
         "parameters": [
           {
-            "name": "addr_type",
+            "name": "address_type",
             "location": "path"
           },
           {
@@ -1135,7 +1113,7 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Addr"
+              "$ref": "#/$defs/Address"
             }
           },
           "additionalProperties": false,
@@ -1144,8 +1122,8 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
-              "description": "Bitcoin address string",
+            "Address": {
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
                 "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
@@ -1162,7 +1140,7 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
+            "Address": {
               "type": "string"
             },
             "BlockHash": {
@@ -1202,7 +1180,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -1294,24 +1272,11 @@
                   ]
                 },
                 "status": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/TxStatus"
-                    }
-                  ]
+                  "$ref": "#/$defs/TxStatus"
                 }
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -1345,19 +1310,18 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
                 },
                 "sequence": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "inner_redeemscript_asm": {
                   "type": "string"
@@ -1365,7 +1329,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -1391,7 +1364,7 @@
                 "scriptpubkey_address": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/Addr"
+                      "$ref": "#/$defs/Address"
                     }
                   ]
                 },
@@ -1411,9 +1384,6 @@
               ]
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -1449,7 +1419,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "TxVersionRaw": {
               "format": "int32",
@@ -1459,21 +1432,14 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            },
-            "Weight": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
             },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
+            "Weight": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint64"
             }
           }
         },
@@ -1504,7 +1470,7 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Addr"
+              "$ref": "#/$defs/Address"
             }
           },
           "additionalProperties": false,
@@ -1513,8 +1479,8 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
-              "description": "Bitcoin address string",
+            "Address": {
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
                 "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
@@ -1531,7 +1497,7 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
+            "Address": {
               "type": "string"
             },
             "BlockHash": {
@@ -1571,7 +1537,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -1663,24 +1629,11 @@
                   ]
                 },
                 "status": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/TxStatus"
-                    }
-                  ]
+                  "$ref": "#/$defs/TxStatus"
                 }
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -1714,19 +1667,18 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
                 },
                 "sequence": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "inner_redeemscript_asm": {
                   "type": "string"
@@ -1734,7 +1686,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -1760,7 +1721,7 @@
                 "scriptpubkey_address": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/Addr"
+                      "$ref": "#/$defs/Address"
                     }
                   ]
                 },
@@ -1780,9 +1741,6 @@
               ]
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -1818,7 +1776,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "TxVersionRaw": {
               "format": "int32",
@@ -1828,21 +1789,14 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            },
-            "Weight": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
             },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
+            "Weight": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint64"
             }
           }
         },
@@ -1868,12 +1822,12 @@
       "tool": {
         "name": "get_address_utxos",
         "title": "Address UTXOs",
-        "description": "Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*\n\nREST operation: `GET /api/address/{address}/utxo`.",
+        "description": "Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*\n\nREST operation: `GET /api/address/{address}/utxo`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Addr"
+              "$ref": "#/$defs/Address"
             }
           },
           "additionalProperties": false,
@@ -1882,8 +1836,8 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
-              "description": "Bitcoin address string",
+            "Address": {
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
                 "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
@@ -1919,9 +1873,6 @@
               "format": "uint32"
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -1957,7 +1908,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "Txid": {
               "type": "string"
@@ -1972,25 +1926,13 @@
               "type": "object",
               "properties": {
                 "txid": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Txid"
-                    }
-                  ]
+                  "$ref": "#/$defs/Txid"
                 },
                 "vout": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Vout"
-                    }
-                  ]
+                  "$ref": "#/$defs/Vout"
                 },
                 "status": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/TxStatus"
-                    }
-                  ]
+                  "$ref": "#/$defs/TxStatus"
                 },
                 "value": {
                   "allOf": [
@@ -2002,10 +1944,9 @@
               }
             },
             "Vout": {
-              "maximum": 65535,
+              "minimum": 0,
               "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+              "format": "uint32"
             }
           }
         },
@@ -2031,7 +1972,7 @@
       "tool": {
         "name": "get_block",
         "title": "Block information",
-        "description": "Retrieve block information by block hash. Returns block metadata including height, timestamp, difficulty, size, weight, and transaction count.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*\n\nREST operation: `GET /api/block/{hash}`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*\n\nREST operation: `GET /api/block/{hash}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -2088,16 +2029,12 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "timestamp": {
                   "allOf": [
@@ -2112,21 +2049,21 @@
                   "format": "uint32"
                 },
                 "nonce": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "merkle_root": {
                   "type": "string"
                 },
                 "tx_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "size": {
                   "minimum": 0,
@@ -2141,11 +2078,7 @@
                   ]
                 },
                 "previousblockhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "mediantime": {
                   "allOf": [
@@ -2169,7 +2102,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -2195,7 +2128,7 @@
       "tool": {
         "name": "get_block_by_height",
         "title": "Block hash by height",
-        "description": "Retrieve the block hash at a given height. Returns the hash as plain text.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*\n\nREST operation: `GET /api/block-height/{height}`.",
+        "description": "Block hash as plain text.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*\n\nREST operation: `GET /api/block-height/{height}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -2290,18 +2223,10 @@
               "type": "object",
               "properties": {
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "hash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "timestamp": {
                   "type": "string"
@@ -2337,12 +2262,13 @@
       "tool": {
         "name": "get_block_fee_rates",
         "title": "Block fee rates",
-        "description": "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*\n\nREST operation: `GET /api/v1/mining/blocks/fee-rates/{time_period}`.",
+        "description": "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*\n\nREST operation: `GET /api/v1/mining/blocks/fee-rates/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod"
+              "$ref": "#/$defs/TimePeriod",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
             }
           },
           "additionalProperties": false,
@@ -2352,7 +2278,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "TimePeriod": {
-              "description": "Time period for mining statistics.\n\nUsed to specify the lookback window for pool statistics, hashrate calculations,\nand other time-based mining series.",
+              "description": "Lookback window for mining statistics.",
               "type": "string",
               "enum": [
                 "24h",
@@ -2493,12 +2419,13 @@
       "tool": {
         "name": "get_block_fees",
         "title": "Block fees",
-        "description": "Get average total fees per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*\n\nREST operation: `GET /api/v1/mining/blocks/fees/{time_period}`.",
+        "description": "Get average total fees per block for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*\n\nREST operation: `GET /api/v1/mining/blocks/fees/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod"
+              "$ref": "#/$defs/TimePeriod",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
             }
           },
           "additionalProperties": false,
@@ -2508,7 +2435,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "TimePeriod": {
-              "description": "Time period for mining statistics.\n\nUsed to specify the lookback window for pool statistics, hashrate calculations,\nand other time-based mining series.",
+              "description": "Lookback window for mining statistics.",
               "type": "string",
               "enum": [
                 "24h",
@@ -2660,12 +2587,13 @@
       "tool": {
         "name": "get_block_rewards",
         "title": "Block rewards",
-        "description": "Get average coinbase reward (subsidy + fees) per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*\n\nREST operation: `GET /api/v1/mining/blocks/rewards/{time_period}`.",
+        "description": "Get average coinbase reward (subsidy + fees) per block for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*\n\nREST operation: `GET /api/v1/mining/blocks/rewards/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod"
+              "$ref": "#/$defs/TimePeriod",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
             }
           },
           "additionalProperties": false,
@@ -2675,7 +2603,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "TimePeriod": {
-              "description": "Time period for mining statistics.\n\nUsed to specify the lookback window for pool statistics, hashrate calculations,\nand other time-based mining series.",
+              "description": "Lookback window for mining statistics.",
               "type": "string",
               "enum": [
                 "24h",
@@ -2781,12 +2709,13 @@
       "tool": {
         "name": "get_block_sizes_weights",
         "title": "Block sizes and weights",
-        "description": "Get average block sizes and weights for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*\n\nREST operation: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`.",
+        "description": "Get average block sizes and weights for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*\n\nREST operation: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod"
+              "$ref": "#/$defs/TimePeriod",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
             }
           },
           "additionalProperties": false,
@@ -2796,7 +2725,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "TimePeriod": {
-              "description": "Time period for mining statistics.\n\nUsed to specify the lookback window for pool statistics, hashrate calculations,\nand other time-based mining series.",
+              "description": "Lookback window for mining statistics.",
               "type": "string",
               "enum": [
                 "24h",
@@ -2847,25 +2776,25 @@
               }
             },
             "BlockSizesWeights": {
-              "required": [
-                "sizes",
-                "weights"
-              ],
               "type": "object",
               "properties": {
                 "sizes": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/BlockSizeEntry"
-                  },
-                  "type": "array"
+                  }
                 },
                 "weights": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/BlockWeightEntry"
-                  },
-                  "type": "array"
+                  }
                 }
-              }
+              },
+              "required": [
+                "sizes",
+                "weights"
+              ]
             },
             "BlockWeightEntry": {
               "required": [
@@ -2911,7 +2840,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -2937,7 +2866,7 @@
       "tool": {
         "name": "get_block_status",
         "title": "Block status",
-        "description": "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*\n\nREST operation: `GET /api/block/{hash}/status`.",
+        "description": "Whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*\n\nREST operation: `GET /api/block/{hash}/status`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -2969,9 +2898,6 @@
               "type": "string"
             },
             "BlockStatus": {
-              "required": [
-                "in_best_chain"
-              ],
               "type": "object",
               "properties": {
                 "in_best_chain": {
@@ -2997,7 +2923,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "in_best_chain"
+              ]
             },
             "Height": {
               "minimum": 0,
@@ -3028,7 +2957,7 @@
       "tool": {
         "name": "get_block_tip_hash",
         "title": "Block tip hash",
-        "description": "Returns the hash of the last block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*\n\nREST operation: `GET /api/blocks/tip/hash`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*\n\nREST operation: `GET /api/blocks/tip/hash`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -3052,7 +2981,7 @@
       "tool": {
         "name": "get_block_tip_height",
         "title": "Block tip height",
-        "description": "Returns the height of the last block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*\n\nREST operation: `GET /api/blocks/tip/height`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*\n\nREST operation: `GET /api/blocks/tip/height`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -3081,8 +3010,7 @@
           "type": "object",
           "properties": {
             "hash": {
-              "$ref": "#/$defs/BlockHash",
-              "description": "Bitcoin block hash"
+              "$ref": "#/$defs/BlockHash"
             },
             "index": {
               "$ref": "#/$defs/BlockTxIndex",
@@ -3141,13 +3069,12 @@
       "tool": {
         "name": "get_block_txs_from_index",
         "title": "Block transactions (paginated)",
-        "description": "Retrieve transactions in a block by block hash, starting from the specified index. Returns up to 25 transactions at a time.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*\n\nREST operation: `GET /api/block/{hash}/txs/{start_index}`.",
+        "description": "Up to 25 transactions starting at `start_index`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*\n\nREST operation: `GET /api/block/{hash}/txs/{start_index}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "hash": {
-              "$ref": "#/$defs/BlockHash",
-              "description": "Bitcoin block hash"
+              "$ref": "#/$defs/BlockHash"
             },
             "start_index": {
               "$ref": "#/$defs/BlockTxIndex",
@@ -3187,7 +3114,7 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
+            "Address": {
               "type": "string"
             },
             "BlockHash": {
@@ -3227,7 +3154,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -3319,24 +3246,11 @@
                   ]
                 },
                 "status": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/TxStatus"
-                    }
-                  ]
+                  "$ref": "#/$defs/TxStatus"
                 }
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -3370,19 +3284,18 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
                 },
                 "sequence": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "inner_redeemscript_asm": {
                   "type": "string"
@@ -3390,7 +3303,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -3416,7 +3338,7 @@
                 "scriptpubkey_address": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/Addr"
+                      "$ref": "#/$defs/Address"
                     }
                   ]
                 },
@@ -3436,9 +3358,6 @@
               ]
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -3474,7 +3393,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "TxVersionRaw": {
               "format": "int32",
@@ -3484,21 +3406,14 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            },
-            "Weight": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
             },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
+            "Weight": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint64"
             }
           }
         },
@@ -3618,11 +3533,7 @@
                   ]
                 },
                 "pool": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockPool"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockPool"
                 },
                 "avgFee": {
                   "allOf": [
@@ -3669,9 +3580,9 @@
                   "format": "uint64"
                 },
                 "totalOutputs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint64"
+                  "format": "uint64",
+                  "minimum": 0
                 },
                 "totalOutputAmt": {
                   "allOf": [
@@ -3696,9 +3607,9 @@
                   "minItems": 7
                 },
                 "segwitTotalTxs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "segwitTotalSize": {
                   "minimum": 0,
@@ -3706,11 +3617,7 @@
                   "format": "uint64"
                 },
                 "segwitTotalWeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
+                  "$ref": "#/$defs/Weight"
                 },
                 "header": {
                   "type": "string"
@@ -3788,16 +3695,12 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "timestamp": {
                   "allOf": [
@@ -3812,21 +3715,21 @@
                   "format": "uint32"
                 },
                 "nonce": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "merkle_root": {
                   "type": "string"
                 },
                 "tx_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "size": {
                   "minimum": 0,
@@ -3841,11 +3744,7 @@
                   ]
                 },
                 "previousblockhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "mediantime": {
                   "allOf": [
@@ -3858,21 +3757,11 @@
                   "type": "boolean"
                 },
                 "extras": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockExtras"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockExtras"
                 }
               }
             },
             "BlockPool": {
-              "required": [
-                "id",
-                "name",
-                "slug",
-                "blockNumber"
-              ],
               "type": "object",
               "properties": {
                 "id": {
@@ -3905,7 +3794,13 @@
                     "null"
                   ]
                 }
-              }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "blockNumber"
+              ]
             },
             "Dollars": {
               "format": "double",
@@ -4104,7 +3999,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -4130,7 +4025,7 @@
       "tool": {
         "name": "get_blocks",
         "title": "Recent blocks",
-        "description": "Retrieve the last 10 blocks. Returns block metadata for each block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*\n\nREST operation: `GET /api/blocks`.",
+        "description": "The last 10 blocks.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*\n\nREST operation: `GET /api/blocks`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -4173,16 +4068,12 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "timestamp": {
                   "allOf": [
@@ -4197,21 +4088,21 @@
                   "format": "uint32"
                 },
                 "nonce": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "merkle_root": {
                   "type": "string"
                 },
                 "tx_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "size": {
                   "minimum": 0,
@@ -4226,11 +4117,7 @@
                   ]
                 },
                 "previousblockhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "mediantime": {
                   "allOf": [
@@ -4254,7 +4141,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -4275,7 +4162,7 @@
       "tool": {
         "name": "get_blocks_from_height",
         "title": "Blocks from height",
-        "description": "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*\n\nREST operation: `GET /api/blocks/{height}`.",
+        "description": "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*\n\nREST operation: `GET /api/blocks/{height}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -4339,16 +4226,12 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "timestamp": {
                   "allOf": [
@@ -4363,21 +4246,21 @@
                   "format": "uint32"
                 },
                 "nonce": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "merkle_root": {
                   "type": "string"
                 },
                 "tx_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "size": {
                   "minimum": 0,
@@ -4392,11 +4275,7 @@
                   ]
                 },
                 "previousblockhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "mediantime": {
                   "allOf": [
@@ -4420,7 +4299,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -4522,11 +4401,7 @@
                   ]
                 },
                 "pool": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockPool"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockPool"
                 },
                 "avgFee": {
                   "allOf": [
@@ -4573,9 +4448,9 @@
                   "format": "uint64"
                 },
                 "totalOutputs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint64"
+                  "format": "uint64",
+                  "minimum": 0
                 },
                 "totalOutputAmt": {
                   "allOf": [
@@ -4600,9 +4475,9 @@
                   "minItems": 7
                 },
                 "segwitTotalTxs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "segwitTotalSize": {
                   "minimum": 0,
@@ -4610,11 +4485,7 @@
                   "format": "uint64"
                 },
                 "segwitTotalWeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
+                  "$ref": "#/$defs/Weight"
                 },
                 "header": {
                   "type": "string"
@@ -4692,16 +4563,12 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "timestamp": {
                   "allOf": [
@@ -4716,21 +4583,21 @@
                   "format": "uint32"
                 },
                 "nonce": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "merkle_root": {
                   "type": "string"
                 },
                 "tx_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "size": {
                   "minimum": 0,
@@ -4745,11 +4612,7 @@
                   ]
                 },
                 "previousblockhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "mediantime": {
                   "allOf": [
@@ -4762,21 +4625,11 @@
                   "type": "boolean"
                 },
                 "extras": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockExtras"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockExtras"
                 }
               }
             },
             "BlockPool": {
-              "required": [
-                "id",
-                "name",
-                "slug",
-                "blockNumber"
-              ],
               "type": "object",
               "properties": {
                 "id": {
@@ -4809,7 +4662,13 @@
                     "null"
                   ]
                 }
-              }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "blockNumber"
+              ]
             },
             "Dollars": {
               "format": "double",
@@ -5008,7 +4867,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -5029,7 +4888,7 @@
       "tool": {
         "name": "get_blocks_v1_from_height",
         "title": "Blocks from height with extras",
-        "description": "Retrieve up to 15 blocks with extended data going backwards from the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*\n\nREST operation: `GET /api/v1/blocks/{height}`.",
+        "description": "Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*\n\nREST operation: `GET /api/v1/blocks/{height}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -5126,11 +4985,7 @@
                   ]
                 },
                 "pool": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockPool"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockPool"
                 },
                 "avgFee": {
                   "allOf": [
@@ -5177,9 +5032,9 @@
                   "format": "uint64"
                 },
                 "totalOutputs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint64"
+                  "format": "uint64",
+                  "minimum": 0
                 },
                 "totalOutputAmt": {
                   "allOf": [
@@ -5204,9 +5059,9 @@
                   "minItems": 7
                 },
                 "segwitTotalTxs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "segwitTotalSize": {
                   "minimum": 0,
@@ -5214,11 +5069,7 @@
                   "format": "uint64"
                 },
                 "segwitTotalWeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
+                  "$ref": "#/$defs/Weight"
                 },
                 "header": {
                   "type": "string"
@@ -5296,16 +5147,12 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "timestamp": {
                   "allOf": [
@@ -5320,21 +5167,21 @@
                   "format": "uint32"
                 },
                 "nonce": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "merkle_root": {
                   "type": "string"
                 },
                 "tx_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "size": {
                   "minimum": 0,
@@ -5349,11 +5196,7 @@
                   ]
                 },
                 "previousblockhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "mediantime": {
                   "allOf": [
@@ -5366,21 +5209,11 @@
                   "type": "boolean"
                 },
                 "extras": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockExtras"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockExtras"
                 }
               }
             },
             "BlockPool": {
-              "required": [
-                "id",
-                "name",
-                "slug",
-                "blockNumber"
-              ],
               "type": "object",
               "properties": {
                 "id": {
@@ -5413,7 +5246,13 @@
                     "null"
                   ]
                 }
-              }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "blockNumber"
+              ]
             },
             "Dollars": {
               "format": "double",
@@ -5612,7 +5451,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -5713,12 +5552,6 @@
               }
             },
             "CpfpClusterTx": {
-              "required": [
-                "txid",
-                "weight",
-                "fee",
-                "parents"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -5736,7 +5569,13 @@
                   },
                   "type": "array"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "weight",
+                "fee",
+                "parents"
+              ]
             },
             "CpfpClusterTxIndex": {
               "minimum": 0,
@@ -5775,10 +5614,10 @@
               "type": "object",
               "properties": {
                 "ancestors": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/CpfpEntry"
-                  },
-                  "type": "array"
+                  }
                 },
                 "bestDescendant": {
                   "anyOf": [
@@ -5791,10 +5630,10 @@
                   ]
                 },
                 "descendants": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/CpfpEntry"
-                  },
-                  "type": "array"
+                  }
                 },
                 "effectiveFeePerVsize": {
                   "allOf": [
@@ -5855,7 +5694,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Txid": {
               "type": "string"
@@ -5868,7 +5707,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -5906,20 +5745,6 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "DifficultyAdjustment": {
-              "required": [
-                "progressPercent",
-                "difficultyChange",
-                "estimatedRetargetDate",
-                "remainingBlocks",
-                "remainingTime",
-                "previousRetarget",
-                "previousTime",
-                "nextRetargetHeight",
-                "timeAvg",
-                "adjustedTimeAvg",
-                "timeOffset",
-                "expectedBlocks"
-              ],
               "type": "object",
               "properties": {
                 "progressPercent": {
@@ -5981,7 +5806,21 @@
                   "format": "double",
                   "type": "number"
                 }
-              }
+              },
+              "required": [
+                "progressPercent",
+                "difficultyChange",
+                "estimatedRetargetDate",
+                "remainingBlocks",
+                "remainingTime",
+                "previousRetarget",
+                "previousTime",
+                "nextRetargetHeight",
+                "timeAvg",
+                "adjustedTimeAvg",
+                "timeOffset",
+                "expectedBlocks"
+              ]
             },
             "Height": {
               "minimum": 0,
@@ -6012,7 +5851,7 @@
       "tool": {
         "name": "get_difficulty_adjustments",
         "title": "Difficulty adjustments (all time)",
-        "description": "Get historical difficulty adjustments including timestamp, block height, difficulty value, and percentage change.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*\n\nREST operation: `GET /api/v1/mining/difficulty-adjustments`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*\n\nREST operation: `GET /api/v1/mining/difficulty-adjustments`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -6054,12 +5893,13 @@
       "tool": {
         "name": "get_difficulty_adjustments_by_period",
         "title": "Difficulty adjustments",
-        "description": "Get historical difficulty adjustments for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*\n\nREST operation: `GET /api/v1/mining/difficulty-adjustments/{time_period}`.",
+        "description": "Get historical difficulty adjustments for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*\n\nREST operation: `GET /api/v1/mining/difficulty-adjustments/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod"
+              "$ref": "#/$defs/TimePeriod",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
             }
           },
           "additionalProperties": false,
@@ -6069,7 +5909,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "TimePeriod": {
-              "description": "Time period for mining statistics.\n\nUsed to specify the lookback window for pool statistics, hashrate calculations,\nand other time-based mining series.",
+              "description": "Lookback window for mining statistics.",
               "type": "string",
               "enum": [
                 "24h",
@@ -6298,15 +6138,11 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "adjustment": {
                   "format": "double",
@@ -6315,10 +6151,6 @@
               }
             },
             "HashrateEntry": {
-              "required": [
-                "timestamp",
-                "avgHashrate"
-              ],
               "type": "object",
               "properties": {
                 "timestamp": {
@@ -6333,28 +6165,26 @@
                   "type": "integer",
                   "format": "uint128"
                 }
-              }
+              },
+              "required": [
+                "timestamp",
+                "avgHashrate"
+              ]
             },
             "HashrateSummary": {
-              "required": [
-                "hashrates",
-                "difficulty",
-                "currentHashrate",
-                "currentDifficulty"
-              ],
               "type": "object",
               "properties": {
                 "hashrates": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/HashrateEntry"
-                  },
-                  "type": "array"
+                  }
                 },
                 "difficulty": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/DifficultyEntry"
-                  },
-                  "type": "array"
+                  }
                 },
                 "currentHashrate": {
                   "minimum": 0,
@@ -6362,10 +6192,16 @@
                   "format": "uint128"
                 },
                 "currentDifficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 }
-              }
+              },
+              "required": [
+                "hashrates",
+                "difficulty",
+                "currentHashrate",
+                "currentDifficulty"
+              ]
             },
             "Height": {
               "minimum": 0,
@@ -6396,12 +6232,13 @@
       "tool": {
         "name": "get_hashrate_by_period",
         "title": "Network hashrate",
-        "description": "Get network hashrate and difficulty data for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*\n\nREST operation: `GET /api/v1/mining/hashrate/{time_period}`.",
+        "description": "Get network hashrate and difficulty data for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*\n\nREST operation: `GET /api/v1/mining/hashrate/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod"
+              "$ref": "#/$defs/TimePeriod",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
             }
           },
           "additionalProperties": false,
@@ -6411,7 +6248,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "TimePeriod": {
-              "description": "Time period for mining statistics.\n\nUsed to specify the lookback window for pool statistics, hashrate calculations,\nand other time-based mining series.",
+              "description": "Lookback window for mining statistics.",
               "type": "string",
               "enum": [
                 "24h",
@@ -6449,15 +6286,11 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "adjustment": {
                   "format": "double",
@@ -6466,10 +6299,6 @@
               }
             },
             "HashrateEntry": {
-              "required": [
-                "timestamp",
-                "avgHashrate"
-              ],
               "type": "object",
               "properties": {
                 "timestamp": {
@@ -6484,28 +6313,26 @@
                   "type": "integer",
                   "format": "uint128"
                 }
-              }
+              },
+              "required": [
+                "timestamp",
+                "avgHashrate"
+              ]
             },
             "HashrateSummary": {
-              "required": [
-                "hashrates",
-                "difficulty",
-                "currentHashrate",
-                "currentDifficulty"
-              ],
               "type": "object",
               "properties": {
                 "hashrates": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/HashrateEntry"
-                  },
-                  "type": "array"
+                  }
                 },
                 "difficulty": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/DifficultyEntry"
-                  },
-                  "type": "array"
+                  }
                 },
                 "currentHashrate": {
                   "minimum": 0,
@@ -6513,10 +6340,16 @@
                   "format": "uint128"
                 },
                 "currentDifficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 }
-              }
+              },
+              "required": [
+                "hashrates",
+                "difficulty",
+                "currentHashrate",
+                "currentDifficulty"
+              ]
             },
             "Height": {
               "minimum": 0,
@@ -6552,17 +6385,29 @@
       "tool": {
         "name": "get_historical_price",
         "title": "Historical price",
-        "description": "Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*\n\nREST operation: `GET /api/v1/historical-price`.",
+        "description": "Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*\n\nREST operation: `GET /api/v1/historical-price`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "timestamp": {
-              "$ref": "#/$defs/Timestamp"
+              "$ref": "#/$defs/Timestamp",
+              "description": "UNIX timestamp: the latest close at or before it"
+            },
+            "currency": {
+              "$ref": "#/$defs/Currency",
+              "description": "Quote currency: USD, the only one served"
             }
           },
           "additionalProperties": false,
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Currency": {
+              "description": "A quote currency prices are served in: USD only.",
+              "type": "string",
+              "enum": [
+                "USD"
+              ]
+            },
             "Timestamp": {
               "description": "UNIX timestamp in seconds",
               "type": "integer",
@@ -6590,17 +6435,13 @@
               "type": "object"
             },
             "HistoricalPrice": {
-              "required": [
-                "prices",
-                "exchangeRates"
-              ],
               "type": "object",
               "properties": {
                 "prices": {
+                  "type": "array",
                   "items": {
-                    "$ref": "#/$defs/HistoricalPriceEntry"
-                  },
-                  "type": "array"
+                    "$ref": "#/$defs/PricePoint"
+                  }
                 },
                 "exchangeRates": {
                   "allOf": [
@@ -6609,9 +6450,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "prices",
+                "exchangeRates"
+              ]
             },
-            "HistoricalPriceEntry": {
+            "PricePoint": {
               "required": [
                 "time",
                 "USD"
@@ -6655,6 +6500,10 @@
           {
             "name": "timestamp",
             "location": "query"
+          },
+          {
+            "name": "currency",
+            "location": "query"
           }
         ]
       }
@@ -6663,7 +6512,7 @@
       "tool": {
         "name": "get_indexes",
         "title": "List available indexes",
-        "description": "Returns all available indexes with their accepted query aliases. Use any alias when querying series.\n\nREST operation: `GET /api/series/indexes`.",
+        "description": "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.\n\nREST operation: `GET /api/series/indexes`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -6700,27 +6549,20 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "type": "string"
             },
             "IndexInfo": {
-              "required": [
-                "index",
-                "aliases"
-              ],
               "type": "object",
               "properties": {
                 "index": {
@@ -6736,7 +6578,11 @@
                   },
                   "type": "array"
                 }
-              }
+              },
+              "required": [
+                "index",
+                "aliases"
+              ]
             }
           }
         },
@@ -6757,7 +6603,7 @@
       "tool": {
         "name": "get_mempool",
         "title": "Mempool statistics",
-        "description": "Get current mempool statistics including transaction count, total vsize, total fees, and fee histogram.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*\n\nREST operation: `GET /api/mempool`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*\n\nREST operation: `GET /api/mempool`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -6942,9 +6788,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "NextBlockHash": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint64"
+              "type": "string"
             }
           }
         },
@@ -6989,11 +6833,7 @@
               "type": "object",
               "properties": {
                 "txid": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Txid"
-                    }
-                  ]
+                  "$ref": "#/$defs/Txid"
                 },
                 "fee": {
                   "allOf": [
@@ -7050,7 +6890,7 @@
       "tool": {
         "name": "get_oracle_histogram_outputs",
         "title": "Output value histogram at height or day",
-        "description": "Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.\n\nREST operation: `GET /api/oracle/histogram/outputs/{point}`.",
+        "description": "Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.\n\nREST operation: `GET /api/oracle/histogram/outputs/{point}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -7101,7 +6941,7 @@
       "tool": {
         "name": "get_oracle_histogram_outputs_live",
         "title": "Live output value histogram",
-        "description": "Live unfiltered output value histogram for the complete published mempool. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.\n\nREST operation: `GET /api/oracle/histogram/outputs/live`.",
+        "description": "Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.\n\nREST operation: `GET /api/oracle/histogram/outputs/live`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -7224,7 +7064,7 @@
       "tool": {
         "name": "get_pool",
         "title": "Mining pool details",
-        "description": "Get detailed information about a specific mining pool including block counts and shares for different time periods.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*\n\nREST operation: `GET /api/v1/mining/pool/{slug}`.",
+        "description": "Block counts and mining shares by time period for one pool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*\n\nREST operation: `GET /api/v1/mining/pool/{slug}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -7464,34 +7304,16 @@
               }
             },
             "PoolDetail": {
-              "required": [
-                "pool",
-                "blockCount",
-                "blockShare",
-                "estimatedHashrate"
-              ],
               "type": "object",
               "properties": {
                 "pool": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/PoolDetailInfo"
-                    }
-                  ]
+                  "$ref": "#/$defs/PoolDetailInfo"
                 },
                 "blockCount": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/PoolBlockCounts"
-                    }
-                  ]
+                  "$ref": "#/$defs/PoolBlockCounts"
                 },
                 "blockShare": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/PoolBlockShares"
-                    }
-                  ]
+                  "$ref": "#/$defs/PoolBlockShares"
                 },
                 "estimatedHashrate": {
                   "minimum": 0,
@@ -7507,27 +7329,22 @@
                   "format": "uint128"
                 },
                 "totalReward": {
-                  "anyOf": [
+                  "allOf": [
                     {
                       "$ref": "#/$defs/Sats"
-                    },
-                    {
-                      "type": "null"
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "pool",
+                "blockCount",
+                "blockShare",
+                "estimatedHashrate",
+                "totalReward"
+              ]
             },
             "PoolDetailInfo": {
-              "required": [
-                "id",
-                "name",
-                "link",
-                "addresses",
-                "regexes",
-                "slug",
-                "unique_id"
-              ],
               "type": "object",
               "properties": {
                 "id": {
@@ -7567,7 +7384,16 @@
                   "format": "uint8",
                   "minimum": 0
                 }
-              }
+              },
+              "required": [
+                "id",
+                "name",
+                "link",
+                "addresses",
+                "regexes",
+                "slug",
+                "unique_id"
+              ]
             },
             "PoolSlug": {
               "enum": [
@@ -8026,11 +7852,7 @@
                   ]
                 },
                 "pool": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockPool"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockPool"
                 },
                 "avgFee": {
                   "allOf": [
@@ -8077,9 +7899,9 @@
                   "format": "uint64"
                 },
                 "totalOutputs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint64"
+                  "format": "uint64",
+                  "minimum": 0
                 },
                 "totalOutputAmt": {
                   "allOf": [
@@ -8104,9 +7926,9 @@
                   "minItems": 7
                 },
                 "segwitTotalTxs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "segwitTotalSize": {
                   "minimum": 0,
@@ -8114,11 +7936,7 @@
                   "format": "uint64"
                 },
                 "segwitTotalWeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
+                  "$ref": "#/$defs/Weight"
                 },
                 "header": {
                   "type": "string"
@@ -8196,16 +8014,12 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "timestamp": {
                   "allOf": [
@@ -8220,21 +8034,21 @@
                   "format": "uint32"
                 },
                 "nonce": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "merkle_root": {
                   "type": "string"
                 },
                 "tx_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "size": {
                   "minimum": 0,
@@ -8249,11 +8063,7 @@
                   ]
                 },
                 "previousblockhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "mediantime": {
                   "allOf": [
@@ -8266,21 +8076,11 @@
                   "type": "boolean"
                 },
                 "extras": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockExtras"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockExtras"
                 }
               }
             },
             "BlockPool": {
-              "required": [
-                "id",
-                "name",
-                "slug",
-                "blockNumber"
-              ],
               "type": "object",
               "properties": {
                 "id": {
@@ -8313,7 +8113,13 @@
                     "null"
                   ]
                 }
-              }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "blockNumber"
+              ]
             },
             "Dollars": {
               "format": "double",
@@ -8512,7 +8318,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -8537,8 +8343,8 @@
     {
       "tool": {
         "name": "get_pool_blocks_from",
-        "title": "Mining pool blocks from height",
-        "description": "Get up to 100 blocks mined by a specific pool before (and including) the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*\n\nREST operation: `GET /api/v1/mining/pool/{slug}/blocks/{height}`.",
+        "title": "Mining pool blocks before height",
+        "description": "Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*\n\nREST operation: `GET /api/v1/mining/pool/{slug}/blocks/{height}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -8811,11 +8617,7 @@
                   ]
                 },
                 "pool": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockPool"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockPool"
                 },
                 "avgFee": {
                   "allOf": [
@@ -8862,9 +8664,9 @@
                   "format": "uint64"
                 },
                 "totalOutputs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint64"
+                  "format": "uint64",
+                  "minimum": 0
                 },
                 "totalOutputAmt": {
                   "allOf": [
@@ -8889,9 +8691,9 @@
                   "minItems": 7
                 },
                 "segwitTotalTxs": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "segwitTotalSize": {
                   "minimum": 0,
@@ -8899,11 +8701,7 @@
                   "format": "uint64"
                 },
                 "segwitTotalWeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
+                  "$ref": "#/$defs/Weight"
                 },
                 "header": {
                   "type": "string"
@@ -8981,16 +8779,12 @@
                   ]
                 },
                 "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "timestamp": {
                   "allOf": [
@@ -9005,21 +8799,21 @@
                   "format": "uint32"
                 },
                 "nonce": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "difficulty": {
-                  "format": "double",
-                  "type": "number"
+                  "type": "number",
+                  "format": "double"
                 },
                 "merkle_root": {
                   "type": "string"
                 },
                 "tx_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "size": {
                   "minimum": 0,
@@ -9034,11 +8828,7 @@
                   ]
                 },
                 "previousblockhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockHash"
                 },
                 "mediantime": {
                   "allOf": [
@@ -9051,21 +8841,11 @@
                   "type": "boolean"
                 },
                 "extras": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockExtras"
-                    }
-                  ]
+                  "$ref": "#/$defs/BlockExtras"
                 }
               }
             },
             "BlockPool": {
-              "required": [
-                "id",
-                "name",
-                "slug",
-                "blockNumber"
-              ],
               "type": "object",
               "properties": {
                 "id": {
@@ -9098,7 +8878,13 @@
                     "null"
                   ]
                 }
-              }
+              },
+              "required": [
+                "id",
+                "name",
+                "slug",
+                "blockNumber"
+              ]
             },
             "Dollars": {
               "format": "double",
@@ -9297,7 +9083,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             }
           }
         },
@@ -9523,12 +9309,6 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolHashrateEntry": {
-              "required": [
-                "timestamp",
-                "avgHashrate",
-                "share",
-                "poolName"
-              ],
               "type": "object",
               "properties": {
                 "timestamp": {
@@ -9550,7 +9330,13 @@
                 "poolName": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "timestamp",
+                "avgHashrate",
+                "share",
+                "poolName"
+              ]
             },
             "Timestamp": {
               "minimum": 0,
@@ -9581,12 +9367,13 @@
       "tool": {
         "name": "get_pool_stats",
         "title": "Mining pool statistics",
-        "description": "Get mining pool statistics for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*\n\nREST operation: `GET /api/v1/mining/pools/{time_period}`.",
+        "description": "Get mining pool statistics for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*\n\nREST operation: `GET /api/v1/mining/pools/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod"
+              "$ref": "#/$defs/TimePeriod",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
             }
           },
           "additionalProperties": false,
@@ -9596,7 +9383,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "TimePeriod": {
-              "description": "Time period for mining statistics.\n\nUsed to specify the lookback window for pool statistics, hashrate calculations,\nand other time-based mining series.",
+              "description": "Lookback window for mining statistics.",
               "type": "string",
               "enum": [
                 "24h",
@@ -9815,9 +9602,9 @@
                   "type": "string"
                 },
                 "blockCount": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint64"
+                  "format": "uint64",
+                  "minimum": 0
                 },
                 "rank": {
                   "minimum": 0,
@@ -9849,13 +9636,6 @@
               }
             },
             "PoolsSummary": {
-              "required": [
-                "pools",
-                "blockCount",
-                "lastEstimatedHashrate",
-                "lastEstimatedHashrate3d",
-                "lastEstimatedHashrate1w"
-              ],
               "type": "object",
               "properties": {
                 "pools": {
@@ -9884,7 +9664,14 @@
                   "type": "integer",
                   "format": "uint128"
                 }
-              }
+              },
+              "required": [
+                "pools",
+                "blockCount",
+                "lastEstimatedHashrate",
+                "lastEstimatedHashrate3d",
+                "lastEstimatedHashrate1w"
+              ]
             }
           }
         },
@@ -9910,7 +9697,7 @@
       "tool": {
         "name": "get_pools",
         "title": "List all mining pools",
-        "description": "Get list of all known mining pools with their identifiers.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*\n\nREST operation: `GET /api/v1/mining/pools`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*\n\nREST operation: `GET /api/v1/mining/pools`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -9925,11 +9712,6 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolInfo": {
-              "required": [
-                "name",
-                "slug",
-                "unique_id"
-              ],
               "type": "object",
               "properties": {
                 "name": {
@@ -9948,7 +9730,12 @@
                   "format": "uint8",
                   "minimum": 0
                 }
-              }
+              },
+              "required": [
+                "name",
+                "slug",
+                "unique_id"
+              ]
             },
             "PoolSlug": {
               "enum": [
@@ -10140,7 +9927,7 @@
       "tool": {
         "name": "get_pools_hashrate",
         "title": "All pools hashrate (all time)",
-        "description": "Get hashrate data for all mining pools.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*\n\nREST operation: `GET /api/v1/mining/hashrate/pools`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*\n\nREST operation: `GET /api/v1/mining/hashrate/pools`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -10155,12 +9942,6 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolHashrateEntry": {
-              "required": [
-                "timestamp",
-                "avgHashrate",
-                "share",
-                "poolName"
-              ],
               "type": "object",
               "properties": {
                 "timestamp": {
@@ -10182,7 +9963,13 @@
                 "poolName": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "timestamp",
+                "avgHashrate",
+                "share",
+                "poolName"
+              ]
             },
             "Timestamp": {
               "minimum": 0,
@@ -10208,12 +9995,13 @@
       "tool": {
         "name": "get_pools_hashrate_by_period",
         "title": "All pools hashrate",
-        "description": "Get hashrate data for all mining pools for a time period. Valid periods: `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*\n\nREST operation: `GET /api/v1/mining/hashrate/pools/{time_period}`.",
+        "description": "Get hashrate data for all mining pools for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*\n\nREST operation: `GET /api/v1/mining/hashrate/pools/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod"
+              "$ref": "#/$defs/TimePeriod",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
             }
           },
           "additionalProperties": false,
@@ -10223,7 +10011,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "TimePeriod": {
-              "description": "Time period for mining statistics.\n\nUsed to specify the lookback window for pool statistics, hashrate calculations,\nand other time-based mining series.",
+              "description": "Lookback window for mining statistics.",
               "type": "string",
               "enum": [
                 "24h",
@@ -10248,12 +10036,6 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolHashrateEntry": {
-              "required": [
-                "timestamp",
-                "avgHashrate",
-                "share",
-                "poolName"
-              ],
               "type": "object",
               "properties": {
                 "timestamp": {
@@ -10275,7 +10057,13 @@
                 "poolName": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "timestamp",
+                "avgHashrate",
+                "share",
+                "poolName"
+              ]
             },
             "Timestamp": {
               "minimum": 0,
@@ -10314,14 +10102,14 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
-          "$ref": "#/$defs/RecommendedFees",
+          "$ref": "#/$defs/PreciseRecommendedFees",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "FeeRate": {
               "format": "double",
               "type": "number"
             },
-            "RecommendedFees": {
+            "PreciseRecommendedFees": {
               "required": [
                 "fastestFee",
                 "halfHourFee",
@@ -10395,14 +10183,14 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
-          "$ref": "#/$defs/Prices",
+          "$ref": "#/$defs/PricePoint",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Dollars": {
               "format": "double",
               "type": "number"
             },
-            "Prices": {
+            "PricePoint": {
               "required": [
                 "time",
                 "USD"
@@ -10449,7 +10237,7 @@
       "tool": {
         "name": "get_replacements",
         "title": "Recent RBF replacements",
-        "description": "Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the same shape as `tx_rbf().replacements`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*\n\nREST operation: `GET /api/v1/replacements`.",
+        "description": "Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*\n\nREST operation: `GET /api/v1/replacements`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -10681,33 +10469,30 @@
       "tool": {
         "name": "get_series",
         "title": "Get series data",
-        "description": "Fetch data for a specific series at the given index. Use query parameters to filter by date range and format (json/csv).\n\nREST operation: `GET /api/series/{series}/{index}`.",
+        "description": "Rows selected by a range of positions, dates or timestamps, as JSON or CSV.\n\nREST operation: `GET /api/series/{series}/{index}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName",
-              "description": "Series name"
+              "$ref": "#/$defs/SeriesName"
             },
             "index": {
-              "$ref": "#/$defs/Index",
-              "description": "Aggregation index"
+              "$ref": "#/$defs/Index"
             },
             "start": {
               "$ref": "#/$defs/RangeIndex",
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`"
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`"
             },
             "end": {
               "$ref": "#/$defs/RangeIndex",
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`"
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`"
             },
             "limit": {
               "$ref": "#/$defs/Limit",
-              "description": "Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`"
+              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`"
             },
             "format": {
-              "$ref": "#/$defs/Format",
-              "description": "Format of the output"
+              "$ref": "#/$defs/Format"
             }
           },
           "additionalProperties": false,
@@ -10718,7 +10503,6 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Format": {
-              "description": "Output format for API responses",
               "type": "string",
               "enum": [
                 "json",
@@ -10750,26 +10534,23 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
               ]
             },
             "Limit": {
-              "description": "Maximum number of results to return. Defaults to 100 if not specified.",
+              "description": "Maximum number of results to return; each parameter states what omitting it means.",
               "type": "integer",
               "format": "uint",
               "minimum": 0,
@@ -10808,7 +10589,6 @@
               ]
             },
             "SeriesName": {
-              "description": "Series name",
               "type": "string",
               "examples": [
                 "price_close",
@@ -10853,19 +10633,16 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "type": "string"
             },
@@ -10875,22 +10652,17 @@
                 "index",
                 "start",
                 "end",
-                "stamp",
                 "data"
               ],
               "type": "object",
               "properties": {
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "index": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Index"
-                    }
-                  ]
+                  "$ref": "#/$defs/Index"
                 },
                 "type": {
                   "type": "string"
@@ -10904,9 +10676,6 @@
                   "minimum": 0,
                   "type": "integer",
                   "format": "uint"
-                },
-                "stamp": {
-                  "type": "string"
                 },
                 "data": {
                   "items": true,
@@ -10963,28 +10732,25 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesList",
-              "description": "Requested series"
+              "$ref": "#/$defs/SeriesList"
             },
             "index": {
-              "$ref": "#/$defs/Index",
-              "description": "Index to query"
+              "$ref": "#/$defs/Index"
             },
             "start": {
               "$ref": "#/$defs/RangeIndex",
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`"
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`"
             },
             "end": {
               "$ref": "#/$defs/RangeIndex",
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`"
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`"
             },
             "limit": {
               "$ref": "#/$defs/Limit",
-              "description": "Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`"
+              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`"
             },
             "format": {
-              "$ref": "#/$defs/Format",
-              "description": "Format of the output"
+              "$ref": "#/$defs/Format"
             }
           },
           "additionalProperties": false,
@@ -10995,7 +10761,6 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Format": {
-              "description": "Output format for API responses",
               "type": "string",
               "enum": [
                 "json",
@@ -11027,26 +10792,23 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
               ]
             },
             "Limit": {
-              "description": "Maximum number of results to return. Defaults to 100 if not specified.",
+              "description": "Maximum number of results to return; each parameter states what omitting it means.",
               "type": "integer",
               "format": "uint",
               "minimum": 0,
@@ -11134,19 +10896,16 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "type": "string"
             },
@@ -11156,22 +10915,17 @@
                 "index",
                 "start",
                 "end",
-                "stamp",
                 "data"
               ],
               "type": "object",
               "properties": {
                 "version": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "index": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Index"
-                    }
-                  ]
+                  "$ref": "#/$defs/Index"
                 },
                 "type": {
                   "type": "string"
@@ -11185,9 +10939,6 @@
                   "minimum": 0,
                   "type": "integer",
                   "format": "uint"
-                },
-                "stamp": {
-                  "type": "string"
                 },
                 "data": {
                   "items": true,
@@ -11281,20 +11032,14 @@
                   "format": "uint"
                 },
                 "by_db": {
+                  "type": "object",
                   "additionalProperties": {
                     "$ref": "#/$defs/SeriesCount"
-                  },
-                  "type": "object"
+                  }
                 }
               }
             },
             "SeriesCount": {
-              "required": [
-                "distinct",
-                "total",
-                "lazy",
-                "stored"
-              ],
               "type": "object",
               "properties": {
                 "distinct": {
@@ -11317,7 +11062,13 @@
                   "type": "integer",
                   "format": "uint"
                 }
-              }
+              },
+              "required": [
+                "distinct",
+                "total",
+                "lazy",
+                "stored"
+              ]
             }
           }
         },
@@ -11353,7 +11104,6 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "SeriesName": {
-              "description": "Series name",
               "type": "string",
               "examples": [
                 "price_close",
@@ -11390,28 +11140,20 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "type": "string"
             },
             "SeriesInfo": {
-              "required": [
-                "indexes",
-                "nullable",
-                "type"
-              ],
               "type": "object",
               "properties": {
                 "description": {
@@ -11421,10 +11163,10 @@
                   ]
                 },
                 "indexes": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/$defs/Index"
-                  },
-                  "type": "array"
+                  }
                 },
                 "nullable": {
                   "items": {
@@ -11441,7 +11183,12 @@
                     "null"
                   ]
                 }
-              }
+              },
+              "required": [
+                "indexes",
+                "nullable",
+                "type"
+              ]
             }
           }
         },
@@ -11472,12 +11219,10 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName",
-              "description": "Series name"
+              "$ref": "#/$defs/SeriesName"
             },
             "index": {
-              "$ref": "#/$defs/Index",
-              "description": "Aggregation index"
+              "$ref": "#/$defs/Index"
             }
           },
           "additionalProperties": false,
@@ -11512,26 +11257,22 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
               ]
             },
             "SeriesName": {
-              "description": "Series name",
               "type": "string",
               "examples": [
                 "price_close",
@@ -11570,17 +11311,15 @@
       "tool": {
         "name": "get_series_len",
         "title": "Get series data length",
-        "description": "Returns the total number of data points for a series at the given index.\n\nREST operation: `GET /api/series/{series}/{index}/len`.",
+        "description": "Get series data length\n\nREST operation: `GET /api/series/{series}/{index}/len`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName",
-              "description": "Series name"
+              "$ref": "#/$defs/SeriesName"
             },
             "index": {
-              "$ref": "#/$defs/Index",
-              "description": "Aggregation index"
+              "$ref": "#/$defs/Index"
             }
           },
           "additionalProperties": false,
@@ -11615,26 +11354,22 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
               ]
             },
             "SeriesName": {
-              "description": "Series name",
               "type": "string",
               "examples": [
                 "price_close",
@@ -11681,12 +11416,10 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName",
-              "description": "Series name"
+              "$ref": "#/$defs/SeriesName"
             },
             "index": {
-              "$ref": "#/$defs/Index",
-              "description": "Aggregation index"
+              "$ref": "#/$defs/Index"
             }
           },
           "additionalProperties": false,
@@ -11721,26 +11454,22 @@
                 "txout_index",
                 "empty_output_index",
                 "op_return_index",
-                "p2a_addr_index",
+                "p2a_address_index",
                 "p2ms_output_index",
-                "p2pk33_addr_index",
-                "p2pk65_addr_index",
-                "p2pkh_addr_index",
-                "p2sh_addr_index",
-                "p2tr_addr_index",
-                "p2wpkh_addr_index",
-                "p2wsh_addr_index",
-                "unknown_output_index",
-                "funded_addr_index",
-                "empty_addr_index",
-                "extended_empty_addr_index"
+                "p2pk33_address_index",
+                "p2pk65_address_index",
+                "p2pkh_address_index",
+                "p2sh_address_index",
+                "p2tr_address_index",
+                "p2wpkh_address_index",
+                "p2wsh_address_index",
+                "unknown_output_index"
               ],
               "examples": [
                 "day1"
               ]
             },
             "SeriesName": {
-              "description": "Series name",
               "type": "string",
               "examples": [
                 "price_close",
@@ -11804,14 +11533,6 @@
               "format": "uint32"
             },
             "SyncStatus": {
-              "required": [
-                "indexed_height",
-                "computed_height",
-                "tip_height",
-                "blocks_behind",
-                "last_indexed_at",
-                "last_indexed_at_unix"
-              ],
               "type": "object",
               "properties": {
                 "indexed_height": {
@@ -11852,7 +11573,15 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "indexed_height",
+                "computed_height",
+                "tip_height",
+                "blocks_behind",
+                "last_indexed_at",
+                "last_indexed_at_unix"
+              ]
             },
             "Timestamp": {
               "minimum": 0,
@@ -11878,7 +11607,7 @@
       "tool": {
         "name": "get_transaction_times",
         "title": "Transaction first-seen times",
-        "description": "Returns timestamps when transactions were first seen in the mempool. Returns 0 for mined or unknown transactions.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*\n\nREST operation: `GET /api/v1/transaction-times`.",
+        "description": "First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*\n\nREST operation: `GET /api/v1/transaction-times`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -11938,7 +11667,7 @@
       "tool": {
         "name": "get_tx",
         "title": "Transaction information",
-        "description": "Retrieve complete transaction data by transaction ID (txid). Returns inputs, outputs, fee, size, and confirmation status.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*\n\nREST operation: `GET /api/tx/{txid}`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*\n\nREST operation: `GET /api/tx/{txid}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -11967,7 +11696,7 @@
           "$ref": "#/$defs/Transaction",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Addr": {
+            "Address": {
               "type": "string"
             },
             "BlockHash": {
@@ -12007,7 +11736,7 @@
             "SigOps": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint32"
+              "format": "uint64"
             },
             "Timestamp": {
               "minimum": 0,
@@ -12099,24 +11828,11 @@
                   ]
                 },
                 "status": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/TxStatus"
-                    }
-                  ]
+                  "$ref": "#/$defs/TxStatus"
                 }
               }
             },
             "TxIn": {
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ],
               "type": "object",
               "properties": {
                 "txid": {
@@ -12150,19 +11866,18 @@
                   "type": "string"
                 },
                 "witness": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Witness"
-                    }
-                  ]
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "is_coinbase": {
                   "type": "boolean"
                 },
                 "sequence": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint32"
+                  "format": "uint32",
+                  "minimum": 0
                 },
                 "inner_redeemscript_asm": {
                   "type": "string"
@@ -12170,7 +11885,16 @@
                 "inner_witnessscript_asm": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "txid",
+                "vout",
+                "prevout",
+                "scriptsig",
+                "scriptsig_asm",
+                "is_coinbase",
+                "sequence"
+              ]
             },
             "TxIndex": {
               "minimum": 0,
@@ -12196,7 +11920,7 @@
                 "scriptpubkey_address": {
                   "allOf": [
                     {
-                      "$ref": "#/$defs/Addr"
+                      "$ref": "#/$defs/Address"
                     }
                   ]
                 },
@@ -12216,9 +11940,6 @@
               ]
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -12254,7 +11975,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "TxVersionRaw": {
               "format": "int32",
@@ -12264,21 +11988,14 @@
               "type": "string"
             },
             "Vout": {
-              "maximum": 65535,
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            },
-            "Weight": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
             },
-            "Witness": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
+            "Weight": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint64"
             }
           }
         },
@@ -12309,7 +12026,8 @@
           "type": "object",
           "properties": {
             "index": {
-              "$ref": "#/$defs/TxIndex"
+              "$ref": "#/$defs/TxIndex",
+              "description": "Global transaction index across the chain"
             }
           },
           "additionalProperties": false,
@@ -12351,7 +12069,7 @@
       "tool": {
         "name": "get_tx_hex",
         "title": "Transaction hex",
-        "description": "Retrieve the raw transaction as a hex-encoded string. Returns the serialized transaction in hexadecimal format.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*\n\nREST operation: `GET /api/tx/{txid}/hex`.",
+        "description": "Hex-encoded serialized transaction.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*\n\nREST operation: `GET /api/tx/{txid}/hex`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -12398,7 +12116,7 @@
       "tool": {
         "name": "get_tx_merkle_proof",
         "title": "Transaction merkle proof",
-        "description": "Get the merkle inclusion proof for a transaction.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*\n\nREST operation: `GET /api/tx/{txid}/merkle-proof`.",
+        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*\n\nREST operation: `GET /api/tx/{txid}/merkle-proof`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -12441,11 +12159,7 @@
               "type": "object",
               "properties": {
                 "block_height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                  "$ref": "#/$defs/Height"
                 },
                 "merkle": {
                   "items": {
@@ -12531,13 +12245,12 @@
       "tool": {
         "name": "get_tx_outspend",
         "title": "Output spend status",
-        "description": "Get the spending status of a transaction output. Returns whether the output has been spent and, if so, the spending transaction details.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*\n\nREST operation: `GET /api/tx/{txid}/outspend/{vout}`.",
+        "description": "Whether the output has been spent and, if so, the spending transaction details.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*\n\nREST operation: `GET /api/tx/{txid}/outspend/{vout}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid",
-              "description": "Transaction ID"
+              "$ref": "#/$defs/Txid"
             },
             "vout": {
               "$ref": "#/$defs/Vout",
@@ -12561,11 +12274,10 @@
               ]
             },
             "Vout": {
-              "description": "Index of the output being spent in the previous transaction",
+              "description": "Index of the output being spent in the previous transaction (coinbase inputs: 4294967295)",
               "type": "integer",
-              "format": "uint16",
+              "format": "uint32",
               "minimum": 0,
-              "maximum": 65535,
               "examples": [
                 0,
                 1,
@@ -12594,9 +12306,6 @@
               "format": "uint32"
             },
             "TxOutspend": {
-              "required": [
-                "spent"
-              ],
               "type": "object",
               "properties": {
                 "spent": {
@@ -12632,12 +12341,12 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "spent"
+              ]
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -12673,7 +12382,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "Txid": {
               "type": "string"
@@ -12712,7 +12424,7 @@
       "tool": {
         "name": "get_tx_outspends",
         "title": "All output spend statuses",
-        "description": "Get the spending status of all outputs in a transaction. Returns an array with the spend status for each output.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*\n\nREST operation: `GET /api/tx/{txid}/outspends`.",
+        "description": "Spend statuses in output-index order.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*\n\nREST operation: `GET /api/tx/{txid}/outspends`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -12758,9 +12470,6 @@
               "format": "uint32"
             },
             "TxOutspend": {
-              "required": [
-                "spent"
-              ],
               "type": "object",
               "properties": {
                 "spent": {
@@ -12796,12 +12505,12 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "spent"
+              ]
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -12837,7 +12546,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             },
             "Txid": {
               "type": "string"
@@ -13103,9 +12815,6 @@
               "format": "uint32"
             },
             "TxStatus": {
-              "required": [
-                "confirmed"
-              ],
               "type": "object",
               "properties": {
                 "confirmed": {
@@ -13141,7 +12850,10 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "confirmed"
+              ]
             }
           }
         },
@@ -13167,7 +12879,7 @@
       "tool": {
         "name": "get_urpd",
         "title": "Latest URPD",
-        "description": "URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.\n\nREST operation: `GET /api/urpd/{cohort}`.",
+        "description": "URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.\n\nREST operation: `GET /api/urpd/{cohort}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -13190,7 +12902,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and the published UTXO set.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },
@@ -13279,18 +12991,10 @@
                   ]
                 },
                 "weight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/UrpdWeight"
-                    }
-                  ]
+                  "$ref": "#/$defs/UrpdWeight"
                 },
                 "aggregation": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/UrpdAggregation"
-                    }
-                  ]
+                  "$ref": "#/$defs/UrpdAggregation"
                 },
                 "close": {
                   "allOf": [
@@ -13331,12 +13035,6 @@
               "type": "string"
             },
             "UrpdBucket": {
-              "required": [
-                "price_floor",
-                "supply",
-                "realized_cap",
-                "unrealized_pnl"
-              ],
               "type": "object",
               "properties": {
                 "price_floor": {
@@ -13367,7 +13065,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "price_floor",
+                "supply",
+                "realized_cap",
+                "unrealized_pnl"
+              ]
             },
             "UrpdWeight": {
               "enum": [
@@ -13409,7 +13113,7 @@
       "tool": {
         "name": "get_urpd_at",
         "title": "URPD at block height or date",
-        "description": "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.\n\nREST operation: `GET /api/urpd/{cohort}/{point}`.",
+        "description": "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.\n\nREST operation: `GET /api/urpd/{cohort}/{point}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -13439,7 +13143,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and the published UTXO set.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },
@@ -13528,18 +13232,10 @@
                   ]
                 },
                 "weight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/UrpdWeight"
-                    }
-                  ]
+                  "$ref": "#/$defs/UrpdWeight"
                 },
                 "aggregation": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/UrpdAggregation"
-                    }
-                  ]
+                  "$ref": "#/$defs/UrpdAggregation"
                 },
                 "close": {
                   "allOf": [
@@ -13580,12 +13276,6 @@
               "type": "string"
             },
             "UrpdBucket": {
-              "required": [
-                "price_floor",
-                "supply",
-                "realized_cap",
-                "unrealized_pnl"
-              ],
               "type": "object",
               "properties": {
                 "price_floor": {
@@ -13616,7 +13306,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "price_floor",
+                "supply",
+                "realized_cap",
+                "unrealized_pnl"
+              ]
             },
             "UrpdWeight": {
               "enum": [
@@ -13660,9 +13356,157 @@
     },
     {
       "tool": {
+        "name": "get_utxo_set_diff",
+        "title": "UTXO set changes of a block or date",
+        "description": "What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.\n\nREST operation: `GET /api/utxo-set/{point}/diff`.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "point": {
+              "type": "string",
+              "description": "Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.",
+              "examples": [
+                "840000"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "point"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/UtxoSetDiff",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "Bitcoin": {
+              "format": "double",
+              "type": "number"
+            },
+            "BlockHash": {
+              "type": "string"
+            },
+            "Date": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string",
+              "format": "date"
+            },
+            "Height": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            },
+            "UtxoChanges": {
+              "required": [
+                "height",
+                "count",
+                "supply"
+              ],
+              "type": "object",
+              "properties": {
+                "height": {
+                  "items": {
+                    "$ref": "#/$defs/Height"
+                  },
+                  "type": "array"
+                },
+                "count": {
+                  "items": {
+                    "type": "integer",
+                    "format": "uint64",
+                    "minimum": 0
+                  },
+                  "type": "array"
+                },
+                "supply": {
+                  "items": {
+                    "$ref": "#/$defs/Bitcoin"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "UtxoSetDiff": {
+              "required": [
+                "first",
+                "last",
+                "hash",
+                "date",
+                "created",
+                "spent"
+              ],
+              "type": "object",
+              "properties": {
+                "first": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
+                },
+                "last": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
+                },
+                "hash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
+                },
+                "date": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Date"
+                    }
+                  ]
+                },
+                "created": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/UtxoChanges"
+                    }
+                  ]
+                },
+                "spent": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/UtxoChanges"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/utxo-set/{point}/diff",
+        "parameters": [
+          {
+            "name": "point",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
         "name": "list_series",
         "title": "Series list",
-        "description": "Paginated flat list of all available series names. Use `page` query param for pagination.\n\nREST operation: `GET /api/series/list`.",
+        "description": "Paginated flat list of all available series names.\n\nREST operation: `GET /api/series/list`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -13670,7 +13514,7 @@
               "type": "integer",
               "minimum": 0,
               "format": "uint",
-              "description": "Pagination index",
+              "description": "Zero-based page number (default: 0)",
               "examples": [
                 0,
                 1,
@@ -13717,23 +13561,23 @@
                   "format": "uint"
                 },
                 "total_count": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint"
+                  "format": "uint",
+                  "minimum": 0
                 },
                 "per_page": {
-                  "minimum": 0,
                   "type": "integer",
-                  "format": "uint"
+                  "format": "uint",
+                  "minimum": 0
                 },
                 "has_more": {
                   "type": "boolean"
                 },
                 "series": {
+                  "type": "array",
                   "items": {
                     "type": "string"
-                  },
-                  "type": "array"
+                  }
                 }
               }
             }
@@ -13821,7 +13665,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and the published UTXO set.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },
@@ -13886,7 +13730,7 @@
             },
             "limit": {
               "$ref": "#/$defs/Limit",
-              "description": "Maximum number of results"
+              "description": "Maximum number of results, 100 when omitted"
             }
           },
           "additionalProperties": false,
@@ -13896,7 +13740,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Limit": {
-              "description": "Maximum number of results to return. Defaults to 100 if not specified.",
+              "description": "Maximum number of results to return; each parameter states what omitting it means.",
               "type": "integer",
               "format": "uint",
               "minimum": 0,
@@ -13907,7 +13751,6 @@
               ]
             },
             "SeriesName": {
-              "description": "Series name",
               "type": "string",
               "examples": [
                 "price_close",
@@ -13972,13 +13815,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
-          "$ref": "#/$defs/AddrValidation",
+          "$ref": "#/$defs/AddressValidation",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "AddrValidation": {
-              "required": [
-                "isvalid"
-              ],
+            "AddressValidation": {
               "type": "object",
               "properties": {
                 "isvalid": {
@@ -14040,7 +13880,10 @@
                     "null"
                   ]
                 }
-              }
+              },
+              "required": [
+                "isvalid"
+              ]
             }
           }
         },

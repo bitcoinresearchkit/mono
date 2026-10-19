@@ -1,9 +1,12 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Float64;
-use bitview_vecs::{LazyIndexedVec, LazyPerBlock};
+use bitview_vecs::{
+    LazyIndexedVec, LazyPerBlock, LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling,
+    shapes::Windows,
+};
 use brk_error::Result;
 use brk_types::{Cents, Dollars, Height, Version};
-use vecdb::{Database, EagerVec, Ident, ImportableVec, ReadableBoxedVec};
+use vecdb::{Database, Ident, ImportableVec, PcoVec, ReadableBoxedVec};
 
 use super::Vecs;
 
@@ -12,26 +15,40 @@ impl Vecs {
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
+        window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let v1 = version + Version::ONE;
-        let hodl_bank = EagerVec::import(db, "hodl_bank", v1)?;
+        let reserve_risk_version = version + Version::TWO;
+        let hodl_bank = PerBlock::import(
+            db,
+            "hodl_bank",
+            reserve_risk_version + Version::ONE,
+            mappings,
+        )?;
         let value_source = LazyIndexedVec::new(
             "reserve_risk_source",
-            v1,
-            &hodl_bank,
+            reserve_risk_version,
+            &hodl_bank.height,
             spot_price,
             |_, hodl_bank: Float64, spot| Float64::new(f64::from(Dollars::from(spot)) / *hodl_bank),
         );
         Ok(Vecs {
-            vocdd_median_1y: EagerVec::import(db, "vocdd_median_1y", v1)?,
-            hodl_bank,
-            value: LazyPerBlock::from_height_source::<Ident>(
+            block: LazyPerBlock::from_height_source::<Ident>(
                 "reserve_risk",
-                v1,
+                reserve_risk_version,
                 &value_source,
                 mappings,
             ),
+            hodl_bank,
+            vocdd: PerBlockCumulativeRolling::import(
+                db,
+                "vocdd",
+                version + Version::ONE,
+                mappings,
+                window_starts,
+            )?,
+            vocdd_median_1m: PcoVec::import(db, "vocdd_median_1m", reserve_risk_version)?,
+            vocdd_median_1m_window: Default::default(),
         })
     }
 }

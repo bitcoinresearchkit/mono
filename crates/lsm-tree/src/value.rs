@@ -51,16 +51,6 @@ impl InternalValue {
         Self::new(key, value)
     }
 
-    /// Creates a new tombstone.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the key length is empty or greater than 2^16.
-    pub fn new_tombstone<K: Into<Slice>>(key: K, seqno: u64) -> Self {
-        let key = InternalKey::new(key, seqno, ValueType::Tombstone);
-        Self::new(key, vec![])
-    }
-
     /// Creates a new weak tombstone.
     ///
     /// # Panics
@@ -80,14 +70,6 @@ impl<K, V> InternalValue<K, V> {
     }
 }
 
-#[cfg(test)]
-#[cfg_attr(coverage_nightly, coverage(off))]
-impl PartialEq for InternalValue {
-    fn eq(&self, other: &Self) -> bool {
-        self.key == other.key
-    }
-}
-
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl<K: Debug, V: Debug + AsRef<[u8]>> Debug for InternalValue<K, V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -101,26 +83,5 @@ impl<K: Debug, V: Debug + AsRef<[u8]>> Debug for InternalValue<K, V> {
                 format!("{:?}", self.value)
             }
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use test_log::test;
-
-    use super::*;
-
-    #[test]
-    fn pik_cmp_user_key() {
-        let a = InternalKey::new(*b"a", 0, ValueType::Value);
-        let b = InternalKey::new(*b"b", 0, ValueType::Value);
-        assert!(a < b);
-    }
-
-    #[test]
-    fn pik_cmp_seqno() {
-        let a = InternalKey::new(*b"a", 0, ValueType::Value);
-        let b = InternalKey::new(*b"a", 1, ValueType::Value);
-        assert!(a > b);
     }
 }

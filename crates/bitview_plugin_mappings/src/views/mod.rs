@@ -1,4 +1,5 @@
-//! Lazy vecs over the resident range maps: reverse lookups and per-index counts.
+//! Lazy vecs: reverse lookups over the resident range maps, and counts from stored first-index
+//! boundaries.
 
 mod count;
 mod cumulative;

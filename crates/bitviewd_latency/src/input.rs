@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use jiff::civil::Date;
+use brk_logger::log_file_date;
 
 use crate::Result;
 
@@ -17,19 +17,13 @@ pub fn discover(location: &Path) -> Result<Vec<PathBuf>> {
         if !path.is_file() {
             continue;
         }
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+        let Some(day) = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .and_then(log_file_date)
+        else {
             continue;
         };
-        let Some(stem) = name.strip_suffix(".txt") else {
-            continue;
-        };
-        let (day, suffix) = stem.split_once('_').unwrap_or((stem, ""));
-        if day.parse::<Date>().is_err() || day.len() != 10 {
-            continue;
-        }
-        if !["", "info", "debug", "error", "warn", "trace"].contains(&suffix) {
-            continue;
-        }
         days.entry(day.to_string())
             .or_default()
             .push(fs::canonicalize(path)?);
@@ -37,13 +31,13 @@ pub fn discover(location: &Path) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     for (day, mut paths) in days {
         paths.sort();
-        if let Some(combined) = paths
+        let combined = format!("{day}.txt");
+        match paths
             .iter()
-            .find(|p| p.file_name().unwrap() == format!("{day}.txt").as_str())
+            .position(|p| p.file_name().unwrap() == combined.as_str())
         {
-            files.push(combined.clone());
-        } else {
-            files.extend(paths);
+            Some(index) => files.push(paths.swap_remove(index)),
+            None => files.extend(paths),
         }
     }
     if files.is_empty() {

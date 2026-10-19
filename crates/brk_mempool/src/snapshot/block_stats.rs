@@ -1,15 +1,15 @@
-use brk_types::{FeeRate, MempoolBlock, Sats, VSize, get_weighted_percentiles};
+use brk_types::{FeeRate, MempoolBlock, Sats, VSize, weighted_percentiles};
 
 use super::{SnapTx, TxIndex};
 
 /// Block 0 mirrors Core's `getblocktemplate`, so the full 0..100 range
 /// is exact and worth surfacing.
-const CORE_PERCENTILES: [f64; 7] = [0.0, 0.10, 0.25, 0.50, 0.75, 0.90, 1.00];
+const CORE_PERCENTILES: [u64; 7] = [0, 10, 25, 50, 75, 90, 100];
 
 /// Blocks 1..N are a coarse projection. Tighten to 5..95 so a single
 /// stale-GBT leftover or CPFP orphan doesn't blow out the min/max
 /// columns of an otherwise tightly clustered fee tier.
-const PROJECTED_PERCENTILES: [f64; 7] = [0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95];
+const PROJECTED_PERCENTILES: [u64; 7] = [5, 10, 25, 50, 75, 90, 95];
 
 /// Per-block aggregate stats for a projected block.
 ///
@@ -58,7 +58,7 @@ impl BlockStats {
     fn compute<'a>(
         block: impl ExactSizeIterator<Item = &'a TxIndex>,
         txs: &[SnapTx],
-        percentiles: [f64; 7],
+        percentiles: [u64; 7],
     ) -> Self {
         let mut total_fee = Sats::default();
         let mut total_vsize = VSize::default();
@@ -66,9 +66,7 @@ impl BlockStats {
         let mut rates: Vec<(FeeRate, VSize)> = Vec::with_capacity(block.len());
 
         for &tx_index in block {
-            let Some(t) = txs.get(tx_index.as_usize()) else {
-                continue;
-            };
+            let t = &txs[tx_index.as_usize()];
             total_fee += t.fee;
             total_vsize += t.vsize;
             total_size += t.size;
@@ -80,7 +78,7 @@ impl BlockStats {
         let fee_range: [FeeRate; 7] = if rates.is_empty() {
             [FeeRate::default(); 7]
         } else {
-            get_weighted_percentiles(&rates, percentiles)
+            weighted_percentiles(&rates, percentiles)
         };
 
         Self {

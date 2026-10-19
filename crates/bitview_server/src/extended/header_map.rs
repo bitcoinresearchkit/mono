@@ -7,6 +7,7 @@ pub trait HeaderMapExtended {
     #[cfg(feature = "series")]
     fn insert_content_disposition_attachment(&mut self, filename: &str);
 
+    #[cfg(feature = "series")]
     fn insert_content_type_application_json(&mut self);
     #[cfg(feature = "series")]
     fn insert_content_type_text_csv(&mut self);
@@ -48,6 +49,7 @@ impl HeaderMapExtended for HeaderMap {
         );
     }
 
+    #[cfg(feature = "series")]
     fn insert_content_type_application_json(&mut self) {
         self.insert(
             header::CONTENT_TYPE,

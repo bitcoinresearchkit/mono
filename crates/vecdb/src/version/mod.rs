@@ -9,15 +9,12 @@ pub mod try_from_path;
 
 use crate::Bytes;
 
-/// Version tracking for data schema and computed values.
-///
-/// Used to detect when stored data needs to be recomputed due to changes
-/// in computation logic or source data versions. Supports validation
-/// against persisted versions to ensure compatibility.
+/// Schema or computation version of a stored vector: when it changes, the data is reset and
+/// recomputed.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
-#[must_use = "Version values should be used for compatibility checks"]
+#[must_use]
 pub struct Version(u32);
 
 impl Version {

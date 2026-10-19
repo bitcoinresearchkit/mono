@@ -1,5 +1,6 @@
-use bitview_collections::{DistributionStats, Windows};
-use bitview_compute::compute_rolling_distribution_from_starts;
+use bitview_compute::{
+    DistributionStats, Retained, SortedWindow, compute_rolling_distribution_from_starts,
+};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -7,17 +8,19 @@ use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
-use crate::{IndexSources, ValuePerBlock, WindowStarts};
+use crate::{IndexSources, ValuePerBlock, WindowStarts, shapes::Windows};
 
-/// Rolling distribution across 4 windows, stat-first naming.
-///
-/// Tree: `average._24h.sats.height`, `max._24h.sats.height`, etc.
-/// Series: `{name}_average_24h`, `{name}_max_24h`, etc.
+/// Stored rolling distribution statistics with statistic-before-window ids, such as
+/// `{name}_max_24h`.
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
-pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw>(
-    pub DistributionStats<Windows<ValuePerBlock<M>>>,
-);
+pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw> {
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    stats: DistributionStats<Windows<ValuePerBlock<M>>>,
+    /// The kept sats and cents windows of each rolling window, in `Windows` order.
+    retained: M::WriteOnly<[[Retained<SortedWindow>; 2]; 4]>,
+}
 
 impl RollingDistributionValuePerBlock {
     pub(crate) fn import(
@@ -26,16 +29,19 @@ impl RollingDistributionValuePerBlock {
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        Ok(Self(DistributionStats::try_from_fn(|stat_suffix| {
-            Windows::try_from_fn(|window_suffix| {
-                ValuePerBlock::import(
-                    db,
-                    &format!("{name}_{stat_suffix}_{window_suffix}"),
-                    version,
-                    indexes,
-                )
-            })
-        })?))
+        Ok(Self {
+            stats: DistributionStats::try_from_fn(|stat_suffix| {
+                Windows::try_from_fn(|window_suffix| {
+                    ValuePerBlock::import(
+                        db,
+                        &format!("{name}_{stat_suffix}_{window_suffix}"),
+                        version,
+                        indexes,
+                    )
+                })
+            })?,
+            retained: Default::default(),
+        })
     }
 
     pub(crate) fn compute(
@@ -46,40 +52,39 @@ impl RollingDistributionValuePerBlock {
         cents_source: &impl ReadableVec<Height, Cents>,
         exit: &Exit,
     ) -> Result<()> {
-        let mut sats_cache = None;
-        let mut cents_cache = None;
+        let [day_kept, week_kept, month_kept, year_kept] = &mut self.retained;
 
         macro_rules! compute_window {
-            ($w:ident, $starts:expr) => {{
+            ($w:ident, $starts:expr, $kept:expr) => {{
+                let [sats_kept, cents_kept] = $kept;
                 macro_rules! compute_unit {
-                    ($unit:ident, $source:expr, $cache:expr) => {
+                    ($unit:ident, $source:expr, $retained:expr) => {
                         compute_rolling_distribution_from_starts(
                             max_from,
                             $starts,
                             $source,
                             DistributionStats {
-                                min: &mut self.0.min.$w.$unit.height,
-                                max: &mut self.0.max.$w.$unit.height,
-                                pct10: &mut self.0.pct10.$w.$unit.height,
-                                pct25: &mut self.0.pct25.$w.$unit.height,
-                                median: &mut self.0.median.$w.$unit.height,
-                                pct75: &mut self.0.pct75.$w.$unit.height,
-                                pct90: &mut self.0.pct90.$w.$unit.height,
+                                min: &mut self.stats.min.$w.$unit.height,
+                                max: &mut self.stats.max.$w.$unit.height,
+                                pct10: &mut self.stats.pct10.$w.$unit.height,
+                                pct25: &mut self.stats.pct25.$w.$unit.height,
+                                median: &mut self.stats.median.$w.$unit.height,
+                                pct75: &mut self.stats.pct75.$w.$unit.height,
+                                pct90: &mut self.stats.pct90.$w.$unit.height,
                             },
+                            $retained,
                             exit,
-                            $cache,
                         )?
                     };
                 }
-                compute_unit!(sats, sats_source, &mut sats_cache);
-                compute_unit!(cents, cents_source, &mut cents_cache);
+                compute_unit!(sats, sats_source, sats_kept);
+                compute_unit!(cents, cents_source, cents_kept);
             }};
         }
-        // Largest window first: its cache covers all smaller windows.
-        compute_window!(_1y, windows._1y);
-        compute_window!(_1m, windows._1m);
-        compute_window!(_1w, windows._1w);
-        compute_window!(_24h, windows._24h);
+        compute_window!(_24h, windows._24h, day_kept);
+        compute_window!(_1w, windows._1w, week_kept);
+        compute_window!(_1m, windows._1m, month_kept);
+        compute_window!(_1y, windows._1y, year_kept);
 
         Ok(())
     }

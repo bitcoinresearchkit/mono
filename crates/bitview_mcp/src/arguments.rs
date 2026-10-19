@@ -1,11 +1,10 @@
-use crate::config::{api_bases, public_url};
+use crate::config::{api_url, public_url};
 
 #[derive(Debug)]
 pub struct Arguments {
-    api_bases: Vec<String>,
-    api_url: String,
-    public_url: String,
-    display_name: String,
+    pub api_url: String,
+    pub public_url: String,
+    pub display_name: String,
 }
 
 impl Arguments {
@@ -33,34 +32,18 @@ impl Arguments {
             *target = Some(value);
         }
 
-        let api = required(api, "--api")?;
+        let api_url = api_url(&required(api, "--api")?)?;
         let public_url = public_url(&required(url, "--url")?)?;
         let display_name = required(name, "--name")?.trim().to_owned();
         if display_name.is_empty() {
             return Err("--name must not be empty".to_owned());
         }
 
-        let api_bases = api_bases(&api)?;
-        let api_url = api_bases
-            .first()
-            .expect("validated API bases should not be empty")
-            .clone();
-
         Ok(Self {
-            api_bases,
             api_url,
             public_url,
             display_name,
         })
-    }
-
-    pub fn into_parts(self) -> (Vec<String>, String, String, String) {
-        (
-            self.api_bases,
-            self.api_url,
-            self.public_url,
-            self.display_name,
-        )
     }
 }
 

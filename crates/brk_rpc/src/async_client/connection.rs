@@ -8,14 +8,14 @@ use std::{
 use brk_error::{Error, Result};
 use http_body_util::{BodyExt, Full, Limited};
 use hyper::{
-    Request, StatusCode, Uri,
+    Request, StatusCode,
     body::Bytes,
     client::conn::http1::{self, Connection as HttpConnection, SendRequest},
 };
 use hyper_util::rt::TokioIo;
 use tokio::{net::TcpStream, pin, select, time::timeout};
 
-use crate::rpc_response::MAX_RESPONSE_BYTES;
+use crate::{endpoint::Endpoint, rpc_response::MAX_RESPONSE_BYTES};
 
 pub struct Connection {
     sender: SendRequest<Full<Bytes>>,
@@ -28,12 +28,10 @@ pub enum Exchange {
 }
 
 impl Connection {
-    pub async fn connect(uri: &Uri) -> Result<Self> {
-        let host = uri.host().ok_or(Error::Internal("missing node RPC host"))?;
-        let host = host.trim_start_matches('[').trim_end_matches(']');
+    pub async fn connect(endpoint: &Endpoint) -> Result<Self> {
         let socket = timeout(
             Duration::from_secs(3),
-            TcpStream::connect((host, uri.port_u16().unwrap_or(80))),
+            TcpStream::connect((endpoint.host.as_str(), endpoint.port)),
         )
         .await
         .map_err(|_| Error::Internal("node RPC connection timed out"))??;

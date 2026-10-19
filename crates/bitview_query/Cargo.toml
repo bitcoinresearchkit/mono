@@ -15,25 +15,26 @@ chain = [
     "dep:brk_cpfp",
     "dep:smallvec",
     "dep:bitview_plugin_blocks",
-    "dep:bitview_plugin_distribution_addresses",
+    "dep:bitview_plugin_addresses",
     "dep:bitview_plugin_inputs",
     "dep:bitview_plugin_mining",
     "dep:bitview_plugin_outputs",
     "dep:bitview_plugin_pools",
     "dep:bitview_plugin_transactions",
-    "dep:bitview_plugin_utxo_history",
+    "dep:bitview_plugin_utxo_set",
 ]
-series = ["dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
+series = ["dep:arc-swap", "dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
 urpd = [
     "price",
     "dep:bitview_cohort",
     "dep:bitview_urpd",
-    "dep:bitview_plugin_utxo_history",
+    "dep:bitview_plugin_utxo_set",
     "dep:bitview_plugin_coinflow",
     "dep:bitview_plugin_cointime",
-    "dep:bitview_plugin_distribution_age",
+    "dep:bitview_plugin_age",
 ]
 price = [
+    "dep:arc-swap",
     "dep:bitview_plugin_mappings",
     "dep:bitview_plugin_price",
     "dep:brk_oracle",
@@ -41,13 +42,15 @@ price = [
 ]
 
 [dependencies]
+arc-swap = { workspace = true, optional = true }
 bitcoin = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"], optional = true }
+bitview_plugin = { workspace = true }
 bitview_plugin_blocks = { workspace = true, optional = true }
 bitview_plugin_coinflow = { workspace = true, optional = true }
 bitview_plugin_cointime = { workspace = true, optional = true }
-bitview_plugin_distribution_age = { workspace = true, optional = true }
-bitview_plugin_distribution_addresses = { workspace = true, optional = true }
+bitview_plugin_age = { workspace = true, optional = true }
+bitview_plugin_addresses = { workspace = true, optional = true }
 bitview_plugin_mappings = { workspace = true, optional = true }
 bitview_plugin_inputs = { workspace = true, optional = true }
 bitview_plugin_mining = { workspace = true, optional = true }
@@ -55,9 +58,8 @@ bitview_plugin_outputs = { workspace = true, optional = true }
 bitview_plugin_pools = { workspace = true, optional = true }
 bitview_plugin_price = { workspace = true, optional = true }
 bitview_plugin_transactions = { workspace = true, optional = true }
-bitview_plugin_utxo_history = { workspace = true, optional = true }
+bitview_plugin_utxo_set = { workspace = true, optional = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
-bitview_runtime = { workspace = true }
 bitview_types = { workspace = true }
 bitview_urpd = { workspace = true, optional = true }
 bitview_catalog = { workspace = true, optional = true }
@@ -66,7 +68,6 @@ brk_error = { workspace = true, features = ["jiff", "tokio", "vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 brk_mempool = { workspace = true }
 brk_oracle = { workspace = true, optional = true }
-bitview_plugin = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 bitview_traversable = { workspace = true }

@@ -4,10 +4,8 @@ use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_transactions::FeesVecs;
-use bitview_primitives::{
-    Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind, OpReturnPolicyId,
-};
-use brk_types::{Sats, TxIndex, VSize, Weight};
+use bitview_primitives::{Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind};
+use brk_types::{Sats, TxIndex, VSize, Weight32};
 use rayon::join;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
@@ -16,10 +14,11 @@ use carrier::Carrier;
 
 pub struct Batch {
     block_offsets: Vec<usize>,
+    coinbase_tx_indexes: Vec<TxIndex>,
     tx_indexes: Vec<TxIndex>,
     kinds: Vec<OpReturnKind>,
     post_op_return_bytes: Vec<Bytes32>,
-    weights: Vec<Weight>,
+    weights: Vec<Weight32>,
     fees: Vec<Sats>,
 }
 
@@ -62,10 +61,14 @@ impl Batch {
                     .weight
                     .read_sorted_at(&carrier_tx_positions)
             },
-            || fee_vecs.fee.tx_index.read_sorted_at(&carrier_tx_positions),
+            || fee_vecs.fee.tx.read_sorted_at(&carrier_tx_positions),
         );
 
         Self {
+            coinbase_tx_indexes: vecs
+                .transactions
+                .first_tx_index
+                .collect_range_at(heights.start, heights.end),
             block_offsets: first_indexes
                 .into_iter()
                 .map(|index| index.to_usize() - source_start)
@@ -81,6 +84,7 @@ impl Batch {
     pub fn push_into(self, target: &mut Vecs) {
         let Self {
             block_offsets,
+            coinbase_tx_indexes,
             tx_indexes,
             kinds,
             post_op_return_bytes,
@@ -90,10 +94,11 @@ impl Batch {
         debug_assert_eq!(tx_indexes.len(), kinds.len());
         debug_assert_eq!(tx_indexes.len(), post_op_return_bytes.len());
         debug_assert_eq!(weights.len(), fees.len());
+        debug_assert_eq!(block_offsets.len(), coinbase_tx_indexes.len() + 1);
 
         let mut carrier_index = 0;
 
-        for offsets in block_offsets.windows(2) {
+        for (offsets, &coinbase_tx_index) in block_offsets.windows(2).zip(&coinbase_tx_indexes) {
             let mut total = BlockMetrics::default();
             let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
             let mut policy = Policy::default();
@@ -109,11 +114,15 @@ impl Batch {
                 if current_tx != Some(tx_index) {
                     carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
                     current_tx = Some(tx_index);
-                    carrier =
-                        Carrier::new(VSize::from(weights[carrier_index]), fees[carrier_index]);
+                    carrier = Carrier::new(
+                        VSize::from(weights[carrier_index]),
+                        fees[carrier_index],
+                        tx_index == coinbase_tx_index,
+                    );
                     carrier_index += 1;
                 }
 
+                total.output_count += 1;
                 total.data_bytes += bytes;
                 by_kind[kind_index].output_count += 1;
                 by_kind[kind_index].data_bytes += bytes;
@@ -122,10 +131,8 @@ impl Batch {
 
             carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
             target.total.push(total);
-            target.by_kind.push(by_kind);
-            target
-                .policy
-                .push(OpReturnPolicyId::from_fn(|id| *policy.get(id)));
+            target.protocols.push(by_kind);
+            target.policies.push(policy);
         }
 
         debug_assert_eq!(carrier_index, weights.len());

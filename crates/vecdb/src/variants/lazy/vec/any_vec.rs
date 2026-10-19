@@ -1,13 +1,12 @@
-use crate::{AnyVec, VecIndex, VecValue, Version, short_type_name};
+use crate::{AnyVec, VecIndex, VecValue, Version};
 
 use super::LazyVec;
 
-impl<I, T, S1I, S1T> AnyVec for LazyVec<I, T, S1I, S1T>
+impl<I, T, S> AnyVec for LazyVec<I, T, S>
 where
     I: VecIndex,
     T: VecValue,
-    S1I: VecIndex,
-    S1T: VecValue,
+    S: VecValue,
 {
     fn version(&self) -> Version {
         self.base_version + self.source.version()
@@ -17,26 +16,15 @@ where
         &self.name
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
     fn len(&self) -> usize {
         self.source.len()
     }
 
+    /// A view of a mutable source changes with it.
     #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable()
     }
 
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
-
-    #[inline]
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
+    crate::any_vec_type_methods!(I, T);
 }

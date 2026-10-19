@@ -3,14 +3,10 @@ use crate::{Sats, SatsSigned, TxOut};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-///
-/// Address statistics in the mempool (unconfirmed transactions only)
-///
-/// Based on mempool.space's format.
-///
+/// Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
 #[derive(Debug, Default, Clone, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-pub struct AddrMempoolStats {
+pub struct AddressMempoolStats {
     /// Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
     pub balance_delta: SatsSigned,
 
@@ -35,32 +31,28 @@ pub struct AddrMempoolStats {
     pub tx_count: u32,
 }
 
-impl AddrMempoolStats {
-    pub fn receiving(&mut self, txout: &TxOut) {
+impl AddressMempoolStats {
+    pub fn add_funding(&mut self, txout: &TxOut) {
         self.balance_delta += SatsSigned::from(txout.value);
         self.funded_txo_count += 1;
         self.funded_txo_sum += txout.value;
     }
 
-    pub fn received(&mut self, txout: &TxOut) {
+    pub fn remove_funding(&mut self, txout: &TxOut) {
         self.balance_delta -= SatsSigned::from(txout.value);
         self.funded_txo_count -= 1;
         self.funded_txo_sum -= txout.value;
     }
 
-    pub fn sending(&mut self, txout: &TxOut) {
+    pub fn add_spend(&mut self, txout: &TxOut) {
         self.balance_delta -= SatsSigned::from(txout.value);
         self.spent_txo_count += 1;
         self.spent_txo_sum += txout.value;
     }
 
-    pub fn sent(&mut self, txout: &TxOut) {
+    pub fn remove_spend(&mut self, txout: &TxOut) {
         self.balance_delta += SatsSigned::from(txout.value);
         self.spent_txo_count -= 1;
         self.spent_txo_sum -= txout.value;
-    }
-
-    pub fn update_tx_count(&mut self, tx_count: u32) {
-        self.tx_count = tx_count
     }
 }

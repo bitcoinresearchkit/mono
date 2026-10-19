@@ -1,4 +1,3 @@
-use bitview_collections::{PerResolution, with_resolution_fields};
 use bitview_compute::ComputedVecValue;
 use bitview_traversable::Traversable;
 use brk_types::Version;
@@ -6,7 +5,9 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{LazyVec, MapOption, ReadableBoxedVec, ReadableCloneableVec, UnaryTransform, VecValue};
 
-use crate::Resolutions;
+use bitview_primitives::with_resolution_fields;
+
+use crate::{Resolutions, shapes::PerResolution};
 
 macro_rules! define_derived_resolutions {
     (
@@ -16,11 +17,10 @@ macro_rules! define_derived_resolutions {
         use bitview_primitives::{$($index,)* $($epoch_index,)*};
 
         #[derive(Clone, Deref, DerefMut, Traversable)]
-        #[traversable(transparent)]
         pub struct DerivedResolutions<T, S1T = T>(
             pub PerResolution<
-                $(LazyVec<$index, Option<T>, $index, Option<S1T>>,)*
-                $(LazyVec<$epoch_index, T, $epoch_index, S1T>,)*
+                $(LazyVec<$index, Option<T>, Option<S1T>>,)*
+                $(LazyVec<$epoch_index, T, S1T>,)*
             >,
         )
         where
@@ -32,7 +32,7 @@ macro_rules! define_derived_resolutions {
             T: VecValue + PartialOrd + JsonSchema + 'static,
             S1T: VecValue + PartialOrd + JsonSchema,
         {
-            pub fn from_derived_computed<F: UnaryTransform<S1T, T>>(
+            pub fn from_resolutions<F: UnaryTransform<S1T, T>>(
                 name: &str,
                 version: Version,
                 source: &Resolutions<S1T>,

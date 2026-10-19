@@ -6,8 +6,8 @@ use crate::{BytesVecValue, Version};
 /// Implementations must keep inline values and overflow pointers disjoint:
 /// `to_compact` results must round-trip through `from_compact`, while a value
 /// returned by `from_overflow_index(i)` must make `overflow_index` return
-/// `Some(i)`.
-pub trait OverflowVecValue: BytesVecValue {
+/// `Some(i)`. `Default` fills pushed slots of deleted rows, whose values are never read.
+pub trait OverflowVecValue: BytesVecValue + Default {
     type Compact: BytesVecValue + Copy;
 
     /// Version of the compact representation and overflow-pointer encoding.
@@ -25,6 +25,5 @@ pub trait OverflowVecValue: BytesVecValue {
     /// pointer.
     fn overflow_index(compact: Self::Compact) -> Option<usize>;
 
-    /// Encodes a sidecar index as an overflow pointer.
     fn from_overflow_index(index: usize) -> Self::Compact;
 }

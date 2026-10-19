@@ -1,25 +1,30 @@
-use bitview_primitives::Float64;
+use bitview_compute::{Retained, SortedWindow};
+use bitview_primitives::{DollarDaysPerCoin, Float64};
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyPerBlock;
+use bitview_vecs::{LazyPerBlock, PerBlock, PerBlockCumulativeRolling};
 use brk_types::Height;
-use vecdb::{Budgeted, EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{PcoVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Reserve Risk: spot price in USD divided by the HODL bank, which is the
-    /// cumulative sum of spot price minus the trailing-one-year median
-    /// supply-adjusted value of coin days destroyed. Lower positive values mean
-    /// spot is cheaper relative to this accumulated holder reserve; higher
-    /// values mean it is more expensive.
-    pub value: LazyPerBlock<Float64>,
-    /// Median per-block supply-adjusted value of coin days destroyed over the
-    /// trailing 365-day timestamp window. Each block's value is spot price
-    /// multiplied by coin days destroyed and divided by circulating supply,
-    /// producing USD-days per BTC of circulating supply.
-    pub vocdd_median_1y: M::Stored<EagerVec<PcoVec<Height, Float64>>>,
-    /// HODL bank: cumulative sum, through the represented block, of spot price
-    /// in USD minus the trailing-365-day median supply-adjusted value of coin
-    /// days destroyed. It represents the model's accumulated holder reserve and
-    /// is the denominator of Reserve Risk.
-    pub hodl_bank: M::Stored<EagerVec<PcoVec<Height, Float64, Budgeted>>>,
+    /// Reserve Risk: spot price in USD divided by the HODL bank. Lower positive
+    /// values mean spot is cheaper relative to the accumulated holder reserve;
+    /// higher values mean it is more expensive. Undefined (null) when the HODL
+    /// bank is zero.
+    pub block: LazyPerBlock<Float64>,
+    /// HODL bank: running sum of spot price in USD minus the 30-day VOCDD
+    /// median, each block weighted by the time since the previous block in days
+    /// (on monotonic timestamps). It represents the model's accumulated holder
+    /// reserve and is the denominator of Reserve Risk.
+    pub hodl_bank: PerBlock<Float64, M>,
+    /// Supply-adjusted value of coin days destroyed (VOCDD): spot price in USD
+    /// multiplied by the block's coin days destroyed and divided by circulating
+    /// supply in BTC. Reported in USD-days per BTC of circulating supply. Returns
+    /// zero when circulating supply is zero.
+    pub vocdd: PerBlockCumulativeRolling<DollarDaysPerCoin, M>,
+    /// Median over the blocks of the trailing 30 days of `vocdd.sum._24h`, in
+    /// USD-days per BTC: the HODL bank's input.
+    #[traversable(hidden)]
+    pub(crate) vocdd_median_1m: M::Stored<PcoVec<Height, DollarDaysPerCoin>>,
+    pub(crate) vocdd_median_1m_window: M::WriteOnly<Retained<SortedWindow>>,
 }

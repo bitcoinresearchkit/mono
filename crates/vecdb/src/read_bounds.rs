@@ -1,4 +1,9 @@
-use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
+use std::{
+    cell::{Cell, RefCell},
+    collections::BTreeMap,
+    marker::PhantomData,
+    sync::Arc,
+};
 
 use crate::AnyExportableVec;
 
@@ -8,15 +13,25 @@ mod bounded_writer;
 pub use bounded_vec::BoundedVec;
 pub use bounded_writer::BoundedWriter;
 
+type Bounds = Arc<BTreeMap<&'static str, usize>>;
+
 thread_local! {
-    static CURRENT: RefCell<Option<Arc<BTreeMap<&'static str, usize>>>> = const { RefCell::new(None) };
+    /// This thread's live scopes, newest last, each with its number of guards: the newest applies.
+    static SCOPES: RefCell<Vec<(u64, Bounds, usize)>> = const { RefCell::new(Vec::new()) };
+    static NEXT_SCOPE: Cell<u64> = const { Cell::new(0) };
 }
 
 /// Per-index limits applied while serving one published read snapshot.
 #[derive(Clone, Default)]
-pub struct ReadBounds(Arc<BTreeMap<&'static str, usize>>);
+pub struct ReadBounds(Bounds);
 
-struct ScopeGuard(Option<Arc<BTreeMap<&'static str, usize>>>);
+/// Bounds this thread's reads until dropped; the newest live scope applies, whatever order scopes
+/// drop in. Not `Send`: the bounds live in a thread-local.
+#[must_use = "the bounds apply only while the guard lives"]
+pub struct ReadScope {
+    id: u64,
+    _thread: PhantomData<*const ()>,
+}
 
 impl ReadBounds {
     pub fn new() -> Self {
@@ -31,32 +46,59 @@ impl ReadBounds {
     /// rejected rather than silently exposing the vector's full length.
     pub fn bind<'a>(&'a self, source: &'a dyn AnyExportableVec) -> Option<BoundedVec<'a>> {
         self.0
-            .get(source.index_type_to_string())
+            .get(source.index_type_name())
             .map(|&limit| BoundedVec::new(source, self, limit))
     }
 
     pub fn scope<T>(&self, f: impl FnOnce() -> T) -> T {
-        let previous = CURRENT.with(|current| current.replace(Some(Arc::clone(&self.0))));
-        let _guard = ScopeGuard(previous);
+        let _scope = self.enter();
         f()
+    }
+
+    /// Bounds this thread's reads until the returned guard drops. Entering the bounds that
+    /// already apply joins their scope (no registration): a writer's scope per value inside
+    /// one around the whole serialization costs a check.
+    pub fn enter(&self) -> ReadScope {
+        let id = SCOPES.with(|scopes| {
+            let mut scopes = scopes.borrow_mut();
+            if let Some((id, bounds, guards)) = scopes.last_mut()
+                && Arc::ptr_eq(bounds, &self.0)
+            {
+                *guards += 1;
+                return *id;
+            }
+            let id = NEXT_SCOPE.replace(NEXT_SCOPE.get() + 1);
+            scopes.push((id, Arc::clone(&self.0), 1));
+            id
+        });
+        ReadScope {
+            id,
+            _thread: PhantomData,
+        }
     }
 }
 
-impl Drop for ScopeGuard {
+impl Drop for ReadScope {
     fn drop(&mut self) {
-        let previous = self.0.take();
-        CURRENT.with(|current| {
-            current.replace(previous);
+        SCOPES.with(|scopes| {
+            let mut scopes = scopes.borrow_mut();
+            if let Some(at) = scopes.iter().rposition(|(id, ..)| *id == self.id) {
+                scopes[at].2 -= 1;
+                if scopes[at].2 == 0 {
+                    scopes.remove(at);
+                }
+            }
         });
     }
 }
 
+/// `len` capped by this thread's bound for `index`, if a [`ReadScope`] sets one.
 pub fn visible_len(index: &str, len: usize) -> usize {
-    CURRENT.with(|current| {
-        current
+    SCOPES.with(|scopes| {
+        scopes
             .borrow()
-            .as_ref()
-            .and_then(|bounds| bounds.get(index))
+            .last()
+            .and_then(|(_, bounds, _)| bounds.get(index))
             .copied()
             .map_or(len, |bound| len.min(bound))
     })

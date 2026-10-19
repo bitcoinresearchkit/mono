@@ -65,7 +65,7 @@ pub struct Encoder<'a, Context: Default, Item: Encodable<Context>> {
     pub items: &'a [Item],
 
     pub restart_interval: u8,
-    pub binary_index_builder: BinaryIndexBuilder,
+    pub binary_index_builder: BinaryIndexBuilder<'a>,
 
     pub fixed_key_len: Option<u16>,
     pub fixed_value_len: Option<u32>,
@@ -76,14 +76,15 @@ pub struct Encoder<'a, Context: Default, Item: Encodable<Context>> {
 // TODO: https://github.com/fjall-rs/lsm-tree/issues/185
 
 impl<'a, Context: Default, Item: Encodable<Context>> Encoder<'a, Context, Item> {
+    /// Encodes `items` into `writer`, collecting restart offsets in the reused `restarts`.
     pub fn new(
         writer: &'a mut Vec<u8>,
+        restarts: &'a mut Vec<u32>,
         items: &'a [Item],
         restart_interval: u8, // TODO: should be NonZero
     ) -> Self {
         assert!(!items.is_empty(), "chunk should not be empty");
-        let binary_index_builder =
-            BinaryIndexBuilder::new(items.len().div_ceil(usize::from(restart_interval)));
+        let binary_index_builder = BinaryIndexBuilder::new(restarts);
 
         Self {
             writer,

@@ -1,6 +1,5 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling};
+use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -33,13 +32,6 @@ impl Vecs {
                 db,
                 "cointime_value_stored",
                 version,
-                mappings,
-                window_starts,
-            )?,
-            vocdd: PerBlockCumulativeRolling::import(
-                db,
-                "vocdd",
-                version + Version::ONE,
                 mappings,
                 window_starts,
             )?,

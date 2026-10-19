@@ -1,37 +1,34 @@
-//! PerBlockCumulativeRolling - stored cumulative + lazy block and rolling views.
-//!
 //! The cumulative vector is the sole stored source of truth. Per-block values
-//! and rolling sums/averages are all derived lazily from it.
+//! and window sums are derived lazily from it.
 
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
-use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex,
-    VecValue, WritableVec,
+    AnyStoredVec, AnyVec, ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
+    VecIndex, VecValue, WritableVec,
 };
 
-use crate::{IndexSources, LazyPreviousDeltaVec, PerBlock, RollingTotals};
+use crate::{
+    CumulativeState, IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlock,
+    shapes::Windows,
+};
 
-#[derive(Deref, DerefMut, Traversable)]
+#[derive(Traversable)]
 pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
+    /// Value for the represented block.
     pub block: LazyPreviousDeltaVec<Height, T>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
     pub cumulative: PerBlock<T, M>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    rolling: RollingTotals<T>,
-    last_cumulative: M::WriteOnly<Option<(usize, T)>>,
+    pub sum: LazyRollingSumsFromHeight<T>,
+    last: M::WriteOnly<CumulativeState<T>>,
 }
 
 impl<T> PerBlockCumulativeRolling<T>
@@ -48,17 +45,19 @@ where
         let cumulative = PerBlock::import(db, &format!("{name}_cumulative"), version, indexes)?;
         let source = cumulative.resolutions.height_source();
         let block = LazyPreviousDeltaVec::new(name, version, source);
-        let rolling = RollingTotals::new(name, version, source, window_starts, indexes);
-        let last_cumulative = cumulative
-            .height
-            .collect_last()
-            .map(|value| (cumulative.height.len(), value));
+        let sum = LazyRollingSumsFromHeight::new(
+            &format!("{name}_sum"),
+            version,
+            source,
+            window_starts,
+            indexes,
+        );
 
         Ok(Self {
             block,
             cumulative,
-            rolling,
-            last_cumulative,
+            sum,
+            last: Default::default(),
         })
     }
 
@@ -67,18 +66,12 @@ where
     }
 
     #[inline(always)]
-    pub fn push_block(&mut self, value: T)
-    where
-        T: Copy,
-    {
-        let len = self.cumulative.height.len();
-        let mut cumulative = match self.last_cumulative {
-            Some((cached_len, value)) if cached_len == len => value,
-            _ => self.cumulative.height.collect_last().unwrap_or_default(),
-        };
-        cumulative += value;
+    pub fn push_block(&mut self, value: T) {
+        let height = Height::from(self.cumulative.height.len());
+        let cumulative = self
+            .last
+            .add_at(height, &self.cumulative.height, |total| *total += value);
         self.cumulative.height.push(cumulative);
-        self.last_cumulative = Some((len + 1, cumulative));
     }
 
     pub fn compute_cumulative_transformed<S>(
@@ -90,28 +83,19 @@ where
     ) -> Result<()>
     where
         S: VecValue,
-        T: Copy,
     {
-        self.last_cumulative = None;
-        let mut cumulative = None;
+        let last = &mut self.last;
         Ok(self.cumulative.height.compute_transform(
             max_from,
             source,
             |(height, value, this)| {
-                let cumulative = cumulative.get_or_insert_with(|| {
-                    height
-                        .decremented()
-                        .and_then(|height| this.collect_one(height))
-                        .unwrap_or_default()
-                });
-                *cumulative += transform(value);
-                (height, *cumulative)
+                let value = transform(value);
+                last.add_at(height, this, |total| *total += value)
             },
             exit,
         )?)
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn compute_cumulative_sum_from_indexes<A, B, S>(
         &mut self,
         max_from: Height,
@@ -128,7 +112,7 @@ where
         usize: From<B>,
         T: Copy,
     {
-        self.last_cumulative = None;
+        self.last = CumulativeState::default();
         Ok(self.cumulative.height.compute_cumulative_sum_from_indexes(
             max_from,
             first_indexes,
@@ -139,34 +123,8 @@ where
         )?)
     }
 
-    pub fn validate_computed_version_or_reset(&mut self, version: Version) -> Result<()> {
-        self.last_cumulative = None;
-        self.cumulative
-            .height
-            .validate_computed_version_or_reset(version)?;
-        Ok(())
-    }
-
-    pub fn validate_and_truncate(&mut self, version: Version, height: Height) -> Result<()> {
-        self.last_cumulative = None;
-        Ok(self
-            .cumulative
-            .height
-            .validate_and_truncate(version, height)?)
-    }
-
-    pub fn truncate_if_needed_at(&mut self, len: usize) -> Result<()> {
-        self.last_cumulative = None;
-        Ok(self.cumulative.height.truncate_if_needed_at(len)?)
-    }
-
-    pub fn write(&mut self) -> Result<()> {
-        self.cumulative.height.write()?;
-        Ok(())
-    }
-
+    /// A pure borrow: a length change reloads the cached total.
     pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        self.last_cumulative = None;
         &mut self.cumulative.height
     }
 }

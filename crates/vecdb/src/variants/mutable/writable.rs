@@ -38,35 +38,42 @@ where
     }
 
     fn reset_unsaved(&mut self) {
+        if self.vec.unwritten_baseline() {
+            // Back to what the rollback restored (saved as the undo baseline), or to a reset's
+            // empty state.
+            self.holes.restore();
+            self.updated.restore();
+        } else {
+            self.holes.current = Arc::clone(&self.published_holes.read());
+            self.updated.current.clear();
+        }
         self.vec.reset_unsaved();
-        *self.holes.current_mut() = Arc::clone(&self.published_holes.read());
-        self.updated.current_mut().clear();
     }
 
     #[inline]
     fn is_dirty(&self) -> bool {
-        self.vec.is_dirty() || self.holes_changed() || !self.current_updated().is_empty()
-    }
-
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
-        let guard = self.header().begin_write()?;
-        self.save_changes(stamp)?;
-        self.write_saved_changes(stamp)?;
-        guard.finish(Ok(()))
+        self.vec.is_dirty() || self.holes_changed() || !self.updated.current.is_empty()
     }
 
     fn rollback(&mut self) -> Result<()> {
         self.header().check_writable()?;
         let bytes = self.vec.read_current_change_file()?;
-        let (modifications, previous_holes) = V::parse_mutable_changes(&bytes)?;
+        let (change, modifications, previous_holes) = V::parse_mutable_changes(&bytes)?;
         let guard = self.header().begin_write()?;
 
-        self.vec.rollback()?;
-        self.truncate_mutations_at(self.vec.len());
+        // Undo from the last save point, like the wrapped vec: unsaved updates are dropped (the
+        // saved map holds what earlier undos restored and the stamp's values of rows written
+        // since). Holes need no reset: the undo replaces them below.
+        self.updated.restore();
+        self.vec.rollback_change(change)?;
+        // Restored rows past the stored length live in the pushed values: updates there are stale.
+        self.truncate_mutations_at(self.vec.stored_len());
         for (index, value) in modifications {
-            self.update_value_at(index, value)?;
+            self.update_at(index, value)?;
         }
-        *self.holes.current_mut() = Arc::new(previous_holes);
+        self.holes.current = Arc::new(previous_holes);
+        // The modifications may land in restored pushed rows: the next undo starts from them.
+        self.vec.save_previous_for_rollback();
         self.holes.save();
         self.updated.save();
         guard.finish(Ok(()))

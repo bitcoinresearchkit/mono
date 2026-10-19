@@ -9,7 +9,7 @@ use sfa::Writer;
 
 use super::FilterWriter;
 use crate::{
-    CompressionType, InternalValue, RecordBytes, Result, Slice,
+    InternalValue, RecordBytes, Result, Slice,
     config::BloomConstructionPolicy,
     table::{Block, block::BlockType, filter::standard_bloom::Builder},
 };
@@ -31,22 +31,6 @@ impl FullFilterWriter {
 }
 
 impl<K: RecordBytes, V: RecordBytes> FilterWriter<K, V> for FullFilterWriter {
-    fn use_partition_size(self: Box<Self>, _: u32) -> Box<dyn FilterWriter<K, V>> {
-        self
-    }
-
-    fn use_tli_compression(self: Box<Self>, _: CompressionType) -> Box<dyn FilterWriter<K, V>> {
-        self
-    }
-
-    fn set_filter_policy(
-        mut self: Box<Self>,
-        policy: BloomConstructionPolicy,
-    ) -> Box<dyn FilterWriter<K, V>> {
-        self.bloom_policy = policy;
-        self
-    }
-
     fn register_block(&mut self, items: &[InternalValue<K, V>]) -> Result<()> {
         self.bloom_hash_buffer.extend(
             items
@@ -91,12 +75,7 @@ impl<K: RecordBytes, V: RecordBytes> FilterWriter<K, V> for FullFilterWriter {
                 start.elapsed(),
             );
 
-            Block::write_into(
-                file_writer,
-                &filter_bytes,
-                BlockType::Filter,
-                CompressionType::None,
-            )?;
+            Block::write_into(file_writer, &filter_bytes, BlockType::Filter)?;
         }
 
         Ok(())

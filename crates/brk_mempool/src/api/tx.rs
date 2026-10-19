@@ -1,46 +1,34 @@
-//! Tx-keyed reads.
+use std::hash::{Hash, Hasher};
 
-use std::{
-    hash::{Hash, Hasher},
-    sync::Arc,
-};
-
-use brk_error::{Error, Result};
-use brk_types::{
-    BlockHash, MempoolRecentTx, OutpointPrefix, Transaction, TxOutspend, TxStatus, Txid,
-    TxidPrefix, Vin, Vout,
-};
+use brk_error::Result;
+use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::{FxHashSet, FxHasher};
 
-use crate::{ReadOnlyState, state::Pool};
-
-fn transaction_times_hash(times: &[u64]) -> u64 {
-    let mut hasher = FxHasher::default();
-    times.hash(&mut hasher);
-    hasher.finish()
-}
+use crate::{
+    PublishedTx, ReadOnlyState,
+    key::{OutpointKey, TxKey},
+    state::Pool,
+};
 
 impl ReadOnlyState {
     pub fn contains_txid(&self, txid: &Txid, tip: &BlockHash) -> Result<bool> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         Ok(state.txs.contains(txid))
     }
 
     /// Capture an immutable live body or its recently vanished fallback from
     /// one completed publication. Replaced tombstones are excluded.
-    pub fn transaction(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<Arc<Transaction>>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+    pub fn transaction(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedTx>> {
+        let state = self.pool()?.resolved_at(tip)?;
         Ok(state
             .txs
             .record(txid)
-            .map(|record| record.tx.clone())
+            .map(PublishedTx::from_record)
             .or_else(|| {
                 state
                     .graveyard
                     .get_vanished(txid)
-                    .map(|tomb| tomb.tx.clone())
+                    .map(|tomb| PublishedTx::from_record(&tomb.record))
             }))
     }
 
@@ -53,8 +41,7 @@ impl ReadOnlyState {
         vout: Vout,
         tip: &BlockHash,
     ) -> Result<Option<TxOutspend>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         let Some(transaction) = state.txs.get(txid) else {
             return Ok(None);
         };
@@ -65,11 +52,10 @@ impl ReadOnlyState {
     }
 
     /// Current mempool spend status for an output whose parent may be
-    /// confirmed. The spender's full input list is checked to rule out prefix
+    /// confirmed. The spender's full input list is checked to rule out key
     /// collisions.
     pub fn outspend(&self, txid: &Txid, vout: Vout, tip: &BlockHash) -> Result<TxOutspend> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         Ok(Self::outspend_for(state, txid, vout))
     }
 
@@ -81,12 +67,13 @@ impl ReadOnlyState {
         txid: &Txid,
         tip: &BlockHash,
     ) -> Result<Option<Vec<TxOutspend>>> {
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         let Some(transaction) = state.txs.get(txid) else {
             return Ok(None);
         };
-        Self::outspends_for(state, txid, transaction.output.len()).map(Some)
+        let mut outspends = vec![TxOutspend::UNSPENT; transaction.output.len()];
+        Self::overlay_outspends(state, txid, &mut outspends);
+        Ok(Some(outspends))
     }
 
     /// Overlay mempool spends onto unresolved outputs of a confirmed parent.
@@ -101,49 +88,40 @@ impl ReadOnlyState {
         if outspends.iter().all(|outspend| outspend.spent) {
             return Ok(());
         }
-        check_output_count(outspends.len())?;
-        let state = self.pool()?;
-        state.ensure_resolved_at(tip)?;
+        let state = self.pool()?.resolved_at(tip)?;
         Self::overlay_outspends(state, txid, outspends);
         Ok(())
     }
 
     fn outspend_for(state: &Pool, txid: &Txid, vout: Vout) -> TxOutspend {
-        let Some((spender_txid, vin)) = Self::lookup_spender_for(state, txid, vout) else {
+        let Some((spender, vin)) = state.outpoint_spends.spender(&state.txs, txid, vout) else {
             return TxOutspend::UNSPENT;
         };
         TxOutspend {
             spent: true,
-            txid: Some(spender_txid),
+            txid: Some(spender.entry.txid),
             vin: Some(vin),
             status: Some(TxStatus::UNCONFIRMED),
         }
     }
 
-    fn outspends_for(state: &Pool, txid: &Txid, output_count: usize) -> Result<Vec<TxOutspend>> {
-        check_output_count(output_count)?;
-        let mut outspends = vec![TxOutspend::UNSPENT; output_count];
-        Self::overlay_outspends(state, txid, &mut outspends);
-        Ok(outspends)
-    }
-
     /// Resolve a spender's inputs once for the whole parent, retaining exact
     /// outpoint validation and never replacing a confirmed spend.
     fn overlay_outspends(state: &Pool, txid: &Txid, outspends: &mut [TxOutspend]) {
-        let parent = TxidPrefix::from(txid);
+        let parent = TxKey::from(txid);
         let mut scanned = FxHashSet::default();
         for index in 0..outspends.len() {
             if outspends[index].spent {
                 continue;
             }
-            let key = OutpointPrefix::new(parent, Vout::from(index));
-            let Some(prefix) = state.outpoint_spends.get(&key) else {
+            let outpoint = OutpointKey::new(parent, Vout::from(index));
+            let Some(spender_key) = state.outpoint_spends.get(&outpoint) else {
                 continue;
             };
-            if !scanned.insert(prefix) {
+            if !scanned.insert(spender_key) {
                 continue;
             }
-            let Some(spender) = state.txs.record_by_prefix(&prefix) else {
+            let Some(spender) = state.txs.record_by_key(&spender_key) else {
                 continue;
             };
             for (vin, input) in spender.tx.input.iter().enumerate() {
@@ -156,8 +134,8 @@ impl ReadOnlyState {
                 if !outspend.spent
                     && state
                         .outpoint_spends
-                        .get(&OutpointPrefix::new(parent, input.vout))
-                        == Some(prefix)
+                        .get(&OutpointKey::new(parent, input.vout))
+                        == Some(spender_key)
                 {
                     *outspend = TxOutspend {
                         spent: true,
@@ -170,31 +148,15 @@ impl ReadOnlyState {
         }
     }
 
-    fn lookup_spender_for(state: &Pool, txid: &Txid, vout: Vout) -> Option<(Txid, Vin)> {
-        let key = OutpointPrefix::new(TxidPrefix::from(txid), vout);
-        let spender = state
-            .outpoint_spends
-            .get(&key)
-            .and_then(|prefix| state.txs.record_by_prefix(&prefix))?;
-        let vin_pos = spender
-            .tx
-            .input
-            .iter()
-            .position(|input| input.txid == *txid && input.vout == vout)?;
-        Some((spender.entry.txid, Vin::from(vin_pos)))
-    }
-
     /// Order-sensitive validator for the current txid array.
     pub fn txids_hash(&self) -> Result<u64> {
         let state = self.pool()?;
         Ok(state.txs.txids_hash())
     }
 
-    /// Current txid array and its validator from one publication.
-    pub fn txids_with_hash(&self) -> Result<(Vec<Txid>, u64)> {
-        let state = self.pool()?;
-        let txids = state.txs.txids().copied().collect();
-        Ok((txids, state.txs.txids_hash()))
+    /// The txid array [`Self::txids_hash`] validates.
+    pub fn txids(&self) -> Result<impl Iterator<Item = &Txid>> {
+        Ok(self.pool()?.txs.txids())
     }
 
     /// Recently observed additions, including transactions that have since left.
@@ -207,24 +169,12 @@ impl ReadOnlyState {
     /// captured from one state snapshot.
     pub fn transaction_times_with_hash(&self, txids: &[Txid]) -> Result<(Vec<u64>, u64)> {
         let state = self.pool()?;
-        let times = Self::transaction_times_for(state, txids);
-        let hash = transaction_times_hash(&times);
-        Ok((times, hash))
-    }
-
-    fn transaction_times_for(state: &Pool, txids: &[Txid]) -> Vec<u64> {
-        txids
+        let times: Vec<u64> = txids
             .iter()
             .map(|txid| state.first_seen(txid).map_or(0, u64::from))
-            .collect()
+            .collect();
+        let mut hasher = FxHasher::default();
+        times.as_slice().hash(&mut hasher);
+        Ok((times, hasher.finish()))
     }
-}
-
-fn check_output_count(count: usize) -> Result<()> {
-    if count > usize::from(Vout::MAX) + 1 {
-        return Err(Error::Internal(
-            "Mempool output count exceeds index capacity",
-        ));
-    }
-    Ok(())
 }

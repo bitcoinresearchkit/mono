@@ -3,20 +3,13 @@
 Identify endpoints worth optimizing from existing `bitviewd` access logs.
 
 ```sh
-cargo run --release -p bitviewd_latency
+cargo run --release -p bitviewd_latency -- ~/.bitview
 ```
 
-No flags. Uses the existing `bitview::Config::load()` to obtain the daemon's
-configured data directory. Reads `<bitviewdir>/logs` and atomically replaces
-`<bitviewdir>/latency.md`, then prints its path. Normally these are
-`~/.bitview/logs` and `~/.bitview/latency.md`.
-
-The analyzer does not parse TOML or maintain its own configuration. It uses the
-same persisted settings loader and server-path resolution as the daemon, without
-requiring Bitcoin directories or RPC credentials. Loading settings does not create
-directories, start a node, or make RPC calls.
-Daemon command-line overrides are not persisted; use the daemon config file to
-keep both programs pointed at the same data directory.
+One argument: the daemon's data directory (`bitviewdir`). Reads
+`<bitviewdir>/logs` and atomically replaces `<bitviewdir>/latency.md`, then
+prints its path. It reads no configuration, creates no directories, and makes no
+RPC calls.
 
 Reads every available day's combined `YYYY-MM-DD.txt` once. If absent, reads
 that day's per-level files. Logs are streamed; durations are retained for exact
@@ -52,6 +45,3 @@ regenerating the API catalog. No extra fields are added to server logs.
   line is counted as malformed.
 - The daemon normally retains seven days of logs. Each run replaces the report;
   the analyzer does not maintain historical reports.
-
-Aggregation lives in `analysis.rs` and `group.rs`; `report.rs` renders their result
-as Markdown without reading logs or configuration.

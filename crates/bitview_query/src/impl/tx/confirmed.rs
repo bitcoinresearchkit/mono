@@ -14,7 +14,6 @@ pub(crate) use indexer_read::IndexerRead;
 ///
 /// Revalidation alone is not exposed on `Query`: the internal read view must
 /// retain rollback protection through the subsequent dependent reads.
-///
 #[derive(Debug, Clone, Copy)]
 pub struct ResolvedConfirmedTx {
     txid: Txid,
@@ -32,13 +31,7 @@ impl ResolvedConfirmedTx {
 
 impl Query {
     /// Resolve an exact transaction confirmed in the published best chain.
-    ///
-    /// The public entry point acquires its own read view. The old caller-guarded
-    /// entry point is deliberately unavailable.
-    ///
     pub fn resolve_confirmed_tx(&self, txid: &Txid) -> Result<ResolvedConfirmedTx> {
-        self.read_indexer()?
-            .resolve_confirmed_tx(txid)
-            .map_err(|error| self.transaction_error(error))
+        self.read_indexer()?.resolve_confirmed_tx(txid)
     }
 }

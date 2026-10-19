@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_mining"
-description = "The mining datasets plugin for Bitview"
+description = "Bitcoin mining rewards, hash rate and hashprice datasets for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,8 +9,6 @@ repository.workspace = true
 
 [dependencies]
 bitview_primitives = { workspace = true, features = ["storage"] }
-bitview_transforms = { workspace = true }
-bitview_collections = { workspace = true, features = ["storage"] }
 bitview_compute = { workspace = true }
 bitview_vecs = { workspace = true }
 brk_exit = { workspace = true }
@@ -24,4 +22,5 @@ bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 rayon = { workspace = true }
+schemars = { workspace = true }
 vecdb = { workspace = true }

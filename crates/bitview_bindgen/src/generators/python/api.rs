@@ -1,27 +1,28 @@
-//! Python API method generation.
-
 use std::fmt::Write;
 
 use crate::{
-    Endpoint, Parameter, escape_python_keyword,
+    Endpoint, Parameter, Ty, escape_python_keyword,
     generators::{normalize_return_type, write_description},
     to_snake_case,
 };
 
 use super::client::generate_class_constants;
-use super::types::js_type_to_python;
+use super::types::python_type;
 
-/// Generate the main client class
+/// A parameter or return type: endpoints quote no reference.
+fn api_type(ty: &Ty) -> String {
+    python_type(ty, &|_| false)
+}
+
 pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
     writeln!(output, "class BitviewClient(BitviewClientBase):").unwrap();
     writeln!(
         output,
-        "    \"\"\"Main Bitview client with series tree and API methods.\"\"\""
+        "    \"\"\"A method per API endpoint, and the typed series tree.\"\"\""
     )
     .unwrap();
     writeln!(output).unwrap();
 
-    // Generate class-level constants
     generate_class_constants(output);
 
     writeln!(
@@ -37,7 +38,6 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     writeln!(output, "        return SeriesTree(self, '')").unwrap();
     writeln!(output).unwrap();
 
-    // Generate series_endpoint() method for dynamic series access
     writeln!(
         output,
         "    def series_endpoint(self, series: str, index: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:"
@@ -45,25 +45,12 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     .unwrap();
     writeln!(
         output,
-        "        \"\"\"Create a dynamic series endpoint builder for any series/index combination."
+        "        \"\"\"A series by a name known only at runtime; `series` has the typed paths.\"\"\""
     )
     .unwrap();
-    writeln!(output).unwrap();
-    writeln!(
-        output,
-        "        Use this for programmatic access when the series name is determined at runtime."
-    )
-    .unwrap();
-    writeln!(
-        output,
-        "        For type-safe access, use the `series` tree instead."
-    )
-    .unwrap();
-    writeln!(output, "        \"\"\"").unwrap();
     writeln!(output, "        return _endpoint(self, series, index)").unwrap();
     writeln!(output).unwrap();
 
-    // Generate helper methods
     writeln!(
         output,
         "    def index_to_date(self, index: Index, i: int) -> Union[date, datetime]:"
@@ -71,7 +58,7 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     .unwrap();
     writeln!(
         output,
-        "        \"\"\"Convert an index value to a date/datetime for date-based indexes.\"\"\""
+        "        \"\"\"The start of bucket `i`: a UTC datetime for sub-daily indexes, a date otherwise.\"\"\""
     )
     .unwrap();
     writeln!(output, "        return _index_to_date(index, i)").unwrap();
@@ -83,7 +70,7 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     .unwrap();
     writeln!(
         output,
-        "        \"\"\"Convert a date/datetime to an index value for date-based indexes.\"\"\""
+        "        \"\"\"The floor index (latest index whose date is <= the given date).\"\"\""
     )
     .unwrap();
     writeln!(output, "        return _date_to_index(index, d)").unwrap();
@@ -96,37 +83,30 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
 
     def get_address_payload_hash_prefix_matches(
         self,
-        addr_type: OutputType,
+        address_type: OutputType,
         payload: Union[bytes, bytearray, memoryview],
         nibbles: int,
-    ) -> AddrHashPrefixMatches:
-        """Fetch address hash-prefix matches from raw payload bytes matching addr_type length."""
-        _validate_address_payload_for_type(addr_type, payload)
-        return self.get_address_hash_prefix_matches(addr_type, address_payload_hash_prefix(payload, nibbles))
+    ) -> AddressHashPrefixMatches:
+        """Fetch address hash-prefix matches from raw payload bytes matching address_type length."""
+        _validate_address_payload_for_type(address_type, payload)
+        return self.get_address_hash_prefix_matches(address_type, address_payload_hash_prefix(payload, nibbles))
 
 "#);
-    // Generate API methods
     generate_api_methods(output, endpoints);
 }
 
-/// Generate API methods from OpenAPI endpoints
 fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
     for endpoint in endpoints {
         if !endpoint.should_generate() {
             continue;
         }
 
-        let method_name = endpoint_to_method_name(endpoint);
-        let base_return_type = if endpoint.returns_binary() {
-            "bytes".to_string()
-        } else {
-            normalize_return_type(
-                &endpoint
-                    .schema_name()
-                    .map(js_type_to_python)
-                    .unwrap_or_else(|| "str".to_string()),
-            )
-        };
+        let method_name = to_snake_case(&endpoint.operation_id);
+        let response = endpoint.response_kind.ty();
+        let base_return_type = response.map_or_else(
+            || "bytes".to_owned(),
+            |ty| normalize_return_type(&api_type(ty)),
+        );
 
         let return_type = if endpoint.supports_csv {
             format!("Union[{}, str]", base_return_type)
@@ -134,7 +114,6 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             base_return_type
         };
 
-        // Build method signature
         let params = build_method_params(endpoint);
         writeln!(
             output,
@@ -143,7 +122,6 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
         )
         .unwrap();
 
-        // Docstring
         match (&endpoint.summary, &endpoint.description) {
             (Some(summary), Some(desc)) if summary != desc => {
                 writeln!(output, "        \"\"\"{}.", summary.trim_end_matches('.')).unwrap();
@@ -154,7 +132,6 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
                 writeln!(output, "        \"\"\"{}", summary).unwrap();
             }
             (None, Some(desc)) => {
-                // First line includes opening quotes
                 let mut lines = desc.lines();
                 if let Some(first) = lines.next() {
                     writeln!(output, "        \"\"\"{}", first).unwrap();
@@ -175,12 +152,10 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
         writeln!(
             output,
             "        Endpoint: `{} {}`\"\"\"",
-            endpoint.method.to_uppercase(),
-            endpoint.path
+            endpoint.method, endpoint.path
         )
         .unwrap();
 
-        // Build path
         let path = build_path_template(&endpoint.path, &endpoint.path_params);
 
         let is_post = endpoint.method == "POST";
@@ -202,9 +177,9 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
         // Series data gets the same helpers however it is fetched.
         let (wrap_prefix, wrap_suffix) = if endpoint.response_kind.text_is_numeric() {
             ("int(", ")")
-        } else if endpoint.schema_name() == Some("SeriesData") {
+        } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
             ("_series_data(", ")")
-        } else if endpoint.schema_name() == Some("SeriesData[]") {
+        } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
             ("[_series_data(raw) for raw in ", "]")
         } else {
             ("", "")
@@ -227,35 +202,34 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
                 .unwrap();
             }
         } else {
-            writeln!(output, "        params = []").unwrap();
+            writeln!(output, "        params: List[Tuple[str, Any]] = []").unwrap();
             for param in &endpoint.query_params {
                 // Use safe name for Python variable, original name for API query parameter
                 let safe_name = escape_python_keyword(&param.name);
-                let is_array = param.param_type.ends_with("[]");
-                if is_array {
+                if matches!(param.ty, Ty::List(_)) {
                     writeln!(
                         output,
-                        "        for _v in {}: params.append(f'{}={{_v}}')",
+                        "        for _v in {}: params.append(('{}', _v))",
                         safe_name, param.name
                     )
                     .unwrap();
                 } else if param.required {
                     writeln!(
                         output,
-                        "        params.append(f'{}={{{}}}')",
+                        "        params.append(('{}', {}))",
                         param.name, safe_name
                     )
                     .unwrap();
                 } else {
                     writeln!(
                         output,
-                        "        if {} is not None: params.append(f'{}={{{}}}')",
+                        "        if {} is not None: params.append(('{}', {}))",
                         safe_name, param.name, safe_name
                     )
                     .unwrap();
                 }
             }
-            writeln!(output, "        query = '&'.join(params)").unwrap();
+            writeln!(output, "        query = urlencode(params)").unwrap();
             writeln!(
                 output,
                 "        path = f'{}{{\"?\" + query if query else \"\"}}'",
@@ -279,35 +253,31 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
     }
 }
 
-fn endpoint_to_method_name(endpoint: &Endpoint) -> String {
-    to_snake_case(&endpoint.operation_name())
-}
-
 fn build_method_params(endpoint: &Endpoint) -> String {
     let mut params = String::new();
     // Path params are always required
     for param in &endpoint.path_params {
         let safe_name = escape_python_keyword(&param.name);
-        let py_type = js_type_to_python(&param.param_type);
+        let py_type = api_type(&param.ty);
         write!(params, ", {}: {}", safe_name, py_type).unwrap();
     }
     // Required query params must come before optional ones (Python syntax requirement)
     for param in &endpoint.query_params {
         if param.required {
             let safe_name = escape_python_keyword(&param.name);
-            let py_type = js_type_to_python(&param.param_type);
+            let py_type = api_type(&param.ty);
             write!(params, ", {}: {}", safe_name, py_type).unwrap();
         }
     }
     for param in &endpoint.query_params {
         if !param.required {
             let safe_name = escape_python_keyword(&param.name);
-            let py_type = js_type_to_python(&param.param_type);
+            let py_type = api_type(&param.ty);
             write!(params, ", {}: Optional[{}] = None", safe_name, py_type).unwrap();
         }
     }
     if let Some(body) = &endpoint.request_body {
-        let py_type = js_type_to_python(&body.body_type);
+        let py_type = api_type(&body.ty);
         if body.required {
             write!(params, ", body: {}", py_type).unwrap();
         } else {
@@ -317,13 +287,13 @@ fn build_method_params(endpoint: &Endpoint) -> String {
     params
 }
 
+/// The path as an f-string body, each parameter percent-encoded as one segment.
 fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
     let mut result = path.to_string();
     for param in path_params {
         let placeholder = format!("{{{}}}", param.name);
-        // Use escaped name for Python variable interpolation in f-string
         let safe_name = escape_python_keyword(&param.name);
-        let interpolation = format!("{{{}}}", safe_name);
+        let interpolation = format!("{{_segment({})}}", safe_name);
         result = result.replace(&placeholder, &interpolation);
     }
     result

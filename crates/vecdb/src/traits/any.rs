@@ -1,4 +1,4 @@
-use crate::{Stamp, Version, read_bounds, vec_region_name};
+use crate::{Version, read_bounds};
 
 /// Converts an i64 index to usize, supporting negative indexing.
 /// Negative indices count from the end.
@@ -11,61 +11,62 @@ pub fn i64_to_usize(i: i64, len: usize) -> usize {
     }
 }
 
-/// Common trait for all vectors providing metadata and utility methods.
+/// Object-safe metadata every vector implements.
 pub trait AnyVec: Send + Sync {
     /// Provenance for consumers: a stored vector's computed version when set,
     /// otherwise its schema version. Appending rows does not change provenance.
     fn version(&self) -> Version;
     fn name(&self) -> &str;
     fn len(&self) -> usize;
-    /// Whether existing values can be replaced while this vector is updated.
-    #[inline]
-    fn is_mutable(&self) -> bool {
-        false
-    }
+    /// Whether existing values can be replaced while this vector is updated. Required: a view
+    /// over a mutable source must say so, or its rows would be served as final (HTTP caching).
+    fn is_mutable(&self) -> bool;
     /// Length visible inside the current published read snapshot.
     #[inline]
     fn visible_len(&self) -> usize {
-        read_bounds::visible_len(self.index_type_to_string(), self.len())
+        read_bounds::visible_len(self.index_type_name(), self.len())
     }
     #[inline]
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    /// Returns the string representation of the index type.
-    fn index_type_to_string(&self) -> &'static str;
-    /// Returns the combined name of the vector.
+    fn index_type_name(&self) -> &'static str;
+    /// Returns the list of region names used by this vector: none for views, which store
+    /// nothing of their own.
     #[inline]
-    fn region_name(&self) -> String {
-        vec_region_name(self.name(), self.index_type_to_string())
+    fn region_names(&self) -> Vec<String> {
+        Vec::new()
     }
-    /// Returns the list of region names used by this vector.
-    fn region_names(&self) -> Vec<String>;
-    /// Returns the size in bytes of the value type.
-    fn value_type_to_size_of(&self) -> usize;
-    /// Returns the short type name of the value type (e.g., "Sats", "Ratio").
-    fn value_type_to_string(&self) -> &'static str;
-    /// Generates an ETag for this vector based on stamp and optional end index.
-    fn etag(&self, stamp: Stamp, to: Option<i64>) -> String {
-        let len = self.len();
-        format!(
-            "{}-{}-{}",
-            to.map_or(len, |to| {
-                if to.is_negative() {
-                    len.saturating_sub(to.unsigned_abs() as usize)
-                } else {
-                    to as usize
-                }
-            }),
-            usize::from(self.version()),
-            u64::from(stamp),
-        )
-    }
-
-    /// Converts an i64 index to usize, supporting negative indexing (Python-style).
+    /// Size in bytes of one value.
+    fn value_size(&self) -> usize;
+    /// Short name of the value type (e.g. "Sats", "Ratio").
+    fn value_type_name(&self) -> &'static str;
+    /// [`crate::i64_to_usize`] with this vector's length.
     #[inline]
     fn i64_to_usize(&self, i: i64) -> usize {
         let len = self.len();
         i64_to_usize(i, len)
     }
+}
+
+/// Emits the [`AnyVec`] methods fixed by a vector's index and value types (`index_type_name`,
+/// `value_size`, `value_type_name`) inside an `impl AnyVec` block.
+#[macro_export]
+macro_rules! any_vec_type_methods {
+    ($index:ty, $value:ty) => {
+        #[inline]
+        fn index_type_name(&self) -> &'static str {
+            <$index as $crate::PrintableIndex>::to_string()
+        }
+
+        #[inline]
+        fn value_size(&self) -> usize {
+            ::std::mem::size_of::<$value>()
+        }
+
+        #[inline]
+        fn value_type_name(&self) -> &'static str {
+            $crate::short_type_name::<$value>()
+        }
+    };
 }

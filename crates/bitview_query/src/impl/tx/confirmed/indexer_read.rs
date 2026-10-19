@@ -1,9 +1,8 @@
-use bitview_plugin_indexer::SafeLengths;
 use brk_types::{BlockHash, Height, TxIndex, Txid};
 use vecdb::ReadableVec;
 
 use super::ResolvedConfirmedTx;
-use crate::{Error, Query, Result};
+use crate::{Error, Query, ReadPin, Result, check_bound};
 
 /// One logical read of this query's published indexer state.
 ///
@@ -11,20 +10,22 @@ use crate::{Error, Query, Result};
 /// Dependent reads must reuse this pin instead of acquiring another one.
 pub(crate) struct IndexerRead<'a> {
     query: &'a Query,
-    pin: SafeLengths,
+    pin: ReadPin,
 }
 
 impl Query {
     pub(crate) fn read_indexer(&self) -> Result<IndexerRead<'_>> {
-        Ok(IndexerRead {
-            query: self,
-            pin: self.pin_safe_lengths()?,
-        })
+        Ok(self.read_indexer_at(self.pin_safe_lengths()?))
+    }
+
+    /// Continue a read under a pin an earlier resolution took.
+    pub(crate) fn read_indexer_at(&self, pin: ReadPin) -> IndexerRead<'_> {
+        IndexerRead { query: self, pin }
     }
 }
 
 impl IndexerRead<'_> {
-    pub(crate) fn pin(&self) -> &SafeLengths {
+    pub(crate) fn pin(&self) -> &ReadPin {
         &self.pin
     }
 
@@ -32,27 +33,10 @@ impl IndexerRead<'_> {
         self.query
     }
 
-    /// Validate the exact transaction against this view's pinned bounds.
-    fn validate_confirmed_position(&self, txid: &Txid, index: TxIndex) -> Result<Height> {
-        let query = self.query;
-        let safe = self.pin.lengths();
-        if index >= safe.tx_index
-            || query.indexer().vecs().transactions.txid.collect_one(index) != Some(*txid)
-        {
-            return Err(Error::UnknownTxid);
-        }
-
-        let height = query.confirmed_status_height_bounded(index, safe)?;
-        if height >= safe.height {
-            return Err(Error::UnknownTxid);
-        }
-
-        Ok(height)
-    }
-
     /// Read a confirmed block hash inside the pinned prefix.
     fn confirmed_block_hash(&self, height: Height) -> Result<BlockHash> {
         let query = self.query;
+        check_bound(&self.pin, height, self.pin.lengths().height)?;
         if height >= self.pin.lengths().height {
             return Err(Error::UnknownTxid);
         }
@@ -79,8 +63,12 @@ impl IndexerRead<'_> {
 
     /// Resolve the position without reading a block hash the caller may not need.
     pub(crate) fn resolve_confirmed_position(&self, txid: &Txid) -> Result<(TxIndex, Height)> {
-        let index = self.query.resolve_tx_index(txid)?;
-        let height = self.validate_confirmed_position(txid, index)?;
+        let index = self.query.resolve_tx_index_bounded(txid, &self.pin)?;
+        let safe = self.pin.lengths();
+        let height = self.query.confirmed_status_height_bounded(index, safe)?;
+        if height >= safe.height {
+            return Err(Error::UnknownTxid);
+        }
         Ok((index, height))
     }
 

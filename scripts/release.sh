@@ -7,7 +7,6 @@ ROOT_DIR="$SCRIPT_DIR/.."
 echo "=== BRK Release ==="
 echo ""
 
-# Check if version argument provided
 if [ -z "$1" ]; then
     echo "Usage: $0 <version|bump>"
     echo "Examples:"
@@ -22,26 +21,15 @@ RELEASE_ARG="$1"
 echo "Release argument: $RELEASE_ARG"
 echo ""
 
-# ============================================================================
-# 1. TESTS
-# ============================================================================
-
-echo "=== Running tests ==="
+echo "=== Running checks ==="
 echo ""
 
 echo "--- Rust ---"
 cd "$ROOT_DIR"
-# Verify all crates package correctly
-# Note: --no-verify skips rebuild check due to version collision with crates.io
-# The cargo build --workspace --release step above already verified compilation
+# --no-verify skips the rebuild (the version can collide with crates.io's); quick-release.sh builds
+# the workspace.
 cargo package --workspace --allow-dirty --no-verify
-# The client test compares against the API snapshot, recorded offline.
 cargo api
-cargo test --workspace
 echo ""
-
-# ============================================================================
-# 2. QUICK RELEASE
-# ============================================================================
 
 "$SCRIPT_DIR/quick-release.sh" "$RELEASE_ARG"

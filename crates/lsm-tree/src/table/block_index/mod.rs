@@ -4,13 +4,7 @@
 
 use self::{full::Iter, two_level::Iter as TwoLevelIter, volatile::Iter as VolatileIter};
 use super::{BlockHandle, IndexBlock, KeyedBlockHandle};
-use crate::{
-    Result,
-    table::{
-        block::{BlockType, ParsedItem},
-        util::load_block,
-    },
-};
+use crate::{Result, table::block::ParsedItem};
 
 mod full;
 pub mod iter;
@@ -110,16 +104,7 @@ impl BlockIndexImpl {
         match self {
             Self::Full(index) => Self::search_index(index.inner(), needle, seqno, &mut read),
             Self::VolatileFull(index) => {
-                let block = load_block(
-                    index.table_id,
-                    &index.path,
-                    &index.file_accessor,
-                    &index.cache,
-                    &index.handle,
-                    BlockType::Index,
-                    index.compression,
-                )?;
-                Self::search_index(&IndexBlock::new(block), needle, seqno, &mut read)
+                Self::search_index(&index.load()?, needle, seqno, &mut read)
             }
             Self::TwoLevel(index) => {
                 let mut top = index.top_level_index.iter();
@@ -128,19 +113,8 @@ impl BlockIndexImpl {
                 }
 
                 for parsed in top {
-                    let lower_handle = BlockHandle::new(parsed.offset, parsed.size);
-                    let block = load_block(
-                        index.table_id,
-                        &index.path,
-                        &index.file_accessor,
-                        &index.cache,
-                        &lower_handle,
-                        BlockType::Index,
-                        index.compression,
-                    )?;
-                    if let Some(value) =
-                        Self::search_index(&IndexBlock::new(block), needle, seqno, &mut read)?
-                    {
+                    let block = index.load(&BlockHandle::new(parsed.offset, parsed.size))?;
+                    if let Some(value) = Self::search_index(&block, needle, seqno, &mut read)? {
                         return Ok(Some(value));
                     }
                     if parsed

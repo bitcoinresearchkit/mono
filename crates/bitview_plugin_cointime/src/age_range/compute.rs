@@ -1,54 +1,38 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
-use bitview_compute::prepare_computed;
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_compute::{Inputs, collect_age_range, write_chunks, write_locked};
+use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{BoundedRatio, CoinDays};
+use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Height, Sats, Version};
-use vecdb::{AnyStoredVec, AnyVec, CheckedSub, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ComputeVec, ReadableVec};
 
-use super::Vecs;
+use super::{RangeVecs, Vecs};
 
 const HOURS_PER_DAY: f64 = 24.0;
-const WRITE_INTERVAL: usize = 10_000;
 
 impl Vecs {
-    pub(crate) fn compute(
-        &mut self,
-        indexer: &Indexer,
-        distribution_age: &AgeVecs,
-        exit: &Exit,
-    ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+    pub(crate) fn compute(&mut self, indexer: &Indexer, age: &AgeVecs, exit: &Exit) -> Result<()> {
+        let starting_height = indexer.compute_start().height;
         let transfer_volumes = AgeRange::from_fn(|id| {
-            &id.select(
-                &distribution_age
-                    .cohorts
-                    .activity
-                    .transfer_volume
-                    .cohorts
-                    .age,
-            )
-            .block
-            .sats
+            &id.select(&age.ranges)
+                .activity
+                .transfer_volume
+                .value
+                .block
+                .sats
         });
         let coindays_destroyed = AgeRange::from_fn(|id| {
-            &id.select(
-                &distribution_age
-                    .cohorts
-                    .activity
-                    .coindays_destroyed
-                    .cohorts
-                    .age,
-            )
-            .block
+            &id.select(&age.ranges)
+                .activity
+                .coindays_destroyed
+                .value
+                .block
         });
-        let coindays_created = AgeRange::from_fn(|id| {
-            &id.select(&distribution_age.coindays_created)
-                .cumulative
-                .height
-        });
+        let coindays_created =
+            AgeRange::from_fn(|id| &id.select(&age.ranges).coindays_created.cumulative.height);
 
         self.compute_consumed(
             starting_height,
@@ -66,56 +50,58 @@ impl Vecs {
         source_coindays_destroyed: &AgeRange<&impl ReadableVec<Height, CoinDays>>,
         exit: &Exit,
     ) -> Result<()> {
-        let version = Version::combine_all(
+        let inputs = Inputs::new(
+            Version::ZERO,
             transfer_volumes
                 .iter()
-                .map(|vec| vec.version())
-                .chain(source_coindays_destroyed.iter().map(|vec| vec.version())),
+                .map(|vec| *vec as &dyn AnyVec)
+                .chain(
+                    source_coindays_destroyed
+                        .iter()
+                        .map(|vec| *vec as &dyn AnyVec),
+                ),
         );
-        let source_end = transfer_volumes
-            .iter()
-            .map(|vec| vec.len())
-            .chain(source_coindays_destroyed.iter().map(|vec| vec.len()))
-            .min()
-            .unwrap_or_default();
-        let bounds = age_bounds_days();
-        let start = prepare_computed(
-            self.coindays_consumed
-                .as_array_mut()
-                .map(|vec| vec.stored_mut()),
-            version,
-            usize::from(starting_height).min(source_end),
+        let range = inputs.prepare(
+            self.consumed_vecs_mut().collect::<Vec<_>>(),
+            usize::from(starting_height),
             exit,
         )?;
-        let mut chunk_start = start;
-        while chunk_start < source_end {
-            let chunk_end = (chunk_start + WRITE_INTERVAL).min(source_end);
-            let transfer_batches = AgeRange::from_fn(|id| {
-                id.select(transfer_volumes)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            let destroyed_batches = AgeRange::from_fn(|id| {
-                id.select(source_coindays_destroyed)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            for offset in 0..chunk_end - chunk_start {
+        let bounds = age_bounds_days();
+        let mut transfer_batches = AgeRange::default();
+        let mut destroyed_batches = AgeRange::default();
+        for chunk in write_chunks(range) {
+            collect_age_range(
+                transfer_volumes,
+                &mut transfer_batches,
+                chunk.start,
+                chunk.end,
+            );
+            collect_age_range(
+                source_coindays_destroyed,
+                &mut destroyed_batches,
+                chunk.start,
+                chunk.end,
+            );
+            for offset in 0..chunk.len() {
                 let volumes_btc = AgeRange::from_fn(|id| {
                     f64::from(Bitcoin::from(id.select(&transfer_batches)[offset]))
                 });
                 let destroyed =
                     AgeRange::from_fn(|id| f64::from(id.select(&destroyed_batches)[offset]));
                 let consumed = allocate_consumed_coindays(volumes_btc, destroyed, &bounds);
-                for (target, value) in self.coindays_consumed.iter_mut().zip(consumed.iter()) {
-                    target.push_block(CoinDays::from(*value));
+                for (range, value) in self.ranges.iter_mut().zip(consumed.iter()) {
+                    range.coindays_consumed.push_block(CoinDays::from(*value));
                 }
             }
-            let _lock = exit.lock();
-            for vec in self.coindays_consumed.iter_mut() {
-                vec.write()?;
-            }
-            chunk_start = chunk_end;
+            write_locked(self.consumed_vecs_mut(), exit)?;
         }
         Ok(())
+    }
+
+    fn consumed_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.ranges
+            .iter_mut()
+            .flat_map(|range| range.coindays_consumed.iter_any_stored_mut())
     }
 
     fn compute_rest(
@@ -126,42 +112,24 @@ impl Vecs {
     ) -> Result<()> {
         for id in AgeRangeId::ALL {
             let created = id.select(created);
-            let consumed = &id.select(&self.coindays_consumed).cumulative.height;
-            let stored = id.select_mut(&mut self.coindays_stored);
-            let activity = id.select_mut(&mut self.activity_sources);
-            let source_end = created.len().min(consumed.len());
-            let mut start = prepare_computed(
-                [stored.stored_mut(), activity],
-                created.version() + consumed.version(),
-                usize::from(starting_height).min(source_end),
+            let RangeVecs {
+                coindays_consumed,
+                wakefulness_source: wakefulness,
+                ..
+            } = id.select_mut(&mut self.ranges);
+            wakefulness.compute_transform2(
+                starting_height,
+                *created,
+                &coindays_consumed.cumulative.height,
+                |(_, created, consumed, ..)| {
+                    debug_assert!(
+                        consumed <= created,
+                        "coin days consumed exceed those created"
+                    );
+                    BoundedRatio::from(f64::from(consumed) / f64::from(created))
+                },
                 exit,
             )?;
-            // Persist the common rewind before appending either output.
-            let mut end = start;
-            loop {
-                let mut consumed = consumed.collect_range_at(start, end).into_iter();
-                created.fold_range_at(start, end, (), |(), created| {
-                    let consumed = consumed.next().unwrap();
-                    stored.cumulative.height.push(
-                        created
-                            .checked_sub(consumed)
-                            .expect("coindays stored underflow"),
-                    );
-                    activity.push(BoundedRatio::from(f64::from(consumed) / f64::from(created)));
-                });
-                let _lock = exit.lock();
-                stored.write()?;
-                activity.write()?;
-                if end == source_end {
-                    break;
-                }
-                start = end;
-                end = stored
-                    .cumulative
-                    .height
-                    .batch_end(source_end)
-                    .min(activity.batch_end(source_end));
-            }
         }
         Ok(())
     }

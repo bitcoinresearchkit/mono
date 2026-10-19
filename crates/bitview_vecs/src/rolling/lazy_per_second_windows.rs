@@ -1,14 +1,14 @@
-use bitview_collections::Windows;
 use bitview_primitives::{Count, PerSecond};
-use bitview_transforms::CountPerSecond;
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use derive_more::{Deref, DerefMut};
 
-use crate::{LazyPerBlock, LazyRollingSumFromHeight, LazyRollingSumsFromHeight};
+use crate::{
+    LazyPerBlock, LazyRollingSumFromHeight, LazyRollingSumsFromHeight, ops::CountPerSecond,
+    shapes::Windows,
+};
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyPerSecondWindows(
     /// Per-second average over a trailing window: the window's total
     /// count divided by its fixed duration in seconds. The divisor remains the

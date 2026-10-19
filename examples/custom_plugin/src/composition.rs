@@ -1,8 +1,9 @@
 use bitview::QueryPluginSet;
 use bitview_default::DefaultPlugins;
-use bitview_plugin::{ComputePlugin, ImportContext, Publication, UpdateContext};
+use bitview_plugin::{
+    BootstrapAction, ComputePlugin, ComputePluginSet, ImportContext, PluginSet, UpdateContext,
+};
 use bitview_plugin_indexer::HasIndexer;
-use bitview_runtime::{BootstrapAction, ComputePluginSet, PluginSet};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_reader::Reader;
@@ -33,7 +34,7 @@ impl Plugins {
         let indexer = self.defaults.indexer();
         self.near_full_blocks.compute(
             Dependencies {
-                safe_height: indexer.safe_lengths().height,
+                from: indexer.compute_start().height,
                 block_weights: &indexer.vecs().blocks.weight,
             },
             context,
@@ -50,10 +51,6 @@ impl QueryPluginSet for Plugins<Ro> {
 }
 
 impl ComputePluginSet for Plugins {
-    fn publication(&self) -> &Publication {
-        self.defaults.publication()
-    }
-
     fn bootstrap_compute(&mut self, context: UpdateContext<'_>) -> Result<BootstrapAction> {
         self.defaults
             .bootstrap_compute(context)?
@@ -67,5 +64,9 @@ impl ComputePluginSet for Plugins {
 
     fn commit(&mut self, complete: bool) -> Result<()> {
         self.defaults.commit(complete)
+    }
+
+    fn write_published(&mut self) -> Result<()> {
+        self.defaults.write_published()
     }
 }

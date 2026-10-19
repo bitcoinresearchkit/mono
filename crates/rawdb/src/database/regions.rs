@@ -33,10 +33,6 @@ impl Regions {
         self.by_id.get(id)
     }
 
-    fn iter(&self) -> impl Iterator<Item = &Region> {
-        self.by_id.values()
-    }
-
     pub(crate) fn ids(&self) -> impl Iterator<Item = &str> {
         self.by_id.keys().map(|id| id.as_ref())
     }
@@ -86,7 +82,8 @@ impl Regions {
 
     pub(crate) fn shrink_to_fit(&mut self) -> Result<()> {
         let len = self
-            .iter()
+            .by_id
+            .values()
             .map(|region| region.index() + 1)
             .max()
             .unwrap_or(0);
@@ -95,7 +92,7 @@ impl Regions {
     }
 
     pub(crate) fn create(&mut self, db: &Database, id: Arc<str>, start: usize) -> Result<Region> {
-        assert!(
+        debug_assert!(
             !self.by_id.contains_key(id.as_ref()),
             "region ID is already registered"
         );
@@ -142,10 +139,6 @@ impl Regions {
         self.free_indexes.push(Reverse(region.index()));
         self.by_id.remove(region.meta().id());
         self.metadata.clear(region.index());
-    }
-
-    pub(crate) fn flush(&self) -> Result<bool> {
-        self.metadata.flush()
     }
 
     pub(crate) fn update_bounds(&self, index: usize, meta: &RegionMetadata) {

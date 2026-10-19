@@ -2,79 +2,57 @@
 
 Reusable metric vectors and views composed by Bitview plugins.
 
-Plugins compose the vectors in this crate. `vecdb` supplies storage, cache,
-and reader primitives; `bitview_compute` supplies stateful/range algorithms;
-`bitview_transforms` supplies scalar operations; `bitview_collections` and
-`bitview_cohort` supply typed shapes. None of those crates depends on this one.
+`vecdb` supplies storage, cache and reader primitives (including `LazyVec` and
+`LazyDeltaVec`); `bitview_compute` supplies range and stateful algorithms. Neither
+depends on this crate. Cohort shapes and cohort families belong to `bitview_cohort`
+and `bitview_distribution`.
 
 ## Layout
 
-- `views`: single-source readers with aligned metadata and no retained result cache.
-- `sources`: shared index and window-start readers.
-- `resolutions`: composition of a height source into time and chain resolutions.
-- `block`, `tx`: metric families organized by their source index.
-- `rolling`: rolling and delta compositions.
-- `value`, `fiat`, `fixed_ratio`, `ratio`: unit-specific compositions.
-- `cohort`: cohort sources, aggregates, and typed count breakdowns.
+- `shapes` (public): typed field groups (resolutions, windows, percentiles, lookback
+  periods, percent views). They hold values; they do not import vectors or choose
+  cache policy.
+- `ops` (public): stateless, element-wise value transforms (currency conversion,
+  ratios, arithmetic) implementing vecdb's unary, binary or delta interfaces with only
+  the numeric bounds they need. Generic adapters (`Ident`, `Convert`, `MapOption`,
+  `ReverseOperands`) belong to vecdb.
+- `views`: lazy readers over source vectors and aligned metadata (`LazyIndexedVec`,
+  `LazyLookbackVec`, `LazyPreviousDeltaVec`, `LazyRollingRatioVec`). Range reads work
+  through bounded input batches; sorted reads gather the requested positions.
+- `sources`: index readers (`IndexSources`, `RangeMapVec`), window starts
+  (`LazyWindowStartVec`), cached stored series (`CachedSeries`) and running totals
+  (`CumulativeSource`).
+- `resolutions`: a height source per time and chain resolution (`Resolutions`,
+  `LazyAggVec` with its `AggFold` strategies, `LazyIndexes`, `DerivedResolutions`).
+- `block`: per-block families, stored and lazy, with cumulative, rolling and delta
+  views; percentile and density columns; per-type entry counts.
+- `rolling`: rolling sums, averages, deltas and distributions from height sources.
+- `value`, `fiat`, `percent`, `ratio`: unit-specific compositions (`Price`,
+  `PriceWithRatio`, `PriceWithMvrv`, `CostBasisMeans`, `count_and_share`, ...).
 
-Modules are private; the crate root exposes the supported types. Files are
-named relative to their parent module (for example, `block/rolling.rs`, not
-`block/block_rolling.rs`) and define at most one public struct.
-Small implementation-only helpers stay private to their owner or family.
+Other modules are private; the crate root exposes the supported types.
 
 ## Composition
 
-Larger families retain their components: `PriceWithRatio` owns a price and
-its lazy ratio; cumulative families share `RollingTotals`/`RollingAmountTotals`;
-`ValuePerBlockFull` adds distribution to the cumulative/rolling value family.
-Traversal flattening preserves the public field layout without copying those
-components' fields into every wrapper.
+Larger families retain their components: `PriceWithRatio` owns a price and its stored
+ratio (`PriceWithMvrv` adds the ratio's MVRV id); `CostBasisMeans` adds a cohort's
+percentile views, owned and computed elsewhere, to its means. Traversal flattening keeps
+the public field layout without copying the components' fields into every wrapper.
 
-`Price` is the shared USD/cents/sats shape for stored, lazy, daily, and OHLC
-views. Its field types retain integer versus fractional sats and each sampling
-policy. `SpotPrice`, `OhlcPrice`, and `SplitPrice` own reusable price construction;
-plugins retain provider policy. Investment-specific stacks retain the existing
-`LazySpotValuePerBlock` instead of redeclaring its four unit fields.
-Opening-price views batch first-price lookups (or the preceding close for empty
-periods) directly against the shared spot source; they do not build full candles.
-
-`CohortSources<G, T>` stores one independently cached series per cohort of a
-`bitview_cohort::CohortGroup` (creation: age/epoch/class; UTXO: amount/type);
-`CumulativeCohortSources` and `CumulativeCohortValueSources` store running
-totals and sats/cents pairs with shared writer-checkpoint handling. Logical
-membership and value collections remain in `bitview_cohort`. Plugins keep these
-sources separate from public views, which reuse the source cache. Amount views
-compose the same block families.
-
-`TypeCounts` composes a typed breakdown with `CountTotal`. Plugins select the
-total's adjustment and retention, including coinbase exclusion; vector assembly
-does not infer those business rules. OHLC, daily percentile prices, mapping
-readers, and integer-cent SMA readers also live here; their plugins retain
-provider, calendar, percentile-selection, and period-selection policy.
+`Price` is the shared USD-over-cents shape for stored, lazy and per-resolution price
+views; its field types keep each sampling policy. The spot price, its candles and their
+open/high/low/close views belong to `bitview_plugin_price`.
 
 ## Ownership
 
-Source owners select optional, budgeted range retention. The application initializes
-vecdb's process-wide budget once before importing sources; constructors do not
-forward budget arguments. `CachedSeries` makes the opt-in explicit. Stored height
-sources and daily sources without a stored height counterpart can retain selected
-ranges; transaction-index vectors stay uncached.
+Source owners opt into budgeted range retention with `CachedSeries`. The application
+initializes vecdb's process-wide budget once before importing sources; constructors do
+not forward budget arguments. Transaction-index vectors stay uncached.
 
-Views borrow cloneable readers at construction and retain read-only clones;
-they do not create another cache for each resolution or metric. Read retention
-is always evictable; computation working data belongs to the plugin and is
-passed through its computation context, not held alive by a cache policy.
+Views keep read-only clones of their inputs and create no cache of their own. Read
+retention is always evictable; computation working data belongs to the plugin. Range
+reads use bounded scratch and finish each batch's secondary reads before borrowing source
+chunks, since a source may hold a non-reentrant publication lock while lending them.
 
-Date, first-height, and lookback readers derive their results directly from
-monotonic stored sources. Period lookups seek to the requested boundary before
-scanning. SMA readers share one stored cumulative-price source. Per-type input
-and output counts store cumulative `u64` totals, with block counts derived by
-subtraction. Neither needs reader-owned prefix checkpoints or revision tokens.
-Rolling and ratio readers request only the needed source ranges, including on
-a cold budgeted cache. Ordinary stored-vector recomputation and source-owned
-invalidation handle appends and rewrites.
-
-Writer-only cumulative checkpoints use `StorageMode::WriteOnly`, so read-only
-handles contain no unused checkpoint payload. Exposing mutable storage invalidates
-their writer checkpoint. Count-total and transformed-denominator views read
-their sources directly and need no separate invalidation after rewrites.
+Writer-only state such as a running total's last value uses `StorageMode::WriteOnly`, so
+read-only handles carry none of it.

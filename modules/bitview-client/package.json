@@ -4,7 +4,7 @@
   },
   "description": "Bitcoin on-chain analytics client — thousands of metrics, block explorer, and address index",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.3"
   },
   "exports": {
     ".": "./index.js"

@@ -1,34 +1,36 @@
 use std::{collections::VecDeque, iter::repeat_n};
 
-use bitview_compute::{ExactOrderStats, FenwickTree, NumericValue, prepare_computed};
-use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{PartsPerMillion32, Rank};
+use bitview_compute::{
+    ExactOrderStats, FenwickTree, NumericValue, WRITE_INTERVAL, nearest_rank, prepare_computed,
+    write_locked,
+};
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
-use bitview_vecs::{FixedRatioPerBlock, IndexSources, PerBlock};
+use bitview_vecs::{IndexSources, PerBlock, PercentPerBlock};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec};
+use vecdb::{Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec};
 
 use crate::threshold_vecs::ThresholdVecs;
 
 const MIN_HISTORY_BLOCKS: usize = 210_000;
-const WRITE_INTERVAL: usize = 10_000;
 /// Above this many missing outputs, coordinate compression is faster than
 /// applying exact live updates one at a time.
 const BULK_BACKFILL_THRESHOLD: usize = 10_000;
-const BANDS: [(f64, u8); 3] = [(0.00025, 3), (0.0005, 2), (0.001, 1)];
+/// The highlighted tail shares, rarest first.
+const TAILS: [f64; 3] = [0.00025, 0.0005, 0.001];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum WindowKind {
     Full,
     Rolling(usize),
 }
 
 #[derive(Clone, Copy)]
-struct Config {
+pub(super) struct Config {
     upper_tail: bool,
     window: WindowKind,
     positive_only: bool,
@@ -40,19 +42,19 @@ impl Config {
     }
 }
 
-const REALIZED: Config = Config {
+pub(super) const REALIZED: Config = Config {
     upper_tail: true,
     window: WindowKind::Full,
     positive_only: false,
 };
 
-const COINS_IN_LOSS: Config = Config {
+pub(super) const COINS_IN_LOSS: Config = Config {
     upper_tail: true,
     window: WindowKind::Full,
     positive_only: true,
 };
 
-const SELLER_EXHAUSTION: Config = Config {
+pub(super) const SELL_SIDE_RISK: Config = Config {
     upper_tail: false,
     window: WindowKind::Rolling(MIN_HISTORY_BLOCKS),
     positive_only: true,
@@ -60,8 +62,8 @@ const SELLER_EXHAUSTION: Config = Config {
 
 /// Historical extremeness of one metric.
 ///
-/// `tail` is the represented observation's top- or bottom-tail share, the three
-/// `threshold` fields are the highlight boundaries, and `rank` is 0 through 3.
+/// `tail_share` is the represented observation's top- or bottom-tail share and the three
+/// `thresholds` are the highlight boundaries.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Extreme<T, M: StorageMode = Rw>
 where
@@ -69,7 +71,6 @@ where
 {
     #[deref]
     #[deref_mut]
-    #[traversable(flatten)]
     /// Source values corresponding to rare historical tail probabilities before
     /// the represented observation. An upper-tail event is extreme at or above
     /// its boundary; a lower-tail event is extreme at or below it. The series'
@@ -79,12 +80,7 @@ where
     /// extreme as the represented source value in the configured upper or lower
     /// tail. A smaller percentage means a rarer observation. The represented
     /// observation is included in both numerator and denominator.
-    pub tail: FixedRatioPerBlock<PartsPerMillion32, M>,
-    /// Discrete extremeness rank, where a higher value means a rarer event: 3 at
-    /// or beyond the 0.025% tail boundary, 2 at or beyond 0.05%, 1 at or beyond
-    /// 0.1%, and 0 otherwise or while unavailable. The series' model determines
-    /// whether boundaries are crossed upward or downward.
-    pub rank: PerBlock<Rank, M>,
+    pub tail_share: PercentPerBlock<PartsPerMillion32, M>,
 
     history: M::WriteOnly<LiveHistory>,
 }
@@ -99,23 +95,18 @@ where
         version: Version,
         mappings: &IndexSources,
     ) -> Result<Self> {
-        let version = version + Version::ONE;
+        let version = version + Version::TWO;
         let thresholds = ThresholdVecs {
-            threshold_pct0_1: PerBlock::import(
+            tail0_1: PerBlock::import(db, &format!("{name}_threshold_tail0_1"), version, mappings)?,
+            tail0_05: PerBlock::import(
                 db,
-                &format!("{name}_threshold_pct0_1"),
+                &format!("{name}_threshold_tail0_05"),
                 version,
                 mappings,
             )?,
-            threshold_pct0_05: PerBlock::import(
+            tail0_025: PerBlock::import(
                 db,
-                &format!("{name}_threshold_pct0_05"),
-                version,
-                mappings,
-            )?,
-            threshold_pct0_025: PerBlock::import(
-                db,
-                &format!("{name}_threshold"),
+                &format!("{name}_threshold_tail0_025"),
                 version,
                 mappings,
             )?,
@@ -123,45 +114,17 @@ where
 
         Ok(Self {
             thresholds,
-            tail: FixedRatioPerBlock::import(db, &format!("{name}_tail"), version, mappings)?,
-            rank: PerBlock::import(db, &format!("{name}_rank"), version, mappings)?,
+            tail_share: PercentPerBlock::import(
+                db,
+                &format!("{name}_tail_share"),
+                version,
+                mappings,
+            )?,
             history: LiveHistory::new(),
         })
     }
 
-    pub fn compute_coins_in_loss(
-        &mut self,
-        indexer: &Indexer,
-        source: &impl ReadableVec<Height, T>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.compute(indexer.safe_lengths().height, source, COINS_IN_LOSS, exit)
-    }
-
-    pub fn compute_realized(
-        &mut self,
-        indexer: &Indexer,
-        source: &impl ReadableVec<Height, T>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.compute(indexer.safe_lengths().height, source, REALIZED, exit)
-    }
-
-    pub fn compute_seller_exhaustion(
-        &mut self,
-        indexer: &Indexer,
-        source: &impl ReadableVec<Height, T>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.compute(
-            indexer.safe_lengths().height,
-            source,
-            SELLER_EXHAUSTION,
-            exit,
-        )
-    }
-
-    fn compute(
+    pub(super) fn compute(
         &mut self,
         starting_height: Height,
         source: &impl ReadableVec<Height, T>,
@@ -170,20 +133,13 @@ where
     ) -> Result<()> {
         let source_end = source.len();
         let start = prepare_computed(
-            [
-                &mut self.thresholds.threshold_pct0_1.height as &mut dyn AnyStoredVec,
-                &mut self.thresholds.threshold_pct0_05.height,
-                &mut self.thresholds.threshold_pct0_025.height,
-                &mut self.tail.ppm.height,
-                &mut self.rank.height,
-            ],
+            self.iter_any_stored_mut().collect::<Vec<_>>(),
             source.version(),
             starting_height.to_usize().min(source_end),
             exit,
         )?;
-        self.write(exit)?;
 
-        if source_end.saturating_sub(start) > BULK_BACKFILL_THRESHOLD {
+        if source_end - start > BULK_BACKFILL_THRESHOLD {
             self.compute_bulk(source, start, source_end, config, exit)
         } else {
             self.compute_incremental(source, start, source_end, config, exit)
@@ -231,7 +187,6 @@ where
         Ok(())
     }
 
-    /// Preserve the coordinate-compressed Fenwick path for large backfills.
     fn compute_bulk(
         &mut self,
         source: &impl ReadableVec<Height, T>,
@@ -285,23 +240,21 @@ where
     }
 
     fn push_state(&mut self, state: EventState) {
-        self.thresholds
-            .threshold_pct0_1
-            .height
-            .push(T::from(state.thresholds.pct0_1));
-        self.thresholds
-            .threshold_pct0_05
-            .height
-            .push(T::from(state.thresholds.pct0_05));
-        self.thresholds
-            .threshold_pct0_025
-            .height
-            .push(T::from(state.thresholds.pct0_025));
-        self.tail
-            .ppm
+        let ThresholdVecs {
+            tail0_1,
+            tail0_05,
+            tail0_025,
+        } = &mut self.thresholds;
+        for (vec, threshold) in [tail0_1, tail0_05, tail0_025]
+            .into_iter()
+            .zip(state.thresholds)
+        {
+            vec.height.push(T::from(threshold));
+        }
+        self.tail_share
+            .fixed
             .height
             .push(PartsPerMillion32::from(state.tail));
-        self.rank.height.push(Rank::new(state.rank));
     }
 
     fn write_if_needed(
@@ -311,23 +264,12 @@ where
         exit: &Exit,
     ) -> Result<()> {
         if (height_index + 1).is_multiple_of(WRITE_INTERVAL) || height_index + 1 == source_end {
-            self.write(exit)?;
+            write_locked(self.iter_any_stored_mut(), exit)?;
         }
-        Ok(())
-    }
-
-    fn write(&mut self, exit: &Exit) -> Result<()> {
-        let _lock = exit.lock();
-        for v in self.thresholds.iter_mut() {
-            v.height.write()?;
-        }
-        self.tail.ppm.height.write()?;
-        self.rank.height.write()?;
         Ok(())
     }
 }
 
-#[derive(Clone)]
 enum HistoryWindow<T> {
     Full,
     Rolling { values: VecDeque<T>, limit: usize },
@@ -371,7 +313,7 @@ impl<'a> CoordinateHistory<'a> {
     fn new(coordinates: &'a [f64], window: WindowKind) -> Self {
         Self {
             coordinates,
-            tree: FenwickTree::new(coordinates.len().max(1)),
+            tree: FenwickTree::new(coordinates.len()),
             len: 0,
             window: HistoryWindow::new(window),
         }
@@ -479,14 +421,17 @@ impl LiveHistory {
 
         self.stats.insert(value);
         if let Some(expired) = self.window.push(value) {
-            assert!(self.stats.remove(expired));
+            // A value expires from the window that took it in.
+            let removed = self.stats.remove(expired);
+            debug_assert!(removed, "expired value not in the history");
         }
     }
 }
 
 trait HistoryStats {
     fn len(&self) -> usize;
-    fn quantile(&self, percentile: f64) -> f64;
+    /// Percentiles (ascending) at the nearest rank, in one lookup.
+    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3];
     fn tail(&self, value: f64, upper: bool) -> f64;
 }
 
@@ -495,10 +440,11 @@ impl HistoryStats for CoordinateHistory<'_> {
         self.len
     }
 
-    fn quantile(&self, percentile: f64) -> f64 {
-        let target = ((self.len - 1) as f64 * percentile).floor();
-        let index = self.tree.kth([target], &|count: &f64| *count);
-        self.coordinates[index[0]]
+    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3] {
+        let targets = ps.map(|p| nearest_rank(self.len, p) as f64);
+        self.tree
+            .kth(targets, &|count: &f64| *count)
+            .map(|bucket| self.coordinates[bucket])
     }
 
     fn tail(&self, value: f64, upper: bool) -> f64 {
@@ -520,79 +466,50 @@ impl HistoryStats for CoordinateHistory<'_> {
 
 impl HistoryStats for LiveHistory {
     fn len(&self) -> usize {
-        self.stats.len()
+        self.stats.count()
     }
 
-    fn quantile(&self, percentile: f64) -> f64 {
-        let index = ((self.stats.len() - 1) as f64 * percentile).floor() as usize;
-        self.stats.kth(index)
+    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3] {
+        self.stats.percentiles(ps)
     }
 
     fn tail(&self, value: f64, upper: bool) -> f64 {
         let count = if upper {
-            self.stats.len() - self.stats.count_lt(value)
+            self.stats.count() - self.stats.count_lt(value)
         } else {
             self.stats.count_le(value)
         };
-        (count as f64 + 1.0) / (self.stats.len() as f64 + 1.0)
+        (count as f64 + 1.0) / (self.stats.count() as f64 + 1.0)
     }
 }
 
 struct EventState {
-    thresholds: EventThresholds,
+    /// The 0.1%, 0.05% and 0.025% tail thresholds, as the outputs take them.
+    thresholds: [f64; 3],
     tail: f64,
-    rank: u8,
-}
-
-struct EventThresholds {
-    pct0_1: f64,
-    pct0_05: f64,
-    pct0_025: f64,
 }
 
 impl EventState {
     fn missing() -> Self {
         Self {
-            thresholds: EventThresholds {
-                pct0_1: f64::NAN,
-                pct0_05: f64::NAN,
-                pct0_025: f64::NAN,
-            },
+            thresholds: [f64::NAN; 3],
             tail: f64::NAN,
-            rank: 0,
         }
     }
 
     fn new(value: f64, history: &impl HistoryStats, config: Config) -> Self {
-        let percentile = |tail: f64| {
-            if config.upper_tail { 1.0 - tail } else { tail }
+        // Lookups take ascending percentiles: the rarest tail comes last in the upper tail.
+        let [rarest, rarer, rare] = TAILS;
+        let thresholds = if config.upper_tail {
+            history.percentiles([1.0 - rare, 1.0 - rarer, 1.0 - rarest])
+        } else {
+            let mut thresholds = history.percentiles([rarest, rarer, rare]);
+            thresholds.reverse();
+            thresholds
         };
-        let boundary = |tail: f64| history.quantile(percentile(tail));
-        let thresholds = EventThresholds {
-            pct0_1: boundary(BANDS[2].0),
-            pct0_05: boundary(BANDS[1].0),
-            pct0_025: boundary(BANDS[0].0),
-        };
-        let rank = [
-            (thresholds.pct0_025, BANDS[0].1),
-            (thresholds.pct0_05, BANDS[1].1),
-            (thresholds.pct0_1, BANDS[2].1),
-        ]
-        .into_iter()
-        .find_map(|(boundary, rank)| {
-            let reached = if config.upper_tail {
-                value >= boundary
-            } else {
-                value <= boundary
-            };
-            reached.then_some(rank)
-        })
-        .unwrap_or_default();
-
         Self {
             thresholds,
             tail: history.tail(value, config.upper_tail),
-            rank,
         }
     }
 }

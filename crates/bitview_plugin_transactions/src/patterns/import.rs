@@ -1,11 +1,11 @@
-use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling};
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::{Database, EagerVec, ImportableVec};
+use vecdb::Database;
 
-use super::{CountVecs, Flags, Vecs};
+use super::Vecs;
+use crate::flagged::Classified;
 
 impl Vecs {
     pub(crate) fn import(
@@ -15,19 +15,12 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let count =
-            |name| PerBlockCumulativeRolling::import(db, name, version, mappings, window_starts);
+        let pattern =
+            |flag, count| Classified::import(db, flag, count, version, mappings, window_starts);
         Ok(Vecs {
-            count: CountVecs {
-                coinjoin: count("coinjoin_count")?,
-                consolidation: count("consolidation_count")?,
-                batch_payout: count("batch_payout_count")?,
-            },
-            flags: Flags {
-                is_coinjoin: EagerVec::import(db, "is_coinjoin", version)?,
-                is_consolidation: EagerVec::import(db, "is_consolidation", version)?,
-                is_batch_payout: EagerVec::import(db, "is_batch_payout", version)?,
-            },
+            coinjoin: pattern("is_coinjoin", "coinjoin_tx_count")?,
+            consolidation: pattern("is_consolidation", "consolidation_tx_count")?,
+            batch_payout: pattern("is_batch_payout", "batch_payout_tx_count")?,
         })
     }
 }

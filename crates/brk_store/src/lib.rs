@@ -1,10 +1,19 @@
 #![doc = include_str!("../README.md")]
 
-use std::{cmp::Ordering, fs, hash::Hash, ops::Range, path::Path};
+use std::{
+    cmp::Ordering,
+    fs,
+    hash::Hash,
+    marker::PhantomData,
+    ops::{Bound, RangeBounds},
+    path::Path,
+};
 
 use brk_error::Result;
 use brk_types::{StoreValue, Version};
-use fjall::{Database, FORMAT_VERSION, Keyspace, KeyspaceCreateOptions, RecordBytes, config::*};
+use fjall::{
+    Database, FORMAT_VERSION, Keyspace, KeyspaceCreateOptions, ReadView, RecordBytes, config::*,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 mod any;
@@ -13,6 +22,8 @@ mod kind;
 mod meta;
 mod pending;
 mod pending_ingest;
+#[cfg(test)]
+mod tests;
 
 use item::Item;
 use meta::checked_open;
@@ -120,11 +131,6 @@ where
     }
 
     #[inline]
-    pub fn is_empty(&self) -> Result<bool> {
-        self.keyspace.is_empty().map_err(|e| e.into())
-    }
-
-    #[inline]
     pub fn insert(&mut self, key: K, value: V) {
         self.pending.insert(key, value);
     }
@@ -134,54 +140,35 @@ where
         self.pending.remove(key);
     }
 
-    /// Takes buffered puts/dels and returns a closure that ingests them into the keyspace.
-    /// The store is left with empty buffers, ready for the next batch. The caller must
-    /// persist the database after ingestion before treating the data as durable.
-    pub fn take_pending_ingest(&mut self) -> Option<PendingIngest>
-    where
-        K: Send + 'static,
-        V: Send + 'static,
-    {
-        let pending = self.pending.take();
-
-        if pending.is_empty() {
-            return None;
+    /// Pins the ingested records for later reads. Call it with nothing pending: the view holds
+    /// only ingested records.
+    pub fn view(&self) -> StoreView<K, V> {
+        debug_assert!(
+            self.pending.is_empty(),
+            "a store view excludes pending writes"
+        );
+        StoreView {
+            view: self.keyspace.read_view(),
+            records: PhantomData,
         }
-
-        let keyspace = self.keyspace.clone();
-
-        Some(PendingIngest::new(move || {
-            Self::ingest_owned(&keyspace, pending)
-        }))
     }
 
-    #[inline]
-    pub fn prefix<P: StoreValue>(&self, prefix: P) -> impl DoubleEndedIterator<Item = (K, V)> + '_ {
-        let prefix = prefix.to_store_bytes();
-        self.keyspace
-            .prefix_as::<K::Bytes, V::Bytes>(prefix.as_ref())
-            .map(|result| result.unwrap())
-            .map(|(k, v)| (K::from_store_bytes(k), V::from_store_bytes(v)))
-    }
-
+    /// The ingested records in `range`, storage errors as `Err` items.
     #[inline]
     pub fn range<B: StoreValue>(
         &self,
-        range: Range<B>,
-    ) -> impl DoubleEndedIterator<Item = (K, V)> + '_ {
-        let start = range.start.to_store_bytes();
-        let end = range.end.to_store_bytes();
+        range: impl RangeBounds<B>,
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + '_ {
+        let bytes = |bound: Bound<&B>| bound.map(StoreValue::to_store_bytes);
         self.keyspace
-            .range_as::<K::Bytes, V::Bytes, _, _>(start..end)
-            .map(|result| result.unwrap())
-            .map(|(k, v)| (K::from_store_bytes(k), V::from_store_bytes(v)))
-    }
-
-    fn ingest_owned(keyspace: &Keyspace, pending: Pending<K, V>) -> Result<()> {
-        match pending {
-            Pending::Hashed { puts, dels } => Self::ingest_hashed(keyspace, puts, dels),
-            Pending::Sequential(changes) => Self::ingest_sequential(keyspace, changes),
-        }
+            .range_as::<K::Bytes, V::Bytes, _, _>((
+                bytes(range.start_bound()),
+                bytes(range.end_bound()),
+            ))
+            .map(|result| {
+                let (k, v) = result?;
+                Ok((K::from_store_bytes(k), V::from_store_bytes(v)))
+            })
     }
 
     fn ingest_hashed(keyspace: &Keyspace, puts: FxHashMap<K, V>, dels: FxHashSet<K>) -> Result<()> {
@@ -197,7 +184,7 @@ where
 
         // The buffers are unique and disjoint, and this merge emits them in
         // strict key order, so release builds can skip re-cloning each key.
-        while puts.peek().is_some() || dels.peek().is_some() {
+        loop {
             match (puts.peek(), dels.peek()) {
                 (Some((put_key, _)), Some(del_key)) => match put_key.cmp(del_key) {
                     Ordering::Less => {
@@ -230,28 +217,14 @@ where
         // Equal-key operations must retain their arrival order.
         changes.sort_by(|left, right| left.key().cmp(right.key()));
 
-        let mut changes = changes.into_iter().peekable();
-        let mut pending = None;
         let mut ingestion = keyspace.start_ingestion_as::<K::Bytes, V::Bytes>()?;
-        while let Some(change) = changes.next() {
-            let same_key_follows = changes
-                .peek()
-                .is_some_and(|next| next.key() == change.key());
-            change.apply_to(&mut pending);
-
-            if same_key_follows {
-                continue;
-            }
-
-            if let Some(pending) = pending.take() {
-                match pending {
-                    Item::Value { key, value } => {
-                        ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
-                    }
-                    Item::Tomb(key) => {
-                        ingestion.write_weak_tombstone(key.to_store_bytes())?;
-                    }
+        for same_key in changes.chunk_by(|left, right| left.key() == right.key()) {
+            match Item::reduce(same_key) {
+                Some(Item::Value { key, value }) => {
+                    ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
                 }
+                Some(Item::Tomb(key)) => ingestion.write_weak_tombstone(key.to_store_bytes())?,
+                None => {}
             }
         }
 
@@ -260,26 +233,68 @@ where
     }
 }
 
+/// A store's ingested records pinned at one moment: later writes and ingestions stay invisible
+/// to it, and the tables it reads stay on disk while it lives.
+pub struct StoreView<K, V> {
+    view: ReadView,
+    records: PhantomData<fn() -> (K, V)>,
+}
+
+impl<K, V> Clone for StoreView<K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            view: self.view.clone(),
+            records: PhantomData,
+        }
+    }
+}
+
+impl<K, V> StoreView<K, V>
+where
+    K: StoreValue,
+    V: StoreValue,
+    K::Bytes: RecordBytes,
+    V::Bytes: RecordBytes,
+{
+    /// The pinned records under `prefix`, storage errors as `Err` items.
+    #[inline]
+    pub fn prefix<P: StoreValue>(
+        &self,
+        prefix: P,
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + use<K, V, P> {
+        self.view
+            .prefix_as::<K::Bytes, V::Bytes>(prefix.to_store_bytes().as_ref())
+            .map(|result| {
+                let (k, v) = result?;
+                Ok((K::from_store_bytes(k), V::from_store_bytes(v)))
+            })
+    }
+}
+
 impl<K, V> AnyStore for Store<K, V>
 where
-    K: StoreValue + Ord + Hash,
-    V: StoreValue,
+    K: StoreValue + Ord + Hash + Send + 'static,
+    V: StoreValue + Send + 'static,
     K::Bytes: RecordBytes,
     V::Bytes: RecordBytes,
     Self: Send + Sync,
 {
-    fn ingest_pending(&mut self) -> Result<()> {
+    fn is_empty(&self) -> Result<bool> {
+        self.keyspace.is_empty().map_err(|e| e.into())
+    }
+
+    fn take_pending_ingest(&mut self) -> Option<PendingIngest> {
         let pending = self.pending.take();
 
         if pending.is_empty() {
-            return Ok(());
+            return None;
         }
 
-        Self::ingest_owned(&self.keyspace, pending)?;
+        let keyspace = self.keyspace.clone();
 
-        Ok(())
+        Some(PendingIngest::new(move || match pending {
+            Pending::Hashed { puts, dels } => Self::ingest_hashed(&keyspace, puts, dels),
+            Pending::Sequential(changes) => Self::ingest_sequential(&keyspace, changes),
+        }))
     }
 }
-
-#[cfg(test)]
-mod tests;

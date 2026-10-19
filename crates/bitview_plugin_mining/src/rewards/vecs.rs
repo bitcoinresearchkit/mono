@@ -1,11 +1,9 @@
-use bitview_primitives::{PartsPerMillion32, PartsPerMillion64};
+use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFixedRatioCumulativeRolling, LazyFixedRatioRollingWindows, ValuePerBlockCumulative,
-    ValuePerBlockCumulativeRolling, ValuePerBlockFull,
+    LazyPercentCumulativeRolling, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
 };
-use brk_types::{Height, Sats};
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -13,34 +11,25 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// the miner reward actually assigned to coinbase outputs, not the total
     /// reward available.
     pub coinbase: ValuePerBlockCumulativeRolling<M>,
-    /// Coinbase output value minus the block's total transaction fees. This is
-    /// a derived subsidy component, not the scheduled consensus subsidy, and
-    /// can be lower when the miner leaves some available reward unclaimed.
+    /// Coinbase output value minus the block's total transaction fees, floored
+    /// at zero. This is a derived subsidy component, not the scheduled
+    /// consensus subsidy, and can be lower when the miner leaves some available
+    /// reward unclaimed.
     pub subsidy: ValuePerBlockCumulativeRolling<M>,
     /// Sum of input value minus output value across the block's non-coinbase
     /// transactions.
     pub fees: ValuePerBlockFull<M>,
-    /// Sum of the output values of the block's non-coinbase transactions,
-    /// equivalently their total input value minus transaction fees. Reported
-    /// in satoshis.
-    pub output_volume: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
     /// Portion of the available block reward not assigned to coinbase outputs:
     /// scheduled subsidy plus transaction fees minus coinbase output value.
-    pub unclaimed: ValuePerBlockCumulative<M>,
-    /// Transaction fees divided by coinbase output value. Cumulative variants
-    /// use cumulative totals; rolling variants use totals within the trailing
-    /// window. Larger values mean fees supplied more of the miner revenue.
-    #[traversable(wrap = "fees", rename = "dominance")]
-    pub fee_dominance: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
-    /// One minus fee dominance, equivalently the derived subsidy component
-    /// divided by coinbase output value. Cumulative variants use cumulative
-    /// totals; rolling variants use totals within the trailing window. Larger
-    /// values mean the derived subsidy supplied more of the miner revenue.
-    #[traversable(wrap = "subsidy", rename = "dominance")]
-    pub subsidy_dominance: LazyFixedRatioCumulativeRolling<PartsPerMillion32>,
-    /// Total transaction fees in the trailing window divided by the total
-    /// derived subsidy component in the same window. Values above one mean fees
-    /// exceeded the derived subsidy; values below one mean the reverse.
-    #[traversable(wrap = "fees", rename = "to_subsidy")]
-    pub fee_to_subsidy: LazyFixedRatioRollingWindows<PartsPerMillion64>,
+    pub unclaimed: ValuePerBlockCumulativeRolling<M>,
+    /// One minus the subsidy share: the claimed fees divided by coinbase output
+    /// value. Cumulative variants use cumulative totals; rolling variants use
+    /// totals within the trailing window.
+    #[traversable(wrap = "fees", rename = "share")]
+    pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
+    /// The derived subsidy component divided by coinbase output value.
+    /// Cumulative variants use cumulative totals; rolling variants use totals
+    /// within the trailing window.
+    #[traversable(wrap = "subsidy", rename = "share")]
+    pub subsidy_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }

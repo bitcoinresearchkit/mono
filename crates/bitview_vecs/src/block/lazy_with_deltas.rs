@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::{FixedRatio, NumericValue};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
@@ -6,7 +5,7 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{Ident, ReadableCloneableVec};
 
-use crate::{IndexSources, LazyPerBlock, LazyRollingDeltasFromHeight};
+use crate::{IndexSources, LazyPerBlock, LazyRollingDeltasFromHeight, shapes::Windows};
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyPerBlockWithDeltas<S, C, B>
@@ -17,7 +16,7 @@ where
 {
     #[deref]
     #[deref_mut]
-    base: LazyPerBlock<S>,
+    block: LazyPerBlock<S>,
     delta: LazyRollingDeltasFromHeight<S, C, B>,
 }
 
@@ -35,14 +34,14 @@ where
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Self {
-        let base = LazyPerBlock::from_height_source::<Ident>(name, version, source, indexes);
+        let block = LazyPerBlock::from_height_source::<Ident>(name, version, source, indexes);
         let delta = LazyRollingDeltasFromHeight::new(
             &format!("{name}_delta"),
             version + delta_version_offset,
-            &base.height,
+            &block.height,
             window_starts,
             indexes,
         );
-        Self { base, delta }
+        Self { block, delta }
     }
 }

@@ -31,14 +31,14 @@ impl Args {
             }
             if let Some(rest) = a.strip_prefix("--") {
                 let (key, value) = match rest.split_once('=') {
-                    Some((k, v)) => (k.to_string(), v.to_string()),
+                    Some((k, v)) => (k, v.to_string()),
                     None => (
-                        rest.to_string(),
+                        rest,
                         iter.next()
                             .ok_or_else(|| Error::Parse(format!("--{rest} requires a value")))?,
                     ),
                 };
-                match key.as_str() {
+                match key {
                     "bitcoindir" => connect.bitcoindir = Some(PathBuf::from(value)),
                     "blocksdir" => connect.blocksdir = Some(PathBuf::from(value)),
                     "rpcconnect" => connect.rpcconnect = Some(value),

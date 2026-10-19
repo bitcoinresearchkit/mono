@@ -4,8 +4,8 @@
 use std::mem;
 
 use base::{
-    ChangeCursor, ChangeData, ReadOnlyBaseVec, ReadWriteBaseVec, remove_vec_with, vec_region_name,
-    vec_region_name_with,
+    ChangeCursor, ChangeData, ReadOnlyBaseVec, ReadWriteBaseVec, SharedLen, WithPrev,
+    remove_vec_with, vec_region_name, vec_region_name_with,
 };
 use variants::*;
 
@@ -30,9 +30,10 @@ mod stamp;
 mod traits;
 mod variants;
 mod version;
+mod window_read;
 
 pub(crate) use base::HEADER_OFFSET;
-pub use base::{Format, Header, ImportOptions, SharedLen, WithPrev};
+pub use base::{Format, Header, ImportOptions};
 pub use bytes::Bytes;
 
 pub use cursor::Cursor;
@@ -44,36 +45,37 @@ pub use iterators::ValueWriter;
 
 pub use ops::{BinaryTransform, CheckedSub, ReverseOperands, SaturatingAdd};
 
-pub use read_bounds::{BoundedVec, BoundedWriter, ReadBounds};
+pub use read_bounds::{BoundedVec, BoundedWriter, ReadBounds, ReadScope, visible_len};
 pub use sparse_read::SparseRead;
 
 pub use stamp::Stamp;
 
 pub use traits::{
-    AnyExportableVec, AnyReadableVec, AnySerializableVec, AnyStoredVec, AnyVec, AnyVecWithWriter,
-    Formattable, ImportableVec, PrintableIndex, READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableOptionVec, ReadableVec, Ro, Rw, StorageMode, StoredVec, TypedVec,
-    ValueStrategy, VecIndex, VecValue, WritableVec, i64_to_usize, nullable, short_type_name,
+    AnyExportableVec, AnyStoredVec, AnyVec, ComputeVec, Formattable, ImportableVec, PrintableIndex,
+    READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Ro, Rw,
+    StorageMode, StoredVec, TypedVec, ValueStrategy, VecIndex, VecValue, WritableVec,
+    chunk_folds::read_batches, escape_csv_cell, i64_to_usize, nullable, short_type_name,
 };
 
 pub use variants::{
     BytesStrategy, BytesVec, BytesVecReader, BytesVecValue, CompressedRangeCursor,
-    CompressionStrategy, DeltaAvg, DeltaChange, DeltaOp, DeltaRate, DeltaSub, EagerVec,
+    CompressionStrategy, Convert, DeltaAvg, DeltaChange, DeltaOp, DeltaRate, DeltaSub,
     EncodedChunk, Ident, IndexVec, LazyDeltaVec, LazyVec, MapOption, MutableVec, OverflowVec,
     OverflowVecReader, OverflowVecValue, RawRangeCursor, RawStrategy, ReadOnlyCompressedVec,
     ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec, ReadWriteRawVec, UnaryTransform,
     VecReader,
 };
 #[cfg(feature = "lz4")]
-pub use variants::{LZ4Strategy, LZ4Vec, LZ4VecValue};
+pub use variants::{LZ4Strategy, LZ4Vec};
 #[cfg(feature = "pco")]
 pub use variants::{Pco, PcoVec, PcoVecValue, PcodecStrategy};
 #[cfg(feature = "zerocopy")]
 pub use variants::{ZeroCopyStrategy, ZeroCopyVec, ZeroCopyVecValue};
 #[cfg(feature = "zstd")]
-pub use variants::{ZstdStrategy, ZstdVec, ZstdVecValue};
+pub use variants::{ZstdStrategy, ZstdVec};
 
 pub use version::Version;
+pub use window_read::{WindowBatch, WindowBuffers, before_window, before_window_bounds};
 
 const ONE_KIB: usize = 1024;
 

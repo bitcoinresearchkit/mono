@@ -1,14 +1,16 @@
 use bitview_cohort::AgeRange;
-use bitview_compute::{
-    AgeBand, CohortAccounting, MINIMUM_DURATION_DAYS, WeightedCohortAggregates, collect_age_range,
-};
-use bitview_plugin_distribution_age::AccountingSources;
+use bitview_compute::{CohortAccounting, collect_age_range, weighted_age_aggregates};
+use bitview_plugin_age::AccountingSources;
 use bitview_primitives::{BoundedRatio, CoinDays, Float64, PerDay};
 use brk_types::{Bitcoin, Height, Sats, Timestamp};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use vecdb::ReadableVec;
 
-use super::{PrimaryValues, decay::DecayFit};
+use super::{
+    PrimaryValues,
+    age_band::{AgeBand, MINIMUM_DURATION_DAYS},
+    decay::DecayFit,
+};
 
 #[derive(Default)]
 pub(crate) struct PrimaryBatch {
@@ -34,17 +36,12 @@ impl PrimaryBatch {
         accounting.collect_into(start, end, &mut self.accounting);
     }
 
-    #[inline]
-    fn len(&self) -> usize {
-        self.timestamps.len()
-    }
-
     pub(crate) fn primary_values_batch(
         &self,
         genesis_timestamp: Timestamp,
         bounds: &AgeRange<AgeBand>,
     ) -> Vec<PrimaryValues> {
-        (0..self.len())
+        (0..self.timestamps.len())
             .into_par_iter()
             .map(|offset| self.primary_values(offset, genesis_timestamp, bounds))
             .collect()
@@ -63,12 +60,12 @@ impl PrimaryBatch {
             )
         });
         let network_age = self.timestamps[offset]
-            .difference_in_days_between_float(genesis_timestamp)
+            .days_since(genesis_timestamp)
             .max(MINIMUM_DURATION_DAYS);
         let exposures = DecayFit::exposures(&hazards, network_age, bounds);
         let mobilities =
             AgeRange::from_fn(|id| BoundedRatio::from(AgeBand::mobility(*id.select(&exposures))));
-        let aggregates = WeightedCohortAggregates::from_fn(|id| {
+        let cohorts = weighted_age_aggregates(|id| {
             let mobility = *id.select(&mobilities);
             self.accounting.weighted(id, offset, mobility)
         });
@@ -77,21 +74,18 @@ impl PrimaryBatch {
             spending_rate: AgeRange::from_fn(|id| PerDay::from(*id.select(&hazards))),
             spending_exposure: AgeRange::from_fn(|id| Float64::from(*id.select(&exposures))),
             mobility: mobilities,
-            under_4m: aggregates.under_4m,
-            under_6m: aggregates.under_6m,
-            over_4m: aggregates.over_4m,
-            over_6m: aggregates.over_6m,
-            terms: aggregates.terms,
+            cohorts,
         }
     }
 
+    /// Undefined (NaN) while the range has no coin days created.
     #[inline]
     fn spending_rate(transfer_volume: Sats, coindays_created: CoinDays) -> f64 {
         let exposure = f64::from(coindays_created);
         if exposure > 0.0 {
-            (f64::from(Bitcoin::from(transfer_volume)) / exposure).max(0.0)
+            f64::from(Bitcoin::from(transfer_volume)) / exposure
         } else {
-            0.0
+            f64::NAN
         }
     }
 }

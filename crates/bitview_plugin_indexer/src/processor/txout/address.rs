@@ -2,18 +2,16 @@ pub mod cache;
 
 use std::collections::hash_map::Entry;
 
-use bitview_cohort::ByAddrType;
-use bitview_primitives::{AddrHash, TypeIndex};
+use bitview_primitives::{AddrHash, ByAddrType, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{AddrBytes, OutputType, TxIndex, Vout};
+use brk_types::{AddressBytes, OutputType, Vout};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use tracing::error;
-use vecdb::likely;
 
 use self::cache::AddressCache;
 use super::{ProcessedOutput, processed::ProcessedOutputData};
-use crate::processor::BlockProcessor;
+use crate::processor::{BlockProcessor, transaction::ComputedTx};
 
 struct Lookup {
     index: usize,
@@ -34,6 +32,7 @@ impl BlockAddresses {
     pub fn resolve(
         &mut self,
         processor: &BlockProcessor,
+        txs: &[ComputedTx],
         outputs: &[ProcessedOutput],
     ) -> Result<()> {
         self.clear_block();
@@ -86,20 +85,12 @@ impl BlockAddresses {
             }
         }
 
-        if likely(!processor.check_collisions) {
+        if !cfg!(debug_assertions) {
             return Ok(());
         }
 
-        let mut output_offset = 0;
-        for (block_tx_index, tx) in processor.block.txdata.iter().enumerate() {
-            let tx_index = processor.lengths.tx_index + TxIndex::from(block_tx_index);
-            let next_output_offset = output_offset + tx.output.len();
-
-            for (vout, (txout, output)) in tx
-                .output
-                .iter()
-                .zip(&outputs[output_offset..next_output_offset])
-                .enumerate()
+        for ct in txs {
+            for (vout, (txout, output)) in ct.tx.output.iter().zip(ct.outputs(outputs)).enumerate()
             {
                 let ProcessedOutputData::Address(addr_hash) = &output.data else {
                     continue;
@@ -108,19 +99,19 @@ impl BlockAddresses {
                     continue;
                 };
                 let addr_bytes =
-                    AddrBytes::try_from((&txout.script_pubkey, output.output_type)).unwrap();
+                    AddressBytes::try_from((&txout.script_pubkey, output.output_type)).unwrap();
 
                 let prev_addrbytes = processor
                     .vecs
                     .addrs
-                    .get_bytes_by_type(output.output_type, type_index, &processor.readers.addrs)
-                    .ok_or(Error::Internal("Missing addrbytes"))?;
+                    .bytes(output.output_type, type_index, &processor.readers.addrs)
+                    .ok_or(Error::Internal("Indexed address bytes missing"))?;
 
                 if prev_addrbytes != addr_bytes {
                     error!(
                         height = ?processor.height,
                         vout = ?Vout::from(vout),
-                        ?tx_index,
+                        tx_index = ?ct.tx_index,
                         addr_type = ?output.output_type,
                         ?prev_addrbytes,
                         ?addr_bytes,
@@ -130,8 +121,6 @@ impl BlockAddresses {
                     return Err(Error::Internal("Address hash collision"));
                 }
             }
-
-            output_offset = next_output_offset;
         }
 
         Ok(())

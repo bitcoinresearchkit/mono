@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 /// Address statistics on the blockchain (confirmed transactions only)
 ///
 /// Based on mempool.space's format with type_index extension.
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-pub struct AddrChainStats {
+#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct AddressChainStats {
     /// Current confirmed balance in satoshis
     pub balance: Sats,
 
@@ -31,9 +31,10 @@ pub struct AddrChainStats {
     #[schemars(example = 10)]
     pub tx_count: u32,
 
-    /// Index of this address within its type on the blockchain
+    /// Index of this address within its type on the blockchain, null for an address without
+    /// confirmed activity
     #[schemars(example = TypeIndex::new(0))]
-    pub type_index: TypeIndex,
+    pub type_index: Option<TypeIndex>,
 
     /// Realized price (average cost basis) in USD
     pub realized_price: Dollars,

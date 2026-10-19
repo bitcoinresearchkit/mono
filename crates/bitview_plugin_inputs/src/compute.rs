@@ -1,56 +1,50 @@
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
 use brk_types::Height;
 use rayon::join;
-use vecdb::{AnyVec, Database};
+use vecdb::AnyVec;
 
-use super::{Vecs, value};
+use super::Vecs;
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        let Dependencies {
-            indexer,
-            blocks,
-            mappings,
-        } = dependencies;
+        let Dependencies { indexer, mappings } = dependencies;
         let exit = context.exit();
 
         let Vecs {
-            value,
-            origins,
+            spends,
             count,
-            by_type,
+            types,
             ..
         } = self;
-        let (value_result, rest_result) = join(
+        let (spends_result, rest_result) = join(
             || {
-                value::compute(
-                    value,
-                    origins,
+                crate::spends::compute(
+                    spends,
                     indexer,
                     mappings,
-                    indexer.safe_lengths().height,
+                    indexer.compute_start().height,
                     Height::from(indexer.vecs().blocks.blockhash.len()),
                     exit,
                 )
             },
             || {
-                count.compute(indexer, blocks, exit)?;
-                by_type.compute(indexer, exit)
+                count.compute(
+                    indexer.compute_start().height,
+                    &mappings.lookback.window_starts(),
+                    exit,
+                )?;
+                types.compute(indexer, exit)
             },
         );
-        value_result?;
+        spends_result?;
         rest_result?;
 
         Ok(())

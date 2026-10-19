@@ -1,17 +1,13 @@
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
+use brk_types::SigOps;
 use rayon::join;
-use vecdb::Database;
 
-use super::Vecs;
+use super::{Vecs, policy};
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
@@ -20,57 +16,83 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies {
             indexer,
-            inputs,
             mappings,
-            blocks,
-            price: prices,
+            price,
         } = dependencies;
+        let Vecs {
+            count,
+            features,
+            vsize,
+            fees,
+            inscription,
+            patterns,
+            nonstandard,
+            sigop_cost,
+            versions,
+            volume,
+            ..
+        } = self;
         let exit = context.exit();
+        let start = indexer.compute_start().height;
+        let price = &price.spot.cents.height;
 
-        let ((r1, r2), (r3, r4)) = join(
+        let (independent, fee_based) = join(
+            // Stages reading only indexer and mappings columns.
             || {
-                join(
-                    || self.count.compute(indexer, &blocks.lookback, exit),
-                    || self.features.compute(indexer, exit),
-                )
+                let ((count, features), ((versions, sigops), patterns)) = join(
+                    || {
+                        join(
+                            || count.compute(start, &mappings.lookback.window_starts(), exit),
+                            || features.compute(indexer, exit),
+                        )
+                    },
+                    || {
+                        join(
+                            || {
+                                join(
+                                    || versions.compute(indexer, exit),
+                                    || {
+                                        sigop_cost.compute_cumulative_sum_from_indexes(
+                                            start,
+                                            &indexer.vecs().transactions.first_tx_index,
+                                            &mappings.height.tx_index_count,
+                                            &*indexer.vecs().transactions.total_sigop_cost,
+                                            SigOps::from,
+                                            exit,
+                                        )
+                                    },
+                                )
+                            },
+                            || patterns.compute(indexer, mappings, exit),
+                        )
+                    },
+                );
+                count.and(features).and(versions).and(sigops).and(patterns)
             },
+            // The fee pass (with the vsize distribution), then the stages reading its fees.
             || {
-                join(
-                    || self.versions.compute(indexer, exit),
-                    || self.size.compute(indexer, mappings, exit),
-                )
+                fees.compute(
+                    indexer,
+                    mappings,
+                    &mut vsize.distribution,
+                    &mut volume.cumulative.sats.height,
+                    exit,
+                )?;
+                let (inscription, (policy, volume)) = join(
+                    || {
+                        inscription.compute(indexer, mappings, fees, exit)?;
+                        inscription.fees.compute_cents(start, price, exit)
+                    },
+                    || {
+                        join(
+                            || policy::compute(nonstandard, indexer, mappings, fees, exit),
+                            || volume.compute_cents(start, price, exit),
+                        )
+                    },
+                );
+                inscription.and(policy).and(volume)
             },
         );
-        r1?;
-        r2?;
-        r3?;
-        r4?;
-
-        self.sigops.compute(indexer, mappings, exit)?;
-
-        self.fees.compute(
-            indexer,
-            &inputs.value,
-            mappings,
-            &self.size,
-            &mut self.volume.transfer_volume.cumulative.sats.height,
-            exit,
-        )?;
-
-        self.inscription
-            .compute(indexer, mappings, &self.fees, exit)?;
-
-        self.patterns
-            .compute(indexer, &inputs.value, mappings, exit)?;
-
-        self.policy.compute(indexer, mappings, &self.fees, exit)?;
-
-        self.volume.transfer_volume.compute_cents(
-            indexer.safe_lengths().height,
-            &prices.spot.cents.height,
-            exit,
-        )?;
-
-        Ok(())
+        independent.and(fee_based)
     }
 }

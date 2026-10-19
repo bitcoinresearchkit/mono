@@ -1,7 +1,3 @@
-//! Python client generation.
-//!
-//! This module generates a Python client with type hints for the Bitview API.
-
 mod api;
 pub(crate) mod client;
 mod tree;
@@ -12,9 +8,6 @@ use std::{collections::BTreeSet, fmt::Write, io, path::Path};
 use super::write_if_changed;
 use crate::{Endpoint, IndexSetPattern, TypeSchemas, model::Model};
 
-/// Generate Python client from the series-tree model and OpenAPI endpoints.
-///
-/// `output_path` is the full path to the output file (e.g., "packages/bitview_client/__init__.py").
 pub(crate) fn generate_python_client(
     model: &Model,
     shape_names: &[String],
@@ -33,15 +26,19 @@ pub(crate) fn generate_python_client(
     writeln!(output, "from functools import cached_property").unwrap();
     writeln!(
         output,
-        "from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, overload, Tuple, TYPE_CHECKING"
+        "from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, Tuple, TYPE_CHECKING"
     )
     .unwrap();
     writeln!(
         output,
-        "from http.client import HTTPSConnection, HTTPConnection"
+        "from http.client import HTTPException, HTTPSConnection, HTTPConnection"
     )
     .unwrap();
-    writeln!(output, "from urllib.parse import urlparse").unwrap();
+    writeln!(
+        output,
+        "from urllib.parse import quote, urlencode, urlparse"
+    )
+    .unwrap();
     writeln!(
         output,
         "from datetime import date, datetime, timedelta, timezone"
@@ -63,8 +60,7 @@ pub(crate) fn generate_python_client(
     writeln!(output, "T = TypeVar('T')\n").unwrap();
 
     types::generate_type_definitions(&mut output, schemas);
-    client::generate_base_client(&mut output);
-    client::generate_endpoint_class(&mut output);
+    client::generate_runtime(&mut output);
     client::generate_index_accessors(&mut output, accessors);
     tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
     api::generate_main_client(&mut output, endpoints);

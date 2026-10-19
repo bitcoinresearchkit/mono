@@ -1,18 +1,14 @@
-use std::{convert::Infallible, iter::once, mem, sync::Arc};
+use std::{mem, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, CheckedSub, Cursor, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec,
+    AnyVec, CheckedSub, Cursor, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec,
     ReadableCloneableVec, ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version,
-    short_type_name,
 };
 
 /// Lazy `source[index] - source[index - 1]`, with zero before the first value.
-///
-/// This is a single-source view: it follows source growth automatically and
-/// stores nothing on disk.
+#[derive(Clone)]
 pub struct LazyPreviousDeltaVec<I, S>
 where
     I: VecIndex,
@@ -41,20 +37,6 @@ where
     }
 }
 
-impl<I, S> Clone for LazyPreviousDeltaVec<I, S>
-where
-    I: VecIndex,
-    S: VecValue,
-{
-    fn clone(&self) -> Self {
-        Self {
-            name: Arc::clone(&self.name),
-            base_version: self.base_version,
-            source: self.source.clone(),
-        }
-    }
-}
-
 impl<I, S> AnyVec for LazyPreviousDeltaVec<I, S>
 where
     I: VecIndex,
@@ -72,21 +54,11 @@ where
         self.source.len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<S>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<S>()
-    }
+    vecdb::any_vec_type_methods!(I, S);
 }
 
 impl<I, S> TypedVec for LazyPreviousDeltaVec<I, S>
@@ -124,9 +96,7 @@ where
     }
 
     fn append_delta(values: &[S], previous: &mut S, out: &mut Vec<S>) {
-        let Some((first, rest)) = values.split_first() else {
-            return;
-        };
+        let (first, rest) = values.split_first().expect("input chunks are nonempty");
         out.push(
             first
                 .clone()
@@ -175,19 +145,6 @@ where
         self.for_each_chunk_at(from, to, &mut |_, values| {
             values.iter().cloned().for_each(&mut *f);
         });
-    }
-
-    fn fold_range_at<B, G: FnMut(B, S) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut f: G,
-    ) -> B {
-        self.try_fold_range_at(from, to, init, |accumulator, value| {
-            Ok::<_, Infallible>(f(accumulator, value))
-        })
-        .unwrap()
     }
 
     fn try_fold_range_at<B, E, G: FnMut(B, S) -> Result<B, E>>(
@@ -252,9 +209,6 @@ where
 
         out.reserve(indices.len());
         for &index in indices {
-            if index >= len {
-                break;
-            }
             if let Some((cached_index, ref value)) = cached
                 && cached_index == index
             {
@@ -276,16 +230,7 @@ where
     }
 }
 
-impl<I, S> Traversable for LazyPreviousDeltaVec<I, S>
-where
+bitview_traversable::leaf!([I, S] LazyPreviousDeltaVec<I, S> where
     I: VecIndex,
     S: VecValue + CheckedSub + Default + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);

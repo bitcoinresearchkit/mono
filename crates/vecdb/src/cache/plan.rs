@@ -2,6 +2,11 @@ use std::ops::Range;
 
 use super::{Request, Value};
 
+pub(super) fn first_ending_after<T: Clone>(blocks: &[(usize, Value<T>)], from: usize) -> usize {
+    blocks.partition_point(|(start, values)| *start + values.len() <= from)
+}
+
+/// The span holding `index`, with its start.
 pub(super) fn containing<T: Clone>(
     blocks: &[(usize, Value<T>)],
     index: usize,
@@ -20,8 +25,7 @@ pub(super) fn missing<T: Clone>(
     let mut missing = Vec::new();
     for range in request.ranges() {
         let mut at = range.start;
-        let first = cached.partition_point(|(start, values)| *start + values.len() <= at);
-        for (start, values) in &cached[first..] {
+        for (start, values) in &cached[first_ending_after(cached, at)..] {
             if *start >= range.end {
                 break;
             }

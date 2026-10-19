@@ -1,29 +1,21 @@
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult},
-    ops::{Add, AddAssign},
-};
+use std::ops::{Add, AddAssign};
 
 use brk_types::CheckedSub;
 use derive_more::Deref;
-use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{PartsPerMillion64, unlikely};
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// A price divided by a reference price, in parts per million (1,000,000 represents 1).
 ///
 /// Finite values saturate at 4,294.967294; u32::MAX represents undefined.
 /// Saturation is deliberately specific to price ratios, across all cohorts.
 /// Non-finite inputs become undefined; finite inputs must be nonnegative
-/// (a debug-checked precondition). PPM conversion rounds to nearest, matching
-/// the existing price ratios.
+/// (a debug-checked precondition). PPM conversion rounds to nearest.
 /// Serde preserves raw encoded bits; vector JSON emits null for undefined.
 #[derive(
     Debug,
@@ -92,13 +84,6 @@ impl CheckedSub for PriceRatio {
         }
     }
 }
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for PriceRatio {
-    #[inline]
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
 
 impl From<f64> for PriceRatio {
     #[inline]
@@ -148,38 +133,4 @@ impl From<PriceRatio> for f32 {
     }
 }
 
-impl Display for PriceRatio {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let mut buf = Buffer::new();
-        f.write_str(buf.format(self.0))
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for PriceRatio {
-    const UNDEFINED: bool = true;
-
-    #[inline]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut value = Buffer::new();
-        buf.extend_from_slice(value.format(self.0).as_bytes());
-    }
-
-    #[inline]
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        if unlikely(self.is_nan()) {
-            buf.extend_from_slice(b"null");
-        } else {
-            self.write_to(buf);
-        }
-    }
-
-    /// Undefined: an empty CSV cell (JSON writes `null`).
-    #[inline(always)]
-    fn fmt_csv(&self, f: &mut String) -> std::fmt::Result {
-        if !unlikely(self.is_nan()) {
-            self.fmt_into(f);
-        }
-        Ok(())
-    }
-}
+brk_types::impl_int_format!(PriceRatio, nullable);

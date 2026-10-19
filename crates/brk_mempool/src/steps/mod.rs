@@ -1,4 +1,4 @@
-//! Cycle stages in pipeline order.
+//! Cycle stages: fetcher, preparer, applier, then prevouts.
 
 pub mod applier;
 pub mod fetcher;

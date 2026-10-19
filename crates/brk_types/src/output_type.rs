@@ -19,7 +19,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::AddrBytes;
+use crate::AddressBytes;
 
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable, Pco};
@@ -81,54 +81,16 @@ pub enum OutputTypeNormalized {
 impl OutputType {
     pub const COUNT: usize = Self::Unknown as usize + 1;
 
-    pub const ADDR_TYPES: [Self; 8] = [
-        Self::P2PK65,
-        Self::P2PK33,
-        Self::P2PKH,
-        Self::P2SH,
-        Self::P2WPKH,
-        Self::P2WSH,
-        Self::P2TR,
-        Self::P2A,
-    ];
-
     #[cfg(feature = "storage")]
     fn is_valid(value: u8) -> bool {
         value <= Self::Unknown as u8
     }
 
-    fn is_spendable(&self) -> bool {
-        match self {
-            Self::P2PK65 => true,
-            Self::P2PK33 => true,
-            Self::P2PKH => true,
-            Self::P2MS => true,
-            Self::P2SH => true,
-            Self::OpReturn => false,
-            Self::P2WPKH => true,
-            Self::P2WSH => true,
-            Self::P2TR => true,
-            Self::P2A => true,
-            Self::Empty => true,
-            Self::Unknown => true,
-        }
-    }
-
     pub fn is_addr(&self) -> bool {
-        match self {
-            Self::P2PK65 => true,
-            Self::P2PK33 => true,
-            Self::P2PKH => true,
-            Self::P2MS => false,
-            Self::P2SH => true,
-            Self::OpReturn => false,
-            Self::P2WPKH => true,
-            Self::P2WSH => true,
-            Self::P2TR => true,
-            Self::P2A => true,
-            Self::Empty => false,
-            Self::Unknown => false,
-        }
+        !matches!(
+            self,
+            Self::P2MS | Self::OpReturn | Self::Empty | Self::Unknown
+        )
     }
 
     pub fn is_not_addr(&self) -> bool {
@@ -136,7 +98,7 @@ impl OutputType {
     }
 
     pub fn is_unspendable(&self) -> bool {
-        !self.is_spendable()
+        matches!(self, Self::OpReturn)
     }
 
     pub(crate) const fn normalized(self) -> OutputTypeNormalized {
@@ -155,11 +117,9 @@ impl OutputType {
         }
     }
 
-    /// Whether the address type's public key is revealed at funding time
-    /// (vs. only at spending time). For P2PK33/P2PK65 the pubkey is directly
-    /// in the locking script; for P2TR the tweaked output key is in the
-    /// locking script. All other address types hash the pubkey/script and
-    /// only reveal it on spending.
+    /// Whether the address type's public key is revealed at funding time (vs. only at spending
+    /// time): P2PK33/P2PK65 carry the pubkey in the locking script, P2TR its tweaked output key.
+    /// The hash-based types reveal it when spent; P2A has no key.
     pub fn pubkey_exposed_at_funding(&self) -> bool {
         matches!(self, Self::P2PK65 | Self::P2PK33 | Self::P2TR)
     }
@@ -224,18 +184,18 @@ impl From<AddressType> for OutputType {
     }
 }
 
-impl From<&AddrBytes> for OutputType {
+impl From<&AddressBytes> for OutputType {
     #[inline]
-    fn from(bytes: &AddrBytes) -> Self {
+    fn from(bytes: &AddressBytes) -> Self {
         match bytes {
-            AddrBytes::P2PK65(_) => Self::P2PK65,
-            AddrBytes::P2PK33(_) => Self::P2PK33,
-            AddrBytes::P2PKH(_) => Self::P2PKH,
-            AddrBytes::P2SH(_) => Self::P2SH,
-            AddrBytes::P2WPKH(_) => Self::P2WPKH,
-            AddrBytes::P2WSH(_) => Self::P2WSH,
-            AddrBytes::P2TR(_) => Self::P2TR,
-            AddrBytes::P2A(_) => Self::P2A,
+            AddressBytes::P2PK65(_) => Self::P2PK65,
+            AddressBytes::P2PK33(_) => Self::P2PK33,
+            AddressBytes::P2PKH(_) => Self::P2PKH,
+            AddressBytes::P2SH(_) => Self::P2SH,
+            AddressBytes::P2WPKH(_) => Self::P2WPKH,
+            AddressBytes::P2WSH(_) => Self::P2WSH,
+            AddressBytes::P2TR(_) => Self::P2TR,
+            AddressBytes::P2A(_) => Self::P2A,
         }
     }
 }
@@ -270,7 +230,9 @@ impl Formattable for OutputType {
 }
 
 #[cfg(feature = "storage")]
-impl Bytes for OutputType {
+// SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
+// value the contract requires; the values are encoded, not in native layout.
+unsafe impl Bytes for OutputType {
     type Array = [u8; size_of::<Self>()];
 
     #[inline]
@@ -291,8 +253,7 @@ impl Bytes for OutputType {
             return Err(VecdbError::InvalidArgument("invalid OutputType"));
         }
         // SAFETY: We validated that value is a valid variant
-        let s: Self = unsafe { mem::transmute(value) };
-        Ok(s)
+        Ok(unsafe { mem::transmute::<u8, Self>(value) })
     }
 }
 

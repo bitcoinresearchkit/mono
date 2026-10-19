@@ -1,43 +1,46 @@
 #![doc = include_str!("../README.md")]
 
-use std::{
-    path::PathBuf,
-    thread::{self, sleep},
-    time::Duration,
-};
+#[cfg(feature = "price")]
+use std::thread;
+use std::{path::PathBuf, thread::sleep, time::Duration};
 
 use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig};
 use brk_exit::Exit;
 use brk_logger::init;
+#[cfg(feature = "price")]
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
+use rlimit::{Resource, getrlimit, setrlimit};
 use tokio::{
     runtime::{Builder, Runtime},
     task::JoinHandle,
 };
-use tracing::info;
+use tracing::{info, warn};
 use vecdb::{Budgeted, ReadOnlyClone};
 
+mod bootstrap;
 mod config;
 mod paths;
+mod update;
 
+pub use bitview_plugin::{ImportContext, UpdateContext};
 pub use bitview_query::{Error, QueryPluginSet, Result};
-use bitview_runtime::{ComputePluginSet, update};
+pub use bootstrap::bootstrap;
+pub use config::{Config, DEFAULT_CACHE_BUDGET};
 
-pub use bitview_runtime::{ImportContext, UpdateContext, bootstrap};
-pub use config::Config;
+use bitview_plugin::ComputePluginSet;
+use update::update;
 
 /// Fully resolved settings for one Bitview runner.
 pub struct RunConfig {
-    /// Bitcoin Core RPC client.
     pub client: Client,
     /// Directory containing Bitcoin Core's block files.
     pub blocks_path: PathBuf,
     /// HTTP server and data-directory settings.
     pub server: ServerConfig,
-    /// Bytes of the shared vector cache ([`bitview_runtime::DEFAULT_CACHE_BUDGET`] unless configured).
+    /// Bytes of the shared vector cache ([`DEFAULT_CACHE_BUDGET`] unless configured).
     pub cache_budget: usize,
 }
 
@@ -52,11 +55,27 @@ where
     let config = Config::import()?;
 
     init(Some(&config.server.logs_path()))?;
+    raise_fd_limit();
 
     let exit = Exit::new();
-    exit.set_ctrlc_handler();
+    exit.install_signal_handlers();
 
     run_with(config, exit, import)
+}
+
+/// Raises the process's open-file soft limit for the daemon's stores and block
+/// files. Only the soft limit, clamped to the hard limit: raising the hard limit
+/// requires `CAP_SYS_RESOURCE` and would fail on containers and unprivileged
+/// macOS processes.
+pub fn raise_fd_limit() {
+    const TARGET_NOFILE: u64 = 15_000;
+    let (soft, hard) = getrlimit(Resource::NOFILE).unwrap_or((0, 0));
+    let new_soft = soft.max(TARGET_NOFILE).min(hard);
+    if new_soft > soft
+        && let Err(e) = setrlimit(Resource::NOFILE, new_soft, hard)
+    {
+        warn!("failed to raise NOFILE rlimit: {e}");
+    }
 }
 
 /// Runs one process-lifetime plugin composition with resolved settings and a
@@ -76,10 +95,9 @@ where
         server,
         cache_budget,
     } = config;
-    let reader = Reader::new(blocks_path, &client);
-    let outputs_path = server.data_path.clone();
+    let reader = Reader::new(blocks_path, &client)?;
     Budgeted::init_global(cache_budget)?;
-    let import_context = ImportContext::new(&outputs_path, &exit);
+    let import_context = ImportContext::new(&server.data_path, &exit);
     let update_context = UpdateContext::new(&exit);
 
     // Outside the import lock; bootstrap measures its backlog against the synced tip.
@@ -91,26 +109,28 @@ where
         update_context,
     )?;
 
+    // Only the chain and price reads use the mempool: without them no driver runs.
+    #[cfg(feature = "price")]
     let mut mempool = Mempool::new(&client);
-
+    #[cfg(feature = "price")]
     let query = AsyncQuery::build(&plugins, Some(mempool.read_only_clone()));
-
-    // Updates close the plugin set's gate and reads wait on the indexer's: they must be one gate,
-    // or queries would read state while it is being rewritten.
-    if !query.sync(|q| q.reads_under(plugins.publication())) {
-        return Err(Error::Internal(
-            "the plugin set's publication is not its indexer's; queries would read unpublished state",
-        ));
-    }
+    #[cfg(not(feature = "price"))]
+    let query = AsyncQuery::build(&plugins, None);
 
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;
     let server_handle = runtime.spawn(server.serve());
 
-    let resolver = query.sync(|q| q.indexer_prevout_resolver());
-    thread::spawn(move || {
-        mempool.start_with(resolver);
-    });
+    #[cfg(feature = "price")]
+    let published = {
+        let resolver = query.sync(|q| q.indexer_prevout_resolver());
+        let chain = query.sync(bitview_query::Query::clone);
+        let published = mempool.chain_waker();
+        thread::spawn(move || {
+            mempool.start_with(resolver, || chain.tip_blockhash());
+        });
+        published
+    };
 
     info!("Waiting for new blocks...");
 
@@ -124,18 +144,17 @@ where
             sleep(Duration::from_secs(1));
         }
 
-        // Wait with the publication gate open: queries keep reading the last published state.
         client.wait_for_synced_node()?;
 
         info!("Chain tip changed; updating...");
 
         update(&mut plugins, update_context)?;
+        #[cfg(feature = "price")]
+        published.published();
 
         if server_handle.is_finished() {
             return server_stopped(&runtime, server_handle);
         }
-
-        info!("Waiting for new blocks...");
     }
 }
 

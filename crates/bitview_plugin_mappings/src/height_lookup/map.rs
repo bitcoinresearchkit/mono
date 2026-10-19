@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 
 use brk_types::{Height, TxIndex};
 use rangeindex::RangeMap;
@@ -8,50 +8,53 @@ const BUCKET_SHIFT: usize = 16;
 const DIRECTORY_BITS: u32 = 20;
 
 /// Block index boundaries with a small directory narrowing floor lookups.
-/// The directory indexes the same boundary array; it stores no separate mapping.
+/// The directory indexes the same boundary pages; it stores no separate mapping.
+#[derive(Clone)]
 pub struct HeightMap<I> {
     ranges: RangeMap<I, Height>,
-    // First boundary at or above each bucket; the final entry is ranges.len().
-    bounds: Vec<u32>,
+    // First boundary at or above each bucket; the final entry is ranges.len(). At most 2^20 + 1
+    // entries, so an update copies it whole: contiguous, it keeps the hot lookups a load shorter.
+    bounds: Arc<[u32]>,
+    // The last boundary, inline for the hot tip check; meaningless while empty.
+    last: I,
     shift: usize,
 }
 
-impl<I: VecIndex> From<Vec<I>> for HeightMap<I> {
-    fn from(starts: Vec<I>) -> Self {
-        let shift = directory_shift(starts.last().copied());
-        let capacity = starts
-            .last()
-            .map_or(0, |&index| (index.to_usize() >> shift) + 2);
-        let mut bounds = Vec::with_capacity(capacity);
-        for (position, &index) in starts.iter().enumerate() {
-            extend_bounds(&mut bounds, position, index, shift);
-        }
+impl<I: VecIndex> Default for HeightMap<I> {
+    fn default() -> Self {
         Self {
-            ranges: RangeMap::from(starts),
-            bounds,
-            shift,
+            ranges: RangeMap::default(),
+            bounds: Arc::new([]),
+            last: I::from(0),
+            shift: BUCKET_SHIFT,
         }
     }
 }
 
 impl HeightMap<TxIndex> {
-    pub fn resume_height(&self, tx_len: usize, target_tx: usize, target_height: usize) -> usize {
+    pub(crate) fn resume_height(
+        &self,
+        tx_len: usize,
+        target_tx: usize,
+        target_height: usize,
+    ) -> usize {
         if tx_len >= target_tx {
             target_height
         } else {
-            usize::from(self.get_shared(TxIndex::from(tx_len)).unwrap())
+            usize::from(self.get(TxIndex::from(tx_len)).unwrap())
         }
     }
 }
 
 impl<I: VecIndex> HeightMap<I> {
     #[inline]
-    pub fn get_shared(&self, index: I) -> Option<Height> {
-        let starts = self.ranges.as_slice();
-        if index < *starts.first()? {
+    pub fn get(&self, index: I) -> Option<Height> {
+        let starts = self.ranges.starts();
+        // The first block range starts at index zero, so every index is at or past it.
+        if starts.is_empty() {
             return None;
         }
-        if index >= *starts.last().unwrap() {
+        if index >= self.last {
             return Some(Height::from(starts.len() - 1));
         }
         // Narrow indexes always fit the fixed directory; keep their shift constant.
@@ -63,32 +66,42 @@ impl<I: VecIndex> HeightMap<I> {
         let bucket = index.to_usize() >> shift;
         let from = (self.bounds[bucket] as usize).saturating_sub(1);
         let to = self.bounds[bucket + 1] as usize;
-        let position = starts[from..to].partition_point(|&start| start <= index);
-        Some(Height::from(from + position - 1))
+        let position = starts.partition_point_in(from..to, |&start| start <= index);
+        Some(Height::from(position - 1))
     }
 
     pub(super) fn update_at(&mut self, from: usize, starts: impl IntoIterator<Item = I>) {
-        assert!(from <= self.ranges.len());
+        debug_assert!(from <= self.ranges.len());
         self.ranges.truncate(from);
-        if let Some(&last) = self.ranges.as_slice().last() {
-            self.bounds.truncate((last.to_usize() >> self.shift) + 2);
-            *self.bounds.last_mut().unwrap() = from as u32;
+        let mut bounds = self.bounds.to_vec();
+        if let Some(&last) = self.ranges.starts().last() {
+            bounds.truncate((last.to_usize() >> self.shift) + 2);
+            *bounds.last_mut().unwrap() = from as u32;
         } else {
-            self.bounds.clear();
+            bounds.clear();
         }
         self.ranges.extend(starts);
-        let shift = directory_shift(self.ranges.as_slice().last().copied());
-        if shift != self.shift {
+        let len = self.ranges.len();
+        let shift = directory_shift(self.ranges.starts().last().copied());
+        let from = if shift == self.shift {
+            from
+        } else {
             self.shift = shift;
-            self.bounds.clear();
-            for (position, &index) in self.ranges.as_slice().iter().enumerate() {
-                extend_bounds(&mut self.bounds, position, index, shift);
+            bounds.clear();
+            0
+        };
+        for (start, chunk) in self.ranges.starts().chunks(from..len) {
+            for (offset, &index) in chunk.iter().enumerate() {
+                extend_bounds(&mut bounds, start + offset, index, shift);
             }
-            return;
         }
-        for (offset, &index) in self.ranges.as_slice()[from..].iter().enumerate() {
-            extend_bounds(&mut self.bounds, from + offset, index, self.shift);
-        }
+        self.bounds = bounds.into();
+        let starts = self.ranges.starts();
+        debug_assert!(
+            starts.first().is_none_or(|first| first.to_usize() == 0),
+            "block ranges start at index zero"
+        );
+        self.last = starts.last().copied().unwrap_or(I::from(0));
     }
 }
 

@@ -16,11 +16,11 @@ where
     T: VecValue + PartialOrd + JsonSchema,
     S1T: VecValue,
 {
-    pub height: LazyVec<Height, T, Height, S1T>,
+    pub height: LazyVec<Height, T, S1T>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub(crate) resolutions: Box<DerivedResolutions<T, S1T>>,
+    resolutions: Box<DerivedResolutions<T, S1T>>,
 }
 
 impl<T, S1T> LazyPerBlock<T, S1T>
@@ -40,7 +40,7 @@ where
                 version,
                 resolutions.height_source().read_only_boxed_clone(),
             ),
-            resolutions: Box::new(DerivedResolutions::from_derived_computed::<F>(
+            resolutions: Box::new(DerivedResolutions::from_resolutions::<F>(
                 name,
                 version,
                 resolutions,
@@ -59,7 +59,6 @@ where
         Self::from_resolutions::<F>(name, version, &resolutions)
     }
 
-    /// Create by unary-transforming a LazyPerBlock source (chaining lazy vecs).
     pub fn from_lazy<F, S2T>(name: &str, version: Version, source: &LazyPerBlock<S1T, S2T>) -> Self
     where
         F: UnaryTransform<S1T, T>,

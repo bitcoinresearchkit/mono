@@ -18,7 +18,7 @@ impl<'a, I, V> RangeMapCursor<'a, I, V> {
 impl<I: Ord + Copy, V: From<usize>> RangeMapCursor<'_, I, V> {
     #[inline]
     pub fn get(&mut self, index: I) -> Option<V> {
-        let starts = self.source.as_slice();
+        let starts = self.source.starts();
         if let Some(position) = self.position
             && starts[position] <= index
             && starts.get(position + 1).is_none_or(|&end| index < end)

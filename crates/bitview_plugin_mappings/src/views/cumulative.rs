@@ -1,12 +1,9 @@
-use std::{convert::Infallible, iter, sync::Arc};
+use std::sync::Arc;
 
 use bitview_primitives::Count;
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
-use schemars::JsonSchema;
-use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, Cursor, Formattable, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, TypedVec, VecIndex, VecValue, Version, short_type_name,
+    AnyVec, Cursor, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecIndex,
+    VecValue, Version,
 };
 
 use super::terminal_len::TerminalLen;
@@ -71,7 +68,7 @@ where
     S: VecIndex,
 {
     fn version(&self) -> Version {
-        self.base_version + self.first_indexes.version() + self.terminal_len.version()
+        self.base_version + self.first_indexes.version() + self.terminal_len.version
     }
 
     fn name(&self) -> &str {
@@ -82,21 +79,11 @@ where
         self.first_indexes.len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
+    fn is_mutable(&self) -> bool {
+        self.first_indexes.is_mutable()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<Count>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<Count>()
-    }
+    vecdb::any_vec_type_methods!(I, Count);
 }
 
 impl<I, S> TypedVec for LazyCumulativeIndexVec<I, S>
@@ -127,19 +114,6 @@ where
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(Count)) {
         self.fold_range_at(from, to, (), |(), value| each(value));
-    }
-
-    fn fold_range_at<B, F: FnMut(B, Count) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        self.try_fold_range_at(from, to, init, |accumulator, value| {
-            Ok::<_, Infallible>(fold(accumulator, value))
-        })
-        .unwrap()
     }
 
     fn try_fold_range_at<B, E, F: FnMut(B, Count) -> Result<B, E>>(
@@ -197,9 +171,6 @@ where
 
         out.reserve(indices.len());
         for &index in indices {
-            if index >= len {
-                break;
-            }
             let next = if index + 1 < len {
                 let Some(next) = first_indexes.get(index + 1) else {
                     continue;
@@ -213,17 +184,8 @@ where
     }
 }
 
-impl<I, S> Traversable for LazyCumulativeIndexVec<I, S>
-where
+bitview_traversable::leaf!([I, S] LazyCumulativeIndexVec<I, S> where
     I: VecIndex,
     S: VecIndex,
-    Count: From<S> + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+    Count: From<S>,
+);

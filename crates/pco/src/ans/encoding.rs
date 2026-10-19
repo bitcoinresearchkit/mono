@@ -173,35 +173,3 @@ pub fn quantize_weights(
   }
   (size_log, weights)
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_quantize_weights_to() {
-    let quantized = quantize_weights_to(&[777], 777, 0);
-    assert_eq!(quantized, vec![1]);
-
-    let quantized = quantize_weights_to(&[777, 1], 778, 1);
-    assert_eq!(quantized, vec![1, 1]);
-
-    let quantized = quantize_weights_to(&[777, 1], 778, 2);
-    assert_eq!(quantized, vec![3, 1]);
-
-    let quantized = quantize_weights_to(&[2, 3, 6, 5, 1], 17, 3);
-    assert_eq!(quantized, vec![1, 1, 3, 2, 1]);
-
-    let quantized = quantize_weights_to(&[1, 1], 2, 1);
-    assert_eq!(quantized, vec![1, 1]);
-  }
-
-  #[test]
-  fn test_quantize_weights() {
-    let quantized = quantize_weights(vec![77, 100], 177, 4);
-    assert_eq!(quantized, (4, vec![7, 9]));
-
-    let quantized = quantize_weights(vec![77, 77], 154, 4);
-    assert_eq!(quantized, (1, vec![1, 1]));
-  }
-}

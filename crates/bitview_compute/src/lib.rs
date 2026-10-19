@@ -1,25 +1,23 @@
 //! Calculation algorithms shared by Bitview plugins.
 //!
 //! Metric vector ownership and view composition live in bitview_vecs.
-mod age_band;
 mod cohort_accounting;
 mod cohort_weight;
-mod drawdown;
 mod prepare;
 mod statistics;
 mod traits;
 mod weighted;
 
-pub use age_band::{AgeBand, MINIMUM_DURATION_DAYS};
 pub use cohort_accounting::{CohortAccounting, collect_age_range};
 pub use cohort_weight::{collect_cohort_weights, resolve_cohort_weight};
-pub use drawdown::ComputeDrawdown;
-pub use prepare::prepare_computed;
+pub use prepare::{
+    Inputs, WRITE_INTERVAL, prepare_computed, save_point, save_stamped, undo_chunks,
+    undo_tail_start, write_chunks, write_locked,
+};
 pub use statistics::{
-    ComputeRollingMedianFromStarts, ComputeRollingStats, ExactOrderStats, FenwickNode, FenwickTree,
-    compute_rolling_distribution_from_starts, compute_rolling_extrema_from_starts,
+    AverageWindow, ComputeRollingMedianFromStarts, ComputeRollingStats, DistributionStats,
+    ExactOrderStats, ExtremaWindow, FenwickTree, Retained, SortedWindow,
+    compute_rolling_distribution_from_starts, compute_rolling_extrema_from_starts, nearest_rank,
 };
 pub use traits::{ComputedVecValue, FixedRatio, NumericValue, Quantity};
-pub use weighted::{
-    WeightedCapitalizedPrice, WeightedCohortAggregates, WeightedCohortState, WeightedRatio,
-};
+pub use weighted::{WeightedCohortState, weighted_age_aggregates};

@@ -2,37 +2,35 @@ use std::ptr::NonNull;
 
 use rawdb::Region;
 
-use crate::{HEADER_OFFSET, VecIndex, VecValue};
+use crate::{HEADER_OFFSET, VecValue};
 
 use super::super::RawStrategy;
 use super::{RawIoSource, RawMmapSource};
 
-enum Owner<'a, I, T, S> {
-    Mmap { _source: RawMmapSource<I, T, S> },
-    Io { source: RawIoSource<'a, I, T, S> },
+enum Owner<'a, T, S> {
+    Mmap { _source: RawMmapSource<T, S> },
+    Io { source: RawIoSource<'a, T, S> },
 }
 
 /// Forward cursor over a bounded persisted range of a raw vector.
 ///
 /// The declared range lets the cursor choose once between direct mmap access
 /// for resident data and buffered file I/O for a cold sequential scan.
-pub struct RawRangeCursor<'a, I, T, S> {
-    owner: Owner<'a, I, T, S>,
+pub struct RawRangeCursor<'a, T, S> {
+    owner: Owner<'a, T, S>,
     window: *const u8,
     window_position: usize,
     window_len: usize,
     unbuffered_bytes: usize,
 }
 
-impl<'a, I, T, S> RawRangeCursor<'a, I, T, S>
+impl<'a, T, S> RawRangeCursor<'a, T, S>
 where
-    I: VecIndex,
     T: VecValue,
     S: RawStrategy<T>,
 {
     const SIZE_OF_T: usize = size_of::<T>();
 
-    /// Returns the number of values remaining in the declared range.
     #[inline(always)]
     fn remaining(&self) -> usize {
         (self.unbuffered_bytes + self.window_len - self.window_position) / Self::SIZE_OF_T
@@ -77,7 +75,6 @@ where
         self.unbuffered_bytes -= skipped_file_bytes;
     }
 
-    /// Returns the next value and advances the position.
     #[inline(always)]
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<T> {
@@ -134,14 +131,14 @@ where
                 unbuffered_bytes: 0,
             }
         } else {
+            // The source bounds the range by the bytes its lock holds.
+            let source = RawIoSource::new_from_parts(region, stored_len, from, to);
             Self {
-                owner: Owner::Io {
-                    source: RawIoSource::new_from_parts(region, stored_len, from, to),
-                },
+                unbuffered_bytes: source.remaining_file_bytes(),
+                owner: Owner::Io { source },
                 window: NonNull::dangling().as_ptr(),
                 window_position: 0,
                 window_len: 0,
-                unbuffered_bytes: bytes,
             }
         }
     }

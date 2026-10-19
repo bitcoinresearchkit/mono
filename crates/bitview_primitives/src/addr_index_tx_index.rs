@@ -5,7 +5,7 @@ use serde::Serialize;
 use vecdb::Bytes;
 
 use crate::TypeIndex;
-use brk_types::{StoreValue, TxIndex};
+use brk_types::TxIndex;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Hash)]
 #[cfg_attr(feature = "storage", derive(Bytes))]
@@ -28,16 +28,4 @@ impl From<(TypeIndex, TxIndex)> for AddrIndexTxIndex {
     }
 }
 
-impl StoreValue for AddrIndexTxIndex {
-    type Bytes = [u8; 8];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0.to_be_bytes()
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(u64::from_be_bytes(bytes))
-    }
-}
+brk_types::impl_store_value!(AddrIndexTxIndex, u64);

@@ -24,23 +24,16 @@ pub fn first_block_height(client: &Client, blk_path: &Path, xor_bytes: XORBytes)
 
     let header_end = magic_end + 4 + HEADER_LEN;
     if header_end > n {
-        warn!(
-            "first_block_height: {} has magic-shaped bytes at offset {} but \
-             not enough room in the {}-byte probe to decode the header, \
-             the file is probably corrupt",
-            blk_path.display(),
-            magic_end - 4,
-            PROBE_BUF_LEN,
-        );
         return Err(Error::Parse(format!(
-            "blk file probe truncated before header at {}",
-            blk_path.display()
+            "{}: block header at offset {} ends past the {n}-byte probe",
+            blk_path.display(),
+            magic_end + 4,
         )));
     }
     xor_i.bytes(&mut buf[magic_end..header_end], xor_bytes);
 
     let header = Header::consensus_decode_from_finite_reader(&mut &buf[magic_end + 4..header_end])?;
-    let height = client.get_block_info(&header.block_hash())?.height as u32;
+    let height = client.get_block_header_info(&header.block_hash())?.height as u32;
 
     Ok(Height::new(height))
 }

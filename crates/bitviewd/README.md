@@ -9,14 +9,14 @@ This package provides the `bitviewd` executable: the official plugin composition
 arguments, configuration files, logging, signal handling, and serving.
 
 [bitview.space](https://bitview.space) is the official free hosted instance.
-For AI clients, the official stateless, read-only MCP endpoint is
-[mcp.bitview.space](https://mcp.bitview.space/). It requires no authentication.
 
 ## Requirements
 
 - Linux or macOS
-- Bitcoin Core with `server=1` in `bitcoin.conf`
-- Access to `blk*.dat` files
+- Bitcoin Core on mainnet (testnet, signet and regtest are not supported) with
+  `server=1` in `bitcoin.conf`
+- Access to `blk*.dat` files, complete from genesis for the initial sync (no
+  pruned node)
 - About 290 GiB of disk space for the current default composition, plus Bitcoin
   Core storage and growth headroom (see [Disk usage](#disk-usage))
 - 16 GB of RAM recommended for a full sync.
@@ -54,18 +54,14 @@ resynced automatically on the next run.
 bitviewd
 ```
 
-Bitview indexes the blockchain, computes datasets, starts the server on
-`localhost:3110`, and waits for new blocks.
+Bitview indexes the blockchain, computes datasets, starts the server (listening
+on `0.0.0.0:3110`, so locally at `http://localhost:3110`), and waits for new blocks.
 
 ## Generating clients during development
 
-From the workspace, run `cargo bindgen` after API changes and before building
-consumers of generated clients. `cargo bindgen -- --check` verifies that the
-checked-in outputs are current without overwriting them. `cargo dev` generates
-first and starts the daemon only after generation succeeds; daemon arguments
-can be passed with `cargo dev -- --serverport 3110`. `cargo prod` starts the daemon
-without generation. Normal server startup never generates files; installed
-users do not need to run bindgen.
+From the workspace, `cargo dev` regenerates the clients and starts the daemon; see the
+Regenerating section of [`bitview_bindgen`](https://crates.io/crates/bitview_bindgen) for
+`cargo bindgen` and `cargo prod`.
 
 ## First sync
 
@@ -114,10 +110,9 @@ The active composition owns the entire `plugins/` directory. At startup,
 Bitview removes every entry whose name is not claimed by an active plugin ID.
 Use a different `bitviewdir` when omitted plugin data must be preserved.
 
-Plugin compatibility is defined separately by
+Plugin compatibility is defined by
 [`bitview_plugin`](https://crates.io/crates/bitview_plugin). The platform and
-plugin APIs remain experimental while the built-in modules are extracted into
-independent plugins.
+plugin APIs are experimental.
 
 ## Custom plugins
 

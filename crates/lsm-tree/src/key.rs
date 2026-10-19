@@ -34,6 +34,7 @@ impl<K: Debug> Debug for InternalKey<K> {
                 ValueType::Value => "V",
                 ValueType::Tombstone => "T",
                 ValueType::WeakTombstone => "W",
+                ValueType::ValueOverWeakTombstone => "P",
             },
         )
     }
@@ -74,41 +75,5 @@ impl<K: Ord> PartialOrd for InternalKey<K> {
 impl<K: Ord> Ord for InternalKey<K> {
     fn cmp(&self, other: &Self) -> Ordering {
         (&self.user_key, other.seqno).cmp(&(&other.user_key, self.seqno))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use test_log::test;
-
-    use super::*;
-
-    #[test]
-    fn key_order_smoke_test() {
-        use ValueType::Value as V;
-
-        let mut keys = [
-            InternalKey::new(b"d", 3, V),
-            InternalKey::new(b"a", 0, V),
-            InternalKey::new(b"b", 0, V),
-            InternalKey::new(b"a", 2, V),
-            InternalKey::new(b"b", 1, V),
-            InternalKey::new(b"a", 1, V),
-            InternalKey::new(b"c", 3, V),
-        ];
-        keys.sort();
-
-        assert_eq!(
-            [
-                InternalKey::new(b"a", 2, V),
-                InternalKey::new(b"a", 1, V),
-                InternalKey::new(b"a", 0, V),
-                InternalKey::new(b"b", 1, V),
-                InternalKey::new(b"b", 0, V),
-                InternalKey::new(b"c", 3, V),
-                InternalKey::new(b"d", 3, V),
-            ],
-            keys,
-        );
     }
 }

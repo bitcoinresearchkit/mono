@@ -4,13 +4,12 @@ use bitview_primitives::Index;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Information about an available index and its query aliases
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
 pub struct IndexInfo {
     /// The canonical index name
     pub index: Index,
 
-    /// All Accepted query aliases
+    /// Every name REST queries accept for it; MCP tools take the canonical `index` only
     #[schemars(example = vec!["d", "date", "day1"])]
     pub aliases: Vec<Cow<'static, str>>,
 }

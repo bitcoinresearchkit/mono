@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
 
-use crate::{DecodedAddrState, EmptyAddrData, ExtendedEmptyAddrIndex, FundedAddrIndex};
+use crate::{DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressIndex};
 use brk_types::Sats;
 
 const PAYLOAD_BITS: u32 = 30;
@@ -31,11 +31,11 @@ const COUNT_HEAVY_TRANSFER_BITS: u32 = 23;
 )]
 #[cfg_attr(feature = "storage", derive(Bytes))]
 #[serde(transparent)]
-pub struct AddrState(u32);
+pub struct AddressState(u32);
 
-impl AddrState {
+impl AddressState {
     #[inline(always)]
-    pub fn from_empty(data: &EmptyAddrData) -> Option<Self> {
+    pub fn from_empty(data: &EmptyAddressData) -> Option<Self> {
         Self::pack_empty(
             data,
             0,
@@ -55,18 +55,18 @@ impl AddrState {
     }
 
     #[inline(always)]
-    pub fn from_extended_empty(index: ExtendedEmptyAddrIndex) -> Self {
+    pub fn from_extended_empty(index: ExtendedEmptyAddressIndex) -> Self {
         Self::from_index(EXTENDED_EMPTY_TAG, index.into())
     }
 
     #[inline(always)]
-    pub fn from_funded(index: FundedAddrIndex) -> Self {
+    pub fn from_funded(index: FundedAddressIndex) -> Self {
         Self::from_index(FUNDED_TAG, index.into())
     }
 
     #[inline(always)]
     fn from_index(tag: u32, index: u32) -> Self {
-        assert!(
+        debug_assert!(
             index <= PAYLOAD_MASK,
             "address-state sidecar index is too large"
         );
@@ -75,16 +75,16 @@ impl AddrState {
 
     #[inline(always)]
     fn pack_empty(
-        data: &EmptyAddrData,
+        data: &EmptyAddressData,
         tag: u32,
         tx_count_bits: u32,
         funded_txo_count_bits: u32,
         transfer_bits: u32,
     ) -> Option<Self> {
-        let transfered = u64::from(data.transfered);
+        let transferred = u64::from(data.transferred);
         if data.tx_count >= 1 << tx_count_bits
             || data.funded_txo_count >= 1 << funded_txo_count_bits
-            || transfered >= 1 << transfer_bits
+            || transferred >= 1 << transfer_bits
         {
             return None;
         }
@@ -92,7 +92,7 @@ impl AddrState {
         Some(Self(
             tag | (data.tx_count << (transfer_bits + funded_txo_count_bits))
                 | (data.funded_txo_count << transfer_bits)
-                | transfered as u32,
+                | transferred as u32,
         ))
     }
 
@@ -102,10 +102,10 @@ impl AddrState {
         funded_txo_count_bits: u32,
         transfer_bits: u32,
     ) -> DecodedAddrState {
-        DecodedAddrState::Empty(EmptyAddrData {
+        DecodedAddrState::Empty(EmptyAddressData {
             tx_count: payload >> (transfer_bits + funded_txo_count_bits),
             funded_txo_count: (payload >> transfer_bits) & ((1 << funded_txo_count_bits) - 1),
-            transfered: Sats::from(u64::from(payload & ((1 << transfer_bits) - 1))),
+            transferred: Sats::from(u64::from(payload & ((1 << transfer_bits) - 1))),
         })
     }
 
@@ -113,9 +113,9 @@ impl AddrState {
     pub fn decode(self) -> DecodedAddrState {
         let payload = self.0 & PAYLOAD_MASK;
         match self.0 & TAG_MASK {
-            FUNDED_TAG => DecodedAddrState::Funded(FundedAddrIndex::from(payload as usize)),
+            FUNDED_TAG => DecodedAddrState::Funded(FundedAddressIndex::from(payload as usize)),
             EXTENDED_EMPTY_TAG => {
-                DecodedAddrState::ExtendedEmpty(ExtendedEmptyAddrIndex::from(payload as usize))
+                DecodedAddrState::ExtendedEmpty(ExtendedEmptyAddressIndex::from(payload as usize))
             }
             0 => Self::decode_empty(
                 payload,
@@ -133,7 +133,7 @@ impl AddrState {
 }
 
 #[cfg(feature = "storage")]
-impl Formattable for AddrState {
+impl Formattable for AddressState {
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         self.0.write_to(buf);

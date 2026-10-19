@@ -7,25 +7,68 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Cache, CompressionType, DescriptorTable, Result, Tree, path::absolute_path};
+use crate::{Cache, DescriptorTable, Result, Tree, path::absolute_path};
 
-mod block_size;
-mod compression;
 mod filter;
-mod partitioning;
-mod pinning;
-mod restart_interval;
 
-#[cfg(test)]
-#[path = "../../tests/unit/config.rs"]
-mod tests;
-
-pub use block_size::BlockSizePolicy;
-pub use compression::CompressionPolicy;
 pub use filter::{BloomConstructionPolicy, FilterPolicy, FilterPolicyEntry};
-pub use partitioning::PartitioningPolicy;
-pub use pinning::PinningPolicy;
-pub use restart_interval::RestartIntervalPolicy;
+
+/// A per-level policy: levels deeper than configured use the last value.
+macro_rules! level_policy {
+    ($(#[$doc:meta])* $name:ident($value:ty), $what:literal) => {
+        $(#[$doc])*
+        #[derive(Debug, Clone)]
+        pub struct $name(Vec<$value>);
+
+        impl $name {
+            /// Uses the last configured value for deeper levels.
+            #[must_use]
+            #[expect(
+                clippy::indexing_slicing,
+                reason = "constructors reject empty policies; the index is clamped"
+            )]
+            pub(crate) fn at_level(&self, level: usize) -> $value {
+                self.0[level.min(self.0.len() - 1)]
+            }
+
+            /// Uses the same value in every level.
+            #[must_use]
+            pub fn all(value: $value) -> Self {
+                Self(vec![value])
+            }
+
+            /// Constructs a per-level policy.
+            ///
+            /// # Panics
+            ///
+            /// Panics if the policy is empty or contains more than 255 elements.
+            #[must_use]
+            pub fn new(policy: impl Into<Vec<$value>>) -> Self {
+                let policy = policy.into();
+                assert!(!policy.is_empty(), concat!($what, " policy may not be empty"));
+                assert!(policy.len() <= 255, concat!($what, " policy is too large"));
+                Self(policy)
+            }
+        }
+    };
+}
+pub(crate) use level_policy;
+
+level_policy!(
+    /// Whether to pin blocks, per level.
+    PinningPolicy(bool),
+    "pinning"
+);
+level_policy!(
+    /// Restart interval inside data blocks, per level.
+    RestartIntervalPolicy(u8),
+    "restart-interval"
+);
+level_policy!(
+    /// Whether to partition index and filter blocks, per level.
+    PartitioningPolicy(bool),
+    "partitioning"
+);
 
 /// Tree configuration builder
 pub struct Config {
@@ -39,19 +82,10 @@ pub struct Config {
 
     /// Descriptor table to use
     #[doc(hidden)]
-    pub(crate) descriptor_table: Option<Arc<DescriptorTable>>,
-
-    /// What type of compression is used for data blocks
-    pub(crate) data_block_compression_policy: CompressionPolicy,
-
-    /// What type of compression is used for index blocks
-    pub(crate) index_block_compression_policy: CompressionPolicy,
+    pub(crate) descriptor_table: Arc<DescriptorTable>,
 
     /// Restart interval inside data blocks
     pub(crate) data_block_restart_interval_policy: RestartIntervalPolicy,
-
-    /// Block size of data blocks
-    pub(crate) data_block_size_policy: BlockSizePolicy,
 
     /// Whether to pin index blocks
     pub(crate) index_block_pinning_policy: PinningPolicy,
@@ -78,19 +112,13 @@ impl Config {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         Self {
             path: absolute_path(path.as_ref()),
-            descriptor_table: Some(Arc::new(DescriptorTable::new(256))),
+            descriptor_table: Arc::new(DescriptorTable::new(256)),
             cache: Arc::new(Cache::with_capacity_bytes(16 * 1_024 * 1_024)),
             data_block_restart_interval_policy: RestartIntervalPolicy::all(16),
-            data_block_size_policy: BlockSizePolicy::all(4_096),
             index_block_pinning_policy: PinningPolicy::new([true, true, false]),
             filter_block_pinning_policy: PinningPolicy::new([true, false]),
             index_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
             filter_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
-            data_block_compression_policy: CompressionPolicy::new([
-                CompressionType::None,
-                CompressionType::Lz4,
-            ]),
-            index_block_compression_policy: CompressionPolicy::all(CompressionType::None),
             filter_policy: FilterPolicy::all(FilterPolicyEntry::Bloom(
                 BloomConstructionPolicy::BitsPerKey(10.0),
             )),
@@ -114,7 +142,7 @@ impl Config {
     ///
     /// Can be shared across trees.
     #[must_use]
-    pub fn use_descriptor_table(mut self, descriptor_table: Option<Arc<DescriptorTable>>) -> Self {
+    pub fn use_descriptor_table(mut self, descriptor_table: Arc<DescriptorTable>) -> Self {
         self.descriptor_table = descriptor_table;
         self
     }
@@ -173,27 +201,6 @@ impl Config {
     #[must_use]
     pub fn filter_policy(mut self, policy: FilterPolicy) -> Self {
         self.filter_policy = policy;
-        self
-    }
-
-    /// Sets the compression method for data blocks.
-    #[must_use]
-    pub fn data_block_compression_policy(mut self, policy: CompressionPolicy) -> Self {
-        self.data_block_compression_policy = policy;
-        self
-    }
-
-    /// Sets the compression method for index blocks.
-    #[must_use]
-    pub fn index_block_compression_policy(mut self, policy: CompressionPolicy) -> Self {
-        self.index_block_compression_policy = policy;
-        self
-    }
-
-    /// Sets the data block size policy.
-    #[must_use]
-    pub fn data_block_size_policy(mut self, policy: BlockSizePolicy) -> Self {
-        self.data_block_size_policy = policy;
         self
     }
 

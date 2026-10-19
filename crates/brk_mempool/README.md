@@ -2,90 +2,81 @@
 
 Live Bitcoin mempool state, projected blocks, and fee recommendations.
 
-`Mempool` polls Bitcoin Core, applies transaction additions and removals to
-shared state, resolves confirmed prevouts, and publishes an immutable snapshot
-for readers. Clones share the same state through `Arc`.
+`Mempool` is the single private writer: it polls Bitcoin Core, applies transaction additions
+and removals, resolves confirmed prevouts, rebuilds the projection, and publishes one immutable
+`ReadOnlyState` per completed observation. Readers hold a `ReadOnlyMempool` handle and load one
+publication per query.
 
 ## Run the driver
 
 ```rust,ignore
-let mempool = Mempool::new(&rpc_client);
-let mut driver = mempool.clone();
+let mut mempool = Mempool::new(&rpc_client);
+let reader = mempool.read_only_clone();
+let chain = mempool.chain_waker();
 
-std::thread::spawn(move || driver.start_with(resolver));
+std::thread::spawn(move || mempool.start_with(resolver, published_tip));
 
-let fees = mempool.fees();
-let info = mempool.info();
-let projected_blocks = mempool.block_stats();
+// Per query: one publication, kept for the whole read.
+let state = reader.load();
+let fees = state.fees()?;
+let projected_blocks = state.block_stats()?;
 ```
 
-`start_with` runs one update cycle per second and does not return; `resolver`
-supplies confirmed prevouts (Bitview resolves them from its own indexer). Only
-one driver may run for a `Mempool` instance.
+`start_with` runs one update cycle per second and does not return. `resolver` supplies
+confirmed prevouts (Bitview resolves them from its own indexer), and `published_tip` the chain
+tip readers pair the pool with: a pool is published only at that tip, as soon as the chain
+publishes it and calls `chain.published()`.
 
-Use `tick` to drive one cycle manually; it resolves confirmed prevouts with
-`getrawtransaction`, so Bitcoin Core must have `txindex=1`. It returns a `Cycle`
-describing the observed additions, removals, and other state changes.
-Concurrent manual cycles return `StateUpdating` before issuing RPCs or changing
-state.
+`tick` drives one cycle manually, published at the node's tip; it resolves confirmed prevouts
+with `getrawtransaction`, so Bitcoin Core must have `txindex=1`.
+
+A failed poll, one whose tip moved mid-poll, or one not at the chain's published tip publishes
+nothing: readers keep the last publication. Otherwise membership and projection advance
+independently. The projection (`fees`, `block_stats`, `block_template_source`,
+`resolve_block_template_diff`) advances with every poll whose whole template is loaded.
+Membership (every other read, CPFP and RBF included, and `tip()`) advances only when the poll's
+view is complete: the template holds no transactions absent from the raw listing and every
+listed transaction is loaded (the per-cycle fetch cap can defer some). One loaded publication
+can therefore pair a newer projection with older membership. In builds that unwind (the
+workspace's release profile aborts on panic instead), a panic mid-cycle restores the private
+state from the last publication before the next one.
 
 ## Read API
 
-Readers access the latest published state without driving a rebuild:
+On a loaded `ReadOnlyState`:
 
-- `info`, txid lists/hashes, recent transactions and transaction times require a
-  completed pool observation and return an error during startup, incomplete
-  updates or failed polls.
-- `fees` and `block_stats` expose recommendations and projected-block
-  statistics.
-- `block_template_source` captures the projected next block, built in Bitcoin
-  Core `getblocktemplate` order.
-- `resolve_block_template_diff` returns retained, new, and removed transactions
-  since a recent template hash.
-- `contains_txid`, `transaction`, and the outspend/spender reads take the
-  caller's full chain-tip hash and require a completed matching publication.
-  `transaction` shares an immutable live or recently vanished body; replaced
-  tombstones are excluded. `recent_txs` exposes the completed recent live list.
-- `cpfp_info` additionally verifies that the graph and live transaction fields
-  share a revision. Stale graphs are not combined with
-  newer live state.
-- `addr_stats` and `addr_txs` take the caller's full chain-tip hash and return
-  address activity only from a completed publication at that tip. `addr_txs`
-  shares immutable `Arc<Transaction>` bodies rather than deep-cloning them.
-- `rbf_for_tx` and `recent_rbf_trees` expose replacement relationships at a
-  caller-supplied chain tip, requiring matching completed live/graph revisions.
+- `info_json`, `txids`/`txids_hash`, `recent_txs` and `transaction_times_with_hash` need a
+  completed pool observation and return `StateUpdating` before the first one.
+- `fees`, `precise_fees` and `block_stats` expose recommendations and projected-block statistics.
+- `block_template_source` captures the projected next block in Bitcoin Core's
+  `getblocktemplate` order; `resolve_block_template_diff` captures the changes since a recent
+  template hash. Both build serializable views over the shared bodies, without copying them.
+- `contains_txid`, `transaction` and the outspend reads take the caller's full chain-tip hash
+  and require a publication at that tip. `transaction` shares an immutable live or recently
+  vanished body; replaced tombstones are excluded.
+- `cpfp_info` reads the publication's own graph, at the caller's tip.
+- `addr_stats`, `addr_pending_utxos` and `addr_txs` take the caller's chain-tip hash and answer
+  only from a publication at that tip.
+- `rbf_for_tx` and `recent_rbf_trees` expose replacement relationships at the caller's tip.
 
-The full next-block template follows the transaction order returned by Bitcoin
-Core's `getblocktemplate`. Later projected blocks are coarse fee-ordered
-partitions used for estimates and charts.
+## Projection and fee tiers
 
-## Fee tiers
+Block 0 is Core's `getblocktemplate` selection. Later projected blocks pack the remaining
+transactions by descending linearized chunk rate (CPFP-aware), up to eight blocks in all, the
+last a catch-all; empty trailing blocks are not projected. Dependency edges come from each
+body's inputs as the pool stands at each rebuild.
 
-`RecommendedFees` is derived from the first three projected-block fee
-distributions and Bitcoin Core's live `mempoolminfee`:
-
-- `fastest_fee` uses the first projected block plus the priority adjustment.
-- `half_hour_fee` uses the second projected block plus half that adjustment.
-- `hour_fee` uses the third projected block.
-- `economy_fee` is a bounded value derived from the third block.
-- `minimum_fee` is the live mempool minimum, rounded to the response precision.
-
-Partial final blocks are tapered toward the minimum fee. Every tier is kept at
-or above `minimum_fee`.
+`PreciseRecommendedFees` ports mempool.space's `getPreciseRecommendedFee` over the first three
+projected blocks and Core's live `mempoolminfee`: a partially full final block tapers its tier
+toward the minimum fee, and every tier stays at or above `minimum_fee`. `RecommendedFees` ports
+its `getRecommendedFee`: the same tiers in whole sat/vB, without the precise variant's priority
+offsets.
 
 ## Consistency
 
-The writer builds a complete replacement `Snapshot` and publishes it in one
-swap. Read methods that draw from the snapshot therefore agree on projected
-blocks, fees, chunk rates, and the next-block hash. Live transaction lookups
-may include changes received after that snapshot; methods document their
-fallback behavior for that short interval.
-
-Address reads have a stricter gate. Each poll brackets its fetch and prevout
-resolution with full best-block hashes and checks them against the template's
-anchor. Address reads return `StateUpdating` during mutations, on a chain-tip
-mismatch, after a failed poll, or while downloads/prevouts are incomplete. A
-template containing transactions absent from the raw mempool listing is still
-usable for template projection, but their union is not served as an address
-balance or page. These are consistency checks on sampled observations, not a
-claim that a JSON-RPC batch is atomic.
+Each publication pairs one membership observation with the graph built from it. Each poll
+brackets its fetch and prevout resolution with best-block hashes; an observation whose tip moved
+is not published. A template containing transactions absent from the raw mempool listing is
+still used for the projection, but that union is not published as membership (address balances
+and pages). These are consistency checks on sampled observations, not a claim that a JSON-RPC
+batch is atomic.

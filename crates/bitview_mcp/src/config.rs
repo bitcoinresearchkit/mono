@@ -1,32 +1,15 @@
 use axum::http::Uri;
 
-pub fn api_bases(input: &str) -> Result<Vec<String>, String> {
+pub fn api_url(input: &str) -> Result<String, String> {
     let input = input.trim().trim_end_matches('/');
-    if input.is_empty() {
-        return Err("REST API URL or host must not be empty".to_string());
-    }
-    let bases = if input.contains("://") {
-        vec![input.to_string()]
-    } else {
-        vec![format!("https://{input}"), format!("http://{input}")]
-    };
-    for base in &bases {
-        validate_api_base(base)?;
-    }
-    Ok(bases)
+    validate_origin(input, "REST API")?;
+    Ok(input.to_owned())
 }
 
 pub fn public_url(input: &str) -> Result<String, String> {
     let input = input.trim().trim_end_matches('/');
-    if input.is_empty() {
-        return Err("public MCP URL must not be empty".to_owned());
-    }
     validate_origin(input, "public MCP")?;
     Ok(format!("{input}/"))
-}
-
-fn validate_api_base(base: &str) -> Result<(), String> {
-    validate_origin(base, "REST API")
 }
 
 fn validate_origin(base: &str, label: &str) -> Result<(), String> {

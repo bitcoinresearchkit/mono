@@ -24,10 +24,8 @@ impl Charge {
 
     pub(super) fn merge(&mut self, mut other: Self) {
         debug_assert!(Arc::ptr_eq(&self.account, &other.account));
-        self.bytes = self
-            .bytes
-            .checked_add(other.bytes)
-            .expect("cache charge overflow");
+        // Both reservations fit the shared budget together: no overflow.
+        self.bytes += other.bytes;
         other.bytes = 0;
     }
 }

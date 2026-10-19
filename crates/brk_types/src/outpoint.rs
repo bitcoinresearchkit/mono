@@ -10,7 +10,7 @@ use crate::{TxIndex, Vout};
 use vecdb::{Formattable, Pco};
 
 /// The output a transaction input spends: its transaction index and output position, written as
-/// `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 65535}`).
+/// `{"tx_index": N, "vout": M}` (coinbase inputs: `{"tx_index": 4294967295, "vout": 4294967295}`).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Default, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
@@ -20,9 +20,7 @@ impl OutPoint {
     pub const COINBASE: Self = Self(u64::MAX);
 
     pub fn new(tx_index: TxIndex, vout: Vout) -> Self {
-        let tx_index_bits = u64::from(tx_index) << 32;
-        let vout_bits = u64::from(vout);
-        Self(tx_index_bits | vout_bits)
+        Self((u64::from(tx_index) << 32) | u64::from(vout))
     }
 
     #[inline(always)]
@@ -30,11 +28,9 @@ impl OutPoint {
         TxIndex::from((self.0 >> 32) as u32)
     }
 
+    /// Coinbase: [`Vout::MAX`].
     #[inline(always)]
     pub fn vout(self) -> Vout {
-        if self.is_coinbase() {
-            return Vout::MAX;
-        }
         Vout::from(self.0 as u32)
     }
 
@@ -67,13 +63,12 @@ impl Formattable for OutPoint {
     }
 
     /// The JSON object as one quoted cell.
-    fn fmt_csv(&self, f: &mut String) -> FmtResult {
-        f.push_str("\"{\"\"tx_index\"\":");
-        self.tx_index().fmt_into(f);
-        f.push_str(",\"\"vout\"\":");
-        self.vout().fmt_into(f);
-        f.push_str("}\"");
-        Ok(())
+    fn fmt_csv(&self, buf: &mut Vec<u8>) {
+        buf.extend_from_slice(b"\"{\"\"tx_index\"\":");
+        self.tx_index().write_to(buf);
+        buf.extend_from_slice(b",\"\"vout\"\":");
+        self.vout().write_to(buf);
+        buf.extend_from_slice(b"}\"");
     }
 }
 
@@ -96,9 +91,6 @@ impl<'de> Deserialize<'de> for OutPoint {
         D: Deserializer<'de>,
     {
         let parts = OutPointParts::deserialize(deserializer)?;
-        if u32::from(parts.tx_index) == u32::MAX && parts.vout == Vout::MAX {
-            return Ok(Self::COINBASE);
-        }
         Ok(Self::new(parts.tx_index, parts.vout))
     }
 }

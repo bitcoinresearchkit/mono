@@ -2,5 +2,5 @@
 #[derive(Debug)]
 pub enum Output {
     Json(Vec<u8>),
-    CSV(String),
+    CSV(Vec<u8>),
 }

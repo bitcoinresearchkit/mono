@@ -8,47 +8,7 @@ where
 {
     #[inline]
     fn has_mutations(&self) -> bool {
-        !self.current_holes().is_empty() || !self.current_updated().is_empty()
-    }
-
-    fn fold_mutable<B, F>(&self, from: usize, to: usize, init: B, mut f: F) -> B
-    where
-        F: FnMut(B, V::T) -> B,
-    {
-        let stored_len = self.vec.stored_len();
-        let reader = self.vec.reader();
-        let mut holes = self.current_holes().range(from..to).peekable();
-        let mut updated = self
-            .current_updated()
-            .range(from..to.min(stored_len))
-            .peekable();
-        let mut acc = init;
-
-        for index in from..to.min(stored_len) {
-            if unlikely(holes.peek() == Some(&&index)) {
-                holes.next();
-                continue;
-            }
-            let value = if unlikely(updated.peek().is_some_and(|&(&key, _)| key == index)) {
-                updated.next().unwrap().1.clone()
-            } else {
-                V::read_stored(&reader, index)
-            };
-            acc = f(acc, value);
-        }
-
-        let pushed = self.vec.pushed();
-        for index in from.max(stored_len)..to {
-            if unlikely(holes.peek() == Some(&&index)) {
-                holes.next();
-                continue;
-            }
-            if let Some(value) = pushed.get(index - stored_len) {
-                acc = f(acc, value.clone());
-            }
-        }
-
-        acc
+        !self.holes().is_empty() || !self.updated.current.is_empty()
     }
 
     fn try_fold_mutable<B, E, F>(&self, from: usize, to: usize, init: B, mut f: F) -> Result<B, E>
@@ -56,17 +16,23 @@ where
         F: FnMut(B, V::T) -> Result<B, E>,
     {
         let stored_len = self.vec.stored_len();
+        let stored_to = to.min(stored_len);
         let reader = self.vec.reader();
-        let mut holes = self.current_holes().range(from..to).peekable();
+        let mut holes = self.holes().range(from..to).peekable();
         let mut updated = self
-            .current_updated()
-            .range(from..to.min(stored_len))
+            .updated
+            .current
+            .range(from.min(stored_to)..stored_to)
             .peekable();
         let mut acc = init;
 
-        for index in from..to.min(stored_len) {
+        for index in from..stored_to {
             if unlikely(holes.peek() == Some(&&index)) {
                 holes.next();
+                // A rollback restores a hole's backing value as an update: skip it too.
+                if updated.peek().is_some_and(|&(&key, _)| key == index) {
+                    updated.next();
+                }
                 continue;
             }
             let value = if unlikely(updated.peek().is_some_and(|&(&key, _)| key == index)) {
@@ -83,9 +49,7 @@ where
                 holes.next();
                 continue;
             }
-            if let Some(value) = pushed.get(index - stored_len) {
-                acc = f(acc, value.clone())?;
-            }
+            acc = f(acc, pushed[index - stored_len].clone())?;
         }
 
         Ok(acc)
@@ -103,10 +67,11 @@ where
 
     #[inline(always)]
     fn collect_one_at(&self, index: usize) -> Option<V::T> {
-        if index >= self.vec.len() || self.current_holes().contains(&index) {
+        if index >= self.vec.len() || self.holes().contains(&index) {
             return None;
         }
-        self.current_updated()
+        self.updated
+            .current
             .get(&index)
             .cloned()
             .or_else(|| self.vec.collect_one_at(index))
@@ -118,11 +83,12 @@ where
             self.vec.read_into_at(from, to, buf);
             return;
         }
-        let len = self.vec.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        buf.reserve(to.saturating_sub(from));
-        self.fold_mutable(from, to, (), |(), value| buf.push(value));
+        let to = to.min(self.vec.len());
+        if from >= to {
+            return;
+        }
+        buf.reserve(to - from);
+        self.fold_range_at(from, to, (), |(), value| buf.push(value));
     }
 
     #[inline]
@@ -139,8 +105,8 @@ where
         if last - first < indices.len() && indices.len() > 1 {
             // Merge dense requests with mutations. Sparse requests retain
             // tree lookups rather than walking mutations across large gaps.
-            let mut holes = self.current_holes().range(first..=last).peekable();
-            let mut updates = self.current_updated().range(first..=last).peekable();
+            let mut holes = self.holes().range(first..=last).peekable();
+            let mut updates = self.updated.current.range(first..=last).peekable();
             let reader = self.vec.reader();
             let stored_len = self.vec.stored_len();
             let pushed = self.vec.pushed();
@@ -177,25 +143,6 @@ where
     #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(V::T)) {
         self.fold_range_at(from, to, (), |(), value| f(value));
-    }
-
-    #[inline]
-    fn fold_range_at<B, F>(&self, from: usize, to: usize, init: B, f: F) -> B
-    where
-        Self: Sized,
-        F: FnMut(B, V::T) -> B,
-    {
-        let len = self.vec.len();
-        let from = from.min(len);
-        let to = to.min(len);
-        if from >= to {
-            return init;
-        }
-        if self.has_mutations() {
-            self.fold_mutable(from, to, init, f)
-        } else {
-            self.vec.fold_range_at(from, to, init, f)
-        }
     }
 
     #[inline]

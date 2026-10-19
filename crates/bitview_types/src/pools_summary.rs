@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::PoolStats;
 
-/// Mining pools response for a time period
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PoolsSummary {

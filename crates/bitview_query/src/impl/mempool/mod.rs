@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use brk_mempool::ReadOnlyState;
 pub use brk_mempool::{BlockTemplateSource, ResolvedBlockTemplateDiff};
-use brk_types::{MempoolBlock, MempoolInfo, MempoolRecentTx, NextBlockHash, RecommendedFees, Txid};
-use serde::Serialize;
+use brk_types::{MempoolBlock, NextBlockHash, PreciseRecommendedFees, RecommendedFees, Txid};
+use serde::{Serialize, Serializer};
 use serde_json::to_vec;
 
 use crate::{Error, Query, RepresentationId, Result};
@@ -12,10 +12,42 @@ pub mod rbf;
 
 pub use rbf::ResolvedRbf;
 
+/// A mempool view added to confirmed data, or none while no pool is at this publication (starting
+/// up, a rollback, or the moment a block publishes before the mempool follows): the confirmed
+/// data answers alone meanwhile.
+pub(crate) fn anchored<T: Default>(view: brk_error::Result<T>) -> Result<T> {
+    match view {
+        Err(brk_error::Error::StateUpdating) => Ok(T::default()),
+        view => Ok(view?),
+    }
+}
+
 fn serialize_json<T: Serialize>(value: &T) -> (Vec<u8>, RepresentationId) {
     let bytes = to_vec(value).unwrap();
-    let identity = RepresentationId::Content(RepresentationId::content_hash(&bytes));
+    let identity = RepresentationId::content(&bytes);
     (bytes, identity)
+}
+
+/// One publication's txid array, serialized only once a response needs it.
+pub struct MempoolTxids {
+    mempool: Arc<ReadOnlyState>,
+    hash: u64,
+}
+
+impl MempoolTxids {
+    /// The array's order-sensitive validator.
+    pub fn hash(&self) -> u64 {
+        self.hash
+    }
+
+    pub fn json(&self) -> Vec<u8> {
+        let txids = self.mempool.txids().expect("published when resolved");
+        let mut bytes = Vec::new();
+        serde_json::Serializer::new(&mut bytes)
+            .collect_seq(txids)
+            .expect("txids serialize");
+        bytes
+    }
 }
 
 impl Query {
@@ -23,26 +55,27 @@ impl Query {
         self.mempool().ok_or(Error::MempoolNotAvailable)
     }
 
-    fn mempool_info(&self) -> Result<MempoolInfo> {
-        Ok(self.require_mempool()?.info()?)
-    }
-
-    /// Serialize mempool statistics with their exact content identity.
+    /// Mempool statistics with their exact content identity, built once per publication.
     pub fn mempool_info_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
-        let info = self.mempool_info()?;
-        Ok(serialize_json(&info))
+        let (bytes, hash) = self.require_mempool()?.info_json()?;
+        Ok((bytes.to_vec(), RepresentationId::Content(hash)))
     }
 
-    pub fn mempool_txids_hash(&self) -> Result<u64> {
-        Ok(self.require_mempool()?.txids_hash()?)
+    /// The pool's txids from one publication: their validator now, the array on demand.
+    pub fn mempool_txids(&self) -> Result<MempoolTxids> {
+        let mempool = self.require_mempool()?;
+        let hash = mempool.txids_hash()?;
+        Ok(MempoolTxids { mempool, hash })
     }
 
-    pub fn mempool_txids_with_hash(&self) -> Result<(Vec<Txid>, u64)> {
-        Ok(self.require_mempool()?.txids_with_hash()?)
-    }
-
+    /// mempool.space's `/api/v1/fees/recommended`: whole sat/vB.
     pub fn recommended_fees(&self) -> Result<RecommendedFees> {
         Ok(self.require_mempool()?.fees()?)
+    }
+
+    /// mempool.space's `/api/v1/fees/precise`.
+    pub fn precise_fees(&self) -> Result<PreciseRecommendedFees> {
+        Ok(self.require_mempool()?.precise_fees()?)
     }
 
     pub fn mempool_blocks(&self) -> Result<Vec<MempoolBlock>> {
@@ -54,13 +87,9 @@ impl Query {
             .collect())
     }
 
-    fn mempool_recent(&self) -> Result<Vec<MempoolRecentTx>> {
-        Ok(self.require_mempool()?.recent_txs()?)
-    }
-
     /// Serialize recent transactions with their exact content identity.
     pub fn mempool_recent_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
-        let recent = self.mempool_recent()?;
+        let recent = self.require_mempool()?.recent_txs()?;
         Ok(serialize_json(&recent))
     }
 

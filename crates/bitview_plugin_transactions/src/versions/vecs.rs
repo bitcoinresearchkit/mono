@@ -11,8 +11,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub v2: PerBlockCumulativeRolling<Count, M>,
     /// Transactions whose version is exactly 3.
     pub v3: PerBlockCumulativeRolling<Count, M>,
-    /// Transactions whose version is not 1, 2, or 3. This category combines
-    /// every other value; use individual raw transaction data to inspect the
-    /// original version.
+    /// Transactions whose version is not 1, 2, or 3.
     pub other: PerBlockCumulativeRolling<Count, M>,
 }

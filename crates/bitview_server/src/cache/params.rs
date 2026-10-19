@@ -1,9 +1,13 @@
 use axum::http::HeaderMap;
 use bitview_primitives::BlockHashPrefix;
+#[cfg(feature = "chain")]
+use bitview_query::RepresentationId;
+#[cfg(feature = "series")]
+use bitview_query::{ResolvedQuery, SeriesAnchor};
 use brk_types::Version;
 
-use super::{mode::CdnCacheMode, strategy::CacheStrategy};
-use crate::{VERSION, etag::Etag, extended::HeaderMapExtended};
+use super::mode::CdnCacheMode;
+use crate::{etag::Etag, extended::HeaderMapExtended};
 
 // Browser-facing: always revalidate via ETag. `no-cache` means "cache it but
 // check before use" (not "don't cache"); ETag makes the check cheap.
@@ -50,7 +54,24 @@ impl CacheParams {
         }
     }
 
-    fn immutable(version: Version, cdn_cache_mode: CdnCacheMode) -> Self {
+    /// Live response with an exact, versioned representation tag: browsers revalidate, the CDN
+    /// reuses it for a second without stale reuse.
+    pub fn live(tag: impl Into<Etag>) -> Self {
+        Self {
+            etag: tag.into(),
+            cache_control: CC,
+            cdn_cache_control: CDN_LIVE,
+        }
+    }
+
+    /// Mutable data identified by a representation-specific hash: `l{hash:x}`.
+    pub fn live_hash(hash: u64) -> Self {
+        Self::live(format!("l{hash:x}"))
+    }
+
+    /// Data fixed for the release (the empty search): `i{version}`, bumped when the response
+    /// format changes.
+    pub fn immutable(version: Version, cdn_cache_mode: CdnCacheMode) -> Self {
         Self {
             etag: format!("i{version}").into(),
             cache_control: CC,
@@ -58,73 +79,57 @@ impl CacheParams {
         }
     }
 
-    fn activity_bound(version: Version, prefix: BlockHashPrefix) -> Self {
-        Self {
-            etag: format!("a{version}-{:x}", *prefix).into(),
-            cache_control: CC,
-            cdn_cache_control: CDN_LIVE,
-        }
+    /// Mutable state whose current representation is anchored to its latest relevant block
+    /// (address state, UTXO set points): `a{version}-{block_hash_prefix:x}`. The CDN
+    /// revalidates so later activity can replace it without waiting for a purge.
+    pub fn activity_bound(version: Version, prefix: BlockHashPrefix) -> Self {
+        Self::live(format!("a{version}-{:x}", *prefix))
     }
 
-    /// Deploy-tied response: etag from the build version. Used directly
-    /// by static handlers (OpenAPI spec, scalar bundle) that don't have
-    /// a [`CacheStrategy`] context.
+    /// Release-bound response (validate-address, version, scalar bundle): `d`, after the release
+    /// prefix every tag starts with.
     pub fn deploy() -> Self {
-        Self::revalidate(format!("d{VERSION}").into())
+        Self::revalidate("d".to_string())
     }
 
-    /// Short freshness for a mutable URL with an already-resolved validator.
-    pub fn revalidate(etag: Etag) -> Self {
+    /// A response a second's reuse cannot mislead (block by hash, tip, catalogs, deploy-tied):
+    /// browsers and the CDN reuse it for a second, then revalidate, without stale reuse.
+    pub fn revalidate(tag: impl Into<Etag>) -> Self {
         Self {
-            etag,
+            etag: tag.into(),
             cache_control: CC_REVALIDATE,
             cdn_cache_control: CC_REVALIDATE,
         }
     }
 
-    fn live_hash(hash: u64) -> Self {
-        Self {
-            etag: format!("l{hash:x}").into(),
-            cache_control: CC,
-            cdn_cache_control: CDN_LIVE,
+    #[cfg(feature = "chain")]
+    pub fn representation(version: Version, identity: RepresentationId) -> Self {
+        match identity {
+            RepresentationId::Content(hash) => Self::live_hash(hash),
+            // Anchor identity and availability are distinct: a displaced
+            // confirmed transaction must be resolved again even at depth.
+            RepresentationId::Block(hash) => Self::live(format!("tx3-{version}-{hash}")),
         }
     }
 
-    /// Series query: tail-bound gets LIVE, historical gets CACHED.
-    ///
-    /// `stable_count` is the count of leading entries provably immutable across
-    /// a 6-block reorg (per `Index::cache_class()` + `Query::stable_count`).
-    /// `None` (any series with mutable existing entries) forces the tail branch
-    /// for every range.
+    /// Series query: the resolved [`SeriesAnchor`] picks the stable or the live CDN tier.
     ///
     /// Etag shapes:
-    /// - historical (`end <= stable_count`): `s{v}-h{start}-{end}`. Pure
-    ///   range, stable across appends and reorgs of the volatile tail.
-    /// - tail (`end > stable_count` or `stable_count.is_none()`):
-    ///   `s{v}-t{tip_hash:x}`. Invalidates per-block, reorg-safe.
-    ///
-    /// The `h`/`t` discriminator after `s{v}-` prevents collision with old
-    /// `s{v}-{number}` ETags from before the migration.
-    pub fn series(
-        version: Version,
-        start: usize,
-        end: usize,
-        stable_count: Option<usize>,
-        hash: BlockHashPrefix,
-        cdn_cache_mode: CdnCacheMode,
-    ) -> Self {
-        let v = u32::from(version);
-        match stable_count {
-            Some(s) if end <= s => Self {
-                etag: format!("s{v}-h{start}-{end}").into(),
+    /// - historical: `s{v}-r{start}-{end}-{anchor:x}`, the anchor being the last block the rows
+    ///   depend on (for calendar indexes, the following period's first block): stable across
+    ///   appends, changed by any reorg replacing those rows.
+    /// - tip: `s{v}-t{tip_hash:x}`. Invalidates per block, reorg-safe.
+    #[cfg(feature = "series")]
+    pub fn series(query: &ResolvedQuery, cdn_cache_mode: CdnCacheMode) -> Self {
+        let v = u32::from(query.version());
+        let range = query.range();
+        match query.anchor() {
+            SeriesAnchor::Historical(hash) => Self {
+                etag: format!("s{v}-r{}-{}-{:x}", range.start, range.end, *hash).into(),
                 cache_control: CC,
                 cdn_cache_control: Self::cdn_cache_control(cdn_cache_mode),
             },
-            _ => Self {
-                etag: format!("s{v}-t{:x}", *hash).into(),
-                cache_control: CC,
-                cdn_cache_control: CDN_LIVE,
-            },
+            SeriesAnchor::Tip(hash) => Self::live(format!("s{v}-t{:x}", *hash)),
         }
     }
 
@@ -136,30 +141,10 @@ impl CacheParams {
         headers.insert_cdn_cache_control(cache_control);
     }
 
-    pub fn matches_etag(&self, headers: &HeaderMap) -> bool {
-        self.etag.matches(headers)
-    }
-
     /// Write this cache policy (etag + cache-control + cdn-cache-control) onto a response's headers.
     pub fn apply_to(&self, headers: &mut HeaderMap) {
         self.etag.insert(headers);
         headers.insert_cache_control(self.cache_control);
         headers.insert_cdn_cache_control(self.cdn_cache_control);
-    }
-
-    pub fn resolve(strategy: &CacheStrategy, cdn_cache_mode: CdnCacheMode) -> Self {
-        match strategy {
-            CacheStrategy::Live(etag) => Self {
-                etag: etag.clone(),
-                cache_control: CC,
-                cdn_cache_control: CDN_LIVE,
-            },
-
-            CacheStrategy::Immutable(v) => Self::immutable(*v, cdn_cache_mode),
-
-            CacheStrategy::ActivityBound(v, prefix) => Self::activity_bound(*v, *prefix),
-            CacheStrategy::Deploy => Self::deploy(),
-            CacheStrategy::LiveHash(hash) => Self::live_hash(*hash),
-        }
     }
 }

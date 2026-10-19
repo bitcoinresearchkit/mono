@@ -2,14 +2,14 @@ use brk_types::{Height, Timestamp};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Sync status of the indexer
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct SyncStatus {
     /// Height of the last indexed block
     pub indexed_height: Height,
     /// Height of the last computed block (series)
     pub computed_height: Height,
-    /// Height of the chain tip (from Bitcoin node)
+    /// Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
+    /// asking the node
     pub tip_height: Height,
     /// Number of blocks behind the tip
     pub blocks_behind: Height,

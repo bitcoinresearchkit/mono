@@ -1,7 +1,3 @@
-//! JavaScript client generation.
-//!
-//! This module generates a JavaScript + JSDoc client for the Bitview API.
-
 use std::{collections::BTreeSet, fmt::Write, fs, io, path::Path};
 
 use serde_json::{Value, from_str, json, to_string_pretty};
@@ -14,9 +10,6 @@ pub(crate) mod client;
 mod tree;
 pub(crate) mod types;
 
-/// Generate JavaScript + JSDoc client from the series-tree model and OpenAPI endpoints.
-///
-/// `output_path` is the full path to the output file (e.g., "modules/bitview-client/index.js").
 pub(crate) fn generate_javascript_client(
     model: &Model,
     shape_names: &[String],
@@ -39,7 +32,6 @@ pub(crate) fn generate_javascript_client(
 
     write_if_changed(output_path, &output)?;
 
-    // Update package.json version if it exists in the same directory
     if let Some(parent) = output_path.parent() {
         let package_json_path = parent.join("package.json");
         if package_json_path.exists() {

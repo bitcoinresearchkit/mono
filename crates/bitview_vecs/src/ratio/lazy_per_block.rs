@@ -1,75 +1,46 @@
-use bitview_compute::{ComputedVecValue, FixedRatio, NumericValue};
-use bitview_primitives::{PriceRatio, Ratio};
-use bitview_transforms::{FixedToRatio, price_ratio};
+use bitview_compute::{FixedRatio, NumericValue};
+use bitview_primitives::Ratio;
 use bitview_traversable::Traversable;
-use brk_types::{Cents, Height, Version};
-use schemars::JsonSchema;
-use vecdb::{Ident, ReadableCloneableVec, UnaryTransform};
+use brk_types::{Height, Version};
+use vecdb::{BinaryTransform, Ident, ReadableCloneableVec};
 
-use crate::{IndexSources, LazyIndexedVec, LazyPerBlock};
+use crate::{IndexSources, LazyIndexedVec, LazyPerBlock, ops::FixedToRatio};
 
-const PRICE_RATIO_VERSION: Version = Version::new(5);
-
-/// Fully lazy variant of `RatioPerBlock` derived from one per-block source.
+/// Lazy fixed-point and public ratio views over per-block sources.
 #[derive(Clone, Traversable)]
-pub struct LazyRatioPerBlock<R, S = R>
-where
-    R: FixedRatio,
-    S: NumericValue + JsonSchema,
-{
-    /// Unitless ratio in parts per million; 1,000,000 represents 1.0.
-    pub ppm: LazyPerBlock<R, S>,
-    /// Unitless decimal ratio derived as parts per million divided by 1,000,000.
-    pub ratio: LazyPerBlock<Ratio, R>,
+#[traversable(merge)]
+pub struct LazyRatioPerBlock<R: FixedRatio> {
+    /// Fixed-point ratio in parts per million; 1,000,000 represents 1.0.
+    #[traversable(hidden)]
+    pub fixed: LazyPerBlock<R>,
+    /// As a ratio.
+    ratio: LazyPerBlock<Ratio, R>,
 }
 
-impl LazyRatioPerBlock<PriceRatio> {
-    /// Reuse the standard spot/reference-price ratio policy for a price source.
-    pub fn from_price_source(
+impl<R: FixedRatio> LazyRatioPerBlock<R> {
+    /// `F` of two per-block sources; they own their caches, the views retain no history.
+    pub fn from_ratio<S, D, F>(
         name: &str,
         version: Version,
-        price: &impl ReadableCloneableVec<Height, Cents>,
-        spot: &impl ReadableCloneableVec<Height, Cents>,
+        numerator: &impl ReadableCloneableVec<Height, S>,
+        denominator: &impl ReadableCloneableVec<Height, D>,
         indexes: &IndexSources,
-    ) -> Self {
-        let version = version + PRICE_RATIO_VERSION;
+    ) -> Self
+    where
+        S: NumericValue,
+        D: NumericValue,
+        F: BinaryTransform<S, D, R> + Send + Sync + 'static,
+    {
         let source = LazyIndexedVec::new(
-            &format!("{name}_ppm_source"),
+            &format!("{name}_{}_source", R::SUFFIX),
             version,
-            price,
-            spot,
-            |_, price, spot| price_ratio(spot, price),
+            numerator,
+            denominator,
+            |_, numerator, denominator| F::apply(numerator, denominator),
         );
         Self::from_height_source(name, version, &source, indexes)
     }
-}
 
-impl<R, S> LazyRatioPerBlock<R, S>
-where
-    R: FixedRatio,
-    S: NumericValue + JsonSchema,
-{
-    pub fn from_lazy_source<F, S2T>(
-        name: &str,
-        version: Version,
-        source: &LazyPerBlock<S, S2T>,
-    ) -> Self
-    where
-        F: UnaryTransform<S, R>,
-        S2T: ComputedVecValue + JsonSchema,
-    {
-        let ppm =
-            LazyPerBlock::from_lazy::<F, S2T>(&format!("{name}_{}", R::SUFFIX), version, source);
-        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, S>(name, version, &ppm);
-
-        Self { ppm, ratio }
-    }
-}
-
-impl<R> LazyRatioPerBlock<R>
-where
-    R: FixedRatio,
-{
     pub fn from_height_source<V>(
         name: &str,
         version: Version,
@@ -79,14 +50,14 @@ where
     where
         V: ReadableCloneableVec<Height, R> + ?Sized,
     {
-        let ppm = LazyPerBlock::from_height_source::<Ident>(
+        let fixed = LazyPerBlock::from_height_source::<Ident>(
             &format!("{name}_{}", R::SUFFIX),
             version,
             source,
             indexes,
         );
-        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, R>(name, version, &ppm);
+        let ratio = LazyPerBlock::from_lazy::<FixedToRatio, R>(name, version, &fixed);
 
-        Self { ppm, ratio }
+        Self { fixed, ratio }
     }
 }

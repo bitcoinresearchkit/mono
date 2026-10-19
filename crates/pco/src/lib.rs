@@ -10,25 +10,8 @@
 
 #![allow(clippy::uninit_vec)]
 #![allow(clippy::manual_non_exhaustive)] // sometimes we want to ban explicit construction within the crate too
-#![cfg_attr(
-  test,
-  allow(
-    clippy::assertions_on_constants,
-    clippy::needless_range_loop,
-    clippy::partialeq_to_none,
-    clippy::redundant_pattern_matching,
-    clippy::same_item_push,
-    clippy::single_element_loop,
-    clippy::unnecessary_cast,
-    clippy::useless_vec,
-  )
-)]
 #![deny(clippy::unused_unit)]
 #![deny(dead_code)]
-
-#[doc = include_str!("../README.md")]
-#[cfg(doctest)]
-struct ReadmeDoctest;
 
 pub use chunk_config::{ChunkConfig, DeltaSpec, ModeSpec, PagingSpec};
 pub use constants::FULL_BATCH_N;
@@ -67,6 +50,5 @@ mod read_write_uint;
 mod sampling;
 mod scratch_array;
 mod sort_utils;
-
 #[cfg(test)]
 mod tests;

@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::NumericValue;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
@@ -6,19 +5,11 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::ReadableCloneableVec;
 
-use crate::{IndexSources, LazyRollingSumFromHeight};
+use crate::{IndexSources, LazyRollingSumFromHeight, shapes::Windows};
 
-/// Lazy rolling sums for all 4 window durations (24h, 1w, 1m, 1y),
-/// derived from a cumulative vec + cached window starts.
-///
-/// Nothing is stored on disk — all values are computed on-the-fly via
-/// `LazyDeltaVec<Height, T, T, DeltaSub>`: `cum[h] - cum[window_start[h] - 1]`,
-/// using zero when the window starts at genesis.
-///
-/// Implements `Traversable` to expose `_24h`, `_1w`, `_1m`, `_1y` with
-/// the same tree structure as the old `RollingWindows<T>`.
+/// Window sums `cum[h] - cum[window_start[h] - 1]` over a cumulative source, using zero when the
+/// window starts at genesis.
 #[derive(Clone, Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct LazyRollingSumsFromHeight<T>(
     /// Total of the per-block values over the trailing window ending at the
     /// represented block. At time-period indexes, the value is taken at the

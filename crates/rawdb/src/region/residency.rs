@@ -11,29 +11,27 @@ const SAMPLE_BYTES: usize = 16 * 1024 * 1024;
 #[cfg(unix)]
 static VM_PAGE_SIZE: OnceLock<Option<usize>> = OnceLock::new();
 
-/// Samples the first, last, and one page per window of a mapped range.
-/// Empty in-bounds ranges need no probing. Unsupported page geometry, missing
-/// pages, and probe errors return false.
+/// The VM page size, if it divides the sampling window.
 #[cfg(unix)]
-pub(crate) fn is_range_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bool {
-    if len == 0 {
-        return offset <= mmap.len();
-    }
-    let Some(page_size) = *VM_PAGE_SIZE.get_or_init(|| {
+fn vm_page_size() -> Option<usize> {
+    *VM_PAGE_SIZE.get_or_init(|| {
         // SAFETY: this query has no pointer or ownership requirements.
         usize::try_from(unsafe { sysconf(_SC_PAGESIZE) })
             .ok()
             .filter(|&size| size > 0 && SAMPLE_BYTES.is_multiple_of(size))
-    }) else {
+    })
+}
+
+/// Samples the first, last, and one page per window of a non-empty in-bounds mapped range.
+/// Unsupported page geometry, missing pages, and probe errors return false.
+#[cfg(unix)]
+pub(crate) fn is_range_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bool {
+    debug_assert!(len > 0);
+    let Some(page_size) = vm_page_size() else {
         return false;
     };
     let start = offset / page_size * page_size;
-    let Some(absolute_end) = offset.checked_add(len) else {
-        return false;
-    };
-    let Some(end) = absolute_end.checked_next_multiple_of(page_size) else {
-        return false;
-    };
+    let end = (offset + len).next_multiple_of(page_size);
     let sampled_len = end - start;
 
     if end > mmap.len() {
@@ -77,6 +75,38 @@ pub(crate) fn is_range_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bo
     }
 
     true
+}
+
+/// Whether every page of a page-aligned mapped range is in memory (one probe for the whole range),
+/// using `states` as scratch for the per-page status bytes. Unsupported page geometry and probe
+/// errors return false.
+#[cfg(unix)]
+pub(crate) fn is_fully_resident(
+    mmap: &MmapRaw,
+    offset: usize,
+    len: usize,
+    states: &mut Vec<u8>,
+) -> bool {
+    let Some(page_size) = vm_page_size() else {
+        return false;
+    };
+    if !offset.is_multiple_of(page_size)
+        || offset.checked_add(len).is_none_or(|end| end > mmap.len())
+    {
+        return false;
+    }
+    states.clear();
+    states.resize(len.div_ceil(page_size), 0);
+    // SAFETY: the checked, page-aligned range lies within the mapping, and mincore writes one status
+    // byte per page into a buffer sized for every page of it.
+    let result = unsafe {
+        mincore(
+            mmap.as_ptr().add(offset).cast_mut().cast(),
+            len,
+            states.as_mut_ptr().cast(),
+        )
+    };
+    result == 0 && states.iter().all(|state| state & 1 != 0)
 }
 
 #[cfg(not(unix))]

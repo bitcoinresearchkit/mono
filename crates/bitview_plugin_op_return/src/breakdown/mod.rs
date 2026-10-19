@@ -6,4 +6,4 @@ mod vecs;
 pub use block_metrics::BlockMetrics;
 pub use data_bytes_series::DataBytesSeries;
 pub use fees_series::FeesSeries;
-pub use vecs::{KindBreakdownVecs, PolicyBreakdownVecs};
+pub use vecs::{BucketVecs, KindBreakdownVecs, PolicyBreakdownVecs};

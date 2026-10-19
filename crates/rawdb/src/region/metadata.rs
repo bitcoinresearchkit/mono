@@ -1,4 +1,10 @@
-use std::{str, sync::Arc};
+use std::{
+    str,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+};
 
 use crate::{Error, PAGE_SIZE, Result};
 
@@ -10,7 +16,9 @@ pub(crate) const MAX_RESERVED_SIZE: usize = 1 << 40; // 1 TiB
 #[derive(Debug)]
 pub struct RegionMetadata {
     start: usize,
-    len: usize,
+    /// Changes under shared region access too (appends, see `Region::write_with`): set after the
+    /// bytes it covers, with release, so a reader loading it sees them.
+    len: AtomicUsize,
     reserved: usize,
     id: Arc<str>,
 }
@@ -24,12 +32,12 @@ impl RegionMetadata {
     }
 
     pub(crate) fn new(id: Arc<str>, start: usize) -> Self {
-        assert!(start.is_multiple_of(PAGE_SIZE));
+        debug_assert!(start.is_multiple_of(PAGE_SIZE));
 
         Self {
             id,
             start,
-            len: 0,
+            len: AtomicUsize::new(0),
             reserved: PAGE_SIZE,
         }
     }
@@ -40,18 +48,18 @@ impl RegionMetadata {
 
     #[inline]
     pub(crate) fn set_start(&mut self, start: usize) {
-        assert!(start.is_multiple_of(PAGE_SIZE));
+        debug_assert!(start.is_multiple_of(PAGE_SIZE));
         self.start = start;
     }
 
     pub fn byte_len(&self) -> usize {
-        self.len
+        self.len.load(Ordering::Acquire)
     }
 
     #[inline]
-    pub(crate) fn set_len(&mut self, len: usize) {
-        assert!(len <= self.reserved());
-        self.len = len;
+    pub(crate) fn set_len(&self, len: usize) {
+        debug_assert!(len <= self.reserved());
+        self.len.store(len, Ordering::Release);
     }
 
     pub(crate) fn reserved(&self) -> usize {
@@ -67,10 +75,10 @@ impl RegionMetadata {
     }
 
     pub(crate) fn set_reserved(&mut self, reserved: usize) {
-        assert!(self.byte_len() <= reserved);
-        assert!(reserved >= PAGE_SIZE);
-        assert!(reserved.is_multiple_of(PAGE_SIZE));
-        assert!(reserved <= MAX_RESERVED_SIZE);
+        debug_assert!(self.byte_len() <= reserved);
+        debug_assert!(reserved >= PAGE_SIZE);
+        debug_assert!(reserved.is_multiple_of(PAGE_SIZE));
+        debug_assert!(reserved <= MAX_RESERVED_SIZE);
 
         self.reserved = reserved;
     }
@@ -86,7 +94,7 @@ impl RegionMetadata {
     pub(crate) fn bounds_bytes(&self) -> [u8; 24] {
         let mut bytes = [0u8; 24];
         bytes[0..8].copy_from_slice(&(self.start as u64).to_le_bytes());
-        bytes[8..16].copy_from_slice(&(self.len as u64).to_le_bytes());
+        bytes[8..16].copy_from_slice(&(self.byte_len() as u64).to_le_bytes());
         bytes[16..24].copy_from_slice(&(self.reserved as u64).to_le_bytes());
         bytes
     }
@@ -158,7 +166,7 @@ impl RegionMetadata {
         Ok(Some(Self {
             id: Arc::from(id),
             start,
-            len,
+            len: AtomicUsize::new(len),
             reserved,
         }))
     }

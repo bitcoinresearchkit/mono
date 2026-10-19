@@ -9,11 +9,12 @@ use crate::{FeeRate, Sats, VSize};
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct MempoolBlock {
-    /// Total serialized block size in bytes (witness + non-witness).
+    /// Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header
+    /// or coinbase.
     #[cfg_attr(feature = "schemars", schemars(example = 1604417))]
     block_size: u64,
 
-    /// Total block virtual size in vbytes
+    /// Sum of the transactions' virtual sizes in vbytes
     #[cfg_attr(feature = "schemars", schemars(example = 998368.0))]
     block_v_size: f64,
 
@@ -29,7 +30,9 @@ pub struct MempoolBlock {
     #[cfg_attr(feature = "schemars", schemars(example = 10.5))]
     median_fee: FeeRate,
 
-    /// Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+    /// Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB:
+    /// [0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
+    /// later projected ones
     #[cfg_attr(feature = "schemars", schemars(example = example_fee_range()))]
     fee_range: [FeeRate; 7],
 }

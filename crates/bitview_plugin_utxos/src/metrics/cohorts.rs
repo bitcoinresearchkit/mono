@@ -1,0 +1,56 @@
+use bitview_cohort::{AmountRange, SpendableType};
+use bitview_distribution::metrics::ShareTotals;
+use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_traversable::Traversable;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use brk_error::Result;
+use brk_types::{Cents, Height, Version};
+use rayon::prelude::*;
+use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+
+use super::CohortVecs;
+use crate::state::UTXOStates;
+
+/// UTXO cohorts, members first: amount ranges and spendable output types.
+#[derive(Traversable)]
+pub struct CohortMetrics<M: StorageMode = Rw> {
+    /// UTXO amount bands classify each output by its own value.
+    pub amounts: Box<AmountRange<CohortVecs<M>>>,
+    pub types: Box<SpendableType<CohortVecs<M>>>,
+}
+
+impl CohortMetrics {
+    pub fn import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        windows: &Windows<&LazyWindowStartVec>,
+        spot: &ReadableBoxedVec<Height, Cents>,
+        totals: ShareTotals<'_>,
+    ) -> Result<Self> {
+        let amounts = Box::new(AmountRange::try_from_fn(|id| {
+            CohortVecs::import(db, id.cohort(), version, mappings, windows, spot, totals)
+        })?);
+        let types = Box::new(SpendableType::try_from_fn(|id| {
+            CohortVecs::import(db, id.cohort(), version, mappings, windows, spot, totals)
+        })?);
+        Ok(Self { amounts, types })
+    }
+
+    pub fn push(&mut self, states: &UTXOStates, price: Cents) {
+        for (vecs, state) in self.amounts.iter_mut().zip(states.amount_range.iter()) {
+            vecs.push(state, price);
+        }
+        for (vecs, state) in self.types.iter_mut().zip(states.type_.iter()) {
+            vecs.push(state, price);
+        }
+    }
+
+    /// Every stored vec of every cohort, in parallel across cohorts.
+    pub fn par_iter_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+        self.amounts
+            .par_iter_mut()
+            .chain(self.types.par_iter_mut())
+            .flat_map_iter(|cohort| cohort.iter_any_stored_mut())
+    }
+}

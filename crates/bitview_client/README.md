@@ -4,15 +4,11 @@ Synchronous Rust client for the [Bitview](https://bitview.space) Bitcoin analyti
 
 [crates.io](https://crates.io/crates/bitview_client) | [docs.rs](https://docs.rs/bitview_client)
 
-AI clients can use the same API through the official stateless, read-only MCP
-endpoint at [mcp.bitview.space](https://mcp.bitview.space/). No authentication
-is required.
-
 ## Installation
 
 ```toml
 [dependencies]
-bitview_client = "0.11"
+bitview_client = "0.12"
 ```
 
 ## Quick start
@@ -30,9 +26,7 @@ fn main() -> bitview_client::Result<()> {
     let prices = client
         .series()
         .price
-        .split
         .close
-        .usd
         .by
         .day1()
         .last(30)
@@ -60,7 +54,7 @@ types that can be undefined (floats, `Cents`, ratios, parts per million).
 Date and timestamp selectors return `Result`: use
 `endpoint.get_date(date)?.fetch()` (and likewise for `date_range`,
 `get_timestamp`, and `timestamp_range`). Invalid or unsupported selectors fail
-locally instead of silently selecting index zero. Numeric selectors are unchanged.
+locally.
 
 ## Errors
 

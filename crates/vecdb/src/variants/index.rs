@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    AnyVec, ReadOnlyClone, ReadableVec, TypedVec, VecIndex, VecValue, Version, short_type_name,
-};
+use crate::{AnyVec, ReadOnlyClone, ReadableVec, TypedVec, VecIndex, VecValue, Version};
 
 /// Values generated from their index, including constants that ignore it.
 /// The source supplies live length/version metadata; its values are never read.
@@ -39,21 +37,15 @@ impl<I: VecIndex, T: VecValue, S: TypedVec<I = I>> AnyVec for IndexVec<I, T, S> 
     fn len(&self) -> usize {
         self.source.len()
     }
+    /// Values derive from the index alone.
+    fn is_mutable(&self) -> bool {
+        false
+    }
     fn visible_len(&self) -> usize {
         self.source.visible_len()
     }
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+
+    crate::any_vec_type_methods!(I, T);
 }
 
 impl<I: VecIndex, T: VecValue, S: TypedVec<I = I>> TypedVec for IndexVec<I, T, S> {
@@ -76,10 +68,6 @@ impl<I: VecIndex, T: VecValue, S: TypedVec<I = I>> ReadableVec<I, T> for IndexVe
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
         self.values(from, to).for_each(f);
-    }
-
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B {
-        self.values(from, to).fold(init, f)
     }
 
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(

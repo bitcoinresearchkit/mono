@@ -1,13 +1,14 @@
-use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
 use rayon::join;
-use vecdb::{AnyVec, Database};
+use vecdb::AnyVec;
 
 use super::Vecs;
 use crate::Dependencies;
 
 impl Vecs {
-    /// Compute the scalar inputs for this plugin's URPD metrics.
+    /// Everything but the awake cost basis, which the age ranges computed here weight.
     fn compute_primary(
         &mut self,
         dependencies: Dependencies<'_>,
@@ -16,104 +17,86 @@ impl Vecs {
         let Dependencies {
             indexer,
             urpd: _,
+            mappings,
             price: prices,
-            blocks,
             inflation_rate,
-            velocity_native,
-            velocity_fiat,
-            distribution_age,
-            distribution_aggregated,
+            velocity_btc,
+            velocity_usd,
+            age,
+            holders,
         } = dependencies;
-        let inflation_rate = &inflation_rate.ppm.height;
-        let velocity_native = &velocity_native.height;
-        let velocity_fiat = &velocity_fiat.height;
+        let inflation_rate = &inflation_rate.fixed.height;
+        let velocity_btc = &velocity_btc.height;
+        let velocity_usd = &velocity_usd.height;
         let exit = context.exit();
 
-        // Activity computes first (liveliness, vaultedness, etc.)
-        self.activity
-            .compute(indexer, distribution_age, distribution_aggregated, exit)?;
-        self.age_range.compute(indexer, distribution_age, exit)?;
+        // Reserve risk reads only dependencies: it runs beside the whole chain below.
+        let (primary, reserve_risk) = join(
+            || -> Result<()> {
+                // Activity (liveliness, vaultedness, etc.) and the age ranges are independent.
+                let (activity, age_ranges) = join(
+                    || self.activity.compute(indexer, age, holders, exit),
+                    || self.age_ranges.compute(indexer, age, exit),
+                );
+                activity?;
+                age_ranges?;
 
-        // Age-range supply is lazy over the same cached inputs as aggregates.
-        // Adjusted and value compute independently.
-        let (r1, r2) = join(
-            || {
-                self.aggregate.compute(
-                    indexer,
-                    distribution_age,
-                    &mut self.age_range,
-                    &mut self.supply.active_supply_in_loss_share.bounded,
-                    exit,
-                )
-            },
-            || {
-                join(
+                // Age-range supply is lazy over the same cached inputs as aggregates.
+                // Adjusted and value compute independently.
+                let (aggregate, (adjusted, value)) = join(
+                    || self.aggregate.compute(indexer, age, &self.age_ranges, exit),
                     || {
-                        self.adjusted.compute(
-                            indexer,
-                            inflation_rate,
-                            velocity_native,
-                            velocity_fiat,
-                            &self.activity,
-                            exit,
+                        join(
+                            || {
+                                self.adjusted.compute(
+                                    indexer,
+                                    inflation_rate,
+                                    velocity_btc,
+                                    velocity_usd,
+                                    &self.activity,
+                                    exit,
+                                )
+                            },
+                            || {
+                                self.value
+                                    .compute(indexer, prices, age, &self.activity, exit)
+                            },
                         )
                     },
-                    || {
-                        self.value.compute(
-                            indexer,
-                            prices,
-                            distribution_age,
-                            distribution_aggregated,
-                            &self.activity,
-                            exit,
-                        )
-                    },
-                )
-            },
-        );
-        r1?;
-        r2.0?;
-        r2.1?;
+                );
+                aggregate?;
+                adjusted?;
+                value?;
 
-        // Cap depends on activity + value
-        self.cap.compute(
-            indexer,
-            distribution_aggregated,
-            &self.activity,
-            &self.value,
-            exit,
-        )?;
-
-        // Phase 4: pricing and reserve_risk are independent
-        let (r3, r4) = join(
-            || {
+                // Cap depends on activity + value, pricing on cap.
+                self.caps
+                    .compute(indexer, holders, &self.activity, &self.value, exit)?;
+                let from = indexer.compute_start().height;
                 self.prices.compute(
-                    indexer,
-                    distribution_aggregated,
+                    from,
+                    holders,
                     &self.activity,
                     &self.supply,
-                    &self.cap,
+                    &self.caps,
                     exit,
-                )
+                )?;
+                self.prices
+                    .compute_ratios(from, &prices.spot.cents.height, exit)
             },
             || {
                 self.reserve_risk
-                    .compute(indexer, blocks, prices, &self.value, exit)
+                    .compute(indexer, mappings, prices, holders, exit)
             },
         );
-        r3?;
-        r4?;
+        primary?;
+        reserve_risk?;
 
         Ok(())
     }
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-
-    fn database(&self) -> Option<&Database> {
-        Some(&self.db)
-    }
+    compute_items!(Dependencies, db);
 
     fn compute_state(
         &mut self,
@@ -121,22 +104,21 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         self.compute_primary(dependencies, context)?;
-        let supplies = dependencies
-            .distribution_age
-            .cohorts
-            .supply
-            .total
-            .age_supplies();
-        let weights = self.age_range.urpd_weight_sources();
-        self.urpd.compute(
-            dependencies.distribution_age.cohorts.all_supply().version()
-                + dependencies.urpd.timestamps.version(),
-            usize::from(dependencies.indexer.safe_lengths().height),
+        let supplies = dependencies.age.age_supplies();
+        let weights = self.age_ranges.urpd_weight_sources();
+        compute_cost_basis(
+            &mut self.urpd_replay,
+            self.aggregate
+                .cohorts
+                .as_array_mut()
+                .map(|cohort| &mut cohort.awake.cost_basis),
+            dependencies.age.all_supply().version() + dependencies.urpd.timestamps.version(),
+            usize::from(dependencies.indexer.compute_start().height),
             dependencies.urpd,
             &weights,
             &supplies,
+            &dependencies.price.spot.cents.height,
             context.exit(),
-        )?;
-        Ok(())
+        )
     }
 }

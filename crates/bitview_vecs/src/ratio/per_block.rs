@@ -1,35 +1,27 @@
 use bitview_compute::FixedRatio;
-use bitview_primitives::{Lengths, Ratio};
-use bitview_transforms::FixedToRatio;
+use bitview_primitives::Ratio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Cents, Height, Version};
-use vecdb::{Database, ReadableVec, Rw, StorageMode};
+use brk_types::Version;
+use vecdb::{Database, Rw, StorageMode};
 
-use crate::{IndexSources, LazyPerBlock, PerBlock};
+use crate::{IndexSources, LazyPerBlock, PerBlock, ops::FixedToRatio};
 
+/// Fixed-point storage and its one public view, as a ratio.
 #[derive(Traversable)]
+#[traversable(merge)]
 pub struct RatioPerBlock<R: FixedRatio, M: StorageMode = Rw> {
-    /// Unitless ratio in parts per million; 1,000,000 represents 1.0.
-    pub ppm: PerBlock<R, M>,
-    /// Unitless decimal ratio derived as parts per million divided by 1,000,000.
+    /// Fixed-point ratio in parts per million; 1,000,000 represents 1.0.
+    #[traversable(hidden)]
+    pub fixed: PerBlock<R, M>,
+    /// As a ratio.
     pub ratio: LazyPerBlock<Ratio, R>,
 }
 
 const VERSION: Version = Version::new(3);
 
 impl<R: FixedRatio> RatioPerBlock<R> {
-    pub fn import(
-        db: &Database,
-        name: &str,
-        version: Version,
-        indexes: &IndexSources,
-    ) -> Result<Self> {
-        Self::import_ppm(db, &format!("{name}_ratio"), version, indexes)
-    }
-
-    pub fn import_ppm(
+    pub(crate) fn import(
         db: &Database,
         name: &str,
         version: Version,
@@ -37,33 +29,10 @@ impl<R: FixedRatio> RatioPerBlock<R> {
     ) -> Result<Self> {
         let v = version + VERSION;
 
-        let ppm = PerBlock::import(db, &format!("{name}_{}", R::SUFFIX), v, indexes)?;
+        let fixed = PerBlock::import(db, &format!("{name}_{}", R::SUFFIX), v, indexes)?;
 
-        let ratio = LazyPerBlock::from_resolutions::<FixedToRatio>(name, v, &ppm);
+        let ratio = LazyPerBlock::from_resolutions::<FixedToRatio>(name, v, &fixed);
 
-        Ok(Self { ppm, ratio })
-    }
-
-    pub fn compute_ratio(
-        &mut self,
-        starting_lengths: &Lengths,
-        close_price: &impl ReadableVec<Height, Cents>,
-        series_price: &impl ReadableVec<Height, Cents>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.ppm.height.compute_transform2(
-            starting_lengths.height,
-            close_price,
-            series_price,
-            |(i, close, price, ..)| {
-                if price == Cents::ZERO {
-                    (i, R::from(1.0))
-                } else {
-                    (i, R::from(f64::from(close) / f64::from(price)))
-                }
-            },
-            exit,
-        )?;
-        Ok(())
+        Ok(Self { fixed, ratio })
     }
 }

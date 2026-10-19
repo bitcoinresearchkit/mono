@@ -15,6 +15,7 @@ bitview_primitives = { workspace = true }
 bitview_types = { workspace = true }
 bitview_catalog = { workspace = true }
 brk_types = { workspace = true }
+percent-encoding = "2.3.2"
 rapidhash = { workspace = true }
 ureq = { workspace = true }
 serde = { workspace = true }

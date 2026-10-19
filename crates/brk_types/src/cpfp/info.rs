@@ -2,7 +2,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{FeeRate, Sats, SigOps, VSize};
+use crate::{FeeRate, Sats, SigOps, VSize, Weight};
 
 use super::{CpfpCluster, CpfpEntry};
 
@@ -11,11 +11,9 @@ use super::{CpfpCluster, CpfpEntry};
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct CpfpInfo {
-    /// Ancestor transactions in the CPFP chain.
     pub ancestors: Vec<CpfpEntry>,
     /// Best (highest fee rate) descendant, if any.
     pub best_descendant: Option<CpfpEntry>,
-    /// Descendant transactions in the CPFP chain.
     pub descendants: Vec<CpfpEntry>,
     /// Effective fee rate considering CPFP relationships (sat/vB).
     /// This is the seed's chunk feerate after lift-merging, i.e. the
@@ -30,9 +28,36 @@ pub struct CpfpInfo {
     pub vsize: VSize,
     /// Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
     pub adjusted_vsize: VSize,
-    /// Cluster the seed belongs to: full tx list, SFL-linearized chunks,
-    /// and the seed's chunk index. Omitted when the seed has no
-    /// ancestors and no descendants (matches mempool.space).
+    /// Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants
+    /// (matches mempool.space).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cluster: Option<CpfpCluster>,
+}
+
+impl CpfpInfo {
+    pub fn new(
+        ancestors: Vec<CpfpEntry>,
+        descendants: Vec<CpfpEntry>,
+        fee: Sats,
+        weight: Weight,
+        sigops: SigOps,
+        (cluster, effective_fee_per_vsize): (Option<CpfpCluster>, FeeRate),
+    ) -> Self {
+        let best_descendant = descendants
+            .iter()
+            .max_by_key(|entry| FeeRate::from((entry.fee, entry.weight)))
+            .cloned();
+        let vsize = VSize::from(weight);
+        Self {
+            ancestors,
+            best_descendant,
+            descendants,
+            effective_fee_per_vsize,
+            sigops,
+            fee,
+            vsize,
+            adjusted_vsize: sigops.adjust_vsize(vsize),
+            cluster,
+        }
+    }
 }

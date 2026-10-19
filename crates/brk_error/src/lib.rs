@@ -1,24 +1,20 @@
 #![doc = include_str!("../README.md")]
 
 #[cfg(feature = "bitcoin")]
-use bitcoin::address::FromScriptError;
-#[cfg(feature = "bitcoin")]
-use bitcoin::block::Bip34Error;
-#[cfg(feature = "bitcoin")]
 use bitcoin::consensus::encode::Error as EncodeError;
 #[cfg(feature = "bitcoin")]
 use bitcoin::consensus::encode::FromHexError;
 #[cfg(feature = "bitcoin")]
 use bitcoin::hex::HexToArrayError;
 #[cfg(feature = "corepc")]
-use corepc_jsonrpc::error::Error as ErrorError;
+use corepc_jsonrpc::error::Error as JsonRpcError;
 #[cfg(feature = "fjall")]
 use fjall::Error as FjallError;
 #[cfg(feature = "jiff")]
 use jiff::Error as JiffError;
 #[cfg(feature = "serde_json")]
 use serde_json::Error as SerdeJsonError;
-use std::{borrow::Cow, io, path::PathBuf, result::Result as StdResult, time};
+use std::{borrow::Cow, io, path::PathBuf, result::Result as StdResult};
 
 use thiserror::Error;
 
@@ -29,13 +25,10 @@ use vecdb::Error as VecdbError;
 #[cfg(feature = "vecdb")]
 use vecdb::RawDBError;
 
-/// Result using BRK's shared error type.
 pub type Result<T> = StdResult<T, Error>;
 
-/// Convert `Option<T>` into a result without panicking.
-///
-/// Replaces `.unwrap()` in plugin code so a missing value fails the computation with an
-/// error instead of aborting the process (`panic = "abort"`).
+/// In plugin code, a missing value fails the computation with an internal error instead of a
+/// panic, which aborts the process (`panic = "abort"`).
 pub trait OptionData<T> {
     fn data(self) -> Result<T>;
 }
@@ -54,7 +47,7 @@ pub enum Error {
 
     #[cfg(feature = "corepc")]
     #[error(transparent)]
-    CorepcRPC(#[from] ErrorError),
+    CorepcRPC(#[from] JsonRpcError),
 
     #[cfg(feature = "jiff")]
     #[error(transparent)]
@@ -68,28 +61,13 @@ pub enum Error {
     #[error(transparent)]
     VecDB(#[from] VecdbError),
 
-    #[cfg(feature = "vecdb")]
-    #[error(transparent)]
-    RawDB(#[from] RawDBError),
-
-    #[error(transparent)]
-    SystemTimeError(#[from] time::SystemTimeError),
-
     #[cfg(feature = "bitcoin")]
     #[error(transparent)]
     BitcoinConsensusEncode(#[from] EncodeError),
 
     #[cfg(feature = "bitcoin")]
     #[error(transparent)]
-    BitcoinBip34Error(#[from] Bip34Error),
-
-    #[cfg(feature = "bitcoin")]
-    #[error(transparent)]
     BitcoinHexError(#[from] FromHexError),
-
-    #[cfg(feature = "bitcoin")]
-    #[error(transparent)]
-    BitcoinFromScriptError(#[from] FromScriptError),
 
     #[cfg(feature = "bitcoin")]
     #[error(transparent)]
@@ -112,8 +90,8 @@ pub enum Error {
     #[error("Date is outside the supported index range")]
     UnindexableDate,
 
-    #[error("The provided address appears to be invalid")]
-    InvalidAddr,
+    #[error("Invalid address")]
+    InvalidAddress,
 
     #[error("Invalid network")]
     InvalidNetwork,
@@ -121,13 +99,9 @@ pub enum Error {
     #[error("State is updating")]
     StateUpdating,
 
-    #[error("Failed to find the TXID in the blockchain")]
-    UnknownTxid,
-
     #[error("Unsupported type ({0})")]
     UnsupportedType(String),
 
-    // Generic errors with context
     #[error("{0}")]
     NotFound(String),
 
@@ -159,6 +133,9 @@ pub enum Error {
     #[error("{0}")]
     TxRejected(String),
 
+    #[error("Data without a version marker at {path:?}")]
+    MissingVersion { path: PathBuf },
+
     #[error("Version mismatch at {path:?}: expected {expected}, found {found}")]
     VersionMismatch {
         path: PathBuf,
@@ -167,36 +144,38 @@ pub enum Error {
     },
 }
 
+/// Raw database errors go through vecdb's, which owns their lock and corruption classification.
+#[cfg(feature = "vecdb")]
+impl From<RawDBError> for Error {
+    #[inline]
+    fn from(error: RawDBError) -> Self {
+        Self::VecDB(error.into())
+    }
+}
+
 impl Error {
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
-    #[cfg(feature = "vecdb")]
     pub fn is_lock_error(&self) -> bool {
-        let is_vecdb_lock = matches!(self, Error::VecDB(e) if e.is_lock_error())
-            || matches!(self, Error::RawDB(RawDBError::TryLock(_)));
-        #[cfg(feature = "fjall")]
-        {
-            is_vecdb_lock || matches!(self, Error::Fjall(FjallError::Locked))
-        }
-        #[cfg(not(feature = "fjall"))]
-        {
-            is_vecdb_lock
+        match self {
+            #[cfg(feature = "vecdb")]
+            Error::VecDB(e) => e.is_lock_error(),
+            #[cfg(feature = "fjall")]
+            Error::Fjall(FjallError::Locked) => true,
+            _ => false,
         }
     }
 
     /// Returns true if this error indicates data corruption or version incompatibility.
     /// These errors may require resetting/deleting the data to recover.
-    #[cfg(feature = "vecdb")]
     pub fn is_data_error(&self) -> bool {
-        let is_vecdb_data = matches!(self, Error::VecDB(e) if e.is_data_error())
-            || matches!(self, Error::VersionMismatch { .. });
-        #[cfg(feature = "fjall")]
-        {
-            is_vecdb_data || matches!(self, Error::Fjall(error) if error.is_data_error())
-        }
-        #[cfg(not(feature = "fjall"))]
-        {
-            is_vecdb_data
+        match self {
+            #[cfg(feature = "vecdb")]
+            Error::VecDB(e) => e.is_data_error(),
+            #[cfg(feature = "fjall")]
+            Error::Fjall(e) => e.is_data_error(),
+            Error::VersionMismatch { .. } | Error::MissingVersion { .. } => true,
+            _ => false,
         }
     }
 }

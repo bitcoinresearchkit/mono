@@ -1,83 +1,53 @@
-use std::{collections::BTreeMap, io, mem};
+use std::{collections::BTreeMap, io};
 
-use derive_more::{Deref, DerefMut};
 use oas3::{
-    Spec, from_json,
-    spec::{
-        MediaType, ObjectOrReference, ObjectSchema, Operation, ParameterIn, Schema, SchemaType,
-        SchemaTypeSet,
-    },
+    Map as OasMap, Spec, from_json,
+    spec::{MediaType, ObjectOrReference, Operation, ParameterIn},
 };
-use serde_json::{Map, Value, from_str, to_string as SerdeJsonToString, to_value};
+use serde_json::{Map, Value, from_str, json, to_string, to_value};
 
-use crate::ref_to_type_name;
+use crate::Ty;
 
 mod endpoint;
 mod parameter;
 mod request_body;
 mod response_kind;
-mod text_schema;
 
 pub(crate) use endpoint::Endpoint;
 pub(crate) use parameter::Parameter;
 pub(crate) use request_body::RequestBody;
 pub(crate) use response_kind::ResponseKind;
-pub(crate) use text_schema::TextSchema;
 
-/// Type schema extracted from OpenAPI components
-#[derive(Default, Deref, DerefMut)]
-pub struct TypeSchemas(BTreeMap<String, Value>);
+/// Schemas by type name.
+pub(crate) type TypeSchemas = BTreeMap<String, Value>;
 
-impl From<BTreeMap<String, Value>> for TypeSchemas {
-    fn from(schemas: BTreeMap<String, Value>) -> Self {
-        Self(schemas)
-    }
-}
-
-/// Parse OpenAPI spec from JSON string
-///
-/// Pre-processes the JSON to handle oas3 limitations:
-/// - Removes unsupported siblings from `$ref` objects (oas3 only supports `summary` and `description`)
-pub(crate) fn parse_openapi_json(json: &str) -> io::Result<Spec> {
+/// The oas3 spec and the component schemas (as written: oas3's cleanup does not apply to them).
+pub(crate) fn parse_openapi_json(json: &str) -> io::Result<(Spec, TypeSchemas)> {
     let mut value: Value =
         from_str(json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let schemas = value
+        .get("components")
+        .and_then(|c| c.get("schemas"))
+        .and_then(Value::as_object)
+        .map(|schemas| schemas.clone().into_iter().collect())
+        .unwrap_or_default();
 
-    // Clean up for oas3 compatibility
     clean_for_oas3(&mut value);
-
     let cleaned_json =
-        SerdeJsonToString(&value).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-
-    from_json(&cleaned_json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        to_string(&value).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let spec =
+        from_json(&cleaned_json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    Ok((spec, schemas))
 }
 
-/// Extract type schemas from OpenAPI JSON
-pub(crate) fn extract_schemas(json: &str) -> TypeSchemas {
-    let Ok(mut value) = from_str::<Value>(json) else {
-        return TypeSchemas::default();
-    };
-
-    TypeSchemas(
-        value
-            .get_mut("components")
-            .and_then(|c| c.get_mut("schemas"))
-            .and_then(Value::as_object_mut)
-            .map(|schemas| mem::take(schemas).into_iter().collect())
-            .unwrap_or_default(),
-    )
-}
-
-/// Clean up OpenAPI spec for oas3 compatibility.
-/// - Removes unsupported siblings from $ref objects (oas3 only supports summary and description)
-/// - Converts boolean schemas to object schemas (oas3 doesn't handle `"schema": true`)
+/// Make the spec readable by oas3: drop `$ref` siblings other than `summary` and `description`,
+/// and turn boolean schemas (`"schema": true`) into empty objects.
 fn clean_for_oas3(value: &mut Value) {
     match value {
         Value::Object(map) => {
-            // Handle $ref with unsupported siblings
             if map.contains_key("$ref") {
                 map.retain(|k, _| k == "$ref" || k == "summary" || k == "description");
             } else {
-                // Convert boolean schemas to empty object schemas
                 if let Some(schema) = map.get_mut("schema")
                     && schema.is_boolean()
                 {
@@ -97,36 +67,59 @@ fn clean_for_oas3(value: &mut Value) {
     }
 }
 
-/// Extract all endpoints from OpenAPI spec
-pub(crate) fn extract_endpoints(spec: &Spec) -> Vec<Endpoint> {
+/// Extract all endpoints from OpenAPI spec. Every operation needs an `operationId`: it names the
+/// generated methods, commands and MCP tools.
+pub(crate) fn extract_endpoints(spec: &Spec, schemas: &TypeSchemas) -> io::Result<Vec<Endpoint>> {
     let mut endpoints = Vec::new();
 
     let Some(paths) = &spec.paths else {
-        return endpoints;
+        return Ok(endpoints);
     };
 
     for (path, path_item) in paths {
         for (method, operation) in path_item.methods() {
-            endpoints.push(extract_endpoint(path, method.as_str(), operation, spec));
+            endpoints.push(extract_endpoint(path, method.as_str(), operation, schemas)?);
         }
     }
 
-    endpoints
+    Ok(endpoints)
 }
 
-fn extract_endpoint(path: &str, method: &str, operation: &Operation, spec: &Spec) -> Endpoint {
+fn extract_endpoint(
+    path: &str,
+    method: &str,
+    operation: &Operation,
+    schemas: &TypeSchemas,
+) -> io::Result<Endpoint> {
+    let operation_id = operation.operation_id.clone().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("{method} {path} has no operationId"),
+        )
+    })?;
     let path_params = extract_path_parameters(path, operation);
     let query_params = extract_parameters(operation, ParameterIn::Query);
 
-    let response_kind = extract_response_kind(operation, spec);
-    let json_response_schema = extract_json_response_schema(operation);
+    let content =
+        operation
+            .responses
+            .as_ref()
+            .and_then(|responses| match responses.get("200")? {
+                ObjectOrReference::Object(response) => Some(&response.content),
+                ObjectOrReference::Ref { .. } => None,
+            });
+    let response_kind = extract_response_kind(content, schemas);
+    // The complete JSON response schema, for MCP output schemas.
+    let json_response_schema = content
+        .and_then(|content| content.get("application/json")?.schema.as_ref())
+        .and_then(|schema| to_value(schema).ok());
+    let supports_csv = content.is_some_and(|content| content.contains_key("text/csv"));
     let request_body = extract_request_body(operation);
-    let supports_csv = check_csv_support(operation);
 
-    Endpoint {
+    Ok(Endpoint {
         method: method.to_string(),
         path: path.to_string(),
-        operation_id: operation.operation_id.clone(),
+        operation_id,
         summary: operation.summary.clone(),
         description: operation.description.clone(),
         path_params,
@@ -137,24 +130,7 @@ fn extract_endpoint(path: &str, method: &str, operation: &Operation, spec: &Spec
         deprecated: operation.deprecated.unwrap_or(false),
         mcp_ignored: operation.extensions.get("mcp-ignore") == Some(&Value::Bool(true)),
         supports_csv,
-    }
-}
-
-/// Preserve the complete JSON response schema for MCP output schema
-/// generation. The regular clients only need [`ResponseKind`], while MCP
-/// clients benefit from the exact self-contained response shape.
-fn extract_json_response_schema(operation: &Operation) -> Option<Value> {
-    let response =
-        operation
-            .responses
-            .as_ref()?
-            .get("200")
-            .and_then(|response| match response {
-                ObjectOrReference::Object(response) => Some(response),
-                ObjectOrReference::Ref { .. } => None,
-            })?;
-    let schema = response.content.get("application/json")?.schema.as_ref()?;
-    to_value(schema).ok()
+    })
 }
 
 /// Extract the request body shape and media type, if any.
@@ -184,56 +160,33 @@ fn extract_request_body(operation: &Operation) -> Option<RequestBody> {
             .map(|(content_type, content)| (content_type.as_str(), content))
     })?;
 
-    let body_type = schema_name_from_content(content).unwrap_or_else(|| {
-        if content_type.starts_with("text/") {
-            "string".to_string()
-        } else {
-            "Object".to_string()
-        }
+    let ty = content_ty(content).unwrap_or(if content_type.starts_with("text/") {
+        Ty::String
+    } else {
+        Ty::Object
     });
 
     Some(RequestBody {
-        body_type,
+        ty,
         content_type: content_type.to_owned(),
         required: req.required.unwrap_or(false),
     })
 }
 
-/// Check if the endpoint supports CSV format (has text/csv in 200 response content types).
-fn check_csv_support(operation: &Operation) -> bool {
-    let Some(responses) = operation.responses.as_ref() else {
-        return false;
-    };
-    let Some(response) = responses.get("200") else {
-        return false;
-    };
-    match response {
-        ObjectOrReference::Object(response) => response.content.contains_key("text/csv"),
-        ObjectOrReference::Ref { .. } => false,
-    }
-}
-
 /// Extract path parameters in the order they appear in the path URL.
 fn extract_path_parameters(path: &str, operation: &Operation) -> Vec<Parameter> {
-    // Extract parameter names from the path in order (e.g., "/api/series/{series}/{index}" -> ["series", "index"])
     let path_order: Vec<&str> = path
         .split('/')
         .filter_map(|segment| segment.strip_prefix('{').and_then(|s| s.strip_suffix('}')))
         .collect();
-
-    // Get all path parameters from the operation
-    let params = extract_parameters(operation, ParameterIn::Path);
-
-    // Sort by position in the path
-    let mut sorted_params: Vec<Parameter> = params;
-    sorted_params.sort_by_key(|p| {
+    let mut params = extract_parameters(operation, ParameterIn::Path);
+    params.sort_by_key(|p| {
         path_order
             .iter()
             .position(|&name| name == p.name)
             .unwrap_or(usize::MAX)
     });
-
-    sorted_params
+    params
 }
 
 fn extract_parameters(operation: &Operation, location: ParameterIn) -> Vec<Parameter> {
@@ -242,21 +195,18 @@ fn extract_parameters(operation: &Operation, location: ParameterIn) -> Vec<Param
         .iter()
         .filter_map(|p| match p {
             ObjectOrReference::Object(param) if param.location == location => {
-                let param_type = param
+                // A parameter without a schema is a string.
+                let schema = param
                     .schema
                     .as_ref()
-                    .and_then(schema_type_from_schema)
-                    .unwrap_or_else(|| "string".to_string());
+                    .and_then(|schema| to_value(schema).ok())
+                    .unwrap_or_else(|| json!({ "type": "string" }));
                 Some(Parameter {
                     name: param.name.clone(),
                     required: param.required.unwrap_or(false),
-                    param_type,
+                    ty: Ty::parse(&schema),
                     description: param.description.clone(),
-                    schema: param
-                        .schema
-                        .as_ref()
-                        .and_then(|schema| to_value(schema).ok())
-                        .unwrap_or_else(|| Value::Object(Map::new())),
+                    schema,
                 })
             }
             _ => None,
@@ -264,146 +214,36 @@ fn extract_parameters(operation: &Operation, location: ParameterIn) -> Vec<Param
         .collect()
 }
 
-fn extract_response_kind(operation: &Operation, spec: &Spec) -> ResponseKind {
-    let response = operation
-        .responses
-        .as_ref()
-        .and_then(|r| r.get("200"))
-        .and_then(|r| match r {
-            ObjectOrReference::Object(o) => Some(o),
-            ObjectOrReference::Ref { .. } => None,
-        });
-    let Some(response) = response else {
-        return ResponseKind::Text(None);
+fn extract_response_kind(
+    content: Option<&OasMap<String, MediaType>>,
+    schemas: &TypeSchemas,
+) -> ResponseKind {
+    let Some(content) = content else {
+        return ResponseKind::Text {
+            ty: Ty::String,
+            numeric: false,
+        };
     };
-
-    if response.content.contains_key("application/octet-stream") {
+    if content.contains_key("application/octet-stream") {
         return ResponseKind::Binary;
     }
-    if let Some(content) = response.content.get("application/json") {
-        return ResponseKind::Json(
-            schema_name_from_content(content).unwrap_or_else(|| "*".to_string()),
-        );
+    if let Some(json) = content.get("application/json") {
+        return ResponseKind::Json(content_ty(json).unwrap_or(Ty::Any));
     }
-    if let Some(content) = response
-        .content
+    let ty = content
         .get("text/plain; charset=utf-8")
-        .or_else(|| response.content.get("text/plain"))
-    {
-        let schema = schema_name_from_content(content).map(|name| {
-            let is_numeric = is_numeric_schema(spec, &name);
-            TextSchema { name, is_numeric }
-        });
-        return ResponseKind::Text(schema);
+        .or_else(|| content.get("text/plain"))
+        .and_then(content_ty)
+        .unwrap_or(Ty::String);
+    // A number type's text body (`Height`) is parsed as one.
+    let numeric = match &ty {
+        Ty::Ref(name) => schemas.get(name).map(Ty::parse),
+        ty => Some(ty.clone()),
     }
-    ResponseKind::Text(None)
+    .is_some_and(|ty| matches!(ty, Ty::Integer | Ty::Number));
+    ResponseKind::Text { ty, numeric }
 }
 
-fn schema_name_from_content(content: &MediaType) -> Option<String> {
-    schema_type_from_schema(content.schema.as_ref()?)
-}
-
-/// Resolves `name` against `components.schemas` and reports whether the
-/// underlying primitive is `integer` or `number`.
-fn is_numeric_schema(spec: &Spec, name: &str) -> bool {
-    let Some(components) = spec.components.as_ref() else {
-        return false;
-    };
-    let Some(Schema::Object(obj_or_ref)) = components.schemas.get(name) else {
-        return false;
-    };
-    let ObjectOrReference::Object(schema) = obj_or_ref.as_ref() else {
-        return false;
-    };
-    matches!(
-        schema.schema_type.as_ref(),
-        Some(SchemaTypeSet::Single(
-            SchemaType::Integer | SchemaType::Number
-        ))
-    )
-}
-
-fn schema_type_from_schema(schema: &Schema) -> Option<String> {
-    match schema {
-        // A boolean schema is `true` (any value; `false` never occurs here), not the boolean type.
-        Schema::Boolean(_) => Some("*".to_string()),
-        Schema::Object(obj_or_ref) => match obj_or_ref.as_ref() {
-            ObjectOrReference::Object(obj_schema) => schema_to_type_name(obj_schema),
-            ObjectOrReference::Ref { ref_path, .. } => {
-                // Return the type name as-is (e.g., "Height", "Address")
-                // These should have definitions generated from schemas
-                ref_to_type_name(ref_path).map(|s| s.to_string())
-            }
-        },
-    }
-}
-
-fn schema_to_type_name(schema: &ObjectSchema) -> Option<String> {
-    if let Some(schema_type) = schema.schema_type.as_ref() {
-        return match schema_type {
-            SchemaTypeSet::Single(t) => single_type_to_name(t, schema),
-            SchemaTypeSet::Multiple(types) => {
-                // For nullable types like ["integer", "null"], return the non-null type
-                types
-                    .iter()
-                    .find(|t| !matches!(t, SchemaType::Null))
-                    .and_then(|t| single_type_to_name(t, schema))
-                    .or(Some("*".to_string()))
-            }
-        };
-    }
-
-    // Handle anyOf/oneOf unions (e.g., Option<RangeIndex> → anyOf: [$ref, null])
-    let variants = if !schema.any_of.is_empty() {
-        &schema.any_of
-    } else if !schema.one_of.is_empty() {
-        &schema.one_of
-    } else {
-        return None;
-    };
-
-    let types: Vec<String> = variants
-        .iter()
-        .filter_map(|v| match v {
-            Schema::Boolean(_) => None,
-            Schema::Object(obj_or_ref) => match obj_or_ref.as_ref() {
-                ObjectOrReference::Ref { ref_path, .. } => {
-                    ref_to_type_name(ref_path).map(|s| s.to_string())
-                }
-                ObjectOrReference::Object(obj) => {
-                    if matches!(
-                        obj.schema_type.as_ref(),
-                        Some(SchemaTypeSet::Single(SchemaType::Null))
-                    ) {
-                        return None;
-                    }
-                    schema_to_type_name(obj)
-                }
-            },
-        })
-        .collect();
-
-    match types.len() {
-        0 => None,
-        1 => Some(types.into_iter().next().unwrap()),
-        _ => Some(types.join(" | ")),
-    }
-}
-
-fn single_type_to_name(t: &SchemaType, schema: &ObjectSchema) -> Option<String> {
-    match t {
-        SchemaType::String => Some("string".to_string()),
-        SchemaType::Number => Some("number".to_string()),
-        SchemaType::Integer => Some("integer".to_string()),
-        SchemaType::Boolean => Some("boolean".to_string()),
-        SchemaType::Array => {
-            let inner = match &schema.items {
-                Some(boxed_schema) => schema_type_from_schema(boxed_schema),
-                None => Some("*".to_string()),
-            };
-            inner.map(|t| format!("{}[]", t))
-        }
-        SchemaType::Object => Some("Object".to_string()),
-        SchemaType::Null => Some("null".to_string()),
-    }
+fn content_ty(content: &MediaType) -> Option<Ty> {
+    Some(Ty::parse(&to_value(content.schema.as_ref()?).ok()?))
 }

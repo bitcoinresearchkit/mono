@@ -1,6 +1,8 @@
+use std::ops::Bound;
+
 use bitview_primitives::AddrHash;
-use bitview_types::AddrHashPrefixMatches;
-use brk_types::{Addr, OutputType};
+use bitview_types::AddressHashPrefixMatches;
+use brk_types::{Address, OutputType};
 
 use crate::{Error, Query, Result};
 
@@ -11,7 +13,7 @@ impl Query {
         &self,
         addr_type: OutputType,
         prefix: &str,
-    ) -> Result<AddrHashPrefixMatches> {
+    ) -> Result<AddressHashPrefixMatches> {
         if !addr_type.is_addr() {
             return Err(Error::UnsupportedType(addr_type.to_string()));
         }
@@ -22,17 +24,19 @@ impl Query {
         let safe_type_index = pin.lengths().to_type_index(addr_type);
         let addr_readers = self.indexer().vecs().addrs.addr_readers();
         let mut addresses = Vec::new();
-        let max_hash = AddrHash::new(u64::MAX);
 
-        let upper = prefix.upper.unwrap_or(max_hash);
-        for (_, type_index) in stores.addr_hash_range(addr_type, prefix.lower..upper)? {
+        for record in stores.addr_hash_range(addr_type, prefix.range)? {
+            let (_, type_index) = record?;
             if type_index >= safe_type_index {
                 continue;
             }
 
-            let script = addr_readers.script_pubkey(addr_type, type_index);
+            let script = addr_readers
+                .get(addr_type, type_index)
+                .ok_or(Error::Internal("stored script is not an address"))?
+                .to_script_pubkey();
             addresses.push(
-                Addr::try_from((&script, addr_type))
+                Address::try_from((&script, addr_type))
                     .map_err(|_| Error::Internal("stored script is not an address"))?,
             );
 
@@ -41,23 +45,11 @@ impl Query {
             }
         }
 
-        if prefix.upper.is_none()
-            && addresses.len() <= ADDR_HASH_PREFIX_MATCH_LIMIT
-            && let Some(type_index) = stores.addr_index(addr_type, &max_hash)?
-            && type_index < safe_type_index
-        {
-            let script = addr_readers.script_pubkey(addr_type, type_index);
-            addresses.push(
-                Addr::try_from((&script, addr_type))
-                    .map_err(|_| Error::Internal("stored script is not an address"))?,
-            );
-        }
-
         let truncated = addresses.len() > ADDR_HASH_PREFIX_MATCH_LIMIT;
         addresses.truncate(ADDR_HASH_PREFIX_MATCH_LIMIT);
 
-        Ok(AddrHashPrefixMatches {
-            addr_type,
+        Ok(AddressHashPrefixMatches {
+            address_type: addr_type,
             prefix: prefix.text,
             truncated,
             addresses,
@@ -67,8 +59,8 @@ impl Query {
 
 struct AddrHashPrefix {
     text: String,
-    lower: AddrHash,
-    upper: Option<AddrHash>,
+    /// The hashes starting with the prefix; an all-`f` prefix runs to the last hash.
+    range: (Bound<AddrHash>, Bound<AddrHash>),
 }
 
 impl AddrHashPrefix {
@@ -85,16 +77,15 @@ impl AddrHashPrefix {
         let value = u64::from_str_radix(prefix, 16).map_err(|_| Self::parse_error())?;
         let shift = (Self::MAX_NIBBLES - nibbles) * 4;
         let factor = 1_u64 << shift;
-        let lower = value * factor;
+        let lower = Bound::Included(AddrHash::new(value * factor));
         let upper = value
             .checked_add(1)
             .and_then(|value| value.checked_mul(factor))
-            .map(AddrHash::new);
+            .map_or(Bound::Unbounded, |end| Bound::Excluded(AddrHash::new(end)));
 
         Ok(Self {
             text: prefix.to_ascii_lowercase(),
-            lower: AddrHash::new(lower),
-            upper,
+            range: (lower, upper),
         })
     }
 

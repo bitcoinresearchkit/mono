@@ -1,0 +1,60 @@
+use crate::{families::CumulativeFiat, metrics::RealizedBlockData};
+use bitview_cohort::{CohortContext, CohortId};
+use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_traversable::Traversable;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use brk_error::Result;
+use brk_types::{Cents, CentsSigned, Version};
+use vecdb::{Database, Rw, StorageMode};
+
+#[derive(Traversable)]
+pub struct CreationRealized<M: StorageMode = Rw> {
+    /// Profit realized by the cohort's outputs: spending value minus
+    /// creation-date value, counted only for profitable spends.
+    pub profit: CumulativeFiat<Cents, M>,
+    /// Loss realized by the cohort's outputs: creation-date value minus
+    /// spending value, counted only for losing spends.
+    pub loss: CumulativeFiat<Cents, M>,
+    /// Net realized profit and loss of the cohort's outputs when spent:
+    /// realized profit minus realized loss.
+    pub net_pnl: CumulativeFiat<CentsSigned, M>,
+    /// Creation-date value destroyed by the cohort's spent outputs: the sum of
+    /// each spent output's creation price multiplied by its BTC value.
+    pub value_destroyed: CumulativeFiat<Cents, M>,
+}
+
+impl CreationRealized {
+    pub(super) fn import(
+        db: &Database,
+        cohort: CohortId,
+        version: Version,
+        mappings: &MappingsVecs,
+        window_starts: &Windows<&LazyWindowStartVec>,
+    ) -> Result<Self> {
+        let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
+        let flow_version = version + Version::ONE;
+        let flow = |metric: &str| {
+            CumulativeFiat::import(db, &name(metric), flow_version, mappings, window_starts)
+        };
+        Ok(Self {
+            profit: flow("realized_profit")?,
+            loss: flow("realized_loss")?,
+            net_pnl: CumulativeFiat::import(
+                db,
+                &name("net_realized_pnl"),
+                flow_version,
+                mappings,
+                window_starts,
+            )?,
+            value_destroyed: flow("value_destroyed")?,
+        })
+    }
+
+    #[inline(always)]
+    pub(super) fn push(&mut self, values: &RealizedBlockData) {
+        self.profit.push_block(values.profit);
+        self.loss.push_block(values.loss);
+        self.net_pnl.push_block(values.net_pnl);
+        self.value_destroyed.push_block(values.value_destroyed);
+    }
+}

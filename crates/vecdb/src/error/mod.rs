@@ -2,30 +2,23 @@
 use lz4_flex::block::DecompressError;
 #[cfg(feature = "pco")]
 use pco::errors::PcoError;
-use std::{fmt, io, result::Result as StdResult};
+use std::{io, result::Result as StdResult};
 
 use rawdb::Error as RawdbError;
 use thiserror::Error;
 
 use crate::{Format, Stamp, Version};
 
-#[cfg(feature = "zerocopy")]
-pub mod zerocopy;
-
-/// Result using vecdb's error type.
 pub type Result<T> = StdResult<T, Error>;
 
-/// Error types for vecdb operations.
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("A write failed; discard this vector and reopen or rebuild before continuing")]
+    #[error("Write failed; discard this vector and validate or rebuild its data before continuing")]
     WriteFailed,
     #[error(transparent)]
     IO(#[from] io::Error),
-    #[error(transparent)]
-    Format(#[from] fmt::Error),
     #[cfg(feature = "zerocopy")]
-    #[error("ZeroCopy error")]
+    #[error("Zero-copy conversion failed")]
     ZeroCopyError,
     #[cfg(feature = "pco")]
     #[error(transparent)]
@@ -35,36 +28,30 @@ pub enum Error {
     LZ4(#[from] DecompressError),
     #[error(transparent)]
     RawDB(#[from] RawdbError),
-    #[error("Wrong length: received: {received:?}, expected: {expected:?}")]
+    #[error("Length mismatch: received {received}, expected {expected}")]
     WrongLength { received: usize, expected: usize },
     #[error("Iterator ended")]
     IteratorEnded,
-    #[error("Different version received: {received:?}, expected: {expected:?}")]
+    #[error("Version mismatch: received {received:?}, expected {expected:?}")]
     DifferentVersion {
         received: Version,
         expected: Version,
     },
-    #[error("Index too high: index: {index}, len: {len}, name: {name}")]
+    #[error("Index {index} out of bounds for {name} (len {len})")]
     IndexTooHigh {
         index: usize,
         len: usize,
         name: String,
     },
-    #[error("Unexpected index: expected {expected}, got {got} ({name})")]
-    UnexpectedIndex {
-        expected: usize,
-        got: usize,
-        name: String,
-    },
-    #[error("Expect vec to have index")]
-    ExpectVecToHaveIndex,
-    #[error("Different format received: {received:?}, expected: {expected:?}")]
+    #[error("Missing compressed page")]
+    MissingPage,
+    #[error("Format mismatch: received {received:?}, expected {expected:?}")]
     DifferentFormat { received: Format, expected: Format },
-    #[error("Different value size received: {received} bytes, expected: {expected} bytes")]
+    #[error("Value size mismatch: received {received} bytes, expected {expected} bytes")]
     DifferentValueSize { received: u16, expected: u16 },
     #[error("Stamp mismatch: file stamp {file:?} != vec stamp {vec:?}")]
     StampMismatch { file: Stamp, vec: Stamp },
-    #[error("Corrupted region: invalid length {region_len}")]
+    #[error("Corrupted region {name}: invalid length {region_len}")]
     CorruptedRegion { name: String, region_len: usize },
     #[error("Decompression mismatch: expected {expected_len} values, got {actual_len}")]
     DecompressionMismatch {
@@ -84,6 +71,18 @@ pub enum Error {
 }
 
 impl Error {
+    /// The stored vector has another schema (version, format, value size or a length it cannot
+    /// hold): import deletes it and starts over.
+    pub(crate) fn is_schema_mismatch(&self) -> bool {
+        matches!(
+            self,
+            Error::WrongLength { .. }
+                | Error::DifferentFormat { .. }
+                | Error::DifferentValueSize { .. }
+                | Error::DifferentVersion { .. }
+        )
+    }
+
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
     pub fn is_lock_error(&self) -> bool {

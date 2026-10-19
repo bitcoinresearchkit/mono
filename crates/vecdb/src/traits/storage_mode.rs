@@ -4,7 +4,7 @@ use crate::{ReadableVec, StoredVec, TypedVec};
 ///
 /// Composite types use `M::Stored<V>` for stored vec fields.
 /// When `M = Rw`, the field is `V` itself (identity) with full write access.
-/// When `M = Ro`, the field is `V::ReadOnly` — a lean read-only clone (~40-48 bytes).
+/// When `M = Ro`, the field is `V::ReadOnly`, its read-only clone.
 pub trait StorageMode: 'static {
     type Stored<V: StoredVec + 'static>: TypedVec<I = V::I, T = V::T>
         + ReadableVec<V::I, V::T>

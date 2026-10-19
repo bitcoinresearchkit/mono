@@ -21,8 +21,8 @@ use super::SeriesName;
 )]
 pub struct SeriesList(Vec<SeriesName>);
 
-const MAX_VECS: usize = 32;
-const MAX_STRING_SIZE: usize = 64 * MAX_VECS;
+const MAX_SERIES: usize = 32;
+const MAX_INPUT_BYTES: usize = 64 * MAX_SERIES;
 
 impl From<SeriesName> for SeriesList {
     #[inline]
@@ -53,15 +53,15 @@ impl<'de> Deserialize<'de> for SeriesList {
         let value = Value::deserialize(deserializer)?;
 
         match value {
-            Value::String(text) if text.len() <= MAX_STRING_SIZE => sanitize(text.split(','))
+            Value::String(text) if text.len() <= MAX_INPUT_BYTES => sanitize(text.split(','))
                 .map(Self)
                 .map_err(D::Error::custom),
             Value::Array(values)
-                if values.len() <= MAX_VECS
+                if values.len() <= MAX_SERIES
                     && values
                         .iter()
                         .filter_map(Value::as_str)
-                        .try_fold(MAX_STRING_SIZE, |remaining, text| {
+                        .try_fold(MAX_INPUT_BYTES, |remaining, text| {
                             remaining.checked_sub(text.len())
                         })
                         .is_some() =>
@@ -73,10 +73,10 @@ impl<'de> Deserialize<'de> for SeriesList {
                 .map(Self)
                 .map_err(D::Error::custom)
             }
-            Value::String(_) | Value::Array(_) => {
-                Err(D::Error::custom("Given parameter is too long"))
-            }
-            _ => Err(D::Error::custom("Bad ids format")),
+            Value::String(_) | Value::Array(_) => Err(D::Error::custom(
+                "Series list too long: at most 32 names and 2,048 bytes",
+            )),
+            _ => Err(D::Error::custom("Expected a series name string or array")),
         }
     }
 }
@@ -103,7 +103,7 @@ fn sanitize<'a, S: Into<Cow<'a, str>>>(
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
         {
             if !s.is_empty() {
-                if clean.len() == MAX_VECS {
+                if clean.len() == MAX_SERIES {
                     return Err("At most 32 series may be requested");
                 }
                 clean.push(SeriesName::from(s.into_owned()));
@@ -115,7 +115,7 @@ fn sanitize<'a, S: Into<Cow<'a, str>>>(
         for c in s.to_lowercase().chars().chain([' ']) {
             match c {
                 ' ' | ',' | '+' if !current.is_empty() => {
-                    if clean.len() == MAX_VECS {
+                    if clean.len() == MAX_SERIES {
                         return Err("At most 32 series may be requested");
                     }
                     clean.push(SeriesName::from(mem::take(&mut current)));

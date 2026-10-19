@@ -1,20 +1,20 @@
-use std::ops::Range;
-
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_primitives::{
     CentsCompact, CostBasisByPercentile, PERCENTILES, PERCENTILES_LEN, PartsPerMillion32,
 };
 use brk_types::Cents;
 
-use super::{density::SupplyDensity, price_stats::PriceStats};
-use crate::ProjectedBucket;
+use bitview_vecs::Density;
+
+use crate::{COST_BASIS_PRICE_DIGITS, DensityBand, ProjectedBucket};
 
 const COHORTS: usize = AgeAggregateId::ALL.len();
 
-/// One block's statistics and supply density for one cohort.
+/// One block's statistics and densities for one cohort.
 pub(super) struct CohortBlock {
-    pub stats: PriceStats,
-    pub density: SupplyDensity<PartsPerMillion32>,
+    pub cost_basis: CostBasisByPercentile,
+    pub supply_density: Density<PartsPerMillion32>,
+    pub capital_density: Density<PartsPerMillion32>,
 }
 
 /// One block's projected buckets in price order: each bucket's weighted sats per cohort, kept
@@ -24,25 +24,21 @@ pub(super) struct MetricBuckets {
     prices: Vec<CentsCompact>,
     sats: Vec<[u64; COHORTS]>,
     totals: [Totals; COHORTS],
-    /// The buckets within 5% below and above spot, split at spot; `None` without a valid spot.
-    band: Option<(Range<usize>, Range<usize>)>,
+    /// The density band's edges as bucket positions: its first bucket, the first bucket above
+    /// spot (the split) and the first bucket past it; `None` without a valid spot.
+    band: Option<[usize; 3]>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct Totals {
     sats: u128,
     value: u128,
-    /// Σ price² × sats; `None` once it overflows.
-    second_moment: Option<u128>,
 }
 
-impl Default for Totals {
-    fn default() -> Self {
-        Self {
-            sats: 0,
-            value: 0,
-            second_moment: Some(0),
-        }
+impl Totals {
+    fn add(&mut self, price: u128, sats: u64) {
+        self.sats += u128::from(sats);
+        self.value += price * u128::from(sats);
     }
 }
 
@@ -59,99 +55,115 @@ impl MetricBuckets {
             let price = bucket.price.as_u128();
             let sats = bucket.weighted.map(|[sats]| u64::from(sats));
             for (totals, &sats) in self.totals.iter_mut().zip(&sats) {
-                let value = price * u128::from(sats);
-                totals.sats += u128::from(sats);
-                totals.value += value;
-                // A u32 price squared times u64 sats fits u128; only the sum can overflow.
-                totals.second_moment = totals
-                    .second_moment
-                    .and_then(|sum| sum.checked_add(value * price));
+                totals.add(price, sats);
             }
             self.prices.push(bucket.price);
             self.sats.push(sats);
         }
-        self.band = spot.finite_inner().filter(|&p| p > 0).map(|spot| {
-            let spot = u128::from(spot);
-            let lower = self
-                .prices
-                .partition_point(|p| p.as_u128() * 100 < spot * 95);
-            let split = lower + self.prices[lower..].partition_point(|p| p.as_u128() <= spot);
-            let upper =
-                split + self.prices[split..].partition_point(|p| p.as_u128() * 100 <= spot * 105);
-            (lower..split, split..upper)
+        // Exact edges on the grid prices (as holders' price index cuts them); the spot bucket is
+        // in profit.
+        self.band = DensityBand::new(spot).map(|band| {
+            let first = |(numer, denom): (u128, u128)| {
+                self.prices.partition_point(|p| p.as_u128() * denom < numer)
+            };
+            let mid = u128::from(band.spot().round_to_significant(COST_BASIS_PRICE_DIGITS));
+            let lower = first(band.first_inside());
+            let upper = first(band.first_above());
+            let split = lower + self.prices[lower..upper].partition_point(|p| p.as_u128() <= mid);
+            [lower, split, upper]
         });
     }
 
-    /// Every cohort's statistics and supply density from the last update.
+    /// Every cohort's statistics and densities from the last update, in one sweep over the
+    /// buckets: each percentile is the first bucket whose running total reaches its nearest
+    /// rank, ceil(percentile% of the total), and the band's sums are differences of the running
+    /// totals at its edges.
     pub fn block(&self) -> AgeAggregate<CohortBlock> {
-        AgeAggregate::from_fn(|id| {
-            let cohort = id.index();
-            let totals = self.totals[cohort];
-            CohortBlock {
-                stats: PriceStats {
-                    cost_basis: self.cost_basis(cohort, totals),
-                    capitalized_price: totals
-                        .second_moment
-                        .and_then(|value| value.checked_div(totals.value))
-                        .map(Cents::from)
-                        .unwrap_or(Cents::NAN),
-                },
-                density: self.density(cohort, totals),
-            }
-        })
-    }
-
-    /// Coin- and capital-weighted percentiles in one sweep: each is the first bucket whose
-    /// running total passes its target.
-    fn cost_basis(&self, cohort: usize, totals: Totals) -> CostBasisByPercentile {
         let targets = |total: u128| {
-            PERCENTILES.map(|percentile| (total * u128::from(percentile) / 100).saturating_sub(1))
+            PERCENTILES.map(|percentile| {
+                (total * u128::from(percentile))
+                    .div_ceil(100)
+                    .saturating_sub(1)
+            })
         };
-        let (coin_targets, dollar_targets) = (targets(totals.sats), targets(totals.value));
-        let mut per_coin = [Cents::default(); PERCENTILES_LEN];
-        let mut per_dollar = [Cents::default(); PERCENTILES_LEN];
-        let (mut coin, mut dollar) = (
-            if totals.sats == 0 { PERCENTILES_LEN } else { 0 },
+        let coin_targets = self.totals.map(|totals| targets(totals.sats));
+        let dollar_targets = self.totals.map(|totals| targets(totals.value));
+        let mut per_coin = [[Cents::NAN; PERCENTILES_LEN]; COHORTS];
+        let mut per_dollar = [[Cents::NAN; PERCENTILES_LEN]; COHORTS];
+        // Each cohort's next unresolved percentile; all resolved without a total.
+        let mut coin = self
+            .totals
+            .map(|totals| if totals.sats == 0 { PERCENTILES_LEN } else { 0 });
+        let mut dollar = self.totals.map(|totals| {
             if totals.value == 0 {
                 PERCENTILES_LEN
             } else {
                 0
-            },
-        );
-        let (mut sats, mut value) = (0_u128, 0_u128);
-        for (&price, row) in self.prices.iter().zip(&self.sats) {
-            if coin == PERCENTILES_LEN && dollar == PERCENTILES_LEN {
+            }
+        });
+        let edges = self.band.unwrap_or_default();
+        let mut at_edges = [[Totals::default(); COHORTS]; 3];
+        let mut edge = if self.band.is_some() { 0 } else { 3 };
+        let mut running = [Totals::default(); COHORTS];
+        for (index, (&price, row)) in self.prices.iter().zip(&self.sats).enumerate() {
+            while edge < 3 && edges[edge] == index {
+                at_edges[edge] = running;
+                edge += 1;
+            }
+            if edge == 3
+                && coin.iter().all(|&next| next == PERCENTILES_LEN)
+                && dollar.iter().all(|&next| next == PERCENTILES_LEN)
+            {
                 break;
             }
-            let bucket = u128::from(row[cohort]);
-            sats += bucket;
-            value += price.as_u128() * bucket;
-            while coin < PERCENTILES_LEN && sats > coin_targets[coin] {
-                per_coin[coin] = price.into();
-                coin += 1;
-            }
-            while dollar < PERCENTILES_LEN && value > dollar_targets[dollar] {
-                per_dollar[dollar] = price.into();
-                dollar += 1;
+            let price_u128 = price.as_u128();
+            for cohort in 0..COHORTS {
+                let running = &mut running[cohort];
+                running.add(price_u128, row[cohort]);
+                let coin = &mut coin[cohort];
+                while *coin < PERCENTILES_LEN && running.sats > coin_targets[cohort][*coin] {
+                    per_coin[cohort][*coin] = price.into();
+                    *coin += 1;
+                }
+                let dollar = &mut dollar[cohort];
+                while *dollar < PERCENTILES_LEN && running.value > dollar_targets[cohort][*dollar] {
+                    per_dollar[cohort][*dollar] = price.into();
+                    *dollar += 1;
+                }
             }
         }
-        CostBasisByPercentile {
-            per_coin,
-            per_dollar,
+        while edge < 3 {
+            at_edges[edge] = running;
+            edge += 1;
         }
-    }
-
-    /// Weighted supply within 5% of spot, split at spot, over the buckets inside the band.
-    fn density(&self, cohort: usize, totals: Totals) -> SupplyDensity<PartsPerMillion32> {
-        let Some((profit, loss)) = &self.band else {
-            return SupplyDensity::NAN;
-        };
-        let sum = |range: &Range<usize>| {
-            self.sats[range.clone()]
-                .iter()
-                .map(|row| u128::from(row[cohort]))
-                .sum()
-        };
-        SupplyDensity::from_sums(totals.sats, sum(profit), sum(loss))
+        AgeAggregate::from_fn(|id| {
+            let cohort = id.index();
+            let totals = self.totals[cohort];
+            let (supply_density, capital_density) = if self.band.is_some() {
+                let [lower, split, upper] = at_edges.map(|totals| totals[cohort]);
+                (
+                    Density::from_sums(
+                        totals.sats,
+                        split.sats - lower.sats,
+                        upper.sats - split.sats,
+                    ),
+                    Density::from_sums(
+                        totals.value,
+                        split.value - lower.value,
+                        upper.value - split.value,
+                    ),
+                )
+            } else {
+                (Density::NAN, Density::NAN)
+            };
+            CohortBlock {
+                cost_basis: CostBasisByPercentile {
+                    per_coin: per_coin[cohort],
+                    per_dollar: per_dollar[cohort],
+                },
+                supply_density,
+                capital_density,
+            }
+        })
     }
 }

@@ -1,12 +1,12 @@
 use std::ops::{Add, AddAssign};
 
 use bitview_primitives::{
-    BasisPoints32, Bytes, Bytes32, BytesFract, CentsFract, CoinBlocks, CoinDays, Count, Count16,
-    Count32, CountFract, Float64, PartsPerMillion32, PartsPerMillion64, PartsPerMillionSigned32,
-    PartsPerMillionSigned64, Percent, Percent64, PriceRatio, SatsFract, Seconds, SecondsFract,
-    SigOps64, SigOpsFract, VSizeFract, Weight64, WeightFract,
+    Bytes, Bytes32, BytesFract, CentsFract, CoinBlocks, CoinDays, Count, Count16, Count32,
+    CountFract, DollarBlocks, DollarDaysPerCoin, Float64, PartsPerMillion32, PartsPerMillion64,
+    PartsPerMillionSigned32, PartsPerMillionSigned64, PriceRatio, SatsFract, Seconds, SecondsFract,
+    SigOpsFract, VSizeFract, WeightFract,
 };
-use brk_types::{Cents, CentsSigned, Sats, VSize, Weight};
+use brk_types::{Cents, CentsSigned, Sats, SigOps, VSize, Weight, Weight32};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{CheckedSub, Formattable, PcoVecValue};
@@ -34,116 +34,44 @@ pub trait Quantity: Sized {
     type Sum: NumericValue + JsonSchema + Quantity + From<Self>;
 }
 
-impl Quantity for Count {
-    type Fract = CountFract;
-    type Sum = Count;
+macro_rules! quantities {
+    ($($quantity:ty => ($fract:ty, $sum:ty),)*) => {
+        $(impl Quantity for $quantity {
+            type Fract = $fract;
+            type Sum = $sum;
+        })*
+    };
 }
 
-impl Quantity for Count16 {
-    type Fract = CountFract;
-    type Sum = Count;
-}
-
-impl Quantity for Count32 {
-    type Fract = CountFract;
-    type Sum = Count;
-}
-
-impl Quantity for Bytes {
-    type Fract = BytesFract;
-    type Sum = Bytes;
-}
-
-impl Quantity for Bytes32 {
-    type Fract = BytesFract;
-    type Sum = Bytes;
-}
-
-impl Quantity for VSize {
-    type Fract = VSizeFract;
-    type Sum = VSize;
-}
-
-impl Quantity for Weight64 {
-    type Fract = WeightFract;
-    type Sum = Weight64;
-}
-
-impl Quantity for Weight {
-    type Fract = WeightFract;
-    type Sum = Weight64;
-}
-
-impl Quantity for SigOps64 {
-    type Fract = SigOpsFract;
-    type Sum = SigOps64;
-}
-
-impl Quantity for Seconds {
-    type Fract = SecondsFract;
-    type Sum = Seconds;
-}
-
-impl Quantity for Sats {
-    type Fract = SatsFract;
-    type Sum = Sats;
-}
-
-impl Quantity for Cents {
-    type Fract = CentsFract;
-    type Sum = Cents;
-}
-
-impl Quantity for CentsSigned {
-    type Fract = CentsFract;
-    type Sum = CentsSigned;
-}
-
-impl Quantity for Percent64 {
-    type Fract = Percent;
-    type Sum = Percent64;
-}
-
-impl Quantity for CoinDays {
-    type Fract = CoinDays;
-    type Sum = CoinDays;
-}
-
-impl Quantity for CoinBlocks {
-    type Fract = CoinBlocks;
-    type Sum = CoinBlocks;
-}
-
-impl Quantity for Float64 {
-    type Fract = Float64;
-    type Sum = Float64;
+quantities! {
+    Count => (CountFract, Count),
+    Count16 => (CountFract, Count),
+    Count32 => (CountFract, Count),
+    Bytes => (BytesFract, Bytes),
+    Bytes32 => (BytesFract, Bytes),
+    VSize => (VSizeFract, VSize),
+    Weight => (WeightFract, Weight),
+    Weight32 => (WeightFract, Weight),
+    SigOps => (SigOpsFract, SigOps),
+    Seconds => (SecondsFract, Seconds),
+    Sats => (SatsFract, Sats),
+    Cents => (CentsFract, Cents),
+    CentsSigned => (CentsFract, CentsSigned),
+    CoinDays => (CoinDays, CoinDays),
+    CoinBlocks => (CoinBlocks, CoinBlocks),
+    DollarBlocks => (DollarBlocks, DollarBlocks),
+    DollarDaysPerCoin => (DollarDaysPerCoin, DollarDaysPerCoin),
+    Float64 => (Float64, Float64),
 }
 
 /// A stored fixed-point ratio and its public representations.
 pub trait FixedRatio: NumericValue + JsonSchema + Into<f32> {
-    const SUFFIX: &'static str;
-}
-
-impl FixedRatio for PartsPerMillion32 {
+    /// The stored series' name suffix: every fixed ratio is in parts per million.
     const SUFFIX: &'static str = "ppm";
 }
 
-impl FixedRatio for PriceRatio {
-    const SUFFIX: &'static str = "ppm";
-}
-
-impl FixedRatio for BasisPoints32 {
-    const SUFFIX: &'static str = "bps";
-}
-
-impl FixedRatio for PartsPerMillionSigned32 {
-    const SUFFIX: &'static str = "ppm";
-}
-
-impl FixedRatio for PartsPerMillion64 {
-    const SUFFIX: &'static str = "ppm";
-}
-
-impl FixedRatio for PartsPerMillionSigned64 {
-    const SUFFIX: &'static str = "ppm";
-}
+impl FixedRatio for PartsPerMillion32 {}
+impl FixedRatio for PriceRatio {}
+impl FixedRatio for PartsPerMillionSigned32 {}
+impl FixedRatio for PartsPerMillion64 {}
+impl FixedRatio for PartsPerMillionSigned64 {}

@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::{Error, ErrorKind, Result, Write},
     path::Path,
 };
@@ -15,7 +15,5 @@ pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
         .write(true)
         .open(&next)?;
     file.write_all(bytes)?;
-    file.sync_all()?;
-    fs::rename(&next, path)?;
-    File::open(path.parent().unwrap())?.sync_all()
+    fs::rename(&next, path)
 }

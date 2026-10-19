@@ -29,19 +29,6 @@
 #![warn(clippy::multiple_crate_versions)]
 #![allow(clippy::option_if_let_else)]
 #![warn(clippy::redundant_feature_names)]
-#![cfg_attr(
-    test,
-    allow(
-        clippy::cast_possible_truncation,
-        clippy::cast_precision_loss,
-        clippy::indexing_slicing,
-        clippy::items_after_statements,
-        clippy::too_many_lines,
-        clippy::unwrap_used,
-        clippy::useless_vec,
-        reason = "test fixtures favor direct assertions and intentionally bounded inputs"
-    )
-)]
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 macro_rules! fail_iter {
@@ -57,7 +44,6 @@ macro_rules! unwrap {
     ($x:expr) => {{ $x.expect("should read") }};
 }
 
-mod boxed_iterator;
 #[doc(hidden)]
 mod cache;
 
@@ -70,7 +56,6 @@ mod compression;
 pub mod config;
 
 mod descriptor_table;
-mod file_accessor;
 
 mod double_ended_peekable;
 mod error;
@@ -94,8 +79,6 @@ mod range;
 mod table;
 
 mod seqno;
-mod slice;
-mod slice_windows;
 
 mod tree;
 
@@ -106,7 +89,6 @@ mod value;
 mod value_type;
 mod version;
 use {
-    boxed_iterator::BoxedIterator,
     key_range::KeyRange,
     table::{GlobalTableId, Table},
     value::InternalValue,
@@ -119,8 +101,10 @@ pub use {
     config::Config,
     descriptor_table::DescriptorTable,
     error::{Error, Result},
-    slice::Slice,
-    tree::{Tree, ingest::Ingestion},
+    tree::{ReadView, Tree, ingest::Ingestion},
 };
+
+/// An immutable byte slice that can be cloned without additional heap allocation.
+pub use byteview::ByteView as Slice;
 
 use seqno::SequenceNumberCounter;

@@ -1,10 +1,11 @@
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
-use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
+use bitview_plugin_age::Vecs as AgeVecs;
+use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{BoundedRatio, CoinBlocks};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Bitcoin;
+use vecdb::ComputeVec;
 
 use super::Vecs;
 
@@ -12,12 +13,12 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        distribution_age: &AgeVecs,
-        distribution_aggregated: &AggregatedVecs,
+        age: &AgeVecs,
+        holders: &HoldersVecs,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
-        let circulating_supply = &distribution_aggregated.cohorts.all.supply.total.sats.height;
+        let starting_height = indexer.compute_start().height;
+        let circulating_supply = &holders.cohorts.all.supply.total.sats.height;
 
         self.coinblocks_created.compute_cumulative_transformed(
             starting_height,
@@ -29,19 +30,16 @@ impl Vecs {
         self.coinblocks_stored.cumulative.height.compute_subtract(
             starting_height,
             &self.coinblocks_created.cumulative.height,
-            &distribution_age.coinblocks_destroyed.cumulative.height,
+            &age.coinblocks_destroyed.cumulative.height,
             exit,
         )?;
 
         self.derived.liveliness_source.height.compute_transform2(
             starting_height,
-            &distribution_age.coinblocks_destroyed.cumulative.height,
+            &age.coinblocks_destroyed.cumulative.height,
             &self.coinblocks_created.cumulative.height,
-            |(h, destroyed, created, ..)| {
-                (
-                    h,
-                    BoundedRatio::from(f64::from(destroyed) / f64::from(created)),
-                )
+            |(_, destroyed, created, ..)| {
+                BoundedRatio::from(f64::from(destroyed) / f64::from(created))
             },
             exit,
         )?;

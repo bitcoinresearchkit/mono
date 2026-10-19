@@ -1,17 +1,13 @@
-use std::{convert::Infallible, iter, marker::PhantomData, sync::Arc};
+use std::{convert::Infallible, marker::PhantomData, sync::Arc};
 
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use brk_types::Height;
-use input::RollingInput;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, BinaryTransform, CheckedSub, Formattable, PrintableIndex,
-    READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, SparseRead, TypedVec,
-    VecIndex, VecValue, Version, short_type_name,
+    AnyVec, BinaryTransform, CheckedSub, Formattable, ReadableBoxedVec, ReadableCloneableVec,
+    ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version, WindowBatch, WindowBuffers,
+    before_window, before_window_bounds, read_batches,
 };
-
-mod input;
 
 /// Rolling transform from a cumulative source, an aligned operand, and window starts.
 /// Snapshots belong to the input readers; this view retains no full-height result.
@@ -25,7 +21,6 @@ where
     base_version: Version,
     source: ReadableBoxedVec<Height, S>,
     operand: ReadableBoxedVec<Height, C>,
-    operand_transform: fn(Height, C) -> C,
     window_starts: ReadableBoxedVec<Height, Height>,
     _marker: PhantomData<(T, F)>,
 }
@@ -35,13 +30,8 @@ where
     S: VecValue + CheckedSub + Default,
     C: VecValue + CheckedSub + Default,
     T: VecValue,
-    F: BinaryTransform<S, C, T>,
+    F: BinaryTransform<S, C, T> + Send + Sync,
 {
-    #[inline(always)]
-    fn identity_operand(_: Height, value: C) -> C {
-        value
-    }
-
     pub(crate) fn new(
         name: &str,
         version: Version,
@@ -49,128 +39,64 @@ where
         operand: &(impl ReadableCloneableVec<Height, C> + ?Sized),
         window_starts: &(impl ReadableCloneableVec<Height, Height> + ?Sized),
     ) -> Self {
-        Self::with_operand_transform(
-            name,
-            version,
-            source,
-            operand,
-            window_starts,
-            Self::identity_operand,
-        )
-    }
-
-    fn with_operand_transform(
-        name: &str,
-        version: Version,
-        source: &(impl ReadableCloneableVec<Height, S> + ?Sized),
-        operand: &(impl ReadableCloneableVec<Height, C> + ?Sized),
-        window_starts: &(impl ReadableCloneableVec<Height, Height> + ?Sized),
-        operand_transform: fn(Height, C) -> C,
-    ) -> Self {
         Self {
             name: Arc::from(name),
             base_version: version,
             source: source.read_only_boxed_clone(),
             operand: operand.read_only_boxed_clone(),
-            operand_transform,
             window_starts: window_starts.read_only_boxed_clone(),
             _marker: PhantomData,
         }
     }
 
+    /// Both window totals, current minus the cumulative value before the window, combined by `F`.
     #[inline(always)]
-    fn previous_index(start: Height) -> Option<usize> {
-        start.to_usize().checked_sub(1)
-    }
-
-    #[inline(always)]
-    fn compute(
-        &self,
-        index: usize,
-        previous: Option<usize>,
-        source_current: S,
-        source_previous: S,
-        operand_current: C,
-        operand_previous: C,
-    ) -> T {
+    fn compute(source: S, source_before: S, operand: C, operand_before: C) -> T {
         F::apply(
-            source_current
-                .checked_sub(source_previous)
-                .unwrap_or_default(),
-            (self.operand_transform)(Height::from(index), operand_current)
-                .checked_sub(
-                    previous
-                        .map(|index| {
-                            (self.operand_transform)(Height::from(index), operand_previous)
-                        })
-                        .unwrap_or_default(),
-                )
-                .unwrap_or_default(),
+            source.checked_sub(source_before).unwrap_or_default(),
+            operand.checked_sub(operand_before).unwrap_or_default(),
         )
     }
 
-    fn try_fold_values<B, E>(
+    /// Visits `[from, to)` one bounded batch at a time with its window starts and both inputs'
+    /// batches ([`WindowBuffers`]).
+    fn try_for_each_batch<E>(
         &self,
         from: usize,
         to: usize,
-        init: B,
-        mut fold: impl FnMut(B, T) -> Result<B, E>,
-    ) -> Result<B, E> {
-        let mut accumulator = Some(Ok(init));
-        self.for_each_input(from, to, |at, source, operand, starts| {
-            accumulator = Some(accumulator.take().unwrap().and_then(|accumulator| {
-                self.transformed_values(at, source, operand, starts)
-                    .try_fold(accumulator, &mut fold)
-            }));
-        });
-        accumulator.unwrap()
-    }
-
-    fn for_each_input(
-        &self,
-        from: usize,
-        to: usize,
-        mut visit: impl FnMut(usize, &RollingInput<S>, &RollingInput<C>, &[Height]),
-    ) {
-        let to = to
-            .min(self.source.len())
-            .min(self.operand.len())
-            .min(self.window_starts.len());
-        if from >= to {
-            return;
+        mut visit: impl FnMut(&[Height], WindowBatch<'_, S>, WindowBatch<'_, C>) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let mut starts = Vec::new();
+        let (mut source, mut operand) = (WindowBuffers::default(), WindowBuffers::default());
+        for (at, end) in read_batches(from, to.min(self.len()), self.source.cursor_chunk_size()) {
+            starts.clear();
+            self.window_starts.read_into_at(at, end, &mut starts);
+            let bounds = before_window_bounds(&starts);
+            visit(
+                &starts,
+                source.read(&*self.source, at, end, bounds),
+                operand.read(&*self.operand, at, end, bounds),
+            )?;
         }
-        let starts = self.window_starts.collect_range_dyn(from, to);
-        let starts = starts.as_slice();
-        let source = RollingInput::new(&self.source, from, to, starts);
-        let operand = RollingInput::new(&self.operand, from, to, starts);
-        visit(from, &source, &operand, starts);
+        Ok(())
     }
 
-    fn transformed_values<'a>(
-        &'a self,
-        at: usize,
-        source: &'a RollingInput<S>,
-        operand: &'a RollingInput<C>,
+    fn values<'a>(
         starts: &'a [Height],
+        source: WindowBatch<'a, S>,
+        operand: WindowBatch<'a, C>,
     ) -> impl Iterator<Item = T> + 'a {
-        source
-            .current()
-            .iter()
-            .zip(operand.current())
-            .zip(starts)
-            .enumerate()
-            .map(move |(offset, ((current, operand_current), start))| {
-                let index = at + offset;
-                let prior = Self::previous_index(*start);
-                self.compute(
-                    index,
-                    prior,
+        source.current.iter().zip(operand.current).zip(starts).map(
+            move |((current, operand_current), start)| {
+                let start = start.to_usize();
+                Self::compute(
                     current.clone(),
-                    prior.map(|i| source.previous(i)).unwrap_or_default(),
+                    source.before(start),
                     operand_current.clone(),
-                    prior.map(|i| operand.previous(i)).unwrap_or_default(),
+                    operand.before(start),
                 )
-            })
+            },
+        )
     }
 }
 
@@ -186,7 +112,6 @@ where
             base_version: self.base_version,
             source: self.source.clone(),
             operand: self.operand.clone(),
-            operand_transform: self.operand_transform,
             window_starts: self.window_starts.clone(),
             _marker: PhantomData,
         }
@@ -218,21 +143,11 @@ where
             .min(self.window_starts.len())
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        <Height as PrintableIndex>::to_string()
+    fn is_mutable(&self) -> bool {
+        self.source.is_mutable() || self.operand.is_mutable() || self.window_starts.is_mutable()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    vecdb::any_vec_type_methods!(Height, T);
 }
 
 impl<S, C, T, F> TypedVec for LazyRollingRatioVec<S, C, T, F>
@@ -255,8 +170,9 @@ where
 {
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<T>) {
         buf.reserve(to.min(self.len()).saturating_sub(from));
-        self.for_each_input(from, to, |at, source, operand, starts| {
-            buf.extend(self.transformed_values(at, source, operand, starts));
+        let Ok(()) = self.try_for_each_batch(from, to, |starts, source, operand| {
+            buf.extend(Self::values(starts, source, operand));
+            Ok::<_, Infallible>(())
         });
     }
 
@@ -265,41 +181,22 @@ where
     }
 
     fn for_each_chunk_at(&self, from: usize, to: usize, each: &mut dyn FnMut(usize, &[T])) {
-        let size = self.cursor_chunk_size().clamp(1, READ_CHUNK_SIZE);
         let mut output = Vec::new();
         let mut at = from;
-        self.for_each_input(from, to, |from, source, operand, starts| {
-            for value in self.transformed_values(from, source, operand, starts) {
-                output.push(value);
-                if output.len() == size {
-                    each(at, &output);
-                    at += output.len();
-                    output.clear();
-                }
-            }
-        });
-        if !output.is_empty() {
+        let Ok(()) = self.try_for_each_batch(from, to, |starts, source, operand| {
+            output.clear();
+            output.extend(Self::values(starts, source, operand));
             each(at, &output);
-        }
+            at += output.len();
+            Ok::<_, Infallible>(())
+        });
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(T)) {
-        self.for_each_chunk_at(from, to, &mut |_, values| {
-            values.iter().cloned().for_each(&mut *each)
+        let Ok(()) = self.try_for_each_batch(from, to, |starts, source, operand| {
+            Self::values(starts, source, operand).for_each(&mut *each);
+            Ok::<_, Infallible>(())
         });
-    }
-
-    fn fold_range_at<B, G: FnMut(B, T) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: G,
-    ) -> B {
-        self.try_fold_values(from, to, init, |accumulator, value| {
-            Ok::<_, Infallible>(fold(accumulator, value))
-        })
-        .unwrap()
     }
 
     fn try_fold_range_at<B, E, G: FnMut(B, T) -> Result<B, E>>(
@@ -307,31 +204,31 @@ where
         from: usize,
         to: usize,
         init: B,
-        fold: G,
+        mut fold: G,
     ) -> Result<B, E> {
-        self.try_fold_values(from, to, init, fold)
+        let mut accumulator = Some(init);
+        self.try_for_each_batch(from, to, |starts, source, operand| {
+            accumulator = Some(
+                Self::values(starts, source, operand)
+                    .try_fold(accumulator.take().unwrap(), &mut fold)?,
+            );
+            Ok(())
+        })?;
+        Ok(accumulator.unwrap())
     }
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
-        if index >= self.len() {
-            return None;
-        }
-
-        let previous = Self::previous_index(self.window_starts.collect_one_at(index)?);
-        Some(
-            self.compute(
-                index,
-                previous,
-                self.source.collect_one_at(index)?,
-                previous
-                    .and_then(|index| self.source.collect_one_at(index))
-                    .unwrap_or_default(),
-                self.operand.collect_one_at(index)?,
-                previous
-                    .and_then(|index| self.operand.collect_one_at(index))
-                    .unwrap_or_default(),
-            ),
-        )
+        let previous = before_window(self.window_starts.collect_one_at(index)?.to_usize());
+        Some(Self::compute(
+            self.source.collect_one_at(index)?,
+            previous
+                .and_then(|index| self.source.collect_one_at(index))
+                .unwrap_or_default(),
+            self.operand.collect_one_at(index)?,
+            previous
+                .and_then(|index| self.operand.collect_one_at(index))
+                .unwrap_or_default(),
+        ))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
@@ -354,20 +251,17 @@ where
         let window_starts = self.window_starts.read_sorted_at(indices);
         let mut starts = window_starts.iter();
         let source = SparseRead::new(&*self.source, indices, |_| {
-            Self::previous_index(*starts.next().unwrap())
+            before_window(starts.next().unwrap().to_usize())
         });
 
         let mut starts = window_starts.iter();
         let operand = SparseRead::new(&*self.operand, indices, |_| {
-            Self::previous_index(*starts.next().unwrap())
+            before_window(starts.next().unwrap().to_usize())
         });
 
         out.reserve(indices.len());
-        for (output, &index) in indices.iter().enumerate() {
-            let previous = Self::previous_index(window_starts[output]);
-            out.push(self.compute(
-                index,
-                previous,
+        for output in 0..indices.len() {
+            out.push(Self::compute(
                 source.current(output),
                 source.previous(output).unwrap_or_default(),
                 operand.current(output),
@@ -377,18 +271,9 @@ where
     }
 }
 
-impl<S, C, T, F> Traversable for LazyRollingRatioVec<S, C, T, F>
-where
+bitview_traversable::leaf!([S, C, T, F] LazyRollingRatioVec<S, C, T, F> where
     S: VecValue + CheckedSub + Default,
     C: VecValue + CheckedSub + Default,
     T: VecValue + Formattable + Serialize + JsonSchema,
     F: BinaryTransform<S, C, T> + Send + Sync,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+);

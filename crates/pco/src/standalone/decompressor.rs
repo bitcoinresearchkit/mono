@@ -8,7 +8,6 @@ use crate::errors::{PcoError, PcoResult};
 use crate::progress::Progress;
 use crate::standalone::constants::*;
 use crate::wrapped;
-use std::mem::MaybeUninit;
 use std::{cmp, mem};
 
 unsafe fn read_varint(reader: &mut BitReader) -> PcoResult<u64> {
@@ -214,8 +213,6 @@ impl FileDecompressor {
     let res = ChunkDecompressor {
       inner_cd,
       page_state: inner_pd,
-      n,
-      n_processed: 0,
     };
     Ok(DecompressorItem::Chunk(res))
   }
@@ -231,7 +228,7 @@ impl FileDecompressor {
   /// dtype, allowing them to know which type `<T>` to use here. There is no
   /// analagous file compressor method because the user always knows the dtype
   /// during compression.
-  pub(crate) fn simple_decompress<T: Number>(&self, mut src: &[u8]) -> PcoResult<Vec<T>> {
+  pub fn simple_decompress<T: Number>(&self, mut src: &[u8]) -> PcoResult<Vec<T>> {
     // `n_hint` is untrusted and unrelated to how much data is actually
     // present, so we only follow it up to a cap.
     let max_prealloc = self.max_prealloc_bytes / mem::size_of::<T>();
@@ -248,14 +245,12 @@ impl FileDecompressor {
 pub struct ChunkDecompressor<T: Number, R: BetterBufRead> {
   inner_cd: wrapped::ChunkDecompressor<T>,
   page_state: wrapped::PageDecompressorState<R>,
-  n: usize,
-  n_processed: usize,
 }
 
 impl<T: Number, R: BetterBufRead> ChunkDecompressor<T, R> {
-  /// Returns the count of numbers in the chunk.
-  pub(crate) fn n(&self) -> usize {
-    self.n
+  /// Returns the count of numbers not yet read from the chunk.
+  pub(crate) fn n_remaining(&self) -> usize {
+    self.page_state.n_remaining()
   }
 
   /// Reads the next decompressed numbers into the destination, returning
@@ -266,35 +261,10 @@ impl<T: Number, R: BetterBufRead> ChunkDecompressor<T, R> {
   /// `dst` must have length either a multiple of 256 or be at least the count
   /// of numbers remaining in the chunk.
   pub fn read(&mut self, dst: &mut [T]) -> PcoResult<Progress> {
-    let progress = self.page_state.read(
+    self.page_state.read(
       &mut self.inner_cd.inner,
       DynNumberSliceMut::from_initialized(dst),
-    )?;
-
-    self.n_processed += progress.n_processed;
-
-    Ok(progress)
-  }
-
-  /// Reads the next decompressed numbers into potentially uninitialized
-  /// memory, returning progress into the chunk and advancing along the
-  /// compressed data.
-  ///
-  /// On success, the first `progress.n_processed` destination elements are
-  /// initialized. If this returns an error, callers must not assume that any
-  /// destination elements are initialized.
-  ///
-  /// `dst` must have length either a multiple of 256 or be at least the count
-  /// of numbers remaining in the chunk.
-  pub(crate) fn read_uninit(&mut self, dst: &mut [MaybeUninit<T>]) -> PcoResult<Progress> {
-    let progress = self.page_state.read(
-      &mut self.inner_cd.inner,
-      DynNumberSliceMut::new(dst),
-    )?;
-
-    self.n_processed += progress.n_processed;
-
-    Ok(progress)
+    )
   }
 
   /// Returns the rest of the compressed data source.
@@ -305,11 +275,14 @@ impl<T: Number, R: BetterBufRead> ChunkDecompressor<T, R> {
   // a helper for some internal things
   fn decompress_remaining_extend(&mut self, dst: &mut Vec<T>) -> PcoResult<()> {
     let initial_len = dst.len();
-    let remaining = self.n - self.n_processed;
+    let remaining = self.n_remaining();
     dst.reserve(remaining);
-    let progress = self.read_uninit(&mut dst.spare_capacity_mut()[..remaining])?;
+    let progress = self.page_state.read(
+      &mut self.inner_cd.inner,
+      DynNumberSliceMut::new(&mut dst.spare_capacity_mut()[..remaining]),
+    )?;
     debug_assert!(progress.finished);
-    // SAFETY: read_uninit initialized all remaining elements.
+    // SAFETY: on success, the read initialized all remaining elements.
     unsafe { dst.set_len(initial_len + progress.n_processed) };
     Ok(())
   }

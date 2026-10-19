@@ -11,13 +11,12 @@ use bitview_types::ErrorCode;
 
 use crate::error::Error;
 
-/// Maximum upstream error body buffered when constructing a JSON error.
 const MAX_ERROR_BODY_BYTES: usize = 4096;
 
 /// Matches `application/json` and `application/...+json`, ignoring parameters
 /// like `; charset=utf-8`. Used to skip JSON-error rewriting for already-JSON bodies.
 fn is_json_content_type(s: &str) -> bool {
-    let mime = s.split(';').next().unwrap_or("").trim();
+    let mime = s.split(';').next().unwrap().trim();
     mime == "application/json" || (mime.starts_with("application/") && mime.ends_with("+json"))
 }
 

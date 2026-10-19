@@ -2,15 +2,13 @@ use bitview_primitives::PoolSlug;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Mining pool identification for a block
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockPool {
-    /// Unique pool identifier
+    /// Zero-based pool ID, matching mempool.space's `unique_id`
     #[schemars(example = 44)]
     pub id: u8,
 
-    /// Pool name
     #[schemars(example = &"Foundry USA")]
     pub name: String,
 

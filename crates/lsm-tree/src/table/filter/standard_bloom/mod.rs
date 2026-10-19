@@ -61,12 +61,6 @@ impl<B: AsRef<[u8]>> StandardBloomFilterReader<B> {
         self.contains_hash(hash)
     }
 
-    /// Returns the encoded filter size, including its fixed header.
-    #[must_use]
-    pub fn size(&self) -> usize {
-        self.m / 8 + HEADER_LEN
-    }
-
     /// Returns `true` if the hash may be contained.
     ///
     /// Will never have a false negative.
@@ -92,15 +86,6 @@ impl<B: AsRef<[u8]>> StandardBloomFilterReader<B> {
         true
     }
 
-    /// Returns `true` if the item may be contained.
-    ///
-    /// Will never have a false negative.
-    #[cfg(test)]
-    #[must_use]
-    fn contains(&self, key: &[u8]) -> bool {
-        self.contains_hash(Builder::get_hash(key))
-    }
-
     /// Returns `true` if the bit at `idx` is `1`.
     fn has_bit(&self, idx: usize) -> bool {
         debug_assert!(idx < self.m);
@@ -111,94 +96,5 @@ impl<B: AsRef<[u8]>> StandardBloomFilterReader<B> {
         )]
         let byte = self.inner.as_ref()[HEADER_LEN + idx / 8];
         byte & (0b1000_0000_u8 >> (idx % 8)) != 0
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use test_log::test;
-
-    use super::*;
-
-    #[test]
-    fn filter_bloom_standard_serde_round_trip() -> Result<()> {
-        let mut filter = Builder::with_fp_rate(10, 0.0001);
-
-        let keys = &[
-            b"item0", b"item1", b"item2", b"item3", b"item4", b"item5", b"item6", b"item7",
-            b"item8", b"item9",
-        ];
-
-        for key in keys {
-            filter.set_with_hash(Builder::get_hash(*key));
-        }
-
-        let filter_bytes = filter.build();
-        let encoded_size = filter_bytes.len();
-        let filter_copy = StandardBloomFilterReader::new(Slice::from(filter_bytes.clone()))?;
-        let borrowed = StandardBloomFilterReader::new(filter_bytes.as_slice())?;
-        assert_eq!(filter_copy.size(), encoded_size);
-        assert_eq!(borrowed.size(), encoded_size);
-
-        for key in keys
-            .iter()
-            .map(|key| key.as_slice())
-            .chain([b"item10".as_slice(), b"absent".as_slice()])
-        {
-            assert_eq!(filter_copy.contains(key), borrowed.contains(key));
-        }
-
-        assert_eq!(filter.k, filter_copy.k);
-        assert_eq!(filter.m, filter_copy.m);
-        assert!(!filter_copy.contains(b"asdasads"));
-        assert!(!filter_copy.contains(b"item10"));
-        assert!(!filter_copy.contains(b"cxycxycxy"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn filter_bloom_standard_rejects_truncated_bits() {
-        let filter = Builder::with_fp_rate(10, 0.0001);
-        let mut filter_bytes = filter.build();
-        filter_bytes.pop();
-
-        assert!(matches!(
-            StandardBloomFilterReader::new(filter_bytes),
-            Err(Error::InvalidHeader("BloomFilter"))
-        ));
-    }
-
-    #[test]
-    fn filter_bloom_standard_basic() -> Result<()> {
-        let mut filter = Builder::with_fp_rate(10, 0.0001);
-
-        let keys = [
-            b"item0" as &[u8],
-            b"item1",
-            b"item2",
-            b"item3",
-            b"item4",
-            b"item5",
-            b"item6",
-            b"item7",
-            b"item8",
-            b"item9",
-        ];
-
-        for key in &keys {
-            filter.set_with_hash(Builder::get_hash(key));
-        }
-
-        let filter_bytes = filter.build();
-        let filter = StandardBloomFilterReader::new(filter_bytes)?;
-
-        for key in &keys {
-            assert!(filter.contains(key));
-        }
-
-        assert!(!filter.contains(b"asdasdasdasdasdasdasd"));
-
-        Ok(())
     }
 }

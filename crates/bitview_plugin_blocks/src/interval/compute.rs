@@ -9,7 +9,7 @@ use super::Vecs;
 
 impl Vecs {
     pub fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.safe_lengths().height;
+        let starting_height = indexer.compute_start().height;
         let mut prev_timestamp = None;
         self.0.compute_from(
             starting_height,

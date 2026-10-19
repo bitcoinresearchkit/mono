@@ -1,39 +1,47 @@
 use std::{
-    fmt::{Debug, Display, Formatter, Result as FmtResult},
+    fmt::Debug,
     ops::{Add, AddAssign, Rem},
 };
 
 use bitcoin::locktime::absolute::Height as AbsoluteHeight;
-use derive_more::Deref;
-use itoa::Buffer;
+use derive_more::{Add, Deref, From, Into};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{CheckedSub, StoreValue};
-
-#[cfg(feature = "storage")]
-use brk_error::Error as ErrorError;
+use crate::{CheckedSub, Sats};
 
 #[cfg(feature = "storage")]
 use std::io::Error as IoError;
 
 #[cfg(feature = "storage")]
 use std::path::Path;
-#[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
 
 #[cfg(feature = "storage")]
 use std::fs;
 #[cfg(feature = "storage")]
-use vecdb::{Bytes, Formattable, Pco, PrintableIndex, Stamp, VecIndex};
+use vecdb::{Bytes, Pco, PrintableIndex, Stamp, VecIndex};
 
-pub const BLOCKS_PER_DIFF_EPOCHS: u32 = 2016;
+pub const BLOCKS_PER_DIFF_EPOCH: u32 = 2016;
 pub const BLOCKS_PER_HALVING: u32 = 210_000;
 
 /// Block height
 #[derive(
-    Debug, Clone, Copy, PartialEq, Deref, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, Hash,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Deref,
+    Eq,
+    PartialOrd,
+    Ord,
+    Default,
+    Serialize,
+    Deserialize,
+    Hash,
+    Add,
+    From,
+    Into,
 )]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
@@ -68,25 +76,34 @@ impl Height {
     }
 
     pub fn left_before_next_diff_adj(self) -> u32 {
-        BLOCKS_PER_DIFF_EPOCHS - (*self % BLOCKS_PER_DIFF_EPOCHS)
+        BLOCKS_PER_DIFF_EPOCH - (*self % BLOCKS_PER_DIFF_EPOCH)
     }
 
     pub fn left_before_next_halving(self) -> u32 {
         BLOCKS_PER_HALVING - (*self % BLOCKS_PER_HALVING)
     }
+
+    /// Bitcoin Core's `GetBlockSubsidy`: 50 BTC shifted right once per halving.
+    pub fn subsidy(self) -> Sats {
+        Sats::from(
+            u64::from(Sats::FIFTY_BTC)
+                .checked_shr(self.0 / BLOCKS_PER_HALVING)
+                .unwrap_or(0),
+        )
+    }
+
+    pub fn index_name() -> &'static str {
+        "height"
+    }
+
+    pub fn index_aliases() -> &'static [&'static str] {
+        &["h", "height", "blk", "block"]
+    }
 }
 
 impl PartialEq<u64> for Height {
     fn eq(&self, other: &u64) -> bool {
-        self.0 == *other as u32
-    }
-}
-
-impl Add<Height> for Height {
-    type Output = Self;
-
-    fn add(self, rhs: Height) -> Self::Output {
-        Self::from(self.0 + rhs.0)
+        u64::from(self.0) == *other
     }
 }
 
@@ -119,34 +136,16 @@ impl CheckedSub<Height> for Height {
         self.0.checked_sub(rhs.0).map(Self)
     }
 }
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub<Height> for Height {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
 
 impl CheckedSub<u32> for Height {
     fn checked_sub(self, rhs: u32) -> Option<Self> {
         self.0.checked_sub(rhs).map(Height::from)
     }
 }
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub<u32> for Height {
-    fn checked_sub(self, rhs: u32) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
 
 impl CheckedSub<usize> for Height {
     fn checked_sub(self, rhs: usize) -> Option<Self> {
-        self.0.checked_sub(rhs as u32).map(Height::from)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub<usize> for Height {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
+        (self.0 as usize).checked_sub(rhs).map(|h| Self(h as u32))
     }
 }
 
@@ -158,13 +157,7 @@ impl AddAssign<usize> for Height {
 
 impl CheckedSub<u64> for Height {
     fn checked_sub(self, rhs: u64) -> Option<Self> {
-        self.0.checked_sub(rhs as u32).map(Height::from)
-    }
-}
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub<u64> for Height {
-    fn checked_sub(self, rhs: u64) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
+        u64::from(self.0).checked_sub(rhs).map(|h| Self(h as u32))
     }
 }
 
@@ -185,13 +178,6 @@ impl Rem<usize> for Height {
     type Output = Self;
     fn rem(self, rhs: usize) -> Self::Output {
         Self(self.0.rem(Height::from(rhs).0))
-    }
-}
-
-impl From<u32> for Height {
-    #[inline]
-    fn from(value: u32) -> Self {
-        Self(value)
     }
 }
 
@@ -216,12 +202,6 @@ impl From<Height> for usize {
     }
 }
 
-impl From<Height> for u32 {
-    #[inline]
-    fn from(value: Height) -> Self {
-        value.0
-    }
-}
 impl From<Height> for u64 {
     #[inline]
     fn from(value: Height) -> Self {
@@ -236,34 +216,14 @@ impl From<AbsoluteHeight> for Height {
     }
 }
 
-#[cfg(feature = "storage")]
-impl TryFrom<&Path> for Height {
-    type Error = ErrorError;
-    fn try_from(value: &Path) -> Result<Self, Self::Error> {
-        Ok(Self::from_bytes(fs::read(value)?.as_slice())?.to_owned())
-    }
-}
-
-impl StoreValue for Height {
-    type Bytes = [u8; 4];
-
-    #[inline]
-    fn to_store_bytes(&self) -> Self::Bytes {
-        self.0.to_be_bytes()
-    }
-
-    #[inline]
-    fn from_store_bytes(bytes: Self::Bytes) -> Self {
-        Self(u32::from_be_bytes(bytes))
-    }
-}
+crate::impl_store_value!(Height, u32);
 
 #[cfg(feature = "storage")]
 impl From<Stamp> for Height {
     #[inline]
     fn from(value: Stamp) -> Self {
         let u = u64::from(value);
-        assert!(u <= u32::MAX as u64);
+        debug_assert!(u <= u32::MAX as u64);
         Self(u as u32)
     }
 }
@@ -276,21 +236,10 @@ impl From<Height> for Stamp {
     }
 }
 
-impl Height {
-    pub fn index_name() -> &'static str {
-        "height"
-    }
-    pub fn index_aliases() -> &'static [&'static str] {
-        &["h", "height", "blk", "block"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for Height {
     fn to_string() -> &'static str {
         Self::index_name()
-    }
-    fn to_possible_strings() -> &'static [&'static str] {
-        Self::index_aliases()
     }
 }
 
@@ -299,19 +248,4 @@ impl VecIndex for Height {
     const INITIAL_CAPACITY: usize = 1_200_000;
 }
 
-impl Display for Height {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for Height {
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-}
+crate::impl_int_format!(Height);

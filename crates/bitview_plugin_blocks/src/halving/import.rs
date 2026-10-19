@@ -1,7 +1,6 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, Halving};
-use bitview_transforms::BlocksToDays;
-use bitview_vecs::LazyPerBlock;
+use bitview_vecs::{LazyPerBlock, ops::BlocksToDays};
 use brk_types::{Height, Version};
 use vecdb::{Ident, IndexVec, ReadOnlyClone};
 

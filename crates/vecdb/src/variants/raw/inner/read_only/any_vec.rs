@@ -1,6 +1,4 @@
-use crate::{
-    AnyVec, VecIndex, VecValue, Version, cache::CachePolicy, short_type_name, vec_region_name,
-};
+use crate::{AnyVec, VecIndex, VecValue, Version, cache::CachePolicy, vec_region_name};
 
 use super::{super::RawStrategy, ReadOnlyRawVec};
 
@@ -17,31 +15,24 @@ where
 
     #[inline]
     fn name(&self) -> &str {
-        self.base.name()
+        &self.base.name
+    }
+
+    /// Append-only: rows below its length never change (a `MutableVec` wrapping it says otherwise).
+    #[inline]
+    fn is_mutable(&self) -> bool {
+        false
     }
 
     #[inline]
     fn len(&self) -> usize {
-        self.base.len()
+        self.base.stored_len()
     }
 
-    #[inline]
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
-    #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    crate::any_vec_type_methods!(I, T);
 
     #[inline]
     fn region_names(&self) -> Vec<String> {
-        vec![vec_region_name(self.base.name(), I::to_string())]
+        vec![vec_region_name(&self.base.name, I::to_string())]
     }
 }

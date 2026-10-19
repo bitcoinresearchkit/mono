@@ -1,7 +1,7 @@
 use bitcoin::Transaction as BitcoinTransaction;
 use brk_rpc::MempoolState;
 use brk_types::{MempoolEntryInfo, Txid};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub struct Fetched {
     /// Passthrough fields from the batched RPC fetch: live txid set,
@@ -18,7 +18,8 @@ pub struct Fetched {
     /// in the pool). The Rebuilder only needs the txid sequence to
     /// project Core's exact selection.
     pub block_template_txids: Vec<Txid>,
-    /// False when the template includes bodies absent from the raw listing.
-    /// Such a union is useful for projection, not for address balances/pages.
-    pub address_view_complete: bool,
+    /// Template txids absent from the raw listing. Non-empty, the union is
+    /// useful for projection, not for address balances/pages; such stale
+    /// transactions never take an outpoint from a listed spender.
+    pub template_only: FxHashSet<Txid>,
 }

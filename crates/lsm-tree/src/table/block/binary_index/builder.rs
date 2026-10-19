@@ -8,12 +8,14 @@ use byteorder::{LittleEndian, WriteBytesExt};
 
 use crate::Result;
 
+/// Collects restart offsets into a reused buffer.
 #[derive(Debug)]
-pub struct Builder(Vec<u32>);
+pub struct Builder<'a>(&'a mut Vec<u32>);
 
-impl Builder {
-    pub fn new(capacity: usize) -> Self {
-        Self(Vec::with_capacity(capacity))
+impl<'a> Builder<'a> {
+    pub fn new(offsets: &'a mut Vec<u32>) -> Self {
+        offsets.clear();
+        Self(offsets)
     }
 
     pub fn insert(&mut self, pos: u32) {
@@ -39,7 +41,7 @@ impl Builder {
 
         if step_size == 2 {
             // Write u16 index
-            for &offset in &self.0 {
+            for &offset in self.0.iter() {
                 #[expect(
                     clippy::cast_possible_truncation,
                     reason = "above we check that the last (highest) pointer still fits into u16"
@@ -49,7 +51,7 @@ impl Builder {
             }
         } else {
             // Write u32 index
-            for &offset in &self.0 {
+            for &offset in self.0.iter() {
                 writer.write_u32::<LittleEndian>(offset)?;
             }
         }

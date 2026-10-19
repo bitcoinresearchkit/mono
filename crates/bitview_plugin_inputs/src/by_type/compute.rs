@@ -1,5 +1,6 @@
 use std::iter;
 
+use bitview_cohort::OutputTypeId;
 use bitview_plugin_indexer::Indexer;
 use bitview_vecs::{CoinbasePolicy, compute_type_counts};
 use brk_error::Result;
@@ -15,14 +16,14 @@ impl Vecs {
         let txid_len = txs.txid.len();
         let entries_len = types.len();
         compute_type_counts(
-            self.input_count_stored
+            self.count_stored
                 .iter_typed_mut()
                 .zip(self.tx_count_stored.iter_mut())
-                .map(|((kind, entries), txs)| (kind, entries, txs)),
+                .map(|((kind, entries), txs)| (kind.index(), entries, txs)),
             &txs.first_tx_index,
             txid_len,
             entries_len,
-            indexer.safe_lengths().height,
+            indexer.compute_start().height,
             types.version()
                 + txs.first_tx_index.version()
                 + txs.first_txin_index.version()
@@ -34,8 +35,10 @@ impl Vecs {
             },
             |first_entry| {
                 let mut types = types.range_cursor_at(first_entry, entries_len);
-                move |count, target: Option<&mut [u32; _]>| match target {
-                    Some(per_tx) => types.for_each(count, |kind| per_tx[kind as usize] += 1),
+                move |count, target: Option<&mut [u32; OutputTypeId::COUNT]>| match target {
+                    Some(per_tx) => types.for_each(count, |kind| {
+                        per_tx[OutputTypeId::from_output_type(kind).index()] += 1
+                    }),
                     None => types.advance(count),
                 }
             },

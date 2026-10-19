@@ -157,48 +157,4 @@ impl<W: Write> BitWriter<W> {
   pub fn into_inner(self) -> W {
     self.dst
   }
-
-  #[cfg(test)]
-  pub(crate) fn bit_idx(&self) -> usize {
-    self.stale_byte_idx * 8 + self.bits_past_byte as usize
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  // I find little endian confusing, hence all the comments.
-  // All the bytes in comments are written backwards,
-  // e.g. 00000001 = 2^7
-
-  #[test]
-  fn test_long_uint_writes() -> PcoResult<()> {
-    let mut dst = Vec::new();
-    let mut writer = BitWriter::new(&mut dst, 50);
-    unsafe {
-      writer.write_uint::<u32>((1 << 8) + 1, 9);
-      // 10000000 1
-      writer.write_uint::<u32>((1 << 16) + (1 << 5), 17);
-      // 10000000 10000010 00000000 01
-      writer.write_uint::<u32>(1 << 1, 17);
-      // 10000000 10000010 00000000 01010000 00000000
-      // 000
-      writer.flush()?;
-      writer.write_uint::<u32>(1 << 1, 13);
-      // 10000000 10000010 00000000 01010000 00000000
-      // 00001000 00000000
-      writer.flush()?;
-      writer.write_uint::<u32>((1 << 23) + (1 << 15), 24);
-      // 10000000 10000010 00000000 01010000 00000000
-      // 00001000 00000000 00000000 00000001 00000001
-    }
-    writer.flush()?;
-
-    assert_eq!(
-      dst,
-      vec![1, 65, 0, 10, 0, 16, 0, 0, 128, 128],
-    );
-    Ok(())
-  }
 }

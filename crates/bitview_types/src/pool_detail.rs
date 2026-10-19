@@ -5,17 +5,13 @@ use brk_types::Sats;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Detailed pool information with statistics across time periods
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PoolDetail {
-    /// Pool information
     pub pool: PoolDetailInfo,
 
-    /// Block counts for different time periods
     #[serde(rename = "blockCount")]
     pub block_count: PoolBlockCounts,
 
-    /// Pool's share of total blocks for different time periods
     #[serde(rename = "blockShare")]
     pub block_share: PoolBlockShares,
 
@@ -28,38 +24,36 @@ pub struct PoolDetail {
     #[serde(rename = "reportedHashrate")]
     pub reported_hashrate: Option<u128>,
 
-    /// Total reward earned by this pool (sats, all time; None for minor pools)
+    /// Total reward earned by this pool: coinbase output value of every block it mined (sats)
     #[serde(rename = "totalReward")]
-    pub total_reward: Option<Sats>,
+    pub total_reward: Sats,
 }
 
-/// Pool information for detail view
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PoolDetailInfo {
-    /// Pool identifier
+    /// One-based pool ID, matching mempool.space's `id`
     #[schemars(example = 111)]
-    id: u8,
+    pub id: u8,
 
-    /// Pool name
     #[schemars(example = &"Foundry USA")]
-    name: Cow<'static, str>,
+    pub name: Cow<'static, str>,
 
     /// Pool website URL
     #[schemars(example = &"https://foundrydigital.com/")]
-    link: Cow<'static, str>,
+    pub link: Cow<'static, str>,
 
     /// Known payout addresses
-    addresses: Vec<Cow<'static, str>>,
+    pub addresses: Vec<Cow<'static, str>>,
 
-    /// Coinbase tag patterns (regexes)
-    regexes: Vec<Cow<'static, str>>,
+    /// Coinbase tags, matched as case-insensitive substrings
+    pub regexes: Vec<Cow<'static, str>>,
 
     /// URL-friendly pool identifier
-    slug: PoolSlug,
+    pub slug: PoolSlug,
 
-    /// Unique pool identifier
+    /// Zero-based pool ID, matching mempool.space's `unique_id`
     #[schemars(example = 44)]
-    unique_id: u8,
+    pub unique_id: u8,
 }
 
 impl From<&'static Pool> for PoolDetailInfo {
@@ -70,7 +64,7 @@ impl From<&'static Pool> for PoolDetailInfo {
             link: Cow::Borrowed(pool.link()),
             addresses: pool.addrs().iter().map(|&s| Cow::Borrowed(s)).collect(),
             regexes: pool.tags().iter().map(|&s| Cow::Borrowed(s)).collect(),
-            slug: pool.slug(),
+            slug: pool.slug,
             unique_id: pool.mempool_unique_id(),
         }
     }

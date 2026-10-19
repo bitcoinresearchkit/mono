@@ -1,111 +1,89 @@
-use bitview_primitives::{DecodedAddrState, TypeIndex};
-use bitview_types::{AddrChainStats, AddrStats};
-use brk_types::{Addr, AddrBytes, Dollars, OutputType, Sats};
-use vecdb::ReadableVec;
+use bitview_primitives::{FundedAddressData, TypeIndex};
+use bitview_types::{AddressChainStats, AddressStats};
+use brk_types::{Address, Dollars, OutputType, Sats};
 
 use super::parse_addr;
-use crate::{Error, OptionData, Query, Result};
+use crate::r#impl::mempool::anchored;
+use crate::{Error, Query, Result};
 
 impl Query {
-    pub fn addr(&self, addr: Addr) -> Result<AddrStats> {
+    pub fn addr(&self, addr: Address) -> Result<AddressStats> {
         let bytes = parse_addr(&addr)?;
-        let _guard = self.read_publication()?;
-        let (output_type, type_index) = self.resolve_addr_bytes(&bytes)?;
-        self.addr_stats(addr, bytes, output_type, type_index)
-    }
-
-    fn addr_stats(
-        &self,
-        addr: Addr,
-        bytes: AddrBytes,
-        output_type: OutputType,
-        type_index: TypeIndex,
-    ) -> Result<AddrStats> {
-        let plugins = self.plugins();
-        let state = plugins
-            .distribution_addresses
-            .addr_state
-            .get_once(output_type, type_index)?;
-
-        let (addr_data, is_funded) = match state.decode() {
-            DecodedAddrState::Funded(index) => {
-                let data = plugins
-                    .distribution_addresses
-                    .addr_state
-                    .funded
-                    .collect_one(index)
-                    .data()?;
-                (data, true)
-            }
-            DecodedAddrState::ExtendedEmpty(index) => {
-                let data = plugins
-                    .distribution_addresses
-                    .addr_state
-                    .extended_empty
-                    .collect_one(index)
-                    .data()?
-                    .into();
-                (data, false)
-            }
-            DecodedAddrState::Empty(data) => (data.into(), false),
-        };
-
-        let mempool_stats = self
-            .mempool()
-            .map(|m| m.addr_stats(&bytes, &self.tip_blockhash()))
+        // The mempool first (it never leads the chain), then the address state, published with the
+        // lengths under this lock, then the pin: the state and the pin are of one publication, and
+        // a mempool at another tip adds nothing (`anchored`).
+        let mempool = self.mempool();
+        let state = self
+            .plugins()
+            .addresses
+            .read_state()
+            .ok_or(Error::StateUpdating)?;
+        let pin = self.pin_safe_lengths()?;
+        // Only a rollback, a failed write or a long catch-up leaves it at another length.
+        if state.written() != Some(pin.lengths().height) {
+            return Err(Error::StateUpdating);
+        }
+        let chain_stats = self
+            .find_addr_bytes(&bytes, &pin)?
+            .map(|(output_type, type_index)| -> Result<_> {
+                let (addr_data, is_funded) = state.addr_data(output_type, type_index)?;
+                Ok(addr_chain_stats(type_index, &addr_data, is_funded))
+            })
+            .transpose()?;
+        drop(state);
+        let mempool_stats = mempool
+            .map(|m| anchored(m.addr_stats(&bytes, &pin.tip())))
             .transpose()?
             .unwrap_or_default();
-        let (chain_balance, balance) = address_balances(
-            addr_data.received,
-            addr_data.sent,
+        // Never confirmed: zeroed stats, as Esplora answers.
+        let chain_stats = chain_stats.unwrap_or_default();
+        let balance = pending_balance(
+            chain_stats.balance,
             mempool_stats.funded_txo_sum,
             mempool_stats.spent_txo_sum,
         )?;
-        let realized_price = if is_funded {
-            addr_data
-                .realized_cap_raw()
-                .realized_price(chain_balance)
-                .to_dollars()
-        } else {
-            Dollars::default()
-        };
-
-        Ok(AddrStats {
-            addr,
-            addr_type: output_type,
-            chain_stats: AddrChainStats {
-                balance: chain_balance,
-                type_index,
-                funded_txo_count: addr_data.funded_txo_count,
-                funded_txo_sum: addr_data.received,
-                spent_txo_count: addr_data.spent_txo_count,
-                spent_txo_sum: addr_data.sent,
-                tx_count: addr_data.tx_count,
-                realized_price,
-            },
+        Ok(AddressStats {
+            address: addr,
+            address_type: OutputType::from(&bytes),
+            chain_stats,
             mempool_stats,
             balance,
         })
     }
 }
 
-fn address_balances(
-    received: Sats,
-    sent: Sats,
-    pending_received: Sats,
-    pending_sent: Sats,
-) -> Result<(Sats, Sats)> {
-    let chain = u64::from(received)
-        .checked_sub(sent.into())
-        .ok_or(Error::Internal(
-            "Address sent amount exceeds confirmed receipts",
-        ))?;
-    // The live mempool and indexer publish independently. A just-confirmed
-    // spend can still be present in the mempool view; never underflow or
-    // fabricate a zero balance when those views cannot be reconciled.
-    let combined = chain
+fn addr_chain_stats(
+    type_index: TypeIndex,
+    addr_data: &FundedAddressData,
+    is_funded: bool,
+) -> AddressChainStats {
+    let balance = addr_data.balance();
+    let realized_price = if is_funded && !balance.is_zero() {
+        addr_data
+            .realized_cap_raw()
+            .realized_price(balance)
+            .to_dollars()
+    } else {
+        Dollars::default()
+    };
+
+    AddressChainStats {
+        balance,
+        type_index: Some(type_index),
+        funded_txo_count: addr_data.funded_txo_count,
+        funded_txo_sum: addr_data.received,
+        spent_txo_count: addr_data.spent_txo_count,
+        spent_txo_sum: addr_data.sent,
+        tx_count: addr_data.tx_count,
+        realized_price,
+    }
+}
+
+fn pending_balance(chain: Sats, pending_received: Sats, pending_sent: Sats) -> Result<Sats> {
+    // Mempool stats are anchored to the chain tip; reject inconsistent totals.
+    u64::from(chain)
         .checked_add(pending_received.into())
         .and_then(|value| value.checked_sub(pending_sent.into()))
-        .ok_or(Error::StateUpdating)?;
-    Ok((chain.into(), combined.into()))
+        .map(Sats::from)
+        .ok_or(Error::StateUpdating)
 }

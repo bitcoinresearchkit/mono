@@ -1,30 +1,48 @@
 use bitview_cohort::{AgeAggregateId, AgeRange, AgeRangeId, CohortContext};
-use bitview_primitives::{CentsCompact, Date, Day1};
-use bitview_types::{Cohort, UrpdAggregation, UrpdWeight};
+use bitview_plugin_indexer::SafeLengths;
+use bitview_primitives::{Date, Day1};
+use bitview_types::{Cohort, Urpd, UrpdAggregation, UrpdWeight};
 use bitview_urpd::OriginUrpd;
-use brk_types::{Cents, Height, Sats};
+use brk_types::{BlockHash, Height, Sats, Version};
 use vecdb::{AnyVec, ReadableVec};
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
-mod resolved;
+mod entries;
 
-/// Owned inputs captured from one published block. No later file or plugin reads.
+use entries::UrpdHeader;
+
+/// A URPD request resolved under one pin to the block it answers for: its identity, without
+/// reconstructing the distribution, which [`Query::urpd_resolved`] does under the same pin.
 pub struct ResolvedUrpd {
-    pub cohort: Cohort,
-    pub height: Height,
-    pub date: Date,
-    pub weight: UrpdWeight,
-    pub aggregation: UrpdAggregation,
-    pub close: Cents,
-    entries: Box<[(CentsCompact, Sats)]>,
+    pin: SafeLengths,
+    cohort: Cohort,
+    ages: &'static [AgeRangeId],
+    height: Height,
+    hash: BlockHash,
+    aggregation: UrpdAggregation,
+    weight: UrpdWeight,
+    /// The summed versions of the sources the distribution reads.
+    version: Version,
+}
+
+impl ResolvedUrpd {
+    /// Identifies the response: the request, the block (its hash commits to the chain the
+    /// distribution reconstructs) and the versions of the sources it reads.
+    pub fn representation(&self) -> String {
+        format!(
+            "{}-{}-{}-{}-{}",
+            self.version, self.cohort, self.aggregation, self.weight, self.hash
+        )
+    }
 }
 
 impl Query {
     pub fn urpd_cohorts(&self) -> Result<Vec<Cohort>> {
-        let _guard = self.read_publication()?;
-        let view = self.plugins().utxo_history.view()?;
-        if self.safe_lengths().height.is_zero() || view.reader()?.is_empty() {
+        let pin = self.pin_safe_lengths()?;
+        let view = self.plugins().utxo_set.view()?;
+        let published = usize::from(pin.lengths().height);
+        if published == 0 || view.reader(published)?.is_empty() {
             return Ok(Vec::new());
         }
         let mut cohorts: Vec<_> = AgeRangeId::ALL
@@ -42,18 +60,20 @@ impl Query {
 
     /// Calendar aliases are derived from block coverage, never snapshot filenames.
     pub fn urpd_dates_with_weight(&self, cohort: &Cohort, weight: UrpdWeight) -> Result<Vec<Date>> {
-        let _guard = self.read_publication()?;
+        let pin = self.pin_safe_lengths()?;
         let ages = Self::urpd_ages(cohort)?;
-        let view = self.plugins().utxo_history.view()?;
-        let reader = view.reader()?;
-        let end = reader.len().min(usize::from(self.safe_lengths().height));
+        let view = self.plugins().utxo_set.view()?;
+        let reader = view.reader(usize::from(pin.lengths().height))?;
+        let end = reader.len();
         let mut dates = Vec::new();
         for index in 0..self.plugins().mappings.day1.date.len() {
-            let date = Date::from(Day1::from(index));
-            if let Ok(height) = self.urpd_date_height(date, end)
-                && self.urpd_weights(ages, height, weight).is_ok()
+            let day = Day1::from(index);
+            if let Ok(heights) = self.day_heights(day, end, &pin)
+                && self
+                    .urpd_weights(ages, Height::from(heights.end - 1), weight)
+                    .is_ok()
             {
-                dates.push(date);
+                dates.push(Date::from(day));
             }
         }
         Ok(dates)
@@ -66,9 +86,16 @@ impl Query {
         aggregation: UrpdAggregation,
         weight: UrpdWeight,
     ) -> Result<ResolvedUrpd> {
-        let _guard = self.read_publication()?;
-        let height = self.urpd_date_height(date, usize::from(self.safe_lengths().height))?;
-        self.resolve_urpd_inner(cohort, height, aggregation, weight)
+        let pin = self.pin_safe_lengths()?;
+        let end = usize::from(pin.lengths().height);
+        let heights = self.day_heights(Day1::try_from(date)?, end, &pin)?;
+        self.resolve_urpd_inner(
+            cohort,
+            Height::from(heights.end - 1),
+            aggregation,
+            weight,
+            pin,
+        )
     }
 
     pub fn resolve_urpd_height(
@@ -78,8 +105,8 @@ impl Query {
         aggregation: UrpdAggregation,
         weight: UrpdWeight,
     ) -> Result<ResolvedUrpd> {
-        let _guard = self.read_publication()?;
-        self.resolve_urpd_inner(cohort, height, aggregation, weight)
+        let pin = self.pin_safe_lengths()?;
+        self.resolve_urpd_inner(cohort, height, aggregation, weight, pin)
     }
 
     pub fn resolve_urpd_latest(
@@ -88,27 +115,12 @@ impl Query {
         aggregation: UrpdAggregation,
         weight: UrpdWeight,
     ) -> Result<ResolvedUrpd> {
-        let _guard = self.read_publication()?;
-        let height = self
-            .safe_lengths()
+        let pin = self.pin_safe_lengths()?;
+        let height = pin
+            .lengths()
             .last_height()
-            .ok_or_else(|| Error::NotFound("No published UTXO history".into()))?;
-        self.resolve_urpd_inner(cohort, height, aggregation, weight)
-    }
-
-    fn urpd_date_height(&self, date: Date, end: usize) -> Result<Height> {
-        let day = Day1::try_from(date)?;
-        let starts = &self.plugins().mappings.day1.first_height;
-        let start = starts.collect_one(day).map(usize::from).unwrap_or(end);
-        let next = starts
-            .collect_one_at(usize::from(day) + 1)
-            .map(usize::from)
-            .unwrap_or(end)
-            .min(end);
-        if start >= next {
-            return Err(Error::NotFound(format!("No published block on {date}")));
-        }
-        Ok(Height::from(next - 1))
+            .ok_or_else(|| Error::NotFound("No published UTXO set".into()))?;
+        self.resolve_urpd_inner(cohort, height, aggregation, weight, pin)
     }
 
     fn urpd_ages(cohort: &Cohort) -> Result<&'static [AgeRangeId]> {
@@ -132,7 +144,10 @@ impl Query {
             }
             let plugins = self.plugins();
             let supply = age
-                .select(&plugins.distribution_age.cohorts.supply.total.cohorts.age)
+                .select(&plugins.age.ranges)
+                .supply
+                .total
+                .value
                 .sats
                 .height
                 .collect_one(height)
@@ -152,22 +167,13 @@ impl Query {
         height: Height,
         aggregation: UrpdAggregation,
         weight: UrpdWeight,
+        pin: ReadPin,
     ) -> Result<ResolvedUrpd> {
         let ages = Self::urpd_ages(cohort)?;
-        let end = usize::from(height) + 1;
-        if end > usize::from(self.safe_lengths().height) {
+        check_bound(&pin, height, pin.lengths().height)?;
+        if height >= pin.lengths().height {
             return Err(Error::NotFound("Block is not published".into()));
         }
-        let plugins = self.plugins();
-        let weights = self.urpd_weights(ages, height, weight)?;
-        let view = plugins.utxo_history.view()?;
-        let reader = view.reader()?;
-        if end > reader.len() {
-            return Err(Error::NotFound(
-                "Block is outside published UTXO history".into(),
-            ));
-        }
-        let state = reader.state_at(end)?;
         let hash = self
             .indexer()
             .vecs()
@@ -175,8 +181,80 @@ impl Query {
             .blockhash
             .collect_one(height)
             .data()?;
+        Ok(ResolvedUrpd {
+            version: self.urpd_version(ages, weight),
+            pin: pin.into_inner(),
+            cohort: cohort.clone(),
+            ages,
+            height,
+            hash,
+            aggregation,
+            weight,
+        })
+    }
+
+    /// The summed versions of the sources a distribution reads: prices, timestamps and the UTXO
+    /// set history, and for a weighted one the cohort's supplies and weights.
+    fn urpd_version(&self, ages: &[AgeRangeId], weight: UrpdWeight) -> Version {
+        let plugins = self.plugins();
+        let base = plugins.price.spot.cents.height.version()
+            + plugins.mappings.timestamp.monotonic.version()
+            + plugins.utxo_set.supply.version();
+        let weights = |age: &AgeRangeId| match weight {
+            UrpdWeight::Raw => Version::ZERO,
+            UrpdWeight::Cointime => age
+                .select(&plugins.cointime.age_ranges.urpd_weight_sources())
+                .version(),
+            UrpdWeight::Coinflow => age
+                .select(&plugins.coinflow.age_ranges.urpd_weight_sources())
+                .version(),
+        };
+        if weight == UrpdWeight::Raw {
+            return base;
+        }
+        base + ages
+            .iter()
+            .map(|age| {
+                let supply = &age
+                    .select(&plugins.age.ranges)
+                    .supply
+                    .total
+                    .value
+                    .sats
+                    .height;
+                supply.version() + weights(age)
+            })
+            .sum::<Version>()
+    }
+
+    /// Reconstructs the distribution `resolved` selected, under its pin.
+    pub fn urpd_resolved(&self, resolved: ResolvedUrpd) -> Result<Urpd> {
+        let ResolvedUrpd {
+            pin,
+            cohort,
+            ages,
+            height,
+            hash,
+            aggregation,
+            weight,
+            ..
+        } = resolved;
+        let pin = self.read_pin(pin);
+        let end = usize::from(height) + 1;
+        let plugins = self.plugins();
+        let weights = self.urpd_weights(ages, height, weight)?;
+        let view = plugins.utxo_set.view()?;
+        let reader = view.reader(usize::from(pin.lengths().height))?;
+        if end > reader.len() {
+            return Err(Error::NotFound(
+                "Block is outside the published UTXO set".into(),
+            ));
+        }
+        let state = reader.state_at(end)?;
         if state.hash() != *hash {
-            return Err(Error::StateUpdating);
+            return Err(Error::Internal(
+                "UTXO set history does not match the published chain",
+            ));
         }
         let prices = plugins.price.spot.cents.height.collect_range_at(0, end);
         let timestamps = plugins
@@ -185,28 +263,21 @@ impl Query {
             .monotonic
             .collect_range_at(0, end);
         let source = OriginUrpd::new(&state, &prices, &timestamps)?;
-        let entries = if weight == UrpdWeight::Raw {
-            source
-                .project(&[], [ages])
-                .map(|b| (b.price, b.raw[0]))
-                .collect()
-        } else {
-            source
-                .project(&[Some(&weights)], [ages])
-                .filter_map(|b| {
-                    let sats = b.weighted[0][0];
-                    (sats != Sats::ZERO).then_some((b.price, sats))
-                })
-                .collect()
-        };
-        Ok(ResolvedUrpd {
-            cohort: cohort.clone(),
+        let header = UrpdHeader {
+            cohort,
             height,
             date: Date::from(timestamps[end - 1]),
             weight,
             aggregation,
             close: prices[end - 1],
-            entries,
+        };
+        Ok(if weight == UrpdWeight::Raw {
+            header.build(source.project(&[], [ages]).map(|b| (b.price, b.raw[0])))
+        } else {
+            header.build(source.project(&[Some(&weights)], [ages]).filter_map(|b| {
+                let sats = b.weighted[0][0];
+                (sats != Sats::ZERO).then_some((b.price, sats))
+            }))
         })
     }
 }

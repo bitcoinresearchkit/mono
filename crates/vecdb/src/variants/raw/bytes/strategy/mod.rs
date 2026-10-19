@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
 
-pub mod raw;
-pub mod value;
+use crate::BytesVecValue;
 
-/// Serialization strategy using the Bytes trait with portable byte order.
-///
-/// Implements little-endian serialization for cross-platform compatibility.
+pub mod raw;
+
+/// Serialization through [`Bytes`](crate::Bytes).
 #[derive(Debug, Clone, Copy)]
 pub struct BytesStrategy<T>(PhantomData<T>);
+
+impl_bytes_value_strategy!(BytesStrategy, BytesVecValue);

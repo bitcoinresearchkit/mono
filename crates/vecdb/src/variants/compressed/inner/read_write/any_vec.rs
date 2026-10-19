@@ -1,4 +1,4 @@
-use crate::{AnyVec, VecIndex, VecValue, Version, cache::CachePolicy, short_type_name};
+use crate::{AnyVec, VecIndex, VecValue, Version, cache::CachePolicy};
 
 use super::{super::CompressionStrategy, ReadWriteCompressedVec};
 
@@ -15,7 +15,13 @@ where
 
     #[inline]
     fn name(&self) -> &str {
-        self.base.name()
+        &self.base.name
+    }
+
+    /// Append-only: rows below its length never change.
+    #[inline]
+    fn is_mutable(&self) -> bool {
+        false
     }
 
     #[inline]
@@ -23,23 +29,10 @@ where
         self.base.len()
     }
 
-    #[inline]
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
-    }
-
-    #[inline]
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<T>()
-    }
-
-    #[inline]
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<T>()
-    }
+    crate::any_vec_type_methods!(I, T);
 
     #[inline]
     fn region_names(&self) -> Vec<String> {
-        vec![self.base.index_to_name(), self.pages_region_name()]
+        vec![self.base.region_name(), self.pages_region_name()]
     }
 }

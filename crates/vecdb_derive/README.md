@@ -14,7 +14,7 @@ cargo add vecdb --features derive
 `#[derive(Bytes)]` delegates VecDB's portable fixed-width serialization to the
 inner field:
 
-```rust
+```rust,ignore
 use vecdb::Bytes;
 
 #[derive(Debug, Clone, Copy, PartialEq, Bytes)]
@@ -35,15 +35,15 @@ Enable both `derive` and `pco` for numeric newtypes:
 cargo add vecdb --features derive,pco
 ```
 
-```rust
+```rust,ignore
 use vecdb::Pco;
 
 #[derive(Debug, Clone, Copy, PartialEq, Pco)]
 struct Price(f64);
 ```
 
-`#[derive(Pco)]` generates `Bytes`, `Pco`, and the transparent-layout marker
-used by `PcoVec`. The inner field must implement both `Bytes` and `Pco`; VecDB
+`#[derive(Pco)]` generates `Bytes` and `Pco`, including the `IS_TRANSPARENT`
+flag `PcoVec` reads. The inner field must implement both `Bytes` and `Pco`; VecDB
 implements those traits for `u8` through `u64`, `i8` through `i64`, `f32`, and
 `f64`.
 
@@ -51,6 +51,7 @@ implements those traits for `u8` through `u64`, `i8` through `i64`, `f32`, and
 
 Both derives accept only tuple structs with exactly one field. Generic wrappers
 are supported, and the generated implementation adds the required trait bounds
-to the inner field. The wrapper must remain layout-compatible with its inner
-type when used by pco; VecDB enforces the size and alignment assumptions at
-compile time.
+to the inner field. The wrapper must have its inner type's size (no
+`#[repr(align)]` that widens it): a stored wrapper that does not fails to
+compile. Native-layout copies and pco's transparent path additionally require
+matching alignment and fall back to per-value conversion otherwise.

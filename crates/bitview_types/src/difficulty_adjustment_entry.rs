@@ -1,22 +1,20 @@
 use brk_types::{Height, Timestamp};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize, Serializer, ser::SerializeTuple};
+use serde::{Deserialize, Serialize, Serializer};
 
-/// A single difficulty adjustment entry.
-/// Serializes as array: [timestamp, height, difficulty, change_percent]
+/// Serializes as an array: [timestamp, height, difficulty, adjustment ratio].
 #[derive(Debug, Deserialize, JsonSchema)]
 #[schemars(with = "[f64; 4]")]
 pub struct DifficultyAdjustmentEntry {
     /// Unix timestamp of the adjustment
     pub timestamp: Timestamp,
-    /// Block height of the adjustment
     pub height: Height,
-    /// Difficulty value
     #[schemars(example = 110_451_832_649_830.94)]
     pub difficulty: f64,
     /// Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
+    #[serde(rename = "change_percent")]
     #[schemars(example = 1.068)]
-    pub change_percent: f64,
+    pub adjustment: f64,
 }
 
 impl Serialize for DifficultyAdjustmentEntry {
@@ -24,11 +22,12 @@ impl Serialize for DifficultyAdjustmentEntry {
     where
         S: Serializer,
     {
-        let mut tup = serializer.serialize_tuple(4)?;
-        tup.serialize_element(&self.timestamp)?;
-        tup.serialize_element(&self.height)?;
-        tup.serialize_element(&self.difficulty)?;
-        tup.serialize_element(&self.change_percent)?;
-        tup.end()
+        (
+            self.timestamp,
+            self.height,
+            self.difficulty,
+            self.adjustment,
+        )
+            .serialize(serializer)
     }
 }

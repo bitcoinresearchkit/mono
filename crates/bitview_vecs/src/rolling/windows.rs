@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::{ComputedVecValue, NumericValue};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -7,10 +6,9 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::{IndexSources, PerBlock};
+use crate::{IndexSources, PerBlock, shapes::Windows};
 
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
 pub struct RollingWindows<T, M: StorageMode = Rw>(pub Windows<PerBlock<T, M>>)
 where
     T: ComputedVecValue + PartialOrd + JsonSchema;

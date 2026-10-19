@@ -6,7 +6,7 @@ use serde::{Deserialize, Deserializer, Serialize, de::Error};
 /// URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
 ///
 /// Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
-/// supported age filters and published UTXO history.
+/// supported age filters and the published UTXO set.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, JsonSchema)]
 #[schemars(extend("pattern" = "^[a-z0-9_]+$"))]
 pub struct Cohort(String);

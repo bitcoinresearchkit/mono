@@ -1,21 +1,14 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf};
 
 use log::debug;
 
-use crate::{AnyStoredVec, Error, Result, Stamp, VecIndex, VecValue, Version, unlikely};
+use crate::{AnyStoredVec, Bytes, Error, Result, Stamp, VecIndex, VecValue, Version};
 
-/// Maximum in-memory cache size before forcing a flush (1 GiB).
-/// Prevents unbounded memory growth when pushing many values without flushing.
+/// Pushed bytes per write batch (1 GiB): `compute_to` batches by it and
+/// [`WritableVec::batch_limit_reached`] reports reaching it; nothing writes on its own.
 pub const MAX_CACHE_SIZE: usize = 1024 * 1024 * 1024;
 
 /// Typed interface for stored vectors (push, truncate, rollback).
-///
-/// Provides the core write operations for all stored vec types.
-/// For reading, use [`ReadableVec`] (`collect_range`, `fold_range`, etc.).
-/// Raw vecs (`BytesVec`, `ZeroCopyVec`) additionally provide
-/// `VecReader` for O(1) random access.
-///
-/// [`ReadableVec`]: crate::ReadableVec
 pub trait WritableVec<I, T>: AnyStoredVec
 where
     I: VecIndex,
@@ -28,13 +21,10 @@ where
     /// Returns the current pushed (uncommitted) values.
     fn pushed(&self) -> &[T];
 
-    /// Truncates the vector to the given usize index if the current length exceeds it.
     fn truncate_if_needed_at(&mut self, index: usize) -> Result<()>;
 
-    /// Resets the vector state.
     fn reset(&mut self) -> Result<()>;
 
-    /// Resets uncommitted changes.
     fn reset_unsaved(&mut self);
 
     /// Returns true if there are uncommitted changes.
@@ -43,12 +33,14 @@ where
     /// Writes an update checkpoint, saving changes before overwriting values.
     /// Compute loops should use `stamped_write_maybe_with_changes(stamp, false)`
     /// for periodic writes and save rollback history only at the final update.
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()>;
+    #[inline]
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+        self.any_stamped_write_maybe_with_changes(stamp, true)
+    }
 
     /// Rolls back the most recent change set.
     fn rollback(&mut self) -> Result<()>;
 
-    /// Returns available rollback change files.
     #[doc(hidden)]
     fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>>;
 
@@ -56,18 +48,50 @@ where
     #[doc(hidden)]
     fn save_rollback_state(&mut self);
 
-    /// Rolls back changes to before the given stamp.
+    /// The stamp [`Self::rollback_before`] lands at for `stamp`, without rolling back; `None`
+    /// when the saved changes do not reach below `stamp`.
+    fn rollback_landing(&self, stamp: Stamp) -> Result<Option<Stamp>> {
+        let mut current = self.stamp();
+        if current < stamp {
+            return Ok(Some(current));
+        }
+        let files = self.find_rollback_files()?;
+        while current >= stamp {
+            let Some(path) = files.get(&current) else {
+                return Ok(None);
+            };
+            // A change file opens with the stamp its rollback restores.
+            let mut previous = [0; size_of::<u64>()];
+            File::open(path)?.read_exact(&mut previous)?;
+            let previous = Stamp::from_bytes(&previous)?;
+            // A link that does not go down (a record saved at its own stamp) ends the chain.
+            if previous >= current {
+                return Ok(None);
+            }
+            current = previous;
+        }
+        Ok(Some(current))
+    }
+
+    /// Rolls back changes to before the given stamp and returns the stamp it lands at. The next
+    /// write persists the restored state; until then read-only clones see the reduced length over
+    /// the written bytes (see [`StoredVec::read_only_clone`](crate::StoredVec::read_only_clone)).
     fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp> {
         self.header().check_writable()?;
         let files = self.find_rollback_files()?;
 
         // Walk change files newest-first. Each rollback decrements the vec
-        // stamp to the previous file's stamp; if they ever disagree, the
-        // change-file chain is broken (missing or corrupt).
+        // stamp to the previous file's stamp. Files above it are left from an
+        // earlier rollback (kept until the next write replaces or removes them);
+        // a missing one below it means the chain is broken.
+        let mut undone = false;
         for (&file_stamp, _) in files.range(..=self.stamp()).rev() {
             let current = self.stamp();
             if current < stamp {
                 break;
+            }
+            if file_stamp > current {
+                continue;
             }
             if file_stamp != current {
                 return Err(Error::StampMismatch {
@@ -76,80 +100,33 @@ where
                 });
             }
             self.rollback()?;
+            undone = true;
         }
 
-        self.save_rollback_state();
+        // A no-op rollback keeps the existing baseline: saving here would snapshot unsaved mutations.
+        if undone {
+            self.save_rollback_state();
+        }
         Ok(self.stamp())
     }
 
-    /// Number of pushed (uncommitted) values in the memory buffer.
     #[inline]
     fn pushed_len(&self) -> usize {
         self.pushed().len()
     }
 
-    /// Returns true if there are no pushed (uncommitted) values.
-    #[inline]
-    fn is_pushed_empty(&self) -> bool {
-        self.pushed_len() == 0
-    }
-
-    /// Returns true if the typed index is within bounds.
-    #[inline]
-    fn has(&self, index: I) -> bool {
-        self.has_at(index.to_usize())
-    }
-
-    /// Returns true if the usize index is within bounds.
-    #[inline]
-    fn has_at(&self, index: usize) -> bool {
-        index < self.len()
-    }
-
-    /// Pushes a value at the given index, erroring if index != current length.
-    /// Use this when you expect to always append in order.
-    #[inline]
-    fn checked_push(&mut self, index: I, value: T) -> Result<()> {
-        self.checked_push_at(index.to_usize(), value)
-    }
-
-    /// Pushes a value at the given usize index, erroring if index != current length.
-    /// Use this when you expect to always append in order.
-    #[inline]
-    fn checked_push_at(&mut self, index: usize, value: T) -> Result<()> {
-        let len = self.len();
-
-        if unlikely(index != len) {
-            return Err(Error::UnexpectedIndex {
-                expected: len,
-                got: index,
-                name: self.name().to_string(),
-            });
-        }
-
-        self.push(value);
-        Ok(())
-    }
-
     /// Pushes a value and checks its expected index in debug builds.
     #[inline]
-    fn debug_checked_push(&mut self, _index: I, value: T) {
-        #[cfg(debug_assertions)]
-        {
-            let index = _index.to_usize();
-            let len = self.len();
-            assert_eq!(
-                index,
-                len,
-                "unexpected index for {}: expected {len}, got {index}",
-                self.name(),
-            );
-        }
-
+    fn debug_checked_push(&mut self, index: I, value: T) {
+        debug_assert_eq!(
+            index.to_usize(),
+            self.len(),
+            "unexpected index for {}",
+            self.name(),
+        );
         self.push(value);
     }
 
-    /// Truncates the vector to the given index if the current length exceeds it.
     fn truncate_if_needed(&mut self, index: I) -> Result<()> {
         self.truncate_if_needed_at(index.to_usize())
     }
@@ -161,42 +138,18 @@ where
         self.truncate_if_needed(index)
     }
 
-    /// Clears all values from the vector.
     #[inline]
     fn clear(&mut self) -> Result<()> {
         self.truncate_if_needed_at(0)
     }
 
-    /// Returns true if the pushed cache has reached the batch limit (~1GiB).
-    ///
-    /// When this limit is reached, the caller should flush to disk before continuing.
-    /// This prevents excessive memory usage during bulk operations.
+    /// Whether the pushed values fill a 1 GiB write batch: write before pushing more.
     #[inline]
     fn batch_limit_reached(&self) -> bool {
         self.pushed_len() * Self::SIZE_OF_T >= MAX_CACHE_SIZE
     }
 
-    /// Extends the vector to `target_len`, filling with `value`.
-    /// Batches writes in ~1GB chunks to avoid memory explosion.
-    fn fill_to(&mut self, target_len: usize, value: T) -> Result<()>
-    where
-        T: Copy,
-    {
-        let batch_count = MAX_CACHE_SIZE / Self::SIZE_OF_T.max(1);
-
-        while self.len() < target_len {
-            let count = (target_len - self.len()).min(batch_count);
-            for _ in 0..count {
-                self.push(value);
-            }
-            if self.batch_limit_reached() {
-                self.write()?;
-            }
-        }
-        Ok(())
-    }
-
-    /// Flushes with the given stamp, optionally saving changes for rollback.
+    /// Writes a checkpoint at `stamp`, saving its undo record when `with_changes`.
     #[inline]
     fn stamped_write_maybe_with_changes(&mut self, stamp: Stamp, with_changes: bool) -> Result<()> {
         self.any_stamped_write_maybe_with_changes(stamp, with_changes)
@@ -208,25 +161,9 @@ where
         self.any_validate_computed_version_or_reset(dep_version)?;
 
         if self.is_empty() {
-            debug!(
-                "Computing {}_to_{}...",
-                self.index_type_to_string(),
-                self.name()
-            )
+            debug!("Computing {}_to_{}...", self.index_type_name(), self.name())
         }
 
         Ok(())
-    }
-
-    /// Validates computed version and truncates to `max_from` in one call.
-    ///
-    /// Equivalent to:
-    /// ```ignore
-    /// vec.validate_computed_version_or_reset(dep_version)?;
-    /// vec.truncate_if_needed(max_from)?;
-    /// ```
-    fn validate_and_truncate(&mut self, dep_version: Version, max_from: I) -> Result<()> {
-        self.validate_computed_version_or_reset(dep_version)?;
-        self.truncate_if_needed(max_from)
     }
 }

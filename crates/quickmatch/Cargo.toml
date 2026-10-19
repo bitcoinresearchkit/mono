@@ -1,6 +1,6 @@
 [package]
 name = "quickmatch"
-description = "Lightning-fast fuzzy string matching with hybrid word and trigram indexing"
+description = "Fuzzy string matching with word and trigram indexes"
 version.workspace = true
 readme = "docs/README.md"
 license.workspace = true

@@ -1,10 +1,9 @@
 use std::{
     collections::VecDeque,
-    sync::Arc,
     time::{Duration, Instant},
 };
 
-use brk_types::{FeeRate, Transaction, Txid};
+use brk_types::{FeeRate, Txid};
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
@@ -12,12 +11,12 @@ pub mod tombstone;
 
 pub use tombstone::TxTombstone;
 
-use crate::{TxRemoval, state::TxEntry};
+use crate::{TxRemoval, stores::tx_store::TxRecord};
 
 const RETENTION: Duration = Duration::from_hours(1);
 
-/// Recently-dropped txs retained for reappearance detection (Puller can revive
-/// them without RPC) and post-mine analytics (RBF/replacement chains, etc.).
+/// Recently-dropped txs retained for reappearance (a returning tx keeps its
+/// first sighting) and post-mine analytics (RBF/replacement chains, etc.).
 #[derive(Clone, Default)]
 pub struct TxGraveyard {
     revision: u64,
@@ -39,8 +38,7 @@ impl TxGraveyard {
     }
 
     /// Tombstone iff the tx vanished from the pool (mined, expired, or
-    /// dropped). `Replaced` tombstones return `None` because the tx
-    /// will not confirm.
+    /// dropped); `Replaced` tombstones are excluded.
     pub fn get_vanished(&self, txid: &Txid) -> Option<&TxTombstone> {
         let tomb = self.tombstones.get(txid)?;
         matches!(tomb.removal, TxRemoval::Vanished).then_some(tomb)
@@ -94,18 +92,11 @@ impl TxGraveyard {
         })
     }
 
-    pub fn bury(
-        &mut self,
-        tx: impl Into<Arc<Transaction>>,
-        entry: TxEntry,
-        chunk_rate: FeeRate,
-        removal: TxRemoval,
-    ) {
-        let txid = entry.txid;
+    pub fn bury(&mut self, record: TxRecord, chunk_rate: FeeRate, removal: TxRemoval) {
+        let txid = record.entry.txid;
         let removed_at = Instant::now();
         let tombstone = TxTombstone {
-            tx: tx.into(),
-            entry,
+            record,
             chunk_rate,
             removal,
             removed_at,
@@ -141,12 +132,12 @@ impl TxGraveyard {
         }
     }
 
-    /// Remove and return the tombstone, e.g. when the tx comes back to life.
-    pub fn exhume(&mut self, txid: &Txid) -> Option<TxTombstone> {
-        let tombstone = self.tombstones.remove(txid)?;
-        self.revision = self.revision.wrapping_add(1);
-        self.remove_predecessor(txid, &tombstone);
-        Some(tombstone)
+    /// Drop the tombstone of a tx that came back to life.
+    pub fn exhume(&mut self, txid: &Txid) {
+        if let Some(tombstone) = self.tombstones.remove(txid) {
+            self.revision = self.revision.wrapping_add(1);
+            self.remove_predecessor(txid, &tombstone);
+        }
     }
 
     /// Drop tombstones older than RETENTION. O(k) in the number of evictions.

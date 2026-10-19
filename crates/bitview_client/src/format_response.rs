@@ -1,8 +1,6 @@
-/// Response type for endpoints that support multiple formats (JSON/CSV).
+/// The answer of an endpoint with a `format` parameter: CSV text for `Format::CSV`, else JSON.
 #[derive(Debug, Clone)]
 pub enum FormatResponse<T> {
-    /// JSON response, deserialized to T.
     Json(T),
-    /// CSV response as raw string.
     Csv(String),
 }

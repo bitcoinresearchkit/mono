@@ -1,48 +1,48 @@
 use bitview_types::{BlockFeeRatesEntry, FeeRatePercentiles, TimePeriod};
 
 use super::block_window::BlockWindow;
-use crate::{Query, Result};
+use crate::{Query, Result, r#impl::mempool_fee_rate};
 
 impl Query {
-    /// Time-bucketed fee-rate percentiles over `time_period`. One entry per
-    /// bucket, ordered chronologically. Each entry carries the bucket's
-    /// average height/timestamp and the seven percentile means
-    /// (`min, pct10, pct25, median, pct75, pct90, max`).
+    /// Mean effective (CPFP-adjusted) fee-rate percentiles per time bucket over `time_period`,
+    /// chronological.
     pub fn block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
-        let _guard = self.read_publication()?;
-        let bw = BlockWindow::new(self, time_period)?;
+        let pin = self.pin_safe_lengths()?;
+        let tip = Query::tip_height(&pin)?;
+        let bw = BlockWindow::new(self, time_period, tip)?;
         let frd = &self
             .plugins()
             .transactions
             .fees
             .effective_fee_rate
-            .distribution
-            .block;
+            .distribution;
 
-        let min = bw.read(&frd.min.height)?;
-        let pct10 = bw.read(&frd.pct10.height)?;
-        let pct25 = bw.read(&frd.pct25.height)?;
-        let median = bw.read(&frd.median.height)?;
-        let pct75 = bw.read(&frd.pct75.height)?;
-        let pct90 = bw.read(&frd.pct90.height)?;
-        let max = bw.read(&frd.max.height)?;
-        drop(_guard);
+        let means = |vec| bw.means(vec, mempool_fee_rate);
+        let min = means(&frd.min.height)?;
+        let pct10 = means(&frd.pct10.height)?;
+        let pct25 = means(&frd.pct25.height)?;
+        let median = means(&frd.median.height)?;
+        let pct75 = means(&frd.pct75.height)?;
+        let pct90 = means(&frd.pct90.height)?;
+        let max = means(&frd.max.height)?;
+        drop(pin);
 
         Ok(bw
             .buckets
             .iter()
-            .map(|b| BlockFeeRatesEntry {
+            .enumerate()
+            .map(|(i, b)| BlockFeeRatesEntry {
                 avg_height: b.avg_height,
                 timestamp: b.avg_timestamp,
-                percentiles: FeeRatePercentiles::new(
-                    b.mean(&min),
-                    b.mean(&pct10),
-                    b.mean(&pct25),
-                    b.mean(&median),
-                    b.mean(&pct75),
-                    b.mean(&pct90),
-                    b.mean(&max),
-                ),
+                percentiles: FeeRatePercentiles {
+                    min: min[i],
+                    pct10: pct10[i],
+                    pct25: pct25[i],
+                    median: median[i],
+                    pct75: pct75[i],
+                    pct90: pct90[i],
+                    max: max[i],
+                },
             })
             .collect())
     }

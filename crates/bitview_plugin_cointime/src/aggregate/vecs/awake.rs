@@ -1,29 +1,32 @@
-use bitview_primitives::{BoundedRatio, Ratio64};
+use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
-use bitview_vecs::{
-    LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
-};
+use bitview_urpd::CostBasisVecs;
+use bitview_vecs::{LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock};
 use brk_types::Cents;
+use vecdb::{Rw, StorageMode};
 
-#[derive(Clone, Traversable)]
-pub struct AwakeVecs {
-    /// Sum of supply multiplied by wakefulness across a set of UTXO age ranges.
-    /// Each age-range contribution is rounded down to whole satoshis.
+#[derive(Traversable)]
+pub struct AwakeVecs<M: StorageMode = Rw> {
+    /// Sum of supply multiplied by wakefulness across the cohort's UTXO age
+    /// ranges, rounded once to the nearest satoshi.
+    #[traversable(wrap = "supply", rename = "total")]
     pub supply: LazySpotValuePerBlock,
     /// Share of awake supply that is in loss: the sum of supply in loss
     /// multiplied by wakefulness divided by the sum of total supply multiplied
-    /// by wakefulness. Returns NaN when the weighted supply is zero.
+    /// by wakefulness. Null when the weighted supply is zero. As a percentage.
     #[traversable(wrap = "supply/in_loss", rename = "share")]
-    pub supply_in_loss_share: LazyPerBlock<Ratio64, BoundedRatio>,
-    /// Sum of creation-date USD value multiplied by wakefulness across a set of
-    /// UTXO age ranges. Creation-date value is each unspent output's BTC value
+    pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
+    /// Sum of creation-date USD value multiplied by wakefulness across the
+    /// cohort's UTXO age ranges: the realized capitalization of the awake
+    /// supply. Creation-date value is each unspent output's BTC value
     /// multiplied by Bitcoin's spot price when it was created.
-    pub cap: LazyFiatPerBlock<Cents>,
-    /// Wakefulness-weighted mean creation price: awake capitalization divided
-    /// by awake supply in BTC. Returns zero when awake supply is zero.
-    pub price: LazyPriceWithRatioPerBlock,
-    /// Creation price weighted by invested value and wakefulness:
-    /// sum(weight × creation price² × sats) / sum(weight × creation price × sats).
-    /// Uses raw cost-basis moments; returns zero when weighted invested value is zero.
-    pub capitalized_price: LazyPriceWithRatioPerBlock,
+    #[traversable(wrap = "capital", rename = "total")]
+    pub capital: LazyFiatPerBlock<Cents>,
+    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
+    /// created, weighted by its age range's wakefulness.
+    #[traversable(wrap = "capital", rename = "realized_cap")]
+    pub realized_cap: LazyFiatPerBlock<Cents>,
+    /// Creation-price statistics of the awake supply: each unspent output weighted by its
+    /// age range's wakefulness.
+    pub cost_basis: CostBasisVecs<M>,
 }

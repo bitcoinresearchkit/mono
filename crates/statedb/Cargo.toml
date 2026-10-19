@@ -8,6 +8,3 @@ license.workspace = true
 [dependencies]
 pco = { workspace = true }
 zerocopy = { version = "0.8.58", features = ["derive"] }
-
-[dev-dependencies]
-tempfile = { workspace = true }

@@ -1,4 +1,3 @@
-use bitview_plugin::PublicationReadGuard;
 use bitview_types::BlockInfoV1;
 use brk_types::{BlockHash, Dollars, Height};
 use vecdb::{ReadableVec, VecIndex};
@@ -6,28 +5,19 @@ use vecdb::{ReadableVec, VecIndex};
 use super::ResolvedBlocks;
 use crate::{Error, Query, Result};
 
-/// Blocks and their published prices held in one stable chain view.
+/// Blocks and their published prices, held by the blocks' pin.
 pub struct ResolvedBlocksV1 {
-    _publication: PublicationReadGuard,
     blocks: ResolvedBlocks,
     prices: Vec<Dollars>,
 }
 
 impl ResolvedBlocksV1 {
-    fn new(
-        blocks: ResolvedBlocks,
-        prices: Vec<Dollars>,
-        publication: PublicationReadGuard,
-    ) -> Result<Self> {
-        let (begin, end, _) = blocks.range();
+    fn new(blocks: ResolvedBlocks, prices: Vec<Dollars>) -> Result<Self> {
+        let (begin, end) = blocks.range();
         if prices.len() != end - begin {
             return Err(Error::Internal("Incomplete block prices"));
         }
-        Ok(Self {
-            blocks,
-            prices,
-            _publication: publication,
-        })
+        Ok(Self { blocks, prices })
     }
 
     pub fn anchor(&self) -> Option<BlockHash> {
@@ -44,9 +34,10 @@ impl ResolvedBlocksV1 {
     }
 
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfoV1>> {
-        let (begin, end, lengths) = self.blocks.range();
-        let build = query.capture_blocks_v1_range(begin, end, lengths, Some(self.prices))?;
-        drop(self._publication);
+        let (begin, end) = self.blocks.range();
+        let pin = self.blocks.read_pin(query);
+        let build = query.capture_blocks_v1_range(begin, end, &pin, self.prices)?;
+        drop(pin);
         drop(self.blocks);
         build()
     }
@@ -59,13 +50,7 @@ impl Query {
         start_height: Option<Height>,
         count: u32,
     ) -> Result<Option<ResolvedBlocksV1>> {
-        let Some(publication) = self.try_read_publication() else {
-            return Ok(None);
-        };
-        let Some(blocks) = self.try_resolve_blocks(start_height, count)? else {
-            return Ok(None);
-        };
-        self.try_block_prices(blocks, publication)
+        self.try_block_prices(self.blocks_window(start_height, count)?)
     }
 
     /// Validate a caller's height hint without performing a hash-store lookup.
@@ -74,21 +59,14 @@ impl Query {
         hash: &BlockHash,
         height_hint: Height,
     ) -> Result<Option<ResolvedBlocksV1>> {
-        let Some(publication) = self.try_read_publication() else {
-            return Ok(None);
-        };
         let Some(blocks) = self.try_resolve_block_snapshot(hash, height_hint)? else {
             return Ok(None);
         };
-        self.try_block_prices(blocks, publication)
+        self.try_block_prices(blocks)
     }
 
-    fn try_block_prices(
-        &self,
-        blocks: ResolvedBlocks,
-        publication: PublicationReadGuard,
-    ) -> Result<Option<ResolvedBlocksV1>> {
-        let (begin, end, _) = blocks.range();
+    fn try_block_prices(&self, blocks: ResolvedBlocks) -> Result<Option<ResolvedBlocksV1>> {
+        let (begin, end) = blocks.range();
         let prices =
             if begin == end {
                 Vec::new()
@@ -103,7 +81,7 @@ impl Query {
                 }
                 prices.into_iter().map(Dollars::from).collect()
             };
-        ResolvedBlocksV1::new(blocks, prices, publication).map(Some)
+        ResolvedBlocksV1::new(blocks, prices).map(Some)
     }
 
     /// Resolve on a worker without materializing or retaining the price history.
@@ -112,24 +90,18 @@ impl Query {
         start_height: Option<Height>,
         count: u32,
     ) -> Result<ResolvedBlocksV1> {
-        let publication = self.read_publication()?;
-        let blocks = self.resolve_blocks(start_height, count)?;
-        self.block_prices(blocks, publication)
+        let blocks = self.blocks_window(start_height, count)?;
+        self.block_prices(blocks)
     }
 
-    /// Resolve the exact canonical hash on a worker under one publication guard.
+    /// Resolve the exact canonical hash on a worker.
     pub fn resolve_block_v1(&self, hash: &BlockHash) -> Result<ResolvedBlocksV1> {
-        let publication = self.read_publication()?;
         let blocks = self.resolve_block_snapshot(hash)?;
-        self.block_prices(blocks, publication)
+        self.block_prices(blocks)
     }
 
-    fn block_prices(
-        &self,
-        blocks: ResolvedBlocks,
-        publication: PublicationReadGuard,
-    ) -> Result<ResolvedBlocksV1> {
-        let (begin, end, _) = blocks.range();
+    fn block_prices(&self, blocks: ResolvedBlocks) -> Result<ResolvedBlocksV1> {
+        let (begin, end) = blocks.range();
         let mut prices = Vec::with_capacity(end - begin);
         self.plugins()
             .price
@@ -137,7 +109,7 @@ impl Query {
             .cents
             .height
             .for_each_range_dyn_at(begin, end, &mut |cents| prices.push(Dollars::from(cents)));
-        ResolvedBlocksV1::new(blocks, prices, publication)
+        ResolvedBlocksV1::new(blocks, prices)
     }
 }
 
@@ -149,15 +121,11 @@ impl ResolvedBlocks {
         query: &Query,
         heights: &[Height],
         prices: &[Dollars],
-        publication: PublicationReadGuard,
     ) -> Result<Vec<BlockInfoV1>> {
-        let (_, _, lengths) = self.range();
-        if heights.len() != prices.len()
-            || heights.iter().any(|height| *height >= lengths.height)
-            || heights.windows(2).any(|pair| pair[0] <= pair[1])
-        {
-            return Err(Error::Internal("Invalid sparse block selection"));
-        }
+        let pin = self.read_pin(query);
+        debug_assert_eq!(heights.len(), prices.len());
+        debug_assert!(heights.iter().all(|height| *height < pin.lengths().height));
+        debug_assert!(heights.windows(2).all(|pair| pair[0] > pair[1]));
         let mut builders = Vec::new();
         let mut begin = 0;
         while begin < heights.len() {
@@ -170,12 +138,12 @@ impl ResolvedBlocks {
             builders.push(query.capture_blocks_v1_range(
                 heights[end - 1].to_usize(),
                 heights[begin].to_usize() + 1,
-                lengths,
-                Some(ascending_prices),
+                &pin,
+                ascending_prices,
             )?);
             begin = end;
         }
-        drop(publication);
+        drop(pin);
         drop(self);
         let mut blocks = Vec::with_capacity(heights.len());
         for build in builders {

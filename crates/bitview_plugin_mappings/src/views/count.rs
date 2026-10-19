@@ -1,24 +1,21 @@
-use std::{convert::Infallible, iter, sync::Arc};
+use std::sync::Arc;
 
 use bitview_primitives::Count;
-use bitview_traversable::{Traversable, TreeNode, make_leaf};
-use schemars::JsonSchema;
-use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, CheckedSub, Cursor, Formattable, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableVec, SparseRead, TypedVec, VecIndex, VecValue, Version,
-    short_type_name,
+    AnyVec, Cursor, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, SparseRead, TypedVec,
+    VecIndex, VecValue, Version,
 };
 
 use super::terminal_len::TerminalLen;
 
 /// Per-item count derived by subtracting adjacent values in one first-index
-/// source. Range reads borrow source chunks and carry their shared boundary.
+/// source, whose values widen to `u64` (index types or their packed forms).
+/// Range reads borrow source chunks and carry their shared boundary.
 #[derive(Clone)]
 pub struct LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex,
+    S: VecValue,
 {
     name: Arc<str>,
     base_version: Version,
@@ -29,8 +26,7 @@ where
 impl<I, S> LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex + CheckedSub + Default,
-    Count: From<S>,
+    S: VecValue + Copy + Into<u64>,
 {
     pub(crate) fn new<TI, TT>(
         name: &str,
@@ -51,8 +47,8 @@ where
     }
 
     #[inline(always)]
-    fn count(current: S, next: S) -> Count {
-        Count::from(next.checked_sub(current).unwrap_or_default())
+    fn count(current: impl Into<u64>, next: impl Into<u64>) -> Count {
+        Count::from(next.into().saturating_sub(current.into()))
     }
 
     fn for_each_input(&self, from: usize, to: usize, mut each: impl FnMut(Option<Count>, &[S])) {
@@ -61,7 +57,7 @@ where
         if from >= to {
             return;
         }
-        let terminal = (to == len).then(|| S::from(self.terminal_len.get()));
+        let terminal = (to == len).then(|| self.terminal_len.get() as u64);
         let mut previous = None;
         self.first_indexes
             .for_each_chunk_at(from, (to + 1).min(len), &mut |_, boundaries| {
@@ -107,10 +103,10 @@ where
 impl<I, S> AnyVec for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex,
+    S: VecValue,
 {
     fn version(&self) -> Version {
-        self.base_version + self.first_indexes.version() + self.terminal_len.version()
+        self.base_version + self.first_indexes.version() + self.terminal_len.version
     }
 
     fn name(&self) -> &str {
@@ -121,27 +117,17 @@ where
         self.first_indexes.len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        I::to_string()
+    fn is_mutable(&self) -> bool {
+        self.first_indexes.is_mutable()
     }
 
-    fn region_names(&self) -> Vec<String> {
-        Vec::new()
-    }
-
-    fn value_type_to_size_of(&self) -> usize {
-        size_of::<Count>()
-    }
-
-    fn value_type_to_string(&self) -> &'static str {
-        short_type_name::<Count>()
-    }
+    vecdb::any_vec_type_methods!(I, Count);
 }
 
 impl<I, S> TypedVec for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex,
+    S: VecValue,
 {
     type I = I;
     type T = Count;
@@ -150,8 +136,7 @@ where
 impl<I, S> ReadableVec<I, Count> for LazyIndexCountVec<I, S>
 where
     I: VecIndex,
-    S: VecIndex + CheckedSub + Default,
-    Count: From<S>,
+    S: VecValue + Copy + Into<u64>,
 {
     fn cursor_chunk_size(&self) -> usize {
         self.first_indexes.cursor_chunk_size()
@@ -173,19 +158,6 @@ where
         self.fold_range_at(from, to, (), |(), value| each(value));
     }
 
-    fn fold_range_at<B, F: FnMut(B, Count) -> B>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: F,
-    ) -> B {
-        self.try_fold_values(from, to, init, |accumulator, value| {
-            Ok::<_, Infallible>(fold(accumulator, value))
-        })
-        .unwrap()
-    }
-
     fn try_fold_range_at<B, E, F: FnMut(B, Count) -> Result<B, E>>(
         &self,
         from: usize,
@@ -202,7 +174,7 @@ where
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<Count>) {
         let len = self.len();
-        let terminal = S::from(self.terminal_len.get());
+        let terminal = self.terminal_len.get() as u64;
         let indices = &indices[..indices.partition_point(|&i| i < len)];
         if indices.len() > 1
             && indices.windows(2).all(|pair| pair[1] == pair[0] + 1)
@@ -221,7 +193,7 @@ where
             out.extend((0..indices.len()).map(|slot| {
                 Self::count(
                     values.current(slot),
-                    values.previous(slot).unwrap_or(terminal),
+                    values.previous(slot).map_or(terminal, Into::into),
                 )
             }));
             return;
@@ -231,9 +203,6 @@ where
 
         out.reserve(indices.len());
         for &index in indices {
-            if index >= len {
-                break;
-            }
             if let Some((previous_index, value)) = previous
                 && previous_index == index
             {
@@ -248,7 +217,7 @@ where
                 let Some(next) = first_indexes.get(index + 1) else {
                     continue;
                 };
-                next
+                next.into()
             } else {
                 terminal
             };
@@ -259,17 +228,7 @@ where
     }
 }
 
-impl<I, S> Traversable for LazyIndexCountVec<I, S>
-where
+bitview_traversable::leaf!([I, S] LazyIndexCountVec<I, S> where
     I: VecIndex,
-    S: VecIndex + CheckedSub + Default,
-    Count: From<S> + Formattable + Serialize + JsonSchema,
-{
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        iter::once(self as &dyn AnyExportableVec)
-    }
-
-    fn to_tree_node(&self) -> TreeNode {
-        make_leaf(self)
-    }
-}
+    S: VecValue + Copy + Into<u64>,
+);

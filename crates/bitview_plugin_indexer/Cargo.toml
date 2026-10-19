@@ -12,7 +12,6 @@ readme = "README.md"
 arc-swap = { workspace = true }
 bitcoin = { workspace = true }
 bitview_plugin = { workspace = true }
-bitview_cohort = { workspace = true, features = ["storage"] }
 bitview_primitives = { workspace = true, features = ["storage"] }
 brk_error = { workspace = true, features = ["fjall", "vecdb"] }
 brk_exit = { workspace = true }
@@ -20,8 +19,8 @@ brk_reader = { workspace = true }
 brk_store = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
+crossbeam = { version = "0.8.5", features = ["crossbeam-channel"] }
 fjall = { workspace = true }
-parking_lot = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
 schemars = { workspace = true }

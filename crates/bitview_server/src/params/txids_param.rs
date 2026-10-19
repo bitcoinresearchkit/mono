@@ -6,7 +6,10 @@ use aide::{
     openapi::Operation,
     operation::{ParamLocation, add_parameters, parameters_from_schema},
 };
-use axum::{extract::FromRequestParts, http::request::Parts};
+use axum::{
+    extract::{FromRequestParts, Query},
+    http::{Uri, request::Parts},
+};
 use brk_types::Txid;
 use schemars::JsonSchema;
 
@@ -14,12 +17,7 @@ use crate::Error;
 
 const MAX_TXIDS: usize = 250;
 
-/// Query parameter for transaction-times endpoint.
-///
-/// Extracted manually because `serde_urlencoded` (and serde derive in general)
-/// doesn't support repeated keys like `txId[]=a&txId[]=b`. The schema is still
-/// declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
-/// generated client SDKs see `txids: List[Txid]`.
+/// Transaction IDs as repeated `txId[]` query parameters.
 #[derive(JsonSchema)]
 pub struct TxidsParam {
     /// Transaction IDs to look up (max 250 per request).
@@ -28,33 +26,34 @@ pub struct TxidsParam {
 }
 
 impl TxidsParam {
-    /// Parsed manually from URI since serde_urlencoded doesn't support repeated keys.
-    /// Rejects unknown keys to prevent cache-busting via injected query params.
-    pub fn from_query(query: &str) -> Result<Self, String> {
-        if query.is_empty() {
+    /// Form-decoded pairs, so `txId%5b%5d` and encoded values parse too. Rejects unknown keys
+    /// to prevent cache-busting via injected query params.
+    pub fn from_uri(uri: &Uri) -> Result<Self, String> {
+        let Query(pairs) =
+            Query::<Vec<(String, String)>>::try_from_uri(uri).map_err(|e| e.body_text())?;
+        if pairs.is_empty() {
             return Err("missing required query parameter `txId[]`".into());
         }
-        let mut txids = Vec::new();
-        for pair in query.split('&') {
-            let (key, val) = pair.split_once('=').ok_or_else(|| {
-                format!("malformed query parameter `{pair}`, expected `txId[]=<txid>`")
-            })?;
-            if key == "txId[]" || key == "txId%5B%5D" {
-                if txids.len() == MAX_TXIDS {
-                    return Err(format!("too many txids, max {MAX_TXIDS} per request"));
-                }
-                let txid = Txid::from_str(val).map_err(|e| format!("invalid txid `{val}`: {e}"))?;
-                txids.push(txid);
-            } else {
-                return Err(format!(
-                    "unknown query parameter `{key}`, expected `txId[]`"
-                ));
-            }
+        if pairs.len() > MAX_TXIDS {
+            return Err(format!("too many txids, max {MAX_TXIDS} per request"));
         }
+        let txids = pairs
+            .iter()
+            .map(|(key, val)| {
+                if key != "txId[]" {
+                    return Err(format!(
+                        "unknown query parameter `{key}`, expected `txId[]`"
+                    ));
+                }
+                Txid::from_str(val).map_err(|e| format!("invalid txid `{val}`: {e}"))
+            })
+            .collect::<Result<_, _>>()?;
         Ok(Self { txids })
     }
 }
 
+// Hand-written: a serde struct cannot collect repeated `txId[]` keys. The derived schema still
+// lists the parameter for OpenAPI and the generated clients (`OperationInput` below).
 impl<S> FromRequestParts<S> for TxidsParam
 where
     S: Send + Sync,
@@ -62,7 +61,7 @@ where
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        Self::from_query(parts.uri.query().unwrap_or("")).map_err(Error::bad_request)
+        Self::from_uri(&parts.uri).map_err(Error::bad_request)
     }
 }
 

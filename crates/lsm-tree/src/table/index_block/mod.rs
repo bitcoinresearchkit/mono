@@ -61,6 +61,7 @@ impl IndexBlock {
     ///
     /// Panics if the given item array if empty.
     pub fn encode_into(writer: &mut Vec<u8>, items: &[KeyedBlockHandle]) -> Result<()> {
-        Encoder::<'_, BlockOffset, KeyedBlockHandle>::new(writer, items, 1).finish()
+        Encoder::<'_, BlockOffset, KeyedBlockHandle>::new(writer, &mut Vec::new(), items, 1)
+            .finish()
     }
 }

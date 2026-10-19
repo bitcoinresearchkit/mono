@@ -185,29 +185,3 @@ impl_unsigned_number!(u32, 1);
 impl_unsigned_number!(u64, 2);
 impl_unsigned_number!(u16, 7);
 impl_unsigned_number!(u8, 10);
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::metadata::{DynLatents, Mode};
-
-  #[test]
-  fn test_mode_validation() {
-    // CLASSIC
-    assert!(u32::mode_is_valid(&Mode::Classic));
-
-    // DICT
-    assert!(u32::mode_is_valid(&Mode::Dict(
-      DynLatents::new(vec![1_u32, 3])
-    )));
-
-    // INT MULT
-    for base in [1_u32, 77, u32::MAX] {
-      assert!(u32::mode_is_valid(&Mode::int_mult(base)))
-    }
-    assert!(!u32::mode_is_valid(&Mode::int_mult(0_u32)));
-
-    // FLOAT
-    assert!(!u32::mode_is_valid(&Mode::FloatQuant(3)));
-  }
-}

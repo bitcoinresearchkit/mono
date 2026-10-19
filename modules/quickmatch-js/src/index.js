@@ -349,20 +349,33 @@ export class QuickMatch {
     // ones are left out, as they are when nothing's mistyped).
     const unmatched = [];
 
-    for (const w of qwords) {
-      let hits = this._postings(w);
+    // Each word's items, and whether it's held only as a slip, not as a word of its own ("pice" past "pic").
+    const held = qwords.map((w) => {
+      const own = this._postings(w);
+      let hits = own;
       // (A word one letter past another's end, a plural or a slip there, "prices": that one's items too.)
       if (!exactWords && w.length >= 4) {
         const shorter = this._postings(w.slice(0, -1));
         if (shorter) hits = hits ? this._merge([hits, shorter]) : shorter;
       }
-      if (hits) {
-        known.push(hits);
+      return hits ? { hits, slip: !own } : null;
+    });
+    // A slip that leaves the words nothing in common, as the others have, is read as a typo instead ("pice" as
+    // "price", not as "pic…").
+    const all = held.flatMap((h) => (h ? [h.hits] : [])), firm = held.flatMap((h) => (h && !h.slip ? [h.hits] : []));
+    const slipsAsTypos = firm.length !== all.length && intersect(all)?.length === 0 && intersect(firm)?.length !== 0;
+    // (Read as typos, a slip's items still count toward the union fallback.)
+    const slipLists = [];
+    qwords.forEach((w, i) => {
+      const h = held[i];
+      if (h && !(h.slip && slipsAsTypos)) {
+        known.push(h.hits);
       } else if (w.length >= 3) {
+        if (h) slipLists.push(h.hits);
         unmatched.push(w);
         if (unknown.length < trigramBudget) unknown.push(w);
       }
-    }
+    });
 
     if (exactWords) {
       if (!config.unionFallback && known.length !== qwords.length) return [];
@@ -374,11 +387,14 @@ export class QuickMatch {
     }
 
     const pool = intersect(known);
+    // Disjoint known words: no fuzzy match can satisfy them all, so skip
+    // straight to the (optional) union fallback.
+    const disjoint = pool !== null && pool.length === 0;
 
     // A swapped pair often shares no trigrams ("prcie" → "price").
     // Probe indexed corrections before the broader trigram fallback (every
     // word asked for: only when each unheld word is probed).
-    if (unknown.length && trigramBudget && (config.unionFallback || unknown.length === unmatched.length)) {
+    if (!disjoint && unknown.length && trigramBudget && (config.unionFallback || unknown.length === unmatched.length)) {
       /** @type {Ids[][]} */
       const corrections = unknown.map(() => []);
       let budget = trigramBudget;
@@ -404,7 +420,7 @@ export class QuickMatch {
     }
 
     // Try typo matching for unknown words
-    if (unknown.length && trigramBudget) {
+    if (!disjoint && unknown.length && trigramBudget) {
       const { _scores: scores, _dirty: dirty } = this;
 
       if (pool) {
@@ -437,7 +453,7 @@ export class QuickMatch {
     if (!config.unionFallback && unmatched.length) return [];
 
     // Rank known candidates (intersection, or union as fallback)
-    const candidates = pool || (config.unionFallback ? union(known) : []);
+    const candidates = pool?.length ? pool : config.unionFallback ? union([...known, ...slipLists]) : [];
     return candidates.length > 0
       ? this._rank(candidates, null, qwords, sep, limit, bestOnly)
       : [];
@@ -631,7 +647,7 @@ function union(arrays) {
   return result;
 }
 
-/** @param {Ids[]} arrays @returns {Ids|null} */
+/** The ids in every list (empty when they're disjoint), or null when there are no lists: no constraint. @param {Ids[]} arrays @returns {Ids|null} */
 function intersect(arrays) {
   if (arrays.length <= 1) return arrays[0] || null;
 
@@ -648,7 +664,7 @@ function intersect(arrays) {
       if (bsearch(arrays[i], result[j])) result[w++] = result[j];
     }
     result.length = w;
-    if (!w) return null;
+    if (!w) return result;
   }
   return result;
 }

@@ -1,28 +1,22 @@
 use std::{
-    fmt::{Display, Formatter, Result},
     iter::Sum,
     ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
 };
 
 use derive_more::Deref;
-use itoa::Buffer;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{CentsSats, Dollars, Sats};
+use super::{Dollars, Sats};
 use crate::{CheckedSub, unlikely};
 
 #[cfg(feature = "storage")]
-use vecdb::CheckedSub as VecdbCheckedSub;
-
-#[cfg(feature = "storage")]
-use vecdb::{Formattable, Pco};
+use vecdb::Pco;
 
 /// An amount in US cents (100 cents = 1 USD).
 ///
-/// Unsigned, for values that are never negative (invested capital, realized cap, ...). `u64::MAX` is
-/// reserved as a NaN sentinel.
+/// Unsigned; `u64::MAX` is reserved as a NaN sentinel.
 #[derive(
     Debug, Default, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
 )]
@@ -36,7 +30,7 @@ impl Cents {
     pub const NAN: Self = Self(u64::MAX);
     #[inline]
     pub const fn new(value: u64) -> Self {
-        assert!(value != u64::MAX, "u64::MAX is reserved as Cents::NAN");
+        debug_assert!(value != u64::MAX, "u64::MAX is reserved as Cents::NAN");
         Self(value)
     }
 
@@ -73,7 +67,7 @@ impl Cents {
 
     #[inline]
     fn from_finite_u128(value: u128) -> Self {
-        assert!(
+        debug_assert!(
             value < u64::MAX as u128,
             "u128 overflow or Cents::NAN sentinel collision"
         );
@@ -107,6 +101,18 @@ impl Cents {
         }
     }
 
+    /// The whole sats one dollar buys at this price (cents per BTC), rounded down; zero at a zero
+    /// price. A NaN price has no whole-sats value.
+    #[inline]
+    pub fn sats_per_dollar(self) -> Sats {
+        debug_assert!(!self.is_nan(), "a NaN price has no sats per dollar");
+        Sats::new(
+            (100 * Sats::ONE_BTC_U64)
+                .checked_div(self.inner())
+                .unwrap_or_default(),
+        )
+    }
+
     pub fn to_dollars(self) -> Dollars {
         if unlikely(self.is_nan()) {
             Dollars::NAN
@@ -115,45 +121,29 @@ impl Cents {
         }
     }
 
-    /// Round to nearest dollar, then apply N significant digits.
-    /// E.g., 12345 (= $123.45) → 12300 (= $123.00) with 5 digits
-    /// E.g., 1234567 (= $12345.67) → 1234600 (= $12346.00) with 5 digits
+    /// Rounds half up to `digits` significant digits of the amount in cents; amounts under
+    /// 10^`digits` cents stay exact. With 5 digits, 12345 (= $123.45) stays and 1234567
+    /// (= $12,345.67) becomes 1234600 (= $12,346.00).
     #[inline]
-    pub fn round_to_dollar(self, digits: i32) -> Self {
+    pub fn round_to_significant(self, digits: u32) -> Self {
         if unlikely(self.is_nan()) {
             return Self::NAN;
         }
-        // Round to nearest dollar (nearest 100 cents)
-        let dollars = (self.0 as u128 + 50) / 100;
-        // Apply significant digit rounding to dollars, then convert back to cents
-        let ilog10 = dollars.checked_ilog10().unwrap_or(0) as i32;
-        let rounded_dollars = if ilog10 >= digits {
-            let log_diff = ilog10 - digits + 1;
-            let pow = 10u128.pow(log_diff as u32);
-            ((dollars + pow / 2) / pow) * pow
-        } else {
-            dollars
-        };
-        Self::from_finite_u128(rounded_dollars * 100)
+        let cents = self.0 as u128;
+        match cents.checked_ilog10() {
+            Some(ilog10) if ilog10 >= digits => {
+                let pow = 10u128.pow(ilog10 - digits + 1);
+                Self::from_finite_u128((cents + pow / 2) / pow * pow)
+            }
+            _ => self,
+        }
     }
 }
 
 impl From<Dollars> for Cents {
     #[inline]
     fn from(value: Dollars) -> Self {
-        let f = f64::from(value);
-        if unlikely(!f.is_finite()) {
-            Self::NAN
-        } else if f < 0.0 {
-            Self::ZERO
-        } else {
-            let cents = (f * 100.0).round();
-            if cents >= u64::MAX as f64 {
-                Self::MAX_FINITE
-            } else {
-                Self(cents as u64)
-            }
-        }
+        Self::from(f64::from(value) * 100.0)
     }
 }
 
@@ -174,7 +164,7 @@ impl From<u64> for Cents {
 impl From<usize> for Cents {
     #[inline]
     fn from(value: usize) -> Self {
-        Self::new(u64::try_from(value).expect("usize overflow to Cents"))
+        Self::new(value as u64)
     }
 }
 
@@ -210,9 +200,11 @@ impl From<Cents> for f64 {
     }
 }
 
+/// Rounds to the nearest cent.
 impl From<f64> for Cents {
     #[inline]
     fn from(value: f64) -> Self {
+        let value = value.round();
         if unlikely(!value.is_finite()) {
             Self::NAN
         } else if value < 0.0 {
@@ -261,18 +253,6 @@ impl SubAssign for Cents {
     }
 }
 
-impl Mul for Cents {
-    type Output = Self;
-    #[inline]
-    fn mul(self, rhs: Self) -> Self::Output {
-        if unlikely(self.is_nan() || rhs.is_nan()) {
-            Self::NAN
-        } else {
-            Self::checked_finite(self.0.checked_mul(rhs.0)).expect("Cents overflow")
-        }
-    }
-}
-
 impl Mul<u64> for Cents {
     type Output = Self;
     #[inline]
@@ -281,39 +261,6 @@ impl Mul<u64> for Cents {
             Self::NAN
         } else {
             Self::checked_finite(self.0.checked_mul(rhs)).expect("Cents overflow")
-        }
-    }
-}
-
-impl Mul<usize> for Cents {
-    type Output = Self;
-    #[inline]
-    fn mul(self, rhs: usize) -> Self::Output {
-        if unlikely(self.is_nan()) {
-            Self::NAN
-        } else {
-            let rhs = u64::try_from(rhs).expect("usize overflow to Cents multiplier");
-            Self::checked_finite(self.0.checked_mul(rhs)).expect("Cents overflow")
-        }
-    }
-}
-
-impl Mul<Sats> for Cents {
-    type Output = CentsSats;
-    #[inline]
-    fn mul(self, sats: Sats) -> CentsSats {
-        CentsSats::new(self.as_u128() * sats.as_u128())
-    }
-}
-
-impl Div<Cents> for Cents {
-    type Output = Self;
-    #[inline]
-    fn div(self, rhs: Self) -> Self::Output {
-        if unlikely(self.is_nan() || rhs.is_nan()) {
-            Self::NAN
-        } else {
-            Self(self.0 / rhs.0)
         }
     }
 }
@@ -335,46 +282,5 @@ impl CheckedSub for Cents {
         Cents::checked_sub(self, rhs)
     }
 }
-#[cfg(feature = "storage")]
-impl VecdbCheckedSub for Cents {
-    fn checked_sub(self, rhs: Self) -> Option<Self> {
-        CheckedSub::checked_sub(self, rhs)
-    }
-}
 
-impl Display for Cents {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let mut buf = Buffer::new();
-        let str = buf.format(self.0);
-        f.write_str(str)
-    }
-}
-
-#[cfg(feature = "storage")]
-impl Formattable for Cents {
-    const UNDEFINED: bool = true;
-
-    #[inline(always)]
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        let mut b = Buffer::new();
-        buf.extend_from_slice(b.format(self.0).as_bytes());
-    }
-
-    #[inline(always)]
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        if unlikely(self.is_nan()) {
-            buf.extend_from_slice(b"null");
-        } else {
-            self.write_to(buf);
-        }
-    }
-
-    /// Undefined: an empty CSV cell (JSON writes `null`).
-    #[inline(always)]
-    fn fmt_csv(&self, f: &mut String) -> std::fmt::Result {
-        if !unlikely(self.is_nan()) {
-            self.fmt_into(f);
-        }
-        Ok(())
-    }
-}
+crate::impl_int_format!(Cents, nullable);

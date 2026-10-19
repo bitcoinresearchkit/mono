@@ -1,16 +1,32 @@
-use bitview_primitives::Boolean;
 use bitview_traversable::Traversable;
-use brk_types::TxIndex;
-use derive_more::{Deref, DerefMut};
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Rw, StorageMode};
 
-use super::{CountVecs, Flags};
+use crate::flagged::Classified;
 
-#[derive(Deref, DerefMut, Traversable)]
+/// Transactions by detected structural pattern: heuristic classifications, not protocol labels.
+#[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    pub count: CountVecs<M>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub flags: Flags<M::Stored<EagerVec<PcoVec<TxIndex, Boolean>>>>,
+    /// Transactions heuristically classified as CoinJoin candidates: at least five inputs and
+    /// outputs, neither count five times the other, sufficiently repeated input/output values, no
+    /// recognized address reuse, and no detected `OP_RETURN` or inscription.
+    pub coinjoin: Classified<M>,
+    /// Transactions with at least five times as many inputs as outputs.
+    pub consolidation: Classified<M>,
+    /// Non-coinbase transactions with at least five times as many outputs as inputs.
+    pub batch_payout: Classified<M>,
+}
+
+impl Vecs {
+    /// Every pattern's stored flags, then counts.
+    pub(super) fn stored_mut(
+        &mut self,
+    ) -> ([&mut dyn AnyStoredVec; 3], [&mut dyn AnyStoredVec; 3]) {
+        let (coinjoin_flag, coinjoin_count) = self.coinjoin.stored_mut();
+        let (consolidation_flag, consolidation_count) = self.consolidation.stored_mut();
+        let (batch_payout_flag, batch_payout_count) = self.batch_payout.stored_mut();
+        (
+            [coinjoin_flag, consolidation_flag, batch_payout_flag],
+            [coinjoin_count, consolidation_count, batch_payout_count],
+        )
+    }
 }

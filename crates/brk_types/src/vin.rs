@@ -16,24 +16,18 @@ impl Vin {
     }
 }
 
-const U16_MAX_AS_U32: u32 = u16::MAX as u32;
 impl From<u32> for Vin {
     #[inline]
     fn from(value: u32) -> Self {
-        if value > U16_MAX_AS_U32 {
-            panic!()
-        }
+        debug_assert!(value <= u16::MAX as u32, "vin {value} does not fit a u16");
         Self(value as u16)
     }
 }
 
-const U16_MAX_AS_USIZE: usize = u16::MAX as usize;
 impl From<usize> for Vin {
     #[inline]
     fn from(value: usize) -> Self {
-        if value > U16_MAX_AS_USIZE {
-            panic!()
-        }
+        debug_assert!(value <= u16::MAX as usize, "vin {value} does not fit a u16");
         Self(value as u16)
     }
 }

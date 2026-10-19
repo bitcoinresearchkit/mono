@@ -1,4 +1,4 @@
-//! Shared storage substrate used by every concrete vec variant.
+//! Storage state shared by the stored vectors.
 
 pub mod change;
 pub mod format;

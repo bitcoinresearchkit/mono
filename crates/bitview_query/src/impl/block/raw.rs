@@ -1,7 +1,7 @@
 use std::io::Read;
 
+use crate::{ReadPin, check_bound};
 use bitcoin::{Block as BitcoinBlock, Weight, consensus::deserialize, p2p::Magic};
-use bitview_plugin_indexer::SafeLengths;
 use brk_reader::BlkRead;
 use brk_types::{BlkPosition, BlockHash, Height};
 use vecdb::ReadableVec;
@@ -19,33 +19,20 @@ struct RawRecord {
 }
 
 impl Query {
-    fn open_raw_record(&self, height: Height, guard: &SafeLengths) -> Result<RawRecord> {
+    fn open_raw_record(&self, height: Height, guard: &ReadPin) -> Result<RawRecord> {
         let safe = guard.lengths();
+        check_bound(guard, height, safe.height)?;
         if height >= safe.height {
             return Err(Error::NotFound("Block not found".into()));
         }
         let vecs = self.indexer().vecs();
         let position = vecs.blocks.position.collect_one(height).data()?;
-        let size = u64::from(*vecs.blocks.total.collect_one(height).data()?);
+        let size = u64::from(*vecs.blocks.size.collect_one(height).data()?);
         let weight = u64::from(*vecs.blocks.weight.collect_one(height).data()?);
         if weight > Weight::MAX_BLOCK.to_wu() || size > weight {
             return Err(Error::Internal("Invalid indexed block weight"));
         }
-        let first = vecs
-            .transactions
-            .first_tx_index
-            .collect_one(height)
-            .data()?;
-        let next_height = usize::from(height) + 1;
-        let next = if next_height < usize::from(safe.height) {
-            vecs.transactions
-                .first_tx_index
-                .collect_one_at(next_height)
-                .data()?
-        } else {
-            safe.tx_index
-        };
-        let count = Self::block_tx_count(first, next, safe.tx_index)?;
+        let (_, count) = self.block_tx_range(height, guard)?;
         let offset = position
             .offset()
             .checked_sub(8)
@@ -57,7 +44,7 @@ impl Query {
             reader,
             size,
             weight,
-            count,
+            count: count as u32,
         })
     }
 
@@ -88,14 +75,10 @@ impl Query {
 
     fn verify_raw_payload(bytes: &[u8], weight: u64, count: u32) -> Result<()> {
         // Check the indexed count before a decoder allocates its transaction list.
-        let transactions = bytes
-            .get(80..)
-            .ok_or(Error::Internal("Raw block shorter than header"))?;
-        Self::read_block_tx_count(transactions, count)?;
+        Self::read_block_tx_count(&bytes[80..], count)?;
         let block: BitcoinBlock =
             deserialize(bytes).map_err(|_| Error::Internal("Invalid raw block payload"))?;
-        if weight > Weight::MAX_BLOCK.to_wu()
-            || block.weight().to_wu() != weight
+        if block.weight().to_wu() != weight
             || !block.check_merkle_root()
             || !block.check_witness_commitment()
         {
@@ -109,7 +92,7 @@ impl Query {
         &self,
         height: Height,
         hash: &BlockHash,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<Vec<u8>> {
         let mut record = self.open_raw_record(height, guard)?;
         let bytes = Self::read_raw_record(&mut record.reader, record.size, hash)?;
@@ -122,7 +105,7 @@ impl Query {
         &self,
         height: Height,
         hash: &BlockHash,
-        guard: &SafeLengths,
+        guard: &ReadPin,
     ) -> Result<u64> {
         let mut record = self.open_raw_record(height, guard)?;
         Self::read_raw_prefix(&mut record.reader, record.size, hash)?;

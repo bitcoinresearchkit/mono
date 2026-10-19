@@ -1,10 +1,8 @@
-use bitview_plugin_distribution_common::AllChainSources;
+use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::Ratio64;
-use bitview_transforms::Quotient;
-use bitview_vecs::LazyPerBlock;
-use brk_error::Result;
+use bitview_vecs::{LazyIndexedVec, LazyPerBlock, ops::Quotient};
 use brk_types::{Cents, Version};
 use vecdb::{BinaryTransform, Ident};
 
@@ -16,34 +14,36 @@ impl Vecs {
         mappings: &MappingsVecs,
         all_chain: &AllChainSources,
         transactions: &TransactionsVecs,
-    ) -> Result<Self> {
-        let volume = &transactions.volume.transfer_volume.rolling.sum._1y;
-        let native_source = all_chain.with_supply(
+    ) -> Self {
+        let volume = &transactions.volume.sum._1y;
+        let btc_source = LazyIndexedVec::new(
             "velocity_btc_source",
             version,
             &volume.sats.height,
+            &all_chain.supply,
             |_, volume, supply| Quotient::<Ratio64>::apply(volume, supply),
         );
-        let fiat_source = all_chain.with_market_cap(
+        let usd_source = LazyIndexedVec::new(
             "velocity_usd_source",
             version,
             &volume.cents.height,
+            &all_chain.market_cap,
             |_, volume: Cents, market_cap| Quotient::<Ratio64>::apply(volume, market_cap),
         );
 
-        Ok(Self {
-            native: LazyPerBlock::from_height_source::<Ident>(
+        Self {
+            btc: LazyPerBlock::from_height_source::<Ident>(
                 "velocity_btc",
                 version,
-                &native_source,
+                &btc_source,
                 mappings,
             ),
-            fiat: LazyPerBlock::from_height_source::<Ident>(
+            usd: LazyPerBlock::from_height_source::<Ident>(
                 "velocity_usd",
                 version,
-                &fiat_source,
+                &usd_source,
                 mappings,
             ),
-        })
+        }
     }
 }

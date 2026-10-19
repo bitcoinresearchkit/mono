@@ -4,7 +4,6 @@
 
 use std::{
     fs,
-    path::PathBuf,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -16,18 +15,13 @@ use log::{trace, warn};
 use super::{block_index::BlockIndexImpl, meta::ParsedMeta, regions::ParsedRegions};
 use crate::{
     GlobalTableId,
-    cache::Cache,
-    file_accessor::FileAccessor,
-    table::{IndexBlock, filter::standard_bloom::StandardBloomFilterReader},
+    table::{IndexBlock, filter::standard_bloom::StandardBloomFilterReader, util::BlockSource},
 };
 
 pub struct Inner {
-    pub path: Arc<PathBuf>,
-
-    pub tree_id: u32,
-
+    /// The table file, its descriptor and block caches
     #[doc(hidden)]
-    pub file_accessor: FileAccessor,
+    pub source: BlockSource,
 
     /// Parsed metadata
     #[doc(hidden)]
@@ -40,12 +34,6 @@ pub struct Inner {
     /// Translates key (first item of a block) to block offset (address inside file) and (compressed) size
     #[doc(hidden)]
     pub block_index: Arc<BlockIndexImpl>,
-
-    /// Block cache
-    ///
-    /// Stores index and data blocks
-    #[doc(hidden)]
-    pub cache: Arc<Cache>,
 
     /// Pinned filter index (in case of partitioned filters)
     pub pinned_filter_index: Option<IndexBlock>,
@@ -65,7 +53,7 @@ impl Inner {
     /// Gets the global table ID.
     #[must_use]
     pub fn global_id(&self) -> GlobalTableId {
-        (self.tree_id, self.metadata.id).into()
+        self.source.table_id
     }
 }
 
@@ -74,18 +62,14 @@ impl Drop for Inner {
         let global_id = self.global_id();
 
         if self.is_deleted.load(Ordering::Acquire) {
-            trace!("Cleanup deleted table {global_id:?} at {:?}", self.path);
+            let path = &self.source.path;
+            trace!("Cleanup deleted table {global_id:?} at {path:?}");
 
-            if let Err(e) = fs::remove_file(&*self.path) {
-                warn!(
-                    "Failed to cleanup deleted table {global_id:?} at {:?}: {e:?}",
-                    self.path,
-                );
+            if let Err(e) = fs::remove_file(&**path) {
+                warn!("Failed to cleanup deleted table {global_id:?} at {path:?}: {e:?}");
             }
 
-            self.file_accessor.as_descriptor_table().inspect(|d| {
-                d.remove_for_table(global_id);
-            });
+            self.source.descriptor_table.remove_for_table(global_id);
         }
     }
 }

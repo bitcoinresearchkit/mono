@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use brk_types::AddrBytes;
+use brk_types::AddressBytes;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use serde_json::from_str;
@@ -12,7 +12,7 @@ use vecdb::Version;
 
 /// Increment when pool IDs, payout addresses, or coinbase tags change.
 #[cfg(feature = "storage")]
-pub const POOL_ATTRIBUTION_VERSION: Version = Version::ONE;
+pub const POOL_ATTRIBUTION_VERSION: Version = Version::TWO;
 
 const JSON_DATA: &str = include_str!("../pools-v2.json");
 const TESTNET_IDS: &[u16] = &[145, 146, 149, 150, 156, 163];
@@ -45,7 +45,7 @@ fn empty_pool(id: usize) -> Pool {
 #[derive(Debug)]
 pub struct Pools {
     pools: Vec<Pool>,
-    by_addr: FxHashMap<AddrBytes, PoolSlug>,
+    by_addr: FxHashMap<AddressBytes, PoolSlug>,
 }
 
 impl Pools {
@@ -58,11 +58,11 @@ impl Pools {
         })
     }
 
-    pub fn find_from_addr(&self, addr: &AddrBytes) -> Option<&Pool> {
+    pub fn find_from_addr(&self, addr: &AddressBytes) -> Option<&Pool> {
         self.by_addr.get(addr).map(|&slug| self.get(slug))
     }
 
-    pub fn get_unknown(&self) -> &Pool {
+    pub fn unknown(&self) -> &Pool {
         &self.pools[0]
     }
 
@@ -88,21 +88,13 @@ pub fn pools() -> &'static Pools {
             from_str(JSON_DATA).expect("Failed to parse pools-v2.json");
 
         let max_id = entries.iter().map(|entry| entry.id).max().unwrap_or(0);
-        assert!(
+        debug_assert!(
             max_id <= u8::MAX as u16,
             "pool ID {max_id} exceeds PoolSlug's u8 range"
         );
         let mut pools: Vec<Pool> = (0..=usize::from(max_id)).map(empty_pool).collect();
 
-        // Position 0: Unknown pool
-        pools[0] = Pool {
-            slug: PoolSlug::Unknown,
-            name: "Unknown",
-            addrs: Box::new([]),
-            tags: Box::new([]),
-            tags_lowercase: Box::new([]),
-            link: "",
-        };
+        pools[0].name = "Unknown";
 
         for entry in entries {
             if TESTNET_IDS.contains(&entry.id) {

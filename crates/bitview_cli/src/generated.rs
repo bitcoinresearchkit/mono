@@ -9,9 +9,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/address/{address}",
         summary: "Address information",
-        description: "Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*",
+        description: "Balance and transaction counts. Supports P2PKH, P2SH, P2WPKH, P2WSH, P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -24,7 +24,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address confirmed transactions",
         description: "Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -37,7 +37,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address confirmed transactions (paginated)",
         description: "Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
             Parameter { api_name: "after_txid", name: "after-txid", required: true, value_name: "Txid", repeatable: false, description: Some("Last txid from the previous page (return transactions strictly older than this)") },
         ],
         query_parameters: &[
@@ -47,11 +47,11 @@ pub static COMMANDS: &[Command] = &[
     Command {
         name: "get-address-hash-prefix-matches",
         method: "GET",
-        path: "/api/address/hash-prefix/{addr_type}/{prefix}",
+        path: "/api/address/hash-prefix/{address_type}/{prefix}",
         summary: "Address hash-prefix matches",
         description: "Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.",
         path_parameters: &[
-            Parameter { api_name: "addr_type", name: "addr-type", required: true, value_name: "OutputType", repeatable: false, description: None },
+            Parameter { api_name: "address_type", name: "address-type", required: true, value_name: "OutputType", repeatable: false, description: None },
             Parameter { api_name: "prefix", name: "prefix", required: true, value_name: "string", repeatable: false, description: Some("First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes.") },
         ],
         query_parameters: &[
@@ -65,7 +65,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address mempool transactions",
         description: "Get unconfirmed transactions for an address from the mempool, newest first (up to 50).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -78,7 +78,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address transactions",
         description: "Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -89,9 +89,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/address/{address}/utxo",
         summary: "Address UTXOs",
-        description: "Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*",
+        description: "Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "Addr", repeatable: false, description: None },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -101,8 +101,8 @@ pub static COMMANDS: &[Command] = &[
         name: "get-api",
         method: "GET",
         path: "/api.json",
-        summary: "Compact OpenAPI specification",
-        description: "Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.",
+        summary: "Compact API summary",
+        description: "Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples; parameters keep their enum, default and bounds. Not valid OpenAPI: build tools from `GET /openapi.json`.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -114,7 +114,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block/{hash}",
         summary: "Block information",
-        description: "Retrieve block information by block hash. Returns block metadata including height, timestamp, difficulty, size, weight, and transaction count.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
         ],
@@ -127,7 +127,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block-height/{height}",
         summary: "Block hash by height",
-        description: "Retrieve the block hash at a given height. Returns the hash as plain text.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*",
+        description: "Block hash as plain text.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
@@ -153,9 +153,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/blocks/fee-rates/{time_period}",
         summary: "Block fee rates",
-        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
+        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: None },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -166,9 +166,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/blocks/fees/{time_period}",
         summary: "Block fees",
-        description: "Get average total fees per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*",
+        description: "Get average total fees per block for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: None },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -205,9 +205,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/blocks/rewards/{time_period}",
         summary: "Block rewards",
-        description: "Get average coinbase reward (subsidy + fees) per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*",
+        description: "Get average coinbase reward (subsidy + fees) per block for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: None },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -218,9 +218,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/blocks/sizes-weights/{time_period}",
         summary: "Block sizes and weights",
-        description: "Get average block sizes and weights for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*",
+        description: "Get average block sizes and weights for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: None },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -231,7 +231,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block/{hash}/status",
         summary: "Block status",
-        description: "Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*",
+        description: "Whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
         ],
@@ -256,7 +256,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mempool/block-template/diff/{hash}",
         summary: "Block template diff since hash",
-        description: "Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.",
+        description: "Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "NextBlockHash", repeatable: false, description: None },
         ],
@@ -269,7 +269,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/blocks/tip/hash",
         summary: "Block tip hash",
-        description: "Returns the hash of the last block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -281,7 +281,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/blocks/tip/height",
         summary: "Block tip height",
-        description: "Returns the height of the last block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -295,7 +295,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Transaction ID at index",
         description: "Retrieve a single transaction ID at a specific index within a block. Returns plain text txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-id)*",
         path_parameters: &[
-            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: Some("Bitcoin block hash") },
+            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
             Parameter { api_name: "index", name: "index", required: true, value_name: "BlockTxIndex", repeatable: false, description: Some("Transaction index within the block (0-based)") },
         ],
         query_parameters: &[
@@ -307,7 +307,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block/{hash}/txids",
         summary: "Block transaction IDs",
-        description: "Retrieve all transaction IDs in a block. Returns an array of txids in block order.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*",
+        description: "Transaction IDs in block order.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
         ],
@@ -320,7 +320,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block/{hash}/txs",
         summary: "Block transactions",
-        description: "Retrieve transactions in a block by block hash. Returns up to 25 transactions starting from index 0.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
+        description: "Up to 25 transactions starting at index 0.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
         ],
@@ -333,9 +333,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block/{hash}/txs/{start_index}",
         summary: "Block transactions (paginated)",
-        description: "Retrieve transactions in a block by block hash, starting from the specified index. Returns up to 25 transactions at a time.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
+        description: "Up to 25 transactions starting at `start_index`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
         path_parameters: &[
-            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: Some("Bitcoin block hash") },
+            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
             Parameter { api_name: "start_index", name: "start-index", required: true, value_name: "BlockTxIndex", repeatable: false, description: Some("Starting transaction index within the block (0-based)") },
         ],
         query_parameters: &[
@@ -360,7 +360,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/blocks",
         summary: "Recent blocks",
-        description: "Retrieve the last 10 blocks. Returns block metadata for each block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
+        description: "The last 10 blocks.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -372,7 +372,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/blocks/{height}",
         summary: "Blocks from height",
-        description: "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
+        description: "Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
@@ -397,7 +397,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/blocks/{height}",
         summary: "Blocks from height with extras",
-        description: "Retrieve up to 15 blocks with extended data going backwards from the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*",
+        description: "Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
@@ -435,7 +435,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/difficulty-adjustments",
         summary: "Difficulty adjustments (all time)",
-        description: "Get historical difficulty adjustments including timestamp, block height, difficulty value, and percentage change.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -447,9 +447,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/difficulty-adjustments/{time_period}",
         summary: "Difficulty adjustments",
-        description: "Get historical difficulty adjustments for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
+        description: "Get historical difficulty adjustments for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: None },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -460,7 +460,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/server/disk",
         summary: "Disk usage",
-        description: "Returns allocated file bytes for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.",
+        description: "Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -496,9 +496,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/hashrate/{time_period}",
         summary: "Network hashrate",
-        description: "Get network hashrate and difficulty data for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*",
+        description: "Get network hashrate and difficulty data for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: None },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -509,7 +509,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/health",
         summary: "Health check",
-        description: "Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index waits until the request deadline, then returns 504. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.",
+        description: "Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -521,11 +521,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/historical-price",
         summary: "Historical price",
-        description: "Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*",
+        description: "Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*",
         path_parameters: &[
         ],
         query_parameters: &[
-            Parameter { api_name: "timestamp", name: "timestamp", required: false, value_name: "Timestamp", repeatable: false, description: None },
+            Parameter { api_name: "timestamp", name: "timestamp", required: false, value_name: "Timestamp", repeatable: false, description: Some("UNIX timestamp: the latest close at or before it") },
+            Parameter { api_name: "currency", name: "currency", required: false, value_name: "Currency", repeatable: false, description: Some("Quote currency: USD, the only one served") },
         ],
         request_body: None,
     },
@@ -534,7 +535,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/indexes",
         summary: "List available indexes",
-        description: "Returns all available indexes with their accepted query aliases. Use any alias when querying series.",
+        description: "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -546,7 +547,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/mempool/price",
         summary: "Live BTC/USD price",
-        description: "Returns the current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the last 12 blocks plus mempool.",
+        description: "Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -558,7 +559,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/mempool",
         summary: "Mempool statistics",
-        description: "Get current mempool statistics including transaction count, total vsize, total fees, and fee histogram.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -618,7 +619,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/openapi.json",
         summary: "OpenAPI specification",
-        description: "Full OpenAPI 3.1 specification for this API.",
+        description: "Full OpenAPI 3.1 specification for this API. Build tools from this document.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -630,7 +631,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/oracle/histogram/outputs/{point}",
         summary: "Output value histogram at height or day",
-        description: "Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.",
+        description: "Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.",
         path_parameters: &[
             Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
         ],
@@ -643,7 +644,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/oracle/histogram/outputs/live",
         summary: "Live output value histogram",
-        description: "Live unfiltered output value histogram for the complete published mempool. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.",
+        description: "Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -692,7 +693,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/pool/{slug}",
         summary: "Mining pool details",
-        description: "Get detailed information about a specific mining pool including block counts and shares for different time periods.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*",
+        description: "Block counts and mining shares by time period for one pool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*",
         path_parameters: &[
             Parameter { api_name: "slug", name: "slug", required: true, value_name: "PoolSlug", repeatable: false, description: None },
         ],
@@ -717,8 +718,8 @@ pub static COMMANDS: &[Command] = &[
         name: "get-pool-blocks-from",
         method: "GET",
         path: "/api/v1/mining/pool/{slug}/blocks/{height}",
-        summary: "Mining pool blocks from height",
-        description: "Get up to 100 blocks mined by a specific pool before (and including) the given height.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*",
+        summary: "Mining pool blocks before height",
+        description: "Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*",
         path_parameters: &[
             Parameter { api_name: "slug", name: "slug", required: true, value_name: "PoolSlug", repeatable: false, description: None },
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
@@ -745,9 +746,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/pools/{time_period}",
         summary: "Mining pool statistics",
-        description: "Get mining pool statistics for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
+        description: "Get mining pool statistics for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: None },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -758,7 +759,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/pools",
         summary: "List all mining pools",
-        description: "Get list of all known mining pools with their identifiers.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -770,7 +771,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/hashrate/pools",
         summary: "All pools hashrate (all time)",
-        description: "Get hashrate data for all mining pools.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -782,9 +783,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/hashrate/pools/{time_period}",
         summary: "All pools hashrate",
-        description: "Get hashrate data for all mining pools for a time period. Valid periods: `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*",
+        description: "Get hashrate data for all mining pools for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: None },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -819,7 +820,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/fees/recommended",
         summary: "Recommended fees",
-        description: "Recommended fee rates by confirmation target.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*",
+        description: "Recommended fee rates by confirmation target, in whole sat/vB.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -831,7 +832,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/replacements",
         summary: "Recent RBF replacements",
-        description: "Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the same shape as `tx_rbf().replacements`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*",
+        description: "Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -856,16 +857,16 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}/{index}",
         summary: "Get series data",
-        description: "Fetch data for a specific series at the given index. Use query parameters to filter by date range and format (json/csv).",
+        description: "Rows selected by a range of positions, dates or timestamps, as JSON or CSV.",
         path_parameters: &[
-            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: Some("Series name") },
-            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Aggregation index") },
+            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
+            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`") },
-            Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: Some("Format of the output") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
     },
@@ -878,12 +879,12 @@ pub static COMMANDS: &[Command] = &[
         path_parameters: &[
         ],
         query_parameters: &[
-            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesList", repeatable: false, description: Some("Requested series") },
-            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Index to query") },
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`") },
-            Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: Some("Format of the output") },
+            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesList", repeatable: false, description: None },
+            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
     },
@@ -904,16 +905,16 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}/{index}/data",
         summary: "Get raw series data",
-        description: "Returns just the data array without the SeriesData wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.",
+        description: "The data array without the `SeriesData` wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.",
         path_parameters: &[
-            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: Some("Series name") },
-            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Aggregation index") },
+            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
+            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`") },
-            Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: Some("Format of the output") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
     },
@@ -937,8 +938,8 @@ pub static COMMANDS: &[Command] = &[
         summary: "Get latest series value",
         description: "Returns the single most recent value for a series, unwrapped (not inside a SeriesData object).",
         path_parameters: &[
-            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: Some("Series name") },
-            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Aggregation index") },
+            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
+            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -949,10 +950,10 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}/{index}/len",
         summary: "Get series data length",
-        description: "Returns the total number of data points for a series at the given index.",
+        description: "",
         path_parameters: &[
-            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: Some("Series name") },
-            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Aggregation index") },
+            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
+            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -963,7 +964,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series",
         summary: "Series catalog",
-        description: "Returns the complete hierarchical catalog of available series organized as a tree structure. Series are grouped by categories and subcategories.",
+        description: "The available series as a tree of categories and subcategories.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -977,8 +978,8 @@ pub static COMMANDS: &[Command] = &[
         summary: "Get series version",
         description: "Returns the vector's schema/computation version, not its length or latest update. Appends and reorgs do not by themselves change this version.",
         path_parameters: &[
-            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: Some("Series name") },
-            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: Some("Aggregation index") },
+            Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
+            Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -1001,7 +1002,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/transaction-times",
         summary: "Transaction first-seen times",
-        description: "Returns timestamps when transactions were first seen in the mempool. Returns 0 for mined or unknown transactions.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*",
+        description: "First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -1014,7 +1015,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}",
         summary: "Transaction information",
-        description: "Retrieve complete transaction data by transaction ID (txid). Returns inputs, outputs, fee, size, and confirmation status.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1029,7 +1030,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Txid by index",
         description: "Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.",
         path_parameters: &[
-            Parameter { api_name: "index", name: "index", required: true, value_name: "TxIndex", repeatable: false, description: None },
+            Parameter { api_name: "index", name: "index", required: true, value_name: "TxIndex", repeatable: false, description: Some("Global transaction index across the chain") },
         ],
         query_parameters: &[
         ],
@@ -1040,7 +1041,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}/hex",
         summary: "Transaction hex",
-        description: "Retrieve the raw transaction as a hex-encoded string. Returns the serialized transaction in hexadecimal format.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*",
+        description: "Hex-encoded serialized transaction.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1053,7 +1054,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}/merkle-proof",
         summary: "Transaction merkle proof",
-        description: "Get the merkle inclusion proof for a transaction.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*",
+        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1079,9 +1080,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}/outspend/{vout}",
         summary: "Output spend status",
-        description: "Get the spending status of a transaction output. Returns whether the output has been spent and, if so, the spending transaction details.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*",
+        description: "Whether the output has been spent and, if so, the spending transaction details.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*",
         path_parameters: &[
-            Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: Some("Transaction ID") },
+            Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
             Parameter { api_name: "vout", name: "vout", required: true, value_name: "Vout", repeatable: false, description: Some("Output index") },
         ],
         query_parameters: &[
@@ -1093,7 +1094,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}/outspends",
         summary: "All output spend statuses",
-        description: "Get the spending status of all outputs in a transaction. Returns an array with the spend status for each output.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*",
+        description: "Spend statuses in output-index order.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1145,7 +1146,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}",
         summary: "Latest URPD",
-        description: "URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.",
+        description: "URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
         ],
@@ -1160,7 +1161,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}/{point}",
         summary: "URPD at block height or date",
-        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.",
+        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
             Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: None },
@@ -1172,11 +1173,49 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-utxo-set",
+        method: "GET",
+        path: "/api/utxo-set/{point}",
+        summary: "UTXO set at block height or date",
+        description: "The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.",
+        path_parameters: &[
+            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-utxo-set-diff",
+        method: "GET",
+        path: "/api/utxo-set/{point}/diff",
+        summary: "UTXO set changes of a block or date",
+        description: "What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.",
+        path_parameters: &[
+            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-utxo-set-latest",
+        method: "GET",
+        path: "/api/utxo-set",
+        summary: "Latest UTXO set",
+        description: "The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-version",
         method: "GET",
         path: "/version",
         summary: "API version",
-        description: "Returns the current version of the API server",
+        description: "",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -1188,11 +1227,11 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/list",
         summary: "Series list",
-        description: "Paginated flat list of all available series names. Use `page` query param for pagination.",
+        description: "Paginated flat list of all available series names.",
         path_parameters: &[
         ],
         query_parameters: &[
-            Parameter { api_name: "page", name: "page", required: false, value_name: "integer", repeatable: false, description: Some("Pagination index") },
+            Parameter { api_name: "page", name: "page", required: false, value_name: "integer", repeatable: false, description: Some("Zero-based page number (default: 0)") },
             Parameter { api_name: "per_page", name: "per-page", required: false, value_name: "integer", repeatable: false, description: Some("Results per page (default: 1000, max: 1000)") },
         ],
         request_body: None,
@@ -1245,7 +1284,7 @@ pub static COMMANDS: &[Command] = &[
         ],
         query_parameters: &[
             Parameter { api_name: "q", name: "q", required: true, value_name: "SeriesName", repeatable: false, description: Some("Search query string") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of results") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of results, 100 when omitted") },
         ],
         request_body: None,
     },

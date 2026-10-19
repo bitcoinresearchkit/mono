@@ -1,13 +1,11 @@
 # Custom plugin example
 
-This is a complete custom Bitview plugin and composition. It stores a
-`near_full_block_streak` series, computes it after the built-in plugins, exposes
-it through the normal series API, and keeps all existing Bitview endpoints.
-The runner is imported without its default composition; this example depends
-on `bitview_default` explicitly because it deliberately extends that
-composition.
+This example adds a `near_full_block_streak` series to Bitview's default
+composition, computes it after the built-in plugins and exposes it through the
+series API, keeping every existing endpoint. It imports the runner without its
+default composition and depends on `bitview_default` to extend it.
 
-Run it exactly like the standard Bitview executable:
+Run it like the standard Bitview executable:
 
 ```bash
 cargo run --release -p bitview-custom-plugin-example
@@ -31,26 +29,27 @@ http://localhost:3110/api/series/near_full_block_streak/height
 Change the plugin storage ID and schema version, stored vectors, dependency
 struct, and compute method for your metric. Bump the root schema version when a
 change must invalidate the plugin's stored vectors; use narrower component
-versions for isolated changes. Share the composition's publication barrier with
-readers and pass the indexer's
-safe height as the maximum recomputation point so normal updates and reorgs
-follow the same path.
+versions for isolated changes. Pass the indexer's safe height as the maximum
+recomputation point so normal updates and reorgs follow the same path; readers
+bound every read by the lengths the indexer publishes, so rows past them stay
+invisible until the composition commits.
 
-The author contract is deliberately small:
+To add a plugin:
 
-1. Define one `PluginStorage` and return it from `Plugin`.
+1. Define one `PluginStorage` and derive `Plugin` with
+   `#[plugin(storage = STORAGE)]`.
 2. Accept `ImportContext` in the plugin constructor and open the database
    through that storage descriptor.
-3. Define a typed dependency struct and implement `ComputePlugin`: return the
-   plugin's database from `database()` and compute in `compute_state`; the
+3. Define a typed dependency struct and implement `ComputePlugin`: name it and
+   the plugin's database with `compute_items!(Dependencies, db)` and compute in
+   `compute_state`; the
    provided `compute` syncs that database before and compacts it after a
    successful computation. Use `UpdateContext` only for shared update control
    such as `Exit`.
 4. Put the plugin in a derived `PluginSet`, call it in the composition's typed
    compute schedule, and expose a read-only accessor for consumers that need
-   it. Delegate `ComputePluginSet::publication` and `ComputePluginSet::commit`
-   to the default composition so the built-in and custom stages publish
-   together.
+   it. Delegate `ComputePluginSet::commit` to the default composition so the
+   built-in and custom stages publish together.
 
 `ImportContext` and `UpdateContext` are copyable borrowed handles. They do not
 contain plugin dependencies, so adding a metric cannot silently change its

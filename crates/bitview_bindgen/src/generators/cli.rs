@@ -1,15 +1,12 @@
-//! Rust command catalog generation for `bitview-cli`.
-
 use std::{collections::BTreeSet, fmt::Write, io, path::Path};
 
-use crate::{Endpoint, Parameter, generators::write_if_changed};
+use crate::{Endpoint, Parameter, Ty, generators::write_if_changed};
 
-/// Generate the OpenAPI-derived command catalog used by `bitview-cli`.
 pub(crate) fn generate_cli(endpoints: &[Endpoint], output_path: &Path) -> io::Result<()> {
     let mut commands = endpoints
         .iter()
         .filter(|endpoint| !endpoint.deprecated)
-        .map(|endpoint| (to_kebab_case(&endpoint.operation_name()), endpoint))
+        .map(|endpoint| (to_kebab_case(&endpoint.operation_id), endpoint))
         .collect::<Vec<_>>();
     commands.sort_by(|(left, _), (right, _)| left.cmp(right));
 
@@ -45,7 +42,7 @@ pub(crate) fn generate_cli(endpoints: &[Endpoint], output_path: &Path) -> io::Re
             Some(body) => writeln!(
                 output,
                 "        request_body: Some(RequestBody {{ value_name: {:?}, required: {}, content_type: {:?} }}),",
-                body.body_type, body.required, body.content_type
+                body.ty.to_string(), body.required, body.content_type
             )
             .unwrap(),
             None => writeln!(output, "        request_body: None,").unwrap(),
@@ -66,8 +63,8 @@ fn write_parameters(output: &mut String, field: &str, parameters: &[Parameter]) 
             parameter.name,
             to_kebab_case(&parameter.name),
             parameter.required,
-            parameter.param_type,
-            parameter.param_type.ends_with("[]"),
+            parameter.ty.to_string(),
+            matches!(parameter.ty, Ty::List(_)),
             parameter.description
         )
         .unwrap();
@@ -96,7 +93,7 @@ fn validate_commands(commands: &[(String, &Endpoint)]) -> io::Result<()> {
 
         let mut flags = BTreeSet::new();
         for parameter in &endpoint.query_params {
-            let flag = to_kebab_case(parameter.name.trim_end_matches("[]"));
+            let flag = to_kebab_case(&parameter.name);
             if !flags.insert(flag.clone()) {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -115,17 +112,14 @@ fn to_kebab_case(value: &str) -> String {
 
     for character in value.trim_end_matches("[]").chars() {
         if character.is_ascii_alphanumeric() {
-            if character.is_ascii_uppercase()
-                && previous_was_lower_or_digit
-                && !output.ends_with('-')
-            {
+            if character.is_ascii_uppercase() && previous_was_lower_or_digit {
                 output.push('-');
             }
             output.push(character.to_ascii_lowercase());
             previous_was_separator = false;
             previous_was_lower_or_digit =
                 character.is_ascii_lowercase() || character.is_ascii_digit();
-        } else if !previous_was_separator && !output.ends_with('-') {
+        } else if !previous_was_separator {
             output.push('-');
             previous_was_separator = true;
             previous_was_lower_or_digit = false;

@@ -1,7 +1,5 @@
 use crate::{BytesVecValue, Pco};
 
-/// Marker trait for values storable in a `PcoVec`: must be `Copy`, `Pco`,
-/// and serializable via the `Bytes` path used by `BytesVec`.
 pub trait PcoVecValue: Pco + BytesVecValue + Copy {}
 
 macro_rules! impl_pco_primitive {

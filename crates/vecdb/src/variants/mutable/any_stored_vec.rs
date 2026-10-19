@@ -53,42 +53,44 @@ where
         self.vec.stored_len()
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
-        <Self as WritableVec<V::I, V::T>>::stamped_write_with_changes(self, stamp)
+    fn any_save_changes(&self, stamp: Stamp) -> Result<()> {
+        self.vec.save_change_file(stamp, &self.serialize_changes()?)
     }
 
-    fn any_stamped_write_maybe_with_changes(
-        &mut self,
-        stamp: Stamp,
-        with_changes: bool,
-    ) -> Result<()> {
-        if with_changes {
-            self.any_stamped_write_with_changes(stamp)
-        } else {
-            // Advance the baseline without collecting old values that this
-            // checkpoint explicitly discards.
-            self.write_saved_changes(stamp)
+    /// The undo record is saved or discarded already: the updated values' previous ones are not
+    /// read back.
+    fn any_write_checkpoint(&mut self, stamp: Stamp) -> Result<()> {
+        let guard = self.header().begin_write()?;
+        self.write_inner(false)?;
+        self.update_stamp(stamp);
+        self.write_header()?;
+        if self.saved_stamped_changes() > 0 {
+            self.vec.save_previous();
+            self.holes.save();
+            self.updated.previous.clear();
         }
+        guard.finish(Ok(()))
     }
 
-    fn any_save_rollback_state(&mut self) {
-        <Self as WritableVec<V::I, V::T>>::save_rollback_state(self)
+    fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()> {
+        self.vec.any_remove_changes_above(stamp)
     }
 
     fn serialize_changes(&self) -> Result<Vec<u8>> {
         let mut bytes = self.vec.serialize_changes()?;
         let rollback_len = self.vec.rollback_len();
         let mut indices = self
-            .current_updated()
+            .updated
+            .current
             .keys()
-            .chain(self.previous_updated().keys())
+            .chain(self.updated.previous.keys())
             .filter(|&&index| index < rollback_len)
             .copied()
             .collect::<Vec<_>>();
         indices.sort_unstable();
         indices.dedup();
 
-        let previous_holes = self.holes.previous();
+        let previous_holes = &self.holes.previous;
         bytes.reserve(
             indices.len() * (size_of::<usize>() + size_of::<V::T>())
                 + (previous_holes.len() + 2) * size_of::<usize>(),
@@ -99,7 +101,7 @@ where
             bytes.extend(index.to_bytes());
         }
         self.vec
-            .append_previous_values(&indices, self.previous_updated(), &mut bytes);
+            .append_previous_values(&indices, &self.updated.previous, &mut bytes);
 
         bytes.extend(previous_holes.len().to_bytes());
         for hole in previous_holes.iter() {

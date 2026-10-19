@@ -1,21 +1,9 @@
 # brk_rpc
 
-Thread-safe Bitcoin Core RPC client with automatic retries.
+Bitcoin Core RPC clients: a thread-safe blocking `Client`, cheap to clone, and with the `async`
+feature an `AsyncClient` for height reads and transaction submission.
 
-## What It Enables
-
-Query a Bitcoin Core node for blocks, transactions, mempool data, and chain state. Handles connection failures gracefully by retrying.
-
-## Key Features
-
-- **Auto-retry**: Up to 1M retries, one second apart, on transient failures
-- **Thread-safe**: Clone freely, share across threads
-- **Focused RPC coverage**: Blocks, headers, transactions, mempool, and UTXO queries
-- **Mempool transactions**: Resolves prevouts for mempool tx fee calculation
-- **Reorg detection**: `get_closest_valid_height` finds main chain after reorg
-- **Sync waiting**: `wait_for_synced_node` blocks until node catches up
-
-## Core API
+## Usage
 
 ```rust,ignore
 // Explicit endpoint and credentials
@@ -27,27 +15,18 @@ let client = ConnectArgs::default().client()?;
 let height = client.get_last_height()?;
 let tip = client.get_best_block_hash()?;
 let header = client.get_block_header_info(&tip)?;
-
-// Mempool
-let state = client.fetch_mempool_state()?;
+let (state, template) = client.fetch_mempool_state()?;
 ```
 
+## Failures and retries
+
 Rejected credentials fail with `Error::RpcAuthFailed` from both the blocking and the async client.
-For single calls with cookie auth, both re-read the cookie first and retry only when it changed (a
-restarting node writes a new one before serving RPC); blocking batches report a rejection at once.
-An unreadable cookie fails at once and names its path. A request refused by `rpcallowip` or
-`rpcwhitelist` fails at once with `Error::RpcForbidden`, and so do other HTTP client errors without a
-JSON-RPC answer (a wrong URL path); lost connections, server errors, a proxy's timeout or rate limit
-(408, 429) and the node's warm-up answers are retried.
-
-## Key Methods
-
-- `get_last_height`, `get_best_block_hash`, `get_block_info`, `get_block_header_info`, `get_block_hashes_range`
-- `get_raw_transactions`, `fetch_mempool_state`, `fetch_new_pool_data`
-- `get_closest_valid_height`, `get_network`, `wait_for_synced_node`
-
-## Built On
-
-- `brk_error` for error handling
-- `tracing` for debug logging
-- `brk_types` for `Height`, `BlockHash`, `Txid`, `MempoolEntryInfo`
+With cookie auth, both re-read the cookie first and replay a rejected request once, only when it
+changed (a restarting node writes a new one before serving RPC); in the blocking client this covers
+batches too. The blocking client also replays a request once on a fresh connection when a pooled
+keep-alive connection dies before answering. An unreadable cookie fails at once and names its path.
+A request refused by `rpcallowip` or `rpcwhitelist` fails at once with `Error::RpcForbidden`, and so
+do other HTTP client errors without a JSON-RPC answer (a wrong URL path). Blocking single calls
+retry lost connections, server errors, a proxy's timeout or rate limit (408, 429) and the node's
+warm-up answers, up to 1,000,000 times, one second apart; blocking batches fail on them at once,
+leaving retries to their callers.

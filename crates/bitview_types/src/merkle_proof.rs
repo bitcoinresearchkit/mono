@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 /// Merkle inclusion proof for a transaction
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct MerkleProof {
-    /// Block height containing the transaction
     pub block_height: Height,
     /// Merkle proof path (hex-encoded hashes)
     pub merkle: Vec<String>,

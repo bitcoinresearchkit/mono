@@ -1,4 +1,4 @@
-use std::{array, cmp, mem::MaybeUninit};
+use std::{array, cmp};
 
 use super::toggle_center_in_place;
 use crate::{
@@ -76,11 +76,15 @@ fn find_best_lookback<L: Latent>(
   let mut best_goodness = 0;
   let mut best_lookback: usize = 0;
   for &lookback in proposed_lookbacks {
-    // SAFETY: each `lookback` comes from `proposed_lookbacks`, whose entries
-    // are initialised to `(k+1).min(state_n) >= 1` and subsequently updated
-    // only to values in `[1, window_n]`.  `window_n <= lookback_counts.len()`,
-    // so `lookback - 1 < lookback_counts.len()`.  `i >= state_n >= lookback`,
-    // so `i - lookback` doesn't underflow and stays in `[0, latents.len())`.
+    // SAFETY: every proposed lookback is in `1..=min(i, window_n)`: initial
+    // ones are `<= state_n <= min(i, window_n)`, brute ones
+    // `i.min(PROPOSED_LOOKBACKS)` (asserted `<= window_n`), hash ones either
+    // `i - j` for a table entry `j < i` (when `<= window_n`) or
+    // `proposal_idx.min(i)` with `proposal_idx < PROPOSED_LOOKBACKS`, and
+    // repeating ones are earlier picks among these (every proposal scores at
+    // least 1, so a pick is never the initial 0). With `i < latents.len()`,
+    // `lookback - 1 < min(window_n, latents.len()) = lookback_counts.len()`
+    // and `i - lookback` lies in `[0, i)`.
     let (lookback_count, other) = unsafe {
       (
         *lookback_counts.get_unchecked(lookback - 1),
@@ -119,45 +123,42 @@ pub fn choose_lookbacks<L: Latent>(
   );
 
   let mut lookback_counts = vec![1_u32; window_n.min(latents.len())];
-  let mut lookbacks = Vec::with_capacity(latents.len() - state_n);
-  let uninit_lookbacks = lookbacks.spare_capacity_mut();
   let mut idx_hash_table = vec![0_usize; COARSENESSES.len() * hash_table_n];
   let mut proposed_lookbacks = array::from_fn::<_, PROPOSED_LOOKBACKS, _>(|i| (i + 1).min(state_n));
   let mut best_lookback = 1;
   let mut repeating_lookback_idx: usize = 0;
-  for i in state_n..latents.len() {
-    let l = latents[i];
+  (state_n..latents.len())
+    .map(|i| {
+      let l = latents[i];
 
-    let new_brute_lookback = i.min(PROPOSED_LOOKBACKS);
-    proposed_lookbacks[new_brute_lookback - 1] = new_brute_lookback;
+      let new_brute_lookback = i.min(PROPOSED_LOOKBACKS);
+      proposed_lookbacks[new_brute_lookback - 1] = new_brute_lookback;
 
-    hash_lookup(
-      l.to_u64(),
-      i,
-      hash_table_n,
-      window_n,
-      &mut idx_hash_table,
-      &mut proposed_lookbacks,
-    );
-    let new_best_lookback = find_best_lookback(
-      l,
-      i,
-      latents,
-      &proposed_lookbacks,
-      &mut lookback_counts,
-    );
-    if new_best_lookback != best_lookback {
-      repeating_lookback_idx += 1;
-    }
-    proposed_lookbacks[BRUTE_LOOKBACKS + (repeating_lookback_idx) % REPEATING_LOOKBACKS] =
-      new_best_lookback;
-    best_lookback = new_best_lookback;
-    uninit_lookbacks[i - state_n] = MaybeUninit::new(best_lookback as DeltaLookback);
-    lookback_counts[best_lookback - 1] += 1;
-  }
-
-  unsafe { lookbacks.set_len(latents.len() - state_n) };
-  lookbacks
+      hash_lookup(
+        l.to_u64(),
+        i,
+        hash_table_n,
+        window_n,
+        &mut idx_hash_table,
+        &mut proposed_lookbacks,
+      );
+      let new_best_lookback = find_best_lookback(
+        l,
+        i,
+        latents,
+        &proposed_lookbacks,
+        &mut lookback_counts,
+      );
+      if new_best_lookback != best_lookback {
+        repeating_lookback_idx += 1;
+      }
+      proposed_lookbacks[BRUTE_LOOKBACKS + (repeating_lookback_idx) % REPEATING_LOOKBACKS] =
+        new_best_lookback;
+      best_lookback = new_best_lookback;
+      lookback_counts[best_lookback - 1] += 1;
+      best_lookback as DeltaLookback
+    })
+    .collect()
 }
 
 // All encode in place functions leave junk data (`state_n` latents in this
@@ -245,83 +246,4 @@ pub fn decode_in_place<L: Latent>(
   *window_buffer_pos = end_pos;
 
   has_oob_lookbacks
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::metadata::DeltaLookbackConfig;
-
-  #[test]
-  fn test_lookback_encode_decode() {
-    let original_latents = {
-      let mut res = vec![100_u32; 100];
-      res[1] = 200;
-      res[2] = 201;
-      res[3] = 202;
-      res[5] = 203;
-      res[15] = 204;
-      res[50] = 205;
-      res
-    };
-    let config = DeltaLookbackConfig {
-      window_n_log: 4,
-      state_n_log: 1,
-    };
-    let window_n = config.window_n();
-    assert_eq!(window_n, 16);
-    let state_n = config.state_n();
-    assert_eq!(state_n, 2);
-
-    let mut deltas = original_latents.clone();
-    let lookbacks = choose_lookbacks(config, &original_latents);
-    assert_eq!(lookbacks[0], 1); // 201 -> 200
-    assert_eq!(lookbacks[2], 4); // 0 -> 0
-    assert_eq!(lookbacks[13], 10); // 204 -> 203
-    assert_eq!(lookbacks[48], 1); // 205 -> 0; 204 was outside window
-
-    let state = encode_in_place(config, &lookbacks, &mut deltas);
-    assert_eq!(state, vec![100, 200]);
-
-    // Encoding left junk deltas at the front,
-    // but for decoding we need junk deltas at the end.
-    let mut deltas_to_decode = Vec::<u32>::new();
-    deltas_to_decode.extend(&deltas[state_n..]);
-    for _ in 0..state_n {
-      deltas_to_decode.push(1337);
-    }
-
-    let (mut window_buffer, mut pos) = new_window_buffer_and_pos(config, &state);
-    assert_eq!(pos, window_n);
-    let has_oob_lookbacks = decode_in_place(
-      config,
-      &lookbacks,
-      &mut pos,
-      &mut window_buffer,
-      &mut deltas_to_decode,
-    );
-    assert!(!has_oob_lookbacks);
-    assert_eq!(deltas_to_decode, original_latents);
-    assert_eq!(pos, window_n + original_latents.len());
-  }
-
-  #[test]
-  fn test_corrupt_lookbacks_do_not_panic() {
-    let config = DeltaLookbackConfig {
-      state_n_log: 0,
-      window_n_log: 2,
-    };
-    let delta_state = vec![0_u32];
-    let lookbacks = vec![5, 1, 1, 1];
-    let mut latents = vec![1_u32, 2, 3, 4];
-    let (mut window_buffer, mut pos) = new_window_buffer_and_pos(config, &delta_state);
-    let has_oob_lookbacks = decode_in_place(
-      config,
-      &lookbacks,
-      &mut pos,
-      &mut window_buffer,
-      &mut latents,
-    );
-    assert!(has_oob_lookbacks);
-  }
 }

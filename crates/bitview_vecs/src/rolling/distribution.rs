@@ -1,5 +1,7 @@
-use bitview_collections::DistributionStats;
-use bitview_compute::{ComputedVecValue, NumericValue, compute_rolling_distribution_from_starts};
+use bitview_compute::{
+    ComputedVecValue, DistributionStats, NumericValue, Retained, SortedWindow,
+    compute_rolling_distribution_from_starts,
+};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -7,15 +9,22 @@ use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;
-use vecdb::{Budgeted, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode, VecValue};
+use vecdb::{Budgeted, Database, PcoVec, ReadableVec, Rw, StorageMode, VecValue};
 
 use crate::{IndexSources, RollingWindows, WindowStarts};
 
 #[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
-pub struct RollingDistribution<T, M: StorageMode = Rw>(pub DistributionStats<RollingWindows<T, M>>)
+pub struct RollingDistribution<T, M: StorageMode = Rw>
 where
-    T: ComputedVecValue + PartialOrd + JsonSchema;
+    T: ComputedVecValue + PartialOrd + JsonSchema,
+{
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    stats: DistributionStats<RollingWindows<T, M>>,
+    /// The kept window of each rolling window, in `Windows` order.
+    retained: M::WriteOnly<[Retained<SortedWindow>; 4]>,
+}
 
 impl<T> RollingDistribution<T>
 where
@@ -27,9 +36,12 @@ where
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        Ok(Self(DistributionStats::try_from_fn(|suffix| {
-            RollingWindows::import(db, &format!("{name}_{suffix}"), version, indexes)
-        })?))
+        Ok(Self {
+            stats: DistributionStats::try_from_fn(|suffix| {
+                RollingWindows::import(db, &format!("{name}_{suffix}"), version, indexes)
+            })?,
+            retained: Default::default(),
+        })
     }
 
     pub(crate) fn compute_distribution<S>(
@@ -52,7 +64,7 @@ where
             median,
             pct75,
             pct90,
-        } = &mut self.0;
+        } = &mut self.stats;
         let min = &mut min.0;
         let max = &mut max.0;
         let pct10 = &mut pct10.0;
@@ -63,7 +75,7 @@ where
 
         macro_rules! window {
             ($w:ident) => {
-                DistributionStats::<&mut EagerVec<PcoVec<Height, T, Budgeted>>> {
+                DistributionStats::<&mut PcoVec<Height, T, Budgeted>> {
                     min: &mut min.$w.height,
                     max: &mut max.$w.height,
                     pct10: &mut pct10.$w.height,
@@ -80,22 +92,18 @@ where
         let week = window!(_1w);
         let day = window!(_24h);
 
+        let [day_kept, week_kept, month_kept, year_kept] = &mut self.retained;
+
         [
-            (year, windows._1y),
-            (month, windows._1m),
-            (week, windows._1w),
-            (day, windows._24h),
+            (year, windows._1y, year_kept),
+            (month, windows._1m, month_kept),
+            (week, windows._1w, week_kept),
+            (day, windows._24h, day_kept),
         ]
         .into_par_iter()
-        .try_for_each(|(outputs, starts)| {
-            let mut values_cache = None;
+        .try_for_each(|(outputs, starts, retained)| {
             compute_rolling_distribution_from_starts(
-                max_from,
-                starts,
-                source,
-                outputs,
-                exit,
-                &mut values_cache,
+                max_from, starts, source, outputs, retained, exit,
             )
         })
     }

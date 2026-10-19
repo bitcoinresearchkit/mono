@@ -1,11 +1,10 @@
 use bitcoin::{Transaction, Weight};
-use brk_types::{TxIndex, Txid, TxidPrefix, Vout, Weight as TypesWeight};
+use brk_types::{TxIndex, Txid, TxidPrefix, Weight as TypesWeight};
 
 pub struct ComputedTx<'a> {
     pub tx_index: TxIndex,
     pub tx: &'a Transaction,
     pub txid: Txid,
-    pub insert_txid_prefix: bool,
     pub base_size: u32,
     pub total_size: u32,
     pub input_offset: usize,
@@ -17,7 +16,6 @@ impl ComputedTx<'_> {
         tx_index: TxIndex,
         tx: &Transaction,
         txid: Txid,
-        insert_txid_prefix: bool,
         base_size: u32,
         total_size: u32,
     ) -> ComputedTx<'_> {
@@ -25,7 +23,6 @@ impl ComputedTx<'_> {
             tx_index,
             tx,
             txid,
-            insert_txid_prefix,
             base_size,
             total_size,
             input_offset: 0,
@@ -56,8 +53,13 @@ impl ComputedTx<'_> {
     }
 
     #[inline]
-    pub fn txout_offset(&self, vout: Vout) -> usize {
-        self.output_offset + usize::from(vout)
+    pub fn outputs_mut<'a, T>(&self, outputs: &'a mut [T]) -> &'a mut [T] {
+        &mut outputs[self.output_offset..self.output_offset + self.tx.output.len()]
+    }
+
+    #[inline]
+    pub fn txout_offset(&self, vout: u32) -> usize {
+        self.output_offset + vout as usize
     }
 
     #[inline]

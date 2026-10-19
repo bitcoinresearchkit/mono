@@ -1,37 +1,50 @@
-//! Two arrival kinds:
+//! A tx unknown to the live store: build its `Transaction` and `TxEntry`,
+//! resolving prevouts from the pool as it stood before this cycle. The others
+//! land as `prevout: None`, for `prevouts::fill` after apply.
 //!
-//! - **Fresh** - tx unknown to us. Decode the raw bytes, resolve
-//!   prevouts against the live mempool (same-cycle parents), build a
-//!   full `Transaction` + `Entry`. Confirmed parents land as
-//!   `prevout: None` and are filled post-apply by the resolver passed
-//!   to `Mempool::tick_with`.
-//! - **Revived** - tx in the graveyard. Rebuild the `Entry` only
-//!   (preserving `rbf`, `size`). The Applier exhumes the cached tx
-//!   body. No raw decoding.
+//! A tx returning from the graveyard is built the same way: the same txid
+//! can come back with a different witness, so the tomb's body is never
+//! reused; only its first sighting is kept.
 
 use bitcoin::{Transaction as BitcoinTransaction, TxIn as BitcoinTxIn};
 use brk_types::{MempoolEntryInfo, SigOps, Transaction, TxIn, TxOut, TxStatus, Txid, Vout};
 
 use crate::{
     state::TxEntry,
-    stores::{TxStore, TxTombstone},
+    stores::{TxGraveyard, TxStore},
 };
 
-pub enum TxAddition {
-    Fresh { tx: Transaction, entry: TxEntry },
-    Revived { entry: TxEntry },
+pub struct TxAddition {
+    pub tx: Transaction,
+    pub entry: TxEntry,
+    /// In the raw listing, not only in a (possibly stale) template: only a
+    /// listed tx takes over an outpoint another pooled tx already spends.
+    pub listed: bool,
 }
 
 impl TxAddition {
-    /// Resolves prevouts against the live mempool only. Confirmed
-    /// parents land with `prevout: None` and are filled by the
-    /// resolver supplied to `Mempool::tick_with` in the same cycle.
-    pub fn fresh(info: &MempoolEntryInfo, tx: BitcoinTransaction, mempool_txs: &TxStore) -> Self {
+    /// Preserves a tomb's original `first_seen`: bitcoind resets the
+    /// timestamp on re-acceptance (and GBT synthesis carries "now"), but
+    /// the consumer wants the first-ever sighting, not the latest one.
+    pub fn new(
+        info: &MempoolEntryInfo,
+        tx: BitcoinTransaction,
+        listed: bool,
+        mempool_txs: &TxStore,
+        graveyard: &TxGraveyard,
+    ) -> Self {
         let total_size = tx.total_size();
         let rbf = tx.input.iter().any(|i| i.sequence.is_rbf());
         let built = Self::build_tx(info, tx, total_size, mempool_txs);
-        let entry = TxEntry::new(info, total_size as u64, rbf);
-        Self::Fresh { tx: built, entry }
+        let mut entry = TxEntry::new(info, total_size as u64, rbf);
+        if let Some(tomb) = graveyard.get(&info.txid) {
+            entry.first_seen = tomb.record.entry.first_seen;
+        }
+        Self {
+            tx: built,
+            entry,
+            listed,
+        }
     }
 
     fn build_tx(
@@ -62,15 +75,6 @@ impl TxAddition {
         built
     }
 
-    /// Preserves the tomb's original `first_seen`: bitcoind resets the
-    /// timestamp on re-acceptance (and GBT synthesis carries "now"), but
-    /// the consumer wants the first-ever sighting, not the latest one.
-    pub fn revived(info: &MempoolEntryInfo, tomb: &TxTombstone) -> Self {
-        let mut entry = TxEntry::new(info, tomb.entry.size, tomb.entry.rbf);
-        entry.first_seen = tomb.entry.first_seen;
-        Self::Revived { entry }
-    }
-
     fn build_txin(txin: BitcoinTxIn, mempool_txs: &TxStore) -> TxIn {
         let prev_txid: Txid = txin.previous_output.txid.into();
         let prev_vout = Vout::from(txin.previous_output.vout);
@@ -84,11 +88,8 @@ impl TxAddition {
             txid: prev_txid,
             vout: prev_vout,
             script_sig: txin.script_sig,
-            script_sig_asm: (),
-            witness: txin.witness.into(),
+            witness: txin.witness,
             sequence: txin.sequence.into(),
-            inner_redeem_script_asm: (),
-            inner_witness_script_asm: (),
         }
     }
 

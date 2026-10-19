@@ -1,11 +1,14 @@
 use std::ptr;
 
 use super::EncodedChunk;
-use crate::{Error, Result, ValueStrategy, likely};
+use crate::{Error, Format, Result, ValueStrategy, likely};
 
-/// Trait for compression strategies used by ReadWriteCompressedVec.
-pub trait CompressionStrategy<T>: ValueStrategy<T> {
-    type Decoder;
+pub trait CompressionStrategy<T>: ValueStrategy<T> + 'static {
+    /// On-disk format of vectors stored with this strategy.
+    const FORMAT: Format;
+
+    /// Decoding state reused across pages, its scratch across chunks too.
+    type Decoder: Default;
 
     /// Maximum amount of uncompressed data that should share one compression context.
     const MAX_UNCOMPRESSED_CHUNK_SIZE: usize;
@@ -13,73 +16,38 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
     /// Compresses full pages into one shared compression context.
     fn compress_chunk(values: &[T], values_per_page: usize) -> Result<EncodedChunk>;
 
-    /// Builds the reusable decoder for one chunk header.
-    fn decoder(header: &[u8]) -> Result<Self::Decoder>;
+    /// Points `decoder` at the chunk with this header, keeping its reusable scratch. Pages are
+    /// decoded only after a successful reset for their chunk.
+    fn reset_decoder(decoder: &mut Self::Decoder, header: &[u8]) -> Result<()>;
 
-    /// Decodes one page body, replacing `dst` while reusing its allocation.
-    fn decompress_page_into(
+    fn decompress_page_append(
         decoder: &mut Self::Decoder,
         body: &[u8],
         expected_len: usize,
         dst: &mut Vec<T>,
     ) -> Result<()>;
 
-    /// Decodes one page body directly onto the end of `dst`.
     #[inline]
-    fn decompress_page_append(
-        decoder: &mut Self::Decoder,
-        body: &[u8],
-        expected_len: usize,
-        dst: &mut Vec<T>,
-    ) -> Result<()> {
-        let mut values = Vec::with_capacity(expected_len);
-        Self::decompress_page_into(decoder, body, expected_len, &mut values)?;
-        dst.extend(values);
-        Ok(())
-    }
-
-    /// Serializes a slice of values to bytes.
-    #[inline]
-    fn values_to_bytes(values: &[T]) -> Vec<u8> {
-        let byte_len = size_of_val(values);
-        let mut bytes = Vec::with_capacity(byte_len);
-        if Self::IS_NATIVE_LAYOUT {
-            unsafe {
-                ptr::copy_nonoverlapping(
-                    values.as_ptr() as *const u8,
-                    bytes.as_mut_ptr(),
-                    byte_len,
-                );
-                bytes.set_len(byte_len);
-            }
-        } else {
-            for v in values {
-                Self::write_to_vec(v, &mut bytes);
-            }
-        }
-        bytes
-    }
-
-    /// Deserializes bytes into an existing buffer, reusing its allocation.
-    #[inline]
-    fn bytes_to_values_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
+    fn bytes_to_values_append(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
         let expected_bytes = expected_len * size_of::<T>();
-        dst.clear();
-        dst.reserve(expected_len);
         if !likely(bytes.len() == expected_bytes) {
             return Err(Error::DecompressionMismatch {
                 expected_len,
                 actual_len: bytes.len() / size_of::<T>(),
             });
         }
+        dst.reserve(expected_len);
         if Self::IS_NATIVE_LAYOUT {
+            let len = dst.len();
+            // SAFETY: native-layout values are their own byte image (`ValueStrategy` contract),
+            // and the reserved spare capacity holds `expected_len` values.
             unsafe {
                 ptr::copy_nonoverlapping(
                     bytes.as_ptr(),
-                    dst.as_mut_ptr() as *mut u8,
+                    dst.as_mut_ptr().add(len).cast::<u8>(),
                     expected_bytes,
                 );
-                dst.set_len(expected_len);
+                dst.set_len(len + expected_len);
             }
         } else {
             let value_size = size_of::<T>();

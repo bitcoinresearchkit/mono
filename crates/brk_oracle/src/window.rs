@@ -6,8 +6,8 @@ use crate::{HistogramEma, HistogramRaw};
 /// [`push`](Self::push) records a block into a fixed-size ring.
 /// [`recompute`](Self::recompute) folds the ring into [`ema`](Self::ema) with
 /// per-age weights `alpha * (1 - alpha)^age` (newest block is age 0). Recording
-/// and recomputing are separate steps so warm-up can fill the ring without
-/// paying for the EMA until the first real query.
+/// and recomputing are separate so a warm-up fills the ring and computes the EMA
+/// once.
 #[derive(Clone)]
 pub struct EmaWindow {
     histograms: Vec<HistogramRaw>,
@@ -24,9 +24,9 @@ impl EmaWindow {
             .map(|i| alpha * decay.powi(i as i32))
             .collect();
         Self {
-            histograms: vec![HistogramRaw::zeros(); window_size],
+            histograms: vec![HistogramRaw::default(); window_size],
             weights,
-            ema: Box::new(HistogramEma::zeros()),
+            ema: Box::new(HistogramEma::default()),
             cursor: 0,
             filled: 0,
         }

@@ -1,5 +1,3 @@
-/// Metadata for a page in a CompressedVec.
-///
 /// Compressed pages may share one compression header while remaining
 /// independently decodable. Raw pages are used only for the final partial page.
 #[derive(Debug, Clone, Copy)]
@@ -13,11 +11,6 @@ pub struct Page {
 }
 
 impl Page {
-    #[inline]
-    pub fn is_raw(&self) -> bool {
-        self.raw
-    }
-
     #[inline]
     pub fn values_count(&self, values_per_page: usize, value_size: usize) -> usize {
         if self.raw {

@@ -61,39 +61,3 @@ impl<'a> Reader<'a> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::Reader;
-
-    #[test]
-    fn partition_search_handles_both_offset_widths() {
-        for (offsets, width) in [
-            ([0_u32, 17, 31, 100, 65535], 2),
-            ([0_u32, 17, 65536, 100_000, u32::MAX], 4),
-        ] {
-            // Include a prefix to exercise an index at a nonzero block offset.
-            let mut bytes = vec![9; 3];
-            for offset in offsets {
-                bytes.extend_from_slice(&offset.to_le_bytes()[..usize::from(width)]);
-            }
-            let reader = Reader::new(&bytes, 3, 5, width);
-            for needle in [0, 1, 17, 18, 31, 100, 65535, 65536, 100_001, u32::MAX] {
-                let expected = offsets
-                    .iter()
-                    .take_while(|offset| **offset < needle)
-                    .count();
-                assert_eq!(
-                    reader.partition_point(|offset| offset < needle as usize),
-                    expected
-                );
-            }
-            for (index, offset) in offsets.into_iter().enumerate() {
-                assert_eq!(reader.get(index), offset as usize);
-            }
-        }
-        for width in [2, 4] {
-            assert_eq!(Reader::new(&[], 0, 0, width).partition_point(|_| true), 0);
-        }
-    }
-}

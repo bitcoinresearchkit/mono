@@ -52,11 +52,10 @@ impl<T: VecValue> Cache<T> {
         load: impl FnMut(usize, &[Range<usize>]) -> Vec<(usize, Vec<T>)>,
         mut each: impl FnMut(usize, &[T]),
     ) {
-        self.try_for_each_source(from, to, source, load, |at, values| {
+        let Ok(()) = self.try_for_each_source(from, to, source, load, |at, values| {
             each(at, values);
             Ok::<_, Infallible>(())
-        })
-        .unwrap();
+        });
     }
 
     #[inline]

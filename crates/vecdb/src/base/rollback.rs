@@ -1,8 +1,9 @@
 use std::{
     collections::BTreeMap,
     fs::{self, File},
-    io::Write,
-    path::PathBuf,
+    io::{ErrorKind, Write},
+    mem,
+    path::{Path, PathBuf},
 };
 
 use super::{ChangeCursor, ChangeData, ReadWriteBaseVec, changes_path_with};
@@ -26,7 +27,7 @@ where
                 S::write_to_vec(value, bytes);
             }
         };
-        let prev_stored_len = self.prev_stored_len();
+        let prev_stored_len = self.previous_stored_len;
         let stored_len = self.stored_len();
         let truncated = prev_stored_len.saturating_sub(stored_len);
 
@@ -74,62 +75,122 @@ where
 
         Ok(ChangeData {
             prev_stamp,
-            prev_stored_len,
             truncated_start,
             truncated_values,
             prev_pushed,
         })
     }
 
-    /// Restores the base rollback state from resolved stored and pushed values.
-    pub fn apply_rollback(&mut self, stamp: Stamp, stored_len: usize, pushed: Vec<T>) {
-        self.read_only.header.update_stamp(stamp);
+    /// Persisted length after undoing `change` from the last save point.
+    fn rollback_stored_len(&self, change: &ChangeData<T>) -> usize {
+        change.truncated_start.min(self.previous_stored_len)
+    }
+
+    /// First row a rollback with `change` replaces: the rows below stay as they are.
+    pub fn rollback_from(&self, change: &ChangeData<T>) -> usize {
+        self.rollback_stored_len(change).min(self.stored_len())
+    }
+
+    /// Undoes one change record from the last save point: the state its stamp wrote, or what an
+    /// earlier undo of this rollback restored (partly in memory). Unsaved changes are dropped:
+    /// rows an unflushed truncation cut stay on disk until the save point says otherwise.
+    /// Restored rows are kept and trimmed like persisted ones, so undo records compose until
+    /// the next write persists the result.
+    pub fn apply_rollback(&mut self, change: ChangeData<T>) {
+        let stored_len = self.rollback_stored_len(&change);
+        let mut pushed = mem::take(&mut self.pushed.previous);
+        debug_assert!(
+            self.previous_stored_len + pushed.len() >= change.truncated_start,
+            "the state to undo is shorter than its change record's unchanged prefix"
+        );
+        // Rows in [stored_len, truncated_start) are unchanged but not on disk: they stay pushed.
+        pushed.truncate(change.truncated_start - stored_len);
+        pushed.extend(change.truncated_values);
+        pushed.extend(change.prev_pushed);
+        self.read_only.header.update_stamp(change.prev_stamp);
         self.read_only.stored_len.set(stored_len);
-        *self.pushed.current_mut() = pushed;
+        self.previous_stored_len = stored_len;
+        self.pushed.current = pushed;
         self.pushed.save();
+        self.unwritten_baseline = true;
     }
 
     /// Caller must check `saved_stamped_changes > 0` before calling.
     pub fn save_change_file(&self, stamp: Stamp, data: &[u8]) -> Result<()> {
         debug_assert!(self.saved_stamped_changes > 0);
+        // A record at the current stamp would replace that stamp's own undo with a self-link.
+        debug_assert!(
+            stamp > self.header.stamp(),
+            "{}: undo record at stamp {stamp:?} does not follow the vec's stamp {:?}",
+            self.name,
+            self.header.stamp()
+        );
         let path = self.changes_path();
-        if !path.exists() {
-            fs::create_dir_all(&path)?;
-            // Persist new directory entries all the way back to the database.
-            let db_path = self.db_path();
-            for ancestor in path.ancestors().take_while(|p| *p != db_path) {
-                File::open(ancestor)?.sync_all()?;
+        let mut cached = self.change_stamps.lock();
+        // Taken while files change: after an error the next call lists the directory again.
+        let mut stamps = match cached.take() {
+            Some(stamps) => stamps,
+            None => {
+                fs::create_dir_all(&path)?;
+                list_change_stamps(&path)?
             }
-            File::open(db_path)?.sync_all()?;
-        }
+        };
 
         // Never truncate an existing undo record until its replacement is
         // complete. Ignore this non-numeric staging name when listing stamps.
         let pending = path.join("pending");
-        let mut file = File::create(&pending)?;
-        file.write_all(data)?;
-        file.sync_all()?;
-        fs::rename(&pending, path.join(u64::from(stamp).to_string()))?;
-        File::open(&path)?.sync_all()?;
-
-        // Prune only after the new undo record is durable.
-        let files = self.find_rollback_files()?;
-        let older = files.range(..stamp).count();
-        let excess = older.saturating_sub(self.saved_stamped_changes as usize - 1);
-        for (&saved, file) in files
-            .range(..stamp)
-            .take(excess)
-            .chain(files.range(stamp..).skip(1))
-        {
-            debug_assert_ne!(saved, stamp);
-            fs::remove_file(file)?;
+        File::create(&pending)?.write_all(data)?;
+        fs::rename(&pending, change_file(&path, stamp))?;
+        if let Err(at) = stamps.binary_search(&stamp) {
+            stamps.insert(at, stamp);
         }
+
+        // Prune only after the new undo record is in place: keep `stamp` and the newest
+        // `saved_stamped_changes - 1` older records.
+        let at = stamps.partition_point(|&saved| saved < stamp);
+        let excess = at.saturating_sub(self.saved_stamped_changes as usize - 1);
+        for &saved in stamps[..excess].iter().chain(&stamps[at + 1..]) {
+            fs::remove_file(change_file(&path, saved))?;
+        }
+        stamps.truncate(at + 1);
+        stamps.drain(..excess);
+        *cached = Some(stamps);
         Ok(())
+    }
+
+    /// Removes the change files above `stamp`, the vec's stamp before a write without undo: left
+    /// by an earlier rollback (kept until the vec writes again), they undo states the write
+    /// replaces, so a later rollback must stop at it instead of walking through them.
+    pub fn remove_changes_above(&self, stamp: Stamp) -> Result<()> {
+        if self.saved_stamped_changes == 0 {
+            return Ok(());
+        }
+        let path = self.changes_path();
+        let mut cached = self.change_stamps.lock();
+        let mut stamps = match cached.take() {
+            Some(stamps) => stamps,
+            None => match list_existing(&path)? {
+                Some(stamps) => stamps,
+                None => return Ok(()),
+            },
+        };
+        let at = stamps.partition_point(|&saved| saved <= stamp);
+        for &saved in &stamps[at..] {
+            fs::remove_file(change_file(&path, saved))?;
+        }
+        stamps.truncate(at);
+        *cached = Some(stamps);
+        Ok(())
+    }
+
+    /// Forgets the retained change-file inventory: the directory was removed.
+    pub(crate) fn forget_change_files(&self) {
+        *self.change_stamps.lock() = None;
     }
 
     pub fn save_prev(&mut self) {
         self.previous_stored_len = self.stored_len();
-        self.pushed.previous_mut().clear();
+        self.pushed.previous.clear();
     }
 
     pub fn save_prev_for_rollback(&mut self) {
@@ -138,19 +199,49 @@ where
     }
 
     pub fn read_current_change_file(&self) -> Result<Vec<u8>> {
-        let path = self
-            .changes_path()
-            .join(u64::from(self.header.stamp()).to_string());
-        Ok(fs::read(path)?)
+        Ok(fs::read(change_file(
+            &self.changes_path(),
+            self.header.stamp(),
+        ))?)
     }
 
+    /// The change files by stamp: none when the vec never wrote one (no changes directory).
     pub fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
-        Ok(fs::read_dir(self.changes_path())?
-            .filter_map(|entry| {
-                let path = entry.ok()?.path();
-                let stamp = Stamp::from(path.file_name()?.to_str()?.parse::<u64>().ok()?);
-                Some((stamp, path))
-            })
+        let path = self.changes_path();
+        let mut cached = self.change_stamps.lock();
+        if cached.is_none() {
+            *cached = list_existing(&path)?;
+        }
+        Ok(cached
+            .iter()
+            .flatten()
+            .map(|&stamp| (stamp, change_file(&path, stamp)))
             .collect())
     }
+}
+
+fn change_file(path: &Path, stamp: Stamp) -> PathBuf {
+    path.join(u64::from(stamp).to_string())
+}
+
+/// The sorted change-file stamps, or `None` without a changes directory.
+fn list_existing(path: &Path) -> Result<Option<Vec<Stamp>>> {
+    match list_change_stamps(path) {
+        Ok(stamps) => Ok(Some(stamps)),
+        Err(Error::IO(err)) if err.kind() == ErrorKind::NotFound => Ok(None),
+        Err(err) => Err(err),
+    }
+}
+
+fn list_change_stamps(path: &Path) -> Result<Vec<Stamp>> {
+    let mut stamps = fs::read_dir(path)?
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            Some(Stamp::from(
+                path.file_name()?.to_str()?.parse::<u64>().ok()?,
+            ))
+        })
+        .collect::<Vec<_>>();
+    stamps.sort_unstable();
+    Ok(stamps)
 }

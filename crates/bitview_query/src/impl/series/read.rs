@@ -1,8 +1,8 @@
-use bitview_plugin::{Plugin, PublicationReadGuard};
 use bitview_plugin_indexer::SafeLengths;
-use bitview_primitives::Lengths;
+use bitview_primitives::BlockHashPrefix;
 use vecdb::{AnyExportableVec, BoundedVec, ReadBounds};
 
+use super::SeriesAnchor;
 use crate::{Error, Query, Result, vecs::SeriesEntry};
 
 /// Selected series and their published read protection.
@@ -12,66 +12,44 @@ use crate::{Error, Query, Result, vecs::SeriesEntry};
 pub struct SeriesRead {
     vecs: Vec<&'static dyn AnyExportableVec>,
     bounds: ReadBounds,
-    safe: Lengths,
     is_mutable: bool,
-    _guard: SeriesGuard,
-}
-
-enum SeriesGuard {
-    Publication { _guard: PublicationReadGuard },
-    Prefix { _guard: SafeLengths },
+    pin: SafeLengths,
 }
 
 impl SeriesRead {
     pub(super) fn new(query: &Query, entries: Vec<SeriesEntry<'static>>) -> Result<Self> {
-        // The indexer's exported facts only append above the published prefix;
-        // rollback is excluded by SafeLengths. Plugin vectors can recompute
-        // existing rows, independently of their HTTP cache mutability flag.
-        let indexer_only = entries
-            .iter()
-            .all(|entry| entry.plugin().id() == query.indexer().id());
-        let (guard, safe, bounds) = if indexer_only {
-            let pin = query.pin_safe_lengths()?;
-            let safe = pin.lengths();
-            (
-                SeriesGuard::Prefix { _guard: pin },
-                safe,
-                Query::index_read_bounds(safe),
-            )
-        } else {
-            let guard = query.read_publication()?;
-            let safe = query.safe_lengths();
-            (
-                SeriesGuard::Publication { _guard: guard },
-                safe,
-                query.read_bounds(safe),
-            )
-        };
-        let is_mutable = entries.iter().any(|entry| entry.is_mutable());
+        // Every plugin's rows below the published lengths stay put while the pin is held: updates
+        // append past them, and only a rollback (which waits for the pin) rewrites them.
+        let pin = query.pin_safe_lengths()?;
+        let bounds = pin.bounds().clone();
+        let is_mutable = entries.iter().any(|entry| entry.is_mutable);
         let vecs = entries
             .into_iter()
-            .map(SeriesEntry::vec)
+            .map(|entry| entry.vec)
             .collect::<Vec<_>>();
-        for vec in &vecs {
-            bounds
-                .bind(*vec)
-                .ok_or(Error::Internal("Missing published series bound"))?;
-        }
+        debug_assert!(
+            vecs.iter().all(|vec| bounds.bind(*vec).is_some()),
+            "every series index has a published bound"
+        );
         Ok(Self {
             vecs,
             bounds,
-            safe,
             is_mutable,
-            _guard: guard,
+            pin: pin.into_inner(),
         })
     }
 
-    pub(super) fn safe_lengths(&self) -> Lengths {
-        self.safe
+    pub(super) fn pin(&self) -> &SafeLengths {
+        &self.pin
     }
 
     pub(super) fn is_mutable(&self) -> bool {
         self.is_mutable
+    }
+
+    /// Tied to the published tip: changed by every block.
+    pub(super) fn tip_anchor(&self) -> SeriesAnchor {
+        SeriesAnchor::Tip(BlockHashPrefix::from(&self.pin.tip()))
     }
 
     pub(super) fn bind<'a>(&'a self, vec: &'a dyn AnyExportableVec) -> Result<BoundedVec<'a>> {

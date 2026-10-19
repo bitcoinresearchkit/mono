@@ -2,51 +2,48 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::{path::PathBuf, sync::Arc};
-
 use crate::{
-    Cache, CompressionType, GlobalTableId, Result, Slice,
-    file_accessor::FileAccessor,
+    CompressionType, Result, Slice,
     table::{
-        IndexBlock, KeyedBlockHandle,
+        BlockHandle, IndexBlock, KeyedBlockHandle,
         block::BlockType,
         block_index::{BlockIndexIter, iter::OwnedIndexBlockIter},
-        util::load_block,
+        util::BlockSource,
     },
 };
 
 /// Index that translates item keys to data block handles
 ///
 /// Only the top-level index is loaded into memory.
+#[derive(Clone)]
 pub struct TwoLevelBlockIndex {
     pub top_level_index: IndexBlock,
-    pub table_id: GlobalTableId,
-    pub path: Arc<PathBuf>,
-    pub file_accessor: FileAccessor,
-    pub cache: Arc<Cache>,
+    pub source: BlockSource,
     pub compression: CompressionType,
 }
 
 impl TwoLevelBlockIndex {
+    /// Loads the lower-level index block at `handle`.
+    pub fn load(&self, handle: &BlockHandle) -> Result<IndexBlock> {
+        self.source
+            .load(handle, BlockType::Index, self.compression)
+            .map(IndexBlock::new)
+    }
+
     pub fn iter(&self) -> Iter {
         Iter {
-            tli_block: self.top_level_index.clone(),
+            index: self.clone(),
             tli: None,
             lo_consumer: None,
             hi_consumer: None,
             lo: None,
             hi: None,
-            table_id: self.table_id,
-            path: self.path.clone(),
-            file_accessor: self.file_accessor.clone(),
-            cache: self.cache.clone(),
-            compression: self.compression,
         }
     }
 }
 
 pub struct Iter {
-    tli_block: IndexBlock,
+    index: TwoLevelBlockIndex,
     tli: Option<OwnedIndexBlockIter>,
 
     lo_consumer: Option<OwnedIndexBlockIter>,
@@ -54,32 +51,29 @@ pub struct Iter {
 
     lo: Option<(Slice, u64)>,
     hi: Option<(Slice, u64)>,
-
-    table_id: GlobalTableId,
-    path: Arc<PathBuf>,
-    file_accessor: FileAccessor,
-    cache: Arc<Cache>,
-    compression: CompressionType,
 }
 
 impl Iter {
-    fn init_tli(&mut self) -> bool {
-        let mut iter = OwnedIndexBlockIter::new(self.tli_block.clone(), IndexBlock::iter);
-
-        if let Some((lo_key, lo_seqno)) = &self.lo
-            && !iter.seek_lower(lo_key, *lo_seqno)
-        {
-            return false;
+    /// The bounded top-level iterator, created on first use; `None` if no handle is in bounds.
+    fn tli(&mut self) -> Option<&mut OwnedIndexBlockIter> {
+        if self.tli.is_none() {
+            self.tli = Some(OwnedIndexBlockIter::bounded(
+                self.index.top_level_index.clone(),
+                self.lo.as_ref(),
+                self.hi.as_ref(),
+            )?);
         }
-        if let Some((hi_key, hi_seqno)) = &self.hi
-            && !iter.seek_upper(hi_key, *hi_seqno)
-        {
-            return false;
+        self.tli.as_mut()
+    }
+
+    /// The bounded iterator over the lower-level block at `handle`; `None` if out of bounds.
+    fn lower(&self, handle: &KeyedBlockHandle) -> Option<Result<OwnedIndexBlockIter>> {
+        match self.index.load(handle.as_ref()) {
+            Ok(block) => {
+                OwnedIndexBlockIter::bounded(block, self.lo.as_ref(), self.hi.as_ref()).map(Ok)
+            }
+            Err(e) => Some(Err(e)),
         }
-
-        self.tli = Some(iter);
-
-        true
     }
 }
 
@@ -99,122 +93,50 @@ impl Iterator for Iter {
     type Item = Result<KeyedBlockHandle>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(lo_block) = &mut self.lo_consumer
-            && let Some(item) = lo_block.next()
-        {
+        if let Some(item) = self.lo_consumer.as_mut().and_then(Iterator::next) {
             return Some(Ok(item));
         }
 
-        if self.tli.is_none() && !self.init_tli() {
-            return None;
-        }
-
-        if let Some(tli) = &mut self.tli {
-            let next_lowest_block = tli.next();
-
-            if let Some(handle) = next_lowest_block {
-                let block = fail_iter!(load_block(
-                    self.table_id,
-                    &self.path,
-                    &self.file_accessor,
-                    &self.cache,
-                    &handle.into_inner(),
-                    BlockType::Index,
-                    self.compression,
-                ));
-                let index_block = IndexBlock::new(block);
-
-                let mut iter = OwnedIndexBlockIter::new(index_block, IndexBlock::iter);
-
-                if let Some((lo_key, lo_seqno)) = &self.lo
-                    && !iter.seek_lower(lo_key, *lo_seqno)
-                {
-                    return None;
-                }
-                if let Some((hi_key, hi_seqno)) = &self.hi
-                    && !iter.seek_upper(hi_key, *hi_seqno)
-                {
-                    return None;
-                }
-
-                let next_item = iter.next().map(Ok);
-
-                self.lo_consumer = Some(iter);
-
-                if let Some(item) = next_item {
-                    return Some(item);
-                }
+        if let Some(handle) = self.tli()?.next() {
+            let mut block = match self.lower(&handle)? {
+                Ok(block) => block,
+                Err(e) => return Some(Err(e)),
+            };
+            let item = block.next();
+            self.lo_consumer = Some(block);
+            if let Some(item) = item {
+                return Some(Ok(item));
             }
         }
 
         // Nothing more found, consume from hi consumer
-        if let Some(hi_block) = &mut self.hi_consumer
-            && let Some(item) = hi_block.next()
-        {
-            return Some(Ok(item));
-        }
-
-        None
+        self.hi_consumer.as_mut()?.next().map(Ok)
     }
 }
 
 impl DoubleEndedIterator for Iter {
     fn next_back(&mut self) -> Option<Self::Item> {
-        if let Some(hi_block) = &mut self.hi_consumer
-            && let Some(item) = hi_block.next_back()
+        if let Some(item) = self
+            .hi_consumer
+            .as_mut()
+            .and_then(DoubleEndedIterator::next_back)
         {
             return Some(Ok(item));
         }
 
-        if self.tli.is_none() && !self.init_tli() {
-            return None;
-        }
-
-        if let Some(tli) = &mut self.tli {
-            let next_highest_block = tli.next_back();
-
-            if let Some(handle) = next_highest_block {
-                let block = fail_iter!(load_block(
-                    self.table_id,
-                    &self.path,
-                    &self.file_accessor,
-                    &self.cache,
-                    &handle.into_inner(),
-                    BlockType::Index,
-                    self.compression,
-                ));
-                let index_block = IndexBlock::new(block);
-
-                let mut iter = OwnedIndexBlockIter::new(index_block, IndexBlock::iter);
-
-                if let Some((lo_key, lo_seqno)) = &self.lo
-                    && !iter.seek_lower(lo_key, *lo_seqno)
-                {
-                    return None;
-                }
-                if let Some((hi_key, hi_seqno)) = &self.hi
-                    && !iter.seek_upper(hi_key, *hi_seqno)
-                {
-                    return None;
-                }
-
-                let next_item = iter.next_back().map(Ok);
-
-                self.hi_consumer = Some(iter);
-
-                if let Some(item) = next_item {
-                    return Some(item);
-                }
+        if let Some(handle) = self.tli()?.next_back() {
+            let mut block = match self.lower(&handle)? {
+                Ok(block) => block,
+                Err(e) => return Some(Err(e)),
+            };
+            let item = block.next_back();
+            self.hi_consumer = Some(block);
+            if let Some(item) = item {
+                return Some(Ok(item));
             }
         }
 
         // Nothing more found, consume from lo consumer
-        if let Some(lo_block) = &mut self.lo_consumer
-            && let Some(item) = lo_block.next_back()
-        {
-            return Some(Ok(item));
-        }
-
-        None
+        self.lo_consumer.as_mut()?.next_back().map(Ok)
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "brk_alloc"
-description = "Global allocator and memory utilities for brk"
+description = "mimalloc re-export and eager memory collection for BRK"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

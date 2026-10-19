@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_supply"
-description = "The supply plugin for Bitview"
+description = "Bitcoin circulating and burned supply, market cap, inflation and velocity datasets for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,15 +8,11 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
-bitview_plugin_distribution_common = { workspace = true }
-bitview_collections = { workspace = true, features = ["storage"] }
+bitview_distribution = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
-bitview_transforms = { workspace = true }
 bitview_vecs = { workspace = true }
-brk_exit = { workspace = true }
 bitview_plugin = { workspace = true }
-bitview_plugin_cointime = { workspace = true }
-bitview_plugin_distribution_aggregated = { workspace = true }
+bitview_plugin_holders = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_mining = { workspace = true }
 bitview_plugin_outputs = { workspace = true }

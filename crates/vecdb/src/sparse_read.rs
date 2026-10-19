@@ -65,8 +65,8 @@ impl<T: VecValue> SparseRead<T> {
                 }
             }
         } else {
-            // Custom window metadata need not be monotonic. Preserve the
-            // existing general behaviour for those requests.
+            // Custom window metadata need not be monotonic: sort the requests, then find each
+            // slot.
             requested.extend_from_slice(indices);
             requested.extend(slots.iter().filter_map(|slot| slot.1));
             requested.sort_unstable();

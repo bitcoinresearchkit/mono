@@ -1,0 +1,12 @@
+[package]
+name = "bitview_http"
+description = "Conditional-request helpers shared by Bitview's HTTP servers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+axum = { workspace = true }
+http-body = { workspace = true }

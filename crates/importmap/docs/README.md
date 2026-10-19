@@ -4,9 +4,9 @@ Generate import maps with content-hashed URLs. No bundler required.
 
 ## Problem
 
-ES modules load sequentially. Browser fetches `main.js`, parses it, discovers imports, fetches those, parses them, discovers more imports... This creates a waterfall that gets worse with deeper dependency trees.
+A browser discovers a module's imports only after fetching and parsing it, so deep dependency trees load as a waterfall of round trips.
 
-Cache invalidation is also tricky. Change one file and users might get stale cached versions of files that import it.
+Change one file and users might get stale cached versions of files that import it.
 
 ## Solution
 
@@ -17,7 +17,7 @@ This crate:
 3. Generates `<link rel="modulepreload">` tags for all modules
 4. Updates your HTML in place
 
-The import map lets you write clean imports (`./utils.js`) while the browser fetches hashed URLs (`./utils.a1b2c3d4.js`). Modulepreload tells the browser to fetch everything in parallel, eliminating the waterfall.
+The import map lets you write clean imports (`./utils.js`) while the browser fetches hashed URLs (`./utils.a1b2c3d4.js`). Modulepreload starts fetching every scanned module before its importers are parsed.
 
 ## Usage
 
@@ -26,6 +26,7 @@ Add markers to your HTML:
 ```html
 <head>
     <!-- IMPORTMAP -->
+    <link rel="stylesheet" href="/styles/main.css">
     <!-- /IMPORTMAP -->
 </head>
 ```
@@ -39,40 +40,37 @@ importmap path/to/site
 Or use as a library:
 
 ```rust
+use std::path::Path;
 use importmap::ImportMap;
 
+let dir = Path::new("path/to/site");
 let map = ImportMap::scan(dir, "")?;
-let html = fs::read_to_string("index.html")?;
-if let Some(updated) = map.update_html(&html) {
-    fs::write("index.html", updated)?;
-}
+map.update_html_file(&dir.join("index.html"))?;
 ```
 
 ## Output
 
-The markers get replaced with:
+The content between the markers becomes:
 
 ```html
 <head>
     <!-- IMPORTMAP -->
-    <link rel="modulepreload" href="/scripts/main.a1b2c3d4.js">
-    <link rel="modulepreload" href="/scripts/utils.e5f6g7h8.js">
+    <link rel="stylesheet" href="/styles/main.9f8e7d6c.css">
     <script type="importmap">
     {
       "imports": {
         "/scripts/main.js": "/scripts/main.a1b2c3d4.js",
-        "/scripts/utils.js": "/scripts/utils.e5f6g7h8.js"
+        "/scripts/utils.js": "/scripts/utils.e5f6a7b8.js"
       }
     }
     </script>
+    <link rel="modulepreload" href="/scripts/main.a1b2c3d4.js">
+    <link rel="modulepreload" href="/scripts/utils.e5f6a7b8.js">
     <!-- /IMPORTMAP -->
 </head>
 ```
 
-Your source files stay unchanged. The browser:
-1. Sees modulepreload → fetches all modules in parallel
-2. Sees `import "./utils.js"` → checks import map → requests `./utils.a1b2c3d4.js`
-3. Gets a cache hit (already preloaded)
+Stylesheets are kept only if their `<link rel="stylesheet">` is already between the markers, in the same order (cascade), with all their attributes (`media`, `crossorigin`...): only the href of a scanned file changes, to its hashed URL; external and unscanned stylesheets stay as written. Tags spanning lines are rewritten on one line. Everything else between the markers (the import map, module preloads, other links) is regenerated; comments are dropped, so a commented-out stylesheet stays out. Running the transform again is idempotent: already hashed hrefs are matched to their files and get the current hash.
 
 ## Server Setup
 
@@ -83,13 +81,13 @@ Request:  /scripts/main.a1b2c3d4.js
 Serve:    /scripts/main.js
 ```
 
-The hash is always 8 hex characters before the extension. Set `Cache-Control: immutable, max-age=31536000` for hashed URLs—the content will never change for that hash.
+The hash is always 8 hex characters before the extension. Mark a hashed URL immutable (`Cache-Control: public, max-age=31536000, immutable`) only when the requested hash matches the content you serve (`ImportMap::names_hash(path, &ImportMap::hash(&contents))`). After a deploy changes `main.js`, a request for its previous hashed URL still strips to `main.js` and gets the new bytes: answer it with a revalidating policy (an ETag and `no-cache` or a short `max-age`), or a year-long cache would keep the new content under the old hash.
 
 ## Details
 
 - Hash: 8 hex chars from [rapidhash](https://crates.io/crates/rapidhash) of file contents
 - Extensions: `.js`, `.mjs`, `.css`
-- Skips: root-level `.js` files (service workers), files with `.development.` or `.dev.` in the name
+- Skips: root-level `.js` files (service workers), names containing `.development.`, `.dev.` or `.test.`, underscore-prefixed names (partials), and paths through a `tests` directory
 - Symlinks: followed (useful for `node_modules` links)
 - Indentation: preserved from the opening marker
 

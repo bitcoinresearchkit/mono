@@ -5,9 +5,10 @@ use std::sync::Arc;
 use brk_error::Result;
 
 use brk_types::{
-    BlockTemplate, BlockTemplateDiff, BlockTemplateDiffEntry, MempoolBlock, NextBlockHash, Txid,
+    BlockTemplate, BlockTemplateDiff, BlockTemplateDiffEntry, NextBlockHash, Transaction, Txid,
 };
 use rustc_hash::FxHashMap;
+use serde::{Serialize, Serializer};
 
 use crate::{ReadOnlyState, ResolvedBlockTemplateDiff, Snapshot};
 
@@ -33,22 +34,11 @@ impl BlockTemplateSource {
     }
 
     /// Build only after validation, without observing a newer publication.
-    pub fn build(self) -> Result<BlockTemplate> {
-        let hash = self.hash()?;
+    pub fn build(self) -> Result<BlockTemplate<TemplateTxs>> {
         Ok(BlockTemplate {
-            hash,
-            stats: self
-                .snapshot
-                .block_stats
-                .first()
-                .map(MempoolBlock::from)
-                .unwrap_or_default(),
-            transactions: self
-                .snapshot
-                .template_transactions()
-                .iter()
-                .map(|tx| tx.as_ref().clone())
-                .collect(),
+            hash: self.hash()?,
+            stats: self.snapshot.template_stats(),
+            transactions: TemplateTxs(self.snapshot.template_transactions().clone()),
         })
     }
 }
@@ -62,7 +52,7 @@ impl ReadOnlyState {
     #[must_use]
     pub fn block_template_source(&self) -> BlockTemplateSource {
         BlockTemplateSource {
-            snapshot: self.snapshot(),
+            snapshot: self.snapshot().clone(),
         }
     }
 
@@ -84,29 +74,29 @@ impl ReadOnlyState {
 
 impl ResolvedBlockTemplateDiff {
     /// Build against the publication captured when history was resolved.
-    pub fn build(self) -> Result<BlockTemplateDiff> {
+    pub fn build(self) -> Result<BlockTemplateDiff<TemplateOrder>> {
         let Self {
             since,
             past,
             source,
         } = self;
         let hash = source.hash()?;
-        let snap = &source.snapshot;
+        let bodies = source.snapshot.template_transactions().clone();
         let mut prior_index: FxHashMap<Txid, u32> = past
             .iter()
             .enumerate()
             .map(|(idx, tx)| (tx.txid, idx as u32))
             .collect();
-        let mut order = Vec::with_capacity(snap.blocks.first().map_or(0, Vec::len));
-        for tx in snap.template_transactions().iter() {
-            let txid = tx.txid;
-            match prior_index.remove(&txid) {
+        let entries = bodies
+            .iter()
+            .enumerate()
+            .map(|(position, tx)| match prior_index.remove(&tx.txid) {
                 Some(idx) if Arc::ptr_eq(tx, &past[idx as usize]) => {
-                    order.push(BlockTemplateDiffEntry::Retained(idx))
+                    BlockTemplateDiffEntry::Retained(idx)
                 }
-                _ => order.push(BlockTemplateDiffEntry::New(tx.as_ref().clone())),
-            }
-        }
+                _ => BlockTemplateDiffEntry::New(position),
+            })
+            .collect();
         let removed = past
             .iter()
             .filter(|tx| prior_index.contains_key(&tx.txid))
@@ -115,8 +105,35 @@ impl ResolvedBlockTemplateDiff {
         Ok(BlockTemplateDiff {
             hash,
             since,
-            order,
+            stats: source.snapshot.template_stats(),
+            order: TemplateOrder { bodies, entries },
             removed,
         })
+    }
+}
+
+/// The published template's bodies, serialized in place as a JSON array.
+pub struct TemplateTxs(Arc<[Arc<Transaction>]>);
+
+impl Serialize for TemplateTxs {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        serializer.collect_seq(self.0.iter().map(Arc::as_ref))
+    }
+}
+
+/// The new template's entries, each new body a position in the published `bodies`.
+pub struct TemplateOrder {
+    bodies: Arc<[Arc<Transaction>]>,
+    entries: Vec<BlockTemplateDiffEntry<usize>>,
+}
+
+impl Serialize for TemplateOrder {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        serializer.collect_seq(self.entries.iter().map(|entry| match *entry {
+            BlockTemplateDiffEntry::Retained(idx) => BlockTemplateDiffEntry::Retained(idx),
+            BlockTemplateDiffEntry::New(position) => {
+                BlockTemplateDiffEntry::New(&*self.bodies[position])
+            }
+        }))
     }
 }

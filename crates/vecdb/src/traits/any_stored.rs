@@ -4,7 +4,6 @@ use rawdb::{Database, Region};
 
 use crate::{AnyVec, Header, Result, Stamp, Version};
 
-/// Trait for stored vectors that persist data to disk (as opposed to lazy computed vectors).
 pub trait AnyStoredVec: AnyVec {
     fn db_path(&self) -> PathBuf;
 
@@ -17,7 +16,6 @@ pub trait AnyStoredVec: AnyVec {
     /// Number of stamped change files to keep for rollback support.
     fn saved_stamped_changes(&self) -> u16;
 
-    /// Writes pending changes to storage.
     /// Returns `Ok(true)` if data was written, `Ok(false)` if nothing to write.
     /// This does not create a rollback checkpoint or synchronize files. Use
     /// stamped writes with changes before overwriting checkpointed values.
@@ -33,7 +31,7 @@ pub trait AnyStoredVec: AnyVec {
     fn flush(&mut self) -> Result<()> {
         let guard = self.header().begin_write()?;
         self.write()?;
-        self.db().flush()?;
+        self.db().flush();
         guard.finish(Ok(()))
     }
 
@@ -52,47 +50,64 @@ pub trait AnyStoredVec: AnyVec {
         self.header().stamp()
     }
 
+    /// Persists a changed header, such as a new stamp, without touching data.
+    #[doc(hidden)]
+    fn write_header(&mut self) -> Result<()> {
+        if self.header().modified() {
+            let region = self.region().clone();
+            self.mut_header().write(&region)?;
+        }
+        Ok(())
+    }
+
+    /// Writes the data, then the header with its new stamp.
     #[inline]
     fn stamped_write(&mut self, stamp: Stamp) -> Result<()> {
         let guard = self.header().begin_write()?;
         self.write()?;
         self.update_stamp(stamp);
-        self.write()?;
+        self.write_header()?;
         guard.finish(Ok(()))
     }
 
-    /// Flushes with the given stamp, saving changes to enable rollback.
-    /// Prefixed with `any_` to avoid conflict with `WritableVec::stamped_write_with_changes`.
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()>;
-
-    /// Advances the in-memory rollback baseline to the current stored state.
+    /// Saves the undo record at `stamp` of everything since the last checkpoint. Only called
+    /// with saved stamped changes, before the checkpoint's write overwrites anything.
     #[doc(hidden)]
-    fn any_save_rollback_state(&mut self);
+    fn any_save_changes(&self, stamp: Stamp) -> Result<()>;
 
-    /// Flushes with the given stamp, optionally saving changes for rollback.
-    #[inline]
+    /// Writes the checkpoint's data, stamp and header without reading back values for undo
+    /// records, then (with saved stamped changes) advances the rollback baseline to it.
+    #[doc(hidden)]
+    fn any_write_checkpoint(&mut self, stamp: Stamp) -> Result<()>;
+
+    /// Removes the change files above `stamp`, the stamp a write without undo starts from.
+    #[doc(hidden)]
+    fn any_remove_changes_above(&self, stamp: Stamp) -> Result<()>;
+
+    /// Writes a checkpoint at `stamp`. With changes (and saved stamped changes), its undo record
+    /// is saved first; without, the change files above the current stamp, which undo states the
+    /// write replaces, are removed. Either way the rollback baseline advances to the written state.
     fn any_stamped_write_maybe_with_changes(
         &mut self,
         stamp: Stamp,
         with_changes: bool,
     ) -> Result<()> {
-        if with_changes {
-            self.any_stamped_write_with_changes(stamp)
-        } else {
-            self.stamped_write(stamp)?;
-            if self.saved_stamped_changes() > 0 {
-                self.any_save_rollback_state();
-            }
-            Ok(())
+        if !with_changes {
+            self.any_remove_changes_above(self.stamp())?;
         }
+        let guard = self.header().begin_write()?;
+        if with_changes && self.saved_stamped_changes() > 0 {
+            self.any_save_changes(stamp)?;
+        }
+        self.any_write_checkpoint(stamp)?;
+        guard.finish(Ok(()))
     }
 
     fn serialize_changes(&self) -> Result<Vec<u8>>;
 
-    /// Removes this vector's region from the database.
+    /// Removes this vector's storage regions from the database.
     fn remove(self) -> Result<()>;
 
-    /// Truncates the vector to the given length if it is longer.
     /// Prefixed with `any_` to avoid conflict with `WritableVec::truncate_if_needed_at`.
     fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()>;
 
@@ -110,9 +125,9 @@ pub trait AnyStoredVec: AnyVec {
             return Ok(false);
         }
         self.mut_header().update_computed_version(version);
-        if !self.is_empty() {
-            self.any_reset()?;
-        }
+        // Even when it looks empty: a pending truncation hides rows still on disk, and only the
+        // reset's empty baseline keeps a cancel from bringing them back under the new version.
+        self.any_reset()?;
         Ok(true)
     }
 }

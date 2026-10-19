@@ -1,7 +1,3 @@
-//! RollingComplete - Lazy rolling sums + stored rolling distribution per window.
-
-use crate::RollingTotals;
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -11,9 +7,10 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue};
 
-use crate::{IndexSources, RollingDistribution, WindowStarts};
+use crate::{IndexSources, RollingDistribution, RollingTotals, WindowStarts, shapes::Windows};
 
-/// Lazy rolling sums and averages (in `T::Sum`) + stored rolling distribution of `T` (7 stats × 4 windows).
+/// Lazy rolling sums and averages with stored rolling distribution statistics. Sums and
+/// statistics are in `T::Sum`, averages in its `Quantity::Fract`.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct RollingComplete<T, M: StorageMode = Rw>
 where
@@ -24,7 +21,7 @@ where
     #[traversable(flatten)]
     rolling: RollingTotals<T::Sum>,
     #[traversable(flatten)]
-    pub(crate) distribution: RollingDistribution<T, M>,
+    distribution: RollingDistribution<T::Sum, M>,
 }
 
 impl<T> RollingComplete<T>
@@ -40,7 +37,7 @@ where
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
         let rolling = RollingTotals::new(name, version, cumulative, window_starts, indexes);
-        let distribution = RollingDistribution::import(db, name, version, indexes)?;
+        let distribution = RollingDistribution::import(db, name, version + Version::ONE, indexes)?;
 
         Ok(Self {
             rolling,
@@ -48,7 +45,6 @@ where
         })
     }
 
-    /// Compute rolling distribution stats across all 4 windows.
     pub(crate) fn compute<S>(
         &mut self,
         max_from: Height,
@@ -57,7 +53,7 @@ where
         exit: &Exit,
     ) -> Result<()>
     where
-        T: From<f64> + Default + Copy + Ord,
+        T::Sum: From<f64> + Default + Copy + Ord,
         S: VecValue + Copy,
         f64: From<S>,
     {

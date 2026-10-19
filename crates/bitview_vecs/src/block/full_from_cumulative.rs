@@ -1,4 +1,3 @@
-use bitview_collections::Windows;
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -7,7 +6,10 @@ use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{Database, Ident, ReadableCloneableVec, Rw, StorageMode};
 
-use crate::{IndexSources, LazyPerBlock, LazyPreviousDeltaVec, RollingComplete, WindowStarts};
+use crate::{
+    IndexSources, LazyPerBlock, LazyPreviousDeltaVec, RollingComplete, WindowStarts,
+    shapes::Windows,
+};
 
 /// Per-block and rolling views backed by one canonical cumulative source.
 #[derive(Traversable)]
@@ -15,9 +17,8 @@ pub struct PerBlockFullFromCumulative<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity,
 {
-    /// Value for the represented block. At time-period indexes, the value is
-    /// taken from the period's final block.
-    block: LazyPreviousDeltaVec<Height, T::Sum>,
+    /// Value for the represented block.
+    pub block: LazyPreviousDeltaVec<Height, T::Sum>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
     pub cumulative: LazyPerBlock<T::Sum>,
@@ -70,7 +71,6 @@ where
         exit: &Exit,
     ) -> Result<()>
     where
-        T: From<f64> + Default + Copy + Ord,
         f64: From<T::Sum>,
     {
         self.rolling.compute(max_from, windows, &self.block, exit)
