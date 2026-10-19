@@ -28,6 +28,7 @@ async fn serve_urpd(
     point: Option<HeightOrDate>,
     query: UrpdQuery,
 ) -> Result<Response> {
+    let cdn_cache_mode = state.cdn_cache_mode;
     Ok(state
         .respond_admitted(
             &state.urpd_query,
@@ -45,7 +46,8 @@ async fn serve_urpd(
                     None => q.resolve_urpd_latest(&cohort, query.aggregation, query.weight)?,
                 };
                 // The selection alone identifies the body: a match answers 304 unreconstructed.
-                let params = CacheParams::live(format!("urpd3-{}", resolved.representation()));
+                let params = CacheParams::live(format!("urpd3-{}", resolved.representation()))
+                    .stable_if(resolved.is_settled(), cdn_cache_mode);
                 Ok((resolved, params))
             },
             |q, resolved| Ok(to_vec(&q.urpd_resolved(resolved)?)?.into()),

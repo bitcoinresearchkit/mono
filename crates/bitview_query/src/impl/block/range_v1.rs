@@ -28,6 +28,10 @@ impl ResolvedBlocksV1 {
         self.blocks.last_height()
     }
 
+    pub fn is_settled(&self) -> bool {
+        self.blocks.is_settled()
+    }
+
     /// Prices in ascending height order, reused when building descending rows.
     pub fn prices(&self) -> &[Dollars] {
         &self.prices

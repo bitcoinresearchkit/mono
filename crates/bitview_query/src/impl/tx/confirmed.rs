@@ -20,12 +20,19 @@ pub struct ResolvedConfirmedTx {
     index: TxIndex,
     height: Height,
     block_hash: BlockHash,
+    settled: bool,
 }
 
 impl ResolvedConfirmedTx {
     #[inline]
     pub const fn identity(self) -> RepresentationId {
         RepresentationId::Block(self.block_hash)
+    }
+
+    /// Whether its block lies below the reorg window: what it alone decides no longer changes.
+    #[inline]
+    pub const fn is_settled(self) -> bool {
+        self.settled
     }
 }
 

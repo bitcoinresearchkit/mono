@@ -6,7 +6,7 @@ use bitview_primitives::{Day1, Lengths};
 use brk_oracle::{
     Config, HistogramEma, HistogramEmaCompact, HistogramRaw, Oracle, START_HEIGHT_SLOW, sats_to_bin,
 };
-use brk_types::Dollars;
+use brk_types::{Dollars, Height};
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, Result, check_bound};
@@ -23,16 +23,20 @@ impl Query {
 
     /// Smoothed payment output histogram for a confirmed `height`, deterministically
     /// reconstructed by replaying the window ending at `height`. EMA values are
-    /// seed-independent, so the result is exact.
-    pub fn confirmed_payment_histogram(&self, height: usize) -> Result<HistogramEmaCompact> {
+    /// seed-independent, so the result is exact. Also whether `height` is settled.
+    pub fn confirmed_payment_histogram(
+        &self,
+        height: usize,
+    ) -> Result<(HistogramEmaCompact, bool)> {
         let pin = self.pin_safe_lengths()?;
         check_bound(&pin, height, pin.lengths().height.to_usize())?;
         let safe = self.check_histogram_height(height, pin.lengths())?;
         let seed = self.seed_bin_at(height)?;
-        Ok(self
+        let histogram = self
             .warm_oracle(seed, height + 1, &safe)?
             .ema()
-            .to_compact())
+            .to_compact();
+        Ok((histogram, pin.lengths().is_settled(Height::from(height))))
     }
 
     /// Smoothed payment output histogram for a calendar `day`: the bin-by-bin average of
@@ -40,19 +44,21 @@ impl Query {
     /// segment is reconstructed exactly, then later blocks in the segment are walked
     /// sequentially. Blocks before the oracle's first one count as zeros, as their height
     /// reads do. Averaging keeps the result an intensive per-block rate rather than letting
-    /// a busy day dominate.
-    pub fn confirmed_payment_histogram_day(&self, day: Day1) -> Result<HistogramEmaCompact> {
+    /// a busy day dominate. Also whether the day is settled.
+    pub fn confirmed_payment_histogram_day(
+        &self,
+        day: Day1,
+    ) -> Result<(HistogramEmaCompact, bool)> {
         let pin = self.pin_safe_lengths()?;
         let safe = pin.lengths();
-        let range = self.day_block_range(day, &pin)?;
+        let (range, settled) = self.day_block_range(day, &pin)?;
         let count = range.len();
         let fed = range.start.max(START_HEIGHT_SLOW)..range.end;
         let segments = Config::segments_for_range(fed)
             .map(|segment| self.seed_bin_at(segment.start).map(|seed| (segment, seed)))
             .collect::<Result<Vec<_>>>()?;
-        Ok(self
-            .average_payment_histogram_range(segments, count, &safe)?
-            .to_compact())
+        let histogram = self.average_payment_histogram_range(segments, count, &safe)?;
+        Ok((histogram.to_compact(), settled))
     }
 
     /// The segments' per-block EMAs averaged bin by bin over `count` blocks.
@@ -95,19 +101,21 @@ impl Query {
     }
 
     /// Unfiltered per-bin output counts for a confirmed `height`: the block's outputs that
-    /// `sats_to_bin` bins, with no payment filtering.
-    pub fn confirmed_output_histogram(&self, height: usize) -> Result<HistogramRaw> {
+    /// `sats_to_bin` bins, with no payment filtering. Also whether `height` is settled.
+    pub fn confirmed_output_histogram(&self, height: usize) -> Result<(HistogramRaw, bool)> {
         let pin = self.pin_safe_lengths()?;
         check_bound(&pin, height, pin.lengths().height.to_usize())?;
         let safe = self.check_histogram_height(height, pin.lengths())?;
-        self.output_histogram_for_blocks(height..height + 1, &safe)
+        let histogram = self.output_histogram_for_blocks(height..height + 1, &safe)?;
+        Ok((histogram, pin.lengths().is_settled(Height::from(height))))
     }
 
     /// [`Self::confirmed_output_histogram`] summed bin by bin over a calendar `day`'s blocks.
-    pub fn confirmed_output_histogram_day(&self, day: Day1) -> Result<HistogramRaw> {
+    pub fn confirmed_output_histogram_day(&self, day: Day1) -> Result<(HistogramRaw, bool)> {
         let pin = self.pin_safe_lengths()?;
-        let range = self.day_block_range(day, &pin)?;
-        self.output_histogram_for_blocks(range, &pin.lengths())
+        let (range, settled) = self.day_block_range(day, &pin)?;
+        let histogram = self.output_histogram_for_blocks(range, &pin.lengths())?;
+        Ok((histogram, settled))
     }
 
     /// The live tip oracle: the committed base, with the published pool's
@@ -187,8 +195,8 @@ impl Query {
     }
 
     /// The confirmed block heights of calendar `day`, clamped to the same histogram-available
-    /// bound as `check_histogram_height`.
-    fn day_block_range(&self, day: Day1, pin: &SafeLengths) -> Result<Range<usize>> {
+    /// bound as `check_histogram_height`, and whether the day is settled.
+    fn day_block_range(&self, day: Day1, pin: &SafeLengths) -> Result<(Range<usize>, bool)> {
         self.day_heights(day, self.histogram_bound(&pin.lengths()), pin)
     }
 

@@ -75,7 +75,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        -> Result<Response> {
                     let point = path.resolve()?;
                     Ok(state
-                        .respond_json_content(&headers, move |q| match point {
+                        .respond_json_settled(&headers, move |q| match point {
                             HeightOrDate::Date(date) => {
                                 q.confirmed_payment_histogram_day(Day1::try_from(date)?)
                             }
@@ -136,7 +136,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        -> Result<Response> {
                     let point = path.resolve()?;
                     Ok(state
-                        .respond_json_content(&headers, move |q| match point {
+                        .respond_json_settled(&headers, move |q| match point {
                             HeightOrDate::Date(date) => {
                                 q.confirmed_output_histogram_day(Day1::try_from(date)?)
                             }

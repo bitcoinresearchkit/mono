@@ -17,6 +17,10 @@ impl ResolvedTransaction {
     pub fn identity(&self) -> RepresentationId {
         self.source.identity()
     }
+
+    pub fn is_settled(&self) -> bool {
+        self.source.is_settled()
+    }
 }
 
 impl Query {

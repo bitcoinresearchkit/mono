@@ -210,28 +210,31 @@ impl Query {
         }
 
         let resolve_bound =
-            |ri: RangeIndex| -> Result<i64> { self.range_index_to_i64(ri, index, &read) };
+            |ri: RangeIndex| -> Result<(i64, bool)> { self.range_index_to_i64(ri, index, &read) };
         // A bound the URL pins whatever the chain's length: not counted from the end, nor past
-        // the rows (a date after the last block included).
-        let pinned = |bound: i64| usize::try_from(bound).is_ok_and(|bound| bound <= total);
+        // the rows (a date after the last block included), nor decided by a block a reorg can
+        // replace.
+        let pinned = |(bound, settled): (i64, bool)| {
+            settled && usize::try_from(bound).is_ok_and(|bound| bound <= total)
+        };
 
         let (start, start_pinned) = match params.start {
             Some(ri) => {
-                let start = resolve_bound(ri)?;
+                let (start, settled) = resolve_bound(ri)?;
                 // A start past a lowered publication targets rows being rewritten, not missing;
                 // ends and limits are caps, so they clamp.
                 if let Ok(start) = usize::try_from(start) {
                     check_bound(read.pin(), start, total)?;
                 }
-                (i64_to_usize(start, total), pinned(start))
+                (i64_to_usize(start, total), pinned((start, settled)))
             }
             None => (0, true),
         };
 
         let (end, end_pinned) = match params.end {
             Some(ri) => {
-                let end = resolve_bound(ri)?;
-                (i64_to_usize(end, total), pinned(end))
+                let (end, settled) = resolve_bound(ri)?;
+                (i64_to_usize(end, total), pinned((end, settled)))
             }
             None => match params.limit {
                 Some(limit) => {
@@ -272,7 +275,7 @@ impl Query {
     /// a six-block reorg replaces are historical: anchored to the last block they depend on,
     /// which appends never change and any deeper reorg replacing those rows does. Anything
     /// else, and any series rewriting existing rows, is tied to the published tip, as is a
-    /// range the chain's length decides (see [`Query::resolve`]).
+    /// range the chain's length or a replaceable block decides (see [`Query::resolve`]).
     fn series_anchor(
         &self,
         read: &SeriesRead,
@@ -282,10 +285,9 @@ impl Query {
     ) -> SeriesAnchor {
         let pin = read.pin();
         let tip = read.tip_anchor();
-        let Some(last) = pin.lengths().last_height() else {
+        let Some(cutoff) = pin.lengths().reorg_cutoff() else {
             return tip;
         };
-        let cutoff = Height::from((*last).saturating_sub(5));
         if read.is_mutable() || end > self.first_row_at(index, cutoff).unwrap_or(0).min(total) {
             return tip;
         }
@@ -476,18 +478,25 @@ impl Query {
         self.vecs().resolve_series_info(series)
     }
 
-    fn range_index_to_i64(&self, ri: RangeIndex, index: Index, read: &SeriesRead) -> Result<i64> {
+    /// A bound as a row, and whether it is settled: a date or timestamp a block decides only once
+    /// that block lies below the reorg window.
+    fn range_index_to_i64(
+        &self,
+        ri: RangeIndex,
+        index: Index,
+        read: &SeriesRead,
+    ) -> Result<(i64, bool)> {
         match ri {
-            RangeIndex::Int(i) => Ok(i),
+            RangeIndex::Int(i) => Ok((i, true)),
             RangeIndex::Date(date) => self.date_to_i64(date, index, read),
             RangeIndex::Timestamp(ts) => self.timestamp_to_i64(ts, index, read),
         }
     }
 
-    fn date_to_i64(&self, date: Date, index: Index, read: &SeriesRead) -> Result<i64> {
+    fn date_to_i64(&self, date: Date, index: Index, read: &SeriesRead) -> Result<(i64, bool)> {
         let calendar = date.try_into_jiff()?;
         if let Some(idx) = index.date_to_index(date) {
-            return Ok(idx as i64);
+            return Ok((idx as i64, true));
         }
         let days = CivilDate::constant(1970, 1, 1).until(calendar)?.get_days();
         // A date before 1970 lies before every index's first row, like 1970 itself.
@@ -496,9 +505,14 @@ impl Query {
         self.timestamp_to_i64(Timestamp::new(seconds), index, read)
     }
 
-    fn timestamp_to_i64(&self, ts: Timestamp, index: Index, read: &SeriesRead) -> Result<i64> {
+    fn timestamp_to_i64(
+        &self,
+        ts: Timestamp,
+        index: Index,
+        read: &SeriesRead,
+    ) -> Result<(i64, bool)> {
         if let Some(idx) = index.timestamp_to_index(ts) {
-            return Ok(idx as i64);
+            return Ok((idx as i64, true));
         }
         let to_index: fn(Height) -> usize = match index {
             Index::Height => usize::from,
@@ -508,7 +522,7 @@ impl Query {
             _ if index.is_date_based()
                 && index.index_to_timestamp(0).is_some_and(|first| ts < first) =>
             {
-                return Ok(0);
+                return Ok((0, true));
             }
             _ if index.is_date_based() => {
                 return Err(Error::InvalidParam(format!(
@@ -522,9 +536,16 @@ impl Query {
             }
         };
         // Past the last block: the selected series' exclusive end.
-        Ok(self
-            .height_for_timestamp(ts, read)?
-            .map_or(i64::MAX, |height| to_index(Height::from(height)) as i64))
+        Ok(match self.height_for_timestamp(ts, read)? {
+            Some(height) => {
+                let height = Height::from(height);
+                (
+                    to_index(height) as i64,
+                    read.pin().lengths().is_settled(height),
+                )
+            }
+            None => (i64::MAX, false),
+        })
     }
 
     /// The first block height at or after a given timestamp, `None` past the last block.
@@ -552,8 +573,8 @@ pub enum SeriesAnchor {
     /// Every row lies below the six-block reorg window: the last block the rows depend on (for
     /// calendar indexes, the next period's first block).
     Historical(BlockHashPrefix),
-    /// The range depends on the chain's length, reaches the reorg window, or a series rewrites
-    /// existing rows: the published tip.
+    /// The range depends on the chain's length, reaches the reorg window, has a bound a block in
+    /// it decides, or a series rewrites existing rows: the published tip.
     Tip(BlockHashPrefix),
 }
 

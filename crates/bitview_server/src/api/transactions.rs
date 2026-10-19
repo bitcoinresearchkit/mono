@@ -51,9 +51,11 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/cpfp/{txid}",
         get_with(
             async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
+                let cdn_cache_mode = state.cdn_cache_mode;
                 state.respond_read(headers, "application/json", move |q| {
                     let source = q.resolve_cpfp(&param.txid)?;
-                    let params = CacheParams::representation(Version::TWO, source.identity());
+                    let params = CacheParams::representation(Version::TWO, source.identity())
+                        .stable_if(source.is_settled(), cdn_cache_mode);
                     Ok((source, params))
                 }, |q, source| q.cpfp_json_resolved(source).map(Bytes::from)).await
             },
@@ -92,9 +94,11 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 _: Empty,
                 RequestState(state): RequestState
             | {
+                let cdn_cache_mode = state.cdn_cache_mode;
                 state.respond_read(headers, "application/json", move |q| {
                     let source = q.resolve_transaction(&param.txid)?;
-                    let params = CacheParams::representation(Version::ONE, source.identity());
+                    let params = CacheParams::representation(Version::ONE, source.identity())
+                        .stable_if(source.is_settled(), cdn_cache_mode);
                     Ok((source, params))
                 }, |q, source| q.transaction_json_resolved(source).map(Bytes::from)).await
             },
@@ -119,9 +123,11 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 _: Empty,
                 RequestState(state): RequestState
             | {
+                let cdn_cache_mode = state.cdn_cache_mode;
                 state.respond_read(headers, "text/plain", move |q| {
                     let source = q.resolve_transaction(&param.txid)?;
-                    let params = CacheParams::representation(Version::ONE, source.identity());
+                    let params = CacheParams::representation(Version::ONE, source.identity())
+                        .stable_if(source.is_settled(), cdn_cache_mode);
                     Ok((source, params))
                 }, |q, source| q.transaction_hex_resolved(source).map(Bytes::from)).await
             },
@@ -141,9 +147,11 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/tx/{txid}/merkleblock-proof",
         get_with(
             async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
+                let cdn_cache_mode = state.cdn_cache_mode;
                 state.respond_read(headers, "text/plain", move |q| {
                     let tx = q.resolve_confirmed_tx(&param.txid)?;
-                    let params = CacheParams::representation(Version::ONE, tx.identity());
+                    let params = CacheParams::representation(Version::ONE, tx.identity())
+                        .stable_if(tx.is_settled(), cdn_cache_mode);
                     Ok((tx, params))
                 }, |q, tx| q.merkleblock_proof_resolved(tx).map(Bytes::from)).await
             },
@@ -161,9 +169,11 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/tx/{txid}/merkle-proof",
         get_with(
             async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
+                let cdn_cache_mode = state.cdn_cache_mode;
                 state.respond_read(headers, "application/json", move |q| {
                     let tx = q.resolve_confirmed_tx(&param.txid)?;
-                    let params = CacheParams::representation(Version::ONE, tx.identity());
+                    let params = CacheParams::representation(Version::ONE, tx.identity())
+                        .stable_if(tx.is_settled(), cdn_cache_mode);
                     Ok((tx, params))
                 }, |q, tx| Ok(to_vec(&q.merkle_proof_resolved(tx)?)?.into())).await
             },
@@ -235,9 +245,11 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/tx/{txid}/raw",
         get_with(
             async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
+                let cdn_cache_mode = state.cdn_cache_mode;
                 state.respond_read(headers, "application/octet-stream", move |q| {
                     let source = q.resolve_transaction(&param.txid)?;
-                    let params = CacheParams::representation(Version::ONE, source.identity());
+                    let params = CacheParams::representation(Version::ONE, source.identity())
+                        .stable_if(source.is_settled(), cdn_cache_mode);
                     Ok((source, params))
                 }, |q, source| q.transaction_raw_resolved(source).map(Bytes::from)).await
             },
@@ -262,9 +274,12 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 RequestState(state): RequestState
             | -> Result<Response> {
                 let txid = param.txid;
-                let status = state.read_admitted(move |q| q.transaction_status(&txid)).await?;
+                let cdn_cache_mode = state.cdn_cache_mode;
+                let (status, settled) =
+                    state.read_admitted(move |q| q.transaction_status(&txid)).await?;
                 let params = match status.block_hash {
-                    Some(hash) => CacheParams::live(format!("tx-status3-{}-{hash}", Version::ONE)),
+                    Some(hash) => CacheParams::live(format!("tx-status3-{}-{hash}", Version::ONE))
+                        .stable_if(settled, cdn_cache_mode),
                     None => CacheParams::live_hash(*TxidPrefix::from(txid)),
                 };
                 Ok(Response::cached_json(&headers, &params, || status))

@@ -17,12 +17,18 @@ pub struct UtxoSetPoint {
     last: Height,
     hash: BlockHash,
     date: Date,
+    settled: bool,
 }
 
 impl UtxoSetPoint {
     /// The last covered block's hash.
     pub fn hash(&self) -> &BlockHash {
         &self.hash
+    }
+
+    /// Whether the URL pins the point below the reorg window: appends never change it.
+    pub fn is_settled(&self) -> bool {
+        self.settled
     }
 
     /// The point's exclusive end, once a reader of `history` blocks covers it.
@@ -43,7 +49,7 @@ impl Query {
             return Err(Error::NotFound("No published UTXO set".into()));
         }
         let last = Height::from(end - 1);
-        self.utxo_set_point(last, last)
+        self.utxo_set_point(last, last, false)
     }
 
     pub fn utxo_set_point_height(&self, height: Height) -> Result<UtxoSetPoint> {
@@ -52,14 +58,19 @@ impl Query {
         if usize::from(height) >= self.utxo_set_end(&pin)? {
             return Err(Error::NotFound(format!("Block {height} is not published")));
         }
-        self.utxo_set_point(height, height)
+        self.utxo_set_point(height, height, pin.lengths().is_settled(height))
     }
 
     pub fn utxo_set_point_date(&self, date: Date) -> Result<UtxoSetPoint> {
         let pin = self.pin_safe_lengths()?;
         let end = self.utxo_set_end(&pin)?;
-        let heights = self.day_heights(Day1::try_from(date)?, end, &pin)?;
-        self.utxo_set_point(Height::from(heights.start), Height::from(heights.end - 1))
+        let day = Day1::try_from(date)?;
+        let (heights, settled) = self.day_heights(day, end, &pin)?;
+        self.utxo_set_point(
+            Height::from(heights.start),
+            Height::from(heights.end - 1),
+            settled,
+        )
     }
 
     /// The set after block `point.last`.
@@ -133,7 +144,7 @@ impl Query {
         Ok(view.reader(usize::from(pin.lengths().height))?.len())
     }
 
-    fn utxo_set_point(&self, first: Height, last: Height) -> Result<UtxoSetPoint> {
+    fn utxo_set_point(&self, first: Height, last: Height, settled: bool) -> Result<UtxoSetPoint> {
         let hash = self
             .indexer()
             .vecs()
@@ -153,6 +164,7 @@ impl Query {
             last,
             hash,
             date: Date::from(timestamp),
+            settled,
         })
     }
 }

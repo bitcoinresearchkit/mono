@@ -268,20 +268,42 @@ impl AppState {
         T: Serialize + Send + 'static,
         F: FnOnce(&Query) -> Result<T> + Send + 'static,
     {
-        let bytes = self
+        self.respond_json_settled(headers, move |query| Ok((f(query)?, false)))
+            .await
+    }
+
+    /// [`Self::respond_json_content`] for a value its URL pins: settled below the reorg
+    /// window, it takes the stable CDN tier.
+    #[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
+    pub async fn respond_json_settled<T, F>(&self, headers: &HeaderMap, f: F) -> Response<Body>
+    where
+        T: Serialize + Send + 'static,
+        F: FnOnce(&Query) -> Result<(T, bool)> + Send + 'static,
+    {
+        let built = self
             .read_admitted(move |query| {
-                let value = f(query)?;
-                Ok(Bytes::from(to_vec(&value)?))
+                let (value, settled) = f(query)?;
+                Ok((Bytes::from(to_vec(&value)?), settled))
             })
             .await;
-        match bytes {
-            Ok(bytes) => self.respond_json_content_bytes(headers, bytes),
+        match built {
+            Ok((bytes, settled)) => self.json_content_response(headers, bytes, settled),
             Err(error) => Error::from(error).into_response(),
         }
     }
 
     pub fn respond_json_content_bytes(&self, headers: &HeaderMap, bytes: Bytes) -> Response<Body> {
-        let params = CacheParams::live_hash(RepresentationId::content_hash(&bytes));
+        self.json_content_response(headers, bytes, false)
+    }
+
+    fn json_content_response(
+        &self,
+        headers: &HeaderMap,
+        bytes: Bytes,
+        settled: bool,
+    ) -> Response<Body> {
+        let params = CacheParams::live_hash(RepresentationId::content_hash(&bytes))
+            .stable_if(settled, self.cdn_cache_mode);
         Response::cached_bytes(headers, &params, "application/json", || bytes)
     }
 }
