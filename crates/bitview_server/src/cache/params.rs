@@ -13,18 +13,17 @@ use crate::{etag::Etag, extended::HeaderMapExtended};
 // check before use" (not "don't cache"); ETag makes the check cheap.
 const CC: &str = "public, no-cache, must-revalidate";
 const CDN_LIVE: &str = "public, max-age=1, must-revalidate";
+const CDN_STABLE: &str = "public, max-age=31536000, immutable";
 
-// Revalidating errors are briefly cacheable, but never served stale. Permanent
-// input errors can be cached indefinitely. Transient and private errors are
-// never stored. Browser and CDN policies intentionally match for errors.
+// Revalidating errors are briefly cacheable, but never served stale: even a permanent input
+// error's body and verdict can change with a release, and browsers are never purged. Transient
+// and private errors are never stored. Browser and CDN policies intentionally match for errors.
 const CC_REVALIDATE: &str = "public, max-age=1, must-revalidate";
-const CC_ERROR_IMMUTABLE: &str = "public, max-age=31536000, immutable";
 const CC_ERROR_NO_STORE: &str = "no-store";
 
 #[derive(Clone, Copy)]
 pub enum ErrorCachePolicy {
     Revalidate,
-    Immutable,
     NoStore,
 }
 
@@ -32,7 +31,6 @@ impl ErrorCachePolicy {
     fn cache_control(self) -> &'static str {
         match self {
             Self::Revalidate => CC_REVALIDATE,
-            Self::Immutable => CC_ERROR_IMMUTABLE,
             Self::NoStore => CC_ERROR_NO_STORE,
         }
     }
@@ -47,11 +45,13 @@ pub struct CacheParams {
 }
 
 impl CacheParams {
-    const fn cdn_cache_control(mode: CdnCacheMode) -> &'static str {
-        match mode {
-            CdnCacheMode::Live => CDN_LIVE,
-            CdnCacheMode::Aggressive => "public, max-age=31536000, immutable",
+    /// The stable CDN tier when `settled`: bytes only a release or a reorg below the reorg window
+    /// can change. With [`CdnCacheMode::Aggressive`], held up to a year until the release's purge.
+    pub fn stable_if(mut self, settled: bool, cdn_cache_mode: CdnCacheMode) -> Self {
+        if settled && cdn_cache_mode == CdnCacheMode::Aggressive {
+            self.cdn_cache_control = CDN_STABLE;
         }
+        self
     }
 
     /// Live response with an exact, versioned representation tag: browsers revalidate, the CDN
@@ -72,16 +72,13 @@ impl CacheParams {
     /// Data fixed for the release (the empty search): `i{version}`, bumped when the response
     /// format changes.
     pub fn immutable(version: Version, cdn_cache_mode: CdnCacheMode) -> Self {
-        Self {
-            etag: format!("i{version}").into(),
-            cache_control: CC,
-            cdn_cache_control: Self::cdn_cache_control(cdn_cache_mode),
-        }
+        Self::live(format!("i{version}")).stable_if(true, cdn_cache_mode)
     }
 
     /// Mutable state whose current representation is anchored to its latest relevant block
     /// (address state, UTXO set points): `a{version}-{block_hash_prefix:x}`. The CDN
-    /// revalidates so later activity can replace it without waiting for a purge.
+    /// revalidates so later activity can replace it without waiting for a purge; a point its
+    /// URL pins below the reorg window is [`Self::stable_if`] settled.
     pub fn activity_bound(version: Version, prefix: BlockHashPrefix) -> Self {
         Self::live(format!("a{version}-{:x}", *prefix))
     }
@@ -124,11 +121,10 @@ impl CacheParams {
         let v = u32::from(query.version());
         let range = query.range();
         match query.anchor() {
-            SeriesAnchor::Historical(hash) => Self {
-                etag: format!("s{v}-r{}-{}-{:x}", range.start, range.end, *hash).into(),
-                cache_control: CC,
-                cdn_cache_control: Self::cdn_cache_control(cdn_cache_mode),
-            },
+            SeriesAnchor::Historical(hash) => {
+                Self::live(format!("s{v}-r{}-{}-{:x}", range.start, range.end, *hash))
+                    .stable_if(true, cdn_cache_mode)
+            }
             SeriesAnchor::Tip(hash) => Self::live(format!("s{v}-t{:x}", *hash)),
         }
     }

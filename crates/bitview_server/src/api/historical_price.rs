@@ -11,6 +11,7 @@ pub async fn serve(
     timestamp: Option<Timestamp>,
 ) -> Result<Response> {
     let cache = state.historical_price_cache.clone();
+    let cdn_cache_mode = state.cdn_cache_mode;
     Ok(state
         .respond_admitted(
             &state.sync_query,
@@ -20,17 +21,23 @@ pub async fn serve(
             move |query| {
                 let source = query.resolve_historical_price()?;
                 let content = || -> QueryResult<_> {
-                    let bytes = Bytes::from(to_vec(&source.get(timestamp)?)?);
+                    let (price, settled) = source.get(timestamp)?;
+                    let bytes = Bytes::from(to_vec(&price)?);
                     let identity = RepresentationId::content(&bytes);
-                    Ok((bytes, identity))
+                    Ok((bytes, identity, settled))
                 };
                 // Point responses bypass the cache rather than evicting the full history.
-                let (bytes, identity) = if timestamp.is_none() {
-                    cache.get_or_try_init(source.revision(), content)?
+                let (bytes, identity, settled) = if timestamp.is_none() {
+                    let (bytes, identity) = cache.get_or_try_init(source.revision(), || {
+                        content().map(|(bytes, identity, _)| (bytes, identity))
+                    })?;
+                    (bytes, identity, false)
                 } else {
                     content()?
                 };
-                Ok((bytes, CacheParams::representation(Version::ONE, identity)))
+                let params = CacheParams::representation(Version::ONE, identity)
+                    .stable_if(settled, cdn_cache_mode);
+                Ok((bytes, params))
             },
             |_, bytes| Ok(bytes),
         )

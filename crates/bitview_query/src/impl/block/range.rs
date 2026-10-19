@@ -23,6 +23,12 @@ impl ResolvedBlocks {
         self.end.checked_sub(1).map(Height::from)
     }
 
+    /// Whether the range's last block lies below the reorg window: appends never change it.
+    pub fn is_settled(&self) -> bool {
+        self.last_height()
+            .is_some_and(|last| self.guard.lengths().is_settled(last))
+    }
+
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfo>> {
         query.blocks_range_at(self.begin, self.end, &self.read_pin(query))
     }

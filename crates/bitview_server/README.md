@@ -59,13 +59,20 @@ current availability before returning 304; a matching tag is not permission to
 serve an unpublished or displaced result.
 
 Series responses use a separate range-aware scheme: ranges the URL pins (no
-bound counted from the end, left open or past the rows) wholly below the
+bound counted from the end, left open, past the rows or decided by a block
+inside the reorg window, as a timestamp bound can be) wholly below the
 six-block reorg window are keyed by schema version, bounds and the hash of the
 last block they depend on (stable across appends, changed by any reorg replacing
 them). That is the last block they cover, or for calendar indexes the first
 block of the following period, whose timestamp ends the range's last period.
 Other ranges, and every range of a series that rewrites existing rows, are keyed
-by the current tip hash.
+by the current tip hash. Other responses a URL pins to blocks keep their
+validators and join that stable tier once settled below the reorg window: blocks
+by hash or height and fixed block windows, confirmed transactions (bodies,
+proofs, CPFP, status), and height or date points (UTXO set and its diff, URPD,
+oracle histograms), settled by their block, for a date by the next day's first
+block; a timestamp's historical price by the first block of the timestamp's
+four-hour bucket, which closes every earlier one. Latest, tip and mempool responses never are.
 
 Every ETag starts with the release, so a release changing a response's format
 never validates an older body. Live responses (exact tags, content hashes,
@@ -82,10 +89,10 @@ requires an operator purge on deploy. Mutable and deployment-bound URLs retain
 their short freshness under either mode.
 
 Errors deliberately have no ETag: a conditional request must receive the error
-status again rather than `304`. Unknown-resource and other recoverable client
-errors use a one-second, must-revalidate policy; permanently invalid address and
-network inputs are immutable; service-unavailable and server errors use
-`no-store`. Server errors carry a generic message; the detail goes to the log.
+status again rather than `304`. Client errors (`400`, `404`), invalid addresses
+included, use a one-second, must-revalidate policy, since a release can change
+even a permanent verdict and browsers are never purged; service-unavailable and
+server errors use `no-store`. Server errors carry a generic message; the detail goes to the log.
 
 `POST /api/tx` is an action: every response is `no-store`, with no validator.
 It accepts at most 8,000,000 bytes of hexadecimal text including surrounding

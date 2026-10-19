@@ -44,16 +44,21 @@ impl Query {
         Ok((hash, time))
     }
 
-    pub fn transaction_status(&self, txid: &Txid) -> Result<TxStatus> {
+    /// The transaction's status, and whether its block lies below the reorg window.
+    pub fn transaction_status(&self, txid: &Txid) -> Result<(TxStatus, bool)> {
         let (mempool, pin) = self.mempool_then_pin()?;
         let read = self.read_indexer_at(pin);
         match read.resolve_confirmed_position(txid) {
-            Ok((_, height)) => self.confirmed_status_at_bounded(height, read.pin().lengths()),
+            Ok((_, height)) => {
+                let lengths = read.pin().lengths();
+                let status = self.confirmed_status_at_bounded(height, lengths)?;
+                Ok((status, lengths.is_settled(height)))
+            }
             Err(Error::UnknownTxid) => {
                 let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::UnknownTxid)?;
                 mempool
                     .contains_txid(txid, &tip)?
-                    .then_some(TxStatus::UNCONFIRMED)
+                    .then_some((TxStatus::UNCONFIRMED, false))
                     .ok_or(Error::UnknownTxid)
             }
             Err(error) => Err(error),

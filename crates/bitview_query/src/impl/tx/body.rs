@@ -18,6 +18,13 @@ impl<T> ResolvedTxBody<T> {
             Self::Chain(transaction) => transaction.identity(),
         }
     }
+
+    pub fn is_settled(&self) -> bool {
+        match self {
+            Self::Memory { .. } => false,
+            Self::Chain(transaction) => transaction.is_settled(),
+        }
+    }
 }
 
 impl Query {

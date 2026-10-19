@@ -15,7 +15,7 @@ use serde::Serialize;
 use serde_json::to_vec;
 
 use crate::{
-    AppState, CacheParams, Error,
+    AppState, CacheParams, CdnCacheMode, Error,
     api::tags,
     etag::Etag,
     extended::{ResponseExtended, TransformResponseExtended},
@@ -32,17 +32,18 @@ const HEADER_SCHEMA: &str = "header-v2";
 const RAW_SCHEMA: &str = "raw-v2";
 pub const V1_BLOCK_SCHEMA: &str = "v1-5";
 
-fn recent_blocks_params(tip: Option<BlockHash>) -> CacheParams {
-    let tag = match tip {
+fn recent_blocks_params(snapshot: &ResolvedBlocks, cdn_cache_mode: CdnCacheMode) -> CacheParams {
+    let tag = match snapshot.anchor() {
         Some(hash) => format!("blocks2-{hash}"),
         None => "blocks2-empty".to_owned(),
     };
-    CacheParams::live(tag)
+    CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
 }
 
 // The namespace covers the row formulas and bundled pool catalog. Bump it when
-// either changes. Prices also participate because oracle checkpoints can produce
-// different prices for the same chain. Hash exactly the values used by the body.
+// either changes. Prices also participate, so a deploy changing them (oracle
+// configs, price tapes) never validates an older body. Hash exactly the values
+// used by the body.
 pub fn blocks_v1_identity(anchor: Option<BlockHash>, prices: &[Dollars]) -> sha256::Hash {
     let mut engine = sha256::Hash::engine();
     engine.input(&[u8::from(anchor.is_some())]);
@@ -55,34 +56,38 @@ pub fn blocks_v1_identity(anchor: Option<BlockHash>, prices: &[Dollars]) -> sha2
     sha256::Hash::from_engine(engine)
 }
 
-fn blocks_v1_params(anchor: Option<BlockHash>, prices: &[Dollars]) -> CacheParams {
-    let identity = blocks_v1_identity(anchor, prices);
+fn blocks_v1_params(snapshot: &ResolvedBlocksV1, cdn_cache_mode: CdnCacheMode) -> CacheParams {
+    let identity = blocks_v1_identity(snapshot.anchor(), snapshot.prices());
     let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{identity}");
-    CacheParams::live(tag)
+    CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
 }
 
-fn block_v1_params(snapshot: &ResolvedBlocksV1) -> QueryResult<CacheParams> {
+fn block_v1_params(
+    snapshot: &ResolvedBlocksV1,
+    cdn_cache_mode: CdnCacheMode,
+) -> QueryResult<CacheParams> {
     let height = snapshot
         .last_height()
         .ok_or(QueryError::Internal("Missing resolved block"))?;
     let identity = blocks_v1_identity(snapshot.anchor(), snapshot.prices());
-    Ok(CacheParams::live(format!(
-        "block-{V1_BLOCK_SCHEMA}-{height}-{identity}"
-    )))
+    let params = CacheParams::live(format!("block-{V1_BLOCK_SCHEMA}-{height}-{identity}"));
+    Ok(params.stable_if(snapshot.is_settled(), cdn_cache_mode))
 }
 
-fn block_params(snapshot: &ResolvedBlocks, schema: &str) -> QueryResult<CacheParams> {
+fn block_params(
+    snapshot: &ResolvedBlocks,
+    schema: &str,
+    cdn_cache_mode: CdnCacheMode,
+) -> QueryResult<CacheParams> {
     let height = snapshot
         .last_height()
         .ok_or(QueryError::Internal("Missing resolved block"))?;
     let hash = snapshot
         .anchor()
         .ok_or(QueryError::Internal("Missing resolved block hash"))?;
-    // Availability is best-chain-only, even at historical heights. A reorg can
-    // remove the resource, so depth alone cannot justify immutable freshness.
-    Ok(CacheParams::revalidate(format!(
-        "block-{schema}-{height}-{hash}"
-    )))
+    // Availability is best-chain-only: browsers keep a second at any depth.
+    let params = CacheParams::revalidate(format!("block-{schema}-{height}-{hash}"));
+    Ok(params.stable_if(snapshot.is_settled(), cdn_cache_mode))
 }
 
 // A hint only: at most one candidate is checked against the full canonical hash.
@@ -140,11 +145,12 @@ impl AppState {
         hash: BlockHash,
         method: Method,
     ) -> Result<Response, Error> {
+        let cdn_cache_mode = self.cdn_cache_mode;
         if let Some(height) = block_height_hint(&headers, RAW_SCHEMA)
             && let Some(snapshot) =
                 self.preflight(|q| q.try_resolve_block_snapshot(&hash, height))?
         {
-            let params = block_params(&snapshot, RAW_SCHEMA)?;
+            let params = block_params(&snapshot, RAW_SCHEMA, cdn_cache_mode)?;
             if params.etag.matches(&headers) {
                 return Ok(ResponseExtended::new_not_modified(&params));
             }
@@ -156,7 +162,7 @@ impl AppState {
                 &self.raw_block_bodies,
                 move |q, permit| {
                     let snapshot = q.resolve_block_snapshot(&hash)?;
-                    let params = block_params(&snapshot, RAW_SCHEMA)?;
+                    let params = block_params(&snapshot, RAW_SCHEMA, cdn_cache_mode)?;
                     if params.etag.matches(&headers) {
                         return Ok(Some(ResponseExtended::new_not_modified(&params)));
                     }
@@ -213,9 +219,11 @@ impl AppState {
     ) -> Result<Response, Error> {
         // The owned hash is the entire representation: no second source read,
         // retained snapshot or body cache is needed after resolution.
-        let respond = move |hash: BlockHash| {
+        let cdn_cache_mode = self.cdn_cache_mode;
+        let respond = move |(hash, settled): (BlockHash, bool)| {
             let body = hash.to_string();
-            let params = CacheParams::revalidate(format!("block-height-v2-{body}"));
+            let params = CacheParams::revalidate(format!("block-height-v2-{body}"))
+                .stable_if(settled, cdn_cache_mode);
             Ok(Response::cached_bytes(
                 &headers,
                 &params,
@@ -279,6 +287,7 @@ impl AppState {
         + Send
         + 'static,
     ) -> Result<Response, Error> {
+        let cdn_cache_mode = self.cdn_cache_mode;
         if let Some(height) = block_height_hint(&headers, schema)
             && let Some(snapshot) =
                 self.preflight(|q| q.try_resolve_block_snapshot(&hash, height))?
@@ -286,7 +295,7 @@ impl AppState {
             if let Some(index) = tx_index {
                 self.query.sync(|q| snapshot.validate_tx_index(q, index))?;
             }
-            let params = block_params(&snapshot, schema)?;
+            let params = block_params(&snapshot, schema, cdn_cache_mode)?;
             if params.etag.matches(&headers) {
                 return Ok(ResponseExtended::new_not_modified(&params));
             }
@@ -299,7 +308,7 @@ impl AppState {
                 if let Some(index) = tx_index {
                     snapshot.validate_tx_index(q, index)?;
                 }
-                let params = block_params(&snapshot, schema)?;
+                let params = block_params(&snapshot, schema, cdn_cache_mode)?;
                 if params.etag.matches(&headers) {
                     return Ok(Some(ResponseExtended::new_not_modified(&params)));
                 }
@@ -316,10 +325,11 @@ impl AppState {
         headers: HeaderMap,
         hash: BlockHash,
     ) -> Result<Response, Error> {
+        let cdn_cache_mode = self.cdn_cache_mode;
         if let Some(height) = block_height_hint(&headers, V1_BLOCK_SCHEMA)
             && let Some(snapshot) = self.preflight(|q| q.try_resolve_block_v1(&hash, height))?
         {
-            let params = block_v1_params(&snapshot)?;
+            let params = block_v1_params(&snapshot, cdn_cache_mode)?;
             if params.etag.matches(&headers) {
                 return Ok(ResponseExtended::new_not_modified(&params));
             }
@@ -328,7 +338,7 @@ impl AppState {
         Ok(self
             .read_admitted(move |q| {
                 let snapshot = q.resolve_block_v1(&hash)?;
-                let params = block_v1_params(&snapshot)?;
+                let params = block_v1_params(&snapshot, cdn_cache_mode)?;
                 if params.etag.matches(&headers) {
                     return Ok(ResponseExtended::new_not_modified(&params));
                 }
@@ -346,10 +356,11 @@ impl AppState {
         headers: HeaderMap,
         start_height: Option<Height>,
     ) -> Result<Response, Error> {
+        let cdn_cache_mode = self.cdn_cache_mode;
         if headers.contains_key(header::IF_NONE_MATCH)
             && let Some(snapshot) = self.preflight(|q| q.try_resolve_blocks_v1(start_height, 15))?
         {
-            let params = blocks_v1_params(snapshot.anchor(), snapshot.prices());
+            let params = blocks_v1_params(&snapshot, cdn_cache_mode);
             if params.etag.matches(&headers) {
                 return Ok(ResponseExtended::new_not_modified(&params));
             }
@@ -359,7 +370,7 @@ impl AppState {
         Ok(self
             .read_admitted(move |q| {
                 let snapshot = q.resolve_blocks_v1(start_height, 15)?;
-                let params = blocks_v1_params(snapshot.anchor(), snapshot.prices());
+                let params = blocks_v1_params(&snapshot, cdn_cache_mode);
                 if params.etag.matches(&headers) {
                     return Ok(ResponseExtended::new_not_modified(&params));
                 }
@@ -373,11 +384,12 @@ impl AppState {
         headers: HeaderMap,
         start_height: Option<Height>,
     ) -> Result<Response, Error> {
+        let cdn_cache_mode = self.cdn_cache_mode;
         if headers.contains_key(header::IF_NONE_MATCH)
             && let Some(snapshot) =
                 self.preflight(|q| q.resolve_blocks(start_height, 10).map(Some))?
         {
-            let params = recent_blocks_params(snapshot.anchor());
+            let params = recent_blocks_params(&snapshot, cdn_cache_mode);
             if params.etag.matches(&headers) {
                 return Ok(ResponseExtended::new_not_modified(&params));
             }
@@ -388,7 +400,7 @@ impl AppState {
         Ok(self
             .read_admitted(move |q| {
                 let snapshot = q.resolve_blocks(start_height, 10)?;
-                let params = recent_blocks_params(snapshot.anchor());
+                let params = recent_blocks_params(&snapshot, cdn_cache_mode);
                 if params.etag.matches(&headers) {
                     return Ok(ResponseExtended::new_not_modified(&params));
                 }

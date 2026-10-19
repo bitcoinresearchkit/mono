@@ -25,8 +25,7 @@ has to be deleted by hand.
   404/400 (`not_found`, `parse_error`, `out_of_range`, `unsupported_type`). Every 500 body says "Internal server
   error" and the detail goes to the log, so file paths and panic payloads no longer reach clients
 - Errors carry no ETag (those of cached endpoints carried the resource's): 400 and 404 keep `public, max-age=1,
-  must-revalidate`, `invalid_address` and `invalid_network` are cacheable for a year, and every other error is
-  `no-store` (all were `public, max-age=1, must-revalidate`)
+  must-revalidate`, and every other error is `no-store` (all were `public, max-age=1, must-revalidate`)
 - `GET /api/v1/mining/reward-stats/0` answers 400 `bad_request` (was 404 `out_of_range`); an address of a kind
   Bitview does not index (e.g. witness v2) answers 400 `unsupported_type` (was 500); a block transaction whose indexed
   prevout address is missing answers 500 (was served with an empty prevout script); `too_many_utxos` names the
@@ -443,6 +442,11 @@ has to be deleted by hand.
   could revalidate stale rows). The OpenAPI document's ETags are content hashes (were the release version), other ETags
   change shape (caches revalidate once after the upgrade), and every operation documents its 400, 500, 503 and 504
   answers
+- With `--cdn true`, responses a URL pins to blocks below the six-block reorg window join series ranges' year-long
+  CDN tier (were one second): blocks by hash or height and fixed block windows, confirmed transactions (bodies,
+  proofs, CPFP, status), UTXO set, URPD and oracle histogram points (a date once the next day's first block is that
+  deep) and a timestamp's historical price. Latest, tip and mempool responses keep one second, and a series range
+  whose date or timestamp bound a block inside the window decides is tied to the tip (could be cached as final)
 - While a rebuild or a rollback below the published tip rewrites a plugin's rows, series requests reaching those
   rows answer 503 `state_updating` (were clamped or empty; series on the funded and empty address indexes and other
   rewritable vectors instead waited up to 4 s on every update, then answered 503 `state_updating`)

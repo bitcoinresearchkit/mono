@@ -4,7 +4,7 @@ use bitview_plugin_indexer::SafeLengths;
 use bitview_plugin_price::priced_range;
 use bitview_primitives::{HOUR4_INTERVAL, INDEX_EPOCH, Index};
 use bitview_types::{ExchangeRates, HistoricalPrice, PricePoint};
-use brk_types::{Cents, Dollars, Timestamp};
+use brk_types::{Cents, Dollars, Height, Timestamp};
 use vecdb::{AnyVec, ReadBounds, ReadableVec};
 
 use crate::{Error, OptionData, Query, Result};
@@ -48,8 +48,9 @@ impl ResolvedHistoricalPrice<'_> {
     }
 
     /// Every completed four-hour close from the first priced one, or the last one before
-    /// `timestamp`'s bucket (none before the first price).
-    pub fn get(&self, timestamp: Option<Timestamp>) -> Result<HistoricalPrice> {
+    /// `timestamp`'s bucket (none before the first price). Also whether that point is settled:
+    /// its bucket's boundary, which closes every earlier bucket, lies below the reorg window.
+    pub fn get(&self, timestamp: Option<Timestamp>) -> Result<(HistoricalPrice, bool)> {
         let plugins = self.query.plugins();
         let source_len = usize::from(self.pin.lengths().height);
         let mut bounds = ReadBounds::new();
@@ -87,14 +88,17 @@ impl ResolvedHistoricalPrice<'_> {
                     usd: Dollars::from(cents),
                 }))
             };
-            let prices = match timestamp {
+            let (prices, settled) = match timestamp {
                 Some(target) => {
-                    let end = (((*target).saturating_sub(INDEX_EPOCH) / HOUR4_INTERVAL) as usize)
-                        .min(completed);
+                    let bucket = ((*target).saturating_sub(INDEX_EPOCH) / HOUR4_INTERVAL) as usize;
+                    let end = bucket.min(completed);
                     // The last bucket holding a block, walking back over empty ones.
                     let mut prices = Vec::with_capacity(1);
+                    let mut settled = false;
                     if end > 0 {
                         let mut next = first(end)?;
+                        settled = bucket <= completed
+                            && self.pin.lengths().is_settled(Height::from(next));
                         for index in (0..end).rev() {
                             let start = first(index)?;
                             if start != next {
@@ -104,7 +108,7 @@ impl ResolvedHistoricalPrice<'_> {
                             next = start;
                         }
                     }
-                    prices
+                    (prices, settled)
                 }
                 None => {
                     let mapping = first_heights.collect_range_dyn(0, len);
@@ -116,13 +120,14 @@ impl ResolvedHistoricalPrice<'_> {
                                 .extend(entry(index, usize::from(pair[0])..usize::from(pair[1]))?);
                         }
                     }
-                    prices
+                    (prices, false)
                 }
             };
-            Ok(HistoricalPrice {
+            let price = HistoricalPrice {
                 prices,
                 exchange_rates: ExchangeRates {},
-            })
+            };
+            Ok((price, settled))
         })
     }
 }

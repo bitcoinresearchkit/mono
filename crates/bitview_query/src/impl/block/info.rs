@@ -41,10 +41,12 @@ struct Coinbase {
 }
 
 impl Query {
-    /// Resolve a height against one published chain view.
-    pub fn resolve_block_hash(&self, height: Height) -> Result<BlockHash> {
+    /// The canonical hash at `height` in one published chain view, and whether it lies below
+    /// the reorg window.
+    pub fn resolve_block_hash(&self, height: Height) -> Result<(BlockHash, bool)> {
         let guard = self.pin_safe_lengths()?;
-        self.block_hash_by_height(height, &guard)
+        let hash = self.block_hash_by_height(height, &guard)?;
+        Ok((hash, guard.lengths().is_settled(height)))
     }
 
     /// Block hash by height within the retained published prefix.

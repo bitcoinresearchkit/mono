@@ -109,12 +109,9 @@ impl Error {
     }
 
     fn cache_policy(&self) -> ErrorCachePolicy {
-        match self.code {
-            ErrorCode::InvalidAddress | ErrorCode::InvalidNetwork => ErrorCachePolicy::Immutable,
-            _ => match self.status {
-                StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => ErrorCachePolicy::Revalidate,
-                _ => ErrorCachePolicy::NoStore,
-            },
+        match self.status {
+            StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => ErrorCachePolicy::Revalidate,
+            _ => ErrorCachePolicy::NoStore,
         }
     }
 }

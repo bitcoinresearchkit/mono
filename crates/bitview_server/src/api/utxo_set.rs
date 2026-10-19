@@ -28,6 +28,7 @@ impl AppState {
         point: Option<HeightOrDate>,
         build: fn(&Query, &UtxoSetPoint) -> QueryResult<T>,
     ) -> Result<Response> {
+        let cdn_cache_mode = self.cdn_cache_mode;
         Ok(self
             .respond_admitted(
                 &self.utxo_set_query,
@@ -41,7 +42,8 @@ impl AppState {
                         Some(HeightOrDate::Date(date)) => q.utxo_set_point_date(date)?,
                     };
                     let params =
-                        CacheParams::activity_bound(VERSION, BlockHashPrefix::from(point.hash()));
+                        CacheParams::activity_bound(VERSION, BlockHashPrefix::from(point.hash()))
+                            .stable_if(point.is_settled(), cdn_cache_mode);
                     Ok((point, params))
                 },
                 move |q, point| Ok(to_vec(&build(q, &point)?)?.into()),

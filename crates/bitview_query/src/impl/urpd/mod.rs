@@ -24,6 +24,7 @@ pub struct ResolvedUrpd {
     weight: UrpdWeight,
     /// The summed versions of the sources the distribution reads.
     version: Version,
+    settled: bool,
 }
 
 impl ResolvedUrpd {
@@ -34,6 +35,11 @@ impl ResolvedUrpd {
             "{}-{}-{}-{}-{}",
             self.version, self.cohort, self.aggregation, self.weight, self.hash
         )
+    }
+
+    /// Whether the URL pins the point below the reorg window: appends never change it.
+    pub fn is_settled(&self) -> bool {
+        self.settled
     }
 }
 
@@ -68,7 +74,7 @@ impl Query {
         let mut dates = Vec::new();
         for index in 0..self.plugins().mappings.day1.date.len() {
             let day = Day1::from(index);
-            if let Ok(heights) = self.day_heights(day, end, &pin)
+            if let Ok((heights, _)) = self.day_heights(day, end, &pin)
                 && self
                     .urpd_weights(ages, Height::from(heights.end - 1), weight)
                     .is_ok()
@@ -88,14 +94,10 @@ impl Query {
     ) -> Result<ResolvedUrpd> {
         let pin = self.pin_safe_lengths()?;
         let end = usize::from(pin.lengths().height);
-        let heights = self.day_heights(Day1::try_from(date)?, end, &pin)?;
-        self.resolve_urpd_inner(
-            cohort,
-            Height::from(heights.end - 1),
-            aggregation,
-            weight,
-            pin,
-        )
+        let day = Day1::try_from(date)?;
+        let (heights, settled) = self.day_heights(day, end, &pin)?;
+        let height = Height::from(heights.end - 1);
+        self.resolve_urpd_inner(cohort, height, aggregation, weight, pin, settled)
     }
 
     pub fn resolve_urpd_height(
@@ -106,7 +108,8 @@ impl Query {
         weight: UrpdWeight,
     ) -> Result<ResolvedUrpd> {
         let pin = self.pin_safe_lengths()?;
-        self.resolve_urpd_inner(cohort, height, aggregation, weight, pin)
+        let settled = pin.lengths().is_settled(height);
+        self.resolve_urpd_inner(cohort, height, aggregation, weight, pin, settled)
     }
 
     pub fn resolve_urpd_latest(
@@ -120,7 +123,7 @@ impl Query {
             .lengths()
             .last_height()
             .ok_or_else(|| Error::NotFound("No published UTXO set".into()))?;
-        self.resolve_urpd_inner(cohort, height, aggregation, weight, pin)
+        self.resolve_urpd_inner(cohort, height, aggregation, weight, pin, false)
     }
 
     fn urpd_ages(cohort: &Cohort) -> Result<&'static [AgeRangeId]> {
@@ -168,6 +171,7 @@ impl Query {
         aggregation: UrpdAggregation,
         weight: UrpdWeight,
         pin: ReadPin,
+        settled: bool,
     ) -> Result<ResolvedUrpd> {
         let ages = Self::urpd_ages(cohort)?;
         check_bound(&pin, height, pin.lengths().height)?;
@@ -190,6 +194,7 @@ impl Query {
             hash,
             aggregation,
             weight,
+            settled,
         })
     }
 

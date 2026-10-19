@@ -58,6 +58,7 @@ impl IndexerRead<'_> {
             index,
             height,
             block_hash,
+            settled: self.pin.lengths().is_settled(height),
         })
     }
 

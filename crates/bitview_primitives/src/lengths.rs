@@ -58,6 +58,20 @@ impl Lengths {
         self.height.decremented()
     }
 
+    /// The first height a six-block reorg could replace: what depends only on blocks below it is
+    /// settled. `None` before genesis.
+    #[inline]
+    pub fn reorg_cutoff(self) -> Option<Height> {
+        self.last_height()
+            .map(|last| Height::from((*last).saturating_sub(5)))
+    }
+
+    /// Whether block `height` lies below the reorg window.
+    #[inline]
+    pub fn is_settled(self, height: Height) -> bool {
+        self.reorg_cutoff().is_some_and(|cutoff| height < cutoff)
+    }
+
     /// The length of `index`, `None` for the indexes not counted here (calendar periods, halving
     /// and difficulty epochs).
     pub fn get(&self, index: Index) -> Option<usize> {
