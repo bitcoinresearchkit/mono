@@ -8650,7 +8650,7 @@
             <li>"fill": "above", an area filled from its line up; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
-            <li>"format": how its values read: usd, btc, sats, percent, ratio, count or number (by its unit if none).</li>
+            <li>"format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.</li>
             <li>"pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.</li>
             <li>"letter": the letter formulas read it by. Copy link writes every layer's once one isn't the letter its place gives (a layer removed leaves the others' as they were): keep them.</li>
           </ul>
@@ -9557,7 +9557,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         { chip: "Indexed", name: "Indexed", tip: "100 at the first in view" },
       ];
       /** @type {[string, string][]} */
-      const FORMATS = [["auto", "Automatic"], ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"], ["percent", "Percent"], ["ratio", "Ratio ×"], ["count", "Count"], ["number", "Number"]];
+      /** The formats a layer can be read in, by hand (Automatic: its unit's), in groups: each group's first starts it. */
+      const FORMATS = [
+        ["auto", "Automatic"],
+        ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"],
+        ["percent", "Percent"], ["ratio", "Ratio ×"], ["count", "Count"], ["number", "Number"],
+        ["days", "Days"], ["seconds", "Seconds"], ["persecond", "Per second"], ["perday", "Per day"],
+        ["bytes", "Bytes"], ["vbytes", "Virtual bytes"], ["weight", "Weight units"], ["sigops", "Signature operations"],
+        ["hashrate", "Hash rate"], ["difficulty", "Difficulty"], ["feerate", "Fee rate"], ["hashprice", "Hash price"], ["hashvalue", "Hash value"],
+        ["coindays", "Coin days"], ["coinblocks", "Coin blocks"], ["dollarblocks", "Dollar blocks"], ["dollardays", "Dollar days per coin"],
+      ];
+      /** The formats that start a group in the format menu. */
+      const FORMAT_GROUPS = new Set(["usd", "percent", "days", "bytes", "hashrate", "coindays"]);
       /** A layer's letter, its badge wherever it shows (the panel, ⌘K's rows, its previews): in its color. @param {Layer} layer */
       function letterChip(layer) {
         const colored = (layer.colorFrom && ownerOf(layer)?.layers.find((other) => other.id === layer.colorFrom)) || layer;
@@ -9570,10 +9581,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
       const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
-      const UNIT_SIGNS = { usd: "USD", cents: "¢", btc: "BTC", sats: "sats", percent: "%", ratio: "×", bps: "bps", ppm: "ppm", hashrate: "H/s", feerate: "sat/vB", days: "days" };
-      /** A unit after a field's number: a ratio's left out (a × there reads as a button that clears it). */
-      const fieldUnit = (/** @type {string} */ unit) => (unit === "ratio" ? "" : UNIT_SIGNS[unit] ?? "");
-      const UNIT_NAMES = { usd: "US dollars", cents: "Cents", btc: "Bitcoin", sats: "Satoshis", percent: "Percent", ratio: "Ratio", bps: "Basis points", ppm: "Parts per million", feerate: "Sats per vbyte", days: "Days", difficulty: "Difficulty", count: "Count", hashrate: "Hashes per second", number: "Number" };
+      const UNIT_SIGNS = {
+        usd: "USD", btc: "BTC", sats: "sats", percent: "%", ratio: "×", days: "days", seconds: "s", persecond: "/s", perday: "/day", bytes: "B", vbytes: "vB",
+        weight: "WU", sigops: "sigops", hashrate: "H/s", feerate: "sat/vB", hashprice: "$/PH/s/day", hashvalue: "sat/PH/s/day", coindays: "coin days",
+        coinblocks: "coin blocks", dollarblocks: "$ × blocks", dollardays: "$ × days/₿",
+      };
+      /**
+       * A unit after a field's number: a ratio's left out (a × there reads as a button that clears it), and one longer
+       * than the field keeps room for ("sat/vB": "$/PH/s/day" would run under the number).
+       */
+      const fieldUnit = (/** @type {string} */ unit) => ((sign) => (unit === "ratio" || sign.length > 6 ? "" : sign))(UNIT_SIGNS[/** @type {keyof typeof UNIT_SIGNS} */ (unit)] ?? "");
+      /** Each unit's name (its format's, where it has one, as the menu says it). */
+      const UNIT_NAMES = { ...Object.fromEntries(FORMATS.slice(1)), ratio: "Ratio" };
       /**
        * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
        * band) in its pane and on its axis, the others in a pane of their own. A band is two layers. Each is a formula
@@ -9666,31 +9685,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Units and formatting ──────────────────────────────────────────────────
 
-      /**
-       * A series' unit, by its type as Bitview names it (Dollars, SatsFract, Percent64, Ratio, Count16, Hashrate…); by its
-       * name only where its type is a bare number's (StoredF64, Float32: values without a unit of their own).
-       */
-      function unitOf(name, type = "") {
-        if (/^Dollars|Dollars$/.test(type)) return "usd";
-        if (/^Cents|Cents$/.test(type)) return "cents";
-        if (type === "Bitcoin") return "btc";
-        if (type === "Hashrate") return "hashrate";
-        if (type === "FeeRate") return "feerate";
-        if (type === "Days") return "days";
-        if (type === "Difficulty") return "difficulty";
-        if (/^Sats|Sats$/.test(type)) return "sats";
-        if (/^BasisPoints/.test(type)) return "bps";
-        // (A price ratio is sent in parts per million too, 1,000,000 its 1×; a bounded ratio in a scale of its own: a number.)
-        if (/^PartsPerMillion|^PriceRatio$/.test(type)) return "ppm";
-        if (/^Percent/.test(type)) return "percent";
-        if (/^Ratio(64)?$/.test(type)) return "ratio";
-        if (/^Count|^Stored[UI]\d+$|^[UI]\d+$/.test(type)) return "count";
-        if (/^(Stored)?F(loat)?(32|64)$|^$/.test(type)) {
-          if (/(_percent|_share|_dominance)$/.test(name)) return "percent";
-          if (/(_ratio|_multiple)$|^mvrv/.test(name)) return "ratio";
-        }
-        return "number";
-      }
+      /** Each value type Bitview has, by the unit it's in (a type not here, or a bare number, a plain number). */
+      const TYPE_UNITS = {
+        Dollars: "usd", OHLCDollars: "usd", Bitcoin: "btc", Sats: "sats", Percent: "percent", Ratio: "ratio", Ratio64: "ratio",
+        Count: "count", CountFract: "count", CountSigned: "count", Height: "count", Epoch: "count", Halving: "count",
+        Days: "days", Seconds: "seconds", SecondsFract: "seconds", PerSecond: "persecond", PerDay: "perday",
+        Bytes: "bytes", BytesFract: "bytes", VSize: "vbytes", Weight: "weight", WeightFract: "weight", SigOps: "sigops",
+        Hashrate: "hashrate", Difficulty: "difficulty", FeeRate: "feerate", HashPrice: "hashprice", HashValue: "hashvalue",
+        CoinDays: "coindays", CoinBlocks: "coinblocks", DollarBlocks: "dollarblocks", DollarDaysPerCoin: "dollardays",
+      };
+      /** A series' unit, by its value type as Bitview names it (Dollars, Bitcoin, Percent, Bytes…). */
+      const unitOf = (/** @type {string} */ type) => TYPE_UNITS[/** @type {keyof typeof TYPE_UNITS} */ (type)] ?? "number";
 
       const SI = ["", "K", "M", "B", "T", "P", "E", "Z", "Y"];
       /** A number with an SI letter from a thousand up, in at most `room` characters (the sign aside). */
@@ -9733,11 +9738,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (unit === "signal") return value ? "Yes" : "No";
         // (A true minus, as the ruler writes it, outside the unit's sign: −$1,234.)
         const text = precise(Math.abs(value)), sign = value < 0 && text !== "0" ? "−" : "";
+        // (A unit said with an SI prefix (H/s, B, vB, WU) takes the figure's letter onto it: 976.1 EH/s, 1.587 MB,
+        // 3.927 MWU, a thousand's k, a billion's G.)
+        const prefixed = (/** @type {string} */ symbol) => (/[A-Z]$/.test(text) ? `${sign}${text.slice(0, -1)} ${({ B: "G", K: "k" })[text.slice(-1)] ?? text.slice(-1)}${symbol}` : `${sign}${text} ${symbol}`);
         switch (unit) {
           case "usd":
             return `${sign}$${text}`;
-          case "cents":
-            return `${sign}${text}¢`;
           case "btc":
             return `${sign}₿${text}`;
           case "sats":
@@ -9746,17 +9752,38 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return `${sign}${text}%`;
           case "ratio":
             return `${sign}${text}×`;
-          case "bps":
-            return `${sign}${text} bp`;
-          case "ppm":
-            return `${sign}${text} ppm`;
-          case "feerate":
-            return `${sign}${text} sat/vB`;
           case "days":
             return `${sign}${text} ${text === "1" ? "day" : "days"}`;
+          case "seconds":
+            return `${sign}${text} s`;
+          case "persecond":
+            return `${sign}${text}/s`;
+          case "perday":
+            return `${sign}${text}/day`;
+          case "bytes":
+            return prefixed("B");
+          case "vbytes":
+            return prefixed("vB");
+          case "weight":
+            return prefixed("WU");
+          case "sigops":
+            return `${sign}${text} sigops`;
           case "hashrate":
-            // (976.1 EH/s: its SI letter on the H, as hash rates are said: a billion's G, a thousand's k.)
-            return `${sign}${/[A-Z]$/.test(text) ? `${text.slice(0, -1)} ${({ B: "G", K: "k" })[text.slice(-1)] ?? text.slice(-1)}` : `${text} `}H/s`;
+            return prefixed("H/s");
+          case "feerate":
+            return `${sign}${text} sat/vB`;
+          case "hashprice":
+            return `${sign}$${text}/PH/s/day`;
+          case "hashvalue":
+            return `${sign}${text} sat/PH/s/day`;
+          case "coindays":
+            return `${sign}${text} coin days`;
+          case "coinblocks":
+            return `${sign}${text} coin blocks`;
+          case "dollarblocks":
+            return `${sign}$${text} × blocks`;
+          case "dollardays":
+            return `${sign}$${text} × days/₿`;
           default:
             return `${sign}${text}`;
         }
@@ -9871,7 +9898,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const amount = (delta, unit) => (unit === "percent" ? `${precise(Math.abs(delta))} pt` : format(Math.abs(delta), unit === "ratio" ? "number" : unit));
 
       /** Words of series names and catalog folders, written the way people write them. */
-      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "asopr", "nupl", "nvt", "usd", "btc", "ath", "sma", "ema", "utxo", "ohlc", "op", "rsi", "macd", "cdd", "vdd", "vocdd", "hodl", "rhodl", "ppm", "pct", "rbf", "cpfp", "tx", "vb", "vbytes", "cagr", "dca", "pnl", "urpd"]);
+      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "sma", "ema", "utxo", "ohlc", "op", "vocdd", "hodl", "pct", "rbf", "cpfp", "tx", "pnl"]);
       const WORDS = { addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs" };
       const word = (text) => WORDS[text] ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
@@ -10573,8 +10600,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function firstLook(name, used) {
         indexCatalog();
-        const told = presetLooks.get(name), type = known.get(name)?.type ?? "", unit = type ? unitOf(name, type) : units.get(name);
-        const color = told?.color ?? (catalogIndex?.get(name)?.startsWith("price.") ? "ink" : unit === "usd" || unit === "cents" ? "green" : unit === "btc" || unit === "sats" ? "orange" : "");
+        const told = presetLooks.get(name), type = known.get(name)?.type ?? "", unit = type ? unitOf(type) : units.get(name);
+        const color = told?.color ?? (catalogIndex?.get(name)?.startsWith("price.") ? "ink" : unit === "usd" ? "green" : unit === "btc" || unit === "sats" ? "orange" : "");
         const look = told?.type ?? (isOhlc(name) ? "candles" : "");
         return { ...(look && look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}), ...(color && !used.has(color) ? { color } : {}) };
       }
@@ -12354,7 +12381,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
           if (about.status === "rejected") return { error: about.reason };
           const meta = about.value;
-          units.set(name, unitOf(name, meta.type));
+          units.set(name, unitOf(meta.type));
           if (!meta.indexes.includes(doc.index)) return { meta, error: { unavailable: true } };
           if (series.status === "rejected") return { meta, error: series.reason };
           return { meta, data: series.value };
@@ -12428,7 +12455,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (before?.info === meta) results.set(layer.id, before);
           else {
             const { values, ohlc } = align(data);
-            const result = { values, ohlc, shown: values, unit: unitOf(layer.series, meta.type), info: meta };
+            const result = { values, ohlc, shown: values, unit: unitOf(meta.type), info: meta };
             frame.series.set(layer.series, result);
             results.set(layer.id, result);
           }
@@ -12440,7 +12467,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (error) bySeries.set(name, { unit: units.get(name) ?? "number", error: error?.unavailable && meta && !datedIntervals(meta).length ? "By block only" : failure(error, doc.index) });
           else {
             const { values } = align(data);
-            bySeries.set(name, { values, shown: values, unit: unitOf(name, meta.type) });
+            bySeries.set(name, { values, shown: values, unit: unitOf(meta.type) });
           }
         }
         /** Lowercased, to follow a name in a sentence (a layer's letter, or Bitview, kept as written). */
@@ -21660,7 +21687,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               </div>
               ${result?.error ? errorBox(result, layer.series ?? "") : ""}
               ${meta?.description ? `<p class="description ${expanded ? "" : "clamped"}">${escape(meta.description)}</p>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
-              ${meta ? `<div class="facts"><span class="chip">${escape(UNIT_NAMES[unitOf(layer.series, meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
+              ${meta ? `<div class="facts"><span class="chip">${escape(UNIT_NAMES[unitOf(meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
             </section>`;
         const html = `
           <div class="inspector-head">
@@ -23017,7 +23044,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const layer = layerById(id);
         if (!layer) return [];
         const result = resolved?.results.get(layer.id), now = layer.format ?? "auto";
-        return FORMATS.map(([kind]) => ({ key: kind, label: formatName({ ...layer, format: kind === "auto" ? undefined : kind }, result), current: now === kind, apart: kind === "usd", run: () => editById(id, (item) => (item.format = kind === "auto" ? undefined : kind)) }));
+        return FORMATS.map(([kind]) => ({ key: kind, label: formatName({ ...layer, format: kind === "auto" ? undefined : kind }, result), current: now === kind, apart: FORMAT_GROUPS.has(kind), run: () => editById(id, (item) => (item.format = kind === "auto" ? undefined : kind)) }));
       }
       $("inspector").addEventListener("mousedown", (event) => {
         if (closest(event, ".assist")) event.preventDefault();
@@ -23433,7 +23460,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const meta = await info(name).catch(() => null);
         if (chart !== target || !roomFor(target)) return;
         if (meta && !datedIntervals(meta).length) return void blockOnly(name, (day) => addSeries(day, { newPane, pane: into }));
-        const unit = meta ? unitOf(name, meta.type) : units.get(name) ?? "number";
+        const unit = meta ? unitOf(meta.type) : units.get(name) ?? "number";
         units.set(name, unit);
         let added;
         commit((doc) => {
@@ -24934,7 +24961,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             retryInfo(item.name);
             const meta = await info(item.name);
             if (palette.items[palette.active] !== item) return;
-            const unit = unitOf(item.name, meta.type);
+            const unit = unitOf(meta.type);
             units.set(item.name, unit);
             panel.innerHTML = `${head}
               ${meta.description ? `<p class="description clamped">${escape(meta.description)}</p>` : ""}

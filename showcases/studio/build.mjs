@@ -1,15 +1,13 @@
-// Studio as one file, for bitview.space: `node showcases/studio/build.mjs [out]` (out: dist/index.html, beside this).
-// Its guide for assistants is in it: its "About Studio's links", the page's own text.
+// Studio as one file: `node showcases/studio/build.mjs [out]` (out: dist/index.html, beside this). Its guide for
+// assistants is in it: its "About Studio's links", the page's own text.
 //
 // index.html stays as it is, the repo's: it imports the modules beside it and the client this code builds (it's the
 // version a server ships with itself, always in step). The file made here is served on its own, updated whenever, so
-// it holds up against whatever bitview.space runs: it imports the client bitview.space serves (the build its own page
-// maps, read at each load: made from that server's API, it always speaks the one live); everything else is inside it:
-// the chart library (this repo's, tried with Studio), the fonts, the color names, the search (newer than
-// bitview.space's). Series the page names by typed client paths are written as their names: paths move between
-// versions, names are the server's (one it lacks is said, and shows as missing). While bitview.space's client dates
-// points unlike this repo's (its server's rules), the page takes this repo's two date helpers in their place, for as
-// long as that client is the one live.
+// it holds up against whatever its server (SERVER) runs: it imports the client that server serves (the build its own
+// page maps, read at each load: made from that server's API, it always speaks the one live); everything else is
+// inside it: the chart library (this repo's, tried with Studio), the fonts, the color names, the search, the presets.
+// Series the page names by typed client paths are written as their names: paths move between versions, names are the
+// server's (one it lacks is said, and shows as missing).
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -41,7 +39,7 @@ function replaceOnce(from, to) {
 }
 const dataUrl = (type, bytes) => `data:${type};base64,${Buffer.from(bytes).toString("base64")}`;
 /**
- * A file of bitview.space's, as text, in a time (a stalled server stalls nothing); one it answers it hasn't, null if
+ * A file of the server's, as text, in a time (a stalled server stalls nothing); one it answers it hasn't, null if
  * it's `optional` (else an error, as anything else that goes wrong is).
  */
 async function fetchText(path, optional = false) {
@@ -81,7 +79,7 @@ const inlined = (path) => dataUrl("text/javascript", input(join(SHOWCASES, path)
 // The fonts.
 for (const font of ["InterVariable.woff2", "Lilex.woff2"]) replaceOnce(`url("../fonts/${font}")`, `url("${dataUrl("font/woff2", input(join(SHOWCASES, "fonts", font)))}")`);
 
-// The modules bitview.space doesn't serve, or serves older; the search's worker takes the same one.
+// The modules the server doesn't serve, or serves older; the search's worker takes the same one.
 const quickmatch = inlined("modules/quickmatch-js/src/index.js");
 replaceOnce(`import XKCD from "../modules/xkcd-colors/index.js";`, `import XKCD from "${inlined("modules/xkcd-colors/index.js")}";`);
 replaceOnce(`import { QuickMatch, QuickMatchConfig } from "../modules/quickmatch-js/src/index.js";`, `import { QuickMatch, QuickMatchConfig } from "${quickmatch}";`);
@@ -94,7 +92,7 @@ replaceOnce(`/** @type {typeof import("../modules/quickmatch-js/src/index.js")} 
 // The chart library, this repo's, in the page: Studio leans on its insides (its series drawn its own way, what it draws
 // over them), so it changes only when it's been tried, never with the website's.
 replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";`, `import * as LC from "${inlined("modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs")}";`);
-// The client, bitview.space's: it's made from that server's API, so it always speaks the one live.
+// The client, the server's: it's made from that server's API, so it always speaks the one live.
 replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";\n`, `${[
   `// The client as ${SERVER} serves it now: the build its own page maps (cached for good, under a name that changes`,
   `      // with each release), read at each load; its plain path if the page can't be read (or doesn't answer in a few`,
@@ -140,47 +138,27 @@ html = html.replace(/(?<![\w$.])(tree|cohorts)((?:\.[A-Za-z_$][\w$]*)+)\.name\b/
 });
 if (/(?<![\w$.])cohorts\./.test(html)) throw new Error("A path through `cohorts` is left that the build doesn't know");
 
-// bitview.space's client, checked against (in the sandbox: it's fetched code): the series it has, and its dates
-// against this repo's client's: every date index, both ways (a bucket's first and last instants), in timezones on both
-// sides of UTC (a client on local time agrees in some). Unlike (or unread), the page's client takes this repo's
-// `indexToDate` and `dateToIndex` (the page dates points through those two alone).
-const CHECK = `
-  const DATE_INDEXES = ["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10"];
-  const repo = new (await import(REPO)).BitviewClient({ baseUrl: "${SERVER}" }), served = new (await import(SERVED)).BitviewClient({ baseUrl: "${SERVER}" });
-  const differ = (client) => ["Pacific/Kiritimati", "Pacific/Pago_Pago"].some((zone) => {
-    process.env.TZ = zone;
-    return DATE_INDEXES.some((index) => [...Array(2000).keys(), 5000, 20000, 400000].some((i) => {
-      if (/^year/.test(index) && i > 50) return false;
-      const attempt = (run) => { try { return run(); } catch { return "throws"; } };
-      const date = repo.indexToDate(index, i), last = new Date(repo.indexToDate(index, i + 1).getTime() - 1);
-      return attempt(() => client.indexToDate(index, i).getTime()) !== date.getTime()
-        || attempt(() => client.dateToIndex(index, date)) !== i || attempt(() => client.dateToIndex(index, last)) !== i;
-    }));
-  });
+// The served client (in the sandbox: it's fetched code), read for the series it has: those the page names, and the
+// presets' (below), checked against them. Unread, unchecked (said).
+const NAMES = `
+  const served = new (await import(SERVED)).BitviewClient({ baseUrl: "${SERVER}" });
   const names = new Set(), stack = [served.series];
   while (stack.length) {
     const node = stack.pop();
     if (typeof node?.name === "string" && typeof node.indexes === "function") names.add(node.name);
     else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push(Reflect.get(node, key, {}));
   }
-  process.stdout.write(JSON.stringify({ version: String(served.VERSION), names: [...names], self: differ(repo), differs: differ(served) }));`;
+  process.stdout.write(JSON.stringify({ version: String(served.VERSION), names: [...names] }));`;
 const served = await inFolder("bitview-client-", async (checks) => {
-  // (Both beside each other there: what the sandbox reads is that folder alone. Unread, the repo's own stands in for
-  // the server's, so the date check still checks itself.)
-  writeFileSync(join(checks, "repo.mjs"), input(join(SHOWCASES, "modules/bitview-client/index.js")));
-  let read = true;
   try {
     const page = await fetchText("/");
     const map = JSON.parse(/<script type="importmap"[^>]*>([\s\S]*?)<\/script>/.exec(page)?.[1] ?? "{}").imports ?? {};
     writeFileSync(join(checks, "served.mjs"), await fetchText(map[CLIENT] ?? CLIENT));
   } catch (error) {
-    read = false;
-    writeFileSync(join(checks, "served.mjs"), readFileSync(join(checks, "repo.mjs")));
-    console.warn(`Couldn't read ${SERVER}'s client (${error.message}): its names go unchecked, its dates replaced`);
+    console.warn(`Couldn't read ${SERVER}'s client (${error.message}): its names go unchecked`);
+    return undefined;
   }
-  const checked = sandboxed(CHECK.replace("REPO", JSON.stringify(pathToFileURL(join(checks, "repo.mjs")).href)).replace("SERVED", JSON.stringify(pathToFileURL(join(checks, "served.mjs")).href)), [checks]).value;
-  if (checked.self) throw new Error("This repo's client disagrees with itself: the date check is wrong");
-  return read ? checked : undefined;
+  return /** @type {{ version: string, names: string[] }} */ (sandboxed(NAMES.replace("SERVED", JSON.stringify(pathToFileURL(join(checks, "served.mjs")).href)), [checks]).value);
 });
 
 // Each of those names, checked against it: one it lacks (this repo ahead of it, mid-release) is said; the page shows it as
@@ -189,20 +167,6 @@ if (served) {
   const names = new Set(served.names), missing = [...named].filter((name) => !names.has(name));
   console[missing.length ? "warn" : "log"](`${SERVER}'s client ${served.version}: ${missing.length ? `lacks ${missing.join(", ")}, which the page names (shown as missing there)` : `has all ${named.size} series the page names`}`);
 }
-// (Unread, the page trusts the server's own client: a patch for no client in particular would outlive the one it was for.)
-if (served?.differs) {
-  if (/\.(?:dates|dateEntries|toDateMap)\(\)/.test(html)) throw new Error("The page dates points through a response's helpers: the replaced two don't cover it");
-  const source = String(input(join(SHOWCASES, "modules/bitview-client/index.js"), "utf8"));
-  // (The helpers and the calendars they read: each date index's unit, size and phase.)
-  const calendars = source.indexOf("const _CALENDARS = new Map(["), calendarsEnd = source.indexOf("]);\n", calendars) + 4;
-  const from = source.indexOf("// Date conversion, mirroring the server's indexes"), to = source.indexOf("/**\n * @template T\n * @param {SeriesData<T>} raw", from);
-  if (calendars < 0 || calendarsEnd < calendars || from < 0 || to < from) throw new Error("This repo's client's date helpers moved: the build can't find them");
-  // (Only while the client that needed them is the one live: one released since dates its server's points itself.)
-  const when = `if (client.VERSION === ${JSON.stringify(served.version)}) `;
-  html = html.replace(/\n( *)const client = new BitviewClient\([^\n]*\);\n/, (line, indent) => `${line}${indent}// ${SERVER}'s client dates points unlike its server: this repo's helpers instead (the next release's).\n${indent}${when}{\n${source.slice(calendars, calendarsEnd)}${source.slice(from, to)}\nclient.indexToDate = indexToDate;\nclient.dateToIndex = dateToIndex;\n${indent}}\n`);
-  if (!html.includes("client.indexToDate = indexToDate;")) throw new Error("The page's client moved: the build can't give it the date helpers");
-  console.log(`${SERVER}'s client dates points unlike this repo's: the page takes this repo's date helpers`);
-} else console.log(served ? `${SERVER}'s client dates points as this repo's does` : `${SERVER}'s client unread: the page dates points as it does`);
 
 // The presets (presets.js), made from this repo's client, its typed paths the series it has: every series Studio can
 // chart in one of them, and each the empty chart recommends there (the build stops otherwise); in the page compressed

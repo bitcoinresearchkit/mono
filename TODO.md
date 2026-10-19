@@ -14,13 +14,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 Built against local.bitview.space; deployed to studio-next only, never studio.bitview.space until you say.
 
 - Before going live, decide what happens to presets people edited on the old tree: their places are gone, so the edits match no preset (kept in the browser, shown nowhere, only in Download all), and old `/chart/…` addresses open the Charts page.
-- Units for the new value types: CoinDays, CoinBlocks, DollarBlocks, DollarDaysPerCoin, CountSigned, CountFract, Bytes/BytesFract, Weight/WeightFract, VSize, Seconds/SecondsFract, PerDay, PerSecond, HashPrice, HashValue, Score.
-- Remove what the old server needed:
-  - `unitOf`'s name rules for `StoredF32`/`StoredF64`;
-  - the ppm, price-ratio, cents and bps unit handling;
-  - the build's copy of this repo's date helpers when the served client differs (`showcases/studio/build.mjs`).
-- Check every series the page names itself, and hash rate, days and difficulty in their units.
-- Format menu (`FORMATS`): offer the units by hand, not only through Automatic.
 - Auto interval polish, so it could become the default again:
   - a 2–4px sideways shift during the crossfade;
   - time-axis labels that change instantly;
