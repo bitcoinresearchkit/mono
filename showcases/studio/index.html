@@ -14188,13 +14188,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           if (width !== laidWidth) {
             laidWidth = width;
-            // (The room after the last value, as wide as this width has it.)
-            // (Applied, the library scrolls to the latest: a view elsewhere is put back as it was.)
-            if (rightGap(width) !== view.timeScale().options().rightOffsetPixels) {
-              const kept = view.timeScale().getVisibleLogicalRange();
-              view.applyOptions({ timeScale: { rightOffsetPixels: rightGap(width) } });
-              if (kept && !presetShown) view.timeScale().setVisibleLogicalRange(kept);
-            }
             if (chart && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
             if (chart) renderRanges();
             if (presetShown && !glideTarget && resolved && drawnChart === chart.id) applyRange(chart, resolved);
@@ -14540,8 +14533,52 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.fillText(date.text, date.x, foot);
         }
       }
-      view.timeScale().subscribeSizeChange(relayout);
+      view.timeScale().subscribeSizeChange(() => (holdView(), relayout()));
+      /**
+       * The view as left, at the plot's width and the chart's box's then: what each resize of the box keeps (see holdView),
+       * however many come and go (it isn't the view a resize made); and the view a resize made last, to tell it from one
+       * moved since.
+       * @type {{ from: number, to: number, width: number, box: number } | null}
+       */
+      let heldView = null, madeView = /** @type {{ from: number, to: number } | null} */ (null);
+      /** The chart's own width, its plot's and its price scales': a price scale wider, the plot narrower, it's the same. */
+      const chartWidth = () => view.timeScale().width() + view.priceScale("left", 0).width() + view.priceScale("right", 0).width();
+      /** The chart's own width as last seen: a size change at it is a price scale's, not the box's. */
+      let lastBox = 0;
+      /** An image being made of the chart (its resizes the picture's: see chartImage). */
+      let exporting = false;
+      /**
+       * The plot resized (a window, the sidebar, the panel, a price axis's labels, a phone turned): its bars as wide as
+       * they were, the library's way, from the view as it was before (not as the library has already moved it): its
+       * right edge kept (at the latest, the latest with its room after it); past the data's start, the share of it on the
+       * data (never less than the library keeps on it: not pushed later each time it widens, and back as it was when the
+       * plot is). A preset
+       * showing is shown again whole (see relayout).
+       */
+      function holdView() {
+        const width = view.timeScale().width(), box = chartWidth(), was = heldView, resized = box !== lastBox;
+        // (Only the chart's box resized: the plot narrower for a price axis's wider labels, as the view moves, is the
+        // library's, as it has it (its bars' spacing and right edge kept), the view as it moves.)
+        if (exporting) return;
+        if (width) lastBox = box;
+        if (!was || !width || !resized) return;
+        if (rightGap(width) !== view.timeScale().options().rightOffsetPixels) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap(width) } });
+        if (presetShown || !resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
+        // (Its bars as the library counts them, the last whole: as wide at any width.)
+        const bars = ((was.to - was.from + 1) * width) / was.width - 1, last = resolved.times.length - 1;
+        const to = was.from < 0 ? (was.to / (was.to - was.from)) * bars : was.to > last ? last + (rightGap(width) * (bars + 1)) / width - 0.5 : was.to;
+        madeView = { from: to - bars, to };
+        view.timeScale().setVisibleLogicalRange(madeView);
+      }
       view.timeScale().subscribeVisibleLogicalRangeChange(() => {
+        // (The view as left: one moved in the box it was left in, or moved since a resize of the box made it; not one the
+        // library or a resize made, see holdView.)
+        ((range, width, box) => {
+          if (!range || !width || exporting) return;
+          lastBox ||= box;
+          const made = madeView && Math.abs(range.from - madeView.from) < 0.01 && Math.abs(range.to - madeView.to) < 0.01;
+          if (!heldView || heldView.box === box || (madeView && !made)) (heldView = { from: range.from, to: range.to, width, box }), (madeView = null);
+        })(view.timeScale().getVisibleLogicalRange(), view.timeScale().width(), chartWidth());
         // (A scale gliding follows the view moved again, at once.)
         if (scaleGliding) endScaleGlide();
         // (The lens shows the view as it's drawn next, moved by a key, a range, the navigator.)
@@ -27661,6 +27698,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!width || !height) throw new Error("The chart has no room: the window is of no size");
         const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
         let shot, pieces, scale = 1, dates, axisHeight = 0, leftWidth = 0;
+        // (Its resizes aren't the chart's: the view held as it is, see holdView.)
+        exporting = true;
         try {
           if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
           for (const [legend] of strips) Object.assign(legend.style, { flexWrap: "wrap", overflow: "visible", rowGap: "2px" });
@@ -27716,6 +27755,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (sized && logical) view.timeScale().setVisibleLogicalRange(logical);
           marginsSet = "";
           fitMargins();
+          exporting = false;
+          lastBox = chartWidth();
         }
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
