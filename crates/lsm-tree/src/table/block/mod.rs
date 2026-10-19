@@ -126,7 +126,7 @@ impl Block {
     }
 
     fn write_raw<W: Write>(
-        mut writer: &mut W,
+        writer: &mut W,
         data: &[u8],
         uncompressed_length: usize,
         block_type: BlockType,
@@ -138,7 +138,7 @@ impl Block {
             uncompressed_length: uncompressed_length as u32,
         };
 
-        header.encode_into(&mut writer)?;
+        header.encode_into(&mut *writer)?;
         writer.write_all(data)?;
 
         trace!(

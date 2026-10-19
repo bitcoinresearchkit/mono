@@ -38,7 +38,6 @@ pub struct ReadView {
 
 impl ReadView {
     /// Iterates over the pinned records matching `prefix`, using the specified owned record bytes.
-    #[must_use]
     pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
         &self,
         prefix: &[u8],
@@ -111,7 +110,6 @@ impl Keyspace {
     }
 
     /// Iterates over a range using the specified owned record bytes.
-    #[must_use]
     pub fn range_as<K: RecordBytes, V: RecordBytes, B: AsRef<[u8]>, R: RangeBounds<B>>(
         &self,
         range: R,
@@ -130,7 +128,6 @@ impl Keyspace {
     }
 
     /// Iterates over all latest key-value pairs.
-    #[must_use]
     fn iter(&self) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
         self.inner.tree.iter().map(|item| item.map_err(Into::into))
     }

@@ -1451,6 +1451,8 @@ has to be deleted by hand.
 
 #### Workspace
 
+- The pinned Rust toolchain is 1.99.1 (was 1.98.0), for source builds and the Docker image; `scripts/update.sh`
+  bumps both to the latest stable
 - Four seeded model-based tests replace every other test (the forks' included, with pco's compatibility assets):
   vecdb's (rawdb and every vector variant against an in-memory model), brk_store's (fjall and lsm-tree against a
   `BTreeMap`), statedb's and pco's (round trips), each running in about 2 s. Other changes are verified end to end

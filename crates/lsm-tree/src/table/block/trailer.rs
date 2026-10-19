@@ -129,69 +129,64 @@ impl<'a> Trailer<'a> {
         Ok(())
     }
 
-    pub fn write<S: Default, T: Encodable<S>>(mut encoder: Encoder<'_, S, T>) -> Result<()> {
+    pub fn write<S: Default, T: Encodable<S>>(encoder: Encoder<'_, S, T>) -> Result<()> {
+        let Encoder {
+            writer,
+            items,
+            restart_interval,
+            binary_index_builder,
+            fixed_key_len,
+            fixed_value_len,
+            ..
+        } = encoder;
+
         // IMPORTANT: Terminator marker
-        encoder.writer.write_u8(TRAILER_START_MARKER)?;
+        writer.write_u8(TRAILER_START_MARKER)?;
 
         #[expect(
             clippy::cast_possible_truncation,
             reason = "data blocks will never even approach 4 GB in size"
         )]
-        let binary_index_offset = encoder.writer.len() as u32;
+        let binary_index_offset = writer.len() as u32;
 
         // Write binary index
-        let (binary_index_step_size, binary_index_len) =
-            encoder.binary_index_builder.write(&mut encoder.writer)?;
+        let (binary_index_step_size, binary_index_len) = binary_index_builder.write(writer)?;
 
         // Write trailer
 
         #[cfg(debug_assertions)]
-        let bytes_before = encoder.writer.len();
+        let bytes_before = writer.len();
 
-        encoder.writer.write_u8(encoder.restart_interval)?;
+        writer.write_u8(restart_interval)?;
 
-        encoder.writer.write_u8(binary_index_step_size)?;
+        writer.write_u8(binary_index_step_size)?;
 
         #[expect(
             clippy::cast_possible_truncation,
             reason = "even with a dense index, there can't be more index pointers than items"
         )]
-        encoder
-            .writer
-            .write_u32::<LittleEndian>(binary_index_len as u32)?;
+        writer.write_u32::<LittleEndian>(binary_index_len as u32)?;
 
-        encoder
-            .writer
-            .write_u32::<LittleEndian>(binary_index_offset)?;
+        writer.write_u32::<LittleEndian>(binary_index_offset)?;
 
         // Fixed key size
-        encoder
-            .writer
-            .write_u8(u8::from(encoder.fixed_key_len.is_some()))?;
-        encoder
-            .writer
-            .write_u16::<LittleEndian>(encoder.fixed_key_len.unwrap_or_default())?;
+        writer.write_u8(u8::from(fixed_key_len.is_some()))?;
+        writer.write_u16::<LittleEndian>(fixed_key_len.unwrap_or_default())?;
 
         // Fixed value size
-        encoder
-            .writer
-            .write_u8(u8::from(encoder.fixed_value_len.is_some()))?;
-        encoder
-            .writer
-            .write_u32::<LittleEndian>(encoder.fixed_value_len.unwrap_or_default())?;
+        writer.write_u8(u8::from(fixed_value_len.is_some()))?;
+        writer.write_u32::<LittleEndian>(fixed_value_len.unwrap_or_default())?;
 
         #[expect(
             clippy::cast_possible_truncation,
             reason = "data blocks will never even approach 4 GiB in size, so there can't be that many items either"
         )]
-        encoder
-            .writer
-            .write_u32::<LittleEndian>(encoder.items.len() as u32)?;
+        writer.write_u32::<LittleEndian>(items.len() as u32)?;
 
         #[cfg(debug_assertions)]
         assert_eq!(
             TRAILER_SIZE,
-            encoder.writer.len() - bytes_before,
+            writer.len() - bytes_before,
             "trailer size does not match",
         );
 

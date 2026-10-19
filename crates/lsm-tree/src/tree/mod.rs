@@ -33,7 +33,6 @@ pub struct ReadView(Arc<Version>);
 impl ReadView {
     /// Iterates over a range of the pinned records using the specified owned record bytes.
     /// Record widths are checked while decoding.
-    #[must_use]
     pub fn range_as<K: RecordBytes, V: RecordBytes, B: AsRef<[u8]>, R: RangeBounds<B>>(
         &self,
         range: R,
@@ -43,7 +42,6 @@ impl ReadView {
     }
 
     /// Iterates over the pinned records matching `prefix`.
-    #[must_use]
     pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
         &self,
         prefix: &[u8],
@@ -113,13 +111,11 @@ impl Tree {
     }
 
     /// Iterates over all latest key-value pairs.
-    #[must_use]
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
         self.range::<&[u8], _>(..)
     }
 
     /// Iterates over the latest key-value pairs in `range`.
-    #[must_use]
     pub fn range<K: AsRef<[u8]>, R: RangeBounds<K>>(
         &self,
         range: R,
@@ -129,7 +125,6 @@ impl Tree {
 
     /// Iterates over all latest records using the specified owned bytes.
     /// Record widths are checked while decoding.
-    #[must_use]
     pub fn iter_as<K: RecordBytes, V: RecordBytes>(
         &self,
     ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static {
@@ -138,7 +133,6 @@ impl Tree {
 
     /// Iterates over a range using the specified owned record bytes.
     /// Record widths are checked while decoding.
-    #[must_use]
     pub fn range_as<K: RecordBytes, V: RecordBytes, B: AsRef<[u8]>, R: RangeBounds<B>>(
         &self,
         range: R,
@@ -153,7 +147,6 @@ impl Tree {
     }
 
     /// Iterates over the latest key-value pairs matching `prefix`.
-    #[must_use]
     pub fn prefix<K: AsRef<[u8]>>(
         &self,
         prefix: K,
@@ -162,7 +155,6 @@ impl Tree {
     }
 
     /// Iterates over matching keys using the specified owned record bytes.
-    #[must_use]
     pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
         &self,
         prefix: &[u8],

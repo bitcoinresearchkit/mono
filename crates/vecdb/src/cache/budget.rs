@@ -56,7 +56,7 @@ impl CacheBudget {
         }
         let claim = || {
             self.used
-                .fetch_update(Relaxed, Relaxed, |used| {
+                .try_update(Relaxed, Relaxed, |used| {
                     used.checked_add(bytes).filter(|&next| next <= self.limit)
                 })
                 .is_ok()

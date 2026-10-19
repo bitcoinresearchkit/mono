@@ -9,7 +9,8 @@ rustup update
 RUST_VERSION=$(rustup run stable rustc --version | awk '{print $2}')
 echo "[toolchain]" > "$TOOLCHAIN_FILE"
 echo "channel = \"$RUST_VERSION\"" >> "$TOOLCHAIN_FILE"
-echo "Updated rust-toolchain.toml to $RUST_VERSION"
+perl -pi -e "s/^FROM rust:[0-9.]+-/FROM rust:$RUST_VERSION-/" "$SCRIPT_DIR/../docker/Dockerfile"
+echo "Updated rust-toolchain.toml and docker/Dockerfile to $RUST_VERSION"
 
 cargo clean
 cargo upgrade --incompatible
