@@ -9,8 +9,6 @@ Only what's left. An item done is removed: its history is in the commits and log
   - do the same at the latest bar;
   - turn the phone and back.
 - Decide when Studio goes live. Recommended: wait for the new server, because the live server lacks a few series the merged Studio names (`hashrate`, `sats_per_dollar`, `*_avg_24h`).
-- Re-stage `showcases/city/index.html` if wanted. It was unstaged for the merge; the edits are intact.
-- Push next-front (54 commits ahead of origin, the merge `3819fffbb` included).
 
 ## Studio, next
 
