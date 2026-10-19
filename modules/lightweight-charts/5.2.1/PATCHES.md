@@ -7,7 +7,7 @@ then open `tests.html` (served from the repo) in a window wide enough for its tw
 
 The plots draw exactly what the library does, but for the log marks (1, 12) and the rounded bars (7, only where a radius
 is set); the axes' tags are rounded (6), the time axis's labels fade before its ends (10), a price axis's tags stay inside
-its pane (11). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14) draw the same, faster; a tag hides the mark labels under it (15). `tests.html` runs the patched file and 5.2.1 as published side by side through every
+its pane (11), an indexed scale's labels are its series' (19). A view held on screen as a right scale's width changes, an option (20). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14) draw the same, faster; a tag hides the mark labels under it (15). `tests.html` runs the patched file and 5.2.1 as published side by side through every
 series type, every price scale mode (inverted too), pans, jumps, zooms, the crosshair, restyles, live updates, new data,
 resizes, margins, moves between scales, a held price range and conflation, and compares their plots pixel for pixel, the
 axes left out (713 steps).
@@ -300,3 +300,58 @@ tenths of that room: 28 days of 31 are more than nine tenths; days and finer, al
 
 `tests.html` leaves the axes out of its pictures. Checked in Studio: daily data from 7 Sep 2017 to 4 May 2018, its
 axis "Feb Mar Apr" (was "Feb 2 Apr"); other zooms and intervals read as before.
+
+## 19. An indexed scale's labels as its series writes them
+
+A scale indexed to 100 wrote its labels with a formatter of its own, two decimals and no bound ("10000000000.00" for a
+series a hundred million times its first value in view), not its series' format as the linear, log and percentage
+scales do: a wide axis, as wide as its longest label, its width changing as the view moves. Its labels are now written
+by its first series' formatter (its `priceFormat`), the library's own still where it has no series.
+
+- `class Mi` (the price scale), `vl()` (its formatter chosen): `this.No()?(this.el=null!==this.So?this.So.sl():new X(100,1),i=100)`
+  for `this.No()?(this.el=new X(100,1),i=100)`.
+
+The scale's marks still step from a base of 100 (its `minMove` its own): a series' format coarser than its steps (Studio's
+ticks, three digits) writes neighbours alike, 100.05 and 100.1 both "100"; Studio's tick formatter parts them. As the
+linear branch, the formatter follows a left or right scale's first series as the order changes, not an overlay's.
+
+`tests.html` compares plots with the axes left out. Checked in Studio: an indexed pane over a series rising from cents to
+billions, its labels short ("1.5B"), its axis as wide as the other scales'; zoomed in close, its ticks apart ("100.05").
+
+## 20. The view held on screen as a price scale's width changes (an option)
+
+A price scale is as wide as its labels (or its `minimumWidth`), so it widens and narrows as the view moves ("885.7M" to
+"1.621B"), and the plot with it. The library keeps the bars' spacing and the right offset in bars as the plot's width
+changes: a left scale's change leaves every bar where it was on screen, a right scale's moves them all by its change (the
+plot's right edge where the bars are counted from). `bvHoldOnAxes` on the time scale (unset, as before) holds them on
+screen there too: the chart's own width the same, a right scale's width changing by d pixels takes d / spacing bars off
+the right offset, as the plot's width is set; but at the latest (the right offset 0 or more: the last bar in view, its
+room after it in pixels, `rightOffsetPixels`), the view is the latest's, kept as the library keeps it (a wider scale
+would cover the room and the last bar). A drag (its start's offset) and an animated scroll (a fling, an animated
+`scrollToPosition`: their frames' positions, by the total moved since each started) carry it, so their next frame doesn't
+undo it. The chart's own width changing (a resize), it's the library's as before.
+
+- `class` of the chart widget, its size laid out (`zg()`): before the model's width is set (`this.sn.H_(r)`),
+  `this.yn.timeScale.bvHoldOnAxes&&this.bvWidth===s&&this.hg!==n&&(this.sn.ia.bvPending=n-this.hg),this.bvWidth=s,`.
+- `class zi` (the time scale): `bvShift=0` (the total moved so) and `bvPending=0` in its constructor; `bvHold(t)` after
+  `$c()`: the offset, the drag's start's (`this.nc.Oc`) and `bvShift` less `t/this.oc` (none where `this.lc>=0`); its width set (`H_(t)`) takes the
+  pending change with the width, after the view as it was is read (`this.Sc()`, for `fixLeftEdge`: read after the offset
+  moved and before the width, a view half moved, told to the page as the view); the width the same (the scales' changes
+  even), the offset corrected at once (`this.Rc()`); `bvHoldOnAxes:!1` in its defaults.
+- The chart widget's frame (`yg(t,i)`): a scale's width changed as it's drawn, the library lays it out again and applies
+  the frame's time scale changes again, at the new width (a range asked for, shown exactly at it: its bars narrower or
+  wider than the hold keeps them). Held, only the changes asked for since are applied there, the frame's merged in after
+  (`this.bvHeld||this.ag.Ss(t)` before, `this.bvHeld&&this.ag.Ss(t)` after `this.Fg(this.ag,i)`).
+- A range asked for (`setVisibleLogicalRange`) is applied a frame later, its scale perhaps of another width by then (a
+  range asked for as the chart's box resizes, its labels laid out again after): it carries the right scale's width and
+  the box's as the page had them (`bvRight`, `bvBox`, the time scale's, set as each layout starts, `zg()`, before the
+  size change is told), and applied (`nd(t)`) in the same box with that scale's width changed by d, it's applied at the
+  plot's width then (spacing `(this.k_+n)/i.Iu()`, its right edge `i.bi()`) and held by d (`bvHold(n)`), before the panes
+  are told (`this.sn.zc()`, `this.sn.mr()`: their price ranges by the bars then in view); else as before (`this.Qc(i)`).
+- The animation's frame (`case 5` of the invalidations applied): `n.Ms(t.Wt.Gc(i)+(n.bvShift-(t.Wt.bvFrom??=n.bvShift)))`
+  for `n.Ms(t.Wt.Gc(i))`; its start as it's asked for (the model's `ps(t)`: `t.bvFrom??=this.ia.bvShift`), not its first
+  frame: a scale's change before it, held, isn't undone by it.
+
+`tests.html` leaves it unset. Checked in Studio (no `minimumWidth`, each scale as wide as its labels): pans, flings, wheel
+and pinch zooms with a right scale widening and narrowing as they go, every bar where the move puts it, never a frame
+off; resizes as before.

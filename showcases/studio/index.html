@@ -9743,7 +9743,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return `${sign}${compact(abs)}`;
         }
       }
-      /** An axis label is at most this many characters, its sign included; the price scales are that wide. */
+      /** An axis label is at most this many characters, its sign included; the price scales at most that wide. */
       const AXIS_CHARS = 6;
       /** The axes' labels, by value and suffix: the chart asks for the same ticks every frame of a move. */
       const axisLabels = new Map();
@@ -9761,6 +9761,46 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const label = `${sign}${compact(Math.abs(shown), 3, AXIS_CHARS - sign.length - suffix.length)}${suffix}`;
         axisLabels.set(key, label);
         return label;
+      }
+      /**
+       * An axis's tick labels, axisLabel's, each read as its tick: where three digits write one off (zoomed in close,
+       * 100.05 and 100.1 both "100"; 1.605T "1.61T"), the fewest digits that write each within a hundredth of the
+       * ticks' least gap, letters as axisLabel's, a letter's decimals alike (100.00, 100.05; 99.8K, 100.0K), while they
+       * fit the scale's width; past it, a tick written as the one before is left blank.
+       */
+      function axisTicks(/** @type {number[]} */ values, suffix = "") {
+        const labels = values.map((value) => axisLabel(value, suffix));
+        let gap = Infinity;
+        for (let i = 1; i < values.length; i++) gap = Math.min(gap, Math.abs(values[i] - values[i - 1]));
+        if (!gap) return labels;
+        const near = (/** @type {number[]} */ read) => read.every((value, i) => Math.abs(value - values[i]) <= gap / 100);
+        if (near(labels.map(readLabel))) return labels;
+        const fit = (/** @type {string[]} */ texts) => texts.every((text) => text.length <= AXIS_CHARS && !text.includes("e"));
+        for (let digits = 4; digits <= 9; digits++) {
+          // (With letters, as axisLabel's; where those are too long (12.345K), in plain digits (12345).)
+          for (const lettered of [true, false]) {
+            const parts = values.map((value) => {
+              const abs = Math.abs(value) < 5e-10 ? 0 : Math.abs(value), sign = abs && value < 0 ? "−" : "";
+              let tier = abs && lettered ? clamp(Math.floor(Math.log10(abs) / 3), 0, SI.length - 1) : 0;
+              if (lettered && Number((abs / 1000 ** tier).toPrecision(digits)) >= 1000 && tier < SI.length - 1) tier++;
+              return { sign, tier, mantissa: Number((abs / 1000 ** tier).toPrecision(digits)) };
+            });
+            if (!near(parts.map(({ sign, tier, mantissa }) => (sign ? -1 : 1) * mantissa * 1000 ** tier))) break;
+            const places = /** @type {Map<number, number>} */ (new Map());
+            for (const { tier, mantissa } of parts) places.set(tier, Math.max(places.get(tier) ?? 0, (String(mantissa).split(".")[1] ?? "").length));
+            const even = parts.map(({ sign, tier, mantissa }) => `${sign}${mantissa.toFixed(places.get(tier))}${SI[tier]}${suffix}`);
+            if (fit(even)) return even;
+            const bare = parts.map(({ sign, tier, mantissa }) => `${sign}${mantissa}${SI[tier]}${suffix}`);
+            if (fit(bare)) return bare;
+          }
+        }
+        // (Too close to part in the scale's width (100.001, 100.002): each the same as the one before left blank.)
+        return labels.map((label, i) => (i && label === labels[i - 1] ? "" : label));
+      }
+      /** A label's value as written (its sign, digits and letter; a suffix after). */
+      function readLabel(/** @type {string} */ label) {
+        const [, sign, digits, letter] = /^(−?)([\d.]+(?:e[-+]?\d+)?)([A-Z]?)/.exec(label) ?? [];
+        return digits === undefined ? NaN : (sign ? -1 : 1) * Number(digits) * 1000 ** Math.max(0, SI.indexOf(letter));
       }
       /**
        * A value as the axis tags it where it's read rather than scanned (the latest's tag, the crosshair's, a drawing's):
@@ -9787,7 +9827,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         axisLabels.set(key, label);
         return label;
       }
-      /** The widest a precise tag is, its sign aside: the price scales are as wide. */
+      /** The widest a precise tag is, its sign aside: the price scales at most as wide. */
       const PRECISE = "000,000";
       function duration(seconds) {
         const days = Math.abs(seconds) / 86400;
@@ -12580,7 +12620,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * bars), as close as all of it needs to fit, its first date's label room left: Max is all of history there.
        */
       function fitSpacing(/** @type {Chart} */ doc, /** @type {number} */ bars) {
-        const width = view.timeScale().width();
+        // (By the chart's own width, its price scales at their widest: not the plot's, narrower or wider as a scale's
+        // labels are, which would set it again as the view moves, the library then moving the view: a spacing set again
+        // is applied a frame later, as it was when set, undoing a zoom made since.)
+        const sides = ["left", "right"].filter((side) => view.priceScale(side, 0).options().visible).length;
+        const width = view.timeScale().width() ? chartWidth() - sides * axisWidth() : 0;
         const spacing = FINE.has(doc.index) || width <= 30 + rightGap(width) || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30 - rightGap(width))) / (bars - 1)));
         if (spacing !== view.timeScale().options().minBarSpacing) view.applyOptions({ timeScale: { minBarSpacing: spacing } });
       }
@@ -12588,8 +12632,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const yearsOnly = (_time, type) => (type === LC.TickMarkType.Year ? null : "");
       let yearsAxis = false;
       /**
-       * The price scales' width, fixed: the longest label an axis writes, as lightweight-charts sizes it (its border,
-       * tick, paddings and label offset around the text), so they never shift.
+       * The widest a price scale gets: the longest label an axis writes, as lightweight-charts sizes it (its border,
+       * tick, paddings and label offset around the text). Each is as wide as its labels are; this, the room they can take.
        */
       function axisWidth() {
         const context = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
@@ -12608,7 +12652,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function chartOptions() {
         const colors = chartColors(), line = { width: /** @type {const} */ (1), style: LC.LineStyle.Solid };
-        const scale = { borderVisible: false, entireTextOnly: true, minimumWidth: axisWidth(), scaleMargins: { top: 0.17, bottom: 0.08 } };
+        const scale = { borderVisible: false, entireTextOnly: true, scaleMargins: { top: 0.17, bottom: 0.08 } };
         return {
           layout: {
             ...colors.layout,
@@ -12627,8 +12671,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           trackingMode: { exitMode: LC.TrackingModeExitMode.OnTouchEnd },
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
-          timeScale: { borderVisible: false, rightOffsetPixels: 48, minVisibleDataRatio: ON_DATA, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, allowBoldLabels: false },
-          localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => axisPrecise(value, "%"), tickmarksPercentageFormatter: (values) => values.map((value) => axisLabel(value, "%")) },
+          timeScale: { borderVisible: false, rightOffsetPixels: 48, minVisibleDataRatio: ON_DATA, bvHoldOnAxes: true, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, allowBoldLabels: false },
+          localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => axisPrecise(value, "%"), tickmarksPercentageFormatter: (values) => axisTicks(values, "%") },
         };
       }
 
@@ -12715,8 +12759,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!loaded) return;
         chartSans = css("--chart-sans");
         navigatorFont = "";
-        const minimumWidth = axisWidth();
-        view.applyOptions({ layout: { fontFamily: chartSans }, leftPriceScale: { minimumWidth }, rightPriceScale: { minimumWidth } });
+        view.applyOptions({ layout: { fontFamily: chartSans } });
         drawOverview();
       });
       /** @type {Map<string, any>} layer id → its series on the chart */
@@ -13107,8 +13150,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
             // (Its ticks short; its latest's tag and the crosshair's, a digit or so more: see axisPrecise.)
             priceFormat: shares.has(layer.pane)
-              ? { type: /** @type {const} */ ("custom"), formatter: (value) => (value > 100.5 || value < -0.5 ? "" : axisPrecise(value, "%")), tickmarksFormatter: (values) => values.map((value) => (value > 100.5 || value < -0.5 ? "" : axisLabel(value, "%"))), minMove: 1e-9 }
-              : { type: /** @type {const} */ ("custom"), formatter: (value) => axisPrecise(value), tickmarksFormatter: (values) => values.map((value) => axisLabel(value)), minMove: 1e-9 },
+              ? { type: /** @type {const} */ ("custom"), formatter: (value) => (value > 100.5 || value < -0.5 ? "" : axisPrecise(value, "%")), tickmarksFormatter: (values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)), minMove: 1e-9 }
+              : { type: /** @type {const} */ ("custom"), formatter: (value) => axisPrecise(value), tickmarksFormatter: (values) => axisTicks(values), minMove: 1e-9 },
           };
           const lineWidth = /** @type {any} */ (layer.width);
           const pane = paneIndex.get(layer.pane) ?? 0;
@@ -14535,40 +14578,47 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       view.timeScale().subscribeSizeChange(() => (holdView(), relayout()));
       /**
-       * The view as left, at the plot's width and the chart's box's then: what each resize of the box keeps (see holdView),
-       * however many come and go (it isn't the view a resize made); and the view a resize made last, to tell it from one
-       * moved since.
-       * @type {{ from: number, to: number, width: number, box: number } | null}
+       * The view as left, by the chart's box (see boxView) and as the plot had it: what each resize of the box keeps (see
+       * holdView), however many come and go (it isn't the view a resize made); and the view a resize made last (by the
+       * box), to tell it from one moved since.
+       * @type {{ from: number, to: number, box: number, at: { from: number, to: number } } | null}
        */
       let heldView = null, madeView = /** @type {{ from: number, to: number } | null} */ (null);
       /** The chart's own width, its plot's and its price scales': a price scale wider, the plot narrower, it's the same. */
       const chartWidth = () => view.timeScale().width() + view.priceScale("left", 0).width() + view.priceScale("right", 0).width();
+      /**
+       * A view by the chart's box: its bars from the box's left edge to its right, the price scales' room counted. A price
+       * scale wider or narrower, the library holds the bars where they are on screen (patch 20 of lightweight-charts): the
+       * same view by the box, though the plot's range isn't.
+       */
+      function boxView(/** @type {{ from: number, to: number }} */ range) {
+        const spacing = view.timeScale().width() / (range.to - range.from + 1);
+        return { from: range.from - view.priceScale("left", 0).width() / spacing, to: range.to + view.priceScale("right", 0).width() / spacing };
+      }
       /** The chart's own width as last seen: a size change at it is a price scale's, not the box's. */
       let lastBox = 0;
       /** An image being made of the chart (its resizes the picture's: see chartImage). */
       let exporting = false;
       /**
-       * The plot resized (a window, the sidebar, the panel, a price axis's labels, a phone turned): its bars as wide as
-       * they were, the library's way, from the view as it was before (not as the library has already moved it): its
-       * right edge kept (at the latest, the latest with its room after it); past the data's start, the share of it on the
-       * data (never less than the library keeps on it: not pushed later each time it widens, and back as it was when the
-       * plot is). A preset
-       * showing is shown again whole (see relayout).
+       * The box resized (a window, the sidebar, the panel, a phone turned): its bars as wide as they were, from the view as
+       * left (not as the library has already moved it): its right edge kept (at the latest, the latest with its room after
+       * it); past the data's start, the share of it on the data (never less than the library keeps on it: not pushed later
+       * each time it widens, and back as it was when the box is). A preset showing is shown again whole (see relayout).
        */
       function holdView() {
         const width = view.timeScale().width(), box = chartWidth(), was = heldView, resized = box !== lastBox;
-        // (Only the chart's box resized: the plot narrower for a price axis's wider labels, as the view moves, is the
-        // library's, as it has it (its bars' spacing and right edge kept), the view as it moves.)
+        // (Only the chart's box resized: a price scale's labels wider or narrower, the library holds the bars on screen.)
         if (exporting) return;
         if (width) lastBox = box;
         if (!was || !width || !resized) return;
         if (rightGap(width) !== view.timeScale().options().rightOffsetPixels) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap(width) } });
         if (presetShown || !resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
-        // (Its bars as the library counts them, the last whole: as wide at any width.)
-        const bars = ((was.to - was.from + 1) * width) / was.width - 1, last = resolved.times.length - 1;
-        const to = was.from < 0 ? (was.to / (was.to - was.from)) * bars : was.to > last ? last + (rightGap(width) * (bars + 1)) / width - 0.5 : was.to;
+        // (Its bars as wide: as many across the box as it holds, the last whole, as the library counts them.)
+        const spacing = was.box / (was.to - was.from + 1), bars = box / spacing - 1, last = resolved.times.length - 1;
+        const right = view.priceScale("right", 0).width() / spacing;
+        const to = was.at.from < 0 ? (was.to / (was.to - was.from)) * bars : was.at.to > last ? last + rightGap(width) / spacing - 0.5 + right : was.to;
         madeView = { from: to - bars, to };
-        view.timeScale().setVisibleLogicalRange(madeView);
+        view.timeScale().setVisibleLogicalRange({ from: to - right - (width / spacing - 1), to: to - right });
       }
       view.timeScale().subscribeVisibleLogicalRangeChange(() => {
         // (The view as left: one moved in the box it was left in, or moved since a resize of the box made it; not one the
@@ -14576,8 +14626,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ((range, width, box) => {
           if (!range || !width || exporting) return;
           lastBox ||= box;
-          const made = madeView && Math.abs(range.from - madeView.from) < 0.01 && Math.abs(range.to - madeView.to) < 0.01;
-          if (!heldView || heldView.box === box || (madeView && !made)) (heldView = { from: range.from, to: range.to, width, box }), (madeView = null);
+          const now = boxView(range), made = madeView && Math.abs(now.from - madeView.from) < 0.05 && Math.abs(now.to - madeView.to) < 0.05;
+          if (!heldView || heldView.box === box || (madeView && !made)) (heldView = { ...now, box, at: { from: range.from, to: range.to } }), (madeView = null);
         })(view.timeScale().getVisibleLogicalRange(), view.timeScale().width(), chartWidth());
         // (A scale gliding follows the view moved again, at once.)
         if (scaleGliding) endScaleGlide();
