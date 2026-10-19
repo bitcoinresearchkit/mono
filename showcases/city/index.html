@@ -239,6 +239,36 @@
         border: none;
       }
 
+      /* Printed on the tables' decks: placed and skewed by script to lie on them. */
+      .find {
+        position: fixed;
+        top: 0;
+        left: 0;
+        padding: 0 0.4em;
+        border: 1px solid var(--ink);
+        border-radius: 0;
+        outline: none;
+        background: var(--top);
+        color: var(--ink);
+        font-family: var(--font-mono);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        transform-origin: 0 0;
+        will-change: transform;
+      }
+
+      .find::placeholder {
+        color: var(--muted);
+      }
+
+      .find:focus {
+        border-width: 2px;
+      }
+
+      .find[hidden] {
+        display: none;
+      }
+
       @media (max-width: 560px) {
         #caption {
           display: none;
@@ -257,6 +287,9 @@
         <a href="https://bitview.space">bitview ↗</a>
       </nav>
     </header>
+
+    <input id="find-block" class="find" type="text" spellcheck="false" autocomplete="off" aria-label="Find a block by height or hash" placeholder="Height or hash" hidden />
+    <input id="find-tx" class="find" type="text" spellcheck="false" autocomplete="off" aria-label="Find a transaction by its id" placeholder="Transaction id" hidden />
 
     <aside id="card" hidden>
       <span id="card-title">Carrying</span>
@@ -364,6 +397,8 @@
       const nowButton = $("now");
       const themeButton = $("theme");
       const card = $("card");
+      const findBlock = /** @type {HTMLInputElement} */ ($("find-block"));
+      const findTx = /** @type {HTMLInputElement} */ ($("find-tx"));
       const cardBody = $("card-body");
       const cardTitle = $("card-title");
       const HINT = caption.textContent ?? "";
@@ -2282,9 +2317,10 @@
       /**
        * @typedef {{ block: Block, sizes: Uint32Array, fees: Float32Array, bytes: number, side: Uint16Array,
        *   col: Uint16Array, row: Uint16Array, cells: Int32Array, shade: Uint8Array, rise: Float32Array,
-       *   order: Uint32Array }} Layout
+       *   order: Uint32Array, first: number }} Layout
        *   Each transaction's box: its footprint's side in cells and its corner; which one is in each
-       *   cell; its fee rate's shade and height; all of them back to front.
+       *   cell; its fee rate's shade and height; all of them back to front. first: the chain-wide
+       *   index of its first transaction.
        */
 
       /**
@@ -2335,11 +2371,14 @@
           sizes.set(size.data, from);
           fees.set(fee.data, from);
         }
-        return lay(block, sizes, fees);
+        return lay(block, sizes, fees, start);
       }
 
       /** Lays the squares out at the scale, in bytes per cell, that about fills the grid. */
-      function lay(/** @type {Block} */ block, /** @type {Uint32Array} */ sizes, /** @type {Float32Array} */ fees) {
+      function lay(
+        /** @type {Block} */ block, /** @type {Uint32Array} */ sizes, /** @type {Float32Array} */ fees,
+        /** @type {number} */ first,
+      ) {
         let bytes = 0;
         for (const size of sizes) bytes += size;
         let unit = bytes / (0.85 * GRID * GRID);
@@ -2358,7 +2397,7 @@
         });
         const { side, col, row } = packed;
         const order = Uint32Array.from(sizes.keys()).sort((a, b) => col[a] + row[a] + side[a] - (col[b] + row[b] + side[b]));
-        return { block, sizes, fees, bytes, ...packed, shade, rise, order };
+        return { block, sizes, fees, bytes, ...packed, shade, rise, order, first };
       }
 
       /**
@@ -2494,10 +2533,16 @@
         locate(layout, i, gap);
         const z = TABLE_TOP + boxH;
         if (!all && !inView(boxX, boxY, boxX + boxW, boxY + boxW, z)) return;
-        fillBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z, shades[layout.shade[i]]);
-        if (boxW * camera.scale < 7) return;
         ctx.strokeStyle = palette.muted;
-        strokeBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z);
+        // Out of the block, on the transaction table or on its way: where it goes, dashed.
+        if (i === outOf(layout.block)) {
+          ctx.setLineDash(DOTTED);
+          strokeBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z);
+          ctx.setLineDash(SOLID);
+          return;
+        }
+        fillBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z, shades[layout.shade[i]]);
+        if (boxW * camera.scale >= 7) strokeBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z);
       }
 
       // All of them landed, drawn once into a picture and copied while only the view moves; drawn
@@ -2523,7 +2568,7 @@
         }
         const ax = sx(AREA_X0, areaY());
         const ay = sy(AREA_X0, areaY(), TABLE_TOP);
-        const key = `${layout.block.height} ${s} ${dpr} ${facesFor}`;
+        const key = `${layout.block.height} ${s} ${dpr} ${facesFor} ${outOf(layout.block)}`;
         if (key !== pictureOf) {
           pictureOf = key;
           pictureX = -span * COS * s - 2;
@@ -2811,20 +2856,386 @@
         return best;
       }
 
+      // The transaction table ---------------------------------------------------
+
+      // A second car on its own way beside the first. A transaction clicked on the block table
+      // comes over to it in the drone's claws, a little cube, and opens up: its inputs at the back,
+      // its outputs in front, each a box as wide and high as its value says, wired to it in the
+      // middle. It stays while other blocks come and go; for another transaction, the drone first
+      // takes this one back into its block, on the table or out on the belt. Each table has a
+      // search box on its deck: a height or a hash, a transaction's id.
+      const TX_WAY_X0 = WAY_X1 + 0.6;
+      const TX_X0 = TX_WAY_X0 + 0.4;
+      const TX_SIZE = 7;
+      const TX_X1 = TX_X0 + TX_SIZE;
+      const TX_WAY_X1 = TX_X1 + 0.4;
+      const TX_BEAMS = [TX_X0 + 0.45, TX_X1 - 0.45];
+      const TX_LENGTH = 8.6;
+      const TX_HOME_Y = HOME_Y + (TABLE_LENGTH - TX_LENGTH) / 2;
+      const TX_MID_X = TX_X0 + TX_SIZE / 2;
+      // From its back edge: where its inputs go, its outputs, and the transaction between.
+      const INS_Y = [1.4, 3.6];
+      const OUTS_Y = [4.9, 7.1];
+      const NODE_Y = 4.25;
+      const NODE = 0.3;
+      // At most this many of each shown.
+      const SLOTS = 120;
+      const OPEN_MS = 700;
+      // A transaction in the drone's claws, a cube this wide; it flies low over the tables.
+      const PARCEL = 0.32;
+      const LOW = TABLE_TOP + HIGHEST + 0.7;
+      const HASH = /^[0-9a-f]{64}$/i;
+
+      /**
+       * @typedef {import("../modules/bitview-client/index.js").Transaction} Transaction
+       * @typedef {{ x: number, y: number, w: number, h: number, value: number, label: string }} Slot
+       *   An input or an output: its box's corner from the table's back corner, its width and height.
+       * @typedef {{ block: Block, i: number, g: number, shade: number, txid: string | null, tx: Transaction | null,
+       *   ins: Slot[], outs: Slot[], moreIns: number, moreOuts: number }} Parcel
+       *   A transaction out of its block: its place in it and along the chain, its shade, its
+       *   details once in, laid out.
+       */
+
+      /** On the table, and when it started opening, or folding back up from how open. */
+      const txTable = {
+        item: /** @type {Parcel | null} */ (null),
+        open: 0,
+        closing: 0,
+        from: 0,
+      };
+      // Where it is on its way, its back edge, and where it is going.
+      let txY = TX_HOME_Y;
+      let txTo = TX_HOME_Y;
+      /** A transaction found, to take as soon as its block is open. @type {{ block: Block, g: number, tx: Transaction } | null} */
+      let wantTx = null;
+      /** The input or output under the pointer. @type {{ slot: Slot, out: boolean, k: number, of: number } | null} */
+      let hoveredSlot = null;
+
+      /** Which transaction of the block is out of it, on the table or in the drone's claws; -1 if none. */
+      function outOf(/** @type {Block} */ block) {
+        const item = drone.parcel ?? txTable.item;
+        return item && item.block === block ? item.i : -1;
+      }
+
+      /** How open the transaction on the table is, 0 to 1. */
+      function openness(/** @type {number} */ now) {
+        if (!txTable.open) return 0;
+        if (txTable.closing) return Math.max(0, txTable.from - (now - txTable.closing) / OPEN_MS);
+        return Math.min(1, (now - txTable.open) / OPEN_MS);
+      }
+
+      /** Opens the one on the table, once its details are in. */
+      function opening(/** @type {number} */ now) {
+        if (!txTable.item?.tx || txTable.open) return;
+        txTable.open = now;
+        animateUntil = Math.max(animateUntil, now + OPEN_MS + 100);
+        dirty = true;
+      }
+
+      /** Fetches a transaction's details, by its place along the chain, and lays them out. */
+      function loadTx(/** @type {Parcel} */ parcel) {
+        void (async () => {
+          const client = await clientReady;
+          const txid = parcel.txid ?? (await client.getTxByIndex(parcel.g));
+          const tx = parcel.tx ?? (await client.getTx(txid));
+          Object.assign(parcel, { txid, tx }, layTx(tx));
+          if (txTable.item === parcel) opening(sim);
+          dirty = true;
+        })().catch((error) => console.error("transaction", error));
+      }
+
+      /** A transaction's inputs and outputs, as boxes as big as their values, the biggest the widest. */
+      function layTx(/** @type {Transaction} */ tx) {
+        const outs = tx.vout.map((out) => ({ value: out.value, label: out.scriptpubkeyAddress ?? out.scriptpubkeyType }));
+        const ins = tx.vin.map((input) =>
+          input.isCoinbase
+            ? { value: outs.reduce((sum, out) => sum + out.value, 0), label: "Coinbase: new coins and the fees" }
+            : { value: input.prevout?.value ?? 0, label: input.prevout?.scriptpubkeyAddress ?? input.prevout?.scriptpubkeyType ?? "" },
+        );
+        let top = 1;
+        for (const { value } of ins) top = Math.max(top, value);
+        for (const { value } of outs) top = Math.max(top, value);
+        return {
+          ins: slots(ins, INS_Y, top),
+          outs: slots(outs, OUTS_Y, top),
+          moreIns: Math.max(0, ins.length - SLOTS),
+          moreOuts: Math.max(0, outs.length - SLOTS),
+        };
+      }
+
+      /** Up to SLOTS of them in rows between y0 and y1, centered, each as wide as its value says. */
+      function slots(/** @type {{ value: number, label: string }[]} */ list, /** @type {number[]} */ [y0, y1], /** @type {number} */ top) {
+        const n = Math.min(list.length, SLOTS);
+        const width = TX_SIZE - 1.2;
+        const depth = y1 - y0;
+        let cell = Math.min(1, Math.sqrt((width * depth) / Math.max(1, n)));
+        while (Math.ceil(n / Math.max(1, Math.floor(width / cell))) * cell > depth) cell *= 0.95;
+        const cols = Math.max(1, Math.floor(width / cell));
+        const left = 0.6 + (width - Math.min(n, cols) * cell) / 2;
+        const back = y0 + (depth - Math.ceil(n / cols) * cell) / 2;
+        return list.slice(0, n).map(({ value, label }, k) => {
+          const share = Math.sqrt(value / top);
+          const w = cell * Math.max(0.15, 0.85 * share);
+          return {
+            x: left + (k % cols) * cell + (cell - w) / 2,
+            y: back + Math.floor(k / cols) * cell + (cell - w) / 2,
+            w,
+            h: 0.06 + 0.3 * share,
+            value,
+            label,
+          };
+        });
+      }
+
+      /** Sats as bitcoin, without trailing zeros. */
+      const btc = (/** @type {number} */ sats) => (sats / 100_000_000).toFixed(8).replace(/\.?0+$/, "");
+
+      /** Moves the transaction table along its way; whether it is moving. */
+      function stepTx(/** @type {number} */ dt) {
+        if (txY === txTo) return false;
+        const left = Math.abs(txTo - txY);
+        const shown = inView(TX_X0, txY, TX_X1, txY + TX_LENGTH, TABLE_TOP);
+        const move = (pace(left, TABLE_SPEED, 2.5, shown) * dt) / 1000;
+        txY = left <= move ? txTo : txY + Math.sign(txTo - txY) * move;
+        return true;
+      }
+
+      /**
+       * The transaction table on its sleds: its inputs, the transaction, its outputs, back to
+       * front, wired together on the deck, opening out of the transaction and folding back in.
+       */
+      function drawTxTable(/** @type {number} */ now) {
+        const back = txY;
+        const front = txY + TX_LENGTH;
+        if (!inView(TX_X0, back, TX_X1, front, TABLE_TOP + 1.2)) return;
+        const s = camera.scale;
+        for (const y of [back + 0.9, front - 0.9]) {
+          for (const x of TX_BEAMS) box(x - 0.4, y - 0.9, BEAM_TOP + HOVER, x + 0.4, y + 0.9, DECK, palette);
+        }
+        box(TX_X0, back, DECK, TX_X1, front, TABLE_TOP, palette);
+        const item = txTable.item;
+        const o = ease(openness(now));
+        const mx = TX_MID_X;
+        const my = back + NODE_Y;
+        /** Where a slot's middle is, and how big it is, as open as the table is. */
+        const at = (/** @type {Slot} */ slot) => {
+          const cx = mx + (TX_X0 + slot.x + slot.w / 2 - mx) * o;
+          const cy = my + (back + slot.y + slot.w / 2 - my) * o;
+          return [cx, cy, (slot.w * o) / 2, slot.h * o];
+        };
+        if (item && o > 0) {
+          ctx.strokeStyle = palette.muted;
+          ctx.beginPath();
+          for (const list of [item.ins, item.outs]) {
+            for (const slot of list) {
+              const [cx, cy] = at(slot);
+              moveTo(mx, my, TABLE_TOP);
+              lineTo(cx, cy, TABLE_TOP);
+            }
+          }
+          ctx.stroke();
+          for (const slot of item.ins) {
+            const [cx, cy, w, h] = at(slot);
+            box(cx - w, cy - w, TABLE_TOP, cx + w, cy + w, TABLE_TOP + h, palette);
+          }
+        }
+        if (item) box(mx - NODE, my - NODE, TABLE_TOP, mx + NODE, my + NODE, TABLE_TOP + 2 * NODE, shadeFaces()[item.shade]);
+        if (item && o > 0) {
+          for (const slot of item.outs) {
+            const [cx, cy, w, h] = at(slot);
+            box(cx - w, cy - w, TABLE_TOP, cx + w, cy + w, TABLE_TOP + h, palette);
+          }
+          if (hoveredSlot && o === 1) {
+            const { slot } = hoveredSlot;
+            ctx.strokeStyle = palette.ink;
+            ctx.lineWidth = 2;
+            strokeBox(TX_X0 + slot.x, back + slot.y, TABLE_TOP, TX_X0 + slot.x + slot.w, back + slot.y + slot.w, TABLE_TOP + slot.h);
+            ctx.lineWidth = 1;
+          }
+        }
+
+        // What it shows, along its front margin; what is what, along its right one.
+        const size = 0.26 * s;
+        if (!legible(size)) return;
+        const tx = item?.tx;
+        const title = !item
+          ? "CLICK A TRANSACTION ON THE BLOCK TABLE"
+          : !tx || !item.txid
+            ? "TX · LOADING"
+            : `TX ${item.txid.slice(0, 8)}…${item.txid.slice(-8)} · ${heightFormat.format(tx.vin.length)} IN → ${heightFormat.format(tx.vout.length)} OUT`;
+        ctx.textBaseline = "middle";
+        ctx.globalAlpha = legible(size);
+        plane(sx(TX_X0 + 0.5, front - 0.6), sy(TX_X0 + 0.5, front - 0.6, TABLE_TOP), COS, SIN, -COS, SIN);
+        label(title, 0, 0, size, palette.ink, "left");
+        flat();
+        if (item && tx) {
+          const total = tx.vout.reduce((sum, out) => sum + out.value, 0);
+          const line = `${btc(total)} BTC · FEE ${feeRate(tx.fee / (tx.weight / 4))} SAT/VB · ${heightFormat.format(Math.ceil(tx.weight / 4))} VB · #${heightFormat.format(item.block.height)}`;
+          ctx.globalAlpha = legible(0.2 * s);
+          plane(sx(TX_X0 + 0.5, front - 0.28), sy(TX_X0 + 0.5, front - 0.28, TABLE_TOP), COS, SIN, -COS, SIN);
+          label(line, 0, 0, 0.2 * s, palette.muted, "left");
+          flat();
+        }
+        const more = item && (item.moreIns || item.moreOuts) ? ` · ${heightFormat.format(item.moreIns)} MORE IN, ${heightFormat.format(item.moreOuts)} MORE OUT` : "";
+        ctx.globalAlpha = legible(0.18 * s);
+        plane(sx(TX_X1 - 0.35, front - 0.5), sy(TX_X1 - 0.35, front - 0.5, TABLE_TOP), COS, -SIN, COS, SIN);
+        label(`INPUTS AT THE BACK, OUTPUTS IN FRONT, AS BIG AS THEIR VALUE${more}`, 0, 0, 0.18 * s, palette.muted, "left");
+        flat();
+        ctx.globalAlpha = 1;
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /**
+       * The heights at which the line of sight through screen point (a, v) is inside the box
+       * over [x0, x0 + w] by [y0, y0 + w] up from z0 to z1: its top, or -Infinity if it misses.
+       */
+      function rayBox(
+        /** @type {number} */ a, /** @type {number} */ v, /** @type {number} */ x0, /** @type {number} */ y0,
+        /** @type {number} */ w, /** @type {number} */ z0, /** @type {number} */ z1,
+      ) {
+        const top = Math.min(x0 + w - a / 2 - v, y0 + w + a / 2 - v, z1);
+        const bottom = Math.max(x0 - a / 2 - v, y0 + a / 2 - v, z0);
+        return top >= bottom ? top : -Infinity;
+      }
+
+      /** The input or output under the screen point (x, y), nearest the eye; null if none. */
+      function slotAt(/** @type {number} */ x, /** @type {number} */ y) {
+        const item = txTable.item;
+        if (!item?.tx || openness(sim) < 1) return null;
+        const a = ((x - W / 2) / camera.scale + camera.u) / COS;
+        const v = (y - H / 2) / camera.scale + camera.v;
+        /** @type {{ slot: Slot, out: boolean, k: number, of: number } | null} */
+        let best = null;
+        let nearest = -Infinity;
+        for (const [list, out, of] of /** @type {const} */ ([[item.ins, false, item.tx.vin.length], [item.outs, true, item.tx.vout.length]])) {
+          for (let k = 0; k < list.length; k++) {
+            const slot = list[k];
+            const top = rayBox(a, v, TX_X0 + slot.x, txY + slot.y, slot.w, TABLE_TOP, TABLE_TOP + slot.h);
+            if (top > nearest) {
+              nearest = top;
+              best = { slot, out, k, of };
+            }
+          }
+        }
+        return best;
+      }
+
+      /** The block at a height: the one on the belt, or one fetched alone from further back. */
+      /** @type {Map<number, Block>} */
+      const further = new Map();
+      async function blockAt(/** @type {number} */ height) {
+        const first = blocks[0];
+        const last = blocks.at(-1);
+        if (!first || !last || height < 0 || height > last.height) throw new Error("no such block on the belt");
+        if (height >= first.height) return blocks[height - first.height];
+        const known = further.get(height);
+        if (known) return known;
+        const [block] = await fetchBlocks(height, height + 1, true);
+        if (!block) throw new Error("no such block");
+        block.tEff = block.time;
+        further.set(height, block);
+        return block;
+      }
+
+      /** Looks inside the block at a height or with a hash. */
+      async function findBlockBy(/** @type {string} */ text) {
+        const client = await clientReady;
+        const height = /^\d+$/.test(text) ? Number(text) : HASH.test(text) ? (await client.getBlock(text.toLowerCase())).height : NaN;
+        if (!Number.isInteger(height)) throw new Error("not a height or a hash");
+        const block = await blockAt(height);
+        follow(null);
+        look(block);
+      }
+
+      /** Opens a transaction by its id: its block first, then it. */
+      async function findTxBy(/** @type {string} */ text) {
+        if (!HASH.test(text)) throw new Error("not a transaction id");
+        const client = await clientReady;
+        const tx = await client.getTx(text.toLowerCase());
+        const height = tx.status.blockHeight;
+        if (!tx.status.confirmed || height == null || tx.index == null) throw new Error("not in a block yet");
+        const block = await blockAt(height);
+        follow(null);
+        if (table.block !== block) look(block);
+        wantTx = { block, g: tx.index, tx };
+      }
+
+      /** The transaction found, once its block is open on the table and the drone free. */
+      function takeWanted(/** @type {number} */ now) {
+        const layout = table.layout;
+        if (!wantTx || table.block !== wantTx.block || !layout || table.closing || splitTime(now) < SPLIT_MS) return;
+        const { block, g, tx } = wantTx;
+        wantTx = null;
+        pickTx(block, g - layout.first, tx);
+      }
+
+      for (const [input, find] of /** @type {const} */ ([[findBlock, findBlockBy], [findTx, findTxBy]])) {
+        const placeholder = input.placeholder;
+        input.addEventListener("input", () => (input.placeholder = placeholder));
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") input.blur();
+          if (event.key !== "Enter") return;
+          const text = input.value.trim();
+          if (!text) return;
+          find(text).then(
+            () => {
+              input.value = "";
+              input.blur();
+            },
+            () => {
+              input.value = "";
+              input.placeholder = "Not found";
+            },
+          );
+        });
+      }
+
+      /** Lays a search box on a table's deck, skewed like it, where it shows. */
+      function layInput(
+        /** @type {HTMLInputElement} */ input, /** @type {number} */ x, /** @type {number} */ y,
+        /** @type {number} */ length, /** @type {number} */ depth, /** @type {number} */ font, /** @type {boolean} */ shown,
+      ) {
+        const s = camera.scale;
+        const hide = !shown || s < 14;
+        if (input.hidden !== hide) input.hidden = hide;
+        if (hide) return;
+        const style = input.style;
+        const width = `${Math.round(length * s)}px`;
+        if (style.width !== width) {
+          style.width = width;
+          style.height = `${Math.round(depth * s)}px`;
+          style.fontSize = `${(font * s).toFixed(1)}px`;
+        }
+        style.transform = `matrix(${COS}, ${SIN}, ${-COS}, ${SIN}, ${sx(x, y)}, ${sy(x, y, TABLE_TOP)})`;
+      }
+
+      /** The block table's search box on its back strip, the transaction table's on its back margin. */
+      function placeInputs() {
+        layInput(findBlock, TABLE_X0 + 3.7, tableY + 0.75, TABLE_SIZE - 4.3, 0.75, 0.32,
+          inView(TABLE_X0, tableY, TABLE_X1, tableY + TABLE_LENGTH, TABLE_TOP));
+        layInput(findTx, TX_X0 + 0.45, txY + 0.3, TX_SIZE - 0.9, 0.7, 0.2,
+          inView(TX_X0, txY, TX_X1, txY + TX_LENGTH, TABLE_TOP));
+      }
+
       // The drone -----------------------------------------------------------------
 
       /**
-       * @typedef {{ kind: "go", to: "here" | "pad" | "table" | "belt", z: number, block?: Block }
+       * @typedef {{ kind: "go", to: "here" | "pad" | "table" | "belt" | "cell" | "tx", z: number, block?: Block, i?: number }
        *   | { kind: "grab", from: "belt" | "table", block: Block, then?: number }
        *   | { kind: "drop", onto: "belt" | "table" }
-       *   | { kind: "close" }} Flight
+       *   | { kind: "close" }
+       *   | { kind: "take", parcel?: Parcel, then?: number }
+       *   | { kind: "put", onto: "cell" | "tx" | "block" }
+       *   | { kind: "fold" }} Flight
        *   A leg of the drone's errand: fly straight to a point, z its feet's height, or straight
        *   up or down where it is; take a block,
        *   off the table sending the table on to `then`; set it down; wait for the block on the
-       *   table to close back up.
-       * @typedef {{ x: number, y: number, z: number, angle: number, load: Block | null,
+       *   table to close back up. And for a transaction: take it out of its cell on the block
+       *   table, or off the transaction table sending that one on to `then`; put it in its cell,
+       *   on the transaction table or into its block on the belt; wait for it to fold back up.
+       * @typedef {{ x: number, y: number, z: number, angle: number, load: Block | null, parcel: Parcel | null,
        *   steps: Flight[], since: number, spin: number }} Drone
-       *   angle: the way the block it holds faces.
+       *   angle: the way the block it holds faces. parcel: the transaction it holds.
        */
 
       // It flies over everything, and holds a block by its top, this far under its feet.
@@ -2833,19 +3244,20 @@
       const DRONE_SPEED = 11;
       const GRAB_MS = 200;
       /** @type {Drone} */
-      const drone = { x: PAD_X, y: HOME_Y + DOCK_STRIP / 2, z: PAD_TOP, angle: 0, load: null, steps: [], since: 0, spin: 0 };
-      /** The block to look at next, once the drone is back. @type {Block | null} */
-      let nextLook = null;
+      const drone = { x: PAD_X, y: HOME_Y + DOCK_STRIP / 2, z: PAD_TOP, angle: 0, load: null, parcel: null, steps: [], since: 0, spin: 0 };
+      /** What was clicked last while the drone was busy, to do once it is back. @type {(() => void) | null} */
+      let nextAction = null;
       /** Blocks off the belt, held or on the table: an outline shows where they belong. @type {Set<Block>} */
       const away = new Set();
 
       /** Sends the drone for a block, after taking back the one on the table. */
       function look(/** @type {Block} */ block) {
-        // Busy, the drone takes the latest click when back.
+        // Busy, the drone does the latest click when back.
         if (drone.steps.length) {
-          nextLook = block;
+          nextAction = () => look(block);
           return;
         }
+        if (wantTx && wantTx.block !== block) wantTx = null;
         if (table.block === block) return;
         void layoutOf(block);
         const onTable = TABLE_TOP + CUBE + HOLD;
@@ -2889,35 +3301,38 @@
       }
 
       /** The table's way, from its end into the past, only where it shows. */
-      function drawWay() {
+      /** A table's way between x0 and x1 with its beams, the hours beside it if `hours`. */
+      function drawWay(
+        /** @type {number} */ x0, /** @type {number} */ x1, /** @type {number[]} */ beams, /** @type {boolean} */ hours,
+      ) {
         const s = camera.scale;
         // Where along Y some of it is on screen.
-        const from = Math.max(WAY_X0 - viewU1 / COS, 2 * viewV0 - WAY_X1);
-        const to = Math.min(WAY_END, WAY_X1 - viewU0 / COS, 2 * (viewV1 + 0.4) - WAY_X0);
+        const from = Math.max(x0 - viewU1 / COS, 2 * viewV0 - x1);
+        const to = Math.min(WAY_END, x1 - viewU0 / COS, 2 * (viewV1 + 0.4) - x0);
         if (from >= to) return;
-        box(WAY_X0, from, 0, WAY_X1, to, SLAB, palette);
+        box(x0, from, 0, x1, to, SLAB, palette);
         // Its segments and the guide line down its middle.
         ctx.strokeStyle = palette.faint;
         ctx.beginPath();
         if (JOINT * s >= 10) {
           for (let y = Math.ceil(from / JOINT) * JOINT; y < to; y += JOINT) {
-            moveTo(WAY_X0, y, SLAB);
-            lineTo(WAY_X1, y, SLAB);
-            lineTo(WAY_X1, y, 0);
+            moveTo(x0, y, SLAB);
+            lineTo(x1, y, SLAB);
+            lineTo(x1, y, 0);
           }
         }
         ctx.stroke();
         ctx.strokeStyle = palette.muted;
         ctx.setLineDash(DASHED);
         ctx.beginPath();
-        moveTo(MIDDLE_X, from, SLAB);
-        lineTo(MIDDLE_X, to, SLAB);
+        moveTo((x0 + x1) / 2, from, SLAB);
+        lineTo((x0 + x1) / 2, to, SLAB);
         ctx.stroke();
         ctx.setLineDash(SOLID);
         // The time at each right fold's end, the middle of its U-turn, on the ground between it
         // and the way, where the table never covers it.
         const size = 0.4 * s;
-        if (legible(size)) {
+        if (hours && legible(size)) {
           ctx.textBaseline = "middle";
           ctx.globalAlpha = legible(size);
           const start = Math.max(0, Math.ceil((-(to + 3) - BEND) / FOLD));
@@ -2939,9 +3354,9 @@
             box(x - 0.06, y - 0.06, SLAB, x + 0.06, y + 0.06, SLAB + 0.3, palette);
           }
         };
-        bollards(WAY_X0 + 0.15);
+        bollards(x0 + 0.15);
         const w = BEAM / 2;
-        for (const x of BEAMS) {
+        for (const x of beams) {
           box(x - w, from, SLAB, x + w, to, BEAM_TOP, palette);
           ctx.strokeStyle = palette.muted;
           ctx.beginPath();
@@ -2949,7 +3364,7 @@
           lineTo(x, to, BEAM_TOP);
           ctx.stroke();
         }
-        bollards(WAY_X1 - 0.15);
+        bollards(x1 - 0.15);
       }
 
       /** Moves the table along its way; whether it is moving. */
@@ -2976,6 +3391,7 @@
         const step = drone.steps[0];
         if (!step) {
           drone.y = padY();
+          takeWanted(now);
           return false;
         }
         drone.spin += dt / 40;
@@ -2986,6 +3402,13 @@
           if (step.to === "here") {
             tx = drone.x;
             ty = drone.y;
+          } else if (step.to === "cell" && table.layout && step.i !== undefined) {
+            locate(table.layout, step.i, 0);
+            tx = boxX + boxW / 2;
+            ty = boxY + boxW / 2;
+          } else if (step.to === "tx") {
+            tx = TX_MID_X;
+            ty = txY + NODE_Y;
           } else if (step.to === "table") {
             tx = MIDDLE_X;
             ty = middleY();
@@ -3015,6 +3438,14 @@
             drone.y += (dy / d) * move;
             drone.z += (dz / d) * move;
           }
+        } else if (step.kind === "fold") {
+          if (!txTable.closing && txTable.open) {
+            txTable.from = openness(now);
+            txTable.closing = now;
+            hoveredSlot = null;
+            describe();
+          }
+          if (openness(now) === 0) next(now);
         } else if (step.kind === "close") {
           if (!table.closing && table.layout && table.split) {
             table.from = splitTime(now);
@@ -3040,7 +3471,7 @@
               describe();
               if (step.then !== undefined) tableTo = step.then;
             }
-          } else if (drone.load) {
+          } else if (step.kind === "drop" && drone.load) {
             const block = drone.load;
             drone.load = null;
             if (step.onto === "belt") away.delete(block);
@@ -3049,6 +3480,19 @@
               table.visit += 1;
               show(block, table.visit);
             }
+          } else if (step.kind === "take") {
+            if (step.parcel) drone.parcel = step.parcel;
+            else {
+              drone.parcel = txTable.item;
+              Object.assign(txTable, { item: null, open: 0, closing: 0 });
+              if (step.then !== undefined) txTo = step.then;
+            }
+          } else if (step.kind === "put" && drone.parcel) {
+            if (step.onto === "tx") {
+              txTable.item = drone.parcel;
+              opening(now);
+            }
+            drone.parcel = null;
           }
           next(now);
         }
@@ -3073,16 +3517,84 @@
       function next(/** @type {number} */ now) {
         drone.steps.shift();
         drone.since = now;
-        if (drone.steps.length || !nextLook) return;
-        const block = nextLook;
-        nextLook = null;
-        look(block);
+        if (drone.steps.length || !nextAction) return;
+        const action = nextAction;
+        nextAction = null;
+        action();
+      }
+
+      /**
+       * Sends the drone for the block table's i-th transaction, to the transaction table, after
+       * taking back the one there: into its cell if its block is on the table, else into its
+       * block on the belt.
+       */
+      function pickTx(/** @type {Block} */ block, /** @type {number} */ i, /** @type {Transaction | null} */ tx = null) {
+        if (drone.steps.length) {
+          nextAction = () => pickTx(block, i, tx);
+          return;
+        }
+        const layout = table.layout;
+        if (table.block !== block || !layout || i < 0 || i >= layout.sizes.length || outOf(block) === i) return;
+        /** @type {Parcel} */
+        const parcel = { block, i, g: layout.first + i, shade: layout.shade[i], txid: tx?.txid ?? null, tx, ins: [], outs: [], moreIns: 0, moreOuts: 0 };
+        loadTx(parcel);
+        // The transaction table stops where it shows best in the view, like the block table.
+        const level = Math.min(TX_HOME_Y, 0.5 * TX_MID_X - COS * camera.u + 0.5 * camera.v - TX_LENGTH / 2);
+        const onTx = TABLE_TOP + PARCEL + HOLD;
+        /** Down to the cell of the j-th transaction, to hold it by its top or put one on it. */
+        const cellZ = (/** @type {number} */ j, /** @type {number} */ held) => TABLE_TOP + layout.rise[j] + held + HOLD;
+        /** @type {Flight[]} */
+        const steps = [];
+        const old = txTable.item;
+        if (old) {
+          steps.push(
+            { kind: "go", to: "here", z: LOW },
+            { kind: "go", to: "tx", z: LOW },
+            { kind: "go", to: "tx", z: onTx },
+            { kind: "fold" },
+            { kind: "take", then: level },
+            { kind: "go", to: "here", z: LOW },
+          );
+          if (old.block === block) {
+            steps.push(
+              { kind: "go", to: "cell", i: old.i, z: LOW },
+              { kind: "go", to: "cell", i: old.i, z: cellZ(old.i, PARCEL) },
+              { kind: "put", onto: "cell" },
+              { kind: "go", to: "here", z: LOW },
+            );
+          } else {
+            steps.push(
+              { kind: "go", to: "here", z: CRUISE },
+              { kind: "go", to: "belt", z: CRUISE, block: old.block },
+              { kind: "go", to: "belt", z: TOP + PARCEL + HOLD, block: old.block },
+              { kind: "put", onto: "block" },
+              { kind: "go", to: "here", z: CRUISE },
+            );
+          }
+        } else {
+          txTo = level;
+          steps.push({ kind: "go", to: "here", z: LOW });
+        }
+        steps.push(
+          { kind: "go", to: "cell", i, z: LOW },
+          { kind: "go", to: "cell", i, z: cellZ(i, 0) },
+          { kind: "take", parcel },
+          { kind: "go", to: "here", z: LOW },
+          { kind: "go", to: "tx", z: LOW },
+          { kind: "go", to: "tx", z: onTx },
+          { kind: "put", onto: "tx" },
+          { kind: "go", to: "here", z: LOW },
+          { kind: "go", to: "pad", z: LOW },
+          { kind: "go", to: "pad", z: PAD_TOP },
+        );
+        drone.steps = steps;
+        drone.since = sim;
       }
 
       /** The drone: its shadow, the block it holds, its body, four arms and their rotors. */
       function drawDrone() {
         const { x, y, z } = drone;
-        const low = drone.load ? z - HOLD - CUBE : z;
+        const low = drone.load ? z - HOLD - CUBE : drone.parcel ? z - HOLD - PARCEL : z;
         if (!inView(x - 0.6, y - 0.6, x + 0.6, y + 0.6, z + 0.3)) return;
         const onPad = Math.abs(x - PAD_X) < PAD_HALF && Math.abs(y - padY()) < PAD_HALF;
         const ground = onPad ? PAD_TOP : x > TABLE_X0 && x < TABLE_X1 && y > tableY && y < tableY + TABLE_LENGTH ? TABLE_TOP : 0;
@@ -3093,6 +3605,10 @@
           ctx.ellipse(sx(x, y), sy(x, y, ground), ellipseX(0.45), ellipseY(0.45), 0, 0, Math.PI * 2);
           ctx.fill();
           ctx.globalAlpha = 1;
+        }
+        if (drone.parcel) {
+          const p = PARCEL / 2;
+          box(x - p, y - p, z - HOLD - PARCEL, x + p, y + p, z - HOLD, shadeFaces()[drone.parcel.shade]);
         }
         if (drone.load) {
           drawBlock(drone.load, x, y, drone.angle, false, z - HOLD - TOP);
@@ -3315,7 +3831,8 @@
         // Back to front: the table's way, the folds behind the machine, the machine, the belts
         // before it, then every cube by depth.
         drawGround(first, last);
-        drawWay();
+        drawWay(WAY_X0, WAY_X1, BEAMS, true);
+        drawWay(TX_WAY_X0, TX_WAY_X1, TX_BEAMS, false);
         drawFolds(first, last, phase);
         if (inView(-PLINTH, PLINTH_Y0, PLINTH, PLINTH_Y1, LID_TOP + 1.5)) drawMachine(now);
         if (first === 0) {
@@ -3371,10 +3888,12 @@
         workers.sort((a, b) => a.x + a.y - (b.x + b.y));
         for (const worker of workers) drawWorker(worker);
         drawTable(now);
+        drawTxTable(now);
         drawPool(now);
         drawThrows(now);
         drawDrone();
         placeCard();
+        placeInputs();
 
         if (blocks.length && !reachedGenesis && position(blocks[0], seconds, now) < pHi + PERIOD) {
           void loadOlder();
@@ -3405,7 +3924,8 @@
         stepJob(sim);
         stepWorkers(sim, step);
         const rolling = stepTable(step);
-        const flying = stepDrone(sim, step) || rolling;
+        const sliding = stepTx(step);
+        const flying = stepDrone(sim, step) || rolling || sliding;
         // The pool's water and the robots move all the time: at full rate while they show.
         const lively = camera.scale >= 12 && inView(PLINTH, QUEUE_Y - BELT_WIDTH, SIGN_X, POOL_Y1, 2);
         stepFollow(step);
@@ -3593,6 +4113,9 @@
           return;
         }
         follow(null);
+        // A transaction on the block table goes to the transaction table.
+        const i = txAt(x, y);
+        if (i >= 0 && table.block) pickTx(table.block, i);
       }
 
       canvas.addEventListener("wheel", (event) => {
@@ -3663,20 +4186,32 @@
           }
         }
         const tx = found ? -1 : txAt(x, y);
-        if (found === hovered && tx === hoveredTx) return;
+        const slot = found || tx >= 0 ? null : slotAt(x, y);
+        if (found === hovered && tx === hoveredTx && slot?.slot === hoveredSlot?.slot) return;
         hovered = found;
         hoveredTx = tx;
+        hoveredSlot = slot;
         dirty = true;
         describe();
       }
 
       function describe() {
+        if (!hovered && hoveredSlot) {
+          const { slot, out, k, of } = hoveredSlot;
+          caption.textContent = [
+            `${out ? "Output" : "Input"} ${heightFormat.format(k + 1)} of ${heightFormat.format(of)}`,
+            slot.label,
+            `${btc(slot.value)} BTC`,
+          ].filter(Boolean).join(" · ");
+          return;
+        }
         if (!hovered && hoveredTx >= 0 && table.layout) {
           const { block, sizes, fees } = table.layout;
           caption.textContent = [
             `Transaction ${heightFormat.format(hoveredTx + 1)} of ${heightFormat.format(sizes.length)} in #${heightFormat.format(block.height)}`,
             hoveredTx === 0 ? "the coinbase" : `${feeRate(fees[hoveredTx])} sats/vB`,
             `${heightFormat.format(sizes[hoveredTx])} bytes`,
+            outOf(block) === hoveredTx ? "On the transaction table" : "Click to open it",
           ].join(" · ");
           return;
         }
