@@ -10562,15 +10562,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * by what Bitview says it is (its type, from what's known of it: an added one's, asked for; a link's, if it's been
        * asked for already): candles where its type is open-high-low-close; the price itself (under its catalog's price,
        * in any unit) in ink; a value in dollars green, in bitcoin (BTC, sats) orange. A color taken on the chart (`used`)
-       * isn't asked for: the next free one is had instead.
-       * @param {string} name @param {Set<string>} used @returns {Partial<Layer>}
+       * isn't asked for: the next free one is had instead. `asked`, a type given (a link's): the presets' color and base
+       * only where it's theirs.
+       * @param {string} name @param {Set<string>} used @param {string} [asked] @returns {Partial<Layer>}
        */
-      function firstLook(name, used) {
+      function firstLook(name, used, asked) {
         indexCatalog();
-        const told = presetLooks.get(name), type = known.get(name)?.type ?? "", unit = type ? unitOf(type) : units.get(name);
-        const color = told?.color ?? (catalogIndex?.get(name)?.startsWith("price.") ? "ink" : unit === "usd" ? "green" : unit === "btc" || unit === "sats" ? "orange" : "");
-        const look = told?.type ?? (isOhlc(name) ? "candles" : "");
-        return { ...(look && look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}), ...(color && !used.has(color) ? { color } : {}) };
+        const type = known.get(name)?.type ?? "", unit = type ? unitOf(type) : units.get(name);
+        const own = presetLooks.get(name), ownType = own?.type ?? (isOhlc(name) ? "candles" : "line"), look = asked ?? ownType, told = look === ownType ? own : undefined;
+        // (A baseline as every one starts: green above its base, red below, the presets' shades of them said so.)
+        const color = told?.color ?? (look === "baseline" ? "green" : catalogIndex?.get(name)?.startsWith("price.") ? "ink" : unit === "usd" ? "green" : unit === "btc" || unit === "sats" ? "orange" : "");
+        // (A baseline's green is every baseline's: taken already, still its own.)
+        return { ...(look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}), ...(color && (!used.has(color) || (look === "baseline" && color === "green")) ? { color } : {}) };
       }
       /** Whether Bitview says a series is open-high-low-close (its type, as known: asked for already). */
       const isOhlc = (/** @type {string} */ name) => /^OHLC/.test(known.get(name)?.type ?? "");
@@ -11575,13 +11578,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         storage.set(VIEWS, all);
       }
       onLeave(saveView);
-      /** Charts opened, and the grid (a link, a script, a click): a picture made meanwhile, of the one before, dropped. */
+      /**
+       * Charts opened, and the grid (a link, a script, a click): a picture made meanwhile, of the one before, dropped. The
+       * chart open opened again (a preset made anew from the presets as they are now, its id the same) is no other.
+       */
       let navigations = 0;
-      /** @param {Chart} doc */
       /** A block came while the Charts page was over the chart (see checkLive). */
       let blockAtHome = false;
+      /** @param {Chart} doc */
       function openChart(doc) {
-        navigations++;
+        if (doc.id !== chart?.id) navigations++;
         // (Opened afresh: a block come meanwhile is in its data already.)
         blockAtHome = false;
         lastOpen = "";
@@ -20596,13 +20602,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ];
       /**
        * Each series' look as the presets draw it (its color, its type, a baseline's base): the one they give it most, for a
-       * series added on its own to start as they draw it (a named color only: a family's shades say nothing alone).
+       * series added on its own to start as they draw it. A shade (a color not named) is the series' place in a family (a
+       * comparison's member, a window, a percentile): a layer in one says nothing of its look, but a baseline's base.
        * @param {Preset[]} list @returns {Map<string, Partial<Layer>>}
        */
       function looksOf(list) {
         const counts = new Map();
         for (const preset of list) for (const layer of preset.c.layers) {
-          if (typeof layer.series !== "string") continue;
+          if (typeof layer.series !== "string" || (!isNamed(layer.color) && layer.type !== "baseline")) continue;
           const each = counts.get(layer.series) ?? new Map(), key = `${isNamed(layer.color) ? layer.color : ""}|${layer.type ?? "line"}|${layer.base ?? ""}`;
           counts.set(layer.series, each.set(key, (each.get(key) ?? 0) + 1));
         }
@@ -20616,14 +20623,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The presets, once read; each one's words (its title and place, lowercased) for the search. */
       let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = false;
       /** @type {Promise<Preset[]> | null} */
-      let presetsLoad = null;
+      let presetsLoad = null, presetsRead = /** @type {Promise<Preset[]> | null} */ (null);
       /**
-       * The presets, read once, when first wanted: the built page's own (made by the build, in it compressed), else the dev
-       * page's, made here from this repo's client (presets.js). Read, ⌘K, open, shows them.
+       * The presets' list, read once: the built page's own (made by the build, in it compressed), else the dev page's, made
+       * here from this repo's client (presets.js); and the looks they give series (see looksOf). Nothing else: nothing
+       * opens or shows (that's loadPresets').
        */
-      function loadPresets() {
-        return (presetsLoad ??= (async () => {
-          presetsFailed = false;
+      function readPresetList() {
+        return (presetsRead ??= (async () => {
           const packed = $("presets")?.textContent?.trim();
           /** @type {Preset[]} */
           let list;
@@ -20631,9 +20638,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const bytes = fromBase64(packed);
             list = JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
           } else list = (await import("./presets.js")).studioPresets(client);
+          presetLooks = looksOf(list);
+          return list;
+        })());
+      }
+      /**
+       * The presets, read once, when first wanted (readPresetList), then shown: read, ⌘K, open, shows them.
+       */
+      function loadPresets() {
+        return (presetsLoad ??= (async () => {
+          presetsFailed = false;
+          const list = await readPresetList();
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
-          presetLooks = looksOf(list);
           // (Those opened and left as they were, before they could be told: let go of now; the open one, as the presets
           // have it now, if that's changed.)
           prunePresets(chart ?? null);
@@ -20661,9 +20678,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           throw error;
         }));
       }
+      /**
+       * The presets' list read, or given up on (readPresetList: nothing opens): a chart written by hand (a link, a file,
+       * studio.open) and a series added are read after, as a series' first look comes from them (see firstLook).
+       */
+      const presetsSettled = () => readPresetList().then(() => {}, () => {});
       /** The presets read again, asked for (after a failure). */
       function retryPresets() {
-        presetsLoad = null;
+        presetsLoad = presetsRead = null;
         presetsFailed = false;
         renderRecommended();
         void loadPresets().catch(() => {});
@@ -23425,7 +23447,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its path too, kept with its name in the same edit: see normalize.)
         indexCatalog();
         const meta = await info(name).catch(() => null);
-        if (chart !== target || !roomFor(target)) return;
+        await presetsSettled();
+        // (Another chart opened meanwhile, it's not added; the same one made anew (a preset refreshed), it is.)
+        if (chart?.id !== target?.id || !roomFor(chart)) return;
         if (meta && !datedIntervals(meta).length) return void blockOnly(name, (day) => addSeries(day, { newPane, pane: into }));
         const unit = meta ? unitOf(meta.type) : units.get(name) ?? "number";
         units.set(name, unit);
@@ -27028,6 +27052,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!file) return;
         // (Charts, even all of them, are a few megabytes at most: a file far past that isn't, and would hang the page read.)
         if (file.size > 32e6) return notice(`That file is ${Math.round(file.size / 1e6)} MB: too large to be charts`);
+        await presetsSettled();
         try {
           const parsed = JSON.parse(await file.text());
           // Several, downloaded together (picked, or Download all): they join the top of your Library, shown picked on its
@@ -27396,7 +27421,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (isColor(layer.color)) return layer.color;
           if (Array.isArray(layer.cloud)) return null;
           // (A series' first look, its unit as known here: one asked for meanwhile, the price's ink, else the next free.)
-          const color = (typeof layer.series === "string" ? firstLook(seriesName(layer.series), usedColors).color : undefined) ?? PALETTE.find((name) => !usedColors.has(name)) ?? PALETTE[cycled++ % PALETTE.length];
+          const look = typeof layer.series === "string" ? firstLook(seriesName(layer.series), usedColors, typeof layer.type === "string" ? layer.type : undefined) : {};
+          // (A baseline's color is above its base, red its own below: never red above too.)
+          const baseline = (typeof layer.type === "string" ? layer.type : look.type) === "baseline";
+          const colors = baseline ? PALETTE.filter((name) => name !== "red") : PALETTE;
+          const color = look.color ?? colors.find((name) => !usedColors.has(name)) ?? colors[cycled++ % colors.length];
           usedColors.add(color);
           return color;
         });
@@ -27420,7 +27449,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A cloud of no colors given: colored by its layers.)
             ...(kind === "cloud" && !colors[i] && layer.colorBelow === undefined ? { byLayers: true } : {}),
             ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
-            ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(layer.type === undefined ? ((type) => (type ? { type } : {}))(firstLook(seriesName(layer.series), usedColors).type) : {}) } : {}),
+            ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(({ type, base }) => ({ ...(type && layer.type === undefined ? { type } : {}), ...(base !== undefined && layer.base === undefined ? { base } : {}) }))(firstLook(seriesName(layer.series), usedColors, typeof layer.type === "string" ? layer.type : undefined)) } : {}),
             ...(kind ? { [kind]: members } : {}),
             ...(typeof layer.ref === "string" ? { ref: letterId(layer.ref) } : {}),
             ...(typeof layer.colorFrom === "string" ? { colorFrom: letterId(layer.colorFrom) } : {}),
@@ -28914,6 +28943,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const plain = /^(?:%20|%0a|%0d|%09|\s)*(?:\{|%7b|%257b)/i.test(written);
         try {
           lostDrawings = 0;
+          // (Its layers' looks, as the presets have them, known first: a series without a type starts as theirs.)
+          await presetsSettled();
           // (Another field after it, "&image=" or "&chart=": the whole read first, a title's "&" its own; else up to there.)
           const field = /&(?:chart|image)=/.exec(written), doc = plain ? (() => {
             try {

@@ -98,6 +98,16 @@ const WINDOW_COLORS = ["cyan", "sky", "blue", "indigo", "violet", "purple", "fuc
 function ramp(/** @type {number} */ count, from = 25, to = 320) {
   return Array.from({ length: count }, (_, i) => `oklch(0.72 0.15 ${Math.round(count > 1 ? from + ((to - from) * i) / (count - 1) : from)})`);
 }
+/**
+ * A baseline's two colors, the `i`th of `count` alike (its windows, short to long): green above its base and red below,
+ * as every baseline, from light and pale to deep and vivid, the green turning teal and the red crimson, so each reads
+ * apart in either theme (the light one turns lightness over and narrows the middle: the hue and chroma still part
+ * them) and all read the same way.
+ */
+function shades(/** @type {number} */ i, /** @type {number} */ count) {
+  const k = count > 1 ? i / (count - 1) : 0.5, l = (0.82 - 0.26 * k).toFixed(2), c = (0.14 + 0.04 * k).toFixed(2);
+  return { color: `oklch(${l} ${c} ${Math.round(135 + 40 * k)})`, colorBelow: `oklch(${l} ${c} ${Math.round(40 - 20 * k)})` };
+}
 
 /**
  * Every preset, made from a client (its series tree and its tables of names).
@@ -140,8 +150,9 @@ export function studioPresets(client) {
   const windowsOf = (node) => entries(node).filter(([key, value]) => /^_\d+[hdwmy]$/.test(key) && (isLeaf(value) || value.btc));
   /**
    * A measure over windows as layers: each window's series (`pick` takes it from the window's node), the month shown
-   * (or those in `show`, none if it's empty), the others hidden; each labeled `what` and its window.
-   * @param {any} node @param {string} what @param {{ pick?: (n: any) => any, show?: string[], pane?: number, colors?: string[], extra?: Layer }} [options]
+   * (or those in `show`, none if it's empty), the others hidden; each labeled `what` and its window. Read `around` a
+   * base (a ratio's 1, a change's 0): each a baseline there, in its shades.
+   * @param {any} node @param {string} what @param {{ pick?: (n: any) => any, show?: string[], pane?: number, colors?: string[], extra?: Layer, around?: number }} [options]
    * @returns {Layer[]}
    */
   const windows = (node, what, options = {}) => {
@@ -153,6 +164,7 @@ export function studioPresets(client) {
       ...(shown.includes(key) ? {} : { hidden: true }),
       ...(options.pane ? { pane: options.pane } : {}),
       ...options.extra,
+      ...(options.around === undefined ? {} : { ...around(options.around), ...shades(i, list.length) }),
     }));
   };
   /** A share or ratio over windows and since the start (`cumulative`), all its own windows. @param {any} node @param {string} what @param {Layer} [extra] */
@@ -166,7 +178,9 @@ export function studioPresets(client) {
   const usd = (n) => (isLeaf(n) ? undefined : n?.usd);
   /** A series' node, or its `block` (a node with its own series under `block`, beside others). @param {any} n */
   const own = (n) => (isLeaf(n) ? n : n?.block);
-  const baseline = { type: "baseline", color: "green", colorBelow: "red" };
+  /** A baseline at `base`: green above, red below (a ratio's base 1, a change's 0). @param {number} [base] @returns {Layer} */
+  const around = (base = 0) => ({ type: "baseline", color: "green", colorBelow: "red", ...(base ? { base } : {}) });
+  const baseline = around(0);
 
   /**
    * A flow (an amount per block: summed over windows, `sum`, and since the start, `cumulative`) as charts: its sums,
@@ -194,7 +208,7 @@ export function studioPresets(client) {
    */
   const change = (delta, name, title) =>
     delta?.absolute
-      ? [chart(name, title, [...windows(delta.absolute, "", { extra: { type: "histogram", color: "green", colorBelow: "red" } }), ...windows(delta.rate, "Rate", { pane: 2 })])]
+      ? [chart(name, title, [...windows(delta.absolute, "", { extra: { type: "histogram", color: "green", colorBelow: "red" } }), ...windows(delta.rate, "Rate", { pane: 2, around: 0 })])]
       : [];
 
   // ── A cohort's charts (the holders, an age band, an amount, a type…) ────────
@@ -256,19 +270,19 @@ export function studioPresets(client) {
       realized && section("Realized", [
         realized.profit && chart("Profit and loss", of("Realized profit and loss"), [
           ...windows(realized.profit.sum, "Profit", { extra: { color: "green" } }), ...windows(realized.loss.sum, "Loss", { extra: { color: "red" } }),
-          ...(realized.netPnl ? windows(realized.netPnl.sum, "Net", { pane: 2, extra: baseline }) : []),
+          ...(realized.netPnl ? windows(realized.netPnl.sum, "Net", { pane: 2, around: 0 }) : []),
         ]),
         realized.profit && chart("Profit and loss, all time", of("Realized profit and loss, all time"), [
           series(realized.profit.cumulative, "Profit", { color: "green" }), series(realized.loss.cumulative, "Loss", { color: "red" }),
           ...(realized.netPnl ? [series(realized.netPnl.cumulative, "Net", { pane: 2, ...baseline })] : []),
         ]),
         ...flow(realized.grossPnl, "Gross profit and loss", of("Gross realized profit and loss")),
-        realized.profitToLoss && chart("Profit to loss", of("Realized profit to loss"), windows(realized.profitToLoss, "", { extra: { levels: [{ value: 1, color: "gray", dash: 3 }] } }), { log: [1] }),
+        realized.profitToLoss && chart("Profit to loss", of("Realized profit to loss"), windows(realized.profitToLoss, "", { around: 1 }), { log: [1] }),
         ...flow(realized.valueDestroyed, "Value destroyed", of("Value destroyed")),
         ...flow(realized.peakRegret, "Peak regret", of("Realized peak regret")),
-        realized.sopr && chart("SOPR", of("SOPR"), windows(realized.sopr, "", { show: ["_1w"], extra: { levels: [{ value: 1, color: "gray", dash: 3 }] } })),
+        realized.sopr && chart("SOPR", of("SOPR"), windows(realized.sopr, "", { show: ["_1w"], around: 1 })),
         realized.adjustedSopr && chart("Adjusted SOPR", of("Adjusted SOPR"), [
-          ...windows(realized.adjustedSopr, "", { show: ["_1w"], extra: { levels: [{ value: 1, color: "gray", dash: 3 }] } }),
+          ...windows(realized.adjustedSopr, "", { show: ["_1w"], around: 1 }),
           ...windows(realized.adjustedSopr.valueCreated.sum, "Value created", { pane: 2, extra: { color: "green" } }),
           ...windows(realized.adjustedSopr.valueDestroyed.sum, "Value destroyed", { pane: 2, extra: { color: "red" } }),
         ]),
@@ -291,13 +305,13 @@ export function studioPresets(client) {
           ...(cost.perCoin.avg && own(cost.perCoin.avg) !== cost.perCoin.realizedPrice ? [series(own(cost.perCoin.avg), "Average cost basis", { color: "amber", hidden: true })] : []),
           ...(cost.perCoin.medianRealizedPrice ? [series(cost.perCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),
           ...(cost.min ? [series(cost.min, "Lowest", { color: "red", dash: 3, hidden: true }), series(cost.max, "Highest", { color: "green", dash: 3, hidden: true })] : []),
-          ...(cost.perCoin.avg?.mvrv ? [series(cost.perCoin.avg.mvrv, "MVRV", { pane: 2, color: "orange", levels: [{ value: 1, color: "gray", dash: 3 }] }), series(cost.perCoin.avg.ratio, "Price to average cost basis", { pane: 2, color: "amber", hidden: true })] : []),
+          ...(cost.perCoin.avg?.mvrv ? [series(cost.perCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1) }), series(cost.perCoin.avg.ratio, "Price to average cost basis", { pane: 2, ...around(1), ...shades(0, 2), hidden: true })] : []),
         ]),
         ...percentiles(cost.perCoin, "Distribution", of("Cost basis distribution, by coin")),
         ...(cost.perDollar ? [
           ...percentiles(cost.perDollar, "Distribution by dollar", of("Cost basis distribution, by dollar"), [
             series(cost.perDollar.capitalizedPrice, "Capitalized price", { color: "orange" }), series(own(cost.perDollar.avg), "Average", { color: "amber", hidden: true }),
-            series(cost.perDollar.avg.ratio, "Price to average", { pane: 2, color: "amber" }),
+            series(cost.perDollar.avg.ratio, "Price to average", { pane: 2, ...around(1) }),
           ]),
         ] : []),
         cost.supplyDensity && chart("Density", of("Supply and capital near the price"), [
@@ -341,10 +355,11 @@ export function studioPresets(client) {
     /**
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, as their
      * shares of it, stacked ("Supply share"). Its title says by what, its window last ("…by age band, 1 month").
-     * @param {string} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean }} [o]
+     * @param {string} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean, level?: number }} [o]
      */
     const compare = (name, pick, o = {}) => {
-      const layers = each(pick);
+      // (Read against a reference, its level across: a ratio's 1, a net's 0; the members stay lines, each its color.)
+      const layers = each(pick, o.level === undefined ? {} : { levels: [{ value: o.level, color: "gray", dash: 3 }] });
       if (!layers.length) return null;
       const [, measure, window = ""] = /** @type {RegExpExecArray} */ (/^(.*?)(, 1 \w+)?$/.exec(name)), shares = Boolean(options.disjoint && o.additive);
       const named = shares ? `${measure} share${window}` : name, title = `${shares ? `${measure} share` : measure} by ${options.by}${window}`;
@@ -356,16 +371,16 @@ export function studioPresets(client) {
       compare("Supply", (c) => btc(c.supply?.total), { log: true, additive: true }),
       compare("Realized cap", (c) => c.capital?.realizedCap, { log: true, additive: true }),
       compare("Realized price", (c) => c.costBasis?.perCoin?.realizedPrice, { price: true }),
-      compare("MVRV", (c) => c.costBasis?.perCoin?.avg?.mvrv),
+      compare("MVRV", (c) => c.costBasis?.perCoin?.avg?.mvrv, { level: 1 }),
       compare("Share in profit", (c) => c.supply?.inProfit?.share),
-      compare("NUPL", (c) => c.unrealized?.nupl),
+      compare("NUPL", (c) => c.unrealized?.nupl, { level: 0 }),
       compare("UTXO count", (c) => own(c.outputs?.unspentCount), { log: true, additive: true }),
       compare("Address count", (c) => own(c.funded), { log: true, additive: true }),
       compare("Transfer volume, 1 month", (c) => btc(c.activity?.transferVolume?.sum?._1m), { additive: true }),
       compare("Coin days destroyed, 1 month", (c) => c.activity?.coindaysDestroyed?.sum?._1m, { additive: true }),
       compare("Realized profit, 1 month", (c) => c.realized?.profit?.sum?._1m, { additive: true }),
       compare("Realized loss, 1 month", (c) => c.realized?.loss?.sum?._1m, { additive: true }),
-      compare("SOPR, 1 week", (c) => c.realized?.sopr?._1w),
+      compare("SOPR, 1 week", (c) => c.realized?.sopr?._1w, { level: 1 }),
     ].filter(Boolean);
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
@@ -393,8 +408,9 @@ export function studioPresets(client) {
       chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w", "_1y"].includes(key) ? {} : { hidden: true }) }))]),
       ...list.map(([key, value]) => chart(windowLabel(key), `${windowAdjective(key)} ${kind}`, [
         price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: "sky" }),
-        series(value.ratio, "Price to it", { pane: 2, color: "sky", levels: [{ value: 1, color: "gray", dash: 3 }] }),
-        ...(value.mayerMultiple ? [series(value.mayerMultiple, "Mayer multiple", { pane: 2, color: "orange", levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] })] : []),
+        // (The 200-day's ratio is the Mayer multiple: shown with its bands, the plain ratio in the legend.)
+        series(value.ratio, "Price to it", { pane: 2, ...around(1), ...(value.mayerMultiple ? { ...shades(0, 2), hidden: true } : {}) }),
+        ...(value.mayerMultiple ? [series(value.mayerMultiple, "Mayer multiple", { pane: 2, ...around(1), levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] })] : []),
       ], { log: [2] })),
     ]);
   };
@@ -403,14 +419,14 @@ export function studioPresets(client) {
     section("Price", [
       chart("In dollars", "Bitcoin price", [price()]),
       chart("Sats per dollar", "Sats per dollar", [series(t.price.satsPerDollar, "Sats per dollar", { color: "orange" })], { log: [1] }),
-      chart("Open, high, low, close", "Price: open, high, low and close", [series(t.price.open, "Open", { color: "gray" }), series(t.price.high, "High", { color: "green" }), series(t.price.low, "Low", { color: "red" }), series(t.price.close, "Close", { color: "ink" }), series(t.price.spot, "Spot", { color: "orange", hidden: true })], { log: [1] }),
       section("All-time high", [
         chart("Drawdown", "Price drawdown from its all-time high", [price(), series(m.ath.high, "All-time high", { color: "green" }), series(m.ath.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })]),
         chart("Days since", "Days since the price's all-time high", [series(m.ath.daysSince, "Days since", { color: "orange" }), series(m.ath.maxDaysBetween, "Longest between", { color: "gray" })]),
       ]),
       section("Returns", [
-        chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !/y$/.test(key) || key === "_1y").map(([key, value], i) => series(value, windowLabel(key), { color: WINDOW_COLORS[i], ...(key === "_1m" ? {} : { hidden: true }), levels: [{ value: 0, color: "gray", dash: 3 }] }))),
-        chart("Long-term", "Price returns, over years", windowsOf(m.returns).filter(([key]) => /y$/.test(key) && key !== "_1y").map(([key, value], i) => series(value, windowLabel(key), { color: WINDOW_COLORS[i], ...(key === "_4y" ? {} : { hidden: true }), levels: [{ value: 0, color: "gray", dash: 3 }] }))),
+        chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !/y$/.test(key) || key === "_1y").map(([key, value], i, all) => series(value, windowLabel(key), { ...baseline, ...shades(i, all.length), ...(key === "_1m" ? {} : { hidden: true }) }))),
+        // (Over years, returns run from −80% to millions of percent: as growth multiples, on a log scale, 1× no change.)
+        chart("Long-term", "Price growth over years", windowsOf(m.returns).filter(([key]) => /y$/.test(key) && key !== "_1y").map(([key, value], i, all) => ({ formula: `1 + ${value.name} / 100`, label: windowLabel(key), format: "ratio", ...around(1), ...shades(i, all.length), ...(key === "_4y" ? {} : { hidden: true }) })), { log: [1] }),
         ...windowsOf(m.returns).map(([key, value]) => chart(windowLabel(key), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })])),
       ]),
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
@@ -427,13 +443,13 @@ export function studioPresets(client) {
     ]),
     section("Valuation", [
       chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.usd, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" }), series(t.holders.all.capital.total, "Capital", { color: "sky", hidden: true })], { log: [1] }),
-      chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.perCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.perCoin.avg.mvrv, "MVRV", { pane: 2, color: "orange", levels: [{ value: 1, color: "green", dash: 3 }, { value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
+      chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.perCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.perCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
       chart("NUPL", "Net unrealized profit and loss (NUPL)", [price(), series(t.holders.all.unrealized.nupl, "NUPL", { pane: 2, ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       chart("Value anchors", "Price and its on-chain anchors", [price(), series(t.holders.all.costBasis.perCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.cointime.block, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.perDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
       section("Cointime prices", [
         chart("Compare", "Cointime prices", [price(), ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label], i) => series(ct.prices[key].block, label, { color: ["green", "red", "violet"][i] })), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" })]),
-        ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => chart(label, label, [price(), series(ct.prices[key].block, label, { color: "sky" }), series(ct.prices[key].ratio, "Price to it", { pane: 2, color: "sky" }), series(ct.prices[key].mvrv, "MVRV", { pane: 2, color: "orange", hidden: true })], { log: [2] })),
-        chart("True market mean", "True market mean and AVIV", [price(), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.trueMarketMean.aviv, "AVIV", { pane: 2, color: "orange", levels: [{ value: 1, color: "gray", dash: 3 }] }), series(ct.prices.trueMarketMean.ratio, "Price to it", { pane: 2, color: "sky", hidden: true }), series(ct.prices.trueMarketMean.avivNupl, "AVIV NUPL", { pane: 3, ...baseline })]),
+        ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => chart(label, label, [price(), series(ct.prices[key].block, label, { color: "sky" }), series(ct.prices[key].ratio, "Price to it", { pane: 2, ...around(1) }), series(ct.prices[key].mvrv, "MVRV", { pane: 2, ...around(1), ...shades(0, 2), hidden: true })], { log: [2] })),
+        chart("True market mean", "True market mean and AVIV", [price(), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.trueMarketMean.aviv, "AVIV", { pane: 2, ...around(1) }), series(ct.prices.trueMarketMean.ratio, "Price to it", { pane: 2, ...around(1), ...shades(0, 2), hidden: true }), series(ct.prices.trueMarketMean.avivNupl, "AVIV NUPL", { pane: 3, ...baseline })]),
       ]),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", "red", "sky", "violet"][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
       chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.block, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
@@ -452,7 +468,7 @@ export function studioPresets(client) {
           const label = words(key), bands = entries(node).filter(([k]) => Number.isFinite(percentile(k)));
           return section(label, [
             chart("Bands", `${label}: rarity bands`, [price(), ...(own(node) ? [series(own(node), label, { color: "orange" })] : []), ...bands.map(([k, v], i) => series(v.band, percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }))]),
-            chart("Ratios", `${label}: rarity ratios`, [...(node.ratio ? [series(node.ratio, "Price to it", { color: "orange" })] : []), ...bands.map(([k, v], i) => series(v.ratio, percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }))], { log: [1] }),
+            chart("Ratios", `${label}: rarity ratios`, [...(node.ratio ? [series(node.ratio, "Price to it", around(1))] : []), ...bands.map(([k, v], i) => series(v.ratio, percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }))], { log: [1] }),
           ]);
         })),
         section("Extremes", entries(t.rarityMeter.extremes).map(([key, node]) => {
@@ -764,13 +780,15 @@ export function studioPresets(client) {
 /**
  * The series Studio can chart (by date) in a client's tree that no preset shows (as a layer's series), by name: the
  * build stops at any. (Not the indexes' own, `indexer` and `mappings`: a block's fields, an interval's first height,
- * date and start, the plumbing between indexes.)
+ * date and start, the plumbing between indexes.) The price's candles count for its parts.
  * @param {any} client @param {Preset[]} presets @returns {string[]}
  */
 export function leftOut(client, presets) {
   const shown = new Set(presets.flatMap((preset) => preset.c.layers.map((layer) => layer.series).filter(Boolean)));
   const missing = new Set();
-  const { indexer: _, mappings: __, ...data } = client.series;
+  // (Nor the price's own parts, open, high, low, close and spot: its candles, in every preset with the price, show them.)
+  const { indexer: _, mappings: __, price: { ohlc: ___, open, high, low, close, spot, ...priced }, ...rest } = client.series;
+  const data = { ...rest, price: priced };
   const stack = [data];
   while (stack.length) {
     const node = stack.pop();
