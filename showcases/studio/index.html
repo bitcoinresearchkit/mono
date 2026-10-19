@@ -4820,13 +4820,13 @@
           padding-left: 25px;
         }
 
-        /* (No unit, no room kept for one; one, as much as it takes.) */
+        /* (No unit, no room kept for one; one, as much as the longest takes: "sat/vB", 37px, 10 from the edge.) */
         .number-field:has(> .unit:empty) .number-input {
           padding-right: 10px;
         }
 
         .number-field:has(> .unit:not(:empty)) .number-input {
-          padding-right: 42px;
+          padding-right: 48px;
         }
 
         .level-name {
@@ -9571,10 +9571,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
       const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
-      const UNIT_SIGNS = { usd: "USD", cents: "¢", btc: "BTC", sats: "sats", percent: "%", ratio: "×", bps: "bps", ppm: "ppm", hashrate: "H/s" };
+      const UNIT_SIGNS = { usd: "USD", cents: "¢", btc: "BTC", sats: "sats", percent: "%", ratio: "×", bps: "bps", ppm: "ppm", hashrate: "H/s", feerate: "sat/vB", days: "days" };
       /** A unit after a field's number: a ratio's left out (a × there reads as a button that clears it). */
       const fieldUnit = (/** @type {string} */ unit) => (unit === "ratio" ? "" : UNIT_SIGNS[unit] ?? "");
-      const UNIT_NAMES = { usd: "US dollars", cents: "Cents", btc: "Bitcoin", sats: "Satoshis", percent: "Percent", ratio: "Ratio", bps: "Basis points", ppm: "Parts per million", count: "Count", hashrate: "Hashes per second", number: "Number" };
+      const UNIT_NAMES = { usd: "US dollars", cents: "Cents", btc: "Bitcoin", sats: "Satoshis", percent: "Percent", ratio: "Ratio", bps: "Basis points", ppm: "Parts per million", feerate: "Sats per vbyte", days: "Days", difficulty: "Difficulty", count: "Count", hashrate: "Hashes per second", number: "Number" };
       /**
        * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
        * band) in its pane and on its axis, the others in a pane of their own. A band is two layers. Each is a formula
@@ -9676,6 +9676,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (/^Cents|Cents$/.test(type)) return "cents";
         if (type === "Bitcoin") return "btc";
         if (type === "Hashrate") return "hashrate";
+        if (type === "FeeRate") return "feerate";
+        if (type === "Days") return "days";
+        if (type === "Difficulty") return "difficulty";
         if (/^Sats|Sats$/.test(type)) return "sats";
         if (/^BasisPoints/.test(type)) return "bps";
         // (A price ratio is sent in parts per million too, 1,000,000 its 1×; a bounded ratio in a scale of its own: a number.)
@@ -9748,6 +9751,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return `${sign}${text} bp`;
           case "ppm":
             return `${sign}${text} ppm`;
+          case "feerate":
+            return `${sign}${text} sat/vB`;
+          case "days":
+            return `${sign}${text} ${text === "1" ? "day" : "days"}`;
           case "hashrate":
             // (976.1 EH/s: its SI letter on the H, as hash rates are said: a billion's G, a thousand's k.)
             return `${sign}${/[A-Z]$/.test(text) ? `${text.slice(0, -1)} ${({ B: "G", K: "k" })[text.slice(-1)] ?? text.slice(-1)}` : `${text} `}H/s`;
