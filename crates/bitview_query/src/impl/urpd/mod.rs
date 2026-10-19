@@ -250,6 +250,7 @@ impl Query {
         let header = UrpdHeader {
             cohort,
             height,
+            hash,
             date: Date::from(timestamps[end - 1]),
             weight,
             aggregation,

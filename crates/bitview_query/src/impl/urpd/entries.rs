@@ -1,12 +1,13 @@
 use bitcoin::Amount;
 use bitview_primitives::{CentsCompact, Date};
-use bitview_types::{Cohort, Urpd, UrpdAggregation, UrpdBucket, UrpdWeight};
-use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Dollars, Height, Sats};
+use bitview_types::{Cohort, Urpd, UrpdAggregation, UrpdBuckets, UrpdWeight};
+use brk_types::{Bitcoin, BlockHash, Cents, CentsSats, CentsSigned, Dollars, Height, Sats};
 
 /// What a URPD response echoes about the distribution [`Self::build`] buckets.
 pub(super) struct UrpdHeader {
     pub(super) cohort: Cohort,
     pub(super) height: Height,
+    pub(super) hash: BlockHash,
     pub(super) date: Date,
     pub(super) weight: UrpdWeight,
     pub(super) aggregation: UrpdAggregation,
@@ -26,10 +27,10 @@ impl UrpdHeader {
                 <= i64::MAX as u128,
             "URPD market value exceeds signed price range"
         );
-        let mut buckets = Vec::new();
+        let mut buckets = UrpdBuckets::default();
         let mut total = 0_u64;
         let mut current: Option<(Cents, Sats, CentsSats)> = None;
-        let finish = |(price, supply, capital): (Cents, Sats, CentsSats)| {
+        let mut finish = |(price, supply, capital): (Cents, Sats, CentsSats)| {
             let market = CentsSats::from_price_sats(close, supply);
             // The exact difference, rounded once.
             let unrealized_pnl = if market >= capital {
@@ -37,12 +38,10 @@ impl UrpdHeader {
             } else {
                 -i128::from((capital - market).to_cents().inner())
             };
-            UrpdBucket {
-                price_floor: Dollars::from(price),
-                supply: Bitcoin::from(supply),
-                realized_cap: Dollars::from(capital.to_cents()),
-                unrealized_pnl: Dollars::from(CentsSigned::from(unrealized_pnl)),
-            }
+            buckets.price.push(Dollars::from(price));
+            buckets.supply.push(Bitcoin::from(supply));
+            buckets.realized_cap.push(Dollars::from(capital.to_cents()));
+            buckets.unrealized_pnl.push(Dollars::from(CentsSigned::from(unrealized_pnl)));
         };
         for (price, supply) in entries {
             // Weights are within [0, 1]: a weighted mass never exceeds the raw one.
@@ -65,20 +64,21 @@ impl UrpdHeader {
                 *sats += supply;
                 *cap += capital;
             } else if let Some(previous) = current.replace((floor, supply, capital)) {
-                buckets.push(finish(previous));
+                finish(previous);
             }
         }
         if let Some(last) = current {
-            buckets.push(finish(last));
+            finish(last);
         }
         Urpd {
-            cohort: self.cohort,
-            date: self.date,
             height: self.height,
+            hash: self.hash,
+            date: self.date,
+            cohort: self.cohort,
             weight: self.weight,
             aggregation: self.aggregation,
             close: Dollars::from(close),
-            total_supply: Bitcoin::from(Sats::new(total)),
+            supply: Bitcoin::from(Sats::new(total)),
             buckets,
         }
     }

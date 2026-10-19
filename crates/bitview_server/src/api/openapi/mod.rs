@@ -120,9 +120,10 @@ const TAGS: [(&str, &str); 12] = [
         "UTXO Realized Price Distribution. For each (cohort, block) pair, supply is \
         grouped by the price at which each UTXO was last moved. Distributions are \
         reconstructed from the UTXO set's history on demand.\n\n\
-        Each bucket carries `supply` (BTC), `realized_cap` (USD, the sum of each coin's \
-        creation price times its supply, so not `price_floor * supply` once aggregated), \
-        and `unrealized_pnl` (USD, = `close * supply - realized_cap`, can be negative).\n\n\
+        The buckets are columns, one entry per bucket in ascending `price`: `supply` (BTC), \
+        `realized_cap` (USD, the sum of each coin's creation price times its supply, so not \
+        `price * supply` once aggregated), and `unrealized_pnl` (USD, = `close * supply - \
+        realized_cap`, can be negative).\n\n\
         Aggregate with the `agg` query parameter (alias `bucket`):\n\
         - `raw`: one bucket per rounded price (default).\n\
         - `lin200` / `lin500` / `lin1000`: linear buckets, $200 / $500 / $1000 wide.\n\

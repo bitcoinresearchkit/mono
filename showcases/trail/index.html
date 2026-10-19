@@ -977,7 +977,7 @@
         function summarizeRawProfile(profile) {
           const close = Number(profile.close);
           const summary = {
-            totalSupply: Number(profile.total_supply ?? profile.totalSupply),
+            totalSupply: Number(profile.supply),
             totalRealizedCap: 0,
             profitSupply: 0,
             lossSupply: 0,
@@ -986,17 +986,13 @@
             unrealizedProfit: 0,
             unrealizedLoss: 0,
           };
-          for (const bucket of profile.buckets ?? []) {
-            const supply = Math.max(0, Number(bucket.supply) || 0);
-            const capital = Math.max(
-              0,
-              Number(bucket.realized_cap ?? bucket.realizedCap) || 0,
-            );
-            const pnl =
-              Number(bucket.unrealized_pnl ?? bucket.unrealizedPnl) || 0;
-            const realizedPrice = Number(
-              bucket.price_floor ?? bucket.priceFloor,
-            );
+          // (The raw JSON: its buckets as columns, under their wire names.)
+          const buckets = profile.buckets ?? {};
+          for (let i = 0; i < (buckets.price?.length ?? 0); i++) {
+            const supply = Math.max(0, Number(buckets.supply[i]) || 0);
+            const capital = Math.max(0, Number(buckets.realized_cap[i]) || 0);
+            const pnl = Number(buckets.unrealized_pnl[i]) || 0;
+            const realizedPrice = Number(buckets.price[i]);
             summary.totalRealizedCap += capital;
             if (realizedPrice > close) {
               summary.lossSupply += supply;
@@ -5311,25 +5307,18 @@
               signal,
               cache: !refresh,
             });
-            const buckets = Array.isArray(data.buckets)
-              ? data.buckets
-              : [];
-            const prices = new Float32Array(buckets.length);
-            const supplies = new Float32Array(buckets.length);
-            const realizedCaps = new Float32Array(buckets.length);
-            const unrealizedPnls = new Float32Array(buckets.length);
+            // (Its buckets come as columns, one entry per bucket.)
+            const buckets = data.buckets;
+            const prices = Float32Array.from(buckets.price);
+            const supplies = Float32Array.from(buckets.supply);
+            const realizedCaps = Float32Array.from(buckets.realizedCap);
+            const unrealizedPnls = Float32Array.from(buckets.unrealizedPnl);
             let maxPrice = 0;
             for (
               let bucketIndex = 0;
-              bucketIndex < buckets.length;
+              bucketIndex < prices.length;
               bucketIndex++
             ) {
-              prices[bucketIndex] = Number(buckets[bucketIndex].priceFloor ?? 0);
-              supplies[bucketIndex] = Number(
-                buckets[bucketIndex].supply ?? 0,
-              );
-              realizedCaps[bucketIndex] = Number(buckets[bucketIndex].realizedCap ?? 0);
-              unrealizedPnls[bucketIndex] = Number(buckets[bucketIndex].unrealizedPnl ?? 0);
               if (
                 supplies[bucketIndex] > 0 &&
                 prices[bucketIndex] > maxPrice

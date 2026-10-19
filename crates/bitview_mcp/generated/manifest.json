@@ -12942,6 +12942,9 @@
               "format": "double",
               "type": "number"
             },
+            "BlockHash": {
+              "type": "string"
+            },
             "Cohort": {
               "pattern": "^[a-z0-9_]+$",
               "type": "string"
@@ -12962,19 +12965,31 @@
             },
             "Urpd": {
               "required": [
-                "cohort",
-                "date",
                 "height",
+                "hash",
+                "date",
+                "cohort",
                 "weight",
                 "aggregation",
                 "close",
-                "total_supply",
+                "supply",
                 "buckets"
               ],
               "type": "object",
               "properties": {
-                "cohort": {
-                  "$ref": "#/$defs/Cohort"
+                "height": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
+                },
+                "hash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
                 },
                 "date": {
                   "allOf": [
@@ -12983,12 +12998,8 @@
                     }
                   ]
                 },
-                "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                "cohort": {
+                  "$ref": "#/$defs/Cohort"
                 },
                 "weight": {
                   "$ref": "#/$defs/UrpdWeight"
@@ -13003,7 +13014,7 @@
                     }
                   ]
                 },
-                "total_supply": {
+                "supply": {
                   "allOf": [
                     {
                       "$ref": "#/$defs/Bitcoin"
@@ -13011,10 +13022,7 @@
                   ]
                 },
                 "buckets": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/UrpdBucket"
-                  }
+                  "$ref": "#/$defs/UrpdBuckets"
                 }
               }
             },
@@ -13034,44 +13042,40 @@
               ],
               "type": "string"
             },
-            "UrpdBucket": {
-              "type": "object",
-              "properties": {
-                "price_floor": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                },
-                "supply": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Bitcoin"
-                    }
-                  ]
-                },
-                "realized_cap": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                },
-                "unrealized_pnl": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                }
-              },
+            "UrpdBuckets": {
               "required": [
-                "price_floor",
+                "price",
                 "supply",
                 "realized_cap",
                 "unrealized_pnl"
-              ]
+              ],
+              "type": "object",
+              "properties": {
+                "price": {
+                  "items": {
+                    "$ref": "#/$defs/Dollars"
+                  },
+                  "type": "array"
+                },
+                "supply": {
+                  "items": {
+                    "$ref": "#/$defs/Bitcoin"
+                  },
+                  "type": "array"
+                },
+                "realized_cap": {
+                  "items": {
+                    "$ref": "#/$defs/Dollars"
+                  },
+                  "type": "array"
+                },
+                "unrealized_pnl": {
+                  "items": {
+                    "$ref": "#/$defs/Dollars"
+                  },
+                  "type": "array"
+                }
+              }
             },
             "UrpdWeight": {
               "enum": [
@@ -13113,7 +13117,7 @@
       "tool": {
         "name": "get_urpd_at",
         "title": "URPD at block height or date",
-        "description": "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.\n\nREST operation: `GET /api/urpd/{cohort}/{point}`.",
+        "description": "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.\n\nREST operation: `GET /api/urpd/{cohort}/{point}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -13183,6 +13187,9 @@
               "format": "double",
               "type": "number"
             },
+            "BlockHash": {
+              "type": "string"
+            },
             "Cohort": {
               "pattern": "^[a-z0-9_]+$",
               "type": "string"
@@ -13203,19 +13210,31 @@
             },
             "Urpd": {
               "required": [
-                "cohort",
-                "date",
                 "height",
+                "hash",
+                "date",
+                "cohort",
                 "weight",
                 "aggregation",
                 "close",
-                "total_supply",
+                "supply",
                 "buckets"
               ],
               "type": "object",
               "properties": {
-                "cohort": {
-                  "$ref": "#/$defs/Cohort"
+                "height": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
+                },
+                "hash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
                 },
                 "date": {
                   "allOf": [
@@ -13224,12 +13243,8 @@
                     }
                   ]
                 },
-                "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
+                "cohort": {
+                  "$ref": "#/$defs/Cohort"
                 },
                 "weight": {
                   "$ref": "#/$defs/UrpdWeight"
@@ -13244,7 +13259,7 @@
                     }
                   ]
                 },
-                "total_supply": {
+                "supply": {
                   "allOf": [
                     {
                       "$ref": "#/$defs/Bitcoin"
@@ -13252,10 +13267,7 @@
                   ]
                 },
                 "buckets": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/UrpdBucket"
-                  }
+                  "$ref": "#/$defs/UrpdBuckets"
                 }
               }
             },
@@ -13275,44 +13287,40 @@
               ],
               "type": "string"
             },
-            "UrpdBucket": {
-              "type": "object",
-              "properties": {
-                "price_floor": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                },
-                "supply": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Bitcoin"
-                    }
-                  ]
-                },
-                "realized_cap": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                },
-                "unrealized_pnl": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                }
-              },
+            "UrpdBuckets": {
               "required": [
-                "price_floor",
+                "price",
                 "supply",
                 "realized_cap",
                 "unrealized_pnl"
-              ]
+              ],
+              "type": "object",
+              "properties": {
+                "price": {
+                  "items": {
+                    "$ref": "#/$defs/Dollars"
+                  },
+                  "type": "array"
+                },
+                "supply": {
+                  "items": {
+                    "$ref": "#/$defs/Bitcoin"
+                  },
+                  "type": "array"
+                },
+                "realized_cap": {
+                  "items": {
+                    "$ref": "#/$defs/Dollars"
+                  },
+                  "type": "array"
+                },
+                "unrealized_pnl": {
+                  "items": {
+                    "$ref": "#/$defs/Dollars"
+                  },
+                  "type": "array"
+                }
+              }
             },
             "UrpdWeight": {
               "enum": [

@@ -17,7 +17,7 @@ import { defaultTooltip } from "./tooltip/index.js";
  * @typedef {Object} UrpdMetric
  * @property {string} name
  * @property {string} title
- * @property {(bucket: Urpd["buckets"][number]) => number} getValue
+ * @property {(buckets: Urpd["buckets"], i: number) => number} getValue
  * @property {HeatmapColorFn} color
  * @property {{ valueLabel: string, formatValue: (value: number) => string }} tooltip
  */
@@ -58,7 +58,7 @@ const METRICS = [
   {
     name: "supply",
     title: "Supply",
-    getValue: (bucket) => bucket.supply,
+    getValue: (buckets, i) => buckets.supply[i],
     color: VALUE_COLOR,
     tooltip: {
       valueLabel: "Supply",
@@ -68,7 +68,7 @@ const METRICS = [
   {
     name: "capital",
     title: "Capital",
-    getValue: (bucket) => bucket.realizedCap,
+    getValue: (buckets, i) => buckets.realizedCap[i],
     color: VALUE_COLOR,
     tooltip: {
       valueLabel: "Realized cap",
@@ -78,7 +78,7 @@ const METRICS = [
   {
     name: "profitability",
     title: "Profitability",
-    getValue: (bucket) => bucket.unrealizedPnl,
+    getValue: (buckets, i) => buckets.unrealizedPnl[i],
     color: PNL_COLOR,
     tooltip: {
       valueLabel: "Unrealized PnL",
@@ -186,7 +186,7 @@ function createCohortHeatmapOptions({
  * @param {string} args.name
  * @param {string} args.title
  * @param {UrpdWeight} [args.weight]
- * @param {(bucket: Urpd["buckets"][number]) => number} args.getValue
+ * @param {(buckets: Urpd["buckets"], i: number) => number} args.getValue
  * @param {HeatmapColorFn} args.color
  * @param {{ valueLabel?: string, formatValue?: (value: number) => string }} args.tooltip
  * @returns {PartialHeatmapOption}
@@ -239,7 +239,7 @@ function createUrpdHeatmapOption({
 }
 
 /**
- * @param {{ cohort: UrpdCohort, date: string, weight?: UrpdWeight, signal: AbortSignal, getValue: (bucket: Urpd["buckets"][number]) => number, onPoints?: (points: HeatmapPoints) => void }} args
+ * @param {{ cohort: UrpdCohort, date: string, weight?: UrpdWeight, signal: AbortSignal, getValue: (buckets: Urpd["buckets"], i: number) => number, onPoints?: (points: HeatmapPoints) => void }} args
  * @returns {Promise<HeatmapPoints>}
  */
 async function fetchUrpdPoints({
@@ -273,20 +273,21 @@ async function fetchUrpdPoints({
 
 /**
  * @param {Urpd} urpd
- * @param {(bucket: Urpd["buckets"][number]) => number} getValue
+ * @param {(buckets: Urpd["buckets"], i: number) => number} getValue
  * @returns {HeatmapPoints}
  */
 function toPoints(urpd, getValue) {
-  const buckets = urpd.buckets;
-  const y = new Float64Array(buckets.length);
-  const values = new Float64Array(buckets.length);
+  // (Its buckets as columns: entry `i` of each is bucket `i`.)
+  const buckets = urpd.buckets, count = buckets.price.length;
+  const y = new Float64Array(count);
+  const values = new Float64Array(count);
   let length = 0;
 
-  for (let i = 0; i < buckets.length; i++) {
-    const bucket = buckets[i];
-    const pointValue = getValue(bucket);
-    if (bucket.priceFloor <= 0 || !Number.isFinite(pointValue)) continue;
-    y[length] = Math.log10(bucket.priceFloor);
+  for (let i = 0; i < count; i++) {
+    const price = buckets.price[i];
+    const pointValue = getValue(buckets, i);
+    if (price <= 0 || !Number.isFinite(pointValue)) continue;
+    y[length] = Math.log10(price);
     values[length] = pointValue;
     length++;
   }

@@ -1334,17 +1334,19 @@ asking the node
  * UTXO Realized Price Distribution for a cohort at a specific block.
  *
  * Supply is grouped by the price at the block in which each UTXO was last moved; each bucket
- * holds its supply, realized cap and unrealized P&L.
+ * holds its supply, realized cap and unrealized P&L. The same block header as `UtxoSet`
+ * (`height`, `hash`, `date`), then its own fields and its buckets as an object of columns.
  *
  * @typedef {Object} Urpd
- * @property {Cohort} cohort
- * @property {Date} date - UTC date of the represented block's monotonic timestamp.
  * @property {Height} height - Exact published block represented by this distribution.
+ * @property {BlockHash} hash - Hash of block `height`.
+ * @property {Date} date - UTC date of the represented block's monotonic timestamp.
+ * @property {Cohort} cohort
  * @property {UrpdWeight} weight
  * @property {UrpdAggregation} aggregation
  * @property {Dollars} close - Price at `height`, in USD. Anchor for `unrealized_pnl`.
- * @property {Bitcoin} totalSupply - Sum of `supply` across all buckets, in BTC.
- * @property {UrpdBucket[]} buckets
+ * @property {Bitcoin} supply - Sum of `buckets.supply`, in BTC.
+ * @property {UrpdBuckets} buckets
  */
 /**
  * Aggregation strategy for URPD buckets.
@@ -1354,17 +1356,19 @@ asking the node
  * @typedef {("raw"|"lin200"|"lin500"|"lin1000"|"log10"|"log50"|"log100"|"log200"|"log500"|"log1000"|"log2000")} UrpdAggregation
  */
 /**
- * @typedef {Object} UrpdBucket
- * @property {Dollars} priceFloor - The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its
+ * Columnar buckets in ascending price order: entry `i` of each column is bucket `i`.
+ *
+ * @typedef {Object} UrpdBuckets
+ * @property {Dollars[]} price - Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its
 coins' creation prices round to (four significant digits of the price in cents).
- * @property {Bitcoin} supply - Supply held with a last-move price inside this bucket, in BTC. With a `cointime` or
+ * @property {Bitcoin[]} supply - Supply held with a last-move price inside each bucket, in BTC. With a `cointime` or
 `coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
- * @property {Dollars} realizedCap - Realized cap contribution in USD: `price * supply` summed over the coins in this bucket,
-each coin's creation price taken on the price grid (the `Raw` bucket price, within 0.05%
+ * @property {Dollars[]} realizedCap - Realized cap contribution in USD: `price * supply` summed over the coins in each bucket,
+each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
 of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
 buckets therefore need not sum to the cohort's realized cap series.
- * @property {Dollars} unrealizedPnl - Unrealized P&L in USD at the represented block: `close * supply` minus the
-bucket's grid capital, rounded to the cent once. Can be negative.
+ * @property {Dollars[]} unrealizedPnl - Unrealized P&L in USD at the represented block: `close * supply` minus each bucket's grid
+capital, rounded to the cent once. Can be negative.
  */
 /**
  * @typedef {Object} UrpdCohortParam
@@ -7840,7 +7844,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * URPD at block height or date
    *
-   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
    *
    * Endpoint: `GET /api/urpd/{cohort}/{point}`
    *

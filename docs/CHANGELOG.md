@@ -35,6 +35,11 @@ has to be deleted by hand.
 
 #### API: series and responses
 
+- A URPD (`GET /api/urpd/{cohort}` and `/api/urpd/{cohort}/{point}`) says its block as the UTXO set does and holds its
+  buckets in columns as the set's origins: `{ height, hash, date, cohort, weight, aggregation, close, supply,
+  buckets: { price, supply, realized_cap, unrealized_pnl } }`, one entry per bucket in ascending price. It gains the
+  block's `hash`; `total_supply` is `supply`, a bucket's `price_floor` its `price`. Was a list of
+  `{ price_floor, supply, realized_cap, unrealized_pnl }` objects, each repeating its keys (33k buckets raw)
 - `GET /api/urpd/{cohort}/dates` is gone (and the clients' `list_urpd_dates`/`listUrpdDates`, the CLI's
   `list-urpd-dates`): it listed every UTC day with a block, the same for every cohort and weight. The `day1` series
   say it: a day has blocks where the next day's `first_height` is higher (the latest day, where it has any).

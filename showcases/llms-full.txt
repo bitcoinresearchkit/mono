@@ -1012,7 +1012,7 @@ Returns: JSON `Urpd`
 
 URPD at block height or date
 
-URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
 Parameters:
 - `cohort` (path, Cohort, required)
@@ -1771,25 +1771,26 @@ Returns: JSON `string`
 
 ### `Urpd`
 
-- `cohort`: `Cohort` (required)
-- `date`: `Date` (required) — UTC date of the represented block's monotonic timestamp.
 - `height`: `Height` (required) — Exact published block represented by this distribution.
+- `hash`: `BlockHash` (required) — Hash of block `height`.
+- `date`: `Date` (required) — UTC date of the represented block's monotonic timestamp.
+- `cohort`: `Cohort` (required)
 - `weight`: `UrpdWeight` (required)
 - `aggregation`: `UrpdAggregation` (required)
 - `close`: `Dollars` (required) — Price at `height`, in USD. Anchor for `unrealized_pnl`.
-- `total_supply`: `Bitcoin` (required) — Sum of `supply` across all buckets, in BTC.
-- `buckets`: `UrpdBucket[]` (required)
+- `supply`: `Bitcoin` (required) — Sum of `buckets.supply`, in BTC.
+- `buckets`: `UrpdBuckets` (required)
 
 ### `UrpdAggregation`
 
 `raw | lin200 | lin500 | lin1000 | log10 | log50 | log100 | log200 | log500 | log1000 | log2000`
 
-### `UrpdBucket`
+### `UrpdBuckets`
 
-- `price_floor`: `Dollars` (required) — The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its coins' creation prices round to (four significant digits of the price in cents).
-- `supply`: `Bitcoin` (required) — Supply held with a last-move price inside this bucket, in BTC. With a `cointime` or `coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
-- `realized_cap`: `Dollars` (required) — Realized cap contribution in USD: `price * supply` summed over the coins in this bucket, each coin's creation price taken on the price grid (the `Raw` bucket price, within 0.05% of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The buckets therefore need not sum to the cohort's realized cap series.
-- `unrealized_pnl`: `Dollars` (required) — Unrealized P&L in USD at the represented block: `close * supply` minus the bucket's grid capital, rounded to the cent once. Can be negative.
+- `price`: `Dollars[]` (required) — Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its coins' creation prices round to (four significant digits of the price in cents).
+- `supply`: `Bitcoin[]` (required) — Supply held with a last-move price inside each bucket, in BTC. With a `cointime` or `coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
+- `realized_cap`: `Dollars[]` (required) — Realized cap contribution in USD: `price * supply` summed over the coins in each bucket, each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05% of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The buckets therefore need not sum to the cohort's realized cap series.
+- `unrealized_pnl`: `Dollars[]` (required) — Unrealized P&L in USD at the represented block: `close * supply` minus each bucket's grid capital, rounded to the cent once. Can be negative.
 
 ### `UrpdWeight`
 

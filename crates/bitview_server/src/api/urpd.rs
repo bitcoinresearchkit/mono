@@ -116,10 +116,11 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .summary("URPD at block height or date")
                     .description(
                         "URPD for a cohort at a block height or the last block of a UTC day. Returns \
-                        `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where \
-                        each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. \
-                        `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; \
-                        `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative. \
+                        `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where \
+                        `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry \
+                        per bucket in ascending price: the same block header and columnar layout as \
+                        `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and \
+                        `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. \
                         Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation \
                         price on the price grid (four significant digits of the price in cents, \
                         within 0.05% of the exact price), rounded to the cent per bucket, so the \
