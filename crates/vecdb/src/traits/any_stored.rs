@@ -4,7 +4,6 @@ use rawdb::{Database, Region};
 
 use crate::{AnyVec, Header, Result, Stamp, Version};
 
-/// Trait for stored vectors that persist data to disk (as opposed to lazy computed vectors).
 pub trait AnyStoredVec: AnyVec {
     fn db_path(&self) -> PathBuf;
 
@@ -17,7 +16,6 @@ pub trait AnyStoredVec: AnyVec {
     /// Number of stamped change files to keep for rollback support.
     fn saved_stamped_changes(&self) -> u16;
 
-    /// Writes pending changes to storage.
     /// Returns `Ok(true)` if data was written, `Ok(false)` if nothing to write.
     /// This does not create a rollback checkpoint or synchronize files. Use
     /// stamped writes with changes before overwriting checkpointed values.
@@ -107,10 +105,9 @@ pub trait AnyStoredVec: AnyVec {
 
     fn serialize_changes(&self) -> Result<Vec<u8>>;
 
-    /// Removes this vector's region from the database.
+    /// Removes this vector's storage regions from the database.
     fn remove(self) -> Result<()>;
 
-    /// Truncates the vector to the given length if it is longer.
     /// Prefixed with `any_` to avoid conflict with `WritableVec::truncate_if_needed_at`.
     fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()>;
 

@@ -161,15 +161,6 @@ impl<T> ByAddrType<T> {
         self.as_array_mut().into_iter()
     }
 
-    #[cfg(feature = "storage")]
-    #[inline]
-    pub fn par_values_mut(&mut self) -> impl ParallelIterator<Item = &mut T>
-    where
-        T: Send + Sync,
-    {
-        self.as_array_mut().into_par_iter()
-    }
-
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = (OutputType, &T)> {
         AddrTypeId::ALL

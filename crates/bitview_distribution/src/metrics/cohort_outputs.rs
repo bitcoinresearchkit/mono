@@ -8,7 +8,7 @@ use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{Database, ReadableCloneableVec, Rw};
 
-use crate::families::{CountWithDeltas, CumulativeCount};
+use crate::families::{CountWithDeltas, CumulativeQuantity};
 
 /// A cohort's output counts; `name` gives each series name from its metric (`utxo_count` ->
 /// `utxos_1d_to_1w_old_utxo_count`).
@@ -21,7 +21,7 @@ pub struct CohortOutputs<U, S> {
 }
 
 /// Counts the cohort stores itself (`utxo_count`, `spent_utxo_count_cumulative`).
-pub type StoredOutputs<M = Rw> = CohortOutputs<CountWithDeltas<M>, CumulativeCount<Count, M>>;
+pub type StoredOutputs<M = Rw> = CohortOutputs<CountWithDeltas<M>, CumulativeQuantity<Count, M>>;
 
 /// Views over counts another plugin stores.
 pub type OutputViews = CohortOutputs<
@@ -45,7 +45,7 @@ impl StoredOutputs {
                 mappings,
                 window_starts,
             )?,
-            spent_count: CumulativeCount::import(
+            spent_count: CumulativeQuantity::import(
                 db,
                 &name("spent_utxo_count"),
                 version + Version::ONE,
@@ -64,7 +64,6 @@ impl StoredOutputs {
 
 impl OutputViews {
     /// `unspent` holds each block's count, `spent` the running total of spent outputs.
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: impl Fn(&str) -> String,
         version: Version,

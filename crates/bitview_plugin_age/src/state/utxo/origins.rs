@@ -6,6 +6,7 @@ use crate::{
     compute::ComputeContext,
     state::{SendPrecomputed, UTXOStates},
 };
+
 impl UTXOStates {
     /// Returns satoshi-blocks destroyed while applying each spent origin.
     pub fn send_origins(
@@ -16,8 +17,8 @@ impl UTXOStates {
     ) -> u128 {
         let mut satblocks = 0;
         let send = usize::from(send_height);
-        let last_timestamp = ctx.height_to_timestamp[usize::from(send_height)];
-        let current_price = ctx.height_to_price[usize::from(send_height)];
+        let last_timestamp = ctx.height_to_timestamp[send];
+        let current_price = ctx.height_to_price[send];
 
         for (receive_height, sent) in height_to_sent {
             let origin = usize::from(receive_height);
@@ -26,12 +27,10 @@ impl UTXOStates {
             let origin_timestamp = ctx.height_to_timestamp[origin];
             let age = Age::new(last_timestamp, origin_timestamp);
 
-            // Compute peak price during holding period for peak regret
-            // This is the max price between receive and send heights
             let peak_price = if sent.value == Sats::ZERO {
                 Cents::ZERO
             } else {
-                ctx.price_range_max.max_between(receive_height, send_height)
+                ctx.price_range_max.range_max(receive_height, send_height)
             };
 
             // Pre-compute once for cohorts sharing the sent supply.
@@ -41,10 +40,10 @@ impl UTXOStates {
                 self.age_range
                     .get_mut(age)
                     .send_utxo_precomputed(&sent, &pre);
-                if let Some(v) = self.epoch.mut_vec_from_height(receive_height) {
+                if let Some(v) = self.epoch.get_mut(receive_height) {
                     v.send_utxo_precomputed(&sent, &pre);
                 }
-                if let Some(v) = self.class.mut_vec_from_timestamp(origin_timestamp) {
+                if let Some(v) = self.class.get_mut(origin_timestamp) {
                     v.send_utxo_precomputed(&sent, &pre);
                 }
             } else if sent.utxo_count > 0 {
@@ -56,10 +55,10 @@ impl UTXOStates {
                     peak_price,
                     age,
                 );
-                if let Some(v) = self.epoch.mut_vec_from_height(receive_height) {
+                if let Some(v) = self.epoch.get_mut(receive_height) {
                     v.send_utxo(&sent, current_price, prev_price, peak_price, age);
                 }
-                if let Some(v) = self.class.mut_vec_from_timestamp(origin_timestamp) {
+                if let Some(v) = self.class.get_mut(origin_timestamp) {
                     v.send_utxo(&sent, current_price, prev_price, peak_price, age);
                 }
             }
@@ -85,10 +84,10 @@ impl UTXOStates {
         );
         let snapshot = CostBasisSnapshot::from_utxo(ctx.height_to_price[origin], &lost);
         self.age_range.get_mut(age).decrement_snapshot(&snapshot);
-        if let Some(v) = self.epoch.mut_vec_from_height(receive_height) {
+        if let Some(v) = self.epoch.get_mut(receive_height) {
             v.decrement_snapshot(&snapshot);
         }
-        if let Some(v) = self.class.mut_vec_from_timestamp(origin_timestamp) {
+        if let Some(v) = self.class.get_mut(origin_timestamp) {
             v.decrement_snapshot(&snapshot);
         }
     }
@@ -102,10 +101,10 @@ impl UTXOStates {
     ) {
         let snapshot = CostBasisSnapshot::from_utxo(price, &supply);
         self.age_range.under_1h.increment_snapshot(&snapshot);
-        if let Some(v) = self.epoch.mut_vec_from_height(height) {
+        if let Some(v) = self.epoch.get_mut(height) {
             v.increment_snapshot(&snapshot);
         }
-        if let Some(v) = self.class.mut_vec_from_timestamp(timestamp) {
+        if let Some(v) = self.class.get_mut(timestamp) {
             v.increment_snapshot(&snapshot);
         }
     }

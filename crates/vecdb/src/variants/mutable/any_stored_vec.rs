@@ -67,7 +67,7 @@ where
         if self.saved_stamped_changes() > 0 {
             self.vec.save_previous();
             self.holes.save();
-            self.updated.clear_previous();
+            self.updated.previous.clear();
         }
         guard.finish(Ok(()))
     }
@@ -80,16 +80,17 @@ where
         let mut bytes = self.vec.serialize_changes()?;
         let rollback_len = self.vec.rollback_len();
         let mut indices = self
-            .current_updated()
+            .updated
+            .current
             .keys()
-            .chain(self.previous_updated().keys())
+            .chain(self.updated.previous.keys())
             .filter(|&&index| index < rollback_len)
             .copied()
             .collect::<Vec<_>>();
         indices.sort_unstable();
         indices.dedup();
 
-        let previous_holes = self.holes.previous();
+        let previous_holes = &self.holes.previous;
         bytes.reserve(
             indices.len() * (size_of::<usize>() + size_of::<V::T>())
                 + (previous_holes.len() + 2) * size_of::<usize>(),
@@ -100,7 +101,7 @@ where
             bytes.extend(index.to_bytes());
         }
         self.vec
-            .append_previous_values(&indices, self.previous_updated(), &mut bytes);
+            .append_previous_values(&indices, &self.updated.previous, &mut bytes);
 
         bytes.extend(previous_holes.len().to_bytes());
         for hole in previous_holes.iter() {

@@ -11,22 +11,9 @@ use serde::de::DeserializeOwned;
 
 use crate::{BitviewClientBase, BitviewError, DateSeriesData, Result, client_base::path_segment};
 
-/// Builder for series endpoint queries.
-///
 /// Parameterized by element type `T` and response type `D` (defaults to `SeriesData<T>`).
 /// For date-based indexes, `DateSeriesEndpoint<T>` sets `D = DateSeriesData<T>`. Selectors
 /// narrow the request; the last one of a kind wins.
-///
-/// # Examples
-/// ```ignore
-/// let data = endpoint.fetch()?;                   // all data
-/// let data = endpoint.get(5).fetch()?;             // single item
-/// let data = endpoint.range(..10).fetch()?;        // first 10
-/// let data = endpoint.range(100..200).fetch()?;    // range [100, 200)
-/// let data = endpoint.take(10).fetch()?;           // first 10 (convenience)
-/// let data = endpoint.last(10).fetch()?;           // last 10
-/// let data = endpoint.skip(100).take(10).fetch()?; // iterator-style
-/// ```
 pub struct SeriesEndpoint<T, D = SeriesData<T>> {
     client: Arc<BitviewClientBase>,
     name: Arc<str>,
@@ -58,8 +45,6 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
         self.range(index..=index)
     }
 
-    /// Select a range using Rust range syntax.
-    ///
     /// # Examples
     /// ```ignore
     /// endpoint.range(..10)      // first 10
@@ -93,7 +78,6 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
         self
     }
 
-    /// Take the last n items.
     pub fn last(mut self, n: usize) -> Self {
         (self.start, self.end) = if n == 0 {
             (None, Some(0))
@@ -110,12 +94,10 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
         self
     }
 
-    /// Fetch the selection as parsed JSON.
     pub fn fetch(&self) -> Result<D> {
         self.client.get_json(&self.query_path(None))
     }
 
-    /// Fetch the selection as a CSV string.
     pub fn fetch_csv(&self) -> Result<String> {
         self.client.get_text(&self.query_path(Some("csv")))
     }
@@ -126,7 +108,6 @@ impl<T, D: DeserializeOwned> SeriesEndpoint<T, D> {
         self.client.get_json(&format!("{}/len", self.path()))
     }
 
-    /// Current version of the series.
     pub fn version(&self) -> Result<u32> {
         self.client.get_json(&format!("{}/version", self.path()))
     }
@@ -174,7 +155,6 @@ fn required_date_index(position: Option<usize>) -> Result<usize> {
         .ok_or_else(|| BitviewError::new("Date or timestamp is not representable for this index"))
 }
 
-/// Date selectors of `DateSeriesEndpoint`.
 impl<T: DeserializeOwned> DateSeriesEndpoint<T> {
     /// Select a specific date position (for day-precision or coarser indexes).
     pub fn get_date(self, date: Date) -> Result<Self> {

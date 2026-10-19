@@ -1,12 +1,12 @@
 use bitview_plugin_indexer::overwritten_output;
 use brk_types::{Cents, Height, OutputType};
 
-use crate::state::{Transacted, UTXOStates};
+use crate::state::{ReceivedOutputs, UTXOStates};
 
 /// The genesis output never enters the set.
-pub fn normalize_supply(height: Height, received: &mut Transacted) {
+pub fn normalize_supply(height: Height, received: &mut ReceivedOutputs) {
     if height.is_zero() {
-        *received = Transacted::default();
+        *received = ReceivedOutputs::default();
     }
 }
 

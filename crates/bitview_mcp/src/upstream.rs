@@ -10,10 +10,9 @@ use crate::{
 };
 
 const MAX_UPSTREAM_URL_BYTES: usize = 32 * 1024;
-const MAX_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+const MAX_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
 const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(15);
 
-#[derive(Clone)]
 pub struct Upstream {
     agent: Agent,
     api_url: String,
@@ -48,15 +47,16 @@ impl Upstream {
             let values = parameter_values(value)?;
             match parameter.location {
                 ParameterLocation::Path => {
-                    if values.len() != 1 {
+                    // Client input: schema validation does not cover every shape, so check here.
+                    let [value] = values.as_slice() else {
                         return Err(format!(
                             "path parameter {} must contain one scalar value",
                             parameter.name
                         ));
-                    }
+                    };
                     path = path.replace(
                         &format!("{{{}}}", parameter.name),
-                        &encode_component(&values[0]).to_string(),
+                        &encode_component(value).to_string(),
                     );
                 }
                 ParameterLocation::Query => {
@@ -70,7 +70,7 @@ impl Upstream {
             }
         }
 
-        if path.contains('{') || path.contains('}') {
+        if path.contains(['{', '}']) {
             return Err("a required path parameter is missing".to_string());
         }
         let url = format!("{}{path}{query}", self.api_url);
@@ -121,12 +121,11 @@ impl Upstream {
         let body = response
             .body_mut()
             .with_config()
-            .limit(u64::try_from(MAX_RESPONSE_BYTES).unwrap_or(u64::MAX))
+            .limit(MAX_RESPONSE_BYTES)
             .read_to_vec()
             .map_err(|error| {
                 format!(
-                    "Bitview API response could not be read within the {}-byte limit: {error}",
-                    MAX_RESPONSE_BYTES
+                    "Bitview API response read failed (limit {MAX_RESPONSE_BYTES} bytes): {error}"
                 )
             })?;
 

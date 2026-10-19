@@ -2,7 +2,6 @@ use brk_types::{Bitcoin, Dollars};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// A single bucket in a URPD snapshot.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct UrpdBucket {
     /// The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its
@@ -16,7 +15,7 @@ pub struct UrpdBucket {
     /// of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
     /// buckets therefore need not sum to the cohort's realized cap series.
     pub realized_cap: Dollars,
-    /// Unrealized P&L in USD against the close on the snapshot date: `close * supply` minus the
+    /// Unrealized P&L in USD at the represented block: `close * supply` minus the
     /// bucket's grid capital, rounded to the cent once. Can be negative.
     pub unrealized_pnl: Dollars,
 }

@@ -48,14 +48,16 @@ pub(crate) fn compute(
 
     let mut block_start = start_tx;
     for height in heights {
-        let block_end = (block_start + u64::from(tx_count.next().unwrap()) as usize).min(end_tx);
+        let block_end = block_start + u64::from(tx_count.next().unwrap()) as usize;
         let mut count = 0;
 
         for tx_index in block_start..block_end {
             let raw = unconditional.next().unwrap().is_true();
             let dust = has_dust.next().unwrap().is_true();
-            let is_nonstandard =
-                raw || (dust && dust_is_nonstandard(height, || fee.get(tx_index).unwrap()));
+            let is_nonstandard = raw
+                || (dust
+                    && (height < FIRST_V29_POLICY_HEIGHT as usize
+                        || fee.get(tx_index).unwrap() != Sats::ZERO));
             count += is_nonstandard as u64;
             nonstandard.flag.push(Boolean::from(is_nonstandard));
         }
@@ -74,8 +76,4 @@ pub(crate) fn compute(
 fn write(nonstandard: &mut Classified<Rw>, exit: &Exit) -> Result<()> {
     let (flag, count) = nonstandard.stored_mut();
     write_locked([flag, count], exit)
-}
-
-fn dust_is_nonstandard(height: usize, fee: impl FnOnce() -> Sats) -> bool {
-    height < FIRST_V29_POLICY_HEIGHT as usize || fee() != Sats::ZERO
 }

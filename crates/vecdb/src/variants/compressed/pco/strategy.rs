@@ -12,7 +12,6 @@ use pco::{
 use super::{super::inner::CompressionStrategy, value::PcoVecValue};
 use crate::{EncodedChunk, Error, Format, Result, likely};
 
-/// Pcodec compression strategy for numerical data.
 #[derive(Debug, Clone, Copy)]
 pub struct PcodecStrategy<T>(PhantomData<T>);
 

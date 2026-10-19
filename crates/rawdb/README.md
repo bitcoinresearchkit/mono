@@ -2,8 +2,6 @@
 
 Non-transactional embedded storage engine with a filesystem-like API.
 
-It features:
-
 - Multiple named regions in one file
 - Automatic space reclamation via hole punching
 - Regions grow and move automatically as needed
@@ -11,12 +9,7 @@ It features:
 - Concurrent reads and writes to independent regions
 - Page-aligned allocations (4KB)
 - No device syncs: writes live in the OS page cache, which survives soft quits
-- Foundation for higher-level abstractions (e.g., [`vecdb`](../vecdb/README.md))
-
-It is not:
-
-- A transactional database (no ACID, transactions, or rollback)
-- A query engine (no SQL, indexes, or schemas)
+- Used by [`vecdb`](../vecdb/README.md)
 
 ## Install
 

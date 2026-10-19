@@ -8,9 +8,6 @@ use vecdb::{
 };
 
 /// Lazy `source[index] - source[index - 1]`, with zero before the first value.
-///
-/// This is a single-source view: it follows source growth automatically and
-/// stores nothing on disk.
 #[derive(Clone)]
 pub struct LazyPreviousDeltaVec<I, S>
 where
@@ -99,9 +96,7 @@ where
     }
 
     fn append_delta(values: &[S], previous: &mut S, out: &mut Vec<S>) {
-        let Some((first, rest)) = values.split_first() else {
-            return;
-        };
+        let (first, rest) = values.split_first().expect("input chunks are nonempty");
         out.push(
             first
                 .clone()
@@ -214,9 +209,6 @@ where
 
         out.reserve(indices.len());
         for &index in indices {
-            if index >= len {
-                break;
-            }
             if let Some((cached_index, ref value)) = cached
                 && cached_index == index
             {

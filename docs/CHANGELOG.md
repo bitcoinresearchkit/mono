@@ -8,9 +8,6 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
-A workspace-wide refactor: one job per crate, typed series values, a typed error contract, generated clients from one
-composition model, and many correctness fixes.
-
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
 size), so every stored vector resets; the indexer reindexes (indexer version 44) and every plugin recomputes. Nothing
 has to be deleted by hand.
@@ -19,107 +16,119 @@ has to be deleted by hand.
 
 #### API: errors
 
-- Documented the error body's `type` and `code` as enums in the OpenAPI (`ErrorType`, `ErrorCode`), typed in every
-  generated client. `type` follows the status class: 405 and 413 answer `invalid_request` (were `internal`), and 403
-  no longer has its own `forbidden` type. The never emitted `invalid_txid` and `auth_failed` codes are gone, and
-  `parse_error` is merged into `bad_request` (invalid parameters and node-rejected transactions)
-- Failures below the query (storage, RPC, IO) answer 500 `internal_error` with `no-store` instead of 404/400
-  (`not_found`, `parse_error`, `out_of_range`, `unsupported_type`). Every 500 body says "Internal server error" and the
-  detail goes to the log, so file paths, node advice and panic payloads no longer reach clients
+- Documented the error body's `type` and `code` as enums in the OpenAPI (`ErrorType`, `ErrorCode`; were strings),
+  typed in every generated client. `type` follows the status class: 405 and 413 answer `invalid_request` and 504
+  answers `timeout` (all were `internal`), and 403 no longer has its own `forbidden` type. The never emitted
+  `invalid_txid`, `auth_failed`, `forbidden` and `not_implemented` codes are gone, and `parse_error` is merged into
+  `bad_request` (invalid parameters and node-rejected transactions)
+- Failures below the query (block files, RPC, stored data) answer 500 `internal_error` with `no-store`; some answered
+  404/400 (`not_found`, `parse_error`, `out_of_range`, `unsupported_type`). Every 500 body says "Internal server
+  error" and the detail goes to the log, so file paths and panic payloads no longer reach clients
+- Errors carry no ETag (those of cached endpoints carried the resource's): 400 and 404 keep `public, max-age=1,
+  must-revalidate`, `invalid_address` and `invalid_network` are cacheable for a year, and every other error is
+  `no-store` (all were `public, max-age=1, must-revalidate`)
 - `GET /api/v1/mining/reward-stats/0` answers 400 `bad_request` (was 404 `out_of_range`); an address of a kind
   Bitview does not index (e.g. witness v2) answers 400 `unsupported_type` (was 500); a block transaction whose indexed
-  prevout address is missing answers 500 (was a cacheable 404); `too_many_utxos` names the configured limit
+  prevout address is missing answers 500 (was served with an empty prevout script); `too_many_utxos` names the
+  configured limit (said >1000 whatever `--maxutxos` was)
+- `POST /api/tx` accepts bodies up to 8,000,000 bytes (was axum's 2 MB default), answers 400 for malformed hex without
+  asking the node, and 503 `overloaded` with `Retry-After: 1` while four submissions are pending
 
 #### API: series and responses
 
 - Series JSON no longer carries `stamp` (the time the response was formatted): a cached or `304` copy kept an older
-  one, so it said nothing reliable; the body now depends only on its rows
-- `input_value` is 0 for a coinbase input, which spends no output (was 18446744073709551615, its internal marker)
-- The address state series are gone from the API (`address_state`, `funded_address_data`,
-  `extended_empty_address_data` and the `funded_address_index`, `empty_address_index` and
-  `extended_empty_address_index` indexes): internal slots whose numbering depends on save history, and the sidecars'
-  reads answered 500. `/api/address/{address}` serves the same data
-- `/api/address/{address}` answers for an address seen only in the mempool (was 404), with zero chain stats and a
-  null `chain_stats.type_index` (now nullable)
-- Block template hashes are decimal strings (`hash`, `since`): JavaScript numbers lost precision past 2^53, so a
-  fetched hash could fail its own diff lookup
-- Typed every series value by what it measures, replacing the representation-named `Stored*` types (none is left):
-  `Boolean`, `Score`, `Count`/`CountSigned`, `Bytes`, `VSize`, `Weight`, `SigOps`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`, `VSizeFract`,
-  `WeightFract`, `SigOpsFract`, `SecondsFract`, `SatsFract`, `CentsFract`), coin days and blocks, `Days`,
-  `Hashrate`, `Difficulty`, `HashPrice`, `HashValue`, `PerDay`, `PerSecond`, and the generic `Float32`/`Float64`. Values keep their JSON form (numbers; `Boolean` stays a boolean); client type names change
-- Every series has its quantity's type: per-block values and their statistics are `Count`, `Bytes`, `Weight` and
-  `SigOps` like their sums (the indexer's narrow storage forms `Count16`, `Bytes32`, `Weight32`, `SigOps32` and the
-  5-byte indexes stay internal, published through views), so block size and weight, transaction, input and output
-  counts read one type across `block`, `cumulative`, `sum` and the distribution statistics
-  (recomputed on upgrade). Block interval is `Seconds`
-- `address` is spelled out: the address indexes are `p2pkh_address_index`, ..., `funded_address_index`,
-  `empty_address_index` and `extended_empty_address_index` (were `*_addr_index`), with ids `first_<type>_address_index`
-  and `<type>_address_index`; value types `Address`, `AddressState`, `FundedAddressData`, `EmptyAddressData` and the
-  `*AddressIndex` types (were `Addr`, `AddrState`, ...). REST: the `Address*` schemas (were `Addr*`), the
-  `address_type` field and path parameter (was `addr_type`), and the error codes `invalid_address` and
-  `unknown_address` (were `invalid_addr`, `unknown_addr`). The indexer reindexes (version 40)
+  one, so it said nothing reliable; the body now depends only on its rows. The v0.12.2 Python and Rust clients require
+  the field, so their series fetches fail against this server: upgrade them with it
+- The per-input value (`input_value`; `value` at `inputs.value` in v0.12.2) is 0 for a coinbase input, which spends no
+  output (was 18446744073709551615, its internal marker)
+- The address state series are gone from the API (`addr_state`, `funded_addr_data`, `extended_empty_addr_data`) with
+  the `funded_addr_index`, `empty_addr_index` and `extended_empty_addr_index` indexes: internal slots whose numbering
+  depends on save history. `/api/address/{address}` serves the same data
+- Mempool content hashes are decimal strings (were numbers): block template and diff `hash`, diff `since`, and
+  `GET /api/mempool/hash`. JavaScript numbers lost precision past 2^53, so a fetched hash could fail its own diff
+  lookup; the v0.12.2 Rust client fails to parse them
+- Typed every series value by what it measures, replacing the representation-named `Stored*` types (`StoredBool`,
+  `StoredU8`...`StoredU64`, `StoredI8`, `StoredI64`, `StoredF32`, `StoredF64`) and `Weight64`: `Boolean`, `Score`,
+  `Count`/`CountSigned`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`,
+  `WeightFract`, `SecondsFract`), `CoinDays`, `CoinBlocks`, `DollarBlocks`, `DollarDaysPerCoin`, `Days`, `Hashrate`,
+  `Difficulty`, `HashPrice`, `HashValue`, `PerDay`, `PerSecond` and the generic `Float64`. `Bytes`, `VSize`, `Weight`
+  and `SigOps` keep their names and now type every series of their quantity. Values keep their JSON form (numbers;
+  `Boolean` stays a boolean); the client type names and the series body's `type` change
+- Block weight is `Weight` in `block`, `cumulative`, `sum` and the distribution statistics alike (were `Weight` per
+  block and `Weight64` for the rest); block interval is `Seconds` (was `Timestamp`), its averages `SecondsFract` (were
+  `StoredF32`)
+- `address` is spelled out: the address indexes are `p2pkh_address_index`, ... (were `*_addr_index`), with ids
+  `first_<type>_address_index` and `<type>_address_index`; value types `Address` and the `*AddressIndex` types (were
+  `Addr`, `P2PKHAddrIndex`, ...), and `bitview_primitives::{AddressState, FundedAddressData, EmptyAddressData}` (were
+  `brk_types::{AddrState, ...}`). REST: the `Address*` schemas (were `Addr*`), the `address_type` field and path
+  parameter (was `addr_type`), and the error codes `invalid_address` and `unknown_address` (were `invalid_addr`,
+  `unknown_addr`)
 - Undefined values are null instead of a made-up number: shares, ratios and relative changes over a zero denominator
-  or base (supply, capital and fee shares, NUPL, velocity, delta rates from a zero start, price returns and drawdown
-  before a price exists), cost basis and realized or capitalized prices of empty cohorts, SOPR without value destroyed
-  and the realized profit-to-loss ratio without realized loss (were 1), dormancy and the coinflow spending rate of
-  empty ranges (were 0). Rolling averages count an undefined value as zero
-- Typed values as nullable exactly where the JSON can hold `null`: a period without blocks (date resolutions; height,
-  halving and epoch never) or a type's own undefined value (non-finite floats and the `FeeRate` sentinel); CSV
-  writes undefined values as empty cells
+  or base (supply, capital and fee shares, velocity, delta rates from a zero start, price returns and drawdown before
+  a price exists), cost basis and realized and capitalized prices of empty cohorts, dormancy over windows without
+  spent coins and the coinflow spending rate of age ranges without coin days created (were 0), SOPR without value
+  destroyed and the realized profit-to-loss ratio without realized loss (were 1). Rolling averages count an undefined
+  value as zero
+- The clients type series values as nullable exactly where the JSON can hold `null` (v0.12.2 typed every value as
+  present, though its JSON held `null` there too): a period without blocks (date resolutions; height, halving and epoch
+  never) or a type's own undefined value (non-finite floats, the `FeeRate` sentinel, `Score`); CSV writes undefined
+  values as empty cells
 - Relations to nothing are null instead of a maximum-value marker: `spending_txin_index` while an output is unspent,
   and a coinbase input's `outpoint`, `spent_txout_index` and `type_index` (its `output_type` stays `unknown`)
-- One unit per quantity: the `_cents` copies of USD series and the `_sats` copies of BTC amounts are gone from the API
-  and the clients (they stay the exact storage; the USD and BTC series print the same values exactly); the true range is
-  in USD too (was cents). Unitless numbers have one form, the one they are read in: shares, rates and changes in
-  percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, liveliness, sell-side risk, every `X_to_Y`) as a ratio;
-  `ppm` stays internal. The Cointime and Coinflow in-loss shares and the Bedrock loss thresholds (which drop their
-  `_ratio` suffix) are in percent (were decimals); sell-side risk is a ratio (was percent: same ids, 100 times
-  smaller), and the rarity meter's seller-exhaustion thresholds follow sell-side risk into a ratio (were percent). A
-  share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`, id `*_cumulative`
-  (`p2tr_output_share_cumulative`, `foundry_usa_share_cumulative`, `op_return_fee_chain_share_cumulative`; were the
-  bare id), and so do the OP_RETURN data-byte chain shares (`op_return_data_bytes_chain_share_cumulative`). A node left with one unit is
-  the series itself: `price.spot`, `price.close`, `price.ohlc`, realized caps and prices (were their `.usd`
-  child), shares (were `.percent`), BTC changes over a window (were `.btc`). Prices in sats per USD (`*_price_sats` and
-  every other price's `_sats`) are gone; `sats_per_dollar` replaces `price_sats`. About 18,300 fewer series. One
-  placement changes besides: market cap stays at `supply.market_cap` beside its `delta`
+- One unit per quantity: the `_cents` copies of USD series, the `_sats` copies of BTC amounts and the sats-per-USD
+  copies of prices (`*_price_sats` and every other price's `_sats`) are gone from the API and the clients (they stay
+  the exact storage; the USD and BTC series print the same values exactly); `sats_per_dollar` replaces `price_sats`
+  and the true range is in USD (was cents). Unitless numbers have one form, the one they are read in: shares, rates
+  and changes in percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, liveliness, sell-side risk, every `X_to_Y`) as a
+  ratio; the `_ppm` copies and the `_ratio` copies of percent values are gone. The Cointime and Coinflow in-loss shares
+  and the Bedrock loss thresholds are in percent (were decimals); sell-side risk is a ratio (was percent beside a
+  `_ratio` copy: same ids, 100 times smaller), and the rarity meter's seller-exhaustion thresholds follow it into a
+  ratio (were percent). A share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`, id
+  `*_cumulative` (`p2tr_output_share_cumulative`, was `p2tr_output_share`). A node left with one unit is the series
+  itself: `price.spot`, `price.ohlc`, realized caps and prices (were their `.usd` child), shares (were `.percent`), BTC
+  changes over a window (were `.btc`). About 26,100 v0.12.2 ids were such copies
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
-- Rarity meter components are keyed by their reference series' id (`awake_realized_price`, `mobile_realized_price`,
-  `true_market_mean`, `cost_basis_per_coin_median`, `utxos_under_6m_old_realized_price`; were `awake_price`,
-  `coinflow_price`, `true_market_mean_price`, `median_price_btc_weighted`, `under_6m_realized_price`), each percentile's
-  price is its `band` (ids `<component>_band_<pct>`, were `<component>_<pct>`), and a median component's reference
-  shares its source's id. Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`,
-  `realized_loss_24h`, `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`,
-  `capitulation`, `peak_regret`, `seller_exhaustion`), with `thresholds.{tail0_1, tail0_05, tail0_025}` and
-  `tail_share` (were `threshold_pct0_1`, ... and `tail`); the 0.025% threshold's id names its tail
+- Rarity meter components are keyed by their reference series' id (`mobile_realized_price`, `true_market_mean`,
+  `utxos_under_6m_old_realized_price`; were `coinflow_price`, `true_market_mean_price`, `under_6m_realized_price`),
+  each percentile's price is its `band` (`<component>.<pct>.band`, ids `<component>_band_<pct>`; were
+  `<component>.<pct>.price`, ids `<component>_<pct>`), and a median component's reference shares its source's id.
+  Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`, `realized_loss_24h`,
+  `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`,
+  `peak_regret`, `seller_exhaustion`), with `thresholds.{tail0_1, tail0_05, tail0_025}` and `tail_share` (were
+  `threshold_pct0_1`, ... and `tail`); the 0.025% threshold's id names its tail
   (`rarity_meter_supply_in_loss_threshold_tail0_025`, was `rarity_meter_coins_in_loss_threshold`)
-- The rarity meter is one set, `local`, `cycle` and `full` (the `_v2` meters are gone), over 16 reference models.
-  Local reads the short-term holders' and under-six-month cohorts' realized and capitalized prices and the
-  short-term holders' median creation prices per coin and per dollar; cycle the all-chain realized and capitalized
-  prices and median creation prices, the mobile supply's medians, the vaulted price, True Market Mean and the awake
-  and mobile realized prices; full both. Gone: the components of the long-term holders, of the over-4- and
-  over-6-month and under-4-month cohorts, the awake medians, the Cointime and active prices and the medians no meter
-  read (20 components), the Bedrock floors (the meter no longer reads Bedrock) and the extremes' `rank` (a coarse
-  copy of `tail_share` that counted a missing value as 0). Bands, levels and scores are null before height 210,000,
-  where calibration starts (were ±5 from uncalibrated bands)
+- The rarity meter reads 16 reference models. Local reads the short-term holders' and under-six-month cohorts'
+  realized and capitalized prices and the short-term holders' median creation prices per coin and per dollar (was the
+  under-four- and under-six-month and short-term holders' realized prices and the short-term holders' capitalized
+  price); cycle the all-chain realized and capitalized prices and median creation prices, the mobile supply's medians,
+  the vaulted price, True Market Mean and the awake and mobile realized prices (was the all-chain, long-term holders'
+  and over-four- and over-six-month realized prices, the all-chain and long-term capitalized prices and Bedrock's
+  floors); full both. New components: `awake_realized_price`, `utxos_under_6m_old_capitalized_price` and the six
+  medians (`cost_basis_per_coin_median`, ...). Gone: `lth_realized_price`, `lth_capitalized_price`,
+  `over_4m_realized_price`, `over_6m_realized_price`, `under_4m_realized_price`, `cointime_price` and `active_price`,
+  and the extremes' `rank` (a coarse copy of `tail_share` that counted a missing value as 0). Bands, levels and scores
+  are null before height 210,000, where calibration starts (were computed from zero bands)
 - Bedrock's modes are `unweighted`, `awake` and `mobile` (were `raw`, `cointime`, `coinflow`; ids
-  `bedrock_awake_floor_pct95`, ...); each mode publishes `floor`, `cost_basis_above_floor` (the creation-price
-  percentiles of the supply at or above its 95th-percentile floor) and `supply_in_loss_share_threshold`. Calibration
-  uses block observations: each mode's loss thresholds are percentiles of its finite loss shares from earlier blocks,
-  available once 52,560 such observations (one nominal year) exist and the current share is finite (was daily, once
-  365 days were)
+  `bedrock_awake_floor_pct95`, ...); the horizon modes `coinflow_1m` ... `coinflow_8y` are gone. Each mode publishes
+  `floor`, `cost_basis_above_floor` (was `level`: the creation-price percentiles of the supply at or above its
+  95th-percentile floor) and `supply_in_loss_share_threshold` (was `loss_threshold`). `bedrock.cost_basis` is gone: the
+  awake and mobile cohorts' cost-basis percentiles (`awake_cost_basis_per_coin_pct5`, ...; were
+  `bedrock_cointime_cost_basis_per_coin_pct05`, ...) take its place. Calibration uses block observations: each mode's
+  loss thresholds are percentiles of its finite loss shares from earlier blocks, available once 52,560 such
+  observations (one nominal year) exist and the current share is finite (was daily, once 365 days were)
 - One word per concept in paths and ids: `avg` for a mean (was `average`), `median` for the 50th percentile in every
   percentile set (was `pct50`), unpadded percentiles (`pct5`, was `pct05`; the rarity bands' price ids `pct1`, `pct2`,
   `pct5`, were `pct01`, ...), and `block` for a node's own per-block series beside its derived children (was `base`)
 - Flows (amounts or counts summed per block: transfer volume, rewards, realized profit, coin days destroyed, ...) lose
-  their per-block window averages, which were the window `sum` divided by its block count: they keep `block`, `sum`
-  and `cumulative`, about 4,200 fewer series. Distributions (block size, fees per block, ...) keep `avg` beside
-  `min`, `max` and the percentiles. Per-block averages without a sum (address activity counts, block interval) sit
+  their per-block window averages (`*_average_<window>`), which were the window `sum` divided by its block count: they
+  keep `block`, `sum` and `cumulative`. Distributions (block size, fees per block, ...) keep `avg` beside `min`, `max`
+  and the percentiles. Per-block averages without a sum (address activity counts, block interval) sit
   under `avg` (were the window keys directly under the series)
 - A series with derived siblings (a price beside its `ratio`, a USD value beside its `delta` or `share`) sits under
   `block` (was `usd`): `market.sma.200d.block`, `holders.sth.capital.in_profit.block`, `supply.market_cap.block`
 - Market: moving averages sit at the root (`market.sma.200d`, `market.ema.200d`; were under `moving_average`), price
-  returns at `market.returns.<window>` (were under `periods`; ids `price_return_<window>` unchanged); the all-time high's years copies are
-  gone (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio
+  returns at `market.returns.<window>` (were under `periods`; ids `price_return_<window>` unchanged); the all-time
+  high's years copies are gone (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio
 - Market indicators that are standard chart formulas over published prices are gone (Bitview Studio rebuilds them):
   RSI and stochastic RSI (which smoothed overlapping 24-hour returns, not bar closes), MACD with its 12- and 26-day
   EMAs, volatility, the 24-hour return's window averages and deviations, CAGR, the lookback prices
@@ -127,40 +136,42 @@ has to be deleted by hand.
   and 0.8 bands, the choppiness index, the two-week true-range sum and the two-week price range. The true range and
   the 1-week, 1-month and 1-year price ranges stay
 - The `indicators` plugin is gone: Puell Multiple, NVT, Thermocap Multiple, Gini, RHODL Ratio, Dormancy Flow, Seller
-  Exhaustion Constant and the supply-adjusted coin days destroyed, coin years destroyed and dormancy are short
-  formulas over published series (Bitview Studio rebuilds them); Stock-to-Flow is gone without a replacement. RHODL lacked its market-age
-  weighting and Dormancy Flow was the reciprocal of supply-adjusted dormancy, not Puell's annualized definition
+  Exhaustion Constant and the supply-adjusted coin days destroyed, coin years destroyed and dormancy are short formulas
+  over published series (Bitview Studio rebuilds them); Stock-to-Flow is gone without a replacement. RHODL lacked its
+  market-age weighting and Dormancy Flow was the reciprocal of supply-adjusted dormancy, not Puell's annualized
+  definition
 - The `capital_sentiment` plugin is gone: its phases, score and long/short strategy are an opinionated reading of
   spot against the published all, short- and long-term capitalized prices and the 1-year SMA
-- Mining: hash price and hash value are per PH/s only, as `mining.hashrate.{price, value}.{block, atl, rebound}` (were
-  per TH/s and PH/s with `*_min`), typed `HashPrice` (USD) and `HashValue` (sats) per PH/s per day (were `Float32`); `fees.share`/`subsidy.share` (were `dominance`); output volume leaves the tree (the
-  transaction volume minus fees, not a reward; the block endpoints still report it); unclaimed rewards gain window
-  sums; the network hash-rate ids say `hashrate` like every other one
-  (`hashrate`, `hashrate_sma_1w`, `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
-- Transactions: `transactions.per_second` (id `tx_per_second`, was `tx_per_sec`); inscription fees are BTC and USD
-  (were sats); the transaction volume (input value of non-coinbase transactions) is `transactions.volume`, id
-  `tx_volume` (was `transfer_volume` with ids `transfer_volume_bis*`): the holders' `all` cohort's `transfer_volume` is
-  a different quantity (spent UTXO value). The transactions plugin's counts by version, feature, pattern, policy and
-  CPFP role share one id template, `<kind>_tx_count`: `v1_tx_count`, `other_version_tx_count`, `annex_tx_count`,
-  `dust_output_tx_count`, `coinjoin_tx_count`, `nonstandard_tx_count`, `cpfp_parent_tx_count`,
-  `inscription_tx_count` (were `tx_v1`, `tx_other_version`, `tx_count_annex`, `tx_count_dust_output`,
-  `coinjoin_count`, `nonstandard_count`, `cpfp_parent_count`, `tx_count_inscription`), and features sit at
-  `transactions.features.<feature>` (were under `features.count`). The inscription fee share is
-  `transactions.inscription.fees.chain_share.{cumulative, 24h, 1w, 1m, 1y}` like OP_RETURN's, ids
-  `inscription_fee_chain_share_cumulative` and `inscription_fee_chain_share_<window>` (was `fee_share`, per block)
+- Mining: hash price and hash value are per PH/s only, as `mining.hashrate.{price, value}.{block, atl, rebound}`, ids
+  `hash_price`, `hash_price_atl`, ... (were `hash_price_ths`, `hash_price_phs` and their `*_min`), typed `HashPrice`
+  (USD) and `HashValue` (sats) per PH/s per day (were `StoredF32`); `fees.share`/`subsidy.share` (were `dominance`);
+  output volume leaves the tree (the transaction volume minus fees, not a reward; the block endpoints still report
+  it); unclaimed rewards gain window sums; the network hash-rate ids say `hashrate` like every other one (`hashrate`,
+  `hashrate_sma_1w`, `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
+- Transactions: `transactions.per_second` (ids `tx_per_second_<window>`; were `tx_per_sec_<window>` at
+  `transactions.volume.tx_per_sec`); the transaction volume (input value of non-coinbase transactions) is
+  `transactions.volume`, id `tx_volume` (was `transactions.volume.transfer_volume` with ids `transfer_volume_bis*`):
+  the holders' `all` cohort's `transfer_volume` is a different quantity (spent UTXO value). The transactions plugin's
+  counts by version, feature, pattern, policy and CPFP role share one id template, `<kind>_tx_count`: `v1_tx_count`,
+  `other_version_tx_count`, `annex_tx_count`, `dust_output_tx_count`, `coinjoin_tx_count`, `nonstandard_tx_count`,
+  `cpfp_parent_tx_count`, `inscription_tx_count` (were `tx_v1`, `tx_other_version`, `tx_count_annex`,
+  `tx_count_dust_output`, `coinjoin_count`, `nonstandard_count`, `cpfp_parent_count`, `tx_count_inscription`), and
+  features sit at `transactions.features.<feature>` (were under `features.count`; inscriptions at
+  `transactions.inscription.count`)
 - Blocks: difficulty is `blocks.difficulty.block` (was `.value`); `blocks.count` holds `block`, `cumulative` and the
   window sums directly (were under `total`) and the constant `blocks.count.target.<window>` series are gone;
   `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
 - Block size and weight: `blocks.size.block` (id `block_size`) and `blocks.weight.block` (`block_weight`) sit beside
-  their cumulative and rolling statistics (the per-block values were only the indexer's); blocks are measured in weight
-  and transactions in vsize, so block virtual size is gone (`blocks.vbytes`, `block_vbytes*`). The indexer's own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was
-  `blocks.size.base` with id `total_size`), `indexer.blocks.weight` (was `blocks.weight.base`),
-  `indexer.blocks.timestamp` (was `blocks.time.timestamp`), and `segwit_tx_count` (was `segwit_txs`) beside
-  `segwit_tx_size` and `segwit_tx_weight` (were `segwit_size`, `segwit_weight`); `p2ms_legacy_sigop_cost` and
-  `unknown_legacy_sigop_cost` at `indexer.scripts.{p2ms,unknown}.legacy_sigop_cost` (BIP-141 cost; were
-  `legacy_sigops`), and `post_op_return_bytes` (was `op_return_post_op_return_bytes`)
-- These per-transaction series take the `tx_` stem: `tx_size` at `indexer.transactions.size` (was `total_size`, the same id as
-  the block size), `tx_sigop_cost` at `.sigop_cost` (was `total_sigop_cost`), `tx_locktime` at `.locktime` (was
+  their cumulative and rolling statistics (the per-block values were only the indexer's); blocks are measured in
+  weight and transactions in vsize, so block virtual size is gone (`blocks.vbytes`, `block_vbytes*`). The indexer's
+  own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was `blocks.size.base` with id `total_size`),
+  `indexer.blocks.weight` (was `blocks.weight.base`), `indexer.blocks.timestamp` (was `blocks.time.timestamp`), and
+  `segwit_tx_count` (was `segwit_txs`) beside `segwit_tx_size` and `segwit_tx_weight` (were `segwit_size`,
+  `segwit_weight`); `p2ms_legacy_sigop_cost` and `unknown_legacy_sigop_cost` at
+  `indexer.scripts.{p2ms,unknown}.legacy_sigop_cost` (BIP-141 cost; were `legacy_sigops`), and `post_op_return_bytes`
+  (was `op_return_post_op_return_bytes`)
+- These per-transaction series take the `tx_` stem: `tx_size` at `indexer.transactions.size` (was `total_size`, the same
+  id as the block size), `tx_sigop_cost` at `.sigop_cost` (was `total_sigop_cost`), `tx_locktime` at `.locktime` (was
   `raw_locktime`), `tx_version` at `.version` (was `.tx_version`) and `tx_fee` (was `fee`). The block sum of sigop cost
   is `transactions.sigop_cost.{block, cumulative, sum}`, ids `block_sigop_cost`, `block_sigop_cost_cumulative`,
   `block_sigop_cost_sum_<W>` (were `transactions.sigops.total`, `total_sigop_cost*`)
@@ -176,37 +187,36 @@ has to be deleted by hand.
   `indexer.op_return.protocol`, id `op_return_protocol` (was `kind`)
 - Ids that were index names say what they map: `spent_txout_index` (an input's spent output, was `txout_index`),
   `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input at
-  `outputs.spending_txin_index`, was `txin_index` at `outputs.spent.txin_index`),
-  `empty_output_tx_index`, `p2ms_output_tx_index`, `unknown_output_tx_index` and `op_return_tx_index` (were `tx_index`,
-  at `.tx_index`, was `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both
-  `value`)
+  `outputs.spending_txin_index`, was `txin_index` at `outputs.spent.txin_index`), `empty_output_tx_index`,
+  `p2ms_output_tx_index`, `unknown_output_tx_index` and `op_return_tx_index` at `.tx_index` (were id `tx_index` at
+  `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both `value`)
 - `input_value` and `output_value` are per record, one value per input and per output (were each transaction's input
   and output totals, at `transactions.fees.{input_value, output_value}`; the totals are gone)
 - `input_value` is the indexer's, at `indexer.inputs.value` (was `inputs.value`): the indexer writes each input's spent
   value as it resolves the input (the unspent-output store carries the value), so `transactions` no longer depends on
-  `inputs`. The indexer reindexes (version 42)
-- Address balance bands' address count sits at `funded` like the root's and types' (was `address_count`; ids
-  unchanged); the per-transaction vsize statistics (`tx_vsize_median`, ...) have every index like their fee
-  siblings; prices are `price.{open, high, low, close}` (were under `price.split`)
-- Gone, as duplicates or one division of published series: the average UTXO amount (`avg_utxo_amount*`, `<type>_avg_utxo_amount*`: supply over UTXO count)
-- Descriptions: per-block values no longer claim time-period indexes they don't have; the holders' realized,
-  unrealized, activity and output series say what they measure; undefined values are described as null; absolute
-  deltas no longer mention a relative change; the address state lookups are described
-- Transaction features, patterns, policy and CPFP roles are member-first: each is one node holding its
-  per-transaction `flag` beside its per-block count, `transactions.features.p2tr.{flag, block, cumulative, sum}` (the
-  flags and most counts were the indexer's only), `transactions.patterns.coinjoin.{flag, block, cumulative, sum}` (were
-  `patterns.is_coinjoin` and `patterns.count.coinjoin`), likewise `transactions.nonstandard` and
-  `transactions.fees.cpfp_parent`/`cpfp_child`; `transactions.inscription.flag` and `op_return.flag` (`has_op_return`).
-  SegWit, single-input and single-output transactions have counts only (`transactions.features.segwit`, `one_input`,
-  `one_output`). The indexer's columns take the same shape: `indexer.transactions.features.<feature>.{flag, block}`
-  (were `has_<feature>` and `count.<feature>`; the inscription, annex, SIGHASH and dust counts were hidden),
-  `is_explicitly_rbf` at `indexer.transactions.features.explicitly_rbf.flag` (was `transactions.raw.is_explicitly_rbf`),
-  and the version counts at `indexer.transactions.versions.<version>.block` (were `count.v1`, ...,
-  `count.other_version`). Flag ids unchanged; where the indexer and a plugin publish one id, both paths serve the same
+  `inputs`
+- The per-transaction vsize statistics (`tx_vsize_median`, ...) have every index like their fee siblings
+- Prices are `price.{open, high, low, close}` (were under `price.split`)
+- Gone, as duplicates or one division of published series: the average UTXO amount (`avg_utxo_amount*`,
+  `<type>_avg_utxo_amount*`: supply over UTXO count)
+- Descriptions: per-block values no longer claim time-period indexes they don't have, and every per-block value of a
+  windowed series reads "Value for the represented block." (some had no per-block wording); undefined values are
+  described as null; absolute deltas no longer mention a relative change
+- Transaction features, patterns, policy and CPFP roles are member-first: each is one node holding its per-transaction
+  `flag` beside its per-block count: `transactions.features.p2tr.{flag, block, cumulative, sum}` (were
+  `transactions.features.has_p2tr` and `transactions.features.count.p2tr`), `transactions.patterns.coinjoin.{flag,
+  block, cumulative, sum}` (were `patterns.is_coinjoin` and `patterns.count.coinjoin`), `transactions.nonstandard`
+  (were `transactions.policy.{is_nonstandard, count.nonstandard}`), `transactions.fees.cpfp_parent`/`cpfp_child` (were
+  `fees.is_cpfp_*` and `fees.count.cpfp_*`), `transactions.inscription.flag` and `op_return.flag` (`has_inscription`,
+  `has_op_return`; were under `transactions.features`). SegWit, single-input and single-output transactions have
+  counts only (`transactions.features.segwit`, `one_input`, `one_output`). The indexer's columns take the same shape:
+  `indexer.transactions.features.<feature>.{flag, block}`, `is_explicitly_rbf` at
+  `indexer.transactions.features.explicitly_rbf.flag` (was `transactions.raw.is_explicitly_rbf`) and the version
+  counts at `indexer.transactions.versions.<version>.block` (were `transactions.features.count.{v1, ...,
+  other_version}`). Flag ids unchanged; where the indexer and a plugin publish one id, both paths serve the same
   series with the same description. Per-block feature and version counts are `Count` (were `StoredU64`; stored as
   `Count16`). SegWit, Taproot and explicit-RBF counts gain windows: `segwit_tx_count_cumulative`,
-  `segwit_tx_count_sum_<window>`, likewise `p2tr_tx_count` and `explicitly_rbf_tx_count`. Every per-block value of a
-  windowed series is described as "Value for the represented block." (some had no per-block wording)
+  `segwit_tx_count_sum_<window>`, likewise `p2tr_tx_count` and `explicitly_rbf_tx_count`
 - Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
   `mappings.addr.<type>.{identity, addr}`, ids `<type>_addr`); the P2MS, empty, unknown and OP_RETURN output indexes
   at `mappings.outputs.<type>.identity`. A block's period ids say what they map: `block_day1`, `block_week1`, ...
@@ -217,10 +227,10 @@ has to be deleted by hand.
   `unspendable_supply`, `unspendable_supply_cumulative`), and `outputs.op_return_value` gains window sums
 - Transaction, input and output counts have one shape: `transactions.count`, `inputs.count` and `outputs.count` hold
   `block`, `cumulative` and the window statistics directly (were under `total` and `rolling`, with the block's count at
-  `inputs.count.sum` and `outputs.count.total.sum`). The block counts are ids `input_count` and `output_count` (were `input_count_sum`,
-  `output_count_sum`); the per-transaction counts are `tx_input_count` and `tx_output_count` (were `input_count`,
-  `output_count`). Input counts exclude coinbase inputs, like Bitcoin Core's `getblockstats` (were one more per
-  block). Rates are `inputs_per_second` and `outputs_per_second` (were `_per_sec`)
+  `inputs.count.sum` and `outputs.count.total.sum`). The block counts are ids `input_count` and `output_count` (were
+  `input_count_sum`, `output_count_sum`); the per-transaction counts are `tx_input_count` and `tx_output_count` (were
+  `input_count`, `output_count`). Input counts exclude coinbase inputs, like Bitcoin Core's `getblockstats` (were one
+  more per block). Rates are `inputs_per_second` and `outputs_per_second` (were `_per_sec`)
 - Input and output types are member-first: `outputs.types.<type>.{count, share, tx_count, tx_share}` and the same
   under `inputs.types` (were `by_type.<metric>.<type>`), with ids `p2tr_output_count`, `p2tr_output_share_cumulative`,
   `p2tr_output_tx_count`, `p2tr_output_tx_share_cumulative` and `p2tr_input_*` (were `tx_count_with_p2tr_output`,
@@ -233,113 +243,119 @@ has to be deleted by hand.
   `outputs.{unspent_count, spent_count}`, `activity.transfer_volume`, `realized.{profit, loss}` and
   `cost_basis.per_coin.{avg, realized_price}` and, in age, `supply.{in_profit, in_loss}`,
   `activity.coindays_destroyed`, `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were
-  metric-first: `age.supply.total.age.<range>`, `utxos.realized.cap.utxo_amount.<band>`, ...). Age ranges also hold
-  `supply.matured`, `activity.coindays_created` (was `age.coindays_created.<range>`) and
+  metric-first under `cohorts`: `cohorts.supply.total.age.range.<range>`,
+  `cohorts.realized.cap.utxo_amount.range.<band>`, `cohorts.supply.total.{epoch, class_, type}.<member>`, ...). Age
+  ranges also hold `supply.matured` (was `cohorts.supply.matured.<range>`), `activity.coindays_created` (was
+  `frameworks.cointime.age_range.coindays_created`; also at `cointime.age_ranges.<range>`) and
   `activity.transfer_volume.{in_profit, in_loss}`; the epochs', classes' and entry cohorts' volume in profit and in
-  loss is gone (`transfer_volume_in_profit_cumulative_by_epoch`, `..._by_entry`, ...; the age ranges and holders keep
-  the split). Ids are unchanged, but for the `cost_basis` and `capital` ones (below)
+  loss is gone (`epoch_0_transfer_volume_in_profit*`, `class_2009_transfer_volume_in_loss*`,
+  `veteran_transfer_volume_in_profit*`, ...; the age ranges and holders keep the split). Ids are unchanged, but for
+  `supply.share`, `cost_basis` and `capital` (below)
+- The open-ended cohorts are gone, all but the 4- and 6-month age cutoffs (now in `holders`): every age over and
+  under each boundary (`utxos_over_1y_old_*`, `utxos_under_1w_old_*`, ...), every UTXO amount over and under each
+  boundary (`utxos_over_1btc_*`, `utxos_under_1btc_*`, ...) and every address balance over and under each boundary
+  (`addrs_over_1btc_*`, `addrs_under_1btc_addr_count`, ...), about 16,000 ids: the ranges and bands remain
 - P2PK is one output type in every type family: `outputs.types.p2pk`, `inputs.types.p2pk`, `utxos.types.p2pk` and
   `addresses.types.p2pk` count the 33- and 65-byte keys as one type (ids `p2pk_*`; were `p2pk33_*` and `p2pk65_*`):
-  counts and amounts add up, a transaction with both counts once, and shares and averages divide the combined
-  values. The indexer and the address lookups keep both. P2A is no longer an address type: `addresses.types` lists p2pk, p2pkh, p2sh, p2wpkh,
-  p2wsh and p2tr, and the address totals and balance bands leave P2A out (one fixed anyone-can-spend script: its
-  counts were 0 or 1 and its reuse counted every anchor output)
+  counts and amounts add up, a transaction with both counts once, and shares and averages divide the combined values.
+  The indexer and the address lookups keep both. P2A is no longer an address type: `addresses.types` lists p2pk, p2pkh,
+  p2sh, p2wpkh, p2wsh and p2tr, and the address totals and balance bands leave P2A out (one fixed anyone-can-spend
+  script: its counts were 0 or 1 and its reuse counted every anchor output)
 - Addresses are member-first: the root holds every address type together, `addresses.types.<type>` each type and
-  `addresses.balances.<band>` each balance band (were metric-first: `addresses.funded.<type>`,
-  `addresses.supply.<band>`, ...). A type holds `funded` (with its window `delta`; was `addresses.delta`), `empty`,
-  `total`, `new`, `activity`, `avg_balance`, `reused`, `respent` and `exposed`, reuse events under `events.{outputs,
-  inputs, active}.{count, share}` (were `events.output_to_reused_addr_count`, ...); a band holds `funded`,
-  `supply`, `capital`, `outputs.unspent_count`, `activity.transfer_volume` and `realized.{profit, loss}`
+  `addresses.balances.<band>` each balance band (were metric-first: `addrs.funded.<type>`, `addrs.new.<type>`, ...,
+  and for bands `addrs.funded.balance.range.<band>` and `cohorts.<metric>.addr_balance.range.<band>`). A type holds
+  `funded` (with its window `delta`; was `addrs.delta.<type>`), `empty`, `total`, `new`, `activity`, `avg_balance` (was
+  `addrs.avg_amount.addr.<type>`), `reused`, `respent` and `exposed`, reuse events under `events.{outputs, inputs,
+  active}.{count, share}` (were `events.output_to_reused_addr_count`, ...); a band holds `funded`, `supply`, `capital`,
+  `outputs.unspent_count`, `activity.transfer_volume` and `realized.{profit, loss}`
 - Address ids spell `address` out and say what they count: `funded_address_count` (was `addr_count`),
   `empty_address_count`, `total_address_count`, `new_address_count`, `sending_address_count` (was `sending_addrs`),
-  ..., `avg_address_balance` (was `avg_addr_amount`), `funded_reused_address_count` beside
+  ..., `avg_address_balance` (was `avg_addr_amount`), `funded_reused_address_count` (was `reused_addr_count`) beside
   `total_reused_address_count` (likewise respent and exposed), `reused_address_supply`,
   `output_to_reused_address_count`, ...; the funded count's window change is `funded_address_count_delta_24h` (was
-  `addr_count_24h`); balance bands' ids start with
-  `balance_` (`balance_1btc_to_10btc_supply`; were `addrs_`); `address_state`, `funded_address_data` and
-  `extended_empty_address_data` (were `addr_state`, ...)
-- Each address type divides by its own: reused, respent and exposed supply shares and the average balance use the
-  supply its addresses hold (all addresses used circulating supply, which includes outputs without an address),
-  output and input event shares the outputs and inputs of its addresses (all addresses used every output, or every
-  non-coinbase input); `spendable_output_to_reused_addr_share` is gone (a second denominator). Balance bands' supply
-  share divides by the supply all addresses hold (was circulating supply). Active reused and respent counts and shares
-  exist per address type too (were for all addresses only)
-- Entry cohorts sit at `entry.rookie` and `entry.veteran`, like their ids (were `entry.premium` and
-  `entry.discount`), and the clients' `ENTRY_NAMES` keys follow. The empty and unknown output-type cohorts' ids say
-  `empty_output_` and `unknown_output_` (`empty_output_supply`, `unknown_output_realized_cap`, ...; were
-  `empty_outputs_` and `unknown_outputs_`)
+  `addr_count_24h`); balance bands' ids start with `balance_` (`balance_1btc_to_10btc_supply`,
+  `balance_1btc_to_10btc_address_count`; were `addrs_1btc_to_10btc_supply`, `addrs_1btc_to_10btc_addr_count`)
+- All addresses divide by what addresses hold, like each address type already did: the root's reused, respent and
+  exposed supply shares and average balance use the supply all addresses hold (were circulating supply, which
+  includes outputs without an address), its output and input event shares the outputs and inputs of its addresses
+  (were every output, or every input, coinbase included); `spendable_output_to_reused_addr_share` and
+  `spendable_output_to_respent_addr_share` are gone (a second denominator). Balance bands' supply share divides by the
+  supply all addresses hold (was circulating supply). Active reused and respent counts and shares exist per address
+  type too (were for all addresses only)
+- Entry cohorts are member-first at `entry.rookie` and `entry.veteran`, like their ids (were
+  `cohorts.<metric>.entry.{premium, discount}`), and the clients' `ENTRY_NAMES` keys follow. The empty and unknown
+  output-type cohorts' ids say `empty_output_` and `unknown_output_` (`empty_output_supply`,
+  `unknown_output_realized_cap`, ...; were `empty_outputs_` and `unknown_outputs_`)
 - A cohort's share of all supply is `supply.share` in holders, age, UTXO, entry and address cohorts (ids
-  `*_supply_share`; were `supply.dominance`, ids `*_supply_dominance`, and the holders' `relative.supply_share`)
-- `age.age_bounds` is gone: its `utxos_urpd_<cohort>_cost_basis_{min,max}` were copies of the holders'
-  `cost_basis.{min, max}` rounded to five significant digits
+  `*_supply_share`; were `cohorts.supply.dominance.<family>.<member>`, ids `*_supply_dominance`)
 - OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
-  `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). A
-  member's shares are `data_bytes.chain_share` and `fees.chain_share` (of the chain's block bytes and fees; ids
-  `op_return_runes_data_bytes_chain_share_cumulative`, `op_return_runes_fee_chain_share_cumulative`; were
-  `chain_share` and `fee_share` beside `data_bytes` and `fees`); the totals' shares sit under their quantity too
-  (`op_return_data_bytes_chain_share_cumulative`, `op_return_fee_chain_share_cumulative`; were
-  `op_return_chain_share`, `op_return_fee_share`). Fees are BTC and USD (were sats).
-  The totals gain `output_count` (id `op_return_output_count`, shared with outputs). Policy ids drop `policy_`
-  (`op_return_oversized_tx_count`, was `op_return_policy_oversized_tx_count`)
-- Pools have one shape, every pool alike, at `pools.<slug>` (were `pools.major.<slug>` for 22 pools with rewards and
-  `pools.minor.<slug>` for the rest): `blocks_mined` (cumulative and window sums; the per-block 0/1 and the major
-  pools' per-block `<slug>_rewards` are gone), `share`
-  (all time and per window; was `dominance`), `rewards` (BTC and USD, cumulative and window sums), `fees_per_block`
-  (fees of the pool's blocks per block it mined, per window, BTC and USD; empty when it mined none) and `hashrate` (its
-  window share of blocks times the network hash-rate estimate). All are read from in-memory per-pool running totals: the pools plugin stores only the
-  per-block attribution (`pool`). `GET /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
-- Cointime and Coinflow are member-first. Their cohorts (`all`, `sth`, `lth` and the age cutoffs `under_4m`, `under_6m`,
-  `over_4m`, `over_6m`, which had prices only and now have the same shape) sit under `cohorts`:
+  `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). Shares
+  are `data_bytes.chain_share` and `fees.chain_share` (of the chain's block bytes and fees): ids
+  `op_return_runes_data_bytes_chain_share_cumulative`, `op_return_runes_fee_chain_share_cumulative` (were
+  `op_return_runes_chain_share`, `op_return_runes_fee_share`) and, for the totals, which sat beside their quantity,
+  `op_return_data_bytes_chain_share_cumulative`, `op_return_fee_chain_share_cumulative` (were `op_return_chain_share`,
+  `op_return_fee_share`). Fees are BTC and USD (were sats). The totals gain `output_count` (id
+  `op_return_output_count`, shared with outputs). Policy ids drop `policy_` (`op_return_oversized_tx_count`, was
+  `op_return_policy_oversized_tx_count`)
+- Pools have one shape at `pools.<slug>` (were `pools.major.<slug>` for 22 pools with rewards and `pools.minor.<slug>`
+  for the rest): `blocks_mined` (cumulative and window sums; the per-block 0/1 and the major pools' per-block
+  `<slug>_rewards` are gone), `share` (all time and per window; was `dominance`), `rewards` (BTC and USD, cumulative and
+  window sums), `fees_per_block` (fees of the pool's blocks per block it mined, per window, BTC and USD; empty when it
+  mined none) and `hashrate` (its window share of blocks times the network hash-rate estimate). All are read from
+  in-memory per-pool running totals: the pools plugin stores only the per-block attribution (`pool`). `GET
+  /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
+- Cointime and Coinflow are member-first. Their cohorts sit under `cohorts`: `all`, `sth` and `lth` (were
+  `cointime.{awake, dormant}`, `cointime.{sth, lth}.{awake, dormant}`, `coinflow.{supply, cap, price}` and
+  `coinflow.{sth, lth}.*`) and the new age cutoffs `under_4m`, `under_6m`, `over_4m` and `over_6m`.
   `cointime.cohorts.<cohort>.awake` holds `supply.{total, in_loss.share}`, `capital.{total, realized_cap}` and
   `cost_basis` (the wakefulness-weighted mean creation prices, URPD percentiles, `supply_density` and
   `capital_density`), beside `dormant.supply`; Coinflow's cohorts have `mobile` and `immobile` in their place. Age
   ranges are `cointime.age_ranges.<range>.{coindays_created, coindays_consumed, wakefulness, awake_to_dormant,
-  awake.supply, dormant.supply}` and `coinflow.age_ranges.<range>.{spending_rate, spending_exposure,
-  mobility, mobile.supply, immobile.supply}`. `cointime.cap` is `cointime.caps`; VOCDD sits in
-  `cointime.reserve_risk.vocdd` (was `cointime.value.vocdd`; its 30-day median is Reserve Risk's internal input,
-  no longer published), the HODL bank at `cointime.reserve_risk.hodl_bank` has every index (was height only), and
-  Reserve Risk itself is
-  `cointime.reserve_risk.block` (was `.value`); `hodled_or_lost_supply` sits at `cointime.supply.hodled_or_lost`, beside
-  the vaulted supply it names (was `supply.hodled_or_lost`). They were `cointime.awake`, `cointime.<cohort>.awake`,
-  `cointime.urpd.<cohort>`, `coinflow.supply`, `coinflow.price`, ... and metric-first under `age_range`
-- Cointime and Coinflow names: the weighted realized capitalization and price are `realized_cap` and `realized_price`
-  (ids `awake_realized_cap`, `awake_realized_price`, `mobile_realized_cap`, `mobile_realized_price`; were
-  `awake_cap`, `awake_price`, `coinflow_cap`, `coinflow_price`), Coinflow's other cohort ids name the side
-  (`mobile_capitalized_price`, `mobile_supply_in_loss_share`, `sth_mobile_*`, `utxos_under_4m_old_mobile_*`; were
-  `coinflow_capitalized_price`, ..., `under_4m_coinflow_price`), `liveliness_to_vaultedness` (was
-  `activity_to_vaultedness` at `activity.ratio`), `awake_to_dormant` (was `wakefulness_to_dormancy`), the adjusted
-  rates `cointime.adjusted.{inflation_rate, velocity.btc, velocity.usd}` with ids `cointime_adjusted_*` (were ids
-  `cointime_adj_*`, keys `tx_velocity_native` and `tx_velocity_fiat`), and `supply.velocity.{btc, usd}` (were `native` and
-  `fiat`). AVIV is `prices.true_market_mean.aviv` (id `aviv`; was `cap.aviv`, id `aviv_ratio`).
-  URPD ids name the weighted side (`awake_cost_basis_per_coin_median`, `sth_mobile_cost_basis_per_dollar_pct5`,
-  `awake_supply_density`; were `cointime_cost_basis_per_coin_median`, `sth_coinflow_cost_basis_per_dollar_pct5`,
-  `cointime_urpd_all_supply_density_total`). Gone: each age range's `dormancy` (one minus its wakefulness) and
-  `coindays_stored` (cumulative coin days created minus consumed),
-  `cointime.supply.active.in_loss.share` (the awake share under another name) and the URPD `capitalized_price` per
-  cohort (a rounded copy of the exact awake or mobile `capitalized_price`)
-- The 4- and 6-month age cutoffs take the age ranges' frame in their ids, in holders, Cointime and Coinflow:
-  `utxos_under_4m_old_supply`, `utxos_over_6m_old_awake_realized_price` (were `under_4m_supply`,
-  `over_6m_awake_price`)
-- Supply density has one shape everywhere, `cost_basis.supply_density.{total, in_profit, in_loss}` (holders had the
-  total only), the total under the base id (`sth_supply_density`; Cointime's and Coinflow's were `..._total`)
-- The holders' cohort node has no `ratios` or `relative`: each series sits beside its quantity. `realized.sopr.{24h, 1w,
-  1m, 1y}` (ids `sth_sopr_24h`, ...; were `ratios.sopr` and `ratios.sopr_ratio_extended`),
-  `realized.adjusted_sopr.{<window>, value_created, value_destroyed}` (were `ratios.adjusted_sopr.{ratio,
-  transfer_volume, value_destroyed}`; input ids `adjusted_value_created` and `adjusted_value_destroyed`, were
-  `adj_value_*`), `realized.sell_side_risk_ratio`, `realized.profit_to_loss` (ids `sth_realized_profit_to_loss_24h`,
-  ...; were `..._profit_to_loss_ratio_24h`), `activity.dormancy`, `supply.share` and `supply.{in_profit,
-  in_loss}.share`; the transfer volume in profit and in loss sits under the volume,
-  `activity.transfer_volume.{in_profit, in_loss}`. Gross PnL ids put the adjective first: `sth_gross_realized_pnl`,
+  awake.supply, dormant.supply}` and `coinflow.age_ranges.<range>.{spending_rate, spending_exposure, mobility,
+  mobile.supply, immobile.supply}` (were metric-first under `cointime.age_range`, `coinflow.age_range` and
+  `frameworks.cointime.age_range`; the `frameworks` root is gone). `cointime.cap` is `cointime.caps`; VOCDD sits in
+  `cointime.reserve_risk.vocdd` (was `cointime.value.vocdd`; `vocdd_median_1y` is gone, see Reserve Risk under Bug
+  Fixes), the HODL bank at `cointime.reserve_risk.hodl_bank` has every index (was height only), and Reserve Risk itself
+  is `cointime.reserve_risk.block` (was `.value`); `hodled_or_lost_supply` sits at `cointime.supply.hodled_or_lost`,
+  beside the vaulted supply it names (was `supply.hodled_or_lost`)
+- Cointime and Coinflow names: the weighted realized capitalization and price are `capital.realized_cap` and
+  `cost_basis.per_coin.realized_price`, ids `awake_realized_cap`, `awake_realized_price`, `mobile_realized_cap`,
+  `mobile_realized_price` (were `awake_cap`, `awake_price`, `coinflow_cap`, `coinflow_price`), with ratios
+  `awake_cost_basis_per_coin_avg_ratio` and `mobile_cost_basis_per_coin_avg_ratio` (were `awake_price_ratio`,
+  `coinflow_price_ratio`); Coinflow's other ids name the side (`mobile_supply_in_loss_share`, `sth_mobile_realized_cap`,
+  ...; were `coinflow_supply_in_loss_share`, `sth_coinflow_cap`, ...), `liveliness_to_vaultedness` (was
+  `activity_to_vaultedness` at `activity.ratio`), `awake_to_dormant` (was `wakefulness_to_dormancy`), the adjusted rates
+  `cointime.adjusted.{inflation_rate, velocity.btc, velocity.usd}`, ids `cointime_adjusted_inflation_rate` and
+  `cointime_adjusted_velocity_{btc,usd}` (were `cointime_adj_inflation_rate` and `cointime_adj_tx_velocity_{btc,usd}` at
+  `tx_velocity_native` and `tx_velocity_fiat`), and `supply.velocity.{btc, usd}` (were `native` and `fiat`). AVIV is
+  `prices.true_market_mean.aviv` (id `aviv`; was `cap.aviv`, id `aviv_ratio`). Gone: each age range's `dormancy` (one
+  minus its wakefulness) and `coindays_stored` (cumulative coin days created minus consumed),
+  `cointime.supply.active.in_loss.share` (`cointime_supply_in_loss_share`, the awake share under another name) and
+  Coinflow's horizons (`coinflow.horizon.<1m...8y>` and their `sth`/`lth` copies: `coinflow_1m_supply_in_loss_share`,
+  `sth_coinflow_1m_supply_in_loss_share`, ...)
+- Holders are member-first, `holders.<cohort>` for `all`, `sth`, `lth`, `under_4m`, `under_6m`, `over_4m` and
+  `over_6m` (were metric-first: `cohorts.<metric>.<...>.{all, term.short, term.long, age.under._4m, ...}`), each
+  series beside its quantity (no `relative`): `realized.sopr.{24h, 1w, 1m, 1y}` (ids `sth_sopr_24h`, ... unchanged;
+  were `realized.sopr` and `realized.sopr_ratio_extended`), `realized.adjusted_sopr.{<window>, value_created,
+  value_destroyed}`, ids `sth_adjusted_sopr_24h`, `sth_adjusted_value_created`, `sth_adjusted_value_destroyed` (were
+  `realized.adjusted_sopr.{ratio, transfer_volume, value_destroyed}`, ids `sth_asopr_24h`, `sth_adj_value_*`),
+  `realized.sell_side_risk_ratio`, `realized.profit_to_loss` (ids `sth_realized_profit_to_loss_24h`, ...; were
+  `..._profit_to_loss_ratio_24h`), `activity.dormancy` and `supply.{in_profit, in_loss}.share` (were under
+  `relative.supply`); the transfer volume in profit and in loss sits under the volume,
+  `activity.transfer_volume.{in_profit, in_loss}`. Only the windows remain: the per-block SOPR, adjusted SOPR,
+  dormancy and profit-to-loss ratio are gone (`sopr`, `sth_sopr`, `asopr`, `sth_dormancy`,
+  `realized_profit_to_loss_ratio`, ...). Gross PnL ids put the adjective first: `sth_gross_realized_pnl`,
   `sth_gross_unrealized_pnl` (were `sth_realized_gross_pnl`, ...). Gone, as niche ratios of two published series or
-  derivable: `realized_cap_to_own_mcap` (the inverse of MVRV), `unrealized_{profit,loss}_to_mcap` and `_to_own_mcap`,
-  `unrealized_{profit,loss}_to_own_gross_pnl`, `net_unrealized_pnl_to_own_gross_pnl`,
-  `net_pnl_change_1m_to_{mcap,rcap}`, `pain_index`, `greed_index`, `net_sentiment`, and the means of the supply in
-  profit and in loss (`cost_basis.{in_profit, in_loss}.{per_coin, per_dollar}`; per coin, the capital in profit or loss
-  over the supply in profit or loss)
+  derivable: `realized_cap_to_own_mcap` (the inverse of MVRV), `unrealized_{profit,loss}_to_mcap`,
+  `{unrealized_profit, unrealized_loss, net_unrealized_pnl}_to_own_mcap`, `unrealized_{profit,loss}_to_own_gross_pnl`,
+  `net_unrealized_pnl_to_own_gross_pnl`, `net_pnl_change_1m_to_{mcap,rcap}`, `pain_index`, `greed_index`,
+  `net_sentiment`, and the means of the supply in profit and in loss (`cost_basis.{in_profit, in_loss}.{per_coin,
+  per_dollar}`; per coin, the capital in profit or loss over the supply in profit or loss)
 - Gone, as niche and one division or subtraction of published series: `mining.rewards.fees.to_subsidy` (ids
   `fee_to_subsidy_*`, beside `fees.share`), `supply.market_minus_realized_cap_growth_rate` (the difference of two
-  published growth rates), OP_RETURN's `data_bytes.share` (`*_data_share`) and the holders' `coinyears_destroyed`
-  (`sth_coinyears_destroyed`, ...: the yearly coin days destroyed over 365)
+  published growth rates), OP_RETURN's protocol and policy `data_share` (`op_return_runes_data_share`, ...: their share
+  of all OP_RETURN data bytes) and the holders' `coinyears_destroyed` (`sth_coinyears_destroyed`, ...: the yearly coin
+  days destroyed over 365)
 - SOPR, MVRV and NUPL are published for the holders' cohorts (MVRV also for Cointime's and Coinflow's weighted cohorts
   and prices); those of age ranges, epochs, classes, UTXO amounts and types and entry cohorts are gone, each one
   division of the cohort's published series (Bitview Studio rebuilds them): `class_2009_sopr_24h`, `epoch_0_mvrv`,
@@ -361,68 +377,79 @@ has to be deleted by hand.
   counts the genesis output's 50 BTC, which the UTXO set leaves out, so its share reads a hair above 100% in the first
   years)
 - Profitability bands are filter-first, each band a subset of the cohort node: `profitability.<filter>.<band>`
-  (filters `all`, `sth`, `lth`; were metric-first) holds `supply.{total, share}` and `capital.{total, realized_cap,
-  share}`. Band keys start with their side and spell percent out (`profit_over_1000_percent`,
-  `profit_10_to_20_percent`, `loss_0_to_10_percent`, ...; were `_10pct_to_20pct_in_profit`, ...), and ids lead with
-  the filter like every cohort (`sth_profit_10_to_20_percent_supply`, `lth_loss_0_to_10_percent_capital`,
-  `profit_10_to_20_percent_capital` for all; were `utxos_10pct_to_20pct_in_profit_sth_supply`, ...). Shares are of the
-  band's filter, so a filter's bands add up to 100%. Per-band net unrealized PnL, NUPL and supply deltas are gone (the
-  net PnL is `supply.total` in USD minus `capital.total`, NUPL that over the supply in USD): 600 series
+  (filters `all`, `sth`, `lth`; were metric-first, `cohorts.profitability.<metric>.range.<band>.<filter>`) holds
+  `supply.{total, share}` and `capital.{total, realized_cap, share}`. Band keys start with their side and spell percent
+  out (`profit_over_1000_percent`, `profit_10_to_20_percent`, `loss_0_to_10_percent`, ...; were
+  `over_1000pct_in_profit`, `_10pct_to_20pct_in_profit`, ...), and ids lead with the filter like every cohort
+  (`sth_profit_10_to_20_percent_supply`, `lth_loss_0_to_10_percent_capital`, `profit_10_to_20_percent_capital` for all,
+  the jargon twin `sth_profit_10_to_20_percent_realized_cap`; were `utxos_10pct_to_20pct_in_profit_sth_supply`,
+  `utxos_10pct_to_20pct_in_profit_sth_realized_cap`, ...). The shares are new and of the band's filter, so a filter's
+  bands add up to 100%. Gone: per-band net unrealized PnL, NUPL and supply deltas (the net PnL is `supply.total` in USD
+  minus `capital.total`, NUPL that over the supply in USD; 700 series), and the cumulative groups above or below a
+  threshold and all in profit or in loss (`utxos_over_10pct_in_profit_sth_supply`, `utxos_in_loss_realized_cap`,
+  `utxos_over_50pct_in_loss_nupl`, ...; derivable from the bands; 851 series)
 - Mean creation prices sit with the other creation-price statistics, each name analysts use beside its descriptive
   series, in holders, entry, age cohorts, UTXO cohorts, Cointime and Coinflow: `cost_basis.per_coin.avg` with its
   jargon `realized_price` and, where they exist, `avg.{ratio, mvrv}` and `median_realized_price` beside the percentiles;
   `cost_basis.per_dollar.avg.{block, ratio}` with `capitalized_price`. Ids: `sth_cost_basis_per_coin_avg[_ratio]`,
   `sth_cost_basis_per_dollar_avg[_ratio]` and the jargon `sth_realized_price`, `sth_mvrv`, `sth_capitalized_price` and
   `sth_median_realized_price` (a second id for `cost_basis.per_coin.median`). They were `realized.{price, mvrv,
-  capitalized_price}` (holders), `realized.price` (entry, age cohorts, UTXO cohorts) and
-  `realized_price`, `capitalized_price` beside `cost_basis` (Cointime, Coinflow); the `*_realized_price_ratio` and
-  `*_capitalized_price_ratio` ids are `*_cost_basis_per_{coin,dollar}_avg_ratio`, and entry, age and UTXO cohorts gain
-  `*_cost_basis_per_coin_avg`. Cointime and Coinflow gain MVRV (`awake_mvrv`, `sth_mobile_mvrv`, ...); the entry
-  cohorts' `value_destroyed` sits in `realized` (was under `sopr`)
+  capitalized_price}` (holders) and `realized.price` (entry, age cohorts, UTXO cohorts); the holders'
+  `*_realized_price_ratio` and `*_capitalized_price_ratio` ids are `*_cost_basis_per_{coin,dollar}_avg_ratio`, the
+  other cohorts' realized price ratios are gone with their MVRV (`utxos_1d_to_1w_old_realized_price_ratio`,
+  `epoch_0_realized_price_ratio`, `p2pkh_realized_price_ratio`, ...), and entry, age and UTXO cohorts gain
+  `*_cost_basis_per_coin_avg`. Cointime and Coinflow gain MVRV (`awake_mvrv`, `sth_mobile_mvrv`, ...). Every cohort's
+  `value_destroyed` sits in `realized` (was `realized.sopr.value_destroyed`)
 - Three duplicates are gone. `realized.net_pnl.delta` in the holders, age and entry cohorts (ids
   `*net_realized_pnl_delta_*`): the window's change of the cumulative net PnL, which equals `realized.net_pnl.sum`,
-  and its rate, that change divided by the cumulative before the window.
-  `addresses.new.<type>.cumulative` (ids `new_addr_count_cumulative`, ...) equals `addresses.total`.
-  `mappings.height.tx_index_count` equals `transactions.count.block` (`tx_count`)
-- Shared ids: `circulating_supply` (UTXO set, holders' `all` and supply), `market_cap` (holders' `all` supply in USD
-  and supply), `utxo_count` (UTXO set and holders' `all`).
-  `utxo_set.supply` is `circulating_supply` in BTC (was `unspent_sats` in sats); `supply.circulating` is BTC only,
-  its USD value being `supply.market_cap`
+  and its rate, that change divided by the cumulative before the window. `addrs.new.<type>.cumulative` (ids
+  `new_addr_count_cumulative`, ...) equals `addresses.total`. `mappings.height.tx_index_count` equals
+  `transactions.count.block` (`tx_count`)
+- Shared ids: the holders' `all` supply is `circulating_supply` in BTC and `market_cap` in USD (were `supply` and
+  `supply_usd`), the ids of `supply.circulating` and `supply.market_cap`; `supply.circulating` is BTC only, its USD
+  value being `supply.market_cap` (`circulating_supply_usd` is gone). `utxo_count_bis` (`outputs.unspent.count`) is
+  gone: `utxo_count` is the holders' `all` count
 - `TxStatus` omits `block_height`, `block_hash` and `block_time` until confirmed, like Esplora (they were sent as
   `null`)
 - Script payload series (`p2pkh_bytes`, `p2tr_bytes`, ...) are lowercase hex strings (were the Rust debug form
   `U8x20([..])`), and `outpoint` values are `{"tx_index": N, "vout": M}` objects (were a `"tx_index: N, vout: M"`
   string; a CSV cell holds the same object); schemas match, so the Rust client decodes them
 - `active_reused_address_share` and `active_respent_address_share` take the shape of the other address-event shares: a
-  share in percent, all time and per window, computed from the per-block counts
-  summed over the window. They were a stored per-block percentage with rolling averages of it, where a near-empty
-  block weighed as much as a full one: the all-time share is `*_cumulative` (the bare name was the block's), windows are
-  `_24h`, `_1w`, ... (were `_average_24h`, ...), and the per-block value is gone
+  share in percent, all time and per window, computed from the per-block counts summed over the window. They were a
+  stored per-block percentage with rolling averages of it, where a near-empty block weighed as much as a full one: the
+  all-time share is `*_cumulative` (the bare name was the block's), windows are `_24h`, `_1w`, ... (were
+  `_average_24h`, ...), and the per-block value is gone
 - OHLC values are typed as the `[open, high, low, close]` arrays the server sends (were typed as objects), and
   `/data` as any value (was typed as booleans)
-- A week is labeled by the Monday it starts on, as weeks are bucketed (was its Thursday): its `timestamp`, and the date
-  the clients give a `week1` point. Week 0 starts 2008-12-29
+- A week is labeled by the Monday it starts on, as weeks are bucketed: its `timestamp` and the Rust client's date for
+  a `week1` point (were its Thursday), and the JS and Python clients' date (was 2009-01-03 plus whole weeks, a
+  Saturday). Week 0 starts 2008-12-29
 - A range by a date or time before its index's first date (2009-01-01; day3's 2008-12-31, week1's 2008-12-29) starts
-  at the index's first row at every index, dates before 1970 included (minute, hour and day3 ranges started at 0, the
-  others said "not supported")
+  at the index's first row at every index, dates before 1970 included (minute, hour, height, epoch and halving ranges
+  started at 0, day3's came back empty, the other calendar indexes answered 400 "date/timestamp ranges not
+  supported", and a date before 1970 wrapped around to a later one)
 - Ten pools take their API slug in their tree key and series ids like every other pool: `pools.1thash`, `1thash_*`,
   and likewise `175btc`, `50btc`, `21inc`, `8baochi`, `1hash`, `58coin`, `7pool`, `1m1x` and `solopoolcom` (were
   `onethash`, `pool175btc`, `pool50btc`, `twentyoneinc`, `eightbaochi`, `onehash`, `fiftyeightcoin`, `sevenpool`,
   `onem1x` and `solopool`)
 - Cointime's value flows (`cointime.value.{destroyed, created, stored}`) are typed `DollarBlocks` and VOCDD
-  `DollarDaysPerCoin` (were `Float64`); JSON unchanged
+  `DollarDaysPerCoin` (were `StoredF64`); JSON unchanged
 - A coinbase input's `vout` is 4294967295, as in Bitcoin Core and Esplora (was 65535): `Vout` is a 32-bit index
   (its schema was capped at 65535)
 - `GET /api/block/{hash}/status` answers `in_best_chain: false` for a hash outside the published best chain, orphaned
-  or unknown, like Esplora (an unknown hash answered 404)
+  or unknown, like Esplora (both answered 404 `not_found`)
 - A series range wholly below the six-block reorg window has an ETag keyed by the hash of the last block it covers:
   appends keep it, a reorg replacing those blocks changes it (was keyed by version and bounds alone, so a reorg
-  could revalidate stale rows). The OpenAPI document's ETags are content hashes, other ETags change shape (caches
-  revalidate once after the upgrade), and every operation documents its 400, 500, 503 and 504 answers
+  could revalidate stale rows). The OpenAPI document's ETags are content hashes (were the release version), other ETags
+  change shape (caches revalidate once after the upgrade), and every operation documents its 400, 500, 503 and 504
+  answers
 - While a rebuild or a rollback below the published tip rewrites a plugin's rows, series requests reaching those
-  rows answer 503 `state_updating` (were clamped or empty)
-- A valid address with no confirmed activity answers like Esplora: zeroed `chain_stats` (`type_index: null`) and empty
-  `/txs`, `/txs/chain` and `/utxo` (was 404 `unknown_address`; unparsable addresses still answer 400)
+  rows answer 503 `state_updating` (were clamped or empty; series on the funded and empty address indexes and other
+  rewritable vectors instead waited up to 4 s on every update, then answered 503 `state_updating`)
+- A valid address with no confirmed activity answers like Esplora (was 404 `unknown_addr`; unparsable addresses
+  still answer 400): zeroed `chain_stats` with a null `type_index` (now nullable), an empty `/txs/chain`, and only its
+  mempool transactions and outputs in `/txs` and `/utxo` (none for an address never seen); the address operations no
+  longer declare 404
 - `GET /api/v1/difficulty-adjustment` follows mempool.space's mainnet semantics: `adjustedTimeAvg` is the observed
   pace (in an epoch's first 503 blocks, the last quarter epoch's pace scaled by the previous retarget),
   `remainingTime`, `estimatedRetargetDate` and `difficultyChange` use it, `difficultyChange` stays within a
@@ -431,44 +458,70 @@ has to be deleted by hand.
   epoch where mempool.space said +1.5%)
 - Pool rankings report `emptyBlocks`, the period's coinbase-only blocks (was always 0); v1 block extras' `virtualSize`
   is `weight / 4`, unrounded (was rounded up)
-- `/openapi.json` and `/api.json` declare their JSON 200 and 304 responses (the Rust client's `get_openapi` returns
-  JSON, was `String`); `/api.json` is a compact custom summary, not OpenAPI: build tools from `/openapi.json`
-- OpenAPI: `/api/v1/prices` and the `/api/v1/historical-price` entries share one `PricePoint` schema (were `Prices`
-  and `HistoricalPriceEntry`; JSON unchanged), and `TxIn.witness` is an inline array of hex strings (the `Witness`
-  component is gone). `/api.json` compacts every schema with one rule set: nullable and array types read `array[T]`,
-  maps show their value type, unions are deduplicated, and patterns, item counts and `additionalProperties: false`
-  are dropped everywhere. The schema description of mean sat amounts (`SatsFract`) reads "A mean amount in sats." (it
-  described USD prices in sats, which are whole `Sats`)
+- `/openapi.json` declares its JSON 200 response and both spec routes declare their 304 (only `/api.json`'s JSON 200
+  was declared); every client's `get_openapi`/`getOpenapi` returns parsed JSON (was text: Rust `String`, Python
+  `str`). `/api.json` is a compact custom summary, not valid OpenAPI (it was described as a compact OpenAPI
+  specification): build tools from `/openapi.json`
+- OpenAPI: `/api/v1/prices` and the `/api/v1/historical-price` entries share one `PricePoint` schema (were `Prices` and
+  `HistoricalPriceEntry`; JSON unchanged), and `TxIn.witness` is an inline array of hex strings (the `Witness` component
+  is gone). `/api.json` compacts every schema with one rule set: an array of a named type reads `array[T]`, nullable
+  ones included, maps show their value type, unions are deduplicated, and patterns, item counts and
+  `additionalProperties: false` are dropped everywhere; parameters keep their enum, default and bounds (were reduced to
+  their type)
 - mempool.space parity: `/api/blocks/{height}` above the tip answers 404 and `/api/v1/blocks/{height}` lists only the
-  published part of its window (they answered the 10 and 15 tip blocks); `/api/v1/mining/pool/{slug}/blocks/{height}` lists
-  blocks strictly below the height (included it, so paging repeated a block); P2PK outputs omit
+  published part of its window (they answered the 10 and 15 tip blocks); `/api/v1/mining/pool/{slug}/blocks/{height}`
+  lists blocks strictly below the height (included it, so paging repeated a block); P2PK outputs omit
   `scriptpubkey_address` (it held the pubkey hex); `/api/mempool`'s `fee_histogram` is binned in 50,000 vB steps like
   Esplora's (was one entry per fee rate); `/api/v1/historical-price` accepts `currency=USD` and starts at the first
-  priced interval (2010-08-16; it listed 3,463 $0 closes before it); `/api/v1/fees/recommended` returns
-  mempool.space's whole sat/vB tiers as `RecommendedFees` (was the precise floats), `/api/v1/fees/precise` returns
+  priced interval (2010-08-16; it listed 3,463 $0 closes before it); `/api/v1/fees/recommended` returns mempool.space's
+  whole sat/vB tiers as `RecommendedFees` (was the precise floats), `/api/v1/fees/precise` returns
   `PreciseRecommendedFees` (was `RecommendedFees`)
-- Hashrate endpoints: `currentHashrate` is the trailing 7-day estimate, like mempool.space's (was the noisy 1-day
-  one), and daily points are completed days stamped at their end (were stamped at their start, a day before
-  mempool.space's, and included today's partial day)
+- `/api/v1/historical-price` lists completed 4-hour closes labeled at the interval's end (were labeled at its start,
+  the current partial interval included); with `timestamp` it returns the last completed close at or before it (was
+  that timestamp's own interval, $0 when it held no block)
+- Network hashrate (`/api/v1/mining/hashrate`, `/api/v1/mining/hashrate/{time_period}`): `currentHashrate` is the
+  trailing 7-day estimate, like mempool.space's (was the noisy 1-day one), and daily points are completed days stamped
+  at their end (were stamped at their start, a day before mempool.space's, and included today's partial day). Pool
+  rankings' `lastEstimatedHashrate3d` and `lastEstimatedHashrate1w` are trailing 3- and 7-day estimates (were the
+  1-day rate 3 days and a week back)
 - Block-template diffs carry the template's `stats` (a client following diffs kept stale statistics)
-- Mempool transaction `sigops` match Bitcoin Core: a CHECKMULTISIG after a CHECKSIG counted 1 instead of 20, and a
-  P2SH spend whose scriptSig pushes `OP_n` (an HTLC's `OP_1 <redeem>`) counted no redeem sigops; transaction JSON
-  `inner_redeemscript_asm` shows those spends' redeem script (was empty), like Esplora
-- Calendar series (`first_height`, `date`, period timestamps and every per-resolution aggregate) report their height
-  mapping's live version: a fresh sync publishes the same versions and ETags as after a restart (they changed once,
-  on the first restart)
-- On an empty index, hashrate, pool detail and hashrate, difficulty history, reward stats and block fees, rewards
-  and fee rates answer 503 `state_updating` (were 500), and pool rankings too (were an empty 200)
+- Mempool transaction `sigops` count the redeem sigops of a P2SH spend whose scriptSig pushes `OP_n` (an HTLC's
+  `OP_1 <redeem>`; they counted none), and transaction JSON `inner_redeemscript_asm` shows those spends' redeem script
+  (was empty), like Esplora. Their `CHECKMULTISIG` counting follows Bitcoin Core like the indexer's (below)
+- On an empty index, network and pool hashrate, pool details, difficulty history, `/api/v1/difficulty-adjustment`,
+  reward stats, block fees, rewards, fee rates and sizes/weights answer 503 `state_updating` (were 500, and an empty
+  200 for block windows over `all`); pool rankings also answer 503 (were an empty 200)
+- Removed the deprecated routes (announced with a 2027-01-01 sunset): `/api/metrics`, `/api/metrics/{count, indexes,
+  list, search, bulk}`, `/api/metric/{metric}` and its `/{index}[/data|/latest|/len|/version]` forms, `/api/vecs/query`,
+  `/api/vecs/{variant}` and `/api/series/cost-basis[/{cohort}/dates|/{cohort}/{date}]`: use `/api/series/*` and
+  `/api/urpd/*`
+- The `investing` plugin is gone with its 346 series (`investing.*`): the DCA stack, cost basis, return and CAGR by
+  start year and by period (`dca_stack_from_2015`, `dca_cost_basis_1y`, `dca_return_4y`, `dca_cagr_10y`, ...), the
+  lump-sum stack and return (`lump_sum_stack_1y`, ...) and `dca_sats_per_day`
+- Multi-column series are gone (one height series holding a column per cohort or component): the `*_by_<family>`
+  matrices (`utxo_count_by_epoch`, `sopr_24h_by_class`, `addrs_supply_sats_by_balance_range`, `cap_raw_by_term`,
+  `profitability_supply_sats_by_term_and_range`, `coinflow_price_cents_by_aggregate`, ...), the age-range matrices
+  (`utxos_age_range_wakefulness`, ...), `rarity_meter_percentiles_cents` and `price_ema_cents`: read each member's
+  series
+- Gone as well: `supply_state` (`supply.state`, the UTXO count and value per height; `utxo_count` and
+  `circulating_supply` serve them), the cohorts' half supplies (`*_supply_half`, a chart helper) and negated losses
+  (`*_realized_loss_neg*`, `*_unrealized_loss_neg`)
+- Concurrent live price requests share one rebuild of the oracle's window: while it runs, the others answer 503
+  `state_updating` (each request rebuilt it)
+- Error messages: an invalid address reads "Invalid address", an address without confirmed transactions "Address has
+  no confirmed transactions", an unknown transaction "Transaction not found" and a read timeout "Read exceeded its time
+  limit". Other messages are reworded with their codes and statuses unchanged, among them the series-list 400s ("Series
+  list too long: at most 32 names and 2,048 bytes", "Expected a series name string or array") and `bitview_mcp`'s
+  cursor and response-read errors. OpenAPI descriptions are tightened throughout (no schema change), and `/api.json`
+  drops empty descriptions
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
-- Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One
-  unit per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure
-  is one generic type named after its path (`Blocks`, `Interval<A, B>`, `SeriesTree`; Rust types live in
-  `bitview_client::tree`)
-  instead of `SeriesTree_Blocks`, `_1m1w1y24hPattern6<T>` or `CatalogOhlc<T0, T1, T2>`. Tree children materialize on
-  first access. The JS `createSeriesPatternN` helpers are gone. Clients shrink from 781 KB to 358 KB (JS), 654 KB to
-  322 KB (Python) and 4.25 MB to 214 KB (Rust)
+- Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One unit
+  per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure is one generic
+  type named after its path (`Blocks`, `Interval<A, B>`, `SeriesTree`; Rust types live in `bitview_client::tree`)
+  instead of `SeriesTree_Blocks` or `_1m1w1y24hPattern6`. Clients shrink from 1.26 MB to 315 KB (JS), 1.05 MB to
+  276 KB (Python) and 1.95 MB to 180 KB (Rust), with a third of v0.12.2's series paths
 - The raw `getSeries`/`get_series` methods return the same helper objects as typed endpoints (Python: a dataclass,
   read `.data` instead of `['data']`)
 - `BitviewError` carries the HTTP `status`, the server's `code` (`ErrorCode`) and the server's message in all three
@@ -477,322 +530,363 @@ has to be deleted by hand.
   `total=False` subclass); keys that aren't identifiers (`24h`, `txId[]`) use the functional `TypedDict` form; the
   package ships `py.typed`
 - JS and Python date conversions and address payload checks read tables generated from the server's own
-  declarations (`Index::calendar`, `ADDRESS_PAYLOAD_LENGTHS`) instead of hand-kept copies. Rust:
-  `decode_address_payload` returns `AddressBytes` (`AddressPayload` is gone); the cointime prices node type is
-  `Prices` (was `CointimePrices`)
-- JS and Python date selectors use UTC with the server's day1/week1/year10 mapping (they used local time and put day1
-  0 on 2009-01-03), and dates before an index's first date throw, as in the Rust client (2009-01-01; day3's is
-  2008-12-31, week1's 2008-12-29)
-- One selection builder per client: a single item is a one-item range (JS `SingleItemBuilder` and
-  `DateSingleItemBuilder`, Python `SingleItemBuilder` and `DateSingleItemBuilder` are gone). In Rust the selection
-  methods return the `SeriesEndpoint` itself (`SingleItemBuilder`, `RangeBuilder` and `SkippedBuilder` are gone;
-  `DateSeriesEndpoint` is an alias), `fetch` borrows it, and `take(n)` after a bounded range narrows its end. Tree
-  children are `LazyNode<T>` values built on first access (were `LazyLock` aliases with boxed initializers); JS
-  thenables are typed as `PromiseLike`
+  declarations (`Index::calendar`, `ADDRESS_PAYLOAD_LENGTHS`) instead of hand-kept copies
+- Rust: `decode_address_payload` returns `AddressBytes` (`AddressPayload` is gone)
+- Date selectors use UTC with the server's day1/week1/year10 mapping (JS used local time; JS and Python put day1 0 on
+  2009-01-03), and dates before an index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29) are an
+  error in all three clients: JS and Python throw, and Rust's `get_date`, `date_range`, `get_timestamp` and
+  `timestamp_range` return `Result` (Rust mapped them to index 0)
+- A single-item selection is a one-item range: JS and Python drop `SingleItemBuilder` and `DateSingleItemBuilder`, and
+  in Python `DateSeriesEndpoint` subclasses `SeriesEndpoint` and `SkippedBuilder` subclasses `RangeBuilder` (only
+  `isinstance` answers change). In Rust the selection methods return the `SeriesEndpoint` itself (`SingleItemBuilder`,
+  `RangeBuilder` and `SkippedBuilder` are gone; `DateSeriesEndpoint` is an alias, was a wrapper struct), `fetch`
+  borrows it, and `take(n)` after a bounded range narrows its end
+- Rust: tree children are `LazyNode<T>` values built on first access (were `LazyLock` aliases with boxed initializers)
+- JS: thenables are typed as `PromiseLike`
+- Rust: `FormatResponse` drops `json`, `csv`, `is_json` and `is_csv`: match `FormatResponse::{Json, Csv}`.
+  `SeriesData` drops `indexes`, `iter`, `dates`, `timestamps` and `is_date_based` (use `start..end`,
+  `(start..end).zip(&data)`, `iter_dates()` and `iter_timestamps()`), and its `version` is a `u32` (was `Version`).
+  `DateSeriesData` drops `try_new`, `into_inner`, `dates` and `timestamps`; its `iter_timestamps()` stays infallible
+  and it derefs to its `SeriesData`
 
 #### Crates and features
 
-- New `bitview_http`: ETag matching (weak, quoted, lists, `*`) and the lengthless 304 body, shared by
-  `bitview_server`, `bitview_website` and `bitview_mcp`
-- A plugin's crate, id and series root are one word: `bitview_plugin_age` (was `bitview_plugin_distribution_age`),
-  `holders` (`distribution_aggregated`), `utxos` (`distribution_utxos`), `entry` (`distribution_entry`), `addresses`
-  (`distribution_addresses`), `profitability` (`distribution_profitability`); the shared library is
-  `bitview_distribution` (was `bitview_plugin_distribution_common`). `Has*`/`Supports*` traits and composition
-  accessors follow (`HasAge`, `.age()`, ...). Their storage directories are renamed (bitviewd deletes the old
-  ones and recomputes; moving `plugins/distribution_<x>` to `plugins/<x>` skips that), and `/api/series/count`'s
-  `by_db` keys follow. Every plugin's series live under its own root, ids unchanged: `cohorts.*` splits into `age.*`
-  and `utxos.*`, `addrs.*` is `addresses.*`, `distribution_aggregated.cohorts.<c>` is `holders.<c>`,
-  `distribution_entry.cohorts.<c>` is `entry.<c>`, the profitability bands are `profitability.*`, and the indexer's
-  per-record data (`transactions.raw`, `inputs.raw`, `addrs.raw`, `scripts.raw`, block hashes, sizes, timestamps...)
-  is `indexer.*`. `difficulty` stays one series at `blocks.difficulty.block`
+- `bitview_plugin_distribution` (plugin `distribution`) is split into plugins whose crate, id and series root are one
+  word: `bitview_plugin_age` (`age`), `utxos`, `holders`, `entry`, `addresses` and `profitability`, sharing the new
+  `bitview_distribution` library; `HasDistribution` (`.distribution()`) and `bitview_query`'s `SupportsDistribution`
+  give way to `HasAge`/`HasAddresses` (`.age()`, `.addresses()`) and `SupportsAge`/`SupportsAddresses`. Their storage
+  directories replace `plugins/distribution` (bitviewd deletes it and recomputes), and `/api/series/count`'s `by_db`
+  keys follow. Every plugin's series live under its own root: v0.12.2's `cohorts.*` and `addrs.*` are `age.*`,
+  `utxos.*`, `holders.*`, `entry.*`, `profitability.*` and `addresses.*` (ids change as described above), and the
+  indexer's per-record data (`transactions.raw`, `inputs.raw`, `outputs.raw`, `addrs.raw`, `scripts.raw`,
+  `op_return.raw`, block hashes, sizes, timestamps...) is `indexer.*`
 - Removed the `constants` plugin and its 18 `constant_*` series: chart reference lines are drawn client-side
-- Removed the `bitview_plugin_indicators` and `bitview_plugin_capital_sentiment` crates with their `HasIndicators` and
-  `HasCapitalSentiment` capabilities and `brk_types::CapitalSentimentPhase`
-- Removed `brk_fetcher`, `brk_iterator` and the `brk` umbrella crate; depend on `brk_reader`, `brk_rpc` and
-  `brk_types` directly
+- Removed the `bitview_plugin_indicators`, `bitview_plugin_capital_sentiment` and `bitview_plugin_investing` crates with
+  their `HasIndicators`, `HasCapitalSentiment` and `HasInvesting` capabilities and `brk_types::CapitalSentimentPhase`
+- Removed `brk_fetcher`, `brk_iterator` and the `brk` umbrella crate; depend on the `brk_*` crates directly
 - Moved Bitview's index, value and state types from `brk_types` to the new `bitview_primitives` crate (calendar and
-  epoch indexes, `Date`, per-type address and output indexes, `TypeIndex`, `AddrHash`, `Index`, the scalar value
-  types, basis points and parts per million, `CentsCompact`, `SatsFract`, OHLC, address and supply state, cost-basis
-  types, pools, OP_RETURN kinds, percentile ids, `INDEX_EPOCH`); REST response DTOs and query-protocol types to
-  `bitview_types` (with `ErrorBody`, `ErrorType`, `ErrorCode`); CPFP linearization (`Cluster`, whose methods replace
-  `linearize` and `ChunkInput`, and `find_seed_chunk`) to the new `brk_cpfp` crate; `Age` and `Term` to
-  `bitview_cohort`; `Port` to `bitview_server`.
-  `brk_types` keeps the Bitcoin primitives, and the Rust client re-exports `bitview_primitives`
+  epoch indexes, `Date`, per-type address and output indexes, `TypeIndex`, `AddrHash`, `Index`, the scalar value types,
+  parts per million, `CentsCompact`, `SatsFract`, OHLC, address and supply state, cost-basis types, pools, OP_RETURN
+  kinds, percentile ids, `INDEX_EPOCH`); the REST response DTOs and query parameters (`RangeIndex`, `TimePeriod`) to
+  `bitview_types`, which also makes the error body public (`ErrorBody` with the new `ErrorType` and `ErrorCode`);
+  `bitview_types`' `TreeNode`, `SeriesLeaf` and `SeriesLeafWithSchema` to the new `bitview_catalog`
+  (`SeriesSelectionLegacy` is gone); `Age` and `Term` to `bitview_cohort`; `Port` to `bitview_server`. The new
+  `brk_cpfp::Cluster` replaces `brk_types`' `linearize`, `ChunkInput` and `find_seed_chunk`. `brk_types` keeps the
+  Bitcoin primitives, and the Rust client re-exports `bitview_primitives` and `bitview_catalog`
+- `bitview_compute`'s vector families, shapes and transforms moved to the new `bitview_vecs` crate (shapes in
+  `bitview_vecs::shapes`, transforms in `bitview_vecs::ops`); `bitview_compute` keeps the algorithms
+  (`DistributionStats`, rolling statistics, weighted cohort state, ...; `algo` and `db_utils` are gone). Its fixed
+  2 GiB `CacheBudget` is vecdb's `CacheBudget`, sized by `Budgeted::init_global` (`bitview::DEFAULT_CACHE_BUDGET`
+  unless configured), and `TARGET_BLOCKS_PER_*` moved to `brk_types`. Plugin-only types moved into their plugin,
+  private: the price's OHLC transforms (`OhlcCentsTo*`) and `AgeBand` (coinflow)
 - Made `bitview` the only daemon library: `bitview::run(import)` is the entry point (was `bitviewd::run`).
   `bitview::Config` is now the file and argument configuration (was `bitviewd::Config`); the former `bitview::Config`
   with resolved settings is `RunConfig`, and the low-level `bitview::run(config, exit, import)` is private. `bitviewd`
   is binary-only and has no features; the `bitview-bindgen` binary moved to the unpublished `bitview_devtools`
 - Removed `bitview_runtime`: `PluginSet`, `ComputePluginSet` and `BootstrapAction` live in `bitview_plugin`, whose
   `derive` feature re-exports the `PluginSet` derive (`bitview_runtime_derive` is `bitview_plugin_derive`);
-  `bootstrap` and `DEFAULT_CACHE_BUDGET` live in `bitview` (`bitview_plugin::DEFAULT_CACHE_BUDGET` is gone).
-  Removed `bitview_collections` and `bitview_transforms`: their shapes are `bitview_vecs::shapes` (with
-  `DistributionStats` in `bitview_compute`) and their transforms `bitview_vecs::ops`. Plugin-only types moved into
-  their plugin: `TxDistribution` and `PerTxDistribution` (transactions, private), `bitview_plugin_price::SpotPrice`
-  with the price's OHLC and split views and transforms (private), `AgeBand` (coinflow, private) and `AvivNupl`
-  (cointime, private). `overwritten_output` is `bitview_plugin_indexer::overwritten_output` (was in outputs;
-  `DUPLICATE_COINBASES` is private). `bitviewd_latency` takes the data directory as its one argument (was read from
-  the bitview config)
+  `bootstrap` stays in `bitview`, and `update` is private
 - `bitview` and `bitview_server` expose only the route-family features `full-api`, `chain`, `series`, `urpd` and
-  `price` (the `bedrock` feature is gone). `bitview_query` drops its `tokio`, `indexer` and per-plugin features: the API
+  `price`: the per-plugin features (`bedrock`, `blocks`, `coinflow`, `cointime`, `distribution`, `mappings`, `inputs`,
+  `mining`, `outputs`, `pools`, `transactions`) and `bindgen` (with `bitview_server::generate_bindings`) are gone.
+  `bitview_query` drops its `tokio`, `indexer` and per-plugin features (`price` stays, for the price routes): the API
   features pull the plugins their endpoints read, and dependencies only one feature reads are optional under it
-- JSON Schema support in `brk_types` and `brk_oracle` is behind a new `schemars` feature; both build without schemars
-  or serde_json
+- `brk_types`' vecdb support is behind a new `storage` feature (and so is `bitview_primitives`') and its JSON Schema
+  support, like `brk_oracle`'s, behind a new `schemars` feature: both build without vecdb, schemars or serde_json.
+  Crates storing their values in vecdb, such as a custom plugin, enable `storage`
 - `brk_alloc` no longer installs mimalloc as the global allocator: it re-exports `MiMalloc`, each binary declares
   `#[global_allocator]` (custom binaries should too, or `brk_alloc::collect()` frees nothing), and
   `Mimalloc::collect()` became `brk_alloc::collect()`
+- `quickmatch-js` drops the public `wordIndex` and `trigramIndex` maps
 
 #### Plugin and runtime contract
 
-- `ComputePlugin` requires `database()` and `compute_state()`; the provided `compute` syncs the database before and
-  compacts it after a successful computation
+- `ComputePlugin` drops `type Output`: a plugin implements `database()` and `compute_state()` (returning `()`) instead
+  of `compute`, and the provided `compute` syncs the database before and compacts it after a successful computation
+  (drop hand-written `sync_bg_tasks` and compaction)
 - `ImportContext::new(path, &exit)` takes the shutdown coordinator, and every composition import runs under the
   shutdown lock, so imports must not block on outside services. The indexer's import is local-only; offline reorgs
   reconcile in the first index run
 - `ComputePluginSet::commit(complete)` is required (a composition that left it out never published new data);
   `complete` is false after a bootstrap `Reimport`
-- `#[plugin_set(has = ...)]` derives capability impls. Removed the unused `HasSupply`, `HasConstants`,
-  `HasOpReturn`, `HasRarityMeter`, `HasMarket`, `HasDistributionUtxos`, `HasBedrock` (with `bitview_query`'s
-  `SupportsBedrock`), `HasHolders`, `HasEntry` and `HasProfitability`;
-  `Indexer::indexed_height` is gone; `Lengths` comes only from `bitview_primitives`
-- The pipeline-wide `Publication` gate is gone (`bitview_plugin::Publication`, `ComputePluginSet::publication`,
-  `Query::reads_under`): readers pin the indexer's published state instead (`Indexer::pin`, which never waits;
-  `Indexer::pin_safe_lengths_for` and `try_pin_safe_lengths` are gone), and `SafeLengths` carries the published tip
-  and revision. `Indexer::commit` splits into `prepare_commit` and `publish` for compositions that publish in-place
-  state with the lengths; `bitview::run` returns `bitview::Result`, and `bitview` re-exports only what a runner needs
-  (`run`, `Config`, `RunConfig`, `bootstrap`, the contexts, `QueryPluginSet`)
-- `Mempool::start_with` takes the published tip (`|| query.tip_blockhash()`): pools are published at that tip only
-- Plugins may publish the same series id: compositions are open, so ids can collide. An id still spans plugins by
-  index (a height series and its date resolutions); at the same index the first plugin in the composition's
-  declaration order serves it; a later plugin with the same value type at every colliding index keeps its tree path
-  (and adds its other indexes), one with another type loses the id. The serving plugin's description wins; an id
-  spanning plugins by index must be described alike. The server logs each collision at startup,
+- `#[plugin_set(has = ...)]` derives capability impls. Removed the unused `HasSupply`, `HasConstants`, `HasOpReturn`,
+  `HasRarityMeter`, `HasMarket` and `HasBedrock` (with `bitview_query`'s `SupportsBedrock`), and `bitview_query`'s
+  `SupportsChainQueries`, `SupportsSeriesQueries` and `SupportsUrpdQueries`; `Indexer::indexed_height` is gone;
+  `Lengths` comes only from `bitview_primitives` (was `brk_types::Lengths`, re-exported by `bitview_plugin_indexer`)
+- The per-plugin gates are gone (`Plugin::gate`, `bitview_plugin::{PluginGate, PluginReadGuard}`,
+  `Indexer::{begin_update, finish_update}`): readers pin the indexer's published state (`Indexer::pin`, which never
+  waits, replaces `Indexer::safe_lengths`), and `SafeLengths` carries the published lengths, tip and revision.
+  `Indexer::commit` splits into `prepare_commit` and `publish` for compositions that publish in-place state with the
+  lengths; `Indexer::{index, checked_index}` are gone (the indexer computes as a `ComputePlugin`)
+- `bitview::run` returns `bitview::Result`; `bitview` no longer re-exports `BootstrapAction`, `ComputePluginSet` and
+  `PluginSet` (use `bitview_plugin`) or `update` (private), and drops `HOMEPAGE`, `INSTANCE` and `TOOLKIT`.
+  `ImportContext::data_path` and `bitview_plugin::PLUGIN_DATA_DIR` are private
+- `brk_mempool::Mempool` is no longer `Clone`: `start_with(&mut self, resolver, published_tip)` takes the published
+  tip (`|| query.tip_blockhash()`), so pools are published at that tip only, and readers get
+  `Mempool::read_only_clone()` (`ReadOnlyMempool`, what `AsyncQuery::build` takes; `ReadOnlyMempool::load()` gives the
+  `ReadOnlyState` holding the former `Mempool` read methods). `Mempool::snapshot()` and `stats()` are gone
+- Plugins may publish the same series id: compositions are open, so ids can collide. An id still spans plugins by index
+  (a height series and its date resolutions); at the same index the first plugin in the composition's declaration order
+  serves it; a later plugin with the same value type and nullability at every colliding index keeps its tree path (and
+  adds its other indexes), one with another type loses the id. The serving plugin's description wins; an id spanning
+  plugins by index must be described alike. The server logs each collision at startup,
   `bitview_query::Vecs::shared_series` lists them, and `PluginData::collect_descriptions` collects a plugin's
   descriptions
 - A plugin derives `Plugin` from its storage (`#[derive(Plugin)]` with `#[plugin(storage = STORAGE)]`, under
   `bitview_plugin`'s `derive` feature), and `compute_items!(Dependencies, db)` declares its `ComputePlugin`
   dependencies type and database
-- Plugins recompute from `Indexer::compute_start`, the update's resume point fixed for the whole update, not from the
-  publication; a plugin rewriting rows below the published lengths (a rollback landing below its start, a
-  truncation, a reset) goes through `Indexer::rewrite_from` (replaces `lower_publication_to`). Plugins keeping undo
-  write each update's last ten blocks as one protected step (`bitview_compute::undo_chunks`)
+- Plugins recompute from `Indexer::compute_start`, the update's resume point fixed for the whole update (v0.12.2
+  compositions passed `Indexer::safe_lengths()`); a plugin rewriting rows below the published lengths (a rollback
+  landing below its start, a truncation, a reset) goes through `Indexer::rewrite_from`. Plugins keeping undo write
+  each update's last ten blocks as one protected step (`bitview_compute::undo_chunks`)
 - `ComputePluginSet::write_published` is required: after `commit`, it writes what the publication served from memory
   (the address state). Compositions delegate it to the default composition, like `commit`
 
 #### Rust APIs
 
-- `bitview_vecs::ops::Quotient` and `RelativeChange` (were in `bitview_transforms`) return NaN (or an infinity) for a
-  zero denominator or base (were zero); `RatioCentsOrOne`, `RatioDollars` and `RatioDiffFloat32` are removed (use
-  `Quotient` and `RelativeChange`). `CentsSats::realized_price` returns `Cents::NAN` without sats (was zero);
-  `vecdb::DeltaRate` NaN from a zero start
-- `brk_types`: `Weight` is the 64-bit weight and `SigOps` the 64-bit sigop cost (were `Weight64` and `SigOps64` in
-  `bitview_primitives`); their 32-bit storage forms are `Weight32` and `SigOps32` (were `Weight` and `SigOps`). The
-  REST types use the wide ones (`Transaction.weight` and `.total_sigop_cost`, CPFP entries, block info and weight
-  entries; JSON unchanged), and the methods (`MAX_BLOCK`, `from_sizes`, `fullness`, `adjust_vsize`) moved to them
-- `bitview_traversable::Compact<V, T>`: a vec stored in a compact type and published as a wider one under its id
-- The per-transaction distributions (`TxDerivedDistribution` and friends) moved into the transactions plugin, private:
-  one per-block series per statistic (`DistributionStats<PerBlock<T>>`), counted or vsize-weighted (fee rates), the
-  per-transaction vec named `tx` (was `tx_index`); `PerBlockDistribution`, `LazyDistribution`,
-  `LazyTxDerivedDistribution`, `LazyPerTxDistributionTransformed`, `LazyPerBlockRolling`, `LazyRollingComplete` and
-  `LazyRollingDistribution` are removed. Readers of `fees.fee.distribution.block.median`
-  read `fees.fee.distribution.median`. `brk_types::get_weighted_percentiles` takes integer percents and returns the
-  first value whose cumulative vsize reaches each (Bitcoin Core's rank rule; was a rounded target)
-- `bitview_cohort::PROFITABILITY_EDGE_DIVISORS` and `BREAK_EVEN_DIVISOR` replace `compute_profitability_boundaries`,
-  and `PriceIndex::before_cut(GridCut)` sums the buckets below a grid cut (`GridCut::below` an exact edge, `through`
-  a price's bucket). The price plugin's candles are private to it (`ClosePrice` and
-  `LazyIndexes::from_open_source` are gone)
-- `bitview_primitives::Score` has an undefined value (`Score::NAN`, `i8::MIN`, served as null; `scalar!` gains
-  `nullable int`) and `Rank` is gone; `bitview_plugin_rarity_meter::Dependencies` no longer takes `bedrock`
-- `Cents::round_to_dollar(i32)` and `CentsCompact::round_to_dollar(i32)` are `round_to_significant(u32)`: significant
-  digits of the amount in cents (were whole dollars, then digits); `bitview_urpd::COST_BASIS_PRICE_DIGITS` is a `u32`
-  (4, was 5). `bitview_distribution::state::cost_basis::PRICE_INDEX_VERSION` is the price grid's version for a price
-  index's owner
-- `bitview_vecs::Price` is the USD series over its cents (the derived sats-per-USD field and type parameter are
-  gone; `SpotPrice::sats_per_dollar` builds the one public sats view); `OHLCSats`, `DollarsToSatsFract` and
-  `OhlcCentsToSats` are removed. `#[traversable(flatten, rename = "...")]` names a flattened leaf. A catalog key that is
-  both a series and a group panics when the catalog is built (it was silently filed under `raw`)
-- `bitview_query` returns its own typed `Error` and `Result` (with `SeriesNotFound`); `bitview_server::{app, App,
-  Error}` are public. `brk_error` drops `MempoolNotAvailable`, `ReadTimeout`, `UnknownAddr`, `SeriesNotFound`,
-  `SeriesUnsupportedIndex`, `NoSeries`, `NoData`, `WeightExceeded`, `TooManyUtxos`, `FetchFailed`, `HttpStatus`,
-  `ZeroCopyError`, `QuickCacheError`, `InvalidTxid`, `Deserialization` and `truncate_series_name`, replaces `AuthFailed`
-  with `NoRpcCredentials { cookie }`, gains `TxRejected`, `RpcAuthFailed` and `RpcForbidden`, and loses its `ureq` and
-  `pco` features
-- VecDB has one import verb: `ImportableVec::import`/`import_with` reset data on a version, format or value-size
-  mismatch (former `forced_import*`, renamed with every workspace constructor, including all `bitview_vecs`
-  families; the strict variant is private), deleting the vector's rollback history too.
-  `Error::DifferentValueSize` is new; `WrongEndian`, `TryLockError`, `SystemTimeError`, `FailedKeyTryIntoUsize` and
-  `VersionCannotBeZero` are gone. `compute_sum_from_indexes` and `compute_transform2_batched` are removed, and
-  `AnyStoredVec::any_validate_computed_version_or_reset` returns whether the computed version changed
-- Rolling statistics (`compute_rolling_sum/average/ema`, `compute_all_time_high/low`) moved from `EagerVec` to the
-  `bitview_compute::ComputeRollingStats` extension trait (`ComputeVec::compute_to` replaces `repeat_until_complete`
-  for such extensions); `compute_rolling_sd`, `compute_rolling_rma`, `compute_expanding_sd` and `compute_sma` are
-  removed
-- `vecdb::Convert` (was `bitview_transforms::Convert`, then `bitview_vecs::ops::Convert`) replaces `SatsToBitcoin`,
-  `SatsSignedToBitcoin`, `CentsUnsignedToDollars`, `CentsSignedToDollars` and `OhlcCentsToDollars`; `Quotient<P>`
-  the `Ratio{Cents,Sats,Count,Bytes,CentsSignedCents}` transforms; `RelativeChange<P>` `RatioDiff{Cents,Dollars}`.
-  `bitview_vecs`: `Percent*` types hold the fixed-point storage and a percent view (no ratio view), `Ratio*` types the storage and a ratio view; both name the storage `fixed`
-  (was `ppm`), and `RatioPerBlock::import` takes the full name (`import_ppm` is gone). `RatioRollingWindows` and
-  `LazyRatioRollingWindows` are new. `LazySpotValuePerBlock` is a `SpotValue` (BTC, sats
-  and USD, no cents); `LazyValuePerBlock` (use `LazySpotValuePerBlock::identity`), `LazyValue`,
-  `LazyValueDerivedResolutions` and `SpotValueSource` are gone. Flow types (`PerBlockCumulativeRolling`,
-  `LazyPerBlockCumulativeRolling`, value and fiat cumulatives) expose a window `sum` field (no `average`, no `rolling`
-  field or `Deref` to rolling totals); `RollingAmountTotals`, `LazyFiatPerBlockCumulativeRolling` and
-  `LazyRollingAvgFiatFromHeight` are gone (`ValuePerBlockFull`, a distribution, keeps its `avg`). `StdDevPerBlock`
-  is gone.
-  `LazySpotValuePerBlock::from_sats_source_named` names the USD series. `Halving::subsidy` gives the scheduled subsidy;
-  `bitview_plugin_blocks::ONE_TERA_HASH` and `ThsToPhs` are gone. `PercentileId::{Pct5, Median}` (were `Pct05`/`Pct50`)
-  with `suffix()`; `RarityPercentileId::Median` (was `Pct50`), `price_suffix` is gone. `FiatType`/`AmountType` lose
-  their conversion types, `FixedRatio` its transform types, and the `PerBlockRollingAverage` family is gone; `Quantity`
-  names a unit's mean (`Fract`) and total (`Sum`) types. `bitview_collections::Percent` is `PercentViews` (storage and
-  percent); value types lose their unused `Div<usize>` impls (`FeeRate` keeps it)
-- `brk_rpc::ConnectArgs` (node data dir, blocks dir, RPC endpoint and credentials, resolved like Bitcoin Core) with
-  `client()` is shared by bitviewd, blk and mmpl; `Client::default_url`, `Client::default_bitcoin_path`, `get_block`,
-  `get_block_hash` and configurable retries are removed
-- Tightened public APIs to what the workspace uses, removing among others: VecDB `VecReaderCursor`, `fold_stored_*`,
-  `Budgeted::global`; RawDB `Region::batch_write_ordered`; rangeindex `CachedRangeMapCursor`, `RangeMap::get`;
-  quickmatch `matches`, `matches_best_with_ids_and_matched_words` and the `with_trigram_budget`/`with_separators`/
-  `with_min_score` knobs (fixed defaults); `brk_reader::Reader::range_with` (use `range`);
-  `brk_oracle::Oracle::from_seed`; `brk_mempool` `start` (use `start_with`) and `MempoolStats`; `bitview_query`
-  `addr_txids`, `addr_utxos` and `SeriesOutput` (`format*` returns `Output`); statedb `seed`, `Spends::start`,
-  `Reader::start` and the journal base; `brk_types` `OptionExt`, `StoredI16`, `StoredString`, `AnyAddrIndex`,
-  `AnyAddrDataIndexEnum`, `Bitcoin / Bitcoin`, `Dollars / Dollars`, `Day1`'s `FromCoarserIndex` impls and
-  `Date::into_jiff`; `bitview_compute` `walk_blocks` and `BlockAggregate` (`CoinbasePolicy` moved to `bitview_vecs`);
-  `bitview_catalog` `TreeBranch::{source, field_types, field_suffixes}`, `TreeNode::{with_source, with_field_suffixes}`
-  and `#[traversable(field_suffixes)]`
-- Members first in the cohort libraries: `bitview_distribution::families` are one-cohort types (`Supply`, `Fiat`,
-  `CumulativeFiat`, `CumulativeValue`, `CumulativeCount`, `CountWithDeltas`, each taking the cohort's series name;
-  were `SupplyByCohort`, `SupplyTotal`, `FiatByCohort`, `CumulativeRealizedByCohort`, `CumulativeValueByCohort`,
-  `SpentOutputCount` over a cohort group), `metrics::SupplyBase` is `SupplyChange` (delta and share) and `CohortSupply` (with the stored
-  total), and `bitview_vecs::CumulativeSource` is one running total. Gone: `bitview_cohort::{CohortGroup,
-  cohort_group, CreationCohorts, UtxoGroups}`, `bitview_vecs::{CohortSources, CumulativeCohortSources,
-  CumulativeCohortValueSources, DisjointAgeSources}` and `bitview_urpd::AgeBoundsMetrics`. `ByEpoch::try_new` and
-  `Class::try_new` are public; `ByEntry` and `EntryPrice` name their members `rookie`/`Rookie` and
-  `veteran`/`Veteran` (were `premium` and `discount`). A `Traversable` struct whose only visible field is a
-  flattened view is that view, a single-unit leaf included
-- Analytics type families: `bitview_cohort::{AddressType, AddressTypeId}` are the six address types;
-  `SpendableTypeId::{P2PK65, P2PK33}` are `P2PK`, and `output_type()` gives way to `key()` and `cohort()`;
-  `CohortId::Type` takes a `SpendableTypeId` and `CohortId::OpReturn` is new; `ByType::{from_type, try_new}` are
-  `from_fn` and `try_from_fn` over the new `OutputTypeId`, `type_key` is `OutputTypeId::key`; `CohortContext::Addr` is
-  `Balance`; `bitview_vecs::compute_type_counts` counts per member slot. Outputs' and Inputs' `addr_type_counts` and
-  UTXOs' `type_supply` are gone; `bitview_plugin_addresses::Vecs::import` no longer takes the outputs or inputs (it
-  takes `ShareTotals`, below), nor its `Dependencies` the per-type supply; `CohortSupply::import` takes the supply
-  series name
-- Gone with the tree changes: `bitview_vecs::{ConstantVecs, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
-  AmountSources, AmountValueSources, LazyPerBlockCumulativeAverage}`, `PerBlockCumulativeAverage::reset`,
-  `bitview_cohort::WithAddrTypes`, `bitview_compute::LazySpotValuePerBlockWithDeltas`,
-  `LazyPerBlockCumulativeRolling::from_lazy_source`, `bitview_transforms::BlockCountTarget`,
+- `bitview_compute`'s ratio transforms are `bitview_vecs::ops::Quotient<P>` (was `RatioU64`, `RatioBytes`, `RatioSats`,
+  `RatioCents`, `RatioCentsSignedCents`, `RatioDollars` and `RatioCentsF32`) and `RelativeChange<P>` (was
+  `RatioDiffF32`, `RatioDiffCents` and `RatioDiffDollars`); both return NaN (or an infinity) for a zero denominator or
+  base (were zero; `RatioCentsF32` one). `vecdb::DeltaRate` is NaN from a zero start (was zero)
+- `vecdb::Convert` replaces `bitview_compute`'s `SatsToBitcoin`, `SatsSignedToBitcoin`, `CentsUnsignedToDollars`,
+  `CentsSignedToDollars` and `OhlcCentsToDollars` transforms; `bitview_compute::CentsUnsignedToSats` is
+  `bitview_vecs::ops::CentsToSatsPerDollar`
+- `bitview_compute`'s per-transaction distributions (`TxDerivedDistribution`, `PerTxDistribution`) moved into the
+  transactions plugin, private: one per-block series per statistic (`DistributionStats<PerBlock<T>>`), counted or
+  vsize-weighted (fee rates), the per-transaction vec named `tx` (was `tx_index`); `PerBlockDistribution`,
+  `BlockRollingDistribution`, `LazyDistribution`, `LazyTxDerivedDistribution`, `LazyPerTxDistributionTransformed`,
+  `LazyPerBlockRolling`, `LazyRollingComplete` and `LazyRollingDistribution` are removed
+- `bitview_compute::Price` (now `bitview_vecs::Price`) is the USD series over its cents: the derived `sats` field is
+  gone, and the price plugin's `sats_per_dollar` series is the one sats view; `brk_types::OHLCSats` and
+  `bitview_compute`'s `DollarsToSatsFract` and `OhlcCentsToSats` are removed
+- `bitview_compute`'s `Percent*` types (now in `bitview_vecs`) hold the fixed-point storage and a percent view (the
+  ratio view is gone), `Ratio*` types the storage and a ratio view; both name the storage `fixed` (was `ppm`).
+  `bitview_compute::Percent` is `bitview_vecs::shapes::PercentViews` (storage and percent). `RatioPerBlock`'s
+  `forced_import` (which appended `_ratio`) and `forced_import_ppm` are one crate-private `import` taking the full name
+- `bitview_compute::LazySpotValuePerBlock` (now in `bitview_vecs`) is a `SpotValue` (BTC, sats and USD; the `cents`
+  field is gone), and the new `LazySpotValuePerBlock::from_sats_source_named` names the USD series; `LazyValuePerBlock`
+  (use `LazySpotValuePerBlock::identity`), `PinnedSpotValuePerBlock`, `LazyValue`, `LazyValueDerivedResolutions` and
+  `SpotValueSource` are gone
+- `bitview_compute`'s flow types (`PerBlockCumulativeRolling`, `LazyPerBlockCumulativeRolling`,
+  `ValuePerBlockCumulativeRolling`, `LazyValuePerBlockCumulativeRolling`, now in `bitview_vecs`) keep their window `sum`
+  and lose their `average` field; `LazyFiatPerBlockCumulativeRolling`, `LazyRollingAvgFiatFromHeight`,
+  `PerBlockRollingAverage`, `CountPerBlockRollingAverage` and `StdDevPerBlock` are gone, and `CachedValuePerBlockFull`
+  is `ValuePerBlockFull` (a distribution that keeps its window average as `avg`)
+- `bitview_compute::{FiatType, AmountType}` (now in `bitview_vecs`) lose their conversion types (`ToDollars`,
+  `ToBitcoin`) and `bitview_compute::FixedRatio` its transform types (`ToRatio`, `ToPercent`); the new
+  `bitview_compute::Quantity` names a unit's mean (`Fract`) and total (`Sum`) types. Value types lose their unused
+  `Div<usize>` impls (`FeeRate` keeps it)
+- `bitview_compute::{PriceWithRatioPerBlock, LazyPriceWithRatioPerBlock, LazyFiatPerBlockWithDeltas, WindowsFrom1w}`
+  are gone: the new `bitview_vecs::PriceWithRatio` is a price view over its source with a stored spot ratio
+  (`compute_ratio`), and `PriceWithMvrv` adds the ratio's MVRV id. `LazyRatioPerBlock`'s `ratio` field is private and
+  `from_ratio` replaces `from_lazy_source`; `RatioPerBlock::compute_ratio` is removed
+- Gone with the tree changes: `bitview_compute::{ConstantVecs, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
+  LazyPerBlockCumulativeAverage, LazySpotValuePerBlockWithDeltas, WithAddrTypes}` and `BlockCountTarget{24h,1w,1m,1y}`,
+  `PerBlockCumulativeAverage::reset`, `LazyPerBlockCumulativeRolling::from_lazy_source`,
   `bitview_plugin_blocks::CountVecs` (`blocks.count` is the count itself), the transactions plugin's `volume` struct
   (`volume` is the value, `per_second` its sibling) and the mining rewards' `output_volume`; renamed fields
   `difficulty.value` (now `block`), Cointime's `reserve_risk.value` (now `block`) and `value.vocdd` (now
   `reserve_risk.vocdd`)
-- `bitview_distribution::state` has one profit-and-loss accumulator: `WithCapital`, `WithoutCapital` and the
-  `Accumulate` trait are gone, `UnrealizedState` loses `capitalized_cap_in_{profit,loss}_raw`, and `CostBasisData` and
-  `MappedUTXOCohortState` lose their accumulator parameter. `bitview_vecs::PriceWithRatio` (was generic over its price,
-  with a lazy ratio) is a price view over its source with a stored spot ratio (`compute_ratio`); `PriceWithMvrv` adds
-  the ratio's MVRV id; `LazyRatioPerBlock::from_resolutions` replaces `from_lazy_source`, and its `ratio` field is
-  private. `LazyPriceWithRatioPerBlock`, `PriceWithRatioPerBlock`, `LazyRatioPerBlock::from_price_source`,
-  `RollingWindowsFrom1w` and `bitview_collections::WindowsFrom1w` are gone.
-  `bitview_distribution::metrics::CohortCostBasis` holds a cohort's mean creation price;
-  `bitview_urpd::CostBasisVecs::import` takes the weighted means and `compute_ratios` stores their ratios; Coinflow's
-  `Dependencies` take the price plugin. `bitview_distribution::metrics::{CohortCapital, CapitalViews}` mirror
-  `CohortSupply`, `ShareTotals` carries the supply and capital the shares divide (age, UTXO, entry and address imports
-  take it), `SupplyViews` mirrors `CapitalViews` for a stored supply source, `UnrealizedState::capital_split` gives the
-  capital in profit and in loss, the age plugin publishes `all_capital()`, and the address bands are one `Balances`
-  owner (`AddrStates::push` is gone). `LazyFiatPerBlockWithDeltas`, `RatioPerBlock::compute_binary` and the holders'
-  `Vecs::all_supply` are gone; `families::Fiat::value` is private and `SupplyChange` crate-private
-- `statedb::BlockDiff` exposes `spent()` and `correction()` (the BIP30-overwritten output) beside `removed()`
-- `bitview_urpd::Metrics` is gone: a model owns a `CostBasisVecs` per cohort and a `Replay`, and calls
-  `compute_cost_basis`. `bitview_vecs::{Density, DensityVecs}` are new; `PriceIndex::density_range` is
-  `density_split` (the band's in-profit and in-loss halves); `bitview_plugin_supply::Vecs::import` no longer takes
-  Cointime
-- `bitview_compute::weighted_age_aggregates` returns an `AgeAggregate` (replaces `WeightedCohortAggregates`);
-  `AllChainSources::new` takes the all-chain realized cap too (read with `realized_cap()`);
-  `all_awake_supply_in_loss_share` (Cointime) and `all_mobile_supply_in_loss_share` (Coinflow, was
-  `all_supply_in_loss_share`) expose the full-precision loss shares. `vecdb::EagerVec::compute_multiply`,
-  `bitview_vecs::RatioPerBlock::compute_ratio` and `bitview_cohort::{UTXOAggregate, UTXOAggregateId}` are removed, and
-  `WeightedCohortState::merged` is crate-private
-- Renamed cohort families `UTXOCoreValues` → `CreationCohorts` and `UtxoValues` → `UtxoGroups`;
-  `CentsSats::to_capitalized_cap` → `CentsSquaredSats::from_price_cents_sats`; views only mappings uses moved from
-  `bitview_vecs` into the mappings plugin. `bitview_catalog` merge methods return values instead of `Option` and panic
-  on a conflicting key; `brk_exit::set_ctrlc_handler` panics when called twice
-- RawDB `Database::flush` returns nothing (was `Result<usize>`; it no longer syncs the device).
-  `Region::write_indexed` takes `T: Sync` and an `Fn + Sync` writer, returns a `Result`, writes in no particular
-  order, and its writer must not access the database; VecDB's `write_updates` returns a `Result`
+- Removed from `bitview_compute` without a public successor, among others: the cached, columnar and daily families
+  (`CachedPerBlock`, `CachedWindowStartVec`, `ColumnarPerBlock`, `LazyColumnPerBlock`, `DailyMetric`, `DailyView`, ...),
+  `ByDcaCagr`, `ByDcaPeriod`, `PercentilePrices`, `PerBlockAggregated`, `PerBlockFull`, `LazyWindowVec`, `walk_blocks`,
+  `BlockAggregate` (`CoinbasePolicy` moved to `bitview_vecs`) and transforms such as `HalveSats`, `Cagr`, `SoprRatio`,
+  `DaysToYears`, `VBytesToWeight` and `ThsToPhsF32` (`BlocksToDaysF32` is `bitview_vecs::ops::BlocksToDays`,
+  `DifficultyToHashF64` `DifficultyToHashrate`); `bitview_compute::WindowStarts` (now `bitview_vecs`) is a type alias
+  over `Windows`
+- `bitview_compute`'s weighted state is one `WeightedCohortState` with private moments and accessors (`WeightedRatio`
+  and `WeightedCohortContribution` are gone; `add` and `merged` give way to `+=`);
+  `bitview_compute::weighted_age_aggregates` merges age-range states into the aggregates. `bitview_compute` also holds
+  the update toolkit plugins share: `Inputs`, `write_chunks`, `undo_chunks`, `write_locked`, `save_stamped` and
+  `Retained<S>`, the writer-only window state rolling statistics continue between updates
+- `bitview_compute::{LazyIndexCountVec, LazyCumulativeIndexVec}` moved into the mappings plugin (constructors
+  crate-private), and `TerminalLen` is private
+- Rolling statistics (`compute_rolling_sum/average/ema`, `compute_all_time_high/low`) moved from `vecdb::EagerVec` to
+  the new `bitview_compute::ComputeRollingStats` extension trait (`ComputeVec::compute_to` replaces
+  `EagerVec::repeat_until_complete` for such extensions)
 - VecDB: `EagerVec` is gone. Every stored vector computes in place through the `ComputeVec` extension trait
   (`compute_to`, `compute_transform`/`2`/`3`, `compute_binary`, `compute_subtract`, `compute_cumulative*`):
   `EagerVec<PcoVec<I, T>>` is `PcoVec<I, T>` with `use vecdb::ComputeVec`, with the same stored bytes, names and
-  versions. `BytesVecReader` is an alias of `VecReader`; `Bytes` and `ValueStrategy` are `unsafe` traits (an
-  implementation promises its byte layout). Removed unused helpers: `min`, `max` and `sum` (with their `_at` and
-  `_dyn` forms), `collect_first`, `collect_dyn`, `collect_or_default`, `collect_signed_range`, `collect_one_flat` (use
-  `collect_one(..).flatten()`), `try_fold_range`, `for_each_range`, `fold_range`, `is_pushed_empty`, `has`, `has_at`,
-  `checked_push`, `checked_push_at`, `validate_and_truncate`, `AnyReadableVec` and `ReadableOptionVec`. New:
+  versions. `compute_transform*` callbacks return only the value (the loop owns the index). `EagerVec`'s other compute
+  methods are removed, among them `compute_sma`, `compute_ema`, `compute_rma`, `compute_zscore`, `compute_add`,
+  `compute_divide`, `compute_multiply`, `compute_percentage*`, `compute_change`, `compute_cagr`, `compute_lookback`,
+  `compute_previous_value`, `compute_{min,max,sum}`, `compute_*_of_others`, `compute_*_from_indexes`,
+  `compute_transform4`, `compute_transform2_batched`, `compute_batched_to`, `compute_rolling_{sd, rma, median, ratio,
+  change, count, percentage_change, ratio_change}`, `compute_expanding_sd` and `compute_all_time_{high,low}_from`
+- VecDB has one import verb: `ImportableVec::import`/`import_with` reset data on a version, format or value-size
+  mismatch (were `forced_import*`; the strict `import*` is private), renamed with every workspace constructor,
+  including all `bitview_compute` (now `bitview_vecs`) families. `vecdb::Error` gains `DifferentValueSize` and
+  `WriteFailed`, renames `ExpectVecToHaveIndex` to `MissingPage`, and loses `WrongEndian`, `TryLockError`,
+  `SystemTimeError`, `FailedKeyTryIntoUsize`, `VersionCannotBeZero`, `Format` and `UnexpectedIndex`.
+  `ImportOptions::initial_capacity` (and `with_initial_capacity`) is gone, and the new
+  `AnyStoredVec::any_validate_computed_version_or_reset` returns whether the computed version changed
+- VecDB: `BytesVec`, `ZeroCopyVec`, `PcoVec`, `LZ4Vec` and `ZstdVec` are type aliases of the generic raw and
+  compressed stores (`BytesVecReader` of `VecReader`), and `LZ4VecValue` and `ZstdVecValue` are gone
+  (`BytesVecValue`); `RawRangeCursor` and `CompressedRangeCursor` lose their unused index type parameter;
+  `LazyVec<I, T, S>` has one index type and `LazyVec::new` replaces `init`; read-only raw and compressed vectors are
+  their own `ReadOnlyClone`. `AnySerializableVec` and `AnyVecWithWriter` merged into `AnyExportableVec`; `AnyVec::etag`
+  and `WritableVec::fill_to` are gone; `AnyVec::{index_type_to_string, value_type_to_size_of, value_type_to_string}`
+  are `index_type_name`, `value_size` and `value_type_name`; `AnyVec::is_mutable` is required (no `false` default):
+  views forward their sources', so a series reading rows that can be rewritten is never cached as final. Compression
+  strategies implement only `decompress_page_append`, and `DeltaOp` keeps `count` and `combine`, the window views
+  owning the value before the window (`before_window`, `WindowBuffers`)
+- VecDB: `Bytes` and `ValueStrategy` are `unsafe` traits (an implementation promises exactly `size_of::<T>()` bytes
+  per value); a derived `Bytes`/`Pco` wrapper wider than its inner value, or a compressed value larger than a page,
+  fails to compile. `f32` and `f64` declare `Formattable::UNDEFINED` (non-finite values write JSON `null` and an empty
+  CSV cell); `DeltaChange`/`DeltaRate` require `CheckedSub + PartialOrd` and `LazyDeltaVec` a `Default` value. New:
   `read_batches`, `bounded_cursor_at` and `MutableVec::update_many_with_previous`
-- `brk_types`: `Vout` is a `u32` (`Vout::MAX` is the coinbase vout; `to_be_bytes` and `From<Vout> for u16` are gone);
-  `CheckedSub` is vecdb's, re-exported; the `U8x2`...`U8x65` arrays are gone (payload types wrap `[u8; N]`, and
-  `From<&[u8]>` panics on another length); `CoinbaseTag::as_str` is `as_bytes`, `chars` and `Display`, and a tag
-  deserializes from the text it serializes to; `Bitcoin * Bitcoin` and `Dollars * Dollars` are gone. `bitview_types`:
-  response DTO fields are public, `RangeIndex::Timestamp` displays as ISO 8601 (was Unix seconds, which reads back
-  as an index) and `RewardStats` deserializes its decimal strings. `bitview_primitives`: OHLC fields are plain values
-  (`Open`, `High`, `Low` and `Close` are gone), `ByAddrType` and `AddrTypeId` moved here from `bitview_cohort`, and
-  `FundedAddressData::send` is infallible
-- `bitview_compute` holds the update toolkit plugins share: `Inputs`, `write_chunks`, `undo_chunks`, `write_locked`,
-  `save_stamped` and `Retained<S>`, the writer-only window state rolling statistics continue between updates;
-  `LazyWindowVec` is gone. `#[derive(Traversable)]` keeps one struct attribute, `merge` (`transparent`, `hidden` and
-  `wrap` are gone), and fields can no longer be `Option`s. `bitview_catalog::TreeNode::for_each_leaf` visits a
-  subtree's leaves in order
-
-- VecDB: `AnyVec::is_mutable` is required (no `false` default): views forward their sources', so a series reading
-  rows that can be rewritten is never cached as final
-- The addresses plugin's state is private: reads go through `Vecs::read_state()` (`AddrStateRead`, holding the
-  state's lock: `written()`, `addr_data(type, index)`), publication through `Vecs::publish_state_with`; no traversal
-  or export reaches its vectors
-- VecDB: `f32`/`f64` are `UNDEFINED` (non-finite values write JSON `null` and an empty CSV cell); a derived
-  `Bytes`/`Pco` wrapper wider than its inner value, or a compressed value larger than a page, fails to compile;
-  `DeltaChange`/`DeltaRate` require `CheckedSub + PartialOrd + Default`; nested scopes of the same `ReadBounds` join
-- `brk_types`: `Dollars: CheckedSub<usize>` (which mixed units) is removed; `CentsSats::realized_price` no longer caps
-  at `u32::MAX` cents; `CoinbaseTag` is `repr(transparent)`; `Index::Day3.index_to_date` works
-- `bitview_vecs::LazySmaVec` is removed (the market plugin's averages start at the first price)
-- `brk_types::Dollars`: `From<u64>`/`From<u128>` (which read cents) and `From<Dollars> for u128` (which returned
-  cents) are removed: integers convert as dollars, cents go through `Cents`/`CentsSigned`; `Dollars * Bitcoin` keeps
-  negative amounts and `Dollars / f64` keeps a NaN quotient (both gave $0); `Dollars * Sats` is removed. Conversions
-  to cents round to the nearest cent (`Cents::from(f64)`, `CentsSats::to_cents`, `realized_price`; were truncated;
-  `to_cents_rounded` is gone); `bitview_primitives::CentsSquaredSats / u128` became `capitalized_price(cap)`.
-  `brk_mempool`: `fees()` returns the whole tiers and `precise_fees()` the precise ones.
-  `bitview_compute::WeightedCapitalizedPrice` is `WeightedCostBasis` (exact weighted capital and capitalized price)
-- `vecdb`: `BytesVec`, `ZeroCopyVec`, `PcoVec`, `LZ4Vec` and `ZstdVec` are type aliases of the generic raw and
-  compressed stores; `AnySerializableVec` and `AnyVecWithWriter` merged into `AnyExportableVec`; `AnyVec::etag` and
-  `WritableVec::fill_to` are gone; compression strategies implement only `decompress_page_append`.
-  `rawdb::Region::with_read_bytes` is gone (`with_read_range`). `lsm_tree::Slice` is `byteview::ByteView`.
-  `brk_error::Error::RawDB` is gone (raw database errors arrive as `VecDB`). `brk_reader` parses `xor.dat` itself
-  (`XORBytes::read`, `Reader::check_source`); `Reader::new` returns `Result` (an unreadable or malformed `xor.dat` is
-  an error, was a silent identity mask). `brk_types::Weight::to_vbytes_ceil` is gone (`VSize::from`); `Block` and
-  `BlkMetadata` are one `ReadBlock` (`position()`, `tx_positions()`); `SigOpCount` (Core's counter) moved there from
-  the indexer. `bitview_compute`'s weighted state is one `WeightedCohortState` (`WeightedRatio` and
-  `WeightedCostBasis` are gone). `with_resolution_fields!` lives in `bitview_primitives`; `RangeMapVec::new` takes
-  its source mapping; `rangeindex::RangeMapWriter` is single-writer (`&mut self`, not `Clone`);
-  `bitview_plugin_price::FIRST_PRICE_HEIGHT` is private (`is_priced`, `first_priced`, `priced_range`)
-- `rawdb`: `Region::with_read_range` returns `Option` (a read racing a truncation got a panic). `vecdb`: compressed vectors'
-  page table is crate-private; the `Bytes`/`ValueStrategy` safety contracts require exactly `size_of::<T>()` bytes
-  per value whatever the layout. `pco` no longer exports `define_number_enum!` (its reference constructors were
-  unsound). `fjall` keyspace names are lowercase ASCII letters, digits, `_` and `-` (case aliases and `.` mapped onto
-  shared directories)
-- `brk_oracle::FIRST_PRICE_HEIGHT` (74,641, re-exported by the price plugin); `bitview_plugin_indexer` exports
-  `FIRST_V29_POLICY_HEIGHT`
-- `vecdb`: `compute_transform*` callbacks return only the value (the loop owns the index); `DeltaOp` keeps `count`
-  and `combine`, the window views own the value before the window (`before_window`, `WindowBuffers`); `LazyVec<I, T,
-  S>` has one index type; `LZ4VecValue` and `ZstdVecValue` are gone (`BytesVecValue`); read-only raw and compressed
-  vectors are their own `ReadOnlyClone`. `brk_types`: `Sats::value_at(price)` and `Cents::sats_per_dollar()` replace
-  `bitview_vecs::SatsToCents` and `Sats / Dollars`; `brk_types::Witness` is gone (`TxIn.witness` is rust-bitcoin's
-  `Witness`, like `script_sig`'s `ScriptBuf`); `BlockTemplate`,
-  `BlockTemplateDiff` and `BlockTemplateDiffEntry` are generic with owned defaults (`BlockTemplateJson` and
-  `BlockTemplateDiffJson` are gone); `CpfpInfo::new` derives the sizes and best descendant, and `brk_cpfp`'s
-  `Cluster::project` replaces `chunks`, `find_seed_chunk`, `vsize` and `parents`. `bitview_types::PricePoint`
-  replaces `Prices` and `HistoricalPriceEntry`. `brk_store::Store::range` takes any `RangeBounds`.
-  `statedb::Reader::resumes` checks a resume point (`matches` is private). `bitview_primitives` declares the
-  OP_RETURN kinds once (`with_op_return_kinds!`; `OpReturnKind::ALL` and `get` are gone), adds `Index::calendar()`,
-  `From<SatsFract> for Bitcoin` and `From<CentsFract> for Dollars` (`bitview_vecs`' `AvgSatsToBtc` and
-  `AvgCentsToUsd` are gone). `brk_oracle::bin_to_cents` returns `Cents`. `lsm_tree`'s bloom `Builder::new(bytes,
-  k)` replaces `with_bpk` and `with_fp_rate`. `bitview_cohort` drops `AgeRangeId::series`,
-  `SpendableType::map_with_id`/`iter_typed` and `AddressType::iter_typed`/`iter_typed_mut`
+- VecDB: removed `CachedVec` (with `CachedBoxedVec`, `CachedReadableVec`, `CachedVecBudget` and `NoBudget`; vecdb's
+  cache is `CacheBudget` with `Budgeted`), the columnar vectors (`ColumnarVec`, `ColumnId`, `LazyColumnarVec`,
+  `LazyColumnVec`, `LazyColumnSumVec`, `ReadableColumnarVec`, `ReadOnlyColumnarVec`), `LazyAggVec` and `AggFold`, the
+  `Plus`, `Minus`, `Times`, `Divide`, `Halve` and `Negate` transforms, `AnyVecWithSchema`, `OverflowVecReaderCursor`,
+  `VecReaderCursor`, `fold_stored_io`/`fold_stored_mmap`, `AnyReadableVec`, `ReadableOptionVec` and unused helpers:
+  `min`, `max` and `sum` (with their `_at` and `_dyn` forms), `collect_first`, `collect_dyn`, `collect_or_default`,
+  `collect_signed_range`, `collect_one_flat` (use `collect_one(..).flatten()`), `try_fold_range`, `for_each_range`,
+  `fold_range`, `is_pushed_empty`, `has`, `has_at`, `checked_push`, `checked_push_at` and `validate_and_truncate`.
+  `SharedLen` and `WithPrev` are private, and vecdb re-exports an explicit list (was every module's items)
+- RawDB: `Database::flush` returns nothing (was `Result<usize>`; it no longer syncs the device);
+  `Database::get_region` is `region`; `compact_deferred` and `compact_deferred_default` give way to
+  `needs_compaction`, `compact` and `run_bg`. `Region::write_indexed` replaces `batch_write_ordered`: it takes the
+  values to write with `T: Sync` and an `Fn + Sync` writer, returns a `Result`, writes in no particular order, and its
+  writer must not access the database. `Region::with_read_bytes` (the whole region) is gone:
+  `Region::with_read_range(offset, len, f)` reads one byte range and returns `None` when the region does not hold it
+- `brk_types`: `Weight` and `SigOps` are 64-bit (were `u32`; `Weight64` is gone) and keep `MAX_BLOCK`, `from_sizes`,
+  `fullness` and `adjust_vsize`; the new `Weight32` and `SigOps32` are their 32-bit storage forms. The REST types use
+  the wide ones (`Transaction.weight` and `.total_sigop_cost`, CPFP entries, block info and weight entries; JSON
+  unchanged)
+- `brk_types`: `Vout` is a `u32` (`Vout::MAX` is the coinbase vout; `to_be_bytes`, `to_ne_bytes` and
+  `From<Vout> for u16` are gone); the `U8x2`...`U8x65` arrays are gone (payload types wrap `[u8; N]`);
+  `CoinbaseTag::as_str` is `as_bytes`, `chars` and `Display`, a tag deserializes from the text it serializes to, and
+  `CoinbaseTag` is `repr(transparent)`; `OutpointPrefix` is gone
+- `brk_types`: `Block`, `BlkMetadata` and `ReadBlock` are one `ReadBlock` (`position()` and `tx_positions()` replace
+  `metadata()`, `tx_metadata()` and `inner()`; `compute_tx_id_and_sizes` is `compute_txid_and_sizes`);
+  `Weight::to_vbytes_ceil` is gone (`VSize::from`); `TxOut::type_` is `output_type`; the new `SigOpCount` is Core's
+  `GetSigOpCount` (legacy and accurate counts in one walk)
+- `brk_types`: `Sats::value_at(price)` and `Cents::sats_per_dollar()` replace `bitview_compute::SatsToCents` and
+  `Sats / Dollars`; `Witness` is gone (`TxIn.witness` is rust-bitcoin's `Witness`, like `script_sig`'s `ScriptBuf`);
+  `BlockTemplate`, `BlockTemplateDiff` and `BlockTemplateDiffEntry` are generic with owned defaults; `CpfpInfo::new`
+  derives the sizes and best descendant; `AddrMempoolStats` is `AddressMempoolStats`, its `receiving`, `received`,
+  `sending` and `sent` are `add_funding`, `remove_funding`, `add_spend` and `remove_spend`
+- `brk_types`' unit types keep same-unit arithmetic only: `Dollars`, `Bitcoin`, `Sats`, `Cents` and `CentsSigned` add
+  and subtract their own kind (`Sats * f64`, `Cents * u64` and `Cents / u64` remain), and the mixed-unit and scalar
+  operators are gone (`Dollars * Bitcoin`, `Dollars * Sats`, `Dollars / f64`, `Dollars * Dollars`, `Bitcoin * Bitcoin`,
+  ...): convert explicitly. `Dollars`' `From<u64>`/`From<u128>` (which read cents) and `From<Dollars> for u128` (which
+  returned cents) are removed: integers convert as dollars, cents go through `Cents`/`CentsSigned`; `Dollars:
+  CheckedSub<usize>` (which mixed units) is removed. Conversions to cents round to the nearest cent
+  (`Cents::from(f64)`, `CentsSats::to_cents`, `realized_price`; were truncated; `to_cents_rounded` is gone), and
+  `CentsSats::realized_price` no longer caps at `u32::MAX` cents and is NaN without sats (was zero).
+  `CentsSats::as_u128` and `Histogram::zeros` are gone, and `CheckedSub` is vecdb's only under `storage`
+- `brk_types`: `CentsSats::to_capitalized_cap` is `bitview_primitives::CentsSquaredSats::from_price_cents_sats`, and
+  `CentsSquaredSats / u128` became `capitalized_price(cap)`; `get_weighted_percentile(slice, f64)` is
+  `weighted_percentiles(slice, [u64; N])`: integer percents in one walk, each the first value whose cumulative vsize
+  reaches it (Bitcoin Core's rank rule; was a rounded target), and `get_percentile` is gone; the new `Height::subsidy`
+  gives the scheduled subsidy; `Timestamp::{difference_in_days_between_float, difference_in_hours_between}` are
+  `days_since` and `hours_since` (`floor_seconds`, `difference_in_days_between` and `is_more_than_hour` are gone);
+  `BLOCKS_PER_DIFF_EPOCHS` is `BLOCKS_PER_DIFF_EPOCH`; `brk_types::RangeMap` is `rangeindex::RangeMap`: `get(&self)` is
+  the former `get_shared`, `cursor()` gives the caching reader (the former `get(&mut self)`) and `extend` replaces
+  `push` (`reserve`, `last_key` and `ceil` are gone)
+- `bitview_primitives` (types that were `brk_types`'): OHLC fields are plain values (`Open`, `High`, `Low` and `Close`
+  are gone); `ByAddrType` and `AddrTypeId` moved here from `bitview_cohort`; `FundedAddressData::send` is infallible;
+  `Index::Day3.index_to_date` returns the row's date (row 0 is 2008-12-31; was `None`) and `Index::possible_values` is
+  `aliases`; `Year` is gone; `Pool::slug()` is the `slug` field and `Pools::get_unknown` is `unknown`;
+  `PercentileId::{Pct5, Median}` (were `Pct05`/`Pct50`) gain `suffix()`, and `RarityPercentileId::Median` (was `Pct50`;
+  `price_suffix` is gone)
+- `bitview_primitives` declares the OP_RETURN kinds once (`with_op_return_kinds!`): `OpReturnKind` no longer implements
+  vecdb's `ColumnId` (`ALL`, `get`) and `OP_RETURN_KINDS` is gone. It adds `Index::calendar()`,
+  `From<SatsFract> for Bitcoin` and `From<CentsFract> for Dollars` (`bitview_compute`'s `AvgSatsToBtc` and
+  `AvgCentsToUsd` are gone), and holds `with_resolution_fields!`
+- `Cents::round_to(i32)` and `CentsCompact::round_to(i32)` are `round_to_significant(u32)` (significant digits of the
+  amount in cents); `round_to_dollar` (whole dollars, then digits) is gone
+- The rarity meter's levels and scores are `bitview_primitives::Score` (were `StoredI8`), with an undefined value
+  (`Score::NAN`, `i8::MIN`, served as null); `bitview_plugin_rarity_meter::Dependencies` takes `holders` in place of
+  `distribution` and no longer `bedrock`
+- `brk_error` drops `MempoolNotAvailable`, `UnknownAddr`, `UnknownTxid`, `InvalidTxid`, `SeriesNotFound`,
+  `SeriesUnsupportedIndex`, `NoSeries`, `NoData`, `WeightExceeded`, `TooManyUtxos`, `FetchFailed`, `HttpStatus`,
+  `ZeroCopyError`, `QuickCacheError`, `Deserialization`, `SystemTimeError`, `BitcoinBip34Error`,
+  `BitcoinFromScriptError`, `RawDB` (raw database errors arrive as `VecDB`), `truncate_series_name` and
+  `is_network_permanently_blocked`, renames `InvalidAddr` to `InvalidAddress`, replaces `AuthFailed` with
+  `NoRpcCredentials { cookie }`, gains `TxRejected`, `RpcAuthFailed`, `RpcForbidden` and `MissingVersion { path }`, and
+  loses its `ureq` and `pco` features (with `Ureq` and `Pco`)
+- `bitview_query` returns its own typed `Error` and `Result` (with `SeriesNotFound`; were `brk_error`'s);
+  `Query::build` is private, `AsyncQuery::inner` is gone, and `addr_txids`, `addr_utxos` and `SeriesOutput` are
+  removed (`format*` returns `Output`). `Query::height()` gives way to `local_sync_status()?.indexed_height` (the
+  call returns `Error::StateUpdating` while nothing is indexed; `height()` returned 0); `reader`, `indexer`,
+  `mempool`, `tip_hash_prefix` and the per-plugin accessors (`price`, `mining`, ...) are no longer public. The new
+  `bitview_server::{app, App}` build the router over an `AsyncQuery`; `bitview_server::VERSION` is private
+- `bitview_bindgen::generate_clients` takes the catalog (`vecs.catalog()`; was `&bitview_query::Vecs`).
+  `ClientOutputPaths`' fields are private (set them with its builder methods), and the generators, OpenAPI helpers
+  and `VERSION` are no longer public
+- `brk_rpc::ConnectArgs` (node data dir, blocks dir, RPC endpoint and credentials, resolved like Bitcoin Core) with
+  `client()` is shared by bitviewd, blk and mmpl. `Client::send_raw_transaction` moved to the new `AsyncClient`:
+  enable `brk_rpc`'s `async` feature, get one with `client.asynchronous()?` and await `send_raw_transaction(hex)`;
+  `Client::new_with` (configurable retries), `default_url`, `default_bitcoin_path` (and its Linux and macOS forms),
+  `get_block`, `get_block_hash`, `get_block_count`, `get_block_header`, `get_block_info`, `get_blockchain_info`,
+  `get_tx_out`, `get_raw_mempool`, `get_mempool_raw_tx` and `get_raw_transaction*` are removed
+- `brk_reader`: `XORBytes::read(dir)` replaces `From<&Path>` (a missing `xor.dat` is `None`; an unreadable or malformed
+  one is an error, was a silent identity mask) and `Reader::new` returns `Result` for the same reason;
+  `Reader::check_source` checks the blocks directory still holds the reader's mask. `Reader::{all, after_with,
+  range_with, new_without_rlimit, raise_fd_limit, first_block_height}` are gone (use `range`), `BlkIndexToBlkPath`,
+  `CanonicalRange`, `XORIndex` and `XOR_LEN` are no longer exported, and `BlockReceiver` is an alias of crossbeam's
+  `IntoIter` (was a struct with `iter()`)
+- `brk_mempool`: `fees()` returns the whole sat/vB tiers (was the precise ones) and `precise_fees()` the precise ones as
+  `PreciseRecommendedFees`, both as `Result` on `ReadOnlyState`; `start` (use `start_with`), `MempoolStats`, `Cycle`,
+  `AddedKind`, `TxAdded` and `TxRemoved` are gone, and `Snapshot` and `TxRemoval` are no longer exported
+- `brk_store`: keys and values implement `brk_types::StoreValue` (were `ByteView` conversions); `Store::get` returns
+  `Option<V>` (was `Option<Cow<V>>`); `Store::range` takes any `RangeBounds` and yields `Result` items; prefix reads go
+  through `Store::view()` (`StoreView::prefix`, `Result` items); `Store::iter` is gone
+- `brk_oracle` exports `FIRST_PRICE_HEIGHT` (74,641) and its `bin_to_cents` returns `Cents`; `Oracle::{new, from_seed,
+  ref_bin, price_cents}`, `BINS_PER_DECADE`, `NUM_BINS`, `pre_oracle_price_cents`, `seed_bin` and `seed_price_cents` are
+  no longer public, `Oracle::from_checkpoint`'s replay returns a `Result`, and `HistogramRaw`, `HistogramEma` and
+  `HistogramEmaCompact` are type aliases over `brk_types::Histogram` (were structs). The price plugin exports
+  `is_priced`, `first_priced` and `priced_range`, and `bitview_plugin_indexer` `FIRST_V29_POLICY_HEIGHT`
+- `lsm_tree::Slice` is `byteview::ByteView` (was a newtype over it); lsm-tree tables can hold a new value record (a
+  value that still owes a weak delete), which v0.12.2 cannot read
+- `fjall` keyspace names are lowercase ASCII letters, digits, `_` and `-` (case aliases and `.` mapped onto shared
+  directories)
+- `pco` no longer exports `define_number_enum!` (its reference constructors were unsound)
+- quickmatch drops `matches`, `matches_with`, `matches_with_matched_words`, `new_with`, `new_owned_with` and the
+  `with_trigram_budget`/`with_separators`/`with_min_score` knobs (fixed defaults)
+- `brk_types` drops `OptionExt`, `StoredI16`, `StoredString`, `AnyAddrIndex`, `AnyAddrDataIndexEnum`, `Bitcoin /
+  Bitcoin`, `Dollars / Dollars`, `Day1`'s `FromCoarserIndex` impls and `Date::into_jiff`
+- `brk_exit::Exit::set_ctrlc_handler` is `install_signal_handlers` and panics when called twice
+- `bitview_types`: `RangeIndex::Timestamp` displays as ISO 8601 (was Unix seconds, which reads back as an index);
+  `RewardStats` deserializes its decimal strings; `PricePoint` replaces `brk_types`' `Prices` and
+  `HistoricalPriceEntry`; `DifficultyAdjustmentEntry.change_percent` is `adjustment` (JSON unchanged); the range
+  selections' `start`, `end`, `limit` and `format` are public fields (were getters); `FeeRatePercentiles::new` is
+  gone
+- `TreeNode`, `SeriesLeaf` and `SeriesLeafWithSchema` moved from `bitview_types` to the new `bitview_catalog`:
+  `TreeNode::Branch` holds a `TreeBranch` (was an `IndexMap`), `merge_branches` returns the node and panics on a
+  conflicting key (was `Option`), `TreeBranch::{merge_field, merge_fields}` replace the public `merge_node` and leaf
+  `merge`, `SeriesLeafWithSchema` exposes its fields (its getters are gone), and `TreeNode::for_each_leaf` visits a
+  subtree's leaves in order. A catalog key that is both a series and a group panics when the catalog is built (was
+  silently filed under `raw`)
+- `#[derive(Traversable)]` keeps one struct attribute, `merge` (`transparent`, `hidden` and `wrap` are gone), and
+  fields can no longer be `Option`s; `#[traversable(flatten, rename = "...")]` names a flattened leaf, and a struct
+  whose only visible field is a flattened view is that view, a single-unit leaf included (both were keyed by the field
+  name)
+- `bitview_cohort` collections build with `from_fn`/`try_from_fn` over their member id (were `new`/`try_new` over a
+  `Filter` and name); `UTXOGroups`, `UTXOGroupsWithoutAmount`, `UTXOGroupsWithoutAmountOrType` and `UTXOAllAndSth` are
+  gone. `ByEntry` and `EntryPrice` name their members `veteran`/`Veteran` and `rookie`/`Rookie` (were
+  `discount`/`Discount` and `premium`/`Premium`)
+- Analytics type families: the new `bitview_cohort::{AddressType, AddressTypeId}` are the six analytics address types;
+  `SpendableTypeId::{P2PK65, P2PK33}` are `P2PK`, and `output_type()` gives way to `key()` and `cohort()`;
+  `OutputTypeId` is `Spendable(SpendableTypeId)` or `OpReturn` (was one variant per output type). Cohorts are named by
+  the new `CohortId` (`Filter`, `Filtered`, `TimeFilter` and `AmountFilter` are gone); `CohortContext::Addr` is
+  `Balance`; `AgeRangeId::series` and `SpendableType::iter_typed` are gone, and `SpendableType::iter_typed_mut` yields
+  `SpendableTypeId` keys (was `OutputType`)
+- `bitview_cohort::{AgeAggregate, AgeAggregateId}` replace `UTXOAggregate` and `UTXOAggregateId` (all, STH and LTH,
+  plus under and over 4 and 6 months); `PROFITABILITY_EDGE_DIVISORS` and `BREAK_EVEN_DIVISOR` replace
+  `compute_profitability_boundaries` and `PROFITABILITY_BOUNDARY_COUNT`. Also gone, among others: `AmountBucket`,
+  `ByAge`, `ByAnyAddr`, `OverAge`, `UnderAge`, `OverAmount`, `UnderAmount`, `ProfitabilityId`, `ProfitabilityRow`,
+  `StateLevel`, `compute_relative`, `compute_rel_to_all` and `compute_adjusted`
+- `AllChainSources` (in `bitview_distribution`, was `bitview_plugin_distribution`) holds public `supply`, `market_cap`
+  and `realized_cap` views: `new` takes the all-chain realized cap too, and `with_supply` and `with_market_cap` are
+  gone. Coinflow's `Dependencies` take `urpd`, `price` and `age` (was `distribution`), and
+  `bitview_plugin_supply::Vecs::import` no longer takes Cointime
+- The address state is private to the addresses plugin (was the public `bitview_plugin_distribution::Vecs::addr_state`):
+  reads go through `Vecs::read_state()` (`AddrStateRead`, holding the state's lock: `written()`,
+  `addr_data(type, index)`), publication through `Vecs::publish_state_with`; no traversal or export reaches its vectors
+- `bitview_plugin_blocks::ONE_TERA_HASH` is gone
 
 #### Configuration
 
@@ -800,7 +894,12 @@ has to be deleted by hand.
   (an existing cookie used to win over explicit credentials). A relative `rpccookiefile` resolves inside
   `bitcoindir`. In Docker, `BTC_RPC_USER` and `BTC_RPC_PASSWORD` default to empty, so the cookie in
   `BITCOIN_DATA_DIR` is used (`bitcoin`/`bitcoin` used to be sent)
+- The default `maxweight` (`--maxweight`) falls from 50,000,000 to 320,000 bytes of raw values summed over the
+  requested series (10,000 OHLC values): a series or bulk request over it answers 400 `weight_exceeded`. Split it into
+  bounded ranges or smaller batches, or raise the limit
 - `bitview_mcp --api` must be an absolute HTTP(S) origin (a bare host was tried over HTTPS, then HTTP)
+- Data is safe across soft quits (SIGINT, SIGTERM) only: rawdb no longer syncs to the device on flush (v0.12.2 promised
+  durability after `flush()`), so kernel panics, power loss and storage removal are not supported
 
 ### New Features
 
@@ -808,50 +907,61 @@ has to be deleted by hand.
 
 - `GET /api/series/{name}` returns `unit`, what the value type measures (e.g. "A duration in days."), and `nullable`,
   the indexes whose values can be `null`; the catalog carries `nullable` too. Every series value type has a description
-- Entry cohorts are part of the default plugins again: outputs created at a price at or below the previous block's
-  all-chain capitalized price (`veteran_*`, discount) or above it (`rookie_*`, premium), served and in the generated
-  clients. Computing them from block 0 takes about 50 s at 970,536 blocks on a 16 GB Mac mini
-- Each age band, epoch and class serves its realized price again (`utxos_<band>_old_realized_price`,
-  `epoch_0_realized_price`, `class_2009_realized_price`, USD, at `age.<family>.<cohort>.cost_basis.per_coin.realized_price`):
-  the cohort's exact creation-price product over its supply, like the aggregated cohorts' realized price. Stored per
-  cohort, so the age plugin replays from block 0 once
 - Median time past, `indexer.blocks.median_time` (id `median_time`, height index): the median of each block's header
   timestamp and up to ten predecessors, which the next block's timestamp must exceed
-- `capital_density` beside `supply_density` in holders, Cointime and Coinflow: the share of a cohort's invested
-  capital (satoshis times creation price) with a creation price within 5% of spot, split at spot. Cointime shows
-  `coinblocks_destroyed` and each age range's `coindays_created` beside their siblings (the age plugin's series, same
-  ids)
-- Cointime series from the paper: AVIV-NUPL (`aviv_nupl`, 1 - 1/AVIV), MVRVs of the active, vaulted and Cointime
-  prices (`active_mvrv`, `vaulted_mvrv`, `cointime_mvrv`), investorness and producerness (investor cap and thermocap over realized cap)
-  and concurrent liveliness (coinblocks destroyed over created within each window, `concurrent_liveliness_24h`...`_1y`;
-  a single block's ratio is too noisy to serve). Cointime and Coinflow's four age cutoffs gain supply, the in-loss
-  share and realized cap, like `sth` and `lth`
+- Cointime's awake and Coinflow's mobile cohorts publish their creation-price statistics as series, in `all`, `sth`,
+  `lth` and the new `under_4m`, `under_6m`, `over_4m` and `over_6m` cohorts: mean per coin and per dollar with
+  `realized_price`, `capitalized_price` and MVRV, URPD percentiles and median, `median_realized_price`, and supply and
+  capital density (`awake_cost_basis_per_coin_median`, `sth_mobile_cost_basis_per_dollar_pct5`, `awake_mvrv`,
+  `utxos_under_4m_old_mobile_realized_price`, ...); v0.12.2 had the weighted distributions only at `/api/urpd`.
+  Coinflow, Cointime and Bedrock replay their per-block distribution in parallel 5,000-block segments, each from its
+  nearest UTXO history snapshot
+- Capital density beside supply density in holders, Cointime and Coinflow, and both split at spot: the share of a
+  cohort's supply, or of its invested capital (satoshis times creation price), with a creation price within 5% of spot
+  (`sth_capital_density`, `mobile_capital_density_in_profit`, `awake_supply_density`, ...; holders had the total
+  supply density only, `sth_supply_density`, which keeps its id beside `sth_supply_density_in_profit` and `_in_loss`)
+- Cointime series from the paper: AVIV-NUPL (`aviv_nupl`, 1 - 1/AVIV, from the active and investor capitalizations),
+  investorness and producerness (investor cap and thermocap over realized cap) and concurrent liveliness (coinblocks
+  destroyed over created within each window, `concurrent_liveliness_24h`...`_1y`; a single block's ratio is too noisy
+  to serve). The active, vaulted and Cointime prices' spot ratios also have MVRV ids (`active_mvrv`, `vaulted_mvrv`,
+  `cointime_mvrv`, the values of `active_price_ratio`, ...)
+- Inscription fees per block in BTC and USD (`transactions.inscription.fees`, ids `inscription_fees`,
+  `inscription_fees_usd`, with cumulative and window sums) and their chain share,
+  `transactions.inscription.fees.chain_share.{cumulative, 24h, 1w, 1m, 1y}` like OP_RETURN's (ids
+  `inscription_fee_chain_share_cumulative`, `inscription_fee_chain_share_<window>`)
 - UTXO set endpoints (`chain` feature, tag "UTXO Set"): `GET /api/utxo-set[/{point}]` returns the set after a block
   (`840000`) or a UTC day's last published block (`YYYY-MM-DD`), latest when omitted, as columnar `origins.count` and
   `origins.supply` (BTC) indexed by creation height; `GET /api/utxo-set/{point}/diff` returns what a block or a day's
   blocks changed, `created` per block and `spent` per creation height. A set plus the next diff gives the next set,
-  exact when each supply is rounded to 8 decimals. The `utxo_set` plugin (crate `bitview_plugin_utxo_set`) reconstructs both from its
-  history on demand
+  exact when each supply is rounded to 8 decimals. The new `utxo_set` plugin (crate `bitview_plugin_utxo_set`) keeps
+  the history in the new `statedb` crate and reconstructs both on demand, and publishes `utxo_set.{supply, count}`
+  (ids `circulating_supply` and `utxo_count`, shared with the holders' `all`)
+- URPD at any block: `GET /api/urpd/{cohort}/{point}` takes a block height or a UTC date, meaning the day's last
+  published block (it took dates only, served from daily snapshots); responses carry the block's `height`, and `close`
+  is the price at that block (was the day's close)
 
 #### `bitviewd` and `bitviewd_bench`
 
-- Added the `cachebudget` config key and `--cachebudget` flag (bytes of the shared vector cache, default 2 GiB);
-  `bitviewd_bench` records it in `metadata.txt`
-- `bitviewd_bench` records CPU time (`cpu.csv`), resident size and system swap (`memory.csv`), page-ins (`io.csv`),
-  the data-directory size every minute and its final size per component (`disk_breakdown.csv`), the source of each
-  progress height, and host name, CPU and RAM; every row is flushed as written, so a killed run keeps its data
+- Added the `cachebudget` config key and `--cachebudget` flag (bytes of the shared vector cache, default 2 GiB, the
+  size v0.12.2 fixed); `bitviewd_bench` records it in `metadata.txt`
+- `bitviewd_bench` records CPU time (`cpu.csv`), resident size and system swap (`memory.csv`, beside the physical
+  footprint and its peak), page-ins (`io.csv`), the data-directory size every minute (was at start and end only) and
+  its final size per component (`disk_breakdown.csv`), the source of each progress height (`progress.csv`'s `source`
+  column), and host name, CPU, RAM and storage in `metadata.txt` (with `rustc`, `rustflags` and the compile-time
+  revision; `target` replaces `target_os` and `target_arch`); every row is flushed as written (memory and I/O rows were
+  flushed at the end), so a killed run keeps its data
 - `bitviewd_bench_visualizer` draws one `dashboard.svg` per run (plugin timeline, height, memory, CPU, I/O and
   page-in rates, data-directory size, time per plugin, size per component, with the bootstrap cycles shaded) and a
-  `compare.svg` per machine across its complete runs. It reads old recordings by column name. The previous charts
-  covered only the first seconds of each run and skipped nested runs
+  `compare.svg` per machine across its complete runs, replacing the `disk`, `memory`, `progress`, `io_read` and
+  `io_write` charts (the combined ones were cut where the least advanced run stopped). It reads old recordings by
+  column name and takes the data directory as its argument (default: the workspace)
 - Benchmarks are filed by hardware and code: `bitviewd_bench` writes
-  `<bitviewdir>/benches/<machine>/<revision>/<run-id>/`, the layout of the workspace's `benches/` (was
-  `benches/bitviewd/run-<ms>/`, renamed by hand). The machine comes from the CPU, the RAM and the data directory's
-  storage (`apple-m6-16gb-external-tb`; `internal`, `external-tb` for Thunderbolt or USB4, `external-usb`), recorded
-  with the drive model for the data and blocks directories; the revision is the tag at HEAD or the short commit
-  (`-dirty` when the sources have local changes), captured at compile time with the compiler, profile and flags; the
-  run id is its UTC start (`20261014T153012Z`), so repeated runs sit side by side. One benchmark runs per data
-  directory at a time
+  `<bitviewdir>/benches/<machine>/<revision>/<run-id>/` (was `benches/bitviewd/run-<ms>/` in the source checkout), the
+  layout of the workspace's `benches/`. The machine comes from the CPU, the RAM and the data directory's storage
+  (`apple-m6-16gb-external-tb`; `internal`, `external-tb` for Thunderbolt or USB4, `external-usb`), recorded with the
+  drive model for the data and blocks directories; the revision is the tag at HEAD or the short commit (`-dirty` when
+  the sources have local changes), captured at compile time with the compiler, profile and flags; the run id is its
+  UTC start (`20261014T153012Z`), so repeated runs sit side by side. One benchmark runs per data directory at a time
 
 #### `bitview-cli` and `bitview_mcp`
 
@@ -861,22 +971,32 @@ has to be deleted by hand.
 - `bitview_mcp` answers 503 with `Retry-After: 1` when every request slot stays busy (was a tool error), holds a
   slot until a response's last byte is sent, and passes upstream JSON through as text content, so integers beyond
   64 bits stay exact
+- `bitview_mcp` exposes the UTXO set diff (`get_utxo_set_diff`); the full UTXO set endpoints stay out
+- `bitview_mcp` logs tool calls only at debug level (a call whose upstream response had no CDN cache status logged a
+  warning naming the tool), and its privacy page says so. Its pages carry a content ETag and revalidate after a second
+  (were cached five minutes without one), and the logo's URL carries the release, so its year-long cache never
+  outlives it
 
 #### `vecdb` and `rawdb`
 
 - Added `Header::read_unverified` and `Header::{header_version, format, value_size}`, and `Database::region_ids`
 - Added `ReadBounds::enter` (a scope guard, `ReadScope`; scopes stack per thread, the newest applies, and each may
-  drop in any order) and `visible_len`; `Compact::named_with` publishes a stored
-  vector through a custom transform
+  drop in any order) and `visible_len`
 - Added `ImportOptions::with_unread_updates` (unsafe): a mutable vector whose owner serves its updated values until
   written keeps its readers reading while the updates are written (`Region::write_indexed_unread`, shared region
   access). Point reads borrow only their value (`Region::with_read_range`)
 
 #### `bitview_website`
 
-- `crates/bitview_primitives/pools.sh` refreshes the pool logos with the pool list; DMND and Noderunners have logos
+- `crates/bitview_primitives/pools.sh` (was `crates/brk_types/pools.sh`, the pool list only) also refreshes the
+  website's pool logos from mempool.space; DMND and Noderunners have logos
+- A folder URL serves the folder's own `index.html` (`/folder/`; was the root `index.html`), dotted folder names
+  included (they answered 404)
 
-- A folder URL serves the folder's own `index.html` (`/folder/`)
+#### Rust APIs
+
+- `bitview_traversable::Compact<V, T>`: a vec stored in a compact type and published as a wider one under its id;
+  `Compact::named_with` publishes a stored vector through a custom transform
 
 ### Bug Fixes
 
@@ -887,18 +1007,18 @@ has to be deleted by hand.
   start, so the tape sat flat for days (281, 300, then 288.99 for four days) and then jumped between a few stale
   prints (a false year low of $117.81 on January 14 and a +76.6% daily return; 2015's low is now $174.00). The
   oracle's seed (block 339,999, $246.62, 6% above Bitfinex's $232.04) keeps its value: seeding from the corrected
-  price made the oracle's first ten days slightly worse. Every oracle price is unchanged. `brk_oracle::VERSION` is 6,
-  so every price-derived series recomputes
-- Creation prices in cost-basis statistics are rounded to four significant digits of the price in cents (were whole
-  dollars, then five digits: under $10,000 that is fewer than five, and under $1 every coin was at $0 or $1): exact
-  cents under $100, then steps of at most 0.1% (10 cents to $1,000, $1 to $10,000, $10 to $100,000, $100 above; were
-  $1 up to $100,000 and $10 above), so a price is at most 0.05% off. Changed: holders' cost-basis percentiles, `min`,
-  `max`, supply and capital density; the profitability bands (at block 100,000 all supply sat in one loss band);
-  Cointime's, Coinflow's and Bedrock's URPD statistics (Bedrock's floors now appear in 2010, when supply rounded to $0
-  kept them empty); Rarity Meter's components that read them; and the URPD API's buckets. Most of the change is before
-  2013; today's percentiles move by up to $5 under $100,000 and up to $50 above. The ±5% density band's edges round to
-  the nearest cent (were truncated). Five digits made those plugins' recompute 3.3 times slower; four make it 11%
-  faster than whole dollars, with a 46,001-bucket price index (was 190,001; 64,001 since its ceiling rose, below)
+  price made the oracle's first ten days slightly worse. `brk_oracle::VERSION` is 6 (was 4), so every price-derived
+  series recomputes
+- Creation prices in cost-basis statistics are rounded to four significant digits of the price in cents (were
+  rounded to whole dollars, then to five significant digits: fewer than five under $10,000, and under $1 every coin
+  was at $0 or $1): exact cents under $100, then steps of at most 0.1% (10 cents to $1,000, $1 to $10,000, $10 to
+  $100,000, $100 to $1,000,000, $1,000 to $10,000,000 and $10,000 to $100,000,000; were $1 up to $100,000, $10 up to
+  $1,000,000 and one bucket above, where every creation price shared it), so a price is at most 0.05% off. Changed:
+  holders' cost-basis percentiles, `min`, `max` and supply density; the profitability bands (at block 100,000 all
+  supply sat in one loss band); Bedrock's URPD statistics (its floors now appear in 2010, when supply rounded to $0 kept
+  them empty); Rarity Meter's components that read them; and the URPD API's buckets. Most of the change is before 2013;
+  today's percentiles move by up to $5 under $100,000 and up to $50 above. The ±5% density band's edges round to the
+  nearest cent (were truncated). The price index has 64,001 buckets (was 190,001)
 - Block-to-pool attribution follows mempool's current `pools-v2.json` (a new Foundry USA payout address)
 - The average address balance is the exact mean (was floored to whole sats: 3 sats over two addresses read 1) and
   undefined (null) while no address is funded (was 0), computed on read
@@ -906,14 +1026,13 @@ has to be deleted by hand.
   each address holds 50 BTC in one output (was 100 BTC in two) and no longer counts as reused, and the address
   supply, balance bands, realized cap and supply shares follow; no spend, volume or realized profit and loss is
   recorded
-
 - Exponential averages store their exact state. At the tip every block resumed from the stored output, and the price
   EMAs truncated to whole cents: the 200-day EMA settled about $72 low and the 4-year one about $500, and nodes
   differed by run history
 - Rolling averages depend on a row's position alone, not on how updates batched the blocks (e.g. the hash-rate
   SMAs): every 1,024th row rebuilds the window's sum from its values, the rows after continue from it, and a resume
-  replays from the last such row. A resume rebuilt the sum where it started (before that, from rounded stored
-  outputs), so the last digits depended on update history
+  replays from the last such row. A resume recovered the sum from the stored, rounded average, so the last digits
+  depended on update history
 - Block weight totals and statistics are exact (they were derived from vbytes × 4, off by up to 3 WU per block)
 - The network hash rate sums each block's difficulty-implied hash rate over the trailing 24 hours and divides by
   144: a window spanning a difficulty adjustment weighs each block by its own difficulty (it multiplied the block
@@ -925,26 +1044,23 @@ has to be deleted by hand.
   the lowest rate among the transactions overlapping the block's last 2% of vsize, max the higher of the 99th
   percentile and the highest among those overlapping its first 2% (mempool.space's heuristic; were the plain
   extremes, which a single outlier set)
-- Per-transaction statistics use mempool.space's lower nearest rank `sorted[max(0, floor(n·p) − 1)]` (transaction
-  vsize statistics were the rounded nearest rank). Every computed percentile uses the nearest rank `ceil(n·p) − 1`,
-  like the cost-basis and URPD percentiles: rolling-window percentiles and medians (were linearly interpolated), the
-  VOCDD median behind Reserve Risk, Bedrock's loss thresholds (were linearly interpolated) and the rarity meter's
-  extreme thresholds (were `sorted[floor((n − 1)·p)]`)
-- True range is exact cents
+- Transaction vsize statistics use the fee statistics' lower nearest rank `sorted[max(0, floor(n·p) − 1)]` (were the
+  rounded nearest rank). Rolling-window percentiles and medians (were linearly interpolated), the VOCDD median behind
+  Reserve Risk, Bedrock's loss thresholds (were linearly interpolated) and the rarity meter's extreme thresholds (were
+  `sorted[floor((n − 1)·p)]`) use the nearest rank `ceil(n·p) − 1`, like the cost-basis and URPD percentiles
 - The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
   blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply
-  change, which lagged a halving by up to a year (that change remains the supply's 1-year `delta.rate`). It is
-  undefined only without supply, at block 0. Cointime's adjusted inflation follows
+  change, which lagged a halving by up to a year (that change remains `supply_delta_1y_rate`). It is undefined only
+  without supply, at block 0. Cointime's adjusted inflation follows
 - Profitability bands place each edge exactly: the creation price `spot × 100 / (100 ± p)` rounds up to the price
   grid and the outputs below it fall in the more profitable band, while the outputs in the spot's own grid bucket
   count as profit, like the holders' densities (the edge was rounded down to whole cents, then to the nearest
   grid price, so an output at an edge could land on either side, and break-even outputs were in loss)
 - `price.close` of a period without blocks is the previous close, a flat candle like the other split prices and
   `price.ohlc` (was null); every split price is a view of the candle
-- Transactions are nonstandard, as Bitcoin Core's solver rules, when an OP_RETURN output's data is not push-only or
-  a P2PK or bare multisig output holds a key with an invalid encoding (all were standard; spends of such outputs
-  are not yet flagged); coinbase transactions are not evaluated (the
-  description said they were nonstandard)
+- Transactions are nonstandard, as Bitcoin Core's solver rules, when an OP_RETURN output's data is not push-only or a
+  P2PK or bare multisig output holds a key with an invalid encoding (all were standard; spends of such outputs are not
+  yet flagged); coinbase transactions are not evaluated (the description said they were nonstandard)
 - Cointime's active and vaulted caps are market cap times liveliness and vaultedness, as in the Cointime paper, so
   they add up to market cap (were realized cap times them), and AVIV is active cap over investor cap, spot over True
   Market Mean (was realized cap times liveliness over investor cap). The adjusted velocity is velocity over
@@ -955,41 +1071,39 @@ has to be deleted by hand.
   (at 91842 the cohorts showed 50 BTC of transfer volume for it). Coinblocks destroyed leave them out too (9,400
   fewer from 91880 on), which moves Cointime's liveliness and everything built on it very slightly. `supply.burned`
   counts the two outputs (it left out 100 BTC from 91880 on)
-- Holders' supply density is NaN for an empty cohort, like Cointime's and Coinflow's (was 0)
+- Holders' supply density is NaN for an empty cohort (was 0) and before the first price (was 100%: every coin's $0
+  creation price sat in the $0 band)
 - Reserve Risk is time-weighted, like Glassnode's daily definition: the HODL bank accrues each block's opportunity
   cost times the time since the previous block in days, on monotonic timestamps (it added a full price per block,
   leaving Reserve Risk orders of magnitude below Glassnode's 0.0025 to 0.02). Its benchmark is the median over the last
   30 days of blocks of the trailing 24-hour VOCDD, an internal input (was the published `vocdd_median_1y`, the median
   over a year of each block's own VOCDD)
-- The year10 `timestamp` series were wrong (2019/2029)
-- Cointime's consumed coin days resume within their sources' length
-- Every replayed distribution output (age, addresses, UTXOs) carries its dependency versions (price, timestamps,
-  history, indexer inputs), so a change upstream recomputes everything downstream of it
+- The `year10` `timestamp` series starts each decade on its calendar start: 2009-01-01 for row 0, then 2010-01-01,
+  2020-01-01, ... (were 2019-01-01, 2029-01-01, ...)
+- Every replayed distribution output (`distribution`'s, now the age, addresses and UTXOs plugins) carries its
+  dependency versions (price, timestamps, history, indexer inputs), so a change upstream recomputes everything
+  downstream of it
 - Year cohorts gain `2027` and halving cohorts `epoch_5`: from January 1, 2027 (and from block 1,050,000) new outputs
   would have fallen out of both
-- A coinbase that claims less than its block's fees (valid, if wasteful) no longer stops the node: `subsidy` is
-  floored at zero, `unclaimed_rewards` is the scheduled subsidy plus fees minus the coinbase (the unclaimed fees are
-  burned), and the fee share is one minus the subsidy share, so both stay within 0 to 100%. A block's `extras.reward`
-  is its coinbase (it added the subsidy and the fees)
-- Cost-basis percentiles use the nearest rank, the first coin (or dollar) at or past p% of the total: the median of
-  three equal coins is the middle one (was the first). Holders' percentiles and medians and the URPD statistics of
-  Cointime, Coinflow and Bedrock
+- A coinbase that claims less than its block's fees (valid, if wasteful) no longer stops the node (it panicked):
+  `subsidy` is floored at zero, `unclaimed_rewards` is the scheduled subsidy plus fees minus the coinbase (the
+  unclaimed fees are burned), and the fee share is one minus the subsidy share, so both stay within 0 to 100%. A
+  block's `extras.reward` is its coinbase
+- Cost-basis percentiles use the nearest rank, the first sat (or cent of capital) at or past p% of the total: the
+  target rounds up (was down, one unit early: the median of three one-sat coins was the first). Holders' percentiles
+  and medians and Bedrock's URPD statistics
 - Coinflow's expected spending exposure integrates through age ranges where nothing moved (it stopped there and
   extrapolated the fit) and stops only where a range is empty, and the youngest range's remaining half hour counts as
   a half hour (was an hour). Mobility and everything weighted by it follow
-- AVIV NUPL comes from the quantities that define it, active capitalization above investor capitalization, rather
-  than a rounded price: it was null while True Market Mean was zero
-- Investor capitalization is signed (realized cap minus thermo cap goes negative when coins are re-acquired for less
-  than their issuance value, which would have stopped the computation; it has not happened yet), and so is
-  investorness. True Market Mean is null unless investor capitalization is positive, and AVIV with it
+- Investor capitalization is signed: realized cap minus thermo cap goes negative when coins are re-acquired for less
+  than their issuance value, which would have stopped the computation (an unsigned subtraction panicked; it has not
+  happened yet). True Market Mean is null unless investor capitalization is positive, and AVIV with it
 - An age range whose weight its history cannot define yet (no coin-days in the range: Cointime's wakefulness at the
-  instant coins first enter it) counts its coins as dormant: they were on neither side, left out of the in-loss
-  share (which could show 0% in loss) and of the cost basis, and turned every awake cohort's cost-basis percentiles
-  null. The wakefulness itself stays null there
+  instant coins first enter it) counts its coins as dormant: they were on neither side (awake plus dormant supply fell
+  short of the total), left out of the in-loss share (which could show 0% in loss), and turned the awake capitalization
+  and price null. The wakefulness itself stays null there
 - An address's spends within a block apply in input order (were grouped by their outputs' creation heights in hash
   order), so the balance band a spend's transfer volume and realized profit/loss count in no longer depends on hashing
-- Profitability bands take their capital from rounded running totals, so an age filter's bands add up to its capital
-  and their capital shares to 100% (two sub-cent bands could each show 100%)
 - Fee-rate statistics of a block without transactions are null (were 0); the mempool-compatible block and fee-rate
   endpoints still report 0 for it, like mempool.space
 - Oracle prices store the oracle's exact reference bin, so the node resumes the oracle where it stopped: each update
@@ -999,12 +1113,10 @@ has to be deleted by hand.
 - CPFP chunks come from an ancestor-set linearization chunked so feerates never increase: a later, richer chunk joins
   the one before it (two chunks could come out at 0.7 then 0.867 sat/vB). Effective fee rates, their statistics and
   the CPFP parent and child counts recompute
-- Sigop costs follow Bitcoin Core's `GetSigOpCount`: a `CHECKMULTISIG` counts as the `OP_n` right before it, or 20
-  after any other opcode, a signature opcode included (an earlier `OP_n` was carried across it). A Taproot
-  script-path spend's leaf version comes from its control block, so only a tapscript leaf is searched for signatures
-  and inscriptions. The indexer reindexes (version 43)
-- The cost-basis price index reaches $100,000,000 (was $1,000,000, above which every creation price shared the top
-  bucket): 64,001 buckets. Cost-basis statistics recompute
+- Indexer and mempool sigop costs follow Bitcoin Core's `GetSigOpCount`: a `CHECKMULTISIG` counts as the `OP_n` right
+  before it, or 20 after any other opcode, a signature opcode included (an earlier `OP_n` was carried across it). A
+  Taproot script-path spend is searched for signatures and inscriptions only when its control block names a tapscript
+  leaf (any leaf version was searched)
 - `market.ath.max_days_between` counts each interval between all-time highs in full at the high that ends it (it
   read the elapsed time after the new high reset it, missing the interval's last block)
 - Price averages and extremes start at the first exchange price (block 74,641, 16 August 2010): SMAs, EMAs (seeded
@@ -1022,138 +1134,132 @@ has to be deleted by hand.
 - Transactions: the ephemeral-dust policy switch uses the indexer's v29 height, 892,500 (was 905,000)
 - Coarse calendar periods' `date` is the period's start (was its first block's date: empty periods repeated the next
   one's)
-- Profitability band capital shares come from exact capitals and are stored (rounded cents gave 100%/0% splits
-  early); address capital sums the exact band capitals before rounding
+- Profitability bands take their capital from rounded running totals, so a filter's bands add up to its capital
+  (each band was rounded on its own)
 - USD values round to the nearest cent (were truncated: `sth_realized_price` at 300,000 read $608.26 where cap over
-  supply is 608.2693), and aggregate capitals come from the exact sum rounded once: the all-chain realized cap and
-  the cohort capital-share denominator (were the sum of each age band's truncated cap), and awake/mobile capital and
+  supply is 608.2693), and aggregate capitals come from the exact sum rounded once: the all-chain realized cap and the
+  cohort capital-share denominator (were the sum of each age band's truncated cap), and awake/mobile capital and
   realized prices (each band was truncated before weighting). Cointime and coinflow weighted cohorts (awake/dormant,
-  mobile/immobile) derive every value from exact weighted moments: the weighted supply rounds once (was floored per
-  age range), its complement is the total minus it (the two sides add up to the total), and realized and capitalized
-  prices divide exact sums with exact half-cent rounding (the realized price divided by the floored supply: up to 2x
-  too high for tiny weighted supplies, null when the floor reached zero). Holders' capital in profit and in loss shares divide by
-  the two sides' total, so neither exceeds 100%. URPD bucket P&L rounds the exact difference once (it subtracted two
-  rounded values)
-- `market.ath.days_since` and `max_days_between` are null before the first price and count from it (both read the
-  zero placeholder as an all-time high: 5.36 days from genesis carried into the priced era). Price candles, `open`
-  and `low` skip the zeros before the first price (August 2010's monthly candle opened and bottomed at $0)
+  mobile/immobile) derive every value from exact weighted moments: the weighted supply rounds once (was floored per age
+  range), its complement is the total minus it (the two sides add up to the total), and realized prices divide exact
+  sums with exact half-cent rounding (the realized price divided by the floored supply: up to 2x too high for tiny
+  weighted supplies, 0 when the floor reached zero). Holders' capital in profit and in loss shares divide by the two
+  sides' total, so neither exceeds 100%. URPD bucket P&L rounds the exact difference once (it subtracted two truncated
+  values)
+- `market.ath.days_since` and `max_days_between` are null before the first price (were 0) and count from it. Price
+  candles, `open` and `low` skip the zeros before the first price (August 2010's monthly candle opened and bottomed at
+  $0)
 - The rarity meter's bands stay ordered: where its models disagree (early 2013, one model's 5% boundary above
-  another's 95%), the range between reads as neither side, and the full meter combines its 16 components itself (on
-  2013-04-09 its 5% band read $153.54, above its median $145.00 and its 95% band $136.94). Its percentiles read the
-  outer edge of their 0.001 ratio step, so spot crosses a band only from a more extreme step (the first calibration
-  block read maximally rare: level 5, score 35 at 210,000)
+  another's 95%), the range between reads as neither side (the boundaries crossed), and the full meter combines its
+  components itself (it inherited Local's and Cycle's boundaries). Its percentiles read the outer edge of their 0.001
+  ratio step (were the lower edge), so spot crosses a band only from a more extreme step
 
 #### Clients
 
 - JS `get(-1)` / Python `endpoint[-1]` and `skip(-n).take(n)` returned nothing: counted selections now send `start`
   and `limit`. Pre-2009 dates selected rows from the end (or the first row) instead of failing
-- The Rust client failed to fetch any series containing a `null` (e.g. `…by.minute10()`) and read boolean series as
-  integers; the Python pool block count/share types declared `_24h`, which never matched the JSON
+- All three clients percent-encode path parameters, dynamic series names included (an id with `?`, `#` or `/` is one
+  segment)
+- The Python and Rust clients percent-encode query values (a search with a space or `&`, or a `+` in a timestamp's
+  offset, changed the request)
+- The Rust client failed to fetch any series containing a `null` (e.g. `…by.minute10()`) and any boolean series (it
+  expected integers)
+- The Rust client's bulk series queries send the index by name (`tx_index`, was the rejected `TxIndex`), and very
+  large `last`/`skip`/`take` values saturate
+- The Python pool block count/share types declared `_24h`, which never matched the JSON
+- The Python client keeps the base URL's path (`https://host/bitview` lost `/bitview`)
+- The Python client rejects a slice step instead of ignoring it
+- The Python client closes its connection and raises `BitviewError` on an HTTP protocol error (the connection stayed
+  unusable)
 - The JS client rejects when revalidating a cached value fails (it resolved with the cached value, so a failed health
   check looked fine; `onValue` still delivers the stale value first), never caches a `no-store` response, and keeps
   JSON, text and bytes of one URL apart in its parsed cache
-- The Python and Rust clients percent-encode query values (a search with a space or `&`, or a `+` in a timestamp's
-  offset, changed the request). The Python client keeps the base URL's path (`https://host/bitview` lost `/bitview`)
-  and rejects a slice step instead of ignoring it. JS response types declare the keys the JSON has (`USD`, `avgFee_0`,
-  `"24h"`; were `uSD`, `avgFee0`, `_24h`)
-- Generated clients: series JSON no longer has `stamp` (Python fetches failed without the template change); path
-  parameters are percent-encoded (an id with `?`, `#` or `/` is one segment); Rust bulk series queries send the
-  index by name (`tx_index`, was the rejected `TxIndex`) and very large `last`/`skip`/`take` values saturate; JS
-  concurrent requests for one URL each get their `onValue`
-- Generated clients percent-encode the series name in dynamic series endpoints too; the Python client closes its
-  connection and raises `BitviewError` on an HTTP protocol error (the connection stayed unusable); the JS client
-  combines abort signals only when the caller passes one and requires Node 20.3+
+- The JS client's response types declare the keys the JSON has (`USD`, `avgFee_0`, `"24h"`; were `uSD`, `avgFee0`,
+  `_24h`)
+- The JS client's concurrent requests for one URL each get their `onValue`
+- The JS client combines abort signals only when the caller passes one (`AbortSignal.any` needs Node 20.3), and its
+  package declares Node 20.3+ (was 18)
 
 #### API and node I/O
 
-- A series range counted from the end (`start=-100`, `end=-10`), left open, or past the rows (a future date
-  included) is tied to the tip: under `--cdn` such URLs got the year-long tier while naming other rows every block
-- Every ETag starts with the release, so a release changing a response's format never validates an older body. The
-  website answers `304` to weakened or listed tags (a CDN weakening them got full bodies). The MCP pages revalidate
-  after a second under a content ETag (were five minutes without one) and the logo's URL carries the release, so its
-  year-long cache never outlives it
+- A series range counted from the end (`start=-100&end=-10`, or a negative start with `limit`) is tied to the tip:
+  under `--cdn` such URLs got the year-long tier while naming other rows every block
+- Every ETag starts with the release, so a release changing a response's format never validates an older body
 - `/api.json` lists the `format` query field of `DataRangeFormat` and `SeriesSelection` and the tag definitions (its
   compaction removed every `format` key, property names included, and every tag list) and keeps key order
-- `/api/address/{address}` no longer answers 503 while a block's address state is written: the update publishes the
-  changed addresses from memory and writes them after (readers wait at most 10 ms for the publication's lock)
-
+- Transactions spending a bare multisig or nonstandard output show the prevout's script, read from the parent
+  transaction (was empty)
 - A block's average fee rate (`extras.avgFeeRate`) is its fees over the fee-paying transactions' weight, like
   Bitcoin Core's `getblockstats` that mempool.space serves (kept to the milli-sat/vB where Core floors to whole
   sat/vB, 0 below 1): it also counted the header, the transaction count and the coinbase, which lowered it most in
   small blocks
-- Reads no longer wait for an update or answer 503 while one runs (they timed out after 4 seconds): each request
-  reads the last published state (what every plugin has computed to) and an update publishes the next one in one
-  swap, so readers never wait for compute (an address's stats wait only while its state is written at publication)
-  and an update never waits for readers; only a rollback waits for the reads started before it. Blocks,
-  transactions and addresses not published yet answer 404 (were 503)
-- The mempool is published only at the tip Bitview has published: the transactions of a block being processed stay
-  unconfirmed until it publishes, instead of being found nowhere. Each publication wakes the mempool, which follows
-  at once. A request reads the mempool before the chain, so it never finds a newer pool, and lookups the chain
-  answers first (transactions, outspends, CPFP, RBF) read whichever pool is published: a pending transaction is
-  still found while the mempool follows new blocks or a reorg (answered 503). Pending transactions spending a just-mined
-  transaction's outputs resolve right away (from the pool's record of it), so a fresh pool no longer waits a cycle
-  to answer
-- An address's stats are written with the publication they belong to: a transaction in the block being processed
-  counted twice (confirmed and pending), and a failed update left the stats ahead of the published chain
-- During a reorg within the plugins' saved rollback history (10 blocks), a plugin about to rewrite published rows in
-  place (spends, address state) first lowers what readers see to where its rollback lands: spends published below the fork could read as unspent, and address stats as of an
-  older block, mid-reorg. A reorg rolls the address state back with the indexer, before indexing, and writes it at
-  once: address stats answer as of the fork (or where the rollback lands below it) during the update (answered
-  503). They answer 503 only after a failed
-  write, during an update of more than 10 blocks, or after a reorg past the saved history
+- Address stats and UTXOs, outspends, confirmed CPFP, URPD and series over rewritable rows (address indexes, spends)
+  no longer wait for an update or answer 503 `state_updating` while one runs (they waited up to 4 seconds for the
+  whole update): each request reads the last published state (what every plugin has computed to) and an update
+  publishes the next one in one swap, so readers never wait for compute and an update never waits for readers; only a
+  rollback waits for the reads started before it. An address's stats wait at most 10 ms for the publication's lock
+  (the update publishes the changed addresses from memory and writes them after)
+- The mempool is published only at the tip Bitview has published, and each publication wakes it, so it follows at
+  once: the transactions of a block being processed stay unconfirmed until it publishes (the pool dropped them as soon
+  as Bitcoin Core mined them; only transaction lookups still found them, in its record of mined transactions). A
+  request reads the mempool before the chain, so it never finds a newer pool, and lookups the chain answers first
+  (transactions, outspends, CPFP, RBF) read whichever pool is published, so a pending transaction is still found while
+  the mempool follows new blocks or a reorg. Pending transactions spending a just-mined transaction's outputs resolve
+  right away (from the pool's record of it; they stayed unresolved until the block was published)
+- During a reorg within the plugins' saved rollback history (10 blocks), address stats answer as of the fork (or
+  where the rollback lands below it) while the update runs: the address state rolls back with the indexer, before
+  indexing, and is written at once, and a plugin about to rewrite published rows in place (spends, address state)
+  first lowers what readers see to where its rollback lands. Address stats answer 503 only after a failed write,
+  during an update of more than 10 blocks, or after a reorg past the saved history (they waited for every update,
+  answering 503 after 4 seconds)
 - A reorg of up to ten blocks always lands at or before the fork: addresses (state and caps), UTXOs (caps) and the
   outputs' spend index write the last ten blocks of every update, catch-ups included, as one undo step, so a landing
-  replays at most that tail (they kept the last ten updates:
-  a 1-block reorg after a 25,000-block catch-up landed about 5,000 blocks back and recomputed from there). A deeper
-  reorg rebuilds only the plugin whose undo cannot land, and a plugin lowering what readers see no longer makes
-  other plugins recompute
-- An address's unspent outputs read the indexer's address stores as of the published lengths, so a listing never
-  shows a later block's spends
+  replays at most that tail. Address and cost-basis states kept the last ten writes, one per flush (every 10,000
+  blocks or 60 seconds while catching up): a 1-block reorg after a 25,000-block catch-up landed about 5,000 blocks
+  back and recomputed from there; the spend index kept no undo history. A deeper reorg rebuilds only the plugin whose
+  undo cannot land
 - Height lookups, calendar maps and pool snapshots are immutable paged snapshots (an update copies only its tail
-  pages), so reads never wait for compute on them; while one request rebuilds the live price window or the
-  historical price cache, the others answer 503 `state_updating` (they waited on its lock)
-- The UTXO set and URPD endpoints read a snapshot that is never rewritten under them: during an update they could fail
-  or silently reconstruct a state from the next block's snapshot payload
-- `spending_txin_index` reads unspent for a spend in a block not published yet (CPFP clusters left those out too, or
-  failed reading them); hashrate, difficulty, pool and CPFP endpoints no longer read the current day, epoch or tip
-  transaction from a block being processed; the historical price no longer fails (500) or reads an unpublished close
-  when an update has opened a new 4-hour bucket
-- The live price skips the mempool blend while the mempool follows a new block (answered 503). Responses identified by
-  a confirmed block no longer answer 503 when a block publishes mid-request
+  pages): reads no longer wait on the locks an update held while extending them
+- Hashrate, difficulty and pool endpoints no longer read the current day or epoch from a block being processed
+- The historical price no longer reads an unpublished close when an update has opened a new 4-hour bucket
+- The live price blends the mempool only once the pool has followed the published tip (it blended whatever pool was
+  current)
 - An address's unspent outputs include its unconfirmed ones and leave out those a mempool transaction spends, like
-  mempool.space. While the mempool is not anchored to the published chain (starting up, a rollback, or the moment a
-  block publishes), the address endpoints answer from confirmed data alone (stats answered 503)
+  mempool.space (they listed confirmed outputs only). While the mempool is not anchored to the published chain
+  (starting up, a rollback, or the moment a block publishes), the address endpoints answer from confirmed data alone
 - A compressed vector publishes a write's bytes, page layout and length together: a read during a write could decode
   the new bytes with the old layout (block size and weight are compressed and served while the indexer appends)
-- A shutdown signal no longer waits behind back-to-back updates: no new update starts once it is pending, and it
-  no longer waits for the indexer's deferred store commit (vectors written ahead of an interrupted commit roll back
-  on import)
+- A shutdown signal no longer waits for the indexer's deferred store commit (a 3-second delay, then the store persist
+  and compaction, held the exit lock); vectors written ahead of an interrupted commit roll back on import. No new
+  update starts once a shutdown is pending
 - Reading the newest blocks finds them by hopping from frame to frame from each blk file's start, and reads a body
   only for a needed canonical header. It scanned 8 MB chunks backward from arbitrary offsets, where magic bytes
   inside a transaction could pass for a frame: with an unobfuscated blk file (a datadir created before Core 28, or run
   with `-blocksxor=0`), a crafted transaction carrying a recent canonical header could have had its bytes parsed as
   that block
-- Block templates (about 10 MB) and template diffs keep their response admission until the body is sent, two of each
-  at a time: admission ended once the bytes were built, so slow readers could each hold one while new requests built
-  more. A matching conditional request still answers 304 without waiting for admission
+- Block templates (about 10 MB) and template diffs are built and sent two of each at a time, keeping their admission
+  until the body is sent: each request built its own with no limit, so slow readers could each hold one while new
+  requests built more. A matching conditional request still answers 304 before any build. Outspends, RBF trees,
+  replacements and all-pools hashrate count toward the response-body admission too
 - An address's unspent outputs no longer list the two coinbase outputs that BIP30 duplicates overwrote (blocks 91812
   and 91722): the indexer drops them from their address when the duplicate lands
 - Pool hashrate histories (`/api/v1/mining/hashrate/pools/{time_period}`, `/api/v1/mining/pool/{slug}/hashrate`):
   `24h` and `3d` return the latest day instead of nothing, a share's block counts cover the same seven days (the
   network count lagged a day), and samples are weekly back from today, each sharing out the seven days since the
   previous one
-- A transaction returning to the mempool records what it replaced while it was gone (those showed as vanished);
-  projected mempool blocks no longer end with empty blocks, and template transactions carry Core's entry data
-  (sigop-adjusted vsize, fees) beside their bodies from `getblocktemplate`
+- A transaction returning to the mempool records what it replaced while it was gone (those showed as vanished)
+- Projected mempool blocks no longer end with empty blocks
+- A transaction first seen in Core's block template takes its entry from `getmempoolentry` (sigop-adjusted vsize,
+  arrival time), its body still decoded from `getblocktemplate`: the entry came from the template alone, with a
+  weight-derived vsize and the time bitview first saw it; template entries synthesized without `getmempoolentry` get
+  Core's sigop-adjusted vsize
 - A date or timestamp past the last block ends the series: as `start` it selects nothing (was the last block), as
   `end` it keeps the last block (was left out), for the height, epoch and halving indexes
 - The website caches only content-hashed files as immutable; fixed names (the search index, workers, fonts) revalidate
   with an ETag, so an upgrade no longer leaves a stale search index for a year
-- The MCP server exposes the UTXO set diff (`get_utxo_set_diff`), as decided; the full state stays out
-- `/api/v1/fullrbf/replacements` (and `/api/v1/replacements`) no longer answer 500 when the graveyard is busy: they
-  visit only replacements, end with the complete trees found when the work budget runs out, and skip a tree nested
-  too deep
-- Creation and UTXO cohort series descriptions lose two address-only sentences (names unchanged)
+- `/api/v1/replacements` and `/api/v1/fullrbf/replacements` walk a bounded history: they visit only replacements
+  (every buried transaction was scanned, mined ones included), end with the complete trees found once a 4096-step work
+  budget runs out, and skip a tree nested deeper than 32 replacements
 - bitviewd reports malformed arguments as errors instead of panicking
 - Requests Bitcoin Core refuses fail at once instead of being retried for about 11 days: rejected credentials (401,
   `RpcAuthFailed`; with cookie auth the client re-reads the cookie and retries only if it changed), 403 from
@@ -1167,115 +1273,105 @@ has to be deleted by hand.
   files of the vector's previous life; a value whose width changed without a version bump resets instead of being
   misread
 - A transaction with more than 65,536 outputs (consensus-valid but non-standard: only a miner can include one, and
-  none has come close, the most is 13,107) no longer crashes the indexer on every instance: such an output keeps
-  its own UTXO entry (its vout's high bits are mixed into the key's txid prefix; every other key is unchanged) and
-  its confirmed spends resolve normally, its vout shows in full and its transaction's outspends answer. Its
+  none has come close, the most is 13,107) no longer crashes the indexer on every instance (`Vout` panicked past
+  65,535): its confirmed spends resolve normally, its vout shows in full and its transaction's outspends answer. Its
   address's UTXO list can miss or misattribute it (a dev build stops there)
 - A VecDB rollback skips the change files an earlier rollback left above its landing (kept until a write at their
   stamp replaces them): after a reorg whose replacement came in one multi-block update, a later deeper reorg failed
   every update with a stamp mismatch
-- An address state update that failed after applying its changes (a failed write of the plugin's other vectors) left
-  them in the write buffers for the next update to apply again; the next update now discards them
-- `utxo_set` now compacts its database; the Docker image build copies every build input
+- The Docker image builds: it copies every build input (v0.12.2's copied only `crates/`, missing the
+  `examples/custom_plugin` workspace member and the embedded `website/` and `modules/`)
 - After a reorg, an address's unspent outputs no longer list outputs that the replacement chain spent again. The
   storage engine's weak deletes assume a key is written once; a rollback writes spent outputs back, and a compaction
   that merged the restored entry with the orphaned spend dropped the delete still owed to the original entry below.
-  Compaction now writes the merged entry as a value that still owes the weak delete (a new on-disk record type,
-  unreadable by older builds)
-- `/api/address/{address}/txs/mempool` answers 503 while the mempool is not at the published tip (was a cacheable
-  empty list); `/api/blocks/tip/height` and `/tip/hash` answer 503 on an empty index (were 500)
+  Compaction now writes the merged entry as a value that still owes the weak delete
+- `/api/address/{address}/txs/mempool` answers 503 `state_updating` while the mempool is not at the published tip
+  (it listed the live pool whatever tip it was at)
+- `/api/blocks/tip/height` and `/tip/hash` answer 503 on an empty index (were 200 with height 0 and an all-zero hash)
 - A request whose `Accept-Encoding` refuses every encoding gets 406 before any handler runs: a broadcast is no longer
   submitted and then answered with 406
-- Outspends, RBF trees, replacements and all-pools hashrate count toward response-body admission
-- Confirmed CPFP rates use sigop-adjusted sizes, like the mempool's; daily payment histograms count blocks before the
-  oracle's start as zeros (like height reads) and answer 503 for a day a rollback hides
-- P2PK hash-prefix matches are accepted by the address endpoints (any 33/65-byte key field in hex); shared series ids
-  with different nullability are not merged
+- Confirmed CPFP rates use sigop-adjusted sizes, like the mempool's
+- `/api/oracle/histogram/payments/{point}`: blocks before the oracle's first one (340,000) count as zeros, and a
+  block's warm-up window never reaches below it, like the price plugin's (v0.12.2 replayed the earlier blocks, per
+  height and per day)
+- P2PK hash-prefix matches are accepted by the address endpoints (any 33/65-byte key field in hex)
 - `GET /api/v1/transaction-times` accepts percent-encoded parameter names and values (`txId%5b%5d`)
-- URPD revalidation is cheap: the ETag comes from the requested block's hash, the request and the source versions, so
-  a matching `If-None-Match` answers 304 without rebuilding the distribution (URPD ETags change once)
+- URPD ETags come from the requested block's hash, the request and the source versions: a reorg or a recompute changes
+  them, and a matching `If-None-Match` still answers 304 without rebuilding the distribution (a past day's URPD was
+  tagged by a fixed version alone)
 - Address store scans (address history, hash-prefix search, address UTXOs) answer storage read errors with 500
-  instead of aborting the process; address endpoints no longer declare 404 for a valid address
+  instead of aborting the process
 - Mempool: a returning transaction is rebuilt from its current body (a changed witness kept the old size, raw bytes
-  and template body); a replacement is recorded when its replacer was already pooled, and when both arrive in one
-  poll outspends point to the replacer; template entries synthesized without `getmempoolentry` get Core's
-  sigop-adjusted vsize; live keys are keyed hashes of txids, so ground prefix collisions cannot corrupt the pool
-- The blocking RPC client has its own HTTP/1.1 transport (was `jsonrpc`'s `simple_http`): a node closing the
-  connection mid-headers fails the call (it spun forever holding the shared socket), chunked bodies are read,
-  concurrent callers use pooled keep-alive sockets instead of queueing on one, a socket the node closed while idle is
-  replayed once, and a rejected cookie is re-read and retried once. Non-`http://` URLs are rejected (`https` URLs were
-  sent, credentials included, over plain TCP), and an IPv6 `rpcconnect` gets its brackets
-- Website: weak ETags (`W/"hash"`), `Vary: Accept-Encoding`, 304s without `Content-Length`; filesystem mode is limited
-  to 2 concurrent responses and gets the request deadline
-- importmap: stylesheet links between the markers keep all their attributes and external links; multiline tags work
-- Storage forks: pco decodes valid short dictionary pages and conv1 pages shorter than their order, describes float
-  dictionary chunks and exposes `FileDecompressor::simple_decompress`; lsm-tree validates each decoded block's
-  trailer and restart pointers on load (`InvalidTrailer`) and decodes with checked slices, skips oversized
-  leveled-compaction windows instead of giving up, and accepts fractional Bloom bits per key
-- VecDB: raw readers bound their length by the bytes they lock; `reset_unsaved` drops a pending truncation and
-  `is_dirty` reports one; `OverflowVec` rollback restores its pushed rows; compressed pages check their decoded length;
-  a self-referencing undo link ends `rollback_landing` instead of looping. StateDB's journal keeps its writer lock
-  until its buffered data is flushed
+  and template body)
+- Mempool: a replacement is recorded when its replacer was already pooled, and when both arrive in one poll
+  outspends point to the replacer
+- Mempool: live keys are keyed hashes of txids, so ground prefix collisions cannot corrupt the pool
 - Mempool: a stale template-only transaction no longer takes outpoints from a listed spender (outspends kept
-  reporting the live spender's inputs unspent); removal classification is linear in a transaction's inputs again; a template-only transaction
-  that becomes listed takes over its spent outpoints (the leaving conflict is recorded as replaced by it), and a
-  change of spender alone republishes the pool
-- fjall: read views and the iterators keyspaces and views return hold the database lock until their tables are
-  released, so a reopen cannot delete or reuse tables they still pin
-- VecDB: `reset_unsaved` after an unwritten rollback returns to the rollback's state (length, rows, updates, holes);
-  rolling back an overflow vec whose restored rows include deleted ones no longer panics (`OverflowVecValue`
-  requires `Default`); raw tail pages check their decoded length; delta change/average/rate fall back to `f64` when
-  the exact difference overflows the source type
-- The addresses plugin writes its published state only after the update's changed addresses are published
-- Confirmed CPFP (version 2) and v1 block responses (schema `v1-5`) get new validators, so cached bodies from before
-  the sigop-adjusted rates and unrounded `virtualSize` are dropped
-- importmap: stylesheet links inside HTML comments stay out; `<link>` tags are recognised in any case
+  reporting the live spender's inputs unspent); once listed it takes them over, and a conflict leaving then is
+  recorded as replaced by it
+- The RPC client has its own HTTP/1.1 transport (was `jsonrpc`'s `simple_http`): a node closing the connection
+  mid-headers fails the call (it spun forever holding the shared socket), chunked bodies are read, and concurrent
+  callers use pooled keep-alive sockets instead of queueing on one. Non-`http://` URLs are rejected (`https` URLs were
+  sent, credentials included, over plain TCP), so is a URL with credentials (`user@host` was silently dropped: use
+  rpcuser/rpcpassword or the cookie), and an IPv6 `rpcconnect` gets its brackets
+- Website: responses use weak ETags (`W/"hash"`), match listed validators (weakly) and `*`, send `Vary:
+  Accept-Encoding` and omit `Content-Length` on 304 (v0.12.2 compared the whole `If-None-Match` header with the index
+  page's ETag, so a CDN weakening tags got full bodies)
+- Website: filesystem mode is limited to 2 concurrent responses and gets the request deadline
+- importmap: stylesheet links between the markers keep all their attributes and external links, and those inside HTML
+  comments stay out; `<link>` tags are recognised in any case, multiline tags work, and markers inline with other
+  markup no longer prefix the map
+- pco decodes valid short dictionary pages and conv1 pages shorter than their order, no longer panics on a conv1 final
+  batch shorter than its order, and rejects a malformed page whose secondary stream has neither delta nor bins (it
+  decoded zeros)
+- pco describes float dictionary chunks (it panicked)
+- lsm-tree validates each decoded block's trailer and restart pointers on load (`InvalidTrailer`) and decodes with
+  checked slices, skips oversized leveled-compaction windows instead of giving up, and accepts fractional Bloom bits
+  per key
+- fjall: the iterators keyspaces return hold the database lock until their tables are released, so a reopen cannot
+  delete or reuse tables they still pin
+- RawDB: a corrupted database header counts as data corruption, so the indexer rebuilds instead of failing
+- VecDB: raw readers bound their length by the bytes they lock (they trusted the length passed in): a read racing a
+  truncation returns nothing
+- VecDB: `reset_unsaved` drops a pending truncation (`is_dirty` reports one) and, after an unwritten rollback, returns
+  to the rollback's state (length, rows, updates, holes)
+- VecDB: `OverflowVec` rollback restores its pushed rows (it dropped them); `OverflowVecValue` requires `Default`, the
+  placeholder for a restored row that was deleted
+- VecDB: bulk reads of a mutable vector no longer skip updates after a hole a rollback restored
+- VecDB: delta change, average and rate subtract exactly in the source type, falling back to `f64` only when the
+  difference overflows it (they subtracted in `f64`)
+- `brk_exit`: the signal handler only flags and wakes the shutdown thread (it wrote to stderr itself; later signals
+  print nothing)
+- Oracle histogram queries for a day or height a rollback hides answer 503 `state_updating` (were 404)
+- Block reads from the blk files (header, block info, raw block, merkleblock proof) check the header against the
+  indexed hash and answer 500 when they differ (they served whatever the stored position held)
 - `bitview_traversable_derive`: storage-mode structs whose other params are bounded by the mode param compile; bounds
   written inline on the storage-mode parameter are kept for both `Rw` and `Ro`
-- mmpl: a replacement history past the RBF traversal limits reports the transaction `vanished` instead of stalling
-- bitviewd_bench refuses to start when LOG/RUST_LOG filters out its timing events, and a run without plugin timings
-  is marked failed; brk_reader reads non-XOR block files in debug builds
-- UTXO-set, URPD and oracle date queries answer 503 `state_updating` for a day a rollback hides (UTXO-set and URPD
-  answered a cacheable 404); merkleblock proofs check the block header against its hash; an epoch whose quarter
-  window spans no time projects at the observed, then the target pace (it projected an instant retarget)
-- The indexer rolls back across a BIP30 duplicate coinbase (91,842, 91,880) restoring the original's UTXO and address
-  outpoint; a first computation of genesis alone saves every plugin's state without an undo record (one rule in
-  `bitview_compute`);
-  bitviewd_bench finishes its report before a shutdown exits
-- Storage: cancelling after a version reset leaves the vector empty, and a version change always resets, even a
-  vector a pending truncation emptied (the stale rows came back under the new version and were written); bulk reads of a mutable vector no longer skip updates after a hole a rollback restored; a raw
-  read racing a truncation returns nothing instead of panicking; statedb drops a page generation as soon as neither
-  `tip` nor `prev` uses it; pco conv1 no longer panics on a final batch shorter than its order; the signal handler
-  only flags and wakes the shutdown thread (it wrote to stderr itself; later signals print nothing)
-- A corrupted raw database header now counts as data corruption, so the indexer rebuilds instead of failing; pco
-  rejects a malformed page whose secondary stream has neither delta nor bins (it decoded zeros); lsm-tree recovery
-  keeps rejecting a table file whose id differs from the manifest's; the website serves an `index.html` resolved
-  from a dotted path as HTML; MCP 304s carry no `Content-Length: 0`; the RPC clients reject a URL with credentials
-  (`user@host`: use rpcuser/rpcpassword or the cookie); generated docs keep nullable arrays' item types
-- importmap: markers inline with other markup no longer prefix the map; website: `If-None-Match: *` answers 304 for
-  content-hashed assets too; descriptions corrected: mining fee/reward buckets (averages of their blocks), window
-  deltas (from the value before the window), the veteran cohort (an undefined capitalized price), Bedrock floors (some
-  supply with a positive creation price), URPD buckets (`realized_cap` and `unrealized_pnl` use grid creation
-  prices within 0.05% of each coin's, rounded to the cent per bucket, and weighted supply under a weight), and the brk_rpc, brk_reader, bitviewd, bitview_query and brk_mempool READMEs
+- bitviewd_bench refuses to start when LOG/RUST_LOG filters out its timing events, marks a run without plugin timings
+  failed, and finishes its report before a shutdown exits
+- The generated LLM docs (`llms.txt`, `llms-full.txt`) name nullable types, nullable arrays with their item type (they
+  read `object`), and `llms-full.txt` no longer repeats a curl block per endpoint
+- Descriptions corrected: mining fee/reward buckets (averages of their blocks), the veteran cohort (an undefined
+  capitalized price), Bedrock floors (some supply with a positive creation price) and URPD buckets (`realized_cap`
+  and `unrealized_pnl` use grid creation prices within 0.05% of each coin's, rounded to the cent per bucket, and
+  weighted supply under a weight)
 
 ### Performance Improvements
 
 #### Compute and indexing
 
-- Constant pco pages decode about 30% faster (no body buffer when a page reads no bits); OverflowVec checkpoints
-  without undo skip collecting old values; multi-column CSV enters its read bounds once instead of per cell
-- A first sync no longer waits 10 seconds before indexing
-- Transaction patterns (coinjoin, consolidation, batch payout) classify block ranges in parallel instead of one
-  thread walking every transaction. Recomputing them from block 0 to ~970,750 on a 16 GB Mac mini takes 50 s instead
-  of 201 s (the whole transactions plugin, with no other plugin computing: 260 s instead of 414 s), with identical
-  flags and counts
-- Per-block loops read their per-height inputs through cursors instead of point reads, each of which decoded a whole
-  compressed page: the URPD metrics behind coinflow and cointime (supplies and weights per age range), bedrock
-  (supplies, weights and loss shares) and inscription fees. At 300,000 blocks coinflow takes 4.4 s instead of 33 s
-  and bedrock 1.2 s instead of 5 s
-- Spot-to-price ratios are stored, computed once after the block loop, instead of lazy views that read two vectors
-  per value: MVRV and the mean-price ratios of every cohort (holders, Cointime, Coinflow), the Cointime prices'
-  ratios (with their MVRVs and AVIV; AVIV NUPL is computed on read from the capitalizations) and the moving averages' ratios (with the Mayer multiple)
+- A full sync on a 16 GB Mac mini with an external Thunderbolt SSD takes 5,128 s to 971,699 blocks (indexing 4,122 s,
+  computing about 1,000 s), peaks at 8.7 GiB of physical memory and leaves 310 GB of data (recorded at a011bb7f0,
+  five commits before this release); an earlier dirty build at `2d1c94fa1`, reporting version 0.12.0, took 20,960 s
+  to 968,669 blocks (16,191 s and about 4,770 s), peaked at 11.9 GiB and left 316 GB
+- Constant pco pages decode about 30% faster (no body buffer when a page reads no bits)
+- A sync more than 10,000 blocks behind (such as a first sync) no longer waits 10 seconds before indexing
+- Transaction patterns (coinjoin, consolidation, batch payout) classify 64-height ranges in parallel instead of one
+  thread walking every transaction: classifying ~970,750 blocks on a 16 GB Mac mini takes 50 s instead of 201 s
+  single-threaded, with identical flags and counts
+- Spot-to-price ratios are stored, computed once after the block loop, instead of lazy views that read two vectors per
+  value: MVRV and the mean-price ratios of every cohort, the Cointime prices' ratios (with their MVRVs and AVIV) and the
+  moving averages' ratios (with the Mayer multiple)
 - The age ranges no longer track the capitalized cap of their supply in profit and in loss (two `u128` products per
   price move and two stored vectors per range), which only pain, greed, net sentiment and the per-dollar in-profit
   and in-loss means used
@@ -1284,87 +1380,54 @@ has to be deleted by hand.
 - The indexer saves its pending data at the first 100-block boundary after 20 million records are pending, instead of
   35 million: memory climbs with the pending data between saves, and indexing blocks 600,000 to 650,000 peaks at
   8.6 GiB instead of 9.4 at the same speed
-- `addresses` takes 337 s instead of 420 s at 600,000 blocks, with the same series and address data. Its
-  block cache keeps emptied addresses in place, in one map per address type instead of a funded and an empty map. Each
-  block's outputs and inputs are grouped on the processing thread instead of the thread pool. A reader thread reads
-  the next batch's columns while the current batch is processed, for `utxos` too
-- Pushes onto stored vectors check that the vector is still writable only in debug builds (6.7 ns per push instead
-  of 7.1)
-- `addresses` flushes its address cache every 10,000 blocks or once it holds 24 million addresses,
-  whichever comes first, and each of its tables then keeps room only for what it just held, so the cache follows the
-  chain's activity instead of its busiest past: run alone to ~970,750 blocks on a 16 GB Mac mini it takes 556 s and
-  peaks at 8.4 GiB (32 million: 552 s, 9.8 GiB; 16 million: 632 s, 7.2 GiB)
-- Coinflow, cointime and bedrock replay their per-block URPD in parallel 5,000-block segments, each from its nearest
-  history snapshot, with results handed back in block order. The URPD histogram keeps one supply column per age range
-  so a block's projection reads mostly contiguous memory, and the cohort statistics come from one compact sweep. At
-  970,056 blocks coinflow takes 169 s instead of 491, cointime 188 s instead of 494 and bedrock 19 s instead of 75,
-  with identical outputs
-- `addresses` runs alongside `utxos` instead of after it, reading neither `utxos` nor `outputs`: each address type
-  tracks the supply its addresses hold and the outputs and inputs they move. Computing every plugin over
-  an indexed 970,056-block chain takes 1417 s instead of 1543 s and peaks at 9.7 GiB instead of 10.7
-- `addresses` applies each 16-block batch in three steps: blocks are grouped by address in parallel,
-  each address type's addresses are split by index into 8 shards and the 64 shards applied in parallel (each to its
-  own cached addresses, logging its cohort changes per block), and the logs are folded block by block. Alone at
-  970,133 blocks it takes 547 s instead of 989 and peaks at 7.8 GiB instead of 8.0, with the same series and the same
-  stored state for every address
-- No durability syncs (msync, `F_FULLFSYNC`, fsync) in rawdb, vecdb, statedb and fjall: a soft quit (SIGINT, SIGTERM)
-  still leaves consistent data, while kernel panics, power loss and storage removal are not supported. Computing every
-  plugin over an indexed 970,224-block chain takes 1,762 s instead of 1,905 s on a 16 GB Mac mini and peaks at
-  9.87 GiB instead of 10.32
+- `addresses` flushes its address cache every 10,000 blocks, as `distribution` did, or once it holds 24 million
+  addresses, whichever comes first, and each of its tables then keeps room only for what it just held, so the cache
+  follows the chain's activity instead of its busiest past
+- No durability syncs: rawdb no longer msyncs and `F_FULLFSYNC`s on every flush, nor fjall fsyncs (vecdb and statedb
+  have none). A soft quit (SIGINT, SIGTERM) still leaves consistent data, while kernel panics, power loss and storage
+  removal are not supported. On a 16 GB Mac mini this release's plugins compute an indexed 970,224-block chain in
+  1,762 s instead of 1,905 s with the syncs
 - On unix, rawdb writes indexed updates (vecdb's mutable vectors on save) in page-aligned chunks of up to 1 MiB on up
-  to 8 threads; on macOS uncached (`F_NOCACHE`), where dirtying a cached 16 KiB file page costs 70-100 µs, reading
-  back the chunks that were in memory so they stay cached (elsewhere values are still stored through the mapping). On
-  a 16 GB Mac mini `addresses` alone at 970,224 blocks takes 515 s instead of 1,139 s (741 s instead of
-  1,218 s with its data on the internal SSD), and every plugin 1,375 s instead of 1,832 s, peaking at 10.32 GiB
-  instead of 9.67
-- `addresses` sorts each batch's addresses and skips the cached ones on the thread pool: alone at 970,536
-  blocks it takes 487-489 s instead of 515-519 s, with the same series
+  to 8 threads (each value was stored through the mapping); on macOS uncached (`F_NOCACHE`), where dirtying a cached
+  16 KiB file page costs 70-100 µs, reading back the chunks that were in memory so they stay cached (elsewhere values
+  are still stored through the mapping). This release's `addresses` alone at 970,224 blocks takes 515 s instead of
+  1,139 s on a 16 GB Mac mini
 - The indexer resolves each input that spends an earlier block's output with one lookup in a new store of unspent
   outputs (transaction-ID prefix and output index to the output's transaction, output index, type and type index),
-  instead of a transaction-ID lookup and three reads of the output vectors. Indexing 970,536 blocks on a 16 GB Mac
-  mini takes 4,421 s instead of 7,109 s (850,000 to 900,000 in half the time) and peaks 0.7 GiB higher, with the
-  same series
+  instead of a transaction-ID lookup and three reads of the output vectors: indexing 970,536 blocks on a 16 GB Mac
+  mini takes 4,421 s instead of 7,109 s without the store (850,000 to 900,000 in half the time), with the same series
 - The unspent-output store also carries each output's value, so the indexer writes each input's value as it resolves
   the input and `inputs` no longer reads `outputs.value` at random. Its entries take 18 bytes: the output index in 5,
-  the value in `Sats`' compact form, and a value of 2^31 sats or more in a small overflow store. A full sync of
-  971,095 blocks on a 16 GB Mac mini takes 5,315 s instead of 5,498 s (inputs 78 s instead of 339 s, indexing 4,239 s
-  instead of 4,208 s; 4,506 s with 25-byte entries) and peaks at 11.38 GiB
+  the value in `Sats`' compact form, and a value of 2^31 sats or more in a small overflow store. In a full sync on a
+  16 GB Mac mini `inputs` takes 118 s (the `2d1c94fa1` build: 303 s)
 - `price` reads each 1,000-block batch's per-transaction first outputs, output values and types in three large range
   reads (small reads went through the memory map, one page fault at a time) and builds the batch's per-block
   histograms in parallel, with the same prices: 43 s instead of 106 s over 971,095 blocks. The compute branches wait
-  only for `price`, not `inputs` (only the UTXO set reads its spends), so they start 66 s earlier: computing every
-  plugin over the indexed chain on a 16 GB Mac mini takes 955 s instead of 1,084 s, and a full sync of 971,136 blocks
-  5,199 s instead of 5,315 s
-- Calendar dates from timestamps use integer civil-from-days arithmetic instead of a time-zone conversion, and
-  `holders` and `profitability` map each origin height's price to its index bucket once instead of on every update
+  only for `price`, not `inputs` (only the UTXO set reads its spends)
+- Calendar dates from timestamps use integer civil-from-days arithmetic instead of a time-zone conversion
 - The mempool resolves inputs that spend confirmed outputs through the unspent-output store first (one lookup, which
-  carries the value, the txid check and the address bytes), falling back to the parent transaction: at startup its first two
-  resolutions take 0.65-0.74 s and 2.3-2.4 s instead of 1.0-1.1 s and 3.3 s (about 12,000 and 18,500 inputs)
+  carries the value, the txid check and the address bytes), falling back to the parent transaction: at startup its first
+  two resolutions take 0.65-0.74 s and 2.3-2.4 s instead of 1.0-1.1 s and 3.3 s (about 12,000 and 18,500 inputs)
 - Each transaction's first output index and each output's spending input are stored in 5 bytes instead of 8
   (`Index40`, indexes below 2^40, the unspent marker kept): at 970,536 blocks (1,455,732,334 transactions,
   3,961,283,106 outputs) that is 16.25 GB less on disk and in the page cache. Series values and value types are
   unchanged
-- The age bands' exact `u128` inputs (cap, capitalized cap, peak regret, capitalized cap in profit and in loss), read
-  only in height ranges, are stored zstd-compressed: 486 MB instead of 1,786 MB at 970,536 blocks
 - Updates of a few blocks keep what they used to rebuild. Rolling windows keep their state between updates (sorted
   windows for medians and distributions, minimum and maximum deques, averages; about 10 MB, identical to a rebuild)
   instead of re-reading and sorting up to a year of values per window; lookback window starts, cumulative type counts,
-  OP_RETURN fee totals and the price oracle (about 134 KiB, no 12-block warm-up) carry over too. The UTXO-set tip
-  appends only its changed pages (a one-block advance takes 0.7 ms instead of 4.7 ms at 971,000 heights), replay
-  prefix checks are read once, and vector appends patch the last page in place
+  OP_RETURN fee totals and the price oracle (about 134 KiB, no 12-block warm-up) carry over too, and vector appends
+  patch the last page in place
 - Each plugin starts as soon as its own dependencies finish (Price beside Mappings; Mining, Pools, Supply,
-  Profitability and Coinflow as their inputs complete; Bedrock and Rarity together), clean databases skip deferred
-  compaction, and the indexer starts its store ingestion right after its vector write (no 3-second tail). Outputs,
-  Transactions, Holders and Cointime run independent parts in parallel; Outputs' undo uses the known unspent values
-- Input spends stream per block instead of being staged (up to 384 MiB), the age plugin's peak-price table is compact
-  (about 72 MiB less at 1,000,000 heights), and the daemon runs the mempool driver only when a consumer is enabled
-- A block publishes before its address state is written: the commit no longer writes ~20k scattered pages under the
-  readers' lock (125-400 ms), so new blocks are served 55-60% sooner; live one-block updates on a 16 GB Mac mini take
-  a median 81 ms (were 575 ms). The indexer's deferred store ingestion runs on its own threads, so plugins no longer
-  wait behind it for the shared thread pool
-- Market averages and price ranges read their window starts in one pass (they restarted a backward timestamp search
-  every 4,096 rows), and calendar reads of rolling windows serve the latest heights from the resident tip (a current
-  365-day value read ~87k timestamps)
+  Profitability and Coinflow as their inputs complete; Bedrock and Rarity together)
+- Clean databases skip deferred compaction (it always slept 5 seconds, then flushed and punched holes)
+- The indexer starts its store ingestion right after its vector write (no 3-second tail)
+- Outputs, Transactions, Holders and Cointime run independent parts in parallel
+- Outputs' undo uses the known unspent values
+- `bitview` starts the mempool driver only with the `price` feature, whose chain and price reads are its only
+  consumers (v0.12.2 always started it)
+- A block publishes before its address state is written (v0.12.2 wrote it before the update finished): live one-block
+  updates on a 16 GB Mac mini take a median 81 ms. The indexer's deferred store ingestion runs on its own threads
+  instead of the shared thread pool, so plugins no longer wait behind it
 
 #### `brk_reader`
 
@@ -1375,59 +1438,46 @@ has to be deleted by hand.
   after): each file is read once, and caching it evicted the data the indexer looks up. On macOS, indexing blocks
   600,000 to 650,000 takes 315 s instead of 331 s
 - The forward pipeline parses ahead across a gap within a 256 MiB budget of serialized block bytes (the next
-  required block always passes): past it, only positions are kept and re-read once the gap closes
+  required block always passes; it kept every out-of-order block): past it, only positions are kept and re-read once
+  the gap closes
 - An update right after the previous one reads only the frames appended since the last block it streamed (no
   directory scan or walk from the file's start), while the blk file is the same file (device and inode)
 
 #### `quickmatch-js`
 
-- Indexes whole words and trigrams once into typed postings and merges them, with the same results, faster. The
-  public `wordIndex` and `trigramIndex` maps are gone
+- Indexes whole words and trigrams once into typed postings and merges them, with the same results
 
 ### Internal Changes
 
 #### Workspace
 
-- Four consolidated, seeded model-based tests replace every other test (all removed, forks included, pco's
-  compatibility assets too): vecdb's covers rawdb and every vector variant (random pushes, updates, truncations,
-  checkpoints with undo, rollbacks, cancels, resets, reopens, relocations and concurrent readers against an in-memory
-  model); brk_store's covers fjall and lsm-tree (ingestion, weak tombstones, compaction, recovery, pinned views
-  against a `BTreeMap`); statedb's covers producers, reorgs, snapshot rollover, reopen and open readers; pco's
-  round-trips every type, mode, delta and paging. Each runs in about 2 s and caught every planted bug that changes
-  behaviour. Other changes are verified end to end with throwaway checks. The website and `examples/custom_plugin`
-  examples remain
+- Four seeded model-based tests replace every other test (the forks' included, with pco's compatibility assets):
+  vecdb's (rawdb and every vector variant against an in-memory model), brk_store's (fjall and lsm-tree against a
+  `BTreeMap`), statedb's and pco's (round trips), each running in about 2 s. Other changes are verified end to end
+  with throwaway checks. Only the website and `examples/custom_plugin` examples remain
 - Plugin crates other than the indexer follow one skeleton; distribution plugins share their cohort
   families and replay scaffold
-- A simplification pass removed about 4,400 lines without changing a published value (every series hashed before and
-  after a full recompute, the indexer reindexed to 600,000): vecdb's five vector types are aliases over two generic
-  stores sharing one read path, one compressed page source for mapped and buffered reads, one checked page decoder
-  and one checkpoint/cancellation sequence; lsm-tree drops its `Slice` wrapper (an alias of `ByteView`), resolves
-  writer options once and keeps two seek loops instead of four; bindgen reads each schema once (`Ty`) for every
-  client; the indexer's stores, UTXO entries (`Utxos`), sigop classification and column inventory each have one
-  owner; one shared conditional-request crate (`bitview_http`) serves the server, website and MCP; one table each
-  declares indexes, OHLC records, nullable integer formatting, rarity components, windowed transaction features and
-  blk's fields. The first exchange price (block 74,641) has one owner in the price plugin, the indexer owns published
-  output ranges and prevout scripts for the query, and rollback truncates every indexer vector in one loop by index.
-  A second round removed about 850 more: the window views (deltas, rolling ratios) share one read kernel and own the
-  value-before-the-window rule; one table each declares the OP_RETURN kinds, address payload lengths and calendars
-  (the generated JS and Python clients read them); mempool and confirmed CPFP share one projection; lsm-tree sizes
-  bloom filters with one rule for construction and partition planning (new 7-bits-per-key partitions split at 4,681
-  keys, were 4,682)
+- A slop pass removed about 4,400 lines of restating docs, history comments, single-use wrappers, impossible defensive
+  checks and README padding without changing a value (every series hashed identically after a full recompute and an
+  indexer reindex to 600,000)
+- lsm-tree sizes bloom filters with one rule for construction and partition planning (new 7-bits-per-key partitions
+  split at 4,681 keys, were 4,682)
+- New `bitview_http`: the ETag matching (weak, quoted, lists, `*`) and lengthless 304 body `bitview_server`,
+  `bitview_website` and `bitview_mcp` share
 - `cargo bindgen`, `cargo api` (series tree, OpenAPI, error responses and typed client paths) and `cargo surface`
-  (storage layout) regenerate and snapshot the generated outputs. The dev profile drops cross-crate LTO and uses
-  limited debuginfo
-- rawdb maps a reserved address range per data file once (four times its size at open, at least 1 TiB): growing a
-  file never remaps it, so a writer never waits for readers to release the mapping, and growing past the range fails
-  with `ReservationExhausted` (reopening reserves more) instead of remapping. An append within a
-  region's reservation shares the region with its readers instead of waiting for them: it writes past every reader's
-  bounds and the region length is atomic, published after the bytes. Readers borrow only the bytes they read
-  (`with_read_range`). Read guards on data an
-  update changes (compressed page tables, pool heights, overflow and hole sets) are recursive, so a read nested in
-  another read of the same vector cannot deadlock behind a waiting writer
-- statedb keeps the latest snapshot as `snapshots/tip` (and the one it replaced as `snapshots/prev`), a small
-  directory replaced by rename that points into an append-only page file (`snapshots/tips.<generation>`): an update
-  appends only the pages it changed, and a page file that grows past four times its live pages starts a new
-  generation. A tip of an older layout is rebuilt by the next update (restores use the retained snapshots meanwhile)
+  (storage layout) regenerate and snapshot the generated outputs; `cargo dev` runs `bitview-bindgen -- --run` (was
+  `bitviewd --features bindgen`). The dev profile drops cross-crate LTO and uses limited debuginfo
+- rawdb maps a reserved address range per data file once (four times its size at open, at least 1 TiB): growing a file
+  never remaps it, so a writer never waits for readers to release the mapping, and growing past the range fails with
+  `ReservationExhausted` (reopening reserves more) instead of remapping. An append within a region's reservation shares
+  the region with its readers instead of waiting for them: it writes past every reader's bounds and the region length is
+  atomic, published after the bytes. Readers borrow only the bytes they read (`with_read_range`). Read guards on data an
+  update changes (compressed page tables, overflow and hole sets) are recursive, so a read nested in another read of the
+  same vector cannot deadlock behind a waiting writer
+- The new statedb crate keeps the latest snapshot as `snapshots/tip` (and the one it replaced as `snapshots/prev`), a
+  small directory replaced by rename that points into an append-only page file (`snapshots/tips.<generation>`): an
+  update appends only the pages it changed, and a page file that grows past four times its live pages starts a new
+  generation
 
 ## [v0.12.2](https://github.com/bitcoinresearchkit/brk/releases/tag/v0.12.2) - 2026-09-01
 

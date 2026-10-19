@@ -21,12 +21,12 @@ pub fn process_sent(
     for group in spends.chunk_by(|a, b| a.0 == b.0) {
         let type_index = group[0].0;
         let (mut is_first_encounter, also_received) = addresses.observe_send(type_index);
-        let addr_data = lookup.get_for_send(type_index);
+        let addr_data = lookup.for_send(type_index);
         for &(_, value, prev_price) in group {
             debug_assert!(addr_data.is_funded());
             let pre = AddrPreState::capture(addr_data, output_type);
             let prev_balance = addr_data.balance();
-            let will_be_empty = addr_data.has_1_utxos();
+            let will_be_empty = addr_data.utxo_count() == 1;
             let prev_bucket = AmountRangeId::from(prev_balance);
             cohorts.send(prev_bucket, addr_data, value, current_price, prev_price);
             let new_bucket = AmountRangeId::from(addr_data.balance());
@@ -69,7 +69,7 @@ pub fn process_lost(
     output_type: OutputType,
     metrics: Option<&mut MemberState>,
 ) {
-    let addr_data = lookup.get_for_send(type_index);
+    let addr_data = lookup.for_send(type_index);
     debug_assert!(
         addr_data.utxo_count() > 1,
         "the overwritten output's address also holds the overwriting one"

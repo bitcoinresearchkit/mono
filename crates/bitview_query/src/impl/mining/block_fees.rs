@@ -6,11 +6,8 @@ use super::block_window::BlockWindow;
 use crate::{Query, Result};
 
 impl Query {
-    /// Time-bucketed average block fees over `time_period`. One entry per
-    /// bucket, ordered chronologically. Each entry carries the bucket's
-    /// average height/timestamp, the round-half-up mean of block fees in
-    /// sats, and the bucket-mean USD spot price (the spot price, not
-    /// fees-in-USD: clients multiply).
+    /// Round-half-up mean block fees in sats per time bucket over `time_period`, chronological,
+    /// with the bucket's mean USD spot price (not fees in USD: clients multiply).
     pub fn block_fees(&self, time_period: TimePeriod) -> Result<Vec<BlockFeesEntry>> {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin)?;

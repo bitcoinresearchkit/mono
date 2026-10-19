@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::FeeRatePercentiles;
 
-/// A single block fee rates data point: one time bucket of blocks. Each `avgFee_*` field is the
+/// One time bucket of blocks. Each `avgFee_*` field is the
 /// bucket's mean of its blocks' own percentile of their non-coinbase transactions' effective fee
 /// rates, weighted by vsize (a block without such transactions counts as 0).
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -14,8 +14,6 @@ pub struct BlockFeeRatesEntry {
     pub avg_height: Height,
     /// Average block timestamp in this bucket
     pub timestamp: Timestamp,
-    /// The bucket's mean of each block's fee rate percentiles (min, 10th, 25th, median, 75th,
-    /// 90th, max)
     #[serde(flatten)]
     pub percentiles: FeeRatePercentiles,
 }

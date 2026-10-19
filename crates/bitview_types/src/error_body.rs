@@ -46,7 +46,6 @@ pub enum ErrorType {
     Internal,
 }
 
-/// Machine-readable error code.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {

@@ -37,7 +37,7 @@ where
     #[inline]
     fn read_only_clone(&self) -> Self::ReadOnly {
         ReadOnlyRawVec {
-            base: self.base.read_only_base(),
+            base: self.base.read_only.clone(),
             cache: self.cache.clone(),
             _strategy: PhantomData,
         }

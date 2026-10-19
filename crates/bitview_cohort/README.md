@@ -9,8 +9,8 @@ client leaves it disabled.
 
 ## Collections
 
-Each collection holds one value per member, with an identifier enum selecting a member (`select`,
-`select_mut`) and the usual constructors and iterators (`from_fn`, `try_from_fn`, `iter`, `iter_mut`):
+Each collection holds one value per member and is built from its identifier with `from_fn` or
+`try_from_fn`:
 
 | Collection | Identifier | Members |
 | --- | --- | --- |
@@ -33,20 +33,6 @@ and include P2A, are `bitview_primitives::ByAddrType`/`AddrTypeId`.
 
 `CohortId` identifies a supported cohort and supplies its canonical name. It composes the same selectors the
 collections use; there is no separate filter representation or caller-supplied cohort name.
-
-```rust,ignore
-pub enum CohortId {
-    All,
-    Term(Term),               // STH/LTH
-    Age(AgeRangeId),          // disjoint age bucket
-    Amount(AmountRangeId),    // disjoint amount bucket
-    Epoch(EpochId),           // halving epoch
-    Class(ClassId),           // creation year
-    Entry(EntryPrice),        // entry-price valuation
-    Type(SpendableTypeId),    // P2PK, P2PKH, P2TR, ...
-    OpReturn,
-}
-```
 
 `CohortContext` names series: `Utxo` prefixes age and amount cohorts with `utxos_`, `Balance` prefixes them with
 `balance_` (address balance cohorts use `AmountRange` in this context); every other cohort is unprefixed, and
@@ -78,11 +64,5 @@ With zero-based, half-open band indices:
   at 14, 13, ..., 5, 4, 3, 2.
 - In loss: `[15, 25)`; at least 10%, 20%, ..., 80% loss: suffixes starting at 16, 17, ..., 23.
 
-Sum the selected bands at the same block for the same filter. Supply and capital add up; bands round separately,
-so a sum can differ from a total computed at once by a few cents. Derive ratios after summing.
-
-## Built on
-
-- `brk_types` for `Sats`, `Timestamp`, `OutputType`
-- `bitview_primitives` for `Halving`, `Year` and the physical address slots
-- `bitview_traversable` for traversal (`storage`)
+Sum the selected bands at the same block for the same filter, then derive ratios. Capital bands are differences
+of rounded cumulative totals, so a filter's bands sum exactly to its rounded total.

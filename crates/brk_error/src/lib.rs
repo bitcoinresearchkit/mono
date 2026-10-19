@@ -7,7 +7,7 @@ use bitcoin::consensus::encode::FromHexError;
 #[cfg(feature = "bitcoin")]
 use bitcoin::hex::HexToArrayError;
 #[cfg(feature = "corepc")]
-use corepc_jsonrpc::error::Error as ErrorError;
+use corepc_jsonrpc::error::Error as JsonRpcError;
 #[cfg(feature = "fjall")]
 use fjall::Error as FjallError;
 #[cfg(feature = "jiff")]
@@ -25,13 +25,10 @@ use vecdb::Error as VecdbError;
 #[cfg(feature = "vecdb")]
 use vecdb::RawDBError;
 
-/// Result using BRK's shared error type.
 pub type Result<T> = StdResult<T, Error>;
 
-/// Convert `Option<T>` into a result without panicking.
-///
-/// Replaces `.unwrap()` in plugin code so a missing value fails the computation with an
-/// error instead of aborting the process (`panic = "abort"`).
+/// In plugin code, a missing value fails the computation with an internal error instead of a
+/// panic, which aborts the process (`panic = "abort"`).
 pub trait OptionData<T> {
     fn data(self) -> Result<T>;
 }
@@ -50,7 +47,7 @@ pub enum Error {
 
     #[cfg(feature = "corepc")]
     #[error(transparent)]
-    CorepcRPC(#[from] ErrorError),
+    CorepcRPC(#[from] JsonRpcError),
 
     #[cfg(feature = "jiff")]
     #[error(transparent)]
@@ -93,7 +90,7 @@ pub enum Error {
     #[error("Date is outside the supported index range")]
     UnindexableDate,
 
-    #[error("The provided address appears to be invalid")]
+    #[error("Invalid address")]
     InvalidAddress,
 
     #[error("Invalid network")]
@@ -105,7 +102,6 @@ pub enum Error {
     #[error("Unsupported type ({0})")]
     UnsupportedType(String),
 
-    // Generic errors with context
     #[error("{0}")]
     NotFound(String),
 

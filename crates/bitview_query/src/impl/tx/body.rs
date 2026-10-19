@@ -4,9 +4,8 @@ use brk_types::{BlockHash, Txid};
 use super::ResolvedConfirmedTx;
 use crate::{Error, Query, RepresentationId, Result};
 
-/// A live value with its content hash, or a confirmed transaction to revalidate before loading.
-/// Public response wrappers keep transaction and CPFP bodies distinct; a live value is encoded
-/// only once a response needs its bytes.
+/// A mempool value with its content hash, or a confirmed transaction to revalidate before
+/// loading. Transaction values are encoded on demand; CPFP values are already JSON.
 pub(crate) enum ResolvedTxBody<T> {
     Memory { value: T, hash: u64 },
     Chain(ResolvedConfirmedTx),

@@ -7,7 +7,7 @@ use vecdb::VecIndex;
 
 /// Sparse table of the spot price's range maxima, in compact cents (exact for every price a
 /// cohort price map holds) to halve its ~19M entries at 1M heights.
-#[derive(Debug, Clone, Default)]
+#[derive(Default)]
 pub struct PriceRangeMax {
     levels: Vec<Vec<CentsCompact>>,
     n: usize,
@@ -16,7 +16,7 @@ pub struct PriceRangeMax {
 impl PriceRangeMax {
     pub fn extend(&mut self, prices: &[Cents]) {
         let new_n = prices.len();
-        if new_n <= self.n || new_n == 0 {
+        if new_n <= self.n {
             return;
         }
 
@@ -34,7 +34,7 @@ impl PriceRangeMax {
         );
         for level in 1..level_count {
             let half = 1 << (level - 1);
-            let new_end = new_n.saturating_add(1).saturating_sub(1 << level);
+            let new_end = new_n + 1 - (1 << level);
             let old_end = self.levels[level].len();
             if new_end > old_end {
                 let (previous, current) = self.levels.split_at_mut(level);
@@ -60,8 +60,10 @@ impl PriceRangeMax {
         );
     }
 
+    /// The highest price from `from` through `to`, both included.
     #[inline]
-    pub fn range_max(&self, start: usize, end: usize) -> Cents {
+    pub fn range_max(&self, from: Height, to: Height) -> Cents {
+        let (start, end) = (from.to_usize(), to.to_usize());
         debug_assert!(start <= end && end < self.n);
         let len = end - start + 1;
         let level = (usize::BITS - len.leading_zeros() - 1) as usize;
@@ -72,10 +74,5 @@ impl PriceRangeMax {
             let last = *values.get_unchecked(end + 1 - width);
             Cents::from(first.max(last))
         }
-    }
-
-    #[inline]
-    pub fn max_between(&self, from: Height, to: Height) -> Cents {
-        self.range_max(from.to_usize(), to.to_usize())
     }
 }

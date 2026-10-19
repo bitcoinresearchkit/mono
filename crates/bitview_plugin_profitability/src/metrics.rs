@@ -1,4 +1,4 @@
-use bitview_cohort::{ProfitabilityRange, ProfitabilityRangeId};
+use bitview_cohort::{PROFITABILITY_RANGE_NAMES, ProfitabilityRange, ProfitabilityRangeId};
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
@@ -36,7 +36,6 @@ pub struct Metrics<M: StorageMode = Rw> {
     supply_total: Totals<Sats, M>,
 }
 
-/// One band of one age filter: the subset of the cohort node that a band carries.
 #[derive(Clone, Traversable)]
 struct Band {
     /// Outputs are placed by their creation price rounded to four significant digits of cents
@@ -53,7 +52,7 @@ struct Band {
 struct BandSupply {
     /// Supply: amount of bitcoin held in the band's unspent transaction outputs.
     total: LazySpotValuePerBlock,
-    /// The band's share of its age filter's supply; a filter's bands add up to 100%.
+    /// The band's share of its age filter's supply; undefined (null) when that supply is zero.
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 
@@ -64,7 +63,7 @@ struct BandCapital {
     /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
     /// created.
     realized_cap: LazyFiatPerBlock<Cents>,
-    /// The band's share of its age filter's capital; a filter's bands add up to 100%.
+    /// The band's share of its age filter's capital; undefined (null) when that capital is zero.
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 
@@ -131,7 +130,7 @@ impl Metrics {
         let capital_share_stored = Self::import_bands(db, "capital_share_ppm", version)?;
         let terms = Terms::from_fn(|term| {
             ProfitabilityRange::from_fn(|band| {
-                let band_name = band.select(ProfitabilityRange::names()).id;
+                let band_name = band.select(&PROFITABILITY_RANGE_NAMES).id;
                 Band::new(
                     |metric| term.metric_name(&format!("{band_name}_{metric}")),
                     version,
@@ -162,7 +161,7 @@ impl Metrics {
     ) -> Result<Bands<T, Rw>> {
         Terms::try_from_fn(|term| {
             ProfitabilityRange::try_from_fn(|band| {
-                let band_name = band.select(ProfitabilityRange::names()).id;
+                let band_name = band.select(&PROFITABILITY_RANGE_NAMES).id;
                 import_cached(
                     db,
                     &term.metric_name(&format!("{band_name}_{metric}")),
@@ -185,18 +184,18 @@ impl Metrics {
             for &band in ProfitabilityRangeId::ALL {
                 let bucket = band.select(bands);
                 band.select_mut(self.supply_stored.select_mut(term))
-                    .push(*term.select(&bucket.supply));
+                    .push(*bucket.supply.select(term));
                 band.select_mut(self.capital_stored.select_mut(term))
-                    .push(*term.select(&bucket.cap));
+                    .push(*bucket.cap.select(term));
                 band.select_mut(self.capital_share_stored.select_mut(term))
                     .push(PartsPerMillion32::from(
-                        term.select(&bucket.cap_raw).inner() as f64
-                            / term.select(&totals.cap_raw).inner() as f64,
+                        bucket.cap_raw.select(term).inner() as f64
+                            / totals.cap_raw.select(term).inner() as f64,
                     ));
             }
             self.supply_total
                 .select_mut(term)
-                .push(*term.select(&totals.supply));
+                .push(*totals.supply.select(term));
         }
     }
 }

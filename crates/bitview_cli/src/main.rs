@@ -98,7 +98,7 @@ fn execute(args: Args) -> Result<(), Box<dyn Error>> {
     let mut response = match args.command.request_body {
         Some(body) => agent.run(
             request
-                .header("Content-Type", body.content_type)
+                .header(CONTENT_TYPE, body.content_type)
                 .body(args.body.unwrap_or_default())?,
         )?,
         None => agent.run(request.body(())?)?,
@@ -129,8 +129,8 @@ fn execute(args: Args) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Streams `input` re-indented like serde_json's pretty printer. Tokens are copied byte for byte, so numbers beyond
-/// u64/f64 (u128 hashrates) stay exact and nothing is buffered.
+/// Streams `input` re-indented like serde_json's pretty printer, never holding the whole response. Tokens are copied
+/// byte for byte, so numbers beyond u64/f64 (u128 hashrates) stay exact.
 fn write_pretty(input: impl Read, output: &mut impl Write) -> io::Result<()> {
     let mut depth = 0usize;
     let mut in_string = false;

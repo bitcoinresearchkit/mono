@@ -17,8 +17,7 @@ impl FiatType for Cents {}
 
 impl FiatType for CentsSigned {}
 
-/// Height-indexed fiat monetary value: cents (eager, integer) + usd (lazy, float).
-/// Generic over `C` to support both `Cents` (unsigned) and `CentsSigned` (signed).
+/// Stored cents with their lazy USD view.
 pub type FiatPerBlock<C, M = Rw> = Fiat<PerBlock<C, M>, LazyPerBlock<Dollars, C>>;
 
 impl<C: FiatType> FiatPerBlock<C> {

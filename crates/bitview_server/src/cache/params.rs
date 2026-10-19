@@ -86,8 +86,8 @@ impl CacheParams {
         Self::live(format!("a{version}-{:x}", *prefix))
     }
 
-    /// Deploy-tied response (validate-address, OpenAPI spec, scalar bundle): `d`, the release
-    /// every tag starts with telling releases apart.
+    /// Release-bound response (validate-address, version, scalar bundle): `d`, after the release
+    /// prefix every tag starts with.
     pub fn deploy() -> Self {
         Self::revalidate("d".to_string())
     }
@@ -112,11 +112,12 @@ impl CacheParams {
         }
     }
 
-    /// Series query: historical rows get CACHED, rows reaching the reorg window get LIVE.
+    /// Series query: the resolved [`SeriesAnchor`] picks the stable or the live CDN tier.
     ///
-    /// Etag shapes (see [`SeriesAnchor`]):
+    /// Etag shapes:
     /// - historical: `s{v}-r{start}-{end}-{anchor:x}`, the anchor being the last block the rows
-    ///   cover: stable across appends, changed by any reorg replacing those rows.
+    ///   depend on (for calendar indexes, the following period's first block): stable across
+    ///   appends, changed by any reorg replacing those rows.
     /// - tip: `s{v}-t{tip_hash:x}`. Invalidates per block, reorg-safe.
     #[cfg(feature = "series")]
     pub fn series(query: &ResolvedQuery, cdn_cache_mode: CdnCacheMode) -> Self {
@@ -138,10 +139,6 @@ impl CacheParams {
         let cache_control = policy.cache_control();
         headers.insert_cache_control(cache_control);
         headers.insert_cdn_cache_control(cache_control);
-    }
-
-    pub fn matches_etag(&self, headers: &HeaderMap) -> bool {
-        self.etag.matches(headers)
     }
 
     /// Write this cache policy (etag + cache-control + cdn-cache-control) onto a response's headers.

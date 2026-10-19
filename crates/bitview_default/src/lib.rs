@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![allow(clippy::type_complexity)]
 
 use bitview_plugin::PluginSet;
 use bitview_plugin_addresses::Vecs as Addresses;

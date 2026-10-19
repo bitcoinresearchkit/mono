@@ -26,26 +26,19 @@ impl Accumulator {
     pub fn scan_input(
         &mut self,
         prev_kind: OutputType,
-        prev_legacy_sigops: SigOps32,
+        prev_legacy_sigop_cost: SigOps32,
         facts: &input::Facts<'_>,
     ) {
         if !facts.script_sig.push_only {
-            self.legacy = self.legacy.saturating_add(facts.script_sig.legacy_sigops);
+            self.legacy += facts.script_sig.legacy_sigops;
         }
 
         if self.track_executed_legacy {
             if !facts.script_sig.push_only {
-                self.executed_legacy = self.executed_legacy.saturating_add(
-                    facts
-                        .script_sig
-                        .accurate_sigops
-                        .saturating_mul(WITNESS_SCALE_FACTOR),
-                );
+                self.executed_legacy += facts.script_sig.accurate_sigops * WITNESS_SCALE_FACTOR;
             }
             if prev_kind != OutputType::P2SH {
-                self.executed_legacy = self
-                    .executed_legacy
-                    .saturating_add(u32::from(prev_legacy_sigops) as usize);
+                self.executed_legacy += u32::from(prev_legacy_sigop_cost) as usize;
             }
         }
 
@@ -54,31 +47,25 @@ impl Accumulator {
                 let Some(redeem_sigops) = facts.redeem.sigops() else {
                     return;
                 };
-                self.redeem = self.redeem.saturating_add(redeem_sigops);
+                self.redeem += redeem_sigops;
                 if self.track_executed_legacy {
-                    self.executed_legacy = self
-                        .executed_legacy
-                        .saturating_add(redeem_sigops.saturating_mul(WITNESS_SCALE_FACTOR));
+                    self.executed_legacy += redeem_sigops * WITNESS_SCALE_FACTOR;
                 }
                 if !facts.script_sig.push_only {
                     return;
                 }
                 if facts.redeem.is_p2wpkh() {
-                    self.witness = self.witness.saturating_add(1);
+                    self.witness += 1;
                 } else if facts.redeem.is_p2wsh()
                     && let Some(last) = facts.witness.last
                 {
-                    self.witness = self
-                        .witness
-                        .saturating_add(SigOpCount::of(Script::from_bytes(last)).accurate);
+                    self.witness += SigOpCount::of(Script::from_bytes(last)).accurate;
                 }
             }
-            OutputType::P2WPKH => self.witness = self.witness.saturating_add(1),
+            OutputType::P2WPKH => self.witness += 1,
             OutputType::P2WSH => {
                 if let Some(last) = facts.witness.last {
-                    self.witness = self
-                        .witness
-                        .saturating_add(SigOpCount::of(Script::from_bytes(last)).accurate);
+                    self.witness += SigOpCount::of(Script::from_bytes(last)).accurate;
                 }
             }
             OutputType::P2TR => {}
@@ -87,22 +74,17 @@ impl Accumulator {
     }
 
     pub fn scan_coinbase_input(&mut self, input: &TxIn) {
-        self.legacy = self
-            .legacy
-            .saturating_add(SigOpCount::of(&input.script_sig).legacy);
+        self.legacy += SigOpCount::of(&input.script_sig).legacy;
     }
 
     pub fn scan_output(&mut self, output: &ProcessedOutput) {
-        self.legacy = self.legacy.saturating_add(output.script_legacy_sigops());
+        self.legacy += output.script_legacy_sigops();
     }
 
     pub fn finish(self) -> ComputedSigOps {
         ComputedSigOps {
             total: SigOps32::from(
-                self.legacy
-                    .saturating_mul(WITNESS_SCALE_FACTOR)
-                    .saturating_add(self.redeem.saturating_mul(WITNESS_SCALE_FACTOR))
-                    .saturating_add(self.witness),
+                (self.legacy + self.redeem) * WITNESS_SCALE_FACTOR + self.witness,
             ),
             executed_legacy: SigOps32::from(self.executed_legacy),
         }

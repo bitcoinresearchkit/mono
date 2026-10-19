@@ -1,4 +1,4 @@
-use std::{convert::Infallible, marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 pub mod any_vec;
 pub mod avg;
@@ -42,18 +42,16 @@ fn exact_diff<S: CheckedSub + PartialOrd + Clone + Into<f64>>(current: S, before
 ///
 /// For each index `h` with `start = window_starts[h]` (the window's first index), `Op` combines
 /// `source[h]` with the value before the window, `source[start - 1]` (the default for a window
-/// from 0), over `h - start + 1` elements ([`DeltaOp::count`]): rolling sums/averages from prefix
-/// sums, and changes that equal the sum of the flows in the window.
+/// from 0), and the count [`DeltaOp::count`] gives (by default the window length
+/// `h - start + 1`): rolling sums/averages from prefix sums, and changes that equal the sum of
+/// the flows in the window.
 ///
 /// Sources are dense (every index below their length holds a value) and never shrink while read:
 /// they may grow, but a truncation waits for readers (checked in dev builds).
-///
-/// Nothing is stored on disk — values are computed on-the-fly during iteration.
 pub struct LazyDeltaVec<I: VecIndex, S: VecValue, T, Op> {
     name: Arc<str>,
     base_version: Version,
     source: ReadableBoxedVec<I, S>,
-    #[allow(clippy::type_complexity)]
     window_starts: ReadableBoxedVec<I, I>,
     _op: PhantomData<(Op, T)>,
 }
@@ -81,7 +79,7 @@ where
     }
 
     /// Visits `[from, to)` in [`read_batches`], each with its window starts and its source batch
-    /// ([`WindowBuffers`]). Scratch is bounded by the batch.
+    /// ([`WindowBuffers`]). Scratch covers the batch and the span of its before-window values.
     fn try_for_each_batch<E>(
         &self,
         from: usize,
@@ -117,16 +115,5 @@ where
                     Op::count(index, start),
                 )
             })
-    }
-
-    /// Visits each batch's transformed values through one reused buffer.
-    fn for_each_transformed_chunk(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
-        let mut output = Vec::new();
-        let Ok(()) = self.try_for_each_batch(from, to, |at, starts, batch| {
-            output.clear();
-            output.extend(Self::transformed_values(at, starts, batch));
-            f(at, &output);
-            Ok::<_, Infallible>(())
-        });
     }
 }

@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortName, Term};
 
-/// Term names
 pub const TERM_NAMES: ByTerm<CohortName> = ByTerm {
     short: CohortName::new("sth", "STH", "Short Term Holders"),
     long: CohortName::new("lth", "LTH", "Long Term Holders"),

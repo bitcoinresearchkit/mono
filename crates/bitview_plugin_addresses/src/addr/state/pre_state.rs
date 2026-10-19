@@ -3,8 +3,7 @@ use brk_types::{OutputType, Sats};
 use derive_more::Deref;
 
 /// Snapshot of [`FundedAddressData`]'s predicates and supply contributions, taken before a
-/// spend or lost output mutates it.
-#[derive(Debug)]
+/// receipt, spend or lost output mutates it.
 pub struct AddrPreState {
     pub was_reused: bool,
     pub was_respent: bool,
@@ -29,7 +28,7 @@ impl AddrPreState {
 }
 
 /// Snapshot of [`FundedAddressData`] taken before a receive mutates it.
-#[derive(Debug, Deref)]
+#[derive(Deref)]
 pub struct AddrReceivePreState {
     #[deref]
     pub pre: AddrPreState,

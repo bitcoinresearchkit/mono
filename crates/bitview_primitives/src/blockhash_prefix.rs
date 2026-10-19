@@ -25,10 +25,3 @@ impl From<&BlockHash> for BlockHashPrefix {
 }
 
 brk_types::impl_store_value!(BlockHashPrefix, u64);
-
-impl From<u64> for BlockHashPrefix {
-    #[inline]
-    fn from(value: u64) -> Self {
-        Self(value)
-    }
-}

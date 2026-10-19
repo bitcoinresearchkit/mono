@@ -55,7 +55,7 @@ impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
                     current_height
                 } else {
                     self.output_heights
-                        .get_shared(reference)
+                        .get(reference)
                         .ok_or_else(|| Error::NotFound("spent output creation height".into()))?
                 });
                 Ok::<_, Error>(())

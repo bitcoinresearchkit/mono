@@ -48,8 +48,8 @@ impl BlockProcessor<'_> {
         Ok(())
     }
 
-    /// Push block total_size and weight, reusing per-tx sizes already computed in ComputedTx.
-    /// This avoids redundant tx serialization (base_size + total_size were already computed).
+    /// Pushes the block's size, weight and SegWit totals from the per-transaction sizes
+    /// [`ComputedTx`] already holds, without serializing the transactions again.
     pub fn push_block_size_and_weight(&mut self, txs: &[ComputedTx]) {
         let overhead = Header::SIZE + VarInt::from(txs.len()).size();
         let mut total_size = overhead;
@@ -70,7 +70,7 @@ impl BlockProcessor<'_> {
 
         let h = self.height;
         let blocks = &mut self.vecs.blocks;
-        blocks.total.debug_checked_push(h, total_size.into());
+        blocks.size.debug_checked_push(h, total_size.into());
         blocks.weight.debug_checked_push(h, weight.into());
         blocks.segwit_tx_count.debug_checked_push(h, sw_txs.into());
         blocks.segwit_tx_size.debug_checked_push(h, sw_size.into());

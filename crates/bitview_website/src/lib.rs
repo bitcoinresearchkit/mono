@@ -1,17 +1,14 @@
 //! Website router for Bitview: embedded assets or a filesystem directory.
 //!
 //! This crate provides website serving without any BRK data layer dependencies.
-//! It can serve the embedded website or from a filesystem path.
 //!
 //! See the `website` example for how to run a standalone server.
 
 mod error;
 mod handlers;
-mod headers;
 mod router;
 mod website;
 
 pub(crate) use error::Error;
-pub(crate) use headers::HeaderMapExtended;
 pub use router::router;
 pub use website::Website;

@@ -6,7 +6,7 @@ mod ratio;
 
 pub(crate) use arithmetic::CountPerSecond;
 pub use arithmetic::{BlocksToDays, DifficultyToHashrate, OneMinusPpm};
-pub use currency::CentsUnsignedToSats;
+pub use currency::CentsToSatsPerDollar;
 pub(crate) use ratio::FixedToRatio;
 pub use ratio::{
     BoundedOdds, BoundedToRatio, FixedToPercent, PriceTimesRatio, Quotient, RelativeChange,

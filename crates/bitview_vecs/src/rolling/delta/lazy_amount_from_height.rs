@@ -2,9 +2,7 @@ use bitview_traversable::Traversable;
 use brk_types::Bitcoin;
 use vecdb::{DeltaChange, VecValue};
 
-use crate::{AmountType, LazyPerBlock};
-
-use crate::LazyDeltaFromHeight;
+use crate::{AmountType, LazyDeltaFromHeight, LazyPerBlock};
 
 #[derive(Clone, Traversable)]
 #[traversable(merge)]

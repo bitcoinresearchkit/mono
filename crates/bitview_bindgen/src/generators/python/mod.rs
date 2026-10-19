@@ -1,7 +1,3 @@
-//! Python client generation.
-//!
-//! This module generates a Python client with type hints for the Bitview API.
-
 mod api;
 pub(crate) mod client;
 mod tree;
@@ -12,9 +8,6 @@ use std::{collections::BTreeSet, fmt::Write, io, path::Path};
 use super::write_if_changed;
 use crate::{Endpoint, IndexSetPattern, TypeSchemas, model::Model};
 
-/// Generate Python client from the series-tree model and OpenAPI endpoints.
-///
-/// `output_path` is the full path to the output file (e.g., "packages/bitview_client/__init__.py").
 pub(crate) fn generate_python_client(
     model: &Model,
     shape_names: &[String],

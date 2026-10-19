@@ -7,16 +7,12 @@ use crate::Version;
 /// Options for importing or creating stored vectors.
 #[derive(Clone, Copy)]
 pub struct ImportOptions<'a> {
-    /// Database to store the vector in.
     pub(crate) db: &'a Database,
-    /// Name of the vector.
     pub(crate) name: &'a str,
     /// Version for tracking data schema compatibility.
     pub(crate) version: Version,
     /// Number of stamped change files to keep for rollback support (0 to disable).
     pub(crate) saved_stamped_changes: u16,
-    /// Overrides the index type's initial value capacity when set.
-    pub(crate) initial_capacity: Option<usize>,
     /// Readers keep reading while updates are written in place: no reader reads updated values
     /// until written.
     pub(crate) unread_updates: bool,
@@ -29,7 +25,6 @@ impl<'a> ImportOptions<'a> {
             name,
             version,
             saved_stamped_changes: 0,
-            initial_capacity: None,
             unread_updates: false,
         }
     }

@@ -4,7 +4,6 @@ use brk_types::{Cents, Height, Version};
 use vecdb::{BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec};
 
 /// A component's reference price, which its ratio percentiles multiply into price bands.
-#[derive(Clone)]
 pub struct ComponentPrice {
     price: ReadableBoxedVec<Height, Cents>,
 }
@@ -28,7 +27,7 @@ impl ComponentPrice {
             version,
             ratio,
             &self.price,
-            |_, ratio, price| PriceTimesRatio::<PartsPerMillion32>::apply(price, ratio),
+            |_, ratio, price| PriceTimesRatio::apply(price, ratio),
         );
 
         Price::from_height_source(name, version, &source, mappings)
@@ -48,9 +47,7 @@ impl ComponentPrice {
                     values
                         .iter()
                         .zip(&prices[at - start..])
-                        .map(|(&ratio, &price)| {
-                            PriceTimesRatio::<PartsPerMillion32>::apply(price, ratio)
-                        }),
+                        .map(|(&ratio, &price)| PriceTimesRatio::apply(price, ratio)),
                 );
             });
             out

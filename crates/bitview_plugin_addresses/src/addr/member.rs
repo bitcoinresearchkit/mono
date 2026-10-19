@@ -17,7 +17,6 @@ use vecdb::{
 
 use super::{BlockActivityCounts, ExposedState, MemberState, ReuseState};
 
-/// What every member's import shares.
 pub struct ImportContext<'a> {
     pub db: &'a Database,
     pub version: Version,
@@ -58,14 +57,13 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     /// The supply the addresses hold, and the outputs they received and inputs they spent:
     /// the shares' and average balance's denominators.
     #[traversable(hidden)]
-    supply: CachedSeries<Height, Sats, M>,
+    pub(crate) supply: CachedSeries<Height, Sats, M>,
     #[traversable(hidden)]
     outputs: CumulativeSource<Count, M>,
     #[traversable(hidden)]
     inputs: CumulativeSource<Count, M>,
 }
 
-/// A stored count of addresses.
 #[derive(Traversable)]
 pub struct StoredCount<M: StorageMode = Rw> {
     #[traversable(flatten)]
@@ -144,7 +142,6 @@ pub struct PredicateSupply<M: StorageMode = Rw> {
     pub share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 
-/// Per-block reuse events.
 #[derive(Traversable)]
 pub struct ReuseEvents<M: StorageMode = Rw> {
     /// Received outputs that leave their address meeting the predicate: for reuse, every output
@@ -253,11 +250,6 @@ impl AddressVecs {
             outputs,
             inputs,
         })
-    }
-
-    /// The supply the addresses hold.
-    pub fn supply(&self) -> &CachedSeries<Height, Sats> {
-        &self.supply
     }
 
     #[inline(always)]

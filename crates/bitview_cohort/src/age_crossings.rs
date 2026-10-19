@@ -1,5 +1,6 @@
-use crate::{AGE_BOUNDARIES, AGE_RANGE_COUNT, AgeRangeId};
 use brk_types::{ONE_HOUR_IN_SEC, Timestamp};
+
+use crate::{AGE_BOUNDARIES, AGE_RANGE_COUNT, AgeRangeId};
 
 /// Visit origins crossing each age boundary, youngest first. The caller supplies
 /// the previous state's monotonic timestamps and resets positions after a rewind.
@@ -43,9 +44,6 @@ pub fn for_each_age_cutoff<const N: usize>(
         let duration = hours as u32 * ONE_HOUR_IN_SEC;
         let lower = i64::from(**previous) - i64::from(duration);
         let upper = i64::from(*current) - i64::from(duration);
-        if upper <= lower {
-            continue;
-        }
         let mut start = positions[i];
         if start == 0 {
             start = timestamps.partition_point(|t| i64::from(**t) <= lower);
@@ -56,7 +54,7 @@ pub fn for_each_age_cutoff<const N: usize>(
         }
         let mut end = start;
         while end < timestamps.len() && i64::from(*timestamps[end]) <= upper {
-            visit(i, end, (*timestamps[end]).saturating_add(duration));
+            visit(i, end, *timestamps[end] + duration);
             end += 1;
         }
         positions[i] = end;

@@ -4,9 +4,9 @@ use super::write::write;
 use crate::{
     Vecs,
     block::{DetailedSpends, normalize_supply, remove_overwritten},
-    state::{Transacted, UTXOStates},
+    state::{ReceivedOutputs, UTXOStates},
 };
-use bitview_distribution::readers::{BatchColumns, BlockBounds, Columns};
+use bitview_distribution::readers::{BatchColumns, BlockBounds, ColumnReaders};
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -17,7 +17,7 @@ pub fn process_chunk(
     vecs: &mut Vecs,
     states: &mut UTXOStates,
     indexer: &Indexer,
-    columns: &mut Columns<'_, false>,
+    columns: &mut ColumnReaders<'_, false>,
     blocks: Range<usize>,
     prices: &[Cents],
     tail: bool,
@@ -38,9 +38,9 @@ pub fn process_chunk(
             let received = batch.block_outputs(height);
             let spent = batch.block_spends(height);
             let price = prices[height];
-            let mut transacted = Transacted::default();
+            let mut received_outputs = ReceivedOutputs::default();
             for (&value, &ty) in values[received.clone()].iter().zip(&types[received]) {
-                transacted.iterate(value, ty);
+                received_outputs.add(value, ty);
             }
             let mut detailed = DetailedSpends::default();
             for ((&value, &ty), &origin) in spent_values[spent.clone()]
@@ -50,8 +50,8 @@ pub fn process_chunk(
             {
                 detailed.add(value, ty, prices[usize::from(origin)], price);
             }
-            normalize_supply(Height::from(height), &mut transacted);
-            states.receive_details(&transacted, price);
+            normalize_supply(Height::from(height), &mut received_outputs);
+            states.receive_details(&received_outputs, price);
             detailed.apply(states);
             remove_overwritten(Height::from(height), states, prices);
             vecs.cohorts.push(states, price);
@@ -59,7 +59,7 @@ pub fn process_chunk(
                 .type_
                 .iter_mut()
                 .chain(states.amount_range.iter_mut())
-                .for_each(|s| s.reset_single_iteration_values());
+                .for_each(|s| s.reset_block());
         }
         Ok(ControlFlow::Continue(()))
     })?;

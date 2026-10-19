@@ -68,7 +68,7 @@ impl Spends {
         }
         Ok((
             bytes[..32].try_into().unwrap(),
-            Amount::decode(&bytes[32..48])?,
+            Amount::decode(&bytes[32..48]),
         ))
     }
     pub(crate) fn rows(bytes: &[u8]) -> impl ExactSizeIterator<Item = (u32, Amount)> + Clone + '_ {

@@ -14,7 +14,6 @@ use carrier::Carrier;
 
 pub struct Batch {
     block_offsets: Vec<usize>,
-    /// Each block's coinbase transaction.
     coinbase_tx_indexes: Vec<TxIndex>,
     tx_indexes: Vec<TxIndex>,
     kinds: Vec<OpReturnKind>,

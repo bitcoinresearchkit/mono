@@ -140,10 +140,7 @@ impl<'a> Ctx<'a> {
     }
 
     pub fn resolve(&self, path: &Path) -> Result<Value> {
-        let (step, rest) = path
-            .steps
-            .split_first()
-            .ok_or_else(|| Error::Parse("empty path segment".into()))?;
+        let (step, rest) = path.steps.split_first().expect("a parsed path has a step");
         self.block_field(&step.name, step.index, rest)
     }
 
@@ -155,7 +152,6 @@ impl<'a> Ctx<'a> {
     }
 
     pub fn full(&self) -> Value {
-        // Every leaf but `hex`, then `tx`.
         let leaves = BLOCK.iter().filter(|&&(name, _)| name != "hex");
         let mut block = object(BLOCK.len(), leaves, |field| field(self));
         block.insert("tx".into(), self.txs(None, &[]).expect("whole txs"));
@@ -234,7 +230,7 @@ impl<'a> Tx<'a> {
     fn id_and_sizes(&self) -> (Txid, u32, u32) {
         *self
             .id_and_sizes
-            .get_or_init(|| self.block.compute_tx_id_and_sizes(self.index))
+            .get_or_init(|| self.block.compute_txid_and_sizes(self.index))
     }
 
     fn base_size(&self) -> u32 {
@@ -264,7 +260,6 @@ impl Deref for Tx<'_> {
     }
 }
 
-/// The whole object's leaf fields, in order, in a map reserved for `len` fields.
 fn object<'a, F: Copy + 'a>(
     len: usize,
     fields: impl IntoIterator<Item = &'a (&'static str, F)>,

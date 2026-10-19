@@ -88,15 +88,6 @@ enum ImportValidation {
     Reset(&'static str),
 }
 
-fn is_export_height(height: Height) -> bool {
-    height != 0 && height % EXPORT_HEIGHT_INTERVAL == 0
-}
-
-fn is_export_due(height: Height, pending_records: usize) -> bool {
-    is_export_height(height) && pending_records >= MAX_PENDING_RECORDS
-}
-
-/// Whether the plugin-data directory holds anything besides the indexer's own.
 fn has_other_plugin_data(context: ImportContext<'_>) -> Result<bool> {
     let path = PluginStorage::plugins_path(context);
     if !path.try_exists()? {
@@ -212,8 +203,6 @@ impl Indexer {
     }
 
     fn import_inner(context: ImportContext<'_>, reader: &Reader, can_retry: bool) -> Result<Self> {
-        info!("Loading indexer data...");
-
         let plugin_path = STORAGE.path(context);
 
         let try_import = || -> Result<Self> {
@@ -240,11 +229,8 @@ impl Indexer {
 
         let mut indexer = match try_import() {
             Ok(indexer) => indexer,
-            Err(err) if err.is_lock_error() => {
-                // Lock errors are transient - another process has the database open.
-                // Don't delete data, just return the error.
-                return Err(err);
-            }
+            // Another process has the database open: never reset over a lock.
+            Err(err) if err.is_lock_error() => return Err(err),
             Err(err) if can_retry && err.is_data_error() => {
                 // The failed attempt has returned, so all of its local database
                 // handles have been dropped before the directory is removed.
@@ -411,7 +397,6 @@ impl Indexer {
         //     .blocks
         //     .blockhash
         //     .collect_one_at(self.vecs.blocks.blockhash.len() - 2);
-        debug!("Last block hash found.");
 
         // A node behind our tip (restarting, reindexing) would look like a reorg to its height.
         client.wait_for_synced_node()?;
@@ -475,8 +460,6 @@ impl Indexer {
         let reader = self.reader.clone();
         reader.check_source()?;
 
-        debug!("Starting indexing...");
-
         let ResumePoint {
             lengths: starting_lengths,
             prev_hash,
@@ -484,11 +467,9 @@ impl Indexer {
             Some(resume) => resume,
             None => self.resume_point()?,
         };
-        debug!("Starting lengths set.");
 
         let lock = exit.lock();
         self.roll_back_to(&starting_lengths)?;
-        debug!("Rollback done.");
         drop(lock);
         self.compute_start = self.floored(starting_lengths);
 
@@ -501,7 +482,6 @@ impl Indexer {
 
         let export =
             move |stores: &mut Stores, vecs: &mut Vecs, completed_height: Height| -> Result<()> {
-                info!("Saving indexer data...");
                 let i = Instant::now();
                 let _lock = exit.lock();
                 let checkpoint = stores.begin_commit(completed_height)?;
@@ -515,7 +495,7 @@ impl Indexer {
                     });
                     let persisted = stores_res.join().unwrap()?;
                     vecs_res.join().unwrap()?;
-                    // The shared checkpoint is visible only after both databases are durable.
+                    // The shared checkpoint becomes visible only once both databases are written.
                     persisted.publish()?;
                     Ok(())
                 })?;
@@ -533,11 +513,8 @@ impl Indexer {
             let block = match block {
                 Ok(block) => block,
                 Err(e) => {
-                    // The reader hit an unrecoverable mid-stream issue
-                    // (chain break, parse failure, missing blocks).
-                    // Stop cleanly so what we've already indexed gets
-                    // flushed in the post-loop export — the next
-                    // `index` call will resume from the new tip.
+                    // A chain break, parse failure or missing block: the blocks indexed so far
+                    // are saved below and the next update resumes after them.
                     error!("Reader stream stopped early: {e}");
                     break;
                 }
@@ -546,8 +523,6 @@ impl Indexer {
 
             if unlikely(height.is_multiple_of(100)) {
                 info!("Indexing block {height}...");
-            } else {
-                debug!("Indexing block {height}...");
             }
 
             lengths.height = height;
@@ -600,13 +575,14 @@ impl Indexer {
             pending_blocks += 1;
             pending_records += tx_count + input_count + output_count;
 
-            if is_export_due(height, pending_records) {
+            if height != 0
+                && height % EXPORT_HEIGHT_INTERVAL == 0
+                && pending_records >= MAX_PENDING_RECORDS
+            {
                 debug!("Export batch: {pending_blocks} blocks, {pending_records} records");
                 drop(readers);
                 export(stores, vecs, height)?;
                 readers = Readers::new(vecs);
-                // Clear only after a successful export so the final export
-                // still covers every pending block.
                 pending_export_height = None;
                 pending_blocks = 0;
                 pending_records = 0;

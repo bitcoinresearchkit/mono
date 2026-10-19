@@ -6,6 +6,8 @@ use vecdb::{
     AnyVec, ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecIndex,
 };
 
+use crate::shapes::Windows;
+
 const DAY_SECONDS: u64 = 24 * 60 * 60;
 /// First backward read when locating a window start; grows 4x per step.
 const WINDOW_READ_CHUNK: usize = 1 << 10;
@@ -33,6 +35,8 @@ impl Tip {
     }
 }
 
+pub type WindowStarts<'a> = Windows<&'a LazyWindowStartVec>;
+
 /// A storage-free window-start vector backed by one monotonic timestamp source.
 ///
 /// Every read uses contiguous timestamp ranges and searches them in memory.
@@ -40,8 +44,9 @@ impl Tip {
 /// probe, which made per-day binary searches over full history cost hundreds
 /// of milliseconds. Range and sorted reads find the first window start once,
 /// then advance it monotonically. The latest heights' starts are carried forward
-/// by [`Self::update`] and shared by every clone, so an ordinary update reads
-/// none of the history.
+/// by [`Self::update`] and shared by every clone: an ordinary update reuses a
+/// resident start, rereads the retained tip's timestamps and scans forward in
+/// batches from that start.
 #[derive(Clone)]
 pub struct LazyWindowStartVec {
     name: Arc<str>,
@@ -107,8 +112,8 @@ impl LazyWindowStartVec {
     }
 
     /// Carries `start`, the window start of `from - 1`, through `[from, to)` and
-    /// pushes the starts from `keep` on, reading only the new timestamps and the
-    /// ones the start moves past.
+    /// pushes the starts from `keep` on. Reads the timestamps of `[from, to)`, and
+    /// from `start` on in forward batches.
     fn advance(
         &self,
         mut start: usize,
@@ -156,7 +161,7 @@ impl LazyWindowStartVec {
     ///
     /// Timestamps are monotonic, so expiry is a prefix property: once the
     /// first value of a backward chunk is expired, so is everything before
-    /// it. Each compressed page is decoded at most once per call.
+    /// it.
     fn window_prefix(&self, index: usize) -> Option<(usize, Vec<Timestamp>)> {
         let mut lo = (index + 1).saturating_sub(WINDOW_READ_CHUNK);
         let mut values = self.timestamps.collect_range_dyn(lo, index + 1);

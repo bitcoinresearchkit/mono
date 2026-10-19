@@ -6,11 +6,9 @@ use super::block_window::BlockWindow;
 use crate::{Query, Result};
 
 impl Query {
-    /// Time-bucketed average block rewards (subsidy + fees) over
-    /// `time_period`. One entry per bucket, ordered chronologically. Each
-    /// entry carries the bucket's average height/timestamp, the round-half-up
-    /// mean of coinbase rewards in sats, and the bucket-mean USD spot price
-    /// (the spot price, not rewards-in-USD: clients multiply).
+    /// Round-half-up mean coinbase rewards (subsidy + fees) in sats per time bucket over
+    /// `time_period`, chronological, with the bucket's mean USD spot price (not rewards in USD:
+    /// clients multiply).
     pub fn block_rewards(&self, time_period: TimePeriod) -> Result<Vec<BlockRewardsEntry>> {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin)?;

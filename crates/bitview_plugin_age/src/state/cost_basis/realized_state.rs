@@ -5,8 +5,7 @@ use brk_types::{Cents, CentsSats, Sats};
 
 use crate::state::{CoreRealizedState, RealizedOps};
 
-/// Full realized state used by age-range cohorts.
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub struct RealizedState {
     core: CoreRealizedState,
     /// Raw capitalized cap: sum(price squared times sats).
@@ -43,8 +42,8 @@ impl RealizedOps for RealizedState {
     }
 
     #[inline]
-    fn reset_single_iteration_values(&mut self) {
-        self.core.reset_single_iteration_values();
+    fn reset_block(&mut self) {
+        self.core.reset_block();
         self.peak_regret_raw = 0;
         self.sent_in_profit = Sats::ZERO;
         self.sent_in_loss = Sats::ZERO;
@@ -84,7 +83,7 @@ impl RealizedOps for RealizedState {
     ) {
         self.core
             .send(sats, current_ps, prev_ps, ath_ps, prev_capitalized_cap);
-        self.peak_regret_raw += (ath_ps - current_ps).as_u128();
+        self.peak_regret_raw += (ath_ps - current_ps).inner();
         self.capitalized_cap_raw -= prev_capitalized_cap;
         match current_ps.cmp(&prev_ps) {
             Ordering::Greater | Ordering::Equal => self.sent_in_profit += sats,

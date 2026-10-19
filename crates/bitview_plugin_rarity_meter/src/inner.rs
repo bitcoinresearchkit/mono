@@ -56,7 +56,6 @@ impl RarityMeterInner {
         Ok(RarityMeterInner {
             prices,
             level: PerBlock::import(db, &format!("{prefix}_level"), version, mappings)?,
-            // Rebuild scores using capped totals instead of overflowing i8 sums.
             score: PerBlock::import(
                 db,
                 &format!("{prefix}_score"),
@@ -77,11 +76,7 @@ impl RarityMeterInner {
         exit: &Exit,
     ) -> Result<()> {
         let version = boundary_version(components);
-        let prices_end = components
-            .iter()
-            .map(|component| component::boundary_len(component))
-            .min()
-            .unwrap_or_default();
+        let prices_end = prices_end(components);
         let scores_end = prices_end.min(spot.len());
         let max_from = usize::from(starting_height);
         let prices_start = prepare_computed(
@@ -165,14 +160,13 @@ impl RarityMeterInner {
             .iter()
             .map(|p| p.cents.height.len())
             .min()
-            .unwrap_or_default()
+            .expect("rarity meter percentiles")
     }
 
     fn prices_version(&self) -> Version {
         self.prices.iter().map(|p| p.cents.height.version()).sum()
     }
 
-    /// The level of the combined boundaries.
     fn level(close: Cents, values: &[Cents; RARITY_PERCENTILES_LEN]) -> Score {
         Score::new(Self::boundary_score(close, |i| {
             values[RarityPercentileId::BOUNDARIES[i] as usize]
@@ -198,11 +192,7 @@ impl RarityMeterInner {
         spot: &impl ReadableVec<Height, Cents>,
         starting_height: Height,
     ) -> bool {
-        let prices_end = components
-            .iter()
-            .map(|component| component::boundary_len(component))
-            .min()
-            .unwrap_or_default();
+        let prices_end = prices_end(components);
         let score_end = prices_end.min(spot.len());
         let starting_height = usize::from(starting_height);
 
@@ -278,6 +268,14 @@ impl RarityMeterInner {
     fn score_at(price: Cents, bands: &[Vec<Cents>; 10], index: usize) -> i8 {
         Self::boundary_score(price, |i| bands[i][index])
     }
+}
+
+fn prices_end(components: &[&Component]) -> usize {
+    components
+        .iter()
+        .map(|c| component::boundary_len(c))
+        .min()
+        .expect("rarity meter components")
 }
 
 fn boundary_version(components: &[&Component]) -> Version {

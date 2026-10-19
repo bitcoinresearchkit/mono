@@ -4,7 +4,6 @@ use axum::{
     response::IntoResponse,
 };
 
-/// Website error type that maps to HTTP status codes.
 #[derive(Debug)]
 pub struct Error(StatusCode, String);
 

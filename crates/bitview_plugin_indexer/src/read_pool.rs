@@ -8,7 +8,7 @@ use crate::processor::transaction::ComputedTx;
 // If those workers cannot be created, the existing pool remains usable.
 static READ_POOL: LazyLock<Option<ThreadPool>> = LazyLock::new(|| {
     ThreadPoolBuilder::new()
-        .num_threads(current_num_threads().saturating_mul(2))
+        .num_threads(current_num_threads() * 2)
         .thread_name(|index| format!("indexer-read-{index}"))
         .build()
         .ok()

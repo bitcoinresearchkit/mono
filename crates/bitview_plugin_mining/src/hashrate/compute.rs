@@ -13,19 +13,13 @@ use super::Vecs;
 
 const ONE_PETA_HASH: f64 = 1_000_000_000_000_000.0;
 
-/// Daily reward per PH/s; NaN without hash rate.
+/// Daily reward per PH/s. Every block proves positive work, so the hash rate is positive.
 #[inline]
 fn reward_per_phs(reward_24h: f64, hash_rate: f64) -> f64 {
-    let hash_rate_phs = hash_rate / ONE_PETA_HASH;
-    if hash_rate_phs == 0.0 {
-        f64::NAN
-    } else {
-        reward_24h / hash_rate_phs
-    }
+    reward_24h / (hash_rate / ONE_PETA_HASH)
 }
 
 impl Vecs {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
@@ -38,7 +32,7 @@ impl Vecs {
         let starting_height = indexer.compute_start().height;
 
         // Each block's share of a day's work at the ten-minute target, summed over 24 hours.
-        let daily_share = LazyVec::init(
+        let daily_share = LazyVec::new(
             "difficulty_hashrate_daily_share",
             difficulty_vecs.hashrate.height.version(),
             difficulty_vecs.hashrate.height.read_only_boxed_clone(),
@@ -75,11 +69,7 @@ impl Vecs {
             &self.rate.ath.height,
             |(_, current, ath, ..)| {
                 let ath = f64::from(ath);
-                if ath == 0.0 {
-                    PartsPerMillionSigned32::default()
-                } else {
-                    PartsPerMillionSigned32::from((f64::from(current) - ath) / ath)
-                }
+                PartsPerMillionSigned32::from((f64::from(current) - ath) / ath)
             },
             exit,
         )?;

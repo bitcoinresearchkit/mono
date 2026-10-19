@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path};
+use std::path::Path;
 
 use plotters::{
     coord::Shift,
@@ -7,11 +7,11 @@ use plotters::{
 };
 
 use crate::{
+    Result,
     data::{Cycle, Run},
     format,
 };
 
-type Result<T = ()> = std::result::Result<T, Box<dyn Error>>;
 type Area<'a> = DrawingArea<SVGBackend<'a>, Shift>;
 
 const WIDTH: u32 = 2400;
@@ -178,10 +178,10 @@ pub fn header_height(lines: usize) -> u32 {
 
 /// Text lines at the top-left of an area.
 pub fn header(area: &Area, title: &str, lines: &[String]) -> Result {
-    area.draw(&Text::new(title.to_owned(), (30, 22), font(34)))?;
+    area.draw(&Text::new(title, (30, 22), font(34)))?;
     for (index, line) in lines.iter().enumerate() {
         area.draw(&Text::new(
-            line.clone(),
+            line.as_str(),
             (30, 74 + index as i32 * 30),
             dim_font(21),
         ))?;
@@ -218,7 +218,7 @@ fn legend(area: &Area, entries: &[(String, RGBAColor, Swatch)]) -> Result {
             }
         }
         area.draw(&Text::new(
-            label.clone(),
+            label.as_str(),
             (58, y),
             dim_font(19).pos(Pos::new(HPos::Left, VPos::Center)),
         ))?;
@@ -352,7 +352,7 @@ pub fn timeline(area: &Area, axis: &TimeAxis, run: &Run) -> Result {
         .draw()?;
     // Row `i` from the top spans `rows - i - 1 ..= rows - i`.
     let row_y = |plugin: &str| {
-        let index = plugins.iter().position(|name| *name == plugin).unwrap_or(0);
+        let index = plugins.iter().position(|name| *name == plugin).unwrap();
         (rows - index - 1) as f64
     };
     chart.draw_series(plugins.iter().map(|plugin| {
@@ -367,13 +367,7 @@ pub fn timeline(area: &Area, axis: &TimeAxis, run: &Run) -> Result {
         let (inset, color) = if timing.phase == "compute" {
             (
                 0.15,
-                color(
-                    plugins
-                        .iter()
-                        .position(|p| *p == timing.plugin)
-                        .unwrap_or(0),
-                )
-                .to_rgba(),
+                color(plugins.iter().position(|p| *p == timing.plugin).unwrap()).to_rgba(),
             )
         } else {
             (0.32, TEXT.mix(0.45))
@@ -414,7 +408,8 @@ pub fn bars_height(rows: usize) -> u32 {
 
 const BAR_ROWS: usize = 18;
 
-/// Horizontal bars, largest first; the tail beyond `BAR_ROWS` folds into "other".
+/// Horizontal bars in the given order (callers pass them largest first); past `BAR_ROWS` rows, the
+/// first `BAR_ROWS - 1` stay and the rest fold into "other".
 pub fn bars(
     area: &Area,
     title: &str,
@@ -495,10 +490,10 @@ pub fn table(
     body: &[Vec<String>],
     colors: &[RGBColor],
 ) -> Result {
-    area.draw(&Text::new(title.to_owned(), (30, 14), font(26)))?;
+    area.draw(&Text::new(title, (30, 14), font(26)))?;
     let columns = header.len();
     let first = 640;
-    let rest = (WIDTH as i32 - first - 60) / (columns as i32 - 1).max(1);
+    let rest = (WIDTH as i32 - first - 60) / (columns as i32 - 1);
     let x = |column: usize| {
         if column == 0 {
             30
@@ -507,7 +502,7 @@ pub fn table(
         }
     };
     for (column, cell) in header.iter().enumerate() {
-        area.draw(&Text::new(cell.clone(), (x(column), 60), dim_font(18)))?;
+        area.draw(&Text::new(cell.as_str(), (x(column), 60), dim_font(18)))?;
     }
     for (row, cells) in body.iter().enumerate() {
         let y = 92 + row as i32 * 30;
@@ -515,7 +510,7 @@ pub fn table(
             area.draw(&Rectangle::new([(14, y + 4), (24, y + 18)], color.filled()))?;
         }
         for (column, cell) in cells.iter().enumerate() {
-            area.draw(&Text::new(cell.clone(), (x(column), y), dim_font(18)))?;
+            area.draw(&Text::new(cell.as_str(), (x(column), y), dim_font(18)))?;
         }
     }
     Ok(())
@@ -527,7 +522,7 @@ pub fn render(
     heights: &[u32],
     mut draw: impl FnMut(usize, &Area) -> Result,
 ) -> Result {
-    let height = heights.iter().sum::<u32>().max(1);
+    let height = heights.iter().sum::<u32>();
     let root = SVGBackend::new(output, (WIDTH, height)).into_drawing_area();
     root.fill(&BG)?;
     let mut rest = root.clone();

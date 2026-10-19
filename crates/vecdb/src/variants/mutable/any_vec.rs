@@ -4,7 +4,7 @@ use super::MutableVec;
 
 impl<V> AnyVec for MutableVec<V>
 where
-    V: AnyVec + TypedVec,
+    V: TypedVec,
 {
     #[inline]
     fn version(&self) -> Version {

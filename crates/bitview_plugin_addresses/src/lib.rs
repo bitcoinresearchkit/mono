@@ -32,9 +32,7 @@ pub const ID: PluginId = STORAGE.id();
 const SAVED_CHECKPOINTS: u16 = 10;
 const CAP_COUNT: usize = AmountRangeId::ALL.len();
 
-/// Address metrics, members first: every address type together at the root, each type under
-/// `types`, each balance band under `balances`. P2PK is one type; P2A, one fixed script, is
-/// not an address type (its lookups still work, under `state`).
+/// P2A has address-state lookups through [`Self::read_state`] but no metrics cohort.
 #[derive(Traversable, Plugin)]
 #[plugin(storage = STORAGE)]
 pub struct Vecs<M: StorageMode = Rw> {

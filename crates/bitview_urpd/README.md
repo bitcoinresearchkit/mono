@@ -28,17 +28,12 @@ all cohorts.
 `Replay` retains a consumer's state and histogram between successful updates. It
 adds new prices, moves supply across age boundaries, and applies removals and
 creations for each block. It rebuilds after a reorg, a source version change, or
-a failed update. Each plugin owns its complete `compute_state()` call and supplies its
-read-only dependencies and model weights; replay owns reconstruction details.
+a failed update. Each plugin owns `compute_state()` and supplies read-only
+dependencies and model weights; replay reconstructs state.
 
 An isolated query constructs this view once. Model weights can change every block,
 so weighted scalar analytics still visit the histogram at each block they compute.
-There are no persisted URPDs.
 
-The loop is: restore the nearest snapshot, apply diffs to reach the first requested
-block, then repeat **advance state and histogram → project filters and weights →
-compute the consumer's data**. A short update runs it once, from the state retained
-by the previous successful call; only a discontinuity requires another restore. A
-long backfill (`Replay::map`) splits its range at snapshot boundaries and runs the
-loop for each segment on the thread pool, each from its own restored state, handing
-results back in block order; the last segment's state is retained.
+Long backfills (`Replay::map`) split at snapshot boundaries and run each segment
+on the thread pool from its own restored state. Results return in block order;
+the last segment's state is retained.

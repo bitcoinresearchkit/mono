@@ -2,7 +2,6 @@ use brk_types::{Height, Timestamp};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Difficulty adjustment information.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct DifficultyAdjustment {
@@ -34,7 +33,6 @@ pub struct DifficultyAdjustment {
     #[schemars(example = 1627000000_u64)]
     pub previous_time: Timestamp,
 
-    /// Height of next retarget
     #[schemars(example = 741888)]
     pub next_retarget_height: Height,
 

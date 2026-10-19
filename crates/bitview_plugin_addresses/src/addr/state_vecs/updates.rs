@@ -22,8 +22,7 @@ pub struct AddrUpdates {
     pub extended_deletes: Vec<ExtendedEmptyAddressIndex>,
 }
 
-/// Values a sidecar stores in new slots, apart from the addresses whose state will point to
-/// them, as the sidecar and the primaries take them.
+/// Parallel arrays of new sidecar values and their addresses.
 pub struct SidecarPushes<T> {
     pub addresses: Vec<(OutputType, TypeIndex)>,
     pub values: Vec<T>,
@@ -47,7 +46,6 @@ impl<T> SidecarPushes<T> {
 }
 
 impl AddrUpdates {
-    /// Records each address's final data in `changed` too, when given.
     pub fn stage(
         cache: &mut [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData>>],
         mut changed: Option<&mut Changed>,

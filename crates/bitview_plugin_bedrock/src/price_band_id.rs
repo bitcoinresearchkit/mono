@@ -2,7 +2,7 @@ use super::{LevelId, LossPercentileId};
 
 /// One of a mode's price bands: a floor per loss percentile, or a level of the cost basis above
 /// the 95th-percentile floor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy)]
 pub enum PriceBandId {
     Floor(LossPercentileId),
     AboveFloor(LevelId),

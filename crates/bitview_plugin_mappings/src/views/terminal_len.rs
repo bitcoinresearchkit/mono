@@ -5,7 +5,7 @@ use vecdb::{ReadableCloneableVec, VecIndex, VecValue, Version};
 #[derive(Clone)]
 pub struct TerminalLen {
     get: Arc<dyn Fn() -> usize + Send + Sync>,
-    version: Version,
+    pub(super) version: Version,
 }
 
 impl TerminalLen {
@@ -25,10 +25,5 @@ impl TerminalLen {
     #[inline(always)]
     pub fn get(&self) -> usize {
         (self.get)()
-    }
-
-    #[inline(always)]
-    pub fn version(&self) -> Version {
-        self.version
     }
 }

@@ -29,7 +29,7 @@ use cumulative_bucket::CumulativeBucket;
 use levels::{LevelId, Levels};
 use mode_result::ModeResult;
 use mode_vecs::ModeVecs;
-use modes::{MODE_COUNT, ModeId, Modes, Thresholds};
+use modes::{MODE_COUNT, Modes, Thresholds};
 use percentiles::{LossPercentileId, Percentiles};
 use price_band_id::PriceBandId;
 use price_bands::PriceBands;

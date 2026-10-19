@@ -6,15 +6,12 @@ macro_rules! collection {
         $id:ident for $collection:ident { $($variant:ident => $field:ident),+ $(,)? }
     ) => {
         $(#[$meta])*
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+        #[derive(Clone, Copy, PartialEq)]
         pub enum $id {
             $($variant),+
         }
 
-        #[allow(dead_code)]
         impl $id {
-            pub const ALL: [Self; [$(Self::$variant),+].len()] = [$(Self::$variant),+];
-
             pub const fn name(self) -> &'static str {
                 match self {
                     $(Self::$variant => stringify!($field)),+
@@ -22,7 +19,6 @@ macro_rules! collection {
             }
         }
 
-        #[allow(dead_code)]
         impl<T> $collection<T> {
             pub fn from_fn(mut create: impl FnMut($id) -> T) -> Self {
                 Self {
@@ -39,12 +35,6 @@ macro_rules! collection {
             pub fn select(&self, id: $id) -> &T {
                 match id {
                     $($id::$variant => &self.$field),+
-                }
-            }
-
-            pub fn select_mut(&mut self, id: $id) -> &mut T {
-                match id {
-                    $($id::$variant => &mut self.$field),+
                 }
             }
 

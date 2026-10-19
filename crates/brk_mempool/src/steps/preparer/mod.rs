@@ -1,10 +1,9 @@
 //! Turn `Fetched` raws into a typed diff for the Applier. Pure CPU,
 //! borrows the private `State` for the cycle. Each new entry with a
-//! fetched body becomes a [`TxAddition`]: decoded, prevouts resolved
-//! against the live mempool only. Confirmed-parent prevouts land as
-//! `prevout: None` and are filled post-apply by the resolver passed to
-//! `Mempool::tick_with`. A tx back from the graveyard keeps its first
-//! sighting; the Applier exhumes its tomb.
+//! fetched body becomes a [`TxAddition`], its prevouts resolved from the
+//! pool as it stood before this cycle; the rest are filled after apply. A tx
+//! back from the graveyard keeps its first sighting; the Applier exhumes its
+//! tomb.
 //!
 //! Existing entries are not re-classified - they keep their first-sight
 //! state on the live store. Removals are inferred by cross-referencing
@@ -16,13 +15,13 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{State, key::TxKey};
 
+pub mod pool_diff;
 pub mod tx_addition;
 pub mod tx_removal;
-pub mod txs_pulled;
 
+pub use pool_diff::PoolDiff;
 pub use tx_addition::TxAddition;
 pub use tx_removal::TxRemoval;
-pub use txs_pulled::TxsPulled;
 
 pub fn prepare(
     live_txids: &[Txid],
@@ -30,7 +29,7 @@ pub fn prepare(
     new_entries: Vec<MempoolEntryInfo>,
     mut new_txs: FxHashMap<Txid, BitcoinTransaction>,
     state: &State,
-) -> TxsPulled {
+) -> PoolDiff {
     let live: FxHashSet<TxKey> = live_txids.iter().map(TxKey::from).collect();
     let added: Vec<TxAddition> = new_entries
         .iter()
@@ -50,7 +49,7 @@ pub fn prepare(
     let promoted = promoted(&live, template_only, state);
     let removed = classify_removals(&live, &added, &promoted, state);
 
-    TxsPulled {
+    PoolDiff {
         live_len: live.len(),
         added,
         promoted,
@@ -71,13 +70,7 @@ fn promoted(live: &FxHashSet<TxKey>, template_only: &FxHashSet<Txid>, state: &St
         .collect()
 }
 
-/// One `(key, reason)` per known tx that's gone from the live set,
-/// in `known` iteration order.
-///
-/// Cost is `O(R * avg_inputs)` where R is the removed-tx count and
-/// `avg_inputs` is small for non-pathological txs. Worst case is a
-/// `mempoolminfee` jump dropping ~10k txs in one cycle - still well
-/// under the cycle budget.
+/// One `(key, reason)` per pooled tx gone from the live set, in store order.
 fn classify_removals(
     live: &FxHashSet<TxKey>,
     added: &[TxAddition],
@@ -136,10 +129,15 @@ fn build_spent_by(
     state: &State,
 ) -> FxHashMap<(Txid, Vout), Txid> {
     let mut spent_by: FxHashMap<(Txid, Vout), Txid> = FxHashMap::default();
-    let promoted = promoted
-        .iter()
-        .filter_map(|key| state.txs.record_by_key(key))
-        .map(|record| record.tx.as_ref());
+    // `promoted` kept only pooled keys of this same state.
+    let promoted = promoted.iter().map(|key| {
+        state
+            .txs
+            .record_by_key(key)
+            .expect("promoted tx is pooled")
+            .tx
+            .as_ref()
+    });
     for tx in added.iter().map(|addition| &addition.tx).chain(promoted) {
         for txin in &tx.input {
             spent_by.insert((txin.txid, txin.vout), tx.txid);

@@ -66,7 +66,7 @@ impl TraceMonitor {
             (fields.phase, fields.plugin, fields.duration_ns)
         {
             let duration_ms = duration_ns as f64 / 1_000_000.0;
-            let start_ms = (end_ms - duration_ms).max(0.0);
+            let start_ms = end_ms - duration_ms;
             state.timing_rows += 1;
             writeln!(
                 state.timings,
@@ -128,7 +128,7 @@ impl Visit for Fields {
 
 /// The emitting crate, without the plugin prefix: `indexer`, `addresses`, `bitview_vecs`, ...
 fn source(target: &str) -> &str {
-    let krate = target.split("::").next().unwrap_or(target);
+    let krate = target.split_once("::").map_or(target, |(krate, _)| krate);
     krate.strip_prefix("bitview_plugin_").unwrap_or(krate)
 }
 
@@ -139,10 +139,6 @@ fn progress(message: &str) -> Option<u64> {
         let end = value
             .find(|character: char| !character.is_ascii_digit())
             .unwrap_or(value.len());
-        if end == 0 {
-            None
-        } else {
-            value[..end].parse().ok()
-        }
+        value[..end].parse().ok()
     })
 }

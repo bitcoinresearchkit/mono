@@ -67,11 +67,6 @@ impl<T: VecValue> Cache<T> {
         cache
     }
 
-    /// Accounted bytes, including buffers still borrowed after eviction.
-    fn used(&self) -> usize {
-        self.account.used()
-    }
-
     pub(crate) fn try_read_range(
         &self,
         from: usize,
@@ -119,10 +114,8 @@ impl<T: VecValue> Cache<T> {
     fn get(&self, index: usize, load: impl FnMut(&[Range<usize>]) -> Vec<(usize, Vec<T>)>) -> T {
         {
             let table = self.table.read();
-            if let Some((start, values)) = table.at(index)
-                && let Some(value) = values.get(index - start)
-            {
-                return value;
+            if let Some((start, values)) = table.at(index) {
+                return values.slice()[index - start].clone();
             }
         }
         let mut out = Vec::with_capacity(1);
@@ -247,7 +240,7 @@ impl<T: VecValue> Cache<T> {
 
 impl<T: VecValue> Reclaim for Cache<T> {
     fn try_clear(&self) {
-        if self.used() == 0 || self.recently_used.swap(false, Relaxed) {
+        if self.account.used() == 0 || self.recently_used.swap(false, Relaxed) {
             return;
         }
         let old = self

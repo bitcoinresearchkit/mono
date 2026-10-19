@@ -1,5 +1,3 @@
-//! JavaScript type definitions generation.
-
 use std::fmt::Write;
 
 use crate::{
@@ -8,14 +6,7 @@ use crate::{
     is_rust_concrete_generic, rust_array_element_type,
 };
 
-/// Generate JSDoc type definitions from OpenAPI schemas.
 pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchemas) {
-    if schemas.is_empty() {
-        return;
-    }
-
-    writeln!(output, "// Type definitions\n").unwrap();
-
     for (name, schema) in schemas.iter() {
         if MANUAL_GENERIC_TYPES.contains(&name.as_str())
             || rust_array_element_type(name).is_some()

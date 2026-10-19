@@ -2,8 +2,8 @@ use crate::CheckedSub;
 
 use super::{DeltaOp, exact_diff};
 
-/// Rolling average from cumulative: `(cum[h] - cum[start - 1]) / (h - start + 1)`, subtracted
-/// exactly before converting.
+/// Rolling average from cumulative: `(cum[h] - cum[start - 1]) / (h - start + 1)`, the
+/// difference taken in `S` before converting to `f64` (in `f64` when it exceeds `S`'s range).
 #[derive(Clone, Copy)]
 pub struct DeltaAvg;
 

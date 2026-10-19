@@ -5,17 +5,13 @@ use brk_types::Sats;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Detailed pool information with statistics across time periods
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PoolDetail {
-    /// Pool information
     pub pool: PoolDetailInfo,
 
-    /// Block counts for different time periods
     #[serde(rename = "blockCount")]
     pub block_count: PoolBlockCounts,
 
-    /// Pool's share of total blocks for different time periods
     #[serde(rename = "blockShare")]
     pub block_share: PoolBlockShares,
 
@@ -33,14 +29,12 @@ pub struct PoolDetail {
     pub total_reward: Sats,
 }
 
-/// Pool information for detail view
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PoolDetailInfo {
-    /// Pool identifier
+    /// One-based pool ID, matching mempool.space's `id`
     #[schemars(example = 111)]
     pub id: u8,
 
-    /// Pool name
     #[schemars(example = &"Foundry USA")]
     pub name: Cow<'static, str>,
 
@@ -51,13 +45,13 @@ pub struct PoolDetailInfo {
     /// Known payout addresses
     pub addresses: Vec<Cow<'static, str>>,
 
-    /// Coinbase tag patterns (regexes)
+    /// Coinbase tags, matched as case-insensitive substrings
     pub regexes: Vec<Cow<'static, str>>,
 
     /// URL-friendly pool identifier
     pub slug: PoolSlug,
 
-    /// Unique pool identifier
+    /// Zero-based pool ID, matching mempool.space's `unique_id`
     #[schemars(example = 44)]
     pub unique_id: u8,
 }
@@ -70,7 +64,7 @@ impl From<&'static Pool> for PoolDetailInfo {
             link: Cow::Borrowed(pool.link()),
             addresses: pool.addrs().iter().map(|&s| Cow::Borrowed(s)).collect(),
             regexes: pool.tags().iter().map(|&s| Cow::Borrowed(s)).collect(),
-            slug: pool.slug(),
+            slug: pool.slug,
             unique_id: pool.mempool_unique_id(),
         }
     }

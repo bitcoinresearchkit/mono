@@ -220,7 +220,6 @@ impl From<Count> for usize {
     }
 }
 
-/// An amount scaled by a ratio.
 impl Mul<Ratio64> for Sats {
     type Output = Self;
 

@@ -8,8 +8,7 @@ pub(crate) const TERMS: [AgeAggregateId; 3] = [
     AgeAggregateId::Lth,
 ];
 
-/// All, short-term and long-term holders.
-#[derive(Clone, Traversable)]
+#[derive(Clone, Default, Traversable)]
 pub(crate) struct Terms<T> {
     /// Uses all UTXOs.
     all: T,

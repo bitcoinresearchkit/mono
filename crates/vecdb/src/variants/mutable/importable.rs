@@ -10,7 +10,7 @@ where
     fn import_inner(options: ImportOptions) -> Result<Self> {
         let holes = options
             .db
-            .get_region(&Self::holes_region_name_with(options.name))
+            .region(&Self::holes_region_name_with(options.name))
             .map(|region| {
                 region
                     .create_reader()
@@ -39,7 +39,11 @@ where
                 options
                     .db
                     .remove_region_if_exists(&Self::holes_region_name_with(options.name))?;
-                Ok(Self::new(V::import_with(options)?))
+                Ok(Self::from_parts(
+                    V::import_with(options)?,
+                    BTreeSet::new(),
+                    false,
+                ))
             }
             result => result,
         }

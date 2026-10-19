@@ -197,7 +197,7 @@ impl Query {
     /// set history, and for a weighted one the cohort's supplies and weights.
     fn urpd_version(&self, ages: &[AgeRangeId], weight: UrpdWeight) -> Version {
         let plugins = self.plugins();
-        let read = plugins.price.spot.cents.height.version()
+        let base = plugins.price.spot.cents.height.version()
             + plugins.mappings.timestamp.monotonic.version()
             + plugins.utxo_set.supply.version();
         let weights = |age: &AgeRangeId| match weight {
@@ -210,9 +210,9 @@ impl Query {
                 .version(),
         };
         if weight == UrpdWeight::Raw {
-            return read;
+            return base;
         }
-        read + ages
+        base + ages
             .iter()
             .map(|age| {
                 let supply = &age
@@ -271,13 +271,13 @@ impl Query {
             aggregation,
             close: prices[end - 1],
         };
-        if weight == UrpdWeight::Raw {
+        Ok(if weight == UrpdWeight::Raw {
             header.build(source.project(&[], [ages]).map(|b| (b.price, b.raw[0])))
         } else {
             header.build(source.project(&[Some(&weights)], [ages]).filter_map(|b| {
                 let sats = b.weighted[0][0];
                 (sats != Sats::ZERO).then_some((b.price, sats))
             }))
-        }
+        })
     }
 }

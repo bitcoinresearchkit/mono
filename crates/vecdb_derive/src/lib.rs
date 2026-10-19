@@ -10,7 +10,7 @@ pub fn derive_bytes(input: TokenStream) -> TokenStream {
     derive_wrapper(input, false)
 }
 
-/// Derives `Bytes`, `Pco` and the transparent-layout marker for a numeric newtype.
+/// Derives `Bytes` and `Pco` for a numeric newtype.
 #[proc_macro_derive(Pco)]
 pub fn derive_pco(input: TokenStream) -> TokenStream {
     derive_wrapper(input, true)

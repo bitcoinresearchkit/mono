@@ -53,7 +53,7 @@ const DISK_INTERVAL: Duration = Duration::from_secs(60);
 
 struct Inner {
     path: PathBuf,
-    /// Held for the run: a second benchmark on the data directory must not replace this report.
+    /// Held for the run: one benchmark per data directory at a time.
     _lock: File,
     disk: Arc<Mutex<DiskMonitor>>,
     trace: Arc<TraceMonitor>,
@@ -169,7 +169,6 @@ impl Benchmark {
         let mut process = ProcessMonitor::new(process_id(), &self.0.path)?;
         process.record(0)?;
         let started_at = Instant::now();
-        self.0.stop.store(false, Ordering::Relaxed);
 
         let disk = Arc::clone(&self.0.disk);
         let monitors = [

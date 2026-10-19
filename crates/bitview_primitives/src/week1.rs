@@ -21,6 +21,13 @@ impl Week1 {
     pub fn to_timestamp(&self) -> Timestamp {
         Timestamp::from(Date::from(*self))
     }
+
+    pub(crate) fn index_name() -> &'static str {
+        "week1"
+    }
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
+        &["1w", "w", "week", "weekly", "week1", "weekindex"]
+    }
 }
 
 impl From<Day1> for Week1 {
@@ -38,7 +45,7 @@ impl TryFrom<Date> for Week1 {
         // ISO week 2009-W01 starts three days before the daily epoch.
         let days = value
             .try_into_jiff()?
-            .duration_since(Date::INDEX_ZERO_)
+            .duration_since(Date::JIFF_INDEX_ZERO)
             .as_secs()
             / 86_400
             + 3;
@@ -49,14 +56,6 @@ impl TryFrom<Date> for Week1 {
     }
 }
 
-impl Week1 {
-    pub(crate) fn index_name() -> &'static str {
-        "week1"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["1w", "w", "week", "weekly", "week1", "weekindex"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for Week1 {
     fn to_string() -> &'static str {

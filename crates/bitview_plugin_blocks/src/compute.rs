@@ -30,7 +30,7 @@ impl ComputePlugin for Vecs {
             || interval.compute(indexer, exit),
             || {
                 join(
-                    || size.compute(starting_height, &window_starts, &*blocks.total, exit),
+                    || size.compute(starting_height, &window_starts, &*blocks.size, exit),
                     || weight.compute(starting_height, &window_starts, &*blocks.weight, exit),
                 )
             },

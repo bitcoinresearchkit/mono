@@ -1,12 +1,11 @@
-use crate::data::Data;
+use crate::accounting::AccountingTotals;
 use bitview_cohort::{AgeAggregate, AgeRangeId};
 use bitview_plugin_age::Vecs as Age;
-use brk_error::{Error, Result};
 use brk_types::Height;
 use vecdb::{AnyVec, ReadableVec, VecValue};
 
 /// Calls `$columns!` once with every source column of the age range `$r` as `(field, source)`,
-/// in read order: the [`Data`] field it fills and the vector it reads.
+/// in read order: the [`AccountingTotals`] field it fills and the vector it reads.
 macro_rules! with_columns {
     ($r:ident, $columns:ident) => {
         $columns!(
@@ -64,7 +63,7 @@ macro_rules! with_columns {
     };
 }
 
-/// One batch of sums, constructed in a single walk over disjoint bands.
+/// Reads Age's accounting columns and sums them by holder cohort.
 pub(crate) struct Sources<'a> {
     age: &'a Age,
 }
@@ -84,17 +83,18 @@ impl<'a> Sources<'a> {
             with_columns!(r, array)
         })
     }
-    pub fn collect(&self, start: usize, end: usize) -> Result<Vec<AgeAggregate<Data>>> {
-        let mut result = vec![AgeAggregate::<Data>::default(); end - start];
-        let mut band = vec![Data::default(); end - start];
+    /// The sums of rows `start..end`, which every [`Self::vectors`] input covers.
+    pub fn collect(&self, start: usize, end: usize) -> Vec<AgeAggregate<AccountingTotals>> {
+        let mut result = vec![AgeAggregate::<AccountingTotals>::default(); end - start];
+        let mut band = vec![AccountingTotals::default(); end - start];
         macro_rules! read_into {
             ($(($field:ident, $source:expr)),* $(,)?) => {
-                $(read($source, start, &mut band, |row, value| row.$field = value)?;)*
+                $(read($source, start, &mut band, |row, value| row.$field = value);)*
             };
         }
         for &id in AgeRangeId::ALL {
             let r = id.select(&self.age.ranges);
-            band.fill(Data::default());
+            band.fill(AccountingTotals::default());
             with_columns!(r, read_into);
             if id != AgeRangeId::Under1H {
                 for row in &mut band {
@@ -108,7 +108,7 @@ impl<'a> Sources<'a> {
                 }
             }
         }
-        Ok(result)
+        result
     }
 }
 
@@ -116,20 +116,17 @@ impl<'a> Sources<'a> {
 fn read<T: VecValue>(
     source: &impl ReadableVec<Height, T>,
     start: usize,
-    rows: &mut [Data],
-    mut assign: impl FnMut(&mut Data, T),
-) -> Result<()> {
+    rows: &mut [AccountingTotals],
+    mut assign: impl FnMut(&mut AccountingTotals, T),
+) {
     let mut rows_left = rows.iter_mut();
     source.for_each_range_at(start, start + rows_left.len(), |value| {
-        if let Some(row) = rows_left.next() {
-            assign(row, value);
-        }
+        assign(rows_left.next().expect("one value per row"), value);
     });
-    if rows_left.len() != 0 {
-        return Err(Error::NotFound(format!(
-            "incomplete aggregate input {}",
-            source.name()
-        )));
-    }
-    Ok(())
+    debug_assert_eq!(
+        rows_left.len(),
+        0,
+        "incomplete aggregate input {}",
+        source.name()
+    );
 }

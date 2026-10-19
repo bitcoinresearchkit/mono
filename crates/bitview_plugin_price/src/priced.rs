@@ -5,7 +5,6 @@ use std::ops::Range;
 
 use brk_oracle::FIRST_PRICE_HEIGHT;
 
-/// Whether `height` has a spot price.
 #[inline]
 pub fn is_priced(height: usize) -> bool {
     height >= FIRST_PRICE_HEIGHT

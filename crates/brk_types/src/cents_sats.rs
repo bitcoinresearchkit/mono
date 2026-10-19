@@ -52,11 +52,6 @@ impl CentsSats {
         self.0
     }
 
-    #[inline(always)]
-    pub const fn as_u128(self) -> u128 {
-        self.0
-    }
-
     /// The amount in cents (divided by one BTC), rounded to the nearest cent.
     #[inline(always)]
     pub fn to_cents(self) -> Cents {

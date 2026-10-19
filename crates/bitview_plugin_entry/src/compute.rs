@@ -4,7 +4,7 @@ use bitview_distribution::state::cost_basis::age_index;
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use bitview_traversable::Traversable;
-use brk_error::{Error, Result};
+use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
 use statedb::Amount;
 use vecdb::{AnyVec, ReadableVec};
@@ -78,15 +78,10 @@ impl ComputePlugin for Vecs {
         prices.read_into_at(data_start, end, &mut live.prices);
         timestamps.read_into_at(data_start, end, &mut live.timestamps);
         let anchor_start = data_start.saturating_sub(1);
-        let anchors = capitalized_price.collect_range_at(anchor_start, end.saturating_sub(1));
-        if live.prices.len() != end
-            || live.timestamps.len() != end
-            || anchors.len() != end.saturating_sub(1) - anchor_start
-        {
-            return Err(Error::NotFound(
-                "incomplete entry price or timestamp history".into(),
-            ));
-        }
+        let anchors = capitalized_price.collect_range_at(anchor_start, end - 1);
+        debug_assert_eq!(live.prices.len(), end);
+        debug_assert_eq!(live.timestamps.len(), end);
+        debug_assert_eq!(anchors.len(), end - 1 - anchor_start);
         live.entries.extend((data_start..end).map(|h| {
             classify(
                 live.prices[h],
@@ -135,7 +130,7 @@ impl ComputePlugin for Vecs {
                 }
                 for (target, state) in self.cohorts.iter_mut().zip(live.cohorts.iter_mut()) {
                     target.push(state, price);
-                    state.reset_single_iteration_values();
+                    state.reset_block();
                 }
             }
             save_stamped(

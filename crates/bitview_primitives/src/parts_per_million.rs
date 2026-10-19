@@ -48,15 +48,6 @@ macro_rules! parts_per_million {
             pub(crate) fn is_nan(self) -> bool {
                 self.0 == $nan
             }
-
-            #[inline]
-            pub fn to_f32(self) -> f32 {
-                if unlikely(self.is_nan()) {
-                    f32::NAN
-                } else {
-                    self.0 as f32 / 1_000_000.0
-                }
-            }
         }
 
         impl From<usize> for $name {
@@ -106,7 +97,11 @@ macro_rules! parts_per_million {
         impl From<$name> for f32 {
             #[inline]
             fn from(value: $name) -> Self {
-                value.to_f32()
+                if unlikely(value.is_nan()) {
+                    f32::NAN
+                } else {
+                    value.0 as f32 / 1_000_000.0
+                }
             }
         }
 
@@ -160,7 +155,6 @@ macro_rules! parts_per_million {
 parts_per_million!(
     /// Unsigned parts per million stored as u32.
     /// One unit is 0.000001. Range: 0–4,294.967294.
-    /// Use for precise bounded ratios and percentages.
     /// `u32::MAX` is reserved as a NaN sentinel.
     PartsPerMillion32(u32), nan: u32::MAX
 );
@@ -186,7 +180,6 @@ impl From<f64> for PartsPerMillion32 {
 parts_per_million!(
     /// Unsigned parts per million stored as u64.
     /// One unit is 0.000001. Range: 0–18,446,744,073,709.551614.
-    /// Use for precise wide-range ratios.
     /// `u64::MAX` is reserved as a NaN sentinel.
     PartsPerMillion64(u64), nan: u64::MAX
 );
@@ -218,7 +211,6 @@ impl From<f64> for PartsPerMillion64 {
 parts_per_million!(
     /// Signed parts per million stored as i32.
     /// One unit is 0.000001. Range: -2,147.483647 to +2,147.483647.
-    /// Use for precise bounded signed ratios and percentages.
     /// `i32::MIN` is reserved as a NaN sentinel.
     PartsPerMillionSigned32(i32), nan: i32::MIN
 );
@@ -250,7 +242,6 @@ impl SubAssign for PartsPerMillionSigned32 {
 parts_per_million!(
     /// Signed parts per million stored as i64.
     /// One unit is 0.000001. Range: -9,223,372,036,854.775807 to +9,223,372,036,854.775807.
-    /// Use for precise wide-range signed ratios and percentages.
     /// `i64::MIN` is reserved as a NaN sentinel.
     PartsPerMillionSigned64(i64), nan: i64::MIN
 );

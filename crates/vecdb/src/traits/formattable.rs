@@ -1,6 +1,5 @@
-/// Fast formatting trait that writes UTF-8 bytes directly into a buffer,
-/// avoiding the `std::fmt` machinery for number types. JSON and CSV bodies are
-/// built as bytes, so no method needs a `String`.
+/// Formats values as UTF-8 bytes directly into a buffer, avoiding the `std::fmt` machinery for
+/// numbers. JSON and CSV bodies are built as bytes, so no method needs a `String`.
 pub trait Formattable {
     /// Whether this type has an undefined value of its own (NaN, or a sentinel such as
     /// `u64::MAX`), written as JSON `null`.
@@ -9,7 +8,7 @@ pub trait Formattable {
     /// Whether a value can be missing (`Option`), written as JSON `null`.
     const MISSING: bool = false;
 
-    /// Write formatted UTF-8 bytes. Primary method — all others derive from it.
+    /// Write formatted UTF-8 bytes; the default `fmt_csv` and `fmt_json` delegate here.
     fn write_to(&self, buf: &mut Vec<u8>);
 
     /// Write one CSV cell. Override for types needing CSV escaping ([`escape_csv_cell`]) or an

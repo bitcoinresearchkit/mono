@@ -59,7 +59,7 @@ macro_rules! impl_cohort_collection {
             #[cfg(feature = "storage")]
             pub fn par_iter_mut(&mut self) -> impl rayon::iter::ParallelIterator<Item = &mut T>
             where
-                T: Send + Sync,
+                T: Send,
             {
                 rayon::iter::IntoParallelIterator::into_par_iter(self.as_array_mut())
             }

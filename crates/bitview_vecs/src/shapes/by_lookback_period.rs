@@ -1,6 +1,5 @@
 use bitview_traversable::Traversable;
 
-/// Generic wrapper for lookback period-based data (includes 24h)
 #[derive(Clone, Default, Traversable)]
 pub struct ByLookbackPeriod<T> {
     /// Uses a trailing 24-hour monotonic-time window.

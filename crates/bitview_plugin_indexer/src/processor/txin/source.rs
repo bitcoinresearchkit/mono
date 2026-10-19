@@ -8,7 +8,7 @@ pub enum InputSource {
         outpoint: OutPoint,
         txout_index: TxOutIndex,
         output_type: OutputType,
-        legacy_sigops: SigOps32,
+        legacy_sigop_cost: SigOps32,
         type_index: TypeIndex,
         value: Sats,
     },

@@ -1,9 +1,8 @@
 # bitview_compute
 
-Stateful and range-based calculations shared by Bitview plugins: rolling
-statistics, drawdowns, weighted cohort state and resume preparation (`Inputs`,
-`prepare_computed`, `write_chunks`, `write_locked`, `save_stamped`, one `WRITE_INTERVAL`). The `statistics` family contains rolling algorithms and the
-order-statistics structures they use.
+Rolling statistics, weighted cohort accounting, and computation resume/write helpers shared
+by Bitview plugins. The `statistics` module contains rolling algorithms and their
+order-statistics structures.
 
 `DistributionStats` is the seven-statistic shape the rolling distribution writes.
 Stateless value transforms (`ops`), other typed shapes (`shapes`), metric vector

@@ -3,9 +3,7 @@ use std::{fmt, ops::Deref};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Hex-encoded string. Transparent wrapper over `String`: serializes
-/// as a plain JSON string and derefs to `str`, so anywhere `&str` or
-/// `AsRef<[u8]>` is expected the `Hex` "just works".
+/// Hex-encoded data as a JSON string.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 pub struct Hex(String);
@@ -35,6 +33,7 @@ impl AsRef<str> for Hex {
     }
 }
 
+/// The encoded text's bytes, not the decoded data.
 impl AsRef<[u8]> for Hex {
     fn as_ref(&self) -> &[u8] {
         self.0.as_bytes()

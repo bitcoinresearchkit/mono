@@ -1,54 +1,38 @@
-//! Rust API method generation.
-
 use std::fmt::Write;
 
 use crate::{Endpoint, ResponseKind, Ty, VERSION, generators::write_description, to_snake_case};
 
 use super::types::{rust_param_type, rust_type};
 
-/// Generate the main BitviewClient struct.
 pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
     writeln!(
         output,
-        r#"/// Main Bitview client with series tree and API methods.
+        r#"/// A method per API endpoint, and the typed series tree.
 pub struct BitviewClient {{
     base: Arc<BitviewClientBase>,
     series: OnceLock<Box<SeriesTree>>,
 }}
 
 impl BitviewClient {{
-    /// Client version.
     pub const VERSION: &'static str = "v{VERSION}";
 
-    /// Create a new client with the given base URL.
     pub fn new(base_url: impl Into<String>) -> Self {{
         let base = Arc::new(BitviewClientBase::new(base_url));
         Self {{ base, series: OnceLock::new() }}
     }}
 
-    /// Create a new client with options.
     pub fn with_options(options: BitviewClientOptions) -> Self {{
         let base = Arc::new(BitviewClientBase::with_options(options));
         Self {{ base, series: OnceLock::new() }}
     }}
 
-    /// Get the series tree for navigating series.
+    /// The typed series tree, built on first use.
     pub fn series(&self) -> &SeriesTree {{
         self.series
             .get_or_init(|| Box::new(SeriesTree::build(self.base.clone(), String::new())))
     }}
 
-    /// Create a dynamic series endpoint builder for any series/index combination.
-    ///
-    /// Use this for programmatic access when the series name is determined at runtime.
-    /// For type-safe access, use the `series()` tree instead.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let data = client.series_endpoint("realized_price", Index::Height)
-    ///     .last(10)
-    ///     .fetch()?;
-    /// ```
+    /// A series by a name known only at runtime; [`series`](Self::series) has the typed paths.
     pub fn series_endpoint(&self, series: impl Into<SeriesName>, index: Index) -> SeriesEndpoint<serde_json::Value> {{
         SeriesEndpoint::new(
             self.base.clone(),
@@ -57,9 +41,8 @@ impl BitviewClient {{
         )
     }}
 
-    /// Create a dynamic date-based series endpoint builder.
-    ///
-    /// Returns `Err` if the index is not date-based.
+    /// Like [`series_endpoint`](Self::series_endpoint) with date selectors; `Err` if the index is
+    /// not date-based.
     pub fn date_series_endpoint(&self, series: impl Into<SeriesName>, index: Index) -> Result<DateSeriesEndpoint<serde_json::Value>> {{
         if !index.is_date_based() {{
             return Err(BitviewError::new(format!("{{}} is not a date-based index", index.name())));
@@ -70,8 +53,7 @@ impl BitviewClient {{
             index,
         ))
     }}
-"#,
-        VERSION = VERSION
+"#
     )
     .unwrap();
 
@@ -95,7 +77,6 @@ impl BitviewClient {{
     writeln!(output, "}}").unwrap();
 }
 
-/// Generate API methods from OpenAPI endpoints.
 fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
     for endpoint in endpoints
         .iter()
@@ -123,7 +104,7 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
     writeln!(
         output,
         "    pub fn {}(&self{params}) -> Result<{}> {{",
-        endpoint_to_method_name(endpoint),
+        to_snake_case(&endpoint.operation_id),
         build_return_type(endpoint)
     )
     .unwrap();
@@ -190,25 +171,21 @@ fn build_return_type(endpoint: &Endpoint) -> String {
 }
 
 fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
-    let method_name = endpoint_to_method_name(endpoint);
-    writeln!(
-        output,
-        "    /// {}",
-        endpoint.summary.as_deref().unwrap_or(&method_name)
-    )
-    .unwrap();
-    if let Some(desc) = &endpoint.description
-        && endpoint.summary.as_ref() != Some(desc)
+    let description = endpoint
+        .description
+        .as_ref()
+        .filter(|desc| endpoint.summary.as_ref() != Some(desc));
+    for text in [endpoint.summary.as_ref(), description]
+        .into_iter()
+        .flatten()
     {
+        write_description(output, text, "    /// ", "    ///");
         writeln!(output, "    ///").unwrap();
-        write_description(output, desc, "    /// ", "    ///");
     }
-    writeln!(output, "    ///").unwrap();
     writeln!(
         output,
         "    /// Endpoint: `{} {}`",
-        endpoint.method.to_uppercase(),
-        endpoint.path
+        endpoint.method, endpoint.path
     )
     .unwrap();
 }
@@ -258,10 +235,6 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, pa
     .unwrap();
 }
 
-fn endpoint_to_method_name(endpoint: &Endpoint) -> String {
-    to_snake_case(&endpoint.operation_id)
-}
-
 fn build_method_params(endpoint: &Endpoint) -> String {
     let mut params = String::new();
     for param in &endpoint.path_params {
@@ -280,7 +253,7 @@ fn build_method_params(endpoint: &Endpoint) -> String {
     params
 }
 
-/// Strip characters invalid in Rust identifiers (e.g. `[]` from `txId[]`).
+/// Drop `[` and `]` (as in `txId[]`).
 fn sanitize_ident(name: &str) -> String {
     name.replace(['[', ']'], "")
 }

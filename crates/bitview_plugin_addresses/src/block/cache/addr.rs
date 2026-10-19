@@ -43,18 +43,18 @@ impl AddressKey {
         TypeIndex::from(self.0 as u32)
     }
 
-    fn load(self, vr: &AddrReaders, state: &AddrStateVecs) -> SourcedAddrData {
+    fn load(self, state_readers: &AddrReaders, state: &AddrStateVecs) -> SourcedAddrData {
         let addr_type = self.addr_type();
         let type_index = self.type_index();
 
-        match vr.state(state, addr_type, type_index).decode() {
+        match state_readers.state(state, addr_type, type_index).decode() {
             DecodedAddrState::Funded(funded_index) => SourcedAddrData {
                 origin: AddrOrigin::Funded(funded_index),
-                data: vr.funded_data(state, funded_index),
+                data: state_readers.funded_data(state, funded_index),
             },
             DecodedAddrState::ExtendedEmpty(empty_index) => SourcedAddrData {
                 origin: AddrOrigin::ExtendedEmpty(empty_index),
-                data: vr.extended_empty_data(state, empty_index).into(),
+                data: state_readers.extended_empty_data(state, empty_index).into(),
             },
             DecodedAddrState::Empty(empty_data) => SourcedAddrData {
                 origin: AddrOrigin::InlineEmpty,
@@ -82,7 +82,7 @@ impl AddrCache {
         &mut self,
         addresses: impl Iterator<Item = (OutputType, TypeIndex)>,
         first_addr_indexes: &ByAddrType<TypeIndex>,
-        vr: &AddrReaders,
+        state_readers: &AddrReaders,
         state: &AddrStateVecs,
     ) {
         self.addresses.clear();
@@ -107,7 +107,7 @@ impl AddrCache {
                 (!shards[shard_of(address.type_index())]
                     .get_unwrap(address.addr_type())
                     .contains_key(&address.type_index()))
-                .then(|| address.load(vr, state))
+                .then(|| address.load(state_readers, state))
             })
             .collect_into_vec(&mut self.sources);
 

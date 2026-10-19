@@ -34,7 +34,7 @@ where
                 bytes.read_only_boxed_clone(),
                 |index| index,
             ),
-            address: LazyVec::init(
+            address: LazyVec::new(
                 &format!("{prefix}_address"),
                 version,
                 bytes.read_only_boxed_clone(),

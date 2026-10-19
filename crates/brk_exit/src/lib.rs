@@ -27,8 +27,8 @@ static SIGNAL_PIPE: AtomicI32 = AtomicI32::new(-1);
 
 type CleanupCallback = Box<dyn Fn() + Send + Sync>;
 
-/// Sets the flag and wakes the shutdown thread on the first signal, nothing else: the thread
-/// logs through the logger, like every other line.
+/// Sets the flag and wakes the shutdown thread on the first signal; only async-signal-safe calls
+/// run here, so the thread does the logging.
 extern "C" fn signal_handler(_sig: c_int) {
     if !SIGNAL_RECEIVED.swap(true, Ordering::Relaxed) {
         let fd = SIGNAL_PIPE.load(Ordering::Relaxed);
@@ -36,8 +36,6 @@ extern "C" fn signal_handler(_sig: c_int) {
     }
 }
 
-/// Graceful shutdown coordinator for ensuring data consistency during program exit.
-///
 /// On first signal, a background thread acquires the write lock (waiting only for the
 /// current critical section to finish), runs cleanup callbacks, and exits.
 /// Later signals change nothing: the shutdown keeps waiting.
@@ -53,8 +51,7 @@ impl Exit {
         Self::default()
     }
 
-    /// Registers a callback to be executed during shutdown.
-    /// Callbacks are executed in registration order before the program exits.
+    /// Callbacks run during shutdown, in registration order, before the process exits.
     pub fn register_cleanup<F>(&self, callback: F)
     where
         F: Fn() + Send + Sync + 'static,
@@ -75,10 +72,10 @@ impl Exit {
     ///
     /// # Panics
     /// Panics if called more than once per process, or if pipe creation or `sigaction` fails.
-    pub fn set_ctrlc_handler(&self) {
+    pub fn install_signal_handlers(&self) {
         assert!(
             !HANDLER_INSTALLED.swap(true, Ordering::Relaxed),
-            "the ctrl-c handler is already installed"
+            "signal handlers are already installed"
         );
 
         let mut fds = [0i32; 2];

@@ -31,8 +31,8 @@ const NO_ARGS: [(); 0] = [];
 /// `fetch_new_pool_data`, and `get_raw_transactions`. Sized so the JSON
 /// request body stays well under a megabyte and bitcoind doesn't spend
 /// too long on a single batch before yielding results. For the mixed
-/// `getmempoolentry`+`getrawtransaction` batch this is the *txid* count;
-/// the wire batch is twice that.
+/// `getmempoolentry`+`getrawtransaction` batch this is the *txid* count:
+/// one request per `entries_only` txid, two per `full` one.
 const BATCH_CHUNK: usize = 2000;
 
 impl Client {
@@ -55,7 +55,7 @@ impl Client {
         Ok(FeeRate::from_milli(sat_per_kvb as u64))
     }
 
-    /// Returns the height of the longest chain's tip.
+    /// The best chain's tip height.
     pub fn get_last_height(&self) -> Result<Height> {
         let r: GetBlockCount = self.0.call_with_retry("getblockcount", &NO_ARGS)?;
         Ok(Height::from(r.0))
@@ -67,13 +67,9 @@ impl Client {
         let hash: &BitcoinBlockHash = hash.into();
         self.0.call_with_retry("getblockheader", &(hash,))
     }
-    /// Get every canonical block hash for the inclusive height range
-    /// `start..=end`, in sequential JSON-RPC batches of `BATCH_CHUNK` (2,000)
-    /// requests, one round trip each. Returns hashes in canonical order
-    /// (`start`, `start+1`, …, `end`). Use this whenever resolving more than
-    /// ~2 heights: one round trip per batch beats N sequential
-    /// `get_block_hash` calls. A failed batch returns its error at once:
-    /// batches are not retried like single calls.
+    /// The canonical block hashes of the inclusive height range `start..=end`, in height order,
+    /// in sequential batches of `BATCH_CHUNK` (2,000) requests. A failed batch returns its error
+    /// at once: batches are not retried like single calls.
     pub fn get_block_hashes_range<H1, H2>(&self, start: H1, end: H2) -> Result<Vec<BlockHash>>
     where
         H1: Into<u64>,
@@ -98,12 +94,9 @@ impl Client {
         Ok(hashes)
     }
 
-    /// Batched `getrawtransaction` over a slice of txids. Returns a map keyed
-    /// by txid containing the deserialized tx. Individual failures (e.g. a
-    /// tx that evicted between the listing and this call) are logged and
-    /// dropped so a single bad entry doesn't kill the batch.
-    ///
-    /// Chunked at `BATCH_CHUNK` requests per round-trip.
+    /// Batched `getrawtransaction`, chunked at `BATCH_CHUNK` requests, keyed by txid. A failed
+    /// item is dropped so one bad entry doesn't kill the batch: NOT_FOUND (a tx evicted since the
+    /// listing) silently, others with a debug log. Transport failures propagate.
     pub fn get_raw_transactions(&self, txids: &[Txid]) -> Result<FxHashMap<Txid, Transaction>> {
         let mut out: FxHashMap<Txid, Transaction> =
             FxHashMap::with_capacity_and_hasher(txids.len(), Default::default());
@@ -131,26 +124,22 @@ impl Client {
         Ok(out)
     }
 
-    /// Core's projected next block + live mempool txid set +
-    /// `mempoolminfee`, fetched in a single bitcoind round-trip. GBT
-    /// carries each tx's full body and stats, so block 0 is exact even
-    /// when a tx vanishes from the mempool listing between the GBT and
-    /// `getrawmempool` calls; no follow-up entry fetch can race it.
-    /// Returns the passthrough `MempoolState` and the raw
-    /// `block_template` (consumed downstream by GBT synthesis), in one
-    /// batched round-trip: `getblocktemplate` + `getrawmempool false`
-    /// + `getmempoolinfo`.
+    /// Core's projected next block (`getblocktemplate`), the live mempool txids
+    /// (`getrawmempool false`) and `mempoolminfee` (`getmempoolinfo`), in one
+    /// batched round trip. GBT carries each tx's full body and stats, so block 0
+    /// is exact even when a tx vanishes from the mempool listing between the GBT
+    /// and `getrawmempool` calls; no follow-up entry fetch can race it.
     pub fn fetch_mempool_state(&self) -> Result<(MempoolState, Vec<BlockTemplateTx>)> {
         let template_args = (json!({ "rules": ["segwit"] }),);
         let calls = [
             RpcCall::new("getblocktemplate", &template_args)?,
             RpcCall::new("getrawmempool", &(false,))?,
-            RpcCall::empty("getmempoolinfo")?,
+            RpcCall::new("getmempoolinfo", &NO_ARGS)?,
         ];
-        let mut out = self.0.call_mixed_batch(&calls)?.into_iter();
-        let template_raw = out.next().ok_or(Error::Internal("missing gbt"))??;
-        let txids_raw = out.next().ok_or(Error::Internal("missing rawmempool"))??;
-        let info_raw = out.next().ok_or(Error::Internal("missing mempoolinfo"))??;
+        // The batch answers every request, a missing response as an item error.
+        let [template_raw, txids_raw, info_raw] =
+            <[_; 3]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
+        let (template_raw, txids_raw, info_raw) = (template_raw?, txids_raw?, info_raw?);
 
         let live_txids = TxidArrayParser::parse(txids_raw.get())?;
         let template: GetBlockTemplate = from_str(template_raw.get())?;
@@ -199,10 +188,10 @@ impl Client {
                 }
             }
 
-            let results = self.0.call_mixed_batch(&calls)?;
-            let mut iter = results.into_iter();
+            // The batch answers every request, a missing response as an item error.
+            let mut results = self.0.call_mixed_batch(&calls)?.into_iter();
             for (txid, body) in chunk {
-                let entry_res = iter.next().ok_or(Error::Internal("missing entry"))?;
+                let entry_res = results.next().expect("one result per call");
                 match entry_res.and_then(|raw| {
                     let entry: MempoolEntry = from_str(raw.get())?;
                     Ok(entry.into_info(*txid))
@@ -216,7 +205,7 @@ impl Client {
                 if !body {
                     continue;
                 }
-                let raw_res = iter.next().ok_or(Error::Internal("missing raw"))?;
+                let raw_res = results.next().expect("one result per call");
                 match raw_res.and_then(|raw| Self::decode_raw_tx(&raw)) {
                     Ok(tx) => {
                         txs.insert(*txid, tx);
@@ -233,8 +222,6 @@ impl Client {
     }
 
     pub fn get_closest_valid_height(&self, hash: BlockHash) -> Result<(Height, BlockHash)> {
-        debug!("Get closest valid height...");
-
         let mut current = hash;
         loop {
             let info = self.get_block_header_info(&current)?;

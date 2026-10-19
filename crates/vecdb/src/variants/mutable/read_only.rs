@@ -9,17 +9,10 @@ use crate::{
 
 use super::{MutableRawVec, MutableVec};
 
-/// Lean read-only view of a [`MutableVec`](super::MutableVec).
 #[derive(Debug, Clone)]
 pub struct ReadOnlyMutableVec<V> {
     vec: V,
     holes: Arc<RwLock<Arc<BTreeSet<usize>>>>,
-}
-
-impl<V> ReadOnlyMutableVec<V> {
-    fn new(vec: V, holes: Arc<RwLock<Arc<BTreeSet<usize>>>>) -> Self {
-        Self { vec, holes }
-    }
 }
 
 impl<V> StoredVec for MutableVec<V>
@@ -30,10 +23,10 @@ where
 
     #[inline]
     fn read_only_clone(&self) -> Self::ReadOnly {
-        ReadOnlyMutableVec::new(
-            self.vec.read_only_clone(),
-            Arc::clone(&self.published_holes),
-        )
+        ReadOnlyMutableVec {
+            vec: self.vec.read_only_clone(),
+            holes: Arc::clone(&self.published_holes),
+        }
     }
 }
 
@@ -58,7 +51,7 @@ impl<V> Deref for ReadOnlyMutableVec<V> {
 
 impl<V> AnyVec for ReadOnlyMutableVec<V>
 where
-    V: AnyVec + TypedVec,
+    V: TypedVec,
 {
     #[inline]
     fn version(&self) -> Version {
@@ -117,7 +110,6 @@ where
         }
     }
 
-    /// Bulk reads of the wrapped vec, split around holes.
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<V::T>) {
         let to = to.min(self.vec.len());
         if from >= to {

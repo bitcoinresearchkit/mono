@@ -4,8 +4,6 @@ use std::{
 };
 
 use base64::{Engine, engine::general_purpose::STANDARD};
-#[cfg(feature = "async")]
-use brk_error::Error;
 
 #[derive(Clone, Debug)]
 pub enum Auth {
@@ -15,12 +13,7 @@ pub enum Auth {
 }
 
 /// A cookie read failure that names the file (a bare "Permission denied" says nothing).
-#[cfg(feature = "async")]
-pub(crate) fn cookie_error(path: &Path, error: io::Error) -> Error {
-    Error::IO(cookie_io_error(path, error))
-}
-
-fn cookie_io_error(path: &Path, error: io::Error) -> io::Error {
+pub(crate) fn cookie_io_error(path: &Path, error: io::Error) -> io::Error {
     io::Error::new(
         error.kind(),
         format!("cannot read the RPC cookie {}: {error}", path.display()),

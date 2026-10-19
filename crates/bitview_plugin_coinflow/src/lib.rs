@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-
 mod age_range;
 mod aggregate;
 mod compute;

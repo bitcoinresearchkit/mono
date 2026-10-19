@@ -17,7 +17,7 @@ use tokio::{fs as TokioFs, sync::Mutex};
 use super::connection::{Connection, Exchange};
 use crate::{
     Auth,
-    auth::{basic, cookie_error, read_cookie},
+    auth::{basic, cookie_io_error, read_cookie},
     endpoint::Endpoint,
     rpc_client, rpc_response,
 };
@@ -100,7 +100,6 @@ impl Inner {
                 let (status, bytes) = match connection.request(request).await? {
                     Exchange::Complete(status, bytes) => (status, bytes),
                     Exchange::Disconnected if reused && reconnect => {
-                        // Only this read-only height call may be replayed, at most once.
                         reconnect = false;
                         continue;
                     }
@@ -117,7 +116,7 @@ impl Inner {
                 if refresh && let Some(path) = &self.cookie {
                     let cookie = TokioFs::read_to_string(path)
                         .await
-                        .map_err(|error| cookie_error(path, error))?;
+                        .map_err(|error| Error::IO(cookie_io_error(path, error)))?;
                     let updated = authorization(cookie.trim())?;
                     if header.as_ref() != Some(&updated) {
                         *self.authorization.write() = Some(updated);

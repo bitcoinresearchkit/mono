@@ -1,7 +1,6 @@
-//! A tx unknown to the live store: decode the fetched body, resolve
-//! prevouts against the live mempool (same-cycle parents), build a full
-//! `Transaction` + `Entry`. Confirmed parents land as `prevout: None` and
-//! are filled post-apply by the resolver passed to `Mempool::tick_with`.
+//! A tx unknown to the live store: build its `Transaction` and `TxEntry`,
+//! resolving prevouts from the pool as it stood before this cycle. The others
+//! land as `prevout: None`, for `prevouts::fill` after apply.
 //!
 //! A tx returning from the graveyard is built the same way: the same txid
 //! can come back with a different witness, so the tomb's body is never
@@ -24,10 +23,6 @@ pub struct TxAddition {
 }
 
 impl TxAddition {
-    /// Resolves prevouts against the live mempool only. Confirmed
-    /// parents land with `prevout: None` and are filled by the
-    /// resolver supplied to `Mempool::tick_with` in the same cycle.
-    ///
     /// Preserves a tomb's original `first_seen`: bitcoind resets the
     /// timestamp on re-acceptance (and GBT synthesis carries "now"), but
     /// the consumer wants the first-ever sighting, not the latest one.

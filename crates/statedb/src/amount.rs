@@ -30,14 +30,13 @@ impl Amount {
         bytes[8..].copy_from_slice(&self.count.to_le_bytes());
         bytes
     }
-    pub(crate) fn decode(bytes: &[u8]) -> Result<Self> {
-        if bytes.len() != 16 {
-            return Err(invalid("invalid amount size"));
-        }
-        Ok(Self {
+    /// `bytes` is a 16-byte field of a record whose framing was checked.
+    pub(crate) fn decode(bytes: &[u8]) -> Self {
+        debug_assert_eq!(bytes.len(), 16);
+        Self {
             sats: u64::from_le_bytes(bytes[..8].try_into().unwrap()),
             count: u64::from_le_bytes(bytes[8..].try_into().unwrap()),
-        })
+        }
     }
 }
 /// Replay arithmetic over validated rows: overflow is a debug-checked invariant.

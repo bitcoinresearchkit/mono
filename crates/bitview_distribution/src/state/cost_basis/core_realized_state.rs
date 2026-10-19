@@ -39,8 +39,8 @@ impl RealizedOps for CoreRealizedState {
     }
 
     #[inline]
-    fn reset_single_iteration_values(&mut self) {
-        self.minimal.reset_single_iteration_values();
+    fn reset_block(&mut self) {
+        self.minimal.reset_block();
         self.value_destroyed_raw = 0;
     }
 
@@ -70,6 +70,6 @@ impl RealizedOps for CoreRealizedState {
     ) {
         self.minimal
             .send(sats, current_ps, prev_ps, ath_ps, prev_capitalized_cap);
-        self.value_destroyed_raw += prev_ps.as_u128();
+        self.value_destroyed_raw += prev_ps.inner();
     }
 }

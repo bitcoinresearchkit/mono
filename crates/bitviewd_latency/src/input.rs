@@ -31,13 +31,13 @@ pub fn discover(location: &Path) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     for (day, mut paths) in days {
         paths.sort();
-        if let Some(combined) = paths
+        let combined = format!("{day}.txt");
+        match paths
             .iter()
-            .find(|p| p.file_name().unwrap() == format!("{day}.txt").as_str())
+            .position(|p| p.file_name().unwrap() == combined.as_str())
         {
-            files.push(combined.clone());
-        } else {
-            files.extend(paths);
+            Some(index) => files.push(paths.swap_remove(index)),
+            None => files.extend(paths),
         }
     }
     if files.is_empty() {

@@ -5,7 +5,7 @@ use bitview_vecs::{
     LazyPerBlock, LazyPercentPerBlock, Resolutions,
     ops::{BlocksToDays, DifficultyToHashrate},
 };
-use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Height, Version};
+use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height, Version};
 use vecdb::{Ident, IndexVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use super::Vecs;
@@ -69,7 +69,7 @@ impl Vecs {
 
         Self {
             block: Resolutions::from_source("difficulty", &difficulty_source, version, mappings),
-            block_height: LazyVec::init(
+            block_height: LazyVec::new(
                 "difficulty",
                 version,
                 difficulty_source.read_only_boxed_clone(),
@@ -80,7 +80,7 @@ impl Vecs {
                 "difficulty_adjustment",
                 version + Version::ONE,
                 &difficulty_source,
-                BLOCKS_PER_DIFF_EPOCHS as usize,
+                BLOCKS_PER_DIFF_EPOCH as usize,
                 difficulty_adjustment,
                 mappings,
             ),

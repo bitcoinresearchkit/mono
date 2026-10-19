@@ -9,13 +9,8 @@ use syn::{
     TypeParam, WherePredicate, parse_macro_input, parse_quote, punctuated::Punctuated,
 };
 
-// ===========================================================================
-// Attribute model, parsed once for both generators
-// ===========================================================================
-
-/// One field and its traversal options.
 struct FieldModel<'a> {
-    field: &'a Field,
+    ty: &'a Type,
     /// `self.<member>`: the field name, or `0` for a tuple struct.
     member: Member,
     /// Left out of the traversal: `skip`, or writer-only state (`M::WriteOnly<..>`).
@@ -28,16 +23,11 @@ struct FieldModel<'a> {
 }
 
 impl FieldModel<'_> {
-    fn ty(&self) -> &Type {
-        &self.field.ty
-    }
-
     fn has_options(&self) -> bool {
         self.skipped || self.flatten || self.hidden || self.rename.is_some() || self.wrap.is_some()
     }
 }
 
-/// The options of every `#[traversable(..)]` attribute in `attrs`.
 fn traversable_metas(attrs: &[Attribute]) -> Result<Vec<Meta>> {
     let mut metas = Vec::new();
     for attr in attrs
@@ -63,7 +53,7 @@ fn parse_merge(attrs: &[Attribute]) -> Result<bool> {
 
 fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
     let mut model = FieldModel {
-        field,
+        ty: &field.ty,
         member: field
             .ident
             .clone()
@@ -73,7 +63,7 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
         hidden: false,
         rename: None,
         wrap: None,
-        description: get_doc_comment(field),
+        description: doc_comment(field),
     };
     for meta in traversable_metas(&field.attrs)? {
         match &meta {
@@ -133,7 +123,7 @@ fn parse_fields<'a>(input: &'a DeriveInput, merge: bool) -> Result<Vec<FieldMode
     }
 }
 
-fn get_doc_comment(field: &Field) -> Option<String> {
+fn doc_comment(field: &Field) -> Option<String> {
     let lines = field
         .attrs
         .iter()
@@ -170,10 +160,6 @@ fn with_description_fragment(
     }}
 }
 
-// ===========================================================================
-// Type helpers
-// ===========================================================================
-
 /// Writer-only associated fields have no traversal or read-only payload.
 fn is_write_only_type(ty: &Type) -> bool {
     matches!(ty, Type::Path(path)
@@ -184,7 +170,6 @@ fn is_write_only_type(ty: &Type) -> bool {
                     if args.args.len() == 1)))
 }
 
-/// The `T` of a `Box<T>` field type.
 fn extract_box_inner(ty: &Type) -> Option<&Type> {
     let Type::Path(type_path) = ty else {
         return None;
@@ -211,7 +196,6 @@ fn is_box_type(ty: &Type) -> bool {
     )
 }
 
-/// Check if a type AST references the given identifier anywhere.
 fn type_contains_ident(ty: &Type, ident: &Ident) -> bool {
     match ty {
         Type::Path(type_path) => {
@@ -344,10 +328,6 @@ fn find_storage_mode_param(generics: &Generics) -> Option<&Ident> {
     })
 }
 
-// ===========================================================================
-// Entry point
-// ===========================================================================
-
 #[proc_macro_derive(Traversable, attributes(traversable))]
 pub fn derive_traversable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -365,10 +345,6 @@ fn derive(input: &DeriveInput) -> Result<ProcMacro2TokenStream> {
     Ok(output)
 }
 
-// ===========================================================================
-// Traversable generation
-// ===========================================================================
-
 fn gen_traversable(
     input: &DeriveInput,
     fields: &[FieldModel],
@@ -378,11 +354,10 @@ fn gen_traversable(
     let generics = &input.generics;
     let (impl_generics, ty_generics, _) = generics.split_for_impl();
 
-    // Single-field tuple struct: delegate.
     if let [field] = fields
         && let Member::Unnamed(_) = field.member
     {
-        let where_clause = build_where_clause(generics, &[field.ty()]);
+        let where_clause = build_where_clause(generics, &[field.ty]);
         let collect_description = with_description_fragment(
             field.description.as_deref(),
             quote! {
@@ -421,7 +396,7 @@ fn gen_traversable(
     let traversed: Vec<&FieldModel> = fields.iter().filter(|f| !f.skipped).collect();
     let visible: Vec<&FieldModel> = traversed.iter().copied().filter(|f| !f.hidden).collect();
 
-    let traversed_types: Vec<&Type> = traversed.iter().map(|f| f.ty()).collect();
+    let traversed_types: Vec<&Type> = traversed.iter().map(|f| f.ty).collect();
     let where_clause = build_where_clause(generics, &traversed_types);
 
     let to_tree_node_body = generate_field_traversals(&visible, merge);
@@ -511,14 +486,14 @@ fn generate_field_traversals(visible: &[&FieldModel], merge: bool) -> ProcMacro2
 
     // Process all fields in declaration order (interleaving normal and flatten)
     // so that struct field order determines tree key order.
-    let field_operations = visible.iter().map(|info| {
-        let member = &info.member;
+    let field_operations = visible.iter().map(|field| {
+        let member = &field.member;
         let Member::Named(field_name) = member else {
             unreachable!("only tuple structs have unnamed fields, and they delegate");
         };
-        if info.flatten {
+        if field.flatten {
             // A flattened leaf keeps a key: its rename, else the field name.
-            let leaf_key = info
+            let leaf_key = field
                 .rename
                 .clone()
                 .unwrap_or_else(|| field_name.to_string());
@@ -540,12 +515,9 @@ fn generate_field_traversals(visible: &[&FieldModel], merge: bool) -> ProcMacro2
             s.strip_prefix('_').unwrap_or(s).to_string()
         };
 
-        // Determine the tree key and optional wrapping path.
-        // wrap = "a/b" means: outer_key = "a", wrap the node under "b" then under the rename/field name.
-        // wrap = "a" means: outer_key = "a", wrap under rename or field name.
-        // No wrap: outer_key = rename or field name, no wrapping.
-        let key = info.rename.as_deref().unwrap_or(&field_name_str);
-        let (outer_key, wrap_path) = match info.wrap.as_deref() {
+        // With `wrap = "a/b"`, the node appears at `a/b/<rename-or-field-name>`.
+        let key = field.rename.as_deref().unwrap_or(&field_name_str);
+        let (outer_key, wrap_path) = match field.wrap.as_deref() {
             Some(wrap) => {
                 let mut parts = wrap.split('/');
                 let outer = parts.next().unwrap();
@@ -555,7 +527,6 @@ fn generate_field_traversals(visible: &[&FieldModel], merge: bool) -> ProcMacro2
             None => (key, vec![]),
         };
 
-        // Build nested wrapping: wrap(path[last], wrap(path[last-1], ... node))
         let build_wrapped = |base: ProcMacro2TokenStream| -> ProcMacro2TokenStream {
             wrap_path.iter().rev().fold(base, |inner, key| {
                 quote! { bitview_traversable::TreeNode::wrap(#key, #inner) }
@@ -588,10 +559,10 @@ fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
         return quote! {};
     }
 
-    let fields = visible.iter().map(|info| {
-        let member = &info.member;
+    let fields = visible.iter().map(|field| {
+        let member = &field.member;
         with_description_fragment(
-            info.description.as_deref(),
+            field.description.as_deref(),
             quote! {
                 self.#member.collect_series_descriptions(description_fragments, descriptions);
             },
@@ -609,29 +580,17 @@ fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
     }
 }
 
-// ===========================================================================
-// ReadOnlyClone generation
-// ===========================================================================
-
-/// Generate `ReadOnlyClone` for Traversable-derived types.
-///
-/// Three paths:
-/// 1. `M: StorageMode` → concrete impl mapping `Self<Rw>` → `Self<Ro>`.
-/// 2. Generic container params → propagates `ReadOnlyClone` through each param.
-/// 3. No container params → nothing generated.
-///
-/// Container params are: unbounded type params, OR bounded params that appear
-/// as a bare field type (e.g. `field: M` where M is the param itself).
+/// `ReadOnlyClone` for a derived type: a `StorageMode` param maps `Rw` to `Ro`. Otherwise container
+/// params (unbounded, or used as a bare non-skipped field type) propagate it; without any, nothing
+/// is generated.
 fn gen_read_only_clone(input: &DeriveInput, fields: &[FieldModel]) -> ProcMacro2TokenStream {
     let generics = &input.generics;
     let name = &input.ident;
 
-    // Path 1: StorageMode param → Rw/Ro substitution.
     if let Some(mode_param) = find_storage_mode_param(generics) {
         return gen_read_only_clone_storage_mode(name, generics, fields, mode_param);
     }
 
-    // Path 2/3: classify type params as containers or leaves.
     let type_params: Vec<&TypeParam> = generics.type_params().collect();
 
     if type_params.is_empty() {
@@ -674,7 +633,7 @@ fn find_bare_field_params<'a>(
 ) -> Vec<&'a Ident> {
     let mut bare = Vec::new();
     for field in fields.iter().filter(|field| !field.skipped) {
-        if let Type::Path(type_path) = field.ty()
+        if let Type::Path(type_path) = field.ty
             && type_path.path.segments.len() == 1
             && let Some(seg) = type_path.path.segments.first()
             && seg.arguments.is_empty()
@@ -686,23 +645,12 @@ fn find_bare_field_params<'a>(
     bare
 }
 
-// ---------------------------------------------------------------------------
-// Shared field-conversion helpers
-// ---------------------------------------------------------------------------
-
-/// Generate the value expression for a single field in a ReadOnlyClone impl.
-///
-/// - `M::WriteOnly<T>` → `()`
-/// - Skipped → `Clone::clone()`
-/// - Contains relevant param + Box → `Box::new(read_only_clone(&*self.field))`
-/// - Contains relevant param → `read_only_clone(&self.field)`
-/// - Otherwise → `self.field.clone()`
-fn gen_roc_field_value(
+fn gen_read_only_clone_field_value(
     field: &FieldModel,
     is_relevant: impl Fn(&Type) -> bool,
 ) -> ProcMacro2TokenStream {
     let member = &field.member;
-    let ty = field.ty();
+    let ty = field.ty;
     if is_write_only_type(ty) {
         return quote! { () };
     }
@@ -716,21 +664,20 @@ fn gen_roc_field_value(
     }
 }
 
-/// Generate the struct body for a ReadOnlyClone impl (`Name { 0: .. }` for a tuple struct).
-fn gen_roc_body(
+/// Tuple structs use named-field syntax: `Name { 0: .. }`.
+fn gen_read_only_clone_body(
     name: &Ident,
     fields: &[FieldModel],
     is_relevant: impl Fn(&Type) -> bool,
 ) -> ProcMacro2TokenStream {
     let conversions = fields.iter().map(|field| {
         let member = &field.member;
-        let value = gen_roc_field_value(field, &is_relevant);
+        let value = gen_read_only_clone_field_value(field, &is_relevant);
         quote! { #member: #value }
     });
     quote! { #name { #(#conversions,)* } }
 }
 
-/// Collect type args from generics, applying a mapping function to each.
 fn collect_ty_args(
     generics: &Generics,
     map_type: impl Fn(&TypeParam) -> ProcMacro2TokenStream,
@@ -751,10 +698,6 @@ fn collect_ty_args(
         })
         .collect()
 }
-
-// ---------------------------------------------------------------------------
-// Path 1: StorageMode → Rw/Ro substitution
-// ---------------------------------------------------------------------------
 
 fn gen_read_only_clone_storage_mode(
     name: &Ident,
@@ -786,16 +729,14 @@ fn gen_read_only_clone_storage_mode(
         .collect();
     let field_bounds = fields
         .iter()
-        .filter(|f| !is_write_only_type(f.ty()))
+        .filter(|f| !is_write_only_type(f.ty))
         .filter_map(|f| -> Option<WherePredicate> {
-            let ty = f.ty();
+            let ty = f.ty;
             if f.skipped {
-                // Skipped fields are cloned.
                 return type_projects_param(ty, &other_params).then(|| parse_quote! { #ty: Clone });
             }
             let generic = other_params.iter().any(|p| type_contains_ident(ty, p));
             if generic && type_contains_ident(ty, mode_param) {
-                // Boxed fields convert their contents.
                 let ty = extract_box_inner(ty).unwrap_or(ty);
                 let rw = substitute_mode(
                     quote! { #ty },
@@ -890,7 +831,7 @@ fn gen_read_only_clone_storage_mode(
         .extend(mode_predicates.into_iter().chain(field_bounds));
     let (impl_generics, _, where_clause) = impl_generics.split_for_impl();
 
-    let body = gen_roc_body(name, fields, |ty| type_contains_ident(ty, mode_param));
+    let body = gen_read_only_clone_body(name, fields, |ty| type_contains_ident(ty, mode_param));
 
     quote! {
         impl #impl_generics bitview_traversable::ReadOnlyClone for #name<#(#ty_args_rw),*> #where_clause {
@@ -903,22 +844,17 @@ fn gen_read_only_clone_storage_mode(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Path 2: Generic container params → ReadOnlyClone propagation
-// ---------------------------------------------------------------------------
-
 fn gen_read_only_clone_generics(
     name: &Ident,
     generics: &Generics,
     fields: &[FieldModel],
     container_params: &[&Ident],
 ) -> ProcMacro2TokenStream {
-    // Check if any non-skipped field actually uses a container param.
     let has_container_field = fields.iter().any(|f| {
         !f.skipped
             && container_params
                 .iter()
-                .any(|tp| type_contains_ident(f.ty(), tp))
+                .any(|tp| type_contains_ident(f.ty, tp))
     });
 
     if !has_container_field {
@@ -973,7 +909,7 @@ fn gen_read_only_clone_generics(
         }
     });
 
-    let body = gen_roc_body(name, fields, |ty| {
+    let body = gen_read_only_clone_body(name, fields, |ty| {
         container_params
             .iter()
             .any(|tp| type_contains_ident(ty, tp))

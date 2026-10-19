@@ -69,7 +69,7 @@ impl Vecs {
         timestamps: ReadableBoxedVec<Height, Timestamp>,
         compute: fn(Height, Timestamp) -> T,
     ) -> LazyVec<Height, T, Timestamp> {
-        LazyVec::init(name, Version::ZERO, timestamps, compute)
+        LazyVec::new(name, Version::ZERO, timestamps, compute)
     }
 
     /// The calendar period holding each block's timestamp.

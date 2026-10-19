@@ -1,5 +1,3 @@
-//! PerBlockCumulativeRolling - stored cumulative + lazy block and rolling views.
-//!
 //! The cumulative vector is the sole stored source of truth. Per-block values
 //! and window sums are derived lazily from it.
 
@@ -98,7 +96,6 @@ where
         )?)
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn compute_cumulative_sum_from_indexes<A, B, S>(
         &mut self,
         max_from: Height,

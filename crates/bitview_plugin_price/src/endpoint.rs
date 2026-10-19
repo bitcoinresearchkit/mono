@@ -7,7 +7,6 @@ use vecdb::{Convert, ReadableBoxedVec, ReadableVec, VecIndex};
 
 use crate::priced_range;
 
-/// Two: a period holding the first price opens at it.
 const COMPUTE_VERSION: Version = Version::TWO;
 
 /// A period's opening (`CLOSE = false`) or closing spot price, read at one height instead of
@@ -70,13 +69,11 @@ impl<const CLOSE: bool> AggFold<Cents, Height, Cents> for Endpoint<CLOSE> {
     }
 }
 
-/// Opening or closing cents per resolution.
 type EndpointCents<const CLOSE: bool> = AggResolutions<Cents, Cents, Endpoint<CLOSE>>;
 /// Opening or closing price per resolution: cents, with a lazy USD view.
 pub(crate) type EndpointPrice<const CLOSE: bool> =
     Price<EndpointCents<CLOSE>, LazyIndexes<Dollars, Cents>>;
 
-/// The opening or closing price per resolution: cents read from `prices`, lazy USD.
 pub(crate) fn endpoint_price<const CLOSE: bool>(
     name: &str,
     version: Version,

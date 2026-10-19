@@ -6,7 +6,6 @@ use jiff::Timestamp as JiffTimestamp;
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, de::Error};
 
-/// A range boundary: integer index, date, or timestamp.
 #[derive(Debug, Clone, Copy)]
 pub enum RangeIndex {
     Int(i64),

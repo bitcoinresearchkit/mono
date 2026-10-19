@@ -12,9 +12,6 @@ use crate::Transaction;
 ///   `since`).
 /// - `New(tx)` serializes as a transaction object - a body that was
 ///   new or changed since the prior template and must replace this position.
-///
-/// Reconstruction is a single pass: for each entry, either copy
-/// `prior[idx]` or append the inline body.
 // `Tx` holds the new body: owned by default, a reference or a template position when serving.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]

@@ -203,7 +203,6 @@ macro_rules! typed_index {
             }
         }
 
-
         impl $name {
             pub(crate) fn index_name() -> &'static str {
                 $index_name
@@ -289,10 +288,3 @@ typed_index!(
     /// Index of an output with an unrecognized script.
     UnknownOutputIndex, "unknown_output_index", ["unknownout", "unknown_output_index"], 200_000
 );
-
-impl From<u64> for P2SHAddressIndex {
-    #[inline]
-    fn from(value: u64) -> Self {
-        Self(TypeIndex::from(value))
-    }
-}

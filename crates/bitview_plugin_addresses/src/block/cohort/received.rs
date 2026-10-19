@@ -21,7 +21,7 @@ pub fn process_received(
     mut metrics: Option<&mut MemberState>,
 ) {
     for (type_index, recv) in received {
-        let (addr_data, status) = lookup.get_or_create_for_receive(type_index);
+        let (addr_data, status) = lookup.for_receive(type_index);
         let pre = AddrReceivePreState::capture(addr_data, output_type);
 
         if matches!(status, AddrReceiveStatus::New | AddrReceiveStatus::WasEmpty) {

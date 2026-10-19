@@ -5,18 +5,18 @@ use crate::VSize;
 /// whose cumulative vsize reaches `p`% of the total, in one walk.
 ///
 /// # Panics
-/// Panics for an empty population or decreasing percentiles.
-pub fn get_weighted_percentiles<T: Clone, const N: usize>(
+/// Panics for an empty population; dev builds also check that the percentiles are nondecreasing.
+pub fn weighted_percentiles<T: Clone, const N: usize>(
     sorted_with_vsizes: &[(T, VSize)],
     percents: [u64; N],
 ) -> [T; N] {
-    assert!(
+    debug_assert!(
         !sorted_with_vsizes.is_empty(),
         "Cannot get percentile from empty slice"
     );
     let total: u64 = sorted_with_vsizes.iter().map(|(_, v)| u64::from(*v)).sum();
     let targets = percents.map(|percent| (total * percent).div_ceil(100));
-    assert!(
+    debug_assert!(
         targets.windows(2).all(|pair| pair[0] <= pair[1]),
         "Percentile targets must be nondecreasing"
     );

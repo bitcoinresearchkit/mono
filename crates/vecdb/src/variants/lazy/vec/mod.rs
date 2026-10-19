@@ -10,15 +10,8 @@ pub use transform::*;
 
 use crate::{ReadableBoxedVec, ReadableVec, VecIndex, VecValue, Version};
 
-/// Lazily computed vector deriving values on-the-fly from one source vector.
-///
-/// Unlike a stored vec computed with `ComputeVec`, no data is stored on disk. Values are
-/// computed during iteration by applying a function to the source vector's elements. Use when:
-/// - Storage space is limited
-/// - Computation is cheap relative to disk I/O
-/// - Values are only accessed once or infrequently
-///
-/// For frequently accessed derived data, prefer a stored vec computed with `ComputeVec`.
+/// A view mapping each value of one source vector on read; nothing is stored on disk. Persist
+/// with `ComputeVec` instead when recomputing costs more than reading.
 ///
 /// The source must be dense: every index below its length holds a value, so each value pairs
 /// with its index. Reads cannot check it: a source may grow or be truncated while read.
@@ -42,7 +35,7 @@ where
     T: VecValue,
     S: VecValue,
 {
-    pub fn init(
+    pub fn new(
         name: &str,
         version: Version,
         source: ReadableBoxedVec<I, S>,
@@ -72,14 +65,12 @@ where
         }
     }
 
-    /// Create a lazy vec with a generic transform.
-    /// Usage: `LazyVec::transformed::<Ident>(name, v, source)`
     pub fn transformed<F: UnaryTransform<S, T>>(
         name: &str,
         version: Version,
         source: ReadableBoxedVec<I, S>,
     ) -> Self {
-        let mut vec = Self::init(name, version, source, |_, v| F::apply(v));
+        let mut vec = Self::new(name, version, source, |_, v| F::apply(v));
         vec.read = |this, from, to, out| F::read_into(&this.source, from, to, out);
         vec.visit = |this, from, to, f| F::for_each_chunk(&this.source, from, to, f);
         vec

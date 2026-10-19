@@ -11,12 +11,10 @@ pub fn partition(
     excluded: &[u8],
     num_remaining_blocks: usize,
 ) -> Vec<Vec<TxIndex>> {
+    debug_assert!(num_remaining_blocks > 0);
     // Only blocks that hold transactions: fee tiers read a missing next block as the end of
     // the mempool, as mempool.space does.
     let mut blocks: Vec<Vec<TxIndex>> = Vec::new();
-    if num_remaining_blocks == 0 {
-        return blocks;
-    }
     let mut block_vsize = VSize::default();
     for (idx, vsize, _) in sorted_candidates(txs, excluded) {
         let fits = vsize <= VSize::MAX_BLOCK.saturating_sub(block_vsize);

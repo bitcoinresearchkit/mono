@@ -1,6 +1,6 @@
 [package]
 name = "vecdb"
-description = "High-performance mutable persistent vectors built on rawdb"
+description = "Typed persistent vectors built on rawdb"
 keywords = ["vec", "disk", "database"]
 categories = ["database"]
 version.workspace = true

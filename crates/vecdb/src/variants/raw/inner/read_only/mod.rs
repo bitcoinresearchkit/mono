@@ -29,7 +29,7 @@ where
     }
 
     pub(crate) fn region(&self) -> &Region {
-        self.base.region()
+        &self.base.region
     }
     pub(crate) fn stored_len(&self) -> usize {
         self.base.stored_len()

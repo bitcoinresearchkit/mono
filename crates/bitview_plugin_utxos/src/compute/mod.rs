@@ -3,7 +3,7 @@ mod write;
 pub use block_loop::process_chunk;
 
 use bitview_compute::undo_chunks;
-use bitview_distribution::{readers::Columns, replay};
+use bitview_distribution::{readers::ColumnReaders, replay};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
 
@@ -28,7 +28,7 @@ impl ComputePlugin for Vecs {
             exit,
             |vecs, utxos, heights, prices| {
                 let output_heights = mappings.output_heights.load_full();
-                let mut columns = Columns::new(indexer, &output_heights);
+                let mut columns = ColumnReaders::new(indexer, &output_heights);
                 // An ordinary update is one chunk, the protected tail, written with its undo.
                 for (blocks, tail) in undo_chunks(heights) {
                     process_chunk(

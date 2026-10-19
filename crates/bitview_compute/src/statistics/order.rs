@@ -57,7 +57,6 @@ impl ExactOrderStats {
         stats
     }
 
-    /// The number of values in the set.
     pub fn count(&self) -> usize {
         self.len
     }

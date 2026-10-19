@@ -42,12 +42,6 @@ enum OutputScope {
     Rust,
 }
 
-impl OutputScope {
-    fn includes(self, path: &str) -> bool {
-        matches!(self, Self::All) || path.ends_with(".rs")
-    }
-}
-
 fn main() -> Result<()> {
     install()?;
 
@@ -62,9 +56,10 @@ fn main() -> Result<()> {
         [arg, daemon_args @ ..] if arg == "--run" => {
             // Drop generation's plugin state before starting the daemon.
             generate(false, OutputScope::All)?;
-            let daemon_args = daemon_args
-                .strip_prefix(&["--".to_owned()])
-                .unwrap_or(daemon_args);
+            let daemon_args = match daemon_args {
+                [separator, args @ ..] if separator == "--" => args,
+                args => args,
+            };
             let mut command = Command::new(env::var_os("CARGO").unwrap_or_else(|| "cargo".into()));
             command
                 .args(["run", "-p", "bitviewd", "--bin", "bitviewd", "--"])
@@ -115,13 +110,9 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
         generate_registry_manifest(&output_root)?;
     }
 
-    let result = if check {
-        verify_outputs(&output_root, &workspace_root, scope)
-    } else {
-        Ok(())
-    };
-
-    result?;
+    if check {
+        verify_outputs(&output_root, &workspace_root, scope)?;
+    }
 
     eprintln!(
         "{}",
@@ -188,7 +179,7 @@ fn verify_outputs(generated_root: &Path, workspace_root: &Path, scope: OutputSco
     let stale: Vec<&str> = GENERATED_OUTPUTS
         .iter()
         .copied()
-        .filter(|path| scope.includes(path))
+        .filter(|path| matches!(scope, OutputScope::All) || path.ends_with(".rs"))
         .filter(|path| {
             let generated = fs::read(generated_root.join(path));
             let committed = fs::read(workspace_root.join(path));

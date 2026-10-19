@@ -104,14 +104,8 @@ impl Vecs {
             + tx_counts.version()
             + txs.weight.version()
             + outpoints.version();
-        let target = txs.first_txin_index.len().min(txs.first_txout_index.len());
-        let available_target = target.min(txs.weight.len());
-        let max_height = txs
-            .first_tx_index
-            .len()
-            .min(tx_counts.len())
-            .min(inputs.first_txin_index.len())
-            .min(outputs.first_txout_index.len());
+        let target = txs.first_txin_index.len();
+        let max_height = txs.first_tx_index.len();
         let (heights, start_tx) = {
             let (mut txs_out, mut blocks_out) = self.outputs_mut(vsize, transfer_volume);
             prepare_blocks(
@@ -146,7 +140,7 @@ impl Vecs {
 
         // Dependencies have written their vectors before this pass. Retain the
         // decoded pages across blocks instead of reopening each compressed range.
-        let mut weights = txs.weight.range_cursor_at(start_tx, available_target);
+        let mut weights = txs.weight.range_cursor_at(start_tx, target);
         let mut txin_starts = txs.first_txin_index.range_cursor_at(start_tx, target);
         let outpoint_len = outpoints.len();
         let mut outpoints = outpoints.range_cursor_at(start_input, outpoint_len);
@@ -164,9 +158,6 @@ impl Vecs {
 
             for _ in height..batch_end {
                 let n = u64::from(tx_count.next().unwrap()) as usize;
-                if first_tx + n > available_target {
-                    break;
-                }
                 if batch_len == blocks.len() {
                     blocks.push(Block::default());
                 }
@@ -183,18 +174,11 @@ impl Vecs {
                 let output_end = next_block_output
                     .next()
                     .map_or(output_values.len(), |index| index.to_usize());
-                if input_end > outpoint_len
-                    || input_end > input_values.len()
-                    || output_end > output_values.len()
-                {
-                    break;
-                }
                 txs.first_txout_index.collect_range_into_at(
                     first_tx,
                     first_tx + n,
                     &mut output_starts,
                 );
-                input_value.advance(block.input_begin.saturating_sub(input_value.position()));
                 input_value.for_each(
                     input_end - block.input_begin,
                     values::sum(&block.txin_starts, input_end, &mut block.input_values),
@@ -210,9 +194,6 @@ impl Vecs {
                 batch_len += 1;
             }
 
-            if batch_len == 0 {
-                break;
-            }
             blocks[..batch_len]
                 .par_iter_mut()
                 // Component scratch per worker task, freed with the batch: a big
@@ -265,9 +246,6 @@ impl Vecs {
                     target - start_tx,
                 );
                 last_progress = Instant::now();
-            }
-            if height < batch_end {
-                break;
             }
         }
 

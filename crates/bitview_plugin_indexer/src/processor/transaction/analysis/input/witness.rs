@@ -17,7 +17,7 @@ pub fn analyze<'a>(
     match output_type {
         OutputType::P2TR => analyze_taproot(witness, flags),
         // The only valid P2WPKH witness since SegWit activation; before it, a v0 program could
-        // be spent without one (none on mainnet, as unguarded full syncs never panicked here).
+        // be spent without one (none on mainnet).
         OutputType::P2WPKH if witness.len() == 2 => analyze_p2wpkh(witness, flags),
         _ => analyze_ecdsa(witness, flags),
     }
@@ -65,7 +65,7 @@ pub fn analyze_taproot<'a>(witness: &'a Witness, flags: &mut TxFeatureFlags) -> 
     let len = witness.len();
     if len == 1 {
         let signature = witness.last().unwrap();
-        features::record_validated_taproot_sighash(signature, flags);
+        features::record_taproot_sighash(signature, flags);
         return WitnessFacts {
             has_annex: false,
             last: Some(signature),
@@ -100,10 +100,8 @@ pub fn analyze_taproot<'a>(witness: &'a Witness, flags: &mut TxFeatureFlags) -> 
     let mut max_argument_bytes = 0;
 
     for item in witness.iter().take(argument_count) {
-        if is_key_path {
-            features::record_validated_taproot_sighash(item, flags);
-        } else if is_tapscript {
-            features::scan_taproot_signature(item, flags);
+        if is_key_path || is_tapscript {
+            features::record_taproot_sighash(item, flags);
         }
         max_argument_bytes = max_argument_bytes.max(item.len());
     }

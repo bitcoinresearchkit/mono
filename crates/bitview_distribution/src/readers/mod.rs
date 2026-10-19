@@ -120,12 +120,12 @@ pub struct BatchColumns {
 }
 
 /// Output and input column readers; type indexes only `WITH_INDEXES`.
-pub struct Columns<'a, const WITH_INDEXES: bool> {
+pub struct ColumnReaders<'a, const WITH_INDEXES: bool> {
     indexer: &'a Indexer,
     inputs: TxInReaders<'a, WITH_INDEXES>,
 }
 
-impl<'a, const WITH_INDEXES: bool> Columns<'a, WITH_INDEXES> {
+impl<'a, const WITH_INDEXES: bool> ColumnReaders<'a, WITH_INDEXES> {
     pub fn new(indexer: &'a Indexer, output_heights: &'a HeightMap<TxOutIndex>) -> Self {
         Self {
             indexer,

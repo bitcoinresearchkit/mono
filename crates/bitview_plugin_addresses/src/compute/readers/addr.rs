@@ -9,7 +9,6 @@ use crate::addr::AddrStateVecs;
 
 macro_rules! addr_readers {
     ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {
-        /// Cached readers for address indexes and stateful address data.
         pub struct AddrReaders {
             $($field: BytesVecReader<$index, AddressState>,)+
             funded: OverflowVecReader<FundedAddressIndex, FundedAddressData>,

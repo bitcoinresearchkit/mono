@@ -2,7 +2,6 @@ use serde_json::Value;
 
 use crate::Ty;
 
-/// Parameter information.
 #[derive(Debug, Clone)]
 pub struct Parameter {
     pub(crate) name: String,

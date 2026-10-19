@@ -2,7 +2,7 @@ use brk_types::{Dollars, Height, Sats, Timestamp};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// A single block rewards data point: one time bucket of blocks.
+/// One time bucket of blocks.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockRewardsEntry {

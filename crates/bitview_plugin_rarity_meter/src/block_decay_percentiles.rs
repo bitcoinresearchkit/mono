@@ -7,7 +7,6 @@ const BUCKET_WIDTH: f64 = 0.001;
 const MAX_RATIO: f64 = 43.0;
 const TREE_SIZE: usize = (MAX_RATIO / BUCKET_WIDTH) as usize + 1;
 
-#[derive(Clone)]
 pub struct BlockDecayPercentiles {
     tree: FenwickTree<f64>,
     len: usize,
@@ -44,7 +43,7 @@ impl BlockDecayPercentiles {
 
     #[inline]
     fn weight(height: usize) -> f64 {
-        2.0_f64.powf(height.saturating_sub(START_HEIGHT) as f64 / HALF_LIFE_BLOCKS as f64)
+        2.0_f64.powf((height - START_HEIGHT) as f64 / HALF_LIFE_BLOCKS as f64)
     }
 
     pub fn add_bulk(&mut self, start_height: usize, values: &[Ratio]) {
@@ -80,7 +79,7 @@ impl BlockDecayPercentiles {
 
         let mut targets = [0.0; N];
         for (index, &quantile) in qs.iter().enumerate() {
-            targets[index] = (quantile * self.mass).next_down().max(0.0);
+            targets[index] = (quantile * self.mass).next_down();
         }
 
         let buckets = self.tree.kth(targets, &|weight: &f64| *weight);

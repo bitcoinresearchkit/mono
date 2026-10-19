@@ -1,15 +1,14 @@
 use bitview_cohort::{AmountRange, SpendableType};
-use bitview_distribution::state::UTXOCohortState;
-use bitview_primitives::Count;
-use brk_types::{Height, Sats};
+use bitview_distribution::state::CohortState;
+use brk_types::Height;
 use vecdb::ReadableVec;
 
 use crate::{metrics::CohortMetrics, state::MinimalRealizedState};
 
 #[derive(Default)]
 pub struct UTXOStates {
-    pub amount_range: AmountRange<UTXOCohortState<MinimalRealizedState, ()>>,
-    pub type_: SpendableType<UTXOCohortState<MinimalRealizedState, ()>>,
+    pub amount_range: AmountRange<CohortState<MinimalRealizedState, ()>>,
+    pub type_: SpendableType<CohortState<MinimalRealizedState, ()>>,
 }
 
 impl UTXOStates {
@@ -21,24 +20,10 @@ impl UTXOStates {
             .zip(metrics.amounts.iter())
             .chain(self.type_.iter_mut().zip(metrics.types.iter()))
         {
-            Self::restore_one(
-                state,
-                &cohort.supply.total.stored,
-                &cohort.outputs.unspent_count.stored,
-                previous,
-            )?;
+            state.supply.value = cohort.supply.total.stored.collect_one(previous)?;
+            state.supply.utxo_count =
+                u64::from(cohort.outputs.unspent_count.stored.collect_one(previous)?);
         }
-        Some(())
-    }
-
-    fn restore_one(
-        state: &mut UTXOCohortState<MinimalRealizedState, ()>,
-        supply: &impl ReadableVec<Height, Sats>,
-        count: &impl ReadableVec<Height, Count>,
-        height: Height,
-    ) -> Option<()> {
-        state.supply.value = supply.collect_one(height)?;
-        state.supply.utxo_count = u64::from(count.collect_one(height)?);
         Some(())
     }
 }

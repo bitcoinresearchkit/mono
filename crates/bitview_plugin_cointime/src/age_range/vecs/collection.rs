@@ -15,7 +15,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub ranges: AgeRange<RangeVecs<M>>,
 }
 
-/// Cointime of one UTXO age range.
 #[derive(Traversable)]
 pub struct RangeVecs<M: StorageMode = Rw> {
     /// Coin days created in the range: its supply held for the block's

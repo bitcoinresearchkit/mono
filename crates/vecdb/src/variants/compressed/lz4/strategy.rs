@@ -5,7 +5,6 @@ use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use super::super::inner::CompressionStrategy;
 use crate::{BytesVecValue, EncodedChunk, Format, Result, ValueStrategy};
 
-/// LZ4 compression strategy for fast compression/decompression.
 #[derive(Debug, Clone, Copy)]
 pub struct LZ4Strategy<T>(PhantomData<T>);
 

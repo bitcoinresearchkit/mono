@@ -1,7 +1,8 @@
-//! Pure on-chain BTC/USD price oracle.
+//! BTC/USD price oracle.
 //!
 //! Detects round-dollar transaction patterns ($1, $5, $10, ... $10,000) in Bitcoin
-//! block outputs to derive the current price without any exchange data.
+//! block outputs to derive the price block by block, starting from a seed price;
+//! bundled exchange prices cover the heights before [`START_HEIGHT_SLOW`].
 //!
 //! Behavior changes by height along two independent axes, each in its own module:
 //!
@@ -9,10 +10,9 @@
 //!   pre-oracle tape. From there to [`START_HEIGHT_FAST`] a slow cold-start EMA
 //!   runs with a shape-anchoring restoring force. At [`START_HEIGHT_FAST`] it
 //!   switches to a fast EMA that tracks mature-market volatility.
-//! - Output filter (`filter`): below
-//!   [`PaymentFilter::MODERN_TX_OUTPUT_FANOUT_CAP_START_HEIGHT`] batch-payout
-//!   transactions are capped strictly. Above it the cap relaxes but still drops
-//!   very large fan-outs.
+//! - Output filter (`filter`): below height 630,000 batch-payout transactions
+//!   are capped strictly (100 outputs). From there the cap relaxes (250) but
+//!   still drops very large fan-outs.
 //!
 //! The two boundaries differ on purpose. The EMA must hand off to fast before the
 //! 2020 crash, while the output cap helps the thin pre-2020 mix for longer and
@@ -69,11 +69,11 @@ impl Oracle {
         }
     }
 
-    /// Create an oracle restored from a known price. `fill` should call
-    /// `process_histogram` for the warmup blocks; its error aborts the
-    /// restore. During warmup the ring fills without recomputing EMA or
-    /// searching, then we recompute once at the end so the first non-warmup
-    /// call has a primed EMA.
+    /// Restore an oracle from an exact stored reference bin. `fill` replays the
+    /// warmup blocks through `process_histogram`; its error aborts the restore.
+    /// During warmup the ring fills without recomputing the EMA or searching;
+    /// the EMA is computed once at the end, so the first call after has it
+    /// primed. The slow regime's adaptive shape profile starts afresh.
     pub fn from_checkpoint<E>(
         ref_bin: f64,
         config: Config,

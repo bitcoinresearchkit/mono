@@ -8,44 +8,43 @@ use crate::{
     block::{ShardBlocks, TxIndexes},
 };
 
-/// Process inputs (spent UTXOs) for a block.
-///
 /// Price address spends at their creation heights (`prices` by height) and retain unique
 /// transaction uses.
 pub fn process_inputs(
     blocks: &mut ShardBlocks,
     txs: impl Iterator<Item = TxIndex>,
-    txin_index_to_value: &[Sats],
-    txin_index_to_output_type: &[OutputType],
-    txin_index_to_type_index: &[TypeIndex],
-    txin_index_to_prev_height: &[Height],
+    values: &[Sats],
+    output_types: &[OutputType],
+    type_indexes: &[TypeIndex],
+    creation_heights: &[Height],
     prices: &[Cents],
 ) {
-    let input_count = txin_index_to_value.len();
-    debug_assert_eq!(txin_index_to_output_type.len(), input_count);
-    debug_assert_eq!(txin_index_to_type_index.len(), input_count);
-    debug_assert_eq!(txin_index_to_prev_height.len(), input_count);
+    let input_count = values.len();
+    debug_assert_eq!(output_types.len(), input_count);
+    debug_assert_eq!(type_indexes.len(), input_count);
+    debug_assert_eq!(creation_heights.len(), input_count);
 
-    let txin_index_to_output_type = &txin_index_to_output_type[..input_count];
-    let txin_index_to_type_index = &txin_index_to_type_index[..input_count];
-    let txin_index_to_prev_height = &txin_index_to_prev_height[..input_count];
+    // Re-sliced to one length, so a single bounds check covers the four reads.
+    let output_types = &output_types[..input_count];
+    let type_indexes = &type_indexes[..input_count];
+    let creation_heights = &creation_heights[..input_count];
 
     let mut processed = 0;
     for (local_idx, tx_index) in txs.enumerate() {
         processed = local_idx + 1;
-        let prev_height = txin_index_to_prev_height[local_idx];
-        let value = txin_index_to_value[local_idx];
-        let output_type = txin_index_to_output_type[local_idx];
+        let creation_height = creation_heights[local_idx];
+        let value = values[local_idx];
+        let output_type = output_types[local_idx];
 
         if output_type.is_not_addr() {
             continue;
         }
 
-        let type_index = txin_index_to_type_index[local_idx];
+        let type_index = type_indexes[local_idx];
         let block = blocks[shard_of(type_index)].get_mut_unwrap(output_type);
         block
             .spends
-            .push((type_index, value, prices[usize::from(prev_height)]));
+            .push((type_index, value, prices[usize::from(creation_height)]));
         match block.sent_txs.entry(type_index) {
             Entry::Occupied(mut entry) => {
                 entry.get_mut().push(tx_index);

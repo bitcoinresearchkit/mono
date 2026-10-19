@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_inputs"
-description = "The transaction inputs plugin for Bitview"
+description = "Input counts by spent output type and per-block spend journals by creation height for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

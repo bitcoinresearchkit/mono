@@ -13,8 +13,7 @@ It owns its database, entry classifications, price maps, update and recovery.
 Restart, reorg and failed updates reconstruct from canonical history and the
 published anchor series. Only validated append updates reuse resident state.
 
-Accounting, cost-basis maps and scalar metric views are shared libraries. Age
-contains no entry classifications, entry state or entry recovery boundary.
+Accounting, cost-basis maps and scalar metric views are shared libraries.
 
 The catalog exposes `entry.veteran` and `entry.rookie`, as `veteran_*` and
 `rookie_*` series.

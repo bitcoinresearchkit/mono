@@ -9,7 +9,6 @@ use crate::{BytesVecValue, EncodedChunk, Format, Result, ValueStrategy};
 /// between compression ratio and speed for most workloads.
 const ZSTD_COMPRESSION_LEVEL: i32 = 3;
 
-/// Zstd compression strategy for high compression ratios.
 #[derive(Debug, Clone, Copy)]
 pub struct ZstdStrategy<T>(PhantomData<T>);
 

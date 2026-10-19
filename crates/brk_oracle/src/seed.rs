@@ -16,7 +16,7 @@ pub fn pre_oracle_prices_from(start_height: usize) -> impl Iterator<Item = Cents
     PRICES
         .lines()
         .take(START_HEIGHT_SLOW)
-        .skip(start_height.min(START_HEIGHT_SLOW))
+        .skip(start_height)
         .map(parse_price_cents)
 }
 

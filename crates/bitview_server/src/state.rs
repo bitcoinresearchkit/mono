@@ -172,7 +172,7 @@ impl AppState {
         params: CacheParams,
         body: impl Future<Output = Result<(Bytes, H)>>,
     ) -> Response<Body> {
-        if params.matches_etag(headers) {
+        if params.etag.matches(headers) {
             return ResponseExtended::new_not_modified(&params);
         }
 
@@ -246,7 +246,7 @@ impl AppState {
         let budget = self.chain_bodies.clone();
         self.read_body(&self.sync_query, &self.chain_bodies, move |q, permit| {
             let (bytes, params) = f(q)?;
-            if params.matches_etag(&headers) {
+            if params.etag.matches(&headers) {
                 return Ok(Some(ResponseExtended::new_not_modified(&params)));
             }
             if !RawBodyPermit::retains(bytes.len()) {

@@ -66,7 +66,7 @@ impl Replay {
         let mut cursor = history.cursor(&mut state.origins)?;
         for index in range {
             let price = prices[index - price_start];
-            state.source.extend_prices(&[price])?;
+            state.source.push_price(price)?;
             state.source.advance(&mut cursor, &state.timestamps)?;
             consume(Height::from(index), price, &state.source)?;
         }
@@ -162,7 +162,7 @@ fn replay_segment<W, R>(
     let mut cursor = history.cursor(&mut origins)?;
     for index in segment {
         let price = prices[index];
-        source.extend_prices(&[price])?;
+        source.push_price(price)?;
         source.advance(&mut cursor, timestamps)?;
         results.push(compute(&mut worker, Height::from(index), price, &source)?);
     }

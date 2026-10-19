@@ -25,7 +25,6 @@ pub async fn serve(state: AppState, headers: HeaderMap) -> Result<Response> {
     .await
 }
 
-/// The projected next block's changes since `since`.
 pub async fn serve_diff(
     state: AppState,
     headers: HeaderMap,
@@ -61,7 +60,7 @@ async fn serve_json<S: 'static, T: Serialize>(
 ) -> Result<Response> {
     let check = select.clone();
     let params = state.query.read(move |query| Ok(check(query)?.1)).await?;
-    if params.matches_etag(&headers) {
+    if params.etag.matches(&headers) {
         return Ok(Response::new_not_modified(&params));
     }
     // Resolved again after admission: the template may have moved on.

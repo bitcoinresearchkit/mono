@@ -6,8 +6,6 @@ use vecdb::{BinaryTransform, ReadableCloneableVec};
 
 use crate::{IndexSources, LazyRatioPerBlock, LazyRollingRatioVec, shapes::Windows};
 
-/// Fully lazy rolling ratio windows — 4 windows (24h, 1w, 1m, 1y), each with
-/// lazy fixed-point values and a lazy ratio view.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyRatioRollingWindows<R: FixedRatio>(pub Windows<LazyRatioPerBlock<R>>);
 

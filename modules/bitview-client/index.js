@@ -1,16 +1,12 @@
 // Auto-generated Bitview JavaScript client
 // Do not edit manually
 
-// Type definitions
-
 /**
- * Bitcoin address string
+ * Bitcoin address, or the hex public key of a P2PK output.
  *
  * @typedef {string} Address
  */
 /**
- * Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
- *
  * @typedef {Object} AddressAfterTxidParam
  * @property {Address} address
  * @property {Txid} afterTxid - Last txid from the previous page (return transactions strictly older than this)
@@ -45,9 +41,7 @@ confirmed activity
 address payload bytes.
  */
 /**
- * Address statistics in the mempool (unconfirmed transactions only)
- *
- * Based on mempool.space's format.
+ * Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
  *
  * @typedef {Object} AddressMempoolStats
  * @property {SatsSigned} balanceDelta - Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
@@ -58,8 +52,6 @@ address payload bytes.
  * @property {number} txCount - Number of unconfirmed transactions involving this address
  */
 /**
- * Bitcoin address path parameter
- *
  * @typedef {Object} AddressParam
  * @property {Address} address
  */
@@ -67,24 +59,22 @@ address payload bytes.
  * Address information compatible with mempool.space API format.
  *
  * @typedef {Object} AddressStats
- * @property {Address} address - Bitcoin address string
- * @property {OutputType} addressType - BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
+ * @property {Address} address - Bitcoin address, or the hex public key of a P2PK output
+ * @property {OutputType} addressType - Output script type
  * @property {AddressChainStats} chainStats - Statistics for confirmed transactions on the blockchain
  * @property {AddressMempoolStats} mempoolStats - Statistics for unconfirmed transactions in the mempool
  * @property {Sats} balance - Total current balance in satoshis, including pending (unconfirmed) mempool changes
  */
 /**
- * Address validation result
- *
  * @typedef {Object} AddressValidation
- * @property {boolean} isvalid - Whether the address is valid
+ * @property {boolean} isvalid
  * @property {?string=} address - The validated address
  * @property {?string=} scriptPubKey - The scriptPubKey in hex
- * @property {?boolean=} isscript - Whether this is a script address (P2SH)
- * @property {?boolean=} iswitness - Whether this is a witness address
+ * @property {?boolean=} isscript - Whether the address is P2SH, P2WSH or P2TR
+ * @property {?boolean=} iswitness
  * @property {?number=} witnessVersion - Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
  * @property {?string=} witnessProgram - Witness program in hex
- * @property {?number[]=} errorLocations - Error locations (empty array for most errors)
+ * @property {?number[]=} errorLocations - Error locations: an empty array for invalid addresses, omitted for valid ones
  * @property {?string=} error - Error message for invalid addresses
  */
 /**
@@ -93,8 +83,6 @@ address payload bytes.
  * @typedef {number} Bitcoin
  */
 /**
- * Block count path parameter
- *
  * @typedef {Object} BlockCountParam
  * @property {number} blockCount - Number of recent blocks to include
  */
@@ -106,27 +94,27 @@ address payload bytes.
  * @property {FeeRate} medianFee - Median fee rate in sat/vB
  * @property {FeeRate[]} feeRange - Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
  * @property {Sats} reward - Total block reward (subsidy + fees) in satoshis
- * @property {BlockPool} pool - Mining pool that mined this block
- * @property {Sats} avgFee - Average fee per transaction in satoshis
+ * @property {BlockPool} pool
+ * @property {Sats} avgFee - Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
  * @property {FeeRate} avgFeeRate - Average fee rate in sat/vB
  * @property {string} coinbaseRaw - Raw coinbase transaction scriptsig as hex
  * @property {?string=} coinbaseAddress - Primary coinbase output address
  * @property {string[]} coinbaseAddresses - All coinbase output addresses
  * @property {string} coinbaseSignature - Coinbase output script in ASM format
- * @property {string} coinbaseSignatureAscii - Coinbase scriptsig decoded as ASCII
- * @property {number} avgTxSize - Average transaction size in bytes
+ * @property {string} coinbaseSignatureAscii - Coinbase scriptsig with each byte read as the Unicode code point of the same value
+ * @property {number} avgTxSize - Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to
+2 decimals
  * @property {number} totalInputs - Total number of inputs (excluding coinbase)
- * @property {number} totalOutputs - Total number of outputs
- * @property {Sats} totalOutputAmt - Total output amount in satoshis
+ * @property {number} totalOutputs
+ * @property {Sats} totalOutputAmt - Total output amount in satoshis, coinbase excluded
  * @property {Sats} medianFeeAmt - Median fee amount in satoshis
  * @property {Sats[]} feePercentiles - Fee amount percentiles in satoshis: [min, 10%, 25%, 50%, 75%, 90%, max]
- * @property {number} segwitTotalTxs - Number of segwit transactions
+ * @property {number} segwitTotalTxs
  * @property {number} segwitTotalSize - Total size of segwit transactions in bytes
- * @property {Weight} segwitTotalWeight - Total weight of segwit transactions
+ * @property {Weight} segwitTotalWeight
  * @property {string} header - Raw 80-byte block header as hex
- * @property {number} utxoSetChange - UTXO set change (total outputs - total inputs, includes unspendable like OP_RETURN).
-Note: intentionally differs from utxo_set_size diff which excludes unspendable outputs.
-Matches mempool.space/bitcoin-cli behavior.
+ * @property {number} utxoSetChange - UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total
+inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} utxoSetSize - Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
  * @property {Sats} totalInputAmt - Total input amount in satoshis
  * @property {number} virtualSize - Virtual size in vbytes: weight / 4, unrounded
@@ -135,7 +123,7 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {Dollars} price - USD price at block height
  */
 /**
- * A single block fee rates data point: one time bucket of blocks. Each `avgFee_*` field is the
+ * One time bucket of blocks. Each `avgFee_*` field is the
  * bucket's mean of its blocks' own percentile of their non-coinbase transactions' effective fee
  * rates, weighted by vsize (a block without such transactions counts as 0).
  *
@@ -151,7 +139,7 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {FeeRate} avgFee_100 - Mean of the blocks' maximum fee rate (sat/vB)
  */
 /**
- * A single block fees data point: one time bucket of blocks.
+ * One time bucket of blocks.
  *
  * @typedef {Object} BlockFeesEntry
  * @property {Height} avgHeight - Average block height in this bucket
@@ -166,23 +154,17 @@ Matches mempool.space/bitcoin-cli behavior.
  * @typedef {string} BlockHash
  */
 /**
- * Block hash path parameter
- *
  * @typedef {Object} BlockHashParam
  * @property {BlockHash} hash
  */
 /**
- * Block hash + starting transaction index path parameters
- *
  * @typedef {Object} BlockHashStartIndex
- * @property {BlockHash} hash - Bitcoin block hash
+ * @property {BlockHash} hash
  * @property {BlockTxIndex} startIndex - Starting transaction index within the block (0-based)
  */
 /**
- * Block hash + transaction index path parameters
- *
  * @typedef {Object} BlockHashTxIndex
- * @property {BlockHash} hash - Bitcoin block hash
+ * @property {BlockHash} hash
  * @property {BlockTxIndex} index - Transaction index within the block (0-based)
  */
 /**
@@ -190,17 +172,17 @@ Matches mempool.space/bitcoin-cli behavior.
  *
  * @typedef {Object} BlockInfo
  * @property {BlockHash} id - Block hash
- * @property {Height} height - Block height
- * @property {number} version - Block version
+ * @property {Height} height
+ * @property {number} version
  * @property {Timestamp} timestamp - Block timestamp (Unix time)
  * @property {number} bits - Compact target (bits)
- * @property {number} nonce - Nonce
- * @property {number} difficulty - Block difficulty
- * @property {string} merkleRoot - Merkle root of the transaction tree
- * @property {number} txCount - Number of transactions
+ * @property {number} nonce
+ * @property {number} difficulty
+ * @property {string} merkleRoot
+ * @property {number} txCount
  * @property {number} size - Block size in bytes
  * @property {Weight} weight - Block weight in weight units
- * @property {BlockHash} previousblockhash - Previous block hash
+ * @property {BlockHash} previousblockhash
  * @property {Timestamp} mediantime - Median time of the last 11 blocks
  */
 /**
@@ -208,33 +190,31 @@ Matches mempool.space/bitcoin-cli behavior.
  *
  * @typedef {Object} BlockInfoV1
  * @property {BlockHash} id - Block hash
- * @property {Height} height - Block height
- * @property {number} version - Block version
+ * @property {Height} height
+ * @property {number} version
  * @property {Timestamp} timestamp - Block timestamp (Unix time)
  * @property {number} bits - Compact target (bits)
- * @property {number} nonce - Nonce
- * @property {number} difficulty - Block difficulty
- * @property {string} merkleRoot - Merkle root of the transaction tree
- * @property {number} txCount - Number of transactions
+ * @property {number} nonce
+ * @property {number} difficulty
+ * @property {string} merkleRoot
+ * @property {number} txCount
  * @property {number} size - Block size in bytes
  * @property {Weight} weight - Block weight in weight units
- * @property {BlockHash} previousblockhash - Previous block hash
+ * @property {BlockHash} previousblockhash
  * @property {Timestamp} mediantime - Median time of the last 11 blocks
  * @property {boolean=} stale - Whether this block has been replaced by a longer chain
- * @property {BlockExtras} extras - Extended block data
+ * @property {BlockExtras} extras
  */
 /**
- * Mining pool identification for a block
- *
  * @typedef {Object} BlockPool
- * @property {number} id - Unique pool identifier
- * @property {string} name - Pool name
+ * @property {number} id - Zero-based pool ID, matching mempool.space's `unique_id`
+ * @property {string} name
  * @property {PoolSlug} slug - URL-friendly pool identifier
  * @property {number} blockNumber - This block's ordinal among blocks attributed to this pool
  * @property {?string[]=} minerNames - Miner name tags found in coinbase scriptsig
  */
 /**
- * A single block rewards data point: one time bucket of blocks.
+ * One time bucket of blocks.
  *
  * @typedef {Object} BlockRewardsEntry
  * @property {Height} avgHeight - Average block height in this bucket
@@ -243,7 +223,7 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
  */
 /**
- * A single block size data point.
+ * One time bucket of blocks.
  *
  * @typedef {Object} BlockSizeEntry
  * @property {Height} avgHeight - Average block height in this bucket
@@ -251,17 +231,13 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {number} avgSize - Mean block size in this bucket, rounded half up (bytes)
  */
 /**
- * Combined block sizes and weights response.
- *
  * @typedef {Object} BlockSizesWeights
- * @property {BlockSizeEntry[]} sizes - Block size data points
- * @property {BlockWeightEntry[]} weights - Block weight data points
+ * @property {BlockSizeEntry[]} sizes
+ * @property {BlockWeightEntry[]} weights
  */
 /**
- * Block status indicating whether block is in the best chain
- *
  * @typedef {Object} BlockStatus
- * @property {boolean} inBestChain - Whether this block is in the best chain
+ * @property {boolean} inBestChain
  * @property {(Height|null)=} height - Block height (only if in best chain)
  * @property {(BlockHash|null)=} nextBest - Hash of the next block in the best chain (null if tip)
  */
@@ -272,19 +248,13 @@ Matches mempool.space/bitcoin-cli behavior.
  *
  * @typedef {Object} BlockTemplate
  * @property {NextBlockHash} hash - Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
- * @property {MempoolBlock} stats - Aggregate stats for this block (size, vsize, fee range, ...).
+ * @property {MempoolBlock} stats
  * @property {Transaction[]} transactions - Full transaction bodies in `getblocktemplate` order.
  */
 /**
  * Delta between the current `getblocktemplate` projection and a prior
  * one identified by `since`. Returned by
  * `GET /api/v1/mempool/block-template/diff/{hash}`.
- *
- * `order` carries the full new template in template order: each entry
- * is either a `Retained(idx)` pointing into the prior template (which
- * the client cached at `since`) or a `New(tx)` inline body. Walk it
- * once to rebuild the new template; no separate `added` array to
- * cross-reference.
  *
  * `removed` lists txids no longer present. A changed body can be emitted as
  * `New` without removing its txid; absence of a retained index alone does not
@@ -293,8 +263,7 @@ Matches mempool.space/bitcoin-cli behavior.
  * @typedef {Object} BlockTemplateDiff
  * @property {NextBlockHash} hash - Current next-block hash. Use as `since` on the next diff call.
  * @property {NextBlockHash} since - Echoed prior hash the diff was computed against.
- * @property {MempoolBlock} stats - Aggregate stats for the new template (size, vsize, fee range, ...). They can change
-while every transaction is retained.
+ * @property {MempoolBlock} stats - Stats of the new template; they can change while every transaction is retained.
  * @property {BlockTemplateDiffEntry[]} order - New template in order. Each entry is either an index into the
 prior template's transactions or a full transaction body.
  * @property {Txid[]} removed - Txids that left the projected next block since `since`
@@ -310,17 +279,14 @@ prior template's transactions or a full transaction body.
  * - `New(tx)` serializes as a transaction object - a body that was
  *   new or changed since the prior template and must replace this position.
  *
- * Reconstruction is a single pass: for each entry, either copy
- * `prior[idx]` or append the inline body.
- *
  * @typedef {(number|Transaction)} BlockTemplateDiffEntry
  */
 /**
  * Block information returned for timestamp queries
  *
  * @typedef {Object} BlockTimestamp
- * @property {Height} height - Block height
- * @property {BlockHash} hash - Block hash
+ * @property {Height} height
+ * @property {BlockHash} hash
  * @property {string} timestamp - Block timestamp in ISO 8601 format
  */
 /**
@@ -330,7 +296,7 @@ prior template's transactions or a full transaction body.
  * @typedef {number} BlockTxIndex
  */
 /**
- * A single block weight data point.
+ * One time bucket of blocks.
  *
  * @typedef {Object} BlockWeightEntry
  * @property {Height} avgHeight - Average block height in this bucket
@@ -410,17 +376,14 @@ prior template's transactions or a full transaction body.
  * @property {number} chunkIndex - Index into `chunks` of the chunk containing the seed tx.
  */
 /**
- * One linearized chunk inside a `CpfpCluster`. `txs` is in topological order
- * (matches `CpfpCluster.txs` ordering); the chunk's `feerate` is the
- * per-chunk feerate and is the same for every tx in this chunk.
+ * One linearized chunk inside a `CpfpCluster`. `txs` follows `CpfpCluster.txs` order (topological);
+ * `feerate` is the chunk's, shared by all its transactions.
  *
  * @typedef {Object} CpfpClusterChunk
  * @property {CpfpClusterTxIndex[]} txs
  * @property {FeeRate} feerate
  */
 /**
- * One entry in a `CpfpCluster.txs` array.
- *
  * @typedef {Object} CpfpClusterTx
  * @property {Txid} txid
  * @property {Weight} weight
@@ -445,9 +408,9 @@ prior template's transactions or a full transaction body.
  * CPFP (Child Pays For Parent) information for a transaction.
  *
  * @typedef {Object} CpfpInfo
- * @property {CpfpEntry[]} ancestors - Ancestor transactions in the CPFP chain.
+ * @property {CpfpEntry[]} ancestors
  * @property {(CpfpEntry|null)=} bestDescendant - Best (highest fee rate) descendant, if any.
- * @property {CpfpEntry[]} descendants - Descendant transactions in the CPFP chain.
+ * @property {CpfpEntry[]} descendants
  * @property {FeeRate} effectiveFeePerVsize - Effective fee rate considering CPFP relationships (sat/vB).
 This is the seed's chunk feerate after lift-merging, i.e. the
 rate Core/mempool.space would surface for this tx.
@@ -456,9 +419,8 @@ legacy and P2SH-redeem sigops count as 4).
  * @property {Sats} fee - Transaction fee (sats).
  * @property {VSize} vsize - Virtual size of the seed tx (vbytes).
  * @property {VSize} adjustedVsize - Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
- * @property {(CpfpCluster|null)=} cluster - Cluster the seed belongs to: full tx list, linearized chunks,
-and the seed's chunk index. Omitted when the seed has no
-ancestors and no descendants (matches mempool.space).
+ * @property {(CpfpCluster|null)=} cluster - Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants
+(matches mempool.space).
  */
 /**
  * A quote currency prices are served in: USD only.
@@ -466,13 +428,11 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {("USD")} Currency
  */
 /**
- * Range parameters with output format for API query parameters.
- *
  * @typedef {Object} DataRangeFormat
  * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
  * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
  * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
- * @property {Format=} format - Format of the output
+ * @property {Format=} format
  */
 /**
  * Calendar date in YYYY-MM-DD format.
@@ -502,7 +462,7 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} total - Total number of series-index combinations across all timeframes
  * @property {number} lazy - Number of lazy (computed on-the-fly) series-index combinations
  * @property {number} stored - Number of eager (stored on disk) series-index combinations
- * @property {{ [key: string]: SeriesCount }} byDb - Per-database breakdown of counts.
+ * @property {{ [key: string]: SeriesCount }} byDb
  */
 /**
  * Proof-of-work difficulty.
@@ -510,8 +470,6 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {number} Difficulty
  */
 /**
- * Difficulty adjustment information.
- *
  * @typedef {Object} DifficultyAdjustment
  * @property {number} progressPercent - Progress through current difficulty epoch (0-100%)
  * @property {number} difficultyChange - Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
@@ -520,7 +478,7 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} remainingTime - Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
  * @property {number} previousRetarget - Previous difficulty adjustment (%)
  * @property {Timestamp} previousTime - Timestamp of most recent retarget (seconds)
- * @property {Height} nextRetargetHeight - Height of next retarget
+ * @property {Height} nextRetargetHeight
  * @property {number} timeAvg - Average block time in current epoch (milliseconds)
  * @property {number} adjustedTimeAvg - Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503
 blocks, where it spans the last 503 blocks, those before the retarget scaled by it
@@ -529,8 +487,7 @@ mainnet, as mempool.space
  * @property {number} expectedBlocks - Blocks expected at the 10-minute target between the epoch's first block and the tip block
  */
 /**
- * A single difficulty adjustment entry.
- * Serializes as array: [timestamp, height, difficulty, change_percent]
+ * Serializes as an array: [timestamp, height, difficulty, adjustment ratio].
  *
  * @typedef {number[]} DifficultyAdjustmentEntry
  */
@@ -539,13 +496,11 @@ mainnet, as mempool.space
  *
  * @typedef {Object} DifficultyEntry
  * @property {Timestamp} time - Unix timestamp of the difficulty adjustment
- * @property {Height} height - Block height of the adjustment
- * @property {number} difficulty - Difficulty value
+ * @property {Height} height
+ * @property {number} difficulty
  * @property {number} adjustment - Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
  */
 /**
- * Disk usage of the indexed data
- *
  * @typedef {Object} DiskUsage
  * @property {string} brk - Human-readable brk data size (e.g., "48.8 GiB")
  * @property {number} brkBytes - brk data size in bytes
@@ -585,11 +540,7 @@ mainnet, as mempool.space
  * @typedef {Object} ErrorBody
  * @property {ErrorDetail} error
  */
-/**
- * Machine-readable error code.
- *
- * @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_address"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode
- */
+/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_address"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
 /**
  * @typedef {Object} ErrorDetail
  * @property {ErrorType} type - Error category, following the HTTP status
@@ -605,7 +556,7 @@ mainnet, as mempool.space
  * @typedef {("invalid_request"|"not_found"|"unavailable"|"timeout"|"internal")} ErrorType
  */
 /**
- * Exchange rates (USD base, on-chain only — no fiat pairs available)
+ * Always empty: prices are quoted in USD only.
  *
  * @typedef {Object} ExchangeRates
  */
@@ -619,11 +570,7 @@ mainnet, as mempool.space
  *
  * @typedef {number} Float64
  */
-/**
- * Output format for API responses
- *
- * @typedef {("json"|"csv")} Format
- */
+/** @typedef {("json"|"csv")} Format */
 /**
  * Index of a halving epoch (210,000 blocks).
  *
@@ -645,34 +592,29 @@ mainnet, as mempool.space
  * @typedef {number} Hashrate
  */
 /**
- * A single hashrate data point.
- *
  * @typedef {Object} HashrateEntry
  * @property {Timestamp} timestamp - End of the day the hashrate covers (Unix timestamp), as mempool.space stamps it
  * @property {number} avgHashrate - Average hashrate (H/s)
  */
 /**
- * Summary of network hashrate and difficulty data.
- *
  * @typedef {Object} HashrateSummary
- * @property {HashrateEntry[]} hashrates - Historical hashrate data points
- * @property {DifficultyEntry[]} difficulty - Historical difficulty adjustments
+ * @property {HashrateEntry[]} hashrates
+ * @property {DifficultyEntry[]} difficulty
  * @property {number} currentHashrate - Current network hashrate over the trailing 7 days (H/s)
- * @property {number} currentDifficulty - Current network difficulty
+ * @property {number} currentDifficulty
  */
 /**
- * Server health status
- *
  * @typedef {Object} Health
  * @property {string} status - Health status ("healthy")
- * @property {string} service - Service name
- * @property {string} version - Server version
+ * @property {string} service
+ * @property {string} version
  * @property {string} timestamp - Current server time (ISO 8601)
  * @property {string} startedAt - Server start time (ISO 8601)
  * @property {number} uptimeSeconds - Uptime in seconds
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
- * @property {Height} tipHeight - Height of the chain tip (from Bitcoin node)
+ * @property {Height} tipHeight - Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
+asking the node
  * @property {Height} blocksBehind - Number of blocks behind the tip
  * @property {string} lastIndexedAt - Human-readable timestamp of the last indexed block (ISO 8601)
  * @property {Timestamp} lastIndexedAtUnix - Unix timestamp of the last indexed block
@@ -683,32 +625,22 @@ mainnet, as mempool.space
  * @typedef {number} Height
  */
 /**
- * Path parameter accepting either a block height (`840000`) or a calendar date
- * (`YYYY-MM-DD`). The handler resolves it and dispatches to the per-height or
- * per-day variant, choosing the matching cache strategy.
- *
  * @typedef {Object} HeightOrDateParam
  * @property {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
 `YYYY-MM-DD` format.
  */
 /**
- * Block height path parameter
- *
  * @typedef {Object} HeightParam
  * @property {Height} height
  */
 /**
- * Hex-encoded string. Transparent wrapper over `String`: serializes
- * as a plain JSON string and derefs to `str`, so anywhere `&str` or
- * `AsRef<[u8]>` is expected the `Hex` "just works".
+ * Hex-encoded data as a JSON string.
  *
  * @typedef {string} Hex
  */
 /**
- * Historical price response
- *
  * @typedef {Object} HistoricalPrice
- * @property {PricePoint[]} prices - Price data points
+ * @property {PricePoint[]} prices
  * @property {ExchangeRates} exchangeRates - Exchange rates (currently empty)
  */
 /**
@@ -740,8 +672,6 @@ mainnet, as mempool.space
  * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving"|"epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_output_index"|"op_return_index"|"p2a_address_index"|"p2ms_output_index"|"p2pk33_address_index"|"p2pk65_address_index"|"p2pkh_address_index"|"p2sh_address_index"|"p2tr_address_index"|"p2wpkh_address_index"|"p2wsh_address_index"|"unknown_output_index")} Index
  */
 /**
- * Information about an available index and its query aliases
- *
  * @typedef {Object} IndexInfo
  * @property {Index} index - The canonical index name
  * @property {string[]} aliases - Every name REST queries accept for it; MCP tools take the canonical `index` only
@@ -755,12 +685,15 @@ mainnet, as mempool.space
  * Block info in a mempool.space like format for fee estimation.
  *
  * @typedef {Object} MempoolBlock
- * @property {number} blockSize - Total serialized block size in bytes (witness + non-witness).
- * @property {number} blockVSize - Total block virtual size in vbytes
+ * @property {number} blockSize - Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header
+or coinbase.
+ * @property {number} blockVSize - Sum of the transactions' virtual sizes in vbytes
  * @property {number} nTx - Number of transactions in the projected block
  * @property {Sats} totalFees - Total fees in satoshis
  * @property {FeeRate} medianFee - Median fee rate in sat/vB
- * @property {FeeRate[]} feeRange - Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+ * @property {FeeRate[]} feeRange - Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB:
+[0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
+later projected ones
  */
 /**
  * Mempool statistics with incrementally maintained fee histogram.
@@ -777,7 +710,7 @@ a bin closing at the first fee rate change past 50,000 vB
  * Simplified mempool transaction for the `/api/mempool/recent` endpoint.
  *
  * @typedef {Object} MempoolRecentTx
- * @property {Txid} txid - Transaction ID
+ * @property {Txid} txid
  * @property {Sats} fee - Transaction fee (sats)
  * @property {VSize} vsize - Virtual size (vbytes)
  * @property {Sats} value - Total output value (sats)
@@ -786,7 +719,7 @@ a bin closing at the first fee rate change past 50,000 vB
  * Merkle inclusion proof for a transaction
  *
  * @typedef {Object} MerkleProof
- * @property {Height} blockHeight - Block height containing the transaction
+ * @property {Height} blockHeight
  * @property {string[]} merkle - Merkle proof path (hex-encoded hashes)
  * @property {number} pos - Transaction position in the block (0-indexed)
  */
@@ -949,21 +882,19 @@ a bin closing at the first fee rate change past 50,000 vB
  * @typedef {string} P2WSHBytes
  */
 /**
- * A paginated list of available series names (1000 per page)
+ * A paginated list of available series names (up to 1,000 per page)
  *
  * @typedef {Object} PaginatedSeries
  * @property {number} currentPage - Current page number (0-indexed)
  * @property {number} maxPage - Maximum valid page index (0-indexed)
- * @property {number} totalCount - Total number of series
- * @property {number} perPage - Results per page
- * @property {boolean} hasMore - Whether more pages are available after the current one
- * @property {string[]} series - List of series names
+ * @property {number} totalCount
+ * @property {number} perPage
+ * @property {boolean} hasMore
+ * @property {string[]} series
  */
 /**
- * Pagination parameters for paginated API endpoints
- *
  * @typedef {Object} Pagination
- * @property {?number=} page - Pagination index
+ * @property {?number=} page - Zero-based page number (default: 0)
  * @property {?number=} perPage - Results per page (default: 1000, max: 1000)
  */
 /**
@@ -998,44 +929,36 @@ a bin closing at the first fee rate change past 50,000 vB
  * @typedef {{ all: number, "24h": number, "1w": number }} PoolBlockShares
  */
 /**
- * Detailed pool information with statistics across time periods
- *
  * @typedef {Object} PoolDetail
- * @property {PoolDetailInfo} pool - Pool information
- * @property {PoolBlockCounts} blockCount - Block counts for different time periods
- * @property {PoolBlockShares} blockShare - Pool's share of total blocks for different time periods
+ * @property {PoolDetailInfo} pool
+ * @property {PoolBlockCounts} blockCount
+ * @property {PoolBlockShares} blockShare
  * @property {number} estimatedHashrate - Estimated hashrate based on blocks mined (H/s)
  * @property {?number=} reportedHashrate - Self-reported hashrate (if available, H/s)
  * @property {Sats} totalReward - Total reward earned by this pool: coinbase output value of every block it mined (sats)
  */
 /**
- * Pool information for detail view
- *
  * @typedef {Object} PoolDetailInfo
- * @property {number} id - Pool identifier
- * @property {string} name - Pool name
+ * @property {number} id - One-based pool ID, matching mempool.space's `id`
+ * @property {string} name
  * @property {string} link - Pool website URL
  * @property {string[]} addresses - Known payout addresses
- * @property {string[]} regexes - Coinbase tag patterns (regexes)
+ * @property {string[]} regexes - Coinbase tags, matched as case-insensitive substrings
  * @property {PoolSlug} slug - URL-friendly pool identifier
- * @property {number} uniqueId - Unique pool identifier
+ * @property {number} uniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
  */
 /**
- * A single pool hashrate data point.
- *
  * @typedef {Object} PoolHashrateEntry
  * @property {Timestamp} timestamp - Unix timestamp
  * @property {number} avgHashrate - Average hashrate (H/s)
  * @property {number} share - Pool's share of total network hashrate (0.0 - 1.0)
- * @property {string} poolName - Pool name
+ * @property {string} poolName
  */
 /**
- * Basic pool information for listing all pools
- *
  * @typedef {Object} PoolInfo
- * @property {string} name - Pool name
+ * @property {string} name
  * @property {PoolSlug} slug - URL-friendly pool identifier
- * @property {number} uniqueId - Unique numeric pool identifier
+ * @property {number} uniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
  */
 /**
  * URL-friendly mining pool identifier
@@ -1043,15 +966,11 @@ a bin closing at the first fee rate change past 50,000 vB
  * @typedef {("unknown"|"blockfills"|"ultimuspool"|"terrapool"|"luxor"|"1thash"|"btccom"|"bitfarms"|"huobipool"|"wayicn"|"canoepool"|"btctop"|"bitcoincom"|"175btc"|"gbminers"|"axbt"|"asicminer"|"bitminter"|"bitcoinrussia"|"btcserv"|"simplecoinus"|"btcguild"|"eligius"|"ozcoin"|"eclipsemc"|"maxbtc"|"triplemining"|"coinlab"|"50btc"|"ghashio"|"stminingcorp"|"bitparking"|"mmpool"|"polmine"|"kncminer"|"bitalo"|"f2pool"|"hhtt"|"megabigpower"|"mtred"|"nmcbit"|"yourbtcnet"|"givemecoins"|"braiinspool"|"antpool"|"multicoinco"|"bcpoolio"|"cointerra"|"kanopool"|"solock"|"ckpool"|"nicehash"|"bitclub"|"bitcoinaffiliatenetwork"|"btcc"|"bwpool"|"exxbw"|"bitsolo"|"bitfury"|"21inc"|"digitalbtc"|"8baochi"|"mybtccoinpool"|"tbdice"|"hashpool"|"nexious"|"bravomining"|"hotpool"|"okexpool"|"bcmonster"|"1hash"|"bixin"|"tatmaspool"|"viabtc"|"connectbtc"|"batpool"|"waterhole"|"dcexploration"|"dcex"|"btpool"|"58coin"|"bitcoinindia"|"shawnp0wers"|"phashio"|"rigpool"|"haozhuzhu"|"7pool"|"miningkings"|"hashbx"|"dpool"|"rawpool"|"haominer"|"helix"|"bitcoinukraine"|"poolin"|"secretsuperstar"|"tigerpoolnet"|"sigmapoolcom"|"okpooltop"|"hummerpool"|"tangpool"|"bytepool"|"spiderpool"|"novablock"|"miningcity"|"binancepool"|"minerium"|"lubiancom"|"okkong"|"aaopool"|"emcdpool"|"foundryusa"|"sbicrypto"|"arkpool"|"purebtccom"|"marapool"|"kucoinpool"|"entrustcharitypool"|"okminer"|"titan"|"pegapool"|"btcnuggets"|"cloudhashing"|"digitalxmintsy"|"telco214"|"btcpoolparty"|"multipool"|"transactioncoinmining"|"btcdig"|"trickysbtcpool"|"btcmp"|"eobot"|"unomp"|"patels"|"gogreenlight"|"bitcoinindiapool"|"ekanembtc"|"canoe"|"tiger"|"1m1x"|"zulupool"|"secpool"|"ocean"|"whitepool"|"wiz"|"wk057"|"futurebitapollosolo"|"carbonnegative"|"portlandhodl"|"phoenix"|"neopool"|"maxipool"|"bitfufupool"|"gdpool"|"miningdutch"|"publicpool"|"miningsquared"|"innopolistech"|"btclab"|"parasite"|"redrockpool"|"est3lar"|"braiinssolo"|"solopoolcom"|"noderunners"|"dmnd")} PoolSlug
  */
 /**
- * Mining pool slug + block height path parameters
- *
  * @typedef {Object} PoolSlugAndHeightParam
  * @property {PoolSlug} slug
  * @property {Height} height
  */
 /**
- * Mining pool slug path parameter
- *
  * @typedef {Object} PoolSlugParam
  * @property {PoolSlug} slug
  */
@@ -1059,19 +978,17 @@ a bin closing at the first fee rate change past 50,000 vB
  * Mining pool with block statistics for a time period
  *
  * @typedef {Object} PoolStats
- * @property {number} poolId - Unique pool identifier
- * @property {string} name - Pool name
+ * @property {number} poolId - One-based pool ID, matching mempool.space's `id`
+ * @property {string} name
  * @property {string} link - Pool website URL
- * @property {number} blockCount - Number of blocks mined in the time period
+ * @property {number} blockCount
  * @property {number} rank - Pool ranking by block count (1 = most blocks)
  * @property {number} emptyBlocks - Number of empty (coinbase-only) blocks mined in the time period
  * @property {PoolSlug} slug - URL-friendly pool identifier
  * @property {number} share - Pool's share of total blocks (0.0 - 1.0)
- * @property {number} poolUniqueId - Unique pool identifier
+ * @property {number} poolUniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
  */
 /**
- * Mining pools response for a time period
- *
  * @typedef {Object} PoolsSummary
  * @property {PoolStats[]} pools - List of pools sorted by block count descending
  * @property {number} blockCount - Total blocks in the time period
@@ -1084,10 +1001,11 @@ a bin closing at the first fee rate change past 50,000 vB
  *
  * @typedef {Object} PreciseRecommendedFees
  * @property {FeeRate} fastestFee - Fee rate for fastest confirmation (next block)
- * @property {FeeRate} halfHourFee - Fee rate for confirmation within ~30 minutes (3 blocks)
- * @property {FeeRate} hourFee - Fee rate for confirmation within ~1 hour (6 blocks)
- * @property {FeeRate} economyFee - Fee rate for economical confirmation
- * @property {FeeRate} minimumFee - Minimum relay fee rate
+ * @property {FeeRate} halfHourFee - Fee rate for confirmation within ~30 minutes (second projected block)
+ * @property {FeeRate} hourFee - Fee rate for confirmation within ~1 hour (third projected block)
+ * @property {FeeRate} economyFee - Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
+it; `minimumFee` when no third projected block exists
+ * @property {FeeRate} minimumFee - The node's current mempool minimum fee rate, rounded up to 0.001 sat/vB (at least 0.001)
  */
 /**
  * A BTC/USD price at a time: the current price (`/api/v1/prices`) or one historical close
@@ -1146,10 +1064,11 @@ this tx displaced at least one non-signaling predecessor.
  *
  * @typedef {Object} RecommendedFees
  * @property {number} fastestFee - Fee rate for fastest confirmation (next block)
- * @property {number} halfHourFee - Fee rate for confirmation within ~30 minutes (3 blocks)
- * @property {number} hourFee - Fee rate for confirmation within ~1 hour (6 blocks)
- * @property {number} economyFee - Fee rate for economical confirmation
- * @property {number} minimumFee - Minimum relay fee rate
+ * @property {number} halfHourFee - Fee rate for confirmation within ~30 minutes (second projected block)
+ * @property {number} hourFee - Fee rate for confirmation within ~1 hour (third projected block)
+ * @property {number} economyFee - Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
+it; `minimumFee` when no third projected block exists
+ * @property {number} minimumFee - The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)
  */
 /**
  * One node in an RBF replacement tree. The node's `tx` replaced each
@@ -1174,7 +1093,7 @@ on serialization otherwise.
  * @property {Height} endBlock - Last block in the range
  * @property {string} totalReward - Total coinbase rewards (subsidy + fees) in sats
  * @property {string} totalFee - Total transaction fees in sats
- * @property {string} totalTx - Total number of transactions
+ * @property {string} totalTx
  */
 /**
  * Amount in satoshis (1 BTC = 100,000,000 sats)
@@ -1182,8 +1101,7 @@ on serialization otherwise.
  * @typedef {number} Sats
  */
 /**
- * Signed satoshis (i64) - for values that can be negative.
- * Used for changes, deltas, profit/loss calculations, etc.
+ * A signed amount in satoshis.
  *
  * @typedef {number} SatsSigned
  */
@@ -1208,8 +1126,6 @@ on serialization otherwise.
  * @typedef {number} SecondsFract
  */
 /**
- * Series count statistics
- *
  * @typedef {Object} SeriesCount
  * @property {number} distinct - Number of unique series available (e.g., realized_price, market_cap)
  * @property {number} total - Total number of series-index combinations across all timeframes
@@ -1217,11 +1133,9 @@ on serialization otherwise.
  * @property {number} stored - Number of eager (stored on disk) series-index combinations
  */
 /**
- * Metadata about a series
- *
  * @typedef {Object} SeriesInfo
  * @property {?string=} description - Human-readable metric definition, when documented
- * @property {Index[]} indexes - Available indexes
+ * @property {Index[]} indexes
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
 undefined one (e.g. NaN)
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
@@ -1231,9 +1145,9 @@ undefined one (e.g. NaN)
  * Series leaf with JSON Schema for client generation.
  *
  * @typedef {Object} SeriesLeafWithSchema
- * @property {string} name - The series name/identifier.
+ * @property {string} name
  * @property {string} kind - The Rust type (e.g., "Sats", "Ratio").
- * @property {Index[]} indexes - Available indexes for this series.
+ * @property {Index[]} indexes
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
 undefined one (e.g. NaN).
  * @property {?string=} description - Human-readable metric definition, when documented.
@@ -1247,30 +1161,24 @@ undefined one (e.g. NaN).
  *
  * @typedef {string} SeriesList
  */
-/**
- * Series name
- *
- * @typedef {string} SeriesName
- */
+/** @typedef {string} SeriesName */
 /**
  * @typedef {Object} SeriesNameWithIndex
- * @property {SeriesName} series - Series name
- * @property {Index} index - Aggregation index
+ * @property {SeriesName} series
+ * @property {Index} index
  */
 /**
  * @typedef {Object} SeriesParam
  * @property {SeriesName} series
  */
 /**
- * Selection of series to query
- *
  * @typedef {Object} SeriesSelection
- * @property {SeriesList} series - Requested series
- * @property {Index} index - Index to query
+ * @property {SeriesList} series
+ * @property {Index} index
  * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
  * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
  * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
- * @property {Format=} format - Format of the output
+ * @property {Format=} format
  */
 /**
  * BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
@@ -1279,29 +1187,23 @@ undefined one (e.g. NaN).
  * @typedef {number} SigOps
  */
 /**
- * Sync status of the indexer
- *
  * @typedef {Object} SyncStatus
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
- * @property {Height} tipHeight - Height of the chain tip (from Bitcoin node)
+ * @property {Height} tipHeight - Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
+asking the node
  * @property {Height} blocksBehind - Number of blocks behind the tip
  * @property {string} lastIndexedAt - Human-readable timestamp of the last indexed block (ISO 8601)
  * @property {Timestamp} lastIndexedAtUnix - Unix timestamp of the last indexed block
  */
 /**
- * Time period for mining statistics.
- *
- * Used to specify the lookback window for pool statistics, hashrate calculations,
- * and other time-based mining series.
+ * Lookback window for mining statistics.
  *
  * @typedef {("24h"|"3d"|"1w"|"1m"|"3m"|"6m"|"1y"|"2y"|"3y"|"all")} TimePeriod
  */
 /**
- * Time period path parameter (24h, 3d, 1w, 1m, 3m, 6m, 1y, 2y, 3y)
- *
  * @typedef {Object} TimePeriodParam
- * @property {TimePeriod} timePeriod
+ * @property {TimePeriod} timePeriod - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
  */
 /**
  * UNIX timestamp in seconds
@@ -1309,8 +1211,6 @@ undefined one (e.g. NaN).
  * @typedef {number} Timestamp
  */
 /**
- * UNIX timestamp path parameter
- *
  * @typedef {Object} TimestampParam
  * @property {Timestamp} timestamp
  */
@@ -1319,32 +1219,28 @@ undefined one (e.g. NaN).
  *
  * @typedef {Object} Transaction
  * @property {(TxIndex|null)=} index - Internal transaction index (brk-specific, not in mempool.space)
- * @property {Txid} txid - Transaction ID
+ * @property {Txid} txid
  * @property {TxVersionRaw} version - Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
- * @property {RawLockTime} locktime - Transaction lock time
+ * @property {RawLockTime} locktime
  * @property {TxIn[]} vin - Transaction inputs
  * @property {TxOut[]} vout - Transaction outputs
  * @property {number} size - Transaction size in bytes
- * @property {Weight} weight - Transaction weight
- * @property {SigOps} sigops - Number of signature operations
+ * @property {Weight} weight
+ * @property {SigOps} sigops - BIP-141 signature-operation cost
  * @property {Sats} fee - Transaction fee in satoshis
- * @property {TxStatus} status - Confirmation status (confirmed, block height/hash/time)
+ * @property {TxStatus} status
  */
-/**
- * Hierarchical tree node for organizing series into categories
- *
- * @typedef {({ [key: string]: TreeNode }|SeriesLeafWithSchema)} TreeNode
- */
+/** @typedef {({ [key: string]: TreeNode }|SeriesLeafWithSchema)} TreeNode */
 /**
  * @typedef {Object} TxIn
  * @property {Txid} txid - Transaction ID of the output being spent
  * @property {Vout} vout - Output index being spent (coinbase: 4294967295)
- * @property {(TxOut|null)} prevout - Information about the previous output being spent
- * @property {string} scriptsig - Signature script (hex, for non-SegWit inputs)
+ * @property {(TxOut|null)} prevout - The output being spent
+ * @property {string} scriptsig - Signature script in hex (empty for native SegWit inputs)
  * @property {string} scriptsigAsm - Signature script in assembly format
  * @property {string[]=} witness - Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
- * @property {boolean} isCoinbase - Whether this input is a coinbase (block reward) input
- * @property {number} sequence - Input sequence number
+ * @property {boolean} isCoinbase
+ * @property {number} sequence
  * @property {string=} innerRedeemscriptAsm - Inner redeemscript in assembly (P2SH inputs)
  * @property {string=} innerWitnessscriptAsm - Inner witnessscript in assembly (P2WSH and P2SH-P2WSH: the witness script; P2TR script path: the leaf script)
  */
@@ -1360,10 +1256,8 @@ undefined one (e.g. NaN).
  * @typedef {number} TxIndex
  */
 /**
- * Transaction index path parameter
- *
  * @typedef {Object} TxIndexParam
- * @property {TxIndex} index
+ * @property {TxIndex} index - Global transaction index across the chain
  */
 /**
  * @typedef {Object} TxOut
@@ -1379,19 +1273,15 @@ undefined one (e.g. NaN).
  * @typedef {number} TxOutIndex
  */
 /**
- * Status of an output indicating whether it has been spent
- *
  * @typedef {Object} TxOutspend
- * @property {boolean} spent - Whether the output has been spent
+ * @property {boolean} spent
  * @property {(Txid|null)=} txid - Transaction ID of the spending transaction (only present if spent)
  * @property {(Vin|null)=} vin - Input index in the spending transaction (only present if spent)
  * @property {(TxStatus|null)=} status - Status of the spending transaction (only present if spent)
  */
 /**
- * Transaction confirmation status
- *
  * @typedef {Object} TxStatus
- * @property {boolean} confirmed - Whether the transaction is confirmed
+ * @property {boolean} confirmed
  * @property {(Height|null)=} blockHeight - Block height (only present if confirmed)
  * @property {(BlockHash|null)=} blockHash - Block hash (only present if confirmed)
  * @property {(Timestamp|null)=} blockTime - Block timestamp (only present if confirmed)
@@ -1416,25 +1306,16 @@ undefined one (e.g. NaN).
  * @typedef {string} Txid
  */
 /**
- * Transaction ID path parameter
- *
  * @typedef {Object} TxidParam
  * @property {Txid} txid
  */
 /**
- * Transaction output reference (txid + output index)
- *
  * @typedef {Object} TxidVout
- * @property {Txid} txid - Transaction ID
+ * @property {Txid} txid
  * @property {Vout} vout - Output index
  */
 /**
- * Query parameter for transaction-times endpoint.
- *
- * Extracted from the decoded query pairs because a serde struct can't collect
- * repeated keys like `txId[]=a&txId[]=b`. The schema is still
- * declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
- * generated client SDKs see `txids: List[Txid]`.
+ * Transaction IDs as repeated `txId[]` query parameters.
  *
  * @typedef {Object} TxidsParam
  * @property {Txid[]} txId - Transaction IDs to look up (max 250 per request).
@@ -1452,19 +1333,15 @@ undefined one (e.g. NaN).
 /**
  * UTXO Realized Price Distribution for a cohort at a specific block.
  *
- * Supply is grouped by the price at the block in which each UTXO was last moved.
- * Each bucket exposes three values: supply in BTC (weighted by `weight`), realized
- * cap contribution in USD (`price * supply` over the coins in the bucket at their
- * grid creation prices, each within 0.05% of the exact price, rounded to the cent
- * per bucket), and unrealized P&L in USD (`close * supply - realized_cap`, can be
- * negative).
+ * Supply is grouped by the price at the block in which each UTXO was last moved; each bucket
+ * holds its supply, realized cap and unrealized P&L.
  *
  * @typedef {Object} Urpd
  * @property {Cohort} cohort
- * @property {Date} date - UTC date of the represented block.
+ * @property {Date} date - UTC date of the represented block's monotonic timestamp.
  * @property {Height} height - Exact published block represented by this distribution.
- * @property {UrpdWeight} weight - Weighting applied to the source supply.
- * @property {UrpdAggregation} aggregation - Aggregation strategy applied to the buckets.
+ * @property {UrpdWeight} weight
+ * @property {UrpdAggregation} aggregation
  * @property {Dollars} close - Price at `height`, in USD. Anchor for `unrealized_pnl`.
  * @property {Bitcoin} totalSupply - Sum of `supply` across all buckets, in BTC.
  * @property {UrpdBucket[]} buckets
@@ -1477,8 +1354,6 @@ undefined one (e.g. NaN).
  * @typedef {("raw"|"lin200"|"lin500"|"lin1000"|"log10"|"log50"|"log100"|"log200"|"log500"|"log1000"|"log2000")} UrpdAggregation
  */
 /**
- * A single bucket in a URPD snapshot.
- *
  * @typedef {Object} UrpdBucket
  * @property {Dollars} priceFloor - The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its
 coins' creation prices round to (four significant digits of the price in cents).
@@ -1488,12 +1363,10 @@ coins' creation prices round to (four significant digits of the price in cents).
 each coin's creation price taken on the price grid (the `Raw` bucket price, within 0.05%
 of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
 buckets therefore need not sum to the cohort's realized cap series.
- * @property {Dollars} unrealizedPnl - Unrealized P&L in USD against the close on the snapshot date: `close * supply` minus the
+ * @property {Dollars} unrealizedPnl - Unrealized P&L in USD at the represented block: `close * supply` minus the
 bucket's grid capital, rounded to the cent once. Can be negative.
  */
 /**
- * Path parameters for per-cohort URPD endpoints.
- *
  * @typedef {Object} UrpdCohortParam
  * @property {Cohort} cohort
  */
@@ -1505,8 +1378,6 @@ bucket's grid capital, rounded to the cent once. Can be negative.
  * @property {string} point
  */
 /**
- * Query parameters for URPD endpoints.
- *
  * @typedef {Object} UrpdQuery
  * @property {UrpdAggregation=} agg - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
  * @property {UrpdWeight=} weight - Supply weighting. Default: raw (unweighted).
@@ -1517,8 +1388,6 @@ bucket's grid capital, rounded to the cent once. Can be negative.
  * @typedef {("raw"|"cointime"|"coinflow")} UrpdWeight
  */
 /**
- * Query parameters for URPD date discovery.
- *
  * @typedef {Object} UrpdWeightQuery
  * @property {UrpdWeight=} weight - Supply weighting. Default: raw (unweighted).
  */
@@ -1526,9 +1395,9 @@ bucket's grid capital, rounded to the cent once. Can be negative.
  * Unspent transaction output
  *
  * @typedef {Object} Utxo
- * @property {Txid} txid - Transaction ID of the UTXO
- * @property {Vout} vout - Output index
- * @property {TxStatus} status - Confirmation status
+ * @property {Txid} txid
+ * @property {Vout} vout
+ * @property {TxStatus} status
  * @property {Sats} value - Output value in satoshis
  */
 /**
@@ -1555,8 +1424,8 @@ bucket's grid capital, rounded to the cent once. Can be negative.
  * `spent` gives the set after block `last`; rounding each supply to 8 decimals keeps it exact.
  *
  * @typedef {Object} UtxoSet
- * @property {Height} height - Height of the represented block.
- * @property {BlockHash} hash - Hash of the represented block.
+ * @property {Height} height
+ * @property {BlockHash} hash
  * @property {Date} date - UTC date of the represented block's monotonic timestamp (the running maximum of block
 times).
  * @property {number} count - Number of unspent outputs.
@@ -1587,11 +1456,8 @@ coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 
  * @property {string} address - Bitcoin address to validate (can be any string)
  */
 /**
- * Version tracking for data schema and computed values.
- *
- * Used to detect when stored data needs to be recomputed due to changes
- * in computation logic or source data versions. Supports validation
- * against persisted versions to ensure compatibility.
+ * Schema or computation version of a stored vector: when it changes, the data is reset and
+ * recomputed.
  *
  * @typedef {number} Version
  */
@@ -1672,10 +1538,10 @@ const _ADDRESS_PAYLOAD_LENGTHS = new Map([
 
 /**
  * @typedef {Object} BitviewClientOptions
- * @property {string} baseUrl - Base URL for the API
+ * @property {string} baseUrl
  * @property {number} [timeout] - Request timeout in milliseconds
  * @property {string|boolean} [browserCache] - Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
- * @property {number|boolean} [memCache] - In-memory parsed-response cache size (LRU). true/undefined → 1000, false/0 → disabled. Lets 304 responses skip the JSON parse entirely. Default: 1000
+ * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled
  */
 
 const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
@@ -1760,9 +1626,9 @@ const _calendar = (index) => {
 };
 
 /**
- * Convert an index value to a Date for date-based indexes.
- * @param {Index} index - The index type
- * @param {number} i - The index value
+ * The UTC start of bucket `i`; throws for an index without a date calendar.
+ * @param {Index} index
+ * @param {number} i
  * @returns {globalThis.Date}
  */
 function indexToDate(index, i) {
@@ -1772,11 +1638,10 @@ function indexToDate(index, i) {
 }
 
 /**
- * Convert a Date to an index value for date-based indexes.
- * Returns the floor index (latest index whose date is <= the given date).
+ * The floor index (latest index whose date is <= the given date).
  * Throws for dates before the index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29).
- * @param {Index} index - The index type
- * @param {globalThis.Date} d - The date to convert
+ * @param {Index} index
+ * @param {globalThis.Date} d
  * @returns {number}
  */
 function dateToIndex(index, d) {
@@ -1788,9 +1653,8 @@ function dateToIndex(index, d) {
 }
 
 /**
- * Wrap raw series data with helper methods.
  * @template T
- * @param {SeriesData<T>} raw - Raw JSON response
+ * @param {SeriesData<T>} raw
  * @returns {DateSeriesData<T>}
  */
 function _wrapSeriesData(raw) {
@@ -1848,15 +1712,15 @@ function _wrapSeriesData(raw) {
 /**
  * @template T
  * @typedef {Object} SeriesDataBase
- * @property {number} version - Version of the series data
- * @property {Index} index - The index type used for this query
+ * @property {number} version
+ * @property {Index} index
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {number} start - Start index (inclusive)
  * @property {number} end - End index (exclusive)
  * @property {T[]} data - The series data (`null` where a value is missing or undefined)
- * @property {boolean} isDateBased - Whether this series uses a date-based index
- * @property {() => number[]} indexes - Get index numbers
- * @property {() => number[]} keys - Get keys as index numbers (alias for indexes)
+ * @property {boolean} isDateBased
+ * @property {() => number[]} indexes
+ * @property {() => number[]} keys - Alias for indexes
  * @property {() => Array<[number, T]>} entries - Get [index, value] pairs
  * @property {() => Map<number, T>} toMap - Convert to Map<index, value>
  */
@@ -1867,8 +1731,8 @@ function _wrapSeriesData(raw) {
  * @template T
  * @typedef {Object} DateSeriesDataExtras
  * @property {() => globalThis.Date[]} dates - Get dates for each data point
- * @property {() => Array<[globalThis.Date, T]>} dateEntries - Get [date, value] pairs
- * @property {() => Map<globalThis.Date, T>} toDateMap - Convert to Map<date, value>
+ * @property {() => Array<[globalThis.Date, T]>} dateEntries
+ * @property {() => Map<globalThis.Date, T>} toDateMap
  */
 
 /** @template T @typedef {SeriesData<T> & DateSeriesDataExtras<T>} DateSeriesData */
@@ -1880,33 +1744,33 @@ function _wrapSeriesData(raw) {
 /**
  * @template T
  * @typedef {Object} SeriesEndpoint
- * @property {(index: number) => RangeBuilder<T>} get - Get single item at index
- * @property {(start?: number, end?: number) => RangeBuilder<T>} slice - Slice by index
- * @property {(n: number) => RangeBuilder<T>} first - Get first n items
- * @property {(n: number) => RangeBuilder<T>} last - Get last n items
+ * @property {(index: number) => RangeBuilder<T>} get
+ * @property {(start?: number, end?: number) => RangeBuilder<T>} slice
+ * @property {(n: number) => RangeBuilder<T>} first
+ * @property {(n: number) => RangeBuilder<T>} last
  * @property {(n: number) => SkippedBuilder<T>} skip - Skip first n items, chain with take()
  * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch all data
  * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch all data as CSV
  * @property {() => Promise<number>} len - Get total number of data points
- * @property {() => Promise<Version>} version - Get the current version of the series
+ * @property {() => Promise<Version>} version
  * @property {Thenable<T>} then - Thenable (await endpoint)
- * @property {string} path - The endpoint path
+ * @property {string} path
  */
 
 /**
  * @template T
  * @typedef {Object} DateSeriesEndpoint
- * @property {(index: number | globalThis.Date) => DateRangeBuilder<T>} get - Get single item at index or Date
- * @property {(start?: number | globalThis.Date, end?: number | globalThis.Date) => DateRangeBuilder<T>} slice - Slice by index or Date
- * @property {(n: number) => DateRangeBuilder<T>} first - Get first n items
- * @property {(n: number) => DateRangeBuilder<T>} last - Get last n items
+ * @property {(index: number | globalThis.Date) => DateRangeBuilder<T>} get
+ * @property {(start?: number | globalThis.Date, end?: number | globalThis.Date) => DateRangeBuilder<T>} slice
+ * @property {(n: number) => DateRangeBuilder<T>} first
+ * @property {(n: number) => DateRangeBuilder<T>} last
  * @property {(n: number) => DateSkippedBuilder<T>} skip - Skip first n items, chain with take()
  * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch all data
  * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch all data as CSV
  * @property {() => Promise<number>} len - Get total number of data points
- * @property {() => Promise<Version>} version - Get the current version of the series
+ * @property {() => Promise<Version>} version
  * @property {DateThenable<T>} then - Thenable (await endpoint)
- * @property {string} path - The endpoint path
+ * @property {string} path
  */
 
 /** @typedef {SeriesEndpoint<any>} AnySeriesEndpoint */
@@ -1926,50 +1790,49 @@ function _wrapSeriesData(raw) {
 /** @template T @typedef {Object} SkippedBuilder
  * @property {(n: number) => RangeBuilder<T>} take - Take n items after skipped position
  * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch from skipped position to end
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {Thenable<T>} then - Thenable
+ * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
+ * @property {Thenable<T>} then
  */
 
 /** @template T @typedef {Object} DateSkippedBuilder
  * @property {(n: number) => DateRangeBuilder<T>} take - Take n items after skipped position
  * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch from skipped position to end
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {DateThenable<T>} then - Thenable
+ * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
+ * @property {DateThenable<T>} then
  */
 
 /** @template T @typedef {Object} RangeBuilder
  * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch the selection (one item or a range)
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {Thenable<T>} then - Thenable
+ * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
+ * @property {Thenable<T>} then
  */
 
 /** @template T @typedef {Object} DateRangeBuilder
  * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch the selection (one item or a range)
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {DateThenable<T>} then - Thenable
+ * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
+ * @property {DateThenable<T>} then
  */
 
 /**
  * @template T
  * @typedef {Object} SeriesPattern
- * @property {string} name - The series name
+ * @property {string} name
  * @property {Readonly<Partial<Record<Index, SeriesEndpoint<T>>>>} by - Index endpoints as lazy getters
- * @property {() => readonly Index[]} indexes - Get the list of available indexes
- * @property {(index: Index) => SeriesEndpoint<T>|undefined} get - Get an endpoint for a specific index
+ * @property {() => readonly Index[]} indexes
+ * @property {(index: Index) => SeriesEndpoint<T>|undefined} get
  */
 
 /** @typedef {SeriesPattern<any>} AnySeriesPattern */
 
 /**
- * Create a series endpoint builder with typestate pattern.
  * @template T
  * @param {BitviewClient} client
- * @param {string} name - The series vec name
- * @param {Index} index - The index name
+ * @param {string} name
+ * @param {Index} index
  * @returns {DateSeriesEndpoint<T>}
  */
 function _endpoint(client, name, index) {
-  const p = `/api/series/${encodeURIComponent(name)}/${index}`;
+  const path = `/api/series/${encodeURIComponent(name)}/${index}`;
 
   /**
    * Counted selections send `limit`: the server ends them after resolving a negative start.
@@ -1984,7 +1847,7 @@ function _endpoint(client, name, index) {
     if (limit !== undefined) params.set('limit', String(limit));
     if (format) params.set('format', format);
     const query = params.toString();
-    return query ? `${p}?${query}` : p;
+    return query ? `${path}?${query}` : path;
   };
 
   /**
@@ -2027,15 +1890,12 @@ function _endpoint(client, name, index) {
     len() { return client.getSeriesLen(name, index); },
     version() { return client.getSeriesVersion(name, index); },
     then(resolve, reject) { return this.fetch().then(resolve, reject); },
-    get path() { return p; },
+    get path() { return path; },
   };
 
   return endpoint;
 }
 
-/**
- * Base HTTP client for making requests with caching support
- */
 class BitviewClientBase {
   /**
    * @param {BitviewClientOptions|string} options
@@ -2222,7 +2082,7 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a GET request expecting a JSON response. Cached and supports `onValue`.
+   * Cached and supports `onValue`.
    * @template T
    * @param {string} path
    * @param {ClientFetchOptions<T>} [options]
@@ -2233,7 +2093,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a GET request expecting a text response (text/plain, text/csv, ...).
    * Cached and supports `onValue`, same as `getJson`.
    * @param {string} path
    * @param {ClientFetchOptions<string>} [options]
@@ -2244,7 +2103,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a GET request expecting binary data (application/octet-stream).
    * Cached and supports `onValue`, same as `getJson`.
    * @param {string} path
    * @param {ClientFetchOptions<Uint8Array>} [options]
@@ -2255,8 +2113,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a POST request with a string body.
-   *
    * POST responses are uncached and never invoke `onValue` — every call hits
    * the network with the same body and returns the upstream response.
    *
@@ -2273,7 +2129,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a POST request expecting a JSON response.
    * @template T
    * @param {string} path
    * @param {string} body
@@ -2286,7 +2141,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a POST request expecting a text response.
    * @param {string} path
    * @param {string} body
    * @param {{ signal?: AbortSignal }} [options]
@@ -2298,7 +2152,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a POST request expecting binary data (application/octet-stream).
    * @param {string} path
    * @param {string} body
    * @param {{ signal?: AbortSignal }} [options]
@@ -2310,7 +2163,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Fetch series data and wrap with helper methods (internal)
    * @template T
    * @param {string} path
    * @param {DateSeriesFetchArg<T>} [arg]
@@ -2342,18 +2194,10 @@ function _lazy(owner, name, init) {
   return value;
 }
 
-
-
 const _MASK_64 = 0xffffffffffffffffn;
-const _RAPIDHASH_SECRETS = /** @type {const} */ ([
-  0x2d358dccaa6c78a5n,
-  0x8bb84b93962eacc9n,
-  0x4b33a62ed433d4a3n,
-  0x4d5a2da51de1aa47n,
-  0xa0761d6478bd642fn,
-  0xe7037ed1a0b428dbn,
-  0x90ed1765281c388cn,
-]);
+// RapidHash v3's secrets 1 and 2: the only ones payloads of at most 65 bytes reach.
+const _RAPIDHASH_SECRET_1 = 0x8bb84b93962eacc9n;
+const _RAPIDHASH_SECRET_2 = 0x4b33a62ed433d4a3n;
 const _RAPIDHASH_SEED = _rapidHashSeed(0n);
 
 /** @param {bigint} value */
@@ -2375,7 +2219,7 @@ function _rapidMum(left, right) {
 
 /** @param {bigint} seed */
 function _rapidHashSeed(seed) {
-  return _u64(seed ^ _rapidMix(seed ^ _RAPIDHASH_SECRETS[2], _RAPIDHASH_SECRETS[1]));
+  return _u64(seed ^ _rapidMix(seed ^ _RAPIDHASH_SECRET_2, _RAPIDHASH_SECRET_1));
 }
 
 /** @param {Uint8Array} bytes @param {number} offset */
@@ -2424,19 +2268,19 @@ function _rapidHashV3(payload) {
         a ^= _readU32(bytes, 0);
         b ^= _readU32(bytes, length - 4);
       }
-    } else if (length > 0) {
+    } else {
       a ^= (BigInt(bytes[0]) << 45n) | BigInt(bytes[length - 1]);
       b ^= BigInt(bytes[length >> 1]);
     }
     remainder = BigInt(length);
   } else {
-    seed = _rapidMix(_readU64(bytes, 0) ^ _RAPIDHASH_SECRETS[2], _readU64(bytes, 8) ^ seed);
+    seed = _rapidMix(_readU64(bytes, 0) ^ _RAPIDHASH_SECRET_2, _readU64(bytes, 8) ^ seed);
     if (length > 32) {
-      seed = _rapidMix(_readU64(bytes, 16) ^ _RAPIDHASH_SECRETS[2], _readU64(bytes, 24) ^ seed);
+      seed = _rapidMix(_readU64(bytes, 16) ^ _RAPIDHASH_SECRET_2, _readU64(bytes, 24) ^ seed);
       if (length > 48) {
-        seed = _rapidMix(_readU64(bytes, 32) ^ _RAPIDHASH_SECRETS[1], _readU64(bytes, 40) ^ seed);
+        seed = _rapidMix(_readU64(bytes, 32) ^ _RAPIDHASH_SECRET_1, _readU64(bytes, 40) ^ seed);
         if (length > 64) {
-          seed = _rapidMix(_readU64(bytes, 48) ^ _RAPIDHASH_SECRETS[1], _readU64(bytes, 56) ^ seed);
+          seed = _rapidMix(_readU64(bytes, 48) ^ _RAPIDHASH_SECRET_1, _readU64(bytes, 56) ^ seed);
         }
       }
     }
@@ -2445,10 +2289,10 @@ function _rapidHashV3(payload) {
     b ^= _readU64(bytes, length - 8);
   }
 
-  a ^= _RAPIDHASH_SECRETS[1];
+  a ^= _RAPIDHASH_SECRET_1;
   b ^= seed;
   [a, b] = _rapidMum(a, b);
-  return _rapidMix(a ^ 0xaaaaaaaaaaaaaaaan, b ^ _RAPIDHASH_SECRETS[1] ^ remainder);
+  return _rapidMix(a ^ 0xaaaaaaaaaaaaaaaan, b ^ _RAPIDHASH_SECRET_1 ^ remainder);
 }
 
 /** @param {number} nibbles */
@@ -2475,7 +2319,7 @@ function _validateAddressPayloadForType(addressType, payload) {
 
 /**
  * Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`.
- * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw address payload bytes
+ * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
  * @param {number} nibbles - Prefix length from 1 to 16 hex nibbles
  * @returns {string}
  */
@@ -2483,8 +2327,6 @@ function addressPayloadHashPrefix(payload, nibbles) {
   _validateHashPrefixNibbles(nibbles);
   return _rapidHashV3(payload).toString(16).padStart(16, "0").slice(0, nibbles);
 }
-
-// Index group constants and factory
 
 const _i1 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height"]);
 const _i2 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch"]);
@@ -2523,13 +2365,12 @@ const _i34 = /** @type {const} */ (["p2wsh_address_index"]);
 const _i35 = /** @type {const} */ (["unknown_output_index"]);
 
 /**
- * Generic series pattern factory.
  * @template T
  * @param {BitviewClient} client
- * @param {string} name - The series vec name
- * @param {readonly Index[]} indexes - The supported indexes
+ * @param {string} name
+ * @param {readonly Index[]} indexes
  */
-function _mp(client, name, indexes) {
+function _seriesPattern(client, name, indexes) {
   const by = {};
   for (const idx of indexes) {
     Object.defineProperty(by, idx, {
@@ -2584,8 +2425,6 @@ function _mp(client, name, indexes) {
 /** @template T @typedef {{ name: string, by: { readonly p2wsh_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
 /** @template T @typedef {{ name: string, by: { readonly unknown_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
 
-// Series tree
-
 /**
  * Builds a series-tree node, or a leaf, from its base or series name.
  * @typedef {(c: BitviewClient, b: string, ...f: _Make[]) => any} _Make
@@ -2602,11 +2441,11 @@ function _mp(client, name, indexes) {
  */
 function _n(c, b, children) {
   const node = {};
-  for (const [key, [make, t]] of Object.entries(children)) {
+  for (const [key, [make, template]] of Object.entries(children)) {
     Object.defineProperty(node, key, {
       get() {
-        const name = t.replace(b ? '*' : /^\*_|_?\*/, b);
-        return _lazy(this, key, () => typeof make === 'function' ? make(c, name) : _mp(c, name, make));
+        const name = template.replace(b ? '*' : /^\*_|_?\*/, b);
+        return _lazy(this, key, () => typeof make === 'function' ? make(c, name) : _seriesPattern(c, name, make));
       },
       enumerable: true,
       configurable: true,
@@ -6873,7 +6712,7 @@ const _SeriesTree = _s({
 });
 
 /**
- * Main Bitview client with series tree and API methods
+ * A method per API endpoint, and the typed series tree.
  * @extends BitviewClientBase
  */
 class BitviewClient extends BitviewClientBase {
@@ -7617,9 +7456,9 @@ class BitviewClient extends BitviewClientBase {
   });
 
   /**
-   * Convert an index value to a Date for date-based indexes.
-   * @param {Index} index - The index type
-   * @param {number} i - The index value
+   * The UTC start of bucket `i`; throws for an index without a date calendar.
+   * @param {Index} index
+   * @param {number} i
    * @returns {globalThis.Date}
    */
   indexToDate(index, i) {
@@ -7627,22 +7466,16 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
-   * Convert a Date to an index value for date-based indexes.
-   * @param {Index} index - The index type
-   * @param {globalThis.Date} d - The date to convert
+   * The floor index (latest index whose date is <= the given date); throws for dates before the
+   * index's first date.
+   * @param {Index} index
+   * @param {globalThis.Date} d
    * @returns {number}
    */
   dateToIndex(index, d) {
     return dateToIndex(index, d);
   }
 
-
-  /**
-   * @param {BitviewClientOptions|string} options
-   */
-  constructor(options) {
-    super(options);
-  }
 
   /** @returns {SeriesTree} */
   get series() {
@@ -7660,7 +7493,6 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
-   * Fetch address hash-prefix matches from raw address payload bytes.
    * @param {OutputType} addressType
    * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addressType length
    * @param {number} nibbles
@@ -7674,13 +7506,9 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
-   * Create a dynamic series endpoint builder for any series/index combination.
-   *
-   * Use this for programmatic access when the series name is determined at runtime.
-   * For type-safe access, use the `series` tree instead.
-   *
+   * A series by a name known only at runtime; `series` has the typed paths.
    * @template {Index} I
-   * @param {string} series - The series name
+   * @param {string} series
    * @param {I} index - The index name; date indexes also slice by Date
    * @returns {I extends DateIndex ? DateSeriesEndpoint<unknown> : SeriesEndpoint<unknown>}
    */
@@ -7704,8 +7532,6 @@ class BitviewClient extends BitviewClientBase {
 
   /**
    * API version
-   *
-   * Returns the current version of the API server
    *
    * Endpoint: `GET /version`
    * @param {{ signal?: AbortSignal, onValue?: (value: string) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -7733,7 +7559,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Disk usage
    *
-   * Returns allocated file bytes for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
+   * Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
    *
    * Endpoint: `GET /api/server/disk`
    * @param {{ signal?: AbortSignal, onValue?: (value: DiskUsage) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -7747,7 +7573,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Series catalog
    *
-   * Returns the complete hierarchical catalog of available series organized as a tree structure. Series are grouped by categories and subcategories.
+   * The available series as a tree of categories and subcategories.
    *
    * Endpoint: `GET /api/series`
    * @param {{ signal?: AbortSignal, onValue?: (value: TreeNode) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -7789,11 +7615,11 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Series list
    *
-   * Paginated flat list of all available series names. Use `page` query param for pagination.
+   * Paginated flat list of all available series names.
    *
    * Endpoint: `GET /api/series/list`
    *
-   * @param {number=} [page] - Pagination index
+   * @param {number=} [page] - Zero-based page number (default: 0)
    * @param {number=} [per_page] - Results per page (default: 1000, max: 1000)
    * @param {{ signal?: AbortSignal, onValue?: (value: PaginatedSeries) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<PaginatedSeries>}
@@ -7847,16 +7673,16 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Get series data
    *
-   * Fetch data for a specific series at the given index. Use query parameters to filter by date range and format (json/csv).
+   * Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
    *
    * Endpoint: `GET /api/series/{series}/{index}`
    *
-   * @param {SeriesName} series - Series name
-   * @param {Index} index - Aggregation index
+   * @param {SeriesName} series
+   * @param {Index} index
    * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
    * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
    * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
-   * @param {Format=} [format] - Format of the output
+   * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AnySeriesData | string>}
    */
@@ -7875,16 +7701,16 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Get raw series data
    *
-   * Returns just the data array without the SeriesData wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
+   * The data array without the `SeriesData` wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
    *
    * Endpoint: `GET /api/series/{series}/{index}/data`
    *
-   * @param {SeriesName} series - Series name
-   * @param {Index} index - Aggregation index
+   * @param {SeriesName} series
+   * @param {Index} index
    * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
    * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
    * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
-   * @param {Format=} [format] - Format of the output
+   * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: *[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<*[] | string>}
    */
@@ -7907,8 +7733,8 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/{series}/{index}/latest`
    *
-   * @param {SeriesName} series - Series name
-   * @param {Index} index - Aggregation index
+   * @param {SeriesName} series
+   * @param {Index} index
    * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<*>}
    */
@@ -7920,12 +7746,10 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Get series data length
    *
-   * Returns the total number of data points for a series at the given index.
-   *
    * Endpoint: `GET /api/series/{series}/{index}/len`
    *
-   * @param {SeriesName} series - Series name
-   * @param {Index} index - Aggregation index
+   * @param {SeriesName} series
+   * @param {Index} index
    * @param {{ signal?: AbortSignal, onValue?: (value: number) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<number>}
    */
@@ -7941,8 +7765,8 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/{series}/{index}/version`
    *
-   * @param {SeriesName} series - Series name
-   * @param {Index} index - Aggregation index
+   * @param {SeriesName} series
+   * @param {Index} index
    * @param {{ signal?: AbortSignal, onValue?: (value: Version) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Version>}
    */
@@ -7958,12 +7782,12 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/bulk`
    *
-   * @param {SeriesList} series - Requested series
-   * @param {Index} index - Index to query
+   * @param {SeriesList} series
+   * @param {Index} index
    * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
    * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
    * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
-   * @param {Format=} [format] - Format of the output
+   * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AnySeriesData[] | string>}
    */
@@ -8018,7 +7842,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Latest URPD
    *
-   * URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+   * URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
    *
    * Endpoint: `GET /api/urpd/{cohort}`
    *
@@ -8136,7 +7960,7 @@ address payload bytes.
   /**
    * Address information
    *
-   * Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).
+   * Balance and transaction counts. Supports P2PKH, P2SH, P2WPKH, P2WSH, P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes).
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
    *
@@ -8227,7 +8051,7 @@ address payload bytes.
   /**
    * Address UTXOs
    *
-   * Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.
+   * Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
    *
@@ -8262,8 +8086,6 @@ address payload bytes.
 
   /**
    * Block information
-   *
-   * Retrieve block information by block hash. Returns block metadata including height, timestamp, difficulty, size, weight, and transaction count.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
    *
@@ -8317,7 +8139,7 @@ address payload bytes.
   /**
    * Block hash by height
    *
-   * Retrieve the block hash at a given height. Returns the hash as plain text.
+   * Block hash as plain text.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
    *
@@ -8371,7 +8193,7 @@ address payload bytes.
   /**
    * Block status
    *
-   * Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.
+   * Whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*
    *
@@ -8389,8 +8211,6 @@ address payload bytes.
   /**
    * Block tip height
    *
-   * Returns the height of the last block.
-   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
    *
    * Endpoint: `GET /api/blocks/tip/height`
@@ -8404,8 +8224,6 @@ address payload bytes.
 
   /**
    * Block tip hash
-   *
-   * Returns the hash of the last block.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
    *
@@ -8427,7 +8245,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/block/{hash}/txid/{index}`
    *
-   * @param {BlockHash} hash - Bitcoin block hash
+   * @param {BlockHash} hash
    * @param {BlockTxIndex} index - Transaction index within the block (0-based)
    * @param {{ signal?: AbortSignal, onValue?: (value: Txid) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Txid>}
@@ -8440,7 +8258,7 @@ address payload bytes.
   /**
    * Block transaction IDs
    *
-   * Retrieve all transaction IDs in a block. Returns an array of txids in block order.
+   * Transaction IDs in block order.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*
    *
@@ -8458,7 +8276,7 @@ address payload bytes.
   /**
    * Block transactions
    *
-   * Retrieve transactions in a block by block hash. Returns up to 25 transactions starting from index 0.
+   * Up to 25 transactions starting at index 0.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
    *
@@ -8476,13 +8294,13 @@ address payload bytes.
   /**
    * Block transactions (paginated)
    *
-   * Retrieve transactions in a block by block hash, starting from the specified index. Returns up to 25 transactions at a time.
+   * Up to 25 transactions starting at `start_index`.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
    *
    * Endpoint: `GET /api/block/{hash}/txs/{start_index}`
    *
-   * @param {BlockHash} hash - Bitcoin block hash
+   * @param {BlockHash} hash
    * @param {BlockTxIndex} start_index - Starting transaction index within the block (0-based)
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
@@ -8495,7 +8313,7 @@ address payload bytes.
   /**
    * Recent blocks
    *
-   * Retrieve the last 10 blocks. Returns block metadata for each block.
+   * The last 10 blocks.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
    *
@@ -8563,8 +8381,6 @@ address payload bytes.
   /**
    * List all mining pools
    *
-   * Get list of all known mining pools with their identifiers.
-   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
    *
    * Endpoint: `GET /api/v1/mining/pools`
@@ -8579,13 +8395,13 @@ address payload bytes.
   /**
    * Mining pool statistics
    *
-   * Get mining pool statistics for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+   * Get mining pool statistics for a time period.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
    *
    * Endpoint: `GET /api/v1/mining/pools/{time_period}`
    *
-   * @param {TimePeriod} time_period
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: PoolsSummary) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<PoolsSummary>}
    */
@@ -8597,7 +8413,7 @@ address payload bytes.
   /**
    * Mining pool details
    *
-   * Get detailed information about a specific mining pool including block counts and shares for different time periods.
+   * Block counts and mining shares by time period for one pool.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*
    *
@@ -8615,8 +8431,6 @@ address payload bytes.
   /**
    * All pools hashrate (all time)
    *
-   * Get hashrate data for all mining pools.
-   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate/pools`
@@ -8631,13 +8445,13 @@ address payload bytes.
   /**
    * All pools hashrate
    *
-   * Get hashrate data for all mining pools for a time period. Valid periods: `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+   * Get hashrate data for all mining pools for a time period.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate/pools/{time_period}`
    *
-   * @param {TimePeriod} time_period
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: PoolHashrateEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<PoolHashrateEntry[]>}
    */
@@ -8720,13 +8534,13 @@ address payload bytes.
   /**
    * Network hashrate
    *
-   * Get network hashrate and difficulty data for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+   * Get network hashrate and difficulty data for a time period.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate/{time_period}`
    *
-   * @param {TimePeriod} time_period
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: HashrateSummary) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<HashrateSummary>}
    */
@@ -8737,8 +8551,6 @@ address payload bytes.
 
   /**
    * Difficulty adjustments (all time)
-   *
-   * Get historical difficulty adjustments including timestamp, block height, difficulty value, and percentage change.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
    *
@@ -8754,13 +8566,13 @@ address payload bytes.
   /**
    * Difficulty adjustments
    *
-   * Get historical difficulty adjustments for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+   * Get historical difficulty adjustments for a time period.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
    *
    * Endpoint: `GET /api/v1/mining/difficulty-adjustments/{time_period}`
    *
-   * @param {TimePeriod} time_period
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: DifficultyAdjustmentEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<DifficultyAdjustmentEntry[]>}
    */
@@ -8790,13 +8602,13 @@ address payload bytes.
   /**
    * Block fees
    *
-   * Get average total fees per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+   * Get average total fees per block for a time period.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*
    *
    * Endpoint: `GET /api/v1/mining/blocks/fees/{time_period}`
    *
-   * @param {TimePeriod} time_period
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeesEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockFeesEntry[]>}
    */
@@ -8808,13 +8620,13 @@ address payload bytes.
   /**
    * Block rewards
    *
-   * Get average coinbase reward (subsidy + fees) per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+   * Get average coinbase reward (subsidy + fees) per block for a time period.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*
    *
    * Endpoint: `GET /api/v1/mining/blocks/rewards/{time_period}`
    *
-   * @param {TimePeriod} time_period
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockRewardsEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockRewardsEntry[]>}
    */
@@ -8826,13 +8638,13 @@ address payload bytes.
   /**
    * Block fee rates
    *
-   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
    *
    * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`
    *
-   * @param {TimePeriod} time_period
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeeRatesEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockFeeRatesEntry[]>}
    */
@@ -8844,13 +8656,13 @@ address payload bytes.
   /**
    * Block sizes and weights
    *
-   * Get average block sizes and weights for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+   * Get average block sizes and weights for a time period.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*
    *
    * Endpoint: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`
    *
-   * @param {TimePeriod} time_period
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockSizesWeights) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockSizesWeights>}
    */
@@ -8909,8 +8721,6 @@ address payload bytes.
 
   /**
    * Mempool statistics
-   *
-   * Get current mempool statistics including transaction count, total vsize, total fees, and fee histogram.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
    *
@@ -8972,7 +8782,7 @@ address payload bytes.
   /**
    * Recent RBF replacements
    *
-   * Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the same shape as `tx_rbf().replacements`.
+   * Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
    *
@@ -9034,7 +8844,7 @@ address payload bytes.
   /**
    * Live BTC/USD price
    *
-   * Returns the current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the last 12 blocks plus mempool.
+   * Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
    *
    * Endpoint: `GET /api/mempool/price`
    * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -9052,7 +8862,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/tx-index/{index}`
    *
-   * @param {TxIndex} index
+   * @param {TxIndex} index - Global transaction index across the chain
    * @param {{ signal?: AbortSignal, onValue?: (value: Txid) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Txid>}
    */
@@ -9100,8 +8910,6 @@ address payload bytes.
   /**
    * Transaction information
    *
-   * Retrieve complete transaction data by transaction ID (txid). Returns inputs, outputs, fee, size, and confirmation status.
-   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
    *
    * Endpoint: `GET /api/tx/{txid}`
@@ -9118,7 +8926,7 @@ address payload bytes.
   /**
    * Transaction hex
    *
-   * Retrieve the raw transaction as a hex-encoded string. Returns the serialized transaction in hexadecimal format.
+   * Hex-encoded serialized transaction.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*
    *
@@ -9154,8 +8962,6 @@ address payload bytes.
   /**
    * Transaction merkle proof
    *
-   * Get the merkle inclusion proof for a transaction.
-   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
    *
    * Endpoint: `GET /api/tx/{txid}/merkle-proof`
@@ -9172,13 +8978,13 @@ address payload bytes.
   /**
    * Output spend status
    *
-   * Get the spending status of a transaction output. Returns whether the output has been spent and, if so, the spending transaction details.
+   * Whether the output has been spent and, if so, the spending transaction details.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
    *
    * Endpoint: `GET /api/tx/{txid}/outspend/{vout}`
    *
-   * @param {Txid} txid - Transaction ID
+   * @param {Txid} txid
    * @param {Vout} vout - Output index
    * @param {{ signal?: AbortSignal, onValue?: (value: TxOutspend) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<TxOutspend>}
@@ -9191,7 +8997,7 @@ address payload bytes.
   /**
    * All output spend statuses
    *
-   * Get the spending status of all outputs in a transaction. Returns an array with the spend status for each output.
+   * Spend statuses in output-index order.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*
    *
@@ -9245,7 +9051,7 @@ address payload bytes.
   /**
    * Transaction first-seen times
    *
-   * Returns timestamps when transactions were first seen in the mempool. Returns 0 for mined or unknown transactions.
+   * First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
    *
@@ -9272,7 +9078,7 @@ address payload bytes.
    *
    * Endpoint: `POST /api/tx`
    *
-   * @param {string} body - Request body
+   * @param {string} body
    * @param {{ signal?: AbortSignal }} [options]
    * @returns {Promise<Txid>}
    */
@@ -9284,7 +9090,7 @@ address payload bytes.
   /**
    * Latest UTXO set
    *
-   * The UTXO set after the latest published block, by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+   * The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
    *
    * Endpoint: `GET /api/utxo-set`
    * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSet) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -9377,7 +9183,7 @@ address payload bytes.
   /**
    * Live output value histogram
    *
-   * Live unfiltered output value histogram for the complete published mempool. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+   * Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
    *
    * Endpoint: `GET /api/oracle/histogram/outputs/live`
    * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -9391,7 +9197,7 @@ address payload bytes.
   /**
    * Output value histogram at height or day
    *
-   * Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
+   * Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
    *
    * Endpoint: `GET /api/oracle/histogram/outputs/{point}`
    *
@@ -9422,7 +9228,7 @@ address payload bytes.
   /**
    * Compact API summary
    *
-   * Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.
+   * Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples; parameters keep their enum, default and bounds. Not valid OpenAPI: build tools from `GET /openapi.json`.
    *
    * Endpoint: `GET /api.json`
    * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]

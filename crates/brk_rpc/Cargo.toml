@@ -1,6 +1,6 @@
 [package]
 name = "brk_rpc"
-description = "A thin wrapper around Bitcoin Core's JSON-RPC"
+description = "Bitcoin Core JSON-RPC clients with retries and cookie refresh"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

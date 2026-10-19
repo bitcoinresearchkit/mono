@@ -12,7 +12,7 @@ const DIRECTORY_BITS: u32 = 20;
 #[derive(Clone)]
 pub struct HeightMap<I> {
     ranges: RangeMap<I, Height>,
-    // First boundary at or above each bucket; the final entry is ranges.len(). At most 2^20
+    // First boundary at or above each bucket; the final entry is ranges.len(). At most 2^20 + 1
     // entries, so an update copies it whole: contiguous, it keeps the hot lookups a load shorter.
     bounds: Arc<[u32]>,
     // The last boundary, inline for the hot tip check; meaningless while empty.
@@ -41,16 +41,16 @@ impl HeightMap<TxIndex> {
         if tx_len >= target_tx {
             target_height
         } else {
-            usize::from(self.get_shared(TxIndex::from(tx_len)).unwrap())
+            usize::from(self.get(TxIndex::from(tx_len)).unwrap())
         }
     }
 }
 
 impl<I: VecIndex> HeightMap<I> {
     #[inline]
-    pub fn get_shared(&self, index: I) -> Option<Height> {
+    pub fn get(&self, index: I) -> Option<Height> {
         let starts = self.ranges.starts();
-        // Every block range starts at index zero, so any index lies at or past the first.
+        // The first block range starts at index zero, so every index is at or past it.
         if starts.is_empty() {
             return None;
         }
@@ -71,7 +71,7 @@ impl<I: VecIndex> HeightMap<I> {
     }
 
     pub(super) fn update_at(&mut self, from: usize, starts: impl IntoIterator<Item = I>) {
-        assert!(from <= self.ranges.len());
+        debug_assert!(from <= self.ranges.len());
         self.ranges.truncate(from);
         let mut bounds = self.bounds.to_vec();
         if let Some(&last) = self.ranges.starts().last() {

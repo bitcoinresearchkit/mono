@@ -104,8 +104,8 @@ impl BlockAddresses {
                 let prev_addrbytes = processor
                     .vecs
                     .addrs
-                    .get_bytes_by_type(output.output_type, type_index, &processor.readers.addrs)
-                    .ok_or(Error::Internal("Missing addrbytes"))?;
+                    .bytes(output.output_type, type_index, &processor.readers.addrs)
+                    .ok_or(Error::Internal("Indexed address bytes missing"))?;
 
                 if prev_addrbytes != addr_bytes {
                     error!(

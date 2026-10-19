@@ -2,8 +2,6 @@ use std::ptr;
 
 use memmap2::MmapRaw;
 
-/// Copies a validated range into the mapping.
-///
 /// # Safety
 /// The destination range must be mapped and exclusively accessible.
 #[inline]

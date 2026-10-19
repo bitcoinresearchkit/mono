@@ -34,7 +34,6 @@ pub trait Quantity: Sized {
     type Sum: NumericValue + JsonSchema + Quantity + From<Self>;
 }
 
-/// Each quantity's mean and sum types.
 macro_rules! quantities {
     ($($quantity:ty => ($fract:ty, $sum:ty),)*) => {
         $(impl Quantity for $quantity {

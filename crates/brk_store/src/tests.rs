@@ -80,7 +80,6 @@ struct Case<V: StoreValue> {
     /// Keys put again over an ingested value, as a BIP30 duplicate is: a weak delete cancels
     /// only the newest value, so the indexer never deletes them.
     overwritten: BTreeSet<u32>,
-    /// Pinned views, each with the records it pinned.
     views: Vec<(StoreView<TxIndex, V>, Records<V>)>,
     /// A stray table file the next open must delete.
     orphan: Option<PathBuf>,
@@ -195,7 +194,7 @@ where
         }
         let (mut start, mut end) = (self.rng.key(), self.rng.key());
         if self.rng.coin() {
-            end = start.saturating_add(self.rng.below(64) as u32);
+            end = start + self.rng.below(64) as u32;
         }
         if start > end {
             mem::swap(&mut start, &mut end);

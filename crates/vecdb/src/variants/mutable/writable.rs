@@ -44,15 +44,15 @@ where
             self.holes.restore();
             self.updated.restore();
         } else {
-            *self.holes.current_mut() = Arc::clone(&self.published_holes.read());
-            self.updated.current_mut().clear();
+            self.holes.current = Arc::clone(&self.published_holes.read());
+            self.updated.current.clear();
         }
         self.vec.reset_unsaved();
     }
 
     #[inline]
     fn is_dirty(&self) -> bool {
-        self.vec.is_dirty() || self.holes_changed() || !self.current_updated().is_empty()
+        self.vec.is_dirty() || self.holes_changed() || !self.updated.current.is_empty()
     }
 
     fn rollback(&mut self) -> Result<()> {
@@ -64,14 +64,14 @@ where
         // Undo from the last save point, like the wrapped vec: unsaved updates are dropped (the
         // saved map holds what earlier undos restored and the stamp's values of rows written
         // since). Holes need no reset: the undo replaces them below.
-        *self.updated.current_mut() = self.updated.previous().clone();
+        self.updated.restore();
         self.vec.rollback_change(change)?;
         // Restored rows past the stored length live in the pushed values: updates there are stale.
         self.truncate_mutations_at(self.vec.stored_len());
         for (index, value) in modifications {
-            self.update_value_at(index, value)?;
+            self.update_at(index, value)?;
         }
-        *self.holes.current_mut() = Arc::new(previous_holes);
+        self.holes.current = Arc::new(previous_holes);
         // The modifications may land in restored pushed rows: the next undo starts from them.
         self.vec.save_previous_for_rollback();
         self.holes.save();

@@ -2,13 +2,10 @@ use bitview_types::TimePeriod;
 use brk_types::Height;
 use vecdb::ReadableVec;
 
-use crate::{Error as QueryError, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, Result};
 
-/// First block height inside `period` looking back from the tip;
-/// genesis (`Height(0)`) for `All`. Errors `Internal` if the chosen
-/// lookback vec is stamped short of the tip - separating the
-/// "all-time" case from a transient stamp-lag dropout that would
-/// otherwise silently widen a windowed query to the full chain.
+/// The first height of `period`'s timestamp lookback ending at `tip`; genesis for `All`.
+/// `Internal` when the lookback is missing or past `tip`.
 pub fn start_height(query: &Query, period: TimePeriod, tip: Height) -> Result<Height> {
     let lookback = &query.plugins().mappings.lookback;
     let start = match period {
@@ -24,9 +21,7 @@ pub fn start_height(query: &Query, period: TimePeriod, tip: Height) -> Result<He
         TimePeriod::All => Height::from(0_usize),
     };
     if start > tip {
-        return Err(QueryError::Internal(
-            "Mining lookback exceeds published tip",
-        ));
+        return Err(Error::Internal("Mining lookback exceeds published tip"));
     }
     Ok(start)
 }

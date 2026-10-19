@@ -1,5 +1,3 @@
-//! Tx-keyed reads.
-
 use std::hash::{Hash, Hasher};
 
 use brk_error::Result;
@@ -11,12 +9,6 @@ use crate::{
     key::{OutpointKey, TxKey},
     state::Pool,
 };
-
-fn transaction_times_hash(times: &[u64]) -> u64 {
-    let mut hasher = FxHasher::default();
-    times.hash(&mut hasher);
-    hasher.finish()
-}
 
 impl ReadOnlyState {
     pub fn contains_txid(&self, txid: &Txid, tip: &BlockHash) -> Result<bool> {
@@ -79,7 +71,9 @@ impl ReadOnlyState {
         let Some(transaction) = state.txs.get(txid) else {
             return Ok(None);
         };
-        Self::outspends_for(state, txid, transaction.output.len()).map(Some)
+        let mut outspends = vec![TxOutspend::UNSPENT; transaction.output.len()];
+        Self::overlay_outspends(state, txid, &mut outspends);
+        Ok(Some(outspends))
     }
 
     /// Overlay mempool spends onto unresolved outputs of a confirmed parent.
@@ -100,21 +94,15 @@ impl ReadOnlyState {
     }
 
     fn outspend_for(state: &Pool, txid: &Txid, vout: Vout) -> TxOutspend {
-        let Some((spender_txid, vin)) = Self::lookup_spender_for(state, txid, vout) else {
+        let Some((spender, vin)) = state.outpoint_spends.spender(&state.txs, txid, vout) else {
             return TxOutspend::UNSPENT;
         };
         TxOutspend {
             spent: true,
-            txid: Some(spender_txid),
+            txid: Some(spender.entry.txid),
             vin: Some(vin),
             status: Some(TxStatus::UNCONFIRMED),
         }
-    }
-
-    fn outspends_for(state: &Pool, txid: &Txid, output_count: usize) -> Result<Vec<TxOutspend>> {
-        let mut outspends = vec![TxOutspend::UNSPENT; output_count];
-        Self::overlay_outspends(state, txid, &mut outspends);
-        Ok(outspends)
     }
 
     /// Resolve a spender's inputs once for the whole parent, retaining exact
@@ -160,11 +148,6 @@ impl ReadOnlyState {
         }
     }
 
-    fn lookup_spender_for(state: &Pool, txid: &Txid, vout: Vout) -> Option<(Txid, Vin)> {
-        let (spender, vin) = state.outpoint_spends.spender(&state.txs, txid, vout)?;
-        Some((spender.entry.txid, vin))
-    }
-
     /// Order-sensitive validator for the current txid array.
     pub fn txids_hash(&self) -> Result<u64> {
         let state = self.pool()?;
@@ -186,15 +169,12 @@ impl ReadOnlyState {
     /// captured from one state snapshot.
     pub fn transaction_times_with_hash(&self, txids: &[Txid]) -> Result<(Vec<u64>, u64)> {
         let state = self.pool()?;
-        let times = Self::transaction_times_for(state, txids);
-        let hash = transaction_times_hash(&times);
-        Ok((times, hash))
-    }
-
-    fn transaction_times_for(state: &Pool, txids: &[Txid]) -> Vec<u64> {
-        txids
+        let times: Vec<u64> = txids
             .iter()
             .map(|txid| state.first_seen(txid).map_or(0, u64::from))
-            .collect()
+            .collect();
+        let mut hasher = FxHasher::default();
+        times.as_slice().hash(&mut hasher);
+        Ok((times, hasher.finish()))
     }
 }

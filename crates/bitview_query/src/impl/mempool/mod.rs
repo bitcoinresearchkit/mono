@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use brk_mempool::ReadOnlyState;
 pub use brk_mempool::{BlockTemplateSource, ResolvedBlockTemplateDiff};
-use brk_types::{
-    MempoolBlock, MempoolRecentTx, NextBlockHash, PreciseRecommendedFees, RecommendedFees, Txid,
-};
+use brk_types::{MempoolBlock, NextBlockHash, PreciseRecommendedFees, RecommendedFees, Txid};
 use serde::{Serialize, Serializer};
 use serde_json::to_vec;
 
@@ -26,7 +24,7 @@ pub(crate) fn anchored<T: Default>(view: brk_error::Result<T>) -> Result<T> {
 
 fn serialize_json<T: Serialize>(value: &T) -> (Vec<u8>, RepresentationId) {
     let bytes = to_vec(value).unwrap();
-    let identity = RepresentationId::Content(RepresentationId::content_hash(&bytes));
+    let identity = RepresentationId::content(&bytes);
     (bytes, identity)
 }
 
@@ -89,13 +87,9 @@ impl Query {
             .collect())
     }
 
-    fn mempool_recent(&self) -> Result<Vec<MempoolRecentTx>> {
-        Ok(self.require_mempool()?.recent_txs()?)
-    }
-
     /// Serialize recent transactions with their exact content identity.
     pub fn mempool_recent_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
-        let recent = self.mempool_recent()?;
+        let recent = self.require_mempool()?.recent_txs()?;
         Ok(serialize_json(&recent))
     }
 

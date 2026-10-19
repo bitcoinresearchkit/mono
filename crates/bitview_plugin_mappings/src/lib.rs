@@ -99,14 +99,14 @@ impl<M: StorageMode> Deref for Vecs<M> {
 
 impl Vecs {
     pub fn transaction_count_source(&self) -> LazyCumulativeIndexVec<Height, TxIndex> {
-        self.chain_counts.transaction_source()
+        self.chain_counts.transaction.clone()
     }
 
     pub fn input_count_source(&self) -> LazyCumulativeIndexVec<Height, TxInIndex> {
-        self.chain_counts.input_source()
+        self.chain_counts.input.clone()
     }
 
     pub fn output_count_source(&self) -> LazyCumulativeIndexVec<Height, TxOutIndex> {
-        self.chain_counts.output_source()
+        self.chain_counts.output.clone()
     }
 }

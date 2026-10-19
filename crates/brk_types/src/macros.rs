@@ -59,11 +59,9 @@ macro_rules! impl_int_format {
 }
 
 /// The impls every integer index newtype (`struct $t($inner)`) shares: arithmetic with itself and
-/// `usize`, checked subtraction, lossless conversions with `$inner` and `usize`, and integer
-/// formatting. Sentinels, narrowing conversions, capacity and aliases stay on each type.
-///
-/// The `vecdb` impls follow the calling crate's `storage` feature, which must enable `vecdb`; the
-/// calling crate gets `itoa` through `brk_types`.
+/// `usize`, checked subtraction, conversions with `$inner` and `usize` (a `usize` is cast to
+/// `$inner`, so it must fit), and formatting through [`impl_int_format`]. Sentinels, other
+/// conversions, capacity and aliases stay on each type.
 #[macro_export]
 macro_rules! impl_integer_index {
     ($t:ident, $inner:ty) => {

@@ -25,11 +25,6 @@ pub fn record_explicit_rbf_signal(flags: &mut TxFeatureFlags, sequence: Sequence
 }
 
 impl BlockProcessor<'_> {
-    #[inline]
-    pub fn tracks_executed_legacy_sigops(&self) -> bool {
-        policy::tracks_executed_legacy_sigops(self.height)
-    }
-
     /// Analyzes each transaction into `analyses`, cleared first.
     pub fn analyze_transactions(
         &self,
@@ -39,7 +34,7 @@ impl BlockProcessor<'_> {
         analyses: &mut Vec<TransactionAnalysis>,
     ) {
         let block_first_tx_index = self.lengths.tx_index;
-        let track_executed_legacy = self.tracks_executed_legacy_sigops();
+        let track_executed_legacy = policy::tracks_executed_legacy_sigops(self.height);
 
         analyses.clear();
         analyses.par_extend(txs.par_iter().map(|tx| {
@@ -59,9 +54,9 @@ impl BlockProcessor<'_> {
             } else {
                 for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
                     record_explicit_rbf_signal(&mut flags, input.sequence);
-                    let (output_type, legacy_sigops) = resolved_output_facts(source, txouts);
+                    let (output_type, legacy_sigop_cost) = resolved_output_facts(source, txouts);
                     let facts = input::analyze(input, output_type, &mut flags);
-                    sigops.scan_input(output_type, legacy_sigops, &facts);
+                    sigops.scan_input(output_type, legacy_sigop_cost, &facts);
                     policy.scan_input(input, output_type, &facts);
                 }
             }
@@ -94,12 +89,12 @@ pub fn resolved_output_facts(
     match source {
         InputSource::PreviousBlock {
             output_type,
-            legacy_sigops,
+            legacy_sigop_cost,
             ..
-        } => (*output_type, *legacy_sigops),
+        } => (*output_type, *legacy_sigop_cost),
         InputSource::SameBlock { txout_offset, .. } => {
             let output = &txouts[*txout_offset];
-            (output.output_type, output.legacy_sigops)
+            (output.output_type, output.legacy_sigop_cost)
         }
         InputSource::Coinbase => unreachable!(),
     }

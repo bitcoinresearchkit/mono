@@ -9,8 +9,7 @@ impl Vecs {
     pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
         let start = indexer.compute_start().height;
         let source = &indexer.vecs().transactions.features;
-        let this = self;
-        this.segwit.compute_cumulative_transformed(
+        self.segwit.compute_cumulative_transformed(
             start,
             &*indexer.vecs().blocks.segwit_tx_count,
             Count::from,
@@ -18,7 +17,7 @@ impl Vecs {
         )?;
         macro_rules! compute {
             ($($feature:ident),*) => {$(
-                this.$feature.count.compute_cumulative_transformed(
+                self.$feature.count.compute_cumulative_transformed(
                     start,
                     &*source.$feature.block,
                     Count::from,

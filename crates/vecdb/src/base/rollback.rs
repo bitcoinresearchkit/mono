@@ -27,7 +27,7 @@ where
                 S::write_to_vec(value, bytes);
             }
         };
-        let prev_stored_len = self.prev_stored_len();
+        let prev_stored_len = self.previous_stored_len;
         let stored_len = self.stored_len();
         let truncated = prev_stored_len.saturating_sub(stored_len);
 
@@ -98,7 +98,7 @@ where
     /// the next write persists the result.
     pub fn apply_rollback(&mut self, change: ChangeData<T>) {
         let stored_len = self.rollback_stored_len(&change);
-        let mut pushed = mem::take(self.pushed.previous_mut());
+        let mut pushed = mem::take(&mut self.pushed.previous);
         debug_assert!(
             self.previous_stored_len + pushed.len() >= change.truncated_start,
             "the state to undo is shorter than its change record's unchanged prefix"
@@ -110,7 +110,7 @@ where
         self.read_only.header.update_stamp(change.prev_stamp);
         self.read_only.stored_len.set(stored_len);
         self.previous_stored_len = stored_len;
-        *self.pushed.current_mut() = pushed;
+        self.pushed.current = pushed;
         self.pushed.save();
         self.unwritten_baseline = true;
     }
@@ -190,7 +190,7 @@ where
 
     pub fn save_prev(&mut self) {
         self.previous_stored_len = self.stored_len();
-        self.pushed.previous_mut().clear();
+        self.pushed.previous.clear();
     }
 
     pub fn save_prev_for_rollback(&mut self) {

@@ -1,5 +1,3 @@
-use std::ops::Mul;
-
 use derive_more::{Add, AddAssign, Deref, From, Into, Sub, SubAssign, Sum};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
@@ -98,13 +96,6 @@ impl From<VSize> for f64 {
     #[inline]
     fn from(value: VSize) -> Self {
         value.0 as f64
-    }
-}
-
-impl Mul<u32> for VSize {
-    type Output = Self;
-    fn mul(self, rhs: u32) -> Self::Output {
-        Self(self.0 * u64::from(rhs))
     }
 }
 

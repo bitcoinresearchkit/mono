@@ -1,11 +1,8 @@
-#![allow(clippy::type_complexity)]
-
 //! One private mempool writer and a shared immutable read publication.
 //!
 //! Fetch, prepare, apply, resolve inputs, and build the graph on the writer.
 //! Readers keep the last complete state until one atomic replacement publishes
 //! its successor. Transaction bodies are shared and use copy-on-write for fills.
-//!
 
 use std::sync::Arc;
 
@@ -35,7 +32,6 @@ use snapshot::Rebuilder;
 use state::State;
 
 /// Single owner of the mutable pool and update pipeline.
-///
 pub struct Mempool {
     client: Client,
     state: State,

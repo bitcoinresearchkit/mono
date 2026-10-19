@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-
 mod band;
 mod block_decay_percentiles;
 mod component;
@@ -37,11 +35,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    /// Completed reference prices are supplied by Holders, Cointime and Coinflow.
-    /// Reference-price components used by the Rarity Meter. A UTXO's creation
-    /// price is Bitcoin's spot price when that output was created. Realized
-    /// price is `sum(creation price x unspent sats) / sum(unspent sats)`;
-    /// capitalized price instead weights by creation-date value and is
+    /// Rarity Meter reference price. A UTXO's creation price is Bitcoin's spot
+    /// price when that output was created. Realized price is
+    /// `sum(creation price x unspent sats) / sum(unspent sats)`; capitalized
+    /// price instead weights by creation-date value and is
     /// `sum(creation price squared x unspent sats) / sum(creation price x
     /// unspent sats)`.
     components: Components<M>,

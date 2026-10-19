@@ -2,7 +2,7 @@ use brk_types::{Height, Timestamp, Weight};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// A single block weight data point.
+/// One time bucket of blocks.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockWeightEntry {

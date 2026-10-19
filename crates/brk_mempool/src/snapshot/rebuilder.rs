@@ -56,7 +56,7 @@ impl Rebuilder {
         for index in &block0 {
             excluded[index.as_usize()] = 1;
         }
-        let rest = partition::partition(&txs, &excluded, NUM_BLOCKS.saturating_sub(1));
+        let rest = partition::partition(&txs, &excluded, NUM_BLOCKS - 1);
 
         let mut blocks = Vec::with_capacity(NUM_BLOCKS);
         blocks.push(block0);
@@ -68,7 +68,7 @@ impl Rebuilder {
         snapshot
     }
 
-    pub fn snapshot(&self) -> Arc<Snapshot> {
-        self.snapshot.clone()
+    pub fn snapshot(&self) -> &Arc<Snapshot> {
+        &self.snapshot
     }
 }

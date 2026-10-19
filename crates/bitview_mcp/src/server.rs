@@ -33,7 +33,7 @@ use tokio::{
     task::spawn_blocking,
     time::timeout,
 };
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::{
     logo, manifest::Catalog, page, page::Pages, upstream::Upstream,
@@ -56,7 +56,7 @@ struct AppState {
 }
 
 #[derive(Clone)]
-struct BrkMcp {
+struct BitviewMcp {
     state: Arc<AppState>,
 }
 
@@ -82,7 +82,7 @@ pub fn router(
         display_name,
         public_url,
     });
-    let handler = BrkMcp {
+    let handler = BitviewMcp {
         state: state.clone(),
     };
     let service = StreamableHttpService::new(
@@ -105,7 +105,7 @@ pub fn router(
         .layer(middleware::from_fn(gateway_guard))
 }
 
-impl BrkMcp {
+impl BitviewMcp {
     fn server_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_protocol_version(ProtocolVersion::V_2026_07_28)
@@ -120,17 +120,15 @@ impl BrkMcp {
                     .with_website_url(&self.state.public_url),
             )
             .with_instructions(
-                "Read-only Bitcoin analytics tools backed by Bitview REST GET endpoints. \
-                 Calls use the configured public Cloudflare-cached API and never mutate upstream state. \
-                 Tool descriptions preserve the OpenAPI documentation and identify their underlying \
-                 REST operation. Use available list, search, and info operations to discover \
+                "Read-only Bitcoin analytics tools backed by the Bitview REST API's GET endpoints; \
+                 calls never mutate upstream state. Use the list, search, and info tools to discover \
                  identifiers before querying dynamic datasets. Binary responses are returned as \
                  embedded MCP resources.",
             )
     }
 }
 
-impl ServerHandler for BrkMcp {
+impl ServerHandler for BitviewMcp {
     fn supported_protocol_versions(&self) -> Cow<'static, [ProtocolVersion]> {
         Cow::Borrowed(&SUPPORTED_PROTOCOL_VERSIONS)
     }
@@ -154,7 +152,7 @@ impl ServerHandler for BrkMcp {
     ) -> impl Future<Output = Result<ListToolsResult, McpError>> + Send + '_ {
         let result = if request.and_then(|request| request.cursor).is_some() {
             Err(McpError::invalid_params(
-                "This complete tool catalog does not accept a cursor",
+                "The tool catalog does not accept a cursor",
                 None,
             ))
         } else {
@@ -202,10 +200,10 @@ impl ServerHandler for BrkMcp {
             .and_then(|parts| parts.extensions.get::<Arc<OwnedSemaphorePermit>>())
             .cloned();
         debug_assert!(permit.is_some(), "MCP POSTs are admitted before dispatch");
-        let upstream = self.state.upstream.clone();
+        let state = Arc::clone(&self.state);
         Ok(spawn_blocking(move || {
             let _permit = permit;
-            match upstream.fetch(url) {
+            match state.upstream.fetch(url) {
                 Ok(response) => {
                     log_cache_status(&name, &response);
                     render(response, has_output_schema)
@@ -279,8 +277,6 @@ fn log_cache_status(tool: &str, response: &UpstreamResponse) {
             cache_age = response.cache_age.as_deref().unwrap_or(""),
             "Bitview API response"
         );
-    } else {
-        warn!(tool, "Bitview API response did not include CF-Cache-Status");
     }
 }
 
@@ -302,7 +298,7 @@ fn render(response: UpstreamResponse, has_output_schema: bool) -> CallToolRespon
         .content_type
         .split(';')
         .next()
-        .unwrap_or("application/octet-stream")
+        .unwrap()
         .trim()
         .to_ascii_lowercase();
     let meta = Some(upstream_meta(&response));
@@ -327,10 +323,9 @@ fn render(response: UpstreamResponse, has_output_schema: bool) -> CallToolRespon
     if content_type.starts_with("text/") {
         return match String::from_utf8(response.body) {
             Ok(text) => {
-                let mut result = CallToolResult::success(vec![ContentBlock::text(text.clone())]);
-                if has_output_schema {
-                    result.structured_content = Some(Value::String(text));
-                }
+                let structured = has_output_schema.then(|| Value::String(text.clone()));
+                let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
+                result.structured_content = structured;
                 result.with_meta(meta).into()
             }
             Err(_) => tool_error("Bitview API returned invalid UTF-8 text"),

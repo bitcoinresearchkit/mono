@@ -59,7 +59,6 @@ impl Indexer<Ro> {
         }
     }
 
-    /// Scripts of indexed outputs.
     pub fn output_scripts(&self) -> OutputScripts<'_> {
         OutputScripts {
             indexer: self,
@@ -217,8 +216,6 @@ pub struct OutputScripts<'a> {
 }
 
 impl OutputScripts<'_> {
-    /// The script of output `vout` of `tx_index`, indexed with `output_type`, `type_index` and
-    /// `value`.
     pub fn get(
         &mut self,
         tx_index: TxIndex,

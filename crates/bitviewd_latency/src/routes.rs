@@ -22,7 +22,10 @@ pub fn catalog() -> Vec<&'static str> {
 }
 
 pub fn endpoint<'a>(uri: &'a str, routes: &'a [&str]) -> &'a str {
-    let path = uri.split('?').next().unwrap_or(uri).trim_end_matches('/');
+    let path = uri
+        .split_once('?')
+        .map_or(uri, |(path, _)| path)
+        .trim_end_matches('/');
     let path = if path.is_empty() { "/" } else { path };
     for route in routes {
         let mut actual = path.split('/');

@@ -22,8 +22,8 @@ pub struct RawBodyPermit {
 }
 
 impl RawBodyPermit {
-    // At most 32 MB of raw serialized payloads (8 * the 4 MB block bound),
-    // plus bounded-per-response encoder state and one admitted decoder.
+    // Eight concurrent responses per budget: raw blocks are at most 4 MB each (32 MB in all),
+    // chain JSON can be larger.
     #[cfg(feature = "chain")]
     pub const CAPACITY: usize = 8;
 

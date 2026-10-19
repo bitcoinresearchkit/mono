@@ -4,14 +4,12 @@ use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Sats};
 
 use super::{
     SendPrecomputed, UnrealizedState,
-    cost_basis::{CostBasisData, CostBasisOps, MinimalRealizedState, RealizedOps},
+    cost_basis::{CostBasisDistribution, CostBasisOps, MinimalRealizedState, RealizedOps},
 };
 use crate::metrics::RealizedBlockData;
 
-/// A UTXO cohort's accounting state.
-pub type UTXOCohortState<R, C> = CohortState<R, C>;
 /// A UTXO cohort's accounting state with its cost basis distribution.
-pub type MappedUTXOCohortState<R> = CohortState<R, CostBasisData>;
+pub type MappedUTXOCohortState<R> = CohortState<R, CostBasisDistribution>;
 
 #[derive(Default)]
 pub struct CohortState<R: RealizedOps, C: CostBasisOps> {
@@ -25,21 +23,11 @@ pub struct CohortState<R: RealizedOps, C: CostBasisOps> {
 
 impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
     #[inline(always)]
-    pub fn supply_value(&self) -> Sats {
-        self.supply.value
-    }
-
-    #[inline(always)]
     pub fn output_counts(&self) -> (Count, Count) {
         (
             Count::from(self.supply.utxo_count),
             Count::from(self.spent_utxo_count),
         )
-    }
-
-    #[inline(always)]
-    pub fn transfer_volume(&self) -> Sats {
-        self.sent
     }
 
     #[inline(always)]
@@ -66,13 +54,13 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         self.cost_basis.apply_pending();
     }
 
-    pub fn reset_single_iteration_values(&mut self) {
+    pub fn reset_block(&mut self) {
         self.sent = Sats::ZERO;
         self.spent_utxo_count = 0;
         if R::TRACK_ACTIVITY {
             self.satdays_destroyed = Sats::ZERO;
         }
-        self.realized.reset_single_iteration_values();
+        self.realized.reset_block();
     }
 
     pub fn increment_snapshot(&mut self, s: &CostBasisSnapshot) {
@@ -97,8 +85,8 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         }
     }
 
-    /// One received output. Several cohorts receiving the same output share one snapshot's
-    /// products through [`Self::increment_snapshot`] instead.
+    /// Receives outputs created at one `price`. Several cohorts receiving the same outputs share
+    /// one snapshot's products through [`Self::increment_snapshot`] instead.
     pub fn receive_utxo(&mut self, supply: &SupplyState, price: Cents) {
         self.supply += supply;
 
@@ -144,7 +132,7 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
     }
 }
 
-impl<R: RealizedOps> CohortState<R, CostBasisData> {
+impl<R: RealizedOps> CohortState<R, CostBasisDistribution> {
     pub fn finish_restore(&mut self) {
         self.cost_basis.finish_restore();
     }

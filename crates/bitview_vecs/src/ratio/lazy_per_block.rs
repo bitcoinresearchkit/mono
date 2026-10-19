@@ -2,30 +2,22 @@ use bitview_compute::{FixedRatio, NumericValue};
 use bitview_primitives::Ratio;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
-use schemars::JsonSchema;
 use vecdb::{BinaryTransform, Ident, ReadableCloneableVec};
 
 use crate::{IndexSources, LazyIndexedVec, LazyPerBlock, ops::FixedToRatio};
 
-/// Fully lazy variant of `RatioPerBlock` derived from one per-block source.
+/// Lazy fixed-point and public ratio views over per-block sources.
 #[derive(Clone, Traversable)]
 #[traversable(merge)]
-pub struct LazyRatioPerBlock<R, S = R>
-where
-    R: FixedRatio,
-    S: NumericValue + JsonSchema,
-{
-    /// Fixed-point storage: parts per million (1,000,000 represents 1.0) or basis points.
+pub struct LazyRatioPerBlock<R: FixedRatio> {
+    /// Fixed-point ratio in parts per million; 1,000,000 represents 1.0.
     #[traversable(hidden)]
-    pub fixed: LazyPerBlock<R, S>,
+    pub fixed: LazyPerBlock<R>,
     /// As a ratio.
     ratio: LazyPerBlock<Ratio, R>,
 }
 
-impl<R> LazyRatioPerBlock<R>
-where
-    R: FixedRatio,
-{
+impl<R: FixedRatio> LazyRatioPerBlock<R> {
     /// `F` of two per-block sources; they own their caches, the views retain no history.
     pub fn from_ratio<S, D, F>(
         name: &str,

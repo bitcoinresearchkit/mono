@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use bitview_primitives::Epoch;
 use bitview_types::DifficultyAdjustment;
-use brk_types::{BLOCKS_PER_DIFF_EPOCHS as BLOCKS_PER_EPOCH, Height};
+use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height};
 use vecdb::ReadableVec;
 
 use crate::{OptionData, Query, Result};
@@ -13,12 +13,10 @@ const TARGET_BLOCK_TIME: u64 = 600;
 const QUARTER_EPOCH: u32 = 503;
 
 impl Query {
-    /// Live difficulty-adjustment snapshot for the current epoch, as mempool.space computes it
-    /// on mainnet but measured to the tip block's time instead of the wall clock (cacheable per
-    /// block). Bundles progress through the 2016-block window, the projection pace
-    /// (`adjustedTimeAvg`) with the next-retarget percentage, remaining blocks and time at it, an estimated wall-clock retarget time, and the previous
-    /// retarget percentage (current vs previous epoch first-block difficulty). Output time
-    /// fields are in milliseconds.
+    /// The current epoch's difficulty-adjustment snapshot, as mempool.space computes it on
+    /// mainnet but with elapsed time measured to the tip block (cacheable per block).
+    /// `previous_retarget` compares the current and previous epochs' first-block difficulties.
+    /// Time fields are in milliseconds; the estimated retarget date uses the wall clock.
     pub fn difficulty_adjustment(&self) -> Result<DifficultyAdjustment> {
         let pin = self.pin_safe_lengths()?;
         let indexer = self.indexer();
@@ -27,13 +25,13 @@ impl Query {
         let current_height_u32: u32 = current_height.into();
 
         let current_epoch = Epoch::from(current_height);
-        let blocks_into_epoch = current_height_u32 % BLOCKS_PER_EPOCH;
+        let blocks_into_epoch = current_height_u32 % BLOCKS_PER_DIFF_EPOCH;
         let epoch_start_u32 = current_height_u32 - blocks_into_epoch;
         let epoch_start_height = Height::from(epoch_start_u32);
 
-        let next_retarget_height = epoch_start_u32 + BLOCKS_PER_EPOCH;
+        let next_retarget_height = epoch_start_u32 + BLOCKS_PER_DIFF_EPOCH;
         let remaining_blocks = next_retarget_height - current_height_u32;
-        let progress_percent = (blocks_into_epoch as f64 / BLOCKS_PER_EPOCH as f64) * 100.0;
+        let progress_percent = (blocks_into_epoch as f64 / BLOCKS_PER_DIFF_EPOCH as f64) * 100.0;
 
         let epoch_start_timestamp = plugins
             .mappings
@@ -62,7 +60,7 @@ impl Query {
         };
 
         let previous_retarget = if epoch_start_u32 > 0 {
-            let prev_epoch_start = Height::from(epoch_start_u32 - BLOCKS_PER_EPOCH);
+            let prev_epoch_start = Height::from(epoch_start_u32 - BLOCKS_PER_DIFF_EPOCH);
             let prev_difficulty = indexer
                 .vecs()
                 .blocks
@@ -76,11 +74,7 @@ impl Query {
                 .collect_one(epoch_start_height)
                 .data()?;
 
-            if *prev_difficulty > 0.0 {
-                ((*curr_difficulty / *prev_difficulty) - 1.0) * 100.0
-            } else {
-                0.0
-            }
+            ((*curr_difficulty / *prev_difficulty) - 1.0) * 100.0
         } else {
             0.0
         };

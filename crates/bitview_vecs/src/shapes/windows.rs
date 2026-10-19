@@ -1,5 +1,3 @@
-use std::result::Result;
-
 use bitview_traversable::Traversable;
 
 #[derive(Clone, Copy, Traversable)]
@@ -34,7 +32,6 @@ impl<A> Windows<A> {
         [&mut self._24h, &mut self._1w, &mut self._1m, &mut self._1y]
     }
 
-    /// Pairs two window sets member by member.
     pub fn zip_with_suffix<B, C>(
         &self,
         other: &Windows<B>,

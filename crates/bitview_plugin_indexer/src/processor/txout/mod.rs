@@ -69,7 +69,7 @@ impl<'a> BlockProcessor<'a> {
 
             ProcessedOutput {
                 output_type,
-                legacy_sigops: SigOps32::from(executed.saturating_mul(WITNESS_SCALE_FACTOR)),
+                legacy_sigop_cost: SigOps32::from(executed * WITNESS_SCALE_FACTOR),
                 data,
             }
         }));
@@ -110,7 +110,7 @@ pub fn finalize_outputs(
             let vout_index = vout as u32;
             let vout = Vout::from(vout);
             let output_type = processed.output_type;
-            let legacy_sigops = processed.legacy_sigops;
+            let legacy_sigop_cost = processed.legacy_sigop_cost;
             let data = processed.data;
             let sats = Sats::from(txout.value);
 
@@ -130,7 +130,7 @@ pub fn finalize_outputs(
                             .insert(addr_hash, ti);
                         let addr_bytes =
                             AddressBytes::try_from((&txout.script_pubkey, addr_type)).unwrap();
-                        addrs.push_bytes_if_needed(ti, addr_bytes);
+                        addrs.push_bytes(ti, addr_bytes);
 
                         ti
                     }
@@ -140,7 +140,7 @@ pub fn finalize_outputs(
 
                     op_return_vecs
                         .to_tx_index
-                        .debug_checked_push(lengths.op_return_index, tx_index);
+                        .debug_checked_push(op_return_index, tx_index);
                     op_return_vecs
                         .kind
                         .debug_checked_push(op_return_index, op_return.kind);
@@ -157,7 +157,7 @@ pub fn finalize_outputs(
                         scripts
                             .p2ms
                             .legacy_sigop_cost
-                            .debug_checked_push(index, legacy_sigops);
+                            .debug_checked_push(index, legacy_sigop_cost);
                         lengths.p2ms_output_index.copy_then_increment()
                     }
                     OutputType::Empty => {
@@ -176,7 +176,7 @@ pub fn finalize_outputs(
                         scripts
                             .unknown
                             .legacy_sigop_cost
-                            .debug_checked_push(index, legacy_sigops);
+                            .debug_checked_push(index, legacy_sigop_cost);
                         lengths.unknown_output_index.copy_then_increment()
                     }
                     _ => unreachable!(),

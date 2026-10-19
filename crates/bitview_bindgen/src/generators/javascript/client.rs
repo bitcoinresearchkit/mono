@@ -1,5 +1,3 @@
-//! JavaScript base client and leaf accessors.
-
 use std::fmt::Write;
 
 use crate::{
@@ -50,31 +48,27 @@ const _ADDRESS_PAYLOAD_LENGTHS = new Map([
     output.push_str(include_str!("runtime.js"));
 }
 
-/// Generate static constants for the BitviewClient class.
-pub(crate) fn generate_static_constants(output: &mut String) {
+/// The client's constant fields and date conversion methods.
+pub(crate) fn generate_constants(output: &mut String) {
     let constants = ClientConstants::collect();
 
-    // VERSION, INDEXES, POOL_ID_TO_POOL_NAME
     writeln!(output, "  VERSION = \"{}\";\n", constants.version).unwrap();
-    write_static_const(output, "INDEXES", &format_json(&constants.indexes));
-    write_static_const(
+    write_const(output, "INDEXES", &format_json(&constants.indexes));
+    write_const(
         output,
         "POOL_ID_TO_POOL_NAME",
         &format_json(&constants.pool_map),
     );
-
-    // Cohort constants with camelCase keys
     for (name, value) in cohort_constants() {
-        write_static_const(output, name, &format_json(&camel_case_keys(value)));
+        write_const(output, name, &format_json(&camel_case_keys(value)));
     }
 
-    // Helper methods
     writeln!(
         output,
         r#"  /**
-   * Convert an index value to a Date for date-based indexes.
-   * @param {{Index}} index - The index type
-   * @param {{number}} i - The index value
+   * The UTC start of bucket `i`; throws for an index without a date calendar.
+   * @param {{Index}} index
+   * @param {{number}} i
    * @returns {{globalThis.Date}}
    */
   indexToDate(index, i) {{
@@ -82,9 +76,10 @@ pub(crate) fn generate_static_constants(output: &mut String) {
   }}
 
   /**
-   * Convert a Date to an index value for date-based indexes.
-   * @param {{Index}} index - The index type
-   * @param {{globalThis.Date}} d - The date to convert
+   * The floor index (latest index whose date is <= the given date); throws for dates before the
+   * index's first date.
+   * @param {{Index}} index
+   * @param {{globalThis.Date}} d
    * @returns {{number}}
    */
   dateToIndex(index, d) {{
@@ -110,7 +105,7 @@ fn indent_json_const(json: &str) -> String {
         .join("\n")
 }
 
-fn write_static_const(output: &mut String, name: &str, json: &str) {
+fn write_const(output: &mut String, name: &str, json: &str) {
     writeln!(
         output,
         "  {} = /** @type {{const}} */ ({});\n",
@@ -120,15 +115,7 @@ fn write_static_const(output: &mut String, name: &str, json: &str) {
     .unwrap();
 }
 
-/// Generate index accessor factory functions.
 pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
-    if patterns.is_empty() {
-        return;
-    }
-
-    writeln!(output, "// Index group constants and factory\n").unwrap();
-
-    // Generate index array constants (e.g., _i1 = ["day1", "height"])
     for (i, pattern) in patterns.iter().enumerate() {
         write!(output, "const _i{} = /** @type {{const}} */ ([", i + 1).unwrap();
         for (j, index) in pattern.indexes.iter().enumerate() {
@@ -141,17 +128,15 @@ pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSet
     }
     writeln!(output).unwrap();
 
-    // Generate ONE generic series pattern factory
     writeln!(
         output,
         r#"/**
- * Generic series pattern factory.
  * @template T
  * @param {{BitviewClient}} client
- * @param {{string}} name - The series vec name
- * @param {{readonly Index[]}} indexes - The supported indexes
+ * @param {{string}} name
+ * @param {{readonly Index[]}} indexes
  */
-function _mp(client, name, indexes) {{
+function _seriesPattern(client, name, indexes) {{
   const by = {{}};
   for (const idx of indexes) {{
     Object.defineProperty(by, idx, {{
@@ -173,9 +158,7 @@ function _mp(client, name, indexes) {{
     )
     .unwrap();
 
-    // Typedefs of the leaf accessors
     for pattern in patterns {
-        // Generate typedef for type safety
         let by_fields: Vec<String> = pattern
             .indexes
             .iter()

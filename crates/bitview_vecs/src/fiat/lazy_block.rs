@@ -3,7 +3,7 @@ use vecdb::{Convert, LazyVec, ReadableCloneableVec};
 
 use crate::{Fiat, FiatType, LazyPerBlock, LazyPreviousDeltaVec};
 
-/// Per-block fiat data derived from stored cumulative cents.
+/// Per-block fiat values derived from cumulative cents.
 pub type LazyFiatBlock<C> = Fiat<LazyPreviousDeltaVec<Height, C>, LazyVec<Height, Dollars, C>>;
 
 impl<C: FiatType> LazyFiatBlock<C> {

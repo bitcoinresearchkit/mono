@@ -8,8 +8,8 @@ pub use map_option::MapOption;
 
 use crate::{READ_CHUNK_SIZE, ReadableBoxedVec, ReadableVec, VecIndex, VecValue};
 
-/// Trait for unary transforms applied lazily during iteration.
-/// Zero-sized types implementing this get monomorphized (zero runtime cost).
+/// A unary operation passed by type (usually a zero-sized struct): calls are statically
+/// dispatched.
 pub trait UnaryTransform<In, Out = In> {
     fn apply(value: In) -> Out;
 

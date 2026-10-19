@@ -31,7 +31,6 @@ impl LazyRollingAvgsAmountFromHeight {
         Self(window_starts.map_with_suffix(|suffix, window_start| {
             let full_name = format!("{name}_{suffix}");
 
-            // Sats rolling average, stored as a float.
             let sats = LazyRollingAvgFromHeight::from_source(
                 &format!("{full_name}_sats"),
                 version,
@@ -40,11 +39,9 @@ impl LazyRollingAvgsAmountFromHeight {
                 indexes,
             );
 
-            // BTC from the sats average.
             let btc =
                 LazyPerBlock::from_resolutions::<Convert>(&full_name, version, &sats.resolutions);
 
-            // Cents rolling average, stored as a float.
             let cents = LazyRollingAvgFromHeight::from_source(
                 &format!("{full_name}_cents"),
                 version,
@@ -53,7 +50,6 @@ impl LazyRollingAvgsAmountFromHeight {
                 indexes,
             );
 
-            // USD from the cents average.
             let usd = LazyPerBlock::from_resolutions::<Convert>(
                 &format!("{full_name}_usd"),
                 version,

@@ -14,7 +14,7 @@ use serde_json::{json as SerdeJsonJson, to_string_pretty};
 #[cfg(feature = "embedded")]
 mod include_dir;
 
-/// Import map structure matching the web standard.
+/// Original asset URLs mapped to their content-hashed URLs, stylesheets included.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ImportMap(BTreeMap<String, String>);
 
@@ -32,7 +32,6 @@ impl ImportMap {
     const MARKER_OPEN: &str = "<!-- IMPORTMAP -->";
     const MARKER_CLOSE: &str = "<!-- /IMPORTMAP -->";
 
-    /// Scan a directory and generate an import map.
     pub fn scan(dir: &Path, base_url: &str) -> io::Result<Self> {
         let mut map = Self::default();
         let base_url = base_url.trim_end_matches('/');
@@ -46,56 +45,45 @@ impl ImportMap {
             if path.is_dir() {
                 self.scan_fs(root, &path, base_url)?;
             } else if let Ok(relative) = path.strip_prefix(root)
-                && Self::includes(relative)
+                && let Some((stem, ext)) = Self::asset(relative)
             {
-                self.process_file(relative, &fs::read(&path)?, base_url);
+                self.insert(relative, stem, ext, &fs::read(&path)?, base_url);
             }
         }
         Ok(())
     }
 
-    /// Shared file selection for filesystem and embedded scans.
-    fn includes(path: &Path) -> bool {
-        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-
+    /// The stem and extension of an asset the map hashes, shared by filesystem and embedded
+    /// scans; `None` for skipped files.
+    fn asset(path: &Path) -> Option<(&str, &str)> {
+        let ext = path.extension()?.to_str()?;
         if !Self::EXTENSIONS.contains(&ext) {
-            return false;
+            return None;
         }
 
         // Skip JS files at root (e.g. service-worker.js)
         if ext == "js" && path.parent().is_none_or(|p| p == Path::new("")) {
-            return false;
+            return None;
         }
 
-        // Skip development builds and test files
-        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        let name = path.file_name()?.to_str()?;
         if name.contains(".development.") || name.contains(".dev.") || name.contains(".test.") {
-            return false;
+            return None;
         }
 
         // Skip underscore-prefixed files (partials/internal)
         if name.starts_with('_') {
-            return false;
+            return None;
         }
 
-        // Skip test files
         if path.components().any(|c| c.as_os_str() == "tests") {
-            return false;
+            return None;
         }
 
-        path.file_stem().and_then(|s| s.to_str()).is_some()
+        Some((path.file_stem()?.to_str()?, ext))
     }
 
-    /// Process a file and insert into imports if it should be included.
-    fn process_file(&mut self, path: &Path, contents: &[u8], base_url: &str) {
-        if !Self::includes(path) {
-            return;
-        }
-        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-        let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
-            return;
-        };
-
+    fn insert(&mut self, path: &Path, stem: &str, ext: &str, contents: &[u8], base_url: &str) {
         let hash = Self::hash(contents);
 
         let original_url = format!("{}/{}", base_url, path.display());
@@ -115,7 +103,7 @@ impl ImportMap {
         Some(path.with_file_name(format!("{}.{}", name, ext)))
     }
 
-    /// Whether the filename carries this content hash (`foo.abc12345.js`), so it never changes.
+    /// Whether a hashed asset filename (`foo.abc12345.js`) names exactly `hash`.
     pub fn names_hash(path: &Path, hash: &str) -> bool {
         Self::split_hash(path).is_some_and(|(_, named, _)| named == hash)
     }
@@ -178,7 +166,7 @@ impl ImportMap {
             .map(|(url, hashed)| (url.as_str(), hashed.as_str()))
             .collect();
         if !js.is_empty() {
-            let json = to_string_pretty(&SerdeJsonJson!({ "imports": js })).ok()?;
+            let json = to_string_pretty(&SerdeJsonJson!({ "imports": js })).unwrap();
             write!(content, "<script type=\"importmap\">\n{json}\n</script>").unwrap();
             for url in js.values() {
                 write!(content, "\n<link rel=\"modulepreload\" href=\"{url}\">").unwrap();

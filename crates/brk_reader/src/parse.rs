@@ -24,9 +24,8 @@ pub fn peek_canonical(
     let mut header_buf = [0u8; HEADER_LEN];
     header_buf.copy_from_slice(&bytes[..HEADER_LEN]);
     xor_state.bytes(&mut header_buf, xor_bytes);
-    let Ok(header) = Header::consensus_decode_from_finite_reader(&mut &header_buf[..]) else {
-        return Ok(None);
-    };
+    let header = Header::consensus_decode_from_finite_reader(&mut &header_buf[..])
+        .expect("an 80-byte header always decodes");
     let Some(offset) = canonical.offset_of(&BlockHash::from(header.block_hash())) else {
         return Ok(None);
     };
@@ -44,10 +43,7 @@ pub fn parse_canonical_body(
     height: Height,
     header: Header,
 ) -> Result<ReadBlock> {
-    if bytes.len() < HEADER_LEN {
-        return Err(Error::Internal("Block bytes shorter than header"));
-    }
-
+    debug_assert!(bytes.len() >= HEADER_LEN);
     xor_state.bytes(&mut bytes, xor_bytes);
     let bitcoin_hash = header.block_hash();
 

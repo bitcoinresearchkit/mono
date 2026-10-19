@@ -29,25 +29,3 @@ pub struct FeeRatePercentiles {
     #[serde(rename = "avgFee_100")]
     pub max: FeeRate,
 }
-
-impl FeeRatePercentiles {
-    pub fn new(
-        min: FeeRate,
-        pct10: FeeRate,
-        pct25: FeeRate,
-        median: FeeRate,
-        pct75: FeeRate,
-        pct90: FeeRate,
-        max: FeeRate,
-    ) -> Self {
-        Self {
-            min,
-            pct10,
-            pct25,
-            median,
-            pct75,
-            pct90,
-            max,
-        }
-    }
-}

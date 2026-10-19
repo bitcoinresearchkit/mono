@@ -1,6 +1,6 @@
 [package]
 name = "bitview_bindgen"
-description = "A trait-based generator of client bindings for multiple languages"
+description = "Generates Bitview's Rust, CLI, JavaScript and Python clients, LLM references and MCP tool manifest"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,7 +9,6 @@ repository.workspace = true
 
 [dependencies]
 bitview_primitives = { workspace = true }
-derive_more = { workspace = true }
 bitview_cohort = { workspace = true }
 bitview_catalog = { workspace = true }
 brk_types = { workspace = true }

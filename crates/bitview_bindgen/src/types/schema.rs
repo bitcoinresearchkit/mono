@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use serde_json::Value;
 
-/// Unwrap allOf with a single element, returning the inner schema.
-/// Schemars uses allOf for composition, but often with just one $ref.
+/// Unwrap allOf with a single element, returning the inner schema: schemars can wrap a single
+/// `$ref` in `allOf`.
 pub(crate) fn unwrap_allof(schema: &Value) -> &Value {
     if let Some(all_of) = schema.get("allOf").and_then(|v| v.as_array())
         && all_of.len() == 1
@@ -13,24 +13,13 @@ pub(crate) fn unwrap_allof(schema: &Value) -> &Value {
     schema
 }
 
-/// Extract inner type from a wrapper generic like `Close<Dollars>` -> `Dollars`.
-/// Also handles malformed types like `Dollars>` (from vecdb's short_type_name).
-pub(crate) fn extract_inner_type(type_str: &str) -> String {
-    inner_type(type_str).to_owned()
-}
-
-/// Borrow the same normalized inner type when the caller does not need ownership.
-fn inner_type(type_str: &str) -> &str {
-    // Handle proper generic wrappers like `Close<Dollars>` -> `Dollars`
+/// The type inside a wrapper generic: `Close<Dollars>` -> `Dollars`.
+pub(crate) fn inner_type(type_str: &str) -> &str {
     if let Some(start) = type_str.find('<')
         && let Some(end) = type_str.rfind('>')
         && start < end
     {
         return &type_str[start + 1..end];
-    }
-    // Handle malformed types like `Dollars>` (trailing > without <)
-    if type_str.ends_with('>') && !type_str.contains('<') {
-        return type_str.trim_end_matches('>');
     }
     type_str
 }
@@ -47,10 +36,9 @@ pub(crate) fn client_value_type(kind: &str, list: fn(&str) -> String) -> String 
     }
 }
 
-/// Extract type name from a JSON Schema $ref path.
-/// E.g., "#/definitions/MyType" -> "MyType", "#/$defs/Foo" -> "Foo"
-pub(crate) fn ref_to_type_name(ref_path: &str) -> Option<&str> {
-    ref_path.rsplit('/').next()
+/// The type name of a JSON Schema `$ref`: `#/definitions/MyType` -> `MyType`.
+pub(crate) fn ref_to_type_name(ref_path: &str) -> &str {
+    ref_path.rsplit_once('/').map_or(ref_path, |(_, name)| name)
 }
 
 /// Every type name a schema references through `$ref`, at any depth.
@@ -60,7 +48,7 @@ pub(crate) fn collect_schema_refs<'a>(schema: &'a Value, refs: &mut BTreeSet<&'a
             if let Some(type_name) = map
                 .get("$ref")
                 .and_then(Value::as_str)
-                .and_then(ref_to_type_name)
+                .map(ref_to_type_name)
             {
                 refs.insert(type_name);
             }

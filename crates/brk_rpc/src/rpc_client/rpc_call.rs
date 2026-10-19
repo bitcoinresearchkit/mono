@@ -17,8 +17,4 @@ impl RpcCall {
             params: to_raw_value(params)?,
         })
     }
-
-    pub fn empty(method: &'static str) -> JsonResult<Self> {
-        Self::new(method, &[] as &[()])
-    }
 }

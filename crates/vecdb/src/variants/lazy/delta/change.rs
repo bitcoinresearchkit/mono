@@ -3,8 +3,8 @@ use crate::CheckedSub;
 use super::{DeltaOp, exact_diff};
 
 /// Change over a window: `source[h] - source[start - 1]` (the value before the window, zero for
-/// a window from 0), subtracted exactly, then converted (unsigned → signed). Over a cumulative
-/// level this equals the sum of its flows in `[start, h]`.
+/// a window from 0), taken in `S` before converting to `f64` (in `f64` when it exceeds `S`'s
+/// range). Over a cumulative level this equals the sum of its flows in `[start, h]`.
 #[derive(Clone, Copy)]
 pub struct DeltaChange;
 

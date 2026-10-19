@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeSet, fmt::Write};
 
-use super::{api::generate_api_methods, client::generate_static_constants};
+use super::{api::generate_api_methods, client::generate_constants};
 use crate::{
     Endpoint, IndexSetPattern, accessor_of, client_value_type, js_field_name,
     model::{ChildKind, Model, TyExpr, param_name},
@@ -24,11 +24,11 @@ const RUNTIME: &str = r#"/**
  */
 function _n(c, b, children) {
   const node = {};
-  for (const [key, [make, t]] of Object.entries(children)) {
+  for (const [key, [make, template]] of Object.entries(children)) {
     Object.defineProperty(node, key, {
       get() {
-        const name = t.replace(b ? '*' : /^\*_|_?\*/, b);
-        return _lazy(this, key, () => typeof make === 'function' ? make(c, name) : _mp(c, name, make));
+        const name = template.replace(b ? '*' : /^\*_|_?\*/, b);
+        return _lazy(this, key, () => typeof make === 'function' ? make(c, name) : _seriesPattern(c, name, make));
       },
       enumerable: true,
       configurable: true,
@@ -55,7 +55,6 @@ pub(crate) fn generate_tree(
     accessors: &[IndexSetPattern],
     undefined_types: &BTreeSet<String>,
 ) {
-    writeln!(output, "// Series tree\n").unwrap();
     output.push_str(RUNTIME);
     let tree = Tree {
         model,
@@ -180,30 +179,18 @@ impl Tree<'_> {
     }
 }
 
-/// Generate the main BitviewClient class.
 pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
     writeln!(output, "/**").unwrap();
     writeln!(
         output,
-        " * Main Bitview client with series tree and API methods"
+        " * A method per API endpoint, and the typed series tree."
     )
     .unwrap();
     writeln!(output, " * @extends BitviewClientBase").unwrap();
     writeln!(output, " */").unwrap();
     writeln!(output, "class BitviewClient extends BitviewClientBase {{").unwrap();
 
-    generate_static_constants(output);
-
-    writeln!(output, "  /**").unwrap();
-    writeln!(
-        output,
-        "   * @param {{BitviewClientOptions|string}} options"
-    )
-    .unwrap();
-    writeln!(output, "   */").unwrap();
-    writeln!(output, "  constructor(options) {{").unwrap();
-    writeln!(output, "    super(options);").unwrap();
-    writeln!(output, "  }}\n").unwrap();
+    generate_constants(output);
 
     writeln!(output, "  /** @returns {{SeriesTree}} */").unwrap();
     writeln!(output, "  get series() {{").unwrap();
@@ -225,7 +212,6 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
   }
 
   /**
-   * Fetch address hash-prefix matches from raw address payload bytes.
    * @param {OutputType} addressType
    * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addressType length
    * @param {number} nibbles
@@ -243,23 +229,11 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     writeln!(output, "  /**").unwrap();
     writeln!(
         output,
-        "   * Create a dynamic series endpoint builder for any series/index combination."
+        "   * A series by a name known only at runtime; `series` has the typed paths."
     )
     .unwrap();
-    writeln!(output, "   *").unwrap();
-    writeln!(
-        output,
-        "   * Use this for programmatic access when the series name is determined at runtime."
-    )
-    .unwrap();
-    writeln!(
-        output,
-        "   * For type-safe access, use the `series` tree instead."
-    )
-    .unwrap();
-    writeln!(output, "   *").unwrap();
     writeln!(output, "   * @template {{Index}} I").unwrap();
-    writeln!(output, "   * @param {{string}} series - The series name").unwrap();
+    writeln!(output, "   * @param {{string}} series").unwrap();
     writeln!(
         output,
         "   * @param {{I}} index - The index name; date indexes also slice by Date"

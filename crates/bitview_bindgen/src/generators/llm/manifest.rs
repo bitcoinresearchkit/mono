@@ -69,9 +69,8 @@ enum ParameterLocation {
     Query,
 }
 
-/// Generate the immutable machine-readable tool catalog in the LLM bundle.
-/// Every MCP-visible, non-deprecated operation is included. Operations marked
-/// with `x-mcp-ignore: true` are excluded regardless of their HTTP method.
+/// The MCP tool catalog: a tool per non-deprecated operation without `x-mcp-ignore: true`, each of
+/// which must be a `GET` ([`validate_http`]).
 pub fn generate_tool_manifest(
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,

@@ -38,12 +38,12 @@ state after block 700,000. Every history starts at genesis.
   commits do not rewrite files.
 
 `History` owns reconstruction and snapshot publication. `Reader` exposes one
-immutable published prefix, `state_at`, `cursor`, `replay`, and identity checks
+immutable published prefix, `state_at`, `cursor`, `diffs`, and identity checks
 for reusable analytical state. `View` opens read-only files for queries: retained
 snapshots are only appended and their index replaced by rename, and the tip
 snapshot (with the one it replaced, for readers of the previous publication) is
 replaced by rename too, so an open view never sees a write. The caller keeps
-producers from rewinding below what it reads. Each plugin still owns its complete
+producers from rewinding below what it reads. Each plugin owns its complete
 `ComputePlugin::compute_state()` update with read-only dependencies.
 
 ## Storage
@@ -51,9 +51,7 @@ producers from rewinding below what it reads. Each plugin still owns its complet
 The three stores are opened from their owning plugin roots: Inputs provides
 `plugins/inputs/` for `spends/`, Outputs provides `plugins/outputs/` for
 `creations/`, and UTXO Set provides `plugins/utxo_set/` for
-`snapshots/`. Readers accept these roots separately, so the database does not
-require a shared `data/origins/` directory. Existing stores can be moved into
-the corresponding owner directories and reopened without replaying the chain.
+`snapshots/`. Readers accept these three roots separately.
 
 Each producer owns `data`, `index`, `commit`, and a writer-lock file. The manifest
 publishes its version, record count and data end. Unpublished tails are
@@ -82,9 +80,9 @@ If a block or callback fails before another write, the last completed checkpoint
 remains readable and can be reopened. Failures during file modification invalidate
 the snapshot writer.
 
-All fixed-width integers are little-endian. The format has **no checksums**.
-Bounds, record shapes, producer identities, checked arithmetic and state invariants
-remain validated.
+All fixed-width integers are little-endian. The format has **no checksums**:
+record framing, bounds and producer identities are checked on read, while replay
+arithmetic and state invariants are debug assertions.
 
 | Record | Layout |
 | --- | --- |
@@ -103,18 +101,14 @@ is implicit.
 Spend counts are bounded by u32 per origin per block; state and aggregate counts
 remain u64.
 
-## Persistence contract and format changes
+## Persistence contract
 
 The owner **locks exit, writes, then unlocks exit**, using the project's exit guard
 across the complete update. statedb installs no shutdown handler and owns no
 application exit lock. Crashes, forced termination and power loss are unsupported;
 there is no crash-recovery protocol or compatibility reader.
 
-This format replaces the earlier varint/CRC journals and LZ4 snapshot directory.
-Existing stores using the earlier format must be converted offline or rebuilt
-before using them.
-Conversion tooling and representative measurements are retained under the
-repository's ignored `tmp/statedb-hotpath-20260930` directory.
+Stores in an unsupported format must be rebuilt.
 
 Fixed-width diffs deliberately favor sequential throughput over disk size. The
 measured spend payloads are about 2.2–2.3 times larger than the earlier varints.

@@ -29,10 +29,10 @@ impl XORIndex {
     /// XOR-decode `bytes` in place, advancing the phase. Aligned 8-byte
     /// chunks XOR against the full mask in one go (auto-vectorised by
     /// LLVM); only the head/tail straddling alignment are scalar.
-    pub fn bytes<'a>(&mut self, bytes: &'a mut [u8], xor_bytes: XORBytes) -> &'a mut [u8] {
+    pub fn bytes(&mut self, bytes: &mut [u8], xor_bytes: XORBytes) {
         if xor_bytes.is_identity() {
             self.add_assign(bytes.len());
-            return bytes;
+            return;
         }
         let xb = *xor_bytes;
         let mut phase = self.0;
@@ -60,12 +60,5 @@ impl XORIndex {
         }
 
         self.0 = phase;
-        bytes
-    }
-
-    /// XOR-decode `buffer` as if it lived at `offset` in the blk file.
-    #[inline]
-    pub fn decode_at(buffer: &mut [u8], offset: usize, xor_bytes: XORBytes) {
-        Self::at_offset(offset).bytes(buffer, xor_bytes);
     }
 }

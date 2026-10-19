@@ -15,9 +15,3 @@ The types Bitview's series are made of, built on the Bitcoin primitives in `brk_
 The `storage` feature adds the `vecdb` impls these types need to live in Bitview's vecs.
 
 Calendar parsing invariants are described in [docs/calendar.md](docs/calendar.md).
-
-## Built on
-
-- `brk_types` for the Bitcoin primitives these types index and aggregate
-- `brk_error` for shared errors
-- `vecdb` for optional persistent-vector traits

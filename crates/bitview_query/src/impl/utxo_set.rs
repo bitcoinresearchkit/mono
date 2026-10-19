@@ -5,9 +5,7 @@ use bitview_types::{UtxoChanges, UtxoOrigins, UtxoSet, UtxoSetDiff};
 use brk_types::{Bitcoin, BlockHash, Height, Sats};
 use vecdb::ReadableVec;
 
-use crate::{ReadPin, check_bound};
-
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
 fn btc(sats: u64) -> Bitcoin {
     Bitcoin::from(Sats::new(sats))
@@ -25,6 +23,15 @@ impl UtxoSetPoint {
     /// The last covered block's hash.
     pub fn hash(&self) -> &BlockHash {
         &self.hash
+    }
+
+    /// The point's exclusive end, once a reader of `history` blocks covers it.
+    fn end_within(&self, history: usize) -> Result<usize> {
+        let end = usize::from(self.last) + 1;
+        if end > history {
+            return Err(Error::StateUpdating);
+        }
+        Ok(end)
     }
 }
 
@@ -60,7 +67,7 @@ impl Query {
         let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
         let reader = view.reader(usize::from(pin.lengths().height))?;
-        let end = self.utxo_set_published(point, reader.len(), &pin)?;
+        let end = point.end_within(reader.len())?;
         let state = reader.state_at(end).map_err(updating)?;
         if state.hash() != *point.hash {
             return Err(Error::StateUpdating);
@@ -85,7 +92,7 @@ impl Query {
         let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
         let reader = view.reader(usize::from(pin.lengths().height))?;
-        let end = self.utxo_set_published(point, reader.len(), &pin)?;
+        let end = point.end_within(reader.len())?;
         let first = usize::from(point.first);
         let mut diffs = reader.diffs(first).map_err(updating)?;
         let mut created = UtxoChanges::default();
@@ -147,20 +154,6 @@ impl Query {
             hash,
             date: Date::from(timestamp),
         })
-    }
-
-    /// The end of `point` once it is checked against what is published now.
-    fn utxo_set_published(
-        &self,
-        point: &UtxoSetPoint,
-        history: usize,
-        pin: &ReadPin,
-    ) -> Result<usize> {
-        let end = usize::from(point.last) + 1;
-        if end > history.min(usize::from(pin.lengths().height)) {
-            return Err(Error::StateUpdating);
-        }
-        Ok(end)
     }
 }
 

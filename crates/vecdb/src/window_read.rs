@@ -39,7 +39,6 @@ impl<T> Default for WindowBuffers<T> {
 
 /// One batch read through [`WindowBuffers`].
 pub struct WindowBatch<'a, T> {
-    /// The batch's current values.
     pub current: &'a [T],
     before: &'a [T],
     before_from: usize,
@@ -59,7 +58,7 @@ impl<T: VecValue> WindowBuffers<T> {
     ) -> WindowBatch<'_, T> {
         self.values.clear();
         match bounds {
-            Some((low, high)) if high.saturating_add(1) >= at => {
+            Some((low, high)) if high + 1 >= at => {
                 let from = low.min(at);
                 source.read_into_at(from, end, &mut self.values);
                 debug_assert_eq!(self.values.len(), end - from, "window sources are dense");

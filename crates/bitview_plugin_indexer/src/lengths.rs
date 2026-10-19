@@ -12,7 +12,7 @@ pub trait IndexerLengths: Sized {
     fn push(&self, vecs: &mut Vecs);
     fn from_local(vecs: &Vecs, stores: &Stores) -> Result<Option<Self>>;
     fn resume_at(required_height: Height, vecs: &Vecs, stores: &Stores) -> Result<Option<Self>>;
-    /// Lengths at a local `height`. `None` pre-genesis.
+    /// Local lengths before `height`; `None` at height zero or when a boundary is missing.
     fn at(height: Height, vecs: &Vecs) -> Option<Self>;
 }
 
@@ -46,7 +46,8 @@ impl IndexerLengths for Lengths {
         push_addr_first_indexes(self, vecs);
     }
 
-    /// Read current local lengths. `None` pre-genesis.
+    /// Current local lengths; `None` at height zero, for absent or mismatched checkpoints, or when
+    /// a boundary is missing.
     fn from_local(vecs: &Vecs, stores: &Stores) -> Result<Option<Self>> {
         let Some(height) = matching_height(vecs.next_height(), stores.next_height()?) else {
             return Ok(None);
@@ -54,10 +55,9 @@ impl IndexerLengths for Lengths {
         Ok(collect_at(height, vecs))
     }
 
-    /// Read lengths to resume at `required_height`. Reorg-aware:
-    /// - if vector and store checkpoints differ, return `None` (full reset);
-    /// - if local is ahead, clamp down to `required_height`;
-    /// - if local is behind, return `None` (caller must full-reset).
+    /// Lengths before `required_height`, which a reorg puts below the local height; `None` for
+    /// absent or mismatched checkpoints, a local height below `required_height`, height zero, or a
+    /// missing boundary.
     fn resume_at(required_height: Height, vecs: &Vecs, stores: &Stores) -> Result<Option<Self>> {
         let Some(local) = matching_height(vecs.next_height(), stores.next_height()?) else {
             return Ok(None);
@@ -147,17 +147,18 @@ fn matching_height(vec_height: Height, store_height: Option<Height>) -> Option<H
         Some(vec_height)
     } else {
         debug!(
-            "Indexer checkpoint mismatch: vectors at {}, stores at {}; full reset required",
+            "Indexer checkpoint mismatch: vectors at {}, stores at {}",
             vec_height, store_height
         );
         None
     }
 }
 
-/// Per-type next-to-write counter at `next_height`. `None` pre-genesis.
+/// Per-type next index before `next_height`; `None` at height zero or when the boundary is
+/// missing.
 fn next_index<I, T>(
     height_to_index: &PcoVec<Height, I, impl CachePolicy>,
-    index_to_else: &impl ReadableVec<I, T>,
+    values: &impl ReadableVec<I, T>,
     next_height: Height,
 ) -> Option<I>
 where
@@ -168,7 +169,7 @@ where
     if next_height.is_zero() {
         None
     } else if h.incremented() == next_height {
-        Some(I::from(index_to_else.len()))
+        Some(I::from(values.len()))
     } else {
         height_to_index.collect_one(next_height)
     }

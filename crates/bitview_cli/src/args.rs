@@ -102,41 +102,33 @@ impl Args {
         }
 
         let command = command.ok_or_else(|| "missing command".to_owned())?;
-        if help {
-            return Ok(Self {
-                command,
-                base_url,
-                path_values,
-                query,
-                body,
-                pretty,
-                help,
-            });
-        }
-
-        if path_values.len() != command.path_parameters.len() {
-            return Err(format!(
-                "{} expects {} path argument(s), received {}",
-                command.name,
-                command.path_parameters.len(),
-                path_values.len()
-            ));
-        }
-        for parameter in command.query_parameters {
-            if parameter.required
-                && !query
-                    .iter()
-                    .any(|(provided, _)| *provided == parameter.api_name)
-            {
-                return Err(format!("missing required option --{}", parameter.name));
+        if !help {
+            if path_values.len() != command.path_parameters.len() {
+                return Err(format!(
+                    "{} expects {} path argument(s), received {}",
+                    command.name,
+                    command.path_parameters.len(),
+                    path_values.len()
+                ));
             }
-        }
-        match (command.request_body, body.is_some()) {
-            (Some(body), false) if body.required => {
-                return Err("missing required --body or --body-file".to_owned());
+            for parameter in command.query_parameters {
+                if parameter.required
+                    && !query
+                        .iter()
+                        .any(|(provided, _)| *provided == parameter.api_name)
+                {
+                    return Err(format!("missing required option --{}", parameter.name));
+                }
             }
-            (None, true) => return Err(format!("{} does not accept a request body", command.name)),
-            _ => {}
+            match (command.request_body, body.is_some()) {
+                (Some(body), false) if body.required => {
+                    return Err("missing required --body or --body-file".to_owned());
+                }
+                (None, true) => {
+                    return Err(format!("{} does not accept a request body", command.name));
+                }
+                _ => {}
+            }
         }
 
         Ok(Self {

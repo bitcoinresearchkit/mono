@@ -86,7 +86,7 @@ impl Vecs {
                         .push_block(Count::from(batch_payout));
                 }
             }
-            // A wave that passes a multiple of the interval writes, like the per-height loop did.
+            // Writes when the wave crosses a multiple of `WRITE_INTERVAL`.
             if wave_end / WRITE_INTERVAL > height / WRITE_INTERVAL {
                 self.write(exit)?;
             }
@@ -100,18 +100,6 @@ impl Vecs {
         let (flags, counts) = self.stored_mut();
         write_locked(flags.into_iter().chain(counts), exit)
     }
-}
-
-fn is_consolidation(inputs: usize, outputs: usize) -> bool {
-    inputs >= outputs * 5
-}
-
-fn is_batch_payout(inputs: usize, outputs: usize, is_coinbase: bool) -> bool {
-    !is_coinbase && outputs >= inputs * 5
-}
-
-fn is_coinjoin_candidate(inputs: usize, outputs: usize) -> bool {
-    inputs >= 5 && outputs >= 5 && inputs < outputs * 5 && outputs < inputs * 5
 }
 
 /// One task's classified transactions (coinjoin, consolidation, batch payout) and per-block counts.
@@ -176,11 +164,14 @@ fn classify(
             let next_txout = txout_starts
                 .get(tx + 1)
                 .map_or(output_len, |i| i.get().to_usize());
-            let inputs = next_txin.saturating_sub(first_txin);
-            let outputs = next_txout.saturating_sub(first_txout);
-            let consolidation = is_consolidation(inputs, outputs);
-            let batch_payout = is_batch_payout(inputs, outputs, tx == block_start);
-            let coinjoin_candidate = is_coinjoin_candidate(inputs, outputs)
+            let inputs = next_txin - first_txin;
+            let outputs = next_txout - first_txout;
+            let consolidation = inputs >= outputs * 5;
+            let batch_payout = tx != block_start && outputs >= inputs * 5;
+            let coinjoin_candidate = inputs >= 5
+                && outputs >= 5
+                && inputs < outputs * 5
+                && outputs < inputs * 5
                 && !has_op_return[tx].is_true()
                 && !has_inscription[tx].is_true();
             let coinjoin = coinjoin_candidate && {

@@ -117,11 +117,9 @@ impl OutputType {
         }
     }
 
-    /// Whether the address type's public key is revealed at funding time
-    /// (vs. only at spending time). For P2PK33/P2PK65 the pubkey is directly
-    /// in the locking script; for P2TR the tweaked output key is in the
-    /// locking script. All other address types hash the pubkey/script and
-    /// only reveal it on spending.
+    /// Whether the address type's public key is revealed at funding time (vs. only at spending
+    /// time): P2PK33/P2PK65 carry the pubkey in the locking script, P2TR its tweaked output key.
+    /// The hash-based types reveal it when spent; P2A has no key.
     pub fn pubkey_exposed_at_funding(&self) -> bool {
         matches!(self, Self::P2PK65 | Self::P2PK33 | Self::P2TR)
     }
@@ -255,8 +253,7 @@ unsafe impl Bytes for OutputType {
             return Err(VecdbError::InvalidArgument("invalid OutputType"));
         }
         // SAFETY: We validated that value is a valid variant
-        let s: Self = unsafe { mem::transmute(value) };
-        Ok(s)
+        Ok(unsafe { mem::transmute::<u8, Self>(value) })
     }
 }
 

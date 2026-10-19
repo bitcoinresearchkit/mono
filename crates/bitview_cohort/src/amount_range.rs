@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortId, CohortName};
 
-/// Amount range bounds
 const AMOUNT_RANGE_BOUNDS: AmountRange<Range<Sats>> = AmountRange {
     _0sats: Sats::ZERO..Sats::_1,
     _1sat_to_10sats: Sats::_1..Sats::_10,
@@ -27,7 +26,6 @@ const AMOUNT_RANGE_BOUNDS: AmountRange<Range<Sats>> = AmountRange {
     over_100k_btc: Sats::_100K_BTC..Sats::MAX,
 };
 
-/// Amount range names
 pub const AMOUNT_RANGE_NAMES: AmountRange<CohortName> = AmountRange {
     _0sats: CohortName::new("0sats", "0 sats", "0 Sats"),
     _1sat_to_10sats: CohortName::new("1sat_to_10sats", "1-10 sats", "1-10 Sats"),

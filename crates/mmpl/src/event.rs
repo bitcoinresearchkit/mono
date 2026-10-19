@@ -26,14 +26,14 @@ pub enum Event {
         #[serde(flatten)]
         reason: LeaveReason,
     },
-    /// New confirmed block: the pool's chain tip moved since the last cycle.
+    /// The pool's chain tip, on the first cycle and whenever its hash changes.
     Tip {
         t: f64,
         hash: BlockHash,
         height: Height,
     },
-    /// The projected next block changed. `hash` is the same opaque content
-    /// hash used as the block template's identity.
+    /// The projected next block, when available: on the first cycle and whenever the template
+    /// changes. `hash` is the template's opaque content identity.
     Block {
         t: f64,
         hash: NextBlockHash,
@@ -41,7 +41,7 @@ pub enum Event {
         vsize: VSize,
         fee: Sats,
     },
-    /// Recommended fee rates changed since the last cycle.
+    /// Recommended fee rates, when available: on the first cycle and whenever they change.
     Fees {
         t: f64,
         fastest: FeeRate,
@@ -50,8 +50,8 @@ pub enum Event {
         economy: FeeRate,
         minimum: FeeRate,
     },
-    /// Per-cycle heartbeat. Always emitted, even on idle cycles, so
-    /// downstream consumers see a steady pulse and can spot stalls.
+    /// Heartbeat ending every successful cycle over a published pool, idle ones included, so
+    /// consumers see a steady pulse and can spot stalls.
     Cycle {
         t: f64,
         added: usize,

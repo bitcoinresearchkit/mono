@@ -50,12 +50,12 @@ impl Timestamp {
     }
 
     #[inline]
-    pub fn difference_in_days_between_float(&self, older: Self) -> f64 {
+    pub fn days_since(&self, older: Self) -> f64 {
         (self.0 - older.0) as f64 / ONE_DAY_IN_SEC_F64
     }
 
     #[inline]
-    pub fn difference_in_hours_between(&self, older: Self) -> usize {
+    pub fn hours_since(&self, older: Self) -> usize {
         ((self.0 - older.0) / ONE_HOUR_IN_SEC) as usize
     }
 
@@ -63,7 +63,6 @@ impl Timestamp {
         Self::from(JiffTimestamp::now())
     }
 
-    /// Returns an ISO 8601 formatted string
     pub fn to_iso8601(self) -> String {
         JiffTimestamp::from(self).to_string()
     }

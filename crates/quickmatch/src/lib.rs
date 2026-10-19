@@ -24,11 +24,10 @@ fn select_and_sort(bucket: &mut [RankedItem], take: usize) {
     bucket[..take].sort_unstable_by(ranked_item_order);
 }
 
-/// Instant search over a list of strings.
-///
-/// Supports exact words, prefixes ("dom" → "dominance"), joined words
-/// ("hashrate" → "hash_rate"), and typo tolerance ("suply" → "supply").
-/// Results are ranked: exact matches first, then by specificity.
+/// Fuzzy search over lowercase ASCII items: exact words, prefixes ("dom" → "dominance"), joined
+/// words ("hashrate" → "hash_rate") and typos ("suply" → "supply"). Results rank by matched
+/// query-word count and fuzzy score (descending), then first match position, item length, text and
+/// original index (ascending).
 pub struct QuickMatch<'a> {
     items: Vec<Cow<'a, str>>,
     item_rank: Vec<ItemId>,
@@ -159,7 +158,7 @@ impl<'a> QuickMatch<'a> {
         query: &str,
         config: &QuickMatchConfig,
     ) -> Vec<(u32, u32)> {
-        self.matches_with_ids_and_matched_words_inner::<false>(query, config)
+        self.search::<false>(query, config)
     }
 
     /// Whole query words, in any order, without prefix or typo matching.
@@ -169,10 +168,10 @@ impl<'a> QuickMatch<'a> {
         query: &str,
         config: &QuickMatchConfig,
     ) -> Vec<(u32, u32)> {
-        self.matches_with_ids_and_matched_words_inner::<true>(query, config)
+        self.search::<true>(query, config)
     }
 
-    fn matches_with_ids_and_matched_words_inner<const EXACT_WORDS: bool>(
+    fn search<const EXACT_WORDS: bool>(
         &self,
         query: &str,
         config: &QuickMatchConfig,
@@ -218,7 +217,7 @@ impl<'a> QuickMatch<'a> {
             let candidates = if config.union_fallback {
                 Self::union_lists(&known_lists)
             } else {
-                Self::intersect_lists(&known_lists).unwrap_or_default()
+                Self::intersect_lists(&known_lists).expect("every query word is known")
             };
             return self.rank::<true>(
                 candidates.into_iter().map(|id| (id, 0)),
@@ -304,9 +303,8 @@ impl<'a> QuickMatch<'a> {
             }
         }
 
-        // Try typo matching for unknown words
         if !disjoint && !unknown_words.is_empty() {
-            let min_len = query.len().saturating_sub(3);
+            let min_len = query.len() - 3;
             let (scores, hit_count) = self.score_trigrams(&unknown_words, pool.as_deref(), min_len);
             let min_score = hit_count.div_ceil(2).max(MIN_SCORE);
             let results = self.rank::<false>(
@@ -322,7 +320,6 @@ impl<'a> QuickMatch<'a> {
             }
         }
 
-        // Rank known candidates (intersection, or union as fallback)
         let candidates = match pool {
             Some(pool) if !pool.is_empty() => pool,
             _ if config.union_fallback => Self::union_lists(&known_lists),
@@ -359,7 +356,6 @@ impl<'a> QuickMatch<'a> {
         )
     }
 
-    /// Union of all posting lists.
     fn union_lists(lists: &[&[ItemId]]) -> Vec<ItemId> {
         lists
             .iter()
@@ -369,8 +365,7 @@ impl<'a> QuickMatch<'a> {
             .collect()
     }
 
-    /// Bucket by matched-word count, then sort each needed bucket by fuzzy
-    /// score, match position, and length.
+    /// Buckets by matched-word count, best first, sorting only what fills `limit`.
     fn rank<const EXACT_WORDS: bool>(
         &self,
         candidates: impl IntoIterator<Item = (ItemId, usize)>,
@@ -551,9 +546,9 @@ fn word_match(item: &str, query_words: &[&str], sep: &[bool; 256], exact: bool) 
     (matched, first_position)
 }
 
-/// Picks which trigram of a length-`len` word to probe on `round`, spreading
-/// probes outward from the two ends toward the middle. Returns `None` when the
-/// round offers no fresh position.
+/// Picks which trigram of a length-`len` word to probe on `round`: first, last and middle, then
+/// alternating outward from the middle. `None` when the round's position is unavailable or
+/// already probed.
 fn trigram_position(len: usize, round: usize) -> Option<usize> {
     let max = len - 3;
     if round == 0 {

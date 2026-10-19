@@ -113,7 +113,7 @@ impl Vecs {
         let type_index = indexer.vecs().outputs.type_index.reader();
         let addr_readers = indexer.vecs().addrs.addr_readers();
 
-        let unknown = self.pools.get_unknown();
+        let unknown = self.pools.unknown();
 
         let len = indexer.vecs().blocks.coinbase_tag.len();
         let coinbase_tags = indexer.vecs().blocks.coinbase_tag.reader();

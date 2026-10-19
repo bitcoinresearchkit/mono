@@ -14,9 +14,7 @@ pub struct VersionCountVecs<M: StorageMode = Rw> {
     pub v2: CountVecs<M>,
     /// Transactions whose version is exactly 3.
     pub v3: CountVecs<M>,
-    /// Transactions whose version is not 1, 2, or 3. This category combines
-    /// every other value; use individual raw transaction data to inspect the
-    /// original version.
+    /// Transactions whose version is not 1, 2, or 3.
     pub other: CountVecs<M>,
 }
 

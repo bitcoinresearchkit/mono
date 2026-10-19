@@ -49,7 +49,7 @@ impl ResponseExtended for Response<Body> {
         content_type: &'static str,
         bytes: impl FnOnce() -> Bytes,
     ) -> Self {
-        if params.matches_etag(headers) {
+        if params.etag.matches(headers) {
             return Self::new_not_modified(params);
         }
         let mut response = Response::new(Body::from(bytes()));

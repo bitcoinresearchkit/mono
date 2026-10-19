@@ -13,7 +13,7 @@ use crate::AddressBytes;
 #[cfg(feature = "storage")]
 use vecdb::Formattable;
 
-/// Bitcoin address string
+/// Bitcoin address, or the hex public key of a P2PK output.
 #[derive(Debug, Clone, Deref, Serialize, Deserialize, From)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
@@ -67,7 +67,7 @@ impl FromStr for Address {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let _ = AddressBytes::addr_to_script(s)?;
+        AddressBytes::addr_to_script(s)?;
         Ok(Self(s.to_string()))
     }
 }

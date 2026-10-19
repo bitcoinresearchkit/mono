@@ -27,22 +27,7 @@ impl Day3 {
     pub fn to_timestamp(&self) -> Timestamp {
         Timestamp::new(INDEX_EPOCH - 86400 + self.0 as u32 * DAY3_INTERVAL)
     }
-}
 
-impl TryFrom<Date> for Day3 {
-    type Error = Error;
-
-    fn try_from(date: Date) -> Result<Self> {
-        // Bucket zero starts one day before the daily index epoch.
-        let days = Date::INDEX_ZERO_.until(date.try_into_jiff()?)?.get_days() + 1;
-        let days = u32::try_from(days).map_err(|_| Error::UnindexableDate)?;
-        u16::try_from(days / 3)
-            .map(Self)
-            .map_err(|_| Error::UnindexableDate)
-    }
-}
-
-impl Day3 {
     pub(crate) fn index_name() -> &'static str {
         "day3"
     }
@@ -50,6 +35,23 @@ impl Day3 {
         &["3d", "day3"]
     }
 }
+
+impl TryFrom<Date> for Day3 {
+    type Error = Error;
+
+    fn try_from(date: Date) -> Result<Self> {
+        // Bucket zero starts one day before the daily index epoch.
+        let days = Date::JIFF_INDEX_ZERO
+            .until(date.try_into_jiff()?)?
+            .get_days()
+            + 1;
+        let days = u32::try_from(days).map_err(|_| Error::UnindexableDate)?;
+        u16::try_from(days / 3)
+            .map(Self)
+            .map_err(|_| Error::UnindexableDate)
+    }
+}
+
 #[cfg(feature = "storage")]
 impl PrintableIndex for Day3 {
     fn to_string() -> &'static str {

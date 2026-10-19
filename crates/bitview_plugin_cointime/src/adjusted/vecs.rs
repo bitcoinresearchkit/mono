@@ -7,10 +7,7 @@ use vecdb::{Rw, StorageMode};
 pub struct Vecs<M: StorageMode = Rw> {
     /// Cointime-adjusted supply inflation rate: the scheduled annual issuance
     /// over the circulating supply, multiplied by `liveliness / (1 - liveliness)`,
-    /// the ratio of active to vaulted supply. Liveliness is cumulative coinblocks
-    /// destroyed divided by cumulative coinblocks created. Null without supply
-    /// (block 0). Higher values combine faster issuance with a larger
-    /// active-to-vaulted holding-time ratio.
+    /// the ratio of active to vaulted supply. Null without supply (block 0).
     pub inflation_rate: PercentPerBlock<PartsPerMillionSigned32, M>,
     /// Cointime-adjusted transaction velocity: velocity divided by liveliness,
     /// the turnover of the active supply rather than of all supply. Null until

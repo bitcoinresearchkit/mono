@@ -16,22 +16,22 @@ macro_rules! impl_read_write_storage {
 
             #[inline]
             fn region(&self) -> &::rawdb::Region {
-                self.base.region()
+                &self.base.region
             }
 
             #[inline]
             fn header(&self) -> &$crate::Header {
-                self.base.header()
+                &self.base.header
             }
 
             #[inline]
             fn mut_header(&mut self) -> &mut $crate::Header {
-                self.base.mut_header()
+                &mut self.base.read_only.header
             }
 
             #[inline]
             fn saved_stamped_changes(&self) -> u16 {
-                self.base.saved_stamped_changes()
+                self.base.saved_stamped_changes
             }
 
             #[inline]
@@ -70,7 +70,7 @@ macro_rules! impl_read_write_storage {
 
             fn any_write_checkpoint(&mut self, stamp: $crate::Stamp) -> $crate::Result<()> {
                 self.stamped_write(stamp)?;
-                if self.base.saved_stamped_changes() > 0 {
+                if self.base.saved_stamped_changes > 0 {
                     self.base.save_prev();
                 }
                 Ok(())
@@ -113,7 +113,7 @@ macro_rules! impl_read_write_storage {
                 self.header().check_writable()?;
                 self.with_cache_update(index, |this| {
                     if this.base.truncate_pushed(index) {
-                        this.base.update_stored_len(index);
+                        this.base.stored_len.set(index);
                     }
                     Ok(())
                 })
@@ -123,7 +123,7 @@ macro_rules! impl_read_write_storage {
                 let guard = self.header().begin_write()?;
                 let result = self.with_cache_update(0, |this| {
                     this.base.truncate_pushed(0);
-                    this.base.update_stored_len(0);
+                    this.base.stored_len.set(0);
                     this.base.reset_base()
                 });
                 guard.finish(result)
@@ -174,7 +174,15 @@ macro_rules! impl_read_write_storage {
             T: $crate::VecValue,
             S: $strategy<T>,
         {
-            /// Undoes one parsed change record (see [`$crate::ReadWriteBaseVec::apply_rollback`]).
+            pub(crate) fn with_cache_update<R>(
+                &mut self,
+                from: usize,
+                write: impl FnOnce(&mut Self) -> $crate::Result<R>,
+            ) -> $crate::Result<R> {
+                C::update(self.cache.clone(), from, || write(self))
+            }
+
+            /// Undoes one parsed change record (see `ReadWriteBaseVec::apply_rollback`).
             pub(crate) fn rollback_change(
                 &mut self,
                 change: $crate::ChangeData<T>,

@@ -3,24 +3,18 @@ use std::{convert::Infallible, result::Result, slice};
 use rawdb::Region;
 
 use super::{super::super::RawStrategy, VecReader};
-use crate::{HEADER_OFFSET, READ_CHUNK_SIZE, VecIndex, VecValue};
+use crate::{HEADER_OFFSET, READ_CHUNK_SIZE, VecValue};
 
-/// Read-only mmap-backed source over a raw (uncompressed) vector.
-///
-/// Only sees **stored** (persisted) values — pushed but unflushed values
-/// are not visible. Created with a range and consumed by try_fold/for_each.
-///
-/// The data slice is computed once at construction time, so try_fold/for_each are
-/// direct slice operations.
-pub struct RawMmapSource<I, T, S> {
-    reader: VecReader<I, T, S>,
+/// Mmap-backed reads of a raw vector's persisted values in a bounded range: aligned native
+/// layouts are copied in bulk, other layouts decoded per value.
+pub struct RawMmapSource<T, S> {
+    reader: VecReader<usize, T, S>,
     pos: usize,
     end: usize,
 }
 
-impl<I, T, S> RawMmapSource<I, T, S>
+impl<T, S> RawMmapSource<T, S>
 where
-    I: VecIndex,
     T: VecValue,
     S: RawStrategy<T>,
 {
@@ -46,14 +40,10 @@ where
 
     /// Appends the stored range, copying native-layout values in bulk.
     pub fn read_into(self, output: &mut Vec<T>) {
-        let len = self.end.saturating_sub(self.pos);
-        if len == 0 {
-            return;
-        }
         if let Some(values) = self.as_slice() {
             output.extend_from_slice(values);
         } else {
-            output.reserve(len);
+            output.reserve(self.end - self.pos);
             let Ok(()) = self.try_fold((), |(), value| {
                 output.push(value);
                 Ok::<_, Infallible>(())
@@ -70,7 +60,6 @@ where
         to: usize,
         each: &mut dyn FnMut(usize, &[T]),
     ) -> bool {
-        let from = from.min(stored_len);
         let to = to.min(stored_len);
         if from >= to {
             return true;
@@ -103,10 +92,9 @@ where
         }
         // SAFETY: aligned native-layout values have T's stored representation. The bounded
         // range remains valid while this source owns the mmap reader.
-        Some(unsafe { slice::from_raw_parts(values, self.end.saturating_sub(self.pos)) })
+        Some(unsafe { slice::from_raw_parts(values, self.end - self.pos) })
     }
 
-    /// Fallible fold with early exit on error.
     #[inline(always)]
     pub fn try_fold<B, E, F: FnMut(B, T) -> Result<B, E>>(self, init: B, mut f: F) -> Result<B, E> {
         let ptr = self.reader.data;

@@ -1,5 +1,3 @@
-use std::ops::AddAssign;
-
 use bitview_compute::{NumericValue, Quantity};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -9,13 +7,13 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_types::Version;
 use schemars::JsonSchema;
-use vecdb::{Database, PcoVecValue, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 /// One cohort's flow of a quantity, stored as its running total `{name}_cumulative`.
 #[derive(Traversable)]
-pub struct CumulativeCount<T, M: StorageMode = Rw>
+pub struct CumulativeQuantity<T, M: StorageMode = Rw>
 where
-    T: NumericValue + JsonSchema + Quantity<Sum = T> + PcoVecValue,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     #[traversable(flatten)]
     pub value: LazyPerBlockCumulativeRolling<T>,
@@ -23,9 +21,9 @@ where
     pub stored: CumulativeSource<T, M>,
 }
 
-impl<T> CumulativeCount<T>
+impl<T> CumulativeQuantity<T>
 where
-    T: NumericValue + JsonSchema + Quantity<Sum = T> + PcoVecValue + AddAssign + Default,
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     pub(crate) fn import(
         db: &Database,

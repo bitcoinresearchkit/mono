@@ -30,8 +30,7 @@ Lookup stores complement those sequential vectors with:
 - address history keyed by address and transaction index
 - the live unspent-outpoint set for each indexed address
 
-Exact fields are part of the plugin's traversable read-only tree and should be
-discovered through that API rather than duplicated here.
+Stored fields are exposed through the plugin's traversable read-only tree.
 
 ## Lifecycle
 
@@ -47,11 +46,12 @@ later block's spends; a lowered publication leaves them unavailable until the
 next one.
 
 On a chain reorganization, the plugin rolls back its vectors and lookup stores
-to their last valid checkpoint before processing the replacement chain, first
-lowering what readers see to that prefix. A composition can roll back ahead of
-the update (`Indexer::reorg`, `Indexer::roll_back_to`) to rewind its own
-in-place data in the same step. If the
-source or on-disk schema is incompatible, its owned plugin directory is rebuilt.
+to the common ancestor on the node's active chain before processing the
+replacement chain, first lowering what readers see to that prefix. A
+composition can roll back ahead of the update (`Indexer::reorg`,
+`Indexer::roll_back_to`) to rewind its own in-place data in the same step. If
+the source or on-disk schema is incompatible, its owned plugin directory is
+rebuilt.
 A rollback (or a rebuild beside other plugins' data) persists a rollback floor
 that the next import publishes, so dependents recompute from it even after a soft
 quit; a complete update's commit clears it.

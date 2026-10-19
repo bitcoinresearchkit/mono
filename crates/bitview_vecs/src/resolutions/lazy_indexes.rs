@@ -32,7 +32,6 @@ macro_rules! define_lazy_indexes {
             T: BytesVecValue + Formattable + Serialize + JsonSchema,
             S: BytesVecValue,
         {
-            /// Each resolution of `source` through `Transform`.
             pub fn from_resolutions<Transform: UnaryTransform<S, T>>(
                 name: &str,
                 version: Version,

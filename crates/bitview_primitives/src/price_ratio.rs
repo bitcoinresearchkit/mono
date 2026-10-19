@@ -15,8 +15,7 @@ use vecdb::Pco;
 /// Finite values saturate at 4,294.967294; u32::MAX represents undefined.
 /// Saturation is deliberately specific to price ratios, across all cohorts.
 /// Non-finite inputs become undefined; finite inputs must be nonnegative
-/// (a debug-checked precondition). PPM conversion rounds to nearest, matching
-/// the existing price ratios.
+/// (a debug-checked precondition). PPM conversion rounds to nearest.
 /// Serde preserves raw encoded bits; vector JSON emits null for undefined.
 #[derive(
     Debug,

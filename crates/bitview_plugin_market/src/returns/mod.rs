@@ -7,10 +7,7 @@ use vecdb::{LazyDeltaVec, ReadableCloneableVec};
 
 pub type Returns = ByLookbackPeriod<LazyPercentPerBlock<PartsPerMillionSigned64>>;
 
-/// Spot-price returns over each trailing window: the represented block's price over the last
-/// price before the window, minus one.
 pub(crate) fn import(version: Version, mappings: &MappingsVecs, prices: &PriceVecs) -> Returns {
-    // Version 1: against the price before the window (was its first block's).
     let version = version + Version::ONE;
     ByLookbackPeriod::from_fn(|name, days| {
         let metric_name = format!("price_return_{name}");

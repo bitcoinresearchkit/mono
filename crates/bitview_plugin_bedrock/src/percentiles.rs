@@ -1,6 +1,6 @@
 use bitview_traversable::Traversable;
 
-#[derive(Debug, Clone, Copy, PartialEq, Traversable)]
+#[derive(Clone, Traversable)]
 pub struct Percentiles<T> {
     /// Uses the 95th percentile of the mode's supply-in-loss history.
     pub pct95: T,

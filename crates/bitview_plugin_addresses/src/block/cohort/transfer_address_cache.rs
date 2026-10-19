@@ -13,9 +13,8 @@ pub struct TransferAddressCache {
 impl TransferAddressCache {
     pub fn prepare(&mut self, received: impl Iterator<Item = TypeIndex>) {
         self.addresses.clear();
-        for type_index in received {
-            self.addresses.insert(type_index, RECEIVED);
-        }
+        self.addresses
+            .extend(received.map(|type_index| (type_index, RECEIVED)));
     }
 
     #[inline]

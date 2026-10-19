@@ -1,7 +1,7 @@
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, Ident, ReadableCloneableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::{
     IndexSources, LazyPerBlock, PercentilesVecs, Price, PriceWithMvrv, PriceWithRatio,
@@ -82,7 +82,7 @@ impl CostBasisMeans {
                     indexes,
                 ),
                 percentiles: per_coin.prices.clone(),
-                median_realized_price: Price::from_lazy_cents_source::<Ident, Cents>(
+                median_realized_price: Price::from_lazy_cents_source(
                     &name("median_realized_price"),
                     percentile_version,
                     &per_coin.median.cents,

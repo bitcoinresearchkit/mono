@@ -1,5 +1,5 @@
-//! The metric bundle of a creation cohort, whose coins are classified once, when created: by
-//! age, halving epoch, creation year or entry price. The owning plugin classifies and replays.
+//! Metric bundles for age, halving-epoch, creation-year and entry-price cohorts. The owning plugin
+//! classifies and replays.
 
 mod activity;
 mod capital;
@@ -24,7 +24,6 @@ use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 use super::{CohortCostBasis, ShareTotals, StoredOutputs};
 use crate::state::{MappedUTXOCohortState, RealizedOps};
 
-/// One creation cohort's series.
 #[derive(Traversable)]
 pub struct CreationCohort<M: StorageMode = Rw> {
     pub supply: CreationSupply<M>,
@@ -73,17 +72,17 @@ impl CreationCohort {
         })
     }
 
-    /// Writes the block's values, with the cohort's profitability at `price`.
+    /// Appends the block's values at the block's spot `price`.
     #[inline(always)]
     pub fn push<R: RealizedOps>(&mut self, state: &mut MappedUTXOCohortState<R>, price: Cents) {
         let profitability = state.compute_unrealized_state(price);
         let realized = state.realized_block_data();
-        self.supply.push(state.supply_value(), &profitability);
+        self.supply.push(state.supply.value, &profitability);
         self.capital.push(realized.cap, &profitability);
         self.unrealized.push(&profitability);
         self.outputs.push(state.output_counts());
         self.activity
-            .push(state.transfer_volume(), state.coindays_destroyed(), price);
+            .push(state.sent, state.coindays_destroyed(), price);
         self.realized.push(&realized);
         self.cost_basis.push(realized.price());
     }

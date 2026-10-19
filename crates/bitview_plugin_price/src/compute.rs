@@ -2,25 +2,17 @@ use bitview_compute::{prepare_computed, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::Float64;
-use brk_error::{Error, OptionData, Result};
+use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_oracle::{
     Config, Oracle, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
     pre_oracle_prices_from,
 };
-use brk_types::{Cents, Height};
+use brk_types::Height;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
 use crate::{Dependencies, Vecs, feed_blocks_for_warmup, feed_blocks_with};
-
-/// The oracle bin of a baked pre-oracle price.
-fn seed_bin(cents: Cents) -> Result<f64> {
-    let cents = cents
-        .finite_inner()
-        .ok_or(Error::Internal("Invalid oracle seed price"))?;
-    Ok(cents_to_bin(cents as f64))
-}
 
 impl Vecs {
     fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
@@ -64,7 +56,8 @@ impl Vecs {
         let seed_start = self.spot.cents.height.len();
         for cents in pre_oracle_prices_from(seed_start).take(seed_len.saturating_sub(seed_start)) {
             self.spot.cents.height.push(cents);
-            self.oracle_bin.push(Float64::from(seed_bin(cents)?));
+            self.oracle_bin
+                .push(Float64::from(cents_to_bin(f64::from(cents))));
         }
 
         if self.spot.cents.height.len() >= total_heights {
@@ -75,21 +68,19 @@ impl Vecs {
         // The retained oracle continues exactly where the stored prices end; otherwise rebuild it
         // from the last stored bin and its warmup blocks (the same state: the EMA is a fold of
         // the window, newest first).
-        let (warmup, mut oracle) = match self.oracle.take() {
-            Some((next, oracle)) if next == committed => (0, oracle),
+        let mut oracle = match self.oracle.take() {
+            Some((next, oracle)) if next == committed => oracle,
             _ => {
                 let config = Config::for_height(committed);
                 let ref_bin = f64::from(self.oracle_bin.collect_one_at(committed - 1).data()?);
                 let warmup = config.window_size.min(committed - START_HEIGHT_SLOW);
-                let oracle = Oracle::from_checkpoint(ref_bin, config, |o| {
+                Oracle::from_checkpoint(ref_bin, config, |o| {
                     feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None)
-                })?;
-                (warmup, oracle)
+                })?
             }
         };
 
         let num_new = total_heights - committed;
-        info!("Computing {num_new} oracle prices ({warmup} warmup blocks)...");
 
         // Slow cold-start EMA up to START_HEIGHT_FAST, then switch to the fast
         // mature-market EMA. Steady-state runs start past START_HEIGHT_FAST and skip
@@ -120,7 +111,6 @@ impl Vecs {
             }
         }
 
-        info!("Computed {num_new} oracle prices.");
         self.oracle = Some((total_heights, oracle));
 
         Ok(())

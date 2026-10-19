@@ -17,19 +17,14 @@ impl<T> Buffer<T> {
         }
     }
 
-    pub(super) fn bytes(&self) -> Option<usize> {
-        self.values
-            .capacity()
-            .checked_mul(size_of::<T>())?
-            .checked_add(size_of::<Self>() + 2 * size_of::<usize>())
+    /// An allocation's capacity never exceeds `isize::MAX` bytes: no overflow.
+    pub(super) fn bytes(&self) -> usize {
+        self.values.capacity() * size_of::<T>() + size_of::<Self>() + 2 * size_of::<usize>()
     }
 
     pub(super) fn admit(&mut self, account: &Arc<Account>) -> bool {
         if self.charge.is_none() {
-            let Some(bytes) = self.bytes() else {
-                return false;
-            };
-            self.charge = account.reserve(bytes);
+            self.charge = account.reserve(self.bytes());
         }
         self.charge.is_some()
     }

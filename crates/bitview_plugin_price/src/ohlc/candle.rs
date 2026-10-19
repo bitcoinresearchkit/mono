@@ -54,7 +54,6 @@ impl AggFold<OHLCCents, Height, Cents> for Ohlc {
         mut f: F,
     ) -> Result<B, E> {
         let price_len = source.visible_len();
-        // Each candle's heights: its period's priced ones.
         let priced = |index: usize| priced_range(mapping.range(index, price_len));
         // Adjacent candles share one price read, so shared physical pages are decoded once,
         // in groups of about `BATCH_PRICES` (at least one candle) so the buffer stays bounded.

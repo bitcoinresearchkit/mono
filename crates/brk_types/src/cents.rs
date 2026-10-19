@@ -8,7 +8,7 @@ use derive_more::Deref;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{CentsSats, Dollars, Sats};
+use super::{Dollars, Sats};
 use crate::{CheckedSub, unlikely};
 
 #[cfg(feature = "storage")]
@@ -16,8 +16,7 @@ use vecdb::Pco;
 
 /// An amount in US cents (100 cents = 1 USD).
 ///
-/// Unsigned, for values that are never negative (invested capital, realized cap, ...). `u64::MAX` is
-/// reserved as a NaN sentinel.
+/// Unsigned; `u64::MAX` is reserved as a NaN sentinel.
 #[derive(
     Debug, Default, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
 )]
@@ -31,7 +30,7 @@ impl Cents {
     pub const NAN: Self = Self(u64::MAX);
     #[inline]
     pub const fn new(value: u64) -> Self {
-        assert!(value != u64::MAX, "u64::MAX is reserved as Cents::NAN");
+        debug_assert!(value != u64::MAX, "u64::MAX is reserved as Cents::NAN");
         Self(value)
     }
 
@@ -68,7 +67,7 @@ impl Cents {
 
     #[inline]
     fn from_finite_u128(value: u128) -> Self {
-        assert!(
+        debug_assert!(
             value < u64::MAX as u128,
             "u128 overflow or Cents::NAN sentinel collision"
         );
@@ -165,7 +164,7 @@ impl From<u64> for Cents {
 impl From<usize> for Cents {
     #[inline]
     fn from(value: usize) -> Self {
-        Self::new(u64::try_from(value).expect("usize overflow to Cents"))
+        Self::new(value as u64)
     }
 }
 
@@ -201,7 +200,7 @@ impl From<Cents> for f64 {
     }
 }
 
-/// Rounds to the nearest cent, like every conversion to cents.
+/// Rounds to the nearest cent.
 impl From<f64> for Cents {
     #[inline]
     fn from(value: f64) -> Self {
@@ -254,18 +253,6 @@ impl SubAssign for Cents {
     }
 }
 
-impl Mul for Cents {
-    type Output = Self;
-    #[inline]
-    fn mul(self, rhs: Self) -> Self::Output {
-        if unlikely(self.is_nan() || rhs.is_nan()) {
-            Self::NAN
-        } else {
-            Self::checked_finite(self.0.checked_mul(rhs.0)).expect("Cents overflow")
-        }
-    }
-}
-
 impl Mul<u64> for Cents {
     type Output = Self;
     #[inline]
@@ -274,39 +261,6 @@ impl Mul<u64> for Cents {
             Self::NAN
         } else {
             Self::checked_finite(self.0.checked_mul(rhs)).expect("Cents overflow")
-        }
-    }
-}
-
-impl Mul<usize> for Cents {
-    type Output = Self;
-    #[inline]
-    fn mul(self, rhs: usize) -> Self::Output {
-        if unlikely(self.is_nan()) {
-            Self::NAN
-        } else {
-            let rhs = u64::try_from(rhs).expect("usize overflow to Cents multiplier");
-            Self::checked_finite(self.0.checked_mul(rhs)).expect("Cents overflow")
-        }
-    }
-}
-
-impl Mul<Sats> for Cents {
-    type Output = CentsSats;
-    #[inline]
-    fn mul(self, sats: Sats) -> CentsSats {
-        CentsSats::new(self.as_u128() * sats.as_u128())
-    }
-}
-
-impl Div<Cents> for Cents {
-    type Output = Self;
-    #[inline]
-    fn div(self, rhs: Self) -> Self::Output {
-        if unlikely(self.is_nan() || rhs.is_nan()) {
-            Self::NAN
-        } else {
-            Self(self.0 / rhs.0)
         }
     }
 }

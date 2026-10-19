@@ -38,8 +38,7 @@ impl TxGraveyard {
     }
 
     /// Tombstone iff the tx vanished from the pool (mined, expired, or
-    /// dropped). `Replaced` tombstones return `None` because the tx
-    /// will not confirm.
+    /// dropped); `Replaced` tombstones are excluded.
     pub fn get_vanished(&self, txid: &Txid) -> Option<&TxTombstone> {
         let tomb = self.tombstones.get(txid)?;
         matches!(tomb.removal, TxRemoval::Vanished).then_some(tomb)

@@ -22,7 +22,7 @@ pub(crate) fn value_types(tree: &TreeNode) -> ValueTypes {
         } else {
             &mut types.defined
         };
-        kinds.insert(leaf.kind().to_owned());
+        kinds.insert(leaf.leaf.kind.clone());
     });
     types
 }
@@ -36,7 +36,7 @@ pub(crate) struct ValueTypes {
 impl Access {
     pub(crate) fn of(leaf: &SeriesLeafWithSchema) -> Self {
         Self {
-            indexes: leaf.indexes().clone(),
+            indexes: leaf.leaf.indexes.clone(),
             missing: leaf.missing.clone(),
         }
     }
@@ -47,7 +47,6 @@ impl Access {
 pub struct IndexSetPattern {
     /// Accessor name (e.g., "SeriesPattern1")
     pub(crate) name: String,
-    /// The set of indexes
     pub(crate) indexes: BTreeSet<Index>,
     /// The indexes whose values can be missing
     pub(crate) missing: BTreeSet<Index>,

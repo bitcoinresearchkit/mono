@@ -5,9 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::TreeNode;
 
-// Catalog children, merged by key.
-// Keep the schema transparent too: schema documentation belongs to TreeNode,
-// not this wrapper, so its schema identity stays identical to the original map.
+// Catalog children, merged by key. A plain comment: a doc comment would add schema metadata,
+// and this wrapper's schema stays identical to the bare map's.
 #[derive(
     Debug,
     Clone,
@@ -34,7 +33,6 @@ impl TreeBranch {
         TreeNode::merge_node(&mut self.children, key, node);
     }
 
-    /// Lift another branch's children into this one.
     pub fn merge_fields(&mut self, other: Self) {
         for (key, child) in other.children {
             self.merge_field(key, child);

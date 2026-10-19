@@ -9,12 +9,13 @@ use serde::{Deserialize, Serialize};
 pub struct RecommendedFees {
     /// Fee rate for fastest confirmation (next block)
     pub fastest_fee: u64,
-    /// Fee rate for confirmation within ~30 minutes (3 blocks)
+    /// Fee rate for confirmation within ~30 minutes (second projected block)
     pub half_hour_fee: u64,
-    /// Fee rate for confirmation within ~1 hour (6 blocks)
+    /// Fee rate for confirmation within ~1 hour (third projected block)
     pub hour_fee: u64,
-    /// Fee rate for economical confirmation
+    /// Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
+    /// it; `minimumFee` when no third projected block exists
     pub economy_fee: u64,
-    /// Minimum relay fee rate
+    /// The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)
     pub minimum_fee: u64,
 }

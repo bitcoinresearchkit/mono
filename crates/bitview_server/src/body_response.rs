@@ -14,9 +14,9 @@ use tokio::{
 use crate::{AppState, CacheParams, extended::ResponseExtended, raw_body::RawBodyPermit};
 
 impl AppState {
-    /// Selection, validator, and body belong to one read operation. The body holds a `bodies`
-    /// permit from before it is built until its last frame is sent; without a free one,
-    /// selection runs again once one is.
+    /// Selection, validator, and body belong to one read operation. The body takes a `bodies`
+    /// permit before it is built and, when large, keeps it until its last frame is sent; without
+    /// a free one, selection runs again once one is.
     pub async fn respond_admitted<S: 'static>(
         &self,
         admission: &Arc<Semaphore>,
@@ -29,7 +29,7 @@ impl AppState {
         let budget = bodies.clone();
         self.read_body(admission, bodies, move |q, permit| {
             let (source, params) = select(q)?;
-            if params.matches_etag(&headers) {
+            if params.etag.matches(&headers) {
                 return Ok(Some(Response::new_not_modified(&params)));
             }
             let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&budget)) else {

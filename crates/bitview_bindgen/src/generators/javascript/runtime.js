@@ -1,9 +1,9 @@
 /**
  * @typedef {Object} BitviewClientOptions
- * @property {string} baseUrl - Base URL for the API
+ * @property {string} baseUrl
  * @property {number} [timeout] - Request timeout in milliseconds
  * @property {string|boolean} [browserCache] - Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
- * @property {number|boolean} [memCache] - In-memory parsed-response cache size (LRU). true/undefined → 1000, false/0 → disabled. Lets 304 responses skip the JSON parse entirely. Default: 1000
+ * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled
  */
 
 const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
@@ -88,9 +88,9 @@ const _calendar = (index) => {
 };
 
 /**
- * Convert an index value to a Date for date-based indexes.
- * @param {Index} index - The index type
- * @param {number} i - The index value
+ * The UTC start of bucket `i`; throws for an index without a date calendar.
+ * @param {Index} index
+ * @param {number} i
  * @returns {globalThis.Date}
  */
 function indexToDate(index, i) {
@@ -100,11 +100,10 @@ function indexToDate(index, i) {
 }
 
 /**
- * Convert a Date to an index value for date-based indexes.
- * Returns the floor index (latest index whose date is <= the given date).
+ * The floor index (latest index whose date is <= the given date).
  * Throws for dates before the index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29).
- * @param {Index} index - The index type
- * @param {globalThis.Date} d - The date to convert
+ * @param {Index} index
+ * @param {globalThis.Date} d
  * @returns {number}
  */
 function dateToIndex(index, d) {
@@ -116,9 +115,8 @@ function dateToIndex(index, d) {
 }
 
 /**
- * Wrap raw series data with helper methods.
  * @template T
- * @param {SeriesData<T>} raw - Raw JSON response
+ * @param {SeriesData<T>} raw
  * @returns {DateSeriesData<T>}
  */
 function _wrapSeriesData(raw) {
@@ -176,15 +174,15 @@ function _wrapSeriesData(raw) {
 /**
  * @template T
  * @typedef {Object} SeriesDataBase
- * @property {number} version - Version of the series data
- * @property {Index} index - The index type used for this query
+ * @property {number} version
+ * @property {Index} index
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {number} start - Start index (inclusive)
  * @property {number} end - End index (exclusive)
  * @property {T[]} data - The series data (`null` where a value is missing or undefined)
- * @property {boolean} isDateBased - Whether this series uses a date-based index
- * @property {() => number[]} indexes - Get index numbers
- * @property {() => number[]} keys - Get keys as index numbers (alias for indexes)
+ * @property {boolean} isDateBased
+ * @property {() => number[]} indexes
+ * @property {() => number[]} keys - Alias for indexes
  * @property {() => Array<[number, T]>} entries - Get [index, value] pairs
  * @property {() => Map<number, T>} toMap - Convert to Map<index, value>
  */
@@ -195,8 +193,8 @@ function _wrapSeriesData(raw) {
  * @template T
  * @typedef {Object} DateSeriesDataExtras
  * @property {() => globalThis.Date[]} dates - Get dates for each data point
- * @property {() => Array<[globalThis.Date, T]>} dateEntries - Get [date, value] pairs
- * @property {() => Map<globalThis.Date, T>} toDateMap - Convert to Map<date, value>
+ * @property {() => Array<[globalThis.Date, T]>} dateEntries
+ * @property {() => Map<globalThis.Date, T>} toDateMap
  */
 
 /** @template T @typedef {SeriesData<T> & DateSeriesDataExtras<T>} DateSeriesData */
@@ -208,33 +206,33 @@ function _wrapSeriesData(raw) {
 /**
  * @template T
  * @typedef {Object} SeriesEndpoint
- * @property {(index: number) => RangeBuilder<T>} get - Get single item at index
- * @property {(start?: number, end?: number) => RangeBuilder<T>} slice - Slice by index
- * @property {(n: number) => RangeBuilder<T>} first - Get first n items
- * @property {(n: number) => RangeBuilder<T>} last - Get last n items
+ * @property {(index: number) => RangeBuilder<T>} get
+ * @property {(start?: number, end?: number) => RangeBuilder<T>} slice
+ * @property {(n: number) => RangeBuilder<T>} first
+ * @property {(n: number) => RangeBuilder<T>} last
  * @property {(n: number) => SkippedBuilder<T>} skip - Skip first n items, chain with take()
  * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch all data
  * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch all data as CSV
  * @property {() => Promise<number>} len - Get total number of data points
- * @property {() => Promise<Version>} version - Get the current version of the series
+ * @property {() => Promise<Version>} version
  * @property {Thenable<T>} then - Thenable (await endpoint)
- * @property {string} path - The endpoint path
+ * @property {string} path
  */
 
 /**
  * @template T
  * @typedef {Object} DateSeriesEndpoint
- * @property {(index: number | globalThis.Date) => DateRangeBuilder<T>} get - Get single item at index or Date
- * @property {(start?: number | globalThis.Date, end?: number | globalThis.Date) => DateRangeBuilder<T>} slice - Slice by index or Date
- * @property {(n: number) => DateRangeBuilder<T>} first - Get first n items
- * @property {(n: number) => DateRangeBuilder<T>} last - Get last n items
+ * @property {(index: number | globalThis.Date) => DateRangeBuilder<T>} get
+ * @property {(start?: number | globalThis.Date, end?: number | globalThis.Date) => DateRangeBuilder<T>} slice
+ * @property {(n: number) => DateRangeBuilder<T>} first
+ * @property {(n: number) => DateRangeBuilder<T>} last
  * @property {(n: number) => DateSkippedBuilder<T>} skip - Skip first n items, chain with take()
  * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch all data
  * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch all data as CSV
  * @property {() => Promise<number>} len - Get total number of data points
- * @property {() => Promise<Version>} version - Get the current version of the series
+ * @property {() => Promise<Version>} version
  * @property {DateThenable<T>} then - Thenable (await endpoint)
- * @property {string} path - The endpoint path
+ * @property {string} path
  */
 
 /** @typedef {SeriesEndpoint<any>} AnySeriesEndpoint */
@@ -254,50 +252,49 @@ function _wrapSeriesData(raw) {
 /** @template T @typedef {Object} SkippedBuilder
  * @property {(n: number) => RangeBuilder<T>} take - Take n items after skipped position
  * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch from skipped position to end
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {Thenable<T>} then - Thenable
+ * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
+ * @property {Thenable<T>} then
  */
 
 /** @template T @typedef {Object} DateSkippedBuilder
  * @property {(n: number) => DateRangeBuilder<T>} take - Take n items after skipped position
  * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch from skipped position to end
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {DateThenable<T>} then - Thenable
+ * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
+ * @property {DateThenable<T>} then
  */
 
 /** @template T @typedef {Object} RangeBuilder
  * @property {(arg?: SeriesFetchArg<T>, options?: ClientFetchOptions<SeriesData<T>>) => Promise<SeriesData<T>>} fetch - Fetch the selection (one item or a range)
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {Thenable<T>} then - Thenable
+ * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
+ * @property {Thenable<T>} then
  */
 
 /** @template T @typedef {Object} DateRangeBuilder
  * @property {(arg?: DateSeriesFetchArg<T>, options?: ClientFetchOptions<DateSeriesData<T>>) => Promise<DateSeriesData<T>>} fetch - Fetch the selection (one item or a range)
- * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv - Fetch as CSV
- * @property {DateThenable<T>} then - Thenable
+ * @property {(options?: ClientFetchOptions<string>) => Promise<string>} fetchCsv
+ * @property {DateThenable<T>} then
  */
 
 /**
  * @template T
  * @typedef {Object} SeriesPattern
- * @property {string} name - The series name
+ * @property {string} name
  * @property {Readonly<Partial<Record<Index, SeriesEndpoint<T>>>>} by - Index endpoints as lazy getters
- * @property {() => readonly Index[]} indexes - Get the list of available indexes
- * @property {(index: Index) => SeriesEndpoint<T>|undefined} get - Get an endpoint for a specific index
+ * @property {() => readonly Index[]} indexes
+ * @property {(index: Index) => SeriesEndpoint<T>|undefined} get
  */
 
 /** @typedef {SeriesPattern<any>} AnySeriesPattern */
 
 /**
- * Create a series endpoint builder with typestate pattern.
  * @template T
  * @param {BitviewClient} client
- * @param {string} name - The series vec name
- * @param {Index} index - The index name
+ * @param {string} name
+ * @param {Index} index
  * @returns {DateSeriesEndpoint<T>}
  */
 function _endpoint(client, name, index) {
-  const p = `/api/series/${encodeURIComponent(name)}/${index}`;
+  const path = `/api/series/${encodeURIComponent(name)}/${index}`;
 
   /**
    * Counted selections send `limit`: the server ends them after resolving a negative start.
@@ -312,7 +309,7 @@ function _endpoint(client, name, index) {
     if (limit !== undefined) params.set('limit', String(limit));
     if (format) params.set('format', format);
     const query = params.toString();
-    return query ? `${p}?${query}` : p;
+    return query ? `${path}?${query}` : path;
   };
 
   /**
@@ -355,15 +352,12 @@ function _endpoint(client, name, index) {
     len() { return client.getSeriesLen(name, index); },
     version() { return client.getSeriesVersion(name, index); },
     then(resolve, reject) { return this.fetch().then(resolve, reject); },
-    get path() { return p; },
+    get path() { return path; },
   };
 
   return endpoint;
 }
 
-/**
- * Base HTTP client for making requests with caching support
- */
 class BitviewClientBase {
   /**
    * @param {BitviewClientOptions|string} options
@@ -550,7 +544,7 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a GET request expecting a JSON response. Cached and supports `onValue`.
+   * Cached and supports `onValue`.
    * @template T
    * @param {string} path
    * @param {ClientFetchOptions<T>} [options]
@@ -561,7 +555,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a GET request expecting a text response (text/plain, text/csv, ...).
    * Cached and supports `onValue`, same as `getJson`.
    * @param {string} path
    * @param {ClientFetchOptions<string>} [options]
@@ -572,7 +565,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a GET request expecting binary data (application/octet-stream).
    * Cached and supports `onValue`, same as `getJson`.
    * @param {string} path
    * @param {ClientFetchOptions<Uint8Array>} [options]
@@ -583,8 +575,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a POST request with a string body.
-   *
    * POST responses are uncached and never invoke `onValue` — every call hits
    * the network with the same body and returns the upstream response.
    *
@@ -601,7 +591,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a POST request expecting a JSON response.
    * @template T
    * @param {string} path
    * @param {string} body
@@ -614,7 +603,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a POST request expecting a text response.
    * @param {string} path
    * @param {string} body
    * @param {{ signal?: AbortSignal }} [options]
@@ -626,7 +614,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Make a POST request expecting binary data (application/octet-stream).
    * @param {string} path
    * @param {string} body
    * @param {{ signal?: AbortSignal }} [options]
@@ -638,7 +625,6 @@ class BitviewClientBase {
   }
 
   /**
-   * Fetch series data and wrap with helper methods (internal)
    * @template T
    * @param {string} path
    * @param {DateSeriesFetchArg<T>} [arg]
@@ -670,18 +656,10 @@ function _lazy(owner, name, init) {
   return value;
 }
 
-
-
 const _MASK_64 = 0xffffffffffffffffn;
-const _RAPIDHASH_SECRETS = /** @type {const} */ ([
-  0x2d358dccaa6c78a5n,
-  0x8bb84b93962eacc9n,
-  0x4b33a62ed433d4a3n,
-  0x4d5a2da51de1aa47n,
-  0xa0761d6478bd642fn,
-  0xe7037ed1a0b428dbn,
-  0x90ed1765281c388cn,
-]);
+// RapidHash v3's secrets 1 and 2: the only ones payloads of at most 65 bytes reach.
+const _RAPIDHASH_SECRET_1 = 0x8bb84b93962eacc9n;
+const _RAPIDHASH_SECRET_2 = 0x4b33a62ed433d4a3n;
 const _RAPIDHASH_SEED = _rapidHashSeed(0n);
 
 /** @param {bigint} value */
@@ -703,7 +681,7 @@ function _rapidMum(left, right) {
 
 /** @param {bigint} seed */
 function _rapidHashSeed(seed) {
-  return _u64(seed ^ _rapidMix(seed ^ _RAPIDHASH_SECRETS[2], _RAPIDHASH_SECRETS[1]));
+  return _u64(seed ^ _rapidMix(seed ^ _RAPIDHASH_SECRET_2, _RAPIDHASH_SECRET_1));
 }
 
 /** @param {Uint8Array} bytes @param {number} offset */
@@ -752,19 +730,19 @@ function _rapidHashV3(payload) {
         a ^= _readU32(bytes, 0);
         b ^= _readU32(bytes, length - 4);
       }
-    } else if (length > 0) {
+    } else {
       a ^= (BigInt(bytes[0]) << 45n) | BigInt(bytes[length - 1]);
       b ^= BigInt(bytes[length >> 1]);
     }
     remainder = BigInt(length);
   } else {
-    seed = _rapidMix(_readU64(bytes, 0) ^ _RAPIDHASH_SECRETS[2], _readU64(bytes, 8) ^ seed);
+    seed = _rapidMix(_readU64(bytes, 0) ^ _RAPIDHASH_SECRET_2, _readU64(bytes, 8) ^ seed);
     if (length > 32) {
-      seed = _rapidMix(_readU64(bytes, 16) ^ _RAPIDHASH_SECRETS[2], _readU64(bytes, 24) ^ seed);
+      seed = _rapidMix(_readU64(bytes, 16) ^ _RAPIDHASH_SECRET_2, _readU64(bytes, 24) ^ seed);
       if (length > 48) {
-        seed = _rapidMix(_readU64(bytes, 32) ^ _RAPIDHASH_SECRETS[1], _readU64(bytes, 40) ^ seed);
+        seed = _rapidMix(_readU64(bytes, 32) ^ _RAPIDHASH_SECRET_1, _readU64(bytes, 40) ^ seed);
         if (length > 64) {
-          seed = _rapidMix(_readU64(bytes, 48) ^ _RAPIDHASH_SECRETS[1], _readU64(bytes, 56) ^ seed);
+          seed = _rapidMix(_readU64(bytes, 48) ^ _RAPIDHASH_SECRET_1, _readU64(bytes, 56) ^ seed);
         }
       }
     }
@@ -773,10 +751,10 @@ function _rapidHashV3(payload) {
     b ^= _readU64(bytes, length - 8);
   }
 
-  a ^= _RAPIDHASH_SECRETS[1];
+  a ^= _RAPIDHASH_SECRET_1;
   b ^= seed;
   [a, b] = _rapidMum(a, b);
-  return _rapidMix(a ^ 0xaaaaaaaaaaaaaaaan, b ^ _RAPIDHASH_SECRETS[1] ^ remainder);
+  return _rapidMix(a ^ 0xaaaaaaaaaaaaaaaan, b ^ _RAPIDHASH_SECRET_1 ^ remainder);
 }
 
 /** @param {number} nibbles */
@@ -803,7 +781,7 @@ function _validateAddressPayloadForType(addressType, payload) {
 
 /**
  * Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`.
- * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw address payload bytes
+ * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
  * @param {number} nibbles - Prefix length from 1 to 16 hex nibbles
  * @returns {string}
  */

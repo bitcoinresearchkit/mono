@@ -41,11 +41,15 @@ impl<'a> AddrTypeLookup<'a> {
         self.addrs.entry(type_index).or_default().tx_count += tx_count;
     }
 
-    pub fn get_or_create_for_receive(
+    /// [`Self::update_tx_counts`] has added every address the block pays.
+    pub fn for_receive(
         &mut self,
         type_index: TypeIndex,
     ) -> (&mut SourcedAddrData, AddrReceiveStatus) {
-        let addr_data = self.addrs.entry(type_index).or_default();
+        let addr_data = self
+            .addrs
+            .get_mut(&type_index)
+            .expect("Addr must exist for receive");
         let status = if addr_data.funded_txo_count == 0 {
             AddrReceiveStatus::New
         } else if addr_data.is_funded() {
@@ -57,7 +61,7 @@ impl<'a> AddrTypeLookup<'a> {
     }
 
     #[inline]
-    pub fn get_for_send(&mut self, type_index: TypeIndex) -> &mut SourcedAddrData {
+    pub fn for_send(&mut self, type_index: TypeIndex) -> &mut SourcedAddrData {
         self.addrs
             .get_mut(&type_index)
             .expect("Addr must exist for send")

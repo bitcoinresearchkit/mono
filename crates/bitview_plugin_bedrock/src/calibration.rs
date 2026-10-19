@@ -1,4 +1,4 @@
-use super::{ModeId, Modes, Percentiles, Thresholds};
+use super::{Modes, Percentiles, Thresholds};
 use bitview_compute::ExactOrderStats;
 use brk_types::{Height, Version};
 use vecdb::{ReadableVec, VecValue};
@@ -64,11 +64,9 @@ impl Calibration {
         })
     }
     pub fn observe(&mut self, shares: Modes<Option<f64>>) {
-        for mode in ModeId::ALL {
-            if let Some(share) = *shares.select(mode) {
-                self.histories
-                    .select_mut(mode)
-                    .insert(share.clamp(0.0, 1.0));
+        for (history, &share) in self.histories.iter_mut().zip(shares.iter()) {
+            if let Some(share) = share {
+                history.insert(share);
             }
         }
         self.end += 1;
@@ -82,7 +80,7 @@ impl Calibration {
         source.for_each_range_at(0, end, |value| {
             let value = f64::from(value);
             if value.is_finite() {
-                values.push(value.clamp(0.0, 1.0));
+                values.push(value);
             }
         });
         ExactOrderStats::from_unsorted(values)

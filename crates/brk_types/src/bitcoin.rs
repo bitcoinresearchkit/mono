@@ -1,5 +1,4 @@
 use derive_more::{Add, AddAssign, From, Into};
-use std::ops::Mul;
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
@@ -17,13 +16,6 @@ use vecdb::Pco;
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct Bitcoin(f64);
 
-impl Mul<usize> for Bitcoin {
-    type Output = Self;
-    fn mul(self, rhs: usize) -> Self::Output {
-        Self(self.0 * rhs as f64)
-    }
-}
-
 impl From<Sats> for Bitcoin {
     #[inline]
     fn from(value: Sats) -> Self {
@@ -40,11 +32,6 @@ impl From<usize> for Bitcoin {
 
 crate::impl_float_ord_format!(Bitcoin);
 
-impl CheckedSub<usize> for Bitcoin {
-    fn checked_sub(self, rhs: usize) -> Option<Self> {
-        Some(Self(self.0 - rhs as f64))
-    }
-}
 impl CheckedSub<Bitcoin> for Bitcoin {
     fn checked_sub(self, rhs: Bitcoin) -> Option<Self> {
         Some(Self(self.0 - rhs.0))

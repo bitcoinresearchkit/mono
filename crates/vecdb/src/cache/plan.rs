@@ -2,7 +2,6 @@ use std::ops::Range;
 
 use super::{Request, Value};
 
-/// Position of the first span ending after `from`.
 pub(super) fn first_ending_after<T: Clone>(blocks: &[(usize, Value<T>)], from: usize) -> usize {
     blocks.partition_point(|(start, values)| *start + values.len() <= from)
 }

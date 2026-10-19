@@ -4,11 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{BlockHash, Height, Timestamp};
 
-/// Transaction confirmation status
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct TxStatus {
-    /// Whether the transaction is confirmed
     #[cfg_attr(feature = "schemars", schemars(example = true))]
     pub confirmed: bool,
 

@@ -1,7 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Disk usage of the indexed data
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct DiskUsage {
     /// Human-readable brk data size (e.g., "48.8 GiB")

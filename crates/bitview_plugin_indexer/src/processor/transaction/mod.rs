@@ -32,7 +32,7 @@ impl<'a> BlockProcessor<'a> {
             .par_iter()
             .enumerate()
             .map(|(index, tx)| {
-                let (btc_txid, base_size, total_size) = self.block.compute_tx_id_and_sizes(index);
+                let (btc_txid, base_size, total_size) = self.block.compute_txid_and_sizes(index);
                 let txid = Txid::from(btc_txid);
                 let tx_index = base_tx_index + TxIndex::from(index);
 
@@ -60,13 +60,12 @@ impl<'a> BlockProcessor<'a> {
             height = ?self.height,
             ?tx_index,
             ?prev_tx_index,
-            "Unexpected TXID collision"
+            "Txid prefix collision"
         );
-        Err(Error::Internal("Unexpected TXID collision"))
+        Err(Error::Internal("Txid prefix collision"))
     }
 
     /// Analyzes transactions, then finalizes outputs/inputs in parallel with metadata storage.
-    #[allow(clippy::too_many_arguments)]
     pub fn analyze_and_finalize_transactions(
         &mut self,
         txs: Vec<ComputedTx>,

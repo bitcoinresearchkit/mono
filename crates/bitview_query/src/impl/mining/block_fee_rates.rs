@@ -4,10 +4,8 @@ use super::block_window::BlockWindow;
 use crate::{Query, Result, r#impl::mempool_fee_rate};
 
 impl Query {
-    /// Time-bucketed fee-rate percentiles over `time_period`. One entry per
-    /// bucket, ordered chronologically. Each entry carries the bucket's
-    /// average height/timestamp and the seven percentile means
-    /// (`min, pct10, pct25, median, pct75, pct90, max`).
+    /// Mean effective (CPFP-adjusted) fee-rate percentiles per time bucket over `time_period`,
+    /// chronological.
     pub fn block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin)?;
@@ -36,9 +34,15 @@ impl Query {
             .map(|(i, b)| BlockFeeRatesEntry {
                 avg_height: b.avg_height,
                 timestamp: b.avg_timestamp,
-                percentiles: FeeRatePercentiles::new(
-                    min[i], pct10[i], pct25[i], median[i], pct75[i], pct90[i], max[i],
-                ),
+                percentiles: FeeRatePercentiles {
+                    min: min[i],
+                    pct10: pct10[i],
+                    pct25: pct25[i],
+                    median: median[i],
+                    pct75: pct75[i],
+                    pct90: pct90[i],
+                    max: max[i],
+                },
             })
             .collect())
     }

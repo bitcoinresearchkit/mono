@@ -1,13 +1,14 @@
-use bitview_cohort::AgeAggregate;
 use bitview_distribution::state::cost_basis::{PriceTotals, age_index};
 use brk_types::{Cents, CentsSats, Sats};
 
+use crate::terms::Terms;
+
 #[derive(Default)]
 pub(crate) struct Bucket {
-    pub(crate) supply: AgeAggregate<Sats>,
-    pub(crate) cap: AgeAggregate<Cents>,
+    pub(crate) supply: Terms<Sats>,
+    pub(crate) cap: Terms<Cents>,
     /// The exact capital, for shares that stay proportional at a few cents.
-    pub(crate) cap_raw: AgeAggregate<CentsSats>,
+    pub(crate) cap_raw: Terms<CentsSats>,
 }
 
 impl Bucket {
@@ -18,7 +19,7 @@ impl Bucket {
             debug_assert!(cap >= 0, "negative capital {cap}");
             CentsSats::new(cap as u128).to_cents().inner()
         };
-        let values = AgeAggregate::from_fn(|id| {
+        let values = Terms::from_fn(|id| {
             let (before_sats, before_cap) = age_index::selected(id, &before);
             let (after_sats, after_cap) = age_index::selected(id, &after);
             debug_assert!(
@@ -32,9 +33,9 @@ impl Bucket {
             )
         });
         Self {
-            supply: AgeAggregate::from_fn(|id| id.select(&values).0),
-            cap: AgeAggregate::from_fn(|id| id.select(&values).1),
-            cap_raw: AgeAggregate::from_fn(|id| id.select(&values).2),
+            supply: Terms::from_fn(|id| values.select(id).0),
+            cap: Terms::from_fn(|id| values.select(id).1),
+            cap_raw: Terms::from_fn(|id| values.select(id).2),
         }
     }
 }

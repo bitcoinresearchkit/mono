@@ -16,12 +16,6 @@ pub struct Halving(u8);
 
 brk_types::impl_integer_index!(Halving, u8);
 
-impl Halving {
-    pub const fn new(value: u8) -> Self {
-        Self(value)
-    }
-}
-
 impl From<Height> for Halving {
     #[inline]
     fn from(value: Height) -> Self {
@@ -47,7 +41,6 @@ impl PrintableIndex for Halving {
 impl From<f64> for Halving {
     #[inline]
     fn from(value: f64) -> Self {
-        let value = value.max(0.0);
         Self(value.round() as u8)
     }
 }
@@ -60,7 +53,7 @@ impl From<Halving> for f64 {
 }
 
 impl FromCoarserIndex<Halving> for Height {
-    fn max_from_(coarser: Halving) -> usize {
+    fn max_from_unbounded(coarser: Halving) -> usize {
         (usize::from(coarser) + 1) * BLOCKS_PER_HALVING as usize - 1
     }
 }

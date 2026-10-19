@@ -44,7 +44,7 @@ impl Ty {
         if let Some(name) = schema
             .get("$ref")
             .and_then(Value::as_str)
-            .and_then(ref_to_type_name)
+            .map(ref_to_type_name)
         {
             return match rust_array_element_type(name) {
                 Some(element) => Self::List(Box::new(Self::Ref(element.to_owned()))),

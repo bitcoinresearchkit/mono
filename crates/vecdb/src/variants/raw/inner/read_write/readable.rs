@@ -12,7 +12,7 @@ where
     S: RawStrategy<T>,
 {
     type Persisted<'a>
-        = RawPersisted<'a, I, T, S>
+        = RawPersisted<'a, T, S>
     where
         Self: 'a;
 
@@ -30,7 +30,7 @@ where
 
     #[inline(always)]
     fn persisted(&self) -> Self::Persisted<'_> {
-        RawPersisted::new(self.base.region())
+        RawPersisted::new(&self.base.region)
     }
 }
 

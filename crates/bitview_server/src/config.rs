@@ -8,9 +8,9 @@ use bitview_website::Website;
 
 use crate::{Port, cache::CdnCacheMode};
 
-/// Default max series-query response weight, in raw value bytes.
-/// 10k OHLC values (320 KB): the website's largest chart request, so every
-/// response stays light and fast without a server-wide body budget.
+/// Default max series-query response weight, in raw value bytes: 10k OHLC values (320 KB), the
+/// website's largest chart request. Bounding each response this way needs no server-wide body
+/// budget.
 pub const DEFAULT_MAX_WEIGHT: usize = 10_000 * size_of::<OHLCCents>();
 
 /// Default max UTXOs returned per address.
@@ -20,7 +20,6 @@ pub const DEFAULT_MAX_UTXOS: usize = 1000;
 /// Default HTTP bind address. Accepts connections on every IPv4 interface.
 pub const DEFAULT_BIND: IpAddr = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
 
-/// Server-wide configuration set at startup.
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
     pub bind: IpAddr,

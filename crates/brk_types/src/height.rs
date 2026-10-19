@@ -22,7 +22,7 @@ use std::fs;
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Pco, PrintableIndex, Stamp, VecIndex};
 
-pub const BLOCKS_PER_DIFF_EPOCHS: u32 = 2016;
+pub const BLOCKS_PER_DIFF_EPOCH: u32 = 2016;
 pub const BLOCKS_PER_HALVING: u32 = 210_000;
 
 /// Block height
@@ -76,7 +76,7 @@ impl Height {
     }
 
     pub fn left_before_next_diff_adj(self) -> u32 {
-        BLOCKS_PER_DIFF_EPOCHS - (*self % BLOCKS_PER_DIFF_EPOCHS)
+        BLOCKS_PER_DIFF_EPOCH - (*self % BLOCKS_PER_DIFF_EPOCH)
     }
 
     pub fn left_before_next_halving(self) -> u32 {
@@ -90,6 +90,14 @@ impl Height {
                 .checked_shr(self.0 / BLOCKS_PER_HALVING)
                 .unwrap_or(0),
         )
+    }
+
+    pub fn index_name() -> &'static str {
+        "height"
+    }
+
+    pub fn index_aliases() -> &'static [&'static str] {
+        &["h", "height", "blk", "block"]
     }
 }
 
@@ -215,7 +223,7 @@ impl From<Stamp> for Height {
     #[inline]
     fn from(value: Stamp) -> Self {
         let u = u64::from(value);
-        assert!(u <= u32::MAX as u64);
+        debug_assert!(u <= u32::MAX as u64);
         Self(u as u32)
     }
 }
@@ -228,14 +236,6 @@ impl From<Height> for Stamp {
     }
 }
 
-impl Height {
-    pub fn index_name() -> &'static str {
-        "height"
-    }
-    pub fn index_aliases() -> &'static [&'static str] {
-        &["h", "height", "blk", "block"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for Height {
     fn to_string() -> &'static str {

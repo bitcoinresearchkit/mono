@@ -89,7 +89,6 @@ where
         )?)
     }
 
-    /// The stored running total the views derive from.
     pub fn cumulative_source(&self) -> &CachedSeries<Height, T> {
         &self.cumulative
     }

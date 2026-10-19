@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortId, CohortName};
 
-/// Epoch names
 pub const EPOCH_NAMES: ByEpoch<CohortName> = ByEpoch {
     _0: CohortName::new("epoch_0", "0", "Epoch 0"),
     _1: CohortName::new("epoch_1", "1", "Epoch 1"),
@@ -46,7 +45,7 @@ define_cohort_id!(
 );
 
 impl<T> ByEpoch<T> {
-    pub fn mut_vec_from_height(&mut self, height: Height) -> Option<&mut T> {
+    pub fn get_mut(&mut self, height: Height) -> Option<&mut T> {
         let halving = usize::from(Halving::from(height));
         let id = EpochId::ALL.get(halving).copied();
         debug_assert!(id.is_some(), "no epoch cohort for halving {halving}");

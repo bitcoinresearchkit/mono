@@ -30,7 +30,7 @@ impl Vecs {
             &db,
             "input_count",
             count_version,
-            &LazyVec::init(
+            &LazyVec::new(
                 "input_count_cumulative_source",
                 count_version,
                 mappings.input_count_source().read_only_boxed_clone(),

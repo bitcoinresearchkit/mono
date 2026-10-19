@@ -31,7 +31,10 @@ impl Query {
                 continue;
             }
 
-            let script = addr_readers.script_pubkey(addr_type, type_index);
+            let script = addr_readers
+                .get(addr_type, type_index)
+                .ok_or(Error::Internal("stored script is not an address"))?
+                .to_script_pubkey();
             addresses.push(
                 Address::try_from((&script, addr_type))
                     .map_err(|_| Error::Internal("stored script is not an address"))?,

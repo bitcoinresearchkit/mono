@@ -4,7 +4,6 @@ use brk_types::TxIndex;
 use smallvec::{SmallVec, smallvec};
 
 /// Sorted, unique transaction indexes associated with one address in a block.
-#[derive(Debug)]
 pub struct TxIndexes(SmallVec<[TxIndex; 4]>);
 
 impl TxIndexes {
@@ -15,11 +14,7 @@ impl TxIndexes {
 
     #[inline]
     pub fn push(&mut self, tx_index: TxIndex) {
-        let Some(&last) = self.0.last() else {
-            self.0.push(tx_index);
-            return;
-        };
-
+        let last = *self.0.last().unwrap();
         debug_assert!(last <= tx_index);
         if last != tx_index {
             self.0.push(tx_index);

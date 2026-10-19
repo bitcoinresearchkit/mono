@@ -11,14 +11,14 @@ use super::{CostBasisOps, UnrealizedState, unrealized::CachedUnrealizedState};
 
 /// Price distribution with deferred changes and cached unrealized analytics.
 #[derive(Clone, Debug, Default)]
-pub struct CostBasisData {
+pub struct CostBasisDistribution {
     map: BTreeMap<CentsCompact, Sats>,
     /// Net sats per price since the last apply, wrapping like the signed deltas they are.
     pending: FxHashMap<CentsCompact, i64>,
     cache: Option<CachedUnrealizedState>,
 }
 
-impl CostBasisData {
+impl CostBasisDistribution {
     /// Applies pending changes first: the cache builds from and crosses the map.
     pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
         self.apply_pending();
@@ -50,7 +50,7 @@ impl CostBasisData {
     }
 }
 
-impl CostBasisOps for CostBasisData {
+impl CostBasisOps for CostBasisDistribution {
     #[inline]
     fn increment(&mut self, price: Cents, sats: Sats) {
         let delta = self.pending.entry(price.into()).or_default();

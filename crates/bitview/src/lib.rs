@@ -35,7 +35,6 @@ use update::update;
 
 /// Fully resolved settings for one Bitview runner.
 pub struct RunConfig {
-    /// Bitcoin Core RPC client.
     pub client: Client,
     /// Directory containing Bitcoin Core's block files.
     pub blocks_path: PathBuf,
@@ -59,7 +58,7 @@ where
     raise_fd_limit();
 
     let exit = Exit::new();
-    exit.set_ctrlc_handler();
+    exit.install_signal_handlers();
 
     run_with(config, exit, import)
 }
@@ -97,9 +96,8 @@ where
         cache_budget,
     } = config;
     let reader = Reader::new(blocks_path, &client)?;
-    let outputs_path = server.data_path.clone();
     Budgeted::init_global(cache_budget)?;
-    let import_context = ImportContext::new(&outputs_path, &exit);
+    let import_context = ImportContext::new(&server.data_path, &exit);
     let update_context = UpdateContext::new(&exit);
 
     // Outside the import lock; bootstrap measures its backlog against the synced tip.
@@ -157,8 +155,6 @@ where
         if server_handle.is_finished() {
             return server_stopped(&runtime, server_handle);
         }
-
-        info!("Waiting for new blocks...");
     }
 }
 

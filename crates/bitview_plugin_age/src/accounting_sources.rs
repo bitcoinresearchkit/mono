@@ -15,7 +15,6 @@ pub struct AccountingSources<'a> {
     capitalized_cap_raw: AgeRange<&'a ZstdVec<Height, CentsSquaredSats>>,
 }
 
-/// An age range's supply in sats, as its series publishes it.
 type SupplySource = LazyVec<Height, Sats, Sats>;
 
 impl Vecs {
@@ -52,7 +51,7 @@ impl AccountingSources<'_> {
             .chain(self.cap_raw.iter().map(|v| v.len()))
             .chain(self.capitalized_cap_raw.iter().map(|v| v.len()))
             .min()
-            .unwrap_or_default()
+            .expect("age ranges are nonempty")
     }
 
     pub fn collect_into(&self, start: usize, end: usize, target: &mut CohortAccounting) {

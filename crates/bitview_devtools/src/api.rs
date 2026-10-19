@@ -15,7 +15,7 @@ use crate::{Snapshot, errors::render_errors};
 
 /// The series tree as clients see it: one line per leaf (with a schema id), descriptions and
 /// value schemas; the typed path of every leaf in each generated client; the OpenAPI document;
-/// the HTTP response of every error scenario (G8).
+/// the HTTP responses of client-visible error scenarios.
 pub fn render_api(plugins: &DefaultPlugins) -> Result<Vec<Snapshot>> {
     let vecs = Vecs::build(plugins);
     check_value_types(&vecs)?;
@@ -63,7 +63,6 @@ pub fn render_api(plugins: &DefaultPlugins) -> Result<Vec<Snapshot>> {
     let mut openapi = serde_json::to_string_pretty(&openapi)?;
     openapi.push('\n');
 
-    // Every typed client path with its spelling in each client, snapshotted for review.
     let mut paths = String::from("# series\trust\tjavascript\tpython\tindexes\n");
     for path in client_paths(vecs.catalog()) {
         let indexes = path
@@ -155,15 +154,17 @@ impl Leaves {
                 let schema = leaf.schema.to_string();
                 let schema_id = fnv1a(&schema);
                 let indexes = leaf
-                    .indexes()
+                    .leaf
+                    .indexes
                     .iter()
                     .map(ToString::to_string)
                     .collect::<Vec<_>>()
                     .join(",");
-                let nullable = if leaf.nullable() == leaf.indexes() {
+                let nullable = if leaf.leaf.nullable == leaf.leaf.indexes {
                     "all".to_owned()
                 } else {
-                    leaf.nullable()
+                    leaf.leaf
+                        .nullable
                         .iter()
                         .map(ToString::to_string)
                         .collect::<Vec<_>>()
@@ -171,13 +172,13 @@ impl Leaves {
                 };
                 lines.push(format!(
                     "{path}\t{}\t{}\t{}\t{schema_id}\t{indexes}\t{nullable}",
-                    leaf.name(),
-                    leaf.kind(),
+                    leaf.leaf.name,
+                    leaf.leaf.kind,
                     extract_json_type(&leaf.schema),
                 ));
                 if let Some(description) = &leaf.leaf.description {
                     self.descriptions
-                        .insert(leaf.name().to_owned(), description.to_string());
+                        .insert(leaf.leaf.name.clone(), description.to_string());
                 }
                 self.schemas.insert(schema_id, schema);
             }

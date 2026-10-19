@@ -20,7 +20,6 @@ pub struct Transaction {
     #[cfg_attr(feature = "schemars", schemars(example = TxIndex::new(0)))]
     pub index: Option<TxIndex>,
 
-    /// Transaction ID
     #[cfg_attr(
         feature = "schemars",
         schemars(example = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b")
@@ -31,7 +30,6 @@ pub struct Transaction {
     #[cfg_attr(feature = "schemars", schemars(example = 2))]
     pub version: TxVersionRaw,
 
-    /// Transaction lock time
     #[cfg_attr(feature = "schemars", schemars(example = 0))]
     #[serde(rename = "locktime")]
     pub lock_time: RawLockTime,
@@ -49,11 +47,10 @@ pub struct Transaction {
     #[serde(rename = "size")]
     pub total_size: usize,
 
-    /// Transaction weight
     #[cfg_attr(feature = "schemars", schemars(example = 558))]
     pub weight: Weight,
 
-    /// Number of signature operations
+    /// BIP-141 signature-operation cost
     #[cfg_attr(feature = "schemars", schemars(example = SigOps::new(1)))]
     #[serde(rename = "sigops")]
     pub total_sigop_cost: SigOps,
@@ -62,7 +59,6 @@ pub struct Transaction {
     #[cfg_attr(feature = "schemars", schemars(example = Sats::new(31)))]
     pub fee: Sats,
 
-    /// Confirmation status (confirmed, block height/hash/time)
     pub status: TxStatus,
 }
 
@@ -81,9 +77,7 @@ impl Transaction {
         self.fee = Self::fee(self).unwrap_or_default();
     }
 
-    /// Re-encode to canonical Bitcoin protocol bytes via
-    /// `bitcoin::Transaction` (verified bytewise round-trip against Core
-    /// over a 1000-tx live sample).
+    /// Canonical Bitcoin protocol bytes, via `bitcoin::Transaction`.
     pub fn encode_bytes(&self) -> Vec<u8> {
         let bitcoin_tx: BitcoinTransaction = self.into();
         let mut buf = Vec::with_capacity(self.total_size);
@@ -98,10 +92,8 @@ impl Transaction {
         VSize::from(self.weight)
     }
 
-    /// Recompute `total_sigop_cost` from current inputs/outputs and
-    /// write it back into the field. Cheaper than rebuilding the
-    /// transaction when prevouts arrive; the only mutator paired with
-    /// [`Self::total_sigop_cost`].
+    /// Recompute `total_sigop_cost` once prevouts are filled in, without rebuilding the
+    /// transaction.
     pub fn refresh_sigops(&mut self) {
         self.total_sigop_cost = self.total_sigop_cost();
     }
@@ -115,7 +107,7 @@ impl Transaction {
         let mut witness: usize = 0;
 
         for input in &self.input {
-            legacy = legacy.saturating_add(SigOpCount::of(&input.script_sig).legacy);
+            legacy += SigOpCount::of(&input.script_sig).legacy;
 
             let Some(prevout) = input.prevout.as_ref() else {
                 continue;
@@ -128,7 +120,7 @@ impl Transaction {
                 .flatten();
 
             if let Some(rs) = redeem_script {
-                redeem = redeem.saturating_add(SigOpCount::of(rs).accurate);
+                redeem += SigOpCount::of(rs).accurate;
             }
 
             let witness_program: Option<&Script> = if spk.is_witness_program() {
@@ -138,21 +130,15 @@ impl Transaction {
             };
 
             if let Some(wp) = witness_program {
-                witness =
-                    witness.saturating_add(count_sigops_with_witness_program(&input.witness, wp));
+                witness += count_sigops_with_witness_program(&input.witness, wp);
             }
         }
 
         for output in &self.output {
-            legacy = legacy.saturating_add(SigOpCount::of(&output.script_pubkey).legacy);
+            legacy += SigOpCount::of(&output.script_pubkey).legacy;
         }
 
-        SigOps::from(
-            legacy
-                .saturating_mul(WITNESS_SCALE_FACTOR)
-                .saturating_add(redeem.saturating_mul(WITNESS_SCALE_FACTOR))
-                .saturating_add(witness),
-        )
+        SigOps::from((legacy + redeem) * WITNESS_SCALE_FACTOR + witness)
     }
 }
 
@@ -182,9 +168,7 @@ fn count_sigops_with_witness_program(witness: &Witness, witness_program: &Script
     }
 }
 
-/// Re-encode a brk `Transaction` to a canonical `bitcoin::Transaction`
-/// (lossless: verified bytewise round-trip against Core's
-/// `getrawtransaction` over a 1000-tx live sample).
+/// Lossless: the canonical `bitcoin::Transaction`.
 impl From<&Transaction> for BitcoinTransaction {
     #[inline]
     fn from(tx: &Transaction) -> Self {

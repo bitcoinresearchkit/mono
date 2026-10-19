@@ -38,6 +38,13 @@ impl TxInIndex {
     pub fn is_unspent(self) -> bool {
         self == Self::UNSPENT
     }
+
+    pub(crate) fn index_name() -> &'static str {
+        "txin_index"
+    }
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
+        &["txi", "txin", "txin_index"]
+    }
 }
 
 brk_types::impl_integer_index!(TxInIndex, u64);
@@ -49,14 +56,6 @@ impl Add<Vin> for TxInIndex {
     }
 }
 
-impl TxInIndex {
-    pub(crate) fn index_name() -> &'static str {
-        "txin_index"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["txi", "txin", "txin_index"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for TxInIndex {
     fn to_string() -> &'static str {

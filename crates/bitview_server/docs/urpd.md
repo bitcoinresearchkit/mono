@@ -7,8 +7,9 @@ decoding/aggregation; never silently truncate oversized or incomplete sources.
 
 There is no retained URPD JSON cache. Matching requests validate captured source
 entries without constructing buckets/JSON. Separate work and encoded-response
-permits bound in-flight capture/build and slow transmission respectively. Body
-ownership survives compression and frames retained after the HTTP future ends.
+permits bound in-flight capture/build and slow transmission respectively. Bodies
+of at least 256 KiB keep their response permit through compression and the final
+frame, including frames retained after the HTTP future ends.
 These are endpoint resource limits, not a total process-memory limit.
 
 ## Age filters

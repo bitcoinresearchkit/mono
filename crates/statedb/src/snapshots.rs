@@ -224,10 +224,8 @@ impl Snapshots {
     }
     /// Runs one write; a failure leaves the files mid-update, so later use must reopen.
     fn write(&mut self, f: impl FnOnce(&mut Self) -> Result<()>) -> Result<()> {
+        debug_assert!(self.writable);
         self.healthy()?;
-        if !self.writable {
-            return Err(invalid("read-only snapshots"));
-        }
         let result = f(self);
         self.poisoned = result.is_err();
         result
@@ -273,11 +271,9 @@ impl Snapshots {
         end: usize,
         versions: (u64, u64),
     ) -> impl Iterator<Item = Result<Option<Snapshot>>> + '_ {
+        debug_assert!(after <= end);
         let to = self.entries.partition_point(|&(h, _, _)| h <= end);
-        let from = self
-            .entries
-            .partition_point(|&(h, _, _)| h <= after)
-            .min(to);
+        let from = self.entries.partition_point(|&(h, _, _)| h <= after);
         self.entries[from..to]
             .iter()
             .rev()

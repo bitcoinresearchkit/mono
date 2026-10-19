@@ -34,9 +34,8 @@ use crate::{DefaultPlugins, timing::timed_compute};
 const REIMPORT_THRESHOLD: u32 = 10_000;
 
 impl DefaultPlugins {
-    /// Updates every plugin, enabling indexer collision checks in debug builds.
-    fn compute_inner(&mut self, context: UpdateContext<'_>) -> Result<()> {
-        self.compute_indexer(context)?;
+    fn compute_all(&mut self, context: UpdateContext<'_>) -> Result<()> {
+        timed_compute(&mut *self.indexer, (), context)?;
         brk_alloc::collect();
         self.compute_dependents(context)
     }
@@ -55,10 +54,6 @@ impl DefaultPlugins {
         self.addresses
             .roll_back_to(usize::from(starting.height), &self.indexer)?;
         self.indexer.roll_back_to(&starting)
-    }
-
-    fn compute_indexer(&mut self, context: UpdateContext<'_>) -> Result<()> {
-        timed_compute(&mut *self.indexer, (), context)
     }
 
     /// Starts each plugin once every plugin its `Dependencies` borrow has computed, keeping each
@@ -388,18 +383,18 @@ impl ComputePluginSet for DefaultPlugins {
 
         if blocks_behind > REIMPORT_THRESHOLD {
             info!("Indexing {blocks_behind} blocks before initializing metrics");
-            self.compute_indexer(context)?;
+            timed_compute(&mut *self.indexer, (), context)?;
             return Ok(BootstrapAction::Reimport);
         }
 
-        self.compute_inner(context)?;
+        self.compute_all(context)?;
 
         Ok(BootstrapAction::Ready)
     }
 
     fn compute(&mut self, context: UpdateContext<'_>) -> Result<()> {
         self.roll_back_reorg(context)?;
-        self.compute_inner(context)
+        self.compute_all(context)
     }
 
     fn commit(&mut self, complete: bool) -> Result<()> {

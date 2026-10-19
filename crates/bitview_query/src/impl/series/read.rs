@@ -22,16 +22,15 @@ impl SeriesRead {
         // append past them, and only a rollback (which waits for the pin) rewrites them.
         let pin = query.pin_safe_lengths()?;
         let bounds = pin.bounds().clone();
-        let is_mutable = entries.iter().any(|entry| entry.is_mutable());
+        let is_mutable = entries.iter().any(|entry| entry.is_mutable);
         let vecs = entries
             .into_iter()
-            .map(SeriesEntry::vec)
+            .map(|entry| entry.vec)
             .collect::<Vec<_>>();
-        for vec in &vecs {
-            bounds
-                .bind(*vec)
-                .ok_or(Error::Internal("Missing published series bound"))?;
-        }
+        debug_assert!(
+            vecs.iter().all(|vec| bounds.bind(*vec).is_some()),
+            "every series index has a published bound"
+        );
         Ok(Self {
             vecs,
             bounds,
@@ -40,7 +39,6 @@ impl SeriesRead {
         })
     }
 
-    /// The publication this read is pinned to.
     pub(super) fn pin(&self) -> &SafeLengths {
         &self.pin
     }

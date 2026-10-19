@@ -2,10 +2,10 @@
 
 One-shot instrumentation of the real default `bitviewd` bootstrap pipeline.
 
-The benchmark always records the complete bootstrap and every plugin import and
-compute executed within it. Plugin timings come from the production schedule,
-so parallel work and drop/reimport cycles are preserved rather than reproduced
-by a benchmark-specific pipeline.
+The benchmark records the complete bootstrap and every plugin import and compute
+that completes within it. Plugin timings come from the production schedule, so
+parallel work and drop/reimport cycles are preserved rather than reproduced by a
+benchmark-specific pipeline.
 
 Run it with:
 
@@ -48,7 +48,7 @@ disk.csv            # physical data-directory size, excluding reports, every min
 disk_breakdown.csv  # final size per component (`plugins/<id>` and top-level entries)
 progress.csv        # heights from production log events, with their source (`indexer`, ...)
 run.csv             # total bootstrap duration and status (complete, failed or aborted)
-timings.csv         # every production plugin import and compute interval
+timings.csv         # every completed production plugin import and compute interval
 ```
 
 On macOS the footprint and its peak are the kernel's (`physical_bytes`,

@@ -41,10 +41,8 @@ impl Vecs {
             window_starts,
         )?;
 
-        // Scheduled annual issuance (the block's scheduled subsidy x 52,560 blocks) over the
-        // supply; undefined only without supply (block 0: the genesis output is unspendable).
         let inflation_version = version + Version::new(4);
-        let inflation_source = LazyVec::init(
+        let inflation_source = LazyVec::new(
             "inflation_rate_ppm_source",
             inflation_version,
             supply_metrics.sats.height.read_only_boxed_clone(),
@@ -63,7 +61,6 @@ impl Vecs {
             mappings,
         );
 
-        // Velocity
         let velocity = velocity::Vecs::new(version, mappings, all_chain, transactions);
 
         let market_cap = LazyFiatPerBlock::from_cents_source(
@@ -73,7 +70,6 @@ impl Vecs {
             mappings,
         );
 
-        // Market cap delta (change + rate across 4 windows)
         let market_cap_delta = LazyRollingDeltasFiatFromHeight::new(
             "market_cap_delta",
             version + Version::new(4),

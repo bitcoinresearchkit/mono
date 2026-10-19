@@ -20,6 +20,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// previous blocks' spot prices. The genesis block is zero; this is not an
     /// open-high-low-close price range.
     pub true_range: LazyFiatPerBlock<Cents>,
-    /// The kept 1w, 1m and 1y extrema windows.
     pub(super) extrema: M::WriteOnly<[Retained<ExtremaWindow<Cents>>; 3]>,
 }

@@ -1,11 +1,10 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Pagination parameters for paginated API endpoints
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Pagination {
-    /// Pagination index
+    /// Zero-based page number (default: 0)
     #[serde(default, alias = "p")]
     #[schemars(example = 0, example = 1, example = 2)]
     pub page: Option<usize>,

@@ -44,8 +44,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// weight units and witness bytes count as one.
     weight: BlockRolling<Weight32, M>,
     /// Block weight as a share of the 4,000,000-weight-unit consensus limit.
-    /// 100% means the block reached the limit; lower values indicate unused
-    /// weight capacity.
     fullness: LazyPercentVec<PartsPerMillion32, Weight32>,
     pub difficulty: DifficultyVecs,
     halving: HalvingVecs,

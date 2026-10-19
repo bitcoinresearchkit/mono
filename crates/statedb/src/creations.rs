@@ -3,7 +3,7 @@ use std::{io::Result, path::Path};
 
 type CreationRecord = ([u8; 32], Amount, Option<(u32, Amount)>);
 
-/// Output facts are the second column of each complete block diff.
+/// Per-block created amounts and BIP30 overwrite corrections.
 pub struct Creations {
     journal: Journal,
 }
@@ -74,12 +74,12 @@ impl Creations {
         let correction = if bytes.len() == 68 {
             Some((
                 u32::from_le_bytes(bytes[48..52].try_into().unwrap()),
-                Amount::decode(&bytes[52..])?,
+                Amount::decode(&bytes[52..]),
             ))
         } else {
             None
         };
-        let amount = Amount::decode(&bytes[32..48])?;
+        let amount = Amount::decode(&bytes[32..48]);
         if amount.count == 0 && amount.sats != 0 {
             return Err(invalid("supply without outputs"));
         }

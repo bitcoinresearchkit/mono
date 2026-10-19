@@ -6,7 +6,7 @@ const SEL_W: usize = 5; // longest selector token: "tip-N"
 const LABEL_W: usize = 28; // longest label across OUTPUT/OPTIONS/EXAMPLES (= example cmd "blk 800000 tx.0.vout.0.value")
 const FLAG_W: usize = 15; // longest flag: "--rpccookiefile"
 const PH_W: usize = LABEL_W - FLAG_W - 1; // placeholder column width so flag+ph total = LABEL_W
-const NAMES_W: usize = 60; // field-name lines
+const NAMES_W: usize = 60;
 
 pub fn print() {
     println!("{} - inspect a Bitcoin Core block", bold("blk"));
@@ -51,7 +51,9 @@ pub fn print() {
     println!();
     println!(
         "    {}",
-        dim("Naked tx / tx.i / vin / vout returns the whole sub-object as JSON.")
+        dim(
+            "A path ending at tx, tx.i, tx.i.vin or tx.i.vout returns the whole sub-object as JSON."
+        )
     );
     println!();
 
@@ -59,7 +61,10 @@ pub fn print() {
     out("no fields", "full block JSON object, one per line (NDJSON)");
     out("1 field", "bare value, one per line");
     out("2+ fields", "JSON object, one per line (NDJSON)");
-    out("-p, --pretty", "pretty JSON object instead");
+    out(
+        "-p, --pretty",
+        "pretty-print JSON values; strings stay bare",
+    );
     out(
         "-c, --compact",
         "tab-separated values, no field names (TSV)",
@@ -79,7 +84,7 @@ pub fn print() {
         "Blocks directory",
         Some("[<bitcoindir>/blocks]"),
     );
-    opt("--rpcconnect", "<IP>", "RPC host", Some("[localhost]"));
+    opt("--rpcconnect", "<HOST>", "RPC host", Some("[localhost]"));
     opt("--rpcport", "<PORT>", "RPC port", Some("[8332]"));
     opt(
         "--rpccookiefile",

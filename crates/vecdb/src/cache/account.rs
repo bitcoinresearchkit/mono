@@ -20,6 +20,7 @@ impl Account {
         })
     }
 
+    /// Accounted bytes, including buffers still borrowed after eviction.
     pub(super) fn used(&self) -> usize {
         self.used.load(Relaxed)
     }

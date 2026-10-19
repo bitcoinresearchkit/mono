@@ -72,7 +72,6 @@ where
     }
 }
 
-/// An index read back from its 40-bit storage.
 macro_rules! index_from_index40 {
     ($($index:ty),+) => {$(
         impl From<Index40<$index>> for $index {

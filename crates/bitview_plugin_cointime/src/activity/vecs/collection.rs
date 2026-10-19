@@ -11,7 +11,7 @@ use super::DerivedVecs;
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     /// Coinblocks created by each block, equal to the circulating supply in BTC
-    /// at that height. One coinblock is one BTC held for one block interval.
+    /// at that height.
     pub coinblocks_created: PerBlockCumulativeRolling<CoinBlocks, M>,
     /// Coinblocks destroyed by each block: each spent output's BTC value
     /// multiplied by the blocks it stayed unspent (the age plugin's series).

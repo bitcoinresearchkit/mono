@@ -1,12 +1,8 @@
 use crate::{
-    AgeRangeId, AmountRangeId, CLASS_NAMES, ClassId, CohortName, ENTRY_NAMES, EPOCH_NAMES,
-    EntryPrice, EpochId, OP_RETURN, SPENDABLE_TYPE_NAMES, SpendableTypeId, TERM_NAMES, Term,
+    AgeRangeId, AmountRangeId, CLASS_NAMES, ClassId, ENTRY_NAMES, EPOCH_NAMES, EntryPrice, EpochId,
+    OP_RETURN, SPENDABLE_TYPE_NAMES, SpendableTypeId, TERM_NAMES, Term,
 };
 
-/// Canonical name for the cohort containing every UTXO.
-const UTXO_ALL_NAME: CohortName = CohortName::new("all", "All", "All UTXOs");
-
-/// A supported cohort, composed from the selectors of its constituent groups.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CohortId {
     All,
@@ -23,7 +19,7 @@ pub enum CohortId {
 impl CohortId {
     pub fn name(self) -> &'static str {
         match self {
-            Self::All => UTXO_ALL_NAME.id,
+            Self::All => "all",
             Self::Term(term) => TERM_NAMES.get(term).id,
             Self::Age(age) => age.name().id,
             Self::Amount(amount) => amount.name().id,

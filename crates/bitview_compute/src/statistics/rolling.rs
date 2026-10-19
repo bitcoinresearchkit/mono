@@ -8,12 +8,11 @@ use vecdb::{ComputeVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Vers
 
 use super::Retained;
 
-/// Rolling, expanding and all-time statistics computed into a stored vec.
+/// Rolling and all-time statistics computed into a stored vec.
 pub trait ComputeRollingStats {
     type I: VecIndex;
     type T: VecValue;
 
-    /// Compute rolling sum with variable window starts.
     /// For each index i, computes sum of values from `window_starts[i]` to i (inclusive).
     fn compute_rolling_sum<A>(
         &mut self,
@@ -26,7 +25,6 @@ pub trait ComputeRollingStats {
         A: VecValue,
         Self::T: From<A> + Default + AddAssign + SubAssign;
 
-    /// Compute rolling average with variable window starts.
     /// For each index i, computes mean of values from `window_starts[i]` to i (inclusive); an
     /// undefined value counts as zero. Every 1,024th row rebuilds its window's f64 sum from the
     /// values and the rows after continue from it, so a row's value depends on its position
@@ -45,7 +43,6 @@ pub trait ComputeRollingStats {
         f64: From<A> + From<Self::T>,
         Self::T: From<f64> + Default;
 
-    /// Compute rolling EMA with variable window starts.
     /// For each index `i`, computes an exponential moving average with
     /// `α = 2/(span+1)` where `span = i - window_starts[i] + 1`. A one-row window seeds the
     /// average with its value; a window starting after its row is empty: NaN.
@@ -61,7 +58,6 @@ pub trait ComputeRollingStats {
         f64: From<A> + From<Self::T>,
         Self::T: From<f64> + Default;
 
-    /// Computes the all time high of a source.
     fn compute_all_time_high<A>(
         &mut self,
         max_from: Self::I,
@@ -181,7 +177,6 @@ where
                     let prev_idx = skip - 1;
                     let prev_start = window_starts.collect_one_at(prev_idx).unwrap();
                     let sum = this.collect_one_at(prev_idx).unwrap();
-                    // Position cursor at the current window start.
                     if leaving.position() < prev_start.to_usize() {
                         leaving.advance(prev_start.to_usize() - leaving.position());
                     }

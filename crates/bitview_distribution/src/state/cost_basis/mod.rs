@@ -6,10 +6,10 @@ pub use ops::CostBasisOps;
 pub use realized::RealizedOps;
 
 mod core_realized_state;
-mod data;
+mod distribution;
 mod unrealized;
 pub use core_realized_state::CoreRealizedState;
-pub use data::CostBasisData;
+pub use distribution::CostBasisDistribution;
 pub(crate) use unrealized::UnrealizedState;
 
 mod percentile_result;

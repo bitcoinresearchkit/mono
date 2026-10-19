@@ -4,10 +4,8 @@ use derive_more::AddAssign;
 
 use super::{AddrPreState, AddrReceivePreState, AddrReceiveStatus, delta::ShardDelta};
 
-/// One address type's running counters (the root sums them): funded and empty counts, the
-/// supply the addresses hold, the block's outputs, inputs and activity, and the reuse and
-/// exposure predicates.
-#[derive(Debug, Default, Clone, Copy, AddAssign)]
+/// Running counters for one address type; the root sums all types.
+#[derive(Default, Clone, Copy, AddAssign)]
 pub struct MemberState {
     pub funded: u64,
     pub empty: u64,
@@ -22,7 +20,7 @@ pub struct MemberState {
 }
 
 /// Per-block activity counts, reset after every block.
-#[derive(Debug, Default, Clone, Copy, AddAssign)]
+#[derive(Default, Clone, Copy, AddAssign)]
 pub struct BlockActivityCounts {
     pub reactivated: u32,
     pub sending: u32,
@@ -31,7 +29,7 @@ pub struct BlockActivityCounts {
 }
 
 /// Addresses meeting a reuse predicate: receive-based reuse or spend-based respending.
-#[derive(Debug, Default, Clone, Copy, AddAssign)]
+#[derive(Default, Clone, Copy, AddAssign)]
 pub struct ReuseState {
     pub funded: u64,
     pub total: u64,
@@ -44,7 +42,7 @@ pub struct ReuseState {
 }
 
 /// Addresses whose public key or spending script is on-chain.
-#[derive(Debug, Default, Clone, Copy, AddAssign)]
+#[derive(Default, Clone, Copy, AddAssign)]
 pub struct ExposedState {
     pub funded: u64,
     pub total: u64,
@@ -196,8 +194,8 @@ impl ReuseState {
             self.funded += 1;
         }
 
-        let skip_first = 1u32.saturating_sub(pre.prev_funded_txo_count.min(1));
-        self.output_events += u64::from(output_count.saturating_sub(skip_first));
+        let skip_first = u32::from(pre.prev_funded_txo_count == 0);
+        self.output_events += u64::from(output_count - skip_first);
         if is_now_reused {
             self.active += 1;
         }

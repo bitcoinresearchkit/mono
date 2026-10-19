@@ -6,7 +6,7 @@ use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Height, Sats, Version};
 use vecdb::{AnyVec, BinaryTransform, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
-use crate::data::Data;
+use crate::accounting::AccountingTotals;
 
 #[derive(Traversable)]
 pub(crate) struct Columns<M: StorageMode = Rw> {
@@ -166,7 +166,7 @@ impl Columns {
             peak: Default::default(),
         })
     }
-    pub fn push(&mut self, d: &Data, spot: Cents) {
+    pub fn push(&mut self, d: &AccountingTotals, spot: Cents) {
         let peak = self.peak.accumulate(
             self.peak_regret.len(),
             || self.peak_regret.collect_last(),

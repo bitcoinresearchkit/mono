@@ -30,7 +30,7 @@ impl Vecs {
                 &db,
                 "block_size",
                 version,
-                &blocks.total,
+                &blocks.size,
                 mappings,
                 &window_starts,
             )?,

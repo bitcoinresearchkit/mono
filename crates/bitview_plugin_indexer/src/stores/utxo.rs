@@ -145,7 +145,6 @@ impl Utxos {
         }
     }
 
-    /// Removes the unspent output under `key`, whose value is `value`.
     #[inline]
     pub(crate) fn remove(&mut self, key: UtxoKey, value: Sats) {
         self.entries.remove(key);

@@ -23,6 +23,13 @@ impl Day1 {
     pub fn to_timestamp(&self) -> Timestamp {
         Timestamp::from(Date::from(*self))
     }
+
+    pub(crate) fn index_name() -> &'static str {
+        "day1"
+    }
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
+        &["1d", "d", "day", "date", "daily", "day1", "dateindex"]
+    }
 }
 
 impl From<Day1> for u64 {
@@ -42,7 +49,9 @@ impl From<Day1> for i64 {
 impl TryFrom<Date> for Day1 {
     type Error = Error;
     fn try_from(value: Date) -> Result<Self> {
-        let days = Date::INDEX_ZERO_.until(value.try_into_jiff()?)?.get_days();
+        let days = Date::JIFF_INDEX_ZERO
+            .until(value.try_into_jiff()?)?
+            .get_days();
         u16::try_from(days)
             .map(Self)
             .map_err(|_| Error::UnindexableDate)
@@ -56,14 +65,6 @@ impl Rem<usize> for Day1 {
     }
 }
 
-impl Day1 {
-    pub(crate) fn index_name() -> &'static str {
-        "day1"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["1d", "d", "day", "date", "daily", "day1", "dateindex"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for Day1 {
     fn to_string() -> &'static str {

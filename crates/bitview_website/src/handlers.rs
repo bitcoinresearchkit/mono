@@ -3,13 +3,13 @@ use std::{borrow::Cow, path::Path};
 use axum::{
     body::Body,
     extract::{Path as ExtractPath, State},
-    http::{HeaderMap, HeaderValue, Response, header::CONTENT_TYPE},
+    http::{HeaderMap, HeaderValue, Response, header},
 };
 use importmap::ImportMap;
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
 use crate::{
-    Error, HeaderMapExtended, Website,
+    Error, Website,
     website::{File, HTML},
 };
 
@@ -83,7 +83,7 @@ fn respond(
     let mut response = Response::new(Body::from(contents));
     let headers = response.headers_mut();
     if let Some(content_type) = content_type {
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static(content_type));
+        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
     }
     insert_caching(headers, etag, immutable);
 
@@ -93,14 +93,18 @@ fn respond(
 /// The validator and cache policy a file's 200 and 304 share.
 fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, immutable: bool) {
     if let Some(etag) = etag {
-        headers.insert_etag(etag);
+        // Weak: compression serves other bytes under the same validator.
+        headers.insert(header::ETAG, format!("W/\"{etag}\"").parse().unwrap());
     }
-    headers.insert_vary_accept_encoding();
-    if immutable {
-        headers.insert_cache_control_immutable();
-    } else {
-        headers.insert_cache_control_must_revalidate();
-    }
+    headers.insert(header::VARY, HeaderValue::from_static("accept-encoding"));
+    headers.insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static(if immutable {
+            "public, max-age=31536000, immutable"
+        } else {
+            "public, max-age=1, must-revalidate"
+        }),
+    );
 }
 
 /// Sanitize path to prevent directory traversal attacks

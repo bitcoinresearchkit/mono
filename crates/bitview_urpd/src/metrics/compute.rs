@@ -18,7 +18,7 @@ use crate::{COMPUTE_VERSION, Replay, ReplayInputs};
 const COHORTS: usize = AgeAggregateId::ALL.len();
 
 /// Replays the weighted URPD over `recompute_from..` and pushes every cohort's cost basis,
-/// `cohorts` in `AgeAggregateId::ALL` order, then their mean prices' ratios to `spot`.
+/// `cohorts` in `AgeAggregateId::ALL` order, then stores `spot` divided by each mean price.
 #[allow(clippy::too_many_arguments)]
 pub fn compute_cost_basis(
     replay: &mut Replay,

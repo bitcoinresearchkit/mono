@@ -3,8 +3,6 @@ use bitview_primitives::{CentsCompact, Date};
 use bitview_types::{Cohort, Urpd, UrpdAggregation, UrpdBucket, UrpdWeight};
 use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Dollars, Height, Sats};
 
-use crate::{Error, Result};
-
 /// What a URPD response echoes about the distribution [`Self::build`] buckets.
 pub(super) struct UrpdHeader {
     pub(super) cohort: Cohort,
@@ -18,19 +16,16 @@ pub(super) struct UrpdHeader {
 impl UrpdHeader {
     /// Aggregates the distribution's entries into response buckets in one pass: they arrive
     /// unique and sorted by price from its projection, so nothing is rehashed or re-sorted.
-    pub fn build(self, entries: impl IntoIterator<Item = (CentsCompact, Sats)>) -> Result<Urpd> {
+    pub fn build(self, entries: impl IntoIterator<Item = (CentsCompact, Sats)>) -> Urpd {
         let close = self.close;
-        if close.is_nan() {
-            return Err(Error::Internal("Invalid URPD close price"));
-        }
+        // `OriginUrpd::new` rejects unpriced blocks, the close's included.
+        debug_assert!(!close.is_nan(), "URPD close is priced");
         // Every bucket's market value, at most all money's, must fit the signed cents range.
-        if u128::from(close.inner()) * u128::from(Amount::MAX_MONEY.to_sat()) / Sats::ONE_BTC_U128
-            > i64::MAX as u128
-        {
-            return Err(Error::Internal(
-                "URPD market value exceeds signed price range",
-            ));
-        }
+        debug_assert!(
+            u128::from(close.inner()) * u128::from(Amount::MAX_MONEY.to_sat()) / Sats::ONE_BTC_U128
+                <= i64::MAX as u128,
+            "URPD market value exceeds signed price range"
+        );
         let mut buckets = Vec::new();
         let mut total = 0_u64;
         let mut current: Option<(Cents, Sats, CentsSats)> = None;
@@ -50,14 +45,13 @@ impl UrpdHeader {
             }
         };
         for (price, supply) in entries {
-            // A weighted mass too large for `u64` saturates to the sentinel.
-            if supply.is_max() {
-                return Err(Error::Internal("Invalid URPD entry"));
-            }
-            total = total
-                .checked_add(u64::from(supply))
-                .filter(|&sum| sum <= Amount::MAX_MONEY.to_sat())
-                .ok_or(Error::Internal("URPD supply overflow"))?;
+            // Weights are within [0, 1]: a weighted mass never exceeds the raw one.
+            debug_assert!(!supply.is_max(), "URPD entry below the sats sentinel");
+            total += u64::from(supply);
+            debug_assert!(
+                total <= Amount::MAX_MONEY.to_sat(),
+                "URPD supply within all money"
+            );
             let price = Cents::from(price);
             let floor = self.aggregation.bucket_floor(price);
             debug_assert!(
@@ -77,7 +71,7 @@ impl UrpdHeader {
         if let Some(last) = current {
             buckets.push(finish(last));
         }
-        Ok(Urpd {
+        Urpd {
             cohort: self.cohort,
             date: self.date,
             height: self.height,
@@ -86,6 +80,6 @@ impl UrpdHeader {
             close: Dollars::from(close),
             total_supply: Bitcoin::from(Sats::new(total)),
             buckets,
-        })
+        }
     }
 }

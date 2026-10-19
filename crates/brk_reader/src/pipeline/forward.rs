@@ -118,14 +118,9 @@ impl Dispatch<'_> {
 
     fn reread(&self, frame: &Frame) -> Result<Vec<u8>> {
         let position = frame.position;
-        let path = self
-            .paths
-            .get(&position.blk_index())
-            .ok_or(Error::Internal(
-                "forward pipeline: deferred block's file vanished",
-            ))?;
         let mut bytes = vec![0u8; frame.len];
-        File::open(path)?.read_exact_at(&mut bytes, u64::from(position.offset()))?;
+        File::open(&self.paths[&position.blk_index()])?
+            .read_exact_at(&mut bytes, u64::from(position.offset()))?;
         Ok(bytes)
     }
 

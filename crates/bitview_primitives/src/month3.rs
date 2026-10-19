@@ -21,6 +21,21 @@ impl Month3 {
     pub fn to_timestamp(&self) -> Timestamp {
         Timestamp::from(Date::from(*self))
     }
+
+    pub(crate) fn index_name() -> &'static str {
+        "month3"
+    }
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
+        &[
+            "quarter",
+            "q",
+            "quarterly",
+            "month3",
+            "quarterindex",
+            "3m",
+            "3mo",
+        ]
+    }
 }
 
 impl TryFrom<Date> for Month3 {
@@ -42,22 +57,6 @@ impl From<Month1> for Month3 {
     }
 }
 
-impl Month3 {
-    pub(crate) fn index_name() -> &'static str {
-        "month3"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &[
-            "quarter",
-            "q",
-            "quarterly",
-            "month3",
-            "quarterindex",
-            "3m",
-            "3mo",
-        ]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for Month3 {
     fn to_string() -> &'static str {

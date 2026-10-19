@@ -1,11 +1,9 @@
 /// How a window view ([`LazyDeltaVec`](super::LazyDeltaVec)) combines the current value with the
 /// value before the window.
 ///
-/// `S` is the source type read from the vec, `T` is the output type produced.
-/// When `S = T` (e.g., rolling sums), the operation is same-type.
-/// When `S != T` (e.g., delta change/rate), the operation converts between types.
+/// `S` is the source type read from the vec, `T` the output type produced.
 pub trait DeltaOp<S, T>: Send + Sync + 'static {
-    /// The number of elements the window covers, `[start, h]`.
+    /// The count passed to `combine`; by default the window length `h - start + 1`.
     #[inline]
     fn count(h: usize, start: usize) -> usize {
         h - start + 1

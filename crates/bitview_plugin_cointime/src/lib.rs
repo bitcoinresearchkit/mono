@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-
 mod activity;
 mod adjusted;
 mod age_range;
@@ -79,7 +77,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// model-derived benchmarks, not traded market prices.
     pub prices: PricesVecs<M>,
     /// Cointime-adjusted rates reweight conventional supply rates by
-    /// liveliness, the share of created coinblocks that has been destroyed.
+    /// liveliness, cumulative coinblocks destroyed divided by cumulative
+    /// coinblocks created.
     adjusted: AdjustedVecs<M>,
     /// Reserve Risk compares spot price with the cumulative opportunity cost of
     /// holders not spending older coins; lower values mean price is low relative

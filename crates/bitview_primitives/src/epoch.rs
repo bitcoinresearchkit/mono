@@ -1,4 +1,4 @@
-use brk_types::{BLOCKS_PER_DIFF_EPOCHS, Height};
+use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +19,7 @@ brk_types::impl_integer_index!(Epoch, u16);
 impl From<Height> for Epoch {
     #[inline]
     fn from(value: Height) -> Self {
-        Self((u32::from(value) / BLOCKS_PER_DIFF_EPOCHS) as u16)
+        Self((u32::from(value) / BLOCKS_PER_DIFF_EPOCH) as u16)
     }
 }
 
@@ -41,7 +41,6 @@ impl PrintableIndex for Epoch {
 impl From<f64> for Epoch {
     #[inline]
     fn from(value: f64) -> Self {
-        let value = value.max(0.0);
         Self(value.round() as u16)
     }
 }
@@ -54,7 +53,7 @@ impl From<Epoch> for f64 {
 }
 
 impl FromCoarserIndex<Epoch> for Height {
-    fn max_from_(coarser: Epoch) -> usize {
-        (usize::from(coarser) + 1) * BLOCKS_PER_DIFF_EPOCHS as usize - 1
+    fn max_from_unbounded(coarser: Epoch) -> usize {
+        (usize::from(coarser) + 1) * BLOCKS_PER_DIFF_EPOCH as usize - 1
     }
 }

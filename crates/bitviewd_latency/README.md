@@ -45,6 +45,3 @@ regenerating the API catalog. No extra fields are added to server logs.
   line is counted as malformed.
 - The daemon normally retains seven days of logs. Each run replaces the report;
   the analyzer does not maintain historical reports.
-
-Aggregation lives in `analysis.rs` and `group.rs`; `report.rs` renders their result
-as Markdown without reading logs or configuration.

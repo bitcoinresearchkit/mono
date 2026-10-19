@@ -1,8 +1,4 @@
-#[cfg(feature = "storage")]
-use vecdb::Result;
-
-#[cfg(feature = "storage")]
-use vecdb::Bytes;
+use vecdb::{Bytes, Result};
 
 const COUNT_BITS: u32 = 21;
 const COUNT_MASK: u32 = (1 << COUNT_BITS) - 1;
@@ -13,9 +9,9 @@ const OVERFLOW_TAG: u64 = 1 << 63;
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct FundedAddressDataCompact {
-    received: u64,
-    sent: u64,
-    realized_cap_raw: u64,
+    pub(crate) received: u64,
+    pub(crate) sent: u64,
+    pub(crate) realized_cap_raw: u64,
     counts: u64,
 }
 
@@ -48,21 +44,6 @@ impl FundedAddressDataCompact {
     }
 
     #[inline(always)]
-    pub(crate) fn received(self) -> u64 {
-        self.received
-    }
-
-    #[inline(always)]
-    pub(crate) fn sent(self) -> u64 {
-        self.sent
-    }
-
-    #[inline(always)]
-    pub(crate) fn realized_cap_raw(self) -> u64 {
-        self.realized_cap_raw
-    }
-
-    #[inline(always)]
     pub(crate) fn tx_count(self) -> u32 {
         (self.counts & u64::from(COUNT_MASK)) as u32
     }
@@ -79,14 +60,13 @@ impl FundedAddressDataCompact {
 
     #[inline(always)]
     pub(crate) fn overflow_index(self) -> Option<usize> {
-        (self.counts & OVERFLOW_TAG != 0)
-            .then(|| usize::try_from(self.received).expect("overflow index must fit usize"))
+        (self.counts & OVERFLOW_TAG != 0).then_some(self.received as usize)
     }
 
     #[inline(always)]
     pub(crate) fn from_overflow_index(index: usize) -> Self {
         Self {
-            received: u64::try_from(index).expect("overflow index must fit u64"),
+            received: index as u64,
             sent: 0,
             realized_cap_raw: 0,
             counts: OVERFLOW_TAG,
@@ -94,7 +74,6 @@ impl FundedAddressDataCompact {
     }
 }
 
-#[cfg(feature = "storage")]
 // SAFETY: `repr(C)` over four `u64`s, no padding: on little-endian targets its little-endian
 // bytes are its in-memory bytes, and every bit pattern is a valid value.
 unsafe impl Bytes for FundedAddressDataCompact {

@@ -1,4 +1,3 @@
-use bitview_vecs::shapes::Windows;
 use std::{thread, time::Instant};
 
 use bitview_distribution::metrics::ShareTotals;
@@ -26,6 +25,7 @@ use bitview_plugin_supply::{ID as SUPPLY_ID, Vecs as Supply};
 use bitview_plugin_transactions::{ID as TRANSACTIONS_ID, Vecs as Transactions};
 use bitview_plugin_utxo_set::{ID as UTXO_SET_ID, Vecs as UtxoSet};
 use bitview_plugin_utxos::{ID as UTXOS_ID, Vecs as Utxos};
+use bitview_vecs::shapes::Windows;
 use brk_error::Result;
 use brk_reader::Reader;
 use tracing::info;
@@ -35,12 +35,11 @@ use crate::{DefaultPlugins, timing::timed_import};
 
 impl DefaultPlugins {
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
-        info!("Importing plugins...");
         let import_start = Instant::now();
         let indexer = timed_import(INDEXER_ID, || Indexer::import(context, reader))?;
 
         const STACK_SIZE: usize = 8 * 1024 * 1024;
-        let big_thread = || thread::Builder::new().stack_size(STACK_SIZE);
+        let large_stack_thread = || thread::Builder::new().stack_size(STACK_SIZE);
 
         let mappings = timed_import(MAPPINGS_ID, || Mappings::import(context, &indexer))?;
 
@@ -52,25 +51,25 @@ impl DefaultPlugins {
 
         let (inputs, outputs, mining, transactions, pools, op_return) =
             thread::scope(|scope| -> Result<_> {
-                let inputs_handle = big_thread().spawn_scoped(scope, || {
+                let inputs_handle = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(INPUTS_ID, || {
                         Inputs::import(context, &mappings, &window_starts)
                     })
                 })?;
 
-                let outputs_handle = big_thread().spawn_scoped(scope, || {
+                let outputs_handle = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(OUTPUTS_ID, || {
                         Outputs::import(context, &mappings, &window_starts)
                     })
                 })?;
 
-                let mining_handle = big_thread().spawn_scoped(scope, || {
+                let mining_handle = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(MINING_ID, || {
                         Mining::import(context, &mappings, &window_starts)
                     })
                 })?;
 
-                let transactions_handle = big_thread().spawn_scoped(scope, || {
+                let transactions_handle = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(TRANSACTIONS_ID, || {
                         Transactions::import(context, &indexer, &mappings, &window_starts)
                     })
@@ -83,7 +82,7 @@ impl DefaultPlugins {
                     let indexer = &indexer;
                     let mappings = &mappings;
                     let window_starts = &window_starts;
-                    big_thread().spawn_scoped(scope, move || {
+                    large_stack_thread().spawn_scoped(scope, move || {
                         timed_import(OP_RETURN_ID, || {
                             OpReturn::import(
                                 context,
@@ -124,9 +123,9 @@ impl DefaultPlugins {
             )
         })?;
 
-        // Market and distribution are independent; import in parallel.
+        // Market and Age are independent; import in parallel.
         let (age, market) = thread::scope(|scope| -> Result<_> {
-            let market_handle = big_thread().spawn_scoped(scope, || {
+            let market_handle = large_stack_thread().spawn_scoped(scope, || {
                 timed_import(MARKET_ID, || Market::import(context, &mappings, &price))
             })?;
 
@@ -171,7 +170,7 @@ impl DefaultPlugins {
 
         let (cointime, coinflow, bedrock, entry, profitability) =
             thread::scope(|scope| -> Result<_> {
-                let cointime = big_thread().spawn_scoped(scope, || {
+                let cointime = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINTIME_ID, || {
                         Cointime::import(
                             context,
@@ -184,15 +183,15 @@ impl DefaultPlugins {
                         )
                     })
                 })?;
-                let coinflow = big_thread().spawn_scoped(scope, || {
+                let coinflow = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINFLOW_ID, || {
                         Coinflow::import(context, &mappings, &price, &age)
                     })
                 })?;
-                let bedrock = big_thread().spawn_scoped(scope, || {
+                let bedrock = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(BEDROCK_ID, || Bedrock::import(context, &mappings))
                 })?;
-                let entry = big_thread().spawn_scoped(scope, || {
+                let entry = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(ENTRY_ID, || {
                         Entry::import(
                             context,
@@ -203,7 +202,7 @@ impl DefaultPlugins {
                         )
                     })
                 })?;
-                let profitability = big_thread().spawn_scoped(scope, || {
+                let profitability = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(PROFITABILITY_ID, || {
                         Profitability::import(
                             context,
@@ -222,7 +221,7 @@ impl DefaultPlugins {
             })?;
 
         let (supply, rarity_meter) = thread::scope(|scope| -> Result<_> {
-            let supply = big_thread().spawn_scoped(scope, || {
+            let supply = large_stack_thread().spawn_scoped(scope, || {
                 timed_import(SUPPLY_ID, || {
                     Supply::import(
                         context,
@@ -234,7 +233,7 @@ impl DefaultPlugins {
                     )
                 })
             })?;
-            let rarity_meter = big_thread().spawn_scoped(scope, || {
+            let rarity_meter = large_stack_thread().spawn_scoped(scope, || {
                 timed_import(RARITY_METER_ID, || {
                     RarityMeter::import(context, &mappings, &holders, &cointime, &coinflow)
                 })

@@ -33,7 +33,7 @@ use self::{
 
 /// Memory-mapped database with region-based storage and hole punching.
 #[derive(Clone)]
-#[must_use = "Database should be stored to keep the database open"]
+#[must_use]
 pub struct Database {
     pub(crate) inner: Arc<DatabaseOwner>,
 }
@@ -96,7 +96,7 @@ impl Database {
         ids
     }
 
-    pub fn get_region(&self, id: &str) -> Option<Region> {
+    pub fn region(&self, id: &str) -> Option<Region> {
         let region = self.regions().get(id).cloned();
         if let Some(region) = &region {
             region.0.mark_accessed();
@@ -105,7 +105,7 @@ impl Database {
     }
 
     pub fn create_region_if_needed(&self, id: &str) -> Result<Region> {
-        if let Some(region) = self.get_region(id) {
+        if let Some(region) = self.region(id) {
             return Ok(region);
         }
         RegionMetadata::validate_id(id)?;
@@ -141,13 +141,13 @@ impl Database {
     }
 
     pub fn remove_region(&self, id: &str) -> Result<()> {
-        let Some(region) = self.get_region(id) else {
+        let Some(region) = self.region(id) else {
             return Err(Error::RegionNotFound);
         };
         region.remove()
     }
 
-    /// Removes every region that has not been returned by [`Self::get_region`]
+    /// Removes every region that has not been returned by [`Self::region`]
     /// or [`Self::create_region_if_needed`] since this database was opened.
     pub fn retain_accessed_regions(&self) -> Result<()> {
         let layout = self.inner.layout.read();
@@ -171,7 +171,6 @@ impl Database {
         Ok(())
     }
 
-    /// Opens the data file read-only (for external consumers like mmap readers).
     pub(crate) fn open_read_only_file(&self) -> Result<File> {
         File::open(self.path().join("data")).map_err(Error::from)
     }
@@ -200,7 +199,7 @@ impl Database {
         self.inner.reclaim_pending.load(Ordering::Relaxed)
     }
 
-    /// Marks freed space for the next compaction. Callers hold the mutation barrier.
+    /// Callers hold the mutation barrier.
     pub(crate) fn mark_reclaim_pending(&self) {
         self.inner.reclaim_pending.store(true, Ordering::Relaxed);
     }

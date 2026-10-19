@@ -44,20 +44,6 @@ a `Result<ReadBlock>` so mid-stream failures (chain breaks, parse
 errors, missing canonical blocks) reach the consumer as a final
 `Err` instead of being silently dropped.
 
-## What You Get
-
-Each `ReadBlock` gives you access to:
-
-| Field                  | Description                              |
-| ---------------------- | ---------------------------------------- |
-| `block.height()`       | Block height                             |
-| `block.hash()`         | Block hash                               |
-| `block.header`         | Block header (timestamp, nonce, ...)     |
-| `block.txdata`         | All transactions                         |
-| `block.coinbase_tag()` | Miner's coinbase tag                     |
-| `block.position()`     | Position in the blk file                 |
-| `block.tx_positions()` | Per-transaction blk file positions       |
-
 ## How It Works
 
 Three strategies, picked per call:
@@ -65,7 +51,8 @@ Three strategies, picked per call:
 * **appended** — an update right after the previous call reads only the
   frames appended after the last block it streamed, in the same blk file:
   no directory scan, probe, or walk from the file's start. Any
-  discontinuity (another anchor, a rollover, a gap) falls back to tail.
+  discontinuity (another anchor, a rollover, a gap) falls back to
+  picking forward or tail.
 
 * **forward** — one reader thread walks blk files in order from a
   bisection lower bound and ships canonical hits to a pool of parser
@@ -99,7 +86,5 @@ canonical chain ──► Reader thread ──► Parser pool ──► Receiver
    each block's `prev_blockhash` against the canonical chain — and
    against the user-supplied anchor for the very first block.
 
-Orphans can never be mistaken for canonical blocks, and a missing
-canonical block produces a final `Err` to the consumer instead of a
-silent drop. See `src/pipeline/` for the orchestration and
-`src/canonical.rs` for the filter map.
+See `src/pipeline/` for the orchestration and `src/canonical.rs` for the
+filter map.

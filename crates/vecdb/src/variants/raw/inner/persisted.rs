@@ -4,17 +4,16 @@ use rawdb::Region;
 
 use super::RawStrategy;
 use crate::{
-    HEADER_OFFSET, RawIoSource, RawMmapSource, VecIndex, VecReader, VecValue,
+    HEADER_OFFSET, RawIoSource, RawMmapSource, VecReader, VecValue,
     variants::stored_reads::PersistedReads,
 };
 
-/// A raw vector's persisted values: its region.
-pub(crate) struct RawPersisted<'a, I, T, S> {
+pub(crate) struct RawPersisted<'a, T, S> {
     region: &'a Region,
-    _marker: PhantomData<(I, T, S)>,
+    _marker: PhantomData<(T, S)>,
 }
 
-impl<'a, I, T, S> RawPersisted<'a, I, T, S> {
+impl<'a, T, S> RawPersisted<'a, T, S> {
     #[inline(always)]
     pub(crate) fn new(region: &'a Region) -> Self {
         Self {
@@ -24,9 +23,8 @@ impl<'a, I, T, S> RawPersisted<'a, I, T, S> {
     }
 }
 
-impl<I, T, S> PersistedReads<T> for RawPersisted<'_, I, T, S>
+impl<T, S> PersistedReads<T> for RawPersisted<'_, T, S>
 where
-    I: VecIndex,
     T: VecValue,
     S: RawStrategy<T>,
 {
@@ -43,7 +41,6 @@ where
 
     #[inline]
     fn read(&self, stored: usize, from: usize, to: usize, out: &mut Vec<T>) {
-        let from = from.min(stored);
         let to = to.min(stored);
         if from >= to {
             return;
@@ -51,9 +48,9 @@ where
         let offset = HEADER_OFFSET + from * size_of::<T>();
         let bytes = (to - from) * size_of::<T>();
         if self.region.prefers_mmap(offset, bytes) {
-            RawMmapSource::<I, T, S>::new_from_parts(self.region, stored, from, to).read_into(out);
+            RawMmapSource::<T, S>::new_from_parts(self.region, stored, from, to).read_into(out);
         } else {
-            RawIoSource::<I, T, S>::new_from_parts(self.region, stored, from, to).read_into(out);
+            RawIoSource::<T, S>::new_from_parts(self.region, stored, from, to).read_into(out);
         }
     }
 
@@ -69,7 +66,7 @@ where
     }
 
     fn read_sorted(&self, stored: usize, indices: &[usize], out: &mut Vec<T>) {
-        let reader = VecReader::<I, T, S>::from_region(self.region, stored);
+        let reader = VecReader::<usize, T, S>::from_region(self.region, stored);
         for &index in indices {
             if let Some(value) = reader.try_get_at(index) {
                 out.push(value);
@@ -84,7 +81,7 @@ where
         to: usize,
         f: &mut dyn FnMut(usize, &[T]),
     ) -> bool {
-        RawMmapSource::<I, T, S>::try_for_each_chunk(self.region, stored, from, to, f)
+        RawMmapSource::<T, S>::try_for_each_chunk(self.region, stored, from, to, f)
     }
 
     #[inline(always)]
@@ -99,10 +96,9 @@ where
         let offset = HEADER_OFFSET + from * size_of::<T>();
         let bytes = (to - from) * size_of::<T>();
         if self.region.prefers_mmap(offset, bytes) {
-            RawMmapSource::<I, T, S>::new_from_parts(self.region, stored, from, to)
-                .try_fold(init, f)
+            RawMmapSource::<T, S>::new_from_parts(self.region, stored, from, to).try_fold(init, f)
         } else {
-            RawIoSource::<I, T, S>::new_from_parts(self.region, stored, from, to).try_fold(init, f)
+            RawIoSource::<T, S>::new_from_parts(self.region, stored, from, to).try_fold(init, f)
         }
     }
 }

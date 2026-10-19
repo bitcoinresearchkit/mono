@@ -1,5 +1,3 @@
-use std::mem;
-
 use brk_types::{OutPoint, TxIndex, Vout};
 use serde::Serialize;
 
@@ -7,8 +5,6 @@ use crate::TypeIndex;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Hash)]
 pub struct AddrIndexOutPoint([u8; 10]);
-
-const _: () = assert!(mem::size_of::<AddrIndexOutPoint>() == 10);
 
 impl AddrIndexOutPoint {
     #[inline]

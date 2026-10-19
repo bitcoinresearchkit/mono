@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_rarity_meter"
-description = "The Rarity Meter model plugin for Bitview"
+description = "Bitcoin valuation rarity across reference prices and historical extremes"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

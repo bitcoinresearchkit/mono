@@ -1,7 +1,6 @@
 use super::UnaryTransform;
 use crate::{ReadableBoxedVec, ReadableVec, VecIndex, VecValue};
 
-/// v -> v
 pub struct Ident;
 
 impl<T> UnaryTransform<T> for Ident {

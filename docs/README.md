@@ -1,11 +1,10 @@
 # Bitview and the Bitcoin Research Kit
 
-[![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/bitcoinresearchkit/brk/blob/main/LICENSE)
 [![Bitview](https://img.shields.io/crates/v/bitviewd.svg?label=bitviewd)](https://crates.io/crates/bitviewd)
-[![Supported by OpenSats](https://img.shields.io/badge/supported%20by-opensats-ff7b00)](https://opensats.org/)
-[![Discord](https://img.shields.io/discord/1350431684562124850?label=Discord&logo=discord&color=5865F2)](https://discord.gg/WACpShCB7M)
 
-This monorepo contains two layers:
+Bitview turns a Bitcoin Core node into a local Bitcoin data platform for chain
+exploration, mempool data, and on-chain research. The official free hosted
+instance is [bitview.space](https://bitview.space).
 
 - **Bitcoin Research Kit (BRK):** reusable Rust primitives for reading Bitcoin
   Core data, RPC, mempool tracking, storage, domain types, and the on-chain
@@ -13,10 +12,6 @@ This monorepo contains two layers:
 - **Bitview:** the self-hostable application that composes BRK with a typed
   indexer and analytics plugin graph, query layer, REST server, website, and
   generated clients.
-
-Together they turn a Bitcoin Core node into a local Bitcoin data platform for
-chain exploration, mempool data, and on-chain research. The official free
-hosted instance is [bitview.space](https://bitview.space).
 
 **Used by**
 
@@ -27,16 +22,6 @@ hosted instance is [bitview.space](https://bitview.space).
 <a href="https://x.com/PapangLabs"><img src="https://pbs.twimg.com/profile_images/2090676888054231040/mIX07S9f_400x400.jpg" width="50" alt="Papang Labs" title="Papang Labs" style="border-radius:50%" /></a>
 <a href="https://x.com/atreidis_app"><img src="https://pbs.twimg.com/profile_images/2050569617890783232/S8T4kt6w_400x400.png" width="50" alt="Atreidis" title="Atreidis" style="border-radius:50%" /></a>
 <a href="https://x.com/SparrowWallet"><img src="https://pbs.twimg.com/profile_images/1299262054977556481/p8Za-LLX_400x400.jpg" width="50" alt="Sparrow Wallet" title="Sparrow Wallet" style="border-radius:50%" /></a>
-
-```text
-Bitcoin Core ──> BRK reader, RPC, and mempool ──> Bitview plugins
-                                                      │
-                                                      v
-                                            Query + REST server
-                                              │      │      │
-                                              v      v      v
-                                           Website Clients  MCP
-```
 
 See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
 
@@ -51,11 +36,8 @@ See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
 | [`examples/custom_plugin`](../examples/custom_plugin) | Runnable external-plugin and custom-composition example |
 | [`modules/bitview-client`](../modules/bitview-client) | JavaScript/TypeScript client |
 | [`packages/bitview_client`](../packages/bitview_client) | Python client |
-| `website*` and `experiments` | Browser applications and research visualizations |
+| `website` and `showcases` | Browser application and showcase pages |
 | `docs`, `benches`, `docker`, and `scripts` | Project documentation, measurements, packaging, and maintenance tooling |
-
-Each publishable crate or client owns its detailed usage documentation. The
-main README is only the map and common entrypoint.
 
 ## Use Bitview
 
@@ -75,8 +57,7 @@ curl https://bitview.space/api/mempool/price
 curl https://bitview.space/api/series/count
 ```
 
-The series catalog is discovered at runtime rather than documented as a
-hard-coded count. Use `/api/series/search?q=<concept>` to find identifiers.
+Find series identifiers with `/api/series/search?q=<concept>`.
 
 ## Self-host Bitview
 
@@ -85,20 +66,16 @@ rustup update && RUSTFLAGS="-C target-cpu=native" cargo install --locked bitview
 bitviewd
 ```
 
-The default composition requires Linux or macOS, a Bitcoin Core node with RPC
-and readable `blk*.dat` files, about 290 GiB for Bitview plus Bitcoin Core
-storage and growth headroom, and 16 GB of RAM recommended for a full sync. The
-website and API listen on [localhost:3110](http://localhost:3110).
+The default composition needs Linux or macOS, a mainnet Bitcoin Core node with
+RPC and complete `blk*.dat` files from genesis, about 290 GiB for Bitview plus
+Bitcoin Core storage and growth headroom, and 16 GB of RAM recommended for a
+full sync. The website and API listen on `0.0.0.0:3110`
+([localhost:3110](http://localhost:3110) locally).
 
-Bitview uses sparse files, so logical size is much larger than allocated disk
-space. Use `du -sh ~/.bitview` to measure actual usage.
-
-See the [`bitviewd` guide](../crates/bitviewd) for installation, configuration,
-initial sync, storage, and custom compositions.
+See the [`bitviewd` guide](../crates/bitviewd) for requirements, disk usage,
+installation, configuration, initial sync, and custom compositions.
 
 ## Build with BRK
-
-Use the BRK crates directly for primitives without the full Bitview application:
 
 ```toml
 [dependencies]
@@ -123,11 +100,7 @@ cargo bindgen   # regenerates the clients
 
 ## Documentation
 
-- [Architecture](./ARCHITECTURE.md)
 - [Changelog](./CHANGELOG.md)
-- [Self-hosting](../crates/bitviewd)
-- [Plugin contract](../crates/bitview_plugin)
-- [Custom plugin example](../examples/custom_plugin)
 - [Professional hosting](./PROFESSIONAL_HOSTING.md)
 
 ## Support and community

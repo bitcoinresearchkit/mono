@@ -12,7 +12,7 @@ use brk_error::Result;
 use log::info;
 use vecdb::{AnyVec, ReadableVec};
 
-use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeId, Vecs};
+use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, Vecs};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -26,7 +26,7 @@ impl ComputePlugin for Vecs {
             urpd,
             indexer,
             age,
-            holders: _,
+            holders,
             cointime,
             coinflow,
         } = dependencies;
@@ -34,9 +34,9 @@ impl ComputePlugin for Vecs {
         let cointime_wakefulness = cointime.age_ranges.urpd_weight_sources();
         let age_supplies = age.age_supplies();
         let coinflow_mobility = coinflow.age_ranges.urpd_weight_sources();
-        let raw_loss_share = dependencies.raw_loss_share();
-        let cointime_loss_share = dependencies.cointime_loss_share();
-        let coinflow_loss_share = dependencies.coinflow_loss_share();
+        let raw_loss_share = &holders.cohorts.all.supply.in_loss.share.fixed.height;
+        let cointime_loss_share = cointime.all_awake_supply_in_loss_share();
+        let coinflow_loss_share = coinflow.all_mobile_supply_in_loss_share();
         let mut inputs = Inputs::new(
             urpd.timestamps.version() + URPD_COMPUTE_VERSION,
             [
@@ -124,16 +124,15 @@ impl ComputePlugin for Vecs {
                 let thresholds = &thresholds[index - start];
                 let mut result = BlockResult::from_thresholds(thresholds);
                 if thresholds.iter().any(Option::is_some) {
-                    let supplies = AgeRange::try_from_fn(|age| {
-                        age.select_mut(&mut worker.supplies).get(index).ok_or(())
-                    })
-                    .ok();
-                    let ct_weights = supplies
-                        .as_ref()
-                        .and_then(|s| collect_cohort_weights(height, &mut worker.cointime, s));
-                    let cf_weights = supplies
-                        .as_ref()
-                        .and_then(|s| collect_cohort_weights(height, &mut worker.coinflow, s));
+                    let supplies = AgeRange::from_fn(|age| {
+                        age.select_mut(&mut worker.supplies)
+                            .get(index)
+                            .expect("validated age supply range")
+                    });
+                    let ct_weights =
+                        collect_cohort_weights(height, &mut worker.cointime, &supplies);
+                    let cf_weights =
+                        collect_cohort_weights(height, &mut worker.coinflow, &supplies);
                     result.evaluate(
                         source,
                         &[ct_weights.as_ref(), cf_weights.as_ref()],
@@ -143,10 +142,8 @@ impl ComputePlugin for Vecs {
                 Ok(result)
             },
             |height, result| {
-                for mode in ModeId::ALL {
-                    self.modes
-                        .select_mut(mode)
-                        .push(result.by_mode.select(mode));
+                for (vecs, result) in self.modes.iter_mut().zip(result.iter()) {
+                    vecs.push(result);
                 }
                 let end_block = usize::from(height) + 1;
                 if end_block.is_multiple_of(1_000)

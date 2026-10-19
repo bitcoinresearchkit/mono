@@ -2,7 +2,7 @@ use bitview_traversable::Traversable;
 
 use super::{Levels, Percentiles, PriceBandId};
 
-#[derive(Debug, Clone, Copy, PartialEq, Traversable)]
+#[derive(Clone, Traversable)]
 pub struct PriceBands<T> {
     /// Lowest creation price at which the share of mode-weighted supply with a
     /// higher creation price is no greater than the historical loss-share

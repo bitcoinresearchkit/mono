@@ -32,14 +32,14 @@ pub(crate) fn compute_sats(
         + first_txout.version()
         + output_types.version()
         + values.version();
-    let end = range.end.min(first_txout.len());
+    let end = range.end;
     let start = {
         let _lock = exit.lock();
         created.validate_version(u32::from(version).into())?;
         let start = prepare_computed(
             [target as &mut dyn AnyStoredVec],
             version,
-            range.start.min(end).min(created.end()),
+            range.start.min(created.end()),
             exit,
         )?;
         created.truncate(start)?;

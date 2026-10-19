@@ -54,7 +54,7 @@ macro_rules! addrs_vecs {
 
             /// Address bytes by output type, through that type's cached reader; `None` past the
             /// stored addresses.
-            pub fn get_bytes_by_type(
+            pub fn bytes(
                 &self,
                 addr_type: OutputType,
                 type_index: TypeIndex,
@@ -66,11 +66,11 @@ macro_rules! addrs_vecs {
                         .bytes
                         .get_append_only(type_index.into(), &readers.$field)
                         .map(AddressBytes::from),)+
-                    _ => unreachable!("get_bytes_by_type called with non-address type"),
+                    _ => unreachable!("address bytes of a non-address output type"),
                 }
             }
 
-            pub fn push_bytes_if_needed(&mut self, index: TypeIndex, bytes: AddressBytes) {
+            pub fn push_bytes(&mut self, index: TypeIndex, bytes: AddressBytes) {
                 match bytes {
                     $(AddressBytes::$variant(bytes) => {
                         self.$field.bytes.debug_checked_push(index.into(), bytes)

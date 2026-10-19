@@ -1,5 +1,3 @@
-#![allow(clippy::type_complexity)]
-
 mod compute;
 mod dependencies;
 mod endpoint;
@@ -52,10 +50,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// BRK's block-level Bitcoin (BTC/USD) spot-price estimate. Heights before
     /// 340,000 use baked historical exchange prices; later heights use an on-chain oracle
     /// that estimates price from round-USD transaction-output patterns. This is
-    /// a model-derived block price, not a contemporaneous exchange ticker. Zero
-    /// before the first exchange price (block 74,641, August 2010), and so are USD
-    /// values derived from it. At time-period indexes, the value is taken at the
-    /// period's final block; null when the period has no block.
+    /// a model-derived block price, not a contemporaneous exchange ticker. Before
+    /// the first exchange price (block 74,641, August 2010), this price and USD
+    /// amounts valued with it are zero. At time-period indexes, the value is taken
+    /// at the period's final block; null when the period has no block.
     pub spot: Price<PerBlock<Cents, M>>,
     /// Whole satoshis one US dollar buys at the spot price, rounded down: 100,000,000 divided
     /// by the price in USD per BTC. 0 while the spot price is zero.

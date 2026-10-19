@@ -53,21 +53,18 @@ impl Vecs {
             + inscription_counts.version()
             + inscriptions.version()
             + fees.version();
-        let end_height = first_tx
-            .len()
-            .min(tx_counts.len())
-            .min(inscription_counts.len());
+        let end_height = first_tx.len();
         let start_height = prepare_computed(
             [&mut self.fees.cumulative.sats.height],
             version,
-            starting_height.to_usize().min(end_height),
+            starting_height.to_usize(),
             exit,
         )?;
         if start_height == end_height {
             return self.write_fees(exit);
         }
 
-        let end_tx = inscriptions.len().min(fees.len());
+        let end_tx = fees.len();
         let mut cumulative = self
             .fees
             .cumulative
@@ -86,10 +83,6 @@ impl Vecs {
 
         for height in start_height..end_height {
             let block_end = block_start + u64::from(counts.next().unwrap()) as usize;
-            // Only publish complete blocks when a dependency is still catching up.
-            if block_end > end_tx {
-                break;
-            }
             let mut inscribed = Sats::ZERO;
             // With no inscriptions, avoid reading transaction fees or flags.
             if *inscription_counts.next().unwrap() > 0 {

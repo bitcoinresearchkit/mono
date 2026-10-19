@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write,
-    fs::create_dir_all,
     io,
     path::{Path, PathBuf},
 };
@@ -26,51 +25,41 @@ pub(crate) fn generate_llm_clients(
     roots: &[PathBuf],
     manifest_path: Option<&Path>,
 ) -> io::Result<()> {
-    let metric_count = count_metrics(catalog);
-    let generated = endpoints
-        .iter()
-        .filter(|endpoint| endpoint.should_generate())
-        .collect::<Vec<_>>();
-    let llms = render_llms(
-        &spec.info.title,
-        &spec.info.version,
-        metric_count,
-        &generated,
-    );
-    let llms_full = render_llms_full(
-        &spec.info.title,
-        &spec.info.version,
-        metric_count,
-        &generated,
-        schemas,
-    );
-
-    for root in roots {
-        create_dir_all(root)?;
-        write_output(&root.join("llms.txt"), &llms)?;
-        write_output(&root.join("llms-full.txt"), &llms_full)?;
+    if !roots.is_empty() {
+        let metric_count = count_metrics(catalog);
+        let generated = endpoints
+            .iter()
+            .filter(|endpoint| endpoint.should_generate())
+            .collect::<Vec<_>>();
+        let llms = render_llms(
+            &spec.info.title,
+            &spec.info.version,
+            metric_count,
+            &generated,
+        );
+        let llms_full = render_llms_full(
+            &spec.info.title,
+            &spec.info.version,
+            metric_count,
+            &generated,
+            schemas,
+        );
+        for root in roots {
+            write_if_changed(&root.join("llms.txt"), &llms)?;
+            write_if_changed(&root.join("llms-full.txt"), &llms_full)?;
+        }
     }
     if let Some(path) = manifest_path {
-        if let Some(parent) = path.parent() {
-            create_dir_all(parent)?;
-        }
         manifest::generate_tool_manifest(endpoints, schemas, path)?;
     }
     Ok(())
-}
-
-fn write_output(path: &Path, content: &str) -> io::Result<()> {
-    if let Some(parent) = path.parent() {
-        create_dir_all(parent)?;
-    }
-    write_if_changed(path, content)
 }
 
 /// Distinct series ids: a series reached through several typed paths counts once.
 fn count_metrics(node: &TreeNode) -> usize {
     let mut names = BTreeSet::new();
     node.for_each_leaf(&mut |leaf| {
-        names.insert(leaf.name());
+        names.insert(&leaf.leaf.name);
     });
     names.len()
 }
@@ -78,7 +67,7 @@ fn count_metrics(node: &TreeNode) -> usize {
 fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&Endpoint]) -> String {
     format!(
         "# {title} (BRK)\n\n\
-> Free, open-source Bitcoin analytics API and block explorer. {metric_count} on-chain time-series and {} API operations. No authentication required.\n\n\
+> Free, open-source Bitcoin analytics API and block explorer. {metric_count} on-chain time-series and {} API operations.\n\n\
 ## API\n\n\
 - Version: `{version}`\n\
 - Base URL: {BASE_URL}\n\
@@ -164,10 +153,7 @@ fn render_llms_full(
     if !referenced.is_empty() {
         writeln!(output, "## Schemas\n").unwrap();
         for name in referenced {
-            let Some(schema) = schemas.get(name) else {
-                continue;
-            };
-            render_schema(&mut output, name, schema);
+            render_schema(&mut output, name, &schemas[name]);
         }
     }
     output
@@ -272,9 +258,6 @@ fn render_endpoint(output: &mut String, endpoint: &Endpoint) {
         response_label(&endpoint.response_kind)
     )
     .unwrap();
-    writeln!(output, "```bash").unwrap();
-    writeln!(output, "{}", curl_example(endpoint)).unwrap();
-    writeln!(output, "```\n").unwrap();
 }
 
 fn response_label(response: &ResponseKind) -> String {
@@ -283,35 +266,6 @@ fn response_label(response: &ResponseKind) -> String {
         ResponseKind::Text { ty: Ty::String, .. } => "text".to_owned(),
         ResponseKind::Text { ty, .. } => format!("text `{ty}`"),
         ResponseKind::Binary => "binary data".to_owned(),
-    }
-}
-
-fn curl_example(endpoint: &Endpoint) -> String {
-    let mut path = endpoint.path.clone();
-    for parameter in &endpoint.path_params {
-        path = path.replace(
-            &format!("{{{}}}", parameter.name),
-            &format!("<{}>", parameter.name),
-        );
-    }
-    if !endpoint.query_params.is_empty() {
-        path.push('?');
-        path.push_str(
-            &endpoint
-                .query_params
-                .iter()
-                .map(|parameter| format!("{}=<{}>", parameter.name, parameter.name))
-                .collect::<Vec<_>>()
-                .join("&"),
-        );
-    }
-    if let Some(body) = &endpoint.request_body {
-        format!(
-            "curl -s -X {} --data '<{}>' \"{BASE_URL}{path}\"",
-            endpoint.method, body.ty
-        )
-    } else {
-        format!("curl -s \"{BASE_URL}{path}\"")
     }
 }
 
@@ -342,11 +296,8 @@ fn referenced_schemas<'a>(
 
     let mut pending = names.iter().copied().collect::<Vec<_>>();
     while let Some(name) = pending.pop() {
-        let Some(schema) = schemas.get(name) else {
-            continue;
-        };
         let mut refs = BTreeSet::new();
-        collect_schema_refs(schema, &mut refs);
+        collect_schema_refs(&schemas[name], &mut refs);
         for referenced in refs {
             if schemas.contains_key(referenced) && names.insert(referenced) {
                 pending.push(referenced);

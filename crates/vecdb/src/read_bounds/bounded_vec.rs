@@ -41,8 +41,8 @@ impl<'a> BoundedVec<'a> {
         self.source.version()
     }
 
-    pub fn value_type_to_string(&self) -> &'static str {
-        self.source.value_type_to_string()
+    pub fn value_type_name(&self) -> &'static str {
+        self.source.value_type_name()
     }
 
     pub fn visible_len(&self) -> usize {
@@ -62,14 +62,14 @@ impl<'a> BoundedVec<'a> {
         (from.min(to), to)
     }
 
-    pub fn range_count(&self, from: Option<i64>, to: Option<i64>) -> usize {
+    fn range_count(&self, from: Option<i64>, to: Option<i64>) -> usize {
         let (from, to) = self.signed_range(from, to);
         to - from
     }
 
     pub fn range_weight(&self, from: Option<i64>, to: Option<i64>) -> usize {
         self.range_count(from, to)
-            .saturating_mul(self.source.value_type_to_size_of())
+            .saturating_mul(self.source.value_size())
     }
 
     pub fn write_json(

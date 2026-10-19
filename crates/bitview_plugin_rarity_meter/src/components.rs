@@ -14,60 +14,49 @@ use super::{Component, median_component::MedianComponent};
 
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
-    /// Rarity Meter component using the all-chain realized price—the
-    /// satoshi-weighted mean creation price of all unspent outputs—as its
-    /// reference.
+    /// All-chain realized price: the satoshi-weighted mean creation price of all
+    /// unspent outputs.
     pub realized_price: Component<M>,
-    /// Rarity Meter component using the all-chain capitalized price—the mean
-    /// creation price weighted by value invested at creation—as its reference.
+    /// All-chain capitalized price: the mean creation price weighted by value
+    /// invested at creation.
     pub capitalized_price: Component<M>,
-    /// Rarity Meter component using the median creation price,
-    /// weighted by BTC supply.
+    /// All-chain median creation price, weighted by BTC supply.
     pub cost_basis_per_coin_median: MedianComponent<M>,
-    /// Rarity Meter component using the median creation price,
-    /// weighted by creation-date USD value.
+    /// All-chain median creation price, weighted by creation-date USD value.
     pub cost_basis_per_dollar_median: MedianComponent<M>,
-    /// Rarity Meter component using the median creation price of UTXOs
-    /// younger than 150 days, weighted by BTC supply.
+    /// Median creation price of UTXOs younger than 150 days, weighted by BTC
+    /// supply.
     pub sth_cost_basis_per_coin_median: MedianComponent<M>,
-    /// Rarity Meter component using the median creation price of UTXOs
-    /// younger than 150 days, weighted by creation-date USD value.
+    /// Median creation price of UTXOs younger than 150 days, weighted by
+    /// creation-date USD value.
     pub sth_cost_basis_per_dollar_median: MedianComponent<M>,
-    /// Rarity Meter component using the mobile (mobility-weighted) median creation price,
-    /// weighted by BTC supply.
+    /// Median creation price weighted by BTC supply and each age range's mobility.
     pub mobile_cost_basis_per_coin_median: MedianComponent<M>,
-    /// Rarity Meter component using the mobile (mobility-weighted) median creation price,
-    /// weighted by creation-date USD value.
+    /// Median creation price weighted by creation-date USD value and each age
+    /// range's mobility.
     pub mobile_cost_basis_per_dollar_median: MedianComponent<M>,
-    /// Rarity Meter component using the satoshi-weighted mean creation price of
-    /// UTXOs younger than 150 days as its reference.
+    /// Satoshi-weighted mean creation price of UTXOs younger than 150 days.
     pub sth_realized_price: Component<M>,
-    /// Rarity Meter component using the value-weighted mean creation price of
-    /// UTXOs younger than 150 days as its reference.
+    /// Value-weighted mean creation price of UTXOs younger than 150 days.
     pub sth_capitalized_price: Component<M>,
-    /// Rarity Meter component using the satoshi-weighted mean creation price of
-    /// UTXOs less than 180 days old as its reference.
+    /// Satoshi-weighted mean creation price of UTXOs less than 180 days old.
     pub utxos_under_6m_old_realized_price: Component<M>,
-    /// Rarity Meter component using the value-weighted mean creation price of
-    /// UTXOs less than 180 days old as its reference.
+    /// Value-weighted mean creation price of UTXOs less than 180 days old.
     pub utxos_under_6m_old_capitalized_price: Component<M>,
-    /// Rarity Meter component using cointime vaulted price as its reference:
-    /// realized price divided by one minus liveliness, where liveliness is
-    /// cumulative coinblocks destroyed divided by cumulative coinblocks
-    /// created.
+    /// Cointime vaulted price: realized price divided by one minus liveliness,
+    /// where liveliness is cumulative coinblocks destroyed divided by
+    /// cumulative coinblocks created.
     pub vaulted_price: Component<M>,
-    /// Rarity Meter component using cointime true market mean price as its
-    /// reference: realized capitalization minus cumulative issuance-date
-    /// subsidy value, divided by active supply; active supply is circulating
-    /// supply multiplied by liveliness.
+    /// Cointime True Market Mean: realized capitalization minus cumulative
+    /// issuance-date subsidy value, divided by active supply; active supply is
+    /// circulating supply multiplied by liveliness.
     pub true_market_mean: Component<M>,
-    /// Rarity Meter component using the awake supply's realized price, its
-    /// wakefulness-weighted mean creation price.
+    /// The awake supply's realized price: its wakefulness-weighted mean creation
+    /// price.
     pub awake_realized_price: Component<M>,
-    /// Rarity Meter component using the mobile supply's realized price: realized
-    /// capitalization weighted by each UTXO age range's estimated eventual
-    /// spending probability, divided by supply weighted by the same
-    /// probability.
+    /// The mobile supply's realized price: realized capitalization weighted by
+    /// each UTXO age range's estimated eventual spending probability, divided
+    /// by supply weighted by the same probability.
     pub mobile_realized_price: Component<M>,
 }
 
@@ -165,8 +154,6 @@ components! {
 }
 
 impl Components {
-    /// Young-coin references: the short-term holders' and under-six-month cohorts' means and
-    /// the short-term holders' medians.
     pub(crate) fn local(&self) -> [&Component; 6] {
         [
             &self.sth_realized_price,
@@ -178,8 +165,6 @@ impl Components {
         ]
     }
 
-    /// Long-cycle references: all-chain means and medians, the mobile supply's medians and the
-    /// Cointime and Coinflow prices.
     pub(crate) fn cycle(&self) -> [&Component; 10] {
         [
             &self.realized_price,

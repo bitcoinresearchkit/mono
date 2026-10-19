@@ -1,7 +1,3 @@
-//! Rust client generation.
-//!
-//! This module generates a Rust client with full type safety for the Bitview API.
-
 mod api;
 mod client;
 mod tree;
@@ -20,9 +16,6 @@ use tempfile::Builder;
 use super::write_if_changed;
 use crate::{Endpoint, IndexSetPattern, ValueTypes, model::Model};
 
-/// Generate a Rust client from the series-tree model and OpenAPI endpoints.
-///
-/// `output_path` is the full path to the output file (e.g., "crates/bitview_client/src/generated.rs").
 pub(crate) fn generate_rust_client(
     model: &Model,
     shape_names: &[String],
@@ -35,12 +28,8 @@ pub(crate) fn generate_rust_client(
 
     writeln!(output, "// Auto-generated Bitview Rust client").unwrap();
     writeln!(output, "// Do not edit manually\n").unwrap();
-    writeln!(output, "#![allow(non_camel_case_types)]").unwrap();
     writeln!(output, "#![allow(non_snake_case)]").unwrap();
-    writeln!(output, "#![allow(dead_code)]").unwrap();
-    writeln!(output, "#![allow(unused_variables)]").unwrap();
-    writeln!(output, "#![allow(clippy::useless_format)]").unwrap();
-    writeln!(output, "#![allow(clippy::unnecessary_to_owned)]\n").unwrap();
+    writeln!(output, "#![allow(clippy::useless_format)]\n").unwrap();
 
     client::generate_imports(&mut output);
     client::generate_index_accessors(&mut output, accessors);

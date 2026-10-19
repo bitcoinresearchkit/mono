@@ -13,11 +13,10 @@ impl Vecs {
         mappings: &MappingsVecs,
         spot_price: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
-        let v1 = Version::ONE;
-        let v = version + v1;
+        let version = version + Version::ONE;
         let true_range_source = LazyLookbackVec::new(
             "price_true_range_source",
-            v,
+            version,
             spot_price,
             1,
             |current, previous| {
@@ -28,18 +27,18 @@ impl Vecs {
 
         Ok(Vecs {
             min: PriceMinMaxVecs {
-                _1w: Price::import(db, "price_min_1w", version + v1, mappings)?,
-                _1m: Price::import(db, "price_min_1m", version + v1, mappings)?,
-                _1y: Price::import(db, "price_min_1y", version + v1, mappings)?,
+                _1w: Price::import(db, "price_min_1w", version, mappings)?,
+                _1m: Price::import(db, "price_min_1m", version, mappings)?,
+                _1y: Price::import(db, "price_min_1y", version, mappings)?,
             },
             max: PriceMinMaxVecs {
-                _1w: Price::import(db, "price_max_1w", version + v1, mappings)?,
-                _1m: Price::import(db, "price_max_1m", version + v1, mappings)?,
-                _1y: Price::import(db, "price_max_1y", version + v1, mappings)?,
+                _1w: Price::import(db, "price_max_1w", version, mappings)?,
+                _1m: Price::import(db, "price_max_1m", version, mappings)?,
+                _1y: Price::import(db, "price_max_1y", version, mappings)?,
             },
             true_range: LazyFiatPerBlock::from_cents_source(
                 "price_true_range",
-                v,
+                version,
                 &true_range_source,
                 mappings,
             ),

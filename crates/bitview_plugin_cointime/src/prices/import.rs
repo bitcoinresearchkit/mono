@@ -29,7 +29,6 @@ impl Vecs {
         );
         let vaulted_cents = import_cached(db, "vaulted_price_cents", version)?;
         let active_cents = import_cached(db, "active_price_cents", version)?;
-        // ONE: null without a positive investor capitalization.
         let true_market_mean_cents =
             import_cached(db, "true_market_mean_cents", version + Version::ONE)?;
         let true_market_mean = PriceWithRatio::import(

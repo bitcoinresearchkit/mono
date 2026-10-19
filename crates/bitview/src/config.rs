@@ -15,7 +15,7 @@ use toml::from_str;
 
 use crate::{
     RunConfig,
-    paths::{default_bitview_dir, fix_user_path},
+    paths::{default_bitview_dir, expand_home},
 };
 
 /// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`).
@@ -92,21 +92,23 @@ impl Config {
                     println!("{command} {}", env!("CARGO_PKG_VERSION"));
                     exit(0);
                 }
-                Long("bitviewdir") => config.bitviewdir = Some(value(&mut parser, &flag)?),
-                Long("serverbind") => config.serverbind = Some(value(&mut parser, &flag)?),
-                Long("serverport") => config.serverport = Some(value(&mut parser, &flag)?),
-                Long("website") => config.website = Some(value(&mut parser, &flag)?),
-                Long("cdn") => config.cdn = Some(value(&mut parser, &flag)?),
-                Long("maxweight") => config.maxweight = Some(value(&mut parser, &flag)?),
-                Long("maxutxos") => config.maxutxos = Some(value(&mut parser, &flag)?),
-                Long("cachebudget") => config.cachebudget = Some(value(&mut parser, &flag)?),
-                Long("bitcoindir") => config.bitcoindir = Some(value(&mut parser, &flag)?),
-                Long("blocksdir") => config.blocksdir = Some(value(&mut parser, &flag)?),
-                Long("rpcconnect") => config.rpcconnect = Some(value(&mut parser, &flag)?),
-                Long("rpcport") => config.rpcport = Some(value(&mut parser, &flag)?),
-                Long("rpccookiefile") => config.rpccookiefile = Some(value(&mut parser, &flag)?),
-                Long("rpcuser") => config.rpcuser = Some(value(&mut parser, &flag)?),
-                Long("rpcpassword") => config.rpcpassword = Some(value(&mut parser, &flag)?),
+                Long("bitviewdir") => config.bitviewdir = Some(parse_value(&mut parser, &flag)?),
+                Long("serverbind") => config.serverbind = Some(parse_value(&mut parser, &flag)?),
+                Long("serverport") => config.serverport = Some(parse_value(&mut parser, &flag)?),
+                Long("website") => config.website = Some(parse_value(&mut parser, &flag)?),
+                Long("cdn") => config.cdn = Some(parse_value(&mut parser, &flag)?),
+                Long("maxweight") => config.maxweight = Some(parse_value(&mut parser, &flag)?),
+                Long("maxutxos") => config.maxutxos = Some(parse_value(&mut parser, &flag)?),
+                Long("cachebudget") => config.cachebudget = Some(parse_value(&mut parser, &flag)?),
+                Long("bitcoindir") => config.bitcoindir = Some(parse_value(&mut parser, &flag)?),
+                Long("blocksdir") => config.blocksdir = Some(parse_value(&mut parser, &flag)?),
+                Long("rpcconnect") => config.rpcconnect = Some(parse_value(&mut parser, &flag)?),
+                Long("rpcport") => config.rpcport = Some(parse_value(&mut parser, &flag)?),
+                Long("rpccookiefile") => {
+                    config.rpccookiefile = Some(parse_value(&mut parser, &flag)?)
+                }
+                Long("rpcuser") => config.rpcuser = Some(parse_value(&mut parser, &flag)?),
+                Long("rpcpassword") => config.rpcpassword = Some(parse_value(&mut parser, &flag)?),
                 _ => return Err(parse_error(arg.unexpected())),
             }
         }
@@ -159,7 +161,7 @@ impl Config {
             format!("[{}]", Port::DEFAULT).bright_black()
         );
         println!(
-            "    --website {}     Website {}",
+            "    --website {}     Serve the default website (true), none (false) or a directory {}",
             "<BOOL|PATH>".bright_black(),
             "[true]".bright_black()
         );
@@ -169,7 +171,7 @@ impl Config {
             "[false]".bright_black()
         );
         println!(
-            "    --maxweight {}       Server cap on series response weight in bytes; rejects /api/{{series,metric}}/... over the limit {}",
+            "    --maxweight {}       Server cap on series response weight in bytes; rejects /api/series/... over the limit {}",
             "<BYTES>".bright_black(),
             format!("[{}]", DEFAULT_MAX_WEIGHT).bright_black()
         );
@@ -196,8 +198,8 @@ impl Config {
         );
         println!();
         println!(
-            "    --rpcconnect {}         RPC host {}",
-            "<IP>".bright_black(),
+            "    --rpcconnect {}       RPC host {}",
+            "<HOST>".bright_black(),
             "[localhost]".bright_black()
         );
         println!(
@@ -262,8 +264,8 @@ impl Config {
     }
 
     /// Node connection settings, with `~` expanded.
-    fn connect(&self) -> ConnectArgs {
-        let path = |value: &Option<String>| value.as_deref().map(fix_user_path);
+    fn connect_args(&self) -> ConnectArgs {
+        let path = |value: &Option<String>| value.as_deref().map(expand_home);
         ConnectArgs {
             bitcoindir: path(&self.bitcoindir),
             blocksdir: path(&self.blocksdir),
@@ -275,11 +277,11 @@ impl Config {
         }
     }
 
-    /// Resolve everything a runner needs: the blocks directory must exist, and
-    /// [`ConnectArgs::client`] checks the RPC credentials.
+    /// Resolve everything a runner needs: the blocks directory must exist and
+    /// [`ConnectArgs::client`] must find RPC credentials.
     fn runner(&self) -> Result<RunConfig> {
-        let connect = self.connect();
-        let blocks_path = connect.blocks_dir();
+        let connect_args = self.connect_args();
+        let blocks_path = connect_args.blocks_dir();
         if !blocks_path.is_dir() {
             return Err(Error::NotFound(format!(
                 "{} isn't a valid blocks directory; set --blocksdir or --bitcoindir (run with -h for help)",
@@ -287,7 +289,7 @@ impl Config {
             )));
         }
         Ok(RunConfig {
-            client: connect.client()?,
+            client: connect_args.client()?,
             blocks_path,
             server: ServerConfig {
                 bind: self.serverbind.unwrap_or(DEFAULT_BIND),
@@ -295,7 +297,7 @@ impl Config {
                 data_path: self
                     .bitviewdir
                     .as_deref()
-                    .map_or_else(default_bitview_dir, fix_user_path),
+                    .map_or_else(default_bitview_dir, expand_home),
                 website: self.website.clone().unwrap_or_default(),
                 cdn_cache_mode: if self.cdn.unwrap_or(false) {
                     CdnCacheMode::Aggressive
@@ -310,8 +312,7 @@ impl Config {
     }
 }
 
-/// The next value of `flag`, parsed into the field's type.
-fn value<T>(parser: &mut Parser, flag: &str) -> Result<T>
+fn parse_value<T>(parser: &mut Parser, flag: &str) -> Result<T>
 where
     T: FromStr,
     T::Err: Into<Box<dyn std::error::Error + Send + Sync>>,

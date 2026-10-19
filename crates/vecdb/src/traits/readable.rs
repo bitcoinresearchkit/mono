@@ -2,25 +2,11 @@ use std::{convert::Infallible, result::Result};
 
 use crate::{AnyVec, ReadableBoxedVec, VecIndex, VecValue, cursor::Cursor};
 
-/// Default chunk size for chunked iteration (matches PcoVec page size).
+/// Default number of values per chunked read.
 pub const READ_CHUNK_SIZE: usize = 4096;
 
-/// High-performance reading of vector values.
-///
-/// This is the primary trait for reading data from any vec type — stored, compressed,
-/// lazy, or computed. All methods see the full state including uncommitted (pushed) values.
-///
-/// # Method overview
-///
-/// | Method | Use when |
-/// |--------|----------|
-/// | `for_each` / `for_each_range_at` | Processing every element, static dispatch |
-/// | `fold` / `fold_range_at` | Accumulating a result (SIMD-optimized on stored vecs) |
-/// | `collect` / `collect_range` | Materializing values into a `Vec<T>` |
-/// | `collect_one` / `collect_last` | Materializing a single value |
-/// | `for_each_range_dyn` | Trait-object contexts (`&dyn ReadableVec`) |
-/// | `try_fold_range_at` | Fold with early exit on error |
-/// | `read_into` / `cursor` | Sequential access with buffer reuse |
+/// Reads the values of any vector: stored, compressed or lazy. A writer's reads include its
+/// pushed (unwritten) values; a read-only clone's do not.
 ///
 /// # Typed vs `_at` methods
 ///
@@ -41,19 +27,15 @@ pub const READ_CHUNK_SIZE: usize = 4096;
 ///
 /// # Performance
 ///
-/// Stored vecs implement `try_fold_range_at` with their internal source's tight
-/// loop, enabling SIMD auto-vectorization; `fold_range_at` reuses it.
-///
-/// For maximum throughput on stored vecs, prefer `fold_range_at` / `for_each_range_at`
-/// with static dispatch (`&impl ReadableVec` or concrete type).
+/// Prefer the static-dispatch folds (`fold_range_at`, `for_each_range_at`,
+/// `try_fold_range_at` on `&impl ReadableVec` or a concrete type): stored vecs run them as
+/// their source's tight loop.
 pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
     /// Append a complete retained range without source reads or cache fills.
     /// On a miss (including unavailable bounds), leave `out` unchanged.
     fn read_cached_into_at(&self, _from: usize, _to: usize, _out: &mut Vec<T>) -> bool {
         false
     }
-
-    // ── Required ─────────────────────────────────────────────────────
 
     /// Preferred number of values per cursor refill.
     ///
@@ -64,13 +46,8 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         READ_CHUNK_SIZE
     }
 
-    /// Appends elements in `[from, to)` to `buf`.
-    ///
-    /// Implementations MUST NOT clear `buf` — they only append. This enables
-    /// chunked fold (clear + fill per chunk) and multi-range reads (append
-    /// multiple ranges into one buffer).
-    ///
-    /// Object-safe: `&mut Vec<T>` is a concrete type, no `Self: Sized` needed.
+    /// Appends the values in `[from, to)` to `buf`, never clearing it: callers reuse one buffer
+    /// across chunks and ranges.
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<T>);
 
     /// Visits borrowed chunks of the values emitted by `[from, to)`, in order.
@@ -94,10 +71,8 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
     /// fallback to a slow buffered path.
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T));
 
-    /// Fallible fold over `[from, to)` by raw index with early exit on error.
-    ///
-    /// Every implementor must provide an optimal path — there is intentionally
-    /// no default to prevent silent fallback to a slow buffered path.
+    /// Fallible fold over `[from, to)` by raw index with early exit on error. No default, like
+    /// [`Self::for_each_range_dyn_at`].
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
         &self,
         from: usize,
@@ -123,16 +98,13 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         acc
     }
 
-    // ── Typed-index wrappers ───────────────────────────────────────────
-
     /// Appends elements in `[from, to)` to `buf` using typed indices.
     #[inline]
     fn read_into(&self, from: I, to: I, buf: &mut Vec<T>) {
         self.read_into_at(from.to_usize(), to.to_usize(), buf)
     }
 
-    /// Creates a forward-only `Cursor` that reuses an internal buffer across
-    /// chunked `read_into_at` calls. One allocation for the lifetime of the cursor.
+    /// A [`Cursor`] over this vector.
     #[inline]
     fn cursor(&self) -> Cursor<'_, I, T, Self>
     where
@@ -171,8 +143,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         self.collect_one_at(index.to_usize())
     }
 
-    // ── Raw-index convenience (all have defaults) ──────────────────────
-
     /// Calls `f` for each value in `[from, to)` by raw index. Requires `Sized` (static dispatch).
     #[inline]
     fn for_each_range_at<F: FnMut(T)>(&self, from: usize, to: usize, mut f: F)
@@ -196,7 +166,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         self.try_fold_range_at(from, to, (), |(), v| f(v))
     }
 
-    /// Calls `f` for every value in the vector.
     #[inline]
     fn for_each<F: FnMut(T)>(&self, f: F)
     where
@@ -205,7 +174,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         self.for_each_range_at(0, self.len(), f);
     }
 
-    /// Folds over all values with an accumulator.
     #[inline]
     fn fold<B, F: FnMut(B, T) -> B>(&self, init: B, f: F) -> B
     where
@@ -238,7 +206,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         buf
     }
 
-    /// Collects all values into a `Vec<T>`.
     #[inline]
     fn collect(&self) -> Vec<T>
     where
@@ -249,9 +216,8 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
 
     /// Collects a single value at raw `index`, or `None` if out of bounds.
     ///
-    /// Uses `for_each_range_dyn_at` with a stack-local `Option`. Stored vecs
-    /// override `for_each_range_dyn_at` → `fold_range_at` for zero-alloc reads;
-    /// lazy vecs override `collect_one_at` directly.
+    /// The default visits a one-element range through [`Self::for_each_range_dyn_at`]; stored
+    /// and lazy vecs override it.
     #[inline(always)]
     fn collect_one_at(&self, index: usize) -> Option<T> {
         if index >= self.len() {
@@ -272,8 +238,6 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
             None
         }
     }
-
-    // ── Sparse reads ──────────────────────────────────────────────
 
     /// Reads values at specific sorted indices (ascending), skipping holes.
     ///

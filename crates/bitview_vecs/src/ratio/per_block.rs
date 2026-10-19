@@ -11,7 +11,7 @@ use crate::{IndexSources, LazyPerBlock, PerBlock, ops::FixedToRatio};
 #[derive(Traversable)]
 #[traversable(merge)]
 pub struct RatioPerBlock<R: FixedRatio, M: StorageMode = Rw> {
-    /// Fixed-point storage: parts per million (1,000,000 represents 1.0) or basis points.
+    /// Fixed-point ratio in parts per million; 1,000,000 represents 1.0.
     #[traversable(hidden)]
     pub fixed: PerBlock<R, M>,
     /// As a ratio.

@@ -24,8 +24,15 @@ where
         });
     }
 
+    /// Lends each batch's values through one reused buffer.
     fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
-        self.for_each_transformed_chunk(from, to, f);
+        let mut output = Vec::new();
+        let Ok(()) = self.try_for_each_batch(from, to, |at, starts, batch| {
+            output.clear();
+            output.extend(Self::transformed_values(at, starts, batch));
+            f(at, &output);
+            Ok::<_, Infallible>(())
+        });
     }
 
     #[inline]

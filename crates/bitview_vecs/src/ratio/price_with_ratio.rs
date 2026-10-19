@@ -8,7 +8,7 @@ use vecdb::{ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, Storage
 
 use crate::{IndexSources, LazyPerBlock, Price, RatioPerBlock, ops::Quotient};
 
-/// A price, a lazy view of its source, and its stored spot/price ratio.
+/// A lazy price view with a stored spot/price ratio.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct PriceWithRatio<M: StorageMode = Rw> {
     #[deref]

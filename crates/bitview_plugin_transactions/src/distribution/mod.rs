@@ -6,7 +6,7 @@ use bitview_compute::{ComputedVecValue, DistributionStats, NumericValue};
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock};
 use brk_error::Result;
-use brk_types::{VSize, get_weighted_percentiles};
+use brk_types::{VSize, weighted_percentiles};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{Database, Rw, StorageMode, Version, WritableVec};
@@ -39,7 +39,6 @@ where
         })?))
     }
 
-    /// Appends one block's statistics.
     pub fn push(&mut self, stats: Stats<T>) {
         for (stat, value) in self.0.as_mut_array().into_iter().zip(stats) {
             stat.height.push(value);
@@ -73,7 +72,7 @@ pub fn weighted<T: NumericValue + Ord>(block: &mut [(T, VSize)]) -> Stats<T> {
     let tail_min = edge_rate(block.iter().rev().copied(), edge, Ord::min);
     block.sort_unstable();
     let [pct1, pct10, pct25, median, pct75, pct90, pct99] =
-        get_weighted_percentiles(block, [1, 10, 25, 50, 75, 90, 99]);
+        weighted_percentiles(block, [1, 10, 25, 50, 75, 90, 99]);
     [
         pct1.min(tail_min),
         pct99.max(head_max),

@@ -6,30 +6,30 @@ use crate::{
     Snapshot, TxRemoval,
     key::TxKey,
     state::{State, TxEntry},
-    steps::preparer::{TxAddition, TxsPulled},
+    steps::preparer::{PoolDiff, TxAddition},
 };
 
 /// Applies a prepared diff to private working state: re-assert promoted
-/// spends, bury removals, insert additions, then evict old tombstones.
-/// `prev_snapshot` supplies the previous cycle's snapshot. Burial
-/// reads each tomb's `chunk_rate` from it (always-fresh,
-/// package-aware via local linearization). The fallback to
-/// `entry.fee_rate()` is unreachable in steady state - every burial
-/// target was alive at the previous tick, so the snapshot has it.
-pub fn apply(state: &mut State, prev_snapshot: &Snapshot, pulled: TxsPulled) {
-    let TxsPulled {
+/// spends, bury removals, insert additions, then evict old tombstones. A
+/// burial keeps its chunk rate from the previous cycle's graph, or its own fee
+/// rate if that graph lacks it.
+pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff) {
+    let PoolDiff {
         live_len,
         added,
         promoted,
         removed,
-    } = pulled;
+    } = diff;
     let additional = live_len.saturating_sub(state.txs.len());
     state.txs.reserve(additional);
     // Before burials, so a leaving listed spender never drops their mapping.
+    // `prepare` kept only pooled promoted keys and pooled removals, from this same state.
     for key in promoted {
-        if let Some(record) = state.txs.record_by_key(&key) {
-            state.outpoint_spends.insert_spends(&record.tx, key, true);
-        }
+        let record = state
+            .txs
+            .record_by_key(&key)
+            .expect("promoted tx is pooled");
+        state.outpoint_spends.insert_spends(&record.tx, key, true);
     }
     for (key, reason) in removed {
         bury_one(state, prev_snapshot, &key, reason);
@@ -42,9 +42,7 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, pulled: TxsPulled) {
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {
-    let Some(record) = state.txs.remove_by_key(key) else {
-        return;
-    };
+    let record = state.txs.remove_by_key(key).expect("removed tx is pooled");
     let txid = record.entry.txid;
     let chunk_rate = prev_snapshot
         .chunk_rate_for(&txid)

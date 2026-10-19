@@ -12,16 +12,14 @@ pub struct PricePoint {
     pub usd: Dollars,
 }
 
-/// Historical price response
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct HistoricalPrice {
-    /// Price data points
     pub prices: Vec<PricePoint>,
     /// Exchange rates (currently empty)
     #[serde(rename = "exchangeRates")]
     pub exchange_rates: ExchangeRates,
 }
 
-/// Exchange rates (USD base, on-chain only — no fiat pairs available)
+/// Always empty: prices are quoted in USD only.
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ExchangeRates {}

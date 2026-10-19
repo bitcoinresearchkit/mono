@@ -7,7 +7,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Height;
 use tracing::{info, warn};
-use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp, VecIndex, WritableVec};
 
 use super::{Vecs, bootstrap};
 use bitview_compute::{undo_chunks, undo_tail_start};
@@ -79,7 +79,7 @@ impl Vecs {
         } else {
             mappings
                 .output_heights
-                .get_shared(TxOutIndex::from(min_txout_index))
+                .get(TxOutIndex::from(min_txout_index))
                 .unwrap()
                 .to_usize()
         };
@@ -89,7 +89,6 @@ impl Vecs {
             starting_lengths.height
         );
 
-        // Only collect from min_height onward (not from 0)
         let first_txout_index_data = first_txout_index_vec.collect_range_at(min_height, end);
         let first_txin_index_data = indexer
             .vecs()
@@ -119,7 +118,6 @@ impl Vecs {
             start = tail;
         }
         for (blocks, with_changes) in undo_chunks(start..end) {
-            // Fill the outputs up to the chunk's end.
             let txout_end = if blocks.end == end {
                 indexer.vecs().outputs.value.len()
             } else {
@@ -128,10 +126,8 @@ impl Vecs {
             // Staged in memory only: the chunk's one write below is stamped, after the rollback
             // data for a reorg truncation is saved.
             let len = self.spending_txin_index.len();
-            self.spending_txin_index.extend(repeat_n(
-                Index40::new(TxInIndex::UNSPENT),
-                txout_end.saturating_sub(len),
-            ));
+            self.spending_txin_index
+                .extend(repeat_n(Index40::new(TxInIndex::UNSPENT), txout_end - len));
 
             let txin_start = first_txin(blocks.start);
             let txin_end = if blocks.end == end {
@@ -145,25 +141,22 @@ impl Vecs {
             let stored_len = self.spending_txin_index.stored_len();
             let pushed = self.spending_txin_index.pushed_mut();
             let mut j = txin_start;
-            txin_index_to_txout_index
-                .try_for_each_range_at(txin_start, txin_end, |txout_index: TxOutIndex| {
+            txin_index_to_txout_index.for_each_range_at(
+                txin_start,
+                txin_end,
+                |txout_index: TxOutIndex| {
                     if !txout_index.is_coinbase() {
                         let txin_index = Index40::new(TxInIndex::from(j));
                         let index = txout_index.to_usize();
                         if index < stored_len {
                             stored_updates.push((txout_index, txin_index));
                         } else {
-                            *pushed.get_mut(index - stored_len).ok_or(index)? = txin_index;
+                            pushed[index - stored_len] = txin_index;
                         }
                     }
                     j += 1;
-                    Ok(())
-                })
-                .map_err(|index| VecError::IndexTooHigh {
-                    index,
-                    len: self.spending_txin_index.len(),
-                    name: self.spending_txin_index.name().to_owned(),
-                })?;
+                },
+            );
 
             stored_updates.sort_unstable_by_key(|(txout_index, _)| *txout_index);
             let _lock = exit.lock();

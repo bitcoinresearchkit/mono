@@ -17,7 +17,6 @@ use tracing::{error, info};
 
 use crate::Error;
 
-/// Embedded website assets
 static EMBEDDED_WEBSITE: Dir = include_dir!("$CARGO_MANIFEST_DIR/website");
 
 /// Cached embedded index.html with importmap injected.
@@ -74,7 +73,7 @@ fn content_type(path: &Path) -> Option<&'static str> {
 }
 
 /// Website configuration:
-/// - `true` or omitted: serve embedded website
+/// - `true` or omitted: `./website` in debug builds when it exists, else the embedded website
 /// - `false`: disable website serving
 /// - `"/path/to/website"`: serve custom website from path
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -90,7 +89,7 @@ impl Website {
         !matches!(self, Self::Disabled)
     }
 
-    /// Returns the filesystem path if available, None means use embedded
+    /// The directory to serve from; `None` for the embedded website (or when disabled).
     pub(crate) fn filesystem_path(&self) -> Option<&Path> {
         match self {
             Self::Disabled => None,
@@ -103,12 +102,9 @@ impl Website {
     }
 
     /// Get file content by path (handles hash-stripping, SPA fallback, importmap)
-    ///
-    /// Returns an error if the website is disabled.
     pub(crate) fn get_file(&self, path: &str) -> Result<File, Error> {
-        if !self.is_enabled() {
-            return Err(Error::not_found("Website is disabled"));
-        }
+        // `router` registers no route for a disabled website.
+        debug_assert!(self.is_enabled());
         match self.filesystem_path() {
             None => self.get_embedded(path),
             Some(base) => self.get_filesystem(base, path),
@@ -121,12 +117,12 @@ impl Website {
             Self::Disabled => info!("Website disabled"),
             Self::Default => {
                 if let Some(p) = self.filesystem_path() {
-                    info!("Website loaded from {}", p.display());
+                    info!("Serving website from {}", p.display());
                 } else {
                     info!("Using embedded website");
                 }
             }
-            Self::Filesystem(p) => info!("Website loaded from {}", p.display()),
+            Self::Filesystem(p) => info!("Serving website from {}", p.display()),
         }
     }
 
@@ -175,12 +171,10 @@ impl Website {
     }
 
     fn get_embedded(&self, path: &str) -> Result<File, Error> {
-        // Index.html
         if path.is_empty() || path == "index.html" {
             return self.get_index();
         }
 
-        // Try direct lookup, then with hash stripped
         if let Some(file) = embedded_file(path) {
             return Ok(File::embedded(file));
         }
@@ -207,7 +201,6 @@ impl Website {
             file_path = page;
         }
 
-        // Try with hash stripped
         if !file_path.exists()
             && let Some(unhashed) = ImportMap::strip_hash(&file_path)
             && unhashed.exists()

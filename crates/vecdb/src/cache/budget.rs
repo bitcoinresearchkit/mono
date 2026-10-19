@@ -68,7 +68,7 @@ impl CacheBudget {
         // Two bounded clock passes: a recently used owner gets one second chance.
         // Never wait on a busy cache or call it while holding the registry lock.
         let count = self.registry.lock().len();
-        for _ in 0..count.saturating_mul(2) {
+        for _ in 0..count * 2 {
             let cache = {
                 let mut registry = self.registry.lock();
                 let Some(owner) = registry.pop_front() else {

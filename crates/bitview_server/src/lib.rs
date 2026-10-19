@@ -226,7 +226,6 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
     Ok(NormalizePathLayer::trim_trailing_slash().layer(router))
 }
 
-/// Finalize a router and extract the OpenAPI spec.
 pub fn finish_openapi<S: Clone + Send + Sync + 'static>(
     router: ApiRouter<S>,
 ) -> (Router<S>, OpenApi) {

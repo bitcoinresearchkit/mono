@@ -33,7 +33,6 @@ impl Vecs {
             exit,
         )?;
 
-        // cointime_cap = (cointime_value_destroyed_cumulative * circulating_supply) / coinblocks_stored_cumulative
         self.cointime.cents.height.compute_transform3(
             starting_lengths.height,
             &value.destroyed.cumulative.height,

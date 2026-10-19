@@ -26,7 +26,6 @@ impl Vecs {
 
         // VOCDD: Value of Coin Days Destroyed = price × (CDD / circulating_supply)
         // Supply-adjusted to account for growing supply over time
-        // This is a key input for Reserve Risk / HODL Bank calculation
         let mut cumulative = None;
         self.vocdd.cumulative.height.compute_transform3(
             starting_height,
@@ -43,7 +42,6 @@ impl Vecs {
                 let value = if supply_f64 == 0.0 {
                     DollarDaysPerCoin::ZERO
                 } else {
-                    // VOCDD = price × (CDD / supply)
                     DollarDaysPerCoin::from(f64::from(price) * f64::from(cdd) / supply_f64)
                 };
                 *cumulative += value;
@@ -87,7 +85,7 @@ impl Vecs {
                             .unwrap_or(timestamp),
                     )
                 });
-                let days = timestamp.difference_in_days_between_float(*previous);
+                let days = timestamp.days_since(*previous);
                 *previous = timestamp;
                 *bank += (f64::from(price) - f64::from(median)) * days;
                 Float64::from(*bank)

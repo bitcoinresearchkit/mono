@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_price"
-description = "The price plugin for Bitview"
+description = "Bitcoin USD spot prices and OHLC candles from exchange history and an on-chain oracle"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

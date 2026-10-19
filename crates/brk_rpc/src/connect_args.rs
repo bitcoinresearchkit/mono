@@ -72,7 +72,6 @@ impl ConnectArgs {
     }
 }
 
-/// Bitcoin Core's default data directory on this OS.
 fn default_bitcoin_dir() -> PathBuf {
     let home = PathBuf::from(env::var("HOME").unwrap());
     if env::consts::OS == "macos" {

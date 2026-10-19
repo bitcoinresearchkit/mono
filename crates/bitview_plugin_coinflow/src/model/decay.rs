@@ -122,10 +122,7 @@ impl DecayFit {
                     // The start band counts from the midpoint of its occupied part.
                     Some(end) => {
                         let hazard = *start_band.select(hazards);
-                        (
-                            hazard * (start.upper - age.max(start.lower)) + runs[i + 1].0,
-                            end,
-                        )
+                        (hazard * (start.upper - age) + runs[i + 1].0, end)
                     }
                     None => (0.0, age),
                 }
@@ -156,6 +153,6 @@ impl DecayFit {
         let continuation_age = age.max(anchor_age);
         let continuation_hazard =
             anchor_hazard * (self.slope * (continuation_age - anchor_age)).exp();
-        (continuation_hazard * self.tau).max(0.0)
+        continuation_hazard * self.tau
     }
 }

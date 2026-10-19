@@ -2,7 +2,8 @@ use crate::CheckedSub;
 
 use super::DeltaOp;
 
-/// Rolling sum from cumulative: `cum[h] - cum[start - 1]`
+/// Rolling sum from cumulative: `cum[h] - cum[start - 1]`, or `T::default()` when the
+/// subtraction overflows.
 #[derive(Clone, Copy)]
 pub struct DeltaSub;
 

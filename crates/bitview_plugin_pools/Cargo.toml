@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_pools"
-description = "The mining pools plugin for Bitview"
+description = "Bitcoin mining-pool attribution, rewards and hash rate datasets for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -4,7 +4,7 @@ const HOURS_PER_DAY: f64 = 24.0;
 
 pub(super) const MINIMUM_DURATION_DAYS: f64 = 1.0 / HOURS_PER_DAY;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub(crate) struct AgeBand {
     pub(super) lower: f64,
     pub(super) upper: f64,

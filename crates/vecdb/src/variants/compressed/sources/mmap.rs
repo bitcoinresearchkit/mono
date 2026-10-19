@@ -23,9 +23,9 @@ impl PageBytes for Mapped {
 }
 
 /// Mmap-backed [`CompressedSource`].
-pub type CompressedMmapSource<'a, I, T, S> = CompressedSource<'a, I, T, S, Mapped>;
+pub type CompressedMmapSource<'a, T, S> = CompressedSource<'a, T, S, Mapped>;
 
-impl<'a, I, T, S> CompressedMmapSource<'a, I, T, S>
+impl<'a, T, S> CompressedMmapSource<'a, T, S>
 where
     T: VecValue,
     S: CompressionStrategy<T>,

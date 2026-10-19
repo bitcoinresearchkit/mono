@@ -226,7 +226,7 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
     fn len_of(&self, snapshot: &PoolSnapshot) -> usize {
         match self.column {
             Column::Blocks => snapshot.len,
-            _ => snapshot.totals_len.min(snapshot.len),
+            _ => snapshot.totals_len,
         }
     }
 
@@ -239,22 +239,17 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
                 debug_assert!(position <= record.totals.len(), "reward totals behind len");
                 position
                     .checked_sub(1)
-                    .and_then(|last| record.totals.get(last))
-                    .map_or(0, |totals| totals[column as usize - 1])
+                    .map_or(0, |last| record.totals[last][column as usize - 1])
             }
         };
         T::from(value)
     }
 
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
-        let result = self.try_for_each_value(from, to, |value| {
+        let Ok(()) = self.try_for_each_value(from, to, |value| {
             each(value);
             Ok::<_, Infallible>(())
         });
-        match result {
-            Ok(()) => {}
-            Err(error) => match error {},
-        }
     }
 
     fn try_for_each_value<E>(
@@ -273,7 +268,8 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
         let mut position = heights.partition_point(|height| height.to_usize() < from);
         let mut upcoming = heights.iter(position..heights.len()).peekable();
         for height in from..to {
-            while upcoming
+            // A pool has at most one block per height.
+            if upcoming
                 .next_if(|pool_height| pool_height.to_usize() == height)
                 .is_some()
             {

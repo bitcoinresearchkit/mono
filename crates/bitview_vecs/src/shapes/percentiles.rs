@@ -5,7 +5,6 @@ use bitview_primitives::{
 };
 use bitview_traversable::Traversable;
 
-/// One value per percentile of a family, built from its table.
 macro_rules! percentile_collection {
     (
         [$name:ident] $id:ident, $values:ident: [$ty:ty; $len:ident];

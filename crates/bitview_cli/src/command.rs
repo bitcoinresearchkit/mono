@@ -92,18 +92,23 @@ impl Command {
             writeln!(output)?;
         }
 
-        writeln!(output, "Options:")?;
-        writeln!(
-            output,
-            "  -u, --url <URL>          API origin [{BASE_URL_ENV} or {DEFAULT_BASE_URL}]"
-        )?;
-        writeln!(
-            output,
-            "  -p, --pretty             Pretty-print JSON responses"
-        )?;
+        write_shared_options(&mut output)?;
         writeln!(output, "  -h, --help               Show this help")?;
         Ok(())
     }
+}
+
+/// The options heading and the options every command takes.
+fn write_shared_options(output: &mut impl Write) -> io::Result<()> {
+    writeln!(output, "Options:")?;
+    writeln!(
+        output,
+        "  -u, --url <URL>          API origin [{BASE_URL_ENV} or {DEFAULT_BASE_URL}]"
+    )?;
+    writeln!(
+        output,
+        "  -p, --pretty             Pretty-print JSON responses"
+    )
 }
 
 pub fn print_help(commands: &[Command]) -> io::Result<()> {
@@ -115,15 +120,7 @@ pub fn print_help(commands: &[Command]) -> io::Result<()> {
         "Generated command-line client for the Bitview API\n"
     )?;
     writeln!(output, "Usage: {PROGRAM_NAME} [OPTIONS] <COMMAND> [ARGS]\n")?;
-    writeln!(output, "Options:")?;
-    writeln!(
-        output,
-        "  -u, --url <URL>          API origin [{BASE_URL_ENV} or {DEFAULT_BASE_URL}]"
-    )?;
-    writeln!(
-        output,
-        "  -p, --pretty             Pretty-print JSON responses"
-    )?;
+    write_shared_options(&mut output)?;
     writeln!(output, "  -V, --version            Show version")?;
     writeln!(output, "  -h, --help               Show this help\n")?;
     writeln!(output, "Commands:")?;

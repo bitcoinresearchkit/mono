@@ -44,7 +44,7 @@ where
                 this.region()
                     .truncate_write(from, &S::values_bytes(&taken))?;
                 this.base.write_header_if_needed()?;
-                this.base.update_stored_len(stored_len + pushed_len);
+                this.base.stored_len.set(stored_len + pushed_len);
                 if let Some(cache) = C::cache(&this.cache) {
                     cache.extend_tail(stored_len, &taken);
                 }

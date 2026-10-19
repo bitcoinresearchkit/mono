@@ -1,6 +1,6 @@
 [package]
 name = "brk_store"
-description = "A thin wrapper around fjall"
+description = "Typed fjall key-value stores with version checks and batched ingestion"
 keywords = ["store", "fjall"]
 categories = ["database"]
 version.workspace = true

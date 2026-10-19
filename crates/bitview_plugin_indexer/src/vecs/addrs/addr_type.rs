@@ -30,7 +30,6 @@ where
     B: BytesVecValue + Formattable + Serialize + JsonSchema,
     AddressBytes: From<B>,
 {
-    /// Imports the `first_{name}_address_index` and `{name}_bytes` vectors.
     pub fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         let (first_index, bytes) = parallel_import! {
             first_index = PcoVec::import(db, &format!("first_{name}_address_index"), version),

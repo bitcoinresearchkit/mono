@@ -38,8 +38,7 @@ pub struct SigOps(u64);
 impl SigOps {
     pub const ZERO: Self = Self(0);
 
-    /// Vbytes per sigop under BIP-141 policy. Core's `nSigOpCost`
-    /// adjustment factor: `adjusted_vsize = max(vsize, sigops * 5)`.
+    /// Vbytes per sigop under BIP-141 policy.
     const VBYTES_PER_SIGOP: u64 = 5;
 
     #[inline]

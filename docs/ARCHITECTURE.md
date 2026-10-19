@@ -6,12 +6,10 @@ a typed plugin graph, queries, HTTP APIs, a website, generated clients, and MCP
 tools.
 
 ```text
-Bitcoin Core
-  |-- blk*.dat --> brk_reader -------|
-  |-- RPC ------> brk_rpc -----------|--> Bitview plugin set --> Query --> REST server --> Website and clients
-  `-- mempool --> brk_mempool -------|                                     ^
-                                                                           |
-MCP clients -------------------------------> MCP adapter ------------------|
+Bitcoin Core blk*.dat, RPC --> brk_reader, brk_rpc --> Bitview plugin set --> Query
+Bitcoin Core mempool --------> brk_mempool --------------------------------> Query
+Query --> REST server --> Website and clients
+MCP clients --> MCP adapter --> REST server
 ```
 
 ## Layers
@@ -35,8 +33,9 @@ application.
 ### Plugin platform
 
 - [`bitview_plugin`](../crates/bitview_plugin) defines plugin identity,
-  dependencies, storage ownership, update contexts, and the typed plugin set
-  (`PluginSet`, `ComputePluginSet`, with its derive) that `bitview` drives.
+  dependencies, storage ownership, update contexts, and the `PluginSet` and
+  `ComputePluginSet` contracts that `bitview` drives; `Plugin` and `PluginSet`
+  have derive macros.
 - [`bitview_plugin_indexer`](../crates/bitview_plugin_indexer) is the root plugin.
   It assigns chain-order indexes and maintains the lookup state used by
   downstream plugins.
@@ -68,15 +67,15 @@ name lookups.
 - [`bitviewd`](../crates/bitviewd) is the official binary: `bitview::run` with
   the default composition.
 - [`bitview_mcp`](../crates/bitview_mcp) exposes stateless, read-only MCP tools
-  generated from non-deprecated REST `GET` operations and forwards calls to a
-  configured Bitview server.
+  generated from non-deprecated REST `GET` operations without
+  `x-mcp-ignore: true`, and forwards calls to a configured Bitview server.
 
 ## Data flow
 
-During initial sync, the reader parses historical blocks, the indexer commits
-chain-order indexes, and dependent plugins compute their datasets in dependency
-order. When the node is near tip, the server is published and the runner follows
-new blocks through RPC while maintaining mempool state.
+Initial sync and later updates read blocks from `blk*.dat` through `brk_reader`:
+the indexer assigns chain-order indexes, and dependent plugins compute their
+datasets in dependency order. Once bootstrap completes, the server starts, the
+runtime watches the tip through RPC, and `brk_mempool` maintains mempool state.
 
 The indexer tracks a pipeline-safe length shared with the query layer, and the
 runtime sequences each update's publication, so readers see data only after
@@ -108,12 +107,9 @@ The default data directory is `~/.bitview/`:
 The UTXO set history stores are split by owner: Inputs owns `spends/`, Outputs owns
 `creations/`, and UTXO Set owns `snapshots/` and its aggregate metrics. This
 keeps every persisted file below the plugin that creates it and lets the runtime
-clean up inactive plugin roots without a project-level `origins/` directory.
+clean up inactive plugin roots.
 
-The current default composition occupies about 290 GiB at the indexed tip.
-Bitcoin Core storage, filesystem overhead, chain growth, and resync headroom
-are additional. VecDB uses sparse files, so inspect allocated space with
-`du -sh ~/.bitview` rather than logical file sizes reported by `ls` or Finder.
+See the [self-hosting requirements and disk usage](../crates/bitviewd/README.md#requirements).
 
 The active composition owns the complete `plugins/` directory. At startup the
 runtime removes entries not claimed by an active plugin ID; use a separate

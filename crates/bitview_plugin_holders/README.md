@@ -12,11 +12,10 @@ A resident price index advances from the canonical UTXO Set and supplies
 percentiles and density for all seven filters. Shared price-index algorithms
 live in Distribution; this plugin owns its index, database and recovery.
 
-The plugin implements one complete `ComputePlugin::compute_state()`. It consumes
-read-only Age, History, price and mapping dependencies. Append updates retain
-validated state; reopen, reorg, source-version changes and partial accounting
-writes restore the canonical state. Incomplete derived ratios are repaired
-without replaying the history index.
+The plugin consumes read-only Age, History, price and mapping dependencies.
+Append updates retain validated state; reopen, reorg, source-version changes and
+partial accounting writes restore the canonical state. Incomplete derived ratios
+are repaired without replaying the history index.
 
 No URPD distributions or address state are stored here. Detailed profitability
 bands live in the Profitability plugin. Downstream plugins, including Rarity
@@ -26,4 +25,4 @@ raw threshold prices.
 The realized price and MVRV are second ids for `cost_basis.per_coin.avg` and its spot ratio. NUPL
 has one stored fixed-point source, computed alongside the block's P&L from net
 unrealized profit/loss divided by the cohort market cap. Zero market cap leaves it
-undefined (null). Negative-loss and half-supply presentation aliases are omitted.
+undefined (null).

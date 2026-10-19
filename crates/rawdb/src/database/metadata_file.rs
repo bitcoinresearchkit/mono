@@ -6,7 +6,6 @@ use crate::{Error, RegionMetadata, Result, region::metadata::SIZE_OF_REGION_META
 
 use super::{locked_file::open_locked_file, mmap::write_to_mmap};
 
-/// Owns metadata slots and their mapping.
 pub(crate) struct MetadataFile {
     file: File,
     mmap: MmapRaw,

@@ -12,7 +12,7 @@ use parking_lot::RwLockReadGuard;
 use rawdb::Region;
 
 use super::super::RawStrategy;
-use crate::{BUFFER_SIZE, HEADER_OFFSET, VecIndex, VecValue, likely};
+use crate::{BUFFER_SIZE, HEADER_OFFSET, VecValue, likely};
 
 /// Buffer size aligned to SIZE_OF_T for raw I/O reads.
 const fn aligned_buffer_size<T>() -> usize {
@@ -24,7 +24,7 @@ const fn aligned_buffer_size<T>() -> usize {
 ///
 /// Better than mmap for nonresident sequential scans. Uses a dedicated file
 /// handle with OS readahead. Only sees stored (persisted) values.
-pub struct RawIoSource<'a, I, T, S> {
+pub struct RawIoSource<'a, T, S> {
     file: File,
     buffer: Vec<u8>,
     buffer_pos: usize,
@@ -32,12 +32,11 @@ pub struct RawIoSource<'a, I, T, S> {
     file_offset: usize,
     end_offset: usize,
     _lock: RwLockReadGuard<'a, ()>,
-    _marker: PhantomData<(I, T, S)>,
+    _marker: PhantomData<(T, S)>,
 }
 
-impl<'a, I, T, S> RawIoSource<'a, I, T, S>
+impl<'a, T, S> RawIoSource<'a, T, S>
 where
-    I: VecIndex,
     T: VecValue,
     S: RawStrategy<T>,
 {
@@ -47,11 +46,6 @@ where
     #[inline(always)]
     fn can_read_file(&self) -> bool {
         self.file_offset < self.end_offset
-    }
-
-    #[inline(always)]
-    fn cant_read_file(&self) -> bool {
-        self.file_offset >= self.end_offset
     }
 
     #[inline(always)]
@@ -67,14 +61,16 @@ where
         let buffer_len = self.remaining_file_bytes().min(Self::NORMAL_BUFFER_SIZE);
         self.file
             .read_exact(&mut self.buffer[..buffer_len])
-            .expect("Failed to read file buffer");
+            .expect("failed to read raw vector");
         self.file_offset += buffer_len;
         self.buffer_len = buffer_len;
         self.buffer_pos = 0;
     }
 
     pub fn new_from_parts(region: &'a Region, stored_len: usize, from: usize, to: usize) -> Self {
-        let file = region.open_db_read_only_file().expect("open file");
+        let file = region
+            .open_db_read_only_file()
+            .expect("failed to open raw vector");
         let access = region.read_lock();
         let region_meta = region.meta();
         let region_start = region_meta.start();
@@ -103,14 +99,14 @@ where
         if likely(this.can_read_file()) {
             this.file
                 .seek(SeekFrom::Start(from_offset as u64))
-                .expect("Failed to seek");
+                .expect("failed to seek raw vector");
         }
 
         this
     }
 
     pub fn read_window(&mut self) -> Option<(*const u8, usize)> {
-        if self.cant_read_file() {
+        if !self.can_read_file() {
             return None;
         }
         self.refill_buffer();
@@ -121,14 +117,14 @@ where
         debug_assert!(bytes <= self.remaining_file_bytes());
         self.file
             .seek(SeekFrom::Current(bytes as i64))
-            .expect("skip raw range");
+            .expect("failed to skip raw vector bytes");
         self.file_offset += bytes;
         self.buffer_pos = self.buffer_len;
     }
 
     /// Appends stored values, reading native layouts directly into the allocation.
     pub fn read_into(self, output: &mut Vec<T>) {
-        if self.cant_read_file() {
+        if !self.can_read_file() {
             return;
         }
         let bytes = self.remaining_file_bytes();
@@ -173,7 +169,6 @@ where
         unsafe { output.set_len(old_len + values) };
     }
 
-    /// Fallible fold with early exit on error.
     #[inline(always)]
     pub fn try_fold<B, E, F: FnMut(B, T) -> Result<B, E>>(
         mut self,
@@ -191,7 +186,7 @@ where
             }
             self.buffer_pos = end;
 
-            if self.cant_read_file() {
+            if !self.can_read_file() {
                 break;
             }
             self.refill_buffer();

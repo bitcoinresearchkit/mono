@@ -7,9 +7,8 @@ use brk_types::{Cents, Version};
 
 use super::{PercentileResult, PriceTotals};
 
-/// Changes with the price grid, shared with the URPD (`bitview_urpd::COMPUTE_VERSION`, 2), and
-/// with the index's ceiling (+1 for $100,000,000): bump it with either. A price index's owner
-/// adds it to the version of what it computes from the index.
+/// Bump when the URPD price grid (`bitview_urpd::COMPUTE_VERSION`) or the index's price ceiling
+/// changes. A price index's owner adds it to the version of what it computes from the index.
 pub const PRICE_INDEX_VERSION: Version = Version::new(3);
 
 /// A derived price index. Owners choose only the filters their queries require.

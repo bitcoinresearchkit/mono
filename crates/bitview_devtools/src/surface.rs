@@ -37,8 +37,8 @@ pub fn render_surface(imported: Imported) -> Result<Vec<Snapshot>> {
             lines.push(format!(
                 "{}\t{}\t{}\t{}\t{}",
                 vec.name(),
-                vec.index_type_to_string(),
-                vec.value_type_to_string(),
+                vec.index_type_name(),
+                vec.value_type_name(),
                 vec.version(),
                 vec.region_names().join(","),
             ));
@@ -71,7 +71,7 @@ pub fn render_surface(imported: Imported) -> Result<Vec<Snapshot>> {
 fn walk_disk(root: &Path, dir: &Path, out: &mut String) -> Result<()> {
     let relative = |path: &Path| {
         path.strip_prefix(root)
-            .unwrap_or(path)
+            .expect("snapshot path is under the import root")
             .display()
             .to_string()
     };
@@ -86,9 +86,7 @@ fn walk_disk(root: &Path, dir: &Path, out: &mut String) -> Result<()> {
         ));
         let db = Database::open(dir)?;
         for id in db.region_ids() {
-            let Some(region) = db.get_region(&id) else {
-                continue;
-            };
+            let region = db.region(&id).expect("listed region exists");
             let mut line = format!("{} bytes", region.meta().byte_len());
             if let Ok(header) = Header::read_unverified(&region) {
                 line.push_str(&format!(
@@ -109,11 +107,7 @@ fn walk_disk(root: &Path, dir: &Path, out: &mut String) -> Result<()> {
         .collect::<std::io::Result<Vec<_>>>()?;
     entries.sort();
     for path in entries {
-        let name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or_default();
-        if is_db && (name == "data" || name == "regions") {
+        if is_db && matches!(path.file_name(), Some(name) if name == "data" || name == "regions") {
             continue;
         }
         if path.is_dir() {

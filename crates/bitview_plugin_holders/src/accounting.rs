@@ -4,7 +4,7 @@ use derive_more::AddAssign;
 
 /// Additive accounting inputs from disjoint age bands at one height.
 #[derive(Clone, Copy, Default, AddAssign)]
-pub(crate) struct Data {
+pub(crate) struct AccountingTotals {
     pub supply: Sats,
     pub count: Count,
     pub spent_count: Count,

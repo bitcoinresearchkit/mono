@@ -93,7 +93,7 @@ where
 
     let mut leaf = SeriesLeaf::new(
         vec.name().to_string(),
-        vec.value_type_to_string().to_string(),
+        vec.value_type_name().to_string(),
         indexes.clone(),
     );
     if vecdb::nullable::<V::T>() {
@@ -102,7 +102,7 @@ where
 
     // Serializing (not `Schema::to_value`) applies schemars' canonical keyword order.
     let schema = SchemaGenerator::default().into_root_schema_for::<V::T>();
-    let schema_json = to_value(schema).unwrap_or_default();
+    let schema_json = to_value(schema).expect("a schema serializes to JSON");
     let mut leaf = SeriesLeafWithSchema::new(leaf, schema_json);
     if V::T::MISSING {
         leaf.missing = indexes;
@@ -295,8 +295,7 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
     }
 }
 
-/// Unit type implementation - used as ZST placeholder for disabled features
-/// (e.g., Unpriced variants where dollar fields are not needed)
+/// An empty branch, for generic fields instantiated as `()`.
 impl Traversable for () {
     fn to_tree_node(&self) -> TreeNode {
         TreeNode::branch(IndexMap::new())

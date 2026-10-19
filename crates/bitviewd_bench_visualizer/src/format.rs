@@ -1,7 +1,7 @@
 const KIB: f64 = 1024.0;
 const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
 
-/// The binary unit that keeps `max` between 1 and 1024: (divisor, suffix).
+/// (divisor, suffix): the largest of B to TiB that `max` reaches.
 pub fn byte_unit(max: f64) -> (f64, &'static str) {
     let mut divisor = 1.0;
     for unit in UNITS {

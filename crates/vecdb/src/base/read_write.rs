@@ -4,15 +4,12 @@ use parking_lot::Mutex;
 use rawdb::Database;
 
 use super::{Format, HEADER_OFFSET, Header, ImportOptions, ReadOnlyBaseVec, SharedLen, WithPrev};
-use crate::{Error, Result as CrateResult, Stamp, VecIndex, VecValue};
+use crate::{Error, Result, Stamp, VecIndex, VecValue};
 
 /// Largest pushed allocation kept across writes.
 const RETAINED_PUSHED_BYTES: usize = 128;
 
-/// Base storage vector with fields common to all stored vector implementations.
-///
-/// Derefs to [`ReadOnlyBaseVec`] for read-only access to region, header, name,
-/// stored_len, and version. Write state (pushed, rollback) lives here.
+/// Writer state (pushed values, rollback) over a [`ReadOnlyBaseVec`], which it derefs to.
 #[derive(Debug)]
 pub struct ReadWriteBaseVec<I, T> {
     pub read_only: ReadOnlyBaseVec<I, T>,
@@ -42,8 +39,7 @@ where
     I: VecIndex,
     T: VecValue,
 {
-    pub fn import(options: ImportOptions, format: Format) -> CrateResult<Self> {
-        let initial_capacity = options.initial_capacity.unwrap_or(I::INITIAL_CAPACITY);
+    pub fn import(options: ImportOptions, format: Format) -> Result<Self> {
         let region = options
             .db
             .create_region_if_needed(&vec_region_name_with::<I>(options.name))?;
@@ -56,8 +52,8 @@ where
             });
         }
 
-        if region_len == 0 && initial_capacity > 0 {
-            let capacity = initial_capacity
+        if region_len == 0 && I::INITIAL_CAPACITY > 0 {
+            let capacity = I::INITIAL_CAPACITY
                 .checked_mul(size_of::<T>())
                 .and_then(|bytes| bytes.checked_add(HEADER_OFFSET))
                 .ok_or(Error::Overflow)?;
@@ -90,13 +86,8 @@ where
     }
 
     #[inline]
-    pub fn read_only_base(&self) -> ReadOnlyBaseVec<I, T> {
-        self.read_only.clone()
-    }
-
-    #[inline]
     pub fn pushed(&self) -> &[T] {
-        self.pushed.current()
+        &self.pushed.current
     }
 
     #[inline]
@@ -106,60 +97,25 @@ where
             self.header.check_writable().is_ok(),
             "vector cannot continue after a failed write"
         );
-        self.pushed.current_mut()
+        &mut self.pushed.current
     }
 
-    /// Returns the written-out pushed buffer: small per-update buffers keep their allocation
-    /// for the next update, bulk ones are freed.
+    /// Takes back the written-out pushed buffer, emptied by [`clear_pushed`].
     #[inline]
     pub fn recycle_pushed(&mut self, mut written: Vec<T>) {
         debug_assert!(self.pushed().is_empty());
         clear_pushed(&mut written);
-        *self.pushed.current_mut() = written;
-    }
-
-    #[inline]
-    pub fn reserve_pushed(&mut self, additional: usize) {
-        debug_assert!(
-            self.header.check_writable().is_ok(),
-            "vector cannot continue after a failed write"
-        );
-        self.pushed.current_mut().reserve(additional);
+        self.pushed.current = written;
     }
 
     #[inline]
     pub fn prev_pushed(&self) -> &[T] {
-        self.pushed.previous()
+        &self.pushed.previous
     }
 
     #[inline]
     pub fn len(&self) -> usize {
         self.stored_len() + self.pushed().len()
-    }
-
-    #[inline]
-    pub fn update_stored_len(&self, val: usize) {
-        self.read_only.stored_len.set(val);
-    }
-
-    #[inline]
-    pub fn prev_stored_len(&self) -> usize {
-        self.previous_stored_len
-    }
-
-    #[inline(always)]
-    pub fn mut_prev_stored_len(&mut self) -> &mut usize {
-        &mut self.previous_stored_len
-    }
-
-    #[inline(always)]
-    pub fn saved_stamped_changes(&self) -> u16 {
-        self.saved_stamped_changes
-    }
-
-    #[inline]
-    pub fn mut_header(&mut self) -> &mut Header {
-        &mut self.read_only.header
     }
 
     #[inline]
@@ -172,7 +128,7 @@ where
         self.db().path().to_path_buf()
     }
 
-    pub fn write_header_if_needed(&mut self) -> CrateResult<bool> {
+    pub fn write_header_if_needed(&mut self) -> Result<bool> {
         if self.read_only.header.modified() {
             self.read_only.header.write(&self.read_only.region)?;
             return Ok(true);
@@ -180,11 +136,11 @@ where
         Ok(false)
     }
 
-    pub fn index_to_name(&self) -> String {
+    pub fn region_name(&self) -> String {
         vec_region_name(&self.name, I::to_string())
     }
 
-    pub fn remove(self) -> CrateResult<()> {
+    pub fn remove(self) -> Result<()> {
         self.read_only.region.remove()?;
         Ok(())
     }
@@ -199,9 +155,9 @@ where
         }
 
         if index <= stored_len {
-            self.pushed.current_mut().clear();
+            self.pushed.current.clear();
         } else {
-            self.pushed.current_mut().truncate(index - stored_len);
+            self.pushed.current.truncate(index - stored_len);
         }
 
         index < stored_len
@@ -209,7 +165,7 @@ where
 
     /// Empties the vec until written: unsaved changes cancel back to empty, never to the rows
     /// still on disk (a version reset must not resurrect them).
-    pub fn reset_base(&mut self) -> CrateResult<()> {
+    pub fn reset_base(&mut self) -> Result<()> {
         self.header.check_writable()?;
         self.pushed.clear();
         self.read_only.stored_len.set(0);
@@ -228,7 +184,7 @@ where
             self.pushed.restore();
             self.read_only.stored_len.set(self.previous_stored_len);
         } else {
-            self.pushed.current_mut().clear();
+            self.pushed.current.clear();
             self.read_only.stored_len.set(written_len);
         }
     }
@@ -247,12 +203,12 @@ pub(crate) fn clear_pushed<T>(pushed: &mut Vec<T>) {
 
 /// Removes a vec's region and its rollback history (an import-time reset), so a later rollback
 /// never walks into change files of the vec's previous life.
-pub(crate) fn remove_vec_with<I: VecIndex>(db: &Database, name: &str) -> CrateResult<()> {
+pub(crate) fn remove_vec_with<I: VecIndex>(db: &Database, name: &str) -> Result<()> {
     db.remove_region_if_exists(&vec_region_name_with::<I>(name))?;
     remove_changes_with::<I>(db, name)
 }
 
-fn remove_changes_with<I: VecIndex>(db: &Database, name: &str) -> CrateResult<()> {
+fn remove_changes_with<I: VecIndex>(db: &Database, name: &str) -> Result<()> {
     let changes_path = changes_path_with::<I>(db, name);
     if changes_path.exists() {
         fs::remove_dir_all(changes_path)?;

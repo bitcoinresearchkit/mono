@@ -5,8 +5,6 @@ use crate::{
     handlers::{file_handler, index_handler},
 };
 
-/// Create a router for serving the website.
-///
 /// Returns an empty router if the website is disabled.
 pub fn router(website: Website) -> Router {
     if website.is_enabled() {

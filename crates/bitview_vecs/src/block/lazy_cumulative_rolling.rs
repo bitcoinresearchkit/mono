@@ -1,13 +1,12 @@
-//! Lazy counterpart to `PerBlockCumulativeRolling`.
-
-use crate::{LazyRollingSumsFromHeight, shapes::Windows};
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{Ident, ReadableCloneableVec};
 
-use crate::{IndexSources, LazyPerBlock, LazyPreviousDeltaVec};
+use crate::{
+    IndexSources, LazyPerBlock, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, shapes::Windows,
+};
 
 #[derive(Clone, Traversable)]
 pub struct LazyPerBlockCumulativeRolling<T>

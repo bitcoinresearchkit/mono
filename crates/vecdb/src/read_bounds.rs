@@ -46,7 +46,7 @@ impl ReadBounds {
     /// rejected rather than silently exposing the vector's full length.
     pub fn bind<'a>(&'a self, source: &'a dyn AnyExportableVec) -> Option<BoundedVec<'a>> {
         self.0
-            .get(source.index_type_to_string())
+            .get(source.index_type_name())
             .map(|&limit| BoundedVec::new(source, self, limit))
     }
 

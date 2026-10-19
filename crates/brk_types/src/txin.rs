@@ -10,30 +10,16 @@ use serde_json::json;
 
 use crate::{TxOut, Txid, Vout, bytes::DisplayStr, tx::p2sh_redeem_script};
 
-/// Transaction input
 #[derive(Debug, Clone, Deserialize)]
 pub struct TxIn {
-    /// Transaction ID of the output being spent
     pub txid: Txid,
-
-    /// Output index being spent (coinbase: 4294967295)
     pub vout: Vout,
-
-    /// Information about the previous output being spent
     pub prevout: Option<TxOut>,
-
-    /// Signature script
     #[serde(rename = "scriptsig")]
     pub script_sig: ScriptBuf,
-
-    /// Witness data (stack items, present for SegWit inputs)
     #[serde(default)]
     pub witness: Witness,
-
-    /// Whether this input is a coinbase (block reward) input
     pub is_coinbase: bool,
-
-    /// Input sequence number
     pub sequence: u32,
 }
 
@@ -47,19 +33,17 @@ struct TxInSchema {
     /// Output index being spent (coinbase: 4294967295)
     #[schemars(example = 0)]
     vout: Vout,
-    /// Information about the previous output being spent
+    /// The output being spent
     prevout: Option<TxOut>,
-    /// Signature script (hex, for non-SegWit inputs)
+    /// Signature script in hex (empty for native SegWit inputs)
     scriptsig: String,
     /// Signature script in assembly format
     scriptsig_asm: String,
     /// Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
     #[schemars(with = "Vec<String>")]
     witness: Witness,
-    /// Whether this input is a coinbase (block reward) input
     #[schemars(example = false)]
     is_coinbase: bool,
-    /// Input sequence number
     #[schemars(example = 4294967293_u32)]
     sequence: u32,
     /// Inner redeemscript in assembly (P2SH inputs)
@@ -92,7 +76,6 @@ impl JsonSchema for TxIn {
     }
 }
 
-/// Reconstruct a canonical `bitcoin::TxIn` from the stored brk shape.
 impl From<&TxIn> for BitcoinTxIn {
     #[inline]
     fn from(txin: &TxIn) -> Self {
@@ -116,13 +99,11 @@ impl Serialize for TxIn {
         let has_witness = !self.witness.is_empty();
         let prevout_script = self.prevout.as_ref().map(|p| p.script_pubkey.as_script());
 
-        // P2SH: the redeem script is the scriptsig's last push
         let is_p2sh = !self.is_coinbase && prevout_script.is_some_and(Script::is_p2sh);
         let redeem_script = is_p2sh
             .then(|| p2sh_redeem_script(&self.script_sig))
             .flatten();
 
-        // P2WSH / P2SH-P2WSH: the witness script; P2TR script path: the leaf script
         let inner_witness = prevout_script.and_then(|spk| {
             if spk.is_p2wsh() || redeem_script.is_some_and(Script::is_p2wsh) {
                 self.witness.witness_script()

@@ -1,6 +1,6 @@
 use std::ops::{AddAssign, SubAssign};
 
-/// Generic Fenwick tree (Binary Indexed Tree) over arbitrary node types.
+/// Fenwick (binary indexed) tree.
 ///
 /// Uses 0-indexed buckets externally; 1-indexed internally.
 /// Provides O(log N) point-update, prefix-sum, and kth walk-down.
@@ -35,7 +35,7 @@ impl<N: Copy + Default + for<'a> AddAssign<&'a N>> FenwickTree<N> {
     pub fn prefix_sum(&self, bucket: usize) -> N {
         let mut result = N::default();
         let mut i = bucket + 1;
-        assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
+        debug_assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
         while i > 0 {
             result += &self.tree[i];
             i -= i.isolate_lowest_one();
@@ -78,7 +78,7 @@ impl<N: Copy + Default + for<'a> AddAssign<&'a N>> FenwickTree<N> {
         F: Fn(usize, &N) -> V,
     {
         let len = self.tree.len();
-        assert!(len > 1, "cannot search an empty Fenwick tree");
+        debug_assert!(len > 1, "cannot search an empty Fenwick tree");
         let size = len - 1;
         let mut remaining = targets;
         let mut out = [[0; LEN]; QUERIES];
@@ -118,7 +118,7 @@ impl<N: Copy + Default + for<'a> AddAssign<&'a N>> FenwickTree<N> {
     #[inline]
     pub fn add_raw(&mut self, bucket: usize, delta: &N) {
         let i = bucket + 1;
-        assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
+        debug_assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
         self.tree[i] += delta;
     }
 

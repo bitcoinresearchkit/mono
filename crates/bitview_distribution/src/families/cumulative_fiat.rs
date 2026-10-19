@@ -1,5 +1,3 @@
-use std::ops::AddAssign;
-
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -8,18 +6,18 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{Cents, Version};
-use vecdb::{Database, PcoVecValue, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 /// One cohort's fiat flow, stored as its running total `{name}_cumulative_cents`.
 #[derive(Traversable)]
-pub struct CumulativeFiat<C: FiatType + PcoVecValue = Cents, M: StorageMode = Rw> {
+pub struct CumulativeFiat<C: FiatType = Cents, M: StorageMode = Rw> {
     #[traversable(flatten)]
     value: LazyFiatPerBlockCumulativeWithSums<C>,
     #[traversable(hidden)]
     pub stored: CumulativeSource<C, M>,
 }
 
-impl<C: FiatType + PcoVecValue + AddAssign + Default> CumulativeFiat<C> {
+impl<C: FiatType> CumulativeFiat<C> {
     pub fn import(
         db: &Database,
         name: &str,

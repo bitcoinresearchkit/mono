@@ -1,5 +1,3 @@
-//! Fee reads: tier recommendations, projected-block stats, per-tx rates.
-
 use brk_error::Result;
 use brk_types::{PreciseRecommendedFees, RecommendedFees};
 

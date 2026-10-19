@@ -6,13 +6,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch};
 
-/// Hierarchical tree node for organizing series into categories
 #[derive(Debug, Clone, Serialize, PartialEq, Eq, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum TreeNode {
-    /// Branch node containing subcategories
     Branch(TreeBranch),
-    /// Leaf node containing series metadata with schema
     Leaf(SeriesLeafWithSchema),
 }
 
@@ -21,7 +18,6 @@ impl TreeNode {
         Self::Branch(children.into())
     }
 
-    /// Count all series leaves in this subtree.
     pub fn leaf_count(&self) -> usize {
         match self {
             Self::Branch(children) => children.values().map(Self::leaf_count).sum(),
@@ -50,15 +46,14 @@ impl TreeNode {
                 }
             }
             Self::Leaf(leaf) => {
-                let Some(description) = descriptions.get(leaf.name()) else {
+                let Some(description) = descriptions.get(leaf.leaf.name.as_str()) else {
                     return;
                 };
                 if let Some(existing) = &leaf.leaf.description {
                     debug_assert_eq!(
-                        existing,
-                        description,
+                        existing, description,
                         "Conflicting descriptions for series {}",
-                        leaf.name()
+                        leaf.leaf.name
                     );
                 } else {
                     leaf.leaf.description = Some(description.clone());
@@ -71,7 +66,7 @@ impl TreeNode {
     pub fn remove_series(&mut self, name: &str) {
         if let Self::Branch(branch) = self {
             branch.children.retain(|_, child| match child {
-                Self::Leaf(leaf) => leaf.name() != name,
+                Self::Leaf(leaf) => leaf.leaf.name != name,
                 Self::Branch(_) => {
                     child.remove_series(name);
                     child.leaf_count() > 0
@@ -87,11 +82,11 @@ impl TreeNode {
             let Some(description) = &leaf.leaf.description else {
                 return;
             };
-            let existing = descriptions.insert(leaf.name(), description.clone());
+            let existing = descriptions.insert(leaf.leaf.name.as_str(), description.clone());
             debug_assert!(
                 existing.is_none_or(|existing| existing == *description),
                 "Conflicting descriptions for series {}",
-                leaf.name()
+                leaf.leaf.name
             );
         });
         descriptions
@@ -100,15 +95,15 @@ impl TreeNode {
     /// Collect each value type's unit: the description of its schema.
     pub fn units(&self) -> BTreeMap<&str, Arc<str>> {
         let mut units = BTreeMap::<_, Arc<str>>::new();
-        self.for_each_leaf(&mut |leaf| match units.get(leaf.kind()) {
+        self.for_each_leaf(&mut |leaf| match units.get(leaf.leaf.kind.as_str()) {
             Some(existing) => debug_assert!(
                 Self::unit(leaf).is_none_or(|unit| existing.as_ref() == unit),
                 "two value types share the name {}",
-                leaf.kind()
+                leaf.leaf.kind
             ),
             None => {
                 if let Some(unit) = Self::unit(leaf) {
-                    units.insert(leaf.kind(), Arc::from(unit));
+                    units.insert(leaf.leaf.kind.as_str(), Arc::from(unit));
                 }
             }
         });
@@ -122,10 +117,10 @@ impl TreeNode {
         let schema = leaf
             .schema
             .get("$defs")
-            .and_then(|defs| defs.get(leaf.kind()))
+            .and_then(|defs| defs.get(&leaf.leaf.kind))
             .unwrap_or(&leaf.schema);
         let description = schema.get("description")?.as_str()?;
-        let first = description.split("\n\n").next().unwrap_or_default();
+        let first = description.split("\n\n").next().unwrap();
         Some(first.split_whitespace().collect::<Vec<_>>().join(" "))
     }
 
@@ -137,7 +132,7 @@ impl TreeNode {
         Self::branch(map)
     }
 
-    /// Merges all first-level branches into a single flattened structure (consuming version).
+    /// Merges all first-level branches into a single flattened structure.
     /// Direct leaves use their key (use #[traversable(rename = "...")] to control).
     /// Branch children are lifted with their keys.
     /// If all resulting children are leaves with the same series name, collapses to a single leaf.
@@ -151,18 +146,11 @@ impl TreeNode {
 
         for (key, node) in tree.children {
             match node {
-                Self::Leaf(leaf) => {
-                    // Direct leaves use their key (which may be renamed via attribute)
-                    merged.merge_field(key, Self::Leaf(leaf));
-                }
-                Self::Branch(inner) => {
-                    // Lift children from branches with their keys
-                    merged.merge_fields(inner);
-                }
+                Self::Leaf(leaf) => merged.merge_field(key, Self::Leaf(leaf)),
+                Self::Branch(inner) => merged.merge_fields(inner),
             }
         }
 
-        // If all children are leaves with the same series name, collapse into single leaf
         Self::try_collapse_same_name_leaves(merged)
     }
 
@@ -192,7 +180,7 @@ impl TreeNode {
             let Self::Leaf(leaf) = node else {
                 return false;
             };
-            if first.get_or_insert(leaf).name() != leaf.name() {
+            if first.get_or_insert(leaf).leaf.name != leaf.leaf.name {
                 return false;
             }
             let incoming = leaf.leaf.description.as_ref();
@@ -208,7 +196,7 @@ impl TreeNode {
         )
     }
 
-    /// Merges a node into the target map at the given key (consuming version).
+    /// Merges a node into the target map at the given key.
     /// Panics on a conflict: two different series, one series with two descriptions, or a key
     /// that is both a series and a group.
     pub(crate) fn merge_node(target: &mut IndexMap<String, TreeNode>, key: String, node: TreeNode) {
@@ -217,20 +205,19 @@ impl TreeNode {
             return;
         };
         match (existing, node) {
-            (Self::Leaf(a), Self::Leaf(b)) if a.is_same_series(&b) => {
+            (Self::Leaf(a), Self::Leaf(b)) if a.leaf.name == b.leaf.name => {
                 if a.merge(&b).is_none() {
                     panic!(
                         "Conflicting descriptions for series '{}' at key '{key}'",
-                        a.name()
+                        a.leaf.name
                     );
                 }
             }
             (Self::Leaf(a), Self::Leaf(b)) => {
                 panic!("Conflicting leaves for key '{key}':\n  existing: {a:?}\n  new: {b:?}")
             }
-            (Self::Leaf(leaf), Self::Branch(_)) => Self::leaf_and_group(&key, leaf.name()),
-            (Self::Branch(_), Self::Leaf(leaf)) => Self::leaf_and_group(&key, leaf.name()),
-            // Both branches: merge recursively
+            (Self::Leaf(leaf), Self::Branch(_)) => Self::leaf_and_group(&key, &leaf.leaf.name),
+            (Self::Branch(_), Self::Leaf(leaf)) => Self::leaf_and_group(&key, &leaf.leaf.name),
             (Self::Branch(existing_branch), Self::Branch(new_inner)) => {
                 existing_branch.merge_fields(new_inner);
             }

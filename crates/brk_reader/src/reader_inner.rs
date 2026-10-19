@@ -50,7 +50,6 @@ pub struct ReaderInner {
 }
 
 impl ReaderInner {
-    /// A missing `xor.dat` is the identity mask; an unreadable or malformed one is an error.
     pub fn new(blocks_dir: PathBuf, client: &Client) -> Result<Self> {
         Ok(Self {
             xor_bytes: XORBytes::read(&blocks_dir)?.unwrap_or_default(),

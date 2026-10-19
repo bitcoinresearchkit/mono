@@ -9,7 +9,7 @@ use bitview_primitives::{
     AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, AddrTypeId, BlockHashPrefix, ByAddrType,
     Index40, TxOutIndex, TypeIndex,
 };
-use brk_error::{Error, OptionData, Result};
+use brk_error::{OptionData, Result};
 use brk_store::{AnyStore, Kind, PendingIngest, Store, StoreView, open_database};
 use brk_types::{Height, OutPoint, OutputType, TxIndex, TxidPrefix, Unit, Version, Vout};
 use fjall::Database;
@@ -209,7 +209,6 @@ impl Stores {
         Ok(persisted)
     }
 
-    /// Takes all pending puts/dels from every store as ingestions to run elsewhere.
     fn take_pending_ingests(&mut self) -> Vec<PendingIngest> {
         self.stores_mut()
             .filter_map(|store| store.take_pending_ingest())
@@ -230,16 +229,13 @@ impl Stores {
         )
     }
 
-    /// Stages reverse-key entries below the lowered bound for persistence.
+    /// Stages the removal of the blocks from `starting_lengths` on, restoring the older outputs
+    /// they spent.
     pub(crate) fn rollback_if_needed(
         &mut self,
         vecs: &Vecs,
         starting_lengths: &Lengths,
     ) -> Result<()> {
-        if self.is_empty()? {
-            return Ok(());
-        }
-
         debug_assert!(starting_lengths.height != Height::ZERO);
         debug_assert!(starting_lengths.tx_index != TxIndex::ZERO);
         debug_assert!(starting_lengths.txout_index != TxOutIndex::ZERO);
@@ -316,9 +312,10 @@ impl Stores {
             .map(Index40::get)
             .collect::<Vec<_>>();
 
-        if !valid_rollback_boundaries(&first_txout_indexes, rollback_start, rollback_end) {
-            return Err(Error::Internal("Invalid rollback output boundaries"));
-        }
+        debug_assert!(
+            valid_rollback_boundaries(&first_txout_indexes, rollback_start, rollback_end),
+            "Invalid rollback output boundaries"
+        );
 
         let txids = vecs.transactions.txid.reader();
         let removed_txids = vecs

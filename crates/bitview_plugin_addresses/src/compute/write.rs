@@ -25,8 +25,6 @@ pub fn write(
     with_changes: bool,
     publish_state: bool,
 ) -> Result<()> {
-    info!("Saving addresses data...");
-
     let i = Instant::now();
 
     let stamp = Stamp::from(height);
@@ -41,7 +39,7 @@ pub fn write(
 
     vecs.save_caps(addr_states, stamp, with_changes)?;
 
-    info!("Saved distribution data in {:.2?}", i.elapsed());
+    info!("Saved address data in {:.2?}", i.elapsed());
 
     Ok(())
 }

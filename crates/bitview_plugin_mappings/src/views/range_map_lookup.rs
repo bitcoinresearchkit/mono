@@ -71,16 +71,16 @@ impl<I: VecIndex, T: VecIndex + VecValue> AnyVec for RangeMapLookupVec<I, T> {
         self.source.visible_len()
     }
 
-    fn index_type_to_string(&self) -> &'static str {
-        self.source.index_type_to_string()
+    fn index_type_name(&self) -> &'static str {
+        self.source.index_type_name()
     }
 
-    fn value_type_to_size_of(&self) -> usize {
-        self.source.value_type_to_size_of()
+    fn value_size(&self) -> usize {
+        self.source.value_size()
     }
 
-    fn value_type_to_string(&self) -> &'static str {
-        self.source.value_type_to_string()
+    fn value_type_name(&self) -> &'static str {
+        self.source.value_type_name()
     }
 }
 
@@ -113,7 +113,7 @@ impl<I: VecIndex, T: VecIndex + VecValue> ReadableVec<I, T> for RangeMapLookupVe
         if index >= self.visible_len() {
             return None;
         }
-        self.mapping.load().get_shared(I::from(index))
+        self.mapping.load().get(I::from(index))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {

@@ -51,8 +51,9 @@ where
             }
             let (chunk_bytes, header_len, page_ends) = chunk.into_parts();
             let mut previous_end = header_len;
+            // `EncodedChunk` ends rise strictly past the header.
             for (index, end) in page_ends.into_iter().enumerate() {
-                let body_bytes = end.checked_sub(previous_end).ok_or(Error::Underflow)?;
+                let body_bytes = end - previous_end;
                 layouts.push(((index == 0).then_some(header_len), body_bytes, false));
                 previous_end = end;
             }
@@ -61,10 +62,10 @@ where
 
         let raw_from = full_pages * Self::PER_PAGE;
         if raw_from < values.len() {
+            // Less than a page: under `COMPRESSED_PAGE_SIZE` bytes.
             let raw = S::values_bytes(&values[raw_from..]);
-            let raw_len = u32::try_from(raw.len()).map_err(|_| Error::Overflow)?;
             bytes.extend_from_slice(&raw);
-            layouts.push((Some(0), raw_len, true));
+            layouts.push((Some(0), raw.len() as u32, true));
         }
 
         Ok((bytes, layouts))
@@ -98,7 +99,7 @@ where
                 return self.base.write_header_if_needed();
             }
 
-            let starting_page_index = Self::index_to_page_index(stored_len);
+            let starting_page_index = stored_len / Self::PER_PAGE;
             if starting_page_index > pages.len() {
                 return Err(Error::CorruptedRegion {
                     name: self.name().to_string(),
@@ -108,13 +109,9 @@ where
 
             if starting_page_index < pages.len() {
                 let partial_len = stored_len % Self::PER_PAGE;
-                let page = pages
-                    .get(starting_page_index)
-                    .ok_or(Error::ExpectVecToHaveIndex)?;
+                let page = pages.get(starting_page_index).ok_or(Error::MissingPage)?;
                 let rewrite_page_index = page.chunk_start_page;
-                let rewrite_page = pages
-                    .get(rewrite_page_index)
-                    .ok_or(Error::ExpectVecToHaveIndex)?;
+                let rewrite_page = pages.get(rewrite_page_index).ok_or(Error::MissingPage)?;
                 (
                     rewrite_page.header_start,
                     rewrite_page_index,
@@ -131,10 +128,8 @@ where
         // Release the pages lock before accessing the data region.
 
         // Fast path: append to existing raw page without reading it back.
-        // When the last page is raw, not truncated, and won't overflow, just
-        // write the new pushed bytes at the end of the existing page data.
         if let Some((page, partial_len, page_index)) = partial_page
-            && page.is_raw()
+            && page.raw
             && starting_page_index == page_index
             && partial_len == page.values_count(Self::PER_PAGE, Self::SIZE_OF_T)
             && partial_len + pushed_len < Self::PER_PAGE
@@ -142,13 +137,11 @@ where
             let taken = mem::take(self.base.mut_pushed());
             let raw = S::values_bytes(&taken);
             let append_at = page.end() as usize;
-            let total_bytes = page
-                .bytes
-                .checked_add(u32::try_from(raw.len()).map_err(|_| Error::Overflow)?)
-                .ok_or(Error::Overflow)?;
+            // The grown page stays under a page: under `COMPRESSED_PAGE_SIZE` bytes.
+            let total_bytes = page.bytes + raw.len() as u32;
             let result = self.with_cache_update(stored_len, |this| {
                 this.publish(append_at, &raw, stored_len + pushed_len, |pages| {
-                    pages.grow_last_raw(starting_page_index, total_bytes)
+                    pages.grow_last_raw(total_bytes)
                 })?;
                 if let Some(cache) = C::cache(&this.cache) {
                     cache.extend_tail(stored_len, &taken);
@@ -161,7 +154,7 @@ where
         }
 
         // Rebuild only the bounded chunk that contains the truncation point.
-        let rewrite_from = Self::page_index_to_index(starting_page_index);
+        let rewrite_from = starting_page_index * Self::PER_PAGE;
         let mut values = if rewrite_from < stored_len {
             self.collect_stored_range(rewrite_from, stored_len)?
         } else {
@@ -186,14 +179,11 @@ where
                 stored_len + pushed_len,
                 |pages| {
                     pages.truncate(starting_page_index);
-                    for (offset, &(header_bytes, body_bytes, is_raw)) in
-                        page_layouts.iter().enumerate()
-                    {
-                        let page_index = starting_page_index + offset;
+                    for &(header_bytes, body_bytes, is_raw) in &page_layouts {
                         if is_raw {
-                            pages.push_raw(page_index, body_bytes)?;
+                            pages.push_raw(body_bytes)?;
                         } else {
-                            pages.push_compressed(page_index, header_bytes, body_bytes)?;
+                            pages.push_compressed(header_bytes, body_bytes)?;
                         }
                     }
                     Ok(())

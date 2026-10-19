@@ -16,9 +16,9 @@ and `bitview_distribution`.
   ratios, arithmetic) implementing vecdb's unary, binary or delta interfaces with only
   the numeric bounds they need. Generic adapters (`Ident`, `Convert`, `MapOption`,
   `ReverseOperands`) belong to vecdb.
-- `views`: lazy readers over one source and aligned metadata (`LazyIndexedVec`,
-  `LazyLookbackVec`, `LazyPreviousDeltaVec`, `LazyRollingRatioVec`).
-  Each read works through bounded input batches and retains no result.
+- `views`: lazy readers over source vectors and aligned metadata (`LazyIndexedVec`,
+  `LazyLookbackVec`, `LazyPreviousDeltaVec`, `LazyRollingRatioVec`). Range reads work
+  through bounded input batches; sorted reads gather the requested positions.
 - `sources`: index readers (`IndexSources`, `RangeMapVec`), window starts
   (`LazyWindowStartVec`), cached stored series (`CachedSeries`) and running totals
   (`CumulativeSource`).
@@ -30,9 +30,7 @@ and `bitview_distribution`.
 - `value`, `fiat`, `percent`, `ratio`: unit-specific compositions (`Price`,
   `PriceWithRatio`, `PriceWithMvrv`, `CostBasisMeans`, `count_and_share`, ...).
 
-Other modules are private; the crate root exposes the supported types. Files are named
-relative to their parent module (`block/rolling.rs`, not `block/block_rolling.rs`) and
-define at most one public struct. Implementation-only helpers stay private to their owner.
+Other modules are private; the crate root exposes the supported types.
 
 ## Composition
 
@@ -51,10 +49,9 @@ Source owners opt into budgeted range retention with `CachedSeries`. The applica
 initializes vecdb's process-wide budget once before importing sources; constructors do
 not forward budget arguments. Transaction-index vectors stay uncached.
 
-Views borrow cloneable readers at construction and keep read-only clones; they create no
-cache of their own. Read retention is always evictable; computation working data belongs
-to the plugin. Views read only the source ranges a request needs, in batches whose
-scratch is bounded, and finish each batch's secondary reads before borrowing source
+Views keep read-only clones of their inputs and create no cache of their own. Read
+retention is always evictable; computation working data belongs to the plugin. Range
+reads use bounded scratch and finish each batch's secondary reads before borrowing source
 chunks, since a source may hold a non-reentrant publication lock while lending them.
 
 Writer-only state such as a running total's last value uses `StorageMode::WriteOnly`, so

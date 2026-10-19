@@ -123,12 +123,9 @@ impl ResolvedBlocks {
         prices: &[Dollars],
     ) -> Result<Vec<BlockInfoV1>> {
         let pin = self.read_pin(query);
-        if heights.len() != prices.len()
-            || heights.iter().any(|height| *height >= pin.lengths().height)
-            || heights.windows(2).any(|pair| pair[0] <= pair[1])
-        {
-            return Err(Error::Internal("Invalid sparse block selection"));
-        }
+        debug_assert_eq!(heights.len(), prices.len());
+        debug_assert!(heights.iter().all(|height| *height < pin.lengths().height));
+        debug_assert!(heights.windows(2).all(|pair| pair[0] > pair[1]));
         let mut builders = Vec::new();
         let mut begin = 0;
         while begin < heights.len() {

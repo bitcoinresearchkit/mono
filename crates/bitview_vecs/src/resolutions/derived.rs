@@ -32,7 +32,7 @@ macro_rules! define_derived_resolutions {
             T: VecValue + PartialOrd + JsonSchema + 'static,
             S1T: VecValue + PartialOrd + JsonSchema,
         {
-            pub fn from_derived_computed<F: UnaryTransform<S1T, T>>(
+            pub fn from_resolutions<F: UnaryTransform<S1T, T>>(
                 name: &str,
                 version: Version,
                 source: &Resolutions<S1T>,

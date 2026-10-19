@@ -1,6 +1,6 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyPerBlock, Price, ops::CentsUnsignedToSats};
+use bitview_vecs::{LazyPerBlock, Price, ops::CentsToSatsPerDollar};
 use brk_error::Result;
 use vecdb::{ImportableVec, PcoVec, ReadableCloneableVec};
 
@@ -14,7 +14,7 @@ impl Vecs {
         let prices = spot.cents.height.read_only_boxed_clone();
         let ohlc = OhlcPrice::new("price_ohlc", version, mappings, &prices);
         let split = SplitPrice::new("price", version, mappings, &prices, &ohlc);
-        let sats_per_dollar = LazyPerBlock::from_resolutions::<CentsUnsignedToSats>(
+        let sats_per_dollar = LazyPerBlock::from_resolutions::<CentsToSatsPerDollar>(
             "sats_per_dollar",
             version,
             &spot.cents,

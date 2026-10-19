@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_blocks"
-description = "The block datasets plugin for Bitview"
+description = "Bitcoin block size, weight, timing, difficulty and halving datasets for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

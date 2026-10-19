@@ -4,8 +4,7 @@ use vecdb::{Convert, Ident, ReadableCloneableVec};
 
 use crate::{Fiat, FiatType, IndexSources, LazyPerBlock};
 
-/// Lazy fiat: both cents and usd are lazy views of a stored source.
-/// Zero extra stored vecs.
+/// Cents and USD views over one cents source.
 pub type LazyFiatPerBlock<C> = Fiat<LazyPerBlock<C>, LazyPerBlock<Dollars, C>>;
 
 impl<C: FiatType> LazyFiatPerBlock<C> {

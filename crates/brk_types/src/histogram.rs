@@ -13,26 +13,16 @@ use serde::{
     de::{Error, SeqAccess, Visitor},
 };
 
-/// Fixed-length, log-scale bin histogram generic over the per-bin counter type.
-/// Instantiated as raw counts (`u32`), the smoothed EMA buffer (`f64`), or the
-/// quantized wire projection (`u16`). Serializes as a flat JSON array of `N`
-/// values. `Deref` exposes the underlying array for indexing and iteration.
-///
-/// Backed by a fixed `[T; N]` (not a `Vec`) to keep the always-`N` invariant the
-/// callers rely on.
+/// Fixed-length, log-scale bin histogram generic over the per-bin counter type: raw counts
+/// (`u32`), the smoothed EMA buffer (`f64`) or the quantized wire projection (`u16`). Serializes
+/// as a flat JSON array of `N` values.
 #[derive(Clone, Debug)]
 pub struct Histogram<T, const N: usize>([T; N]);
 
-impl<T: Copy + Default, const N: usize> Histogram<T, N> {
-    #[inline]
-    pub fn zeros() -> Self {
-        Self([T::default(); N])
-    }
-}
-
 impl<T: Copy + Default, const N: usize> Default for Histogram<T, N> {
+    #[inline]
     fn default() -> Self {
-        Self::zeros()
+        Self([T::default(); N])
     }
 }
 
@@ -52,7 +42,6 @@ impl<T, const N: usize> DerefMut for Histogram<T, N> {
 }
 
 impl<const N: usize> Histogram<u32, N> {
-    /// Bump the count in `bin` by one.
     #[inline]
     pub fn increment(&mut self, bin: usize) {
         self.0[bin] += 1;
@@ -60,17 +49,16 @@ impl<const N: usize> Histogram<u32, N> {
 }
 
 impl<const N: usize> Histogram<f64, N> {
-    /// Quantize each bin to `u16` (round, then clamp into range) for the wire.
+    /// Quantize each bin to `u16` (rounded, saturating) for the wire.
     /// Lossy by design: faint sub-0.5 bins vanish, which is invisible on a heatmap.
     pub fn to_compact(&self) -> Histogram<u16, N> {
         let mut out = [0u16; N];
         for (o, &v) in out.iter_mut().zip(self.0.iter()) {
-            *o = v.round().clamp(0.0, u16::MAX as f64) as u16;
+            *o = v.round() as u16;
         }
         Histogram(out)
     }
 
-    /// Add another floating-point histogram bin-by-bin.
     #[inline]
     pub fn add_from(&mut self, rhs: &Self) {
         self.0
@@ -79,7 +67,6 @@ impl<const N: usize> Histogram<f64, N> {
             .for_each(|(a, &b)| *a += b);
     }
 
-    /// Divide every bin by `rhs`.
     #[inline]
     pub fn divide_by(&mut self, rhs: f64) {
         self.0.iter_mut().for_each(|v| *v /= rhs);
@@ -136,7 +123,7 @@ impl<T: JsonSchema, const N: usize> JsonSchema for Histogram<T, N> {
     }
 
     /// Inline as a plain array rather than registering a named `Histogram_uintN`
-    /// component: the wire shape is just a flat array of counts, and the synthetic
+    /// component: the wire shape is a flat array of counts, and the synthetic
     /// generic-mangled name has no real type for the Rust client to resolve to.
     fn inline_schema() -> bool {
         true

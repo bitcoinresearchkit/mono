@@ -1,5 +1,3 @@
-//! Python base client and leaf accessors.
-
 use std::fmt::Write;
 
 use crate::{
@@ -7,14 +5,10 @@ use crate::{
     format_json, index_to_field_name,
 };
 
-/// Generate class-level constants for the BitviewClient class.
 pub(crate) fn generate_class_constants(output: &mut String) {
     let constants = ClientConstants::collect();
 
-    // VERSION
     writeln!(output, "    VERSION = \"{}\"\n", constants.version).unwrap();
-
-    // INDEXES, POOL_ID_TO_POOL_NAME
     write_class_const(output, "INDEXES", &format_json(&constants.indexes));
     write_class_const(
         output,
@@ -22,7 +16,7 @@ pub(crate) fn generate_class_constants(output: &mut String) {
         &format_json(&constants.pool_map),
     );
 
-    // Cohort constants (no camelCase conversion for Python)
+    // Unlike JavaScript's, Python's cohort keys stay snake_case.
     for (name, value) in cohort_constants() {
         write_class_const(output, name, &format_json(&value));
     }
@@ -72,14 +66,7 @@ _ADDRESS_PAYLOAD_LENGTHS: Dict[str, int] = {{
     output.push_str(include_str!("runtime.py"));
 }
 
-/// Generate index accessor classes
 pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
-    if patterns.is_empty() {
-        return;
-    }
-
-    // Generate static index tuples
-    writeln!(output, "# Static index tuples").unwrap();
     for (i, pattern) in patterns.iter().enumerate() {
         write!(output, "_i{} = (", i + 1).unwrap();
         for (j, index) in pattern.indexes.iter().enumerate() {
@@ -96,29 +83,19 @@ pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSet
     }
     writeln!(output).unwrap();
 
-    // Generate helper functions
     writeln!(
         output,
-        r#"def _ep(c: BitviewClient, n: str, i: Index) -> SeriesEndpoint[Any]:
-    return SeriesEndpoint(c, n, i)
-
-def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
-    return DateSeriesEndpoint(c, n, i)
-
-def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
+        r#"def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
     """The endpoint for any index: with date helpers for a date-based one."""
-    return _dep(c, n, i) if i in _CALENDARS else _ep(c, n, i)
+    return DateSeriesEndpoint(c, n, i) if i in _CALENDARS else SeriesEndpoint(c, n, i)
 "#
     )
     .unwrap();
-
-    writeln!(output, "# Index accessor classes\n").unwrap();
 
     for (i, pattern) in patterns.iter().enumerate() {
         let by_class_name = format!("_{}By", pattern.name);
         let idx_var = format!("_i{}", i + 1);
 
-        // Generate the By class with compact methods
         writeln!(output, "class {}(Generic[T]):", by_class_name).unwrap();
         writeln!(
             output,
@@ -128,10 +105,10 @@ def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], 
         for index in &pattern.indexes {
             let method_name = index_to_field_name(index);
             let index_name = index.name();
-            let (builder_type, helper) = if index.is_date_based() {
-                ("DateSeriesEndpoint", "_dep")
+            let builder_type = if index.is_date_based() {
+                "DateSeriesEndpoint"
             } else {
-                ("SeriesEndpoint", "_ep")
+                "SeriesEndpoint"
             };
             let value = if pattern.missing.contains(index) {
                 "Optional[T]"
@@ -141,13 +118,12 @@ def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], 
             writeln!(
                 output,
                 "    def {}(self) -> {}[{}]: return {}(self._c, self._n, '{}')",
-                method_name, builder_type, value, helper, index_name
+                method_name, builder_type, value, builder_type, index_name
             )
             .unwrap();
         }
         writeln!(output).unwrap();
 
-        // Generate the main accessor class
         writeln!(output, "class {}(Generic[T]):", pattern.name).unwrap();
         writeln!(output, "    by: {}[T]", by_class_name).unwrap();
         writeln!(

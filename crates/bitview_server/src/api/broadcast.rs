@@ -8,8 +8,8 @@ use tokio::sync::OwnedSemaphorePermit;
 
 use crate::{AppState, Error, error::Result, params::Empty};
 
-// A transaction cannot exceed the block weight in serialized bytes. The bound
-// includes surrounding whitespace; trim is retained for ordinary pasted hex.
+// Serialized transaction bytes cannot exceed the block weight, and hex doubles them. The bound
+// includes surrounding whitespace, which is trimmed before validation.
 pub const MAX_BODY_BYTES: usize = BitcoinWeight::MAX_BLOCK.to_wu() as usize * 2;
 
 pub struct BroadcastPermit(OwnedSemaphorePermit);

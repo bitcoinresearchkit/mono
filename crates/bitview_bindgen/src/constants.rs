@@ -1,7 +1,5 @@
-//! Shared constant generation for static client data.
-//!
-//! Extracts common logic for generating INDEXES, POOL_ID_TO_POOL_NAME,
-//! and cohort name constants across JavaScript and Python clients.
+//! The constants the JavaScript and Python clients embed: version, indexes, mining pools, cohort
+//! names, date calendars and address payload lengths.
 
 use std::collections::BTreeMap;
 
@@ -12,11 +10,10 @@ use bitview_cohort::{
 use bitview_primitives::{Calendar, Index, pools};
 use brk_types::ADDRESS_PAYLOAD_LENGTHS;
 use serde::Serialize;
-use serde_json::{Map, Value, to_string_pretty, to_value as SerdeJsonToValue};
+use serde_json::{Map, Value, json, to_string_pretty};
 
 use crate::{VERSION, to_camel_case};
 
-/// Collected constant data for client generation.
 pub struct ClientConstants {
     pub version: String,
     pub indexes: Vec<&'static str>,
@@ -24,14 +21,13 @@ pub struct ClientConstants {
 }
 
 impl ClientConstants {
-    /// Collect all constant data.
     pub fn collect() -> Self {
         let indexes = Index::all();
         let indexes: Vec<&'static str> = indexes.iter().map(|i| i.name()).collect();
 
         let pool_map: BTreeMap<String, &'static str> = pools()
             .iter()
-            .map(|p| (p.slug().to_string(), p.name))
+            .map(|p| (p.slug.to_string(), p.name))
             .collect();
 
         Self {
@@ -66,23 +62,18 @@ pub fn address_payload_lengths() -> impl Iterator<Item = (String, usize)> {
         .map(|&(output_type, len)| (output_type.to_string(), len))
 }
 
-/// Get all cohort constants as name-value pairs for iteration.
 pub fn cohort_constants() -> Vec<(&'static str, Value)> {
-    fn to_value<T: Serialize>(v: &T) -> Value {
-        SerdeJsonToValue(v).unwrap()
-    }
-
     vec![
-        ("TERM_NAMES", to_value(&TERM_NAMES)),
-        ("EPOCH_NAMES", to_value(&EPOCH_NAMES)),
-        ("CLASS_NAMES", to_value(&CLASS_NAMES)),
-        ("ENTRY_NAMES", to_value(&ENTRY_NAMES)),
-        ("SPENDABLE_TYPE_NAMES", to_value(&SPENDABLE_TYPE_NAMES)),
-        ("AGE_RANGE_NAMES", to_value(&AGE_RANGE_NAMES)),
-        ("AMOUNT_RANGE_NAMES", to_value(&AMOUNT_RANGE_NAMES)),
+        ("TERM_NAMES", json!(TERM_NAMES)),
+        ("EPOCH_NAMES", json!(EPOCH_NAMES)),
+        ("CLASS_NAMES", json!(CLASS_NAMES)),
+        ("ENTRY_NAMES", json!(ENTRY_NAMES)),
+        ("SPENDABLE_TYPE_NAMES", json!(SPENDABLE_TYPE_NAMES)),
+        ("AGE_RANGE_NAMES", json!(AGE_RANGE_NAMES)),
+        ("AMOUNT_RANGE_NAMES", json!(AMOUNT_RANGE_NAMES)),
         (
             "PROFITABILITY_RANGE_NAMES",
-            to_value(&PROFITABILITY_RANGE_NAMES),
+            json!(PROFITABILITY_RANGE_NAMES),
         ),
     ]
 }

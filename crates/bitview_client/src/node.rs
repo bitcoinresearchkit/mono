@@ -12,20 +12,16 @@ use crate::{BitviewClientBase, SeriesEndpoint};
 
 /// Non-generic trait for series patterns (usable in collections).
 pub trait AnySeriesPattern {
-    /// Get the series name.
     fn name(&self) -> &str;
 
-    /// Get the list of available indexes for this series.
     fn indexes(&self) -> &'static [Index];
 }
 
-/// Generic trait for series patterns with endpoint access.
 pub trait SeriesPattern<T>: AnySeriesPattern {
     /// Get an endpoint builder for a specific index, if supported.
     fn get(&self, index: Index) -> Option<SeriesEndpoint<T>>;
 }
 
-/// A series value type, as a type parameter of the leaf accessors.
 pub trait SeriesValue {
     /// The value where it can be missing (e.g. a period without blocks): `Option<Self>`, or the
     /// value itself when it is already optional.
@@ -124,21 +120,19 @@ macro_rules! accessor {
             $(accessor!(@method $kind $method $index $value);)*
         }
         pub struct $name<T> {
-            name: ::std::sync::Arc<str>,
             pub by: $by<T>,
         }
         impl<T> $name<T> {
             pub fn new(client: ::std::sync::Arc<$crate::BitviewClientBase>, name: String) -> Self {
-                let name: ::std::sync::Arc<str> = name.into();
-                Self { name: name.clone(), by: $by { client, name, _marker: ::std::marker::PhantomData } }
+                Self { by: $by { client, name: name.into(), _marker: ::std::marker::PhantomData } }
             }
             pub fn name(&self) -> &str {
-                &self.name
+                &self.by.name
             }
         }
         impl<T> $crate::AnySeriesPattern for $name<T> {
             fn name(&self) -> &str {
-                &self.name
+                &self.by.name
             }
             fn indexes(&self) -> &'static [$crate::Index] {
                 $indexes

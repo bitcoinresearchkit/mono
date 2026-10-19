@@ -20,7 +20,6 @@ pub struct FeatureVecs<M: StorageMode = Rw> {
 pub type FlagView = <PcoVec<TxIndex, Boolean> as StoredVec>::ReadOnly;
 
 impl FeatureVecs {
-    /// The flag's read-only clone, for plugins that show it beside their own series.
     pub fn flag_view(&self) -> FlagView {
         self.flag.read_only_clone()
     }

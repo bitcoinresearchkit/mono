@@ -4,10 +4,9 @@ use super::Percentiles;
 
 #[derive(Traversable)]
 pub struct Modes<T> {
-    /// Bedrock's unweighted mode gives every unspent satoshi equal weight. It uses the
-    /// all-chain distribution of UTXO creation prices and the unweighted share
-    /// of supply whose creation price exceeds spot. A UTXO's creation price is
-    /// Bitcoin's spot price when that output was created.
+    /// Bedrock's unweighted mode gives every unspent satoshi equal weight and
+    /// calibrates against the share of all-chain supply whose creation price
+    /// exceeds spot.
     pub unweighted: T,
     /// Bedrock's awake mode weights each UTXO age range by wakefulness—the
     /// share of its accumulated coin days that has been consumed—and
@@ -28,6 +27,10 @@ collection!(
         Mobile => mobile,
     }
 );
+
+impl ModeId {
+    pub const ALL: [Self; 3] = [Self::Unweighted, Self::Awake, Self::Mobile];
+}
 
 pub const MODE_COUNT: usize = ModeId::ALL.len();
 

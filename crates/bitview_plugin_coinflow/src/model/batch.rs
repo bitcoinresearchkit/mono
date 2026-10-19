@@ -36,17 +36,12 @@ impl PrimaryBatch {
         accounting.collect_into(start, end, &mut self.accounting);
     }
 
-    #[inline]
-    fn len(&self) -> usize {
-        self.timestamps.len()
-    }
-
     pub(crate) fn primary_values_batch(
         &self,
         genesis_timestamp: Timestamp,
         bounds: &AgeRange<AgeBand>,
     ) -> Vec<PrimaryValues> {
-        (0..self.len())
+        (0..self.timestamps.len())
             .into_par_iter()
             .map(|offset| self.primary_values(offset, genesis_timestamp, bounds))
             .collect()
@@ -65,7 +60,7 @@ impl PrimaryBatch {
             )
         });
         let network_age = self.timestamps[offset]
-            .difference_in_days_between_float(genesis_timestamp)
+            .days_since(genesis_timestamp)
             .max(MINIMUM_DURATION_DAYS);
         let exposures = DecayFit::exposures(&hazards, network_age, bounds);
         let mobilities =
@@ -83,12 +78,12 @@ impl PrimaryBatch {
         }
     }
 
-    /// Undefined (NaN) for an empty range.
+    /// Undefined (NaN) while the range has no coin days created.
     #[inline]
     fn spending_rate(transfer_volume: Sats, coindays_created: CoinDays) -> f64 {
         let exposure = f64::from(coindays_created);
         if exposure > 0.0 {
-            (f64::from(Bitcoin::from(transfer_volume)) / exposure).max(0.0)
+            f64::from(Bitcoin::from(transfer_volume)) / exposure
         } else {
             f64::NAN
         }

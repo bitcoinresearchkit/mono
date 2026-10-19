@@ -1,7 +1,8 @@
 use brk_types::Height;
 use vecdb::{ReadableVec, VecValue};
 
-/// Writer-owned cumulative values. A length change reloads the persisted checkpoint.
+/// Writer-only running totals, reloaded from the source when the requested length differs from
+/// the cached one.
 pub struct CumulativeState<R> {
     last: Option<(usize, R)>,
 }

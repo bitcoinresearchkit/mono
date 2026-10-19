@@ -12,8 +12,9 @@ impl<K, V> Item<K, V> {
         }
     }
 
-    /// What one key's changes in a batch leave, taken in arrival order: a put replaces what came
-    /// before it, and a weak delete cancels a pending put, else stays as a tombstone.
+    /// What one key's changes in a batch leave, taken in arrival order: a put replaces an earlier
+    /// put, and a weak delete cancels a pending put, else stays as a tombstone. Nothing may follow
+    /// a tombstone.
     #[inline]
     pub fn reduce<'a>(changes: impl IntoIterator<Item = &'a Self>) -> Option<&'a Self>
     where

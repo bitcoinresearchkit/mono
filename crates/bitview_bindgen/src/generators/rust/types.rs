@@ -1,8 +1,5 @@
-//! Rust type rendering for endpoint parameters and responses.
-
 use crate::Ty;
 
-/// A response body's Rust type.
 pub(crate) fn rust_type(ty: &Ty) -> String {
     match ty {
         Ty::List(item) => format!("Vec<{}>", rust_type(item)),

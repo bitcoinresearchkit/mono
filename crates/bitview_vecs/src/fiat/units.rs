@@ -1,7 +1,6 @@
 use bitview_traversable::Traversable;
 
-/// A monetary value in its integer cents and dollar representations.
-/// The series is the USD value; cents are its exact storage.
+/// A fiat value represented in cents and US dollars.
 #[derive(Clone, Traversable)]
 #[traversable(merge)]
 pub struct Fiat<C, U> {

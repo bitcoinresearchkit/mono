@@ -3,14 +3,14 @@
 Profit and loss bands of the UTXO set: 25 bands from over 1000% in profit to
 90-100% in loss, for all, short-term and long-term holders, at
 `profitability.<filter>.<band>`. Each band
-publishes its supply and capital, each with its share of the filter's total (a
-filter's bands add up to 100%).
+publishes its supply and capital, each with its share of the filter's total (the
+bands partition the filter; a share is null while that total is zero).
 
 The plugin consumes the published UTXO Set, block prices, and monotonic timestamps.
-It owns one complete `ComputePlugin::compute_state()`, its database, and a resident
-price index. The shared age index tracks overlapping totals from which the long-term
-side is derived as all minus short-term. The shared distribution library owns price-index algorithms;
-this plugin owns their state and lifetime.
+It owns its database and a resident price index. The shared age index tracks
+overlapping totals from which the long-term side is derived as all minus
+short-term. The shared distribution library owns price-index algorithms; this
+plugin owns their state and lifetime.
 
 Append updates retain validated state. Reorgs, changed sources, failed updates,
 and restarts rebuild from History's closest snapshot plus diffs. Only fixed-width

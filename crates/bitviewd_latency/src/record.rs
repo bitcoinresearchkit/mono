@@ -1,7 +1,6 @@
 use brk_logger::LEVEL_NAMES;
 use jiff::civil::DateTime;
 
-#[derive(Clone)]
 pub struct Record {
     pub timestamp: DateTime,
     pub status: u16,

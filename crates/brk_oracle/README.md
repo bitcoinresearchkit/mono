@@ -2,9 +2,9 @@
 
 **Version 6**
 
-Pure on-chain BTC/USD price oracle. No exchange feeds, no external APIs. Derives the bitcoin price from transaction data alone. Tracks block by block from height 340,000 (January 2015) onward.
+BTC/USD price oracle that derives the bitcoin price from round-dollar patterns in transaction outputs, with no exchange feed or external API. It tracks block by block from height 340,000 (January 2015) onward, starting from a seed price; bundled exchange prices cover the earlier heights.
 
-Inspired by [UTXOracle](https://utxo.live/oracle/) by [@SteveSimple](https://x.com/SteveSimple), which proved the concept. brk_oracle takes the same core insight and redesigns the algorithm for per-block resolution and rolling operation. See [comparison](#comparison-with-utxoracle) below.
+Inspired by [UTXOracle](https://utxo.live/oracle/) by [@SteveSimple](https://x.com/SteveSimple), redesigned for per-block resolution and rolling operation; see the [comparison](#comparison-with-utxoracle) below.
 
 ## The signal
 
@@ -42,17 +42,17 @@ The spacing between spikes is constant (set by the ratios between dollar amounts
 
 ## How it works
 
-The oracle tracks the price incrementally, block by block, starting from a known seed price. Each new block nudges the estimate. The search window is narrow (about 12 bins, or +15% / -12% in price), so the oracle can only follow gradual movement, not jump to an arbitrary price from scratch. This is by design: it makes the algorithm resistant to noise.
+The oracle tracks the price incrementally, block by block, starting from a known seed price. Each new block nudges the estimate. The search window is narrow (12 bins below the previous estimate and 11 above, or +15% / -12% in price), so the oracle can only follow gradual movement, not jump to an arbitrary price from scratch. This is by design: it makes the algorithm resistant to noise.
 
 For each new block:
 
 ### 1. Filter outputs
 
-Skip the coinbase transaction, and skip every output of a transaction carrying an `OP_RETURN`: that transaction is protocol machinery, not a dollar-denominated payment, so its payout amounts are not price signal. Below height 630,000, also skip every output of a transaction with more than 100 outputs: a large fan-out is a batch payout (exchange sweep, mixer), not a round-dollar payment, and the thin early signal needs it removed. At and above height 630,000, the transaction fan-out cap relaxes to 250 outputs so dense-chain payment activity remains visible while very large fan-outs cannot dominate one EMA slot. Then exclude noisy outputs: script types dominated by protocol activity (P2TR by default), dust below 1,000 sats, and round BTC amounts (0.01, 0.1, 1.0 BTC, etc.) that create false spikes unrelated to dollar purchases.
+Skip the coinbase transaction, and skip every output of a transaction carrying an `OP_RETURN`: that transaction is protocol machinery, not a dollar-denominated payment, so its payout amounts are not price signal. Below height 630,000, also skip every output of a transaction with more than 100 outputs: a large fan-out is a batch payout (exchange sweep, mixer), not a round-dollar payment, and the thin early signal needs it removed. At and above height 630,000, the transaction fan-out cap relaxes to 250 outputs so dense-chain payment activity remains visible while very large fan-outs cannot dominate one EMA slot. Then exclude noisy outputs: script types dominated by protocol activity (P2TR), dust below 1,000 sats, and round BTC amounts (0.01, 0.1, 1.0 BTC, etc.) that create false spikes unrelated to dollar purchases.
 
 ### 2. Build a log-scale histogram
 
-Each remaining output becomes a bin index in a 2,400-bin histogram spanning 12 decades (1 sat to 10¹² sats):
+Each remaining output amount maps to a bin of a 2,400-bin histogram spanning 12 decades; only indexes 0 through 2,399 count, so amounts rounding past the last bin are dropped:
 
 ```
   bin = round(log₁₀(sats) × 200)       200 bins per decade
@@ -60,16 +60,16 @@ Each remaining output becomes a bin index in a 2,400-bin histogram spanning 12 d
 
 ### 3. Smooth over recent blocks
 
-A single block has too few outputs for a clean signal. The oracle keeps a ring buffer of the last 12 block histograms and combines them into an exponential moving average (EMA) that weights recent blocks more heavily:
+A single block has too few outputs for a clean signal. The oracle keeps a ring buffer of the last `window_size` block histograms (12 by default, 40 in the slow cold-start regime; see [Configuration](#configuration)) and combines them into an exponential moving average (EMA) that weights recent blocks more heavily:
 
 ```
   EMA[bin] = Σ  weight(age) × histogram[age][bin]
-             age=0..11
+             age=0..window_size−1
 
   weight(age) = α × (1 − α)^age         default α = 2/7 (~6-block span)
 ```
 
-The EMA is recomputed from the ring buffer each block, so it depends only on the last 12 histograms. That makes restoring possible: `Oracle::from_checkpoint` takes the exact stored reference bin and replays the window's histograms, and reaches the state of an oracle that ran throughout. The reference bin itself does carry history (each search starts from it), so a restore needs that exact bin, not just a nearby price. The slow cold-start regime also adapts its shape-anchoring profile over its whole run, so a restore inside that regime replays it from height 340,000.
+The EMA is recomputed from the ring buffer each block, so it depends only on the window's histograms. That makes restoring possible: `Oracle::from_checkpoint` takes the exact stored reference bin and replays the window's histograms, and reaches the state of an oracle that ran throughout. The reference bin itself does carry history (each search starts from it), so a restore needs that exact bin, not just a nearby price. The slow cold-start regime also adapts its shape-anchoring profile over its whole run, so a restore inside that regime replays it from height 340,000.
 
 ### 4. Score with a 19-point stencil
 
@@ -90,7 +90,7 @@ The oracle slides this stencil across the EMA histogram within the search window
 2. **Normalize** each value by dividing by that offset's peak within the search window: this gives rare amounts like $3 equal voting weight to common amounts like $100
 3. **Sum** the 19 normalized values into a single score
 
-The position with the highest score is where the fingerprint best matches the histogram.
+The position with the highest score is where the fingerprint best matches the histogram. In the slow cold-start regime each score also adds `shape_weight` times the candidate's match against a slowly learned arm profile (see [Configuration](#configuration)). When no arm carries mass anywhere in the window, the previous reference bin is kept.
 
 ### 5. Convert bin to price
 
@@ -110,19 +110,11 @@ So the stencil's winning position, the bin where $100 purchases land, directly e
 
 Parabolic interpolation between the best bin and its two neighbors refines the estimate to sub-bin precision.
 
-## Pipeline
-
-```
-  block ──→ filter ──→ histogram ──→ ring buffer ──→ EMA ──→ stencil ──→ best bin ──→ $
-             outputs     2,400 bins       ×12                  19-point    parabolic
-                          log-scale                             scoring   interpolation
-```
-
 ## Input
 
 The oracle consumes one pre-built histogram per block via `process_histogram(&hist)`, a `[u32; 2400]` bin-count array, and returns the updated reference bin.
 
-The caller filters as it builds the histogram, applying the [step 1](#1-filter-outputs) rules. `PaymentFilter::for_height(height).histogram(txs)` builds a fresh block histogram from non-coinbase transaction outputs. Incremental live callers use `PaymentFilter::MODERN.for_each_bin(outputs, emit)`, which applies the modern fan-out cap without requiring a height. The transaction-level rules include the OP_RETURN drop, the >100 transaction-output fan-out cap below height 630,000, and the >250 cap from height 630,000 onward.
+The caller filters as it builds the histogram, applying the [step 1](#1-filter-outputs) rules. `PaymentFilter::for_height(height).histogram(txs)` builds a fresh block histogram from non-coinbase transaction outputs. Incremental live callers use `PaymentFilter::MODERN.for_each_bin(outputs, emit)`, which applies the modern fan-out cap without requiring a height.
 
 The initial seed must be close to the real price at the starting height. The crate includes typed pre-oracle helpers for exchange prices at heights 0..340,000 (from height 337,525, 2015-01-05, when the original source went stale after Bitstamp's halt: Bitfinex minute closes at each block's time, except the seed at 339,999, which keeps the price the measured path below starts from).
 
@@ -148,14 +140,13 @@ the default build does not depend on `schemars`.
 
 ## Comparison with UTXOracle
 
-[UTXOracle](https://utxo.live/oracle/) by [@SteveSimple](https://x.com/SteveSimple) proved that BTC/USD can be derived purely from on-chain data. Both projects share the same core insight (round-dollar detection via log-scale histogram) but make different engineering choices:
+Both detect round dollar amounts in a log-scale histogram of output values; they make different engineering choices:
 
 | | brk_oracle | UTXOracle |
 |---|---|---|
 | Resolution | Per-block (~10 min); daily OHLC built downstream | Per-run consensus price + per-output intraday scatter |
 | Operation | Rolling: EMA over ring buffer, updates each block | Batch: processes a full day from scratch, stateless |
-| Algorithm | Single-pass stencil scoring with per-offset normalization | Multi-step: dual stencil → rough estimate → output-to-USD mapping → iterative convergence |
-| Steps to compute price | 7 (filter+bin → ring insert → EMA → per-offset peaks → score → argmax+parabolic → bin→price) | 10 (filter+bin → clip → smooth round BTC → sum → normalize → cap extremes → dual-stencil slide → neighbor weight-avg → output-to-USD map → iterative central price) |
+| Algorithm | Stencil scoring with per-offset normalization; adaptive shape anchoring in the slow regime | Multi-step: dual stencil → rough estimate → output-to-USD mapping → iterative convergence |
 | Stencil | 19 round-USD offsets ($1 to $10k), each normalized to its own peak | 803-point Gaussian + weighted spike template targeting 17 round-USD amounts |
 | Round BTC handling | Excluded from histogram entirely | Histogram bins smoothed by averaging neighbors |
 | Output filtering | Per-tx OP_RETURN drop, then per-output: script type, dust threshold, round BTC | Per-tx: not coinbase, no OP_RETURN, exactly 2 outputs, ≤5 inputs, no same-day inputs, ≤500-byte witness |
@@ -180,7 +171,7 @@ Measured with version 5. Version 6 only corrects pre-oracle prices (heights 337,
 | 99.9th percentile | 15.6% |
 | RMSE | 0.97% |
 | Max error | 33.8% |
-| Bias | +0.06 bins (essentially zero) |
+| Bias | +0.06 bins |
 | Blocks > 5% error | 3,233 (0.542%) |
 | Blocks > 10% error | 1,323 |
 | Blocks > 20% error | 154 |
@@ -213,7 +204,7 @@ Oracle daily OHLC built from per-block prices vs exchange daily OHLC:
 | 2025 | 53,113 | 0.11% | 0.25% | 5.8% | 4 | 0 | 0 | $74,409–$126,198 |
 | 2026 | 5,910 | 0.10% | 0.27% | 3.2% | 0 | 0 | 0 | $60,000–$97,900 |
 
-The oracle is only as good as the signal it reads. The largest errors cluster in the early cold-start, where thin 2015 on-chain volume gives a weaker round-dollar pattern: the 33.8% max error sits at height 341,498 (oracle ~$287 vs exchange ~$213) during the first weeks of warm-up. A second cluster sits just below the 508,000 regime switch, where the slow EMA lagged the fast early-2018 rally (~31.6% at height 507,278, oracle ~$6,685 vs exchange ~$8,800) before handing off to the fast default. The thin pre-2018 mix means 2015, 2017, and 2018 carry the bulk of the error (1.67%, 2.05%, and 1.31% RMSE). From 2019 the signal strengthens: by 2020 the oracle reaches 0.1% median accuracy, and since 2022 no block exceeds 10% error.
+The largest errors cluster in the early cold-start, where thin 2015 on-chain volume gives a weaker round-dollar pattern: the 33.8% max error sits at height 341,498 (oracle ~$287 vs exchange ~$213) during the first weeks of warm-up. A second cluster sits just below the 508,000 regime switch, where the slow EMA lagged the fast early-2018 rally (~31.6% at height 507,278, oracle ~$6,685 vs exchange ~$8,800) before handing off to the fast default. The thin pre-2018 mix means 2015, 2017, and 2018 carry the bulk of the error (1.67%, 2.05%, and 1.31% RMSE). From 2019 the signal strengthens: by 2020 the oracle reaches 0.1% median accuracy, and since 2022 no block exceeds 10% error.
 
 ### Why no outlier smoothing?
 

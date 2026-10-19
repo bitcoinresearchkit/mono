@@ -1,6 +1,6 @@
 use std::{
     iter::Sum,
-    ops::{Add, AddAssign, Div},
+    ops::{Add, AddAssign},
 };
 
 use bitcoin::Weight as BitcoinWeight;
@@ -127,13 +127,6 @@ impl Sum for Weight32 {
         let value: u64 = iter.map(u64::from).sum();
         debug_assert!(u32::try_from(value).is_ok());
         Self(value as u32)
-    }
-}
-
-impl Div<Weight32> for Weight32 {
-    type Output = Self;
-    fn div(self, rhs: Self) -> Self::Output {
-        Self(self.0 / rhs.0)
     }
 }
 

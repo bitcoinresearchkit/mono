@@ -14,13 +14,8 @@ use axum::{
 use serde_json::Value;
 
 use super::AppState;
-#[cfg(feature = "series")]
-use crate::api::series::ApiSeriesRoutes;
-#[cfg(feature = "urpd")]
-use crate::api::urpd::ApiUrpdRoutes;
 use crate::{
     CacheParams, Error,
-    api::server::ServerRoutes,
     extended::{ResponseExtended, TransformResponseExtended},
     params::Empty,
 };
@@ -58,25 +53,7 @@ mod urpd;
 #[cfg(feature = "chain")]
 mod utxo_set;
 
-#[cfg(feature = "chain")]
-use addrs::AddrRoutes;
-#[cfg(feature = "chain")]
-use blocks::BlockRoutes;
-#[cfg(feature = "chain")]
-use fees::FeesRoutes;
-#[cfg(feature = "chain")]
-use general::GeneralRoutes;
-#[cfg(feature = "chain")]
-use mempool::MempoolRoutes;
-#[cfg(feature = "chain")]
-use mining::MiningRoutes;
 pub use openapi::*;
-#[cfg(feature = "price")]
-use oracle::OracleRoutes;
-#[cfg(feature = "chain")]
-use transactions::TxRoutes;
-#[cfg(feature = "chain")]
-use utxo_set::UtxoSetRoutes;
 
 pub trait ApiRoutes {
     fn add_api_routes(self) -> Self;
@@ -84,23 +61,26 @@ pub trait ApiRoutes {
 
 impl ApiRoutes for ApiRouter<AppState> {
     fn add_api_routes(self) -> Self {
-        let router = self.add_server_routes();
+        let router = server::add_routes(self);
         #[cfg(feature = "series")]
-        let router = router.add_series_routes();
+        let router = series::add_routes(router);
         #[cfg(feature = "urpd")]
-        let router = router.add_urpd_routes();
+        let router = urpd::add_routes(router);
         #[cfg(feature = "chain")]
-        let router = router
-            .add_general_routes()
-            .add_addr_routes()
-            .add_block_routes()
-            .add_mining_routes()
-            .add_fees_routes()
-            .add_mempool_routes()
-            .add_tx_routes()
-            .add_utxo_set_routes();
+        let router = [
+            general::add_routes,
+            addrs::add_routes,
+            blocks::add_routes,
+            mining::add_routes,
+            fees::add_routes,
+            mempool::add_routes,
+            transactions::add_routes,
+            utxo_set::add_routes,
+        ]
+        .into_iter()
+        .fold(router, |router, add| add(router));
         #[cfg(feature = "price")]
-        let router = router.add_oracle_routes();
+        let router = oracle::add_routes(router);
 
         router
             .api_route(
@@ -133,8 +113,9 @@ impl ApiRoutes for ApiRouter<AppState> {
                             .summary("Compact API summary")
                             .description(
                                 "Compact custom summary of the OpenAPI specification for LLM reading: \
-                                 types instead of schemas, `returns` instead of responses, no examples \
-                                 or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.",
+                                 types instead of schemas, `returns` instead of responses, no examples; \
+                                 parameters keep their enum, default and bounds. Not valid OpenAPI: \
+                                 build tools from `GET /openapi.json`.",
                             )
                             .json_response::<Value>()
                             .not_modified()

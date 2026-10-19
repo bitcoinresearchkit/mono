@@ -1,5 +1,5 @@
 use bitcoin::{
-    secp256k1::{ecdsa::Signature as EcdsaSignature, schnorr::Signature as SchnorrSignature},
+    secp256k1::ecdsa::Signature as EcdsaSignature,
     sighash::{EcdsaSighashType, TapSighashType},
 };
 
@@ -28,28 +28,6 @@ pub fn scan_ecdsa_signature(bytes: &[u8], flags: &mut TxFeatureFlags) {
     flags.insert(candidate_flags);
 }
 
-pub fn scan_taproot_signature(bytes: &[u8], flags: &mut TxFeatureFlags) {
-    let (sighash_type, signature) = match bytes.len() {
-        64 => (TapSighashType::Default, bytes),
-        65 => {
-            let Ok(sighash_type) = TapSighashType::from_consensus_u8(bytes[64]) else {
-                return;
-            };
-            (sighash_type, &bytes[..64])
-        }
-        _ => return,
-    };
-    let candidate_flags = taproot_feature_flags(sighash_type);
-    if flags.contains_all(candidate_flags) {
-        return;
-    }
-
-    if SchnorrSignature::from_slice(signature).is_err() {
-        return;
-    }
-    flags.insert(candidate_flags);
-}
-
 pub fn record_validated_ecdsa_sighash(bytes: &[u8], flags: &mut TxFeatureFlags) {
     let Ok(sighash_type) = EcdsaSighashType::from_standard(u32::from(*bytes.last().unwrap()))
     else {
@@ -58,7 +36,8 @@ pub fn record_validated_ecdsa_sighash(bytes: &[u8], flags: &mut TxFeatureFlags) 
     flags.insert(ecdsa_feature_flags(sighash_type));
 }
 
-pub fn record_validated_taproot_sighash(bytes: &[u8], flags: &mut TxFeatureFlags) {
+/// Checks only the length and the sighash byte: parsing a Schnorr signature accepts any 64 bytes.
+pub fn record_taproot_sighash(bytes: &[u8], flags: &mut TxFeatureFlags) {
     let sighash_type = match bytes.len() {
         64 => TapSighashType::Default,
         65 => {

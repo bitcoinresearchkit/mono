@@ -1,11 +1,10 @@
-use std::{collections::BTreeMap, io, mem};
+use std::{collections::BTreeMap, io};
 
-use derive_more::{Deref, DerefMut};
 use oas3::{
     Map as OasMap, Spec, from_json,
     spec::{MediaType, ObjectOrReference, Operation, ParameterIn},
 };
-use serde_json::{Map, Value, from_str, json, to_string as SerdeJsonToString, to_value};
+use serde_json::{Map, Value, from_str, json, to_string, to_value};
 
 use crate::Ty;
 
@@ -19,60 +18,36 @@ pub(crate) use parameter::Parameter;
 pub(crate) use request_body::RequestBody;
 pub(crate) use response_kind::ResponseKind;
 
-/// Type schema extracted from OpenAPI components
-#[derive(Default, Deref, DerefMut)]
-pub struct TypeSchemas(BTreeMap<String, Value>);
+/// Schemas by type name.
+pub(crate) type TypeSchemas = BTreeMap<String, Value>;
 
-impl From<BTreeMap<String, Value>> for TypeSchemas {
-    fn from(schemas: BTreeMap<String, Value>) -> Self {
-        Self(schemas)
-    }
-}
-
-/// Parse OpenAPI spec from JSON string
-///
-/// Pre-processes the JSON to handle oas3 limitations:
-/// - Removes unsupported siblings from `$ref` objects (oas3 only supports `summary` and `description`)
-pub(crate) fn parse_openapi_json(json: &str) -> io::Result<Spec> {
+/// The oas3 spec and the component schemas (as written: oas3's cleanup does not apply to them).
+pub(crate) fn parse_openapi_json(json: &str) -> io::Result<(Spec, TypeSchemas)> {
     let mut value: Value =
         from_str(json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let schemas = value
+        .get("components")
+        .and_then(|c| c.get("schemas"))
+        .and_then(Value::as_object)
+        .map(|schemas| schemas.clone().into_iter().collect())
+        .unwrap_or_default();
 
-    // Clean up for oas3 compatibility
     clean_for_oas3(&mut value);
-
     let cleaned_json =
-        SerdeJsonToString(&value).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-
-    from_json(&cleaned_json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        to_string(&value).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let spec =
+        from_json(&cleaned_json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    Ok((spec, schemas))
 }
 
-/// Extract type schemas from OpenAPI JSON
-pub(crate) fn extract_schemas(json: &str) -> TypeSchemas {
-    let Ok(mut value) = from_str::<Value>(json) else {
-        return TypeSchemas::default();
-    };
-
-    TypeSchemas(
-        value
-            .get_mut("components")
-            .and_then(|c| c.get_mut("schemas"))
-            .and_then(Value::as_object_mut)
-            .map(|schemas| mem::take(schemas).into_iter().collect())
-            .unwrap_or_default(),
-    )
-}
-
-/// Clean up OpenAPI spec for oas3 compatibility.
-/// - Removes unsupported siblings from $ref objects (oas3 only supports summary and description)
-/// - Converts boolean schemas to object schemas (oas3 doesn't handle `"schema": true`)
+/// Make the spec readable by oas3: drop `$ref` siblings other than `summary` and `description`,
+/// and turn boolean schemas (`"schema": true`) into empty objects.
 fn clean_for_oas3(value: &mut Value) {
     match value {
         Value::Object(map) => {
-            // Handle $ref with unsupported siblings
             if map.contains_key("$ref") {
                 map.retain(|k, _| k == "$ref" || k == "summary" || k == "description");
             } else {
-                // Convert boolean schemas to empty object schemas
                 if let Some(schema) = map.get_mut("schema")
                     && schema.is_boolean()
                 {
@@ -125,7 +100,6 @@ fn extract_endpoint(
     let path_params = extract_path_parameters(path, operation);
     let query_params = extract_parameters(operation, ParameterIn::Query);
 
-    // The 200 response's content, by media type.
     let content =
         operation
             .responses
@@ -201,25 +175,18 @@ fn extract_request_body(operation: &Operation) -> Option<RequestBody> {
 
 /// Extract path parameters in the order they appear in the path URL.
 fn extract_path_parameters(path: &str, operation: &Operation) -> Vec<Parameter> {
-    // Extract parameter names from the path in order (e.g., "/api/series/{series}/{index}" -> ["series", "index"])
     let path_order: Vec<&str> = path
         .split('/')
         .filter_map(|segment| segment.strip_prefix('{').and_then(|s| s.strip_suffix('}')))
         .collect();
-
-    // Get all path parameters from the operation
-    let params = extract_parameters(operation, ParameterIn::Path);
-
-    // Sort by position in the path
-    let mut sorted_params: Vec<Parameter> = params;
-    sorted_params.sort_by_key(|p| {
+    let mut params = extract_parameters(operation, ParameterIn::Path);
+    params.sort_by_key(|p| {
         path_order
             .iter()
             .position(|&name| name == p.name)
             .unwrap_or(usize::MAX)
     });
-
-    sorted_params
+    params
 }
 
 fn extract_parameters(operation: &Operation, location: ParameterIn) -> Vec<Parameter> {

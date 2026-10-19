@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, result::Result, sync::Arc};
+use std::{result::Result, sync::Arc};
 
 use parking_lot::{RwLock, RwLockReadGuard};
 
@@ -22,7 +22,7 @@ pub trait PageBytes {
 ///
 /// Pages are decoded lazily, one at a time through one decoder, and consumed by
 /// `try_fold`/`for_each_chunk`/`read_into` or lent to cursors.
-pub struct CompressedSource<'a, I, T, S, B>
+pub struct CompressedSource<'a, T, S, B>
 where
     T: VecValue,
     S: CompressionStrategy<T>,
@@ -34,10 +34,9 @@ where
     decoded_page: usize,
     pos: usize,
     end: usize,
-    _marker: PhantomData<I>,
 }
 
-impl<'a, I, T, S, B> CompressedSource<'a, I, T, S, B>
+impl<'a, T, S, B> CompressedSource<'a, T, S, B>
 where
     T: VecValue,
     S: CompressionStrategy<T>,
@@ -68,7 +67,6 @@ where
             decoded_page: Self::NO_PAGE,
             pos: from.min(end),
             end,
-            _marker: PhantomData,
         }
     }
 
@@ -111,10 +109,9 @@ where
         let at = self.pos;
         let page = self.pages.get(page_index)?;
         let to = (self.end - page_start).min(page.values_count(Self::PER_PAGE, Self::SIZE_OF_T));
-        if from >= to {
-            return None;
-        }
-        let values = if page.is_raw() {
+        // `pos < end`, and `end` is within the published page table.
+        debug_assert!(from < to);
+        let values = if page.raw {
             // The raw tail page converts only the requested values, not the whole page.
             let last_page = self.last_page();
             let (_, body) = self.bytes.page(&self.pages, page_index, page, last_page)?;
@@ -138,7 +135,6 @@ where
         }
     }
 
-    /// Fallible fold with early exit on error.
     #[inline(always)]
     pub fn try_fold<Acc, E, F: FnMut(Acc, T) -> Result<Acc, E>>(
         mut self,
@@ -162,14 +158,11 @@ where
         let mut scratch = Vec::new();
         for page_index in self.pos / Self::PER_PAGE..=last_page {
             let page_start = page_index * Self::PER_PAGE;
-            let page = self
-                .pages
-                .get(page_index)
-                .expect("compressed page should exist after bounds check");
+            let page = self.pages.get(page_index).expect("missing compressed page");
             let (header, body) = self
                 .bytes
                 .page(&self.pages, page_index, page, last_page)
-                .expect("compressed page should be readable after bounds check");
+                .expect("unreadable compressed page");
             let values_count = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
             let local_from = self.pos.saturating_sub(page_start);
             let local_to = (self.end - page_start).min(values_count);

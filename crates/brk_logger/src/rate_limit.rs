@@ -114,45 +114,41 @@ fn today() -> String {
         .to_string()
 }
 
-struct Inner {
+/// Rate-limited daily log files: one combined file plus one per tracing level.
+/// Each level has its own 100/sec limiter so a chatty level cannot starve the
+/// others; the combined file is a true superset, written iff a per-level write
+/// is permitted (or unconditionally for events with no associated level).
+pub struct RateLimitedFile {
     dir: PathBuf,
     combined: Mutex<DailyFile>,
     levels: [Mutex<LevelSlot>; LEVELS],
 }
 
-/// Rate-limited daily log files: one combined file plus one per tracing level.
-/// Each level has its own 100/sec limiter so a chatty level cannot starve the
-/// others; the combined file is a true superset, written iff a per-level write
-/// is permitted (or unconditionally for events with no associated level).
-pub struct RateLimitedFile(Inner);
-
 impl RateLimitedFile {
     pub fn new(dir: &Path) -> io::Result<Self> {
         create_dir_all(dir)?;
-        Ok(Self(Inner {
+        Ok(Self {
             dir: dir.to_path_buf(),
             combined: Mutex::default(),
             levels: Default::default(),
-        }))
+        })
     }
 }
 
 impl<'a> MakeWriter<'a> for RateLimitedFile {
     type Writer = FileWriter<'a>;
 
-    /// Fallback used only by callers that bypass `make_writer_for`. The fmt
-    /// layer always provides metadata, so this path is unused in practice; it
-    /// writes to the combined file only and skips per-level routing.
+    /// Without metadata (the fmt layer always gives it), writes go to the combined file only.
     fn make_writer(&'a self) -> Self::Writer {
         FileWriter {
-            inner: &self.0,
+            files: self,
             level: None,
         }
     }
 
     fn make_writer_for(&'a self, meta: &Metadata<'_>) -> Self::Writer {
         FileWriter {
-            inner: &self.0,
+            files: self,
             level: Some(*meta.level()),
         }
     }

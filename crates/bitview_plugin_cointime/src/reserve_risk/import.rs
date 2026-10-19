@@ -18,11 +18,16 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let v1 = version + Version::TWO;
-        let hodl_bank = PerBlock::import(db, "hodl_bank", v1 + Version::ONE, mappings)?;
+        let reserve_risk_version = version + Version::TWO;
+        let hodl_bank = PerBlock::import(
+            db,
+            "hodl_bank",
+            reserve_risk_version + Version::ONE,
+            mappings,
+        )?;
         let value_source = LazyIndexedVec::new(
             "reserve_risk_source",
-            v1,
+            reserve_risk_version,
             &hodl_bank.height,
             spot_price,
             |_, hodl_bank: Float64, spot| Float64::new(f64::from(Dollars::from(spot)) / *hodl_bank),
@@ -30,7 +35,7 @@ impl Vecs {
         Ok(Vecs {
             block: LazyPerBlock::from_height_source::<Ident>(
                 "reserve_risk",
-                v1,
+                reserve_risk_version,
                 &value_source,
                 mappings,
             ),
@@ -42,7 +47,7 @@ impl Vecs {
                 mappings,
                 window_starts,
             )?,
-            vocdd_median_1m: PcoVec::import(db, "vocdd_median_1m", v1)?,
+            vocdd_median_1m: PcoVec::import(db, "vocdd_median_1m", reserve_risk_version)?,
             vocdd_median_1m_window: Default::default(),
         })
     }

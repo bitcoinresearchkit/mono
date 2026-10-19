@@ -12,14 +12,10 @@ use serde_json::json;
 use crate::OutputTypeNormalized;
 use crate::{Address, AddressBytes, OutputType, Sats, bytes::DisplayStr};
 
-/// Transaction output
 #[derive(Debug, Clone, Deserialize)]
 pub struct TxOut {
-    /// Script pubkey (locking script)
     #[serde(rename = "scriptpubkey")]
     pub script_pubkey: ScriptBuf,
-
-    /// Value of the output in satoshis
     pub value: Sats,
 }
 
@@ -70,7 +66,7 @@ impl TxOut {
         AddressBytes::try_from(&self.script_pubkey).ok()
     }
 
-    pub fn type_(&self) -> OutputType {
+    pub fn output_type(&self) -> OutputType {
         OutputType::from(&self.script_pubkey)
     }
 }
@@ -110,7 +106,7 @@ impl Serialize for TxOut {
     where
         S: Serializer,
     {
-        let output_type = self.type_();
+        let output_type = self.output_type();
         // As Esplora, P2PK has no address here; the pubkey hex stands for one only in the
         // address endpoints.
         let addr = (!matches!(output_type, OutputType::P2PK65 | OutputType::P2PK33))

@@ -25,7 +25,7 @@ impl AddrTracker {
         }
         for txout in &tx.output {
             if let Some(bytes) = txout.addr_bytes() {
-                self.apply_add(bytes, txid, |stats| stats.receiving(txout));
+                self.apply_add(bytes, txid, |stats| stats.add_funding(txout));
             }
         }
     }
@@ -39,28 +39,24 @@ impl AddrTracker {
         }
         for txout in &tx.output {
             if let Some(bytes) = txout.addr_bytes() {
-                self.apply_remove(bytes, txid, |stats| stats.received(txout));
+                self.apply_remove(bytes, txid, |stats| stats.remove_funding(txout));
             }
         }
     }
 
-    /// Fold a single newly-resolved input into the per-address stats.
-    /// Called by the prevout-fill paths after a prevout that was
-    /// previously `None` has been filled, and by `add_tx` for each
-    /// resolved input. Inputs whose prevout doesn't resolve to an addr
-    /// are no-ops.
+    /// Fold a resolved input into its address's stats; a prevout without an address is a no-op.
     pub fn add_input(&mut self, txid: &Txid, prevout: &TxOut) {
         let Some(bytes) = prevout.addr_bytes() else {
             return;
         };
-        self.apply_add(bytes, txid, |stats| stats.sending(prevout));
+        self.apply_add(bytes, txid, |stats| stats.add_spend(prevout));
     }
 
     fn remove_input(&mut self, txid: &Txid, prevout: &TxOut) {
         let Some(bytes) = prevout.addr_bytes() else {
             return;
         };
-        self.apply_remove(bytes, txid, |stats| stats.sent(prevout));
+        self.apply_remove(bytes, txid, |stats| stats.remove_spend(prevout));
     }
 
     fn apply_add(
@@ -72,7 +68,7 @@ impl AddrTracker {
         let entry = Arc::make_mut(self.0.entry(bytes).or_default());
         entry.txids.insert(*txid);
         update_stats(&mut entry.stats);
-        entry.stats.update_tx_count(entry.txids.len() as u32);
+        entry.stats.tx_count = entry.txids.len() as u32;
     }
 
     fn apply_remove(
@@ -91,7 +87,7 @@ impl AddrTracker {
         if len == 0 {
             occupied.remove_entry();
         } else {
-            entry.stats.update_tx_count(len as u32);
+            entry.stats.tx_count = len as u32;
         }
     }
 }

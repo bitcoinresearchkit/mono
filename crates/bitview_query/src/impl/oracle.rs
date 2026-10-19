@@ -2,8 +2,7 @@ use std::ops::Range;
 
 use bitview_plugin_indexer::SafeLengths;
 use bitview_plugin_price::{feed_blocks_for_warmup, feed_blocks_with};
-use bitview_primitives::Lengths;
-use bitview_primitives::{Day1, TxOutIndex};
+use bitview_primitives::{Day1, Lengths};
 use brk_oracle::{
     Config, HistogramEma, HistogramEmaCompact, HistogramRaw, Oracle, START_HEIGHT_SLOW, sats_to_bin,
 };
@@ -63,7 +62,7 @@ impl Query {
         count: usize,
         safe: &Lengths,
     ) -> Result<HistogramEma> {
-        let mut acc = HistogramEma::zeros();
+        let mut acc = HistogramEma::default();
 
         for (segment, seed) in segments {
             let mut oracle = self.warm_oracle(seed, segment.start + 1, safe)?;
@@ -85,18 +84,18 @@ impl Query {
         Ok(acc)
     }
 
-    /// Unfiltered per-bin output counts at the live tip: every published
-    /// mempool output binned by value, with none of the round-dollar payment
-    /// filters applied. Zeros when no mempool is configured.
+    /// Unfiltered per-bin output counts at the live tip: the published mempool outputs that
+    /// `sats_to_bin` bins, with none of the round-dollar payment filters. Zeros when no mempool
+    /// is configured.
     pub fn live_output_histogram(&self) -> Result<HistogramRaw> {
         Ok(match Self::lookup_mempool(self.mempool()) {
             Some((mempool, tip)) => mempool.live_raw_histogram(&tip)?,
-            None => HistogramRaw::zeros(),
+            None => HistogramRaw::default(),
         })
     }
 
-    /// Unfiltered per-bin output counts for a confirmed `height`: every output
-    /// in the block binned by value, with no payment filtering.
+    /// Unfiltered per-bin output counts for a confirmed `height`: the block's outputs that
+    /// `sats_to_bin` bins, with no payment filtering.
     pub fn confirmed_output_histogram(&self, height: usize) -> Result<HistogramRaw> {
         let pin = self.pin_safe_lengths()?;
         check_bound(&pin, height, pin.lengths().height.to_usize())?;
@@ -104,9 +103,7 @@ impl Query {
         self.output_histogram_for_blocks(height..height + 1, &safe)
     }
 
-    /// Unfiltered per-bin output counts for a calendar `day`: every block's output
-    /// histogram summed bin-by-bin. Raw counts are additive, so the day total is
-    /// just the sum across its confirmed blocks.
+    /// [`Self::confirmed_output_histogram`] summed bin by bin over a calendar `day`'s blocks.
     pub fn confirmed_output_histogram_day(&self, day: Day1) -> Result<HistogramRaw> {
         let pin = self.pin_safe_lengths()?;
         let range = self.day_block_range(day, &pin)?;
@@ -156,9 +153,8 @@ impl Query {
         })?)
     }
 
-    /// Seed bin for an oracle warm-up: the oracle's exact reference bin at `height`.
-    /// 404s when the oracle prices aren't computed that far yet, which also covers
-    /// the stamp-before-write race where the vec length leads the readable data.
+    /// Seed bin for an oracle warm-up: the oracle's exact reference bin at `height`; `NotFound`
+    /// before the oracle reaches it.
     fn seed_bin_at(&self, height: usize) -> Result<f64> {
         self.plugins()
             .price
@@ -196,10 +192,9 @@ impl Query {
         self.day_heights(day, self.histogram_bound(&pin.lengths()), pin)
     }
 
-    /// Unfiltered histogram for a contiguous confirmed block range: every output,
-    /// coinbase included, binned by value via `sats_to_bin` with no payment
-    /// filtering. Raw counts are additive, so a day can be read as one output
-    /// range instead of one block at a time.
+    /// Unfiltered histogram of a contiguous confirmed block range: every output, coinbase
+    /// included, that `sats_to_bin` bins. Raw counts are additive, so a day reads as one output
+    /// range.
     fn output_histogram_for_blocks(
         &self,
         range: Range<usize>,
@@ -208,34 +203,32 @@ impl Query {
         let indexer = self.indexer();
         let safe_height = safe.height.to_usize();
         let total_outputs = safe.txout_index.to_usize();
-        if range.start >= range.end || range.end > safe_height {
-            return Err(Error::Internal("Invalid oracle block range"));
-        }
+        debug_assert!(range.start < range.end && range.end <= safe_height);
         let first_txout_index = &indexer.vecs().outputs.first_txout_index;
         let out_start = first_txout_index
             .collect_one_at(range.start)
             .data()?
             .to_usize();
         let out_end = if range.end < safe_height {
-            first_txout_index.collect_one_at(range.end).data()?
+            first_txout_index
+                .collect_one_at(range.end)
+                .data()?
+                .to_usize()
         } else {
-            TxOutIndex::from(total_outputs)
-        }
-        .to_usize();
+            total_outputs
+        };
         if out_start > out_end || out_end > total_outputs {
             return Err(Error::Internal("Invalid oracle output boundaries"));
         }
 
-        let mut hist = HistogramRaw::zeros();
+        let mut hist = HistogramRaw::default();
         indexer
             .vecs()
             .outputs
             .value
             .try_fold_range_at(out_start, out_end, (), |(), sats| {
                 if let Some(bin) = sats_to_bin(sats) {
-                    let count = hist
-                        .get_mut(bin)
-                        .ok_or(Error::Internal("Invalid oracle bin"))?;
+                    let count = &mut hist[bin];
                     *count = count
                         .checked_add(1)
                         .ok_or(Error::Internal("Oracle histogram count overflow"))?;

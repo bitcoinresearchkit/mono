@@ -35,7 +35,6 @@ pub trait ComputePluginSet: PluginSet {
         Ok(BootstrapAction::Ready)
     }
 
-    /// Performs the composition's typed compute schedule.
     fn compute(&mut self, context: UpdateContext<'_>) -> Result<()>;
 
     /// Commits the pipeline-wide publication cursor after a computation. `complete` is false

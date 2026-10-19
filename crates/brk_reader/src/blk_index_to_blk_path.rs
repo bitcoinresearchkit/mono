@@ -7,18 +7,13 @@ use std::{
 use brk_error::{Error, Result};
 use derive_more::Deref;
 
-const BLK: &str = "blk";
-const DOT_DAT: &str = ".dat";
-
 #[derive(Debug, Default, Clone, Deref)]
 pub struct BlkIndexToBlkPath(BTreeMap<u16, PathBuf>);
 
 impl BlkIndexToBlkPath {
-    /// Collects every `blkNNNNN.dat` in `blocks_dir`. Unrelated
-    /// entries (`xor.dat`, `rev*.dat`, `index/`, …) are skipped
-    /// silently; anything that **looks** like a blk file but fails to
-    /// parse or isn't a regular file is a hard error, since silently
-    /// dropping one would leave an undetectable hole in the chain.
+    /// Collects the `blk*.dat` files in `blocks_dir`, following symlinks; other entries
+    /// (`xor.dat`, `rev*.dat`, `index/`, …) are skipped. A `blk*.dat` entry whose index is not a
+    /// `u16`, or that is not a file, is an error.
     pub(crate) fn scan(blocks_dir: &Path) -> Result<Self> {
         let mut map = BTreeMap::new();
 
@@ -29,8 +24,8 @@ impl BlkIndexToBlkPath {
                 continue;
             };
             let Some(index_str) = file_name
-                .strip_prefix(BLK)
-                .and_then(|s| s.strip_suffix(DOT_DAT))
+                .strip_prefix("blk")
+                .and_then(|s| s.strip_suffix(".dat"))
             else {
                 continue;
             };

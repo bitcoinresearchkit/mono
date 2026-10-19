@@ -4,7 +4,7 @@ use std::sync::Arc;
 use brk_error::Error;
 use brk_error::Result;
 #[cfg(feature = "async")]
-use corepc_jsonrpc::error::Error as ErrorError;
+use corepc_jsonrpc::error::Error as JsonRpcError;
 
 use crate::Auth;
 
@@ -27,7 +27,7 @@ pub use mempool_state::MempoolState;
 /// infrastructure error whose submission outcome may be unknown.
 #[cfg(feature = "async")]
 pub fn transaction_error(error: Error) -> Error {
-    if let Error::CorepcRPC(ErrorError::Rpc(rpc)) = &error
+    if let Error::CorepcRPC(JsonRpcError::Rpc(rpc)) = &error
         && matches!(rpc.code, -22 | -25 | -26 | -27)
     {
         return Error::TxRejected(rpc.message.clone());

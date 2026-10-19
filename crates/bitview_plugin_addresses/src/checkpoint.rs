@@ -64,7 +64,6 @@ impl Replay for Vecs {
         Some(())
     }
 
-    /// Restarts the address state, the caps and the metrics from the first block.
     fn reset(&mut self) -> Result<()> {
         self.state.reset()?;
         self.caps.reset()?;
@@ -136,7 +135,7 @@ impl Vecs {
             // The restored values sit in the write buffers until written.
             stable.written = None;
             stable.changed = None;
-            let landing_stamp = Stamp::from(landing.decremented().unwrap_or_default());
+            let landing_stamp = Stamp::from(landing.decremented().unwrap());
             let mut stamps = self.state.rollback_before(stamp)?;
             stamps.push(self.caps.rollback_before(stamp)?);
             debug_assert!(

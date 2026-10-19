@@ -218,10 +218,6 @@ where
     }
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
-        if index >= self.len() {
-            return None;
-        }
-
         let previous = before_window(self.window_starts.collect_one_at(index)?.to_usize());
         Some(Self::compute(
             self.source.collect_one_at(index)?,
@@ -234,6 +230,7 @@ where
                 .unwrap_or_default(),
         ))
     }
+
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
         match indices {
             [] => return,

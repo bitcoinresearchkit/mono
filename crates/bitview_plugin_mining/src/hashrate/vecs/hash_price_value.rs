@@ -28,7 +28,6 @@ impl<T> HashPriceValueVecs<T>
 where
     T: ComputedVecValue + JsonSchema + Ord + Default + Into<f64>,
 {
-    /// The running all-time low of `block`, then `block`'s rebound above it.
     pub(crate) fn compute_floor_and_rebound(
         &mut self,
         max_from: Height,

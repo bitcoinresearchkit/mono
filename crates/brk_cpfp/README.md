@@ -15,7 +15,3 @@ Ancestor-set linearization and chunking of child-pays-for-parent transaction clu
 The same graph and linearization serve live mempool clusters (`brk_mempool`), confirmed clusters (`bitview_query`)
 and block fee statistics (`bitview_plugin_transactions`); each caller supplies its own member order and local-index
 lookup. The DTOs (`CpfpCluster`, `CpfpInfo`, ...) live in `brk_types`.
-
-## Built on
-
-- `brk_types` for `Sats`, `VSize`, `FeeRate` and the CPFP cluster types

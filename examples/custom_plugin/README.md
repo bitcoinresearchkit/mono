@@ -1,13 +1,11 @@
 # Custom plugin example
 
-This is a complete custom Bitview plugin and composition. It stores a
-`near_full_block_streak` series, computes it after the built-in plugins, exposes
-it through the normal series API, and keeps all existing Bitview endpoints.
-The runner is imported without its default composition; this example depends
-on `bitview_default` explicitly because it deliberately extends that
-composition.
+This example adds a `near_full_block_streak` series to Bitview's default
+composition, computes it after the built-in plugins and exposes it through the
+series API, keeping every existing endpoint. It imports the runner without its
+default composition and depends on `bitview_default` to extend it.
 
-Run it exactly like the standard Bitview executable:
+Run it like the standard Bitview executable:
 
 ```bash
 cargo run --release -p bitview-custom-plugin-example
@@ -36,7 +34,7 @@ recomputation point so normal updates and reorgs follow the same path; readers
 bound every read by the lengths the indexer publishes, so rows past them stay
 invisible until the composition commits.
 
-The author contract is deliberately small:
+To add a plugin:
 
 1. Define one `PluginStorage` and derive `Plugin` with
    `#[plugin(storage = STORAGE)]`.

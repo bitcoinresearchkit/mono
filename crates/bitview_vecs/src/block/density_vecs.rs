@@ -19,7 +19,6 @@ pub struct Density<T> {
 }
 
 impl<T> Density<T> {
-    /// Builds every member from its id suffix (`""`, `"_in_profit"`, `"_in_loss"`).
     fn try_from_fn<E>(
         mut create: impl FnMut(&str) -> std::result::Result<T, E>,
     ) -> std::result::Result<Self, E> {

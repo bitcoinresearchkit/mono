@@ -1,15 +1,14 @@
 use std::{marker::PhantomData, sync::Arc};
 
-use log::debug;
 use parking_lot::RwLock;
 use rawdb::Region;
 
 use super::{CompressionStrategy, PAGES_PER_BLOCK, Pages, ReadOnlyCompressedVec};
 use crate::{
-    AnyStoredVec, AnyVec, CompressedMmapSource, Error, ImportOptions, ReadWriteBaseVec,
-    Result as CrateResult, VecIndex, VecValue, Version, WritableVec,
+    AnyStoredVec, AnyVec, CompressedMmapSource, Error, ImportOptions, ReadWriteBaseVec, Result,
+    VecIndex, VecValue, Version, WritableVec,
     cache::{CachePolicy, NoCache},
-    remove_vec_with, vec_region_name_with,
+    vec_region_name_with,
 };
 
 pub mod any_vec;
@@ -24,13 +23,12 @@ pub const COMPRESSED_PAGE_SIZE: usize = 8 * 1024;
 
 const VERSION: Version = Version::new(4);
 
-/// Inner implementation for compressed storage vectors.
-/// Parameterized by compression strategy to support different compression algorithms.
+/// Append-only paged vector over compression strategy `S`; the last, partial page stays raw.
 #[derive(Debug)]
-#[must_use = "Vector should be stored to keep data accessible"]
+#[must_use]
 pub struct ReadWriteCompressedVec<I, T: VecValue, S, C: CachePolicy = NoCache> {
     base: ReadWriteBaseVec<I, T>,
-    pub(super) cache: C::State<T>,
+    cache: C::State<T>,
     pages: Arc<RwLock<Pages>>,
     _strategy: PhantomData<S>,
 }
@@ -48,34 +46,15 @@ where
         &self,
         from: usize,
         to: usize,
-    ) -> crate::CompressedRangeCursor<'_, I, T, S> {
+    ) -> crate::CompressedRangeCursor<'_, T, S> {
         crate::CompressedRangeCursor::new(self.region(), &self.pages, self.stored_len(), from, to)
     }
 
-    /// Resets the stored data on a schema mismatch or a corrupt layout.
-    fn import_resetting(options: ImportOptions) -> CrateResult<Self> {
-        match Self::import_strict_with(options) {
-            Err(error)
-                if error.is_schema_mismatch() || matches!(error, Error::CorruptedRegion { .. }) =>
-            {
-                debug!("Resetting {}...", options.name);
-                remove_vec_with::<I>(options.db, options.name)?;
-                options
-                    .db
-                    .remove_region_if_exists(&Self::pages_region_name_with(options.name))?;
-                Self::import_strict_with(options)
-            }
-            res => res,
-        }
-    }
-
-    #[inline]
-    fn import_strict_with(mut options: ImportOptions) -> CrateResult<Self> {
+    fn import_strict_with(mut options: ImportOptions) -> Result<Self> {
         const { assert!(Self::PER_PAGE > 0, "compressed values must fit in one page") };
         options.version = options.version + VERSION;
         let db = options.db;
         let name = options.name;
-        let initial_capacity = options.initial_capacity.unwrap_or(I::INITIAL_CAPACITY);
 
         let cache = C::create()?;
         let base = ReadWriteBaseVec::import(options, S::FORMAT)?;
@@ -83,9 +62,9 @@ where
         let pages = Pages::import(
             db,
             &Self::pages_region_name_with(name),
-            initial_capacity.div_ceil(Self::PER_PAGE),
+            I::INITIAL_CAPACITY.div_ceil(Self::PER_PAGE),
         )?;
-        let region_len = base.region().meta().byte_len();
+        let region_len = base.region.meta().byte_len();
         if pages.next_start() != u64::try_from(region_len).map_err(|_| Error::Overflow)? {
             return Err(Error::CorruptedRegion {
                 name: name.to_string(),
@@ -100,17 +79,20 @@ where
             _strategy: PhantomData,
         };
 
-        if this.pages.read_recursive().last().is_some_and(|page| {
-            page.is_raw() && !(page.bytes as usize).is_multiple_of(Self::SIZE_OF_T)
-        }) {
+        if this
+            .pages
+            .read_recursive()
+            .last()
+            .is_some_and(|page| page.raw && !(page.bytes as usize).is_multiple_of(Self::SIZE_OF_T))
+        {
             return Err(Error::CorruptedRegion {
                 name: name.to_string(),
-                region_len: this.base.region().meta().byte_len(),
+                region_len: this.base.region.meta().byte_len(),
             });
         }
         let len = this.real_stored_len();
-        *this.base.mut_prev_stored_len() = len;
-        this.base.update_stored_len(len);
+        this.base.previous_stored_len = len;
+        this.base.stored_len.set(len);
 
         Ok(this)
     }
@@ -119,7 +101,7 @@ where
         format!("{}_pages", vec_region_name_with::<I>(name))
     }
 
-    pub fn remove(self) -> CrateResult<()> {
+    pub fn remove(self) -> Result<()> {
         self.base.remove()?;
 
         let pages = Arc::try_unwrap(self.pages).map_err(|_| Error::PagesStillReferenced)?;
@@ -141,14 +123,6 @@ where
         }
     };
 
-    #[inline(always)]
-    pub fn index_to_page_index(index: usize) -> usize {
-        index / Self::PER_PAGE
-    }
-    #[inline(always)]
-    pub fn page_index_to_index(page_index: usize) -> usize {
-        page_index * Self::PER_PAGE
-    }
     #[inline]
     pub fn prefers_mmap(region: &Region, pages: &RwLock<Pages>, from: usize, to: usize) -> bool {
         let Some((offset, len)) =
@@ -171,22 +145,22 @@ where
         at: usize,
         bytes: &[u8],
         stored_len: usize,
-        update_pages: impl FnOnce(&mut Pages) -> CrateResult<()>,
-    ) -> CrateResult<()> {
+        update_pages: impl FnOnce(&mut Pages) -> Result<()>,
+    ) -> Result<()> {
         let mut pages = self.pages.write();
-        self.base.region().truncate_write(at, bytes)?;
+        self.base.region.truncate_write(at, bytes)?;
         update_pages(&mut pages)?;
         pages.flush()?;
-        self.base.update_stored_len(stored_len);
+        self.base.stored_len.set(stored_len);
         drop(pages);
         self.base.write_header_if_needed()?;
         Ok(())
     }
 
     /// The persisted rows `[from, to)`, past the stored length too (a pending truncation).
-    fn collect_stored_range(&self, from: usize, to: usize) -> CrateResult<Vec<T>> {
-        let mut values = Vec::with_capacity(to.saturating_sub(from));
-        CompressedMmapSource::<I, T, S>::new_from_parts(self.region(), &self.pages, to, from, to)
+    fn collect_stored_range(&self, from: usize, to: usize) -> Result<Vec<T>> {
+        let mut values = Vec::with_capacity(to - from);
+        CompressedMmapSource::<T, S>::new_from_parts(self.region(), &self.pages, to, from, to)
             .read_into(&mut values)?;
         Ok(values)
     }

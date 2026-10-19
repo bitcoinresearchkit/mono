@@ -10,7 +10,6 @@ use crate::SeriesLeaf;
 /// Series leaf with JSON Schema for client generation.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SeriesLeafWithSchema {
-    /// The core series metadata.
     #[serde(flatten)]
     pub leaf: SeriesLeaf,
     /// JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
@@ -37,31 +36,6 @@ impl SeriesLeafWithSchema {
             missing: BTreeSet::new(),
             undefined: false,
         }
-    }
-
-    /// The series name/identifier.
-    pub fn name(&self) -> &str {
-        &self.leaf.name
-    }
-
-    /// The Rust type (e.g., "Sats", "Ratio").
-    pub fn kind(&self) -> &str {
-        &self.leaf.kind
-    }
-
-    /// Available indexes for this series.
-    pub fn indexes(&self) -> &BTreeSet<Index> {
-        &self.leaf.indexes
-    }
-
-    /// Indexes whose values can be null: missing or undefined.
-    pub fn nullable(&self) -> &BTreeSet<Index> {
-        &self.leaf.nullable
-    }
-
-    /// Check if this leaf refers to the same series as another.
-    pub(crate) fn is_same_series(&self, other: &Self) -> bool {
-        self.leaf.name == other.leaf.name
     }
 
     /// Merge compatible metadata for another occurrence of the same series.

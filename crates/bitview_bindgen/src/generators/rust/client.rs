@@ -24,14 +24,7 @@ use std::sync::{Arc, OnceLock};
     );
 }
 
-/// Generate index accessor structs.
 pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
-    if patterns.is_empty() {
-        return;
-    }
-
-    // Generate static index arrays
-    writeln!(output, "// Static index arrays").unwrap();
     for (i, pattern) in patterns.iter().enumerate() {
         write!(output, "const _I{}: &[Index] = &[", i + 1).unwrap();
         for (j, index) in pattern.indexes.iter().enumerate() {

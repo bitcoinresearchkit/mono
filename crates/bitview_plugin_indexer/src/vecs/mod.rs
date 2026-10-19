@@ -5,7 +5,6 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
-use tracing::debug;
 use vecdb::{AnyStoredVec, AnyVec, Database, Rw, Stamp, StorageMode};
 
 use crate::Lengths;
@@ -44,9 +43,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl Vecs {
     pub fn import(parent: &Path, version: Version) -> Result<Self> {
-        debug!("Opening vecs database...");
         let db = Database::open(&parent.join("vecs"))?;
-        debug!("Setting min len...");
         db.set_min_len(PAGE_SIZE * 60_000_000)?;
 
         let (blocks, transactions, inputs, outputs, addrs, scripts, op_return) = parallel_import! {
@@ -83,7 +80,7 @@ impl Vecs {
         let stamp = Stamp::from(u64::from(saved_height));
         self.blocks.reset_median_window();
         for vec in self.iter_any_stored_mut() {
-            let len = Index::try_from(vec.index_type_to_string())
+            let len = Index::try_from(vec.index_type_name())
                 .ok()
                 .and_then(|index| starting_lengths.get(index))
                 .expect("an index the indexer counts");
@@ -100,7 +97,7 @@ impl Vecs {
     }
 
     pub fn stamped_write(&mut self, height: Height) -> Result<()> {
-        self.blocks.compute_median_times()?;
+        self.blocks.compute_median_times();
         let stamp = Stamp::from(height);
         let vecs = self.iter_any_stored_mut().collect::<Vec<_>>();
         let count = vecs.len();
@@ -119,20 +116,21 @@ impl Vecs {
     }
 
     pub fn next_height(&self) -> Height {
+        if self.blocks.blockhash.is_empty() {
+            return Height::ZERO;
+        }
         let min_stamp = self
             .iter_any_stored_vec()
             .map(|vec| vec.stamp())
             .min()
             .unwrap();
-
-        next_height_from_min_stamp(min_stamp, !self.blocks.blockhash.is_empty())
+        Height::from(min_stamp).incremented()
     }
 
     pub fn all_empty(&self) -> bool {
         self.iter_any_stored_vec().all(|vec| vec.len() == 0)
     }
 
-    /// Whether every vector was flushed at the same checkpoint.
     pub fn checkpoints_match(&self) -> bool {
         let mut stamps = self.iter_any_stored_vec().map(|vec| vec.stamp());
         let first = stamps.next();
@@ -148,13 +146,5 @@ impl Vecs {
             .chain(self.addrs.iter_any())
             .chain(self.scripts.iter_any())
             .chain(self.op_return.iter_any())
-    }
-}
-
-fn next_height_from_min_stamp(min_stamp: Stamp, has_blocks: bool) -> Height {
-    if has_blocks {
-        Height::from(min_stamp).incremented()
-    } else {
-        Height::ZERO
     }
 }

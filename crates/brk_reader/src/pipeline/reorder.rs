@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use brk_error::{Error, Result};
 use brk_types::ReadBlock;
 use crossbeam::channel::Sender;
@@ -50,24 +48,21 @@ impl ReorderState {
 
     /// `len`: the block's raw length, credited back once it is emitted.
     pub fn try_emit(&mut self, offset: u32, block: ReadBlock, len: usize) -> bool {
-        match offset.cmp(&self.next_offset) {
-            Ordering::Equal => {
-                if !self.send(block, len) {
-                    return false;
-                }
-                while let Some((next, len)) = self.pending.remove(&self.next_offset) {
-                    if !self.send(next, len) {
-                        return false;
-                    }
-                }
-                true
-            }
-            Ordering::Greater => {
-                self.pending.insert(offset, (block, len));
-                true
-            }
-            Ordering::Less => true,
+        // Dispatch sends each offset once.
+        debug_assert!(offset >= self.next_offset);
+        if offset > self.next_offset {
+            self.pending.insert(offset, (block, len));
+            return true;
         }
+        if !self.send(block, len) {
+            return false;
+        }
+        while let Some((next, len)) = self.pending.remove(&self.next_offset) {
+            if !self.send(next, len) {
+                return false;
+            }
+        }
+        true
     }
 
     fn send(&mut self, block: ReadBlock, len: usize) -> bool {

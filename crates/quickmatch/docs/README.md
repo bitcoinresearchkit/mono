@@ -1,12 +1,9 @@
 # quickmatch
 
-Fast fuzzy string matching for Rust and JavaScript.
+Fuzzy string matching for Rust and JavaScript, for autocomplete, command palettes and
+search-as-you-type.
 
-Built for autocomplete, command palettes, and search-as-you-type interfaces.
-
-[![Crates.io](https://img.shields.io/crates/v/quickmatch.svg)](https://crates.io/crates/quickmatch)
-[![npm](https://img.shields.io/npm/v/quickmatch-js.svg)](https://www.npmjs.com/package/quickmatch-js)
-[![Documentation](https://docs.rs/quickmatch/badge.svg)](https://docs.rs/quickmatch)
+[crates.io](https://crates.io/crates/quickmatch) · [Rust API](https://docs.rs/quickmatch) · [npm](https://www.npmjs.com/package/quickmatch-js)
 
 ## Install
 
@@ -55,7 +52,6 @@ qm.matches("file name");  // ["file_name"]
 qm.matches("filename");   // ["file_name"]  (compound match)
 qm.matches("filenme");    // ["file_name", "file_size"]  (trigram fuzzy)
 
-// Custom config
 const config = new QuickMatchConfig()
   .withLimit(5)
   .withTrigramBudget(10)
@@ -65,13 +61,13 @@ const qm2 = new QuickMatch(items, config);
 
 ## How it works
 
-Queries go through three matching stages:
+Query words match in any order through indexed word lists, including prefixes and joined
+adjacent words (`hashrate` matches `hash_rate`). Unknown words first try bounded adjacent-letter
+corrections against whole indexed words, then trigram matching. If typo matching yields nothing,
+results come from the known words' intersection, or their union with the union fallback.
 
-1. **Word match** — query is split by separators and looked up in a word index
-2. **Compound match** — adjacent words are indexed as compounds, so `hashrate` finds `hash_rate`
-3. **Trigram fallback** — unknown words are matched via character trigrams for fuzzy/typo tolerance
-
-Query words match in any order, including prefixes and joined adjacent words. Bounded adjacent-letter corrections run before the trigram fallback and must match whole indexed words. Results rank by matched-word count, fuzzy score, first match position, item length, text, then original index.
+Results rank by matched-word count and fuzzy score (descending), then first match position, item
+length, text and original index (ascending).
 
 ## Config
 

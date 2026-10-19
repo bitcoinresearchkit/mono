@@ -9,8 +9,6 @@ fn cumulative_block_count(height: Height) -> Count {
     Count::from(u64::from(height) + 1)
 }
 
-/// Block count: one per block, height plus one cumulatively, and the blocks of each trailing
-/// window.
 pub(crate) fn block_count(
     version: Version,
     indexer: &Indexer,

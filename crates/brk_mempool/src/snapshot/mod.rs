@@ -96,17 +96,9 @@ impl Snapshot {
         self.template_missing = missing;
     }
 
-    fn tx(&self, idx: TxIndex) -> Option<&SnapTx> {
-        self.txs.get(idx.as_usize())
-    }
-
-    fn idx_of(&self, key: &TxKey) -> Option<TxIndex> {
-        self.key_to_idx.get(key).copied()
-    }
-
     fn idx_of_txid(&self, txid: &Txid) -> Option<TxIndex> {
-        let index = self.idx_of(&TxKey::from(txid))?;
-        (self.tx(index)?.txid == *txid).then_some(index)
+        let index = *self.key_to_idx.get(&TxKey::from(txid))?;
+        (self.txs[index.as_usize()].txid == *txid).then_some(index)
     }
 
     /// Txids of `blocks[0]` (Core's `getblocktemplate` selection),
@@ -129,10 +121,7 @@ impl Snapshot {
 
     /// Block zero's statistics, as published with its template.
     pub(crate) fn template_stats(&self) -> MempoolBlock {
-        self.block_stats
-            .first()
-            .map(MempoolBlock::from)
-            .unwrap_or_default()
+        MempoolBlock::from(&self.block_stats[0])
     }
 
     pub(crate) fn template_transactions(&self) -> &Arc<[Arc<Transaction>]> {

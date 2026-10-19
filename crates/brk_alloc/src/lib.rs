@@ -1,4 +1,4 @@
-//! Global allocator and memory utilities for brk.
+//! mimalloc re-export and eager memory collection for BRK.
 //!
 //! Binaries choose mimalloc themselves:
 //! `#[global_allocator] static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;`.

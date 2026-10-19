@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![allow(clippy::type_complexity)]
 
 use std::{backtrace::Backtrace, env, fs, io, panic, path::Path, time::Duration};
 
@@ -18,7 +17,6 @@ mod format;
 mod hook;
 mod rate_limit;
 
-/// Days to keep log files before cleanup
 const MAX_LOG_AGE_DAYS: u64 = 7;
 
 /// Initialize the global tracing subscriber with a colorized console layer.
@@ -38,8 +36,7 @@ pub fn init(dir: Option<&Path>) -> io::Result<()> {
 
 /// Initialize the logger with a caller-selected fallback level.
 ///
-/// `LOG` and `RUST_LOG` still take precedence. This is useful for services
-/// whose normal debug traffic is too verbose for their default execution mode.
+/// `RUST_LOG` takes precedence over `LOG`, which takes precedence over `default_level`.
 pub fn init_with_default_level(dir: Option<&Path>, default_level: &str) -> io::Result<()> {
     LogTracer::init().ok();
 
@@ -94,7 +91,8 @@ fn install_panic_hook() {
     }));
 }
 
-/// Register a hook that receives every tracing event.
+/// Registers the process's single hook, which receives every event the filter admits; errors if
+/// one is already registered.
 pub fn register_hook<F>(hook: F) -> Result<(), &'static str>
 where
     F: for<'a> Fn(&Event<'a>) + Send + Sync + 'static,

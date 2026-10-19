@@ -1,10 +1,10 @@
 use bitview_traversable::Traversable;
 
-/// Fixed-point storage and its one public view, as a percentage.
+/// A fixed-point value and its public percentage view.
 #[derive(Clone, Traversable)]
 #[traversable(merge)]
 pub struct PercentViews<A, C> {
-    /// Fixed-point storage: parts per million (1,000,000 represents 1.0) or basis points.
+    /// Fixed-point value in parts per million; 1,000,000 represents 1.0.
     #[traversable(hidden)]
     pub fixed: A,
     /// As a percentage.

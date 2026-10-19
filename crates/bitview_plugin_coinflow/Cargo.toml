@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_coinflow"
-description = "The coinflow analytics plugin for Bitview"
+description = "Bitcoin spending-hazard estimates and mobility-weighted cohort metrics"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

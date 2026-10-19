@@ -1,9 +1,8 @@
 # Bitview Plugin
 
-The small compatibility contract shared by Bitview's built-in and external
-plugins.
+Compatibility contract shared by Bitview's built-in and external plugins.
 
-It provides stable plugin identity and root storage schema. A plugin declares one `PluginStorage`, which is
+A plugin declares one `PluginStorage`, which is
 the source of truth for its `PluginId`, root schema version, `plugins/<id>`
 directory, database opening, and database finalization. The directory may be
 empty for an in-memory plugin. Component versions remain local and additive
@@ -25,11 +24,9 @@ manage their own storage); `compute_items!(Dependencies, db)` declares both the
 dependencies stay explicit and typed instead of being hidden in either
 context.
 
-The contexts are lightweight borrowed handles: the runner creates one of each
-and passes them by value through the composition. The
-runnable default composition lives in
-[`bitview_default`](https://crates.io/crates/bitview_default), while
-[`bitview`](https://crates.io/crates/bitview) runs any compatible composition.
+The default composition lives in
+[`bitview_default`](https://crates.io/crates/bitview_default);
+[`bitview`](https://crates.io/crates/bitview) runs compatible compositions.
 
 ## Compositions
 
@@ -39,16 +36,12 @@ adds its typed compute schedule (`compute`, `bootstrap_compute` returning a
 `write_published`, which persists what the publication served from memory: the
 runner calls it after publication, under the exit guard, before the next update.
 A composition extending `DefaultPlugins` delegates `commit` and `write_published`
-to it. With the `derive` feature, a plugin derives
-`Plugin` from its storage (`#[plugin(storage = STORAGE)]`), and `PluginSet` can be
-derived from composition fields: `#[plugin_set(flatten)]` for a nested
-composition, `#[plugin_set(skip)]` for non-plugin state, and
-`#[plugin_set(has = path::HasX<M>)]` to implement a plugin's capability trait,
-whose accessor is named after the field. `bitview` drives the lifecycle
-(bootstrap, then one update per new tip).
+to it. `bitview` drives the lifecycle (bootstrap, then one update per new tip).
 
-The plugin API remains experimental while the built-in Bitview modules are
-extracted into independent crates.
+The `derive` feature re-exports the `Plugin` and `PluginSet` derives; see
+[`bitview_plugin_derive`](../bitview_plugin_derive) for their attributes.
+
+The plugin API is experimental.
 
 ## Plugin layout
 

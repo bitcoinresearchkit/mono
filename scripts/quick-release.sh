@@ -7,7 +7,6 @@ ROOT_DIR="$SCRIPT_DIR/.."
 echo "=== BRK Quick Release ==="
 echo ""
 
-# Check if version argument provided
 if [ -z "$1" ]; then
     echo "Usage: $0 <version|bump>"
     echo "Examples:"
@@ -32,16 +31,11 @@ if [ "$RELEASE_ARG" = "$CURRENT_VERSION" ] &&
     echo ""
 fi
 
-# Load tokens
 if [ -f "$SCRIPT_DIR/.tokens" ]; then
     source "$SCRIPT_DIR/.tokens"
 fi
 
-# ============================================================================
-# 0. VERIFY TOKENS
-# ============================================================================
-
-echo "=== Verifying tokens ==="
+echo "=== Checking credentials ==="
 echo ""
 
 echo "--- npm ---"
@@ -56,10 +50,6 @@ fi
 echo "OK"
 echo ""
 
-# ============================================================================
-# 1. BUILD
-# ============================================================================
-
 if [ "$RESUME_RELEASE" = false ]; then
     echo "=== Building ==="
     echo ""
@@ -71,7 +61,7 @@ if [ "$RESUME_RELEASE" = false ]; then
 
     echo "--- JavaScript ---"
     cd "$ROOT_DIR/modules/bitview-client"
-    # JS doesn't need build step, just verify it loads
+    # JavaScript needs no build step; importing checks the generated module.
     node -e "import('./index.js')"
     echo "OK"
     echo ""
@@ -80,10 +70,6 @@ if [ "$RESUME_RELEASE" = false ]; then
     cd "$ROOT_DIR/packages/bitview_client"
     uv build
     echo ""
-
-    # ============================================================================
-    # 2. GENERATE DOCS
-    # ============================================================================
 
     echo "=== Generating docs ==="
     echo ""
@@ -96,16 +82,11 @@ if [ "$RESUME_RELEASE" = false ]; then
     "$SCRIPT_DIR/python-docs.sh"
     echo ""
 
-    # Commit generated docs
     cd "$ROOT_DIR"
     git add -A
     git commit -m "docs: update generated docs" || echo "No doc changes to commit"
     echo ""
 fi
-
-# ============================================================================
-# 3. CARGO RELEASE (Rust crates)
-# ============================================================================
 
 echo "=== Rust release ==="
 echo ""
@@ -127,36 +108,19 @@ fi
 echo ""
 echo "Released Rust crates at version: $VERSION"
 
-# ============================================================================
-# 4. JAVASCRIPT PACKAGE
-# ============================================================================
-
 echo ""
 echo "=== JavaScript package ==="
 "$SCRIPT_DIR/js-publish.sh" "$VERSION"
 echo ""
-
-# ============================================================================
-# 5. PYTHON PACKAGE
-# ============================================================================
 
 echo ""
 echo "=== Python package ==="
 "$SCRIPT_DIR/python-publish.sh" "$VERSION"
 echo ""
 
-# ============================================================================
-# 6. MCP REGISTRY
-# ============================================================================
-
 echo ""
 echo "=== MCP Registry ==="
 "$SCRIPT_DIR/mcp-publish.sh" "$VERSION"
 echo ""
 
-# ============================================================================
-# DONE
-# ============================================================================
-
-echo "=== Done! ==="
 echo "Released v$VERSION"

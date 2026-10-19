@@ -15,7 +15,3 @@ brk_types = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-
-[[bin]]
-name = "mmpl"
-path = "src/main.rs"

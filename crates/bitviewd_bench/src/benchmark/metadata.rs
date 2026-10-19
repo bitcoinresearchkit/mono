@@ -62,7 +62,6 @@ pub fn write(
     writeln!(writer, "rustc={}", env!("BENCH_RUSTC"))?;
     writeln!(writer, "rustflags={}", env!("BENCH_RUSTFLAGS"))?;
     writeln!(writer, "target={}", env!("BENCH_TARGET"))?;
-    // The host and the input data.
     writeln!(writer, "hostname={}", command("uname", &["-n"]))?;
     writeln!(writer, "cpu={}", cpu())?;
     writeln!(writer, "ram_bytes={}", ram_bytes())?;

@@ -3,20 +3,20 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, FiatType, LazyFiatPerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, PcoVecValue, Rw, StorageMode, WritableVec};
+use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
 
 /// One cohort's fiat amount, stored in cents as `{name}_cents` and shown in every fiat unit.
 #[derive(Traversable)]
-pub struct Fiat<C: FiatType + PcoVecValue = Cents, M: StorageMode = Rw> {
+pub struct Fiat<C: FiatType = Cents, M: StorageMode = Rw> {
     #[traversable(flatten)]
     value: LazyFiatPerBlock<C>,
     #[traversable(hidden)]
     pub stored: CachedSeries<Height, C, M>,
 }
 
-impl<C: FiatType + PcoVecValue> Fiat<C> {
+impl<C: FiatType> Fiat<C> {
     pub(crate) fn import(
         db: &Database,
         name: &str,

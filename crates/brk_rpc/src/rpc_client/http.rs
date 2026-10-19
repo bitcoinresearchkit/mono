@@ -218,8 +218,9 @@ struct Answer {
 
 struct Failure {
     error: HttpError,
-    /// The socket was dead before the node answered (a write error, or EOF or a reset at the
-    /// first read), so the node never handled the request. A timeout is not: it may be working.
+    /// A pooled socket failed before any response byte (a write error, or EOF or a reset at the
+    /// first read): the node most likely closed it while idle. A timeout is not replayable: the
+    /// node may still be working.
     replayable: bool,
 }
 

@@ -11,9 +11,8 @@ use tracing_subscriber::{
     registry::LookupSpan,
 };
 
-// Don't remove, used to know the target of unwanted logs
+// Don't remove: set to true to print each event's target, to find the source of unwanted logs.
 const WITH_TARGET: bool = false;
-// const WITH_TARGET: bool = true;
 
 const fn level_str(level: Level) -> &'static str {
     match level {

@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_derive"
-description = "Derive macro for bitview_plugin compositions"
+description = "Derive macros for Bitview plugins and compositions"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

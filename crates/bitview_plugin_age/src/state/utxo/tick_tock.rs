@@ -12,17 +12,12 @@ pub struct TickTockResult {
     pub coindays_created: AgeRange<CoinDays>,
 }
 
-/// Handle age transitions when processing a new block.
+/// Moves the origins that crossed an age boundary since the previous block into the older
+/// range. Each boundary's search position is cached and, timestamps being monotonic, only
+/// advances, so a block scans just the origins crossing it.
 ///
-/// UTXOs age with each block. When they cross hour boundaries,
-/// they move between age-based cohorts (e.g., from "0-1h" to "1h-1d").
-///
-/// Uses cached positions per boundary to avoid binary search.
-/// Since timestamps are monotonic, positions only advance forward.
-/// Complexity: O(k * c), where k is the boundary count and c is ~1 forward scan step.
-///
-/// Returns both the sats matured out of each cohort and the coindays created
-/// inside each cohort during the preceding block interval.
+/// Returns the sats matured out of each range and the coin days created in each during the
+/// preceding block interval.
 pub fn tick_tock_next_block(
     states: &mut UTXOStates,
     amounts: &[Amount],
@@ -35,9 +30,7 @@ pub fn tick_tock_next_block(
 
     let timestamps = &ctx.height_to_timestamp[..amounts.len()];
     let prev_timestamp = *timestamps.last().unwrap();
-    let elapsed = (*timestamp).saturating_sub(*prev_timestamp);
-
-    // Skip if no time has passed
+    let elapsed = *timestamp - *prev_timestamp;
     if elapsed == 0 {
         return TickTockResult::default();
     }
@@ -45,10 +38,9 @@ pub fn tick_tock_next_block(
     let mut matured = AgeRange::default();
     let UTXOStates {
         age_range,
-        transient,
+        tick_tock_cached_positions: cached,
         ..
     } = states;
-    let cached = &mut transient.tick_tock_cached_positions;
 
     // Every live sat creates time in its cohort at the start of the interval.
     // Boundary crossings below transfer only the post-crossing tail to the
@@ -63,7 +55,7 @@ pub fn tick_tock_next_block(
         cached,
         |h, younger, older, crossing_timestamp| {
             let supply = supply(amounts[h]);
-            let tail_seconds = (*timestamp).saturating_sub(crossing_timestamp);
+            let tail_seconds = *timestamp - crossing_timestamp;
             debug_assert!(tail_seconds <= elapsed);
             move_created_tail(
                 &mut created_sat_seconds,

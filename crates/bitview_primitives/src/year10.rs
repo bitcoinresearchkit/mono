@@ -21,6 +21,13 @@ impl Year10 {
     pub fn to_timestamp(&self) -> Timestamp {
         Timestamp::from(Date::from(*self))
     }
+
+    pub(crate) fn index_name() -> &'static str {
+        "year10"
+    }
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
+        &["10y", "decade", "year10", "decadeindex"]
+    }
 }
 
 impl From<Day1> for Year10 {
@@ -58,14 +65,6 @@ impl From<Year1> for Year10 {
     }
 }
 
-impl Year10 {
-    pub(crate) fn index_name() -> &'static str {
-        "year10"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["10y", "decade", "year10", "decadeindex"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for Year10 {
     fn to_string() -> &'static str {

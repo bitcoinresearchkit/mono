@@ -62,7 +62,7 @@ impl Pools {
         self.by_addr.get(addr).map(|&slug| self.get(slug))
     }
 
-    pub fn get_unknown(&self) -> &Pool {
+    pub fn unknown(&self) -> &Pool {
         &self.pools[0]
     }
 
@@ -88,21 +88,13 @@ pub fn pools() -> &'static Pools {
             from_str(JSON_DATA).expect("Failed to parse pools-v2.json");
 
         let max_id = entries.iter().map(|entry| entry.id).max().unwrap_or(0);
-        assert!(
+        debug_assert!(
             max_id <= u8::MAX as u16,
             "pool ID {max_id} exceeds PoolSlug's u8 range"
         );
         let mut pools: Vec<Pool> = (0..=usize::from(max_id)).map(empty_pool).collect();
 
-        // Position 0: Unknown pool
-        pools[0] = Pool {
-            slug: PoolSlug::Unknown,
-            name: "Unknown",
-            addrs: Box::new([]),
-            tags: Box::new([]),
-            tags_lowercase: Box::new([]),
-            link: "",
-        };
+        pools[0].name = "Unknown";
 
         for entry in entries {
             if TESTNET_IDS.contains(&entry.id) {

@@ -24,14 +24,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub unclaimed: ValuePerBlockCumulativeRolling<M>,
     /// One minus the subsidy share: the claimed fees divided by coinbase output
     /// value. Cumulative variants use cumulative totals; rolling variants use
-    /// totals within the trailing window. Larger values mean fees supplied more
-    /// of the miner revenue.
+    /// totals within the trailing window.
     #[traversable(wrap = "fees", rename = "share")]
     pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
     /// The derived subsidy component divided by coinbase output value.
     /// Cumulative variants use cumulative totals; rolling variants use totals
-    /// within the trailing window. Larger values mean the derived subsidy
-    /// supplied more of the miner revenue.
+    /// within the trailing window.
     #[traversable(wrap = "subsidy", rename = "share")]
     pub subsidy_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }

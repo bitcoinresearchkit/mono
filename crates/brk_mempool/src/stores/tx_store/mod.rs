@@ -67,12 +67,11 @@ impl TxStore {
         hasher.finish()
     }
 
-    pub fn insert(&mut self, tx: impl Into<Arc<Transaction>>, entry: TxEntry) {
-        let tx = tx.into();
+    pub fn insert(&mut self, tx: Arc<Transaction>, entry: TxEntry) {
         let key = entry.key();
         debug_assert!(
             !self.read_only.records.contains_key(&key),
-            "TxKey collision: {key:?} already mapped. Birthday-rare on a keyed 64-bit hash."
+            "TxKey collision: {key:?} already mapped"
         );
         let position = self.read_only.records.len();
         let txid = entry.txid;
@@ -97,8 +96,8 @@ impl TxStore {
     /// Remove by key and return the full record if present. `recent`
     /// is untouched: it's an "added" window, not a live-set mirror.
     pub fn remove_by_key(&mut self, key: &TxKey) -> Option<TxRecord> {
-        let last_position = self.read_only.records.len().checked_sub(1)?;
         let last_txid = self.read_only.records.last()?.1.entry.txid;
+        let last_position = self.read_only.records.len() - 1;
         let (position, _, record) = self.read_only.records.swap_remove_full(key)?;
         self.read_only.txids_hash ^= Self::txid_position_hash(&record.entry.txid, position);
         if position != last_position {
@@ -111,8 +110,7 @@ impl TxStore {
         Some(record)
     }
 
-    /// Set of keys with at least one unfilled prevout. Used by the
-    /// prevout filler as a cheap "is there any work?" gate.
+    /// Keys of the records with at least one unfilled prevout.
     pub fn unresolved(&self) -> &FxHashSet<TxKey> {
         &self.unresolved
     }
@@ -129,9 +127,11 @@ impl TxStore {
         fills: Vec<(Vin, TxOut)>,
         mut on_applied: impl FnMut(&TxOut),
     ) {
-        let Some(record) = self.read_only.records.get_mut(key) else {
-            return;
-        };
+        let record = self
+            .read_only
+            .records
+            .get_mut(key)
+            .expect("filled tx is pooled");
         let tx = Arc::make_mut(&mut record.tx);
         for (vin, prevout) in fills {
             let txin = &mut tx.input[usize::from(vin)];

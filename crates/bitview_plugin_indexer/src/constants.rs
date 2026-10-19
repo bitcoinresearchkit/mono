@@ -1,8 +1,8 @@
 use bitview_primitives::SupplyState;
 use brk_types::{Height, Sats, TxIndex, Version};
 
-// One version for all data sources
-// Increment on **change _OR_ addition**
+// One schema version for every data source: bump it when stored data changes or a source is
+// added.
 pub const VERSION: Version = Version::new(44);
 
 /// A BIP30 duplicate coinbase (https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki): it re-created

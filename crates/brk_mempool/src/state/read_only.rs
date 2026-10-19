@@ -72,8 +72,8 @@ impl ReadOnlyState {
     }
 
     /// Last valid template projection; its source may be newer than retained membership.
-    pub(crate) fn snapshot(&self) -> Arc<Snapshot> {
-        self.projection.clone()
+    pub(crate) fn snapshot(&self) -> &Arc<Snapshot> {
+        &self.projection
     }
 
     pub(crate) fn historical_block0(&self, hash: NextBlockHash) -> Option<Arc<[Arc<Transaction>]>> {

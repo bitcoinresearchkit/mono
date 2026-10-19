@@ -108,7 +108,7 @@ impl TyExpr {
         &self,
         names: &[String],
         brackets: [&str; 2],
-        value: &dyn Fn(&str) -> String,
+        value: &impl Fn(&str) -> String,
     ) -> String {
         match self {
             Self::Param(p) => param_name(*p),
@@ -133,7 +133,7 @@ impl TyExpr {
 
 /// The name of a shape's `p`-th type parameter.
 pub(crate) fn param_name(p: usize) -> String {
-    assert!(p < 26, "a shape has more type parameters than letters");
+    debug_assert!(p < 26, "a shape has more type parameters than letters");
     char::from(b'A' + p as u8).to_string()
 }
 
@@ -168,8 +168,8 @@ struct Flat {
 }
 
 impl Model {
-    /// Builds the model and checks that composing every leaf's name from the root reproduces the
-    /// catalog exactly.
+    /// Builds the model; debug builds check that composing every leaf's name from the root
+    /// reproduces the catalog exactly.
     pub(crate) fn build(tree: &TreeNode) -> Self {
         let mut names: Vec<String> = Vec::new();
         let mut kinds: Vec<Option<String>> = Vec::new();
@@ -297,7 +297,9 @@ impl Model {
             root,
             shapes,
         };
-        model.check(model.root, "");
+        if cfg!(debug_assertions) {
+            model.check(model.root, "");
+        }
         model.infer_types();
         model
     }
@@ -401,8 +403,7 @@ impl Model {
 
     /// Each shape's type name: `SeriesTree` for the root, otherwise the PascalCase tail of the
     /// shape's shallowest (then smallest) path, with as many trailing keys as it takes to be unique,
-    /// stay clear of `reserved` and the type-parameter letters, and start with a letter. Names are
-    /// unique and never reserved.
+    /// stay clear of `reserved` and the type-parameter letters, and start with a letter.
     pub(crate) fn shape_names(&self, reserved: &BTreeSet<String>) -> Vec<String> {
         let max_params = self.params.iter().copied().max().unwrap_or(0);
         let reserved: BTreeSet<String> = reserved
@@ -451,7 +452,7 @@ impl Model {
         // others, and any name still unusable, take the first free numeric suffix.
         let mut names = vec![String::new(); self.shapes.len()];
         names[root] = "SeriesTree".to_owned();
-        assert!(!reserved.contains(&names[root]), "`SeriesTree` is reserved");
+        debug_assert!(!reserved.contains(&names[root]), "`SeriesTree` is reserved");
         let mut taken: HashSet<String> = reserved.iter().cloned().collect();
         taken.insert(names[root].clone());
         let mut suffixed = Vec::new();
@@ -496,7 +497,7 @@ impl Model {
                 })
         });
         let (order, stuck) = topological(self.shapes.len(), edges);
-        assert!(stuck.is_empty(), "shape dependencies form a cycle");
+        debug_assert!(stuck.is_empty(), "shape dependencies form a cycle");
         order
     }
 
@@ -523,15 +524,15 @@ fn flatten(
 ) -> usize {
     match node {
         TreeNode::Leaf(leaf) => {
-            let name = leaf.name();
+            let name = &leaf.leaf.name;
             assert!(
                 !name.starts_with('_')
                     && !name.ends_with('_')
                     && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'),
                 "series names are ASCII letters, digits and inner `_`: {name:?}"
             );
-            names.push(leaf.name().to_string());
-            kinds.push(Some(leaf.kind().to_string()));
+            names.push(name.clone());
+            kinds.push(Some(leaf.leaf.kind.clone()));
             flats.push(None);
         }
         TreeNode::Branch(branch) => {

@@ -3,8 +3,9 @@
 Reads never wait for compute, and the server never retries them: a read either answers from
 the state published when it started, or fails fast with a status the client can retry.
 
-- **One deadline per request.** Five seconds from arrival bound the HTTP handling, every
-  admission wait and the blocking query work alike. Past it the response is 504 `timeout`.
+- **One deadline per request.** HTTP handling and admission waits share five seconds from
+  arrival; past them the response is 504 `timeout`. Blocking work keeps its admission until it
+  exits, even after the HTTP future times out.
 - **One pin per read.** A read pins the published lengths (`SafeLengths`): rows below them stay
   put while the pin lives, updates append past them, and a rollback or rebuild lowers the
   publication before rewriting. A read reaching rows a lowered publication is rewriting, or
@@ -16,13 +17,14 @@ the state published when it started, or fails fast with a status the client can 
   series search and data, UTXO set, URPD, disk usage). A request queues for its permit within
   the deadline; series data is further bounded by its weight limit.
 - **Response bodies.** Potentially large responses (transactions, blocks and their pages,
-  address histories, raw blocks, block templates, mempool txids, historical prices, UTXO sets,
-  URPDs) also take a body permit before building, held from allocation through compression to
-  the last frame sent, so slow clients bound memory. A request first tries one without
-  waiting; if none is free it releases its query permit, waits for a body permit within the
-  deadline, and builds again. Responses whose validator comes with their bytes (outspends, RBF
-  trees, mempool summaries, all-pools hashrate) build first and take a permit the same way
-  only when the body is large.
+  address histories, raw blocks, block templates, mempool txids, UTXO sets, URPDs) also take a
+  body permit before building; bodies of at least 256 KiB hold it through compression to the
+  last frame sent, so slow clients bound memory, and smaller ones release it once built. A
+  request first tries one without waiting; if none is free it releases its query permit, waits
+  for a body permit within the deadline, and builds again. Responses whose validator comes
+  with their bytes (historical prices, outspends, RBF trees, mempool summaries, all-pools
+  hashrate) build first, then take a permit the same way; all but historical prices skip it
+  when the body is small.
 - **Validators first.** Other routes resolve their validator before building the body: a
   matching conditional request gets a 304 without body work or a body permit.
 

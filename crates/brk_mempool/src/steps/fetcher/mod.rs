@@ -9,15 +9,16 @@ use tracing::warn;
 
 use crate::State;
 
-/// Cap before the batch RPC so we never hand bitcoind an unbounded batch.
-/// New template transactions are not subject to this cap: they're bounded
-/// by the block weight limit Core enforces on its own template.
+/// Bounds the non-template transactions fetched per cycle (the RPC client
+/// separately chunks its batches). New template transactions are not subject
+/// to this cap: they're bounded by the block weight limit Core enforces on its
+/// own template.
 const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 
-/// Two batched round-trips per cycle, scaling with churn rather than
-/// mempool size: `getblocktemplate` + `getrawmempool false` +
-/// `getmempoolinfo` in one mixed batch, then `getmempoolentry` (+
-/// `getrawtransaction` outside the template) for *new* txids in a second.
+/// Scales with churn rather than mempool size: `getblocktemplate` +
+/// `getrawmempool false` + `getmempoolinfo` in one mixed batch, then
+/// `getmempoolentry` (+ `getrawtransaction` outside the template) for *new*
+/// txids, in batches of at most 2,000 txids.
 ///
 /// New template transactions lead that batch, uncapped (Core bounds the
 /// template), entries only: their bodies are decoded from the template, and
@@ -27,9 +28,8 @@ const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 /// time (`now`) estimated (its policy vsize follows from the template's weight
 /// and sigops).
 ///
-/// Confirmed prevouts are resolved post-apply by the caller-supplied
-/// resolver passed to `Mempool::tick_with`, so the in-crate path no
-/// longer issues a third batch for parents.
+/// Confirmed prevouts are resolved after apply, by the resolver passed to
+/// `Mempool::tick_with`.
 pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
     let (mut state, block_template) = client.fetch_mempool_state()?;
 
@@ -57,7 +57,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
     if new_txids.len() == MAX_TX_FETCHES_PER_CYCLE {
         warn!(
             cap = MAX_TX_FETCHES_PER_CYCLE,
-            "Fetcher: new-tx batch hit the per-cycle cap; remainder defers to the next cycle"
+            "mempool new-tx fetch hit the per-cycle cap"
         );
     }
 

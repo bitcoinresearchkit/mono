@@ -16,6 +16,14 @@ impl AddrHash {
     pub const fn new(value: u64) -> Self {
         Self(value)
     }
+
+    #[inline]
+    pub fn from_script(script: &ScriptBuf, output_type: OutputType) -> Result<Self, Error> {
+        Ok(Self::new(v3::rapidhash_v3(AddressBytes::script_payload(
+            script,
+            output_type,
+        )?)))
+    }
 }
 
 impl From<&AddressBytes> for AddrHash {
@@ -26,13 +34,3 @@ impl From<&AddressBytes> for AddrHash {
 }
 
 brk_types::impl_store_value!(AddrHash, u64);
-
-impl AddrHash {
-    #[inline]
-    pub fn from_script(script: &ScriptBuf, output_type: OutputType) -> Result<Self, Error> {
-        Ok(Self::new(v3::rapidhash_v3(AddressBytes::script_payload(
-            script,
-            output_type,
-        )?)))
-    }
-}

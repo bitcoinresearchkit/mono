@@ -13,8 +13,6 @@ use vecdb::{ReadableVec, VecIndex};
 use crate::{Error, OptionData, Query, Result};
 
 impl Query {
-    // === Helper methods ===
-
     pub(crate) fn block_txs_at_height(
         &self,
         height: Height,
@@ -35,11 +33,7 @@ impl Query {
             .collect();
         self.transactions_at_indices(&indices, guard)
     }
-    /// All txids in the block at `height`, canonical order. `OutOfRange`
-    /// when `height` is past the indexed tip; `Internal` if any read hits
-    /// the stamp-before-data race or short-returns. Used by both the
-    /// hash-keyed and height-keyed entry points so they share bounds
-    /// semantics.
+    /// The txids of the block at `height`, in block order; errors as [`Self::block_tx_range`].
     pub(crate) fn block_txids_by_height(
         &self,
         height: Height,
@@ -53,13 +47,12 @@ impl Query {
             .txid
             .collect_range_at(first, first + tx_count);
         if txids.len() != tx_count {
-            return Err(Error::Internal("block_txids_by_height: short txid read"));
+            return Err(Error::Internal("Short block txid read"));
         }
         Ok(txids)
     }
-    /// Single txid at an in-block offset. `OutOfRange` when `index` is past
-    /// the last tx in the block. `Internal` if the underlying read finds
-    /// the stamp-before-data race (`first_tx_index` flushed ahead of `txid`).
+    /// The txid at an in-block offset; `OutOfRange` past the block's last transaction, other
+    /// errors as [`Self::block_tx_range`].
     pub(crate) fn block_txid_at_index_by_height(
         &self,
         height: Height,
@@ -75,9 +68,7 @@ impl Query {
             .transactions
             .txid
             .collect_one_at(first + index)
-            .ok_or(Error::Internal(
-                "block_txid_at_index_by_height: txid index past data",
-            ))
+            .ok_or(Error::Internal("Block txid missing"))
     }
     /// Internal batch read; caller holds its pin from selection.
     pub(crate) fn transactions_at_indices(
@@ -100,8 +91,6 @@ impl Query {
         order.sort_unstable_by_key(|&i| indices[i]);
 
         let indexer = self.indexer();
-
-        // ── Phase 1: Decode all transactions, collect outpoints ─────────
 
         let txids = indexer.vecs().transactions.txid.reader();
         let mut total_size_cursor = indexer.vecs().transactions.total_size.cursor();
@@ -129,7 +118,6 @@ impl Query {
         let mut total_inputs: usize = 0;
         let mut cached_status: Option<(Height, TxStatus)> = None;
 
-        // Phase 1a: Read metadata + decode transactions (no outpoint reads yet)
         for &pos in &order {
             let tx_index = indices[pos];
             let idx = tx_index.to_usize();
@@ -169,10 +157,8 @@ impl Query {
             });
         }
 
-        // Phase 1b: Batch-read outpoints + prevout data via cursors. PcoVec
-        // sequential cursors avoid re-decompressing the same pages.
-        // Reading output_type/type_index/value HERE from inputs vecs (sequential)
-        // avoids random-reading them from outputs vecs in Phase 2.
+        // Sequential input cursors reuse decompressed pages, and reading output type, type index
+        // and value from the input vecs avoids random reads of the output vecs.
         let mut outpoint_cursor = indexer.vecs().inputs.outpoint.cursor();
         let mut input_output_type_cursor = indexer.vecs().inputs.output_type.cursor();
         let mut input_type_index_cursor = indexer.vecs().inputs.type_index.cursor();
@@ -199,7 +185,6 @@ impl Query {
             dtx.outpoints = outpoints;
         }
 
-        // ── Phase 2: Build prevout TxOut map ──
         // Sort by (output_type, type_index) for sequential BytesVec access within each address
         // type's file; non-address output indices are chronological within each script type, so
         // a decoded parent serves its adjacent outputs.
@@ -219,8 +204,6 @@ impl Query {
         }
         drop(scripts);
         debug_assert_eq!(prevout_map.len(), prevout_count, "an outpoint spent twice");
-
-        // ── Phase 3: Assemble Transaction objects ───────────────────────
 
         let mut txs: Vec<Option<Transaction>> = (0..len).map(|_| None).collect();
 

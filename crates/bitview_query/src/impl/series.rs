@@ -21,11 +21,9 @@ mod read;
 
 pub use read::SeriesRead;
 
-/// Estimated bytes per column header
+// Buffer-capacity estimates, in bytes.
 const CSV_HEADER_BYTES_PER_COL: usize = 10;
-/// Estimated bytes per cell value
 const CSV_CELL_BYTES: usize = 15;
-/// Estimated bytes per JSON cell value
 const JSON_CELL_BYTES: usize = 20;
 
 enum JsonShape {
@@ -44,8 +42,7 @@ impl Query {
         end: usize,
         buf: &mut Vec<u8>,
     ) -> Result<()> {
-        let end = end.min(vec.visible_len());
-        let start = start.min(end);
+        debug_assert!(start <= end && end <= vec.visible_len());
         let mut integer = Buffer::new();
 
         buf.extend_from_slice(b"{\"version\":");
@@ -53,7 +50,7 @@ impl Query {
         buf.extend_from_slice(b",\"index\":\"");
         buf.extend_from_slice(index.name().as_bytes());
         buf.extend_from_slice(b"\",\"type\":\"");
-        buf.extend_from_slice(vec.value_type_to_string().as_bytes());
+        buf.extend_from_slice(vec.value_type_name().as_bytes());
         buf.extend_from_slice(b"\",\"start\":");
         buf.extend_from_slice(integer.format(start).as_bytes());
         buf.extend_from_slice(b",\"end\":");
@@ -82,10 +79,6 @@ impl Query {
     }
 
     fn columns_to_csv(columns: &[BoundedVec<'_>], start: usize, end: usize) -> Result<Vec<u8>> {
-        if columns.is_empty() {
-            return Ok(Vec::new());
-        }
-
         let num_cols = columns.len();
         let mut csv = Vec::with_capacity(num_cols * CSV_HEADER_BYTES_PER_COL);
         for (i, col) in columns.iter().enumerate() {
@@ -108,7 +101,7 @@ impl Query {
 
         let from = Some(start as i64);
         let to = Some(end as i64);
-        let num_rows = columns[0].range_count(from, to);
+        let num_rows = end - start;
         csv.reserve(num_rows * num_cols * CSV_CELL_BYTES);
         // One scope for every cell: each writer's own scope joins it instead of registering.
         let _scope = columns[0].bounds().enter();
@@ -173,7 +166,6 @@ impl Query {
         Ok(value)
     }
 
-    /// Returns the length (total data points) for a single series.
     pub fn len(&self, series: &SeriesName, index: Index) -> Result<usize> {
         let entry = self.get_entry(series, index)?;
         let read = SeriesRead::new(self, vec![entry])?;
@@ -185,13 +177,7 @@ impl Query {
     pub fn find_version(&self, series: &SeriesName, index: Index) -> Result<Option<Version>> {
         Ok(self
             .find_entry(series, index)?
-            .map(|entry| entry.vec().version()))
-    }
-
-    /// Search for vecs matching the given series and index.
-    /// Returns error if no series requested or any requested series is not found.
-    fn search(&self, params: &SeriesSelection) -> Result<SeriesRead> {
-        SeriesRead::new(self, self.search_entries(params)?)
+            .map(|entry| entry.vec.version()))
     }
 
     fn search_entries(&self, params: &SeriesSelection) -> Result<Vec<SeriesEntry<'static>>> {
@@ -205,7 +191,6 @@ impl Query {
             .collect()
     }
 
-    /// Calculate total weight of the vecs for the given range.
     fn weight(read: &SeriesRead, from: Option<i64>, to: Option<i64>) -> usize {
         read.columns()
             .map(|v| v.range_weight(from, to))
@@ -215,7 +200,7 @@ impl Query {
     /// Resolve query metadata without formatting (cheap), so callers can
     /// decide whether the representation body is needed before formatting.
     pub fn resolve(&self, params: SeriesSelection, max_weight: usize) -> Result<ResolvedQuery> {
-        let read = self.search(&params)?;
+        let read = SeriesRead::new(self, self.search_entries(&params)?)?;
         let index = params.index;
 
         let (mut total, mut version) = (usize::MAX, Version::ZERO);
@@ -230,11 +215,11 @@ impl Query {
         // the rows (a date after the last block included).
         let pinned = |bound: i64| usize::try_from(bound).is_ok_and(|bound| bound <= total);
 
-        let (start, start_pinned) = match params.start() {
+        let (start, start_pinned) = match params.start {
             Some(ri) => {
                 let start = resolve_bound(ri)?;
                 // A start past a lowered publication targets rows being rewritten, not missing;
-                // ends and limits are caps, clamped as always.
+                // ends and limits are caps, so they clamp.
                 if let Ok(start) = usize::try_from(start) {
                     check_bound(read.pin(), start, total)?;
                 }
@@ -243,17 +228,16 @@ impl Query {
             None => (0, true),
         };
 
-        let (end, end_pinned) = match params.end() {
+        let (end, end_pinned) = match params.end {
             Some(ri) => {
                 let end = resolve_bound(ri)?;
                 (i64_to_usize(end, total), pinned(end))
             }
-            None => match params.limit() {
+            None => match params.limit {
                 Some(limit) => {
                     let end = start.saturating_add(*limit);
                     (end.min(total), start_pinned && end <= total)
                 }
-                // Through the latest row.
                 None => (total, false),
             },
         };
@@ -275,7 +259,7 @@ impl Query {
 
         Ok(ResolvedQuery {
             read,
-            format: params.format(),
+            format: params.format,
             index,
             version,
             start,
@@ -306,8 +290,8 @@ impl Query {
             return tip;
         }
         let height = if index.is_date_based() {
-            // A period's extent and date also depend on the block after it (its monotonic
-            // timestamp ends the period; an empty period takes its date from it).
+            // A period's extent depends on the block after it: the next period's first block ends
+            // it (by its monotonic timestamp), empty periods included.
             match self.plugins().mappings.first_height_at(index, end) {
                 Some(height) if height < cutoff => Some(height),
                 _ => return tip,
@@ -368,8 +352,8 @@ impl Query {
                 mappings.first_height_at(index, row + 1)?.decremented()
             }
             // Every block has transactions and outputs: the block holding `row`.
-            Index::TxIndex => mappings.tx_heights.get_shared(TxIndex::from(row)),
-            Index::TxOutIndex => mappings.output_heights.get_shared(TxOutIndex::from(row)),
+            Index::TxIndex => mappings.tx_heights.get(TxIndex::from(row)),
+            Index::TxOutIndex => mappings.output_heights.get(TxOutIndex::from(row)),
             // Other entities: the block before the first one below the cutoff starting past
             // `row`.
             _ => {
@@ -387,13 +371,12 @@ impl Query {
         }
     }
 
-    /// Format a resolved query (expensive).
     #[inline]
     pub fn format(&self, resolved: ResolvedQuery) -> Result<Output> {
         Self::format_as(resolved, JsonShape::Single)
     }
 
-    /// Format a resolved bulk query, always returning a JSON array.
+    /// Like `format`, but JSON is an array even for one series. CSV is unchanged.
     #[inline]
     pub fn format_bulk(&self, resolved: ResolvedQuery) -> Result<Output> {
         Self::format_as(resolved, JsonShape::Bulk)
@@ -418,7 +401,7 @@ impl Query {
         let output = match format {
             Format::CSV => Output::CSV(Self::columns_to_csv(&vecs, start, end)?),
             Format::JSON => {
-                let count = end.saturating_sub(start);
+                let count = end - start;
                 let overhead = if matches!(shape, JsonShape::Raw) {
                     2
                 } else {
@@ -493,7 +476,6 @@ impl Query {
         self.vecs().resolve_series_info(series)
     }
 
-    /// Resolve a RangeIndex to an i64 offset for the given index type.
     fn range_index_to_i64(&self, ri: RangeIndex, index: Index, read: &SeriesRead) -> Result<i64> {
         match ri {
             RangeIndex::Int(i) => Ok(i),
@@ -567,13 +549,14 @@ impl Query {
 /// What a series representation is tied to (see [`Query::resolve`]).
 #[derive(Clone, Copy)]
 pub enum SeriesAnchor {
-    /// Every row lies below the six-block reorg window: the last block the rows cover.
+    /// Every row lies below the six-block reorg window: the last block the rows depend on (for
+    /// calendar indexes, the next period's first block).
     Historical(BlockHashPrefix),
-    /// The rows reach the reorg window, or a series rewrites existing rows: the published tip.
+    /// The range depends on the chain's length, reaches the reorg window, or a series rewrites
+    /// existing rows: the published tip.
     Tip(BlockHashPrefix),
 }
 
-/// A resolved series query ready for formatting.
 /// Keeps selected plugins and the indexer's published bounds stable through
 /// formatting.
 ///
@@ -608,17 +591,14 @@ impl ResolvedQuery {
         self.anchor
     }
 
-    fn columns(&self) -> impl ExactSizeIterator<Item = BoundedVec<'_>> + '_ {
-        self.read.columns()
-    }
-
     pub fn csv_filename(&self) -> String {
-        let capacity = self.columns().map(|v| v.name().len()).sum::<usize>()
-            + self.columns().len().saturating_sub(1)
+        let capacity = self.read.columns().map(|v| v.name().len()).sum::<usize>()
+            + self.read.columns().len()
+            - 1
             + self.index.name().len()
             + 5;
         let mut filename = String::with_capacity(capacity);
-        for (position, vec) in self.columns().enumerate() {
+        for (position, vec) in self.read.columns().enumerate() {
             if position != 0 {
                 filename.push('_');
             }

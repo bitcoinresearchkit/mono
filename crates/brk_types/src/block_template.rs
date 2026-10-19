@@ -16,7 +16,6 @@ pub struct BlockTemplate<Txs = Vec<Transaction>> {
     /// Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
     pub hash: NextBlockHash,
 
-    /// Aggregate stats for this block (size, vsize, fee range, ...).
     pub stats: MempoolBlock,
 
     /// Full transaction bodies in `getblocktemplate` order.

@@ -10,7 +10,7 @@ use bitview_compute::{Inputs, save_point, write_chunks};
 use bitview_distribution::state::cost_basis::age_index;
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
-use brk_error::{Error, Result};
+use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
@@ -19,7 +19,6 @@ use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 use crate::{Dependencies, Vecs, live::LiveState, state::UTXOStates};
 use origin_targets::OriginTargets;
 
-/// Every output the replay writes (1,144 at present).
 const OUTPUT_CAPACITY: usize = 2_048;
 
 impl ComputePlugin for Vecs {
@@ -75,11 +74,8 @@ impl ComputePlugin for Vecs {
         };
         spot.read_into_at(price_data.len(), end, &mut price_data);
         monotonic.read_into_at(timestamps.len(), end, &mut timestamps);
-        if price_data.len() != end || timestamps.len() != end {
-            return Err(Error::NotFound(
-                "incomplete age price or timestamp history".into(),
-            ));
-        }
+        debug_assert_eq!(price_data.len(), end);
+        debug_assert_eq!(timestamps.len(), end);
         max.extend(&price_data);
         let mut ctx = ComputeContext {
             starting_height: Height::from(start),

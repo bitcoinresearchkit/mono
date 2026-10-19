@@ -29,7 +29,6 @@ where
     version: Version,
     source: ReadableBoxedVec<S1I, S1T>,
     mapping: RangeMapVec<I, S1I>,
-    #[allow(clippy::type_complexity)]
     _phantom: PhantomData<fn() -> (I, O, Strat)>,
 }
 
@@ -40,7 +39,6 @@ where
     S1I: VecIndex,
     S1T: VecValue,
 {
-    /// The shared source read by this aggregation view.
     pub(crate) fn source(&self) -> &ReadableBoxedVec<S1I, S1T> {
         &self.source
     }

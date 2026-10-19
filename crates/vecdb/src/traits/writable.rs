@@ -4,18 +4,11 @@ use log::debug;
 
 use crate::{AnyStoredVec, Bytes, Error, Result, Stamp, VecIndex, VecValue, Version};
 
-/// Maximum in-memory cache size before forcing a flush (1 GiB).
-/// Prevents unbounded memory growth when pushing many values without flushing.
+/// Pushed bytes per write batch (1 GiB): `compute_to` batches by it and
+/// [`WritableVec::batch_limit_reached`] reports reaching it; nothing writes on its own.
 pub const MAX_CACHE_SIZE: usize = 1024 * 1024 * 1024;
 
 /// Typed interface for stored vectors (push, truncate, rollback).
-///
-/// Provides the core write operations for all stored vec types.
-/// For reading, use [`ReadableVec`] (`collect_range`, `fold_range_at`, etc.).
-/// Raw vecs (`BytesVec`, `ZeroCopyVec`) additionally provide
-/// `VecReader` for O(1) random access.
-///
-/// [`ReadableVec`]: crate::ReadableVec
 pub trait WritableVec<I, T>: AnyStoredVec
 where
     I: VecIndex,
@@ -28,13 +21,10 @@ where
     /// Returns the current pushed (uncommitted) values.
     fn pushed(&self) -> &[T];
 
-    /// Truncates the vector to the given usize index if the current length exceeds it.
     fn truncate_if_needed_at(&mut self, index: usize) -> Result<()>;
 
-    /// Resets the vector state.
     fn reset(&mut self) -> Result<()>;
 
-    /// Resets uncommitted changes.
     fn reset_unsaved(&mut self);
 
     /// Returns true if there are uncommitted changes.
@@ -51,7 +41,6 @@ where
     /// Rolls back the most recent change set.
     fn rollback(&mut self) -> Result<()>;
 
-    /// Returns available rollback change files.
     #[doc(hidden)]
     fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>>;
 
@@ -121,7 +110,6 @@ where
         Ok(self.stamp())
     }
 
-    /// Number of pushed (uncommitted) values in the memory buffer.
     #[inline]
     fn pushed_len(&self) -> usize {
         self.pushed().len()
@@ -139,7 +127,6 @@ where
         self.push(value);
     }
 
-    /// Truncates the vector to the given index if the current length exceeds it.
     fn truncate_if_needed(&mut self, index: I) -> Result<()> {
         self.truncate_if_needed_at(index.to_usize())
     }
@@ -151,22 +138,18 @@ where
         self.truncate_if_needed(index)
     }
 
-    /// Clears all values from the vector.
     #[inline]
     fn clear(&mut self) -> Result<()> {
         self.truncate_if_needed_at(0)
     }
 
-    /// Returns true if the pushed cache has reached the batch limit (~1GiB).
-    ///
-    /// When this limit is reached, the caller should flush to disk before continuing.
-    /// This prevents excessive memory usage during bulk operations.
+    /// Whether the pushed values fill a 1 GiB write batch: write before pushing more.
     #[inline]
     fn batch_limit_reached(&self) -> bool {
         self.pushed_len() * Self::SIZE_OF_T >= MAX_CACHE_SIZE
     }
 
-    /// Flushes with the given stamp, optionally saving changes for rollback.
+    /// Writes a checkpoint at `stamp`, saving its undo record when `with_changes`.
     #[inline]
     fn stamped_write_maybe_with_changes(&mut self, stamp: Stamp, with_changes: bool) -> Result<()> {
         self.any_stamped_write_maybe_with_changes(stamp, with_changes)
@@ -178,11 +161,7 @@ where
         self.any_validate_computed_version_or_reset(dep_version)?;
 
         if self.is_empty() {
-            debug!(
-                "Computing {}_to_{}...",
-                self.index_type_to_string(),
-                self.name()
-            )
+            debug!("Computing {}_to_{}...", self.index_type_name(), self.name())
         }
 
         Ok(())

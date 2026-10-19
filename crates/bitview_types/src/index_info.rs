@@ -4,7 +4,6 @@ use bitview_primitives::Index;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Information about an available index and its query aliases
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
 pub struct IndexInfo {
     /// The canonical index name

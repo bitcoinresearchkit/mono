@@ -7,10 +7,8 @@ use vecdb::{BinaryTransform, DeltaAvg, LazyDeltaVec, ReadableCloneableVec, Unary
 
 use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec, shapes::Windows};
 
-/// Fully lazy rolling percent windows — 4 windows (24h, 1w, 1m, 1y),
-/// each with lazy fixed-point values and a lazy percent view.
-///
-/// No stored vecs. All values are derived from one source.
+/// Rolling-window percentage views: window ratios of cumulative numerator and denominator
+/// sources, or window averages of one cumulative source.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyPercentRollingWindows<B: FixedRatio>(pub Windows<LazyPercentPerBlock<B>>);
 

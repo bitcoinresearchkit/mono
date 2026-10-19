@@ -1,6 +1,6 @@
 [package]
 name = "brk_reader"
-description = "A very fast Bitcoin block parser and iterator built on top of bitcoin-rust"
+description = "Streams Bitcoin Core block files in canonical chain order"
 keywords = ["bitcoin", "block", "iterator"]
 categories = ["cryptography::cryptocurrencies", "encoding"]
 version.workspace = true

@@ -1,4 +1,4 @@
-use brk_types::{FeeRate, MempoolBlock, Sats, VSize, get_weighted_percentiles};
+use brk_types::{FeeRate, MempoolBlock, Sats, VSize, weighted_percentiles};
 
 use super::{SnapTx, TxIndex};
 
@@ -66,9 +66,7 @@ impl BlockStats {
         let mut rates: Vec<(FeeRate, VSize)> = Vec::with_capacity(block.len());
 
         for &tx_index in block {
-            let Some(t) = txs.get(tx_index.as_usize()) else {
-                continue;
-            };
+            let t = &txs[tx_index.as_usize()];
             total_fee += t.fee;
             total_vsize += t.vsize;
             total_size += t.size;
@@ -80,7 +78,7 @@ impl BlockStats {
         let fee_range: [FeeRate; 7] = if rates.is_empty() {
             [FeeRate::default(); 7]
         } else {
-            get_weighted_percentiles(&rates, percentiles)
+            weighted_percentiles(&rates, percentiles)
         };
 
         Self {

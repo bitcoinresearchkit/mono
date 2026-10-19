@@ -39,14 +39,13 @@ impl ReadOnlyTxStore {
         (record.entry.txid == *txid).then_some(record)
     }
 
-    /// Tx + entry in one map probe. Used by the RBF builder and the
-    /// snapshot builder which need both per visited tx.
+    /// Lookup by key alone, without [`Self::record`]'s txid check: for keys taken from this
+    /// store's own indexes.
     pub fn record_by_key(&self, key: &TxKey) -> Option<&TxRecord> {
         self.records.get(key)
     }
 
-    /// `(key, record)` pairs in dense storage order. Used by the
-    /// snapshot builder to assign a compact `TxIndex` to each live tx.
+    /// `(key, record)` pairs in dense storage order.
     pub fn records(&self) -> impl Iterator<Item = (&TxKey, &TxRecord)> {
         self.records.iter()
     }
@@ -75,7 +74,7 @@ impl ReadOnlyTxStore {
         self.histograms.eligible()
     }
 
-    /// Snapshot the raw histogram: every live output binned by value with no
+    /// Snapshot the raw histogram: live outputs binned by value with no
     /// payment filtering. Maintained incrementally alongside the eligible one.
     pub fn live_raw_histogram(&self) -> HistogramRaw {
         self.histograms.raw()

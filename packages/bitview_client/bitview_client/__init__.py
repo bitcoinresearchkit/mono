@@ -17,8 +17,6 @@ if TYPE_CHECKING:
 
 T = TypeVar('T')
 
-# Type definitions
-
 # Index of a decade.
 Year10 = int
 # Index of a year.
@@ -34,11 +32,8 @@ Week1 = int
 Vout = int
 # Input index in the spending transaction
 Vin = int
-# Version tracking for data schema and computed values.
-#
-# Used to detect when stored data needs to be recomputed due to changes
-# in computation logic or source data versions. Supports validation
-# against persisted versions to ensure compatibility.
+# Schema or computation version of a stored vector: when it changes, the data is reset and
+# recomputed.
 Version = int
 # Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
 VSize = int
@@ -93,15 +88,11 @@ TxIndex = int
 TxInIndex = int
 # UNIX timestamp in seconds
 Timestamp = int
-# Time period for mining statistics.
-#
-# Used to specify the lookback window for pool statistics, hashrate calculations,
-# and other time-based mining series.
+# Lookback window for mining statistics.
 TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "all"]
 # BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
 # one. Sums over many transactions or blocks use the full 64 bits.
 SigOps = int
-# Series name
 SeriesName = str
 # Comma-separated list of series names
 #
@@ -114,8 +105,7 @@ SecondsFract = float
 Seconds = int
 # A signed model score; undefined (null) where the model has no calibration yet.
 Score = int
-# Signed satoshis (i64) - for values that can be negative.
-# Used for changes, deltas, profit/loss calculations, etc.
+# A signed amount in satoshis.
 SatsSigned = int
 # Amount in satoshis (1 BTC = 100,000,000 sats)
 Sats = int
@@ -178,7 +168,6 @@ Limit = int
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year),
 # block-based (height, tx_index), and address/output type indexes.
 Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_output_index"]
-# Hierarchical tree node for organizing series into categories
 TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
 # Index of a 4-hour period.
 Hour4 = int
@@ -186,9 +175,7 @@ Hour4 = int
 Hour12 = int
 # Index of an hour.
 Hour1 = int
-# Hex-encoded string. Transparent wrapper over `String`: serializes
-# as a plain JSON string and derefs to `str`, so anywhere `&str` or
-# `AsRef<[u8]>` is expected the `Hex` "just works".
+# Hex-encoded data as a JSON string.
 Hex = str
 # Block height
 Height = int
@@ -200,19 +187,17 @@ HashValue = float
 HashPrice = float
 # Index of a halving epoch (210,000 blocks).
 Halving = int
-# Output format for API responses
 Format = Literal["json", "csv"]
 # A 64-bit floating-point value without a specific unit.
 Float64 = float
 # Fee rate stored in milli-sat/vB and exposed as sat/vB.
 FeeRate = float
-# Exchange rates (USD base, on-chain only — no fiat pairs available)
+# Always empty: prices are quoted in USD only.
 ExchangeRates = dict
 # Error category, following the HTTP status: `invalid_request` (4xx other than 404),
 # `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
 # (other 5xx).
 ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
-# Machine-readable error code.
 ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_address", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
 # Index of a difficulty epoch (2,016 blocks).
 Epoch = int
@@ -225,8 +210,7 @@ OHLCDollars = List[Dollars]
 DollarDaysPerCoin = float
 # US dollars multiplied by blocks: coinblocks valued at the spot price.
 DollarBlocks = float
-# A single difficulty adjustment entry.
-# Serializes as array: [timestamp, height, difficulty, change_percent]
+# Serializes as an array: [timestamp, height, difficulty, adjustment ratio].
 DifficultyAdjustmentEntry = List[float]
 # Proof-of-work difficulty.
 Difficulty = float
@@ -284,7 +268,7 @@ BlockTxIndex = int
 BlockHash = str
 # Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
 Bitcoin = float
-# Bitcoin address string
+# Bitcoin address, or the hex public key of a P2PK output.
 Address = str
 # One slot of the new template in a `BlockTemplateDiff`.
 #
@@ -294,9 +278,6 @@ Address = str
 #   `since`).
 # - `New(tx)` serializes as a transaction object - a body that was
 #   new or changed since the prior template and must replace this position.
-#
-# Reconstruction is a single pass: for each entry, either copy
-# `prior[idx]` or append the inline body.
 BlockTemplateDiffEntry = Union[int, "Transaction"]
 class ValidateAddressParam(TypedDict):
     """
@@ -307,8 +288,6 @@ class ValidateAddressParam(TypedDict):
 
 class UrpdWeightQuery(TypedDict, total=False):
     """
-    Query parameters for URPD date discovery.
-
     Attributes:
         weight: Supply weighting. Default: raw (unweighted).
     """
@@ -316,8 +295,6 @@ class UrpdWeightQuery(TypedDict, total=False):
 
 class UrpdQuery(TypedDict, total=False):
     """
-    Query parameters for URPD endpoints.
-
     Attributes:
         agg: Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
         weight: Supply weighting. Default: raw (unweighted).
@@ -325,34 +302,24 @@ class UrpdQuery(TypedDict, total=False):
     agg: UrpdAggregation
     weight: UrpdWeight
 
-# Query parameter for transaction-times endpoint.
-#
-# Extracted from the decoded query pairs because a serde struct can't collect
-# repeated keys like `txId[]=a&txId[]=b`. The schema is still
-# declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
-# generated client SDKs see `txids: List[Txid]`.
+# Transaction IDs as repeated `txId[]` query parameters.
 TxidsParam = TypedDict("TxidsParam", {"txId[]": List[Txid]})
 
 class TxidVout(TypedDict):
     """
-    Transaction output reference (txid + output index)
-
     Attributes:
-        txid: Transaction ID
         vout: Output index
     """
     txid: Txid
     vout: Vout
 
 class TxidParam(TypedDict):
-    """
-    Transaction ID path parameter
-    """
     txid: Txid
 
 class TxIndexParam(TypedDict):
     """
-    Transaction index path parameter
+    Attributes:
+        index: Global transaction index across the chain
     """
     index: TxIndex
 
@@ -365,20 +332,14 @@ class OutPoint(TypedDict):
     vout: Vout
 
 class TimestampParam(TypedDict):
-    """
-    UNIX timestamp path parameter
-    """
     timestamp: Timestamp
 
 class PoolHashrateEntry(TypedDict):
     """
-    A single pool hashrate data point.
-
     Attributes:
         timestamp: Unix timestamp
         avgHashrate: Average hashrate (H/s)
         share: Pool's share of total network hashrate (0.0 - 1.0)
-        poolName: Pool name
     """
     timestamp: Timestamp
     avgHashrate: int
@@ -387,8 +348,6 @@ class PoolHashrateEntry(TypedDict):
 
 class HashrateEntry(TypedDict):
     """
-    A single hashrate data point.
-
     Attributes:
         timestamp: End of the day the hashrate covers (Unix timestamp), as mempool.space stamps it
         avgHashrate: Average hashrate (H/s)
@@ -398,7 +357,8 @@ class HashrateEntry(TypedDict):
 
 class TimePeriodParam(TypedDict):
     """
-    Time period path parameter (24h, 3d, 1w, 1m, 3m, 6m, 1y, 2y, 3y)
+    Attributes:
+        time_period: Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
     """
     time_period: TimePeriod
 
@@ -407,8 +367,6 @@ class SeriesParam(TypedDict):
 
 class SeriesCount(TypedDict):
     """
-    Series count statistics
-
     Attributes:
         distinct: Number of unique series available (e.g., realized_price, market_cap)
         total: Total number of series-index combinations across all timeframes
@@ -429,7 +387,6 @@ class DetailedSeriesCount(TypedDict):
         total: Total number of series-index combinations across all timeframes
         lazy: Number of lazy (computed on-the-fly) series-index combinations
         stored: Number of eager (stored on disk) series-index combinations
-        by_db: Per-database breakdown of counts.
     """
     distinct: int
     total: int
@@ -442,7 +399,6 @@ class MempoolRecentTx(TypedDict):
     Simplified mempool transaction for the `/api/mempool/recent` endpoint.
 
     Attributes:
-        txid: Transaction ID
         fee: Transaction fee (sats)
         vsize: Virtual size (vbytes)
         value: Total output value (sats)
@@ -477,9 +433,7 @@ class CpfpEntry(TypedDict):
 
 class AddressMempoolStats(TypedDict):
     """
-    Address statistics in the mempool (unconfirmed transactions only)
-    
-    Based on mempool.space's format.
+    Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
 
     Attributes:
         balance_delta: Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
@@ -502,10 +456,10 @@ class RecommendedFees(TypedDict):
 
     Attributes:
         fastestFee: Fee rate for fastest confirmation (next block)
-        halfHourFee: Fee rate for confirmation within ~30 minutes (3 blocks)
-        hourFee: Fee rate for confirmation within ~1 hour (6 blocks)
-        economyFee: Fee rate for economical confirmation
-        minimumFee: Minimum relay fee rate
+        halfHourFee: Fee rate for confirmation within ~30 minutes (second projected block)
+        hourFee: Fee rate for confirmation within ~1 hour (third projected block)
+        economyFee: Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice it; `minimumFee` when no third projected block exists
+        minimumFee: The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)
     """
     fastestFee: int
     halfHourFee: int
@@ -518,15 +472,13 @@ class PoolStats(TypedDict):
     Mining pool with block statistics for a time period
 
     Attributes:
-        poolId: Unique pool identifier
-        name: Pool name
+        poolId: One-based pool ID, matching mempool.space's `id`
         link: Pool website URL
-        blockCount: Number of blocks mined in the time period
         rank: Pool ranking by block count (1 = most blocks)
         emptyBlocks: Number of empty (coinbase-only) blocks mined in the time period
         slug: URL-friendly pool identifier
         share: Pool's share of total blocks (0.0 - 1.0)
-        poolUniqueId: Unique pool identifier
+        poolUniqueId: Zero-based pool ID, matching mempool.space's `unique_id`
     """
     poolId: int
     name: str
@@ -540,8 +492,6 @@ class PoolStats(TypedDict):
 
 class PoolsSummary(TypedDict):
     """
-    Mining pools response for a time period
-
     Attributes:
         pools: List of pools sorted by block count descending
         blockCount: Total blocks in the time period
@@ -556,19 +506,13 @@ class PoolsSummary(TypedDict):
     lastEstimatedHashrate1w: int
 
 class PoolSlugParam(TypedDict):
-    """
-    Mining pool slug path parameter
-    """
     slug: PoolSlug
 
 class PoolInfo(TypedDict):
     """
-    Basic pool information for listing all pools
-
     Attributes:
-        name: Pool name
         slug: URL-friendly pool identifier
-        unique_id: Unique numeric pool identifier
+        unique_id: Zero-based pool ID, matching mempool.space's `unique_id`
     """
     name: str
     slug: PoolSlug
@@ -576,16 +520,13 @@ class PoolInfo(TypedDict):
 
 class PoolDetailInfo(TypedDict):
     """
-    Pool information for detail view
-
     Attributes:
-        id: Pool identifier
-        name: Pool name
+        id: One-based pool ID, matching mempool.space's `id`
         link: Pool website URL
         addresses: Known payout addresses
-        regexes: Coinbase tag patterns (regexes)
+        regexes: Coinbase tags, matched as case-insensitive substrings
         slug: URL-friendly pool identifier
-        unique_id: Unique pool identifier
+        unique_id: Zero-based pool ID, matching mempool.space's `unique_id`
     """
     id: int
     name: str
@@ -603,11 +544,8 @@ class _BlockPoolRequired(TypedDict):
 
 class BlockPool(_BlockPoolRequired, total=False):
     """
-    Mining pool identification for a block
-
     Attributes:
-        id: Unique pool identifier
-        name: Pool name
+        id: Zero-based pool ID, matching mempool.space's `unique_id`
         slug: URL-friendly pool identifier
         blockNumber: This block's ordinal among blocks attributed to this pool
         minerNames: Miner name tags found in coinbase scriptsig
@@ -629,12 +567,7 @@ class _PoolDetailRequired(TypedDict):
 
 class PoolDetail(_PoolDetailRequired, total=False):
     """
-    Detailed pool information with statistics across time periods
-
     Attributes:
-        pool: Pool information
-        blockCount: Block counts for different time periods
-        blockShare: Pool's share of total blocks for different time periods
         estimatedHashrate: Estimated hashrate based on blocks mined (H/s)
         reportedHashrate: Self-reported hashrate (if available, H/s)
         totalReward: Total reward earned by this pool: coinbase output value of every block it mined (sats)
@@ -643,10 +576,8 @@ class PoolDetail(_PoolDetailRequired, total=False):
 
 class Pagination(TypedDict, total=False):
     """
-    Pagination parameters for paginated API endpoints
-
     Attributes:
-        page: Pagination index
+        page: Zero-based page number (default: 0)
         per_page: Results per page (default: 1000, max: 1000)
     """
     page: Optional[int]
@@ -654,15 +585,11 @@ class Pagination(TypedDict, total=False):
 
 class PaginatedSeries(TypedDict):
     """
-    A paginated list of available series names (1000 per page)
+    A paginated list of available series names (up to 1,000 per page)
 
     Attributes:
         current_page: Current page number (0-indexed)
         max_page: Maximum valid page index (0-indexed)
-        total_count: Total number of series
-        per_page: Results per page
-        has_more: Whether more pages are available after the current one
-        series: List of series names
     """
     current_page: int
     max_page: int
@@ -697,11 +624,6 @@ class SearchQuery(_SearchQueryRequired, total=False):
     limit: Limit
 
 class SeriesNameWithIndex(TypedDict):
-    """
-    Attributes:
-        series: Series name
-        index: Aggregation index
-    """
     series: SeriesName
     index: Index
 
@@ -717,9 +639,7 @@ class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
     Series leaf with JSON Schema for client generation.
 
     Attributes:
-        name: The series name/identifier.
         kind: The Rust type (e.g., "Sats", "Ratio").
-        indexes: Available indexes for this series.
         nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
         description: Human-readable metric definition, when documented.
         type: JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
@@ -733,11 +653,8 @@ class _SeriesInfoRequired(TypedDict):
 
 class SeriesInfo(_SeriesInfoRequired, total=False):
     """
-    Metadata about a series
-
     Attributes:
         description: Human-readable metric definition, when documented
-        indexes: Available indexes
         nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
         type: Value type (e.g. "Ratio", "Sats", "Cents")
         unit: What the value type measures, when documented (e.g. "A duration in days.")
@@ -747,8 +664,6 @@ class SeriesInfo(_SeriesInfoRequired, total=False):
 
 class IndexInfo(TypedDict):
     """
-    Information about an available index and its query aliases
-
     Attributes:
         index: The canonical index name
         aliases: Every name REST queries accept for it; MCP tools take the canonical `index` only
@@ -758,10 +673,6 @@ class IndexInfo(TypedDict):
 
 class HeightOrDateParam(TypedDict):
     """
-    Path parameter accepting either a block height (`840000`) or a calendar date
-    (`YYYY-MM-DD`). The handler resolves it and dispatches to the per-height or
-    per-day variant, choosing the matching cache strategy.
-
     Attributes:
         point: Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
     """
@@ -769,12 +680,10 @@ class HeightOrDateParam(TypedDict):
 
 class SyncStatus(TypedDict):
     """
-    Sync status of the indexer
-
     Attributes:
         indexed_height: Height of the last indexed block
         computed_height: Height of the last computed block (series)
-        tip_height: Height of the chain tip (from Bitcoin node)
+        tip_height: Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without asking the node
         blocks_behind: Number of blocks behind the tip
         last_indexed_at: Human-readable timestamp of the last indexed block (ISO 8601)
         last_indexed_at_unix: Unix timestamp of the last indexed block
@@ -795,7 +704,6 @@ class RewardStats(TypedDict):
         endBlock: Last block in the range
         totalReward: Total coinbase rewards (subsidy + fees) in sats
         totalFee: Total transaction fees in sats
-        totalTx: Total number of transactions
     """
     startBlock: Height
     endBlock: Height
@@ -804,9 +712,6 @@ class RewardStats(TypedDict):
     totalTx: str
 
 class PoolSlugAndHeightParam(TypedDict):
-    """
-    Mining pool slug + block height path parameters
-    """
     slug: PoolSlug
     height: Height
 
@@ -815,7 +720,6 @@ class MerkleProof(TypedDict):
     Merkle inclusion proof for a transaction
 
     Attributes:
-        block_height: Block height containing the transaction
         merkle: Merkle proof path (hex-encoded hashes)
         pos: Transaction position in the block (0-indexed)
     """
@@ -824,25 +728,18 @@ class MerkleProof(TypedDict):
     pos: int
 
 class HeightParam(TypedDict):
-    """
-    Block height path parameter
-    """
     height: Height
 
 class Health(TypedDict):
     """
-    Server health status
-
     Attributes:
         status: Health status ("healthy")
-        service: Service name
-        version: Server version
         timestamp: Current server time (ISO 8601)
         started_at: Server start time (ISO 8601)
         uptime_seconds: Uptime in seconds
         indexed_height: Height of the last indexed block
         computed_height: Height of the last computed block (series)
-        tip_height: Height of the chain tip (from Bitcoin node)
+        tip_height: Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without asking the node
         blocks_behind: Number of blocks behind the tip
         last_indexed_at: Human-readable timestamp of the last indexed block (ISO 8601)
         last_indexed_at_unix: Unix timestamp of the last indexed block
@@ -866,8 +763,6 @@ class DifficultyEntry(TypedDict):
 
     Attributes:
         time: Unix timestamp of the difficulty adjustment
-        height: Block height of the adjustment
-        difficulty: Difficulty value
         adjustment: Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
     """
     time: Timestamp
@@ -877,13 +772,8 @@ class DifficultyEntry(TypedDict):
 
 class HashrateSummary(TypedDict):
     """
-    Summary of network hashrate and difficulty data.
-
     Attributes:
-        hashrates: Historical hashrate data points
-        difficulty: Historical difficulty adjustments
         currentHashrate: Current network hashrate over the trailing 7 days (H/s)
-        currentDifficulty: Current network difficulty
     """
     hashrates: List[HashrateEntry]
     difficulty: List[DifficultyEntry]
@@ -892,8 +782,6 @@ class HashrateSummary(TypedDict):
 
 class DifficultyAdjustment(TypedDict):
     """
-    Difficulty adjustment information.
-
     Attributes:
         progressPercent: Progress through current difficulty epoch (0-100%)
         difficultyChange: Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
@@ -902,7 +790,6 @@ class DifficultyAdjustment(TypedDict):
         remainingTime: Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
         previousRetarget: Previous difficulty adjustment (%)
         previousTime: Timestamp of most recent retarget (seconds)
-        nextRetargetHeight: Height of next retarget
         timeAvg: Average block time in current epoch (milliseconds)
         adjustedTimeAvg: Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503 blocks, where it spans the last 503 blocks, those before the retarget scaled by it
         timeOffset: Testnet's offset for its 20-minute minimum-difficulty rule (milliseconds): always 0 on mainnet, as mempool.space
@@ -923,7 +810,7 @@ class DifficultyAdjustment(TypedDict):
 
 class BlockWeightEntry(TypedDict):
     """
-    A single block weight data point.
+    One time bucket of blocks.
 
     Attributes:
         avgHeight: Average block height in this bucket
@@ -936,7 +823,7 @@ class BlockWeightEntry(TypedDict):
 
 class BlockSizeEntry(TypedDict):
     """
-    A single block size data point.
+    One time bucket of blocks.
 
     Attributes:
         avgHeight: Average block height in this bucket
@@ -948,13 +835,6 @@ class BlockSizeEntry(TypedDict):
     avgSize: int
 
 class BlockSizesWeights(TypedDict):
-    """
-    Combined block sizes and weights response.
-
-    Attributes:
-        sizes: Block size data points
-        weights: Block weight data points
-    """
     sizes: List[BlockSizeEntry]
     weights: List[BlockWeightEntry]
 
@@ -964,15 +844,10 @@ class _SeriesSelectionRequired(TypedDict):
 
 class SeriesSelection(_SeriesSelectionRequired, total=False):
     """
-    Selection of series to query
-
     Attributes:
-        series: Requested series
-        index: Index to query
         start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
         end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
         limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
-        format: Format of the output
     """
     start: Union[RangeIndex, None]
     end: Union[RangeIndex, None]
@@ -981,13 +856,10 @@ class SeriesSelection(_SeriesSelectionRequired, total=False):
 
 class DataRangeFormat(TypedDict, total=False):
     """
-    Range parameters with output format for API query parameters.
-
     Attributes:
         start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
         end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
         limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
-        format: Format of the output
     """
     start: Union[RangeIndex, None]
     end: Union[RangeIndex, None]
@@ -1051,10 +923,10 @@ class PreciseRecommendedFees(TypedDict):
 
     Attributes:
         fastestFee: Fee rate for fastest confirmation (next block)
-        halfHourFee: Fee rate for confirmation within ~30 minutes (3 blocks)
-        hourFee: Fee rate for confirmation within ~1 hour (6 blocks)
-        economyFee: Fee rate for economical confirmation
-        minimumFee: Minimum relay fee rate
+        halfHourFee: Fee rate for confirmation within ~30 minutes (second projected block)
+        hourFee: Fee rate for confirmation within ~1 hour (third projected block)
+        economyFee: Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice it; `minimumFee` when no third projected block exists
+        minimumFee: The node's current mempool minimum fee rate, rounded up to 0.001 sat/vB (at least 0.001)
     """
     fastestFee: FeeRate
     halfHourFee: FeeRate
@@ -1067,12 +939,12 @@ class MempoolBlock(TypedDict):
     Block info in a mempool.space like format for fee estimation.
 
     Attributes:
-        blockSize: Total serialized block size in bytes (witness + non-witness).
-        blockVSize: Total block virtual size in vbytes
+        blockSize: Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header or coinbase.
+        blockVSize: Sum of the transactions' virtual sizes in vbytes
         nTx: Number of transactions in the projected block
         totalFees: Total fees in satoshis
         medianFee: Median fee rate in sat/vB
-        feeRange: Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+        feeRange: Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB: [0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the later projected ones
     """
     blockSize: int
     blockVSize: float
@@ -1083,7 +955,7 @@ class MempoolBlock(TypedDict):
 
 class BlockFeeRatesEntry(TypedDict):
     """
-    A single block fee rates data point: one time bucket of blocks. Each `avgFee_*` field is the
+    One time bucket of blocks. Each `avgFee_*` field is the
     bucket's mean of its blocks' own percentile of their non-coinbase transactions' effective fee
     rates, weighted by vsize (a block without such transactions counts as 0).
 
@@ -1140,10 +1012,7 @@ class PricePoint(TypedDict):
 
 class HistoricalPrice(TypedDict):
     """
-    Historical price response
-
     Attributes:
-        prices: Price data points
         exchangeRates: Exchange rates (currently empty)
     """
     prices: List[PricePoint]
@@ -1151,7 +1020,7 @@ class HistoricalPrice(TypedDict):
 
 class BlockRewardsEntry(TypedDict):
     """
-    A single block rewards data point: one time bucket of blocks.
+    One time bucket of blocks.
 
     Attributes:
         avgHeight: Average block height in this bucket
@@ -1166,7 +1035,7 @@ class BlockRewardsEntry(TypedDict):
 
 class BlockFeesEntry(TypedDict):
     """
-    A single block fees data point: one time bucket of blocks.
+    One time bucket of blocks.
 
     Attributes:
         avgHeight: Average block height in this bucket
@@ -1217,25 +1086,21 @@ class BlockExtras(_BlockExtrasRequired, total=False):
         medianFee: Median fee rate in sat/vB
         feeRange: Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
         reward: Total block reward (subsidy + fees) in satoshis
-        pool: Mining pool that mined this block
-        avgFee: Average fee per transaction in satoshis
+        avgFee: Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
         avgFeeRate: Average fee rate in sat/vB
         coinbaseRaw: Raw coinbase transaction scriptsig as hex
         coinbaseAddress: Primary coinbase output address
         coinbaseAddresses: All coinbase output addresses
         coinbaseSignature: Coinbase output script in ASM format
-        coinbaseSignatureAscii: Coinbase scriptsig decoded as ASCII
-        avgTxSize: Average transaction size in bytes
+        coinbaseSignatureAscii: Coinbase scriptsig with each byte read as the Unicode code point of the same value
+        avgTxSize: Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to 2 decimals
         totalInputs: Total number of inputs (excluding coinbase)
-        totalOutputs: Total number of outputs
-        totalOutputAmt: Total output amount in satoshis
+        totalOutputAmt: Total output amount in satoshis, coinbase excluded
         medianFeeAmt: Median fee amount in satoshis
         feePercentiles: Fee amount percentiles in satoshis: [min, 10%, 25%, 50%, 75%, 90%, max]
-        segwitTotalTxs: Number of segwit transactions
         segwitTotalSize: Total size of segwit transactions in bytes
-        segwitTotalWeight: Total weight of segwit transactions
         header: Raw 80-byte block header as hex
-        utxoSetChange: UTXO set change (total outputs - total inputs, includes unspendable like OP_RETURN). Note: intentionally differs from utxo_set_size diff which excludes unspendable outputs. Matches mempool.space/bitcoin-cli behavior.
+        utxoSetChange: UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
         utxoSetSize: Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
         totalInputAmt: Total input amount in satoshis
         virtualSize: Virtual size in vbytes: weight / 4, unrounded
@@ -1275,8 +1140,6 @@ class AddressChainStats(_AddressChainStatsRequired, total=False):
 
 class DiskUsage(TypedDict):
     """
-    Disk usage of the indexed data
-
     Attributes:
         brk: Human-readable brk data size (e.g., "48.8 GiB")
         brk_bytes: brk data size in bytes
@@ -1303,8 +1166,6 @@ class HistoricalPriceParam(TypedDict, total=False):
 
 class CpfpClusterTx(TypedDict):
     """
-    One entry in a `CpfpCluster.txs` array.
-
     Attributes:
         parents: In-cluster parents of this tx.
     """
@@ -1315,9 +1176,8 @@ class CpfpClusterTx(TypedDict):
 
 class CpfpClusterChunk(TypedDict):
     """
-    One linearized chunk inside a `CpfpCluster`. `txs` is in topological order
-    (matches `CpfpCluster.txs` ordering); the chunk's `feerate` is the
-    per-chunk feerate and is the same for every tx in this chunk.
+    One linearized chunk inside a `CpfpCluster`. `txs` follows `CpfpCluster.txs` order (topological);
+    `feerate` is the chunk's, shared by all its transactions.
     """
     txs: List[CpfpClusterTxIndex]
     feerate: FeeRate
@@ -1350,15 +1210,13 @@ class CpfpInfo(_CpfpInfoRequired, total=False):
     CPFP (Child Pays For Parent) information for a transaction.
 
     Attributes:
-        ancestors: Ancestor transactions in the CPFP chain.
         bestDescendant: Best (highest fee rate) descendant, if any.
-        descendants: Descendant transactions in the CPFP chain.
         effectiveFeePerVsize: Effective fee rate considering CPFP relationships (sat/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
         sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4).
         fee: Transaction fee (sats).
         vsize: Virtual size of the seed tx (vbytes).
         adjustedVsize: Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
-        cluster: Cluster the seed belongs to: full tx list, linearized chunks, and the seed's chunk index. Omitted when the seed has no ancestors and no descendants (matches mempool.space).
+        cluster: Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants (matches mempool.space).
     """
     bestDescendant: Union[CpfpEntry, None]
     cluster: Union[CpfpCluster, None]
@@ -1371,9 +1229,6 @@ class UrpdParams(TypedDict):
     point: str
 
 class UrpdCohortParam(TypedDict):
-    """
-    Path parameters for per-cohort URPD endpoints.
-    """
     cohort: Cohort
 
 class _TxStatusRequired(TypedDict):
@@ -1381,10 +1236,7 @@ class _TxStatusRequired(TypedDict):
 
 class TxStatus(_TxStatusRequired, total=False):
     """
-    Transaction confirmation status
-
     Attributes:
-        confirmed: Whether the transaction is confirmed
         block_height: Block height (only present if confirmed)
         block_hash: Block hash (only present if confirmed)
         block_time: Block timestamp (only present if confirmed)
@@ -1398,9 +1250,6 @@ class Utxo(TypedDict):
     Unspent transaction output
 
     Attributes:
-        txid: Transaction ID of the UTXO
-        vout: Output index
-        status: Confirmation status
         value: Output value in satoshis
     """
     txid: Txid
@@ -1413,10 +1262,7 @@ class _TxOutspendRequired(TypedDict):
 
 class TxOutspend(_TxOutspendRequired, total=False):
     """
-    Status of an output indicating whether it has been spent
-
     Attributes:
-        spent: Whether the output has been spent
         txid: Transaction ID of the spending transaction (only present if spent)
         vin: Input index in the spending transaction (only present if spent)
         status: Status of the spending transaction (only present if spent)
@@ -1430,8 +1276,6 @@ class BlockTimestamp(TypedDict):
     Block information returned for timestamp queries
 
     Attributes:
-        height: Block height
-        hash: Block hash
         timestamp: Block timestamp in ISO 8601 format
     """
     height: Height
@@ -1443,10 +1287,7 @@ class _BlockStatusRequired(TypedDict):
 
 class BlockStatus(_BlockStatusRequired, total=False):
     """
-    Block status indicating whether block is in the best chain
-
     Attributes:
-        in_best_chain: Whether this block is in the best chain
         height: Block height (only if in best chain)
         next_best: Hash of the next block in the best chain (null if tip)
     """
@@ -1475,20 +1316,12 @@ class BlockInfoV1(_BlockInfoV1Required, total=False):
 
     Attributes:
         id: Block hash
-        height: Block height
-        version: Block version
         timestamp: Block timestamp (Unix time)
         bits: Compact target (bits)
-        nonce: Nonce
-        difficulty: Block difficulty
-        merkle_root: Merkle root of the transaction tree
-        tx_count: Number of transactions
         size: Block size in bytes
         weight: Block weight in weight units
-        previousblockhash: Previous block hash
         mediantime: Median time of the last 11 blocks
         stale: Whether this block has been replaced by a longer chain
-        extras: Extended block data
     """
     stale: bool
 
@@ -1498,17 +1331,10 @@ class BlockInfo(TypedDict):
 
     Attributes:
         id: Block hash
-        height: Block height
-        version: Block version
         timestamp: Block timestamp (Unix time)
         bits: Compact target (bits)
-        nonce: Nonce
-        difficulty: Block difficulty
-        merkle_root: Merkle root of the transaction tree
-        tx_count: Number of transactions
         size: Block size in bytes
         weight: Block weight in weight units
-        previousblockhash: Previous block hash
         mediantime: Median time of the last 11 blocks
     """
     id: BlockHash
@@ -1527,10 +1353,7 @@ class BlockInfo(TypedDict):
 
 class BlockHashTxIndex(TypedDict):
     """
-    Block hash + transaction index path parameters
-
     Attributes:
-        hash: Bitcoin block hash
         index: Transaction index within the block (0-based)
     """
     hash: BlockHash
@@ -1538,25 +1361,17 @@ class BlockHashTxIndex(TypedDict):
 
 class BlockHashStartIndex(TypedDict):
     """
-    Block hash + starting transaction index path parameters
-
     Attributes:
-        hash: Bitcoin block hash
         start_index: Starting transaction index within the block (0-based)
     """
     hash: BlockHash
     start_index: BlockTxIndex
 
 class BlockHashParam(TypedDict):
-    """
-    Block hash path parameter
-    """
     hash: BlockHash
 
 class BlockCountParam(TypedDict):
     """
-    Block count path parameter
-
     Attributes:
         block_count: Number of recent blocks to include
     """
@@ -1583,8 +1398,6 @@ class UtxoSet(TypedDict):
     `spent` gives the set after block `last`; rounding each supply to 8 decimals keeps it exact.
 
     Attributes:
-        height: Height of the represented block.
-        hash: Hash of the represented block.
         date: UTC date of the represented block's monotonic timestamp (the running maximum of block times).
         count: Number of unspent outputs.
         supply: BTC held by the unspent outputs.
@@ -1631,13 +1444,11 @@ class UtxoSetDiff(TypedDict):
 
 class UrpdBucket(TypedDict):
     """
-    A single bucket in a URPD snapshot.
-
     Attributes:
         price_floor: The bucket's price, in USD: its lower bound when aggregated, and for `Raw` the price its coins' creation prices round to (four significant digits of the price in cents).
         supply: Supply held with a last-move price inside this bucket, in BTC. With a `cointime` or `coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
         realized_cap: Realized cap contribution in USD: `price * supply` summed over the coins in this bucket, each coin's creation price taken on the price grid (the `Raw` bucket price, within 0.05% of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The buckets therefore need not sum to the cohort's realized cap series.
-        unrealized_pnl: Unrealized P&L in USD against the close on the snapshot date: `close * supply` minus the bucket's grid capital, rounded to the cent once. Can be negative.
+        unrealized_pnl: Unrealized P&L in USD at the represented block: `close * supply` minus the bucket's grid capital, rounded to the cent once. Can be negative.
     """
     price_floor: Dollars
     supply: Bitcoin
@@ -1648,18 +1459,12 @@ class Urpd(TypedDict):
     """
     UTXO Realized Price Distribution for a cohort at a specific block.
     
-    Supply is grouped by the price at the block in which each UTXO was last moved.
-    Each bucket exposes three values: supply in BTC (weighted by `weight`), realized
-    cap contribution in USD (`price * supply` over the coins in the bucket at their
-    grid creation prices, each within 0.05% of the exact price, rounded to the cent
-    per bucket), and unrealized P&L in USD (`close * supply - realized_cap`, can be
-    negative).
+    Supply is grouped by the price at the block in which each UTXO was last moved; each bucket
+    holds its supply, realized cap and unrealized P&L.
 
     Attributes:
-        date: UTC date of the represented block.
+        date: UTC date of the represented block's monotonic timestamp.
         height: Exact published block represented by this distribution.
-        weight: Weighting applied to the source supply.
-        aggregation: Aggregation strategy applied to the buckets.
         close: Price at `height`, in USD. Anchor for `unrealized_pnl`.
         total_supply: Sum of `supply` across all buckets, in BTC.
     """
@@ -1677,17 +1482,13 @@ class _AddressValidationRequired(TypedDict):
 
 class AddressValidation(_AddressValidationRequired, total=False):
     """
-    Address validation result
-
     Attributes:
-        isvalid: Whether the address is valid
         address: The validated address
         scriptPubKey: The scriptPubKey in hex
-        isscript: Whether this is a script address (P2SH)
-        iswitness: Whether this is a witness address
+        isscript: Whether the address is P2SH, P2WSH or P2TR
         witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
         witness_program: Witness program in hex
-        error_locations: Error locations (empty array for most errors)
+        error_locations: Error locations: an empty array for invalid addresses, omitted for valid ones
         error: Error message for invalid addresses
     """
     address: Optional[str]
@@ -1730,12 +1531,10 @@ class TxIn(_TxInRequired, total=False):
     Attributes:
         txid: Transaction ID of the output being spent
         vout: Output index being spent (coinbase: 4294967295)
-        prevout: Information about the previous output being spent
-        scriptsig: Signature script (hex, for non-SegWit inputs)
+        prevout: The output being spent
+        scriptsig: Signature script in hex (empty for native SegWit inputs)
         scriptsig_asm: Signature script in assembly format
         witness: Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
-        is_coinbase: Whether this input is a coinbase (block reward) input
-        sequence: Input sequence number
         inner_redeemscript_asm: Inner redeemscript in assembly (P2SH inputs)
         inner_witnessscript_asm: Inner witnessscript in assembly (P2WSH and P2SH-P2WSH: the witness script; P2TR script path: the leaf script)
     """
@@ -1761,16 +1560,12 @@ class Transaction(_TransactionRequired, total=False):
 
     Attributes:
         index: Internal transaction index (brk-specific, not in mempool.space)
-        txid: Transaction ID
         version: Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
-        locktime: Transaction lock time
         vin: Transaction inputs
         vout: Transaction outputs
         size: Transaction size in bytes
-        weight: Transaction weight
-        sigops: Number of signature operations
+        sigops: BIP-141 signature-operation cost
         fee: Transaction fee in satoshis
-        status: Confirmation status (confirmed, block height/hash/time)
     """
     index: Union[TxIndex, None]
 
@@ -1780,12 +1575,6 @@ class BlockTemplateDiff(TypedDict):
     one identified by `since`. Returned by
     `GET /api/v1/mempool/block-template/diff/{hash}`.
     
-    `order` carries the full new template in template order: each entry
-    is either a `Retained(idx)` pointing into the prior template (which
-    the client cached at `since`) or a `New(tx)` inline body. Walk it
-    once to rebuild the new template; no separate `added` array to
-    cross-reference.
-    
     `removed` lists txids no longer present. A changed body can be emitted as
     `New` without removing its txid; absence of a retained index alone does not
     imply removal.
@@ -1793,7 +1582,7 @@ class BlockTemplateDiff(TypedDict):
     Attributes:
         hash: Current next-block hash. Use as `since` on the next diff call.
         since: Echoed prior hash the diff was computed against.
-        stats: Aggregate stats for the new template (size, vsize, fee range, ...). They can change while every transaction is retained.
+        stats: Stats of the new template; they can change while every transaction is retained.
         order: New template in order. Each entry is either an index into the prior template's transactions or a full transaction body.
         removed: Txids that left the projected next block since `since` (confirmed, evicted, replaced, or pushed past block 0).
     """
@@ -1811,7 +1600,6 @@ class BlockTemplate(TypedDict):
 
     Attributes:
         hash: Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
-        stats: Aggregate stats for this block (size, vsize, fee range, ...).
         transactions: Full transaction bodies in `getblocktemplate` order.
     """
     hash: NextBlockHash
@@ -1823,8 +1611,8 @@ class AddressStats(TypedDict):
     Address information compatible with mempool.space API format.
 
     Attributes:
-        address: Bitcoin address string
-        address_type: BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
+        address: Bitcoin address, or the hex public key of a P2PK output
+        address_type: Output script type
         chain_stats: Statistics for confirmed transactions on the blockchain
         mempool_stats: Statistics for unconfirmed transactions in the mempool
         balance: Total current balance in satoshis, including pending (unconfirmed) mempool changes
@@ -1836,9 +1624,6 @@ class AddressStats(TypedDict):
     balance: Sats
 
 class AddressParam(TypedDict):
-    """
-    Bitcoin address path parameter
-    """
     address: Address
 
 class AddressHashPrefixMatches(TypedDict):
@@ -1849,8 +1634,6 @@ class AddressHashPrefixMatches(TypedDict):
 
 class AddressAfterTxidParam(TypedDict):
     """
-    Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
-
     Attributes:
         after_txid: Last txid from the previous page (return transactions strictly older than this)
     """
@@ -1921,8 +1704,6 @@ def _segment(value: Any) -> str:
 
 
 class BitviewClientBase:
-    """Base HTTP client for making requests."""
-
     def __init__(self, base_url: str, timeout: float = 30.0):
         parsed = urlparse(base_url)
         self._host = parsed.netloc
@@ -1941,8 +1722,8 @@ class BitviewClientBase:
         return self._conn
 
     def _request(self, method: str, path: str, body: Optional[str] = None) -> bytes:
-        """Make a request and return raw bytes. A failed exchange closes the connection, which
-        `http.client` would otherwise leave mid-request for every later call."""
+        """A failed exchange closes the connection, which `http.client` would otherwise leave
+        mid-request for every later call."""
         try:
             conn = self._connect()
             conn.request(method, self._prefix + path, body=body)
@@ -1956,31 +1737,24 @@ class BitviewClientBase:
         return data
 
     def get(self, path: str) -> bytes:
-        """Make a GET request and return raw bytes."""
         return self._request("GET", path)
 
     def get_json(self, path: str) -> Any:
-        """Make a GET request and return JSON."""
         return json.loads(self.get(path))
 
     def get_text(self, path: str) -> str:
-        """Make a GET request and return text."""
         return self.get(path).decode()
 
     def post(self, path: str, body: str) -> bytes:
-        """Make a POST request with a string body and return raw bytes."""
         return self._request("POST", path, body)
 
     def post_json(self, path: str, body: str) -> Any:
-        """Make a POST request and return JSON."""
         return json.loads(self.post(path, body))
 
     def post_text(self, path: str, body: str) -> str:
-        """Make a POST request and return text."""
         return self.post(path, body).decode()
 
     def close(self) -> None:
-        """Close the HTTP client."""
         if self._conn:
             self._conn.close()
             self._conn = None
@@ -1992,19 +1766,10 @@ class BitviewClientBase:
         self.close()
 
 
-
-
 _MASK_64 = (1 << 64) - 1
-_RAPIDHASH_SECRETS = (
-    0x2d358dccaa6c78a5,
-    0x8bb84b93962eacc9,
-    0x4b33a62ed433d4a3,
-    0x4d5a2da51de1aa47,
-    0xa0761d6478bd642f,
-    0xe7037ed1a0b428db,
-    0x90ed1765281c388c,
-)
-_RAPIDHASH_SEED = 0
+# RapidHash v3's secrets 1 and 2: the only ones payloads of at most 65 bytes reach.
+_RAPIDHASH_SECRET_1 = 0x8bb84b93962eacc9
+_RAPIDHASH_SECRET_2 = 0x4b33a62ed433d4a3
 
 
 def _u64(value: int) -> int:
@@ -2022,7 +1787,7 @@ def _rapid_mum(left: int, right: int) -> Tuple[int, int]:
 
 
 def _rapid_hash_seed(seed: int) -> int:
-    return _u64(seed ^ _rapid_mix(seed ^ _RAPIDHASH_SECRETS[2], _RAPIDHASH_SECRETS[1]))
+    return _u64(seed ^ _rapid_mix(seed ^ _RAPIDHASH_SECRET_2, _RAPIDHASH_SECRET_1))
 
 
 _RAPIDHASH_SEED = _rapid_hash_seed(0)
@@ -2057,27 +1822,26 @@ def _rapid_hash_v3(payload: Union[bytes, bytearray, memoryview]) -> int:
             else:
                 a ^= _read_u32(data, 0)
                 b ^= _read_u32(data, length - 4)
-        elif length > 0:
+        else:
             a ^= (data[0] << 45) | data[length - 1]
             b ^= data[length >> 1]
         remainder = length
     else:
-        if length > 16:
-            seed = _rapid_mix(_read_u64(data, 0) ^ _RAPIDHASH_SECRETS[2], _read_u64(data, 8) ^ seed)
-            if length > 32:
-                seed = _rapid_mix(_read_u64(data, 16) ^ _RAPIDHASH_SECRETS[2], _read_u64(data, 24) ^ seed)
-                if length > 48:
-                    seed = _rapid_mix(_read_u64(data, 32) ^ _RAPIDHASH_SECRETS[1], _read_u64(data, 40) ^ seed)
-                    if length > 64:
-                        seed = _rapid_mix(_read_u64(data, 48) ^ _RAPIDHASH_SECRETS[1], _read_u64(data, 56) ^ seed)
+        seed = _rapid_mix(_read_u64(data, 0) ^ _RAPIDHASH_SECRET_2, _read_u64(data, 8) ^ seed)
+        if length > 32:
+            seed = _rapid_mix(_read_u64(data, 16) ^ _RAPIDHASH_SECRET_2, _read_u64(data, 24) ^ seed)
+            if length > 48:
+                seed = _rapid_mix(_read_u64(data, 32) ^ _RAPIDHASH_SECRET_1, _read_u64(data, 40) ^ seed)
+                if length > 64:
+                    seed = _rapid_mix(_read_u64(data, 48) ^ _RAPIDHASH_SECRET_1, _read_u64(data, 56) ^ seed)
         remainder = length
         a ^= _read_u64(data, length - 16) ^ remainder
         b ^= _read_u64(data, length - 8)
 
-    a ^= _RAPIDHASH_SECRETS[1]
+    a ^= _RAPIDHASH_SECRET_1
     b ^= seed
     a, b = _rapid_mum(a, b)
-    return _rapid_mix(a ^ 0xaaaaaaaaaaaaaaaa, b ^ _RAPIDHASH_SECRETS[1] ^ remainder)
+    return _rapid_mix(a ^ 0xaaaaaaaaaaaaaaaa, b ^ _RAPIDHASH_SECRET_1 ^ remainder)
 
 
 def _validate_hash_prefix_nibbles(nibbles: int) -> None:
@@ -2113,7 +1877,8 @@ def _calendar(index: str) -> Tuple[str, int, int]:
 
 
 def _index_to_date(index: str, i: int) -> Union[date, datetime]:
-    """Convert an index value to a date/datetime for date-based indexes."""
+    """The start of bucket `i`: a UTC datetime for sub-daily indexes, a date otherwise. Raises
+    ValueError for an index without a date calendar."""
     unit, size, phase = _calendar(index)
     if unit == 'second':
         return _EPOCH + timedelta(seconds=i * size)
@@ -2124,9 +1889,7 @@ def _index_to_date(index: str, i: int) -> Union[date, datetime]:
 
 
 def _date_to_index(index: str, d: Union[date, datetime]) -> int:
-    """Convert a date/datetime to an index value for date-based indexes.
-
-    Returns the floor index (latest index whose date is <= the given date).
+    """Returns the floor index (latest index whose date is <= the given date).
     For sub-day indexes (minute*, hour*), a plain date is treated as midnight UTC.
     Raises ValueError for dates before the index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29).
     """
@@ -2151,8 +1914,7 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
 
 @dataclass
 class SeriesData(Generic[T]):
-    """Series data with range information. Always int-indexed; a value is None where it is
-    missing or undefined."""
+    """Always int-indexed; a value is None where it is missing or undefined."""
     version: int
     index: Index
     type: str
@@ -2162,27 +1924,22 @@ class SeriesData(Generic[T]):
 
     @property
     def is_date_based(self) -> bool:
-        """Whether this series uses a date-based index."""
         return self.index in _CALENDARS
 
     def indexes(self) -> List[int]:
-        """Get raw index numbers."""
         return list(range(self.start, self.end))
 
     def keys(self) -> List[int]:
-        """Get keys as index numbers."""
+        """Alias for indexes()."""
         return self.indexes()
 
     def items(self) -> List[Tuple[int, T]]:
-        """Get (index, value) pairs."""
         return list(zip(range(self.start, self.end), self.data))
 
     def to_dict(self) -> Dict[int, T]:
-        """Return {index: value} dict."""
         return dict(zip(range(self.start, self.end), self.data))
 
     def __iter__(self) -> Iterator[Tuple[int, T]]:
-        """Iterate over (index, value) pairs."""
         return zip(range(self.start, self.end), self.data)
 
     def __len__(self) -> int:
@@ -2207,27 +1964,18 @@ class SeriesData(Generic[T]):
 
 @dataclass
 class DateSeriesData(SeriesData[T]):
-    """Series data with date-based index. Extends SeriesData with date methods."""
-
     def dates(self) -> List[Union[date, datetime]]:
         """Get dates for the index range. Returns datetime for sub-daily indexes, date for daily+."""
         return [_index_to_date(self.index, i) for i in range(self.start, self.end)]
 
     def date_items(self) -> List[Tuple[Union[date, datetime], T]]:
-        """Get (date, value) pairs."""
         return list(zip(self.dates(), self.data))
 
     def to_date_dict(self) -> Dict[Union[date, datetime], T]:
-        """Return {date: value} dict."""
         return dict(zip(self.dates(), self.data))
 
     def to_polars(self, with_dates: bool = True) -> pl.DataFrame:
-        """Convert to Polars DataFrame.
-
-        Returns a DataFrame with columns:
-        - 'date' and 'value' if with_dates=True (default)
-        - 'index' and 'value' otherwise
-        """
+        """Columns 'date' and 'value', or 'index' and 'value' with with_dates=False."""
         try:
             import polars as pl  # type: ignore[import-not-found]
         except ImportError:
@@ -2237,12 +1985,7 @@ class DateSeriesData(SeriesData[T]):
         return pl.DataFrame({"index": self.indexes(), "value": self.data})
 
     def to_pandas(self, with_dates: bool = True) -> pd.DataFrame:
-        """Convert to Pandas DataFrame.
-
-        Returns a DataFrame with columns:
-        - 'date' and 'value' if with_dates=True (default)
-        - 'index' and 'value' otherwise
-        """
+        """Columns 'date' and 'value', or 'index' and 'value' with with_dates=False."""
         try:
             import pandas as pd  # type: ignore[import-not-found]
         except ImportError:
@@ -2252,7 +1995,6 @@ class DateSeriesData(SeriesData[T]):
         return pd.DataFrame({"index": self.indexes(), "value": self.data})
 
 
-# Type aliases for non-generic usage
 AnySeriesData = SeriesData[Any]
 AnyDateSeriesData = DateSeriesData[Any]
 
@@ -2270,7 +2012,6 @@ def _contiguous(key: slice) -> slice:
 
 
 class _EndpointConfig:
-    """Shared endpoint configuration."""
     client: BitviewClient
     name: str
     index: Index
@@ -2302,8 +2043,8 @@ class _EndpointConfig:
         if format is not None:
             params.append(("format", format))
         query = urlencode(params)
-        p = self.path()
-        return f"{p}?{query}" if query else p
+        path = self.path()
+        return f"{path}?{query}" if query else path
 
     def _new(self, start: Optional[int] = None, end: Optional[int] = None,
              limit: Optional[int] = None) -> _EndpointConfig:
@@ -2333,41 +2074,25 @@ class RangeBuilder(Generic[T]):
         self._config = config
 
     def fetch(self) -> SeriesData[T]:
-        """Fetch the selection as parsed JSON."""
         return self._config.get_series()
 
     def fetch_csv(self) -> str:
-        """Fetch the selection as CSV string."""
         return self._config.get_csv()
 
 
-class SkippedBuilder(Generic[T]):
-    """Builder after calling skip(n). Chain with take() to specify count."""
-
-    def __init__(self, config: _EndpointConfig):
-        self._config = config
+class SkippedBuilder(RangeBuilder[T]):
+    """After skip(n): take() sets a count; fetch() reads from the skipped position to the end."""
 
     def take(self, n: int) -> RangeBuilder[T]:
-        """Take n items after the skipped position."""
         return RangeBuilder(self._config._new(self._config.start, limit=n))
-
-    def fetch(self) -> SeriesData[T]:
-        """Fetch from skipped position to end."""
-        return self._config.get_series()
-
-    def fetch_csv(self) -> str:
-        """Fetch as CSV."""
-        return self._config.get_csv()
 
 
 class DateRangeBuilder(RangeBuilder[T]):
-    """Range builder that returns DateSeriesData."""
     def fetch(self) -> DateSeriesData[T]:
         return self._config.get_date_series()
 
 
 class DateSkippedBuilder(SkippedBuilder[T]):
-    """Skipped builder that returns DateSeriesData."""
     def take(self, n: int) -> DateRangeBuilder[T]:
         return DateRangeBuilder(self._config._new(self._config.start, limit=n))
     def fetch(self) -> DateSeriesData[T]:
@@ -2389,22 +2114,18 @@ class SeriesEndpoint(Generic[T]):
         self._config = _EndpointConfig(client, name, index)
 
     def __getitem__(self, key: Union[int, slice]) -> RangeBuilder[T]:
-        """Access single item or slice by integer index."""
         if isinstance(key, int):
             return RangeBuilder(self._config._new(key, limit=1))
         key = _contiguous(key)
         return RangeBuilder(self._config._new(key.start, key.stop))
 
     def head(self, n: int = 10) -> RangeBuilder[T]:
-        """Get the first n items."""
         return RangeBuilder(self._config._new(end=n))
 
     def tail(self, n: int = 10) -> RangeBuilder[T]:
-        """Get the last n items."""
         return RangeBuilder(self._config._new(end=0) if n == 0 else self._config._new(start=-n))
 
     def skip(self, n: int) -> SkippedBuilder[T]:
-        """Skip the first n items."""
         return SkippedBuilder(self._config._new(start=n))
 
     def fetch(self) -> SeriesData[T]:
@@ -2420,31 +2141,23 @@ class SeriesEndpoint(Generic[T]):
         return self._config.get_len()
 
     def version(self) -> Version:
-        """Current version of the series."""
         return self._config.get_version()
 
     def path(self) -> str:
-        """Get the base endpoint path."""
         return self._config.path()
 
 
-class DateSeriesEndpoint(Generic[T]):
+class DateSeriesEndpoint(SeriesEndpoint[T]):
     """Builder for series endpoint queries with date-based indexing.
 
     Accepts dates in __getitem__ and returns DateSeriesData from fetch().
 
     Examples:
-        data = endpoint.fetch()
         data = endpoint[date(2020, 1, 1)].fetch()
         data = endpoint[date(2020, 1, 1):date(2023, 1, 1)].fetch()
-        data = endpoint[:10].fetch()
     """
 
-    def __init__(self, client: BitviewClient, name: str, index: Index):
-        self._config = _EndpointConfig(client, name, index)
-
     def __getitem__(self, key: Union[int, slice, date, datetime]) -> DateRangeBuilder[T]:
-        """Access single item or slice. Accepts int, date, or datetime."""
         if isinstance(key, (date, datetime)):
             idx = _date_to_index(self._config.index, key)
             return DateRangeBuilder(self._config._new(idx, limit=1))
@@ -2459,53 +2172,29 @@ class DateSeriesEndpoint(Generic[T]):
         return DateRangeBuilder(self._config._new(start, stop))
 
     def head(self, n: int = 10) -> DateRangeBuilder[T]:
-        """Get the first n items."""
         return DateRangeBuilder(self._config._new(end=n))
 
     def tail(self, n: int = 10) -> DateRangeBuilder[T]:
-        """Get the last n items."""
         return DateRangeBuilder(self._config._new(end=0) if n == 0 else self._config._new(start=-n))
 
     def skip(self, n: int) -> DateSkippedBuilder[T]:
-        """Skip the first n items."""
         return DateSkippedBuilder(self._config._new(start=n))
 
     def fetch(self) -> DateSeriesData[T]:
         """Fetch all data."""
         return self._config.get_date_series()
 
-    def fetch_csv(self) -> str:
-        """Fetch all data as CSV."""
-        return self._config.get_csv()
 
-    def len(self) -> int:
-        """Total number of data points for this series."""
-        return self._config.get_len()
-
-    def version(self) -> Version:
-        """Current version of the series."""
-        return self._config.get_version()
-
-    def path(self) -> str:
-        """Get the base endpoint path."""
-        return self._config.path()
-
-
-# Type aliases for non-generic usage
 AnySeriesEndpoint = SeriesEndpoint[Any]
 AnyDateSeriesEndpoint = DateSeriesEndpoint[Any]
 
 
 class SeriesPattern(Protocol[T]):
-    """Protocol for series patterns with different index sets."""
-
     @property
     def name(self) -> str:
-        """Get the series name."""
         ...
 
     def indexes(self) -> List[str]:
-        """Get the list of available indexes for this series."""
         ...
 
     def get(self, index: Index) -> Optional[SeriesEndpoint[T]]:
@@ -2513,7 +2202,6 @@ class SeriesPattern(Protocol[T]):
         ...
 
 
-# Static index tuples
 _i1 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving', 'epoch', 'height')
 _i2 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving', 'epoch')
 _i3 = ('minute10',)
@@ -2550,36 +2238,28 @@ _i33 = ('p2wpkh_address_index',)
 _i34 = ('p2wsh_address_index',)
 _i35 = ('unknown_output_index',)
 
-def _ep(c: BitviewClient, n: str, i: Index) -> SeriesEndpoint[Any]:
-    return SeriesEndpoint(c, n, i)
-
-def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
-    return DateSeriesEndpoint(c, n, i)
-
 def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
     """The endpoint for any index: with date helpers for a date-based one."""
-    return _dep(c, n, i) if i in _CALENDARS else _ep(c, n, i)
-
-# Index accessor classes
+    return DateSeriesEndpoint(c, n, i) if i in _CALENDARS else SeriesEndpoint(c, n, i)
 
 class _SeriesPattern1By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def minute10(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'minute10')
-    def minute30(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'minute30')
-    def hour1(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'hour1')
-    def hour4(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'hour4')
-    def hour12(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'hour12')
-    def day1(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'day1')
-    def day3(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'day3')
-    def week1(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'week1')
-    def month1(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'month1')
-    def month3(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'month3')
-    def month6(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'month6')
-    def year1(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'year1')
-    def year10(self) -> DateSeriesEndpoint[Optional[T]]: return _dep(self._c, self._n, 'year10')
-    def halving(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'halving')
-    def epoch(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'epoch')
-    def height(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'height')
+    def minute10(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
+    def minute30(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
+    def hour1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
+    def hour4(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
+    def hour12(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
+    def day1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'day1')
+    def day3(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'day3')
+    def week1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'week1')
+    def month1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month1')
+    def month3(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month3')
+    def month6(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month6')
+    def year1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'year1')
+    def year10(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'year10')
+    def halving(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving')
+    def epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'epoch')
+    def height(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'height')
 
 class SeriesPattern1(Generic[T]):
     by: _SeriesPattern1By[T]
@@ -2591,21 +2271,21 @@ class SeriesPattern1(Generic[T]):
 
 class _SeriesPattern2By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def minute10(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'minute10')
-    def minute30(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'minute30')
-    def hour1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'hour1')
-    def hour4(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'hour4')
-    def hour12(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'hour12')
-    def day1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'day1')
-    def day3(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'day3')
-    def week1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'week1')
-    def month1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'month1')
-    def month3(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'month3')
-    def month6(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'month6')
-    def year1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'year1')
-    def year10(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'year10')
-    def halving(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'halving')
-    def epoch(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'epoch')
+    def minute10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
+    def minute30(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
+    def hour1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
+    def hour4(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
+    def hour12(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
+    def day1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day1')
+    def day3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day3')
+    def week1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'week1')
+    def month1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month1')
+    def month3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month3')
+    def month6(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month6')
+    def year1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year1')
+    def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
+    def halving(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving')
+    def epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'epoch')
 
 class SeriesPattern2(Generic[T]):
     by: _SeriesPattern2By[T]
@@ -2617,7 +2297,7 @@ class SeriesPattern2(Generic[T]):
 
 class _SeriesPattern3By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def minute10(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'minute10')
+    def minute10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
 
 class SeriesPattern3(Generic[T]):
     by: _SeriesPattern3By[T]
@@ -2629,7 +2309,7 @@ class SeriesPattern3(Generic[T]):
 
 class _SeriesPattern4By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def minute30(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'minute30')
+    def minute30(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
 
 class SeriesPattern4(Generic[T]):
     by: _SeriesPattern4By[T]
@@ -2641,7 +2321,7 @@ class SeriesPattern4(Generic[T]):
 
 class _SeriesPattern5By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'hour1')
+    def hour1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
 
 class SeriesPattern5(Generic[T]):
     by: _SeriesPattern5By[T]
@@ -2653,7 +2333,7 @@ class SeriesPattern5(Generic[T]):
 
 class _SeriesPattern6By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour4(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'hour4')
+    def hour4(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
 
 class SeriesPattern6(Generic[T]):
     by: _SeriesPattern6By[T]
@@ -2665,7 +2345,7 @@ class SeriesPattern6(Generic[T]):
 
 class _SeriesPattern7By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour12(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'hour12')
+    def hour12(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
 
 class SeriesPattern7(Generic[T]):
     by: _SeriesPattern7By[T]
@@ -2677,7 +2357,7 @@ class SeriesPattern7(Generic[T]):
 
 class _SeriesPattern8By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def day1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'day1')
+    def day1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day1')
 
 class SeriesPattern8(Generic[T]):
     by: _SeriesPattern8By[T]
@@ -2689,7 +2369,7 @@ class SeriesPattern8(Generic[T]):
 
 class _SeriesPattern9By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def day3(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'day3')
+    def day3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day3')
 
 class SeriesPattern9(Generic[T]):
     by: _SeriesPattern9By[T]
@@ -2701,7 +2381,7 @@ class SeriesPattern9(Generic[T]):
 
 class _SeriesPattern10By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def week1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'week1')
+    def week1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'week1')
 
 class SeriesPattern10(Generic[T]):
     by: _SeriesPattern10By[T]
@@ -2713,7 +2393,7 @@ class SeriesPattern10(Generic[T]):
 
 class _SeriesPattern11By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'month1')
+    def month1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month1')
 
 class SeriesPattern11(Generic[T]):
     by: _SeriesPattern11By[T]
@@ -2725,7 +2405,7 @@ class SeriesPattern11(Generic[T]):
 
 class _SeriesPattern12By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month3(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'month3')
+    def month3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month3')
 
 class SeriesPattern12(Generic[T]):
     by: _SeriesPattern12By[T]
@@ -2737,7 +2417,7 @@ class SeriesPattern12(Generic[T]):
 
 class _SeriesPattern13By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month6(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'month6')
+    def month6(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month6')
 
 class SeriesPattern13(Generic[T]):
     by: _SeriesPattern13By[T]
@@ -2749,7 +2429,7 @@ class SeriesPattern13(Generic[T]):
 
 class _SeriesPattern14By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def year1(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'year1')
+    def year1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year1')
 
 class SeriesPattern14(Generic[T]):
     by: _SeriesPattern14By[T]
@@ -2761,7 +2441,7 @@ class SeriesPattern14(Generic[T]):
 
 class _SeriesPattern15By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def year10(self) -> DateSeriesEndpoint[T]: return _dep(self._c, self._n, 'year10')
+    def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
 
 class SeriesPattern15(Generic[T]):
     by: _SeriesPattern15By[T]
@@ -2773,7 +2453,7 @@ class SeriesPattern15(Generic[T]):
 
 class _SeriesPattern16By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def halving(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'halving')
+    def halving(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving')
 
 class SeriesPattern16(Generic[T]):
     by: _SeriesPattern16By[T]
@@ -2785,7 +2465,7 @@ class SeriesPattern16(Generic[T]):
 
 class _SeriesPattern17By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def epoch(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'epoch')
+    def epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'epoch')
 
 class SeriesPattern17(Generic[T]):
     by: _SeriesPattern17By[T]
@@ -2797,7 +2477,7 @@ class SeriesPattern17(Generic[T]):
 
 class _SeriesPattern18By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def height(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'height')
+    def height(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'height')
 
 class SeriesPattern18(Generic[T]):
     by: _SeriesPattern18By[T]
@@ -2809,7 +2489,7 @@ class SeriesPattern18(Generic[T]):
 
 class _SeriesPattern19By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def tx_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'tx_index')
+    def tx_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'tx_index')
 
 class SeriesPattern19(Generic[T]):
     by: _SeriesPattern19By[T]
@@ -2821,7 +2501,7 @@ class SeriesPattern19(Generic[T]):
 
 class _SeriesPattern20By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txin_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'txin_index')
+    def txin_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txin_index')
 
 class SeriesPattern20(Generic[T]):
     by: _SeriesPattern20By[T]
@@ -2833,7 +2513,7 @@ class SeriesPattern20(Generic[T]):
 
 class _SeriesPattern21By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txin_index(self) -> SeriesEndpoint[Optional[T]]: return _ep(self._c, self._n, 'txin_index')
+    def txin_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txin_index')
 
 class SeriesPattern21(Generic[T]):
     by: _SeriesPattern21By[T]
@@ -2845,7 +2525,7 @@ class SeriesPattern21(Generic[T]):
 
 class _SeriesPattern22By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txout_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'txout_index')
+    def txout_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txout_index')
 
 class SeriesPattern22(Generic[T]):
     by: _SeriesPattern22By[T]
@@ -2857,7 +2537,7 @@ class SeriesPattern22(Generic[T]):
 
 class _SeriesPattern23By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txout_index(self) -> SeriesEndpoint[Optional[T]]: return _ep(self._c, self._n, 'txout_index')
+    def txout_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txout_index')
 
 class SeriesPattern23(Generic[T]):
     by: _SeriesPattern23By[T]
@@ -2869,7 +2549,7 @@ class SeriesPattern23(Generic[T]):
 
 class _SeriesPattern24By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def empty_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'empty_output_index')
+    def empty_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'empty_output_index')
 
 class SeriesPattern24(Generic[T]):
     by: _SeriesPattern24By[T]
@@ -2881,7 +2561,7 @@ class SeriesPattern24(Generic[T]):
 
 class _SeriesPattern25By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def op_return_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'op_return_index')
+    def op_return_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'op_return_index')
 
 class SeriesPattern25(Generic[T]):
     by: _SeriesPattern25By[T]
@@ -2893,7 +2573,7 @@ class SeriesPattern25(Generic[T]):
 
 class _SeriesPattern26By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2a_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2a_address_index')
+    def p2a_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2a_address_index')
 
 class SeriesPattern26(Generic[T]):
     by: _SeriesPattern26By[T]
@@ -2905,7 +2585,7 @@ class SeriesPattern26(Generic[T]):
 
 class _SeriesPattern27By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2ms_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2ms_output_index')
+    def p2ms_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2ms_output_index')
 
 class SeriesPattern27(Generic[T]):
     by: _SeriesPattern27By[T]
@@ -2917,7 +2597,7 @@ class SeriesPattern27(Generic[T]):
 
 class _SeriesPattern28By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk33_address_index')
+    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk33_address_index')
 
 class SeriesPattern28(Generic[T]):
     by: _SeriesPattern28By[T]
@@ -2929,7 +2609,7 @@ class SeriesPattern28(Generic[T]):
 
 class _SeriesPattern29By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pk65_address_index')
+    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk65_address_index')
 
 class SeriesPattern29(Generic[T]):
     by: _SeriesPattern29By[T]
@@ -2941,7 +2621,7 @@ class SeriesPattern29(Generic[T]):
 
 class _SeriesPattern30By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2pkh_address_index')
+    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pkh_address_index')
 
 class SeriesPattern30(Generic[T]):
     by: _SeriesPattern30By[T]
@@ -2953,7 +2633,7 @@ class SeriesPattern30(Generic[T]):
 
 class _SeriesPattern31By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2sh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2sh_address_index')
+    def p2sh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2sh_address_index')
 
 class SeriesPattern31(Generic[T]):
     by: _SeriesPattern31By[T]
@@ -2965,7 +2645,7 @@ class SeriesPattern31(Generic[T]):
 
 class _SeriesPattern32By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2tr_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2tr_address_index')
+    def p2tr_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2tr_address_index')
 
 class SeriesPattern32(Generic[T]):
     by: _SeriesPattern32By[T]
@@ -2977,7 +2657,7 @@ class SeriesPattern32(Generic[T]):
 
 class _SeriesPattern33By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wpkh_address_index')
+    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wpkh_address_index')
 
 class SeriesPattern33(Generic[T]):
     by: _SeriesPattern33By[T]
@@ -2989,7 +2669,7 @@ class SeriesPattern33(Generic[T]):
 
 class _SeriesPattern34By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'p2wsh_address_index')
+    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wsh_address_index')
 
 class SeriesPattern34(Generic[T]):
     by: _SeriesPattern34By[T]
@@ -3001,7 +2681,7 @@ class SeriesPattern34(Generic[T]):
 
 class _SeriesPattern35By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def unknown_output_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'unknown_output_index')
+    def unknown_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'unknown_output_index')
 
 class SeriesPattern35(Generic[T]):
     by: _SeriesPattern35By[T]
@@ -3010,8 +2690,6 @@ class SeriesPattern35(Generic[T]):
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i35)
     def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i35 else None
-
-# Series tree
 
 class _Child:
     """A series-tree child, materialized on first access. Its series name (a leaf) or base (a node)
@@ -3049,6 +2727,7 @@ def _builder(node: _Node, make: Any) -> Callable[[BitviewClient, str], Any]:
 
 
 def _at(make: Any, template: str) -> Any:
+    """A `_Child`, typed `Any` so that each child's annotation can name its type."""
     return _Child(make, template)
 
 
@@ -5062,7 +4741,7 @@ class SeriesTree(_Node):
 
 
 class BitviewClient(BitviewClientBase):
-    """Main Bitview client with series tree and API methods."""
+    """A method per API endpoint, and the typed series tree."""
 
     VERSION = "v0.12.2"
 
@@ -5811,19 +5490,15 @@ class BitviewClient(BitviewClientBase):
         return SeriesTree(self, '')
 
     def series_endpoint(self, series: str, index: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
-        """Create a dynamic series endpoint builder for any series/index combination.
-
-        Use this for programmatic access when the series name is determined at runtime.
-        For type-safe access, use the `series` tree instead.
-        """
+        """A series by a name known only at runtime; `series` has the typed paths."""
         return _endpoint(self, series, index)
 
     def index_to_date(self, index: Index, i: int) -> Union[date, datetime]:
-        """Convert an index value to a date/datetime for date-based indexes."""
+        """The start of bucket `i`: a UTC datetime for sub-daily indexes, a date otherwise."""
         return _index_to_date(index, i)
 
     def date_to_index(self, index: Index, d: Union[date, datetime]) -> int:
-        """Convert a date/datetime to an index value for date-based indexes."""
+        """The floor index (latest index whose date is <= the given date)."""
         return _date_to_index(index, d)
 
     @staticmethod
@@ -5850,9 +5525,7 @@ class BitviewClient(BitviewClientBase):
         return self.get_json('/health')
 
     def get_version(self) -> str:
-        """API version.
-
-        Returns the current version of the API server
+        """API version
 
         Endpoint: `GET /version`"""
         return self.get_json('/version')
@@ -5868,7 +5541,7 @@ class BitviewClient(BitviewClientBase):
     def get_disk_usage(self) -> DiskUsage:
         """Disk usage.
 
-        Returns allocated file bytes for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
+        Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
 
         Endpoint: `GET /api/server/disk`"""
         return self.get_json('/api/server/disk')
@@ -5876,7 +5549,7 @@ class BitviewClient(BitviewClientBase):
     def get_series_tree(self) -> TreeNode:
         """Series catalog.
 
-        Returns the complete hierarchical catalog of available series organized as a tree structure. Series are grouped by categories and subcategories.
+        The available series as a tree of categories and subcategories.
 
         Endpoint: `GET /api/series`"""
         return self.get_json('/api/series')
@@ -5900,7 +5573,7 @@ class BitviewClient(BitviewClientBase):
     def list_series(self, page: Optional[int] = None, per_page: Optional[int] = None) -> PaginatedSeries:
         """Series list.
 
-        Paginated flat list of all available series names. Use `page` query param for pagination.
+        Paginated flat list of all available series names.
 
         Endpoint: `GET /api/series/list`"""
         params: List[Tuple[str, Any]] = []
@@ -5934,7 +5607,7 @@ class BitviewClient(BitviewClientBase):
     def get_series(self, series: SeriesName, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[AnySeriesData, str]:
         """Get series data.
 
-        Fetch data for a specific series at the given index. Use query parameters to filter by date range and format (json/csv).
+        Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
 
         Endpoint: `GET /api/series/{series}/{index}`"""
         params: List[Tuple[str, Any]] = []
@@ -5951,7 +5624,7 @@ class BitviewClient(BitviewClientBase):
     def get_series_data(self, series: SeriesName, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[Any], str]:
         """Get raw series data.
 
-        Returns just the data array without the SeriesData wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
+        The data array without the `SeriesData` wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
 
         Endpoint: `GET /api/series/{series}/{index}/data`"""
         params: List[Tuple[str, Any]] = []
@@ -5974,9 +5647,7 @@ class BitviewClient(BitviewClientBase):
         return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/latest')
 
     def get_series_len(self, series: SeriesName, index: Index) -> int:
-        """Get series data length.
-
-        Returns the total number of data points for a series at the given index.
+        """Get series data length
 
         Endpoint: `GET /api/series/{series}/{index}/len`"""
         return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/len')
@@ -6031,7 +5702,7 @@ class BitviewClient(BitviewClientBase):
     def get_urpd(self, cohort: Cohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """Latest URPD.
 
-        URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+        URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
 
         Endpoint: `GET /api/urpd/{cohort}`"""
         params: List[Tuple[str, Any]] = []
@@ -6100,7 +5771,7 @@ class BitviewClient(BitviewClientBase):
     def get_address(self, address: Address) -> AddressStats:
         """Address information.
 
-        Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).
+        Balance and transaction counts. Supports P2PKH, P2SH, P2WPKH, P2WSH, P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes).
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
 
@@ -6150,7 +5821,7 @@ class BitviewClient(BitviewClientBase):
     def get_address_utxos(self, address: Address) -> List[Utxo]:
         """Address UTXOs.
 
-        Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.
+        Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
 
@@ -6169,8 +5840,6 @@ class BitviewClient(BitviewClientBase):
 
     def get_block(self, hash: BlockHash) -> BlockInfo:
         """Block information.
-
-        Retrieve block information by block hash. Returns block metadata including height, timestamp, difficulty, size, weight, and transaction count.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
 
@@ -6200,7 +5869,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_by_height(self, height: Height) -> BlockHash:
         """Block hash by height.
 
-        Retrieve the block hash at a given height. Returns the hash as plain text.
+        Block hash as plain text.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
 
@@ -6230,7 +5899,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_status(self, hash: BlockHash) -> BlockStatus:
         """Block status.
 
-        Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.
+        Whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*
 
@@ -6240,8 +5909,6 @@ class BitviewClient(BitviewClientBase):
     def get_block_tip_height(self) -> Height:
         """Block tip height.
 
-        Returns the height of the last block.
-
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
 
         Endpoint: `GET /api/blocks/tip/height`"""
@@ -6249,8 +5916,6 @@ class BitviewClient(BitviewClientBase):
 
     def get_block_tip_hash(self) -> BlockHash:
         """Block tip hash.
-
-        Returns the hash of the last block.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
 
@@ -6270,7 +5935,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_txids(self, hash: BlockHash) -> List[Txid]:
         """Block transaction IDs.
 
-        Retrieve all transaction IDs in a block. Returns an array of txids in block order.
+        Transaction IDs in block order.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*
 
@@ -6280,7 +5945,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_txs(self, hash: BlockHash) -> List[Transaction]:
         """Block transactions.
 
-        Retrieve transactions in a block by block hash. Returns up to 25 transactions starting from index 0.
+        Up to 25 transactions starting at index 0.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 
@@ -6290,7 +5955,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_txs_from_index(self, hash: BlockHash, start_index: BlockTxIndex) -> List[Transaction]:
         """Block transactions (paginated).
 
-        Retrieve transactions in a block by block hash, starting from the specified index. Returns up to 25 transactions at a time.
+        Up to 25 transactions starting at `start_index`.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 
@@ -6300,7 +5965,7 @@ class BitviewClient(BitviewClientBase):
     def get_blocks(self) -> List[BlockInfo]:
         """Recent blocks.
 
-        Retrieve the last 10 blocks. Returns block metadata for each block.
+        The last 10 blocks.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
 
@@ -6340,8 +6005,6 @@ class BitviewClient(BitviewClientBase):
     def get_pools(self) -> List[PoolInfo]:
         """List all mining pools.
 
-        Get list of all known mining pools with their identifiers.
-
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
 
         Endpoint: `GET /api/v1/mining/pools`"""
@@ -6350,7 +6013,7 @@ class BitviewClient(BitviewClientBase):
     def get_pool_stats(self, time_period: TimePeriod) -> PoolsSummary:
         """Mining pool statistics.
 
-        Get mining pool statistics for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+        Get mining pool statistics for a time period.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
 
@@ -6360,7 +6023,7 @@ class BitviewClient(BitviewClientBase):
     def get_pool(self, slug: PoolSlug) -> PoolDetail:
         """Mining pool details.
 
-        Get detailed information about a specific mining pool including block counts and shares for different time periods.
+        Block counts and mining shares by time period for one pool.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*
 
@@ -6370,8 +6033,6 @@ class BitviewClient(BitviewClientBase):
     def get_pools_hashrate(self) -> List[PoolHashrateEntry]:
         """All pools hashrate (all time).
 
-        Get hashrate data for all mining pools.
-
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
         Endpoint: `GET /api/v1/mining/hashrate/pools`"""
@@ -6380,7 +6041,7 @@ class BitviewClient(BitviewClientBase):
     def get_pools_hashrate_by_period(self, time_period: TimePeriod) -> List[PoolHashrateEntry]:
         """All pools hashrate.
 
-        Get hashrate data for all mining pools for a time period. Valid periods: `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+        Get hashrate data for all mining pools for a time period.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
@@ -6430,7 +6091,7 @@ class BitviewClient(BitviewClientBase):
     def get_hashrate_by_period(self, time_period: TimePeriod) -> HashrateSummary:
         """Network hashrate.
 
-        Get network hashrate and difficulty data for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+        Get network hashrate and difficulty data for a time period.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
 
@@ -6440,8 +6101,6 @@ class BitviewClient(BitviewClientBase):
     def get_difficulty_adjustments(self) -> List[DifficultyAdjustmentEntry]:
         """Difficulty adjustments (all time).
 
-        Get historical difficulty adjustments including timestamp, block height, difficulty value, and percentage change.
-
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
 
         Endpoint: `GET /api/v1/mining/difficulty-adjustments`"""
@@ -6450,7 +6109,7 @@ class BitviewClient(BitviewClientBase):
     def get_difficulty_adjustments_by_period(self, time_period: TimePeriod) -> List[DifficultyAdjustmentEntry]:
         """Difficulty adjustments.
 
-        Get historical difficulty adjustments for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+        Get historical difficulty adjustments for a time period.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
 
@@ -6470,7 +6129,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_fees(self, time_period: TimePeriod) -> List[BlockFeesEntry]:
         """Block fees.
 
-        Get average total fees per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+        Get average total fees per block for a time period.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*
 
@@ -6480,7 +6139,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_rewards(self, time_period: TimePeriod) -> List[BlockRewardsEntry]:
         """Block rewards.
 
-        Get average coinbase reward (subsidy + fees) per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+        Get average coinbase reward (subsidy + fees) per block for a time period.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*
 
@@ -6490,7 +6149,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_fee_rates(self, time_period: TimePeriod) -> List[BlockFeeRatesEntry]:
         """Block fee rates.
 
-        Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+        Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
 
@@ -6500,7 +6159,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_sizes_weights(self, time_period: TimePeriod) -> BlockSizesWeights:
         """Block sizes and weights.
 
-        Get average block sizes and weights for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+        Get average block sizes and weights for a time period.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*
 
@@ -6540,8 +6199,6 @@ class BitviewClient(BitviewClientBase):
     def get_mempool(self) -> MempoolInfo:
         """Mempool statistics.
 
-        Get current mempool statistics including transaction count, total vsize, total fees, and fee histogram.
-
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
 
         Endpoint: `GET /api/mempool`"""
@@ -6578,7 +6235,7 @@ class BitviewClient(BitviewClientBase):
     def get_replacements(self) -> List[ReplacementNode]:
         """Recent RBF replacements.
 
-        Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the same shape as `tx_rbf().replacements`.
+        Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
 
@@ -6614,7 +6271,7 @@ class BitviewClient(BitviewClientBase):
     def get_live_price(self) -> Dollars:
         """Live BTC/USD price.
 
-        Returns the current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the last 12 blocks plus mempool.
+        Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
 
         Endpoint: `GET /api/mempool/price`"""
         return self.get_json('/api/mempool/price')
@@ -6650,8 +6307,6 @@ class BitviewClient(BitviewClientBase):
     def get_tx(self, txid: Txid) -> Transaction:
         """Transaction information.
 
-        Retrieve complete transaction data by transaction ID (txid). Returns inputs, outputs, fee, size, and confirmation status.
-
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
 
         Endpoint: `GET /api/tx/{txid}`"""
@@ -6660,7 +6315,7 @@ class BitviewClient(BitviewClientBase):
     def get_tx_hex(self, txid: Txid) -> Hex:
         """Transaction hex.
 
-        Retrieve the raw transaction as a hex-encoded string. Returns the serialized transaction in hexadecimal format.
+        Hex-encoded serialized transaction.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*
 
@@ -6680,8 +6335,6 @@ class BitviewClient(BitviewClientBase):
     def get_tx_merkle_proof(self, txid: Txid) -> MerkleProof:
         """Transaction merkle proof.
 
-        Get the merkle inclusion proof for a transaction.
-
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
 
         Endpoint: `GET /api/tx/{txid}/merkle-proof`"""
@@ -6690,7 +6343,7 @@ class BitviewClient(BitviewClientBase):
     def get_tx_outspend(self, txid: Txid, vout: Vout) -> TxOutspend:
         """Output spend status.
 
-        Get the spending status of a transaction output. Returns whether the output has been spent and, if so, the spending transaction details.
+        Whether the output has been spent and, if so, the spending transaction details.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
 
@@ -6700,7 +6353,7 @@ class BitviewClient(BitviewClientBase):
     def get_tx_outspends(self, txid: Txid) -> List[TxOutspend]:
         """All output spend statuses.
 
-        Get the spending status of all outputs in a transaction. Returns an array with the spend status for each output.
+        Spend statuses in output-index order.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*
 
@@ -6730,7 +6383,7 @@ class BitviewClient(BitviewClientBase):
     def get_transaction_times(self, txId: List[Txid]) -> List[int]:
         """Transaction first-seen times.
 
-        Returns timestamps when transactions were first seen in the mempool. Returns 0 for mined or unknown transactions.
+        First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
 
@@ -6754,7 +6407,7 @@ class BitviewClient(BitviewClientBase):
     def get_utxo_set_latest(self) -> UtxoSet:
         """Latest UTXO set.
 
-        The UTXO set after the latest published block, by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+        The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
 
         Endpoint: `GET /api/utxo-set`"""
         return self.get_json('/api/utxo-set')
@@ -6802,7 +6455,7 @@ class BitviewClient(BitviewClientBase):
     def get_oracle_histogram_outputs_live(self) -> List[int]:
         """Live output value histogram.
 
-        Live unfiltered output value histogram for the complete published mempool. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+        Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
 
         Endpoint: `GET /api/oracle/histogram/outputs/live`"""
         return self.get_json('/api/oracle/histogram/outputs/live')
@@ -6810,7 +6463,7 @@ class BitviewClient(BitviewClientBase):
     def get_oracle_histogram_outputs(self, point: str) -> List[int]:
         """Output value histogram at height or day.
 
-        Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
+        Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
 
         Endpoint: `GET /api/oracle/histogram/outputs/{point}`"""
         return self.get_json(f'/api/oracle/histogram/outputs/{_segment(point)}')
@@ -6826,7 +6479,7 @@ class BitviewClient(BitviewClientBase):
     def get_api(self) -> Any:
         """Compact API summary.
 
-        Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.
+        Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples; parameters keep their enum, default and bounds. Not valid OpenAPI: build tools from `GET /openapi.json`.
 
         Endpoint: `GET /api.json`"""
         return self.get_json('/api.json')

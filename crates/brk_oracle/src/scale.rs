@@ -5,24 +5,19 @@ const MIN_LOG_BTC: i32 = -8;
 const MAX_LOG_BTC: i32 = 4;
 pub const NUM_BINS: usize = BINS_PER_DECADE * (MAX_LOG_BTC - MIN_LOG_BTC) as usize;
 
-/// Maps a satoshi value to its log-scale bin index.
-/// bin = round(log10(sats) * BINS_PER_DECADE).
+/// `round(log10(sats) * BINS_PER_DECADE)`, or `None` for zero or beyond the histogram.
 #[inline(always)]
 pub fn sats_to_bin(sats: Sats) -> Option<usize> {
     if sats.is_zero() {
         return None;
     }
-    let bin = ((*sats as f64).log10() * BINS_PER_DECADE as f64).round() as i64;
-    if bin >= 0 && (bin as usize) < NUM_BINS {
-        Some(bin as usize)
-    } else {
-        None
-    }
+    // At least one sat: the logarithm, so the bin, is nonnegative.
+    let bin = ((*sats as f64).log10() * BINS_PER_DECADE as f64).round() as usize;
+    (bin < NUM_BINS).then_some(bin)
 }
 
-/// Converts a fractional bin to a USD price in cents.
-/// For a $D output at price P: sats = D * 1e8 / P, so P = 10^(10 - bin/200) dollars,
-/// where 10 = log10($100 reference * 1e8 sats/BTC).
+/// Converts a fractional bin to a USD price in cents. At the $100 reference,
+/// sats = 100 * 1e8 / P, so P = 10^(10 - bin / 200) dollars.
 #[inline]
 pub fn bin_to_cents(bin: f64) -> Cents {
     Cents::from(Dollars::from(
@@ -30,7 +25,8 @@ pub fn bin_to_cents(bin: f64) -> Cents {
     ))
 }
 
-/// Converts a USD price in cents to a fractional bin (inverse of bin_to_cents).
+/// Converts a USD price in cents to a fractional bin, the inverse of [`bin_to_cents`] before
+/// its cent rounding; zero maps to positive infinity.
 #[inline]
 pub fn cents_to_bin(cents: f64) -> f64 {
     (10.0 - (cents / 100.0).log10()) * BINS_PER_DECADE as f64

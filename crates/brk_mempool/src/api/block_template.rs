@@ -52,7 +52,7 @@ impl ReadOnlyState {
     #[must_use]
     pub fn block_template_source(&self) -> BlockTemplateSource {
         BlockTemplateSource {
-            snapshot: self.snapshot(),
+            snapshot: self.snapshot().clone(),
         }
     }
 

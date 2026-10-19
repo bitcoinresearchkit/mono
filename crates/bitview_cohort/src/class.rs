@@ -1,4 +1,4 @@
-use bitview_primitives::Year;
+use bitview_primitives::Date;
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 use brk_types::Timestamp;
@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortId, CohortName};
 
-/// Class names
 pub const CLASS_NAMES: Class<CohortName> = Class {
     _2009: CohortName::new("class_2009", "2009", "Class 2009"),
     _2010: CohortName::new("class_2010", "2010", "Class 2010"),
@@ -98,8 +97,8 @@ define_cohort_id!(
 );
 
 impl<T> Class<T> {
-    pub fn mut_vec_from_timestamp(&mut self, timestamp: Timestamp) -> Option<&mut T> {
-        let year = u16::from(Year::from(timestamp));
+    pub fn get_mut(&mut self, timestamp: Timestamp) -> Option<&mut T> {
+        let year = Date::from(timestamp).year();
         let id = year
             .checked_sub(2009)
             .and_then(|offset| ClassId::ALL.get(usize::from(offset)))

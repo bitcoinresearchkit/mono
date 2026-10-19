@@ -29,7 +29,7 @@ impl CentsSats96 {
 
     #[inline(always)]
     fn from_wide(value: CentsSats) -> Self {
-        let value = value.as_u128();
+        let value = value.inner();
         debug_assert!(value < CENTS_SATS_96_LIMIT);
         Self([value as u32, (value >> 32) as u32, (value >> 64) as u32])
     }
@@ -43,7 +43,7 @@ impl CentsSats96 {
 
     #[inline(always)]
     fn add(&mut self, value: CentsSats) {
-        let value = value.as_u128();
+        let value = value.inner();
         let low = u64::from(self.0[0]) | (u64::from(self.0[1]) << 32);
         let (low, carry) = low.overflowing_add(value as u64);
         let value_high = (value >> 64) as u64;
@@ -55,7 +55,7 @@ impl CentsSats96 {
 
     #[inline(always)]
     fn subtract(&mut self, value: CentsSats) {
-        let value = value.as_u128();
+        let value = value.inner();
         let low = u64::from(self.0[0]) | (u64::from(self.0[1]) << 32);
         let (low, borrow) = low.overflowing_sub(value as u64);
         let value_high = (value >> 64) as u64 + u64::from(borrow);
@@ -105,15 +105,13 @@ impl Serialize for CentsSats96 {
 impl<'de> Deserialize<'de> for CentsSats96 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> StdResult<Self, D::Error> {
         let value = CentsSats::deserialize(deserializer)?;
-        if value.as_u128() >= CENTS_SATS_96_LIMIT {
+        if value.inner() >= CENTS_SATS_96_LIMIT {
             return Err(de::Error::custom("realized cap exceeds 96 bits"));
         }
         Ok(Self::from_wide(value))
     }
 }
 
-/// Data for a funded (non-empty) address with current balance.
-///
 /// Kept compact because one value is stored for every funded address.
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[repr(C)]
@@ -124,11 +122,8 @@ pub struct FundedAddressData {
     pub sent: Sats,
     /// The realized capitalization: Σ(price × sats)
     realized_cap_raw: CentsSats96,
-    /// Total transaction count
     pub tx_count: u32,
-    /// Number of transaction outputs funded to this address
     pub funded_txo_count: u32,
-    /// Number of transaction outputs spent by this address
     pub spent_txo_count: u32,
 }
 
@@ -155,37 +150,20 @@ impl FundedAddressData {
         self.funded_txo_count - self.spent_txo_count
     }
 
-    #[inline]
-    pub fn has_1_utxos(&self) -> bool {
-        self.utxo_count() == 1
-    }
-
-    #[inline]
-    fn has_0_utxos(&self) -> bool {
-        self.funded_txo_count == self.spent_txo_count
-    }
-
     /// Whether this address currently holds at least one UTXO.
     #[inline]
     pub fn is_funded(&self) -> bool {
-        !self.has_0_utxos()
+        self.funded_txo_count != self.spent_txo_count
     }
 
-    /// Whether this address has received more than one output over its
-    /// lifetime: the receive-side proxy for address reuse (close to but
-    /// not exactly "received in 2+ distinct transactions"; over-counts
-    /// the rare case of multi-output funding to the same address in one
-    /// tx). Matches the industry-standard "address reuse" signal.
+    /// Received more than one output over its lifetime, the usual address-reuse signal; several
+    /// outputs to it in one transaction count separately.
     #[inline]
     pub fn is_reused(&self) -> bool {
         self.funded_txo_count > 1
     }
 
-    /// Whether this address has spent more than one output over its
-    /// lifetime: the spend-side counterpart to `is_reused`. Captures
-    /// "demonstrated reuse via actual spending" and excludes addresses
-    /// that received multiple outputs but have not yet been drawn from
-    /// more than once.
+    /// Spent more than one output over its lifetime: the spend-side counterpart to `is_reused`.
     #[inline]
     pub fn is_respent(&self) -> bool {
         self.spent_txo_count > 1
@@ -199,40 +177,31 @@ impl FundedAddressData {
         output_type.pubkey_exposed_at_funding() || self.spent_txo_count > 0
     }
 
-    /// Whether this address currently holds funds AND its pubkey is exposed.
-    /// True iff the address contributes to the "funds at quantum risk" set.
-    #[inline]
-    fn is_funded_with_exposed_pubkey(&self, output_type: OutputType) -> bool {
-        self.is_funded() && self.is_pubkey_exposed(output_type)
-    }
-
-    /// This address's contribution (in sats) to the "funds at quantum risk"
-    /// supply: its balance if currently in the funded-exposed set, else 0.
+    /// This address's contribution to the "funds at quantum risk" supply: its balance once its
+    /// pubkey is exposed, else 0.
     #[inline]
     pub fn exposed_supply_contribution(&self, output_type: OutputType) -> Sats {
-        if self.is_funded_with_exposed_pubkey(output_type) {
+        if self.is_pubkey_exposed(output_type) {
             self.balance()
         } else {
             Sats::ZERO
         }
     }
 
-    /// This address's contribution (in sats) to the funded-reused supply:
-    /// its balance if currently funded AND reused (received ≥ 2), else 0.
+    /// This address's contribution to the reused supply: its balance if reused, else 0.
     #[inline]
     pub fn reused_supply_contribution(&self) -> Sats {
-        if self.is_funded() && self.is_reused() {
+        if self.is_reused() {
             self.balance()
         } else {
             Sats::ZERO
         }
     }
 
-    /// This address's contribution (in sats) to the funded-respent supply:
-    /// its balance if currently funded AND respent (spent ≥ 2), else 0.
+    /// This address's contribution to the respent supply: its balance if respent, else 0.
     #[inline]
     pub fn respent_supply_contribution(&self) -> Sats {
-        if self.is_funded() && self.is_respent() {
+        if self.is_respent() {
             self.balance()
         } else {
             Sats::ZERO
@@ -280,8 +249,8 @@ impl From<&EmptyAddressData> for FundedAddressData {
     #[inline]
     fn from(value: &EmptyAddressData) -> Self {
         Self {
-            received: value.transfered,
-            sent: value.transfered,
+            received: value.transferred,
+            sent: value.transferred,
             realized_cap_raw: CentsSats96::ZERO,
             tx_count: value.tx_count,
             funded_txo_count: value.funded_txo_count,
@@ -375,10 +344,10 @@ impl OverflowVecValue for FundedAddressData {
     #[inline(always)]
     fn from_compact(compact: Self::Compact) -> Self {
         Self {
-            received: Sats::from(compact.received()),
-            sent: Sats::from(compact.sent()),
+            received: Sats::from(compact.received),
+            sent: Sats::from(compact.sent),
             realized_cap_raw: CentsSats96::from_wide(CentsSats::new(u128::from(
-                compact.realized_cap_raw(),
+                compact.realized_cap_raw,
             ))),
             tx_count: compact.tx_count(),
             funded_txo_count: compact.funded_txo_count(),

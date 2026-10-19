@@ -42,7 +42,6 @@ impl CostBasisVecs {
                 PercentilesVecs::import(db, &id.metric_name(metric), version, mappings)
             })
         };
-        // Exact rational band edges.
         let densities = |metric: &str| {
             AgeAggregate::try_from_fn(|id| {
                 DensityVecs::import(

@@ -21,9 +21,7 @@ use crate::{Error, OptionData, Query, Result, r#impl::mempool_fee_rate};
 
 const HEADER_SIZE: usize = 80;
 
-/// Decoded coinbase fields consumed by `blocks_v1_range`.
-///
-/// Read failures propagate rather than fabricating empty extras.
+/// The coinbase fields of the extended (`v1`) block rows.
 struct Coinbase {
     /// Hex-encoded scriptsig bytes.
     raw_hex: String,
@@ -33,13 +31,12 @@ struct Coinbase {
     addresses: Vec<String>,
     /// Payout-output `asm` (first non-OP_RETURN output, or first output).
     payout_asm: String,
-    /// Scriptsig rendered as ASCII chars (one byte per char).
+    /// Scriptsig bytes as chars, one per byte (U+0000 to U+00FF).
     scriptsig_ascii: String,
     /// Raw scriptsig bytes (used for Datum miner-name parsing).
     scriptsig_bytes: Vec<u8>,
     /// On-disk total size of the coinbase tx.
     total_size: usize,
-    /// Weight of the coinbase tx.
     weight: Weight,
 }
 
@@ -70,8 +67,6 @@ impl Query {
             .collect_one(height)
             .data()
     }
-
-    // === Helper methods ===
 
     /// The header at `height`, checked against its pinned hash like every other header read.
     pub(crate) fn read_block_header_at(
@@ -112,9 +107,7 @@ impl Query {
     /// plus space.
     ///
     /// Any structural mismatch (truncation, missing fields) returns `None`.
-    /// `OP_PUSHDATA2`/`OP_PUSHDATA4` are not handled: today's payloads are
-    /// well under 255 bytes, so this only matters if OCEAN ever publishes
-    /// a longer tag list.
+    /// `OP_PUSHDATA2`/`OP_PUSHDATA4` are not handled: OCEAN's tag lists fit in 255 bytes.
     fn parse_datum_miner_names(scriptsig: &[u8]) -> Option<Vec<String>> {
         if scriptsig.is_empty() {
             return None;
@@ -157,7 +150,6 @@ impl Query {
         if names.is_empty() { None } else { Some(names) }
     }
 
-    /// Decode the indexed coinbase, propagating local read/decode failures.
     fn parse_coinbase_from_read(reader: impl Read) -> Result<Coinbase> {
         let tx = Transaction::consensus_decode(&mut FromStd::new(reader))
             .map_err(|_| Error::Internal("Failed to decode coinbase transaction"))?;
@@ -276,7 +268,6 @@ impl Query {
             .heights
             .block_numbers(&pool_slugs, Height::from(begin));
 
-        // Bulk read segwit stats
         let segwit_txs = indexer
             .vecs()
             .blocks
@@ -293,7 +284,6 @@ impl Query {
             .segwit_tx_weight
             .collect_range_at(begin, end);
 
-        // Bulk read extras data
         let fee_sats = plugins
             .mining
             .rewards
@@ -318,7 +308,7 @@ impl Query {
             .sats
             .collect_range_at(begin, end);
 
-        // Bulk read effective fee rate distribution (accounts for CPFP)
+        // Effective fee rates: CPFP-adjusted.
         let frd = &plugins.transactions.fees.effective_fee_rate.distribution;
         let fr_min = frd.min.height.collect_range_at(begin, end);
         let fr_pct10 = frd.pct10.height.collect_range_at(begin, end);
@@ -328,7 +318,6 @@ impl Query {
         let fr_pct90 = frd.pct90.height.collect_range_at(begin, end);
         let fr_max = frd.max.height.collect_range_at(begin, end);
 
-        // Bulk read fee amount distribution (sats)
         let fad = &plugins.transactions.fees.fee.distribution;
         let fa_min = fad.min.height.collect_range_at(begin, end);
         let fa_pct10 = fad.pct10.height.collect_range_at(begin, end);
@@ -338,7 +327,6 @@ impl Query {
         let fa_pct90 = fad.pct90.height.collect_range_at(begin, end);
         let fa_max = fad.max.height.collect_range_at(begin, end);
 
-        // Validate complete columns before indexing.
         if [
             blockhashes.len(),
             pool_slugs.len(),
@@ -384,10 +372,10 @@ impl Query {
                 // Read failures must not produce partial block data.
                 let mut blk = reader
                     .reader_at(columns.positions[i])
-                    .map_err(|_| Error::Internal("blocks_v1_range: failed to open block reader"))?;
+                    .map_err(|_| Error::Internal("Failed to open block reader"))?;
                 let mut raw_header = [0u8; HEADER_SIZE];
                 blk.read_exact(&mut raw_header)
-                    .map_err(|_| Error::Internal("blocks_v1_range: failed to read block header"))?;
+                    .map_err(|_| Error::Internal("Failed to read block header"))?;
                 let id = blockhashes[i];
                 let header = Self::decode_header(&raw_header, &id)?;
                 let varint_len = Self::read_block_tx_count(&mut blk, tx_count)?;
@@ -414,11 +402,14 @@ impl Query {
                 let fee_paying_weight = u64::from(weight)
                     .saturating_sub(4 * (HEADER_SIZE + varint_len) as u64)
                     .saturating_sub(u64::from(coinbase_weight));
-                let non_coinbase = tx_count.saturating_sub(1) as u64;
+                let non_coinbase = u64::from(tx_count - 1);
 
                 let pool_slug = pool_slugs[i];
                 let pool = all_pools.get(pool_slug);
                 let block_number = pool_block_numbers[i];
+
+                let non_coinbase_size =
+                    (size as usize).saturating_sub(HEADER_SIZE + varint_len + coinbase_total_size);
 
                 let miner_names = if pool_slug == PoolSlug::Ocean {
                     Self::parse_datum_miner_names(&scriptsig_bytes)
@@ -430,7 +421,7 @@ impl Query {
                 // Non-coinbase output value: input value minus fees.
                 let total_output_amt = total_input_amt
                     .checked_sub(total_fees)
-                    .ok_or(Error::Internal("blocks_v1_range: fees exceed input volume"))?;
+                    .ok_or(Error::Internal("Block fees exceed input volume"))?;
 
                 let extras = BlockExtras {
                     total_fees,
@@ -462,14 +453,8 @@ impl Query {
                     coinbase_addresses,
                     coinbase_signature,
                     coinbase_signature_ascii,
-                    avg_tx_size: if tx_count > 0 && coinbase_total_size > 0 {
-                        let non_coinbase_total = (size as usize)
-                            .saturating_sub(HEADER_SIZE + varint_len + coinbase_total_size);
-                        let raw = non_coinbase_total as f64 / tx_count as f64;
-                        (raw * 100.0).round() / 100.0
-                    } else {
-                        0.0
-                    },
+                    avg_tx_size: (non_coinbase_size as f64 / tx_count as f64 * 100.0).round()
+                        / 100.0,
                     total_inputs,
                     total_outputs,
                     total_output_amt,
@@ -527,9 +512,7 @@ impl Query {
             .ok_or(Error::Internal("Invalid block transaction range"))
     }
     pub(crate) fn verify_header(bytes: &[u8], expected_hash: &BlockHash) -> Result<()> {
-        if bytes.len() != HEADER_SIZE {
-            return Err(Error::Internal("Invalid block header length"));
-        }
+        debug_assert_eq!(bytes.len(), HEADER_SIZE);
         if BlockHash::from(BitcoinBlockHash::hash(bytes)) != *expected_hash {
             return Err(Error::Internal("Block header differs from index"));
         }
@@ -567,8 +550,7 @@ impl BlockColumns {
     /// Blocks `begin..end` within the published heights of `safe`.
     fn capture(query: &Query, begin: usize, end: usize, safe: Lengths) -> Result<Self> {
         let height_len = safe.height.to_usize();
-        let end = end.min(height_len);
-        let begin = begin.min(end);
+        debug_assert!(begin <= end && end <= height_len);
         let count = end - begin;
         let first_tx_index_end = if count == 0 {
             end
@@ -580,7 +562,7 @@ impl BlockColumns {
         let columns = Self {
             begin,
             difficulties: blocks.difficulty.collect_range_at(begin, end),
-            sizes: blocks.total.collect_range_at(begin, end),
+            sizes: blocks.size.collect_range_at(begin, end),
             weights: blocks.weight.collect_range_at(begin, end),
             positions: blocks.position.collect_range_at(begin, end),
             first_tx_indexes: vecs
@@ -614,7 +596,6 @@ impl BlockColumns {
         self.difficulties.len()
     }
 
-    /// Row `i`'s transaction count.
     fn tx_count(&self, i: usize) -> Result<u32> {
         let next = self
             .first_tx_indexes

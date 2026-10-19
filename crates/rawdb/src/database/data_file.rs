@@ -27,10 +27,7 @@ pub(crate) struct DataFile {
     /// Maps the file's reserved address space once: growing the file inside it needs no remap, so
     /// the mapping never moves.
     mmap: MmapRaw,
-    /// Length of `mmap`, the file's reserved address space.
-    mapped: usize,
     len: AtomicUsize,
-    /// Serializes growth.
     grow: Mutex<()>,
 }
 
@@ -40,8 +37,9 @@ impl DataFile {
         let len = usize::try_from(file.metadata()?.len()).map_err(|_| Error::FileSizeOverflow {
             requested: usize::MAX,
         })?;
-        let mapped = Self::reservation(len);
-        let mmap = MmapOptions::new().len(mapped).map_raw(&file)?;
+        let mmap = MmapOptions::new()
+            .len(Self::reservation(len))
+            .map_raw(&file)?;
         #[cfg(target_os = "macos")]
         let uncached = {
             let uncached = File::options().read(true).write(true).open(path)?;
@@ -54,7 +52,6 @@ impl DataFile {
             #[cfg(target_os = "macos")]
             uncached,
             mmap,
-            mapped,
             len: AtomicUsize::new(len),
             grow: Mutex::default(),
         })
@@ -80,10 +77,11 @@ impl DataFile {
         if self.len() >= len {
             return Ok(());
         }
-        if len > self.mapped {
+        let reserved = self.mmap.len();
+        if len > reserved {
             return Err(Error::ReservationExhausted {
                 requested: len,
-                reserved: self.mapped,
+                reserved,
             });
         }
         let _grow = self.grow.lock();
@@ -93,7 +91,7 @@ impl DataFile {
         }
         let target_len =
             Self::aligned_len(len.max(current_len.saturating_mul(2)).max(1024 * 1024))?
-                .min(self.mapped);
+                .min(reserved);
         self.file.set_len(target_len as u64)?;
         self.len.store(target_len, Ordering::Relaxed);
         Ok(())

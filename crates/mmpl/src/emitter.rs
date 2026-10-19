@@ -16,10 +16,9 @@ use serde_json::{from_slice, to_writer};
 
 use crate::event::{Event, LeaveReason};
 
-/// The previous cycle's observations. Empty on the first cycle, so the
-/// very first `Tip` / `Block` / `Fees` always fires and every live tx
-/// enters: downstream consumers get a baseline without a special-case
-/// "current state" call.
+/// The previous cycle's observations. Empty on the first cycle, so it emits every available
+/// state event (`Tip`, `Block`, `Fees`) and every live tx enters: consumers get a baseline
+/// without a special-case "current state" call.
 #[derive(Default)]
 pub struct Emitter {
     prev_tip: Option<BlockHash>,
@@ -41,8 +40,8 @@ impl Emitter {
     /// Per-line flushes would cost one syscall per event on busy cycles;
     /// the cycle period (~500ms) is the real "live" granularity. Every read
     /// resolves before the first line is written, and the observations only
-    /// advance once all lines are out: a failed cycle is retried whole. A pool
-    /// not published yet emits nothing.
+    /// advance once all lines are out: a cycle whose reads fail is retried whole
+    /// (a failed write ends the stream). A pool not published yet emits nothing.
     pub fn emit<W: Write>(
         &mut self,
         out: &mut W,

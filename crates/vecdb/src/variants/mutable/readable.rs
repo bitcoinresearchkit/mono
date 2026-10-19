@@ -8,7 +8,7 @@ where
 {
     #[inline]
     fn has_mutations(&self) -> bool {
-        !self.current_holes().is_empty() || !self.current_updated().is_empty()
+        !self.holes().is_empty() || !self.updated.current.is_empty()
     }
 
     fn try_fold_mutable<B, E, F>(&self, from: usize, to: usize, init: B, mut f: F) -> Result<B, E>
@@ -18,9 +18,10 @@ where
         let stored_len = self.vec.stored_len();
         let stored_to = to.min(stored_len);
         let reader = self.vec.reader();
-        let mut holes = self.current_holes().range(from..to).peekable();
+        let mut holes = self.holes().range(from..to).peekable();
         let mut updated = self
-            .current_updated()
+            .updated
+            .current
             .range(from.min(stored_to)..stored_to)
             .peekable();
         let mut acc = init;
@@ -48,9 +49,7 @@ where
                 holes.next();
                 continue;
             }
-            if let Some(value) = pushed.get(index - stored_len) {
-                acc = f(acc, value.clone())?;
-            }
+            acc = f(acc, pushed[index - stored_len].clone())?;
         }
 
         Ok(acc)
@@ -68,10 +67,11 @@ where
 
     #[inline(always)]
     fn collect_one_at(&self, index: usize) -> Option<V::T> {
-        if index >= self.vec.len() || self.current_holes().contains(&index) {
+        if index >= self.vec.len() || self.holes().contains(&index) {
             return None;
         }
-        self.current_updated()
+        self.updated
+            .current
             .get(&index)
             .cloned()
             .or_else(|| self.vec.collect_one_at(index))
@@ -105,8 +105,8 @@ where
         if last - first < indices.len() && indices.len() > 1 {
             // Merge dense requests with mutations. Sparse requests retain
             // tree lookups rather than walking mutations across large gaps.
-            let mut holes = self.current_holes().range(first..=last).peekable();
-            let mut updates = self.current_updated().range(first..=last).peekable();
+            let mut holes = self.holes().range(first..=last).peekable();
+            let mut updates = self.updated.current.range(first..=last).peekable();
             let reader = self.vec.reader();
             let stored_len = self.vec.stored_len();
             let pushed = self.vec.pushed();

@@ -54,13 +54,8 @@ use super::*;
             let letters: Vec<String> = (0..params).map(param_name).collect();
             format!("<{}>", letters.join(", "))
         };
-        let at: Vec<String> = paths[shape]
-            .iter()
-            .map(|key| rust_field_name(key))
-            .collect();
-        let at = ["series()".to_owned()]
-            .into_iter()
-            .chain(at)
+        let at = std::iter::once("series()".to_owned())
+            .chain(paths[shape].iter().map(|key| rust_field_name(key)))
             .collect::<Vec<_>>()
             .join(".");
         writeln!(output, "shape! {{ {}{generic} at {at:?} {{", names[shape]).unwrap();

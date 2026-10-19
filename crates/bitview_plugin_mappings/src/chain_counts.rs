@@ -5,11 +5,10 @@ use brk_types::{Height, TxIndex, Version};
 use crate::LazyCumulativeIndexVec;
 
 /// Canonical cumulative counts over the indexer's cached stored boundaries.
-#[derive(Clone)]
 pub struct ChainCounts {
-    transaction: LazyCumulativeIndexVec<Height, TxIndex>,
-    input: LazyCumulativeIndexVec<Height, TxInIndex>,
-    output: LazyCumulativeIndexVec<Height, TxOutIndex>,
+    pub(crate) transaction: LazyCumulativeIndexVec<Height, TxIndex>,
+    pub(crate) input: LazyCumulativeIndexVec<Height, TxInIndex>,
+    pub(crate) output: LazyCumulativeIndexVec<Height, TxOutIndex>,
 }
 
 impl ChainCounts {
@@ -34,17 +33,5 @@ impl ChainCounts {
                 &indexer.vecs().outputs.value,
             ),
         }
-    }
-
-    pub fn transaction_source(&self) -> LazyCumulativeIndexVec<Height, TxIndex> {
-        self.transaction.clone()
-    }
-
-    pub fn input_source(&self) -> LazyCumulativeIndexVec<Height, TxInIndex> {
-        self.input.clone()
-    }
-
-    pub fn output_source(&self) -> LazyCumulativeIndexVec<Height, TxOutIndex> {
-        self.output.clone()
     }
 }

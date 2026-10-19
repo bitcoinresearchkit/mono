@@ -20,7 +20,7 @@ pub enum ProcessedOutputData {
 pub struct ProcessedOutput {
     pub output_type: OutputType,
     /// The legacy sigop cost a spend executes: the locking script's accurate count, scaled.
-    pub legacy_sigops: SigOps32,
+    pub legacy_sigop_cost: SigOps32,
     pub data: ProcessedOutputData,
 }
 

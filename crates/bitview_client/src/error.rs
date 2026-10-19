@@ -2,7 +2,8 @@ use std::fmt;
 
 use bitview_types::ErrorCode;
 
-/// Error type for Bitview client operations.
+/// An HTTP error with its status and an optional recognized server code; client-side failures
+/// (connection, decoding, invalid selector) carry neither.
 #[derive(Debug)]
 pub struct BitviewError {
     /// HTTP status of the server's error answer.
@@ -31,5 +32,4 @@ impl fmt::Display for BitviewError {
 
 impl std::error::Error for BitviewError {}
 
-/// Result using the Bitview client's error type.
 pub type Result<T> = std::result::Result<T, BitviewError>;

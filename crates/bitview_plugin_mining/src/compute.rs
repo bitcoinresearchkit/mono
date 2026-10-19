@@ -21,7 +21,6 @@ impl ComputePlugin for Vecs {
         } = dependencies;
         let exit = context.exit();
 
-        // Block rewards (coinbase, subsidy, fee share, etc.)
         self.rewards
             .compute(indexer, &mappings.lookback, transactions, prices, exit)?;
 

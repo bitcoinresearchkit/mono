@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_cointime"
-description = "The cointime analytics plugin for Bitview"
+description = "Cointime metrics: coinblocks, liveliness, active and vaulted supply, caps and prices"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

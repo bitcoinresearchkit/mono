@@ -15,10 +15,10 @@ where
 
     #[inline]
     fn name(&self) -> &str {
-        self.base.name()
+        &self.base.name
     }
 
-    /// Append-only: rows below its length never change (a `MutableVec` wrapping it says otherwise).
+    /// Append-only: rows below its length never change.
     #[inline]
     fn is_mutable(&self) -> bool {
         false
@@ -26,14 +26,14 @@ where
 
     #[inline]
     fn len(&self) -> usize {
-        self.base.len()
+        self.base.stored_len()
     }
 
     crate::any_vec_type_methods!(I, T);
 
     #[inline]
     fn region_names(&self) -> Vec<String> {
-        let base = vec_region_name(self.base.name(), I::to_string());
+        let base = vec_region_name(&self.base.name, I::to_string());
         let pages = format!("{base}_pages");
         vec![base, pages]
     }

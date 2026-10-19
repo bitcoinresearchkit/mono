@@ -71,7 +71,6 @@ pub struct RawSources<M: StorageMode = Rw> {
 }
 
 impl RangeVecs {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn import(
         db: &Database,
         cohort: CohortId,

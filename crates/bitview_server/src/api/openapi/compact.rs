@@ -2,10 +2,10 @@ use std::mem;
 
 use serde_json::{Map, Value, to_vec};
 
-/// Compacts an OpenAPI spec JSON for LLM consumption: drops deprecated endpoints, `*Param`
-/// schemas, examples, formats, constraints and secondary descriptions, and reduces schemas,
-/// responses and parameters to their types. Walks the document's known sections; every schema
-/// goes through [`compact_schema`].
+/// Compacts an OpenAPI spec JSON for LLM consumption: drops paths whose GET is deprecated,
+/// `*Param` schemas, examples, formats and secondary descriptions, reduces schemas and responses
+/// to their types, and parameters to their type, enum, default and bounds. Walks the document's
+/// known sections; every schema goes through [`compact_schema`].
 pub(super) fn compact_json(mut spec: Value) -> Vec<u8> {
     if let Some(Value::Object(info)) = spec.get_mut("info") {
         info.shift_remove("contact");
@@ -89,7 +89,7 @@ fn return_type(mut responses: Map<String, Value>) -> Option<String> {
         return Some(type_name(schema.take()));
     }
     let (media_type, body) = content.iter_mut().next()?;
-    let media_type = media_type.split(';').next().unwrap_or(media_type);
+    let media_type = media_type.split(';').next().unwrap();
     Some(match body.get_mut("schema") {
         Some(schema) => format!("{} ({media_type})", type_name(schema.take())),
         None => media_type.to_owned(),
@@ -125,7 +125,7 @@ fn compact_schema(schema: Value) -> Value {
         other => return other,
     };
     if let Some(Value::String(path)) = schema.get("$ref") {
-        return Value::String(path.rsplit('/').next().unwrap_or(path).to_owned());
+        return Value::String(path.rsplit('/').next().unwrap().to_owned());
     }
     // A described reference is wrapped as `allOf: [{ $ref }]`.
     if let Some(Value::Array(all_of)) = schema.get_mut("allOf")
@@ -221,9 +221,14 @@ fn type_name(schema: Value) -> String {
     }
 }
 
+/// A description reduced to nothing (only the mempool.space docs link) is dropped.
 fn trim_description(object: &mut Map<String, Value>) {
-    if let Some(Value::String(description)) = object.get_mut("description") {
-        *description = trimmed(description);
+    let Some(Value::String(description)) = object.get_mut("description") else {
+        return;
+    };
+    *description = trimmed(description);
+    if description.is_empty() {
+        object.shift_remove("description");
     }
 }
 
@@ -232,10 +237,5 @@ fn trimmed(description: &str) -> String {
     let description = description
         .find("*[Mempool.space docs]")
         .map_or(description, |idx| description[..idx].trim());
-    description
-        .split("\n\n")
-        .next()
-        .unwrap_or_default()
-        .trim()
-        .to_owned()
+    description.split("\n\n").next().unwrap().trim().to_owned()
 }

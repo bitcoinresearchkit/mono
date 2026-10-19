@@ -14,6 +14,5 @@ pub struct HashRateSmaVecs<M: StorageMode = Rw> {
     pub _2m: PerBlock<Hashrate, M>,
     /// Uses a trailing 365-day duration.
     pub _1y: PerBlock<Hashrate, M>,
-    /// The kept 1w, 1m, 2m and 1y average windows.
     pub(crate) windows: M::WriteOnly<[Retained<AverageWindow>; 4]>,
 }

@@ -42,7 +42,7 @@ fn run() -> Result<()> {
     info!("Benchmark results: {}", benchmark.path().display());
     let reader = Reader::new(blocks_path, &client)?;
     let exit = Exit::new();
-    exit.set_ctrlc_handler();
+    exit.install_signal_handlers();
 
     let cleanup = benchmark.clone();
     exit.register_cleanup(move || {

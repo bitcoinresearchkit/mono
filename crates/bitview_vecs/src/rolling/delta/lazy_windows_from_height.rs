@@ -12,10 +12,10 @@ use crate::{
 /// Trailing-window deltas of a value in its plain units.
 pub type LazyRollingDeltasFromHeight<S, C, B> =
     LazyRollingDeltas<LazyDeltaFromHeight<S, C, DeltaChange>, S, B>;
-/// Trailing-window deltas of a Bitcoin amount: BTC, with sats as its exact storage.
+/// Trailing-window deltas in BTC and satoshis.
 pub type LazyRollingDeltasAmountFromHeight<S, C, B> =
     LazyRollingDeltas<LazyDeltaAmountFromHeight<S, C>, S, B>;
-/// Trailing-window deltas of a fiat value: USD, with cents as its exact storage.
+/// Trailing-window deltas in USD and cents.
 pub type LazyRollingDeltasFiatFromHeight<S, C, B> =
     LazyRollingDeltas<LazyDeltaFiatFromHeight<S, C>, S, B>;
 
@@ -39,7 +39,6 @@ where
     S: NumericValue,
     B: FixedRatio + From<f64>,
 {
-    /// Each window's `absolute` member from its name, version and window starts.
     fn build<W: ReadableCloneableVec<Height, Height>>(
         name: &str,
         version: Version,

@@ -147,10 +147,6 @@ where
             self.pending.is_empty(),
             "a store view excludes pending writes"
         );
-        self.ingested()
-    }
-
-    fn ingested(&self) -> StoreView<K, V> {
         StoreView {
             view: self.keyspace.read_view(),
             records: PhantomData,
@@ -175,13 +171,6 @@ where
             })
     }
 
-    fn ingest_owned(keyspace: &Keyspace, pending: Pending<K, V>) -> Result<()> {
-        match pending {
-            Pending::Hashed { puts, dels } => Self::ingest_hashed(keyspace, puts, dels),
-            Pending::Sequential(changes) => Self::ingest_sequential(keyspace, changes),
-        }
-    }
-
     fn ingest_hashed(keyspace: &Keyspace, puts: FxHashMap<K, V>, dels: FxHashSet<K>) -> Result<()> {
         let mut puts: Vec<_> = puts.into_iter().collect();
         let mut dels: Vec<_> = dels.into_iter().collect();
@@ -195,7 +184,7 @@ where
 
         // The buffers are unique and disjoint, and this merge emits them in
         // strict key order, so release builds can skip re-cloning each key.
-        while puts.peek().is_some() || dels.peek().is_some() {
+        loop {
             match (puts.peek(), dels.peek()) {
                 (Some((put_key, _)), Some(del_key)) => match put_key.cmp(del_key) {
                     Ordering::Less => {
@@ -303,8 +292,9 @@ where
 
         let keyspace = self.keyspace.clone();
 
-        Some(PendingIngest::new(move || {
-            Self::ingest_owned(&keyspace, pending)
+        Some(PendingIngest::new(move || match pending {
+            Pending::Hashed { puts, dels } => Self::ingest_hashed(&keyspace, puts, dels),
+            Pending::Sequential(changes) => Self::ingest_sequential(&keyspace, changes),
         }))
     }
 }

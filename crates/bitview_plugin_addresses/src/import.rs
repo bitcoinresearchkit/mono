@@ -39,12 +39,12 @@ impl Vecs {
         let types = Box::new(AddressType::try_from_fn(|id| {
             AddressVecs::import(&ctx, &format!("{}_", id.key()))
         })?);
-        let address_supply = all.supply().read_only_boxed_clone();
+        let address_supply = all.supply.read_only_boxed_clone();
         let balances = Box::new(Balances::import(&ctx, &address_supply)?);
         let supply = SupplyViews::new(
             "address_supply",
             version,
-            all.supply(),
+            &all.supply,
             totals.supply,
             &spot,
             mappings,

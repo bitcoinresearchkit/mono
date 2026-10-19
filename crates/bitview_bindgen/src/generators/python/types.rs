@@ -1,5 +1,3 @@
-//! Python type definitions generation.
-
 use std::collections::BTreeSet;
 use std::fmt::Write;
 
@@ -12,32 +10,15 @@ use crate::{
     topological::topological,
 };
 
-/// Generate type definitions from schemas.
 pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchemas) {
-    if schemas.is_empty() {
-        return;
-    }
-
-    writeln!(output, "# Type definitions\n").unwrap();
-
-    let sorted_names = topological_sort_schemas(schemas);
-
-    // Partition into simple type aliases and TypedDict classes
-    // Generate type aliases first to avoid forward reference issues
-    let (type_aliases, typed_dicts): (Vec<_>, Vec<_>) = sorted_names
+    // Type aliases come first to avoid forward reference issues.
+    let (type_aliases, typed_dicts): (Vec<_>, Vec<_>) = topological_sort_schemas(schemas)
         .into_iter()
         .filter(|name| !MANUAL_GENERIC_TYPES.contains(&name.as_str()))
         .filter(|name| rust_array_element_type(name).is_none())
         .filter(|name| !is_rust_concrete_generic(name))
-        .filter(|name| schemas.contains_key(name))
-        .partition(|name| {
-            schemas
-                .get(name)
-                .map(|s| s.get("properties").is_none())
-                .unwrap_or(false)
-        });
+        .partition(|name| schemas[name].get("properties").is_none());
 
-    // Generate simple type aliases first
     // Quote references to TypedDicts since they're defined after
     let typed_dict_set: BTreeSet<_> = typed_dicts.iter().cloned().collect();
     for name in type_aliases {
@@ -51,7 +32,6 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
         writeln!(output, "{} = {}", name, py_type).unwrap();
     }
 
-    // Then generate TypedDict classes
     for name in typed_dicts {
         let schema = &schemas[&name];
         let type_desc = schema.get("description").and_then(|d| d.as_str());
@@ -61,7 +41,7 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             .unwrap();
 
         // A property outside `required` can be absent from the JSON: required keys go in a base
-        // class, optional ones in a `total=False` class (correct at runtime and for every checker).
+        // class, optional ones in a `total=False` class.
         let required: BTreeSet<&str> = schema
             .get("required")
             .and_then(|r| r.as_array())
@@ -130,7 +110,6 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
         };
         writeln!(output, "{header}").unwrap();
 
-        // Collect field descriptions for Attributes section
         let field_docs: Vec<(String, Option<&str>)> = props
             .iter()
             .map(|(prop_name, prop_schema)| {
@@ -141,7 +120,6 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
             .collect();
         let has_field_docs = field_docs.iter().any(|(_, d)| d.is_some());
 
-        // Generate docstring if we have type description or field descriptions
         if type_desc.is_some() || has_field_docs {
             writeln!(output, "    \"\"\"").unwrap();
             if let Some(desc) = type_desc {

@@ -25,7 +25,7 @@ use crate::Snapshot;
 const HASH: &str = "000000000000000000000000000000000000000000000000000000000000dead";
 const ADDRESS: &str = "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq";
 
-/// G8: the HTTP response of every client-visible error scenario (status, headers, body).
+/// The HTTP responses of client-visible error scenarios (status, headers, body).
 ///
 /// Requests go through the real application (`bitview_server::app`: routes, rejections, the
 /// JSON error rewrite, POST no-store, CORS) over the offline import, with no mempool and an

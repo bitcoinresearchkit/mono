@@ -13,7 +13,6 @@ use vecdb::{
 
 use crate::pool_heights::{Column, PoolCumulativeVec, PoolHeights};
 
-/// One mining pool, every pool with the same shape.
 #[derive(Clone, Traversable)]
 pub struct PoolVecs {
     /// Blocks attributed to the pool.
@@ -66,7 +65,6 @@ fn share_from_genesis(height: Height, blocks: Count) -> PartsPerMillion32 {
 }
 
 impl PoolVecs {
-    /// `network` holds the network hash-rate estimate for each pool window.
     pub(crate) fn new(
         slug: PoolSlug,
         pool_heights: &PoolHeights,
@@ -129,7 +127,7 @@ impl PoolVecs {
             cumulative: LazyPercentPerBlock::from_height_source(
                 &format!("{share_name}_cumulative"),
                 version,
-                &LazyVec::init(
+                &LazyVec::new(
                     &format!("{share_name}_ppm_source"),
                     version,
                     blocks.read_only_boxed_clone(),

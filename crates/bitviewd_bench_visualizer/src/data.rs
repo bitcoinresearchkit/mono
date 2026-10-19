@@ -1,12 +1,11 @@
 use std::{
     collections::BTreeMap,
-    error::Error,
     fs,
     io::ErrorKind,
     path::{Path, PathBuf},
 };
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+use crate::Result;
 
 /// One recorded benchmark run; every file but `memory.csv` is optional (older runs lack them).
 pub struct Run {
@@ -163,7 +162,7 @@ impl Run {
 
     pub fn end_s(&self) -> f64 {
         self.duration_s
-            .unwrap_or_else(|| self.memory.times.last().copied().unwrap_or_default())
+            .unwrap_or_else(|| *self.memory.times.last().expect("a run has memory samples"))
     }
 
     /// The process's peak memory and its name: macOS's peak footprint, else Linux's peak
@@ -221,7 +220,6 @@ impl Run {
             .collect()
     }
 
-    /// Seconds spent in cycles of that name.
     pub fn cycle_seconds(&self, name: &str) -> f64 {
         self.cycles()
             .iter()
@@ -283,7 +281,7 @@ fn read(root: &Path, path: PathBuf) -> Result<Run> {
         .filter_map(|line| line.split_once('='))
         .map(|(key, value)| (key.to_owned(), value.to_owned()))
         .collect::<BTreeMap<_, _>>();
-    let relative = path.strip_prefix(root).unwrap_or(&path);
+    let relative = path.strip_prefix(root).unwrap();
     let started_at = meta
         .get("started_at_unix")
         .and_then(|value| value.parse().ok())

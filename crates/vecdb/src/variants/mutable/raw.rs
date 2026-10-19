@@ -1,12 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::MutableVec;
-use crate::{
-    AnyStoredVec, ChangeData, ImportOptions, ImportableVec, Result, Stamp, StoredVec, VecIndex,
-    WritableVec,
-};
+use crate::{AnyStoredVec, ChangeData, ImportOptions, Result, Stamp, StoredVec, VecIndex};
 
-pub trait MutableRawVec: StoredVec + ImportableVec + WritableVec<Self::I, Self::T> + Sized {
+pub trait MutableRawVec: StoredVec {
     type Reader;
 
     /// Imports without resetting: a version or format mismatch is an error, so the
@@ -51,7 +48,7 @@ where
 
     #[inline]
     pub(crate) fn get_with_reader_at(&self, index: usize, reader: &V::Reader) -> Option<V::T> {
-        if !self.current_holes().is_empty() && self.current_holes().contains(&index) {
+        if self.holes().contains(&index) {
             return None;
         }
 
@@ -61,9 +58,7 @@ where
             return self.vec.pushed().get(index - stored_len).cloned();
         }
 
-        if !self.current_updated().is_empty()
-            && let Some(value) = self.current_updated().get(&index)
-        {
+        if let Some(value) = self.updated.current.get(&index) {
             return Some(value.clone());
         }
 
@@ -76,9 +71,7 @@ where
         if index >= self.vec.len() {
             return;
         }
-        if !self.current_updated().is_empty() {
-            self.mut_updated().remove(&index);
-        }
+        self.updated.current.remove(&index);
         self.mut_holes().insert(index);
     }
 
@@ -86,7 +79,7 @@ where
     pub(crate) fn fill_first_hole_or_push(&mut self, value: V::T) -> Result<V::I> {
         self.header().check_writable()?;
         if let Some(index) = self.mut_holes().pop_first() {
-            self.update_value_at(index, value)?;
+            self.update_at(index, value)?;
             return Ok(V::I::from(index));
         }
         self.vec.push(value);
@@ -94,23 +87,8 @@ where
     }
 
     #[inline]
-    pub(crate) fn holes(&self) -> &BTreeSet<usize> {
-        self.current_holes()
-    }
-
-    #[inline]
     pub fn get_with_reader(&self, index: V::I, reader: &V::Reader) -> Option<V::T> {
         self.get_with_reader_at(index.to_usize(), reader)
-    }
-
-    #[inline]
-    pub(crate) fn update_at(&mut self, index: usize, value: V::T) -> Result<()> {
-        self.update_value_at(index, value)
-    }
-
-    #[inline]
-    pub(crate) fn delete(&mut self, index: V::I) {
-        self.delete_at(index.to_usize());
     }
 
     /// Borrows the staged values for mutation without changing their length.

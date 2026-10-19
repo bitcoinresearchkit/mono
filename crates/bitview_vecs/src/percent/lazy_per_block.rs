@@ -10,10 +10,7 @@ use crate::{
     shapes::PercentViews,
 };
 
-/// Fully lazy variant of `PercentPerBlock` — no stored vecs.
-///
-/// Fixed-point values are lazily derived from one source, and the percent view is chained
-/// from them.
+/// A fixed-point view and the percentage view derived from it.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyPercentPerBlock<B: FixedRatio>(
     pub PercentViews<LazyPerBlock<B, B>, LazyPerBlock<Percent, B>>,

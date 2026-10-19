@@ -96,9 +96,6 @@ impl Query {
         let tx_heights = self.plugins().mappings.tx_heights.load();
         let mut tx_heights = tx_heights.cursor();
         for (tx_index, txid, vout, value) in outputs {
-            if tx_index >= lengths.tx_index {
-                return Err(Error::UnknownTxid);
-            }
             let height: Height = tx_heights.get(tx_index).data()?;
             let status = if let Some((h, ref s)) = cached_status
                 && h == height

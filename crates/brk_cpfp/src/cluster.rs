@@ -30,7 +30,7 @@ impl Cluster {
         self.parents.clear();
     }
 
-    /// Append the next member. Its `parents` must be local indices of earlier members.
+    /// `parents` must be local indices of earlier members.
     pub fn push(
         &mut self,
         fee: Sats,
@@ -58,7 +58,7 @@ impl Cluster {
 
     /// Linearize into descending-feerate chunks and pass each chunk's members (ascending
     /// local indices) and feerate to `emit`, in chunk order. Order: the best remaining ancestor set
-    /// first (exact feerate, then size, then earliest); a group paying more than the chunk
+    /// first (exact feerate, then more members, then earliest); a group paying more than the chunk
     /// before it merges into it.
     pub fn linearize(&mut self, emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate)) {
         linearize(&self.nodes, &self.parents, &mut self.scratch, emit);
@@ -72,10 +72,9 @@ impl Cluster {
         seed: CpfpClusterTxIndex,
         member: impl Fn(usize) -> (Txid, Weight),
     ) -> (Option<CpfpCluster>, FeeRate) {
-        let seed_node = &self.nodes[u32::from(seed) as usize];
-        let own_rate = FeeRate::from((seed_node.fee, seed_node.vsize));
         if self.nodes.len() == 1 {
-            return (None, own_rate);
+            let node = &self.nodes[u32::from(seed) as usize];
+            return (None, FeeRate::from((node.fee, node.vsize)));
         }
         let mut chunks = Vec::new();
         let mut seed_chunk = None;
@@ -88,8 +87,7 @@ impl Cluster {
                 feerate,
             });
         });
-        debug_assert!(seed_chunk.is_some(), "every member is in a chunk");
-        let (chunk_index, rate) = seed_chunk.unwrap_or((0, own_rate));
+        let (chunk_index, rate) = seed_chunk.expect("every member is in a chunk");
         let txs = self
             .nodes
             .iter()

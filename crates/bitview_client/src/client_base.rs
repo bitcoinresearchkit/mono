@@ -8,7 +8,7 @@ use ureq::{Agent, Body, BodyWithConfig, http::Response};
 
 use crate::{BitviewError, Result};
 
-/// Options for configuring the Bitview client.
+/// Defaults to `http://localhost:3110` with a 30 s timeout.
 #[derive(Debug, Clone)]
 pub struct BitviewClientOptions {
     pub base_url: String,
@@ -24,7 +24,7 @@ impl Default for BitviewClientOptions {
     }
 }
 
-/// Base HTTP client for making requests. Reuses connections via ureq::Agent.
+/// Reuses connections through `ureq::Agent`.
 #[derive(Debug, Clone)]
 pub struct BitviewClientBase {
     agent: Agent,
@@ -32,7 +32,6 @@ pub struct BitviewClientBase {
 }
 
 impl BitviewClientBase {
-    /// Create a new client with the given base URL.
     pub fn new(base_url: impl Into<String>) -> Self {
         Self::with_options(BitviewClientOptions {
             base_url: base_url.into(),
@@ -40,7 +39,6 @@ impl BitviewClientBase {
         })
     }
 
-    /// Create a new client with options.
     pub fn with_options(options: BitviewClientOptions) -> Self {
         let agent = Agent::config_builder()
             .timeout_global(Some(Duration::from_secs(options.timeout_secs)))
@@ -84,42 +82,36 @@ impl BitviewClientBase {
         })
     }
 
-    /// Make a GET request and deserialize JSON response.
     pub fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
         Self::read(self.agent.get(&self.url(path)).call(), |body| {
             body.read_json()
         })
     }
 
-    /// Make a GET request and return raw text response.
     pub fn get_text(&self, path: &str) -> Result<String> {
         Self::read(self.agent.get(&self.url(path)).call(), |body| {
             body.read_to_string()
         })
     }
 
-    /// Make a GET request and return raw bytes response.
     pub fn get_bytes(&self, path: &str) -> Result<Vec<u8>> {
         Self::read(self.agent.get(&self.url(path)).call(), |body| {
             body.read_to_vec()
         })
     }
 
-    /// Make a POST request and deserialize JSON response.
     pub fn post_json<T: DeserializeOwned>(&self, path: &str, body: &str) -> Result<T> {
         Self::read(self.agent.post(&self.url(path)).send(body), |body| {
             body.read_json()
         })
     }
 
-    /// Make a POST request and return raw text response.
     pub fn post_text(&self, path: &str, body: &str) -> Result<String> {
         Self::read(self.agent.post(&self.url(path)).send(body), |body| {
             body.read_to_string()
         })
     }
 
-    /// Make a POST request and return raw bytes response.
     pub fn post_bytes(&self, path: &str, body: &str) -> Result<Vec<u8>> {
         Self::read(self.agent.post(&self.url(path)).send(body), |body| {
             body.read_to_vec()

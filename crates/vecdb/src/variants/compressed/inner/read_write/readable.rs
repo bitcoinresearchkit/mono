@@ -12,7 +12,7 @@ where
     S: CompressionStrategy<T>,
 {
     type Persisted<'a>
-        = CompressedPersisted<'a, I, T, S>
+        = CompressedPersisted<'a, T, S>
     where
         Self: 'a;
 
@@ -30,7 +30,7 @@ where
 
     #[inline(always)]
     fn persisted(&self) -> Self::Persisted<'_> {
-        CompressedPersisted::new(self.base.region(), &self.pages)
+        CompressedPersisted::new(&self.base.region, &self.pages)
     }
 }
 

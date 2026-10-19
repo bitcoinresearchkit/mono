@@ -22,10 +22,9 @@ pub struct BlockExtras {
     /// Total block reward (subsidy + fees) in satoshis
     pub reward: Sats,
 
-    /// Mining pool that mined this block
     pub pool: BlockPool,
 
-    /// Average fee per transaction in satoshis
+    /// Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
     #[serde(rename = "avgFee")]
     pub avg_fee: Sats,
 
@@ -49,11 +48,12 @@ pub struct BlockExtras {
     #[serde(rename = "coinbaseSignature")]
     pub coinbase_signature: String,
 
-    /// Coinbase scriptsig decoded as ASCII
+    /// Coinbase scriptsig with each byte read as the Unicode code point of the same value
     #[serde(rename = "coinbaseSignatureAscii")]
     pub coinbase_signature_ascii: String,
 
-    /// Average transaction size in bytes
+    /// Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to
+    /// 2 decimals
     #[serde(rename = "avgTxSize")]
     #[schemars(example = 534.5)]
     pub avg_tx_size: f64,
@@ -63,12 +63,11 @@ pub struct BlockExtras {
     #[schemars(example = 5000)]
     pub total_inputs: u64,
 
-    /// Total number of outputs
     #[serde(rename = "totalOutputs")]
     #[schemars(example = 7500)]
     pub total_outputs: u64,
 
-    /// Total output amount in satoshis
+    /// Total output amount in satoshis, coinbase excluded
     #[serde(rename = "totalOutputAmt")]
     pub total_output_amt: Sats,
 
@@ -80,7 +79,6 @@ pub struct BlockExtras {
     #[serde(rename = "feePercentiles")]
     pub fee_percentiles: [Sats; 7],
 
-    /// Number of segwit transactions
     #[serde(rename = "segwitTotalTxs")]
     #[schemars(example = 2000)]
     pub segwit_total_txs: u32,
@@ -90,16 +88,14 @@ pub struct BlockExtras {
     #[schemars(example = 1200000)]
     pub segwit_total_size: u64,
 
-    /// Total weight of segwit transactions
     #[serde(rename = "segwitTotalWeight")]
     pub segwit_total_weight: Weight,
 
     /// Raw 80-byte block header as hex
     pub header: String,
 
-    /// UTXO set change (total outputs - total inputs, includes unspendable like OP_RETURN).
-    /// Note: intentionally differs from utxo_set_size diff which excludes unspendable outputs.
-    /// Matches mempool.space/bitcoin-cli behavior.
+    /// UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total
+    /// inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
     #[serde(rename = "utxoSetChange")]
     #[schemars(example = 2500)]
     pub utxo_set_change: i64,

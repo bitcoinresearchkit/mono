@@ -88,13 +88,7 @@ impl AsyncQuery {
         .await?
     }
 
-    /// Run a cheap sync operation directly without spawn_blocking.
-    /// Use this for simple accessors that don't do I/O.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let height = query.sync(|q| q.height());
-    /// ```
+    /// Run `f` on the caller's thread: only for cheap work without I/O.
     pub fn sync<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&Query) -> T,

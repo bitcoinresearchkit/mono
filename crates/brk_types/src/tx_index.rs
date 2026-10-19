@@ -37,6 +37,14 @@ impl TxIndex {
     pub fn incremented(self) -> Self {
         Self(*self + 1)
     }
+
+    pub fn index_name() -> &'static str {
+        "tx_index"
+    }
+
+    pub fn index_aliases() -> &'static [&'static str] {
+        &["tx", "tx_index"]
+    }
 }
 
 crate::impl_integer_index!(TxIndex, u32);
@@ -56,14 +64,6 @@ impl From<TxIndex> for u64 {
 
 crate::impl_store_value!(TxIndex, u32);
 
-impl TxIndex {
-    pub fn index_name() -> &'static str {
-        "tx_index"
-    }
-    pub fn index_aliases() -> &'static [&'static str] {
-        &["tx", "tx_index"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for TxIndex {
     fn to_string() -> &'static str {

@@ -34,17 +34,17 @@ impl Buffered<'_> {
         last_page: usize,
     ) -> Option<()> {
         let start_offset = pages.get(starting_page_index)?.header_start;
-        let max_page = last_page.min(pages.len().saturating_sub(1));
+        let max_page = last_page.min(pages.len() - 1);
 
         let mut end_offset = start_offset;
         for i in starting_page_index..=max_page {
             let candidate_end = pages.get(i)?.end();
-            if candidate_end.checked_sub(start_offset)? as usize > BUFFER_SIZE {
+            if (candidate_end - start_offset) as usize > BUFFER_SIZE {
                 break;
             }
             end_offset = candidate_end;
         }
-        let total_bytes = end_offset.checked_sub(start_offset)? as usize;
+        let total_bytes = (end_offset - start_offset) as usize;
 
         if total_bytes == 0 {
             return None;
@@ -53,13 +53,15 @@ impl Buffered<'_> {
         let absolute_offset = self.region_start + start_offset;
         if self.file_position != absolute_offset {
             self.file_position = absolute_offset;
-            self.file.seek(SeekFrom::Start(absolute_offset)).unwrap();
+            self.file
+                .seek(SeekFrom::Start(absolute_offset))
+                .expect("failed to seek compressed vector");
         }
 
         if self.buffer.capacity() == 0 {
             // Once, for the whole requested span: later refills start further on and never
             // need more, so the buffer neither reallocates nor zeroes bytes it never reads.
-            let span = pages.get(max_page)?.end().checked_sub(start_offset)? as usize;
+            let span = (pages.get(max_page)?.end() - start_offset) as usize;
             self.buffer.reserve_exact(span.min(BUFFER_SIZE));
         }
         if self.buffer.len() < total_bytes {
@@ -67,7 +69,7 @@ impl Buffered<'_> {
         }
         self.file
             .read_exact(&mut self.buffer[..total_bytes])
-            .unwrap();
+            .expect("failed to read compressed vector");
         self.buffer_len = total_bytes;
         self.buffer_start_offset = start_offset;
         self.file_position += total_bytes as u64;
@@ -102,9 +104,9 @@ impl PageBytes for Buffered<'_> {
 }
 
 /// Buffered file I/O [`CompressedSource`].
-pub type CompressedIoSource<'a, I, T, S> = CompressedSource<'a, I, T, S, Buffered<'a>>;
+pub type CompressedIoSource<'a, T, S> = CompressedSource<'a, T, S, Buffered<'a>>;
 
-impl<'a, I, T, S> CompressedIoSource<'a, I, T, S>
+impl<'a, T, S> CompressedIoSource<'a, T, S>
 where
     T: VecValue,
     S: CompressionStrategy<T>,
@@ -121,7 +123,9 @@ where
             || Buffered {
                 _region_lock: region.read_lock(),
                 region_start: region.meta().start() as u64,
-                file: region.open_db_read_only_file().expect("open file"),
+                file: region
+                    .open_db_read_only_file()
+                    .expect("failed to open compressed vector"),
                 file_position: 0,
                 buffer: Vec::new(),
                 buffer_len: 0,

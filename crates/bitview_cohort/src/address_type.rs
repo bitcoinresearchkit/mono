@@ -50,7 +50,6 @@ impl AddressTypeId {
         }
     }
 
-    /// The spendable output type the address type's outputs have.
     pub const fn spendable(self) -> SpendableTypeId {
         match self {
             Self::P2PK => SpendableTypeId::P2PK,

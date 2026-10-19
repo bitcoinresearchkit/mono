@@ -40,7 +40,7 @@ impl ComputePlugin for Vecs {
             LiveState::resume(live, version, deps.history, start, end, spot, monotonic)?;
         let mut cursor = deps.history.cursor(&mut live.origins)?;
         for chunk in write_chunks(range) {
-            let rows = sources.collect(chunk.start, chunk.end)?;
+            let rows = sources.collect(chunk.start, chunk.end);
             for (offset, row) in rows.iter().enumerate() {
                 let h = chunk.start + offset;
                 let spot = spots[h - start];
@@ -92,7 +92,9 @@ impl ComputePlugin for Vecs {
                     }
                 }));
                 for id in AgeAggregateId::ALL {
-                    id.select_mut(&mut self.cohorts).push(id.select(row), spot);
+                    id.select_mut(&mut self.cohorts)
+                        .columns
+                        .push(id.select(row), spot);
                 }
             }
             self.save(chunk.end, false, exit)?;
@@ -102,9 +104,8 @@ impl ComputePlugin for Vecs {
             }
         }
         drop(cursor);
-        let all_capital = self.cohorts.all.capital_cents().read_only_boxed_clone();
+        let all_capital = self.cohorts.all.columns.cap.read_only_boxed_clone();
         let all_supply = &self.all_supply;
-        // Each cohort derives the rest from its own columns.
         self.cohorts.par_iter_mut().try_for_each(|metrics| {
             metrics.compute_rest(Height::from(start), all_supply, &all_capital, spot, exit)
         })?;
@@ -114,6 +115,7 @@ impl ComputePlugin for Vecs {
         Ok(())
     }
 }
+
 impl Vecs {
     /// The block loop's outputs: the cost-basis sources and each cohort's columns. The rest
     /// derive from them after the loop, each validating its own version.

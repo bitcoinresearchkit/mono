@@ -42,7 +42,7 @@ pub fn finalize_inputs(
                     outpoint,
                     txout_index,
                     output_type,
-                    legacy_sigops: _,
+                    legacy_sigop_cost: _,
                     type_index,
                     value,
                 } => (*outpoint, *txout_index, *output_type, *type_index, *value),

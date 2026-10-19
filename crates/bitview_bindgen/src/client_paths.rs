@@ -33,18 +33,18 @@ fn collect<'a>(node: &'a TreeNode, keys: &mut Vec<&'a str>, paths: &mut Vec<Clie
             }
         }
         TreeNode::Leaf(leaf) => {
-            let join = |name: &dyn Fn(&str) -> String| {
+            let join = |name: fn(&str) -> String| {
                 keys.iter()
                     .map(|key| name(key))
                     .collect::<Vec<_>>()
                     .join(".")
             };
             paths.push(ClientPath {
-                series: leaf.name().to_owned(),
-                indexes: leaf.indexes().iter().copied().collect(),
-                rust: join(&rust_field_name),
-                javascript: join(&js_field_name),
-                python: join(&python_field_name),
+                series: leaf.leaf.name.clone(),
+                indexes: leaf.leaf.indexes.iter().copied().collect(),
+                rust: join(rust_field_name),
+                javascript: join(js_field_name),
+                python: join(python_field_name),
             });
         }
     }

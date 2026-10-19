@@ -1,14 +1,8 @@
-//
 // https://docs.rs/schemars/latest/schemars/derive.JsonSchema.html
 //
 // Scalar:
 // - Documentation: https://guides.scalar.com/scalar/scalar-api-references
 // - Configuration: https://guides.scalar.com/scalar/scalar-api-references/configuration
-// - Examples:
-//   - https://docs.machines.dev/
-//   - https://tailscale.com/api
-//   - https://api.supabase.com/api/v1
-//
 
 mod compact;
 
@@ -34,7 +28,6 @@ impl OpenApiBodies {
     }
 }
 
-/// Each operation's tag, as its route declares it.
 pub mod tags {
     pub const SERVER: &str = "Server";
     pub const SERIES: &str = "Series";
@@ -58,25 +51,23 @@ const TAGS: [(&str, &str); 12] = [
     ),
     (
         tags::SERIES,
-        "Access thousands of Bitcoin network time-series data. Query historical statistics \
-        across various indexes (date, week, month, block height) with JSON or CSV output.\n\n\
-        **Note:** Series names are subject to change while the project is in active development.",
+        "Thousands of historical Bitcoin series across calendar, block and entity indexes, as JSON \
+        or CSV. Series names may change between releases.",
     ),
     (
         tags::GENERAL,
-        "General Bitcoin network information including difficulty adjustments and price data.\n\n\
+        "Difficulty adjustments and BTC/USD price data.\n\n\
         *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
     ),
     (
         tags::ADDRESSES,
-        "Query Bitcoin address data including balances, transaction history, and UTXOs. \
-        Supports all address types: P2PKH, P2SH, P2WPKH, P2WSH, and P2TR.\n\n\
+        "Address balances, transaction history and UTXOs. Supports P2PKH, P2SH, P2WPKH, P2WSH, \
+        P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes).\n\n\
         *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
     ),
     (
         tags::BLOCKS,
-        "Retrieve block data by hash or height. Access block headers, transaction lists, \
-        and raw block bytes.\n\n\
+        "Blocks by hash or height: headers, transaction lists and raw block bytes.\n\n\
         *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
     ),
     (
@@ -92,14 +83,13 @@ const TAGS: [(&str, &str); 12] = [
     ),
     (
         tags::MEMPOOL,
-        "Monitor unconfirmed transactions. Get mempool statistics, \
-        transaction IDs, fee histogram, and recent transactions.\n\n\
+        "Mempool statistics, transaction IDs, fee histogram and recent transactions.\n\n\
         *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
     ),
     (
         tags::TRANSACTIONS,
-        "Retrieve transaction data by txid. Access full transaction details, confirmation \
-        status, raw hex, merkle proofs, and output spend information.\n\n\
+        "Transactions by txid: details, confirmation status, raw hex, merkle proofs and output \
+        spends.\n\n\
         *[Mempool.space](https://mempool.space/docs/api/rest) compatible.*",
     ),
     (
@@ -159,7 +149,7 @@ pub fn create_openapi() -> OpenApi {
 - **[Mempool.space](https://mempool.space/docs/api/rest) compatible**: Blocks, transactions, addresses, mining, fees, and mempool endpoints match the mempool.space REST API
 - **Series**: Thousands of on-chain time-series across multiple indexes (date, block height, etc.)
 - **Multiple formats**: JSON and CSV output
-- **LLM-optimized**: [`/llms.txt`](/llms.txt) for discovery, [`/api.json`](/api.json) a compact custom summary of this spec for reading (not OpenAPI); build tools from [`/openapi.json`](/openapi.json)
+- **For LLMs**: [`/llms.txt`](/llms.txt) for discovery, [`/api.json`](/api.json) a compact custom summary of this spec for reading (not OpenAPI); build tools from [`/openapi.json`](/openapi.json)
 - **MCP**: Stateless, read-only access to these operations at [mcp.bitview.space](https://mcp.bitview.space/), with no authentication required
 
 ### Quick start
@@ -173,7 +163,7 @@ curl -s https://bitview.space/api/series/search?q=price
 
 ### Errors
 
-All errors return structured JSON with a consistent format:
+Errors use `application/problem+json`:
 
 ```json
 {
@@ -188,8 +178,6 @@ All errors return structured JSON with a consistent format:
 
 - **`type`**: Error category, following the status — `invalid_request` (4xx other than 404), `not_found` (404), `unavailable` (503), `timeout` (504), or `internal` (other 5xx); see the `ErrorType` schema
 - **`code`**: Machine-readable error code (e.g. `invalid_address`, `series_not_found`, `weight_exceeded`); see the `ErrorCode` schema
-- **`message`**: Human-readable description
-- **`doc_url`**: Link to API documentation
 
 ### Client Libraries
 

@@ -3,7 +3,7 @@ use std::mem;
 use rawdb::{Database, Region};
 
 use super::Page;
-use crate::{Bytes, Error, HEADER_OFFSET, Result, unlikely};
+use crate::{Bytes, Error, HEADER_OFFSET, Result};
 
 pub const PAGES_PER_BLOCK: usize = 16;
 const BLOCK_BASE_BYTES: usize = size_of::<u64>();
@@ -22,7 +22,8 @@ impl PageRecord {
     const BODY_MASK: u32 = Self::CHUNK_START_FLAG - 1;
 
     fn new(span: u32, body: u32, chunk_start: bool, raw: bool) -> Result<Self> {
-        if body == 0 || body > Self::BODY_MASK || span < body {
+        debug_assert!(span >= body);
+        if body == 0 || body > Self::BODY_MASK {
             return Err(Error::InvalidArgument("invalid compressed page size"));
         }
         let mut body_and_flags = body;
@@ -69,13 +70,9 @@ impl PageBlock {
     }
 }
 
-/// Manages page metadata for compressed vectors.
-///
-/// Stores page metadata (offsets, sizes, value counts) separately from the
-/// compressed data itself. This allows quick random access to pages without
-/// scanning through compressed data.
-///
-/// Uses incremental flushing to minimize disk writes - only writes changed pages.
+/// Page metadata, stored apart from the compressed data so reads find a page without scanning.
+/// A flush rewrites from the first changed metadata block; growing only the last (raw) page
+/// rewrites just its record.
 #[derive(Debug, Clone)]
 pub struct Pages {
     region: Region,
@@ -209,14 +206,10 @@ impl Pages {
         self.last_grown = false;
 
         let at = change_at * BLOCK_BYTES;
-        let mut bytes =
-            Vec::with_capacity(self.blocks.len().saturating_sub(change_at) * BLOCK_BYTES);
+        let mut bytes = Vec::with_capacity((self.blocks.len() - change_at) * BLOCK_BYTES);
         for (block_index, block) in self.blocks.iter().enumerate().skip(change_at) {
             bytes.extend_from_slice(&block.base.to_bytes());
-            let record_count = self
-                .len
-                .saturating_sub(block_index * PAGES_PER_BLOCK)
-                .min(PAGES_PER_BLOCK);
+            let record_count = (self.len - block_index * PAGES_PER_BLOCK).min(PAGES_PER_BLOCK);
             for record in &block.records[..record_count] {
                 bytes.extend_from_slice(&record.span.to_bytes());
                 bytes.extend_from_slice(&record.body_and_flags.to_bytes());
@@ -249,7 +242,7 @@ impl Pages {
             let record = block.records[local];
             let previous_end = end;
             end = end.checked_add(record.span as u64)?;
-            let start = end.checked_sub(record.body() as u64)?;
+            let start = end - record.body() as u64;
             if record.is_chunk_start() {
                 header_start = previous_end;
                 header_end = start;
@@ -282,40 +275,23 @@ impl Pages {
         let last = self.get((to - 1) / values_per_page)?;
         let start = first.header_start as usize;
         let end = last.end() as usize;
-        Some((start, end.checked_sub(start)?))
+        Some((start, end - start))
     }
 
     pub fn last(&self) -> Option<Page> {
         self.len.checked_sub(1).and_then(|index| self.get(index))
     }
 
-    pub fn push_compressed(
-        &mut self,
-        page_index: usize,
-        header_bytes: Option<u32>,
-        body_bytes: u32,
-    ) -> Result<()> {
-        self.checked_push(page_index, header_bytes, body_bytes, false)
+    pub fn push_compressed(&mut self, header_bytes: Option<u32>, body_bytes: u32) -> Result<()> {
+        self.push(header_bytes, body_bytes, false)
     }
 
-    pub fn push_raw(&mut self, page_index: usize, body_bytes: u32) -> Result<()> {
-        self.checked_push(page_index, Some(0), body_bytes, true)
+    pub fn push_raw(&mut self, body_bytes: u32) -> Result<()> {
+        self.push(Some(0), body_bytes, true)
     }
 
-    fn checked_push(
-        &mut self,
-        page_index: usize,
-        header_bytes: Option<u32>,
-        body_bytes: u32,
-        raw: bool,
-    ) -> Result<()> {
-        if unlikely(page_index != self.len) {
-            return Err(Error::UnexpectedIndex {
-                expected: self.len,
-                got: page_index,
-                name: self.region.meta().id().to_string(),
-            });
-        }
+    fn push(&mut self, header_bytes: Option<u32>, body_bytes: u32, raw: bool) -> Result<()> {
+        let page_index = self.len;
         let block_index = page_index / PAGES_PER_BLOCK;
         let local_index = page_index % PAGES_PER_BLOCK;
         if local_index == 0 && header_bytes.is_none() {
@@ -339,8 +315,8 @@ impl Pages {
     }
 
     /// Grows the last page, a raw one, to `body_bytes` after an append in place.
-    pub fn grow_last_raw(&mut self, page_index: usize, body_bytes: u32) -> Result<()> {
-        debug_assert_eq!(page_index + 1, self.len);
+    pub fn grow_last_raw(&mut self, body_bytes: u32) -> Result<()> {
+        let page_index = self.len - 1;
         let record =
             &mut self.blocks[page_index / PAGES_PER_BLOCK].records[page_index % PAGES_PER_BLOCK];
         debug_assert!(record.is_raw() && body_bytes >= record.body());

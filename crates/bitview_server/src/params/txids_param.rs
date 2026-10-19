@@ -17,12 +17,7 @@ use crate::Error;
 
 const MAX_TXIDS: usize = 250;
 
-/// Query parameter for transaction-times endpoint.
-///
-/// Extracted from the decoded query pairs because a serde struct can't collect
-/// repeated keys like `txId[]=a&txId[]=b`. The schema is still
-/// declared via `JsonSchema` so the OpenAPI spec lists the parameter and the
-/// generated client SDKs see `txids: List[Txid]`.
+/// Transaction IDs as repeated `txId[]` query parameters.
 #[derive(JsonSchema)]
 pub struct TxidsParam {
     /// Transaction IDs to look up (max 250 per request).
@@ -57,6 +52,8 @@ impl TxidsParam {
     }
 }
 
+// Hand-written: a serde struct cannot collect repeated `txId[]` keys. The derived schema still
+// lists the parameter for OpenAPI and the generated clients (`OperationInput` below).
 impl<S> FromRequestParts<S> for TxidsParam
 where
     S: Send + Sync,

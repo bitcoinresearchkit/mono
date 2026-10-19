@@ -8,7 +8,6 @@ use crate::{
     shapes::Windows,
 };
 
-/// Lazy rolling sums for all 4 windows, for Amount (sats + btc + cents + usd).
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyRollingSumsAmountFromHeight(
     /// Total of the per-block values over the trailing window ending at the
@@ -29,7 +28,6 @@ impl LazyRollingSumsAmountFromHeight {
         Self(window_starts.map_with_suffix(|suffix, window_start| {
             let full_name = format!("{name}_{suffix}");
 
-            // Sats lazy rolling sum
             let sats = LazyRollingSumFromHeight::from_source(
                 &format!("{full_name}_sats"),
                 version,
@@ -38,11 +36,9 @@ impl LazyRollingSumsAmountFromHeight {
                 indexes,
             );
 
-            // Btc lazy from sats
             let btc =
                 LazyPerBlock::from_resolutions::<Convert>(&full_name, version, &sats.resolutions);
 
-            // Cents rolling sum
             let cents = LazyRollingSumFromHeight::from_source(
                 &format!("{full_name}_cents"),
                 version,
@@ -51,7 +47,6 @@ impl LazyRollingSumsAmountFromHeight {
                 indexes,
             );
 
-            // Usd lazy from cents
             let usd = LazyPerBlock::from_resolutions::<Convert>(
                 &format!("{full_name}_usd"),
                 version,

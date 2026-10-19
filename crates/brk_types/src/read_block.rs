@@ -51,13 +51,12 @@ impl ReadBlock {
         self.position
     }
 
-    /// Each transaction's position in the blk files.
     pub fn tx_positions(&self) -> impl Iterator<Item = BlkPosition> {
         self.tx_offsets.iter().map(|&offset| self.position + offset)
     }
 
     /// Compute txid, base_size, and total_size for the transaction at `index` from its raw bytes.
-    pub fn compute_tx_id_and_sizes(&self, index: usize) -> (Txid, u32, u32) {
+    pub fn compute_txid_and_sizes(&self, index: usize) -> (Txid, u32, u32) {
         let tx = &self.txdata[index];
         let raw = self.tx_bytes(index);
         let total_size = raw.len() as u32;
@@ -72,7 +71,6 @@ impl ReadBlock {
         (txid, base_size, total_size)
     }
 
-    /// The raw bytes of the transaction at `index`.
     fn tx_bytes(&self, index: usize) -> &[u8] {
         let start = self.tx_offsets[index] as usize;
         let end = self

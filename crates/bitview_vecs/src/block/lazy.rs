@@ -40,7 +40,7 @@ where
                 version,
                 resolutions.height_source().read_only_boxed_clone(),
             ),
-            resolutions: Box::new(DerivedResolutions::from_derived_computed::<F>(
+            resolutions: Box::new(DerivedResolutions::from_resolutions::<F>(
                 name,
                 version,
                 resolutions,
@@ -59,7 +59,6 @@ where
         Self::from_resolutions::<F>(name, version, &resolutions)
     }
 
-    /// Create by unary-transforming a LazyPerBlock source (chaining lazy vecs).
     pub fn from_lazy<F, S2T>(name: &str, version: Version, source: &LazyPerBlock<S1T, S2T>) -> Self
     where
         F: UnaryTransform<S1T, T>,

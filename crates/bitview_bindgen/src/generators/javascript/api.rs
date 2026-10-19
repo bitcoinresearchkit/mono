@@ -1,5 +1,3 @@
-//! JavaScript API method generation.
-
 use std::fmt::Write;
 
 use crate::{
@@ -8,7 +6,6 @@ use crate::{
     to_camel_case,
 };
 
-/// Generate API methods for the BitviewClient class.
 pub fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
     for endpoint in endpoints
         .iter()
@@ -49,7 +46,7 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
     if let Some(body) = body {
         let optional = if body.required { "" } else { "=" };
         let ty = js_type(&body.ty);
-        writeln!(output, "   * @param {{{ty}{optional}}} body - Request body").unwrap();
+        writeln!(output, "   * @param {{{ty}{optional}}} body").unwrap();
     }
     if post {
         writeln!(
@@ -80,20 +77,11 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
     } else {
         "{ signal, onValue, cache, memCache }"
     };
+    let name = to_camel_case(&endpoint.operation_id);
     if params.is_empty() {
-        writeln!(
-            output,
-            "  async {}({options} = {{}}) {{",
-            endpoint_to_method_name(endpoint)
-        )
-        .unwrap();
+        writeln!(output, "  async {name}({options} = {{}}) {{").unwrap();
     } else {
-        writeln!(
-            output,
-            "  async {}({params}, {options} = {{}}) {{",
-            endpoint_to_method_name(endpoint)
-        )
-        .unwrap();
+        writeln!(output, "  async {name}({params}, {options} = {{}}) {{").unwrap();
     }
 
     let (verb, args) = if post {
@@ -161,8 +149,7 @@ fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
     writeln!(
         output,
         "   * Endpoint: `{} {}`",
-        endpoint.method.to_uppercase(),
-        endpoint.path
+        endpoint.method, endpoint.path
     )
     .unwrap();
 
@@ -221,10 +208,6 @@ fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
     }
 }
 
-fn endpoint_to_method_name(endpoint: &Endpoint) -> String {
-    to_camel_case(&endpoint.operation_id)
-}
-
 fn build_method_params(endpoint: &Endpoint) -> String {
     let mut params = String::new();
     for (index, param) in endpoint
@@ -241,7 +224,7 @@ fn build_method_params(endpoint: &Endpoint) -> String {
     params
 }
 
-/// Strip characters invalid in JS identifiers (e.g. `[]` from `txId[]`).
+/// Drop `[` and `]` (as in `txId[]`).
 fn sanitize_ident(name: &str) -> String {
     name.replace(['[', ']'], "")
 }

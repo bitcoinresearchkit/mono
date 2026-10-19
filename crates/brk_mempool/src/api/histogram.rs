@@ -27,9 +27,9 @@ impl ReadOnlyState {
         Ok(state.txs.live_eligible_histogram())
     }
 
-    /// Snapshot of the raw histogram: every live mempool output binned by
-    /// value with no payment filtering. Backs the `histogram/raw/live`
-    /// endpoint. Requires a completed publication at the requested tip.
+    /// Snapshot of the raw histogram: live mempool outputs binned by value
+    /// (zero and out-of-range values dropped), no payment filtering. Requires
+    /// a completed publication at the requested tip.
     pub fn live_raw_histogram(&self, tip: &BlockHash) -> Result<HistogramRaw> {
         let state = self.pool()?.at(tip)?;
         Ok(state.txs.live_raw_histogram())

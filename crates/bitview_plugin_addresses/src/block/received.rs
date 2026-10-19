@@ -3,7 +3,6 @@ use brk_types::{Sats, TxIndex};
 use super::TxIndexes;
 
 /// One address's received outputs and transactions within a block.
-#[derive(Debug)]
 pub struct Received {
     pub total_value: Sats,
     pub output_count: u32,

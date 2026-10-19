@@ -4,14 +4,11 @@ use bitview_primitives::Index;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Leaf node containing series metadata.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 pub struct SeriesLeaf {
-    /// The series name/identifier.
     pub name: String,
     /// The Rust type (e.g., "Sats", "Ratio").
     pub kind: String,
-    /// Available indexes for this series.
     pub indexes: BTreeSet<Index>,
     /// Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
     /// undefined one (e.g. NaN).

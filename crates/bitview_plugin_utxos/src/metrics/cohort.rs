@@ -2,7 +2,7 @@ use bitview_cohort::{CohortContext, CohortId};
 use bitview_distribution::{
     families::{CumulativeFiat, CumulativeValue},
     metrics::{CohortCapital, CohortCostBasis, CohortSupply, ShareTotals, StoredOutputs},
-    state::{MinimalRealizedState, UTXOCohortState},
+    state::{CohortState, MinimalRealizedState},
 };
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -11,7 +11,7 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
-type State = UTXOCohortState<MinimalRealizedState, ()>;
+type State = CohortState<MinimalRealizedState, ()>;
 
 /// One UTXO cohort: an amount range or a spendable output type.
 #[derive(Traversable)]
@@ -97,9 +97,9 @@ impl CohortVecs {
 
     #[inline(always)]
     pub fn push(&mut self, state: &State, price: Cents) {
-        self.supply.total.push(state.supply_value());
+        self.supply.total.push(state.supply.value);
         self.outputs.push(state.output_counts());
-        let sent = state.transfer_volume();
+        let sent = state.sent;
         self.activity
             .transfer_volume
             .push_block(sent, sent.value_at(price));

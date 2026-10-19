@@ -1,6 +1,6 @@
 use bitview_primitives::{FundedAddressData, TypeIndex};
 use bitview_types::{AddressChainStats, AddressStats};
-use brk_types::{Address, CheckedSub, Dollars, OutputType, Sats};
+use brk_types::{Address, Dollars, OutputType, Sats};
 
 use super::parse_addr;
 use crate::r#impl::mempool::anchored;
@@ -10,7 +10,8 @@ impl Query {
     pub fn addr(&self, addr: Address) -> Result<AddressStats> {
         let bytes = parse_addr(&addr)?;
         // The mempool first (it never leads the chain), then the address state, published with the
-        // lengths under this lock, then the pin: all of one publication.
+        // lengths under this lock, then the pin: the state and the pin are of one publication, and
+        // a mempool at another tip adds nothing (`anchored`).
         let mempool = self.mempool();
         let state = self
             .plugins()
@@ -24,9 +25,9 @@ impl Query {
         }
         let chain_stats = self
             .find_addr_bytes(&bytes, &pin)?
-            .map(|(output_type, type_index)| {
+            .map(|(output_type, type_index)| -> Result<_> {
                 let (addr_data, is_funded) = state.addr_data(output_type, type_index)?;
-                addr_chain_stats(type_index, &addr_data, is_funded)
+                Ok(addr_chain_stats(type_index, &addr_data, is_funded))
             })
             .transpose()?;
         drop(state);
@@ -51,18 +52,12 @@ impl Query {
     }
 }
 
-/// An address's confirmed stats from its data.
 fn addr_chain_stats(
     type_index: TypeIndex,
     addr_data: &FundedAddressData,
     is_funded: bool,
-) -> Result<AddressChainStats> {
-    let balance = addr_data
-        .received
-        .checked_sub(addr_data.sent)
-        .ok_or(Error::Internal(
-            "Address sent amount exceeds confirmed receipts",
-        ))?;
+) -> AddressChainStats {
+    let balance = addr_data.balance();
     let realized_price = if is_funded && !balance.is_zero() {
         addr_data
             .realized_cap_raw()
@@ -72,7 +67,7 @@ fn addr_chain_stats(
         Dollars::default()
     };
 
-    Ok(AddressChainStats {
+    AddressChainStats {
         balance,
         type_index: Some(type_index),
         funded_txo_count: addr_data.funded_txo_count,
@@ -81,14 +76,11 @@ fn addr_chain_stats(
         spent_txo_sum: addr_data.sent,
         tx_count: addr_data.tx_count,
         realized_price,
-    })
+    }
 }
 
-/// The confirmed balance with the mempool's pending receipts and spends.
 fn pending_balance(chain: Sats, pending_received: Sats, pending_sent: Sats) -> Result<Sats> {
-    // The live mempool and indexer publish independently. A just-confirmed
-    // spend can still be present in the mempool view; never underflow or
-    // fabricate a zero balance when those views cannot be reconciled.
+    // Mempool stats are anchored to the chain tip; reject inconsistent totals.
     u64::from(chain)
         .checked_add(pending_received.into())
         .and_then(|value| value.checked_sub(pending_sent.into()))

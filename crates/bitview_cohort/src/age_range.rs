@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{Age, CohortContext, CohortId, CohortName, Term};
 
-// Age boundary constants in hours
 const HOURS_1H: usize = 1;
 const HOURS_1D: usize = 24;
 const HOURS_1W: usize = 24 * 7;
@@ -66,10 +65,7 @@ impl AgeRangeId {
             Term::Lth
         }
     }
-}
 
-impl AgeRangeId {
-    /// The range holding an age of `hours`.
     #[inline]
     const fn from_hours(hours: usize) -> Self {
         match hours {
@@ -135,7 +131,6 @@ const AGE_RANGE_BOUNDS: [Range<usize>; AGE_RANGE_COUNT] = {
     bounds
 };
 
-/// Age range names
 pub const AGE_RANGE_NAMES: AgeRange<CohortName> = AgeRange {
     under_1h: CohortName::new("under_1h_old", "<1h", "Under 1 Hour Old"),
     _1h_to_1d: CohortName::new("1h_to_1d_old", "1h-1d", "1 Hour to 1 Day Old"),
@@ -249,7 +244,7 @@ define_cohort_id!(AgeRangeId for AgeRange {
 });
 
 impl<T> AgeRange<T> {
-    /// Get mutable reference by Age. O(1).
+    /// O(1) age-bucket lookup.
     #[inline]
     pub fn get_mut(&mut self, age: Age) -> &mut T {
         AgeRangeId::from(age).select_mut(self)

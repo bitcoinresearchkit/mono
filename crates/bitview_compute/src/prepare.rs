@@ -99,9 +99,9 @@ pub fn undo_chunks(range: Range<usize>) -> impl Iterator<Item = (Range<usize>, b
         .chain((tail < range.end).then_some((tail..range.end, range.end > 1)))
 }
 
-/// The stamp of a save computed through `end` (its last height), and whether it keeps the
-/// rollback changes asked for. Genesis alone never does: it is the initial baseline, at a fresh
-/// vector's stamp, and no rollback reaches before it (its undo would link the stamp to itself).
+/// The stamp of a save of the rows `0..end` (`end > 0`), and whether it keeps the rollback changes
+/// asked for. Genesis alone never does: it is the initial baseline, at a fresh vector's stamp, and
+/// no rollback reaches before it (its undo would link the stamp to itself).
 pub fn save_point(end: usize, with_changes: bool) -> (Stamp, bool) {
     (Stamp::from(Height::from(end - 1)), with_changes && end > 1)
 }
@@ -118,8 +118,8 @@ pub fn write_locked<'a, V: AnyStoredVec + ?Sized + 'a>(
     Ok(())
 }
 
-/// Saves a group computed through `end` under the exit lock at its [`save_point`], then flushes
-/// its database.
+/// Saves a group computed for the rows `0..end` under the exit lock at its [`save_point`], then
+/// flushes its database.
 pub fn save_stamped<'a, V: AnyStoredVec + ?Sized + 'a>(
     db: &Database,
     outputs: impl IntoIterator<Item = &'a mut V>,

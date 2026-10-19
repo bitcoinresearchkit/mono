@@ -13,7 +13,7 @@ pub trait AnyExportableVec: AnyVec {
     /// Write one value as raw JSON, if the index is in bounds.
     fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> Result<()>;
 
-    /// Write all values as CSV cells (newline-separated) directly without materializing a Vec.
+    /// Write the range as CSV cells, one per line.
     fn write_csv_column(
         &self,
         from: Option<usize>,
@@ -21,7 +21,6 @@ pub trait AnyExportableVec: AnyVec {
         buf: &mut Vec<u8>,
     ) -> Result<()>;
 
-    /// Create a value writer that can be advanced value by value
     fn create_writer(&self, from: Option<i64>, to: Option<i64>) -> Box<dyn ValueWriter + '_>;
 }
 

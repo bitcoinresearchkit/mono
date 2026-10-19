@@ -32,12 +32,15 @@ impl TxOutIndex {
 
     pub const COINBASE: Self = Self(u64::MAX);
 
-    pub fn new(index: u64) -> Self {
-        Self(index)
-    }
-
     pub fn is_coinbase(self) -> bool {
         self == Self::COINBASE
+    }
+
+    pub(crate) fn index_name() -> &'static str {
+        "txout_index"
+    }
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
+        &["txo", "txout", "txout_index"]
     }
 }
 
@@ -50,14 +53,6 @@ impl Add<Vout> for TxOutIndex {
     }
 }
 
-impl TxOutIndex {
-    pub(crate) fn index_name() -> &'static str {
-        "txout_index"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["txo", "txout", "txout_index"]
-    }
-}
 #[cfg(feature = "storage")]
 impl PrintableIndex for TxOutIndex {
     fn to_string() -> &'static str {

@@ -33,10 +33,6 @@ impl Regions {
         self.by_id.get(id)
     }
 
-    fn iter(&self) -> impl Iterator<Item = &Region> {
-        self.by_id.values()
-    }
-
     pub(crate) fn ids(&self) -> impl Iterator<Item = &str> {
         self.by_id.keys().map(|id| id.as_ref())
     }
@@ -86,7 +82,8 @@ impl Regions {
 
     pub(crate) fn shrink_to_fit(&mut self) -> Result<()> {
         let len = self
-            .iter()
+            .by_id
+            .values()
             .map(|region| region.index() + 1)
             .max()
             .unwrap_or(0);

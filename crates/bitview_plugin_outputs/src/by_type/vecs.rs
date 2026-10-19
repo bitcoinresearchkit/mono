@@ -14,7 +14,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) tx_count_stored: ByType<CumulativeSource<Count, M>>,
 }
 
-/// Counts and shares of one output type.
 #[derive(Clone, Traversable)]
 pub struct OutputTypeVecs {
     /// Number of outputs of the type.
@@ -22,8 +21,7 @@ pub struct OutputTypeVecs {
     /// Outputs of the type divided by all outputs over the same cumulative or
     /// trailing window.
     pub(crate) share: LazyPercentCumulativeRolling<PartsPerMillion32>,
-    /// Number of transactions with at least one output of the type; each
-    /// transaction counts once.
+    /// Number of transactions with at least one output of the type.
     pub(crate) tx_count: LazyPerBlockCumulativeRolling<Count>,
     /// Transactions with at least one output of the type divided by all
     /// transactions over the same cumulative or trailing window.

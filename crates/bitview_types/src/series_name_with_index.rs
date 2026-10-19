@@ -6,9 +6,6 @@ use crate::SeriesName;
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct SeriesNameWithIndex {
-    /// Series name
     pub series: SeriesName,
-
-    /// Aggregation index
     pub index: Index,
 }

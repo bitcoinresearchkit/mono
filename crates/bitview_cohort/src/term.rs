@@ -9,6 +9,5 @@ pub enum Term {
 }
 
 impl Term {
-    /// Threshold in hours (150 days * 24 hours = 3600 hours)
-    pub const THRESHOLD_HOURS: usize = 24 * 150; // 3600
+    pub const THRESHOLD_HOURS: usize = 24 * 150;
 }

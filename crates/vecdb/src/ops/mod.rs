@@ -1,5 +1,3 @@
-//! Numeric traits (overflow-safe arithmetic) shared across the crate.
-
 pub mod binary_transform;
 pub mod checked_sub;
 pub mod saturating_add;

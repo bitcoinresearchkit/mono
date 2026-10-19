@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![allow(clippy::module_inception)]
 #![allow(clippy::type_complexity)]
 
 use bitview_plugin_indexer::SafeLengths;
@@ -73,11 +72,6 @@ pub use vecs::{ResolvedSeriesInfo, SeriesEntry, SharedSeries, Vecs};
 
 /// Read-only queries whose resolved chain views pin the published prefix.
 /// Bare lengths and unguarded internal helpers cannot authorize chain reads.
-///
-///
-///
-///
-///
 #[derive(Clone)]
 pub struct Query(Arc<QueryInner<'static>>, Option<Instant>);
 struct QueryInner<'a> {
@@ -88,7 +82,7 @@ struct QueryInner<'a> {
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "price")]
     live_oracle: PublicationCache<brk_oracle::Oracle>,
-    /// The read bounds of the newest publication a pin asked for: one per publication, not per read.
+    /// Read bounds cached for the newest publication a pin asked for.
     #[cfg(any(feature = "series", feature = "price"))]
     bounds: ArcSwapOption<PublishedBounds>,
 }
@@ -111,7 +105,6 @@ pub(crate) struct ReadPin {
 }
 
 impl ReadPin {
-    /// The bounds this pin keeps this thread's reads within.
     #[cfg(feature = "series")]
     fn bounds(&self) -> &ReadBounds {
         &self.bounds
@@ -187,7 +180,7 @@ impl Query {
         }
     }
 
-    /// The read bounds of `pin`'s publication, built once per publication.
+    /// The read bounds of `pin`'s publication: cached for the newest one, built otherwise.
     #[cfg(any(feature = "series", feature = "price"))]
     fn publication_bounds(&self, pin: &SafeLengths) -> ReadBounds {
         let cached = self.0.bounds.load();
@@ -366,7 +359,6 @@ impl Query {
         self.0.plugins.indexer
     }
 
-    /// The shared read-only plugin composition backing this query view.
     #[cfg(any(feature = "chain", feature = "series", feature = "price"))]
     #[inline]
     fn plugins(&self) -> &QueryPlugins<'static> {

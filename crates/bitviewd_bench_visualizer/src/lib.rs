@@ -25,7 +25,6 @@ pub fn generate(root: &Path) -> Result {
     Ok(())
 }
 
-/// One machine's directory: a `dashboard.svg` per run and `compare.svg` across its complete runs.
 fn generate_machine(dir: &Path) -> Result {
     let runs = data::discover(dir)?;
     for run in &runs {
@@ -179,7 +178,7 @@ fn dashboard(run: &Run, output: &Path) -> Result {
             vec![Series {
                 label: format!(
                     "indexer ({})",
-                    format::count(run.progress.last().map_or(0.0, |(_, h)| *h))
+                    format::count(run.progress.last().unwrap().1)
                 ),
                 color: chart::color(0),
                 dashed: false,
@@ -199,7 +198,7 @@ fn dashboard(run: &Run, output: &Path) -> Result {
     .map(|(column, label, dashed, color)| Series {
         label: format!(
             "{label} (max {})",
-            format::bytes(run.memory.max(column).unwrap_or_default())
+            format::bytes(run.memory.max(column).unwrap())
         ),
         color: chart::color(color),
         dashed,
@@ -240,7 +239,7 @@ fn dashboard(run: &Run, output: &Path) -> Result {
         .into_iter()
         .filter(|(column, ..)| run.io.has(column))
         .map(|(column, label, color)| {
-            let total = run.io.growth(column).unwrap_or_default();
+            let total = run.io.growth(column).unwrap();
             Series {
                 label: format!("{label} ({})", format::bytes(total)),
                 color: chart::color(color),
@@ -263,7 +262,7 @@ fn dashboard(run: &Run, output: &Path) -> Result {
             vec![Series {
                 label: format!(
                     "page-ins ({})",
-                    format::count(run.io.growth("page_ins").unwrap_or_default())
+                    format::count(run.io.growth("page_ins").unwrap())
                 ),
                 color: chart::color(6),
                 dashed: false,
@@ -279,7 +278,7 @@ fn dashboard(run: &Run, output: &Path) -> Result {
             vec![Series {
                 label: format!(
                     "data dir ({})",
-                    format::bytes(run.disk.last("physical_bytes").unwrap_or_default())
+                    format::bytes(run.disk.last("physical_bytes").unwrap())
                 ),
                 color: chart::color(5),
                 dashed: false,

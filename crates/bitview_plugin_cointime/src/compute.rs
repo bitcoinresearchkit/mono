@@ -8,7 +8,7 @@ use super::Vecs;
 use crate::Dependencies;
 
 impl Vecs {
-    /// Compute the scalar inputs for this plugin's URPD metrics.
+    /// Everything but the awake cost basis, which the age ranges computed here weight.
     fn compute_primary(
         &mut self,
         dependencies: Dependencies<'_>,

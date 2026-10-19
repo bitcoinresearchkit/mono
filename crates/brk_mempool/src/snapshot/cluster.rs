@@ -17,9 +17,7 @@ const MAX_CLUSTER: usize = 64;
 /// children`) starting from `seed`. Returns the connected component
 /// truncated to `MAX_CLUSTER`, with `seed` at index 0.
 pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
-    if txs.get(seed.as_usize()).is_none() {
-        return Vec::new();
-    }
+    debug_assert!(seed.as_usize() < txs.len());
     let mut visited: FxHashSet<TxIndex> =
         FxHashSet::with_capacity_and_hasher(MAX_CLUSTER, FxBuildHasher);
     visited.insert(seed);
@@ -27,9 +25,7 @@ pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
     out.push(seed);
     let mut stack: Vec<TxIndex> = vec![seed];
     while let Some(idx) = stack.pop() {
-        let Some(t) = txs.get(idx.as_usize()) else {
-            continue;
-        };
+        let t = &txs[idx.as_usize()];
         for &n in t.parents.iter().chain(t.children.iter()) {
             if out.len() >= MAX_CLUSTER {
                 return out;
@@ -84,9 +80,7 @@ fn topo_sort(
     let mut indeg: Vec<u32> = vec![0; n];
     let mut children: Vec<Vec<usize>> = vec![Vec::new(); n];
     for (i, &idx) in component.iter().enumerate() {
-        let Some(t) = txs.get(idx.as_usize()) else {
-            continue;
-        };
+        let t = &txs[idx.as_usize()];
         indeg[i] = t
             .parents
             .iter()

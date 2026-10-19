@@ -8,7 +8,10 @@ use vecdb::unlikely;
 
 use super::InputSource;
 use crate::{
-    processor::{BlockProcessor, transaction::ComputedTx},
+    processor::{
+        BlockProcessor,
+        transaction::{ComputedTx, analysis::policy},
+    },
     stores::UtxoKey,
 };
 
@@ -31,7 +34,7 @@ impl InputResolver {
             processor.lengths.txout_index,
         );
 
-        let tracks_executed_legacy_sigops = processor.tracks_executed_legacy_sigops();
+        let tracks_executed_legacy_sigops = policy::tracks_executed_legacy_sigops(processor.height);
         let inputs = &self.inputs;
 
         self.resolved.resize(inputs.len(), InputSource::Coinbase);
@@ -64,12 +67,12 @@ impl InputResolver {
                         };
                         let (output_type, type_index) = (utxo.output_type(), utxo.type_index());
 
-                        let legacy_sigops = if tracks_executed_legacy_sigops {
+                        let legacy_sigop_cost = if tracks_executed_legacy_sigops {
                             processor
                                 .vecs
                                 .scripts
-                                .legacy_sigops(output_type, type_index, &processor.readers.scripts)
-                                .ok_or(Error::Internal("Missing legacy_sigops"))?
+                                .legacy_sigop_cost(output_type, type_index, &processor.readers.scripts)
+                                .ok_or(Error::Internal("Indexed legacy sigop cost missing"))?
                         } else {
                             SigOps32::ZERO
                         };
@@ -78,7 +81,7 @@ impl InputResolver {
                             outpoint: OutPoint::new(utxo.tx_index(), Vout::from(vout)),
                             txout_index: utxo.txout_index(),
                             output_type,
-                            legacy_sigops,
+                            legacy_sigop_cost,
                             type_index,
                             value: processor.stores.utxos().value(&key, &utxo)?,
                         };

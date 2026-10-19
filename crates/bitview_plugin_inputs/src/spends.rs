@@ -26,9 +26,7 @@ pub(crate) fn compute(
     let vecs = indexer.vecs();
     let first = &vecs.inputs.first_txin_index;
     let txout_indexes = &*vecs.inputs.txout_index;
-    if from > end || usize::from(end) > first.len() {
-        return Err(Error::NotFound("invalid input computation range".into()));
-    }
+    debug_assert!(from <= end && usize::from(end) <= first.len());
     {
         let _lock = exit.lock();
         prepare(spends, indexer, from)?;
@@ -58,9 +56,9 @@ pub(crate) fn compute(
         spent.clear();
         for _ in pair[0].to_usize() + 1..pair[1].to_usize() {
             let value = values.next().unwrap();
-            let origin = output_heights
-                .get_shared(origins.next().unwrap())
-                .ok_or_else(|| Error::NotFound("spent output creation height".into()))?;
+            let origin = output_heights.get(origins.next().unwrap()).ok_or_else(|| {
+                Error::NotFound("missing creation height for spent output".into())
+            })?;
             let amount = spent.entry(u32::from(origin)).or_default();
             amount.sats += u64::from(value);
             amount.count += 1;
@@ -104,7 +102,9 @@ fn prepare(spends: &mut Spends, indexer: &Indexer, from: Height) -> Result<()> {
                 .collect_one(Height::from(len - 1))
                 .map(|hash| hash.to_bytes())
     {
-        return Err(Error::NotFound("movement chain prefix mismatch".into()));
+        return Err(Error::NotFound(
+            "spend journal chain prefix mismatch".into(),
+        ));
     }
     Ok(())
 }

@@ -33,7 +33,7 @@ impl Vecs {
             )
         })?;
         // Coinbase transactions spend no outputs.
-        let txs = LazyVec::init(
+        let txs = LazyVec::new(
             "non_coinbase_tx_count_cumulative_source",
             version,
             mappings.transaction_count_source().read_only_boxed_clone(),

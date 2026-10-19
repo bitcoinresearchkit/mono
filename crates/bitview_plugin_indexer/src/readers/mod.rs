@@ -6,8 +6,6 @@ pub use script::ScriptReaders;
 
 use crate::Vecs;
 
-/// Readers for vectors that need to be accessed during block processing.
-///
 /// All fields use `BytesVecReader` which caches the mmap base pointer for O(1)
 /// random access without recomputing `region.start() + HEADER_OFFSET` per read.
 pub struct Readers {

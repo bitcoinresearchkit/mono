@@ -2,22 +2,22 @@ use std::io::{self, Write};
 
 use tracing::Level;
 
-use super::{Inner, LEVEL_NAMES, level_index, today};
+use super::{LEVEL_NAMES, RateLimitedFile, level_index, today};
 
 pub struct FileWriter<'a> {
-    pub(super) inner: &'a Inner,
+    pub(super) files: &'a RateLimitedFile,
     pub(super) level: Option<Level>,
 }
 
 impl Write for FileWriter<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let dir = &self.inner.dir;
+        let dir = &self.files.dir;
 
         // Admission is decided once, before either destination is written; the
         // level slot stays locked so both files see this level's events in order.
         let mut level = self.level.map(|level| {
             let i = level_index(level);
-            (i, self.inner.levels[i].lock().unwrap())
+            (i, self.files.levels[i].lock().unwrap())
         });
         if level.as_mut().is_some_and(|(_, slot)| !slot.admit()) {
             return Ok(buf.len());
@@ -25,7 +25,7 @@ impl Write for FileWriter<'_> {
 
         let date = today();
 
-        self.inner
+        self.files
             .combined
             .lock()
             .unwrap()

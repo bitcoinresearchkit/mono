@@ -8,7 +8,7 @@ use schemars::JsonSchema;
 #[cfg(feature = "chain")]
 use crate::extended::TypedText;
 
-pub trait TransformResponseExtended<'t> {
+pub trait TransformResponseExtended {
     fn error_response<const STATUS: u16>(self, description: &str) -> Self;
     /// Keep the REST operation public while excluding it from generated MCP tools.
     fn mcp_ignore(self) -> Self;
@@ -33,7 +33,6 @@ pub trait TransformResponseExtended<'t> {
     /// 200 with text/csv content type (adds CSV as alternative response format)
     #[cfg(feature = "series")]
     fn csv_response(self) -> Self;
-    /// 404
     #[cfg(any(
         feature = "chain",
         feature = "price",
@@ -41,7 +40,6 @@ pub trait TransformResponseExtended<'t> {
         feature = "urpd"
     ))]
     fn not_found(self) -> Self;
-    /// 304
     fn not_modified(self) -> Self;
     /// 400, 500, 503, 504: every operation can reject its parameters (path-only ones reject any
     /// query string), fail internally, be briefly unavailable (an updating state, an overload)
@@ -49,7 +47,7 @@ pub trait TransformResponseExtended<'t> {
     fn universal_errors(self) -> Self;
 }
 
-impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
+impl<'t> TransformResponseExtended for TransformOperation<'t> {
     fn error_response<const STATUS: u16>(self, description: &str) -> Self {
         self.response_with::<STATUS, Json<ErrorBody>, _>(|mut response| {
             if let Some(schema) = response.inner().content.shift_remove("application/json") {
@@ -99,7 +97,6 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
 
     #[cfg(feature = "series")]
     fn csv_response(mut self) -> Self {
-        // Add text/csv content type to existing 200 response
         if let Some(responses) = &mut self.inner_mut().responses
             && let Some(ReferenceOr::Item(response)) =
                 responses.responses.get_mut(&StatusCode::Code(200))
@@ -123,7 +120,9 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
 
     fn not_modified(self) -> Self {
         self.response_with::<304, (), _>(|res| {
-            res.description("Not modified - content unchanged since last request")
+            res.description(
+                "Not modified: the request's validator matches the current representation",
+            )
         })
     }
 

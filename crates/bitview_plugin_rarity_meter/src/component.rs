@@ -31,15 +31,7 @@ pub struct Component<M: StorageMode = Rw> {
     /// historical ratio percentile.
     pub bands: RarityPercentiles<Band>,
 
-    /// Raw historical spot-to-reference ratio percentiles behind this Rarity
-    /// Meter component, stored in parts per million. Low percentiles represent
-    /// rare low valuations and high percentiles rare high valuations.
-    /// Observations begin at height 210,000, include the represented block, and
-    /// use a 210,000-block backward half-life. Ratios are rounded to 0.001,
-    /// clamped from 0 through 43, and exclude undefined values; a percentile
-    /// below the median reads the lower edge of its 0.001 step and one above it
-    /// the upper edge. Percentiles are 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50,
-    /// 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9 percent.
+    /// The stored ratio percentiles behind `bands`, in parts per million.
     #[traversable(hidden)]
     ratios: RarityPercentiles<CachedSeries<Height, PartsPerMillion32, M>>,
 
@@ -166,7 +158,7 @@ pub fn boundary_len(component: &Component) -> usize {
         .into_iter()
         .map(|band| band.band.cents.height.len())
         .min()
-        .unwrap_or_default()
+        .expect("component boundary prices")
 }
 
 pub fn collect_boundary_prices(

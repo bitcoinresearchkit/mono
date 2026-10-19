@@ -18,7 +18,7 @@ impl Vecs {
         mappings: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let v = version + VERSION;
+        let fee_version = version + VERSION;
         let cpfp_role = |flag, count| {
             Classified::import(
                 db,
@@ -31,15 +31,15 @@ impl Vecs {
         };
 
         Ok(Vecs {
-            total: PcoVec::import(db, "fee_total", v)?,
-            total_cumulative: PcoVec::import(db, "fee_total_cumulative", v)?,
-            coinbase_value: PcoVec::import(db, "coinbase_value", v)?,
-            fee: PerTxDistribution::import(db, "tx_fee", v, mappings)?,
-            fee_rate: PcoVec::import(db, "fee_rate", v)?,
+            total: PcoVec::import(db, "fee_total", fee_version)?,
+            total_cumulative: PcoVec::import(db, "fee_total_cumulative", fee_version)?,
+            coinbase_value: PcoVec::import(db, "coinbase_value", fee_version)?,
+            fee: PerTxDistribution::import(db, "tx_fee", fee_version, mappings)?,
+            fee_rate: PcoVec::import(db, "fee_rate", fee_version)?,
             effective_fee_rate: PerTxDistribution::import(
                 db,
                 "effective_fee_rate",
-                v + CHUNK_VERSION,
+                fee_version + CHUNK_VERSION,
                 mappings,
             )?,
             cpfp_parent: cpfp_role("is_cpfp_parent", "cpfp_parent_tx_count")?,

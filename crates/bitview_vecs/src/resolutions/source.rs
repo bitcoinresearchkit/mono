@@ -49,7 +49,6 @@ macro_rules! define_resolutions {
             }
         }
 
-        /// One aggregation of a height source per resolution, every one by strategy `Strat`.
         pub type AggResolutions<O, S, Strat> = PerResolution<
             $(LazyAggVec<$index, O, Height, S, Strat>,)*
             $(LazyAggVec<$epoch_index, O, Height, S, Strat>,)*

@@ -4,7 +4,6 @@ use bitview_compute::{
     ExactOrderStats, FenwickTree, NumericValue, WRITE_INTERVAL, nearest_rank, prepare_computed,
     write_locked,
 };
-use bitview_plugin_indexer::Indexer;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock, PercentPerBlock};
@@ -24,14 +23,14 @@ const BULK_BACKFILL_THRESHOLD: usize = 10_000;
 /// The highlighted tail shares, rarest first.
 const TAILS: [f64; 3] = [0.00025, 0.0005, 0.001];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum WindowKind {
     Full,
     Rolling(usize),
 }
 
 #[derive(Clone, Copy)]
-struct Config {
+pub(super) struct Config {
     upper_tail: bool,
     window: WindowKind,
     positive_only: bool,
@@ -43,19 +42,19 @@ impl Config {
     }
 }
 
-const REALIZED: Config = Config {
+pub(super) const REALIZED: Config = Config {
     upper_tail: true,
     window: WindowKind::Full,
     positive_only: false,
 };
 
-const COINS_IN_LOSS: Config = Config {
+pub(super) const COINS_IN_LOSS: Config = Config {
     upper_tail: true,
     window: WindowKind::Full,
     positive_only: true,
 };
 
-const SELL_SIDE_RISK: Config = Config {
+pub(super) const SELL_SIDE_RISK: Config = Config {
     upper_tail: false,
     window: WindowKind::Rolling(MIN_HISTORY_BLOCKS),
     positive_only: true,
@@ -125,34 +124,7 @@ where
         })
     }
 
-    pub fn compute_coins_in_loss(
-        &mut self,
-        indexer: &Indexer,
-        source: &impl ReadableVec<Height, T>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.compute(indexer.compute_start().height, source, COINS_IN_LOSS, exit)
-    }
-
-    pub fn compute_realized(
-        &mut self,
-        indexer: &Indexer,
-        source: &impl ReadableVec<Height, T>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.compute(indexer.compute_start().height, source, REALIZED, exit)
-    }
-
-    pub fn compute_sell_side_risk(
-        &mut self,
-        indexer: &Indexer,
-        source: &impl ReadableVec<Height, T>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.compute(indexer.compute_start().height, source, SELL_SIDE_RISK, exit)
-    }
-
-    fn compute(
+    pub(super) fn compute(
         &mut self,
         starting_height: Height,
         source: &impl ReadableVec<Height, T>,
@@ -167,7 +139,7 @@ where
             exit,
         )?;
 
-        if source_end.saturating_sub(start) > BULK_BACKFILL_THRESHOLD {
+        if source_end - start > BULK_BACKFILL_THRESHOLD {
             self.compute_bulk(source, start, source_end, config, exit)
         } else {
             self.compute_incremental(source, start, source_end, config, exit)
@@ -215,7 +187,6 @@ where
         Ok(())
     }
 
-    /// Preserve the coordinate-compressed Fenwick path for large backfills.
     fn compute_bulk(
         &mut self,
         source: &impl ReadableVec<Height, T>,
@@ -293,17 +264,12 @@ where
         exit: &Exit,
     ) -> Result<()> {
         if (height_index + 1).is_multiple_of(WRITE_INTERVAL) || height_index + 1 == source_end {
-            self.write(exit)?;
+            write_locked(self.iter_any_stored_mut(), exit)?;
         }
         Ok(())
     }
-
-    fn write(&mut self, exit: &Exit) -> Result<()> {
-        write_locked(self.iter_any_stored_mut(), exit)
-    }
 }
 
-#[derive(Clone)]
 enum HistoryWindow<T> {
     Full,
     Rolling { values: VecDeque<T>, limit: usize },
@@ -347,7 +313,7 @@ impl<'a> CoordinateHistory<'a> {
     fn new(coordinates: &'a [f64], window: WindowKind) -> Self {
         Self {
             coordinates,
-            tree: FenwickTree::new(coordinates.len().max(1)),
+            tree: FenwickTree::new(coordinates.len()),
             len: 0,
             window: HistoryWindow::new(window),
         }

@@ -106,7 +106,7 @@ where
     S: VecValue,
 {
     fn version(&self) -> Version {
-        self.base_version + self.first_indexes.version() + self.terminal_len.version()
+        self.base_version + self.first_indexes.version() + self.terminal_len.version
     }
 
     fn name(&self) -> &str {
@@ -203,9 +203,6 @@ where
 
         out.reserve(indices.len());
         for &index in indices {
-            if index >= len {
-                break;
-            }
             if let Some((previous_index, value)) = previous
                 && previous_index == index
             {

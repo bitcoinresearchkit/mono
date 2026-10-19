@@ -7,12 +7,11 @@ use serde::{Deserialize, Serialize};
 /// Mining pool with block statistics for a time period
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PoolStats {
-    /// Unique pool identifier
+    /// One-based pool ID, matching mempool.space's `id`
     #[serde(rename = "poolId")]
     #[schemars(example = 111)]
     pub pool_id: u8,
 
-    /// Pool name
     #[schemars(example = &"Foundry USA")]
     pub name: Cow<'static, str>,
 
@@ -20,7 +19,6 @@ pub struct PoolStats {
     #[schemars(example = &"https://foundrydigital.com/")]
     pub link: Cow<'static, str>,
 
-    /// Number of blocks mined in the time period
     #[serde(rename = "blockCount")]
     #[schemars(example = 42)]
     pub block_count: u64,
@@ -41,14 +39,13 @@ pub struct PoolStats {
     #[schemars(example = 0.30)]
     pub share: f64,
 
-    /// Unique pool identifier
+    /// Zero-based pool ID, matching mempool.space's `unique_id`
     #[serde(rename = "poolUniqueId")]
     #[schemars(example = 44)]
     pub pool_unique_id: u8,
 }
 
 impl PoolStats {
-    /// Create a new PoolStats from a Pool reference
     pub fn new(
         pool: &'static Pool,
         block_count: u64,
@@ -63,7 +60,7 @@ impl PoolStats {
             block_count,
             rank,
             empty_blocks,
-            slug: pool.slug(),
+            slug: pool.slug,
             share,
             pool_unique_id: pool.mempool_unique_id(),
         }

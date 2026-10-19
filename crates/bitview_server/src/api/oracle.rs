@@ -23,13 +23,9 @@ pub async fn serve_live_price(
         .await
 }
 
-pub trait OracleRoutes {
-    fn add_oracle_routes(self) -> Self;
-}
-
-impl OracleRoutes for ApiRouter<AppState> {
-    fn add_oracle_routes(self) -> Self {
-        self.api_route(
+pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
+    router
+        .api_route(
             "/api/oracle/price",
             get_with(serve_live_price, |op| {
                 op.id("get_oracle_price")
@@ -38,8 +34,8 @@ impl OracleRoutes for ApiRouter<AppState> {
                     .summary("Live BTC/USD price")
                     .description(
                         "Current BTC/USD price in dollars. Same value as \
-                            `GET /api/mempool/price`. Confirmed per-height history is available at \
-                            `GET /api/series/price/height`.",
+                        `GET /api/mempool/price`. Confirmed per-height history is available at \
+                        `GET /api/series/price/height`.",
                     )
                     .json_response::<Dollars>()
                     .not_modified()
@@ -59,10 +55,10 @@ impl OracleRoutes for ApiRouter<AppState> {
                         .summary("Live payment output histogram")
                         .description(
                             "Live smoothed histogram of oracle-eligible payment outputs, binned \
-                            by output value on the oracle log scale. It combines the committed \
-                            oracle window with the complete mempool's eligible outputs from \
-                            a matching chain publication. A flat array of \
-                            log-scale bins.",
+                        by output value on the oracle log scale. It combines the committed \
+                        oracle window with the complete mempool's eligible outputs from \
+                        a matching chain publication. A flat array of \
+                        log-scale bins.",
                         )
                         .json_response::<HistogramEmaCompact>()
                         .not_modified()
@@ -95,10 +91,10 @@ impl OracleRoutes for ApiRouter<AppState> {
                         .summary("Payment output histogram at height or day")
                         .description(
                             "Smoothed histogram of oracle-eligible payment outputs for a \
-                            confirmed point. A block height (`840000`) gives that block's oracle \
-                            payment histogram; a calendar date (`YYYY-MM-DD`) gives the average \
-                            of that day's per-block payment histograms. A flat array of log-scale \
-                            bins.",
+                        confirmed point. A block height (`840000`) gives that block's oracle \
+                        payment histogram; a calendar date (`YYYY-MM-DD`) gives the average \
+                        of that day's per-block payment histograms. A flat array of log-scale \
+                        bins.",
                         )
                         .json_response::<HistogramEmaCompact>()
                         .not_modified()
@@ -120,9 +116,10 @@ impl OracleRoutes for ApiRouter<AppState> {
                         .summary("Live output value histogram")
                         .description(
                             "Live unfiltered output value histogram for the complete published \
-                            mempool. Every live output is binned by value on the oracle log scale; \
-                            no oracle payment filters are applied. A flat array of log-scale \
-                            bins, all zero when no mempool is configured.",
+                        mempool. Nonzero outputs within the histogram's bin range are counted \
+                        by value on the oracle log scale; no oracle payment filters are \
+                        applied. A flat array of log-scale bins, all zero when no mempool is \
+                        configured.",
                         )
                         .json_response::<HistogramRaw>()
                         .not_modified()
@@ -155,10 +152,10 @@ impl OracleRoutes for ApiRouter<AppState> {
                         .summary("Output value histogram at height or day")
                         .description(
                             "Unfiltered output value histogram for a confirmed point. A block \
-                            height (`840000`) gives every output in that block, coinbase \
-                            included, binned by value on the oracle log scale; a calendar date \
-                            (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale \
-                            bins.",
+                        height (`840000`) counts that block's nonzero outputs within the \
+                        histogram's bin range, coinbase included, by value on the oracle log \
+                        scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A \
+                        flat array of log-scale bins.",
                         )
                         .json_response::<HistogramRaw>()
                         .not_modified()
@@ -166,5 +163,4 @@ impl OracleRoutes for ApiRouter<AppState> {
                 },
             ),
         )
-    }
 }

@@ -22,7 +22,6 @@ impl Vecs {
             LazyPerBlock::from_resolutions::<Ident>("thermo_cap_cents", version, subsidy_cents);
         let thermo_usd =
             LazyPerBlock::from_lazy::<Convert, Cents>("thermo_cap", version, &thermo_cents);
-        // ONE: signed.
         let investor = FiatPerBlock::import(db, "investor_cap", version + Version::ONE, mappings)?;
         let investorness = LazyPercentPerBlock::from_ratio::<
             CentsSigned,

@@ -8,7 +8,6 @@ use crate::{
     ReadableVec, SharedLen, TypedVec, VecIndex, Version,
 };
 
-/// Lean read-only clone of an [`OverflowVec`](crate::OverflowVec).
 #[derive(Clone)]
 pub struct ReadOnlyOverflowVec<I, T>
 where

@@ -42,8 +42,8 @@ use vecdb::Pco;
 struct Price(f64);
 ```
 
-`#[derive(Pco)]` generates `Bytes`, `Pco`, and the transparent-layout marker
-used by `PcoVec`. The inner field must implement both `Bytes` and `Pco`; VecDB
+`#[derive(Pco)]` generates `Bytes` and `Pco`, including the `IS_TRANSPARENT`
+flag `PcoVec` reads. The inner field must implement both `Bytes` and `Pco`; VecDB
 implements those traits for `u8` through `u64`, `i8` through `i64`, `f32`, and
 `f64`.
 

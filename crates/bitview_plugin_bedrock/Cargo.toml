@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_bedrock"
-description = "The Bedrock model plugin for Bitview"
+description = "Bitcoin price bands calibrated from historical supply-in-loss shares"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

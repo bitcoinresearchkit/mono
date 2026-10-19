@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_holders"
-description = "Uniform aggregate Bitcoin distribution cohorts"
+description = "Overlapping holder cohorts (all, STH, LTH, age cuts) aggregated from UTXO age ranges"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

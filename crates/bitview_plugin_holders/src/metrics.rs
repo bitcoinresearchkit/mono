@@ -2,7 +2,7 @@ use bitview_cohort::AgeAggregateId;
 use bitview_distribution::metrics::OutputViews;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
@@ -13,13 +13,11 @@ use crate::{
     capital::Capital,
     columns::Columns,
     cost_basis::{CostBasis, CostBasisVecs},
-    data::Data,
     realized::Realized,
     supply::Supply,
     unrealized::Unrealized,
 };
 
-/// One complete metric layout, instantiated identically for every age filter.
 #[derive(Traversable)]
 pub struct Metrics<M: StorageMode = Rw> {
     pub supply: Supply<M>,
@@ -30,7 +28,7 @@ pub struct Metrics<M: StorageMode = Rw> {
     unrealized: Unrealized,
     pub cost_basis: CostBasis<M>,
     #[traversable(hidden)]
-    columns: Columns<M>,
+    pub(crate) columns: Columns<M>,
 }
 impl Metrics {
     pub(crate) fn import(
@@ -63,13 +61,6 @@ impl Metrics {
             cost_basis,
             columns,
         })
-    }
-    /// The stored capital, every cohort's capital share denominator when this is `all`.
-    pub(crate) fn capital_cents(&self) -> &CachedSeries<Height, Cents> {
-        &self.columns.cap
-    }
-    pub(crate) fn push(&mut self, data: &Data, spot: Cents) {
-        self.columns.push(data, spot);
     }
     pub(crate) fn compute_rest(
         &mut self,

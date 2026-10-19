@@ -98,4 +98,4 @@ done
 
 publish_release_selection "Rust workspace" --workspace
 
-echo "Done!"
+echo "Rust packages published"

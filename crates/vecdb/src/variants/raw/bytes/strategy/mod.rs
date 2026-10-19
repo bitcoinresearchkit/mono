@@ -4,9 +4,7 @@ use crate::BytesVecValue;
 
 pub mod raw;
 
-/// Serialization strategy using the Bytes trait with portable byte order.
-///
-/// Implements little-endian serialization for cross-platform compatibility.
+/// Serialization through [`Bytes`](crate::Bytes).
 #[derive(Debug, Clone, Copy)]
 pub struct BytesStrategy<T>(PhantomData<T>);
 

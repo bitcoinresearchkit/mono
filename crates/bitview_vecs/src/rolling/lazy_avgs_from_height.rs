@@ -7,11 +7,8 @@ use vecdb::ReadableCloneableVec;
 
 use crate::{IndexSources, LazyRollingAvgFromHeight, shapes::Windows};
 
-/// Lazy rolling averages for all 4 window durations (24h, 1w, 1m, 1y),
-/// derived from a cumulative vec + cached window starts.
-///
-/// Nothing is stored on disk — all values are computed on-the-fly via
-/// `LazyDeltaVec<Height, T, T::Fract, DeltaAvg>`: `(cum[h] - cum[start-1]) / (h - start + 1)`.
+/// Window means `(cum[h] - cum[start - 1]) / (h - start + 1)` over a cumulative source, using
+/// zero before genesis.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyRollingAvgsFromHeight<T>(
     /// Arithmetic mean of the per-block values over the trailing window ending

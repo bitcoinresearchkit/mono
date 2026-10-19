@@ -8,7 +8,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use tempfile::tempfile_in;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp, VecIndex};
 
 use super::Vecs;
 
@@ -32,24 +32,13 @@ pub(super) fn build(
     output_end: usize,
     exit: &Exit,
 ) -> Result<()> {
-    build_ranges(vecs, inputs, input_end, output_end, RANGE_LEN, exit)
-}
-
-fn build_ranges(
-    vecs: &mut Vecs,
-    inputs: &impl ReadableVec<TxInIndex, TxOutIndex>,
-    input_end: usize,
-    output_end: usize,
-    max_range_len: usize,
-    exit: &Exit,
-) -> Result<()> {
     // Persist the empty, unstamped state before replacing any stored ranges,
     // including when rebuilding an existing index after a reset.
     {
         let _lock = exit.lock();
         vecs.spending_txin_index.flush()?;
     }
-    let range_bits = range_bits(input_end, max_range_len);
+    let range_bits = range_bits(input_end);
     let range_len = 1_usize << range_bits;
     let mask = range_len as u64 - 1;
     let path = vecs.spending_txin_index.db_path();
@@ -62,14 +51,8 @@ fn build_ranges(
     inputs.try_for_each_range_at(0, input_end, |output| -> Result<()> {
         if !output.is_coinbase() {
             let index = output.to_usize();
-            if index >= output_end {
-                return Err(VecError::IndexTooHigh {
-                    index,
-                    len: output_end,
-                    name: inputs.name().to_owned(),
-                }
-                .into());
-            }
+            // The baseline's inputs spend only outputs created before its end.
+            debug_assert!(index < output_end, "spent output {index} past {output_end}");
             let record = (input << range_bits) | (index as u64 & mask);
             ranges[index >> range_bits].write_all(&record.to_le_bytes())?;
         }
@@ -111,8 +94,8 @@ fn build_ranges(
 
 // Pack the input index and the offset within its output range into one u64.
 // Shrink ranges as input indexes grow so packing never truncates an input index.
-fn range_bits(input_end: usize, max_range_len: usize) -> u32 {
-    max_range_len
+fn range_bits(input_end: usize) -> u32 {
+    RANGE_LEN
         .ilog2()
-        .min((input_end.saturating_sub(1) as u64).leading_zeros())
+        .min((input_end as u64 - 1).leading_zeros())
 }

@@ -4,8 +4,7 @@ use brk_types::Height;
 use super::{MemberState, delta::ShardDelta};
 use crate::addr::AddressVecs;
 
-/// The address metrics' running state, one member per address type.
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub struct AddrMetricsState(pub AddressType<MemberState>);
 
 impl AddrMetricsState {
@@ -31,7 +30,6 @@ impl AddrMetricsState {
             .add_delta(shard, *id.select(&base.0));
     }
 
-    /// Every address type together.
     pub fn all(&self) -> MemberState {
         let mut all = MemberState::default();
         for member in self.0.iter() {

@@ -11,13 +11,12 @@ use crate::{
 ///
 /// Only missing values are computed (incremental updates); stale data is reset when the
 /// source or computation version changes; writes are batched by the write cache size.
-/// Custom computations build on [`compute_to`](Self::compute_to) (rolling statistics
-/// do downstream).
+/// Custom computations build on [`compute_to`](Self::compute_to).
 pub trait ComputeVec: StoredVec {
-    /// Computes up to `to` from `max_from` on, in batches as large as the write cache allows.
-    /// Clamps the retained prefix to `to`, then writes after every batch, or once when there is
-    /// nothing to compute (truncation only). The callback must append exactly one value for
-    /// every index in its range.
+    /// Validates `version`, truncates to `max_from` (capped at `to`), then computes the missing
+    /// values up to `to` in batches as large as the write cache allows, writing after each batch
+    /// (or once, when nothing is missing). The callback must append exactly one value per index
+    /// in its range.
     fn compute_to<F>(
         &mut self,
         max_from: Self::I,
@@ -29,8 +28,7 @@ pub trait ComputeVec: StoredVec {
     where
         F: FnMut(&mut Self, Range<usize>) -> Result<()>,
     {
-        // Enough values per batch that `pushed_len * SIZE_OF_T >= MAX_CACHE_SIZE`, so
-        // `batch_limit_reached()` fires.
+        // Rounded up: a full batch fills `MAX_CACHE_SIZE`.
         let batch_size = MAX_CACHE_SIZE.div_ceil(size_of::<Self::T>().max(1));
 
         {
@@ -63,7 +61,7 @@ pub trait ComputeVec: StoredVec {
         &mut self,
         max_from: Self::I,
         source: &impl ReadableVec<Self::I, A>,
-        mut t: F,
+        mut transform: F,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -76,8 +74,8 @@ pub trait ComputeVec: StoredVec {
             source.version(),
             |this, range| {
                 let mut i = range.start;
-                source.fold_range_at(range.start, range.end, (), |(), b: A| {
-                    let v = t((Self::I::from(i), b, &*this));
+                source.for_each_range_at(range.start, range.end, |a: A| {
+                    let v = transform((Self::I::from(i), a, &*this));
                     i += 1;
                     this.push(v);
                 });
@@ -90,9 +88,9 @@ pub trait ComputeVec: StoredVec {
     fn compute_transform2<A, B, F>(
         &mut self,
         max_from: Self::I,
-        other1: &impl ReadableVec<Self::I, A>,
-        other2: &impl ReadableVec<Self::I, B>,
-        mut t: F,
+        source1: &impl ReadableVec<Self::I, A>,
+        source2: &impl ReadableVec<Self::I, B>,
+        mut transform: F,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -102,15 +100,15 @@ pub trait ComputeVec: StoredVec {
     {
         self.compute_to(
             max_from,
-            other1.len().min(other2.len()),
-            other1.version() + other2.version(),
+            source1.len().min(source2.len()),
+            source1.version() + source2.version(),
             |this, range| {
-                let batch2 = other2.collect_range_at(range.start, range.end);
+                let batch2 = source2.collect_range_at(range.start, range.end);
                 let mut iter2 = batch2.into_iter();
                 let mut i = range.start;
 
-                other1.fold_range_at(range.start, range.end, (), |(), b: A| {
-                    let v = t((Self::I::from(i), b, iter2.next().unwrap(), &*this));
+                source1.for_each_range_at(range.start, range.end, |a: A| {
+                    let v = transform((Self::I::from(i), a, iter2.next().unwrap(), &*this));
                     i += 1;
                     this.push(v);
                 });
@@ -144,10 +142,10 @@ pub trait ComputeVec: StoredVec {
     fn compute_transform3<A, B, C, F>(
         &mut self,
         max_from: Self::I,
-        other1: &impl ReadableVec<Self::I, A>,
-        other2: &impl ReadableVec<Self::I, B>,
-        other3: &impl ReadableVec<Self::I, C>,
-        mut t: F,
+        source1: &impl ReadableVec<Self::I, A>,
+        source2: &impl ReadableVec<Self::I, B>,
+        source3: &impl ReadableVec<Self::I, C>,
+        mut transform: F,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -158,19 +156,19 @@ pub trait ComputeVec: StoredVec {
     {
         self.compute_to(
             max_from,
-            other1.len().min(other2.len()).min(other3.len()),
-            other1.version() + other2.version() + other3.version(),
+            source1.len().min(source2.len()).min(source3.len()),
+            source1.version() + source2.version() + source3.version(),
             |this, range| {
-                let batch2 = other2.collect_range_at(range.start, range.end);
-                let batch3 = other3.collect_range_at(range.start, range.end);
+                let batch2 = source2.collect_range_at(range.start, range.end);
+                let batch3 = source3.collect_range_at(range.start, range.end);
                 let mut iter2 = batch2.into_iter();
                 let mut iter3 = batch3.into_iter();
                 let mut i = range.start;
 
-                other1.fold_range_at(range.start, range.end, (), |(), b: A| {
-                    let v = t((
+                source1.for_each_range_at(range.start, range.end, |a: A| {
+                    let v = transform((
                         Self::I::from(i),
-                        b,
+                        a,
                         iter2.next().unwrap(),
                         iter3.next().unwrap(),
                         &*this,
@@ -206,10 +204,7 @@ pub trait ComputeVec: StoredVec {
         )
     }
 
-    /// Compute cumulative sum from a source vec.
-    ///
-    /// Each value in the result is the sum of all values from the source up to
-    /// and including that index.
+    /// Running sum of `source`, each index included.
     fn compute_cumulative<S>(
         &mut self,
         max_from: Self::I,
@@ -226,20 +221,17 @@ pub trait ComputeVec: StoredVec {
             source.version(),
             |this, range| {
                 let mut cumulative_val = this.collect_last().unwrap_or_default();
-                source.try_fold_range_at(range.start, range.end, (), |(), v: S| {
+                source.for_each_range_at(range.start, range.end, |v: S| {
                     cumulative_val += v.into();
                     this.push(cumulative_val);
-                    Ok(())
-                })
+                });
+                Ok(())
             },
             exit,
         )
     }
 
-    /// Compute cumulative sum from a custom binary transform of two source vecs.
-    ///
-    /// Each value in the result is the cumulative sum of `transform(source1[i], source2[i])`
-    /// for all indices up to and including i.
+    /// Running sum of `transform(source1[i], source2[i])`, each index included.
     fn compute_cumulative_transformed_binary<S1, S2, F>(
         &mut self,
         max_from: Self::I,
@@ -263,12 +255,12 @@ pub trait ComputeVec: StoredVec {
                 let batch2 = source2.collect_range_at(range.start, range.end);
                 let mut iter2 = batch2.into_iter();
 
-                source1.try_fold_range_at(range.start, range.end, (), |(), v1: S1| {
+                source1.for_each_range_at(range.start, range.end, |v1: S1| {
                     let v2 = iter2.next().unwrap();
                     cumulative_val += transform(v1, v2);
                     this.push(cumulative_val);
-                    Ok(())
-                })
+                });
+                Ok(())
             },
             exit,
         )
@@ -320,7 +312,6 @@ pub trait ComputeVec: StoredVec {
 
                 let mut group_idx = 0usize;
 
-                // Skip leading zero-count groups
                 while group_idx < counts_batch.len() && counts_batch[group_idx] == 0 {
                     emit(this, None);
                     group_idx += 1;

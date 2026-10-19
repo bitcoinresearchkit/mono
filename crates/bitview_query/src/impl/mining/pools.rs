@@ -24,20 +24,13 @@ struct HashrateSamples {
 }
 
 impl Query {
-    /// Mining-pool leaderboard for `time_period`. For each pool, computes
-    /// block count over the window via `cumulative(end) - cumulative(start - 1)`
-    /// (tip-cumulative minus pre-window-cumulative), sorts pools by count
-    /// descending, assigns ranks, and emits the per-pool share. Also bundles
-    /// current / 3d / 1w network hashrate snapshots, and each pool's empty
-    /// (coinbase-only) blocks over the window. Returns zeros early
-    /// when no blocks have been indexed. The window start uses the
-    /// timestamp-based lookback vecs (`_24h`, `_3d`, ...) rather than
-    /// block-count math; `TimePeriod::All` walks from genesis.
+    /// Pools ranked by blocks mined over `time_period`'s timestamp lookback from the tip (`All`:
+    /// from genesis), with their shares and coinbase-only blocks, plus the current, 3-day and
+    /// 7-day network hashrates.
     pub fn mining_pools(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin)?;
         let plugins = self.plugins();
-        let current_height = tip;
 
         let start = start_height(self, time_period, tip)?.to_usize();
 
@@ -51,7 +44,7 @@ impl Query {
             .iter()
             .map(|(id, v)| (id, &v.blocks_mined.cumulative.height))
         {
-            let count_at_end: u64 = *cumulative.collect_one(current_height).data()?;
+            let count_at_end: u64 = *cumulative.collect_one(tip).data()?;
 
             let count_at_start: u64 = if start == 0 {
                 0
@@ -59,7 +52,7 @@ impl Query {
                 *cumulative.collect_one(Height::from(start - 1)).data()?
             };
 
-            let block_count = count_at_end.saturating_sub(count_at_start);
+            let block_count = count_at_end - count_at_start;
 
             if block_count > 0 {
                 pool_data.push((pools.get(*pool_id), block_count));
@@ -67,9 +60,9 @@ impl Query {
         }
 
         let empty_blocks = self.empty_blocks_by_pool(start, &pin)?;
-        let last_estimated_hashrate = self.hashrate_at(current_height)?;
-        let last_estimated_hashrate3d = self.trailing_hashrate(current_height, 3)?;
-        let last_estimated_hashrate1w = self.trailing_hashrate(current_height, 7)?;
+        let last_estimated_hashrate = self.hashrate_at(tip)?;
+        let last_estimated_hashrate3d = self.trailing_hashrate(tip, 3)?;
+        let last_estimated_hashrate1w = self.trailing_hashrate(tip, 7)?;
         drop(pin);
 
         pool_data.sort_by_key(|p| Reverse(p.1));
@@ -80,12 +73,8 @@ impl Query {
             .into_iter()
             .enumerate()
             .map(|(idx, (pool, block_count))| {
-                let share = if total_blocks > 0 {
-                    block_count as f64 / total_blocks as f64
-                } else {
-                    0.0
-                };
-                let empty_blocks = empty_blocks[pool.slug() as usize];
+                let share = block_count as f64 / total_blocks as f64;
+                let empty_blocks = empty_blocks[pool.slug as usize];
                 PoolStats::new(pool, block_count, empty_blocks, (idx + 1) as u32, share)
             })
             .collect();
@@ -127,7 +116,7 @@ impl Query {
         Ok(empty)
     }
 
-    /// All supported pools as `PoolInfo`. Static list, no indexer reads, can't fail.
+    /// The static list of supported pools.
     pub fn all_pools(&self) -> Vec<PoolInfo> {
         pools().iter().map(PoolInfo::from).collect()
     }
@@ -141,8 +130,7 @@ impl Query {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin)?;
         let plugins = self.plugins();
-        let current_height = tip;
-        let end = current_height.to_usize();
+        let end = tip.to_usize();
 
         let pools_list = pools();
         let pool = pools_list.get(slug);
@@ -152,7 +140,7 @@ impl Query {
         ))?;
         let cumulative = &vecs.blocks_mined.cumulative.height;
 
-        let total_all: u64 = *cumulative.collect_one(current_height).data()?;
+        let total_all: u64 = *cumulative.collect_one(tip).data()?;
 
         let window_stats = |start: Height| -> Result<(u64, f64)> {
             let start = start.to_usize();
@@ -161,7 +149,7 @@ impl Query {
             } else {
                 *cumulative.collect_one(Height::from(start - 1)).data()?
             };
-            let count = total_all.saturating_sub(count_before);
+            let count = total_all - count_before;
             let network_blocks = end
                 .checked_sub(start)
                 .ok_or(Error::Internal("Pool lookback exceeds published tip"))?
@@ -169,12 +157,11 @@ impl Query {
             Ok((count, count as f64 / network_blocks as f64))
         };
         let lookback = &plugins.mappings.lookback;
-        let (total_24h, share_24h) =
-            window_stats(lookback._24h.collect_one(current_height).data()?)?;
-        let (total_1w, share_1w) = window_stats(lookback._1w.collect_one(current_height).data()?)?;
+        let (total_24h, share_24h) = window_stats(lookback._24h.collect_one(tip).data()?)?;
+        let (total_1w, share_1w) = window_stats(lookback._1w.collect_one(tip).data()?)?;
         let share_all = total_all as f64 / (end + 1) as f64;
 
-        let network_hr = self.hashrate_at(current_height)?;
+        let network_hr = self.hashrate_at(tip)?;
         let estimated_hashrate = (share_24h * network_hr as f64) as u128;
 
         let total_reward = vecs
@@ -182,7 +169,7 @@ impl Query {
             .cumulative
             .sats
             .height
-            .collect_one(current_height)
+            .collect_one(tip)
             .data()?;
 
         Ok(PoolDetail {
@@ -217,12 +204,8 @@ impl Query {
         Ok(Self::hashrate_entries(&samples, &pool_cum, pool_name).collect())
     }
 
-    /// Multi-pool weekly-sampled hashrate series over `time_period`. Walks
-    /// the full chain when `time_period` is `None` or `Some(TimePeriod::All)`.
-    /// For each known pool, emits one entry per weekly sample where the
-    /// hashrate is `network_hashrate(day) * pool_share_over_7d`, tagged with
-    /// `pool_name`. Entries from all pools are concatenated; the chart layer
-    /// groups by pool name.
+    /// [`Self::pool_hashrate`]'s weekly samples for every pool over `time_period` (the full
+    /// chain for `None` or `All`), concatenated pool by pool.
     pub fn pools_hashrate(
         &self,
         time_period: Option<TimePeriod>,
@@ -334,10 +317,8 @@ impl Query {
             let cum_now = pool_cum[k]?;
             let cum_prev = pool_cum[k - 1]?;
             let hr = samples.daily_hashrate[k]?;
-            let pool_blocks = (*cum_now).saturating_sub(*cum_prev);
-            let total_blocks = samples.day_ends[k]
-                .to_usize()
-                .saturating_sub(samples.day_ends[k - 1].to_usize());
+            let pool_blocks = *cum_now - *cum_prev;
+            let total_blocks = samples.day_ends[k].to_usize() - samples.day_ends[k - 1].to_usize();
             if pool_blocks == 0 || total_blocks == 0 {
                 return None;
             }

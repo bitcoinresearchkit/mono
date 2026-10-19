@@ -34,8 +34,10 @@ impl Mempool {
         loop {
             let started = Instant::now();
             let outcome = catch_unwind(AssertUnwindSafe(|| {
-                if let Err(e) = self.tick_with(&resolver, gate) {
-                    error!("mempool update failed: {e}");
+                match self.tick_with(&resolver, gate) {
+                    // A block arrived mid-fetch: the next cycle observes the new tip.
+                    Ok(()) | Err(Error::StateUpdating) => {}
+                    Err(e) => error!("mempool update failed: {e}"),
                 }
             }));
             if let Err(payload) = outcome {
@@ -102,7 +104,7 @@ impl Mempool {
         if rpc.tip_hash != tip_before {
             return Err(Error::StateUpdating);
         }
-        let pulled = preparer::prepare(
+        let diff = preparer::prepare(
             &rpc.live_txids,
             &template_only,
             new_entries,
@@ -111,7 +113,7 @@ impl Mempool {
         );
         // A panic after this point requires restoring private indexes before reuse.
         self.needs_recovery = true;
-        applier::apply(&mut self.state, &self.rebuilder.snapshot(), pulled);
+        applier::apply(&mut self.state, self.rebuilder.snapshot(), diff);
         self.state.template_only = template_only;
         prevouts::fill(&mut self.state, resolver);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
@@ -134,7 +136,7 @@ impl Mempool {
         if let Some(next) = previous.updated(
             &self.state,
             tip,
-            self.rebuilder.snapshot(),
+            self.rebuilder.snapshot().clone(),
             membership_complete,
         ) {
             self.read_only.current.store(Arc::new(next));

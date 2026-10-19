@@ -3,10 +3,8 @@ use brk_types::{AddressBytes, OutputType};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Address validation result
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct AddressValidation {
-    /// Whether the address is valid
     #[schemars(example = true)]
     pub isvalid: bool,
 
@@ -20,11 +18,10 @@ pub struct AddressValidation {
     #[serde(rename = "scriptPubKey")]
     pub script_pub_key: Option<String>,
 
-    /// Whether this is a script address (P2SH)
+    /// Whether the address is P2SH, P2WSH or P2TR
     #[serde(skip_serializing_if = "Option::is_none")]
     pub isscript: Option<bool>,
 
-    /// Whether this is a witness address
     #[serde(skip_serializing_if = "Option::is_none")]
     pub iswitness: Option<bool>,
 
@@ -36,7 +33,7 @@ pub struct AddressValidation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub witness_program: Option<String>,
 
-    /// Error locations (empty array for most errors)
+    /// Error locations: an empty array for invalid addresses, omitted for valid ones
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_locations: Option<Vec<usize>>,
 
@@ -46,7 +43,6 @@ pub struct AddressValidation {
 }
 
 impl AddressValidation {
-    /// Returns an invalid validation result with error detail
     fn invalid(error: String) -> Self {
         Self {
             isvalid: false,
@@ -61,7 +57,6 @@ impl AddressValidation {
         }
     }
 
-    /// Validate a Bitcoin address string and return details
     pub fn from_addr(addr: &str) -> Self {
         let script = match AddressBytes::addr_to_script(addr) {
             Ok(s) => s,

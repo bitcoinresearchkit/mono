@@ -4,20 +4,18 @@
 use std::mem;
 
 use brk_cpfp::Cluster;
-use derive_more::{Deref, DerefMut};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 
 use super::{SnapTx, Snapshot, TxIndex, cluster};
 use crate::{key::TxKey, state::TxEntry, stores::TxStore};
 
-#[derive(Default, Deref, DerefMut)]
-pub struct KeyIndex(FxHashMap<TxKey, TxIndex>);
+pub type KeyIndex = FxHashMap<TxKey, TxIndex>;
 
 impl Snapshot {
     pub(crate) fn build_txs(txs: &TxStore) -> (Vec<SnapTx>, KeyIndex) {
         let n = txs.len();
-        let mut key_to_idx = KeyIndex(FxHashMap::with_capacity_and_hasher(n, FxBuildHasher));
+        let mut key_to_idx = KeyIndex::with_capacity_and_hasher(n, FxBuildHasher);
         for (i, (key, _)) in txs.records().enumerate() {
             key_to_idx.insert(*key, TxIndex::from(i));
         }
@@ -63,9 +61,7 @@ impl Snapshot {
             let child = TxIndex::from(i);
             let parents = mem::take(&mut txs[i].parents);
             for &p in &parents {
-                if let Some(t) = txs.get_mut(p.as_usize()) {
-                    t.children.push(child);
-                }
+                txs[p.as_usize()].children.push(child);
             }
             txs[i].parents = parents;
         }
@@ -73,7 +69,6 @@ impl Snapshot {
 
     /// Walk every multi-tx connected component once and overwrite each
     /// member's `chunk_rate` with the linearized chunk's feerate.
-    /// Visited bitmap ensures each cluster is linearized exactly once.
     fn refresh_chunk_rates(snap_txs: &mut [SnapTx]) {
         let n = snap_txs.len();
         let mut visited = vec![false; n];
@@ -91,9 +86,7 @@ impl Snapshot {
             for &m in &component {
                 visited[m.as_usize()] = true;
             }
-            if component.len() <= 1 {
-                continue;
-            }
+            debug_assert!(component.len() > 1);
             let members = cluster::load(snap_txs, &component, &mut graph);
             graph.linearize(|txs, feerate| {
                 for &local in txs {

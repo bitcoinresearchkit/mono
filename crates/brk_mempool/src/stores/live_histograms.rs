@@ -5,7 +5,7 @@ use crate::stores::tx_store::TxRecord;
 
 /// The two live per-bin histograms the pool maintains incrementally as txs
 /// enter and leave: `eligible` applies the round-dollar payment filter (it
-/// feeds the oracle blend), `raw` bins every output by value with no filtering.
+/// feeds the oracle blend), `raw` bins outputs by value with no filtering.
 /// Add and remove run through the same code so the two stay symmetric.
 #[derive(Clone, Default)]
 pub struct LiveHistograms {
@@ -14,7 +14,6 @@ pub struct LiveHistograms {
 }
 
 impl LiveHistograms {
-    /// Fold a record's outputs into both histograms.
     pub fn add(&mut self, record: &TxRecord) {
         Self::eligible_bins(&record.tx, |bin| self.eligible[bin as usize] += 1);
         for bin in Self::raw_bins(&record.tx) {
@@ -35,7 +34,7 @@ impl LiveHistograms {
         self.eligible.clone()
     }
 
-    /// Every live output binned by value, no payment filtering.
+    /// Live outputs binned by value, no payment filtering.
     pub fn raw(&self) -> HistogramRaw {
         self.raw.clone()
     }
@@ -45,7 +44,8 @@ impl LiveHistograms {
     /// which are never mutated after insert, so add and remove recompute it
     /// identically rather than caching.
     fn eligible_bins(tx: &Transaction, emit: impl FnMut(u16)) {
-        PaymentFilter::MODERN.for_each_bin(tx.output.iter().map(|o| (o.value, o.type_())), emit);
+        PaymentFilter::MODERN
+            .for_each_bin(tx.output.iter().map(|o| (o.value, o.output_type())), emit);
     }
 
     /// Raw bin index per output, dropping only values outside the bin domain

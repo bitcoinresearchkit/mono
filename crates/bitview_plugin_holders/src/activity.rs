@@ -19,10 +19,12 @@ pub struct Activity<M: StorageMode = Rw> {
     /// the spent output value; USD representations value it at the spending
     /// block's spot price.
     pub transfer_volume: LazyValuePerBlockCumulativeRolling,
-    /// Transfer volume of outputs spent in profit.
+    /// Transfer volume whose spending price is greater than or equal to the
+    /// spent outputs' creation price.
     #[traversable(wrap = "transfer_volume", rename = "in_profit")]
     pub transfer_volume_in_profit: LazyValuePerBlockCumulativeRolling,
-    /// Transfer volume of outputs spent in loss.
+    /// Transfer volume whose spending price is below the spent outputs'
+    /// creation price.
     #[traversable(wrap = "transfer_volume", rename = "in_loss")]
     pub transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
     /// Coin days destroyed (CDD): spent coin amounts multiplied by their age in days.

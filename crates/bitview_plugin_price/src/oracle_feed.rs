@@ -1,8 +1,7 @@
 use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::Lengths;
-use bitview_primitives::{Index40, TxOutIndex};
+use bitview_primitives::{Index40, Lengths, TxOutIndex};
 use brk_error::{Error, Result};
 use brk_oracle::{Oracle, PaymentFilter};
 use brk_types::{OutputType, Sats};
@@ -102,7 +101,7 @@ pub fn feed_blocks_with<IM: StorageMode>(
         let histograms = (batch_start..batch_end)
             .into_par_iter()
             .map(|idx| {
-                // The coinbase pays no one: skip each block's first transaction.
+                // Skip each block's coinbase: the oracle models payments, not issuance.
                 let txs = tx_at(idx) + 1..tx_at(idx + 1);
                 let block_out_end = out_at(idx + 1);
                 debug_assert!(

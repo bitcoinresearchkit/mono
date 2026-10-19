@@ -40,8 +40,7 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// Serialized block size in bytes, including witness data: its 80-byte header,
     /// transaction-count CompactSize, and every serialized transaction. Value for the represented
     /// block.
-    #[traversable(rename = "size")]
-    pub total: Compact<PcoVec<Height, Bytes32>, Bytes, M>,
+    pub size: Compact<PcoVec<Height, Bytes32>, Bytes, M>,
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one. Value for the represented block.
     pub weight: Compact<PcoVec<Height, Weight32>, Weight, M>,
@@ -66,7 +65,7 @@ impl BlocksVecs {
             difficulty,
             timestamp,
             median_time,
-            total,
+            size,
             weight,
             position,
             segwit_tx_count,
@@ -78,7 +77,7 @@ impl BlocksVecs {
             difficulty = PcoVec::import(db, "difficulty", version),
             timestamp = PcoVec::import(db, "timestamp", version),
             median_time = PcoVec::import(db, "median_time", version),
-            total_size = PcoVec::import(db, "block_size", version).map(Compact::new),
+            size = PcoVec::import(db, "block_size", version).map(Compact::new),
             weight = PcoVec::import(db, "block_weight", version).map(Compact::new),
             position = PcoVec::import(db, "block_position", version),
             segwit_tx_count = block_count(db, "segwit_tx_count", version),
@@ -91,7 +90,7 @@ impl BlocksVecs {
             difficulty,
             timestamp,
             median_time,
-            total,
+            size,
             weight,
             position,
             segwit_tx_count,
@@ -99,13 +98,13 @@ impl BlocksVecs {
             segwit_tx_weight,
             median_window: MedianTimeWindow::default(),
         };
-        // Upgrade old databases from the authoritative timestamp column. A
-        // mismatched checkpoint can contain another branch: rebuild, not append.
+        // Median times derive from the timestamps: rebuild them, not append, when their length or
+        // checkpoint differs (a mismatched checkpoint can hold another branch).
         if this.median_time.len() != this.timestamp.len()
             || this.median_time.stamp() != this.timestamp.stamp()
         {
             this.median_time.clear()?;
-            this.compute_median_times()?;
+            this.compute_median_times();
             this.median_time.stamped_write(this.timestamp.stamp())?;
         }
         Ok(this)
@@ -123,7 +122,7 @@ impl BlocksVecs {
             &self.difficulty,
             &self.timestamp,
             &self.median_time,
-            &*self.total,
+            &*self.size,
             &*self.weight,
             &self.position,
             &*self.segwit_tx_count,

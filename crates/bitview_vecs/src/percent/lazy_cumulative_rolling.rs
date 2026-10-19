@@ -44,11 +44,8 @@ pub fn count_and_share(
     (count, share)
 }
 
-/// Lazy percent views of a cumulative and its rolling windows — no stored vecs.
-///
-/// Cumulative and rolling window fields are both flattened to the same tree
-/// level, so consumers see `{ cumulative, 24h, 1w, 1m, 1y }`, ids `{name}_cumulative` and
-/// `{name}_{window}`.
+/// Cumulative and rolling views are flattened into `{ cumulative, 24h, 1w, 1m, 1y }`, with ids
+/// `{name}_cumulative` and `{name}_{window}`.
 #[derive(Clone, Traversable)]
 pub struct LazyPercentCumulativeRolling<B: FixedRatio> {
     /// Numerator and denominator accumulated from the first block through the
@@ -60,10 +57,9 @@ pub struct LazyPercentCumulativeRolling<B: FixedRatio> {
 }
 
 impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
-    /// Derive cumulative and rolling ratios from one potentially disk-backed
-    /// cumulative numerator and aligned denominator/window metadata.
-    /// Pass the readers shared with their owners; views request only the
-    /// needed value ranges without changing cache retention.
+    /// Derive cumulative and rolling ratios from cumulative numerator and denominator readers.
+    /// Pass the readers shared with their owners; views request only the needed value ranges
+    /// without changing cache retention.
     pub fn from_cumulative_ratio<S, D, F>(
         name: &str,
         version: Version,

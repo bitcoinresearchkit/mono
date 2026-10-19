@@ -6,8 +6,8 @@ use bitview_primitives::{
 };
 use bitview_vecs::{IndexSources, LazyPreviousDeltaVec, shapes::PerResolution};
 use brk_error::Result;
-use brk_types::Version;
-use vecdb::{IndexVec, ReadableCloneableVec};
+use brk_types::{Height, Timestamp, Version};
+use vecdb::{Budgeted, ImportableVec, IndexVec, PcoVec, ReadableCloneableVec};
 
 use crate::{
     STORAGE, Vecs,
@@ -29,7 +29,8 @@ impl Vecs {
 
         let addresses = AddressesVecs::new(version, indexer);
         let outputs = OutputVecs::new(version, indexer);
-        let monotonic = Timestamps::import_monotonic(&db, version)?;
+        let monotonic =
+            PcoVec::<Height, Timestamp, Budgeted>::import(&db, "timestamp_monotonic", version)?;
         let chain_counts = ChainCounts::new(version, indexer);
         let monotonic_source = monotonic.read_only_boxed_clone();
         let lookback = LookbackVecs::new(version, &monotonic_source);
@@ -126,7 +127,7 @@ impl Vecs {
             tx_index_count: LazyPreviousDeltaVec::new(
                 "tx_index_count",
                 version,
-                &chain_counts.transaction_source(),
+                &chain_counts.transaction,
             ),
         };
         let tx_index = TxIndexVecs::new(version, indexer);

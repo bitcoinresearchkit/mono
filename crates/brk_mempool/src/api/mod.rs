@@ -1,5 +1,4 @@
-//! Read-side accessors on [`crate::Mempool`]. Each submodule groups a
-//! cohesive method set. Types flow back through `pub use`.
+//! Read accessors on [`crate::ReadOnlyState`], each answering from one loaded publication.
 
 use std::sync::Arc;
 

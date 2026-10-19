@@ -5,7 +5,6 @@ use vecdb::AnyExportableVec;
 
 /// Object-safe view of a plugin's series.
 pub trait PluginData {
-    /// Visits every public vector.
     fn for_each_visible<'a>(&'a self, visit: &mut dyn FnMut(&'a dyn AnyExportableVec));
 
     /// Visits every traversable vector, hidden ones included. Fields the

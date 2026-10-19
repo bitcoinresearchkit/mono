@@ -118,7 +118,6 @@ impl Lengths {
         self.clamp_addr_indexes_to(other);
     }
 
-    /// Bumps the entity totals after processing a block.
     pub fn add_block(&mut self, tx_count: usize, input_count: usize, output_count: usize) {
         self.tx_index += TxIndex::from(tx_count);
         self.txin_index += TxInIndex::from(input_count);

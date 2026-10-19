@@ -43,16 +43,9 @@ macro_rules! addr_state_vecs {
         /// are rewritten in place without excluding direct reads (`with_unread_updates`).
         pub struct AddrStateVecs<M: StorageMode = Rw> {
             $(
-                /// Each address's state, one four-byte record per address index: a funded
-                /// address's slot in `funded`, an empty address's slot in `extended_empty`,
-                /// or an empty address's lifetime totals inline.
                 pub(crate) $field: M::Stored<MutableVec<BytesVec<$index, AddressState>>>,
             )+
-            /// Funded addresses' data (received, sent, capital and transaction and output
-            /// counts), by the slot their state points to.
             pub(crate) funded: M::Stored<OverflowVec<FundedAddressIndex, FundedAddressData>>,
-            /// Empty addresses' lifetime totals that do not fit inline in their state, by
-            /// the slot their state points to.
             pub(crate) extended_empty:
                 M::Stored<OverflowVec<ExtendedEmptyAddressIndex, EmptyAddressData>>,
             /// The length these vectors read through and the addresses the publication changed,
@@ -200,20 +193,18 @@ bitview_primitives::with_address_storage_types!(addr_state_vecs);
 
 impl AddrStateVecs {
     pub fn min_stamped_len(&self) -> Height {
-        self.stamped_lens().min().unwrap_or_default()
+        self.stamped_lens().min().unwrap()
     }
 
     pub fn max_stamped_len(&self) -> Height {
-        self.stamped_lens().max().unwrap_or_default()
+        self.stamped_lens().max().unwrap()
     }
 
-    /// Records each address's final data in `changed` too, when given.
     pub fn apply_updates(
         &mut self,
         cache: &mut [ByAddrType<FxHashMap<TypeIndex, SourcedAddrData>>],
         changed: Option<&mut Changed>,
     ) -> Result<()> {
-        info!("Updating address state...");
         let started = Instant::now();
         let AddrUpdates {
             mut primaries,

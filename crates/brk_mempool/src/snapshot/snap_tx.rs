@@ -17,8 +17,7 @@ pub struct SnapTx {
     /// Serialized tx size in bytes (witness + non-witness).
     pub size: u64,
     pub chunk_rate: FeeRate,
-    /// Direct parents in the live pool (resolved against entry slots
-    /// at build time. Cross-pool / confirmed parents are dropped).
+    /// Direct parents in this snapshot; confirmed or absent parents are omitted.
     pub parents: SmallVec<[TxIndex; 2]>,
     pub children: SmallVec<[TxIndex; 4]>,
 }

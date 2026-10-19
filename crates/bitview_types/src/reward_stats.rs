@@ -20,7 +20,6 @@ pub struct RewardStats {
     #[serde(with = "decimal_string")]
     #[schemars(with = "String")]
     pub total_fee: Sats,
-    /// Total number of transactions
     #[serde(with = "decimal_string")]
     #[schemars(with = "String")]
     pub total_tx: u64,

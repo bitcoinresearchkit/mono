@@ -38,7 +38,7 @@ where
 
     #[inline(always)]
     fn rollback_len(&self) -> usize {
-        self.base.prev_stored_len()
+        self.base.previous_stored_len
     }
 
     #[inline]
@@ -53,10 +53,9 @@ where
 
     #[inline]
     fn reserve_pushed(&mut self, additional: usize) {
-        self.base.reserve_pushed(additional);
+        self.base.mut_pushed().reserve(additional);
     }
 
-    /// Overwrites stored values at their indexes.
     fn write_updates(&mut self, updated: BTreeMap<usize, T>) -> Result<()> {
         let guard = self.header().begin_write()?;
         let region = self.region();

@@ -2,10 +2,8 @@ use std::{marker::PhantomData, ops::Range};
 
 use crate::{Pages, RangeMapCursor};
 
-/// Maps ranges of indices to values for efficient reverse lookups.
-///
-/// Stores first_index values in sorted pages and uses binary search
-/// to find the value for any index. The value is derived from the position.
+/// Sorted range starts in shared pages: an index maps to `V::from(position)` of the last start
+/// at or below it.
 pub struct RangeMap<I, V> {
     first_indexes: Pages<I>,
     value: PhantomData<fn() -> V>,
@@ -64,13 +62,13 @@ impl<I: Ord + Copy, V> RangeMap<I, V> {
     }
 
     /// Extend an ordered suffix without copying the unchanged prefix.
-    pub fn extend(&mut self, values: impl IntoIterator<Item = I>) {
-        for value in values {
+    pub fn extend(&mut self, starts: impl IntoIterator<Item = I>) {
+        for start in starts {
             debug_assert!(
-                self.first_indexes.last().is_none_or(|&last| value >= last),
-                "RangeMap: first_index must be monotonically increasing"
+                self.first_indexes.last().is_none_or(|&last| start >= last),
+                "RangeMap starts must be nondecreasing"
             );
-            self.first_indexes.push(value);
+            self.first_indexes.push(start);
         }
     }
 }
@@ -84,7 +82,7 @@ impl<I: Ord + Copy, V: From<usize>> RangeMap<I, V> {
 
     /// Floor lookup by binary search.
     #[inline]
-    pub fn get_shared(&self, index: I) -> Option<V> {
+    pub fn get(&self, index: I) -> Option<V> {
         self.first_indexes
             .partition_point(|&first| first <= index)
             .checked_sub(1)

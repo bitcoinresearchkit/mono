@@ -18,7 +18,7 @@ use super::{
 };
 use crate::Auth;
 
-/// Connection-loss retries before giving up: effectively wait for the node forever.
+/// Retries of a blocking single call before it gives up: about 11.6 days at one per second.
 const MAX_RETRIES: usize = 1_000_000;
 const RETRY_DELAY: Duration = Duration::from_secs(1);
 
@@ -52,26 +52,20 @@ impl ClientInner {
 
         for attempt in 0..=MAX_RETRIES {
             if attempt > 0 {
-                debug!(
-                    "Trying to reconnect to Bitcoin Core (attempt {}/{})",
-                    attempt, MAX_RETRIES
-                );
+                debug!("Retrying Bitcoin Core RPC {method} (attempt {attempt}/{MAX_RETRIES})");
                 sleep(RETRY_DELAY);
             }
 
             match self.client.call::<T>(method, Some(&raw)) {
                 Ok(value) => {
                     if attempt > 0 {
-                        info!(
-                            "Successfully reconnected to Bitcoin Core after {} attempts",
-                            attempt
-                        );
+                        info!("Bitcoin Core RPC {method} succeeded after {attempt} retries");
                     }
                     return Ok(value);
                 }
                 Err(e) if is_retriable(&e) => {
                     if attempt == 0 {
-                        warn!("Lost connection to Bitcoin Core; reconnecting...");
+                        warn!("Bitcoin Core RPC {method} failed: {e}; retrying");
                     }
                 }
                 Err(e) => return Err(refusal(e)),
@@ -79,7 +73,7 @@ impl ClientInner {
         }
 
         warn!(
-            "Could not reconnect to Bitcoin Core after {} attempts",
+            "Bitcoin Core RPC {method} failed after {} attempts",
             MAX_RETRIES + 1
         );
         Err(JsonRpcError::Rpc(RpcError {
@@ -141,11 +135,8 @@ impl ClientInner {
             .collect()
     }
 
-    /// Like `call_batch` but reports each item's raw result independently, so
-    /// one bad item doesn't nuke an otherwise-healthy chunk. Per-item failures
-    /// preserve the underlying `JsonRpcError` so the caller can pattern-match
-    /// on the RPC error code. The outer `Result` still fails if the HTTP
-    /// round-trip itself fails.
+    /// Like `call_batch`, but each item's raw result or RPC error (callers match on its code)
+    /// comes back on its own; only a failed round trip fails the outer `Result`.
     pub fn call_batch_raw<P: Serialize>(
         &self,
         method: &str,

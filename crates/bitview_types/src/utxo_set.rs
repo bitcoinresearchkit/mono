@@ -11,9 +11,7 @@ use serde::{Deserialize, Serialize};
 /// `spent` gives the set after block `last`; rounding each supply to 8 decimals keeps it exact.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct UtxoSet {
-    /// Height of the represented block.
     pub height: Height,
-    /// Hash of the represented block.
     pub hash: BlockHash,
     /// UTC date of the represented block's monotonic timestamp (the running maximum of block
     /// times).

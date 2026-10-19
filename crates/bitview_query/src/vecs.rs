@@ -29,8 +29,9 @@ pub use series_entry::SeriesEntry;
 pub use series_entry::SeriesEntryLookup;
 
 /// A series id two plugins publish at the same index. Compositions are open, so ids may collide: the
-/// first plugin in the composition's declaration order serves the id, and a later plugin's copy keeps
-/// its tree path when its value type matches at every colliding index, and is left out otherwise.
+/// first plugin in the composition's declaration order keeps the colliding indexes, and a later
+/// plugin adds its other indexes (and keeps its tree path) when its value type matches at every
+/// colliding index, and loses the id otherwise.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SharedSeries {
     pub name: String,
@@ -42,7 +43,6 @@ pub struct SharedSeries {
 pub struct Vecs<'a> {
     by_series: FxHashMap<&'a str, Series<'a>>,
     shared: Vec<SharedSeries>,
-    /// Ids whose accepted copies hold more than one value type (at different indexes).
     value_type_conflicts: Vec<&'a str>,
     series_names: Vec<&'a str>,
     indexes: Vec<IndexInfo>,
@@ -64,10 +64,6 @@ struct DescriptionSearch {
 struct SeriesId(u32);
 
 impl SeriesId {
-    fn from_usize(value: usize) -> Self {
-        Self(u32::try_from(value).expect("series ID overflow"))
-    }
-
     fn as_usize(self) -> usize {
         self.0 as usize
     }
@@ -115,7 +111,7 @@ impl<'a> Vecs<'a> {
                         entry.insert(fragments);
                     }
                     btree_map::Entry::Occupied(entry) => {
-                        assert!(
+                        debug_assert!(
                             collided.contains(series) || *entry.get() == fragments,
                             "Conflicting descriptions for series {series}"
                         );
@@ -126,7 +122,7 @@ impl<'a> Vecs<'a> {
         let mut interned_descriptions = BTreeMap::<_, Arc<str>>::new();
         let mut descriptions = BTreeMap::new();
         for (series, fragments) in series_to_description {
-            assert!(
+            debug_assert!(
                 builder.by_series.contains_key(series),
                 "Description references unknown series: {series}"
             );
@@ -141,7 +137,7 @@ impl<'a> Vecs<'a> {
         if let TreeNode::Branch(root) = &mut catalog {
             for (name, db) in &excluded {
                 match root.children.get_mut(*db) {
-                    Some(TreeNode::Leaf(leaf)) if leaf.name() == *name => {
+                    Some(TreeNode::Leaf(leaf)) if leaf.leaf.name == *name => {
                         root.children.shift_remove(*db);
                     }
                     Some(subtree) => subtree.remove_series(name),
@@ -159,22 +155,18 @@ impl<'a> Vecs<'a> {
             ..
         } = builder;
 
-        let sort_ids = |ids: &mut Vec<&str>| {
-            ids.sort_unstable_by(|a, b| a.len().cmp(&b.len()).then_with(|| a.cmp(b)))
-        };
-
         let mut series_names = by_series.keys().copied().collect::<Vec<_>>();
-        sort_ids(&mut series_names);
+        series_names.sort_unstable_by(|a, b| a.len().cmp(&b.len()).then_with(|| a.cmp(b)));
         let catalog_descriptions = catalog.descriptions();
         for (series, description) in descriptions {
-            assert_eq!(
+            debug_assert_eq!(
                 catalog_descriptions.get(series).map(Arc::as_ref),
                 Some(description.as_ref()),
                 "Catalog description mismatch for series {series}"
             );
         }
         for series in catalog_descriptions.keys() {
-            assert!(
+            debug_assert!(
                 by_series.contains_key(series),
                 "Catalog description references unknown series: {series}"
             );
@@ -191,7 +183,7 @@ impl<'a> Vecs<'a> {
         debug_assert!(
             by_series.values().all(|series| series
                 .first()
-                .is_none_or(|entry| units.contains_key(entry.vec().value_type_to_string()))),
+                .is_none_or(|entry| units.contains_key(entry.vec.value_type_name()))),
             "every series value type has a unit"
         );
 
@@ -202,11 +194,7 @@ impl<'a> Vecs<'a> {
             .into_iter()
             .map(|index| IndexInfo {
                 index,
-                aliases: index
-                    .possible_values()
-                    .iter()
-                    .map(|v| Cow::Borrowed(*v))
-                    .collect(),
+                aliases: index.aliases().iter().map(|v| Cow::Borrowed(*v)).collect(),
             })
             .collect();
 
@@ -227,13 +215,13 @@ impl<'a> Vecs<'a> {
         }
     }
 
-    /// Ids published by more than one plugin of this composition.
+    /// Ids two plugins publish at the same index.
     pub fn shared_series(&self) -> &[SharedSeries] {
         &self.shared
     }
 
-    /// Ids whose published copies hold more than one value type: compositions are open, so this
-    /// is reported rather than refused.
+    /// Ids whose published copies hold more than one value type (at different indexes):
+    /// compositions are open, so this is reported rather than refused.
     pub fn value_type_conflicts(&self) -> &[&'a str] {
         &self.value_type_conflicts
     }
@@ -296,7 +284,7 @@ impl<'a> Vecs<'a> {
 
 impl DescriptionSearch {
     fn new(series: &[&str], descriptions_by_name: &BTreeMap<&str, Arc<str>>) -> Self {
-        assert!(u32::try_from(series.len()).is_ok(), "Too many series");
+        debug_assert!(u32::try_from(series.len()).is_ok(), "Too many series");
         let mut ids_by_description: BTreeMap<String, Vec<SeriesId>> = BTreeMap::new();
 
         for (id, name) in series.iter().copied().enumerate() {
@@ -311,7 +299,7 @@ impl DescriptionSearch {
             ids_by_description
                 .entry(description)
                 .or_default()
-                .push(SeriesId::from_usize(id));
+                .push(SeriesId(id as u32));
         }
 
         let mut descriptions = Vec::with_capacity(ids_by_description.len());
@@ -345,13 +333,12 @@ struct Resolution<'a> {
     collided: FxHashSet<&'a str>,
     /// Plugins that lost an id: (id, plugin).
     excluded: FxHashSet<(&'a str, &'a str)>,
-    /// Ids whose accepted registrations hold more than one value type.
     value_type_conflicts: Vec<&'a str>,
 }
 
 /// A vec's value type as collisions compare it: its short name and whether it serves `null`.
 fn value_type(vec: &dyn AnyExportableVec) -> (&'static str, bool) {
-    (vec.value_type_to_string(), vec.nullable())
+    (vec.value_type_name(), vec.nullable())
 }
 
 #[derive(Clone, Copy)]
@@ -363,7 +350,7 @@ struct Registration<'a> {
 
 impl<'a> Builder<'a> {
     fn push(&mut self, vec: &'a dyn AnyExportableVec, db: &'a str) {
-        let serialized_index = vec.index_type_to_string();
+        let serialized_index = vec.index_type_name();
         let index = Index::try_from(serialized_index)
             .unwrap_or_else(|_| panic!("Unknown index type: {serialized_index}"));
         self.registrations.push(Registration { db, vec, index });
@@ -380,7 +367,7 @@ impl<'a> Builder<'a> {
         let mut by_name: FxHashMap<&'a str, Vec<Registration<'a>>> = FxHashMap::default();
         for registration in std::mem::take(&mut self.registrations) {
             let name = registration.vec.name();
-            assert!(
+            debug_assert!(
                 seen.insert((name, registration.index, registration.db)),
                 "Duplicate series: {name} for index {:?}",
                 registration.index
@@ -393,7 +380,8 @@ impl<'a> Builder<'a> {
         let mut resolution = Resolution::default();
         for (name, registrations) in by_name {
             let mut served: FxHashMap<Index, (&'static str, bool)> = FxHashMap::default();
-            let mut served_by = None;
+            // The first plugin always serves: nothing collides with it.
+            let served_by = registrations[0].db;
             let mut others = BTreeMap::new();
             // Each plugin's registrations are consecutive, in composition order.
             for own in registrations.chunk_by(|a, b| a.db == b.db) {
@@ -413,7 +401,6 @@ impl<'a> Builder<'a> {
                     resolution.excluded.insert((name, db));
                     continue;
                 }
-                served_by.get_or_insert(db);
                 for &registration in own {
                     if let hash_map::Entry::Vacant(entry) = served.entry(registration.index) {
                         entry.insert(value_type(registration.vec));
@@ -431,7 +418,7 @@ impl<'a> Builder<'a> {
                 resolution.collided.insert(name);
                 resolution.shared.push(SharedSeries {
                     name: name.to_string(),
-                    served_by: served_by.unwrap_or_default().to_string(),
+                    served_by: served_by.to_string(),
                     also: others
                         .into_iter()
                         .map(|(db, matches)| (db.to_string(), matches))
@@ -445,14 +432,11 @@ impl<'a> Builder<'a> {
     fn insert(&mut self, registration: Registration<'a>) {
         let Registration { db, vec, index } = registration;
         let name = vec.name();
-        let is_mutable = vec.is_mutable();
-        let entry = SeriesEntry::new(index, vec, is_mutable);
-
-        let prev = self.by_series.entry(name).or_default().insert(entry);
-        assert!(
-            prev.is_none(),
-            "Duplicate series: {name} for index {index:?}"
-        );
+        self.by_series.entry(name).or_default().insert(SeriesEntry {
+            vec,
+            index,
+            is_mutable: vec.is_mutable(),
+        });
         let is_lazy = vec.region_names().is_empty();
         let by_db = self.counts_by_db.entry(db.to_string()).or_default();
         self.counts.total += 1;

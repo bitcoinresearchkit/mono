@@ -80,7 +80,6 @@ where
         Some(unsafe { S::read_from_ptr(self.data, index * Self::SIZE_OF_T) })
     }
 
-    /// Returns the number of stored values.
     #[inline(always)]
     pub(crate) fn stored_len(&self) -> usize {
         self.stored_len

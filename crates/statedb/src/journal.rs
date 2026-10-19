@@ -21,7 +21,7 @@ pub(crate) struct Journal {
     poisoned: bool,
     pub version: u64,
     /// Declared last: fields drop in order, so the writer lock outlives `data`'s final flush.
-    _lock: Option<File>,
+    writer_lock: Option<File>,
 }
 impl Journal {
     pub fn open(path: &Path) -> Result<Self> {
@@ -63,7 +63,8 @@ impl Journal {
             .open(path.join("index"))?;
         let manifest = path.join("commit");
         // Manifest words: version, start height (always 0, kept for the format), count, data end.
-        let (version, count, end) = if manifest.try_exists()? {
+        let published = manifest.try_exists()?;
+        let (version, count, end) = if published {
             let bytes = fs::read(&manifest)?;
             if bytes.len() != 40 || &bytes[..8] != MAGIC {
                 return Err(invalid("invalid origin journal manifest"));
@@ -118,7 +119,7 @@ impl Journal {
         }
         let mut this = Self {
             path: path.to_owned(),
-            _lock: lock,
+            writer_lock: lock,
             read_end: end,
             data: BufWriter::with_capacity(if writable { 1024 * 1024 } else { 0 }, data),
             index_file,
@@ -127,13 +128,13 @@ impl Journal {
             poisoned: false,
             version,
         };
-        if !manifest.try_exists()? {
+        if !published {
             this.commit_inner(true)?;
         }
         Ok(this)
     }
     pub fn len(&self) -> usize {
-        if self._lock.is_some() {
+        if self.writer_lock.is_some() {
             self.index.len()
         } else {
             self.committed
@@ -148,9 +149,7 @@ impl Journal {
     }
     /// Runs one write; a failure leaves the files mid-update, so later use must reopen.
     fn write(&mut self, f: impl FnOnce(&mut Self) -> Result<()>) -> Result<()> {
-        if self._lock.is_none() {
-            return Err(invalid("read-only journal"));
-        }
+        debug_assert!(self.writer_lock.is_some());
         self.healthy()?;
         let result = f(self);
         self.poisoned = result.is_err();
@@ -172,7 +171,7 @@ impl Journal {
         if height >= self.committed {
             return Err(invalid("height outside published origin history"));
         }
-        let (start, end) = if self._lock.is_some() {
+        let (start, end) = if self.writer_lock.is_some() {
             (
                 if height == 0 {
                     0
@@ -202,7 +201,7 @@ impl Journal {
         };
         if end < start
             || end - start > MAX_RECORD as u64
-            || self._lock.is_none() && end > self.read_end
+            || self.writer_lock.is_none() && end > self.read_end
         {
             return Err(invalid("invalid published journal offset"));
         }
@@ -229,13 +228,13 @@ impl Journal {
         }
         let n = end - height;
         let first = height.saturating_sub(1);
-        if self._lock.is_none() {
+        if self.writer_lock.is_none() {
             index_bytes.resize((n + usize::from(height > 0)) * INDEX_BYTES, 0);
             self.index_file
                 .read_exact_at(index_bytes, (first * INDEX_BYTES) as u64)?;
         }
         let offset = |entry: usize| {
-            if self._lock.is_some() {
+            if self.writer_lock.is_some() {
                 self.index[entry]
             } else {
                 let at = (entry - first) * INDEX_BYTES;
@@ -244,7 +243,7 @@ impl Journal {
             }
         };
         let start = if height == 0 { 0 } else { offset(height - 1) };
-        let published_end = if self._lock.is_some() {
+        let published_end = if self.writer_lock.is_some() {
             self.index[self.committed - 1]
         } else {
             self.read_end
@@ -309,21 +308,24 @@ impl Journal {
         if height == self.index.len() {
             return self.commit();
         }
-        let n = height;
-        if n > self.committed {
+        if height > self.committed {
             self.commit()?;
         }
         self.write(|this| {
             this.data.flush()?;
-            this.publish(n)?;
-            let end = if n == 0 { 0 } else { this.index[n - 1] };
+            this.publish(height)?;
+            let end = if height == 0 {
+                0
+            } else {
+                this.index[height - 1]
+            };
             this.data.get_mut().set_len(end)?;
             this.data.get_mut().seek(SeekFrom::Start(end))?;
-            this.index_file.set_len((n * INDEX_BYTES) as u64)?;
+            this.index_file.set_len((height * INDEX_BYTES) as u64)?;
             this.index_file
-                .seek(SeekFrom::Start((n * INDEX_BYTES) as u64))?;
-            this.index.truncate(n);
-            this.committed = n;
+                .seek(SeekFrom::Start((height * INDEX_BYTES) as u64))?;
+            this.index.truncate(height);
+            this.committed = height;
             Ok(())
         })
     }

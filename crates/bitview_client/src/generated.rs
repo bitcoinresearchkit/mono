@@ -1,12 +1,8 @@
 // Auto-generated Bitview Rust client
 // Do not edit manually
 
-#![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-#![allow(dead_code)]
-#![allow(unused_variables)]
 #![allow(clippy::useless_format)]
-#![allow(clippy::unnecessary_to_owned)]
 
 use crate::{
     BitviewClientBase, BitviewClientOptions, BitviewError, DateSeriesEndpoint, FormatResponse,
@@ -22,7 +18,6 @@ pub use bitview_types::*;
 pub use brk_types::*;
 use std::sync::{Arc, OnceLock};
 
-// Static index arrays
 const _I1: &[Index] = &[
     Index::Minute10,
     Index::Minute30,
@@ -2183,17 +2178,15 @@ pub mod tree {
     } }
 }
 pub use tree::SeriesTree;
-/// Main Bitview client with series tree and API methods.
+/// A method per API endpoint, and the typed series tree.
 pub struct BitviewClient {
     base: Arc<BitviewClientBase>,
     series: OnceLock<Box<SeriesTree>>,
 }
 
 impl BitviewClient {
-    /// Client version.
     pub const VERSION: &'static str = "v0.12.2";
 
-    /// Create a new client with the given base URL.
     pub fn new(base_url: impl Into<String>) -> Self {
         let base = Arc::new(BitviewClientBase::new(base_url));
         Self {
@@ -2202,7 +2195,6 @@ impl BitviewClient {
         }
     }
 
-    /// Create a new client with options.
     pub fn with_options(options: BitviewClientOptions) -> Self {
         let base = Arc::new(BitviewClientBase::with_options(options));
         Self {
@@ -2211,23 +2203,13 @@ impl BitviewClient {
         }
     }
 
-    /// Get the series tree for navigating series.
+    /// The typed series tree, built on first use.
     pub fn series(&self) -> &SeriesTree {
         self.series
             .get_or_init(|| Box::new(SeriesTree::build(self.base.clone(), String::new())))
     }
 
-    /// Create a dynamic series endpoint builder for any series/index combination.
-    ///
-    /// Use this for programmatic access when the series name is determined at runtime.
-    /// For type-safe access, use the `series()` tree instead.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let data = client.series_endpoint("realized_price", Index::Height)
-    ///     .last(10)
-    ///     .fetch()?;
-    /// ```
+    /// A series by a name known only at runtime; [`series`](Self::series) has the typed paths.
     pub fn series_endpoint(
         &self,
         series: impl Into<SeriesName>,
@@ -2236,9 +2218,8 @@ impl BitviewClient {
         SeriesEndpoint::new(self.base.clone(), Arc::from(series.into().as_str()), index)
     }
 
-    /// Create a dynamic date-based series endpoint builder.
-    ///
-    /// Returns `Err` if the index is not date-based.
+    /// Like [`series_endpoint`](Self::series_endpoint) with date selectors; `Err` if the index is
+    /// not date-based.
     pub fn date_series_endpoint(
         &self,
         series: impl Into<SeriesName>,
@@ -2290,8 +2271,6 @@ impl BitviewClient {
 
     /// API version
     ///
-    /// Returns the current version of the API server
-    ///
     /// Endpoint: `GET /version`
     pub fn get_version(&self) -> Result<String> {
         self.base.get_json(&format!("/version"))
@@ -2308,7 +2287,7 @@ impl BitviewClient {
 
     /// Disk usage
     ///
-    /// Returns allocated file bytes for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
+    /// Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
     ///
     /// Endpoint: `GET /api/server/disk`
     pub fn get_disk_usage(&self) -> Result<DiskUsage> {
@@ -2317,7 +2296,7 @@ impl BitviewClient {
 
     /// Series catalog
     ///
-    /// Returns the complete hierarchical catalog of available series organized as a tree structure. Series are grouped by categories and subcategories.
+    /// The available series as a tree of categories and subcategories.
     ///
     /// Endpoint: `GET /api/series`
     pub fn get_series_tree(&self) -> Result<TreeNode> {
@@ -2344,7 +2323,7 @@ impl BitviewClient {
 
     /// Series list
     ///
-    /// Paginated flat list of all available series names. Use `page` query param for pagination.
+    /// Paginated flat list of all available series names.
     ///
     /// Endpoint: `GET /api/series/list`
     pub fn list_series(&self, page: Option<i64>, per_page: Option<i64>) -> Result<PaginatedSeries> {
@@ -2396,7 +2375,7 @@ impl BitviewClient {
 
     /// Get series data
     ///
-    /// Fetch data for a specific series at the given index. Use query parameters to filter by date range and format (json/csv).
+    /// Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
     ///
     /// Endpoint: `GET /api/series/{series}/{index}`
     pub fn get_series(
@@ -2441,7 +2420,7 @@ impl BitviewClient {
 
     /// Get raw series data
     ///
-    /// Returns just the data array without the SeriesData wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
+    /// The data array without the `SeriesData` wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
     ///
     /// Endpoint: `GET /api/series/{series}/{index}/data`
     pub fn get_series_data(
@@ -2498,8 +2477,6 @@ impl BitviewClient {
     }
 
     /// Get series data length
-    ///
-    /// Returns the total number of data points for a series at the given index.
     ///
     /// Endpoint: `GET /api/series/{series}/{index}/len`
     pub fn get_series_len(&self, series: SeriesName, index: Index) -> Result<i64> {
@@ -2595,7 +2572,7 @@ impl BitviewClient {
 
     /// Latest URPD
     ///
-    /// URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+    /// URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}`
     pub fn get_urpd(
@@ -2723,7 +2700,7 @@ impl BitviewClient {
 
     /// Address information
     ///
-    /// Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).
+    /// Balance and transaction counts. Supports P2PKH, P2SH, P2WPKH, P2WSH, P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes).
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
     ///
@@ -2792,7 +2769,7 @@ impl BitviewClient {
 
     /// Address UTXOs
     ///
-    /// Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. Returns txid, vout, value, and confirmation status for each UTXO.
+    /// Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
     ///
@@ -2817,8 +2794,6 @@ impl BitviewClient {
     }
 
     /// Block information
-    ///
-    /// Retrieve block information by block hash. Returns block metadata including height, timestamp, difficulty, size, weight, and transaction count.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
     ///
@@ -2855,7 +2830,7 @@ impl BitviewClient {
 
     /// Block hash by height
     ///
-    /// Retrieve the block hash at a given height. Returns the hash as plain text.
+    /// Block hash as plain text.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
     ///
@@ -2894,7 +2869,7 @@ impl BitviewClient {
 
     /// Block status
     ///
-    /// Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.
+    /// Whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*
     ///
@@ -2906,8 +2881,6 @@ impl BitviewClient {
 
     /// Block tip height
     ///
-    /// Returns the height of the last block.
-    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
     ///
     /// Endpoint: `GET /api/blocks/tip/height`
@@ -2916,8 +2889,6 @@ impl BitviewClient {
     }
 
     /// Block tip hash
-    ///
-    /// Returns the hash of the last block.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
     ///
@@ -2947,7 +2918,7 @@ impl BitviewClient {
 
     /// Block transaction IDs
     ///
-    /// Retrieve all transaction IDs in a block. Returns an array of txids in block order.
+    /// Transaction IDs in block order.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*
     ///
@@ -2959,7 +2930,7 @@ impl BitviewClient {
 
     /// Block transactions
     ///
-    /// Retrieve transactions in a block by block hash. Returns up to 25 transactions starting from index 0.
+    /// Up to 25 transactions starting at index 0.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
     ///
@@ -2971,7 +2942,7 @@ impl BitviewClient {
 
     /// Block transactions (paginated)
     ///
-    /// Retrieve transactions in a block by block hash, starting from the specified index. Returns up to 25 transactions at a time.
+    /// Up to 25 transactions starting at `start_index`.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
     ///
@@ -2990,7 +2961,7 @@ impl BitviewClient {
 
     /// Recent blocks
     ///
-    /// Retrieve the last 10 blocks. Returns block metadata for each block.
+    /// The last 10 blocks.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
     ///
@@ -3036,8 +3007,6 @@ impl BitviewClient {
 
     /// List all mining pools
     ///
-    /// Get list of all known mining pools with their identifiers.
-    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
     ///
     /// Endpoint: `GET /api/v1/mining/pools`
@@ -3047,7 +3016,7 @@ impl BitviewClient {
 
     /// Mining pool statistics
     ///
-    /// Get mining pool statistics for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+    /// Get mining pool statistics for a time period.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
     ///
@@ -3061,7 +3030,7 @@ impl BitviewClient {
 
     /// Mining pool details
     ///
-    /// Get detailed information about a specific mining pool including block counts and shares for different time periods.
+    /// Block counts and mining shares by time period for one pool.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*
     ///
@@ -3073,8 +3042,6 @@ impl BitviewClient {
 
     /// All pools hashrate (all time)
     ///
-    /// Get hashrate data for all mining pools.
-    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
     ///
     /// Endpoint: `GET /api/v1/mining/hashrate/pools`
@@ -3085,7 +3052,7 @@ impl BitviewClient {
 
     /// All pools hashrate
     ///
-    /// Get hashrate data for all mining pools for a time period. Valid periods: `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+    /// Get hashrate data for all mining pools for a time period.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
     ///
@@ -3156,7 +3123,7 @@ impl BitviewClient {
 
     /// Network hashrate
     ///
-    /// Get network hashrate and difficulty data for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+    /// Get network hashrate and difficulty data for a time period.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
     ///
@@ -3170,8 +3137,6 @@ impl BitviewClient {
 
     /// Difficulty adjustments (all time)
     ///
-    /// Get historical difficulty adjustments including timestamp, block height, difficulty value, and percentage change.
-    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
     ///
     /// Endpoint: `GET /api/v1/mining/difficulty-adjustments`
@@ -3182,7 +3147,7 @@ impl BitviewClient {
 
     /// Difficulty adjustments
     ///
-    /// Get historical difficulty adjustments for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+    /// Get historical difficulty adjustments for a time period.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
     ///
@@ -3213,7 +3178,7 @@ impl BitviewClient {
 
     /// Block fees
     ///
-    /// Get average total fees per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+    /// Get average total fees per block for a time period.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*
     ///
@@ -3227,7 +3192,7 @@ impl BitviewClient {
 
     /// Block rewards
     ///
-    /// Get average coinbase reward (subsidy + fees) per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+    /// Get average coinbase reward (subsidy + fees) per block for a time period.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*
     ///
@@ -3241,7 +3206,7 @@ impl BitviewClient {
 
     /// Block fee rates
     ///
-    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
     ///
@@ -3255,7 +3220,7 @@ impl BitviewClient {
 
     /// Block sizes and weights
     ///
-    /// Get average block sizes and weights for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+    /// Get average block sizes and weights for a time period.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*
     ///
@@ -3302,8 +3267,6 @@ impl BitviewClient {
 
     /// Mempool statistics
     ///
-    /// Get current mempool statistics including transaction count, total vsize, total fees, and fee histogram.
-    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
     ///
     /// Endpoint: `GET /api/mempool`
@@ -3344,7 +3307,7 @@ impl BitviewClient {
 
     /// Recent RBF replacements
     ///
-    /// Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the same shape as `tx_rbf().replacements`.
+    /// Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
     ///
@@ -3388,7 +3351,7 @@ impl BitviewClient {
 
     /// Live BTC/USD price
     ///
-    /// Returns the current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the last 12 blocks plus mempool.
+    /// Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
     ///
     /// Endpoint: `GET /api/mempool/price`
     pub fn get_live_price(&self) -> Result<Dollars> {
@@ -3432,8 +3395,6 @@ impl BitviewClient {
 
     /// Transaction information
     ///
-    /// Retrieve complete transaction data by transaction ID (txid). Returns inputs, outputs, fee, size, and confirmation status.
-    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
     ///
     /// Endpoint: `GET /api/tx/{txid}`
@@ -3444,7 +3405,7 @@ impl BitviewClient {
 
     /// Transaction hex
     ///
-    /// Retrieve the raw transaction as a hex-encoded string. Returns the serialized transaction in hexadecimal format.
+    /// Hex-encoded serialized transaction.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*
     ///
@@ -3470,8 +3431,6 @@ impl BitviewClient {
 
     /// Transaction merkle proof
     ///
-    /// Get the merkle inclusion proof for a transaction.
-    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
     ///
     /// Endpoint: `GET /api/tx/{txid}/merkle-proof`
@@ -3482,7 +3441,7 @@ impl BitviewClient {
 
     /// Output spend status
     ///
-    /// Get the spending status of a transaction output. Returns whether the output has been spent and, if so, the spending transaction details.
+    /// Whether the output has been spent and, if so, the spending transaction details.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
     ///
@@ -3497,7 +3456,7 @@ impl BitviewClient {
 
     /// All output spend statuses
     ///
-    /// Get the spending status of all outputs in a transaction. Returns an array with the spend status for each output.
+    /// Spend statuses in output-index order.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*
     ///
@@ -3533,7 +3492,7 @@ impl BitviewClient {
 
     /// Transaction first-seen times
     ///
-    /// Returns timestamps when transactions were first seen in the mempool. Returns 0 for mined or unknown transactions.
+    /// First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
     ///
@@ -3567,7 +3526,7 @@ impl BitviewClient {
 
     /// Latest UTXO set
     ///
-    /// The UTXO set after the latest published block, by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+    /// The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
     ///
     /// Endpoint: `GET /api/utxo-set`
     pub fn get_utxo_set_latest(&self) -> Result<UtxoSet> {
@@ -3627,7 +3586,7 @@ impl BitviewClient {
 
     /// Live output value histogram
     ///
-    /// Live unfiltered output value histogram for the complete published mempool. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+    /// Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
     ///
     /// Endpoint: `GET /api/oracle/histogram/outputs/live`
     pub fn get_oracle_histogram_outputs_live(&self) -> Result<Vec<i64>> {
@@ -3637,7 +3596,7 @@ impl BitviewClient {
 
     /// Output value histogram at height or day
     ///
-    /// Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
+    /// Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
     ///
     /// Endpoint: `GET /api/oracle/histogram/outputs/{point}`
     pub fn get_oracle_histogram_outputs(&self, point: &str) -> Result<Vec<i64>> {
@@ -3658,7 +3617,7 @@ impl BitviewClient {
 
     /// Compact API summary
     ///
-    /// Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples or constraints. Not valid OpenAPI: build tools from `GET /openapi.json`.
+    /// Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples; parameters keep their enum, default and bounds. Not valid OpenAPI: build tools from `GET /openapi.json`.
     ///
     /// Endpoint: `GET /api.json`
     pub fn get_api(&self) -> Result<serde_json::Value> {

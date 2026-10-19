@@ -100,7 +100,6 @@ fn read_amounts(file: &File, offset: u64, amounts: &mut [Amount]) -> Result<()> 
     }
     Ok(())
 }
-/// A tip directory's page slots.
 pub(crate) fn read_slots(dir: &File, len: usize) -> Result<Vec<u32>> {
     let mut bytes = vec![0; len.div_ceil(PAGE) * 4];
     dir.read_exact_at(&mut bytes, HEADER as u64)?;

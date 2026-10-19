@@ -142,7 +142,7 @@ impl Layout {
         self.pending_holes.insert(start, reserved);
     }
 
-    pub(crate) fn get_hole(&self, start: usize) -> Option<usize> {
+    pub(crate) fn hole_size(&self, start: usize) -> Option<usize> {
         self.start_to_hole.get(&start).map(|hole| hole.size)
     }
 
@@ -164,13 +164,8 @@ impl Layout {
     }
 
     pub(crate) fn promote_pending_holes(&mut self) {
-        if self.pending_holes.is_empty() {
-            return;
-        }
         for (start, mut size) in mem::take(&mut self.pending_holes) {
             let mut final_start = start;
-
-            // Coalesce with adjacent real hole BEFORE
             if let Some((&hole_start, &hole)) = self.start_to_hole.range(..start).next_back()
                 && hole_start + hole.size == start
             {
@@ -178,8 +173,6 @@ impl Layout {
                 final_start = hole_start;
                 size += hole.size;
             }
-
-            // Coalesce with adjacent real hole AFTER
             if let Some(hole_after) = self.remove_hole(final_start + size) {
                 size += hole_after.size;
             }

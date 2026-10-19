@@ -1,4 +1,3 @@
-use bitcoin::ScriptBuf;
 use bitview_primitives::TypeIndex;
 use brk_types::{AddressBytes, OutputType};
 use vecdb::{BytesVecReader, Ro, Rw};
@@ -41,11 +40,3 @@ macro_rules! addr_readers {
 }
 
 bitview_primitives::with_address_storage_types!(addr_readers);
-
-impl AddrReaders {
-    pub fn script_pubkey(&self, output_type: OutputType, type_index: TypeIndex) -> ScriptBuf {
-        self.get(output_type, type_index)
-            .map(|bytes| bytes.to_script_pubkey())
-            .unwrap_or_default()
-    }
-}

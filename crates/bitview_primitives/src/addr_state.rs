@@ -66,7 +66,7 @@ impl AddressState {
 
     #[inline(always)]
     fn from_index(tag: u32, index: u32) -> Self {
-        assert!(
+        debug_assert!(
             index <= PAYLOAD_MASK,
             "address-state sidecar index is too large"
         );
@@ -81,10 +81,10 @@ impl AddressState {
         funded_txo_count_bits: u32,
         transfer_bits: u32,
     ) -> Option<Self> {
-        let transfered = u64::from(data.transfered);
+        let transferred = u64::from(data.transferred);
         if data.tx_count >= 1 << tx_count_bits
             || data.funded_txo_count >= 1 << funded_txo_count_bits
-            || transfered >= 1 << transfer_bits
+            || transferred >= 1 << transfer_bits
         {
             return None;
         }
@@ -92,7 +92,7 @@ impl AddressState {
         Some(Self(
             tag | (data.tx_count << (transfer_bits + funded_txo_count_bits))
                 | (data.funded_txo_count << transfer_bits)
-                | transfered as u32,
+                | transferred as u32,
         ))
     }
 
@@ -105,7 +105,7 @@ impl AddressState {
         DecodedAddrState::Empty(EmptyAddressData {
             tx_count: payload >> (transfer_bits + funded_txo_count_bits),
             funded_txo_count: (payload >> transfer_bits) & ((1 << funded_txo_count_bits) - 1),
-            transfered: Sats::from(u64::from(payload & ((1 << transfer_bits) - 1))),
+            transferred: Sats::from(u64::from(payload & ((1 << transfer_bits) - 1))),
         })
     }
 

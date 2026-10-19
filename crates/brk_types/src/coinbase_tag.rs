@@ -52,7 +52,7 @@ unsafe impl Bytes for CoinbaseTag {
 }
 
 impl CoinbaseTag {
-    /// The raw tag bytes.
+    /// The tag bytes, without the stored length byte and padding.
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {
         let len = (self.0[0] as usize).min(100);

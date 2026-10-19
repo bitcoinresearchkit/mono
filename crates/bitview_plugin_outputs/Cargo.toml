@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_outputs"
-description = "The transaction outputs plugin for Bitview"
+description = "Output counts by script type, OP_RETURN value and each output's spending input for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

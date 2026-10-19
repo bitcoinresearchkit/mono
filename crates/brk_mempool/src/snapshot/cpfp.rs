@@ -26,22 +26,21 @@ impl ReadOnlyState {
         let Some(tx) = state.txs.get(txid) else {
             return Ok(None);
         };
-        Ok(snapshot.idx_of_txid(txid).and_then(|index| {
-            snapshot
-                .tx(index)
-                .map(|seed| snapshot.cpfp_info_at(index, seed, tx.total_sigop_cost))
-        }))
+        Ok(snapshot
+            .idx_of_txid(txid)
+            .map(|index| snapshot.cpfp_info_at(index, tx.total_sigop_cost)))
     }
 }
 
 impl Snapshot {
-    fn cpfp_info_at(&self, seed_idx: TxIndex, seed: &SnapTx, sigops: SigOps) -> CpfpInfo {
+    fn cpfp_info_at(&self, seed_idx: TxIndex, sigops: SigOps) -> CpfpInfo {
+        let seed = &self.txs[seed_idx.as_usize()];
         let mut graph = Cluster::default();
         let members = cluster::load(&self.txs, &cluster::walk(&self.txs, seed_idx), &mut graph);
         let seed_local = members
             .iter()
             .position(|&i| i == seed_idx)
-            .map_or(0, |p| p as u32);
+            .expect("the seed is in its own cluster") as u32;
         CpfpInfo::new(
             Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.parents),
             Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children),
@@ -63,9 +62,7 @@ impl Snapshot {
         seed: TxIndex,
         next: impl Fn(&SnapTx) -> &[TxIndex],
     ) -> Vec<CpfpEntry> {
-        let Some(seed_node) = txs.get(seed.as_usize()) else {
-            return Vec::new();
-        };
+        let seed_node = &txs[seed.as_usize()];
         let mut visited: FxHashSet<TxIndex> =
             FxHashSet::with_capacity_and_hasher(CPFP_CHAIN_LIMIT + 1, FxBuildHasher);
         visited.insert(seed);
@@ -78,10 +75,9 @@ impl Snapshot {
             if !visited.insert(idx) {
                 continue;
             }
-            if let Some(t) = txs.get(idx.as_usize()) {
-                out.push(CpfpEntry::from(t));
-                stack.extend(next(t).iter().copied());
-            }
+            let t = &txs[idx.as_usize()];
+            out.push(CpfpEntry::from(t));
+            stack.extend(next(t).iter().copied());
         }
         out
     }

@@ -69,15 +69,15 @@ impl Query {
             mempool,
             chain,
         } = resolved;
-        let mut mempool: Vec<Arc<Transaction>> =
+        let mut txs: Vec<Arc<Transaction>> =
             mempool.into_iter().map(|published| published.tx).collect();
         if let Some(chain) = chain {
-            mempool.extend(
+            txs.extend(
                 self.addr_txs_chain_pinned(chain, &self.read_pin(guard))?
                     .into_iter()
                     .map(Arc::new),
             );
         }
-        Ok(mempool)
+        Ok(txs)
     }
 }

@@ -54,7 +54,6 @@ mod units;
 #[cfg(feature = "storage")]
 mod vec_index;
 mod week1;
-mod year;
 mod year1;
 mod year10;
 
@@ -106,6 +105,5 @@ pub use txout_index::*;
 pub use type_index::*;
 pub use units::*;
 pub use week1::*;
-pub use year::*;
 pub use year1::*;
 pub use year10::*;

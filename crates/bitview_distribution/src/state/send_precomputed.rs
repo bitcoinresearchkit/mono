@@ -20,9 +20,10 @@ impl SendPrecomputed {
         ath: Cents,
         age: Age,
     ) -> Option<Self> {
-        if supply.utxo_count == 0 || supply.value == Sats::ZERO {
+        if supply.value == Sats::ZERO {
             return None;
         }
+        debug_assert!(supply.utxo_count > 0, "a positive supply has outputs");
 
         let sats = supply.value;
         let current_ps = CentsSats::from_price_sats(current_price, sats);

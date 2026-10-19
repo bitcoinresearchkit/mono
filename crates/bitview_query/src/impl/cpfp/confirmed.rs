@@ -12,6 +12,7 @@ use bitview_plugin_indexer::SafeLengths;
 use crate::{OptionData, Query, ResolvedConfirmedTx, Result};
 
 struct WalkResult {
+    graph: Cluster,
     /// Each `graph` member's txid and weight, by local index.
     members: Vec<(Txid, Weight)>,
     seed_local: CpfpClusterTxIndex,
@@ -27,19 +28,19 @@ impl Query {
     ) -> Result<CpfpInfo> {
         let read = self.read_indexer()?;
         let (_, seed, height) = read.revalidate_confirmed_tx(transaction)?;
-        let mut graph = Cluster::default();
         // Count views end at their source's visible length, bounded by the read's pin.
-        let walk = self.walk_same_block_cluster(seed, height, read.pin(), &mut graph)?;
+        let mut walk = self.walk_same_block_cluster(seed, height, read.pin())?;
         drop(read);
 
         let seed_position = u32::from(walk.seed_local) as usize;
         Ok(CpfpInfo::new(
             walk.ancestors,
             walk.descendants,
-            graph.fee(seed_position),
+            walk.graph.fee(seed_position),
             walk.members[seed_position].1,
             walk.seed_sigops,
-            graph.project(walk.seed_local, |local| walk.members[local]),
+            walk.graph
+                .project(walk.seed_local, |local| walk.members[local]),
         ))
     }
 
@@ -48,7 +49,6 @@ impl Query {
         seed: TxIndex,
         height: Height,
         pin: &SafeLengths,
-        graph: &mut Cluster,
     ) -> Result<WalkResult> {
         let indexer = self.indexer();
         let plugins = self.plugins();
@@ -118,7 +118,7 @@ impl Query {
         let mut sigops = indexer.vecs().transactions.total_sigop_cost.cursor();
         let mut fee = plugins.transactions.fees.fee.tx.cursor();
         let txid = indexer.vecs().transactions.txid.reader();
-        graph.clear();
+        let mut graph = Cluster::default();
         let mut members = Vec::with_capacity(sorted.len());
         let mut seed_sigops = SigOps::ZERO;
         for &tx in &sorted {
@@ -133,9 +133,10 @@ impl Query {
                 fee.get(position).data()?,
                 tx_sigops.adjust_vsize(VSize::from(tx_weight)),
                 component[&tx].parents.iter().map(|parent| {
-                    let local = sorted.binary_search(parent);
-                    debug_assert!(local.is_ok(), "a member's parent is in its component");
-                    CpfpClusterTxIndex::from(local.unwrap_or_default() as u32)
+                    let local = sorted
+                        .binary_search(parent)
+                        .expect("a member's parent is in its component");
+                    CpfpClusterTxIndex::from(local as u32)
                 }),
             );
             members.push((txid.get(tx), tx_weight));
@@ -144,9 +145,9 @@ impl Query {
         let entries = |txs: Vec<TxIndex>| -> Vec<CpfpEntry> {
             txs.into_iter()
                 .map(|tx| {
-                    let local = sorted.binary_search(&tx);
-                    debug_assert!(local.is_ok(), "a relative is a component member");
-                    let local = local.unwrap_or_default();
+                    let local = sorted
+                        .binary_search(&tx)
+                        .expect("a relative is a component member");
                     let (txid, weight) = members[local];
                     CpfpEntry {
                         txid,
@@ -160,6 +161,7 @@ impl Query {
         Ok(WalkResult {
             ancestors: entries(ancestors),
             descendants: entries(descendants),
+            graph,
             members,
             seed_local,
             seed_sigops,

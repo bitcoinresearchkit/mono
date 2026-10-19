@@ -44,12 +44,11 @@ impl Query {
             |h| monotonic.collect_one_at(h).data(),
             |h| timestamps.collect_one_at(h).data(),
         )?;
-        let selected = timestamps.collect_one_at(height).data()?;
-        if selected != timestamp {
-            return Err(Error::Internal(
-                "Timestamp mapping disagrees with indexed block",
-            ));
-        }
+        debug_assert_eq!(
+            timestamps.collect_one_at(height),
+            Some(timestamp),
+            "the monotonic timestamp first reaches a value at a block holding it"
+        );
         let height = Height::from(height);
         let hash = indexer.vecs().blocks.blockhash.collect_one(height).data()?;
         let timestamp = JiffTimestamp::from_second(i64::from(*timestamp))

@@ -3,15 +3,15 @@
 //! stored series add a suffix (`_sats`, `_cumulative`).
 
 mod count_with_deltas;
-mod cumulative_count;
 mod cumulative_fiat;
+mod cumulative_quantity;
 mod cumulative_value;
 mod fiat;
 mod supply;
 
 pub use count_with_deltas::CountWithDeltas;
-pub use cumulative_count::CumulativeCount;
 pub use cumulative_fiat::CumulativeFiat;
+pub use cumulative_quantity::CumulativeQuantity;
 pub use cumulative_value::CumulativeValue;
 pub use fiat::Fiat;
 pub use supply::Supply;

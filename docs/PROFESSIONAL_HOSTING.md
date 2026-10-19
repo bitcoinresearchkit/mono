@@ -1,7 +1,6 @@
 # Professional Hosting
 
-Managed Bitview and BRK deployments are available for teams that do not want
-to operate the full stack themselves.
+Managed Bitview and BRK deployments are available.
 
 The deployment architecture, Bitcoin Core configuration, update and maintenance
 plan, monitoring, support terms, and optional custom domain are agreed for each

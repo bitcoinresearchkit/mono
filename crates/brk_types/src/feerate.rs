@@ -46,7 +46,7 @@ impl FeeRate {
 
     #[inline]
     pub const fn from_milli(milli_sats_per_vbyte: u64) -> Self {
-        assert!(
+        debug_assert!(
             milli_sats_per_vbyte != u64::MAX,
             "u64::MAX is reserved as FeeRate::NAN"
         );

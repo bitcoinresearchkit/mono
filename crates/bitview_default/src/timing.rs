@@ -55,7 +55,6 @@ pub fn timed_import<T>(plugin: PluginId, import: impl FnOnce() -> Result<T>) -> 
     timed(Phase::Import, plugin, || import().map(Box::new))
 }
 
-/// Computes `plugin`, timed under its own id.
 pub fn timed_compute<P: ComputePlugin>(
     plugin: &mut P,
     dependencies: P::Dependencies<'_>,

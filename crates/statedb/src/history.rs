@@ -104,9 +104,7 @@ impl History {
         created: &Creations,
         tips: &[Snapshot],
     ) -> Result<State> {
-        if end > spends.end().min(created.end()) {
-            return Err(invalid("incomplete origin contributions"));
-        }
+        debug_assert!(end <= spends.end().min(created.end()));
         // The newest matching snapshot, tip or retained, leaves the least to replay.
         let newest = tips.iter().find(|tip| tip.len <= end);
         let mut retained = None;

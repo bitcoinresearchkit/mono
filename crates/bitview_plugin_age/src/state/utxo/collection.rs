@@ -1,10 +1,10 @@
-use bitview_cohort::{Age, AgeRange, ByEpoch, Class};
+use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRange, ByEpoch, Class};
 use bitview_primitives::CostBasisSnapshot;
 use brk_types::Height;
 use rayon::scope as RayonScope;
 use statedb::Amount;
 
-use super::{UTXOCohortState, UTXOTransientState};
+use super::UTXOCohortState;
 use crate::{
     compute::ComputeContext,
     state::{CoreRealizedState, RealizedState, supply},
@@ -14,7 +14,8 @@ pub struct UTXOStates {
     pub age_range: AgeRange<UTXOCohortState<RealizedState>>,
     pub epoch: ByEpoch<UTXOCohortState<CoreRealizedState>>,
     pub class: Class<UTXOCohortState<CoreRealizedState>>,
-    pub transient: UTXOTransientState,
+    /// Search positions of the tick-tock age boundaries, valid for these states' origins.
+    pub tick_tock_cached_positions: [usize; AGE_RANGE_COUNT - 1],
 }
 
 impl UTXOStates {
@@ -23,7 +24,7 @@ impl UTXOStates {
             age_range: AgeRange::from_fn(|_| UTXOCohortState::default()),
             epoch: ByEpoch::from_fn(|_| UTXOCohortState::default()),
             class: Class::from_fn(|_| UTXOCohortState::default()),
-            transient: UTXOTransientState::default(),
+            tick_tock_cached_positions: [0; AGE_RANGE_COUNT - 1],
         }
     }
 
@@ -40,10 +41,10 @@ impl UTXOStates {
             self.age_range
                 .get_mut(Age::new(timestamp, origin_timestamp))
                 .increment_snapshot(&snapshot);
-            if let Some(state) = self.epoch.mut_vec_from_height(Height::from(h)) {
+            if let Some(state) = self.epoch.get_mut(Height::from(h)) {
                 state.increment_snapshot(&snapshot);
             }
-            if let Some(state) = self.class.mut_vec_from_timestamp(origin_timestamp) {
+            if let Some(state) = self.class.get_mut(origin_timestamp) {
                 state.increment_snapshot(&snapshot);
             }
         }
@@ -83,12 +84,8 @@ impl UTXOStates {
     pub fn reset_block(&mut self) {
         self.age_range
             .iter_mut()
-            .for_each(|state| state.reset_single_iteration_values());
-        self.epoch
-            .iter_mut()
-            .for_each(|state| state.reset_single_iteration_values());
-        self.class
-            .iter_mut()
-            .for_each(|state| state.reset_single_iteration_values());
+            .for_each(|state| state.reset_block());
+        self.epoch.iter_mut().for_each(|state| state.reset_block());
+        self.class.iter_mut().for_each(|state| state.reset_block());
     }
 }

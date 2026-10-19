@@ -2,7 +2,7 @@ use bitcoin::{
     Amount, Script, Transaction, TxIn, TxOut, WitnessVersion, constants::WITNESS_SCALE_FACTOR,
     policy::MAX_STANDARD_TX_SIGOPS_COST, script::Instruction, taproot::LeafVersion,
 };
-use brk_types::{Height, OutputType, SigOps32};
+use brk_types::{Height, OutputType};
 
 use super::{super::ComputedTx, input, sigops::ComputedSigOps};
 use crate::{TxFeatureFlags, processor::txout::ProcessedOutput};
@@ -13,7 +13,7 @@ const LAST_V2_POLICY_HEIGHT: u32 = 863_500;
 /// zero-fee transaction.
 pub const FIRST_V29_POLICY_HEIGHT: u32 = 892_500;
 const FIRST_V30_POLICY_HEIGHT: u32 = 921_000;
-// rust-bitcoin 0.32 still exposes Core's previous 82-byte policy value.
+// Core's value; rust-bitcoin 0.32's constant is 82 bytes.
 const MIN_STANDARD_TX_NONWITNESS_SIZE: u32 = 65;
 const MAX_EXECUTED_LEGACY_SIGOP_COST: u32 = 10_000;
 const MAX_SCRIPT_SIG_SIZE: usize = 1_650;
@@ -53,7 +53,7 @@ impl Accumulator {
                 .redeem
                 .sigops()
                 .is_some_and(|count| count > MAX_P2SH_SIGOPS),
-            OutputType::P2A => p2a_spend_is_nonstandard(self.height),
+            OutputType::P2A => self.height <= LAST_V2_POLICY_HEIGHT,
             OutputType::P2TR => facts.witness.has_annex,
             OutputType::OpReturn | OutputType::Empty | OutputType::Unknown => true,
             _ => false,
@@ -67,7 +67,7 @@ impl Accumulator {
             OutputType::Unknown => !is_standard_unknown_witness(script),
             // Core's solver: valid public key encodings, a push-only data tail.
             OutputType::P2MS => {
-                has_too_many_bare_multisig_keys(output.legacy_sigops)
+                u32::from(output.legacy_sigop_cost) > MAX_STANDARD_BARE_MULTISIG_SIGOP_COST
                     || script.instructions().any(|instruction| {
                         matches!(instruction, Ok(Instruction::PushBytes(key)) if !is_valid_pubkey(key.as_bytes()))
                     })
@@ -130,11 +130,6 @@ fn is_valid_pubkey(key: &[u8]) -> bool {
         Some(0x04 | 0x06 | 0x07) => key.len() == 65,
         _ => false,
     }
-}
-
-#[inline]
-pub fn p2a_spend_is_nonstandard(height: u32) -> bool {
-    height <= LAST_V2_POLICY_HEIGHT
 }
 
 #[inline]
@@ -231,8 +226,4 @@ pub fn is_standard_unknown_witness(script: &Script) -> bool {
     script
         .witness_version()
         .is_some_and(|version| version != WitnessVersion::V0)
-}
-
-pub fn has_too_many_bare_multisig_keys(sigops: SigOps32) -> bool {
-    u32::from(sigops) > MAX_STANDARD_BARE_MULTISIG_SIGOP_COST
 }

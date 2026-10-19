@@ -70,7 +70,6 @@ macro_rules! fixed_interval {
             }
         }
 
-
         #[cfg(feature = "storage")]
         impl PrintableIndex for $name {
             fn to_string() -> &'static str {

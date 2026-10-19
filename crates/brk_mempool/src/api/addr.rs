@@ -1,5 +1,3 @@
-//! Address-keyed reads.
-
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 use brk_error::Result;
@@ -15,7 +13,8 @@ use crate::{PublishedTx, ReadOnlyState, key::TxKey};
 pub struct PendingUtxos {
     /// Outpoints the address's mempool transactions spend.
     pub spent: FxHashSet<(Txid, Vout)>,
-    /// Outputs mempool transactions pay the address that no mempool transaction spends, by txid.
+    /// Outputs mempool transactions pay the address that no mempool transaction spends, ordered
+    /// by txid prefix and vout.
     pub created: Vec<(Txid, Vout, Sats)>,
     /// Identifies the address's mempool transactions: zero without any.
     pub token: u64,

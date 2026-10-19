@@ -25,6 +25,5 @@ pub trait OverflowVecValue: BytesVecValue + Default {
     /// pointer.
     fn overflow_index(compact: Self::Compact) -> Option<usize>;
 
-    /// Encodes a sidecar index as an overflow pointer.
     fn from_overflow_index(index: usize) -> Self::Compact;
 }

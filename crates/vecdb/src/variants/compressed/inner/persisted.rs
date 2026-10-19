@@ -5,20 +5,20 @@ use rawdb::Region;
 
 use super::{CompressionStrategy, Pages, ReadWriteCompressedVec};
 use crate::{
-    CompressedIoSource, CompressedMmapSource, CompressedRangeCursor, VecIndex, VecValue,
+    CompressedIoSource, CompressedMmapSource, CompressedRangeCursor, VecValue,
     variants::stored_reads::PersistedReads,
 };
 
 /// A compressed vector's persisted values: its region and page table. Each read takes the
 /// pages before the region (the writer holds the pages while it rewrites the region), mapped
 /// when resident, else through buffered I/O.
-pub(crate) struct CompressedPersisted<'a, I, T, S> {
+pub(crate) struct CompressedPersisted<'a, T, S> {
     region: &'a Region,
     pages: &'a Arc<RwLock<Pages>>,
-    _marker: PhantomData<(I, T, S)>,
+    _marker: PhantomData<(T, S)>,
 }
 
-impl<'a, I, T, S> CompressedPersisted<'a, I, T, S> {
+impl<'a, T, S> CompressedPersisted<'a, T, S> {
     #[inline(always)]
     pub(crate) fn new(region: &'a Region, pages: &'a Arc<RwLock<Pages>>) -> Self {
         Self {
@@ -29,23 +29,21 @@ impl<'a, I, T, S> CompressedPersisted<'a, I, T, S> {
     }
 }
 
-impl<I, T, S> CompressedPersisted<'_, I, T, S>
+impl<T, S> CompressedPersisted<'_, T, S>
 where
-    I: VecIndex,
     T: VecValue,
     S: CompressionStrategy<T>,
 {
-    const PER_PAGE: usize = ReadWriteCompressedVec::<I, T, S>::PER_PAGE;
+    const PER_PAGE: usize = ReadWriteCompressedVec::<usize, T, S>::PER_PAGE;
 
     #[inline(always)]
     fn prefers_mmap(&self, from: usize, to: usize) -> bool {
-        ReadWriteCompressedVec::<I, T, S>::prefers_mmap(self.region, self.pages, from, to)
+        ReadWriteCompressedVec::<usize, T, S>::prefers_mmap(self.region, self.pages, from, to)
     }
 }
 
-impl<I, T, S> PersistedReads<T> for CompressedPersisted<'_, I, T, S>
+impl<T, S> PersistedReads<T> for CompressedPersisted<'_, T, S>
 where
-    I: VecIndex,
     T: VecValue,
     S: CompressionStrategy<T>,
 {
@@ -81,16 +79,10 @@ where
             return;
         }
         if self.prefers_mmap(from, to) {
-            CompressedMmapSource::<I, T, S>::new_from_parts(
-                self.region,
-                self.pages,
-                stored,
-                from,
-                to,
-            )
-            .read_into(out)
+            CompressedMmapSource::<T, S>::new_from_parts(self.region, self.pages, stored, from, to)
+                .read_into(out)
         } else {
-            CompressedIoSource::<I, T, S>::new_from_parts(self.region, self.pages, stored, from, to)
+            CompressedIoSource::<T, S>::new_from_parts(self.region, self.pages, stored, from, to)
                 .read_into(out)
         }
         .expect("compressed page decode failed");
@@ -98,7 +90,7 @@ where
 
     fn collect_one(&self, stored: usize, index: usize) -> Option<T> {
         let mut values = Vec::with_capacity(1);
-        self.read(stored, index, index.saturating_add(1), &mut values);
+        self.read(stored, index, index + 1, &mut values);
         values.pop()
     }
 
@@ -117,7 +109,7 @@ where
                 count += 1;
             }
             let (run, rest) = indices.split_at(count);
-            CompressedRangeCursor::<I, T, S>::new(
+            CompressedRangeCursor::<T, S>::new(
                 self.region,
                 self.pages,
                 stored,
@@ -142,23 +134,11 @@ where
             return true;
         }
         if self.prefers_mmap(from, to) {
-            CompressedMmapSource::<I, T, S>::new_from_parts(
-                self.region,
-                self.pages,
-                stored,
-                from,
-                to,
-            )
-            .for_each_chunk(f);
+            CompressedMmapSource::<T, S>::new_from_parts(self.region, self.pages, stored, from, to)
+                .for_each_chunk(f);
         } else {
-            CompressedIoSource::<I, T, S>::new_from_parts(
-                self.region,
-                self.pages,
-                stored,
-                from,
-                to,
-            )
-            .for_each_chunk(f);
+            CompressedIoSource::<T, S>::new_from_parts(self.region, self.pages, stored, from, to)
+                .for_each_chunk(f);
         }
         true
     }
@@ -173,16 +153,10 @@ where
         f: F,
     ) -> Result<B, E> {
         if self.prefers_mmap(from, to) {
-            CompressedMmapSource::<I, T, S>::new_from_parts(
-                self.region,
-                self.pages,
-                stored,
-                from,
-                to,
-            )
-            .try_fold(init, f)
+            CompressedMmapSource::<T, S>::new_from_parts(self.region, self.pages, stored, from, to)
+                .try_fold(init, f)
         } else {
-            CompressedIoSource::<I, T, S>::new_from_parts(self.region, self.pages, stored, from, to)
+            CompressedIoSource::<T, S>::new_from_parts(self.region, self.pages, stored, from, to)
                 .try_fold(init, f)
         }
     }

@@ -43,7 +43,7 @@ where
         Ok(&mut self.decoder)
     }
 
-    /// Appends one whole page of `expected_len` values: every page decode goes through here.
+    /// Appends one whole page of `expected_len` values.
     fn append_page(
         &mut self,
         page: Page,
@@ -53,7 +53,7 @@ where
         dst: &mut Vec<T>,
     ) -> Result<()> {
         let before = dst.len();
-        if page.is_raw() {
+        if page.raw {
             S::bytes_to_values_append(body, expected_len, dst)?;
         } else {
             S::decompress_page_append(self.decoder(page, header)?, body, expected_len, dst)?;
@@ -95,7 +95,7 @@ where
         scratch: &mut Vec<T>,
         dst: &mut Vec<T>,
     ) -> Result<()> {
-        if page.is_raw() {
+        if page.raw {
             return Self::raw_range_append(body, range, dst);
         }
         if range.start == 0 {

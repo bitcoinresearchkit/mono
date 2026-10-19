@@ -18,8 +18,6 @@ pub fn write(
     height: Height,
     with_changes: bool,
 ) -> Result<()> {
-    info!("Saving utxos data...");
-
     let i = Instant::now();
 
     let stamp = Stamp::from(height);
@@ -30,7 +28,7 @@ pub fn write(
 
     vecs.save_caps(utxo_states, stamp, with_changes)?;
 
-    info!("Saved distribution data in {:.2?}", i.elapsed());
+    info!("Saved UTXO data in {:.2?}", i.elapsed());
 
     Ok(())
 }

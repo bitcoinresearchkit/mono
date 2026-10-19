@@ -31,7 +31,7 @@ impl CentsCompact {
     pub const NAN: Self = Self(u32::MAX);
     #[inline]
     pub const fn new(value: u32) -> Self {
-        assert!(
+        debug_assert!(
             value != u32::MAX,
             "u32::MAX is reserved as CentsCompact::NAN"
         );
@@ -96,7 +96,7 @@ impl CentsCompact {
 
     #[inline]
     fn from_finite_u64(value: u64) -> Self {
-        assert!(
+        debug_assert!(
             value < u32::MAX as u64,
             "CentsCompact finite value exceeds compact range"
         );
@@ -114,7 +114,7 @@ impl From<Dollars> for CentsCompact {
             Self::ZERO
         } else {
             let cents = (f * 100.0).round();
-            assert!(
+            debug_assert!(
                 cents < u32::MAX as f64,
                 "price ${f} exceeds CentsCompact finite range"
             );

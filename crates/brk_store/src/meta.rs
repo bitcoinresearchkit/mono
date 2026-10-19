@@ -6,23 +6,24 @@ use fjall::Keyspace;
 
 /// Opens the keyspace and checks its version marker: a fresh keyspace gets one, an existing one
 /// must match it. An unreadable marker, or data without one, is an error.
-pub fn checked_open<F>(path: &Path, version: Version, open_partition_handle: F) -> Result<Keyspace>
-where
-    F: Fn() -> Result<Keyspace>,
-{
+pub fn checked_open(
+    path: &Path,
+    version: Version,
+    open_keyspace: impl FnOnce() -> Result<Keyspace>,
+) -> Result<Keyspace> {
     fs::create_dir_all(path)?;
 
-    let partition = open_partition_handle()?;
+    let keyspace = open_keyspace()?;
     let marker = path.join("version");
 
     if !marker.try_exists()? {
-        if !partition.is_empty()? {
+        if !keyspace.is_empty()? {
             return Err(Error::MissingVersion {
                 path: path.to_path_buf(),
             });
         }
         version.write(&marker)?;
-        return Ok(partition);
+        return Ok(keyspace);
     }
 
     let found = Version::try_from(marker.as_path())?;
@@ -34,5 +35,5 @@ where
         });
     }
 
-    Ok(partition)
+    Ok(keyspace)
 }

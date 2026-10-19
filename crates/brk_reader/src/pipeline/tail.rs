@@ -39,7 +39,6 @@ impl<'a> Slots<'a> {
         }
     }
 
-    /// The height of the lowest block not found yet.
     fn lowest_missing(&self) -> Option<Height> {
         let missing = self.slots.iter().position(Option::is_none)?;
         Some(Height::from(*self.canonical.start + missing as u32))
@@ -89,7 +88,7 @@ impl<'a> Slots<'a> {
 
 /// The canonical blocks appended after the last block streamed, in the same file: an update
 /// right after the previous one reads only their frames. `None` on any discontinuity (another
-/// anchor, a rollover, a gap, a missing block), for the full tail walk to resolve.
+/// anchor, a rollover, a gap, a missing block), for the forward or tail pipeline to resolve.
 pub fn find_appended(
     reader: &ReaderInner,
     canonical: &CanonicalRange,

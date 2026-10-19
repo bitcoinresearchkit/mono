@@ -15,10 +15,8 @@ use brk_types::Sats;
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
 
-/// Current supply state tracking UTXO count and total value
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct SupplyState {
-    /// Number of unspent transaction outputs
     pub utxo_count: u64,
     /// Total value in satoshis
     pub value: Sats,

@@ -211,14 +211,9 @@ fn outspend_identity(outspend: &TxOutspend, bytes: &[u8]) -> RepresentationId {
     )
 }
 
+/// Unspent outputs have no status, and unconfirmed statuses no block.
 fn confirmed_spending_block(outspend: &TxOutspend) -> Option<(BlockHash, Height)> {
-    if !outspend.spent {
-        return None;
-    }
     let status = outspend.status.as_ref()?;
-    if !status.confirmed {
-        return None;
-    }
     status.block_hash.zip(status.block_height)
 }
 
@@ -231,14 +226,9 @@ fn outspends_identity(outspends: &[TxOutspend], bytes: &[u8]) -> RepresentationI
             return content();
         };
 
-        match newest {
-            Some((newest_hash, newest_height)) if newest_height == height => {
-                if newest_hash != hash {
-                    return content();
-                }
-            }
-            Some((_, newest_height)) if newest_height > height => {}
-            _ => newest = Some((hash, height)),
+        // Confirmed spends read under one pin: one block per height.
+        if newest.is_none_or(|(_, newest_height)| height > newest_height) {
+            newest = Some((hash, height));
         }
     }
 

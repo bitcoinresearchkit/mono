@@ -21,8 +21,9 @@ type TypeCountTarget<'a> = (
 /// transactions; outputs include them.
 ///
 /// `open_starts(first_tx)` yields each following transaction's first entry
-/// index, starting with `first_tx`'s; `open_types(first_entry)` returns the
-/// per-transaction counter, one slot per member (`None` skips the entries).
+/// index, starting with `first_tx`'s; `open_types(first_entry)` returns a
+/// scanner that consumes one transaction's entry count, adding each entry to its
+/// member's slot (`None` advances past the entries without counting).
 /// A transaction counts once per member, whatever the member's entries.
 #[allow(clippy::too_many_arguments)]
 pub fn compute_type_counts<'a, S, F, const N: usize>(
@@ -92,7 +93,6 @@ fn stored_vecs<'a>(
         .flat_map(|(_, entries, txs)| [entries.stored_mut(), txs.stored_mut()])
 }
 
-/// Aggregated per-block counters produced by [`walk_blocks`].
 struct BlockAggregate<const N: usize> {
     entries_per_type: [u64; N],
     txs_per_type: [u64; N],

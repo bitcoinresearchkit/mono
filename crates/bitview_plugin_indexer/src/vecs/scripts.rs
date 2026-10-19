@@ -73,7 +73,7 @@ impl ScriptsVecs {
         .into_iter()
     }
 
-    pub fn legacy_sigops(
+    pub fn legacy_sigop_cost(
         &self,
         output_type: OutputType,
         type_index: TypeIndex,

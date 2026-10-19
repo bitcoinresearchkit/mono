@@ -57,14 +57,8 @@ where
     /// Returns the persisted value at `index`, or `None` if out of bounds.
     #[inline(always)]
     pub fn try_get(&self, index: I) -> Option<T> {
-        self.try_get_at(index.to_usize())
-    }
-
-    /// Returns the persisted value at raw `index`, or `None` if out of bounds.
-    #[inline(always)]
-    fn try_get_at(&self, index: usize) -> Option<T> {
         self.compact
-            .try_get_at(index)
+            .try_get_at(index.to_usize())
             .map(|compact| self.decode(compact))
     }
 

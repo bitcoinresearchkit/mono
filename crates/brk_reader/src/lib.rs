@@ -81,7 +81,7 @@ impl Reader {
         let file = self.0.open_blk(position.blk_index())?;
         let mut buffer = vec![0u8; size];
         file.read_exact_at(&mut buffer, position.offset() as u64)?;
-        XORIndex::decode_at(&mut buffer, position.offset() as usize, self.0.xor_bytes);
+        XORIndex::at_offset(position.offset() as usize).bytes(&mut buffer, self.0.xor_bytes);
         Ok(buffer)
     }
 

@@ -7,7 +7,7 @@ use bitview_traversable::Traversable;
 use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Timestamp};
+use brk_types::Height;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use crate::{
@@ -85,7 +85,7 @@ impl Vecs {
 
         let genesis_timestamp = timestamps
             .collect_one(Height::ZERO)
-            .unwrap_or(Timestamp::ZERO);
+            .expect("timestamps cover the nonempty range");
         let bounds = AgeBand::all();
         let mut batch = PrimaryBatch::default();
         for chunk in write_chunks(range) {

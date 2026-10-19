@@ -16,7 +16,6 @@ pub const PROFITABILITY_EDGE_DIVISORS: [u64; 24] = [
 /// The break-even edge's divisor: creation prices at spot are in profit, like the holders'.
 pub const BREAK_EVEN_DIVISOR: u64 = 100;
 
-/// Profitability range names (25 ranges, from most profitable to most in loss)
 pub const PROFITABILITY_RANGE_NAMES: ProfitabilityRange<CohortName> = ProfitabilityRange {
     profit_over_1000_percent: CohortName::new(
         "profit_over_1000_percent",
@@ -105,16 +104,7 @@ pub const PROFITABILITY_RANGE_NAMES: ProfitabilityRange<CohortName> = Profitabil
     ),
 };
 
-impl ProfitabilityRange<CohortName> {
-    pub const fn names() -> &'static Self {
-        &PROFITABILITY_RANGE_NAMES
-    }
-}
-
 /// 25 profitability range buckets ordered from most profitable to most in loss.
-///
-/// During the k-way merge (ascending price order), the cursor starts at bucket 0
-/// (profit_over_1000_percent, lowest cost basis) and advances as price crosses each boundary.
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ProfitabilityRange<T> {

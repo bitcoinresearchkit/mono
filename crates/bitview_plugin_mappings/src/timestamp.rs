@@ -7,11 +7,10 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, RangeMapVec, shapes::PerResolution};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{BLOCKS_PER_DIFF_EPOCHS, BLOCKS_PER_HALVING, Height, Timestamp};
+use brk_types::{BLOCKS_PER_DIFF_EPOCH, BLOCKS_PER_HALVING, Height, Timestamp};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
-    Budgeted, ComputeVec, Database, ImportableVec, IndexVec, PcoVec, ReadableBoxedVec, ReadableVec,
-    Rw, StorageMode, Version,
+    Budgeted, ComputeVec, IndexVec, PcoVec, ReadableBoxedVec, ReadableVec, Rw, StorageMode, Version,
 };
 
 mod boundary;
@@ -23,8 +22,6 @@ macro_rules! define_timestamps {
         periods { $($field:ident: $index:ident => $param:ident,)* }
         epochs { $($epoch:ident: $epoch_index:ident => $epoch_param:ident,)* }
     ) => {
-        /// Timestamps: monotonic height→timestamp + per-period timestamp lookups.
-        ///
         /// Time-based periods (minute10–year10) are lazy: `idx.to_timestamp()` is a pure
         /// function of the index, so no storage or decompression is needed.
         /// Block-based periods (halving, difficulty) are storage-free views of the raw
@@ -69,7 +66,7 @@ macro_rules! define_timestamps {
                         ),
                         epoch: BoundaryTimestampVec::new(
                             raw_timestamps,
-                            BLOCKS_PER_DIFF_EPOCHS as usize,
+                            BLOCKS_PER_DIFF_EPOCH as usize,
                         ),
                     },
                 }
@@ -81,13 +78,6 @@ macro_rules! define_timestamps {
 with_resolution_fields!(define_timestamps);
 
 impl Timestamps {
-    pub fn import_monotonic(
-        db: &Database,
-        version: Version,
-    ) -> Result<PcoVec<Height, Timestamp, Budgeted>> {
-        Ok(PcoVec::import(db, "timestamp_monotonic", version)?)
-    }
-
     pub fn compute_monotonic(
         &mut self,
         indexer: &Indexer,

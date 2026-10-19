@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_supply"
-description = "The supply plugin for Bitview"
+description = "Bitcoin circulating and burned supply, market cap, inflation and velocity datasets for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

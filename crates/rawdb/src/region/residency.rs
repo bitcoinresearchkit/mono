@@ -22,24 +22,16 @@ fn vm_page_size() -> Option<usize> {
     })
 }
 
-/// Samples the first, last, and one page per window of a mapped range.
-/// Empty in-bounds ranges need no probing. Unsupported page geometry, missing
-/// pages, and probe errors return false.
+/// Samples the first, last, and one page per window of a non-empty in-bounds mapped range.
+/// Unsupported page geometry, missing pages, and probe errors return false.
 #[cfg(unix)]
 pub(crate) fn is_range_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bool {
-    if len == 0 {
-        return offset <= mmap.len();
-    }
+    debug_assert!(len > 0);
     let Some(page_size) = vm_page_size() else {
         return false;
     };
     let start = offset / page_size * page_size;
-    let Some(absolute_end) = offset.checked_add(len) else {
-        return false;
-    };
-    let Some(end) = absolute_end.checked_next_multiple_of(page_size) else {
-        return false;
-    };
+    let end = (offset + len).next_multiple_of(page_size);
     let sampled_len = end - start;
 
     if end > mmap.len() {

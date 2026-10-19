@@ -33,6 +33,6 @@ impl AddrStates {
     pub fn reset_block(&mut self) {
         self.amount_range
             .iter_mut()
-            .for_each(|state| state.inner.reset_single_iteration_values());
+            .for_each(|state| state.inner.reset_block());
     }
 }

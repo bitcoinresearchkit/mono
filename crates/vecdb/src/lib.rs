@@ -4,8 +4,8 @@
 use std::mem;
 
 use base::{
-    ChangeCursor, ChangeData, ReadOnlyBaseVec, ReadWriteBaseVec, remove_vec_with, vec_region_name,
-    vec_region_name_with,
+    ChangeCursor, ChangeData, ReadOnlyBaseVec, ReadWriteBaseVec, SharedLen, WithPrev,
+    remove_vec_with, vec_region_name, vec_region_name_with,
 };
 use variants::*;
 
@@ -33,7 +33,7 @@ mod version;
 mod window_read;
 
 pub(crate) use base::HEADER_OFFSET;
-pub use base::{Format, Header, ImportOptions, SharedLen, WithPrev};
+pub use base::{Format, Header, ImportOptions};
 pub use bytes::Bytes;
 
 pub use cursor::Cursor;

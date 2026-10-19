@@ -13,7 +13,7 @@ use brk_exit::Exit;
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
-use tracing::{debug, info};
+use tracing::info;
 use vecdb::{AnyVec, ReadableVec, Stamp, VecIndex, unlikely};
 
 use super::{AddrReaders, Workspace, readers::tx_indexes};
@@ -29,7 +29,6 @@ use crate::{
 };
 
 /// A BIP30-overwritten coinbase output, removed from its P2PK65 address without a spend.
-#[derive(Clone, Copy)]
 struct Lost {
     height: usize,
     type_index: TypeIndex,
@@ -103,9 +102,7 @@ pub fn process_chunk(
         })
         .collect::<Result<Vec<_>>>()?;
 
-    debug!("creating AddrReaders");
-    let vr = AddrReaders::new(&vecs.state);
-    debug!("AddrReaders created");
+    let state_readers = AddrReaders::new(&vecs.state);
 
     let Workspace {
         columns,
@@ -160,7 +157,7 @@ pub fn process_chunk(
                         .zip(input_indexes.iter().copied()),
                 ),
             &first_addr_indexes,
-            &vr,
+            &state_readers,
             &vecs.state,
         );
 
@@ -248,9 +245,7 @@ pub fn process_chunk(
         for (offset, height) in batch.blocks.clone().enumerate() {
             let height = Height::from(height);
             if unlikely(height.is_multiple_of(100)) {
-                info!("Computing metrics at block {height}...");
-            } else {
-                debug!("Processing chain at {height}...");
+                info!("Computing address metrics at block {height}...");
             }
             let metrics = &mut addr_states.metrics;
             metrics.clone_from(base);
@@ -274,7 +269,7 @@ pub fn process_chunk(
         }
         Ok(ControlFlow::Continue(()))
     })?;
-    drop(vr);
+    drop(state_readers);
     let last_height = Height::from(next - 1);
     let _lock = exit.lock();
     let finished = tail && next == end_usize;

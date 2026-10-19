@@ -29,15 +29,18 @@ const BIND_START: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 
 async fn main() -> Result<(), Box<dyn Error>> {
     init_with_default_level(None, "info")?;
 
-    let arguments = Arguments::parse(env::args().skip(1)).unwrap_or_else(|error| usage(&error));
-    let (api_url, public_url, display_name) = arguments.into_parts();
+    let Arguments {
+        api_url,
+        public_url,
+        display_name,
+    } = Arguments::parse(env::args().skip(1)).unwrap_or_else(|error| usage(&error));
     let catalog = Catalog::embedded();
     let tool_count = catalog.tools().len();
     let pages = Pages::render(&display_name, &public_url, &api_url);
     let app = server::router(api_url, catalog, display_name, public_url, pages);
     let (listener, bind) = bind_available(BIND_START).await?;
 
-    info!("BRK MCP server listening on http://{bind} with {tool_count} tools");
+    info!("Bitview MCP server listening on http://{bind} with {tool_count} tools");
     serve(listener, app).await?;
     Ok(())
 }
@@ -51,7 +54,7 @@ fn usage(error: &str) -> ! {
 }
 
 async fn bind_available(start: SocketAddr) -> io::Result<(TcpListener, SocketAddr)> {
-    let last_port = start.port().saturating_add(100);
+    let last_port = start.port() + 100;
     let mut last_error = None;
     for port in start.port()..=last_port {
         let mut candidate = start;
@@ -61,10 +64,5 @@ async fn bind_available(start: SocketAddr) -> io::Result<(TcpListener, SocketAdd
             Err(error) => last_error = Some(error),
         }
     }
-    Err(last_error.unwrap_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::AddrNotAvailable,
-            "no MCP bind port available",
-        )
-    }))
+    Err(last_error.unwrap())
 }

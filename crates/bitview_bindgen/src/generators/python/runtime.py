@@ -30,8 +30,6 @@ def _segment(value: Any) -> str:
 
 
 class BitviewClientBase:
-    """Base HTTP client for making requests."""
-
     def __init__(self, base_url: str, timeout: float = 30.0):
         parsed = urlparse(base_url)
         self._host = parsed.netloc
@@ -50,8 +48,8 @@ class BitviewClientBase:
         return self._conn
 
     def _request(self, method: str, path: str, body: Optional[str] = None) -> bytes:
-        """Make a request and return raw bytes. A failed exchange closes the connection, which
-        `http.client` would otherwise leave mid-request for every later call."""
+        """A failed exchange closes the connection, which `http.client` would otherwise leave
+        mid-request for every later call."""
         try:
             conn = self._connect()
             conn.request(method, self._prefix + path, body=body)
@@ -65,31 +63,24 @@ class BitviewClientBase:
         return data
 
     def get(self, path: str) -> bytes:
-        """Make a GET request and return raw bytes."""
         return self._request("GET", path)
 
     def get_json(self, path: str) -> Any:
-        """Make a GET request and return JSON."""
         return json.loads(self.get(path))
 
     def get_text(self, path: str) -> str:
-        """Make a GET request and return text."""
         return self.get(path).decode()
 
     def post(self, path: str, body: str) -> bytes:
-        """Make a POST request with a string body and return raw bytes."""
         return self._request("POST", path, body)
 
     def post_json(self, path: str, body: str) -> Any:
-        """Make a POST request and return JSON."""
         return json.loads(self.post(path, body))
 
     def post_text(self, path: str, body: str) -> str:
-        """Make a POST request and return text."""
         return self.post(path, body).decode()
 
     def close(self) -> None:
-        """Close the HTTP client."""
         if self._conn:
             self._conn.close()
             self._conn = None
@@ -101,19 +92,10 @@ class BitviewClientBase:
         self.close()
 
 
-
-
 _MASK_64 = (1 << 64) - 1
-_RAPIDHASH_SECRETS = (
-    0x2d358dccaa6c78a5,
-    0x8bb84b93962eacc9,
-    0x4b33a62ed433d4a3,
-    0x4d5a2da51de1aa47,
-    0xa0761d6478bd642f,
-    0xe7037ed1a0b428db,
-    0x90ed1765281c388c,
-)
-_RAPIDHASH_SEED = 0
+# RapidHash v3's secrets 1 and 2: the only ones payloads of at most 65 bytes reach.
+_RAPIDHASH_SECRET_1 = 0x8bb84b93962eacc9
+_RAPIDHASH_SECRET_2 = 0x4b33a62ed433d4a3
 
 
 def _u64(value: int) -> int:
@@ -131,7 +113,7 @@ def _rapid_mum(left: int, right: int) -> Tuple[int, int]:
 
 
 def _rapid_hash_seed(seed: int) -> int:
-    return _u64(seed ^ _rapid_mix(seed ^ _RAPIDHASH_SECRETS[2], _RAPIDHASH_SECRETS[1]))
+    return _u64(seed ^ _rapid_mix(seed ^ _RAPIDHASH_SECRET_2, _RAPIDHASH_SECRET_1))
 
 
 _RAPIDHASH_SEED = _rapid_hash_seed(0)
@@ -166,27 +148,26 @@ def _rapid_hash_v3(payload: Union[bytes, bytearray, memoryview]) -> int:
             else:
                 a ^= _read_u32(data, 0)
                 b ^= _read_u32(data, length - 4)
-        elif length > 0:
+        else:
             a ^= (data[0] << 45) | data[length - 1]
             b ^= data[length >> 1]
         remainder = length
     else:
-        if length > 16:
-            seed = _rapid_mix(_read_u64(data, 0) ^ _RAPIDHASH_SECRETS[2], _read_u64(data, 8) ^ seed)
-            if length > 32:
-                seed = _rapid_mix(_read_u64(data, 16) ^ _RAPIDHASH_SECRETS[2], _read_u64(data, 24) ^ seed)
-                if length > 48:
-                    seed = _rapid_mix(_read_u64(data, 32) ^ _RAPIDHASH_SECRETS[1], _read_u64(data, 40) ^ seed)
-                    if length > 64:
-                        seed = _rapid_mix(_read_u64(data, 48) ^ _RAPIDHASH_SECRETS[1], _read_u64(data, 56) ^ seed)
+        seed = _rapid_mix(_read_u64(data, 0) ^ _RAPIDHASH_SECRET_2, _read_u64(data, 8) ^ seed)
+        if length > 32:
+            seed = _rapid_mix(_read_u64(data, 16) ^ _RAPIDHASH_SECRET_2, _read_u64(data, 24) ^ seed)
+            if length > 48:
+                seed = _rapid_mix(_read_u64(data, 32) ^ _RAPIDHASH_SECRET_1, _read_u64(data, 40) ^ seed)
+                if length > 64:
+                    seed = _rapid_mix(_read_u64(data, 48) ^ _RAPIDHASH_SECRET_1, _read_u64(data, 56) ^ seed)
         remainder = length
         a ^= _read_u64(data, length - 16) ^ remainder
         b ^= _read_u64(data, length - 8)
 
-    a ^= _RAPIDHASH_SECRETS[1]
+    a ^= _RAPIDHASH_SECRET_1
     b ^= seed
     a, b = _rapid_mum(a, b)
-    return _rapid_mix(a ^ 0xaaaaaaaaaaaaaaaa, b ^ _RAPIDHASH_SECRETS[1] ^ remainder)
+    return _rapid_mix(a ^ 0xaaaaaaaaaaaaaaaa, b ^ _RAPIDHASH_SECRET_1 ^ remainder)
 
 
 def _validate_hash_prefix_nibbles(nibbles: int) -> None:
@@ -222,7 +203,8 @@ def _calendar(index: str) -> Tuple[str, int, int]:
 
 
 def _index_to_date(index: str, i: int) -> Union[date, datetime]:
-    """Convert an index value to a date/datetime for date-based indexes."""
+    """The start of bucket `i`: a UTC datetime for sub-daily indexes, a date otherwise. Raises
+    ValueError for an index without a date calendar."""
     unit, size, phase = _calendar(index)
     if unit == 'second':
         return _EPOCH + timedelta(seconds=i * size)
@@ -233,9 +215,7 @@ def _index_to_date(index: str, i: int) -> Union[date, datetime]:
 
 
 def _date_to_index(index: str, d: Union[date, datetime]) -> int:
-    """Convert a date/datetime to an index value for date-based indexes.
-
-    Returns the floor index (latest index whose date is <= the given date).
+    """Returns the floor index (latest index whose date is <= the given date).
     For sub-day indexes (minute*, hour*), a plain date is treated as midnight UTC.
     Raises ValueError for dates before the index's first date (2009-01-01; day3's is 2008-12-31, week1's 2008-12-29).
     """
@@ -260,8 +240,7 @@ def _date_to_index(index: str, d: Union[date, datetime]) -> int:
 
 @dataclass
 class SeriesData(Generic[T]):
-    """Series data with range information. Always int-indexed; a value is None where it is
-    missing or undefined."""
+    """Always int-indexed; a value is None where it is missing or undefined."""
     version: int
     index: Index
     type: str
@@ -271,27 +250,22 @@ class SeriesData(Generic[T]):
 
     @property
     def is_date_based(self) -> bool:
-        """Whether this series uses a date-based index."""
         return self.index in _CALENDARS
 
     def indexes(self) -> List[int]:
-        """Get raw index numbers."""
         return list(range(self.start, self.end))
 
     def keys(self) -> List[int]:
-        """Get keys as index numbers."""
+        """Alias for indexes()."""
         return self.indexes()
 
     def items(self) -> List[Tuple[int, T]]:
-        """Get (index, value) pairs."""
         return list(zip(range(self.start, self.end), self.data))
 
     def to_dict(self) -> Dict[int, T]:
-        """Return {index: value} dict."""
         return dict(zip(range(self.start, self.end), self.data))
 
     def __iter__(self) -> Iterator[Tuple[int, T]]:
-        """Iterate over (index, value) pairs."""
         return zip(range(self.start, self.end), self.data)
 
     def __len__(self) -> int:
@@ -316,27 +290,18 @@ class SeriesData(Generic[T]):
 
 @dataclass
 class DateSeriesData(SeriesData[T]):
-    """Series data with date-based index. Extends SeriesData with date methods."""
-
     def dates(self) -> List[Union[date, datetime]]:
         """Get dates for the index range. Returns datetime for sub-daily indexes, date for daily+."""
         return [_index_to_date(self.index, i) for i in range(self.start, self.end)]
 
     def date_items(self) -> List[Tuple[Union[date, datetime], T]]:
-        """Get (date, value) pairs."""
         return list(zip(self.dates(), self.data))
 
     def to_date_dict(self) -> Dict[Union[date, datetime], T]:
-        """Return {date: value} dict."""
         return dict(zip(self.dates(), self.data))
 
     def to_polars(self, with_dates: bool = True) -> pl.DataFrame:
-        """Convert to Polars DataFrame.
-
-        Returns a DataFrame with columns:
-        - 'date' and 'value' if with_dates=True (default)
-        - 'index' and 'value' otherwise
-        """
+        """Columns 'date' and 'value', or 'index' and 'value' with with_dates=False."""
         try:
             import polars as pl  # type: ignore[import-not-found]
         except ImportError:
@@ -346,12 +311,7 @@ class DateSeriesData(SeriesData[T]):
         return pl.DataFrame({"index": self.indexes(), "value": self.data})
 
     def to_pandas(self, with_dates: bool = True) -> pd.DataFrame:
-        """Convert to Pandas DataFrame.
-
-        Returns a DataFrame with columns:
-        - 'date' and 'value' if with_dates=True (default)
-        - 'index' and 'value' otherwise
-        """
+        """Columns 'date' and 'value', or 'index' and 'value' with with_dates=False."""
         try:
             import pandas as pd  # type: ignore[import-not-found]
         except ImportError:
@@ -361,7 +321,6 @@ class DateSeriesData(SeriesData[T]):
         return pd.DataFrame({"index": self.indexes(), "value": self.data})
 
 
-# Type aliases for non-generic usage
 AnySeriesData = SeriesData[Any]
 AnyDateSeriesData = DateSeriesData[Any]
 
@@ -379,7 +338,6 @@ def _contiguous(key: slice) -> slice:
 
 
 class _EndpointConfig:
-    """Shared endpoint configuration."""
     client: BitviewClient
     name: str
     index: Index
@@ -411,8 +369,8 @@ class _EndpointConfig:
         if format is not None:
             params.append(("format", format))
         query = urlencode(params)
-        p = self.path()
-        return f"{p}?{query}" if query else p
+        path = self.path()
+        return f"{path}?{query}" if query else path
 
     def _new(self, start: Optional[int] = None, end: Optional[int] = None,
              limit: Optional[int] = None) -> _EndpointConfig:
@@ -442,41 +400,25 @@ class RangeBuilder(Generic[T]):
         self._config = config
 
     def fetch(self) -> SeriesData[T]:
-        """Fetch the selection as parsed JSON."""
         return self._config.get_series()
 
     def fetch_csv(self) -> str:
-        """Fetch the selection as CSV string."""
         return self._config.get_csv()
 
 
-class SkippedBuilder(Generic[T]):
-    """Builder after calling skip(n). Chain with take() to specify count."""
-
-    def __init__(self, config: _EndpointConfig):
-        self._config = config
+class SkippedBuilder(RangeBuilder[T]):
+    """After skip(n): take() sets a count; fetch() reads from the skipped position to the end."""
 
     def take(self, n: int) -> RangeBuilder[T]:
-        """Take n items after the skipped position."""
         return RangeBuilder(self._config._new(self._config.start, limit=n))
-
-    def fetch(self) -> SeriesData[T]:
-        """Fetch from skipped position to end."""
-        return self._config.get_series()
-
-    def fetch_csv(self) -> str:
-        """Fetch as CSV."""
-        return self._config.get_csv()
 
 
 class DateRangeBuilder(RangeBuilder[T]):
-    """Range builder that returns DateSeriesData."""
     def fetch(self) -> DateSeriesData[T]:
         return self._config.get_date_series()
 
 
 class DateSkippedBuilder(SkippedBuilder[T]):
-    """Skipped builder that returns DateSeriesData."""
     def take(self, n: int) -> DateRangeBuilder[T]:
         return DateRangeBuilder(self._config._new(self._config.start, limit=n))
     def fetch(self) -> DateSeriesData[T]:
@@ -498,22 +440,18 @@ class SeriesEndpoint(Generic[T]):
         self._config = _EndpointConfig(client, name, index)
 
     def __getitem__(self, key: Union[int, slice]) -> RangeBuilder[T]:
-        """Access single item or slice by integer index."""
         if isinstance(key, int):
             return RangeBuilder(self._config._new(key, limit=1))
         key = _contiguous(key)
         return RangeBuilder(self._config._new(key.start, key.stop))
 
     def head(self, n: int = 10) -> RangeBuilder[T]:
-        """Get the first n items."""
         return RangeBuilder(self._config._new(end=n))
 
     def tail(self, n: int = 10) -> RangeBuilder[T]:
-        """Get the last n items."""
         return RangeBuilder(self._config._new(end=0) if n == 0 else self._config._new(start=-n))
 
     def skip(self, n: int) -> SkippedBuilder[T]:
-        """Skip the first n items."""
         return SkippedBuilder(self._config._new(start=n))
 
     def fetch(self) -> SeriesData[T]:
@@ -529,31 +467,23 @@ class SeriesEndpoint(Generic[T]):
         return self._config.get_len()
 
     def version(self) -> Version:
-        """Current version of the series."""
         return self._config.get_version()
 
     def path(self) -> str:
-        """Get the base endpoint path."""
         return self._config.path()
 
 
-class DateSeriesEndpoint(Generic[T]):
+class DateSeriesEndpoint(SeriesEndpoint[T]):
     """Builder for series endpoint queries with date-based indexing.
 
     Accepts dates in __getitem__ and returns DateSeriesData from fetch().
 
     Examples:
-        data = endpoint.fetch()
         data = endpoint[date(2020, 1, 1)].fetch()
         data = endpoint[date(2020, 1, 1):date(2023, 1, 1)].fetch()
-        data = endpoint[:10].fetch()
     """
 
-    def __init__(self, client: BitviewClient, name: str, index: Index):
-        self._config = _EndpointConfig(client, name, index)
-
     def __getitem__(self, key: Union[int, slice, date, datetime]) -> DateRangeBuilder[T]:
-        """Access single item or slice. Accepts int, date, or datetime."""
         if isinstance(key, (date, datetime)):
             idx = _date_to_index(self._config.index, key)
             return DateRangeBuilder(self._config._new(idx, limit=1))
@@ -568,53 +498,29 @@ class DateSeriesEndpoint(Generic[T]):
         return DateRangeBuilder(self._config._new(start, stop))
 
     def head(self, n: int = 10) -> DateRangeBuilder[T]:
-        """Get the first n items."""
         return DateRangeBuilder(self._config._new(end=n))
 
     def tail(self, n: int = 10) -> DateRangeBuilder[T]:
-        """Get the last n items."""
         return DateRangeBuilder(self._config._new(end=0) if n == 0 else self._config._new(start=-n))
 
     def skip(self, n: int) -> DateSkippedBuilder[T]:
-        """Skip the first n items."""
         return DateSkippedBuilder(self._config._new(start=n))
 
     def fetch(self) -> DateSeriesData[T]:
         """Fetch all data."""
         return self._config.get_date_series()
 
-    def fetch_csv(self) -> str:
-        """Fetch all data as CSV."""
-        return self._config.get_csv()
 
-    def len(self) -> int:
-        """Total number of data points for this series."""
-        return self._config.get_len()
-
-    def version(self) -> Version:
-        """Current version of the series."""
-        return self._config.get_version()
-
-    def path(self) -> str:
-        """Get the base endpoint path."""
-        return self._config.path()
-
-
-# Type aliases for non-generic usage
 AnySeriesEndpoint = SeriesEndpoint[Any]
 AnyDateSeriesEndpoint = DateSeriesEndpoint[Any]
 
 
 class SeriesPattern(Protocol[T]):
-    """Protocol for series patterns with different index sets."""
-
     @property
     def name(self) -> str:
-        """Get the series name."""
         ...
 
     def indexes(self) -> List[str]:
-        """Get the list of available indexes for this series."""
         ...
 
     def get(self, index: Index) -> Optional[SeriesEndpoint[T]]:

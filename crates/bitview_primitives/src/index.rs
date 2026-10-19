@@ -66,8 +66,7 @@ macro_rules! with_resolution_fields {
 }
 
 /// Declares [`Index`] from the resolution family followed by the `other` index types, each
-/// variant named after its type, with every period's [`Calendar`]. Generates the enum, `all`,
-/// `possible_values`, `name`, `is_date_based` and `calendar`.
+/// variant named after its type, with every period's [`Calendar`].
 macro_rules! indexes {
     (
         periods { $($period_field:ident: $period:ident => $period_param:ident,)* }
@@ -93,7 +92,7 @@ macro_rules! indexes {
                 [$(Self::$period,)* $(Self::$epoch,)* $(Self::$other,)+]
             }
 
-            pub fn possible_values(&self) -> &'static [&'static str] {
+            pub fn aliases(&self) -> &'static [&'static str] {
                 match self {
                     $(Self::$period => $period::index_aliases(),)*
                     $(Self::$epoch => $epoch::index_aliases(),)*
@@ -109,7 +108,6 @@ macro_rules! indexes {
                 }
             }
 
-            /// Returns true if this index type is date-based.
             pub const fn is_date_based(&self) -> bool {
                 matches!(self, $(Self::$period)|*)
             }
@@ -212,16 +210,13 @@ impl Index {
     }
 
     /// Convert a timestamp to an index value for any date-based index.
-    /// Works for both sub-daily (minute, hour) and daily+ indexes.
     /// Returns None for non-date-based indexes or times before the index's first one.
     pub fn timestamp_to_index(&self, ts: Timestamp) -> Option<usize> {
         if ts < self.index_to_timestamp(0)? {
             return None;
         }
         match self.calendar()? {
-            Calendar::Seconds(size) => {
-                Some((*ts).saturating_sub(INDEX_EPOCH) as usize / size as usize)
-            }
+            Calendar::Seconds(size) => Some((*ts - INDEX_EPOCH) as usize / size as usize),
             Calendar::Days { size, phase } => Some(
                 (*ts - (INDEX_EPOCH - phase * ONE_DAY_IN_SEC)) as usize
                     / (size * ONE_DAY_IN_SEC) as usize,
@@ -255,7 +250,7 @@ impl TryFrom<&str> for Index {
             .into_iter()
             .find(|index| {
                 index
-                    .possible_values()
+                    .aliases()
                     .iter()
                     .any(|alias| alias.eq_ignore_ascii_case(value))
             })

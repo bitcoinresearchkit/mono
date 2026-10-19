@@ -7,7 +7,6 @@ use derive_more::Deref;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Series name
 #[derive(Debug, Clone, Deref, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 #[schemars(

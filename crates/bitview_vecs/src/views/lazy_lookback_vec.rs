@@ -4,10 +4,8 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
     AnyVec, Formattable, READ_CHUNK_SIZE, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
-    TypedVec, VecIndex, VecValue, Version, read_batches,
+    SparseRead, TypedVec, VecIndex, VecValue, Version, read_batches,
 };
-
-use vecdb::SparseRead;
 
 /// Lazily combines values a fixed number of positions apart from one source.
 ///

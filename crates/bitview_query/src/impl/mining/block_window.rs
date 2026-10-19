@@ -8,8 +8,8 @@ use super::{block_bucket::BlockBucket, period_start::start_height};
 use crate::{Error, Query, Result};
 
 /// Time-bucket divisor in seconds: blocks are grouped by `timestamp / div`.
-/// `div = 1` puts each block in its own bucket; coarser values down-sample
-/// long windows so the response stays bounded.
+/// `div = 1` groups only equal timestamps; coarser values down-sample long
+/// windows so the response stays bounded.
 fn time_div(period: TimePeriod) -> u32 {
     match period {
         TimePeriod::Day | TimePeriod::ThreeDays => 1,
@@ -64,7 +64,7 @@ impl BlockWindow {
         sorted.dedup();
         let mut sums = vec![(0u128, 0u128, 0u32); sorted.len()];
         for (offset, (key, timestamp)) in keys.iter_mut().zip(&timestamps).enumerate() {
-            *key = sorted.binary_search(key).unwrap_or_default() as u32;
+            *key = sorted.binary_search(key).unwrap() as u32;
             let (height, time, count) = &mut sums[*key as usize];
             *height += (start.to_usize() + offset) as u128;
             *time += u128::from(**timestamp);

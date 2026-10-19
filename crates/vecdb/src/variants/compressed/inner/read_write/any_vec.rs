@@ -15,10 +15,10 @@ where
 
     #[inline]
     fn name(&self) -> &str {
-        self.base.name()
+        &self.base.name
     }
 
-    /// Append-only: rows below its length never change (a `MutableVec` wrapping it says otherwise).
+    /// Append-only: rows below its length never change.
     #[inline]
     fn is_mutable(&self) -> bool {
         false
@@ -33,6 +33,6 @@ where
 
     #[inline]
     fn region_names(&self) -> Vec<String> {
-        vec![self.base.index_to_name(), self.pages_region_name()]
+        vec![self.base.region_name(), self.pages_region_name()]
     }
 }

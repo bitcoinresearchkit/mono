@@ -3,7 +3,6 @@ use std::ptr;
 use super::EncodedChunk;
 use crate::{Error, Format, Result, ValueStrategy, likely};
 
-/// Trait for compression strategies used by ReadWriteCompressedVec.
 pub trait CompressionStrategy<T>: ValueStrategy<T> + 'static {
     /// On-disk format of vectors stored with this strategy.
     const FORMAT: Format;
@@ -21,7 +20,6 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> + 'static {
     /// decoded only after a successful reset for their chunk.
     fn reset_decoder(decoder: &mut Self::Decoder, header: &[u8]) -> Result<()>;
 
-    /// Decodes one page body directly onto the end of `dst`.
     fn decompress_page_append(
         decoder: &mut Self::Decoder,
         body: &[u8],
@@ -29,7 +27,6 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> + 'static {
         dst: &mut Vec<T>,
     ) -> Result<()>;
 
-    /// Deserializes bytes onto the end of `dst`.
     #[inline]
     fn bytes_to_values_append(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
         let expected_bytes = expected_len * size_of::<T>();

@@ -1,14 +1,11 @@
-use std::{
-    hash::{Hash, Hasher},
-    ops::{Div, Mul},
-};
+use std::hash::{Hash, Hasher};
 
 use derive_more::{Add, AddAssign, Deref, From, Into, Neg, Sub, SubAssign, Sum};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Bitcoin, CentsSigned};
+use super::CentsSigned;
 use crate::{Cents, CheckedSub};
 
 #[cfg(feature = "storage")]
@@ -84,58 +81,6 @@ impl From<usize> for Dollars {
     #[inline]
     fn from(value: usize) -> Self {
         Self(value as f64)
-    }
-}
-
-impl Div<f64> for Dollars {
-    type Output = Self;
-    fn div(self, rhs: f64) -> Self::Output {
-        let quotient = self.0 / rhs;
-        if quotient.is_nan() || rhs == 0.0 {
-            Dollars::NAN
-        } else {
-            Dollars::from(CentsSigned::from(Self(quotient)))
-        }
-    }
-}
-
-impl Div<Bitcoin> for Dollars {
-    type Output = Self;
-    fn div(self, rhs: Bitcoin) -> Self::Output {
-        let rhs = f64::from(rhs);
-        if self.is_nan() || rhs == 0.0 {
-            Dollars::NAN
-        } else {
-            Self(f64::from(self) / rhs)
-        }
-    }
-}
-
-impl Mul<f64> for Dollars {
-    type Output = Dollars;
-    fn mul(self, rhs: f64) -> Self::Output {
-        Self(self.0 * rhs)
-    }
-}
-
-impl Mul<Bitcoin> for Dollars {
-    type Output = Self;
-    fn mul(self, rhs: Bitcoin) -> Self::Output {
-        self * f64::from(rhs)
-    }
-}
-
-impl Mul<i64> for Dollars {
-    type Output = Self;
-    fn mul(self, rhs: i64) -> Self::Output {
-        Self(self.0 * rhs as f64)
-    }
-}
-
-impl Mul<usize> for Dollars {
-    type Output = Self;
-    fn mul(self, rhs: usize) -> Self::Output {
-        Self(self.0 * rhs as f64)
     }
 }
 

@@ -48,7 +48,6 @@ impl SpendableTypeId {
     }
 }
 
-/// Spendable type names
 pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
     p2pk: CohortName::new("p2pk", "P2PK", "Pay to Public Key"),
     p2pkh: CohortName::new("p2pkh", "P2PKH", "Pay to Public Key Hash"),

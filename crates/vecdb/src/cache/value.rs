@@ -11,7 +11,7 @@ pub(super) enum Value<T> {
 
 impl<T: Clone> Value<T> {
     pub(super) fn from_vec(mut values: Vec<T>) -> Self {
-        assert!(!values.is_empty());
+        debug_assert!(!values.is_empty());
         if values.len() == 1 {
             Self::One(values.pop().unwrap())
         } else {
@@ -38,9 +38,9 @@ impl<T: Clone> Value<T> {
         self.slice().get(index).cloned()
     }
 
-    pub(super) fn allocation_bytes(&self) -> Option<usize> {
+    pub(super) fn allocation_bytes(&self) -> usize {
         match self {
-            Self::One(_) => Some(0),
+            Self::One(_) => 0,
             Self::Many(buffer, _) => buffer.bytes(),
         }
     }
@@ -96,7 +96,7 @@ impl<T: Clone> Value<T> {
 
     /// Keep the prefix and its allocation, even if a reader still owns the old view.
     pub(super) fn truncate(&mut self, len: usize) {
-        assert!(len > 0 && len <= self.len());
+        debug_assert!(len > 0 && len <= self.len());
         if let Self::Many(_, valid) = self {
             *valid = len;
         }

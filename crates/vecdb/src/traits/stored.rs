@@ -2,14 +2,12 @@ use crate::{
     ImportableVec, ReadableCloneableVec, ReadableVec, TypedVec, VecIndex, VecValue, WritableVec,
 };
 
-/// Super trait combining all common stored vec traits.
 pub trait StoredVec:
     ImportableVec + TypedVec + WritableVec<Self::I, Self::T> + ReadableCloneableVec<Self::I, Self::T>
 where
     Self::I: VecIndex,
     Self::T: VecValue,
 {
-    /// The concrete lean read-only type returned by [`read_only_clone`](StoredVec::read_only_clone).
     type ReadOnly: TypedVec<I = Self::I, T = Self::T>
         + ReadableVec<Self::I, Self::T>
         + Clone

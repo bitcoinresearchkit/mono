@@ -1,6 +1,5 @@
 use crate::Stamp;
 
-/// Parsed change data returned by parse_change_data, consumed by apply_rollback.
 #[derive(Debug)]
 pub struct ChangeData<T> {
     pub prev_stamp: Stamp,

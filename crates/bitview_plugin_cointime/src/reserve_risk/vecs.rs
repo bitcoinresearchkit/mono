@@ -14,20 +14,16 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub block: LazyPerBlock<Float64>,
     /// HODL bank: running sum of spot price in USD minus the 30-day VOCDD
     /// median, each block weighted by the time since the previous block in days
-    /// (on monotonic timestamps), so every day adds one daily step. It
-    /// represents the model's accumulated holder reserve and is the denominator
-    /// of Reserve Risk.
+    /// (on monotonic timestamps). It represents the model's accumulated holder
+    /// reserve and is the denominator of Reserve Risk.
     pub hodl_bank: PerBlock<Float64, M>,
     /// Supply-adjusted value of coin days destroyed (VOCDD): spot price in USD
     /// multiplied by the block's coin days destroyed and divided by circulating
     /// supply in BTC. Reported in USD-days per BTC of circulating supply. Returns
     /// zero when circulating supply is zero.
     pub vocdd: PerBlockCumulativeRolling<DollarDaysPerCoin, M>,
-    /// Median over the blocks of the trailing 30 days of the trailing 24-hour
-    /// supply-adjusted value of coin days destroyed (VOCDD): each block's coin
-    /// days destroyed times its spot price, divided by circulating supply,
-    /// summed over the trailing 24 hours, in USD-days per BTC. Reserve Risk's
-    /// input, not a published series.
+    /// Median over the blocks of the trailing 30 days of `vocdd.sum._24h`, in
+    /// USD-days per BTC: the HODL bank's input.
     #[traversable(hidden)]
     pub(crate) vocdd_median_1m: M::Stored<PcoVec<Height, DollarDaysPerCoin>>,
     pub(crate) vocdd_median_1m_window: M::WriteOnly<Retained<SortedWindow>>,

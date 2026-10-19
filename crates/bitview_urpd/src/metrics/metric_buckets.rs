@@ -68,7 +68,7 @@ impl MetricBuckets {
             };
             let mid = u128::from(band.spot().round_to_significant(COST_BASIS_PRICE_DIGITS));
             let lower = first(band.first_inside());
-            let upper = first(band.first_above()).max(lower);
+            let upper = first(band.first_above());
             let split = lower + self.prices[lower..upper].partition_point(|p| p.as_u128() <= mid);
             [lower, split, upper]
         });

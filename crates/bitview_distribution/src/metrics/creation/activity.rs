@@ -1,4 +1,4 @@
-use crate::families::{CumulativeCount, CumulativeValue};
+use crate::families::{CumulativeQuantity, CumulativeValue};
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::CoinDays;
@@ -16,7 +16,7 @@ pub struct CreationActivity<M: StorageMode = Rw> {
     pub transfer_volume: CumulativeValue<M>,
     /// Coin days destroyed (CDD) by the cohort's outputs: each spent output's
     /// BTC value multiplied by its age in days.
-    pub coindays_destroyed: CumulativeCount<CoinDays, M>,
+    pub coindays_destroyed: CumulativeQuantity<CoinDays, M>,
 }
 
 impl CreationActivity {
@@ -37,7 +37,7 @@ impl CreationActivity {
                 mappings,
                 window_starts,
             )?,
-            coindays_destroyed: CumulativeCount::import(
+            coindays_destroyed: CumulativeQuantity::import(
                 db,
                 &name("coindays_destroyed"),
                 version,

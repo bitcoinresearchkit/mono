@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_mappings"
-description = "The derived index mappings plugin for Bitview"
+description = "Index mappings between blocks, transactions, inputs, outputs, addresses and time periods for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -1,6 +1,6 @@
-//! The reads of the raw and compressed stored vecs and their read-only clones, in one place: the
-//! retained cache when there is one, else the format's persisted values below the stored length,
-//! then the pushed values after it (none for read-only clones).
+//! Reads of the raw and compressed stored vecs and their read-only clones: the retained cache
+//! when there is one, else the format's persisted values below the stored length, then the
+//! pushed values after it (none for read-only clones).
 
 use std::{ops::Range, result::Result};
 
@@ -43,7 +43,6 @@ pub(crate) trait PersistedReads<T: VecValue> {
     ) -> Result<B, E>;
 }
 
-/// A stored vec as its reads see it.
 pub(crate) trait StoredReads<T: VecValue> {
     type Persisted<'a>: PersistedReads<T>
     where

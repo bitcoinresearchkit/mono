@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_market"
-description = "The market datasets plugin for Bitview"
+description = "Bitcoin price returns, all-time highs, ranges and moving averages for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

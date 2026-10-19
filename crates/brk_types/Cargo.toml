@@ -1,6 +1,6 @@
 [package]
 name = "brk_types"
-description = "Structs used throughout BRK"
+description = "Bitcoin primitives shared across BRK and Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

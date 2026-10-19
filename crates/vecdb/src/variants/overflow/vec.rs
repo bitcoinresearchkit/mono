@@ -16,7 +16,7 @@ const VERSION: Version = Version::ONE;
 /// One logical raw vector with compact inline values and a full-width overflow
 /// sidecar for the uncommon values that do not fit.
 #[derive(Debug)]
-#[must_use = "Vector should be stored to keep data accessible"]
+#[must_use]
 pub struct OverflowVec<I, T>
 where
     I: VecIndex,
@@ -37,41 +37,6 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    fn overflow_name(name: &str) -> String {
-        format!("{name}_overflow")
-    }
-
-    fn import_inner(mut options: ImportOptions) -> Result<Self> {
-        options.version = options.version.combine(VERSION).combine(T::VERSION);
-        let overflow_name = Self::overflow_name(options.name);
-        let overflow_options = ImportOptions {
-            name: &overflow_name,
-            initial_capacity: Some(0),
-            ..options
-        };
-
-        let unread_updates = options.unread_updates;
-        let mut compact = MutableVec::<BytesVec<_, _>>::import_with(options)?;
-        let mut overflow = MutableVec::<BytesVec<_, _>>::import_with(overflow_options)?;
-
-        if compact.stamp() != overflow.stamp() {
-            compact.reset()?;
-            overflow.reset()?;
-            overflow.write()?;
-            compact.write()?;
-        }
-
-        let len = compact.len();
-        Ok(Self {
-            compact,
-            overflow,
-            pushed: Vec::new(),
-            visible_len: SharedLen::new(len),
-            gate: Arc::new(RwLock::new(())),
-            unread_updates,
-        })
-    }
-
     #[inline(always)]
     fn decode(&self, compact: T::Compact, reader: &OverflowVecReader<I, T>) -> T {
         decode::<T>(compact, |index| {
@@ -122,10 +87,6 @@ where
         compact
     }
 
-    fn encode(&mut self, value: &T) -> T::Compact {
-        Self::encode_with_overflow(&mut self.overflow, value)
-    }
-
     /// The new compact value replacing `old`, or `None` when `old` still points at the
     /// (updated) overflow record and needs no rewrite.
     fn replace_compact(&mut self, old: T::Compact, value: &T) -> Result<Option<T::Compact>> {
@@ -151,17 +112,8 @@ where
             if let Some(overflow_index) = T::overflow_index(compact) {
                 self.overflow.delete_at(overflow_index);
             }
-            self.compact.delete(index);
+            self.compact.delete_at(index.to_usize());
         }
-    }
-
-    fn read_only_clone(&self) -> ReadOnlyOverflowVec<I, T> {
-        ReadOnlyOverflowVec::new(
-            self.compact.read_only_clone(),
-            self.overflow.read_only_clone(),
-            self.visible_len.clone(),
-            Arc::clone(&self.gate),
-        )
     }
 
     pub fn reader(&self) -> OverflowVecReader<I, T> {
@@ -175,15 +127,8 @@ where
             .map(|compact| self.decode(compact, reader))
     }
 
-    #[inline(always)]
-    fn push(&mut self, value: T) {
-        self.header().assert_writable();
-        let compact = self.encode(&value);
-        self.compact.push(compact);
-        self.pushed.push(value);
-    }
-
-    /// Replaces one final value per index, sorting and applying the owned batch.
+    /// Replaces existing values, each index at most once: `IndexTooHigh` for an index past the
+    /// length.
     pub fn update_many(&mut self, mut values: Vec<(I, T)>) -> Result<()> {
         self.header().check_writable()?;
         values.sort_unstable_by_key(|(index, _)| index.to_usize());
@@ -208,7 +153,7 @@ where
         for (index, value) in values {
             let index_at = index.to_usize();
             let compact = if self.compact.holes().contains(&index_at) {
-                Some(self.encode(&value))
+                Some(Self::encode_with_overflow(&mut self.overflow, &value))
             } else {
                 let old = reader
                     .compact(&self.compact, index)
@@ -242,11 +187,9 @@ where
             .map(|value| Self::encode_with_overflow(&mut self.overflow, value));
         let indices = self.compact.fill_holes_or_push_many(compacts);
         let stored_len = self.compact.stored_len();
-        self.pushed.reserve(
-            self.compact
-                .len()
-                .saturating_sub(stored_len + self.pushed.len()),
-        );
+        // `pushed` mirrors the compact half's pushed values, which only grew.
+        self.pushed
+            .reserve(self.compact.len() - stored_len - self.pushed.len());
         for (&index, value) in indices.iter().zip(values) {
             let index = index.to_usize();
             if index >= stored_len {
@@ -306,8 +249,34 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    fn import_with(options: ImportOptions) -> Result<Self> {
-        Self::import_inner(options)
+    fn import_with(mut options: ImportOptions) -> Result<Self> {
+        options.version = options.version.combine(VERSION).combine(T::VERSION);
+        let overflow_name = format!("{}_overflow", options.name);
+        let overflow_options = ImportOptions {
+            name: &overflow_name,
+            ..options
+        };
+
+        let unread_updates = options.unread_updates;
+        let mut compact = MutableVec::<BytesVec<_, _>>::import_with(options)?;
+        let mut overflow = MutableVec::<BytesVec<_, _>>::import_with(overflow_options)?;
+
+        if compact.stamp() != overflow.stamp() {
+            compact.reset()?;
+            overflow.reset()?;
+            overflow.write()?;
+            compact.write()?;
+        }
+
+        let len = compact.len();
+        Ok(Self {
+            compact,
+            overflow,
+            pushed: Vec::new(),
+            visible_len: SharedLen::new(len),
+            gate: Arc::new(RwLock::new(())),
+            unread_updates,
+        })
     }
 }
 
@@ -452,8 +421,12 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
+    #[inline(always)]
     fn push(&mut self, value: T) {
-        OverflowVec::push(self, value);
+        self.header().assert_writable();
+        let compact = Self::encode_with_overflow(&mut self.overflow, &value);
+        self.compact.push(compact);
+        self.pushed.push(value);
     }
 
     fn pushed(&self) -> &[T] {
@@ -581,7 +554,12 @@ where
     type ReadOnly = ReadOnlyOverflowVec<I, T>;
 
     fn read_only_clone(&self) -> Self::ReadOnly {
-        OverflowVec::read_only_clone(self)
+        ReadOnlyOverflowVec::new(
+            self.compact.read_only_clone(),
+            self.overflow.read_only_clone(),
+            self.visible_len.clone(),
+            Arc::clone(&self.gate),
+        )
     }
 }
 

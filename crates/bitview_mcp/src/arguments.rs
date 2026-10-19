@@ -2,9 +2,9 @@ use crate::config::{api_url, public_url};
 
 #[derive(Debug)]
 pub struct Arguments {
-    api_url: String,
-    public_url: String,
-    display_name: String,
+    pub api_url: String,
+    pub public_url: String,
+    pub display_name: String,
 }
 
 impl Arguments {
@@ -44,10 +44,6 @@ impl Arguments {
             public_url,
             display_name,
         })
-    }
-
-    pub fn into_parts(self) -> (String, String, String) {
-        (self.api_url, self.public_url, self.display_name)
     }
 }
 

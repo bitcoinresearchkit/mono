@@ -7,7 +7,6 @@ use crate::{
     cache::{CachePolicy, NoCache},
 };
 
-mod cached;
 pub mod decoder;
 pub mod encoded_chunk;
 pub mod page;
@@ -24,12 +23,8 @@ pub use pages::*;
 pub use read_write::*;
 pub use strategy::*;
 
-/// Lean read-only view of a compressed vector (~48 bytes).
-///
-/// Carries only the fields needed for disk reads: region, shared length,
-/// name/header metadata, and the pages index. No pushed buffer, no rollback state.
-///
-/// Created via `ReadWriteCompressedVec::read_only_clone`.
+/// Read-only view of a compressed vector's written values, sharing the writer's region, page
+/// table, stored length and header. Created by `StoredVec::read_only_clone`.
 #[derive(Debug, Clone)]
 pub struct ReadOnlyCompressedVec<I, T: VecValue, S, C: CachePolicy = NoCache> {
     base: ReadOnlyBaseVec<I, T>,

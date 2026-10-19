@@ -73,8 +73,8 @@ where
     }
 
     #[inline(always)]
-    fn index_type_to_string(&self) -> &'static str {
-        self.0.index_type_to_string()
+    fn index_type_name(&self) -> &'static str {
+        self.0.index_type_name()
     }
 
     #[inline(always)]
@@ -83,13 +83,13 @@ where
     }
 
     #[inline(always)]
-    fn value_type_to_size_of(&self) -> usize {
-        self.0.value_type_to_size_of()
+    fn value_size(&self) -> usize {
+        self.0.value_size()
     }
 
     #[inline(always)]
-    fn value_type_to_string(&self) -> &'static str {
-        self.0.value_type_to_string()
+    fn value_type_name(&self) -> &'static str {
+        self.0.value_type_name()
     }
 }
 

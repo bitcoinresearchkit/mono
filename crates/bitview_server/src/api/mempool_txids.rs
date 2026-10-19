@@ -6,7 +6,7 @@ pub async fn serve(state: AppState, headers: HeaderMap) -> Result<Response> {
     // This hash read validates completed publication before a cheap 304.
     let hash = state.query.read(|q| Ok(q.mempool_txids()?.hash())).await?;
     let params = CacheParams::live_hash(hash);
-    if params.matches_etag(&headers) {
+    if params.etag.matches(&headers) {
         return Ok(Response::new_not_modified(&params));
     }
     Ok(state

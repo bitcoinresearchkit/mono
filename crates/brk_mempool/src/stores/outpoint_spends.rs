@@ -103,10 +103,10 @@ impl OutpointSpends {
         Some((spender, Vin::from(vin)))
     }
 
+    /// Mempool txs are never coinbase: every input spends an outpoint.
     fn spent_outpoints(tx: &Transaction) -> impl Iterator<Item = OutpointKey> + '_ {
         tx.input
             .iter()
-            .filter(|i| !i.is_coinbase)
             .map(|i| OutpointKey::new(TxKey::from(&i.txid), i.vout))
     }
 }

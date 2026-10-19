@@ -2,8 +2,8 @@ use brk_types::{FeeRate, MempoolEntryInfo, Sats, Timestamp, Txid, VSize, Weight}
 
 use crate::key::TxKey;
 
-/// Per-tx facts needed for projection. Chunk rates live on the snapshot
-/// (linearized fresh each cycle), not here.
+/// Per-tx facts needed for projection. Chunk rates live on the snapshot, computed when its
+/// graph is rebuilt.
 #[derive(Debug, Clone)]
 pub struct TxEntry {
     pub txid: Txid,

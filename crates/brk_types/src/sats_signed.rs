@@ -1,5 +1,3 @@
-use std::ops::Mul;
-
 use derive_more::{Add, AddAssign, Deref, From, Into, Neg, Sub, SubAssign, Sum};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
@@ -11,8 +9,7 @@ use crate::CheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::Pco;
 
-/// Signed satoshis (i64) - for values that can be negative.
-/// Used for changes, deltas, profit/loss calculations, etc.
+/// A signed amount in satoshis.
 #[derive(
     Debug,
     PartialEq,
@@ -39,35 +36,9 @@ use vecdb::Pco;
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct SatsSigned(i64);
 
-impl SatsSigned {
-    #[inline]
-    pub const fn new(value: i64) -> Self {
-        Self(value)
-    }
-
-    #[inline]
-    pub const fn inner(self) -> i64 {
-        self.0
-    }
-}
-
 impl CheckedSub for SatsSigned {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
         self.0.checked_sub(rhs.0).map(Self)
-    }
-}
-
-impl Mul<i64> for SatsSigned {
-    type Output = Self;
-    fn mul(self, rhs: i64) -> Self::Output {
-        Self(self.0.checked_mul(rhs).expect("SatsSigned overflow"))
-    }
-}
-
-impl Mul<usize> for SatsSigned {
-    type Output = Self;
-    fn mul(self, rhs: usize) -> Self::Output {
-        Self(self.0.checked_mul(rhs as i64).expect("SatsSigned overflow"))
     }
 }
 

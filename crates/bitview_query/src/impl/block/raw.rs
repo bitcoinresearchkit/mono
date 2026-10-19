@@ -27,7 +27,7 @@ impl Query {
         }
         let vecs = self.indexer().vecs();
         let position = vecs.blocks.position.collect_one(height).data()?;
-        let size = u64::from(*vecs.blocks.total.collect_one(height).data()?);
+        let size = u64::from(*vecs.blocks.size.collect_one(height).data()?);
         let weight = u64::from(*vecs.blocks.weight.collect_one(height).data()?);
         if weight > Weight::MAX_BLOCK.to_wu() || size > weight {
             return Err(Error::Internal("Invalid indexed block weight"));
@@ -75,14 +75,10 @@ impl Query {
 
     fn verify_raw_payload(bytes: &[u8], weight: u64, count: u32) -> Result<()> {
         // Check the indexed count before a decoder allocates its transaction list.
-        let transactions = bytes
-            .get(80..)
-            .ok_or(Error::Internal("Raw block shorter than header"))?;
-        Self::read_block_tx_count(transactions, count)?;
+        Self::read_block_tx_count(&bytes[80..], count)?;
         let block: BitcoinBlock =
             deserialize(bytes).map_err(|_| Error::Internal("Invalid raw block payload"))?;
-        if weight > Weight::MAX_BLOCK.to_wu()
-            || block.weight().to_wu() != weight
+        if block.weight().to_wu() != weight
             || !block.check_merkle_root()
             || !block.check_witness_commitment()
         {

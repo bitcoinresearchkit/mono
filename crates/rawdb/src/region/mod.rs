@@ -27,7 +27,7 @@ use self::{
 
 /// Named, dynamically-sized region within a database.
 #[derive(Debug, Clone)]
-#[must_use = "Region should be stored to access the data"]
+#[must_use]
 pub struct Region(pub(crate) Arc<RegionInner>);
 
 impl Region {
@@ -96,9 +96,7 @@ impl Region {
         if end > meta.byte_len() {
             return false;
         }
-        let Some(absolute_start) = meta.start().checked_add(offset) else {
-            return false;
-        };
+        let absolute_start = meta.start() + offset;
         drop(meta);
 
         is_range_resident(db.inner.data.mapping(), absolute_start, len)
@@ -116,7 +114,6 @@ impl Region {
         let db = self.db();
         let _access = self.0.access.write();
         let capacity = capacity
-            .max(PAGE_SIZE)
             .checked_next_multiple_of(PAGE_SIZE)
             .filter(|&size| size <= MAX_RESERVED_SIZE)
             .ok_or_else(|| Error::RegionSizeOverflow {
@@ -151,7 +148,7 @@ impl Region {
         let mut layout = db.layout_mut();
         let added = capacity - reserved;
         let next = start + reserved;
-        let adjacent = layout.get_hole(next).is_some_and(|hole| hole >= added);
+        let adjacent = layout.hole_size(next).is_some_and(|hole| hole >= added);
         let layout_end = layout.end();
         let in_place = next == layout_end || adjacent;
         let hole = if in_place {
@@ -379,7 +376,7 @@ impl Region {
         let _writes = if new_len > reserved {
             let mut capacity = reserved;
             while capacity < new_len {
-                capacity = capacity.saturating_mul(2).min(MAX_RESERVED_SIZE);
+                capacity = (capacity * 2).min(MAX_RESERVED_SIZE);
             }
             let copy_len = if truncate { offset } else { len };
             let writes = self.reserve_inner(&db, capacity, copy_len)?;

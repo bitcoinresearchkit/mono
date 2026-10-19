@@ -1,8 +1,8 @@
 //! The storage stack (vecdb over rawdb) against a plain in-memory model. Random operation
 //! sequences run over every variant: raw, compressed, mutable and overflow vectors, with lazy
-//! views over the dense ones. Every read API is compared after each step, the vector and the
-//! whole database reopen at random, and readers on other threads must see whole values while a
-//! writer appends and rewrites.
+//! views over the dense ones. Range, point, sorted, cache and cursor reads are compared after
+//! each step, the vector and the whole database reopen at random, and readers on other threads
+//! must see whole values while a writer appends and rewrites.
 
 use std::{
     any::type_name,
@@ -20,7 +20,7 @@ use crate::{
     ReadableCloneableVec, ReadableVec, Stamp, StoredVec, Version, cache::CachePolicy,
 };
 
-/// Undo records each vector keeps: deeper rollbacks fail to land and rebuild instead.
+/// Undo records each vector keeps: deeper rollbacks do not land (the caller may rebuild).
 const KEPT: u16 = 3;
 const STEPS: usize = 2_000;
 
@@ -28,8 +28,8 @@ const STEPS: usize = 2_000;
 fn storage_matches_model() {
     // Small enough that budgeted sources evict while they are read.
     Budgeted::init_global(256 * 1024).unwrap();
-    let tmp = TempDir(std::env::temp_dir().join(format!("vecdb-test-{}", process::id())));
-    let dir = tmp.0.as_path();
+    let temp_dir = TempDir(std::env::temp_dir().join(format!("vecdb-test-{}", process::id())));
+    let dir = temp_dir.0.as_path();
     thread::scope(|scope| {
         scope.spawn(|| run::<BytesVec<usize, u64>>(dir, 1));
         scope.spawn(|| run::<BytesVec<usize, u64, Budgeted>>(dir, 2));
@@ -48,7 +48,7 @@ fn storage_matches_model() {
     });
 }
 
-/// Two vectors of one variant share a database, so each one's growth relocates the other.
+/// Two vectors of one variant share a database, so one that cannot grow in place relocates.
 fn run<V: Variant>(dir: &Path, seed: u64) {
     let dir = dir.join(seed.to_string());
     let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15));
@@ -102,7 +102,6 @@ struct Subject<V: Variant> {
 struct State {
     name: &'static str,
     version: u32,
-    /// Imports with unread updates (only the rawdb write path differs here).
     unread: bool,
     model: Model,
 }
@@ -150,8 +149,8 @@ impl<V: Variant> Subject<V> {
 
     fn step(&mut self, rng: &mut Rng) {
         let Self { vec, state, .. } = self;
-        let m = &mut state.model;
-        let len = m.cur.len();
+        let model = &mut state.model;
+        let len = model.cur.len();
         match rng.below(100) {
             0..=39 => {
                 let count = match rng.below(8) {
@@ -161,7 +160,7 @@ impl<V: Variant> Subject<V> {
                 };
                 let values = values(rng, count);
                 values.iter().for_each(|&value| vec.push(value));
-                m.cur.extend(values.into_iter().map(Some));
+                model.cur.extend(values.into_iter().map(Some));
             }
             40..=45 if len > 0 => {
                 let at = if rng.chance(6) {
@@ -170,13 +169,13 @@ impl<V: Variant> Subject<V> {
                     len - rng.below(len.min(300) + 1)
                 };
                 vec.truncate_if_needed_at(at).unwrap();
-                m.truncated |= at < len;
-                m.cur.truncate(at);
+                model.truncated |= at < len;
+                model.cur.truncate(at);
             }
             46..=53 if V::MUTABLE && len > 0 => {
                 // Sometimes only stored zeros, with that previous value given for their undo.
                 let zeros: Vec<usize> = (0..vec.stored_len())
-                    .filter(|&i| m.cur[i] == Some(0))
+                    .filter(|&i| model.cur[i] == Some(0))
                     .collect();
                 let previous = (!zeros.is_empty() && rng.chance(2)).then_some(0);
                 let most = if rng.chance(4) { 2_000 } else { 16 };
@@ -190,99 +189,99 @@ impl<V: Variant> Subject<V> {
                     .collect();
                 updates
                     .iter()
-                    .for_each(|(&i, &value)| m.cur[i] = Some(value));
+                    .for_each(|(&i, &value)| model.cur[i] = Some(value));
                 vec.update(updates.into_iter().collect(), previous);
             }
             54..=56 if V::MUTABLE && len > 0 => {
                 let indexes: BTreeSet<usize> =
                     (0..1 + rng.below(16)).map(|_| rng.below(len)).collect();
-                indexes.iter().for_each(|&i| m.cur[i] = None);
+                indexes.iter().for_each(|&i| model.cur[i] = None);
                 vec.delete(&indexes.into_iter().collect::<Vec<_>>());
             }
             57..=59 if V::MUTABLE => {
                 let count = 1 + rng.below(16);
                 let values = values(rng, count);
                 let indexes: Vec<usize> = (0..len)
-                    .filter(|&i| m.cur[i].is_none())
+                    .filter(|&i| model.cur[i].is_none())
                     .chain(len..)
                     .take(values.len())
                     .collect();
                 assert_eq!(vec.fill(values.clone()), indexes, "lowest holes first");
                 for (i, value) in indexes.into_iter().zip(values) {
-                    match m.cur.get_mut(i) {
+                    match model.cur.get_mut(i) {
                         Some(slot) => *slot = Some(value),
-                        None => m.cur.push(Some(value)),
+                        None => model.cur.push(Some(value)),
                     }
                 }
             }
-            60..=71 => checkpoint(vec, m, rng),
+            60..=71 => checkpoint(vec, model, rng),
             // A plain write would cut rows the next undo record must read back.
-            72..=76 if !m.truncated => {
+            72..=76 if !model.truncated => {
                 match rng.below(3) {
                     0 => {
                         vec.write().unwrap();
                     }
                     1 => vec.flush().unwrap(),
-                    _ => vec.stamped_write(Stamp::from(m.stamp)).unwrap(),
+                    _ => vec.stamped_write(Stamp::from(model.stamp)).unwrap(),
                 }
-                m.written();
+                model.written();
                 assert!(!vec.is_dirty());
             }
             77..=79 => {
-                let target = (m.stamp + 1).saturating_sub(rng.below(8) as u64).max(1);
-                let landing = m.landing(target);
+                let target = (model.stamp + 1).saturating_sub(rng.below(8) as u64).max(1);
+                let landing = model.landing(target);
                 let planned = vec.rollback_landing(Stamp::from(target)).unwrap();
                 assert_eq!(planned, landing.map(Stamp::from));
                 if let Some(landing) = landing {
                     let landed = vec.rollback_before(Stamp::from(target)).unwrap();
                     assert_eq!(landed, Stamp::from(landing));
-                    m.rollback_to(landing);
+                    model.rollback_to(landing);
                 } else if rng.chance(4) {
                     // The caller rebuilds.
                     vec.reset().unwrap();
-                    m.reset();
+                    model.reset();
                 }
             }
             80 => {
-                if let Some(landing) = m.landing(m.stamp) {
+                if let Some(landing) = model.landing(model.stamp) {
                     vec.rollback().unwrap();
-                    m.rollback_to(landing);
+                    model.rollback_to(landing);
                 }
             }
             81..=83 => {
                 vec.reset_unsaved();
-                m.cur = m.cancel.clone();
-                m.truncated = false;
+                model.cur = model.cancel.clone();
+                model.truncated = false;
             }
             84 if rng.chance(2) => {
                 let dependency = 1 + u32::from(rng.chance(6));
-                let changed = m.dependency != Some(dependency);
+                let changed = model.dependency != Some(dependency);
                 let reset = vec
                     .any_validate_computed_version_or_reset(Version::new(dependency))
                     .unwrap();
                 assert_eq!(reset, changed);
                 if changed {
-                    m.dependency = Some(dependency);
-                    m.reset();
+                    model.dependency = Some(dependency);
+                    model.reset();
                 }
             }
             85 => {
                 vec.reset().unwrap();
-                m.reset();
+                model.reset();
             }
             _ => {}
         }
     }
 
     fn check(&self, rng: &mut Rng) {
-        let m = &self.state.model;
-        assert_eq!(self.vec.stamp(), Stamp::from(m.stamp));
-        check_reads(&self.vec, &m.cur, rng);
-        self.vec.check_own(&m.cur, rng);
+        let model = &self.state.model;
+        assert_eq!(self.vec.stamp(), Stamp::from(model.stamp));
+        check_reads(&self.vec, &model.cur, rng);
+        self.vec.check_own(&model.cur, rng);
         // The unsaved values follow the stored ones (a hole's slot holds anything).
         let (stored, pushed) = (self.vec.stored_len(), self.vec.pushed());
-        assert_eq!(stored + pushed.len(), m.cur.len(), "pushed length");
-        let mut unsaved = pushed.iter().zip(&m.cur[stored..]);
+        assert_eq!(stored + pushed.len(), model.cur.len(), "pushed length");
+        let mut unsaved = pushed.iter().zip(&model.cur[stored..]);
         assert!(
             unsaved.all(|(value, expect)| expect.is_none_or(|x| *value == x)),
             "pushed values"
@@ -292,29 +291,29 @@ impl<V: Variant> Subject<V> {
         }
         // Written: the header on disk too, and clones (one kept across writes, one fresh and
         // erased) see it all.
-        assert_eq!(m.cur, m.disk);
+        assert_eq!(model.cur, model.disk);
         let header = Header::read_unverified(self.vec.region()).unwrap();
         assert_eq!(
             (header.stamp(), header.computed_version()),
             (self.vec.stamp(), self.vec.header().computed_version()),
             "header on disk"
         );
-        check_reads(&self.clone, &m.cur, rng);
-        V::check_clone(&self.clone, &m.cur, rng);
+        check_reads(&self.clone, &model.cur, rng);
+        V::check_clone(&self.clone, &model.cur, rng);
         let boxed = self.vec.read_only_boxed_clone();
         assert_eq!(boxed.is_mutable(), V::MUTABLE);
-        check_reads(&boxed, &m.cur, rng);
-        let lazy = LazyVec::init("lazy", Version::ONE, boxed.clone(), lazy_value);
+        check_reads(&boxed, &model.cur, rng);
+        let lazy = LazyVec::new("lazy", Version::ONE, boxed.clone(), lazy_value);
         assert_eq!(lazy.is_mutable(), V::MUTABLE);
         if V::MUTABLE {
             return;
         }
         // Views over a dense source: a transform, and a rolling sum over moving windows.
-        let x: Vec<u64> = m.cur.iter().map(|value| value.unwrap()).collect();
+        let x: Vec<u64> = model.cur.iter().map(|value| value.unwrap()).collect();
         let mapped: Vec<_> = (0..x.len()).map(|i| Some(lazy_value(i, x[i]))).collect();
         check_reads(&lazy, &mapped, rng);
         let starts =
-            LazyVec::<usize, usize, u64>::init("starts", Version::ONE, boxed.clone(), |i, _| {
+            LazyVec::<usize, usize, u64>::new("starts", Version::ONE, boxed.clone(), |i, _| {
                 window_start(i)
             });
         let sums = LazyDeltaVec::<usize, u64, u64, DeltaSub>::new(
@@ -334,12 +333,12 @@ impl<V: Variant> Subject<V> {
 }
 
 /// A checkpoint at a later stamp, mostly saving its undo record.
-fn checkpoint<V: Variant>(vec: &mut V, m: &mut Model, rng: &mut Rng) {
-    let stamp = m.stamp + 1 + rng.below(3) as u64;
+fn checkpoint<V: Variant>(vec: &mut V, model: &mut Model, rng: &mut Rng) {
+    let stamp = model.stamp + 1 + rng.below(3) as u64;
     let with_changes = !rng.chance(6);
     vec.stamped_write_maybe_with_changes(Stamp::from(stamp), with_changes)
         .unwrap();
-    m.checkpoint(stamp, with_changes);
+    model.checkpoint(stamp, with_changes);
     assert!(!vec.is_dirty());
 }
 
@@ -423,7 +422,7 @@ impl Model {
         self.truncated = false;
     }
 
-    /// Empty until written; the undo records are gone at once.
+    /// Empty now, on disk once written; the undo records are gone at once.
     fn reset(&mut self) {
         self.cur.clear();
         self.cancel.clear();
@@ -450,43 +449,47 @@ impl Model {
     }
 }
 
-/// Every read API of `v` against `expect` (`None` for a hole): length, a random range through
-/// each range read, points, sorted indexes, the retained cache and, on dense values, cursors.
+/// The reads of `v` against `expect` (`None` for a hole): length, a random range through each
+/// range read, points, sorted indexes, the retained cache and, on dense values, cursors.
 fn check_reads<R: ReadableVec<usize, u64>>(v: &R, expect: &[Option<u64>], rng: &mut Rng) {
-    let what = type_name::<R>();
+    let reader_type = type_name::<R>();
     let len = expect.len();
-    assert_eq!(v.len(), len, "{what}: length");
+    assert_eq!(v.len(), len, "{reader_type}: length");
     if rng.chance(8) {
-        assert_eq!(v.collect(), present(expect, 0, len), "{what}: all");
+        assert_eq!(v.collect(), present(expect, 0, len), "{reader_type}: all");
     }
     let from = rng.below(len + 2);
     let to = from + rng.below(3_000);
     let want = present(expect, from, to);
-    assert_eq!(v.collect_range_at(from, to), want, "{what}: {from}..{to}");
+    assert_eq!(
+        v.collect_range_at(from, to),
+        want,
+        "{reader_type}: {from}..{to}"
+    );
     let mut appended = vec![u64::MAX];
     v.read_into_at(from, to, &mut appended);
     assert_eq!(
         (appended[0], &appended[1..]),
         (u64::MAX, &want[..]),
-        "{what}"
+        "{reader_type}"
     );
     let mut visited = Vec::new();
     v.for_each_range_dyn_at(from, to, &mut |value| visited.push(value));
-    assert_eq!(visited, want, "{what}: visit");
+    assert_eq!(visited, want, "{reader_type}: visit");
     let mut chunks = Vec::new();
     v.for_each_chunk_at(from, to, &mut |at, chunk| {
         assert!(
             !chunk.is_empty() && at == from + chunks.len(),
-            "{what}: chunk at {at}"
+            "{reader_type}: chunk at {at}"
         );
         chunks.extend_from_slice(chunk);
     });
-    assert_eq!(chunks, want, "{what}: chunks");
+    assert_eq!(chunks, want, "{reader_type}: chunks");
     let folded = v.fold_range_at(from, to, Vec::new(), |mut values, value| {
         values.push(value);
         values
     });
-    assert_eq!(folded, want, "{what}: fold");
+    assert_eq!(folded, want, "{reader_type}: fold");
     let stop = rng.below(want.len() + 1);
     let stopped = v.try_fold_range_at(from, to, 0, |count, value| {
         if count == stop {
@@ -496,19 +499,23 @@ fn check_reads<R: ReadableVec<usize, u64>>(v: &R, expect: &[Option<u64>], rng: &
         }
     });
     let expected = want.get(stop).map_or(Ok(want.len()), |&value| Err(value));
-    assert_eq!(stopped, expected, "{what}: early exit");
+    assert_eq!(stopped, expected, "{reader_type}: early exit");
     let mut cached = Vec::new();
     if v.read_cached_into_at(from, to, &mut cached) {
-        assert_eq!(cached, want, "{what}: cached");
+        assert_eq!(cached, want, "{reader_type}: cached");
     } else {
-        assert!(cached.is_empty(), "{what}: a cache miss appended");
+        assert!(cached.is_empty(), "{reader_type}: a cache miss appended");
     }
 
     for _ in 0..4 {
         let i = rng.below(len + 2);
-        assert_eq!(v.collect_one_at(i), get(expect, i), "{what}: at {i}");
+        assert_eq!(v.collect_one_at(i), get(expect, i), "{reader_type}: at {i}");
     }
-    assert_eq!(v.collect_last(), expect.last().copied().flatten(), "{what}");
+    assert_eq!(
+        v.collect_last(),
+        expect.last().copied().flatten(),
+        "{reader_type}"
+    );
     let mut indexes: Vec<usize> = if rng.chance(2) {
         let start = rng.below(len + 1);
         (start..start + rng.below(64)).collect()
@@ -517,7 +524,11 @@ fn check_reads<R: ReadableVec<usize, u64>>(v: &R, expect: &[Option<u64>], rng: &
     };
     indexes.sort_unstable();
     let sorted: Vec<u64> = indexes.iter().filter_map(|&i| get(expect, i)).collect();
-    assert_eq!(v.read_sorted_at(&indexes), sorted, "{what}: {indexes:?}");
+    assert_eq!(
+        v.read_sorted_at(&indexes),
+        sorted,
+        "{reader_type}: {indexes:?}"
+    );
 
     // Cursors pair buffer offsets with positions: dense sources only.
     if expect.iter().any(Option::is_none) {
@@ -526,11 +537,15 @@ fn check_reads<R: ReadableVec<usize, u64>>(v: &R, expect: &[Option<u64>], rng: &
     let mut cursor = v.cursor();
     for _ in 0..4 {
         let i = rng.below(len + 2);
-        assert_eq!(cursor.get(i), get(expect, i), "{what}: cursor at {i}");
+        assert_eq!(
+            cursor.get(i),
+            get(expect, i),
+            "{reader_type}: cursor at {i}"
+        );
     }
     let mut range = Vec::new();
     cursor.collect_range_into_at(from, to, &mut range);
-    assert_eq!(range, want, "{what}: cursor range");
+    assert_eq!(range, want, "{reader_type}: cursor range");
     range.clear();
     cursor
         .try_for_each_range_at::<()>(from, to, |value| {
@@ -538,7 +553,7 @@ fn check_reads<R: ReadableVec<usize, u64>>(v: &R, expect: &[Option<u64>], rng: &
             Ok(())
         })
         .unwrap();
-    assert_eq!(range, want, "{what}: cursor visit");
+    assert_eq!(range, want, "{reader_type}: cursor visit");
     let mut bounded = v.bounded_cursor_at(from, to);
     let (head, skip) = (rng.below(want.len() + 1), rng.below(64));
     let mut seen: Vec<u64> = (0..head).map(|_| bounded.next().unwrap()).collect();
@@ -550,7 +565,7 @@ fn check_reads<R: ReadableVec<usize, u64>>(v: &R, expect: &[Option<u64>], rng: &
     assert_eq!(
         seen,
         [&want[..head], rest].concat(),
-        "{what}: bounded cursor"
+        "{reader_type}: bounded cursor"
     );
 }
 

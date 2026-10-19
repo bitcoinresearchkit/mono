@@ -2,10 +2,8 @@ use brk_types::{BlockHash, Height};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Block status indicating whether block is in the best chain
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BlockStatus {
-    /// Whether this block is in the best chain
     #[schemars(example = true)]
     pub in_best_chain: bool,
 

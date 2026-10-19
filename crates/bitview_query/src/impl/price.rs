@@ -15,7 +15,6 @@ const MAX_BUCKETS: usize = ((u32::MAX - INDEX_EPOCH) / HOUR4_INTERVAL) as usize 
 /// Validated historical-price sources held stable through response selection.
 pub struct ResolvedHistoricalPrice<'a> {
     query: &'a Query,
-    source_len: usize,
     pin: SafeLengths,
 }
 
@@ -37,7 +36,6 @@ impl Query {
         }
         Ok(ResolvedHistoricalPrice {
             query: self,
-            source_len,
             pin: pin.into_inner(),
         })
     }
@@ -53,7 +51,7 @@ impl ResolvedHistoricalPrice<'_> {
     /// `timestamp`'s bucket (none before the first price).
     pub fn get(&self, timestamp: Option<Timestamp>) -> Result<HistoricalPrice> {
         let plugins = self.query.plugins();
-        let source_len = self.source_len;
+        let source_len = usize::from(self.pin.lengths().height);
         let mut bounds = ReadBounds::new();
         bounds.set(Index::Height.name(), source_len);
         bounds.scope(|| {

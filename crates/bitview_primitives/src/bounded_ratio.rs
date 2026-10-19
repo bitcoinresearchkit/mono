@@ -48,11 +48,6 @@ impl BoundedRatio {
         }
     }
 
-    /// Restore raw encoded bits, including the undefined sentinel.
-    pub const fn from_raw(value: u32) -> Self {
-        Self(value)
-    }
-
     pub const fn inner(self) -> u32 {
         self.0
     }

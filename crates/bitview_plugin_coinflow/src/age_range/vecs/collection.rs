@@ -13,7 +13,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub ranges: AgeRange<RangeVecs<M>>,
 }
 
-/// Coinflow of one UTXO age range.
 #[derive(Traversable)]
 pub struct RangeVecs<M: StorageMode = Rw> {
     /// Empirical daily spending hazard: cumulative transfer volume in BTC

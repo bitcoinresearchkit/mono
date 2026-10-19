@@ -1,9 +1,7 @@
 pub mod bytes;
 pub mod conversions;
 
-/// Marker for tracking when data was last modified.
-///
-/// Used for change tracking, rollback support, and ETag generation.
+/// Checkpoint a vector's data was last written at; rollback history is kept per stamp.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[must_use = "Stamp values should be used for tracking"]
+#[must_use]
 pub struct Stamp(u64);

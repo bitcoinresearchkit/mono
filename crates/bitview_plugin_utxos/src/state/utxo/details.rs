@@ -1,4 +1,4 @@
-use crate::state::{Transacted, UTXOStates};
+use crate::state::{ReceivedOutputs, UTXOStates};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use brk_types::{Cents, OutputType};
 impl UTXOStates {
@@ -12,7 +12,7 @@ impl UTXOStates {
             .decrement_snapshot(&snapshot);
     }
 
-    pub fn receive_details(&mut self, received: &Transacted, price: Cents) {
+    pub fn receive_details(&mut self, received: &ReceivedOutputs, price: Cents) {
         for (state, supply) in self.type_.iter_mut().zip(received.by_type.iter()) {
             if supply.utxo_count > 0 {
                 state.receive_utxo(supply, price);

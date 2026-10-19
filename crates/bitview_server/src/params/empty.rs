@@ -3,7 +3,7 @@ use axum::{extract::FromRequestParts, http::request::Parts};
 
 use crate::Error;
 
-/// Extractor that rejects requests carrying any query string.
+/// Extractor that rejects requests carrying a nonempty query string.
 /// Used on path-only endpoints to prevent cache-busting via injected
 /// query params (the cache key includes the URI).
 pub struct Empty;

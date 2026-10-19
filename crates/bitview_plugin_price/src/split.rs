@@ -9,7 +9,6 @@ use crate::{
     ohlc::OhlcPrice,
 };
 
-/// One price of an OHLC candle.
 macro_rules! ohlc_field {
     ($($name:ident => $field:ident),+ $(,)?) => {$(
         struct $name;
@@ -67,7 +66,6 @@ impl SplitPrice {
     }
 }
 
-/// The candle's high or low, `F` picking it.
 fn extreme<F: UnaryTransform<OHLCCents, Cents>>(
     name: &str,
     field: &str,

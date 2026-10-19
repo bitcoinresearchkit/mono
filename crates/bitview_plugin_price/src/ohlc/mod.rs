@@ -9,10 +9,8 @@ use vecdb::{Convert, ReadableBoxedVec};
 
 use candle::Ohlc;
 
-/// Three: candles skip the zero placeholders before the first price.
 const COMPUTE_VERSION: Version = Version::new(3);
 
-/// Candles in cents per resolution.
 pub(crate) type OhlcCents = AggResolutions<OHLCCents, Cents, Ohlc>;
 
 /// OHLC candles of the spot price per resolution: cents, with a lazy USD view.

@@ -28,7 +28,12 @@ impl ValuePerBlockCumulative {
     ) -> Result<Self> {
         let v = version + VERSION;
         let cumulative = ValuePerBlock::import(db, &format!("{name}_cumulative"), v, indexes)?;
-        let block = LazyValueBlock::from_cumulative(name, v, &cumulative);
+        let block = LazyValueBlock::from_cumulative_sources(
+            name,
+            v,
+            cumulative.sats.resolutions.height_source(),
+            cumulative.cents.resolutions.height_source(),
+        );
 
         Ok(Self {
             block,

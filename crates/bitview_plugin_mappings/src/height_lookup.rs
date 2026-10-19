@@ -52,8 +52,8 @@ impl<I: VecIndex> HeightLookup<I> {
 
     /// Look up the block containing an index.
     #[inline]
-    pub fn get_shared(&self, index: I) -> Option<Height> {
-        self.load().get_shared(index)
+    pub fn get(&self, index: I) -> Option<Height> {
+        self.load().get(index)
     }
 }
 

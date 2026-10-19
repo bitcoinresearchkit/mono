@@ -2,9 +2,6 @@ use rawdb::Database;
 
 use crate::{ImportOptions, Result, Version};
 
-/// Trait for types that can be imported from a database.
-///
-/// This provides a uniform interface for constructing stored vectors of any storage format.
 pub trait ImportableVec: Sized {
     /// Import from database, creating if needed.
     ///

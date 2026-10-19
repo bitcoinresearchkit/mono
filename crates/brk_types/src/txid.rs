@@ -28,7 +28,7 @@ pub struct Txid([u8; 32]);
 crate::bytes::impl_hash32!(Txid, BitcoinTxid, expecting: "a transaction ID");
 
 impl Txid {
-    /// Coinbase transaction "txid" - all zeros (used for coinbase inputs)
+    /// All zeros: the previous-output txid of coinbase inputs.
     pub const COINBASE: Self = Self([0u8; 32]);
 
     /// Reinterpret a slice of `Txid`s as a slice of `bitcoin::Txid`s: a zero-cost view (no

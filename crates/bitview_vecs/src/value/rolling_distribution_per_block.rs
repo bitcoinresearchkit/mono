@@ -10,10 +10,8 @@ use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
 use crate::{IndexSources, ValuePerBlock, WindowStarts, shapes::Windows};
 
-/// Rolling distribution across 4 windows, stat-first naming.
-///
-/// Tree: `avg._24h.sats.height`, `max._24h.sats.height`, etc.
-/// Series: `{name}_avg_24h`, `{name}_max_24h`, etc.
+/// Stored rolling distribution statistics with statistic-before-window ids, such as
+/// `{name}_max_24h`.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw> {
     #[deref]

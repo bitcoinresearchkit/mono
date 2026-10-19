@@ -9,7 +9,7 @@ use super::Region;
 /// Zero-copy reader that keeps this region's bytes and bounds stable.
 ///
 /// Drop before modifying this region.
-#[must_use = "Reader holds locks and should be used for reading"]
+#[must_use = "Reader holds a region read lock"]
 pub struct Reader {
     /// The region's first byte in the database mapping, which never moves while `_db` lives.
     base: *const u8,
@@ -45,25 +45,21 @@ impl Reader {
     }
 
     pub fn read(&self, offset: usize, len: usize) -> &[u8] {
-        assert!(len <= self.len() && offset <= self.len() - len);
+        assert!(len <= self.len && offset <= self.len - len);
         // SAFETY: allocation/import validate region bounds; the owned region lock keeps these bytes
         // in place and unchanged (unread writes never run while a reader lives), and the database
         // keeps the mapping alive.
         unsafe { slice::from_raw_parts(self.base.add(offset), len) }
     }
 
-    fn len(&self) -> usize {
-        self.len
-    }
-
     pub fn read_all(&self) -> &[u8] {
-        self.read(0, self.len())
+        self.read(0, self.len)
     }
 
     /// Slice from offset to the end of this region, borrowing nothing before `offset`.
     pub fn read_from(&self, offset: usize) -> &[u8] {
-        assert!(offset <= self.len());
-        self.read(offset, self.len() - offset)
+        assert!(offset <= self.len);
+        self.read(offset, self.len - offset)
     }
 }
 
