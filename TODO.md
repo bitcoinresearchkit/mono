@@ -14,10 +14,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 Built against local.bitview.space; deployed to studio-next only, never studio.bitview.space until you say.
 
 - Before going live, decide what happens to presets people edited on the old tree: their places are gone, so the edits match no preset (kept in the browser, shown nowhere, only in Download all), and old `/chart/…` addresses open the Charts page.
-- Auto interval polish, so it could become the default again:
-  - a 2–4px sideways shift during the crossfade;
-  - time-axis labels that change instantly;
-  - a 0.7s delay before the switch.
 
 ## Showcases
 

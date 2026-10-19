@@ -11535,29 +11535,47 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** An edge back on the chart: the bar holding its time (past the data, counted by the calendar), and the bars from there. */
       const logicalOf = (/** @type {[number, number]} */ [time, bars], /** @type {number[]} */ times, /** @type {string} */ index) => (time > /** @type {number} */ (times.at(-1)) ? times.length - 1 + indexAt(index, time) - indexAt(index, /** @type {number} */ (times.at(-1))) : Math.max(0, lowerBound(times, time + 1) - 1)) + bars;
       /**
-       * A view kept for a chart, on its points at `index`: as kept, at the interval it was kept at; at another, by its
-       * edges' times (bars past them counted as time, the last bar whole), so it shows the same stretch of history.
+       * A view kept for a chart, on its points at `index`: as kept, at the interval it was kept at; at another, by the
+       * moments its edges stand at (see viewTimes), so it shows the same stretch of history, each moment where it was on
+       * screen: a bar at its own time (as the time axis labels it), a moment between two bars as far between them (a
+       * date both intervals have, at the same place: its label doesn't move).
        */
       function viewOn(left, index, times) {
         if (left.index === index) return { from: logicalOf(left.from, times, index), to: logicalOf(left.to, times, index) };
         const { start, end } = viewTimes(left), last = /** @type {number} */ (times.at(-1)), lastIndex = indexAt(index, last);
-        // The bar holding a time: on the data, the point at or before it; past it, counted by the calendar (before it, by
-        // its bars' length: the room before the data kept, as after it, or Auto would find the view narrower and go back).
-        const barOf = (/** @type {number} */ time) => (time < times[0] ? (time - times[0]) / (INTERVAL_DAYS[index] * 86400) : time <= last ? Math.max(0, lowerBound(times, time + 1) - 1) : times.length - 1 + indexAt(index, time) - lastIndex);
-        // Its first bar to its last whole, no further past the data than the chart's own room on the right (at the view's
-        // own spacing); only a few bars here (two days, at a week): thirty, ending where it did.
+        // A moment's place: on the data, between the point at or before it and the next; past it, counted by the calendar
+        // (before it, by its bars' length: the room before the data kept, as after it, or Auto would find the view narrower
+        // and go back).
+        const placeOf = (/** @type {number} */ time) => {
+          if (time < times[0]) return (time - times[0]) / (INTERVAL_DAYS[index] * 86400);
+          if (time >= last) {
+            const k = indexAt(index, time), from = timeAt(index, k);
+            return times.length - 1 + k - lastIndex + (time - from) / (timeAt(index, k + 1) - from);
+          }
+          // (The last point at or before it, a moment a fraction of a second before the last's included: one before it.)
+          const at = lowerBound(times, time), i = times[at] === time ? at : at - 1;
+          return i + (time - times[i]) / (times[i + 1] - times[i]);
+        };
+        // No further past the data than the chart's own room on the right (at the view's own spacing); only a few bars
+        // here (two days, at a week): thirty, ending where it did.
         // (Over as many bars as the chart shows at most; no chart to measure, none past the data.)
-        const plot = view.timeScale().width(), bars = Math.min(mostBars(), Math.max(1, barOf(end - 1) - barOf(start)));
+        const plot = view.timeScale().width(), bars = Math.min(mostBars(), Math.max(1, placeOf(end) - placeOf(start)));
         const room = plot > rightGap() ? Math.max(0, (rightGap() * (bars + 1)) / (plot - rightGap()) - 0.5) : 0;
-        const to = Math.min(barOf(end - 1), times.length - 1 + room), from = Math.min(barOf(start), to - 30);
+        const to = Math.min(placeOf(end), times.length - 1 + room), from = Math.min(placeOf(start), to - 30);
         return { from, to };
       }
-      /** A kept view's stretch of time: from the start of its first bar to the end of its last, at its own interval. */
+      /**
+       * A kept view's stretch of time, at its own interval: the moments its edges stand at (an edge at a bar, the bar's
+       * own time, as the time axis labels it; between two, as far between their times).
+       */
       function viewTimes(left) {
-        const bar = (/** @type {[number, number]} */ [time, bars]) => Math.floor(indexAt(left.index, time) + bars);
         // (A bar before the calendar's first, by its length from there.)
         const timeOf = (/** @type {number} */ i) => (i >= 0 ? timeAt(left.index, i) : timeAt(left.index, 0) + i * INTERVAL_DAYS[left.index] * 86400);
-        return { start: timeOf(bar(left.from)), end: timeOf(bar(left.to) + 1) };
+        const at = (/** @type {[number, number]} */ [time, bars]) => {
+          const place = indexAt(left.index, time) + bars, i = Math.floor(place);
+          return timeOf(i) + (place - i) * (timeOf(i + 1) - timeOf(i));
+        };
+        return { start: at(left.from), end: at(left.to) };
       }
       let viewTimer = 0;
       /** Keeps where the open chart is, a moment after it stops moving. */
@@ -11565,15 +11583,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         clearTimeout(viewTimer);
         viewTimer = setTimeout(saveView, 250);
       }
+      /** The view kept, as it shows: the chart on screen, at the interval it's drawn at (see storeView). */
       function saveView() {
+        storeView(false);
+      }
+      /**
+       * The view kept, as it shows. Mid-switch, it still shows the interval before (the new one's data on its way): kept
+       * then only `asDrawn`, by the switch's draw as it lands, so the view moved meanwhile is the one it shows.
+       * @param {boolean} asDrawn
+       */
+      function storeView(asDrawn) {
         clearTimeout(viewTimer);
         const times = resolved?.times;
-        // Only the chart on screen, drawn at its interval: mid-switch the view still shows the one before.
-        if (!chart || drawnChart !== chart.id || drawnIndex !== chart.index || !times?.length || !view.timeScale().width()) return;
-        const range = view.timeScale().getVisibleLogicalRange();
+        if (!chart || drawnChart !== chart.id || (!asDrawn && drawnIndex !== chart.index) || !times?.length || !view.timeScale().width()) return;
+        // (By the switch's draw, mid-glide (a zoom asked for meanwhile), where it's going: the draw ends the glide.)
+        const range = (asDrawn && glideTarget) || view.timeScale().getVisibleLogicalRange();
         const all = viewsNow();
         if (presetShown || !range) delete all[chart.id];
-        else all[chart.id] = { index: chart.index, from: edgeOf(range.from, times), to: edgeOf(range.to, times) };
+        else all[chart.id] = { index: drawnIndex, from: edgeOf(range.from, times), to: edgeOf(range.to, times) };
         for (const id of Object.keys(all)) if (!chartById(id)) delete all[id];
         storage.set(VIEWS, all);
       }
@@ -12230,7 +12257,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const left = leftView(doc.id);
           if (left) {
             const { start, end } = viewTimes(left), most = left.index === doc.index ? MOST_CHUNKS : FIRST_CHUNKS;
-            const to = clamp(chunkAt(doc.index, end - 1), 0, latest);
+            const to = clamp(chunkAt(doc.index, end), 0, latest);
             const from = clamp(chunkAt(doc.index, start), Math.max(0, to - most + 1), to);
             span = { from, to, live: to >= latest };
           } else span = presetSpan(doc.index, doc.range);
@@ -12968,6 +12995,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("progress").hidden = true;
         $("navigator").classList.remove("waiting");
         $("chart").classList.remove("waiting");
+        // (At another interval, the view kept as it shows now, at the one before: moved while its data came, it's that one.
+        // Only the switch's own, kept at the one before: none (a range asked for shows instead), or one kept at the new
+        // interval (a date gone to), stays as it is.)
+        if (drawnChart === doc.id && drawnIndex !== doc.index && leftView(doc.id)?.index === drawnIndex) storeView(true);
         // (Nothing at all, bitview.space not answering: one word of it over the plot, not a red line per layer.)
         const unreached = result.failed.length > 0 && ![...result.results.values()].some((item) => item?.shown);
         $("unreached").hidden = !unreached;
@@ -14668,9 +14699,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         clearTimeout(restTimer);
         // (Not where Auto's about to switch: what it'd reach for is another interval's.)
         restTimer = setTimeout(() => (chart?.auto && autoWanted() !== chart.index) || reachOut(), 200);
-        // (Auto waits a little longer: a pause mid-pinch isn't the view at rest.)
+        // (Auto, once the view's still a moment: a wheel's or a fling's last step, seven frames on; a press or a pinch is
+        // waited out by autoCheck itself, till its last finger's up.)
         clearTimeout(autoTimer);
-        autoTimer = setTimeout(autoCheck, 300);
+        autoTimer = setTimeout(autoCheck, 120);
       };
       /** The pointers down on the chart (a pinch's two: pressed till both are up). */
       const pressed = new Set();
@@ -14839,30 +14871,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** An Auto switch's draw to come: crossfaded (see veilPlots). */
       let autoFade = false;
       /**
-       * Each pane's plot as it is now, a copy over its canvases (under its legend), to fade as the plot's drawn anew under
-       * it: none where motion's reduced.
+       * Each pane's plot as it is now, a copy over its canvases (under its legend), and the time axis's, to fade as the
+       * chart's drawn anew under them: none where motion's reduced. (The time axis's dates stay where they were, see
+       * viewOn: some come or go, as an interval labels its own.)
        */
       function veilPlots() {
         if (reduced.matches) return [];
         for (const old of all$(".plot-veil", $("chart"))) old.remove();
-        return view.panes().flatMap((pane, i) => {
-          const plot = /** @type {HTMLElement | null | undefined} */ (pane.getHTMLElement()?.children[1]?.firstElementChild);
-          // (Its drawing, the first: not the crosshair's over it, which stays as it is.)
-          const canvas = plot?.querySelector("canvas");
-          if (!plot || !canvas?.width) return [];
-          // (In a box of the plot's: moved with its scale, it's clipped to its pane.)
+        /** A copy of a box's drawing (its first canvas: not the crosshair's over it, which stays as it is), over it. @param {HTMLElement | null | undefined} box @param {number | null} pane */
+        const veilOf = (box, pane) => {
+          const canvas = box?.querySelector("canvas");
+          if (!box || !canvas?.width) return [];
+          // (In the box: a plot's, moved with its scale, is clipped to its pane.)
           const veil = document.createElement("div"), copy = document.createElement("canvas");
           veil.className = "plot-veil";
-          veil.dataset.pane = String(i);
+          if (pane !== null) veil.dataset.pane = String(pane);
           copy.width = canvas.width;
           copy.height = canvas.height;
           const context = copy.getContext("2d");
           if (!context) return [];
           context.drawImage(canvas, 0, 0);
           veil.append(copy);
-          plot.append(veil);
+          box.append(veil);
           return [veil];
-        });
+        };
+        const rows = view.chartElement().querySelector("table")?.rows;
+        return [
+          ...view.panes().flatMap((pane, i) => veilOf(/** @type {HTMLElement | null | undefined} */ (pane.getHTMLElement()?.children[1]?.firstElementChild), i)),
+          ...veilOf(/** @type {HTMLElement | null | undefined} */ (rows?.[rows.length - 1]?.cells[1]?.firstElementChild), null),
+        ];
       }
       /** The veils faded away (the plot under them drawn). @param {HTMLElement[]} veils */
       function liftVeils(veils) {
