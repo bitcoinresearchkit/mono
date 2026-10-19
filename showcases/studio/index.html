@@ -3136,7 +3136,7 @@
         }
       }
 
-      /* Or a chart already made: the recommended website charts, each with its mini chart, name and place; the rest of them a click away. */
+      /* Or a chart already made: the recommended presets, each with its mini chart, name and place; the rest of them a click away. */
       .starts {
         margin-top: 30px;
 
@@ -8996,8 +8996,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
     <div id="hints" class="hints" aria-hidden="true"></div>
 
 
-    <!-- The website's charts, as presets (presets.js): the build puts the live website's here, compressed; the dev page's
-         come from the local website, made in a worker. -->
+    <!-- The presets (presets.js): the build puts them here, compressed; the dev page makes them as it loads. -->
     <script id="presets" type="application/gzip"></script>
     <script type="module">
       // @ts-check
@@ -9007,7 +9006,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { QuickMatch, QuickMatchConfig } from "../modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
-      const client = new BitviewClient({ baseUrl: "https://bitview.space", timeout: 30_000, memCache: false, browserCache: false });
+      const client = new BitviewClient({ baseUrl: "https://local.bitview.space", timeout: 30_000, memCache: false, browserCache: false });
       /** The server the page draws from, as its words name it: its host, as written (a prefix too, if it has one). */
       const SERVER_HOST = new URL(client.baseUrl).host;
       for (const element of document.querySelectorAll(".server-host")) element.textContent = SERVER_HOST;
@@ -10565,7 +10564,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * A series' first look, as the website draws it: as its charts draw it most (its color, its type: see looksOf); else
+       * A series' first look: as the presets draw it most (its color, its type: see looksOf); else
        * by what Bitview says it is (its type, from what's known of it: an added one's, asked for; a link's, if it's been
        * asked for already): candles where its type is open-high-low-close; the price itself (under its catalog's price,
        * in any unit) in ink; a value in dollars green, in bitcoin (BTC, sats) orange. A color taken on the chart (`used`)
@@ -10741,21 +10740,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           doc.drawings = doc.drawings.filter((drawing) => layers.has(drawing.layer));
           if (!doc.drawings.length) delete doc.drawings;
         }
-      }
-
-      /** The price as a website chart starts with it: candles, its latest lined across (formulas and values read its close). */
-      const price = { series: tree.price.ohlc.name, label: "Price", type: "candles", color: "ink", priceLine: true };
-
-      /** @returns {Chart} */
-      function fromTemplate(template) {
-        const doc = blankChart(template.title);
-        doc.index = template.index;
-        doc.panes = template.panes.map((pane) => ({ id: uid(), ...pane }));
-        for (const spec of template.layers) {
-          const { pane = 0, ...rest } = spec;
-          doc.layers.push(makeLayer({ ...rest, pane: doc.panes[pane].id }, doc));
-        }
-        return doc;
       }
 
       // ── Library, saving, undo ─────────────────────────────────────────────────
@@ -13438,7 +13422,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       const defaultSize = (i) => (i === 0 ? 3 : 1.4);
       /**
-       * The panes folded: those with nothing shown (every layer in them hidden: as a website's chart opens some, or as
+       * The panes folded: those with nothing shown (every layer in them hidden: as a preset opens some, or as
        * hidden one by one), while another shows something. A folded pane keeps only its legend's height: its layers'
        * names, there to be shown again; showing one opens it as tall as it was.
        */
@@ -17932,7 +17916,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!data || retryFailed(copy, data, index) || previewKey(doc) !== key) return null;
           // Replaced meanwhile (another tab's edit): its successor is drawn on its own.
           if (!/^(recommended|preset):/.test(doc.id) && chartById(doc.id) !== doc) return null;
-          // (A website chart let go meanwhile, out of the last looked at: its drawing isn't kept either.)
+          // (A preset let go meanwhile, out of the last looked at: its drawing isn't kept either.)
           if (doc.id.startsWith("preset:") && !presetDocs.has(Number(doc.id.slice(7)))) return null;
           const drawn = { key, ...previewOf(copy, data, previewBars(doc, index)) };
           previews.set(doc.id, drawn);
@@ -17955,7 +17939,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         await Promise.allSettled(seriesIn(doc).map(info));
         return supportedIntervals(doc)(index) ? index : autoOwn(doc);
       }
-      /** A website chart's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
+      /** A preset's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
       const previewIndex = (/** @type {Chart} */ doc) => sampleIndex(doc, "week1", 100);
       /**
        * The interval a small picture of a chart reads (a mini chart's, from months, for its few points; a preview's, from
@@ -18288,7 +18272,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A shelf's arrows are alike: one focused is let go, not put on another shelf's.)
         const head = (/** @type {number} */ count) => (top ? groupHead("Presets", grouped.format(count)) : ""), focus = document.activeElement?.closest?.("[data-shelf-step]") ? null : focusKey($("gallery"));
         if (!presets) {
-          $("gallery").innerHTML = (presetsFailed === "none" ? `<p class="gallery-note">This page was built without the presets.</p>` : presetsFailed ? `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>` : `<p class="gallery-note">Loading the presets…</p>`);
+          $("gallery").innerHTML = (presetsFailed ? `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>` : `<p class="gallery-note">Loading the presets…</p>`);
           return restoreFocus($("gallery"), focus);
         }
         if (words.length) {
@@ -19374,9 +19358,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         foldRow(() => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-group="${group}"]`)), closing);
       }
       /**
-       * The presets' sections as a tree, made once they're read: each with what's in it as the website has it (its
-       * sections and its own presets, in the presets' order: Bitcoin Price before the sections after it), how many it
-       * holds at any depth, its key (its path, as kept).
+       * The presets' sections as a tree, made once they're read: each with what's in it as made (its sections and its
+       * own presets, in the presets' order), how many it holds at any depth, its key (its path, as kept).
        * @typedef {{ path: string[], key: string, items: (PresetNode | number)[], count: number }} PresetNode
        */
       let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null }} */ ({ for: null, node: null });
@@ -19405,7 +19388,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The presets' marks in the sidebar, as drawn (this visit's: made as their rows come into sight), by what each is of. @type {Map<string, any[]>} */
       const presetMarks = new Map();
-      // (By the preset, as the website has it; edited here, by its copy as it is: nothing else changes it.)
+      // (By the preset, as made; edited here, by its copy as it is: nothing else changes it.)
       const presetMarkKey = (/** @type {number} */ i) => ((doc) => (doc ? `${doc.id}@${doc.updated}` : presetKey(i)))(editedPreset(i));
       /** A preset's mark, as its row shows it: drawn, else the empty one till it is. */
       const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? []);
@@ -20543,22 +20526,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("chart-list").addEventListener("click", (event) => closest(event, "[data-new-folder]") && newFolder());
       $("chart-list").addEventListener("scroll", () => fitSoon($("chart-list"), true), { passive: true });
       new ResizeObserver(() => fitStrip($("chart-list"), true)).observe($("chart-list"));
-      // The empty chart offers the website's recommended charts, each with its mini chart, name and place, in a row that
-      // scrolls (waiting cards, the room they take, until the website's charts are read).
+      // The empty chart offers the recommended presets, each with its mini chart, name and place, in a row that scrolls
+      // (waiting cards, the room they take, until the presets are read).
       strip($("templates"));
       new ResizeObserver(() => fitStrip($("templates"))).observe($("templates"));
       /** The recommended charts as the charts they make, their drawings kept under stable ids. @type {{ preset: number, doc: Chart }[]} */
       let recommendedCards = [];
       function renderRecommended() {
         const list = presets;
-        // (Each as it shows: as edited here, else as the website has it.)
+        // (Each as it shows: as edited here, else as made.)
         recommendedCards = !list ? [] : RECOMMENDED.flatMap((place, k) => {
           const preset = list.findIndex((item) => item.p.join(" › ") === place);
           if (preset < 0) return [];
           const edited = editedPreset(preset);
           if (edited && presetEdited(edited)) return [{ preset, doc: edited }];
-          const doc = Object.assign(fromTemplate(presetTemplate(list[preset])), { id: `recommended:${k}` });
-          doc.layers.forEach((layer, n) => (layer.id = `layer:${n}`));
+          const doc = Object.assign(fromPreset(list[preset]), { id: `recommended:${k}` });
           return [{ preset, doc }];
         });
         recommendedDrawn = recommendedKey();
@@ -20605,76 +20587,61 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawCards();
       });
 
-      // ── The website's charts: every one, a chart to start from ────────────────
+      // ── The presets: every one, a chart to start from ─────────────────────────
 
       /**
-       * A website chart (presets.js makes them): `p` its place in the website's tree, `t` its title, `a` its top pane's
-       * layers, `b` its bottom pane's. A layer: `s` its series, `k` its type, `c` its color (`c2` under its base), `l` its
-       * label, `h` hidden, `d` its dash, `z` its base, `v` its levels.
-       * @typedef {{ s: string, k?: string, c?: string, c2?: string, l?: string, h?: 1, d?: number, z?: number, v?: number[] }} PresetLayer
-       * @typedef {{ p: string[], t: string, a: PresetLayer[], b: PresetLayer[] }} Preset
+       * A preset (presets.js makes them): `p` its place in their tree (its sections, then its own name), `t` its title, `c`
+       * its chart as a link writes it.
+       * @typedef {{ p: string[], t: string, c: { layers: any[], panes?: any[], range?: string } }} Preset
        */
-      /** The website's charts its page recommends first, by their place in its tree. */
+      /** The presets the empty chart offers first, by their place (the build checks each is one). */
       const RECOMMENDED = [
-        "Market › Capitalization › Compare", "Market › Indicators › Value Anchors", "Market › Indicators › Puell Multiple",
-        "Market › Returns › Compare", "Distribution › STH vs LTH › Prices › Realized › Price", "Distribution › STH vs LTH › Capitalization › MVRV",
-        "Distribution › Overview › Supply › Profitability › Amount", "Mining › Economics › Hash Price", "Network › Supply › Inflation",
-        "Models › Capital Sentiment › Score", "Models › Bedrock › Raw",
+        "Valuation › Market and realized cap", "Valuation › Value anchors", "Valuation › MVRV", "Coin age › Age bands › Compare › Supply share",
+        "Holders › Compare › Realized price", "Holders › Compare › MVRV", "Price › Returns › Short-term", "Mining › Hashing › Hash price",
+        "Supply › Inflation", "Valuation › Rarity meter › Full › Bands", "Valuation › Bedrock › Unweighted › Floors",
       ];
-      /** The website's charts, once read; each one's words (its title and place, lowercased) for the search. */
-      // (A page built without them knows at once: no waiting cards.)
       /**
-       * Each series' look as the website's charts draw it (its color, its type, a baseline's base): the one they give it most, for a series
-       * added on its own to start as the website draws it. @param {Preset[]} list @returns {Map<string, Partial<Layer>>}
+       * Each series' look as the presets draw it (its color, its type, a baseline's base): the one they give it most, for a
+       * series added on its own to start as they draw it (a named color only: a family's shades say nothing alone).
+       * @param {Preset[]} list @returns {Map<string, Partial<Layer>>}
        */
       function looksOf(list) {
         const counts = new Map();
-        for (const preset of list) for (const layer of [...preset.a, ...preset.b]) {
-          const each = counts.get(layer.s) ?? new Map(), key = `${layer.c ?? ""}|${layer.k ?? "line"}|${layer.z ?? ""}`;
-          counts.set(layer.s, each.set(key, (each.get(key) ?? 0) + 1));
+        for (const preset of list) for (const layer of preset.c.layers) {
+          if (typeof layer.series !== "string") continue;
+          const each = counts.get(layer.series) ?? new Map(), key = `${isNamed(layer.color) ? layer.color : ""}|${layer.type ?? "line"}|${layer.base ?? ""}`;
+          counts.set(layer.series, each.set(key, (each.get(key) ?? 0) + 1));
         }
         return new Map([...counts].map(([name, each]) => {
           const [color, type, base] = [...each].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0].split("|");
           return [name, { ...(color ? { color } : {}), type, ...(base ? { base: Number(base) } : {}) }];
         }));
       }
-      /** See looksOf: empty till the website's charts are read. */
+      /** See looksOf: empty till the presets are read. */
       let presetLooks = /** @type {Map<string, Partial<Layer>>} */ (new Map());
-      let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = /** @type {boolean | "none"} */ ($("presets")?.hasAttribute("data-none") ? "none" : false);
+      /** The presets, once read; each one's words (its title and place, lowercased) for the search. */
+      let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = false;
       /** @type {Promise<Preset[]> | null} */
       let presetsLoad = null;
       /**
-       * The website's charts, read once, when first wanted: the built page's own (the live website's, in it compressed),
-       * else the dev page's, the local website's, made in a worker (its modules read a page as they load). Read, ⌘K, open,
-       * shows them.
+       * The presets, read once, when first wanted: the built page's own (made by the build, in it compressed), else the dev
+       * page's, made here from this repo's client (presets.js). Read, ⌘K, open, shows them.
        */
       function loadPresets() {
         return (presetsLoad ??= (async () => {
           presetsFailed = false;
-          if ($("presets")?.hasAttribute("data-none")) throw Object.assign(new Error("Built without the presets"), { none: true });
           const packed = $("presets")?.textContent?.trim();
           /** @type {Preset[]} */
           let list;
           if (packed) {
             const bytes = fromBase64(packed);
             list = JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
-          } else {
-            const worker = new Worker(new URL("./presets-worker.js", import.meta.url), { type: "module" });
-            let deadline = 0;
-            const answer = await new Promise((done, fail) => {
-              worker.onmessage = (event) => done(event.data);
-              worker.onerror = (event) => fail(new Error(event.message || "The presets couldn't be read"));
-              // (A module that never loads answers nothing: it's let go.)
-              deadline = setTimeout(() => fail(new Error("The presets took too long to load")), 30_000);
-            }).finally(() => (clearTimeout(deadline), worker.terminate()));
-            if (answer.error) throw new Error(answer.error);
-            list = answer.presets;
-          }
+          } else list = (await import("./presets.js")).studioPresets(client);
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
           presetLooks = looksOf(list);
-          // (Those opened and left as they were, before they could be told: let go of now; the open one, as the website
-          // has it now, if that's changed.)
+          // (Those opened and left as they were, before they could be told: let go of now; the open one, as the presets
+          // have it now, if that's changed.)
           prunePresets(chart ?? null);
           const at = chart?.preset !== undefined ? presetIndex(chart) : -1, now = at >= 0 ? presetChart(at) : chart;
           if (now && now !== chart) openChart(now);
@@ -20692,16 +20659,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           return list;
         })().catch((error) => {
-          // Not read: said where they'd be, with a way to try again (never on its own: no loop of attempts; none in a page
-          // built without them).
-          presetsFailed = error?.none ? "none" : true;
+          // Not read: said where they'd be, with a way to try again (never on its own: no loop of attempts).
+          presetsFailed = true;
           renderRecommended();
           presetsArrived();
           renderHome();
           throw error;
         }));
       }
-      /** The website's charts read again, asked for (after a failure). */
+      /** The presets read again, asked for (after a failure). */
       function retryPresets() {
         presetsLoad = null;
         presetsFailed = false;
@@ -20710,10 +20676,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if ($("palette").open) showPalette();
         renderHome();
       }
-      /** The pages the website's charts fill (each a group of them). @type {WeakSet<Page>} */
+      /** The pages the presets fill (each a group of them). @type {WeakSet<Page>} */
       const presetPages = new WeakSet();
       /**
-       * ⌘K, open where the website's charts show (their page, or everything ⌘K finds), shown again with them: on the row
+       * ⌘K, open where the presets show (their page, or everything ⌘K finds), shown again with them: on the row
        * it was on (what ↵ runs doesn't change under you). Elsewhere (a formula, adding a series, a setting), left as it is.
        */
       function presetsArrived() {
@@ -20724,53 +20690,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         showPalette();
       }
       /**
-       * A website chart as the Studio starts it, as the website draws it: the price up top (as candles), its top pane's
-       * layers over it; its bottom pane's, under, in their own pane, as tall. Its layers' looks as the website gives them, its
-       * series shown off hidden, its constant lines as levels; at 1D.
+       * A preset's chart, read as a link is; its panes' and layers' ids as its sketch gives them (p0, l0…: the same each
+       * time it's made, so its drawings and what's kept of it follow it).
        * @param {Preset} preset
        */
-      function presetTemplate(preset) {
-        const layerOf = (/** @type {PresetLayer} */ layer, /** @type {number} */ pane) => ({
-          series: layer.s, pane,
-          ...(layer.k ? { type: layer.k } : {}), ...(isColor(layer.c) ? { color: layer.c } : {}), ...(isColor(layer.c2) ? { colorBelow: layer.c2 } : {}),
-          ...(layer.l ? { label: layer.l } : {}), ...(layer.h ? { hidden: true } : {}), ...(DASHES.some(([dash]) => dash === layer.d) ? { dash: layer.d } : {}),
-          ...(Number.isFinite(layer.z) ? { base: layer.z } : {}), ...(layer.v?.length ? { levels: layer.v.slice(0, 12).map((value) => ({ value })) } : {}),
-        });
-        const layers = [...preset.a.map((layer) => layerOf(layer, 0)), ...preset.b.map((layer) => layerOf(layer, 1))];
-        // Over the most a chart holds (the price is one): its shown layers first, in their order; the hidden ones in what
-        // room is left.
-        const room = MAX_LAYERS - 1, shown = layers.filter((layer) => !layer.hidden).length;
-        let shownLeft = room, hiddenLeft = Math.max(0, room - shown);
-        const kept = layers.filter((layer) => (layer.hidden ? hiddenLeft-- > 0 : shownLeft-- > 0));
-        // (One the website leaves uncolored takes a color none of the chart's has: not the orange beside it.)
-        const taken = new Set([price.color, ...kept.flatMap((layer) => (layer.color ? [layer.color] : []))]);
-        for (const layer of kept) if (!layer.color) taken.add((layer.color = PALETTE.find((color) => !taken.has(color)) ?? "gray"));
-        return {
-          title: preset.t,
-          text: preset.p.slice(0, -1).join(" › "),
-          index: "day1",
-          // (Two panes, half and half, as the website has them.)
-          panes: kept.some((layer) => layer.pane === 1) ? [{ mode: 1, size: 1 }, { mode: 0, size: 1 }] : [{ mode: 1 }],
-          layers: [{ ...price, pane: 0 }, ...kept],
-        };
-      }
+      const fromPreset = (preset) => validate(fromSketch({ ...preset.c, title: preset.t }), true);
       /**
-       * Each website chart as the chart it makes, made once it's looked at (its id stable: its drawing kept), the last
+       * Each preset as the chart it makes, made once it's looked at (its id stable: its drawing kept), the last
        * two hundred looked at kept (with their drawings: a gallery's page of them). @type {Map<number, Chart>}
        */
       const presetDocs = new Map();
-      /** A preset's chart as it shows: as edited here, else as the website has it. */
+      /** A preset's chart as it shows: as edited here, else as made. */
       function presetDoc(/** @type {number} */ i) {
         return editedPreset(i) ?? templateDoc(i);
       }
-      /** A preset's chart as the website has it (made once looked at, kept a while). */
+      /** A preset's chart as made (made once looked at, kept a while). */
       function templateDoc(/** @type {number} */ i) {
         let doc = presetDocs.get(i);
         if (doc) presetDocs.delete(i);
-        else {
-          doc = Object.assign(fromTemplate(presetTemplate(/** @type {Preset[]} */ (presets)[i])), { id: `preset:${i}` });
-          doc.layers.forEach((layer, k) => (layer.id = `layer:${k}`));
-        }
+        else doc = Object.assign(fromPreset(/** @type {Preset[]} */ (presets)[i]), { id: `preset:${i}` });
         presetDocs.set(i, doc);
         for (const [old] of presetDocs) {
           if (presetDocs.size <= 200) break;
@@ -20899,9 +20837,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const editedPreset = (/** @type {number} */ i) => (presets ? library.presets.find((doc) => doc.preset === presetKey(i)) : undefined);
       /** A chart's content as a fingerprint, its window aside (a view, not an edit, as a preview's is). @param {Chart} doc */
       const contentHash = (doc) => hashOf(contentOf({ ...doc, range: "" }));
-      /** A preset's chart as the website has it now, as an edit leaves a chart (normalized: nothing for an edit to change). */
-      const freshPreset = (/** @type {number} */ i) => ((doc) => (normalize(doc), doc))(fromTemplate(presetTemplate(/** @type {Preset[]} */ (presets)[i])));
-      /** A preset's fingerprint as the website has it now. */
+      /** A preset's chart as made now, as an edit leaves a chart (normalized: nothing for an edit to change). */
+      const freshPreset = (/** @type {number} */ i) => ((doc) => (normalize(doc), doc))(fromPreset(/** @type {Preset[]} */ (presets)[i]));
+      /** A preset's fingerprint as made now. */
       const templateHash = (/** @type {number} */ i) => contentHash(freshPreset(i));
       /** A preset's chart's id: the same wherever it's opened (another tab's, a step of the history's), by which it is. */
       const presetIdOf = (/** @type {string} */ key) => `p${hashOf(key)}`;
@@ -20925,8 +20863,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a preset's been changed here (it says so, and can be reset). @param {Chart} doc */
       const presetEdited = (doc) => doc.preset !== undefined && !pristine(doc);
       /**
-       * A preset's chart: as edited here, else as the website has it now (one left as it was, made anew from it: the
-       * website's may have changed since). Never edited: stamped 0 (past a reset, just after it), any edit's copy (here,
+       * A preset's chart: as edited here, else as made now (one left as it was, made anew: the presets may have changed
+       * since). Never edited: stamped 0 (past a reset, just after it), any edit's copy (here,
        * another tab's) wins over it; nothing of an earlier one's undo comes with it.
        */
       function presetChart(/** @type {number} */ i) {
@@ -20940,7 +20878,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A preset opened: itself, to look at and to work on as it is (no preview to keep: its edits stay with it, here, till
-       * it's reset). As edited here, else as the website has it, kept once it's edited (left as it is, it isn't).
+       * it's reset). As edited here, else as made, kept once it's edited (left as it is, it isn't).
        */
       function openPreset(/** @type {number} */ i) {
         if (!presets?.[i]) return;
@@ -20959,14 +20897,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.presets = left;
         save();
       }
-      /** A preset back as the website has it (its edits let go of), with an Undo; open, it shows as it is. @param {Chart} doc */
+      /** A preset back as made (its edits let go of), with an Undo; open, it shows as it is. @param {Chart} doc */
       function resetPreset(doc) {
         const at = library.presets.indexOf(doc), i = presetIndex(doc);
         if (at < 0 || i < 0) return;
         const open = doc === chart, steps = open ? { past: edits.past, future: edits.future } : null;
         library.presets.splice(at, 1);
         library.deleted[doc.id] = Math.max(Date.now(), doc.updated);
-        // (Open, or under the page: as the website has it, there, none of its undo with it: that goes with the edits.)
+        // (Open, or under the page: as made, there, none of its undo with it: that goes with the edits.)
         if (open) {
           edits.past = [];
           edits.future = [];
@@ -21061,12 +20999,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(doc && presetEdited(doc) ? [{ key: "reset", icon: ICONS.undo, label: "Reset", aside: "As the preset is", apart: !head, run: () => resetPreset(doc) }] : []),
         ];
       }
-      /** A preset's words for a search: its title as the website has it, and as edited here, and where it is. */
+      /** A preset's words for a search: its title as made, and as edited here, and where it is. */
       const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWords[i]} ${titleOf(edited).toLowerCase()}` : presetWords[i]))(editedPreset(i));
-      /** The last search over the website's charts (all of them, no `under`): typed on, it narrows what it found. */
+      /** The last search over the presets (all of them, no `under`): typed on, it narrows what it found. */
       let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
       /**
-       * The website charts whose words hold every word typed, the best first (every word in its title, then its title
+       * The presets whose words hold every word typed, the best first (every word in its title, then its title
        * starting with the first, then the shortest title), as many as `most`.
        */
       function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null)) {
@@ -21105,7 +21043,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
       };
       /**
-       * The website's charts as its sidebar has them, a group at a time: its groups (each its count) and charts, in its
+       * The presets as the sidebar has them, a group at a time: its groups (each its count) and charts, in its
        * order, at the top those it recommends first; a search looks through every chart under it. Unread yet, it says so,
        * and fills in once they are.
        * @param {string[]} path @returns {Page}
@@ -21120,9 +21058,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           global: true,
           placeholder: path.length ? `Search in ${path.at(-1)}` : "Search the presets",
           rows: () => {
-            if (!presets) return [presetsFailed === "none"
-              ? { kind: "row", key: "presets-none", icon: ICONS.recent, label: "This page was built without the presets", dim: true, stay: true }
-              : presetsFailed
+            if (!presets) return [presetsFailed
               ? { kind: "row", key: "presets-retry", icon: ICONS.recent, label: "The presets couldn't be read", aside: "Try again", verb: "Retry", stay: true, run: retryPresets }
               : { kind: "row", key: "presets-waiting", icon: ICONS.recent, label: "Loading the presets…", dim: true, stay: true }];
             const list = presets, under = (/** @type {number} */ i) => path.every((name, depth) => list[i].p[depth] === name);
@@ -24464,8 +24400,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const strong = [...ahead.filter((item) => titled(item.command)), ...ahead.filter((item) => !titled(item.command) && !item.command.danger), ...ahead.filter((item) => !titled(item.command) && item.command.danger)].slice(0, 6), weak = found.filter((item) => !leads(item.command)).slice(0, 6);
         // Charts that match come before the series: a chart's title is a few words, matched, it's what's looked for.
         const charts = !everything ? [] : rank([...listedPreviews(), ...library.charts].filter((doc) => home || doc !== chart).map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words).slice(0, 4);
-        // The website's charts (once read), after yours: a few that match; all of them on their own page.
-        const website = !everything || !presets ? [] : rank(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), rowText, words).slice(0, 4);
+        // The presets (once read), after yours: a few that match; all of them on their own page.
+        const presetRows = !everything || !presets ? [] : rank(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), rowText, words).slice(0, 4);
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
         // (The chart's settings, made once a search: its rows and the changes typed whole read the same ones.)
@@ -24488,7 +24424,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The add page's other layers: first where what's typed starts their name, "clo"; else after the series, "ratio".)
         const others = palette.adding && !palette.path.length ? rank(otherLayerRows(), rowText, words) : [];
         const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
-        const local = [...leading, ...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...website, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
+        const local = [...leading, ...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...presetRows, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
         // What matched here, while the series are looked for: at once when bitview.space answers; on this machine they
         // come back within a frame or two and show with the rest, so it shows only if they're slow.
@@ -24512,7 +24448,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const typedParts = words.flatMap((typed) => typed.split("_")).filter(Boolean);
           const seriesByName = !palette.moved && names.some((name) => typedParts.every((typed) => name.split("_").some((part) => part.startsWith(typed))));
           const valueAlone = seriesByName ? unnamed.filter((row) => row.alone) : [], directRest = unnamed.filter((row) => !valueAlone.includes(row));
-          return [...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...website, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...valueAlone, ...trailing, ...more];
+          return [...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...presetRows, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...valueAlone, ...trailing, ...more];
         }, landing);
       }
       /**
@@ -27192,7 +27128,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (!library.presets.includes(doc)) continue;
                 library.presets = library.presets.filter((other) => other !== doc);
                 library.deleted[doc.id] = Math.max(Date.now(), doc.updated);
-                // (Open: as the website has it, there.)
+                // (Open: as made, there.)
                 if (doc === chart && presetIndex(doc) >= 0) openChart(presetChart(presetIndex(doc)));
               }
               const gone = new Set([...folders.values()].map((folder) => folder.id));
@@ -29316,7 +29252,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const quickWorks = () => !TOUCH && !phone.matches;
       /** Whether a ⌘K row is a chart to look at. */
       const canLook = (/** @type {any} */ item) => Boolean(lookableAt(item));
-      /** The chart a ⌘K row is, to look at: a chart's (yours, a preview), a preset's (as edited here, else as the website has it). @returns {{ doc: Chart, i: number } | null} */
+      /** The chart a ⌘K row is, to look at: a chart's (yours, a preview), a preset's (as edited here, else as made). @returns {{ doc: Chart, i: number } | null} */
       function lookableAt(/** @type {any} */ item) {
         // (A chart's row: ⌘K's search's, a folder's page's; a preset's own chart, as the preset it is.)
         const chartKey = item?.kind === "chart" ? item.key : /^chart:/.test(String(item?.key ?? "")) ? String(item.key).slice(6) : null;

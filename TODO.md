@@ -8,27 +8,30 @@ Only what's left. An item done is removed: its history is in the commits and log
   - pinch and fling across 2011–2015, where the axis labels change width most;
   - do the same at the latest bar;
   - turn the phone and back.
-- Decide when Studio goes live. Recommended: wait for the new server, because the live server lacks a few series the merged Studio names (`hashrate`, `sats_per_dollar`, `*_avg_24h`).
 
-## Studio, next
+## Studio on the new server
 
-- Units for the remaining value types: Years, Seconds/SecondsFract, PerSecond, PerDay, Bytes/BytesFract, Weight/WeightFract, VSize/VSizeFract.
-- Format menu (`FORMATS`): offer cents, basis points, ppm, hash rate, fee rate and days by hand, not only through Automatic.
+Built against local.bitview.space; deployed to studio-next only, never studio.bitview.space until you say.
+
+- Before going live, decide what happens to presets people edited on the old tree: their places are gone, so the edits match no preset (kept in the browser, shown nowhere, only in Download all), and old `/chart/…` addresses open the Charts page.
+- Units for the new value types: CoinDays, CoinBlocks, DollarBlocks, DollarDaysPerCoin, CountSigned, CountFract, Bytes/BytesFract, Weight/WeightFract, VSize, Seconds/SecondsFract, PerDay, PerSecond, HashPrice, HashValue, Score.
+- Remove what the old server needed:
+  - `unitOf`'s name rules for `StoredF32`/`StoredF64`;
+  - the ppm, price-ratio, cents and bps unit handling;
+  - the build's copy of this repo's date helpers when the served client differs (`showcases/studio/build.mjs`).
+- Check every series the page names itself, and hash rate, days and difficulty in their units.
+- Format menu (`FORMATS`): offer the units by hand, not only through Automatic.
 - Auto interval polish, so it could become the default again:
   - a 2–4px sideways shift during the crossfade;
   - time-axis labels that change instantly;
   - a 0.7s delay before the switch.
 
-## Once the new server is live
+## Showcases
 
-- Check Studio against it, then deploy Studio live (`node showcases/studio/deploy.mjs live`):
-  - presets with the new ids;
-  - hash rate in H/s, days and difficulty in their units;
-  - by-block series' `_avg_24h` days found.
-- Remove the compatibility code the old server needed:
-  - `unitOf`'s name rules for `StoredF32`/`StoredF64`;
-  - the ppm, price-ratio, cents and bps unit handling;
-  - the build's copy of this repo's date helpers when the served client differs (`showcases/studio/build.mjs`).
+The website is going away: showcases become what's served by default.
+
+- Fix each showcase for the new server.
+- Add showcases for what only the website had.
 
 ## Back end
 

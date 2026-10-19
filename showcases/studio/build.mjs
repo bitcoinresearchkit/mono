@@ -13,11 +13,11 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, posix, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
-const SERVER = "https://bitview.space";
+const SERVER = "https://local.bitview.space";
 const CLIENT = "/scripts/modules/bitview-client/index.js";
 const HERE = dirname(fileURLToPath(import.meta.url)), SHOWCASES = join(HERE, "..");
 const out = process.argv[2] ?? join(HERE, "dist", "index.html");
@@ -204,51 +204,35 @@ if (served?.differs) {
   console.log(`${SERVER}'s client dates points unlike this repo's: the page takes this repo's date helpers`);
 } else console.log(served ? `${SERVER}'s client dates points as this repo's does` : `${SERVER}'s client unread: the page dates points as it does`);
 
-// The website's charts, as presets (presets.js): the live website's, as bitview.space serves it now (which can differ
-// from this repo's, as its series names do). Its modules are fetched as served, each import followed from its options'
-// entry (one by its root path, written as one within the copy), and run in a process of their own that can only read
-// that copy and presets.js (no network, no files beyond, no processes, no environment): their charts come back as
-// JSON, put in the page compressed (unpacked once, when first wanted). Unreadable, the page has none (and says so).
-// (A folder it can't make or remove stops the build; the website's charts unreadable, the page has none.)
-/** The presets, as read (for the sitemap below); none read, none. @type {{ p: string[] }[]} */
+// The presets (presets.js), made from this repo's client, its typed paths the series it has: every series Studio can
+// chart in one of them, and each the empty chart recommends there (the build stops otherwise); in the page compressed
+// (unpacked once, when first wanted).
+/** The presets, as made (for the sitemap below). @type {{ p: string[], t: string, c: { layers: any[] } }[]} */
 let presetList = [];
-await inFolder("bitview-website-", async (copy) => {
-  try {
-    const fetched = new Set(), SPECIFIER = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(["'])([^"']+)\2/g;
-    const take = async (path, entry = false) => {
-      if (fetched.has(path)) return;
-      fetched.add(path);
-      // (A path read off a comment or a string may be nothing: what's needed and missing fails as it's run.)
-      let text = await fetchText(`/${path}`, !entry);
-      if (text === null) return;
-      const next = [];
-      if (path.endsWith(".js")) text = text.replace(SPECIFIER, (match, lead, quote, specifier) => {
-        if (!/^\.{1,2}\//.test(specifier) && !specifier.startsWith("/")) return match;
-        const target = new URL(specifier, `${SERVER}/${path}`).pathname.slice(1);
-        next.push(target);
-        if (!specifier.startsWith("/")) return match;
-        const local = posix.relative(posix.dirname(path), target);
-        return `${lead}${quote}${local.startsWith(".") ? local : `./${local}`}${quote}`;
-      });
-      mkdirSync(dirname(join(copy, path)), { recursive: true });
-      writeFileSync(join(copy, path), text);
-      await Promise.all(next.map((target) => take(target)));
-    };
-    await take("scripts/options/partial.js", true);
-    // (presets.js as it's read for the version: that copy is the one run.)
-    const presetsJs = join(copy, "presets.mjs");
-    writeFileSync(presetsJs, input(join(HERE, "presets.js")));
-    const { json, value: presets } = sandboxed(`const { websitePresets } = await import(${JSON.stringify(pathToFileURL(presetsJs).href)}); process.stdout.write(JSON.stringify(await websitePresets(${JSON.stringify(pathToFileURL(`${copy}/`).href)})));`, [copy, presetsJs]);
-    const packed = gzipSync(json, { level: 9 }).toString("base64");
-    replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
-    console.log(`${SERVER}'s ${presets.length} charts, as presets: ${(packed.length / 1024).toFixed(0)} KB, from ${fetched.size} files`);
-    presetList = presets;
-  } catch (error) {
-    // (Said in the page: it has no worker to read them with, so it doesn't try.)
-    if (html.includes(`<script id="presets" type="application/gzip"></script>`)) replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip" data-none></script>`);
-    console.warn(`Couldn't make ${SERVER}'s charts into presets (${error.message}): the page has none`);
+{
+  input(join(HERE, "presets.js"));
+  const { studioPresets, leftOut } = await import(pathToFileURL(join(HERE, "presets.js")).href);
+  const client = new BitviewClient({ baseUrl: SERVER });
+  presetList = studioPresets(client);
+  const missing = leftOut(client, presetList);
+  // (What a chart can't hold the page leaves out without a word: here, it stops the build.)
+  const over = presetList.filter((preset) => preset.c.layers.length > 40 || (preset.c.panes?.length ?? 1) > 12);
+  if (over.length) throw new Error(`Presets over 40 layers or 12 panes: ${over.map((preset) => preset.p.join(" › ")).join(", ")}`);
+  if (missing.length) throw new Error(`${missing.length} series in no preset: ${missing.slice(0, 12).join(", ")}${missing.length > 12 ? "…" : ""}`);
+  const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(html)?.[1];
+  if (!recommended) throw new Error("No RECOMMENDED in the page");
+  const places = new Set(presetList.map((preset) => preset.p.join(" › ")));
+  const gone = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place).filter((place) => !places.has(place));
+  if (gone.length) throw new Error(`Recommended, but no preset: ${gone.join(", ")}`);
+  const json = JSON.stringify(presetList), packed = gzipSync(json, { level: 9 }).toString("base64");
+  replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
+  console.log(`${presetList.length} presets, every series in one: ${(packed.length / 1024).toFixed(0)} KB`);
+  // (Their series, as the served client has them: one it lacks, said, as the page's own are above.)
+  if (served) {
+    const names = new Set(served.names), lacking = [...new Set(presetList.flatMap((preset) => preset.c.layers.map((layer) => layer.series)).filter((name) => name && !names.has(name)))];
+    if (lacking.length) console.warn(`${SERVER}'s client lacks ${lacking.length} series the presets show (shown as missing there): ${lacking.slice(0, 12).join(", ")}${lacking.length > 12 ? "…" : ""}`);
   }
-});
+}
 
 // The build it is, to tell which one runs (⌘K's "Studio's version"): its commit, a "+" when anything it was built from
 // isn't, byte for byte as read, what the commit holds there (changed, or not in it at all); and when, as the page writes

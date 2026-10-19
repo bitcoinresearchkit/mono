@@ -1,7 +1,7 @@
 // Studio on Cloudflare, by its API alone (nothing to install). The build deploys each page it builds to the preview,
 // studio-next.bitview.space; `node showcases/studio/deploy.mjs live` puts a commit on studio.bitview.space: built again,
 // apart (so no other build's page goes in its place), and sent only if its version names the commit as it is (nothing it
-// was built from changed since) and it has its presets (bitview.space read).
+// was built from changed since).
 //
 // Each is a Worker of static files alone, the page (as the dashboard's upload makes one): its manifest sent, the page
 // uploaded if Cloudflare hasn't it, the Worker put, its domain attached (already so, nothing changes), and its host's
@@ -60,7 +60,6 @@ export async function deploy(target, quiet = false) {
     }
     const head = execFileSync("git", ["rev-parse", "--short=9", "HEAD"], { cwd: HERE }).toString().trim(), built = /const BUILD = "[^"]* \(([^)]*)\)";/.exec(String(page))?.[1];
     if (built !== head) throw new Error(`Not deployed: built from ${built ? `${built.replace("+", "")} with changes not committed` : "an unknown version"}, not the commit ${head} alone (live is a commit's: commit first)`);
-    if (!/<script id="presets" type="application\/gzip">[^<]+<\/script>/.test(String(page))) throw new Error("Not deployed: built without its presets (bitview.space unread): try again");
   } else {
     if (!existsSync(join(HERE, "dist", "index.html"))) throw new Error("Nothing built yet (node showcases/studio/build.mjs)");
     take(join(HERE, "dist"));
