@@ -1388,10 +1388,6 @@ bucket's grid capital, rounded to the cent once. Can be negative.
  * @typedef {("raw"|"cointime"|"coinflow")} UrpdWeight
  */
 /**
- * @typedef {Object} UrpdWeightQuery
- * @property {UrpdWeight=} weight - Supply weighting. Default: raw (unweighted).
- */
-/**
  * Unspent transaction output
  *
  * @typedef {Object} Utxo
@@ -7816,26 +7812,6 @@ class BitviewClient extends BitviewClientBase {
    */
   async listUrpdCohorts({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/urpd`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * Available URPD dates
-   *
-   * Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.
-   *
-   * Endpoint: `GET /api/urpd/{cohort}/dates`
-   *
-   * @param {Cohort} cohort
-   * @param {UrpdWeight=} [weight] - Supply weighting. Default: raw (unweighted).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Date[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Date[]>}
-   */
-  async listUrpdDates(cohort, weight, { signal, onValue, cache, memCache } = {}) {
-    const params = new URLSearchParams();
-    if (weight !== undefined) params.set('weight', String(weight));
-    const query = params.toString();
-    const path = `/api/urpd/${encodeURIComponent(cohort)}/dates${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 

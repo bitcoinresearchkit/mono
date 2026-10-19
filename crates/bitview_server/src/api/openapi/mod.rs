@@ -134,7 +134,7 @@ const TAGS: [(&str, &str); 12] = [
         Raw and weighted age-range, `all`, `sth`, and `lth` distributions share \
         the same block state. Weights are evaluated at the requested block.\n\n\
         Discovery flow: `GET /api/urpd` (cohorts), `GET /api/urpd/{cohort}` (latest), \
-        `GET /api/urpd/{cohort}/dates` (history), `GET /api/urpd/{cohort}/{point}` (specific).",
+        `GET /api/urpd/{cohort}/{point}` (any block height or UTC day with a block).",
     ),
 ];
 

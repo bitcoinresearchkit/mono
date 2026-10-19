@@ -2551,25 +2551,6 @@ impl BitviewClient {
         self.base.get_json(&format!("/api/urpd"))
     }
 
-    /// Available URPD dates
-    ///
-    /// Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.
-    ///
-    /// Endpoint: `GET /api/urpd/{cohort}/dates`
-    pub fn list_urpd_dates(&self, cohort: Cohort, weight: Option<UrpdWeight>) -> Result<Vec<Date>> {
-        let mut query = Vec::new();
-        if let Some(v) = weight {
-            query.push(query_pair("weight", v));
-        }
-        let query_str = if query.is_empty() {
-            String::new()
-        } else {
-            format!("?{}", query.join("&"))
-        };
-        let path = format!("/api/urpd/{}/dates{}", path_segment(cohort), query_str);
-        self.base.get_json(&path)
-    }
-
     /// Latest URPD
     ///
     /// URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.

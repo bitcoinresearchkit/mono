@@ -1249,20 +1249,6 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "list-urpd-dates",
-        method: "GET",
-        path: "/api/urpd/{cohort}/dates",
-        summary: "Available URPD dates",
-        description: "Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.",
-        path_parameters: &[
-            Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
-        ],
-        query_parameters: &[
-            Parameter { api_name: "weight", name: "weight", required: false, value_name: "UrpdWeight", repeatable: false, description: Some("Supply weighting. Default: raw (unweighted).") },
-        ],
-        request_body: None,
-    },
-    Command {
         name: "post-tx",
         method: "POST",
         path: "/api/tx",

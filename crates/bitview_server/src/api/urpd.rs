@@ -4,7 +4,6 @@ use axum::{
     http::HeaderMap,
     response::Response,
 };
-use bitview_primitives::Date;
 use bitview_types::{Cohort, Urpd};
 use serde_json::to_vec;
 
@@ -16,7 +15,6 @@ use crate::{
     extended::TransformResponseExtended,
     params::{
         Empty, HeightOrDate, HeightOrDateParam, UrpdCohortParam, UrpdParams, UrpdQuery,
-        UrpdWeightQuery,
     },
     request_state::RequestState,
 };
@@ -74,33 +72,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     )
                     .json_response::<Vec<Cohort>>()
                     .not_modified()
-            },
-        ),
-    )
-    .api_route(
-        "/api/urpd/{cohort}/dates",
-        get_with(
-            async |headers: HeaderMap,
-                   Path(params): Path<UrpdCohortParam>,
-                   Query(query): Query<UrpdWeightQuery>,
-                   RequestState(state): RequestState| {
-                state
-                    .respond_json_content(&headers, move |q| {
-                        q.urpd_dates_with_weight(&params.cohort, query.weight)
-                    })
-                    .await
-            },
-            |op| {
-                op.id("list_urpd_dates")
-                    .tag(tags::URPD)
-                    .summary("Available URPD dates")
-                    .description(
-                        "Dates for which a published block is available for the cohort and \
-                        selected `weight`. One entry per UTC day, sorted ascending.",
-                    )
-                    .json_response::<Vec<Date>>()
-                    .not_modified()
-                    .not_found()
             },
         ),
     )

@@ -43,8 +43,6 @@ mod urpd_cohort_param;
 mod urpd_params;
 #[cfg(feature = "urpd")]
 mod urpd_query;
-#[cfg(feature = "urpd")]
-mod urpd_weight_query;
 #[cfg(feature = "chain")]
 mod validate_addr_param;
 
@@ -93,7 +91,5 @@ pub use urpd_cohort_param::*;
 pub use urpd_params::*;
 #[cfg(feature = "urpd")]
 pub use urpd_query::*;
-#[cfg(feature = "urpd")]
-pub use urpd_weight_query::*;
 #[cfg(feature = "chain")]
 pub use validate_addr_param::*;

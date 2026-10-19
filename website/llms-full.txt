@@ -6,7 +6,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 20731
-- Operations: 100
+- Operations: 99
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -1007,18 +1007,6 @@ Parameters:
 - `weight` (query, UrpdWeight, optional): Supply weighting. Default: raw (unweighted).
 
 Returns: JSON `Urpd`
-
-#### GET `/api/urpd/{cohort}/dates`
-
-Available URPD dates
-
-Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.
-
-Parameters:
-- `cohort` (path, Cohort, required)
-- `weight` (query, UrpdWeight, optional): Supply weighting. Default: raw (unweighted).
-
-Returns: JSON `Date[]`
 
 #### GET `/api/urpd/{cohort}/{point}`
 

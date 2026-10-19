@@ -1466,6 +1466,20 @@
           );
         }
 
+        // The UTC days with a block, oldest first: the day1 calendar's dates where the next day's first block height
+        // is higher (the latest day too). Every cohort and weight has its URPD at each.
+        async function blockDays(client, options) {
+          const [dates, heights] = await Promise.all([
+            client.series.mappings.day1.date.by.day1.fetch(options),
+            client.series.mappings.day1.firstHeight.by.day1.fetch(options),
+          ]);
+          return dates.data.filter(
+            (_, i) =>
+              i + 1 === heights.data.length ||
+              heights.data[i + 1] > heights.data[i],
+          );
+        }
+
         function normalizeAvailableDates(values) {
           return Array.from(
             new Set(values.filter(isIsoDate)),
@@ -5515,7 +5529,6 @@
           const controller = new AbortController();
           state.loadController = controller;
           const generation = ++state.loadGeneration;
-          const weight = state.weight;
           clearHoverState();
           setProjectedUiReady(false);
           state.dates = [];
@@ -5536,7 +5549,8 @@
           scheduleRender();
 
           try {
-            const dateCacheKey = `${cohort}:${weight}`;
+            // (The days with a block: the same for every cohort and weight.)
+            const dateCacheKey = "days";
             const cachedDates = state.dateCache.get(dateCacheKey);
             let availableDates =
               cachedDates &&
@@ -5546,12 +5560,12 @@
                 : null;
             if (!availableDates) {
               const client = await clientReady;
-              const responseDates = await client.listUrpdDates(cohort, weight, {
+              const responseDates = await blockDays(client, {
                 signal: controller.signal,
               });
               if (generation !== state.loadGeneration) return;
               if (!Array.isArray(responseDates) || !responseDates.length) {
-                throw new Error("No URPD dates are available for this cohort");
+                throw new Error("No days with a block were found");
               }
               availableDates = normalizeAvailableDates(responseDates);
               const dates = weeklyDatesSince2018(availableDates);
@@ -5684,7 +5698,7 @@
           let refreshSummary = false;
           try {
             const client = await clientReady;
-            const responseDates = await client.listUrpdDates(cohort, weight, {
+            const responseDates = await blockDays(client, {
               signal: controller.signal,
               cache: false,
             });
@@ -5705,7 +5719,7 @@
               selectedDate ? [selectedDate] : [],
               availableDates,
             );
-            state.dateCache.set(`${cohort}:${weight}`, {
+            state.dateCache.set("days", {
               availableDates,
               fetchedAt: Date.now(),
             });

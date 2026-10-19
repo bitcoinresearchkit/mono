@@ -286,13 +286,6 @@ class ValidateAddressParam(TypedDict):
     """
     address: str
 
-class UrpdWeightQuery(TypedDict, total=False):
-    """
-    Attributes:
-        weight: Supply weighting. Default: raw (unweighted).
-    """
-    weight: UrpdWeight
-
 class UrpdQuery(TypedDict, total=False):
     """
     Attributes:
@@ -5686,18 +5679,6 @@ class BitviewClient(BitviewClientBase):
 
         Endpoint: `GET /api/urpd`"""
         return self.get_json('/api/urpd')
-
-    def list_urpd_dates(self, cohort: Cohort, weight: Optional[UrpdWeight] = None) -> List[Date]:
-        """Available URPD dates.
-
-        Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.
-
-        Endpoint: `GET /api/urpd/{cohort}/dates`"""
-        params: List[Tuple[str, Any]] = []
-        if weight is not None: params.append(('weight', weight))
-        query = urlencode(params)
-        path = f'/api/urpd/{_segment(cohort)}/dates{"?" + query if query else ""}'
-        return self.get_json(path)
 
     def get_urpd(self, cohort: Cohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """Latest URPD.

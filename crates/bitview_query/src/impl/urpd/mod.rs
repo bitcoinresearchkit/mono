@@ -64,27 +64,6 @@ impl Query {
         Ok(cohorts)
     }
 
-    /// Calendar aliases are derived from block coverage, never snapshot filenames.
-    pub fn urpd_dates_with_weight(&self, cohort: &Cohort, weight: UrpdWeight) -> Result<Vec<Date>> {
-        let pin = self.pin_safe_lengths()?;
-        let ages = Self::urpd_ages(cohort)?;
-        let view = self.plugins().utxo_set.view()?;
-        let reader = view.reader(usize::from(pin.lengths().height))?;
-        let end = reader.len();
-        let mut dates = Vec::new();
-        for index in 0..self.plugins().mappings.day1.date.len() {
-            let day = Day1::from(index);
-            if let Ok((heights, _)) = self.day_heights(day, end, &pin)
-                && self
-                    .urpd_weights(ages, Height::from(heights.end - 1), weight)
-                    .is_ok()
-            {
-                dates.push(Date::from(day));
-            }
-        }
-        Ok(dates)
-    }
-
     pub fn resolve_urpd_at(
         &self,
         cohort: &Cohort,

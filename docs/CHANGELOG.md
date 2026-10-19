@@ -35,6 +35,10 @@ has to be deleted by hand.
 
 #### API: series and responses
 
+- `GET /api/urpd/{cohort}/dates` is gone (and the clients' `list_urpd_dates`/`listUrpdDates`, the CLI's
+  `list-urpd-dates`): it listed every UTC day with a block, the same for every cohort and weight. The `day1` series
+  say it: a day has blocks where the next day's `first_height` is higher (the latest day, where it has any).
+  `GET /api/urpd/{cohort}/{point}` takes any of them
 - Series JSON no longer carries `stamp` (the time the response was formatted): a cached or `304` copy kept an older
   one, so it said nothing reliable; the body now depends only on its rows. The v0.12.2 Python and Rust clients require
   the field, so their series fetches fail against this server: upgrade them with it
