@@ -12627,7 +12627,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           trackingMode: { exitMode: LC.TrackingModeExitMode.OnTouchEnd },
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
-          timeScale: { borderVisible: false, rightOffsetPixels: 48, minVisibleDataRatio: ON_DATA, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, lockVisibleTimeRangeOnResize: true, allowBoldLabels: false },
+          timeScale: { borderVisible: false, rightOffsetPixels: 48, minVisibleDataRatio: ON_DATA, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, allowBoldLabels: false },
           localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => axisPrecise(value, "%"), tickmarksPercentageFormatter: (values) => values.map((value) => axisLabel(value, "%")) },
         };
       }
