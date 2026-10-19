@@ -9571,10 +9571,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
       const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
-      const UNIT_SIGNS = { usd: "USD", cents: "¢", btc: "BTC", sats: "sats", percent: "%", ratio: "×", bps: "bps", hashrate: "H/s" };
+      const UNIT_SIGNS = { usd: "USD", cents: "¢", btc: "BTC", sats: "sats", percent: "%", ratio: "×", bps: "bps", ppm: "ppm", hashrate: "H/s" };
       /** A unit after a field's number: a ratio's left out (a × there reads as a button that clears it). */
       const fieldUnit = (/** @type {string} */ unit) => (unit === "ratio" ? "" : UNIT_SIGNS[unit] ?? "");
-      const UNIT_NAMES = { usd: "US dollars", cents: "Cents", btc: "Bitcoin", sats: "Satoshis", percent: "Percent", ratio: "Ratio", bps: "Basis points", count: "Count", hashrate: "Hashes per second", number: "Number" };
+      const UNIT_NAMES = { usd: "US dollars", cents: "Cents", btc: "Bitcoin", sats: "Satoshis", percent: "Percent", ratio: "Ratio", bps: "Basis points", ppm: "Parts per million", count: "Count", hashrate: "Hashes per second", number: "Number" };
       /**
        * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
        * band) in its pane and on its axis, the others in a pane of their own. A band is two layers. Each is a formula
@@ -9667,16 +9667,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Units and formatting ──────────────────────────────────────────────────
 
+      /**
+       * A series' unit, by its type as Bitview names it (Dollars, SatsFract, Percent64, Ratio, Count16, Hashrate…); by its
+       * name only where its type is a bare number's (StoredF64, Float32: values without a unit of their own).
+       */
       function unitOf(name, type = "") {
-        if (/Dollars$/.test(type)) return "usd";
-        if (/Cents$/.test(type)) return "cents";
+        if (/^Dollars|Dollars$/.test(type)) return "usd";
+        if (/^Cents|Cents$/.test(type)) return "cents";
         if (type === "Bitcoin") return "btc";
         if (type === "Hashrate") return "hashrate";
-        if (/Sats$/.test(type)) return "sats";
-        if (/BasisPoints/.test(type)) return "bps";
-        if (/(_percent|_share|_dominance)$/.test(name)) return "percent";
-        if (/(_ratio|_multiple)$|^mvrv/.test(name)) return "ratio";
-        if (/^Stored[UI]\d+$|^[UI]\d+$/.test(type)) return "count";
+        if (/^Sats|Sats$/.test(type)) return "sats";
+        if (/^BasisPoints/.test(type)) return "bps";
+        // (A price ratio is sent in parts per million too, 1,000,000 its 1×; a bounded ratio in a scale of its own: a number.)
+        if (/^PartsPerMillion|^PriceRatio$/.test(type)) return "ppm";
+        if (/^Percent/.test(type)) return "percent";
+        if (/^Ratio(64)?$/.test(type)) return "ratio";
+        if (/^Count|^Stored[UI]\d+$|^[UI]\d+$/.test(type)) return "count";
+        if (/^(Stored)?F(loat)?(32|64)$|^$/.test(type)) {
+          if (/(_percent|_share|_dominance)$/.test(name)) return "percent";
+          if (/(_ratio|_multiple)$|^mvrv/.test(name)) return "ratio";
+        }
         return "number";
       }
 
@@ -9736,6 +9746,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return `${sign}${text}×`;
           case "bps":
             return `${sign}${text} bp`;
+          case "ppm":
+            return `${sign}${text} ppm`;
           case "hashrate":
             // (976.1 EH/s: its SI letter on the H, as hash rates are said: a billion's G, a thousand's k.)
             return `${sign}${/[A-Z]$/.test(text) ? `${text.slice(0, -1)} ${({ B: "G", K: "k" })[text.slice(-1)] ?? text.slice(-1)}` : `${text} `}H/s`;
