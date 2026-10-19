@@ -9711,36 +9711,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const grouped = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
-      /** A value in its unit, as the legend and the panel write it. */
+      /**
+       * A value in its unit, as the legend and the panel write it: its figure as everywhere (precise, by the value, not
+       * the unit), the unit's sign around it.
+       */
       function format(value, unit) {
         if (value === undefined || value === null || !Number.isFinite(value)) return "—";
-        // (A true minus, as the ruler writes it; each threshold by the value as written: 999.6 dollars is $1,000.)
-        const sign = value < 0 ? "−" : "", abs = Math.abs(value), whole = Math.round(abs);
+        // (A signal's: true, anything but 0.)
+        if (unit === "signal") return value ? "Yes" : "No";
+        // (A true minus, as the ruler writes it, outside the unit's sign: −$1,234.)
+        const text = precise(Math.abs(value)), sign = value < 0 && text !== "0" ? "−" : "";
         switch (unit) {
           case "usd":
-            return whole >= 1000 && whole < 1e7 ? `${sign}$${grouped.format(abs)}` : `${sign}$${compact(abs)}`;
+            return `${sign}$${text}`;
           case "cents":
-            return `${sign}${compact(abs)}¢`;
+            return `${sign}${text}¢`;
           case "btc":
-            return `${sign}₿${compact(abs, 4)}`;
+            return `${sign}₿${text}`;
           case "sats":
-            return `${sign}${compact(abs)} sat`;
+            return `${sign}${text} sat`;
           case "percent":
-            return `${sign}${whole >= 1e4 ? compact(abs) : trim(abs, 3)}%`;
+            return `${sign}${text}%`;
           case "ratio":
-            return `${sign}${whole >= 1e4 ? compact(abs) : trim(abs, 3)}×`;
-          // (A signal's: true, anything but 0.)
-          case "signal":
-            return value ? "Yes" : "No";
+            return `${sign}${text}×`;
           case "bps":
-            return `${sign}${compact(abs)} bp`;
+            return `${sign}${text} bp`;
           case "hashrate":
-            // (976 EH/s: its SI letter on the H, as hash rates are said: a billion's G, a thousand's k.)
-            return ((short) => `${sign}${/[A-Z]$/.test(short) ? `${short.slice(0, -1)} ${({ B: "G", K: "k" })[short.slice(-1)] ?? short.slice(-1)}` : `${short} `}H/s`)(compact(abs));
-          case "count":
-            return whole < 1e4 ? `${sign}${grouped.format(abs)}` : `${sign}${compact(abs)}`;
+            // (976.1 EH/s: its SI letter on the H, as hash rates are said: a billion's G, a thousand's k.)
+            return `${sign}${/[A-Z]$/.test(text) ? `${text.slice(0, -1)} ${({ B: "G", K: "k" })[text.slice(-1)] ?? text.slice(-1)}` : `${text} `}H/s`;
           default:
-            return `${sign}${compact(abs)}`;
+            return `${sign}${text}`;
         }
       }
       /** An axis label is at most this many characters, its sign included; the price scales at most that wide. */
@@ -9803,15 +9803,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return digits === undefined ? NaN : (sign ? -1 : 1) * Number(digits) * 1000 ** Math.max(0, SI.indexOf(letter));
       }
       /**
-       * A value as the axis tags it where it's read rather than scanned (the latest's tag, the crosshair's, a drawing's):
-       * a digit or so more than a tick says, in as much room as the widest (PRECISE): thousands whole, grouped (82,156);
-       * under a thousand, four digits (123.4, 1.234, 0.01234); millions and up, four digits and a letter (1.235M).
+       * A value as it's read, everywhere (the legend, the panel, an axis's tags, the crosshair's, a drawing's), whatever
+       * its unit (see format): by the value alone, four to six digits, a digit or so more than a tick says, in as much
+       * room as the widest (PRECISE): thousands whole, grouped (82,156); under a thousand, four digits (123.4, 1.234,
+       * 0.01234); millions and up, four digits and a letter (1.235M).
        */
-      function axisPrecise(value, suffix = "") {
+      function precise(value, suffix = "") {
         const key = `p${value}${suffix}`, known = axisLabels.get(key);
         if (known !== undefined) return known;
         if (axisLabels.size > 4000) axisLabels.clear();
-        const abs = Math.abs(value) < 5e-10 ? 0 : Math.abs(value), sign = value < 0 && abs ? "−" : "";
+        // (A value as it is, the least too: unlike a tick's, no step's leftovers to round away.)
+        const abs = Math.abs(value), sign = value < 0 && abs ? "−" : "";
         const digits = (/** @type {number} */ n) => String(Number(n.toPrecision(4)));
         // (A thousand and up in four digits and a letter: 123.5M, 1.235B.)
         const lettered = (/** @type {number} */ n) => {
@@ -9821,14 +9823,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         // (Each threshold by the value as written: 999,999.6 is a million.)
         const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
-        // (Never wider than the scales are kept, its sign and suffix counted: a long one (−123,456, 0.0001234) said shorter.)
-        const room = PRECISE.length - sign.length - suffix.length;
-        const label = `${sign}${text.length <= room ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, room)}${suffix}`;
+        // (Never wider than PRECISE, its sign and suffix aside (the same figure wherever it's written: −123,456 as
+        // 123,456): a longer one (0.0001234) said shorter, its four digits kept (1.234e-4).)
+        const fit = text.length <= PRECISE.length ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
+        // (Past the last letter's thousands, a power of ten: 1.23e+30.)
+        const label = `${sign}${fit.length <= PRECISE.length ? fit : abs.toExponential(2)}${suffix}`;
         axisLabels.set(key, label);
         return label;
       }
-      /** The widest a precise tag is, its sign aside: the price scales at most as wide. */
-      const PRECISE = "000,000";
+      /** The widest a precise figure is, its sign and suffix aside (0.001234, 1.234e-5, 123,456). */
+      const PRECISE = "0.000000";
       function duration(seconds) {
         const days = Math.abs(seconds) / 86400;
         if (days * 24 < 1) return plural(Math.max(1, Math.round(days * 1440)), "minute");
@@ -9838,15 +9842,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return `${(days / 365.25).toFixed(1)} years`;
       }
 
-      /** Relative change between two values, unsigned: "12.3%", or "17×" once it has grown tenfold; null when it has no meaning. */
+      /** Relative change between two values, unsigned: "12.34%", or "17.25×" once it has grown tenfold; null when it has no meaning. */
       function growth(from, to) {
         if (!(from > 0) || !(to >= 0)) return null;
         const ratio = to / from;
-        return { up: ratio >= 1, text: ratio >= 10 ? `${compact(ratio)}×` : `${trim(Math.abs(ratio - 1) * 100, 3)}%` };
+        return { up: ratio >= 1, text: ratio >= 10 ? `${precise(ratio)}×` : `${precise(Math.abs(ratio - 1) * 100)}%` };
       }
 
       /** An unsigned difference in a unit: percentages differ by points, ratios by plain numbers. */
-      const amount = (delta, unit) => (unit === "percent" ? `${trim(Math.abs(delta), 3)} pt` : format(Math.abs(delta), unit === "ratio" ? "number" : unit));
+      const amount = (delta, unit) => (unit === "percent" ? `${precise(Math.abs(delta))} pt` : format(Math.abs(delta), unit === "ratio" ? "number" : unit));
 
       /** Words of series names and catalog folders, written the way people write them. */
       const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "asopr", "nupl", "nvt", "usd", "btc", "ath", "sma", "ema", "utxo", "ohlc", "op", "rsi", "macd", "cdd", "vdd", "vocdd", "hodl", "rhodl", "ppm", "pct", "rbf", "cpfp", "tx", "vb", "vbytes", "cagr", "dca", "pnl", "urpd"]);
@@ -12638,7 +12642,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function axisWidth() {
         const context = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
         context.font = `500 11px ${chartSans}`;
-        const width = Math.ceil(1 + 5 + (2 * 5 * 11) / 12 + 5 + Math.max(context.measureText("0".repeat(AXIS_CHARS)).width, context.measureText(PRECISE).width));
+        const width = Math.ceil(1 + 5 + (2 * 5 * 11) / 12 + 5 + Math.max(context.measureText("0".repeat(AXIS_CHARS)).width, context.measureText(`−${PRECISE}%`).width));
         return width + (width % 2);
       }
       /** The chart's colors, the theme's (set again when it changes). */
@@ -12672,7 +12676,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
           timeScale: { borderVisible: false, rightOffsetPixels: 48, minVisibleDataRatio: ON_DATA, bvHoldOnAxes: true, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, allowBoldLabels: false },
-          localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => axisPrecise(value, "%"), tickmarksPercentageFormatter: (values) => axisTicks(values, "%") },
+          localization: { locale: "en-US", timeFormatter: (time) => dateLabel(Number(time), FINE.has(chart.index)), percentageFormatter: (value) => precise(value, "%"), tickmarksPercentageFormatter: (values) => axisTicks(values, "%") },
         };
       }
 
@@ -13148,10 +13152,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             lastValueVisible: !layer.hidden && !stack && !signal,
             ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
-            // (Its ticks short; its latest's tag and the crosshair's, a digit or so more: see axisPrecise.)
+            // (Its ticks short; its latest's tag and the crosshair's, a digit or so more: see precise.)
             priceFormat: shares.has(layer.pane)
-              ? { type: /** @type {const} */ ("custom"), formatter: (value) => (value > 100.5 || value < -0.5 ? "" : axisPrecise(value, "%")), tickmarksFormatter: (values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)), minMove: 1e-9 }
-              : { type: /** @type {const} */ ("custom"), formatter: (value) => axisPrecise(value), tickmarksFormatter: (values) => axisTicks(values), minMove: 1e-9 },
+              ? { type: /** @type {const} */ ("custom"), formatter: (value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), tickmarksFormatter: (values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)), minMove: 1e-9 }
+              : { type: /** @type {const} */ ("custom"), formatter: (value) => precise(value), tickmarksFormatter: (values) => axisTicks(values), minMove: 1e-9 },
           };
           const lineWidth = /** @type {any} */ (layer.width);
           const pane = paneIndex.get(layer.pane) ?? 0;
@@ -15729,7 +15733,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return (/** @type {number} */ value) => {
             if (!base) return "";
             const change = (100 * (value - base)) / Math.abs(base);
-            return mode === 2 ? axisPrecise(change, "%") : axisPrecise(base < 0 ? change - 100 : change + 100);
+            return mode === 2 ? precise(change, "%") : precise(base < 0 ? change - 100 : change + 100);
           };
         }
         timeAxisViews() {
@@ -17684,7 +17688,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               }) : null;
               // (Where a baseline's colors and bars part, as opposed to the base a percent or indexed scale counts from.)
               const parts = baseOf(layer);
-              return { layer, mode, scaled, values, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : band ? band.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, stack: stacked.has(layer.id) };
+              return { layer, mode, from: base, scaled, values, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : band ? band.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, stack: stacked.has(layer.id) };
             });
             // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it,
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
@@ -17726,7 +17730,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                   }
                 }
               }
-              const text = (/** @type {{ at: number, item: any }} */ end) => (pane.stack === "percent" ? format(end.at, "percent") : end.item.mode === 2 ? format(end.at * 100, "percent") : end.item.mode >= 3 ? trim((1 + end.at) * 100, 4) : format(end.item.mode === 1 ? 10 ** end.at : end.at, unitFor(end.item.layer, data.results.get(end.item.layer.id))));
+              const text = (/** @type {{ at: number, item: any }} */ end) => (pane.stack === "percent" ? format(end.at, "percent") : end.item.mode === 2 ? format(end.at * 100, "percent") : end.item.mode >= 3 ? precise(end.at * 100 + (end.item.from < 0 ? -100 : 100)) : format(end.item.mode === 1 ? 10 ** end.at : end.at, unitFor(end.item.layer, data.results.get(end.item.layer.id))));
               if (most) drawn.scales.push({ y: y(most.at), text: text(most), side });
               if (least && least.at !== most?.at) drawn.scales.push({ y: y(least.at), text: text(least), side });
             }

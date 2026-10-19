@@ -355,3 +355,15 @@ undo it. The chart's own width changing (a resize), it's the library's as before
 `tests.html` leaves it unset. Checked in Studio (no `minimumWidth`, each scale as wide as its labels): pans, flings, wheel
 and pinch zooms with a right scale widening and narrowing as they go, every bar where the move puts it, never a frame
 off; resizes as before.
+
+## 21. A price scale's width before it's laid out: 0
+
+`priceScale(side).width()` of a scale made visible (`visible: true`) before the chart lays it out (its axis drawn next)
+threw ("Value is null": the pane's axis widget not made yet). It's 0 until then, as the room it takes: the plot's
+width and the scales' then still add up to the chart's.
+
+- `class` of the chart widget, the price axis's width (`Dg(t)`): `return("left"===t?this.ng[0].yw():this.ng[0].Pw())?.Tm()??0`
+  for `return a("left"===t?this.ng[0].yw():this.ng[0].Pw()).Tm()`.
+
+`tests.html` doesn't read a scale's width then. Checked in Studio: a layer on a pane's left scale, the first there, the
+chart's width read as it's added.
