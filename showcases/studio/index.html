@@ -11497,8 +11497,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function viewOn(left, index, times) {
         if (left.index === index) return { from: logicalOf(left.from, times, index), to: logicalOf(left.to, times, index) };
         const { start, end } = viewTimes(left), last = /** @type {number} */ (times.at(-1)), lastIndex = indexAt(index, last);
-        // The bar holding a time: on the data, the point at or before it; past it, counted by the calendar.
-        const barOf = (/** @type {number} */ time) => (time <= last ? Math.max(0, lowerBound(times, time + 1) - 1) : times.length - 1 + indexAt(index, time) - lastIndex);
+        // The bar holding a time: on the data, the point at or before it; past it, counted by the calendar (before it, by
+        // its bars' length: the room before the data kept, as after it, or Auto would find the view narrower and go back).
+        const barOf = (/** @type {number} */ time) => (time < times[0] ? (time - times[0]) / (INTERVAL_DAYS[index] * 86400) : time <= last ? Math.max(0, lowerBound(times, time + 1) - 1) : times.length - 1 + indexAt(index, time) - lastIndex);
         // Its first bar to its last whole, no further past the data than the chart's own room on the right (at the view's
         // own spacing); only a few bars here (two days, at a week): thirty, ending where it did.
         // (Over as many bars as the chart shows at most; no chart to measure, none past the data.)
@@ -11510,7 +11511,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A kept view's stretch of time: from the start of its first bar to the end of its last, at its own interval. */
       function viewTimes(left) {
         const bar = (/** @type {[number, number]} */ [time, bars]) => Math.floor(indexAt(left.index, time) + bars);
-        return { start: timeAt(left.index, bar(left.from)), end: timeAt(left.index, bar(left.to) + 1) };
+        // (A bar before the calendar's first, by its length from there.)
+        const timeOf = (/** @type {number} */ i) => (i >= 0 ? timeAt(left.index, i) : timeAt(left.index, 0) + i * INTERVAL_DAYS[left.index] * 86400);
+        return { start: timeOf(bar(left.from)), end: timeOf(bar(left.to) + 1) };
       }
       let viewTimer = 0;
       /** Keeps where the open chart is, a moment after it stops moving. */
@@ -14697,9 +14700,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const rangeSpan = (range) => (range === "max" || !rangeDays(range) ? (Date.now() / 1000 - GENESIS) / 86400 : rangeDays(range));
       /** The interval the open Auto chart's view asks for (none drawn, nothing in it: its range's). */
       function autoWanted() {
-        const span = view.timeScale().getVisibleRange();
-        return autoPick(chart, span ? (Number(span.to) - Number(span.from)) / 86400 : rangeSpan(chart.range), view.timeScale().width() || $("chart").clientWidth);
+        return autoPick(chart, viewDays() ?? rangeSpan(chart.range), view.timeScale().width() || $("chart").clientWidth);
       }
+      /**
+       * The days the view spans, by its bars at its interval: past the data's ends too (time all the same: scrolled to the
+       * start, or past what a fine interval's loaded, it's no narrower than it shows). Nothing drawn, none.
+       */
+      const viewDays = () => ((range) => (range && resolved?.times.length ? (range.to - range.from) * INTERVAL_DAYS[chart.index] : null))(view.timeScale().getVisibleLogicalRange());
       /** An Auto chart about to be drawn: at the interval its view as left asks for, else its range's (not one, then another). @param {Chart} doc */
       function autoPrepare(doc) {
         if (!doc.auto) return;
@@ -14725,7 +14732,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function autoNear() {
         const ids = autoIntervals(chart), at = ids.indexOf(chart.index), span = view.timeScale().getVisibleRange();
         if (at < 0 || !span) return;
-        const from = Number(span.from), to = Number(span.to), most = autoMost(chart, view.timeScale().width()), points = (/** @type {string} */ id) => (to - from) / 86400 / INTERVAL_DAYS[id];
+        const from = Number(span.from), to = Number(span.to), days = viewDays() ?? (to - from) / 86400, most = autoMost(chart, view.timeScale().width()), points = (/** @type {string} */ id) => days / INTERVAL_DAYS[id];
         const next = points(chart.index) > most * 0.9 ? ids[at + 1] : ids[at - 1] && points(ids[at - 1]) <= most * 1.2 ? ids[at - 1] : undefined;
         const key = JSON.stringify([chart.id, chart.index, next, Math.round(from / (to - from || 1)), Math.round(to / (to - from || 1)), seriesIn(chart)]);
         if (!next || key === nearFor) return;
