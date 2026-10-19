@@ -9614,39 +9614,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         { id: "volatility", label: "Volatility", text: "Its annualized volatility over 30 days, in %", formulas: ["volatility(X, 30d)"], over: false },
         { id: "drawdown", label: "Drawdown", text: "How far below its highest so far, in %", formulas: ["drawdown(X)"], over: false },
       ];
-      /**
-       * A transform a layer had before (sma, ema, change, zscore, log over a window) as the formula of `of` it is now: a
-       * window from before in points, or without a unit, in days (what it was at 1D). Null for none.
-       */
-      function transformFormula(/** @type {any} */ transform, /** @type {string} */ of) {
-        const fn = transform?.fn;
-        if (!["sma", "ema", "change", "zscore", "log"].includes(fn)) return null;
-        if (fn === "log") return `log(${of})`;
-        const n = Number(transform.n), letters = { hour: "h", day: "d", week: "w", month: "mo", year: "y" };
-        if (!(n > 0 && n <= 100000)) return `${fn}(${of}, ${fn === "zscore" ? "1y" : "30d"})`;
-        return `${fn}(${of}, ${n}${typeof transform.unit === "string" && Object.hasOwn(letters, transform.unit) ? letters[/** @type {keyof typeof letters} */ (transform.unit)] : "d"})`;
-      }
-      /**
-       * A formula as this version writes it: a percentile's span last (it came before p: the one with a unit), and the
-       * all-time high and the cumulative sum as the spanless highest and sum they are now.
-       */
-      function currentFormula(/** @type {string} */ text) {
-        let out = text.replace(/\bath\s*\(/g, "highest(").replace(/\bcum\s*\(/g, "sum(");
-        const unit = /[\d.](?:mo|[hdwy])(?![a-z0-9_])/;
-        // Each percentile's arguments, the last first (its own, then those around it).
-        for (const open of [...out.matchAll(/\bpercentile\s*\(/g)].map((match) => (match.index ?? 0) + match[0].length).reverse()) {
-          const args = [];
-          let depth = 0, start = open, end = -1;
-          for (let i = open; i < out.length && end < 0; i++) {
-            if (out[i] === "(") depth++;
-            else if (out[i] === ")" && depth) depth--;
-            else if (out[i] === ")") (args.push(out.slice(start, i)), (end = i));
-            else if (out[i] === "," && !depth) args.push(out.slice(start, i)), (start = i + 1);
-          }
-          if (end >= 0 && args.length === 3 && unit.test(args[1]) && !unit.test(args[2])) out = `${out.slice(0, open)}${args[0]}, ${args[2].trim()}, ${args[1].trim()}${out.slice(end)}`;
-        }
-        return out;
-      }
       /** Line widths in pixels, by halves up to 5: the width slider's stops (the chart draws halves crisply on dense screens). */
       const WIDTHS = Array.from({ length: 10 }, (_, i) => (i + 1) / 2);
       /** Opacities, in tenths: the opacity slider's stops. */
@@ -27508,7 +27475,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const spec = {
             ...(madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
-              : { formula: currentFormula(String(layer.formula ?? "").slice(0, 1000)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
+              : { formula: String(layer.formula ?? "").slice(0, 1000), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
             color: isColor(layer.color) ? layer.color : undefined,
             type: made ?? (TYPES.some(([type]) => type === layer.type) || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
@@ -27537,18 +27504,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(typeof layer.underName === "string" && layer.underName.trim() && levelsOf(layer.levels) ? { underName: layer.underName.trim().slice(0, 40) } : {}),
             baseLine: Object.keys(lineStyleOf(layer.baseLine)).length ? lineStyleOf(layer.baseLine) : undefined,
           };
-          // A transform from before is the formula it was: a series layer becomes a formula of its series (named as it
-          // showed, a line: a formula has no candles).
-          const was = spec.from ? "" : transformFormula(layer.transform, spec.series ?? spec.formula ?? "");
-          if (was && spec.series) {
-            const span = /, ([^)]+)\)$/.exec(was)?.[1];
-            spec.label ??= `${humanize(spec.series)} (${{ sma: "SMA", ema: "EMA", change: "Δ%", zscore: "Z", log: "Log" }[layer.transform.fn]}${span ? ` ${span}` : ""})`;
-            if (spec.path) spec.paths = { [spec.series]: spec.path };
-            spec.formula = was;
-            delete spec.series;
-            delete spec.path;
-            if (spec.type === "candles") spec.type = "line";
-          } else if (was) spec.formula = was;
           const id = idOf(layer.id);
           if (typeof layer.id === "string") layerIds.set(layer.id, id);
           doc.layers.push(makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id }, doc));
