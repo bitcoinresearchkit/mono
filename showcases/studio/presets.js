@@ -744,21 +744,20 @@ export function studioPresets(client) {
   }
   /** Pools: their shares compared, then each pool, by name. */
   function poolCharts() {
-    const list = entries(t.pools).filter(([, node]) => node.blocksMined).map(([key, node]) => /** @type {[string, any, string]} */ ([key, node, client.POOL_ID_TO_POOL_NAME[key.replace(/^_/, "")] ?? key])).sort((a, b) => a[2].localeCompare(b[2]));
+    const list = entries(t.pools).filter(([, node]) => node.blockCount).map(([key, node]) => /** @type {[string, any, string]} */ ([key, node, client.POOL_ID_TO_POOL_NAME[key.replace(/^_/, "")] ?? key])).sort((a, b) => a[2].localeCompare(b[2]));
     // (Those mining most of the blocks in recent years: compared, and first; the others after, by name.)
     const MAJOR = ["foundryusa", "antpool", "viabtc", "f2pool", "marapool", "spiderpool", "binancepool", "luxor", "secpool", "braiinspool", "ocean", "poolin", "btccom", "unknown"];
     const major = MAJOR.flatMap((key) => list.filter(([k]) => k.replace(/^_/, "") === key)), others = list.filter((pool) => !major.includes(pool)), colors = ramp(major.length);
     /** A pool's charts. @param {[string, any, string]} pool */
     const pool = ([, node, name]) => section(name, [
-      ...flow(node.blocksMined, "Blocks mined", `Blocks mined: ${name}`),
-      chart("Share", `Share of blocks: ${name}`, sharesOf(node.share, "Share")),
+      counted(node.blockCount, "Blocks mined", `Blocks mined: ${name}`, node.blockShare),
       ...flow(node.rewards, "Rewards", `Rewards: ${name}`),
       chart("Fees per block", `Fees per block: ${name}`, [...windows(node.feesPerBlock, "Bitcoin", { pick: btc }), ...windows(node.feesPerBlock, "Dollars", { pick: usd, pane: 2 })], { log: [1, 2] }),
       chart("Hash rate", `Hash rate: ${name}`, windows(node.hashrate, ""), { log: [1] }),
     ]);
     return [
       section("Compare", [
-        chart("Share, 1 month", "Mining pools' share of blocks, 1 month", major.map(([, node, name], i) => series(node.share._1m, name, { color: colors[i], type: "area" })), { stack: { 1: "stack" } }),
+        chart("Share, 1 month", "Mining pools' share of blocks, 1 month", major.map(([, node, name], i) => series(node.blockShare._1m, name, { color: colors[i], type: "area" })), { stack: { 1: "stack" } }),
         chart("Hash rate, 1 month", "Mining pools' hash rate, 1 month", major.map(([, node, name], i) => series(node.hashrate._1m, name, { color: colors[i] })), { log: [1] }),
       ]),
       ...major.map(pool),

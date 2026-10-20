@@ -42,7 +42,7 @@ impl Query {
             .pools
             .by_slug
             .iter()
-            .map(|(id, v)| (id, &v.blocks_mined.cumulative.height))
+            .map(|(id, v)| (id, &v.block_count.cumulative.height))
         {
             let count_at_end: u64 = *cumulative.collect_one(tip).data()?;
 
@@ -138,7 +138,7 @@ impl Query {
         let vecs = plugins.pools.by_slug.get(&slug).ok_or(Error::Internal(
             "pool slug present in static list but missing from pools",
         ))?;
-        let cumulative = &vecs.blocks_mined.cumulative.height;
+        let cumulative = &vecs.block_count.cumulative.height;
 
         let total_all: u64 = *cumulative.collect_one(tip).data()?;
 
@@ -289,7 +289,7 @@ impl Query {
             .ok_or(Error::Internal(
                 "pool slug present in static list but missing from pools",
             ))?
-            .blocks_mined
+            .block_count
             .cumulative
             .day1
             .read_sorted_at(days);

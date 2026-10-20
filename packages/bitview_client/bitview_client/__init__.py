@@ -3614,14 +3614,14 @@ class Ranges10yTo12ySupply(_Node):
     matured: OpReturnValue = _at(OpReturnValue, '*_matured_supply')
 
 
-class BlocksMined(_Node):
+class BlockCount(_Node):
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_cumulative')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_sum')
 
 
 class Pools175btc(_Node):
-    blocks_mined: BlocksMined = _at(BlocksMined, '*_blocks_mined')
-    share: TxShare = _at(TxShare, '*_share')
+    block_count: BlockCount = _at(BlockCount, '*_block_count')
+    block_share: TxShare = _at(TxShare, '*_block_share')
     rewards: Pools175btcRewards = _at(Pools175btcRewards, '*_rewards')
     fees_per_block: Sum = _at(Sum, '*_fees_per_block')
     hashrate: InputsPerSecond[Optional[Hashrate]] = _at(InputsPerSecond, '*_hashrate')

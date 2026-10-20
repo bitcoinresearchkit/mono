@@ -347,9 +347,9 @@ has to be deleted by hand.
   `op_return_output_count`, shared with outputs). Policy ids drop `policy_` (`op_return_oversized_tx_count`, was
   `op_return_policy_oversized_tx_count`)
 - Pools have one shape at `pools.<slug>` (were `pools.major.<slug>` for 22 pools with rewards and `pools.minor.<slug>`
-  for the rest), ids `pool_<slug>_...` (`pool_foundryusa_share_1m`; were `foundryusa_...`): `blocks_mined`
-  (cumulative and window sums; the per-block 0/1 and the major pools' per-block
-  `<slug>_rewards` are gone), `share` (all time and per window; was `dominance`), `rewards` (BTC and USD, cumulative and
+  for the rest), ids `pool_<slug>_...` (`pool_foundryusa_block_share_1m`; were `foundryusa_...`): `block_count`
+  (cumulative and window sums; was `blocks_mined`; the per-block 0/1 and the major pools' per-block `<slug>_rewards`
+  are gone), `block_share` (all time and per window; was `dominance`), `rewards` (BTC and USD, cumulative and
   window sums), `fees_per_block` (fees of the pool's blocks per block it mined, per window, BTC and USD; empty when it
   mined none) and `hashrate` (its window share of blocks times the network hash-rate estimate). All are read from
   in-memory per-pool running totals: the pools plugin stores only the per-block attribution (`pools.block_pool`, id
@@ -479,7 +479,7 @@ has to be deleted by hand.
   at the index's first row at every index, dates before 1970 included (minute, hour, height, epoch and halving ranges
   started at 0, day3's came back empty, the other calendar indexes answered 400 "date/timestamp ranges not
   supported", and a date before 1970 wrapped around to a later one)
-- Ten pools take their API slug in their tree key and series ids like every other pool: `pools.1thash`, `1thash_*`,
+- Ten pools take their API slug in their tree key and series ids like every other pool: `pools.1thash`, `pool_1thash_*`,
   and likewise `175btc`, `50btc`, `21inc`, `8baochi`, `1hash`, `58coin`, `7pool`, `1m1x` and `solopoolcom` (were
   `onethash`, `pool175btc`, `pool50btc`, `twentyoneinc`, `eightbaochi`, `onehash`, `fiftyeightcoin`, `sevenpool`,
   `onem1x` and `solopool`)

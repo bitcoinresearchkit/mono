@@ -4333,25 +4333,25 @@ const _Ranges10yTo12ySupply = _s({
  * @typedef {{
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
- * }} BlocksMined
+ * }} BlockCount
  */
-const _BlocksMined = _s({
+const _BlockCount = _s({
   cumulative: [_i1, '*_cumulative'],
   sum: [_InputsPerSecond, '*_sum'],
 });
 
 /**
  * @typedef {{
- *   blocksMined: BlocksMined,
- *   share: TxShare,
+ *   blockCount: BlockCount,
+ *   blockShare: TxShare,
  *   rewards: Pools175btcRewards,
  *   feesPerBlock: Sum,
  *   hashrate: InputsPerSecond<?Hashrate>,
  * }} Pools175btc
  */
 const _Pools175btc = _s({
-  blocksMined: [_BlocksMined, '*_blocks_mined'],
-  share: [_TxShare, '*_share'],
+  blockCount: [_BlockCount, '*_block_count'],
+  blockShare: [_TxShare, '*_block_share'],
   rewards: [_Pools175btcRewards, '*_rewards'],
   feesPerBlock: [_Sum, '*_fees_per_block'],
   hashrate: [_InputsPerSecond, '*_hashrate'],

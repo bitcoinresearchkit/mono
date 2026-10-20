@@ -1163,13 +1163,13 @@ pub mod tree {
         in_loss: AvgBalance = "*_supply_in_loss",
         matured: OpReturnValue = "*_matured_supply",
     } }
-    shape! { BlocksMined at "series().pools._175btc.blocks_mined" {
+    shape! { BlockCount at "series().pools._175btc.block_count" {
         cumulative: SeriesPattern1<Count> = "*_cumulative",
         sum: InputsPerSecond<Count> = "*_sum",
     } }
     shape! { Pools175btc at "series().pools._175btc" {
-        blocks_mined: BlocksMined = "*_blocks_mined",
-        share: TxShare = "*_share",
+        block_count: BlockCount = "*_block_count",
+        block_share: TxShare = "*_block_share",
         rewards: Pools175btcRewards = "*_rewards",
         fees_per_block: Sum = "*_fees_per_block",
         hashrate: InputsPerSecond<Option<Hashrate>> = "*_hashrate",

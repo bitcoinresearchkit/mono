@@ -16,10 +16,10 @@ use crate::pool_heights::{Column, PoolCumulativeVec, PoolHeights};
 #[derive(Clone, Traversable)]
 pub struct PoolVecs {
     /// Blocks attributed to the pool.
-    pub blocks_mined: BlocksMined,
+    pub block_count: BlockCount,
     /// Share of all blocks attributed to the pool: from genesis through the represented block
     /// (`cumulative`) or over a trailing window.
-    share: Share,
+    block_share: BlockShare,
     /// Coinbase output value of the pool's blocks, with USD valuing each block's reward at its
     /// spot price.
     pub rewards: Rewards,
@@ -32,14 +32,14 @@ pub struct PoolVecs {
 }
 
 #[derive(Clone, Traversable)]
-pub struct BlocksMined {
+pub struct BlockCount {
     /// Through the represented block, from genesis.
     pub cumulative: LazyPerBlock<Count>,
     pub sum: LazyRollingSumsFromHeight<Count>,
 }
 
 #[derive(Clone, Traversable)]
-pub struct Share {
+pub struct BlockShare {
     pub cumulative: LazyPercentPerBlock<PartsPerMillion32>,
     #[traversable(flatten)]
     pub windows: LazyPercentRollingWindows<PartsPerMillion32>,
@@ -75,7 +75,7 @@ impl PoolVecs {
     ) -> Self {
         let name = |suffix: &str| format!("pool_{slug}_{suffix}");
         let blocks = PoolCumulativeVec::<Count>::new(
-            &name("blocks_mined_cumulative_source"),
+            &name("block_count_cumulative_source"),
             slug,
             Column::Blocks,
             pool_heights.clone(),
@@ -105,8 +105,8 @@ impl PoolVecs {
             pool_heights.clone(),
         );
 
-        let blocks_name = name("blocks_mined");
-        let blocks_mined = BlocksMined {
+        let blocks_name = name("block_count");
+        let block_count = BlockCount {
             cumulative: LazyPerBlock::from_height_source::<Ident>(
                 &format!("{blocks_name}_cumulative"),
                 version,
@@ -122,8 +122,8 @@ impl PoolVecs {
             ),
         };
 
-        let share_name = name("share");
-        let share = Share {
+        let share_name = name("block_share");
+        let block_share = BlockShare {
             cumulative: LazyPercentPerBlock::from_height_source(
                 &format!("{share_name}_cumulative"),
                 version,
@@ -165,7 +165,7 @@ impl PoolVecs {
 
         let fees_name = name("fees_per_block");
         let fees_per_block =
-            window_starts.zip_with_suffix(&blocks_mined.sum, |suffix, start, blocks| {
+            window_starts.zip_with_suffix(&block_count.sum, |suffix, start, blocks| {
                 let full_name = format!("{fees_name}_{suffix}");
                 let sats = LazyDeltaVec::<Height, Sats, Sats, DeltaSub>::new(
                     &format!("{full_name}_sats_sum"),
@@ -212,7 +212,7 @@ impl PoolVecs {
             });
 
         let hashrate_name = name("hashrate");
-        let shares = window_starts.zip_with_suffix(&blocks_mined.sum, |suffix, start, blocks| {
+        let shares = window_starts.zip_with_suffix(&block_count.sum, |suffix, start, blocks| {
             // The window's exact share of blocks; the published share is rounded to ppm.
             LazyIndexedVec::new(
                 &format!("{hashrate_name}_{suffix}_share_source"),
@@ -240,8 +240,8 @@ impl PoolVecs {
         });
 
         Self {
-            blocks_mined,
-            share,
+            block_count,
+            block_share,
             rewards,
             fees_per_block,
             hashrate,
