@@ -44,7 +44,7 @@ where
     let (output, complete) = compute(plugins, context)?;
     let _lock = context.exit().lock();
     plugins.commit(complete)?;
-    info!("Update completed in {:.2?}", start.elapsed());
+    info!("Update published in {:.2?}", start.elapsed());
     plugins.write_published()?;
     Ok(output)
 }

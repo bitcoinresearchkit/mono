@@ -304,6 +304,14 @@ impl Query {
         self.indexer().tip_blockhash()
     }
 
+    /// The published tip's height and hash, from one pin; `None` before genesis.
+    pub fn tip_block(&self) -> Option<(Height, BlockHash)> {
+        let pin = self.indexer().pin();
+        pin.lengths()
+            .last_height()
+            .map(|height| (height, pin.tip()))
+    }
+
     /// Build sync status entirely from one safely published local snapshot.
     pub fn local_sync_status(&self) -> Result<SyncStatus> {
         self.sync_status_from(None)

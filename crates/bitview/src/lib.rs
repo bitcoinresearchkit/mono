@@ -2,7 +2,11 @@
 
 #[cfg(feature = "price")]
 use std::thread;
-use std::{path::PathBuf, thread::sleep, time::Duration};
+use std::{
+    path::PathBuf,
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
 use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig};
@@ -148,7 +152,15 @@ where
 
         info!("Chain tip changed; updating...");
 
+        let start = Instant::now();
         update(&mut plugins, update_context)?;
+        let (height, hash) = query
+            .sync(|q| q.tip_block())
+            .expect("an update publishes at least genesis");
+        info!(
+            "Updated to block {height} {hash} in {:.2?}",
+            start.elapsed()
+        );
         #[cfg(feature = "price")]
         published.published();
 
